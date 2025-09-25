@@ -6,6 +6,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 
 /**
  * JWT Authentication configuration and utilities for protecting routes.
@@ -13,16 +15,28 @@ import io.ktor.server.routing.*
 object JwtAuth {
     const val JWT_AUTH = "jwt-auth"
     
+    // Use the same secret as JwtUtil
+    private val jwtSecret = System.getenv("JWT_SECRET") ?: "ubaa-default-jwt-secret-change-in-production"
+    private val algorithm = Algorithm.HMAC256(jwtSecret)
+    private const val issuer = "ubaa-server"
+    private const val audienceClaim = "ubaa-users"
+    
     /**
      * Configures JWT authentication for the Ktor application.
      */
     fun Application.configureJwtAuth() {
         install(Authentication) {
             jwt(JWT_AUTH) {
-                verifier { JwtUtil.validateTokenAndGetUsername(it) != null }
+                verifier(
+                    JWT.require(algorithm)
+                        .withIssuer(issuer)
+                        .withAudience(audienceClaim)
+                        .build()
+                )
                 validate { credential ->
-                    val username = JwtUtil.validateTokenAndGetUsername(credential.payload.getClaim("username").asString())
-                    if (username != null) {
+                    val username = credential.payload.subject
+                    if (username != null && 
+                        GlobalSessionManager.instance.getSession(username) != null) {
                         JWTPrincipal(credential.payload)
                     } else {
                         null
