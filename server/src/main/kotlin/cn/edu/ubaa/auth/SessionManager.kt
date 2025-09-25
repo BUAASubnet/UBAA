@@ -1,6 +1,7 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.UserData
+import cn.edu.ubaa.utils.JwtUtil
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout

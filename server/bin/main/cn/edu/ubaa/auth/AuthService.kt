@@ -5,6 +5,7 @@ import cn.edu.ubaa.model.dto.LoginResponse
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfoResponse
 import cn.edu.ubaa.model.dto.UserStatusResponse
+import cn.edu.ubaa.utils.JwtUtil
 import io.ktor.client.HttpClient
 import io.ktor.client.request.* 
 import io.ktor.client.request.forms.* 

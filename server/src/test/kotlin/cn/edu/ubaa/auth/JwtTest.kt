@@ -1,6 +1,7 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.UserData
+import cn.edu.ubaa.utils.JwtUtil
 import java.time.Duration
 import kotlin.test.*
 
