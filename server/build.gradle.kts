@@ -35,6 +35,11 @@ dependencies {
     // Jsoup
     implementation(libs.jsoup)
 
+    // JWT
+    implementation("io.ktor:ktor-server-auth-jvm:3.3.0")
+    implementation("io.ktor:ktor-server-auth-jwt-jvm:3.3.0")
+    implementation("com.auth0:java-jwt:4.4.0")
+
     // Test
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)

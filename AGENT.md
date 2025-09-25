@@ -182,14 +182,30 @@ GET /api/v1/students/{studentId}/courses
 
 #### **d. 认证**
 
-*   **登录端点**: 登录端点（例如 `POST /api/v1/auth/login`）是唯一接受用户名和密码的公共端点。
-*   **会话令牌**: 成功登录后，服务器将生成一个安全的会话令牌（例如 JWT）并返回给客户端。
-*   **认证请求**: 对于所有后续对受保护端点的请求，客户端必须在 `Authorization` HTTP 头中使用 `Bearer` 方案包含会话令牌。
+*   **登录端点**: 登录端点 `POST /api/v1/auth/login` 是唯一接受用户名和密码的公共端点。
+*   **JWT 令牌**: 成功登录后，服务器将生成一个安全的 JWT（JSON Web Token）令牌并在响应中返回，格式为：
+    ```json
+    {
+      "user": {
+        "name": "用户姓名",
+        "schoolid": "学号"
+      },
+      "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    }
+    ```
+*   **认证请求**: 对于所有后续对受保护端点的请求，客户端必须在 `Authorization` HTTP 头中使用 `Bearer` 方案包含 JWT 令牌。
+*   **令牌验证**: 客户端可通过 `GET /api/v1/auth/status` 端点验证令牌有效性并获取会话状态。
 
 **示例:**
 ```
-Authorization: Bearer <your-session-token>
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ```
+
+**JWT 令牌特性:**
+- 令牌有效期与会话 TTL 一致（默认 30 分钟）
+- 包含用户身份信息和签发时间
+- 支持自动续期机制（活跃会话延长有效期）
+- 使用 HMAC256 算法签名确保安全性
 
 #### **e. 标准化响应与错误处理**
 
@@ -267,3 +283,46 @@ Authorization: Bearer <your-session-token>
   * 对复用的会话再次访问受保护接口前，应在业务逻辑中处理 401/302，必要时触发重新登录。
   * 如果未来需要跨平台共享，会话接口可在 `shared` 模块定义 expect/actual 形式的抽象，由各平台提供实现。
   * 若需要定期清理长时间未使用的会话，可结合 `cleanupExpiredSessions()` 与调度任务统一执行，保持缓存轻量。
+
+### **8. JWT 认证与会话管理**
+
+项目现已集成 JWT（JSON Web Token）认证机制，每个 JWT 令牌对应一个用户会话，提供更安全的无状态认证方案。
+
+* **JWT 组件架构**
+  * `JwtUtil`：JWT 令牌生成、验证和解析工具类，使用 HMAC256 签名算法
+  * `SessionManager.SessionWithToken`：包含会话与 JWT 令牌的数据结构
+  * `JwtAuth`：JWT 认证中间件和工具函数集合
+  * `AuthService.loginWithToken()`：支持 JWT 的登录方法
+  * JWT 令牌到用户名的映射表，支持快速会话检索
+
+* **JWT 令牌特性**
+  * 使用 HMAC256 算法签名，密钥可通过环境变量 `JWT_SECRET` 配置
+  * 令牌过期时间与会话 TTL 保持一致（默认 30 分钟）
+  * 包含用户名、签发时间、过期时间等标准声明
+  * 支持令牌有效性验证和过期检测
+
+* **认证流程**
+  1. **登录**: 调用 `POST /api/v1/auth/login`，成功后返回 `LoginResponse` 包含用户信息和 JWT 令牌
+  2. **令牌使用**: 客户端在后续请求中携带 `Authorization: Bearer <jwt-token>` 头
+  3. **会话验证**: 调用 `GET /api/v1/auth/status` 验证令牌有效性并获取会话状态
+  4. **自动续期**: 活跃会话在访问时自动更新最后活动时间，延长有效期
+
+* **开发使用指南**
+  * 使用 `sessionManager.getSessionByToken(jwt)` 通过令牌获取会话
+  * 使用 `sessionManager.requireSessionByToken(jwt)` 强制获取会话（失败时抛异常）
+  * 受保护路由可使用 `authenticatedRoute { }` 包装，自动验证 JWT
+  * 通过 `call.getUserSession()` 在路由中获取当前用户会话
+  * 调用 `sessionManager.invalidateSessionByToken(jwt)` 使特定令牌失效
+
+* **安全考虑**
+  * JWT 密钥应在生产环境中设置为强随机字符串
+  * 令牌在传输过程中应使用 HTTPS 保护
+  * 客户端应安全存储令牌（移动端使用 Keychain/Keystore，Web 使用 HttpOnly Cookie）
+  * 支持令牌撤销机制，通过 `invalidateSessionByToken` 主动失效令牌
+  * 定期清理过期令牌和会话，防止内存泄漏
+
+* **与 SessionManager 的集成**
+  * 每个 JWT 令牌唯一映射到一个用户会话
+  * 令牌过期与会话过期保持同步
+  * 支持同一用户的多个有效令牌（如多设备登录）
+  * 会话失效时自动清理所有关联的 JWT 令牌

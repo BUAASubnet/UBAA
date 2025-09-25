@@ -13,3 +13,9 @@ data class UserData(
     val name: String,
     val schoolid: String
 )
+
+@Serializable
+data class LoginResponse(
+    val user: UserData,
+    val token: String
+)
