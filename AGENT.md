@@ -129,11 +129,12 @@ sequenceDiagram
 | `shared/src/jvmMain/kotlin/cn/edu/ubaa/Platform.jvm.kt`           | `shared`     | **JVM 平台实现 (actual)**：提供了 `getPlatform()` 在 JVM/Desktop 平台的具体实现。                                                 |
 | `shared/src/commonMain/kotlin/cn/edu/ubaa/Greeting.kt`            | `shared`     | **核心业务逻辑**：实现了与平台无关的问候功能，是共享逻辑的核心。                                                                  |
 | `shared/src/commonMain/kotlin/cn/edu/ubaa/Constants.kt`           | `shared`     | **共享常量定义**：定义了跨平台共享的常量，如服务器端口等配置信息。                                                                |
+| `shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/UserInfo.kt`  | `shared`     | **用户数据模型**：定义了用户信息的 DTO，用于前后端数据传输。                                                                      |
 | `composeApp/src/commonMain/kotlin/cn/edu/ubaa/App.kt`             | `composeApp` | **共享 UI 入口**：定义了所有客户端（Android, iOS, Desktop, Web）共享的 Compose UI 界面。                                          |
 | `composeApp/build.gradle.kts`                                     | `composeApp` | **多平台编译配置**：配置了 Kotlin Multiplatform 插件，定义了所有需要编译的目标平台。                                              |
 | `composeApp/src/androidMain/kotlin/cn/edu/ubaa/MainActivity.kt`   | `composeApp` | **Android 应用入口**：Android App 的 `Activity`，负责加载 `App()` 这个共享 Composable。                                           |
 | `composeApp/src/iosMain/kotlin/cn/edu/ubaa/MainViewController.kt` | `composeApp` | **iOS UI 控制器**：为 iOS 平台提供 Compose UI 的 ViewController 包装器。                                                          |
-| `composeApp/src/jvmMain/kotlin/cn/edu/ubaa/main.kt`               | `composeApp` | **Desktop 应用入口**：JVM/Desktop 平台的应用程序入口点。                                                                          |
+| `composeApp/src/jvmMain/kotlin/cn.edu.ubaa/main.kt`               | `composeApp` | **Desktop 应用入口**：JVM/Desktop 平台的应用程序入口点。                                                                          |
 | `iosApp/iosApp/ContentView.swift`                                 | `iosApp`     | **iOS UI 桥接**：通过 `UIViewControllerRepresentable` 将 Kotlin Multiplatform 生成的 `MainViewController` 嵌入到 SwiftUI 视图中。 |
 | `server/src/main/kotlin/cn/edu/ubaa/Application.kt`               | `server`     | **服务器应用入口**：配置并启动 Ktor 服务器，定义 API 路由，并调用 `shared` 模块的逻辑，使用 `Constants.kt` 中定义的端口配置。     |
 
@@ -157,11 +158,13 @@ sequenceDiagram
 
 *   **基本路径**: 所有 API 端点都必须以 `/api` 作为前缀。
 *   **版本控制**: 所有 API 都必须进行版本控制。版本号应包含在 URL 路径中，紧跟在基本路径之后（例如 `/api/v1`）。这使得未来的 API 演进不会破坏现有的客户端。
-*   **资源命名**: URL 应面向资源。使用复数名词表示资源集合（例如 `/courses`, `/students`）。使用唯一标识符表示特定资源（例如 `/courses/{courseId}`）。
+*   **资源命名**: URL 应面向资源。
 
 **示例:**
 ```
-GET /api/v1/students/{studentId}/courses
+POST /api/v1/auth/login
+GET /api/v1/auth/status
+GET /api/v1/user/info
 ```
 
 #### **b. HTTP 方法**
@@ -188,7 +191,8 @@ GET /api/v1/students/{studentId}/courses
     {
       "user": {
         "name": "用户姓名",
-        "schoolid": "学号"
+        "schoolid": "学号",
+        "username": "用户名"
       },
       "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
     }
@@ -216,26 +220,17 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 响应体应直接包含请求的数据（对于单个资源）或数据数组（对于集合）。
 
 ```json
-// GET /api/v1/students/{id}
+// GET /api/v1/user/info
 {
-  "studentId": "20201234",
+  "idCardType": "身份证",
+  "idCardTypeName": "居民身份证",
+  "phone": "13800138000",
+  "schoolid": "20201234",
   "name": "张三",
-  "major": "计算机科学与技术"
+  "idCardNumber": "11010119900307XXXX",
+  "email": "zhangsan@example.com",
+  "username": "zhangsan"
 }
-```
-
-```json
-// GET /api/v1/courses
-[
-  {
-    "courseId": "CS101",
-    "courseName": "计算机科学导论"
-  },
-  {
-    "courseId": "MA101",
-    "courseName": "高等数学"
-  }
-]
 ```
 
 **错误响应 (`4xx`, `5xx`):**

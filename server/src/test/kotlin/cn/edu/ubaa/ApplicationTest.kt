@@ -17,4 +17,16 @@ class ApplicationTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("Ktor: ${Greeting().greet()}", response.bodyAsText())
     }
+
+    @Test
+    fun userInfoWithoutTokenReturnsUnauthorized() = testApplication {
+        application {
+            module()
+        }
+
+        val response = client.get("/api/v1/user/info")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertTrue(response.bodyAsText().contains("invalid_token"))
+    }
 }

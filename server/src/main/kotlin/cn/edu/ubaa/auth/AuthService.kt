@@ -3,23 +3,18 @@ package cn.edu.ubaa.auth
 import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.LoginResponse
 import cn.edu.ubaa.model.dto.UserData
+import cn.edu.ubaa.model.dto.UserInfoResponse
+import cn.edu.ubaa.model.dto.UserStatusResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.request.* 
 import io.ktor.client.request.forms.* 
 import io.ktor.client.statement.* 
 import io.ktor.http.* 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import org.slf4j.LoggerFactory
 import java.time.Duration
-
-// This is the data structure from the target API
-@Serializable
-data class UserInfoResponse(val code: Int, val data: UserInfoData)
-
-@Serializable
-data class UserInfoData(val name: String, val schoolid: String, val username: String)
 
 class AuthService(
     private val sessionManager: SessionManager = GlobalSessionManager.instance
@@ -194,8 +189,8 @@ class AuthService(
         return try {
             val userInfoResponse = Json.decodeFromString<UserInfoResponse>(statusBody)
             if (userInfoResponse.code == 0) {
-                val userInfo = userInfoResponse.data
-                UserData(name = userInfo.name, schoolid = userInfo.schoolid)
+                val userInfo = userInfoResponse.data ?: return null
+                UserData(name = userInfo.name.orEmpty(), schoolid = userInfo.schoolid.orEmpty())
             } else {
                 null
             }

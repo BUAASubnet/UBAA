@@ -1,6 +1,8 @@
 package cn.edu.ubaa
 
 import cn.edu.ubaa.auth.authRouting
+import cn.edu.ubaa.user.userRouting
+import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -15,6 +17,9 @@ fun main() {
 }
 
 fun Application.module() {
+    // Configure JWT Authentication
+    configureJwtAuth()
+    
     // Install the ContentNegotiation plugin to handle JSON serialization
     install(ContentNegotiation) {
         json()
@@ -23,6 +28,7 @@ fun Application.module() {
     routing {
         // Include the authentication routes
         authRouting()
+        userRouting()
 
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")

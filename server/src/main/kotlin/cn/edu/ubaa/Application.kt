@@ -1,6 +1,7 @@
 package cn.edu.ubaa
 
 import cn.edu.ubaa.auth.authRouting
+import cn.edu.ubaa.user.userRouting
 import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -27,6 +28,7 @@ fun Application.module() {
     routing {
         // Include the authentication routes
         authRouting()
+        userRouting()
 
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
