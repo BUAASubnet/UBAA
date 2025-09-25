@@ -8,6 +8,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class JwtErrorResponse(val error: JwtErrorDetails)
+
+@Serializable
+data class JwtErrorDetails(val code: String, val message: String)
 
 /**
  * JWT Authentication configuration and utilities for protecting routes.
@@ -45,7 +52,7 @@ object JwtAuth {
                 challenge { _, _ ->
                     call.respond(
                         HttpStatusCode.Unauthorized,
-                        ErrorResponse(ErrorDetails("invalid_token", "Invalid or expired JWT token"))
+                        JwtErrorResponse(JwtErrorDetails("invalid_token", "Invalid or expired JWT token"))
                     )
                 }
             }
