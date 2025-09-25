@@ -9,6 +9,7 @@ data class LoginRequest(
 )
 
 @Serializable
-data class LoginResponse(
-    val token: String
+data class UserData(
+    val name: String,
+    val schoolid: String
 )

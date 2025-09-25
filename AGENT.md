@@ -148,3 +148,122 @@ sequenceDiagram
   * **依赖注入 (Dependency Injection)**: 项目通过 Gradle 的模块依赖来管理耦合关系，这是一种广义上的依赖注入。在更复杂的场景中，可以引入 Koin 或 Hilt/Dagger 等 DI 框架。
   * **统一命名空间**: 项目使用 `cn.edu.ubaa` 作为统一的包名，便于代码管理和识别。
   * **版本目录 (Version Catalog)**: 使用 `gradle/libs.versions.toml` 文件来管理所有依赖项，这是 Gradle 推荐的最佳实践，可以避免版本冲突和方便升级。
+
+### **6. API 设计 & 接口规则**
+
+为了确保一致性、可扩展性和易用性，由 `server` 模块暴露的所有 API 都必须遵守以下规则。这些规则适用于 `composeApp` 客户端和 `server` 之间的通信。
+
+#### **a. URL 结构与版本控制**
+
+*   **基本路径**: 所有 API 端点都必须以 `/api` 作为前缀。
+*   **版本控制**: 所有 API 都必须进行版本控制。版本号应包含在 URL 路径中，紧跟在基本路径之后（例如 `/api/v1`）。这使得未来的 API 演进不会破坏现有的客户端。
+*   **资源命名**: URL 应面向资源。使用复数名词表示资源集合（例如 `/courses`, `/students`）。使用唯一标识符表示特定资源（例如 `/courses/{courseId}`）。
+
+**示例:**
+```
+GET /api/v1/students/{studentId}/courses
+```
+
+#### **b. HTTP 方法**
+
+使用标准的 HTTP 方法来表示对资源的操作：
+
+*   `GET`: 检索资源或资源集合。（安全且幂等）
+*   `POST`: 创建一个新资源。（不安全或非幂等）
+*   `PUT`: 完全更新一个现有资源。（幂等）
+*   `PATCH`: 部分更新一个现有资源。（不安全或非幂等）
+*   `DELETE`: 删除一个资源。（幂等）
+
+#### **c. 请求和响应格式**
+
+*   **Content-Type**: 所有请求和响应体都必须是 JSON 格式。对于有请求体的请求和所有响应，`Content-Type` 头必须设置为 `application/json`。
+*   **命名约定**: 为了与 Kotlin 和 JavaScript 的约定保持一致，所有 JSON 属性键都使用 `camelCase`。
+*   **数据模型**: API 响应中使用的数据模型都应是在 `shared` 模块中定义的模型，以确保整个应用栈的一致性。避免将服务器内部或学校特定的 API 数据结构直接暴露给客户端。
+
+#### **d. 认证**
+
+*   **登录端点**: 登录端点（例如 `POST /api/v1/auth/login`）是唯一接受用户名和密码的公共端点。
+*   **会话令牌**: 成功登录后，服务器将生成一个安全的会话令牌（例如 JWT）并返回给客户端。
+*   **认证请求**: 对于所有后续对受保护端点的请求，客户端必须在 `Authorization` HTTP 头中使用 `Bearer` 方案包含会话令牌。
+
+**示例:**
+```
+Authorization: Bearer <your-session-token>
+```
+
+#### **e. 标准化响应与错误处理**
+
+为了给客户端提供一致的体验，所有 API 响应都应遵循通用的结构。
+
+**成功响应 (`200 OK`, `201 Created`):**
+
+响应体应直接包含请求的数据（对于单个资源）或数据数组（对于集合）。
+
+```json
+// GET /api/v1/students/{id}
+{
+  "studentId": "20201234",
+  "name": "张三",
+  "major": "计算机科学与技术"
+}
+```
+
+```json
+// GET /api/v1/courses
+[
+  {
+    "courseId": "CS101",
+    "courseName": "计算机科学导论"
+  },
+  {
+    "courseId": "MA101",
+    "courseName": "高等数学"
+  }
+]
+```
+
+**错误响应 (`4xx`, `5xx`):**
+
+所有错误响应必须返回一个具有一致结构的 JSON 对象，其中包含一个机器可读的 `errorCode` 和一个人类可读的 `message`。
+
+```json
+{
+  "error": {
+    "code": "invalid_credentials",
+    "message": "学号或密码错误。"
+  }
+}
+```
+
+常见的 `errorCode` 值:
+*   `unauthenticated`: 会话令牌缺失或无效。
+*   `invalid_request`: 请求体或参数格式错误。
+*   `not_found`: 请求的资源不存在。
+*   `permission_denied`: 用户无权执行此操作。
+*   `internal_server_error`: 服务器上发生意外问题的通用错误。
+
+### **7. 服务端 SessionManager 指南**
+
+`SessionManager` 位于 `server` 模块，负责为每位登录用户维护独立的 BUAA SSO 会话。其设计要点如下：
+
+* **目标**
+  * 每个用户拥有独立的 `HttpClient` 与 cookie 存储，避免不同用户之间的状态串扰。
+  * 默认 30 分钟的 TTL 失效机制，失效后自动踢出缓存，防止长期占用资源。
+  * 通过 `GlobalSessionManager.instance` 提供单例访问，方便在路由或业务服务中复用。
+
+* **核心类型**
+  * `SessionManager.SessionCandidate`：登录前准备阶段生成的临时客户端。
+  * `SessionManager.UserSession`：缓存的会话实体，包含用户资料、`HttpClient`、cookie 存储和认证时间。
+  * `GlobalSessionManager`：全局懒加载单例，保证服务器端仅维护一份会话表。
+
+* **使用流程**
+  1. 通过 `sessionManager.getSession(username)` 复用缓存会话；该调用会自动触发 `markActive()`，将最近活动时间滑动到当前，避免活跃连接被误清理，必要时可调用 `verifySession` 再次校验状态。
+  2. 当缓存不可用时执行 `prepareSession(username)`，使用返回的 `client` 完成登录步骤。
+  3. 登录成功后调用 `commitSession(candidate, userData)` 写入缓存，旧会话会被自动关闭。
+  4. 如需主动登出或密码变更，调用 `invalidateSession(username)`；可定期调用 `cleanupExpiredSessions()` 清除过期记录。
+
+* **最佳实践**
+  * 登录失败或异常退出时务必关闭 `SessionCandidate.client`，避免连接泄露。
+  * 对复用的会话再次访问受保护接口前，应在业务逻辑中处理 401/302，必要时触发重新登录。
+  * 如果未来需要跨平台共享，会话接口可在 `shared` 模块定义 expect/actual 形式的抽象，由各平台提供实现。
+  * 若需要定期清理长时间未使用的会话，可结合 `cleanupExpiredSessions()` 与调度任务统一执行，保持缓存轻量。
