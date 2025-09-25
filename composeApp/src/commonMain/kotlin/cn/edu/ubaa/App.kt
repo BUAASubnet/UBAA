@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.ui.AuthViewModel
 import cn.edu.ubaa.ui.LoginScreen
 import cn.edu.ubaa.ui.UserInfoScreen
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -20,10 +21,11 @@ fun App() {
         val uiState by authViewModel.uiState.collectAsState()
         val loginForm by authViewModel.loginForm.collectAsState()
 
-        if (uiState.isLoggedIn && uiState.userData != null) {
+        val userData = uiState.userData
+        if (uiState.isLoggedIn && userData != null) {
             // Show user info screen when logged in
             UserInfoScreen(
-                userData = uiState.userData,
+                userData = userData,
                 userInfo = uiState.userInfo,
                 onLogoutClick = { authViewModel.logout() },
                 modifier = Modifier
@@ -50,7 +52,7 @@ fun App() {
         // Clear error when the user interacts
         LaunchedEffect(uiState.error) {
             if (uiState.error != null) {
-                kotlinx.coroutines.delay(5000) // Clear error after 5 seconds
+                delay(5000) // Clear error after 5 seconds
                 authViewModel.clearError()
             }
         }

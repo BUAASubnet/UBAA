@@ -1,6 +1,7 @@
 package cn.edu.ubaa.api
 
 import cn.edu.ubaa.SERVER_PORT
+import cn.edu.ubaa.SERVER_HOST
 import io.ktor.client.*
 import io.ktor.client.engine.*
 import io.ktor.client.plugins.*
@@ -46,7 +47,7 @@ class ApiClient {
             }
             
             defaultRequest {
-                url("http://localhost:$SERVER_PORT/")
+                url("http://$SERVER_HOST:$SERVER_PORT/")
             }
         }
     }
@@ -84,7 +85,7 @@ class ApiClient {
             }
             
             defaultRequest {
-                url("http://localhost:$SERVER_PORT/")
+                url("http://$SERVER_HOST:$SERVER_PORT/")
             }
         }
     }

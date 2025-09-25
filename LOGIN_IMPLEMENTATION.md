@@ -1,99 +1,99 @@
-# UBAA Login Interface Implementation
+# UBAA 登录界面实现
 
-## Overview
+## 概述
 
-This implementation provides a simple login interface with user information display for the UBAA multi-platform project. The solution follows the modular architecture and supports all target platforms (Android, iOS, Desktop, Web).
+本实现为 UBAA 多平台项目提供了一个简单的登录界面，并支持用户信息展示。该方案遵循模块化架构，支持所有目标平台（Android、iOS、桌面、Web）。
 
-## Architecture
+## 架构
 
-### Shared Module (`shared/`)
-- **API Layer**: HTTP client with platform-specific implementations
-  - `ApiClient.kt`: Multi-platform HTTP client configuration
-  - `ApiService.kt`: AuthService and UserService for API calls
-  - Platform implementations: Android (OkHttp), iOS (Darwin), JVM (CIO), JS/WASM (JS)
+### 共享模块（shared）
+- **API 层**：带有平台特定实现的 HTTP 客户端
+  - `ApiClient.kt`：多平台 HTTP 客户端配置
+  - `ApiService.kt`：用于 API 调用的 AuthService 和 UserService
+  - 平台实现：Android（OkHttp）、iOS（Darwin）、JVM（CIO）、JS/WASM（JS）
 
-### ComposeApp Module (`composeApp/`)
-- **UI Layer**: Compose Multiplatform UI components
-  - `AuthViewModel.kt`: State management for authentication flow
-  - `LoginScreen.kt`: Login form with username/password input
-  - `UserInfoScreen.kt`: User information display with logout
-  - `App.kt`: Main application with login/user info navigation
+### ComposeApp 模块（composeApp）
+- **UI 层**：Compose 多平台 UI 组件
+  - `AuthViewModel.kt`：认证流程的状态管理
+  - `LoginScreen.kt`：包含用户名/密码输入的登录表单
+  - `UserInfoScreen.kt`：用户信息展示与注销
+  - `App.kt`：带有登录/用户信息导航的主应用
 
-## Features
+## 功能
 
-### Login Screen
-- Username/password input fields
-- Form validation (non-empty fields)
-- Loading state with progress indicator
-- Error display with automatic clearing
-- Responsive design for different screen sizes
+### 登录界面
+- 用户名/密码输入框
+- 表单校验（字段不能为空）
+- 加载状态与进度指示器
+- 错误信息展示与自动清除
+- 针对不同屏幕尺寸的响应式设计
 
-### User Info Screen
-- Basic user information (name, school ID)
-- Detailed information from API (email, phone, ID card)
-- Masked sensitive data (ID card number)
-- Logout button to clear session
-- Clean card-based layout
+###用户信息界面
+- 基本用户信息（姓名、学号）
+- 来自 API 的详细信息（邮箱、电话、身份证号）
+- 敏感数据（身份证号）脱敏显示
+- 注销按钮，清除会话
+- 简洁卡片式布局
 
-### API Integration
-- JWT token-based authentication
-- Automatic token management in HTTP client
-- Error handling with user-friendly messages
-- Support for session status checking
+### API 集成
+- 基于 JWT 的身份认证
+- HTTP 客户端自动管理 Token
+- 友好的错误处理
+- 支持会话状态检查
 
-## Usage
+## 使用方法
 
-### Running the Application
+### 运行应用
 
-1. **Android**: Use the Android run configuration or build APK
-2. **Desktop**: Run the JVM target with `./gradlew :composeApp:run`
-3. **Web**: Build and serve the JS/WASM target
-4. **iOS**: Build through Xcode with the generated framework
+1. **Android**：使用 Android 运行配置或构建 APK
+2. **桌面**：通过 `./gradlew :composeApp:run` 运行 JVM 目标
+3. **Web**：构建并部署 JS/WASM 目标
+4. **iOS**：通过 Xcode 构建生成的框架
 
-### Server Requirements
+### 服务器要求
 
-The application expects a running UBAA server with the following endpoints:
-- `POST /api/v1/auth/login` - Login with username/password
-- `GET /api/v1/user/info` - Get user information (requires Bearer token)
+应用需连接运行中的 UBAA 服务器，需支持以下接口：
+- `POST /api/v1/auth/login` —— 用户名/密码登录
+- `GET /api/v1/user/info` —— 获取用户信息（需 Bearer Token）
 
-Server configuration in `Constants.kt`: `SERVER_PORT = 8081`
+服务器端口配置见 `Constants.kt`：`SERVER_PORT = 8081`
 
-### Login Process
+### 登录流程
 
-1. User enters username (school ID) and password
-2. Application calls login API and receives JWT token
-3. Token is automatically stored in HTTP client for subsequent requests
-4. User information is fetched and displayed
-5. Logout clears token and returns to login screen
+1. 用户输入用户名（学号）和密码
+2. 应用调用登录 API，获取 JWT Token
+3. Token 自动存储于 HTTP 客户端，用于后续请求
+4. 获取并展示用户信息
+5. 注销时清除 Token，返回登录界面
 
-## Testing
+## 测试
 
-The implementation includes unit tests for:
-- AuthViewModel state management
-- API data models serialization/deserialization
-- UI state handling
+本实现包含以下单元测试：
+- AuthViewModel 状态管理
+- API 数据模型序列化/反序列化
+- UI 状态处理
 
-Run tests with: `./gradlew test`
+运行测试命令：`./gradlew test`
 
-## Platform Compatibility
+## 平台兼容性
 
-The implementation is designed for multi-platform compatibility:
+本实现支持多平台：
 
-- **Android**: Material Design 3 with proper lifecycle handling
-- **iOS**: Native look and feel with iOS-specific HTTP client
-- **Desktop**: Desktop window application with proper sizing
-- **Web**: Browser-compatible with JS/WASM targets
+- **Android**：采用 Material Design 3，正确处理生命周期
+- **iOS**：原生风格，使用 iOS 专用 HTTP 客户端
+- **桌面**：窗口应用，适配尺寸
+- **Web**：兼容浏览器，支持 JS/WASM 目标
 
-## Security Considerations
+## 安全性考虑
 
-- Passwords are cleared from memory after successful login
-- JWT tokens are managed securely by the HTTP client
-- Sensitive data (ID card numbers) is masked in the UI
-- Session cleanup on logout prevents token leakage
+- 登录成功后密码会从内存中清除
+- JWT Token 由 HTTP 客户端安全管理
+- UI 中敏感数据（身份证号）脱敏显示
+- 注销时清理会话，防止 Token 泄漏
 
-## Error Handling
+## 错误处理
 
-- Network errors are caught and displayed to users
-- Invalid credentials show appropriate error messages
-- Loading states prevent multiple concurrent requests
-- Automatic error clearing improves user experience
+- 网络错误会被捕获并展示给用户
+- 无效凭证会显示相应错误信息
+- 加载状态防止多次并发请求
+- 自动清除错误信息提升用户体验
