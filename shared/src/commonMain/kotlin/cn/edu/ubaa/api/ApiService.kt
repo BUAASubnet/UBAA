@@ -12,12 +12,12 @@ object ApiClientProvider {
 
 class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
 
-    suspend fun login(username: String, password: String): Result<LoginResponse> {
+    suspend fun login(username: String, password: String, captcha: String? = null): Result<LoginResponse> {
         return try {
             val response =
                     apiClient.getClient().post("api/v1/auth/login") {
                         contentType(ContentType.Application.Json)
-                        setBody(LoginRequest(username, password))
+                        setBody(LoginRequest(username, password, captcha))
                     }
 
             when (response.status) {
@@ -30,6 +30,10 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
                 HttpStatusCode.Unauthorized -> {
                     val error = response.body<ApiErrorResponse>()
                     Result.failure(Exception(error.error.message))
+                }
+                HttpStatusCode.UnprocessableEntity -> { // 422 - CAPTCHA required
+                    val captchaResponse = response.body<CaptchaRequiredResponse>()
+                    Result.failure(CaptchaRequiredClientException(captchaResponse.captcha, captchaResponse.message))
                 }
                 else -> {
                     Result.failure(Exception("Login failed with status: ${response.status}"))
@@ -251,3 +255,11 @@ data class SessionStatusResponse(
         val lastActivity: String,
         val authenticatedAt: String
 )
+
+/**
+ * Client-side exception thrown when CAPTCHA is required for login
+ */
+class CaptchaRequiredClientException(
+    val captchaInfo: CaptchaInfo,
+    message: String
+) : Exception(message)

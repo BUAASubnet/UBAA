@@ -18,7 +18,8 @@
 ```json
 {
   "username": "学号或用户名",
-  "password": "密码"
+  "password": "密码",
+  "captcha": "验证码（可选）"
 }
 ```
 - **成功响应**：
@@ -29,6 +30,17 @@
     "schoolid": "学号"
   },
   "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+}
+```
+- **需要验证码响应（HTTP 422）**：
+```json
+{
+  "captcha": {
+    "id": "8211701280",
+    "type": "image",
+    "imageUrl": "https://sso.buaa.edu.cn/captcha?captchaId=8211701280"
+  },
+  "message": "CAPTCHA verification required"
 }
 ```
 - **错误响应**：
@@ -64,6 +76,21 @@ Authorization: Bearer <jwt-token>
   "error": {
     "code": "invalid_token",
     "message": "Invalid or expired JWT token"
+  }
+}
+```
+
+### 获取验证码图片
+- **GET /api/v1/auth/captcha/{captchaId}**
+- **路径参数**：
+  - `captchaId`: 验证码ID
+- **成功响应**：返回验证码图片（JPEG格式）
+- **错误响应**：
+```json
+{
+  "error": {
+    "code": "captcha_not_found",
+    "message": "CAPTCHA image not found"
   }
 }
 ```

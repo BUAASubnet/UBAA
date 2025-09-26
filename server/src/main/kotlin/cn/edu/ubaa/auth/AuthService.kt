@@ -4,6 +4,8 @@ import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.LoginResponse
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfoResponse
+import cn.edu.ubaa.model.dto.CaptchaInfo
+import cn.edu.ubaa.model.dto.CaptchaRequiredResponse
 import cn.edu.ubaa.utils.JwtUtil
 import io.ktor.client.HttpClient
 import io.ktor.client.request.*
@@ -59,6 +61,14 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
             throw LoginException("Could not find execution token on login page.")
         }
 
+        // Check for CAPTCHA requirement in loginWithToken method
+        val captchaInfo = detectCaptcha(loginPageHtml)
+        if (captchaInfo != null && request.captcha.isNullOrBlank()) {
+            log.info("CAPTCHA required for user: {}", request.username)
+            client.close()
+            throw CaptchaRequiredException(captchaInfo)
+        }
+
         // 2. Post credentials
         client.post(LOGIN_URL) {
             setBody(
@@ -66,6 +76,7 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                             Parameters.build {
                                 append("username", request.username)
                                 append("password", request.password)
+                                request.captcha?.let { append("captcha", it) }
                                 append("submit", "登录")
                                 append("type", "username_password")
                                 append("execution", execution)
@@ -141,6 +152,14 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
             throw LoginException("Could not find execution token on login page.")
         }
 
+        // Check for CAPTCHA requirement in login method
+        val captchaInfo = detectCaptcha(loginPageHtml)
+        if (captchaInfo != null && request.captcha.isNullOrBlank()) {
+            log.info("CAPTCHA required for user: {}", request.username)
+            client.close()
+            throw CaptchaRequiredException(captchaInfo)
+        }
+
         // 2. Post credentials
         client.post(LOGIN_URL) {
             setBody(
@@ -148,6 +167,7 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                             Parameters.build {
                                 append("username", request.username)
                                 append("password", request.password)
+                                request.captcha?.let { append("captcha", it) }
                                 append("submit", "登录")
                                 append("type", "username_password")
                                 append("execution", execution)
@@ -251,7 +271,56 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                 "https://sso.buaa.edu.cn/login?service=" +
                         URLEncoder.encode(VPN_SERVICE_URL, StandardCharsets.UTF_8.name())
         private const val UC_STATUS_URL = "https://uc.buaa.edu.cn/api/uc/status"
+        private const val CAPTCHA_URL_BASE = "https://sso.buaa.edu.cn/captcha"
+    }
+
+    /**
+     * Detects CAPTCHA configuration from login page HTML.
+     * Returns CaptchaInfo if CAPTCHA is detected, null otherwise.
+     */
+    private fun detectCaptcha(loginPageHtml: String): CaptchaInfo? {
+        try {
+            // Look for JavaScript config pattern: config.captcha = { type: 'image', id: '8211701280' };
+            val captchaPattern = Regex("""config\.captcha\s*=\s*\{\s*type:\s*['"]([^'"]+)['"],\s*id:\s*['"]([^'"]+)['"]""")
+            val match = captchaPattern.find(loginPageHtml)
+            
+            if (match != null) {
+                val type = match.groupValues[1]
+                val id = match.groupValues[2]
+                val imageUrl = "$CAPTCHA_URL_BASE?captchaId=$id"
+                
+                log.debug("Detected CAPTCHA: type={}, id={}, imageUrl={}", type, id, imageUrl)
+                return CaptchaInfo(id = id, type = type, imageUrl = imageUrl)
+            }
+            
+            log.debug("No CAPTCHA detected in login page")
+            return null
+        } catch (e: Exception) {
+            log.warn("Error detecting CAPTCHA from login page", e)
+            return null
+        }
+    }
+
+    /**
+     * Fetches CAPTCHA image as byte array.
+     */
+    suspend fun getCaptchaImage(client: HttpClient, captchaId: String): ByteArray? {
+        return try {
+            log.debug("Fetching CAPTCHA image for id: {}", captchaId)
+            val response = client.get("$CAPTCHA_URL_BASE?captchaId=$captchaId")
+            if (response.status == HttpStatusCode.OK) {
+                response.readBytes()
+            } else {
+                log.warn("Failed to fetch CAPTCHA image. Status: {}", response.status)
+                null
+            }
+        } catch (e: Exception) {
+            log.error("Error fetching CAPTCHA image", e)
+            null
+        }
     }
 }
 
 class LoginException(message: String) : Exception(message)
+
+class CaptchaRequiredException(val captchaInfo: CaptchaInfo, message: String = "CAPTCHA verification required") : Exception(message)

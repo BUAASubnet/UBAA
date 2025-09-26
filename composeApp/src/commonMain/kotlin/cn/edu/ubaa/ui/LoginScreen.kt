@@ -18,6 +18,11 @@ fun LoginScreen(
     onLoginClick: () -> Unit,
     isLoading: Boolean,
     error: String?,
+    showCaptchaDialog: Boolean,
+    captchaInfo: cn.edu.ubaa.model.dto.CaptchaInfo?,
+    onCaptchaChange: (String) -> Unit,
+    onCaptchaConfirm: () -> Unit,
+    onCaptchaDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -91,5 +96,16 @@ fun LoginScreen(
                 )
             }
         }
+    }
+    
+    // Show CAPTCHA dialog when required
+    if (showCaptchaDialog && captchaInfo != null) {
+        CaptchaDialog(
+            captchaInfo = captchaInfo,
+            captchaValue = loginFormState.captcha,
+            onCaptchaChange = onCaptchaChange,
+            onConfirm = onCaptchaConfirm,
+            onDismiss = onCaptchaDismiss
+        )
     }
 }

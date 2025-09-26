@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.edu.ubaa.api.AuthService
 import cn.edu.ubaa.api.UserService
+import cn.edu.ubaa.api.CaptchaRequiredClientException
 import cn.edu.ubaa.model.dto.LoginResponse
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
+import cn.edu.ubaa.model.dto.CaptchaInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +35,24 @@ class AuthViewModel : ViewModel() {
         _loginForm.value = _loginForm.value.copy(password = password)
     }
     
+    fun updateCaptcha(captcha: String) {
+        _loginForm.value = _loginForm.value.copy(captcha = captcha)
+    }
+    
+    fun showCaptchaDialog(captchaInfo: CaptchaInfo) {
+        _uiState.value = _uiState.value.copy(
+            captchaInfo = captchaInfo,
+            showCaptchaDialog = true,
+            isLoading = false,
+            error = null
+        )
+    }
+    
+    fun hideCaptchaDialog() {
+        _uiState.value = _uiState.value.copy(showCaptchaDialog = false)
+        _loginForm.value = _loginForm.value.copy(captcha = "")
+    }
+    
     fun login() {
         val form = _loginForm.value
         if (form.username.isBlank() || form.password.isBlank()) {
@@ -43,24 +63,33 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             
-            authService.login(form.username, form.password)
+            authService.login(form.username, form.password, form.captcha.ifBlank { null })
                 .onSuccess { loginResponse ->
                     _uiState.value = _uiState.value.copy(
                         isLoggedIn = true,
                         isLoading = false,
                         userData = loginResponse.user,
-                        token = loginResponse.token
+                        token = loginResponse.token,
+                        showCaptchaDialog = false,
+                        captchaInfo = null
                     )
-                    // Clear the password for security
-                    _loginForm.value = _loginForm.value.copy(password = "")
+                    // Clear the form for security
+                    _loginForm.value = LoginFormState()
                     // Load user info
                     loadUserInfo()
                 }
                 .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message ?: "登录失败"
-                    )
+                    when (exception) {
+                        is CaptchaRequiredClientException -> {
+                            showCaptchaDialog(exception.captchaInfo)
+                        }
+                        else -> {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = exception.message ?: "登录失败"
+                            )
+                        }
+                    }
                 }
         }
     }
@@ -96,7 +125,12 @@ class AuthViewModel : ViewModel() {
     }
     
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.value = _uiState.value.copy(
+            error = null,
+            showCaptchaDialog = false,
+            captchaInfo = null
+        )
+        _loginForm.value = _loginForm.value.copy(captcha = "")
     }
 }
 
@@ -106,10 +140,13 @@ data class AuthUiState(
     val userData: UserData? = null,
     val userInfo: UserInfo? = null,
     val token: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val captchaInfo: CaptchaInfo? = null,
+    val showCaptchaDialog: Boolean = false
 )
 
 data class LoginFormState(
     val username: String = "",
-    val password: String = ""
+    val password: String = "",
+    val captcha: String = ""
 )
