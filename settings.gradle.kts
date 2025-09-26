@@ -25,6 +25,8 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven("https://s01.oss.sonatype.org/content/repositories/releases/")
+        maven("https://maven.pkg.jetbrains.space/public/p/kamel/maven")
     }
 }
 

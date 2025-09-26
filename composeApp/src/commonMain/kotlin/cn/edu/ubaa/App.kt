@@ -25,32 +25,35 @@ fun App() {
         if (uiState.isLoggedIn && userData != null) {
             // Show main app when logged in
             MainAppScreen(
-                userData = userData,
-                userInfo = uiState.userInfo,
-                onLogoutClick = { authViewModel.logout() },
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .safeContentPadding()
-                    .fillMaxSize()
+                    userData = userData,
+                    userInfo = uiState.userInfo,
+                    onLogoutClick = { authViewModel.logout() },
+                    modifier =
+                            Modifier.background(MaterialTheme.colorScheme.background)
+                                    .safeContentPadding()
+                                    .fillMaxSize()
             )
         } else {
             // Show login screen when not logged in
             LoginScreen(
-                loginFormState = loginForm,
-                onUsernameChange = { authViewModel.updateUsername(it) },
-                onPasswordChange = { authViewModel.updatePassword(it) },
-                onLoginClick = { authViewModel.login() },
-                isLoading = uiState.isLoading,
-                error = uiState.error,
-                showCaptchaDialog = uiState.showCaptchaDialog,
-                captchaInfo = uiState.captchaInfo,
-                onCaptchaChange = { authViewModel.updateCaptcha(it) },
-                onCaptchaConfirm = { authViewModel.login() },
-                onCaptchaDismiss = { authViewModel.hideCaptchaDialog() },
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .safeContentPadding()
-                    .fillMaxSize()
+                    loginFormState = loginForm,
+                    onUsernameChange = { authViewModel.updateUsername(it) },
+                    onPasswordChange = { authViewModel.updatePassword(it) },
+                    onLoginClick = { authViewModel.login() },
+                    isLoading = uiState.isLoading,
+                    error = uiState.error,
+                    showCaptchaDialog = uiState.showCaptchaDialog,
+                    captchaInfo = uiState.captchaInfo,
+                    onCaptchaChange = { authViewModel.updateCaptcha(it) },
+                    onCaptchaConfirm = {
+                        authViewModel.hideCaptchaDialog(clearInput = false)
+                        authViewModel.login()
+                    },
+                    onCaptchaDismiss = { authViewModel.hideCaptchaDialog() },
+                    modifier =
+                            Modifier.background(MaterialTheme.colorScheme.background)
+                                    .safeContentPadding()
+                                    .fillMaxSize()
             )
         }
 
