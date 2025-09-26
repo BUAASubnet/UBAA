@@ -66,9 +66,20 @@ class AuthViewModel : ViewModel() {
     }
     
     fun logout() {
-        authService.logout()
-        _uiState.value = AuthUiState()
-        _loginForm.value = LoginFormState()
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            authService.logout()
+                .onSuccess {
+                    _uiState.value = AuthUiState()
+                    _loginForm.value = LoginFormState()
+                }
+                .onFailure { exception ->
+                    // Even if logout fails, clear local state
+                    _uiState.value = AuthUiState(error = "Logout completed with warnings: ${exception.message}")
+                    _loginForm.value = LoginFormState()
+                }
+        }
     }
     
     private fun loadUserInfo() {

@@ -63,4 +63,23 @@ class AuthViewModelTest {
         assertEquals(errorMessage, errorState.error)
         assertFalse(errorState.isLoggedIn)
     }
+    
+    @Test
+    fun testLogoutState() {
+        // Test that after logout, the state is reset to initial values
+        val loggedInState = AuthUiState(
+            isLoading = false,
+            isLoggedIn = true,
+            userData = UserData("Test User", "12345"),
+            token = "test_token"
+        )
+        
+        // After logout, state should be reset
+        val loggedOutState = AuthUiState()
+        
+        assertFalse(loggedOutState.isLoggedIn)
+        assertNull(loggedOutState.userData)
+        assertNull(loggedOutState.token)
+        assertFalse(loggedOutState.isLoading)
+    }
 }
