@@ -28,13 +28,18 @@ fun Sidebar(
         onAboutClick: () -> Unit,
         modifier: Modifier = Modifier
 ) {
-    Column(
-            modifier =
-                    modifier.fillMaxHeight()
-                            .width(280.dp)
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(16.dp)
+    Card(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(280.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
+        Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(16.dp)
+        ) {
         // User Info Section
         Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -108,6 +113,7 @@ fun Sidebar(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text("退出登录")
+        }
         }
     }
 }
