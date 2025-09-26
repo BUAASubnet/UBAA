@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,6 +103,9 @@ fun ScheduleScreen(
 
             // Week Selector (if weeks available)
             if (weeks.isNotEmpty()) {
+                var showWeekDropdown by remember { mutableStateOf(false) }
+                val currentWeekIndex = weeks.indexOfFirst { it == selectedWeek }.takeIf { it >= 0 } ?: 0
+                
                 Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -113,15 +117,82 @@ fun ScheduleScreen(
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // Previous week button
+                    IconButton(
+                        onClick = { 
+                            if (currentWeekIndex > 0) {
+                                onWeekSelected(weeks[currentWeekIndex - 1])
+                            }
+                        },
+                        enabled = currentWeekIndex > 0
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "上一周"
+                        )
+                    }
+                    
+                    // Week dropdown selector
+                    ExposedDropdownMenuBox(
+                            expanded = showWeekDropdown,
+                            onExpandedChange = { showWeekDropdown = !showWeekDropdown },
+                            modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                                value = selectedWeek?.name ?: "选择周次",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                },
+                                modifier = Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth(),
+                                singleLine = true
+                        )
 
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(weeks) { week ->
-                            WeekChip(
-                                    week = week,
-                                    isSelected = week == selectedWeek,
-                                    onClick = { onWeekSelected(week) }
-                            )
+                        ExposedDropdownMenu(
+                                expanded = showWeekDropdown,
+                                onDismissRequest = { showWeekDropdown = false }
+                        ) {
+                            weeks.forEach { week ->
+                                DropdownMenuItem(
+                                        text = { 
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(week.name)
+                                                if (week.curWeek) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "当前周",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            onWeekSelected(week)
+                                            showWeekDropdown = false
+                                        }
+                                )
+                            }
                         }
+                    }
+                    
+                    // Next week button
+                    IconButton(
+                        onClick = { 
+                            if (currentWeekIndex < weeks.size - 1) {
+                                onWeekSelected(weeks[currentWeekIndex + 1])
+                            }
+                        },
+                        enabled = currentWeekIndex < weeks.size - 1
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "下一周"
+                        )
                     }
                 }
 
