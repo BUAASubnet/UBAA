@@ -134,7 +134,23 @@ fun HomeScreen(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(todayClasses) { todayClass ->
+                    // Sort classes by start time
+                    val sortedClasses = todayClasses.sortedBy { todayClass ->
+                        todayClass.time?.let { timeRange ->
+                            // Extract start time from "14:00-15:35" format
+                            val startTime = timeRange.split("-").firstOrNull()?.trim()
+                            startTime?.let { 
+                                val timeParts = it.split(":")
+                                if (timeParts.size == 2) {
+                                    timeParts[0].toIntOrNull()?.let { hour ->
+                                        hour * 60 + (timeParts[1].toIntOrNull() ?: 0)
+                                    }
+                                } else null
+                            }
+                        } ?: Int.MAX_VALUE // Put classes without time at the end
+                    }
+                    
+                    items(sortedClasses) { todayClass ->
                         TodayClassCard(todayClass = todayClass)
                     }
                     

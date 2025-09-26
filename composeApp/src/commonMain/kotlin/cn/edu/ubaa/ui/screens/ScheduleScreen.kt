@@ -41,23 +41,12 @@ fun ScheduleScreen(
 ) {
     var showTermDropdown by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        // Top App Bar
-        TopAppBar(
-                title = { Text("课程表") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                }
-        )
-
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            // Term Selector
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        // Term Selector
+        Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+        ) {
                 Text(
                         text = "学期：",
                         style = MaterialTheme.typography.bodyLarge,
@@ -351,7 +340,15 @@ private fun WeeklyScheduleView(
                     Box(modifier = Modifier.weight(1f).height(60.dp).padding(horizontal = 1.dp)) {
                         if (coursesForSlot.isNotEmpty()) {
                             val course = coursesForSlot.first()
-                            CourseCell(course = course, onClick = { onCourseClick(course) })
+                            // Only show the course card at the beginning section to avoid duplicates
+                            if ((course.beginSection ?: 0) == timeSlot) {
+                                val courseHeight = ((course.endSection ?: course.beginSection ?: timeSlot) - (course.beginSection ?: timeSlot) + 1) * 60
+                                CourseCell(
+                                    course = course, 
+                                    onClick = { onCourseClick(course) },
+                                    modifier = Modifier.height(courseHeight.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -363,7 +360,7 @@ private fun WeeklyScheduleView(
 @Composable
 private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-            modifier = modifier.fillMaxSize().clickable { onClick() },
+            modifier = modifier.fillMaxWidth().clickable { onClick() },
             colors =
                     CardDefaults.cardColors(
                             containerColor = parseColor(course.color)
@@ -371,26 +368,46 @@ private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modif
                     )
     ) {
         Column(
-                modifier = Modifier.fillMaxSize().padding(4.dp),
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxSize().padding(6.dp),
+                verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                     text = course.courseName,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
             )
 
+            // Always show place name prominently
             course.placeName?.let { place ->
                 Text(
                         text = place,
+                        fontSize = 10.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                )
+            }
+            
+            // Show time info
+            val timeText = if (course.beginTime != null && course.endTime != null) {
+                "${course.beginTime}-${course.endTime}"
+            } else if (course.beginSection != null && course.endSection != null) {
+                "${course.beginSection}-${course.endSection}节"
+            } else null
+            
+            timeText?.let { time ->
+                Text(
+                        text = time,
                         fontSize = 8.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
         }
