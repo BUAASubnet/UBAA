@@ -26,8 +26,7 @@
 {
   "user": {
     "name": "用户姓名",
-    "schoolid": "学号",
-    "username": "用户名"
+    "schoolid": "学号"
   },
   "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
 }
@@ -53,11 +52,32 @@ Authorization: Bearer <jwt-token>
 {
   "user": {
     "name": "用户姓名",
-    "schoolid": "学号",
-    "username": "用户名"
+    "schoolid": "学号"
   },
-  "lastActivity": "2025-09-25T12:34:56Z",
-  "authenticatedAt": "2025-09-25T12:00:00Z"
+  "lastActivity": "2025-09-25T12:34:56.000Z",
+  "authenticatedAt": "2025-09-25T12:00:00.000Z"
+}
+```
+- **错误响应**：
+```json
+{
+  "error": {
+    "code": "invalid_token",
+    "message": "Invalid or expired JWT token"
+  }
+}
+```
+
+### 登出
+- **POST /api/v1/auth/logout**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **成功响应**：
+```json
+{
+  "message": "Logged out successfully"
 }
 ```
 - **错误响应**：
