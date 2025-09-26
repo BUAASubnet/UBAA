@@ -59,8 +59,32 @@ class AuthService(private val apiClient: ApiClient = ApiClient()) {
         }
     }
     
-    fun logout() {
-        apiClient.close()
+    suspend fun logout(): Result<Unit> {
+        return try {
+            val response = apiClient.getClient().post("api/v1/auth/logout")
+            
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    // Close the API client after successful logout
+                    apiClient.close()
+                    Result.success(Unit)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    // Even if unauthorized, clear local state
+                    apiClient.close()
+                    Result.success(Unit)
+                }
+                else -> {
+                    // Even if server logout fails, clear local state
+                    apiClient.close()
+                    Result.failure(Exception("Logout failed with status: ${response.status}"))
+                }
+            }
+        } catch (e: Exception) {
+            // Even if network request fails, clear local state
+            apiClient.close()
+            Result.failure(e)
+        }
     }
 }
 

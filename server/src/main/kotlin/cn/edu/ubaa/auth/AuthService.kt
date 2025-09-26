@@ -178,6 +178,31 @@ class AuthService(
         }
     }
 
+    /**
+     * Performs logout by calling BUAA SSO logout and invalidating the session.
+     */
+    suspend fun logout(username: String) {
+        log.info("Starting logout process for user: {}", username)
+        
+        val session = sessionManager.getSession(username)
+        if (session != null) {
+            try {
+                // Call BUAA SSO logout endpoint to properly terminate the SSO session
+                val logoutResponse = session.client.get("https://sso.buaa.edu.cn/logout")
+                log.debug("SSO logout response status: {}", logoutResponse.status)
+            } catch (e: Exception) {
+                log.warn("Error calling BUAA SSO logout for user: {}", username, e)
+                // Continue with session invalidation even if SSO logout fails
+            }
+            
+            // Invalidate the session in our system
+            sessionManager.invalidateSession(username)
+            log.info("Session invalidated successfully for user: {}", username)
+        } else {
+            log.warn("No active session found for user: {}", username)
+        }
+    }
+
     private suspend fun verifySession(client: HttpClient): UserData? {
         log.debug("Verifying session by accessing https://uc.buaa.edu.cn/api/uc/status")
         val statusResponse = client.get("https://uc.buaa.edu.cn/api/uc/status")
