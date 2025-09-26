@@ -1,12 +1,16 @@
 package cn.edu.ubaa.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.model.dto.CourseClass
@@ -43,7 +47,31 @@ fun MainAppScreen(
     fun navigateTo(screen: AppScreen, bottomTab: BottomNavTab? = null) {
         currentScreen = screen
         bottomTab?.let { selectedBottomTab = it }
-        showSidebar = false
+        
+        // Don't close sidebar when navigating to MY or ABOUT screens
+        // so users can return to the sidebar state
+        if (screen !in listOf(AppScreen.MY, AppScreen.ABOUT)) {
+            showSidebar = false
+        }
+    }
+    
+    fun navigateBack() {
+        when (currentScreen) {
+            AppScreen.MY, AppScreen.ABOUT -> {
+                // Return to the previous screen with sidebar open
+                currentScreen = AppScreen.HOME
+                selectedBottomTab = BottomNavTab.HOME  
+                showSidebar = true
+            }
+            AppScreen.COURSE_DETAIL -> navigateTo(AppScreen.SCHEDULE)
+            AppScreen.SCHEDULE -> navigateTo(AppScreen.REGULAR, BottomNavTab.REGULAR)
+            else -> {
+                // Default back behavior for other screens
+                currentScreen = AppScreen.HOME
+                selectedBottomTab = BottomNavTab.HOME
+                showSidebar = false
+            }
+        }
     }
     
     // Get current screen title
@@ -57,25 +85,22 @@ fun MainAppScreen(
         AppScreen.COURSE_DETAIL -> "课程详情"
     }
     
-    Row(modifier = modifier.fillMaxSize()) {
-        // Sidebar
-        if (showSidebar) {
-            Sidebar(
-                userData = userData,
-                onLogoutClick = onLogoutClick,
-                onMyClick = { navigateTo(AppScreen.MY) },
-                onAboutClick = { navigateTo(AppScreen.ABOUT) }
-            )
-        }
-        
+    Box(modifier = modifier.fillMaxSize()) {
         // Main content
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Top app bar for screens that don't have their own
-            if (currentScreen !in listOf(AppScreen.SCHEDULE, AppScreen.COURSE_DETAIL)) {
+            // Top app bar for screens that need it
+            if (currentScreen == AppScreen.MY || currentScreen == AppScreen.ABOUT) {
+                TopAppBar(
+                    title = { Text(screenTitle) },
+                    navigationIcon = {
+                        IconButton(onClick = { navigateBack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
+                    }
+                )
+            } else if (currentScreen !in listOf(AppScreen.SCHEDULE, AppScreen.COURSE_DETAIL)) {
                 TopAppBar(
                     title = { Text(screenTitle) },
                     navigationIcon = {
@@ -137,9 +162,7 @@ fun MainAppScreen(
                                 selectedCourse = course
                                 navigateTo(AppScreen.COURSE_DETAIL)
                             },
-                            onBack = { 
-                                navigateTo(AppScreen.REGULAR, BottomNavTab.REGULAR)
-                            }
+                            onBack = { navigateBack() }
                         )
                     }
                     
@@ -147,7 +170,7 @@ fun MainAppScreen(
                         selectedCourse?.let { course ->
                             CourseDetailScreen(
                                 course = course,
-                                onBack = { navigateTo(AppScreen.SCHEDULE) }
+                                onBack = { navigateBack() }
                             )
                         }
                     }
@@ -167,6 +190,26 @@ fun MainAppScreen(
                     }
                 )
             }
+        }
+        
+        // Floating Sidebar - overlay on top of content
+        if (showSidebar) {
+            // Semi-transparent backdrop
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { showSidebar = false }
+            )
+            
+            // Sidebar
+            Sidebar(
+                userData = userData,
+                onLogoutClick = onLogoutClick,
+                onMyClick = { navigateTo(AppScreen.MY) },
+                onAboutClick = { navigateTo(AppScreen.ABOUT) },
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
         }
     }
 }
