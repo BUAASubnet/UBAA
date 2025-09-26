@@ -1,6 +1,7 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.LoginRequest
+import cn.edu.ubaa.model.dto.CaptchaRequiredResponse
 import cn.edu.ubaa.auth.JwtAuth.getUserSession
 import cn.edu.ubaa.auth.JwtAuth.requireUserSession
 import io.ktor.http.*
@@ -38,6 +39,11 @@ fun Route.authRouting() {
                 call.respond(
                     HttpStatusCode.BadRequest,
                     ErrorResponse(ErrorDetails("invalid_request", "Invalid request body: ${e.message}"))
+                )
+            } catch (e: CaptchaRequiredException) {
+                call.respond(
+                    HttpStatusCode.UnprocessableEntity, // 422 - CAPTCHA required
+                    CaptchaRequiredResponse(e.captchaInfo, e.message ?: "CAPTCHA verification required")
                 )
             } catch (e: LoginException) {
                 call.respond(
@@ -95,6 +101,45 @@ fun Route.authRouting() {
                 }
             } catch (e: Exception) {
                 application.log.error("An unexpected error occurred during logout.", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ErrorResponse(ErrorDetails("internal_server_error", "An unexpected server error occurred."))
+                )
+            }
+        }
+
+        // CAPTCHA image endpoint
+        get("/captcha/{captchaId}") {
+            try {
+                val captchaId = call.parameters["captchaId"]
+                if (captchaId.isNullOrBlank()) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse(ErrorDetails("invalid_request", "captchaId parameter is required"))
+                    )
+                    return@get
+                }
+                
+                // Create a temporary HTTP client for CAPTCHA fetching
+                val tempClient = io.ktor.client.HttpClient()
+                try {
+                    val imageBytes = authService.getCaptchaImage(tempClient, captchaId)
+                    if (imageBytes != null) {
+                        call.respondBytes(
+                            bytes = imageBytes,
+                            contentType = ContentType.Image.JPEG
+                        )
+                    } else {
+                        call.respond(
+                            HttpStatusCode.NotFound,
+                            ErrorResponse(ErrorDetails("captcha_not_found", "CAPTCHA image not found"))
+                        )
+                    }
+                } finally {
+                    tempClient.close()
+                }
+            } catch (e: Exception) {
+                application.log.error("An unexpected error occurred during CAPTCHA fetch.", e)
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     ErrorResponse(ErrorDetails("internal_server_error", "An unexpected server error occurred."))

@@ -42,6 +42,11 @@ fun App() {
                 onLoginClick = { authViewModel.login() },
                 isLoading = uiState.isLoading,
                 error = uiState.error,
+                showCaptchaDialog = uiState.showCaptchaDialog,
+                captchaInfo = uiState.captchaInfo,
+                onCaptchaChange = { authViewModel.updateCaptcha(it) },
+                onCaptchaConfirm = { authViewModel.login() },
+                onCaptchaDismiss = { authViewModel.hideCaptchaDialog() },
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.background)
                     .safeContentPadding()
