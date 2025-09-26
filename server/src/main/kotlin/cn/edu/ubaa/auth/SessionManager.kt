@@ -2,13 +2,17 @@ package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
+import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.api.Send
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.HttpHeaders
+import io.ktor.http.takeFrom
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -20,6 +24,17 @@ import java.util.concurrent.ConcurrentHashMap
  * 
  * Now also supports JWT token management, where each JWT token maps to a session.
  */
+private val VpnUrlClientPlugin = createClientPlugin("VpnUrlClientPlugin") {
+    on(Send) { request ->
+        val originalUrl = request.url.buildString()
+        val vpnUrl = VpnCipher.toVpnUrl(originalUrl)
+        if (vpnUrl != originalUrl) {
+            request.url.takeFrom(vpnUrl)
+        }
+        proceed(request)
+    }
+}
+
 class SessionManager(
     private val sessionTtl: Duration = Duration.ofMinutes(30)
 ) {
@@ -215,6 +230,7 @@ class SessionManager(
     private fun buildClient(cookieStorage: AcceptAllCookiesStorage): HttpClient {
         return HttpClient(CIO) {
             install(HttpCookies) { storage = cookieStorage }
+            install(VpnUrlClientPlugin)
             install(HttpTimeout) {
                 requestTimeoutMillis = Duration.ofSeconds(30).toMillis()
                 connectTimeoutMillis = Duration.ofSeconds(10).toMillis()

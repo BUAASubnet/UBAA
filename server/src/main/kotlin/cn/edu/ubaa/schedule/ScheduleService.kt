@@ -1,2 +1,2 @@
-package cn.edu.ubaa.user
+package cn.edu.ubaa.schedule
 

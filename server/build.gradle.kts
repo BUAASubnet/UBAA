@@ -17,6 +17,7 @@ application {
 dependencies {
     implementation(projects.shared)
     implementation(libs.logback)
+    implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
 
     // Ktor Server
     implementation(libs.ktor.serverCore)

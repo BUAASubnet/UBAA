@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
