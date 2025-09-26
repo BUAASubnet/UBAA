@@ -79,5 +79,27 @@ fun Route.authRouting() {
                 )
             }
         }
+
+        // Logout endpoint
+        post("/logout") {
+            try {
+                val session = call.getUserSession()
+                if (session != null) {
+                    authService.logout(session.username)
+                    call.respond(HttpStatusCode.OK, mapOf("message" to "Logged out successfully"))
+                } else {
+                    call.respond(
+                        HttpStatusCode.Unauthorized,
+                        ErrorResponse(ErrorDetails("invalid_token", "Invalid or expired JWT token"))
+                    )
+                }
+            } catch (e: Exception) {
+                application.log.error("An unexpected error occurred during logout.", e)
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    ErrorResponse(ErrorDetails("internal_server_error", "An unexpected server error occurred."))
+                )
+            }
+        }
     }
 }
