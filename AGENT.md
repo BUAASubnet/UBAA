@@ -631,7 +631,106 @@ Box(modifier = modifier.fillMaxSize()) {
 }
 ```
 
-#### **b. 导航逻辑优化 (2024-12)**
+#### **b. 侧边栏过渡动画增强 (2025-01)**
+
+**问题描述**
+- 侧边栏显示/隐藏没有过渡动画
+- 视觉效果生硬，缺乏流畅的用户体验
+
+**解决方案**
+- 使用 `AnimatedVisibility` 替代简单的 `if` 条件显示
+- 添加淡入淡出动画：`fadeIn()` + `fadeOut()`
+- 添加水平滑动动画：`slideInHorizontally()` + `slideOutHorizontally()`
+- 背景遮罩和侧边栏同步动画效果
+
+**技术实现**
+```kotlin
+AnimatedVisibility(
+    visible = showSidebar,
+    enter = fadeIn() + slideInHorizontally(),
+    exit = fadeOut() + slideOutHorizontally()
+) {
+    Box { /* 侧边栏内容 */ }
+}
+```
+
+#### **c. 统一顶栏管理 (2025-01)**
+
+**问题描述**
+- 各个界面存在重复的 TopAppBar 定义
+- 标题显示不一致，存在重复问题
+- 难以统一管理导航逻辑
+
+**解决方案**
+- 在 `MainAppScreen` 中统一管理所有界面的 TopAppBar
+- 根据当前屏幕类型显示不同的导航图标和处理逻辑
+- 移除各子界面中的重复 TopAppBar 定义
+- 统一标题显示规则
+
+**界面顶栏规则**
+```kotlin
+when (currentScreen) {
+    AppScreen.MY, AppScreen.ABOUT -> 返回按钮 + 页面标题
+    AppScreen.SCHEDULE, AppScreen.COURSE_DETAIL -> 返回按钮 + 页面标题  
+    else -> 菜单按钮 + 页面标题
+}
+```
+
+#### **d. 课表界面优化 (2025-01)**
+
+**问题描述**
+- 连续课程显示重复，占用过多空间
+- 课程地点信息不够突出
+- 课程时间显示缺失
+
+**解决方案**
+- **课程合并**: 连续课程只在开始节次显示，避免重复
+- **地点突出**: 增大地点文字，使用中等字重显示
+- **时间信息**: 在课程卡片中显示具体时间或节次信息
+- **动态高度**: 根据课程跨度调整卡片高度
+
+**技术实现**
+```kotlin
+// 只在开始节次显示课程，避免重复
+if ((course.beginSection ?: 0) == timeSlot) {
+    val courseHeight = ((course.endSection ?: course.beginSection ?: timeSlot) - 
+                       (course.beginSection ?: timeSlot) + 1) * 60
+    CourseCell(
+        course = course,
+        modifier = Modifier.height(courseHeight.dp)
+    )
+}
+```
+
+#### **e. 今日课表时间排序 (2025-01)**
+
+**问题描述**
+- 今日课表显示顺序不按时间排列
+- 用户难以快速找到下一节课程
+
+**解决方案**
+- 解析课程时间字符串 ("14:00-15:35" 格式)
+- 按开始时间从早到晚排序
+- 无时间信息的课程排在最后
+
+**排序算法**
+```kotlin
+val sortedClasses = todayClasses.sortedBy { todayClass ->
+    todayClass.time?.let { timeRange ->
+        val startTime = timeRange.split("-").firstOrNull()?.trim()
+        startTime?.let { 
+            val timeParts = it.split(":")
+            if (timeParts.size == 2) {
+                timeParts[0].toIntOrNull()?.let { hour ->
+                    hour * 60 + (timeParts[1].toIntOrNull() ?: 0)
+                }
+            } else null
+        }
+    } ?: Int.MAX_VALUE // 无时间信息的课程排在最后
+}
+```
+
+#### **f. 导航逻辑持续优化 (2024-12 至 2025-01)**
 
 **问题描述**
 - "我的"和"关于"界面缺少返回按钮
@@ -709,12 +808,33 @@ fun navigateBack() {
 - 下拉菜单：精确选择
 - 根据操作频率选择主要交互方式
 
-#### **e. 后续UI优化建议**
+#### **g. 最新UI优化成果总结 (2025-01)**
 
-**动画效果**
-- 为侧边栏添加滑入/滑出动画
-- 页面切换过渡动画
-- 状态变化的微动效
+**本次优化重点**
+1. **动画体验**: 完成侧边栏滑入/滑出动画实现
+2. **架构统一**: 统一顶栏管理，消除代码重复
+3. **功能优化**: 课程表布局合并和时间排序
+4. **用户体验**: 信息层级优化，地点信息突出显示
+
+**技术特点**
+- 使用 Compose 动画 API 实现流畅过渡
+- 采用统一状态管理避免UI不一致
+- 智能算法处理时间解析和课程合并
+- 响应式布局适配不同内容长度
+
+**用户价值**
+- 减少视觉跳跃，提升操作流畅度
+- 快速定位课程信息，提升使用效率
+- 统一交互逻辑，降低学习成本
+- 优化信息展示，提升可读性
+
+#### **h. 后续UI优化建议**
+
+**动画效果增强**
+- ✅ 侧边栏滑入/滑出动画 (已完成)
+- [ ] 页面切换过渡动画
+- [ ] 状态变化的微动效
+- [ ] 课程卡片交互反馈动画
 
 **适配性**
 - 横屏模式下的布局优化
