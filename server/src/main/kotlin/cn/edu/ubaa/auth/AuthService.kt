@@ -86,8 +86,8 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                     )
                 }
 
-        log.info("Login form submitted. Response status: {}", loginSubmitResponse.status)
-        log.info("response content: {}", loginSubmitResponse.bodyAsText())
+        log.debug("Login form submitted. Response status: {}", loginSubmitResponse.status)
+        log.debug("response content: {}", loginSubmitResponse.bodyAsText())
 
         findLoginError(loginSubmitResponse)?.let { errorMessage ->
             client.close()
