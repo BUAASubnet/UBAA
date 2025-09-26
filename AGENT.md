@@ -298,9 +298,11 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 
 * **认证流程**
   1. **登录**: 调用 `POST /api/v1/auth/login`，成功后返回 `LoginResponse` 包含用户信息和 JWT 令牌
-  2. **令牌使用**: 客户端在后续请求中携带 `Authorization: Bearer <jwt-token>` 头
-  3. **会话验证**: 调用 `GET /api/v1/auth/status` 验证令牌有效性并获取会话状态
-  4. **自动续期**: 活跃会话在访问时自动更新最后活动时间，延长有效期
+  2. **验证码处理**: 如果需要验证码，服务器返回 422 状态码和 `CaptchaRequiredResponse`，包含验证码图片信息
+  3. **验证码输入**: 客户端显示验证码图片，用户输入验证码后重新提交登录请求
+  4. **令牌使用**: 客户端在后续请求中携带 `Authorization: Bearer <jwt-token>` 头
+  5. **会话验证**: 调用 `GET /api/v1/auth/status` 验证令牌有效性并获取会话状态
+  6. **自动续期**: 活跃会话在访问时自动更新最后活动时间，延长有效期
 
 * **开发使用指南**
   * 使用 `sessionManager.getSessionByToken(jwt)` 通过令牌获取会话
@@ -315,6 +317,39 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
   * 客户端应安全存储令牌（移动端使用 Keychain/Keystore，Web 使用 HttpOnly Cookie）
   * 支持令牌撤销机制，通过 `invalidateSessionByToken` 主动失效令牌
   * 定期清理过期令牌和会话，防止内存泄漏
+
+### **9. CAPTCHA 验证码支持**
+
+项目支持 BUAA SSO 的验证码验证机制，当登录需要验证码时，系统会自动检测并提供相应的用户交互流程。
+
+* **CAPTCHA 检测机制**
+  * `AuthService.detectCaptcha()` 方法解析 SSO 登录页面 HTML
+  * 使用正则表达式提取 JavaScript 配置：`config.captcha = { type: 'image', id: '...' }`
+  * 自动构建验证码图片 URL：`https://sso.buaa.edu.cn/captcha?captchaId=<id>`
+
+* **后端 CAPTCHA 处理**
+  * 登录时检测验证码需求，若需要验证码且未提供，抛出 `CaptchaRequiredException`
+  * API 返回 422 状态码和 `CaptchaRequiredResponse`，包含验证码信息
+  * 提供 `/api/v1/auth/captcha/{captchaId}` 端点获取验证码图片
+  * 登录请求支持可选的 `captcha` 字段
+
+* **前端 CAPTCHA 流程**
+  * `AuthViewModel` 管理验证码状态和对话框显示
+  * `CaptchaDialog` 组件展示验证码图片和输入框
+  * `AuthService` 处理 422 状态码，触发验证码输入流程
+  * 用户输入验证码后自动重新提交登录请求
+
+* **数据结构**
+  * `CaptchaInfo`: 包含验证码ID、类型和图片URL
+  * `CaptchaRequiredResponse`: 422错误响应，包含验证码信息
+  * `LoginRequest`: 支持可选的验证码字段
+  * `CaptchaRequiredException`: 服务端验证码需求异常
+
+* **使用说明**
+  * 验证码检测完全自动化，无需手动配置
+  * 用户界面自动显示验证码对话框
+  * 支持验证码输入取消和重试
+  * 验证码图片通过专用端点安全获取
 
 * **与 SessionManager 的集成**
   * 每个 JWT 令牌唯一映射到一个用户会话
