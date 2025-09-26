@@ -61,9 +61,18 @@ class AuthService(private val apiClient: ApiClient = ApiClient()) {
     
     suspend fun logout(): Result<Unit> {
         return try {
-            val response = apiClient.getClient().post("api/v1/auth/logout")
+            // First attempt to logout from the server
+            val serverResponse = apiClient.getClient().post("api/v1/auth/logout")
             
-            when (response.status) {
+            // Then attempt SSO logout regardless of server response
+            try {
+                val ssoResponse = apiClient.getClient().get("https://sso.buaa.edu.cn/logout")
+                println("SSO logout response: ${ssoResponse.status}")
+            } catch (ssoException: Exception) {
+                println("SSO logout failed (this is expected in some environments): ${ssoException.message}")
+            }
+            
+            when (serverResponse.status) {
                 HttpStatusCode.OK -> {
                     // Close the API client after successful logout
                     apiClient.close()
@@ -77,7 +86,7 @@ class AuthService(private val apiClient: ApiClient = ApiClient()) {
                 else -> {
                     // Even if server logout fails, clear local state
                     apiClient.close()
-                    Result.failure(Exception("Logout failed with status: ${response.status}"))
+                    Result.failure(Exception("Logout failed with status: ${serverResponse.status}"))
                 }
             }
         } catch (e: Exception) {
@@ -108,6 +117,105 @@ class UserService(private val apiClient: ApiClient = ApiClient()) {
                 }
                 else -> {
                     Result.failure(Exception("Failed to fetch user info with status: ${response.status}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+/**
+ * Schedule service for fetching course schedules
+ */
+class ScheduleService(private val apiClient: ApiClient = ApiClient()) {
+    
+    suspend fun getTerms(): Result<List<Term>> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/schedule/terms")
+            
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val terms = response.body<List<Term>>()
+                    Result.success(terms)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(Exception("Failed to fetch terms with status: ${response.status}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getWeeks(termCode: String): Result<List<Week>> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/schedule/weeks") {
+                parameter("termCode", termCode)
+            }
+            
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val weeks = response.body<List<Week>>()
+                    Result.success(weeks)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(Exception("Failed to fetch weeks with status: ${response.status}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/schedule/week") {
+                parameter("termCode", termCode)
+                parameter("week", week)
+            }
+            
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val schedule = response.body<WeeklySchedule>()
+                    Result.success(schedule)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(Exception("Failed to fetch schedule with status: ${response.status}"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getTodaySchedule(): Result<List<TodayClass>> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/schedule/today")
+            
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val todaySchedule = response.body<List<TodayClass>>()
+                    Result.success(todaySchedule)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(Exception("Failed to fetch today's schedule with status: ${response.status}"))
                 }
             }
         } catch (e: Exception) {

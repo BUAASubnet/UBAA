@@ -321,3 +321,252 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
   * 令牌过期与会话过期保持同步
   * 支持同一用户的多个有效令牌（如多设备登录）
   * 会话失效时自动清理所有关联的 JWT 令牌
+
+### **9. 新增 UI 组件架构**
+
+本次更新新增了完整的多层次UI架构，实现了现代化的移动应用界面设计。
+
+#### **a. 组件层级结构**
+
+```mermaid
+graph TD
+    A[App.kt - 根组件] --> B{认证状态判断}
+    B -->|已登录| C[MainAppScreen - 主应用容器]
+    B -->|未登录| D[LoginScreen - 登录界面]
+    
+    C --> E[Sidebar - 左侧边栏]
+    C --> F[主内容区域]
+    C --> G[BottomNavigation - 底部导航]
+    
+    F --> H[HomeScreen - 主页]
+    F --> I[RegularFeaturesScreen - 普通功能]
+    F --> J[AdvancedFeaturesScreen - 高级功能]
+    F --> K[ScheduleScreen - 课表页面]
+    F --> L[CourseDetailScreen - 课程详情]
+    F --> M[MyScreen - 我的页面]
+    F --> N[AboutScreen - 关于页面]
+```
+
+#### **b. UI 组件功能详解**
+
+**主应用容器 (`MainAppScreen.kt`)**
+* 统一管理应用内导航状态
+* 响应式布局：根据屏幕类型显示相应导航元素
+* 集成侧边栏切换、底部导航和页面导航逻辑
+* 状态管理：维护当前屏幕、选中标签页等状态
+
+**侧边栏组件 (`Sidebar.kt`)**
+* 用户信息展示：头像、姓名、学号
+* 功能菜单："我的"、"关于"页面入口
+* 登出按钮：支持 SSO 端点调用
+* 可折叠设计：通过汉堡菜单按钮控制显示/隐藏
+
+**底部导航栏 (`BottomNavigation.kt`)**
+* 三个主要标签：主页、普通功能、高级功能
+* Material Design 3 风格设计
+* 状态指示：高亮当前选中标签
+
+**主页组件 (`HomeScreen.kt`)**
+* 今日课表展示：支持空状态、加载状态、错误状态
+* 课程卡片：显示课程名称、时间、地点信息
+* 下拉刷新功能
+* 日期显示：自动获取当前日期
+
+**课表功能页面 (`ScheduleScreen.kt`)**
+* 学期选择器：下拉菜单形式，支持多学期切换
+* 周次选择器：水平滚动，高亮当前周
+* 课表网格视图：7列（周一到周日）× 12行（节次）
+* 课程点击：跳转到详情页面
+* 颜色编码：根据课程设置显示不同背景色
+
+**课程详情页面 (`CourseDetailScreen.kt`)**
+* 详细信息展示：课程代码、名称、学分、时间、地点
+* 卡片式布局：信息分组显示
+* 返回导航：支持从课表页面返回
+
+#### **c. 数据管理架构**
+
+**ScheduleViewModel (`ScheduleViewModel.kt`)**
+* 课表数据状态管理：学期列表、周列表、课表数据
+* API 调用封装：自动处理加载状态和错误状态
+* 响应式数据流：使用 StateFlow 提供数据订阅
+
+**ScheduleService (`ApiService.kt` 扩展)**
+* 新增课表相关 API 服务方法：
+  * `getTerms()` - 获取学期列表
+  * `getWeeks(termCode)` - 获取指定学期的周列表
+  * `getWeeklySchedule(termCode, week)` - 获取周课表
+  * `getTodaySchedule()` - 获取今日课表
+
+**登出功能增强**
+* SSO 登出支持：调用 `https://sso.buaa.edu.cn/logout`
+* 双重登出机制：同时调用应用服务器和 SSO 端点
+* 容错处理：即使 SSO 登出失败也清理本地状态
+
+#### **d. 导航系统设计**
+
+**多层级导航**
+* 底部导航：主要功能区域切换
+* 侧边栏导航：用户功能和设置入口
+* 页面内导航：详情页面和返回导航
+
+**导航状态管理**
+* 枚举定义：`AppScreen` 和 `BottomNavTab`
+* 状态同步：导航状态与 UI 状态保持一致
+* 路由逻辑：`navigateTo()` 函数统一管理导航跳转
+
+**响应式导航**
+* 条件显示：根据当前页面决定导航元素的显示
+* 状态保持：页面切换时保持用户操作状态
+* 返回处理：支持多级页面返回路径
+
+#### **e. 开发最佳实践**
+
+**组件化设计**
+* 单一职责：每个组件专注特定功能
+* 可复用性：组件支持参数化配置
+* 状态提升：状态管理在合适的层级进行
+
+**数据流管理**
+* 单向数据流：从 ViewModel 到 UI 组件
+* 响应式更新：使用 StateFlow 自动更新 UI
+* 错误处理：统一的错误状态处理机制
+
+**多平台兼容**
+* 共享 UI 代码：所有 UI 组件在 commonMain 中定义
+* 平台适配：颜色解析等平台特定功能的处理
+* 依赖管理：正确配置 kotlinx-datetime 等依赖
+
+### **10. API 服务扩展**
+
+#### **a. 课表相关接口**
+
+基于现有 API 文档，新增了完整的课表功能支持：
+
+**学期管理**
+```kotlin
+suspend fun getTerms(): Result<List<Term>>
+```
+- 调用 `GET /api/v1/schedule/terms`
+- 返回可用学期列表，包含选中状态
+
+**周次管理**
+```kotlin
+suspend fun getWeeks(termCode: String): Result<List<Week>>
+```
+- 调用 `GET /api/v1/schedule/weeks?termCode={termCode}`
+- 返回指定学期的周列表，标识当前周
+
+**课表数据**
+```kotlin
+suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule>
+suspend fun getTodaySchedule(): Result<List<TodayClass>>
+```
+- 支持周课表和今日课表查询
+- 处理课程时间、地点、教师等详细信息
+
+#### **b. 登出功能增强**
+
+```kotlin
+suspend fun logout(): Result<Unit> {
+    // 1. 调用应用服务器登出接口
+    val serverResponse = apiClient.getClient().post("api/v1/auth/logout")
+    
+    // 2. 调用 SSO 登出接口
+    try {
+        val ssoResponse = apiClient.getClient().get("https://sso.buaa.edu.cn/logout")
+    } catch (ssoException: Exception) {
+        // SSO 登出失败处理
+    }
+    
+    // 3. 清理本地状态
+    apiClient.close()
+}
+```
+
+### **11. 构建和部署指导**
+
+#### **a. 依赖更新**
+
+项目新增依赖项：
+- `kotlinx-datetime`: 用于日期时间处理
+- 版本配置在 `gradle/libs.versions.toml` 中统一管理
+
+#### **b. 模块结构**
+
+```
+composeApp/src/commonMain/kotlin/cn/edu/ubaa/
+├── App.kt                    # 应用根组件
+├── ui/
+│   ├── MainAppScreen.kt      # 主应用容器
+│   ├── ScheduleViewModel.kt  # 课表数据管理
+│   ├── components/           # 可复用组件
+│   │   ├── Sidebar.kt        # 侧边栏
+│   │   └── BottomNavigation.kt # 底部导航
+│   └── screens/              # 页面组件
+│       ├── HomeScreen.kt     # 主页
+│       ├── ScheduleScreen.kt # 课表页面
+│       ├── CourseDetailScreen.kt # 课程详情
+│       ├── RegularFeaturesScreen.kt # 普通功能
+│       └── OtherScreens.kt   # 其他页面
+```
+
+#### **c. 多平台构建**
+
+项目支持以下平台：
+- Android (minSdk 24)
+- iOS (iOS 12+)
+- Desktop (JVM)
+- Web (JS/Wasm)
+
+构建命令示例：
+```bash
+./gradlew :composeApp:assembleDebug          # Android APK
+./gradlew :composeApp:createDistributable    # Desktop 应用
+./gradlew :composeApp:jsBrowserDistribution  # Web 应用
+```
+
+### **12. 后续开发建议**
+
+#### **a. 功能扩展**
+
+**个人中心完善**
+* 用户设置：主题切换、字体大小调整
+* 数据管理：离线缓存、数据同步设置
+* 反馈功能：问题反馈、建议提交
+
+**高级功能实现**
+* 成绩查询：学期成绩、GPA 统计
+* 选课功能：在线选课、课程搜索
+* 通知系统：课程提醒、重要通知推送
+
+#### **b. 性能优化**
+
+**数据缓存**
+* 实现 Room/SQLDelight 本地数据库
+* 课表数据本地缓存，减少网络请求
+* 智能缓存策略：差量更新、过期清理
+
+**UI 优化**
+* 懒加载：大列表使用 LazyColumn/LazyRow
+* 预加载：预先加载下一页数据
+* 动画效果：页面切换动画、状态转换动画
+
+#### **c. 测试和质量保障**
+
+**单元测试**
+* ViewModel 测试：数据状态和业务逻辑测试
+* API 服务测试：网络请求和错误处理测试
+* 工具函数测试：日期处理、数据转换等
+
+**UI 测试**
+* Compose 测试：组件渲染和交互测试
+* 导航测试：页面跳转和状态保持测试
+* 多平台测试：确保跨平台一致性
+
+**代码质量**
+* Lint 检查：代码规范和潜在问题检测
+* 代码覆盖率：确保测试覆盖率达标
+* 文档完善：API 文档和使用示例
+
+通过以上架构和功能实现，UBAA 应用现在具备了完整的用户界面和核心功能，为后续的功能扩展和性能优化奠定了坚实的基础。

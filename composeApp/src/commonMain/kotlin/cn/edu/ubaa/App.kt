@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.ui.AuthViewModel
 import cn.edu.ubaa.ui.LoginScreen
-import cn.edu.ubaa.ui.UserInfoScreen
+import cn.edu.ubaa.ui.MainAppScreen
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -23,8 +23,8 @@ fun App() {
 
         val userData = uiState.userData
         if (uiState.isLoggedIn && userData != null) {
-            // Show user info screen when logged in
-            UserInfoScreen(
+            // Show main app when logged in
+            MainAppScreen(
                 userData = userData,
                 userInfo = uiState.userInfo,
                 onLogoutClick = { authViewModel.logout() },
