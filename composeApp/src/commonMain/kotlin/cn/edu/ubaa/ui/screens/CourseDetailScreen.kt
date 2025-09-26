@@ -13,22 +13,11 @@ import cn.edu.ubaa.model.dto.CourseClass
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(course: CourseClass, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxSize()) {
-        // Top App Bar
-        TopAppBar(
-                title = { Text("课程详情") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                }
-        )
-
-        // Course details
-        Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+    // Course details
+    Column(
+            modifier = modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
             // Course name card
             Card(
                     modifier = Modifier.fillMaxWidth(),

@@ -1,5 +1,6 @@
 package cn.edu.ubaa.ui
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -90,25 +91,48 @@ fun MainAppScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Top app bar for screens that need it
-            if (currentScreen == AppScreen.MY || currentScreen == AppScreen.ABOUT) {
-                TopAppBar(
-                    title = { Text(screenTitle) },
-                    navigationIcon = {
-                        IconButton(onClick = { navigateBack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+            // Unified Top app bar - always show but content varies by screen
+            when (currentScreen) {
+                AppScreen.MY, AppScreen.ABOUT -> {
+                    TopAppBar(
+                        title = { Text(screenTitle) },
+                        navigationIcon = {
+                            IconButton(onClick = { navigateBack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            }
                         }
-                    }
-                )
-            } else if (currentScreen !in listOf(AppScreen.SCHEDULE, AppScreen.COURSE_DETAIL)) {
-                TopAppBar(
-                    title = { Text(screenTitle) },
-                    navigationIcon = {
-                        IconButton(onClick = { showSidebar = !showSidebar }) {
-                            Icon(Icons.Default.Menu, contentDescription = "菜单")
+                    )
+                }
+                AppScreen.SCHEDULE -> {
+                    TopAppBar(
+                        title = { Text(screenTitle) },
+                        navigationIcon = {
+                            IconButton(onClick = { navigateBack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            }
                         }
-                    }
-                )
+                    )
+                }
+                AppScreen.COURSE_DETAIL -> {
+                    TopAppBar(
+                        title = { Text(screenTitle) },
+                        navigationIcon = {
+                            IconButton(onClick = { navigateBack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            }
+                        }
+                    )
+                }
+                else -> {
+                    TopAppBar(
+                        title = { Text(screenTitle) },
+                        navigationIcon = {
+                            IconButton(onClick = { showSidebar = !showSidebar }) {
+                                Icon(Icons.Default.Menu, contentDescription = "菜单")
+                            }
+                        }
+                    )
+                }
             }
             
             // Main content area
@@ -192,24 +216,32 @@ fun MainAppScreen(
             }
         }
         
-        // Floating Sidebar - overlay on top of content
-        if (showSidebar) {
-            // Semi-transparent backdrop
+        // Floating Sidebar - overlay on top of content with animation
+        AnimatedVisibility(
+            visible = showSidebar,
+            enter = fadeIn() + slideInHorizontally(),
+            exit = fadeOut() + slideOutHorizontally()
+        ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
-                    .clickable { showSidebar = false }
-            )
-            
-            // Sidebar
-            Sidebar(
-                userData = userData,
-                onLogoutClick = onLogoutClick,
-                onMyClick = { navigateTo(AppScreen.MY) },
-                onAboutClick = { navigateTo(AppScreen.ABOUT) },
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Semi-transparent backdrop with fade animation
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { showSidebar = false }
+                )
+                
+                // Sidebar with slide animation
+                Sidebar(
+                    userData = userData,
+                    onLogoutClick = onLogoutClick,
+                    onMyClick = { navigateTo(AppScreen.MY) },
+                    onAboutClick = { navigateTo(AppScreen.ABOUT) },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+            }
         }
     }
 }
