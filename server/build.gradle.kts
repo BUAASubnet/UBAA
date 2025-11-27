@@ -36,6 +36,9 @@ dependencies {
     // Jsoup
     implementation(libs.jsoup)
 
+    // BouncyCastle for BYKC crypto
+    implementation(libs.bouncycastle)
+
     // JWT
     implementation("io.ktor:ktor-server-auth-jvm:3.3.0")
     implementation("io.ktor:ktor-server-auth-jwt-jvm:3.3.0")

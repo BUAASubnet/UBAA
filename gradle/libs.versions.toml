@@ -20,6 +20,7 @@ ktor = "3.3.0"
 logback = "1.5.18"
 jsoup = "1.17.2"
 kamel = "1.0.8"
+bouncycastle = "1.77"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -53,6 +54,7 @@ ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 kamel-image = { module = "media.kamel:kamel-image", version.ref = "kamel" }
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 
 [plugins]

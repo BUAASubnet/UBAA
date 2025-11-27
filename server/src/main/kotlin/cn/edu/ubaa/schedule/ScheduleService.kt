@@ -3,7 +3,6 @@ package cn.edu.ubaa.schedule
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
 import cn.edu.ubaa.model.dto.*
-import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -24,15 +23,12 @@ class ScheduleService(
     private fun HttpRequestBuilder.applyScheduleHeaders() {
         header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
         header("X-Requested-With", "XMLHttpRequest")
-        header(
-                HttpHeaders.Referrer,
-                VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html")
-        )
+        header(HttpHeaders.Referrer, "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html")
     }
 
     private suspend fun SessionManager.UserSession.ensurePortalSession() {
         runCatching {
-            val portalUrl = VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/")
+            val portalUrl = "https://byxt.buaa.edu.cn/"
             client.get(portalUrl) { header(HttpHeaders.CacheControl, "no-cache") }
         }
                 .onFailure { throwable ->
@@ -179,9 +175,7 @@ class ScheduleService(
     private suspend fun SessionManager.UserSession.getTerms(): HttpResponse {
         return try {
             val url =
-                    VpnCipher.toVpnUrl(
-                            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
-                    )
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
             ensurePortalSession()
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
@@ -193,9 +187,7 @@ class ScheduleService(
     private suspend fun SessionManager.UserSession.getWeeks(termCode: String): HttpResponse {
         return try {
             val url =
-                    VpnCipher.toVpnUrl(
-                            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode"
-                    )
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode"
             ensurePortalSession()
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
@@ -210,9 +202,7 @@ class ScheduleService(
     ): HttpResponse {
         return try {
             val url =
-                    VpnCipher.toVpnUrl(
-                            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
-                    )
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
             ensurePortalSession()
             client.post(url) {
                 applyScheduleHeaders()
@@ -236,9 +226,7 @@ class ScheduleService(
     private suspend fun SessionManager.UserSession.getTodaySchedule(date: String): HttpResponse {
         return try {
             val url =
-                    VpnCipher.toVpnUrl(
-                            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student"
-                    )
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student"
             ensurePortalSession()
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {

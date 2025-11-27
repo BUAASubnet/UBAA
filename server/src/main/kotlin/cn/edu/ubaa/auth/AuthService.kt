@@ -185,10 +185,11 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
     }
 
     companion object {
-        private const val VPN_SERVICE_URL = "https://d.buaa.edu.cn/login?cas_login=true"
+        // 使用直连地址而非 WebVPN
+        private const val UC_SERVICE_URL = "https://uc.buaa.edu.cn/"
         private val LOGIN_URL: String =
                 "https://sso.buaa.edu.cn/login?service=" +
-                        URLEncoder.encode(VPN_SERVICE_URL, StandardCharsets.UTF_8.name())
+                        URLEncoder.encode(UC_SERVICE_URL, StandardCharsets.UTF_8.name())
         private const val UC_STATUS_URL = "https://uc.buaa.edu.cn/api/uc/status"
         private const val CAPTCHA_URL_BASE = "https://sso.buaa.edu.cn/captcha"
     }

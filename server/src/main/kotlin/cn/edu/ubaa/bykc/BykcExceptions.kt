@@ -1,0 +1,22 @@
+package cn.edu.ubaa.bykc
+
+/** BYKC 相关异常 */
+open class BykcException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** BYKC 登录异常 */
+class BykcLoginException(message: String, cause: Throwable? = null) : BykcException(message, cause)
+
+/** BYKC 选课异常 */
+open class BykcSelectException(message: String, cause: Throwable? = null) :
+        BykcException(message, cause)
+
+/** 课程已被选择异常 */
+class BykcAlreadySelectedException(message: String = "已报名过该课程，请不要重复报名") :
+        BykcSelectException(message)
+
+/** 课程已满异常 */
+class BykcCourseFullException(message: String = "报名失败，该课程人数已满") : BykcSelectException(message)
+
+/** 课程不可选异常 */
+class BykcCourseNotSelectableException(message: String = "选课失败，该课程不可选择") :
+        BykcSelectException(message)

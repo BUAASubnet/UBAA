@@ -278,7 +278,246 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## 5. 错误码说明
+## 5. 博雅课程 (BYKC) 接口
+
+### 获取博雅用户信息
+- **GET /api/v1/bykc/profile**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **成功响应**：
+```json
+{
+  "id": 12345,
+  "employeeId": "20201234",
+  "realName": "张三",
+  "studentNo": "20201234",
+  "studentType": "本科生",
+  "classCode": "242101",
+  "collegeName": "计算机学院",
+  "termName": "2024-2025学年第一学期"
+}
+```
+
+### 获取课程列表
+- **GET /api/v1/bykc/courses**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **请求参数**：
+  - `page` (可选): 页码，默认 1
+  - `size` (可选): 每页数量，默认 200，最大 500
+  - `all` (可选): 是否包含已过期课程，默认 false
+- **成功响应**：
+```json
+{
+  "courses": [
+    {
+      "id": 12345,
+      "courseName": "中国传统文化讲座",
+      "coursePosition": "学术交流厅",
+      "courseTeacher": "王教授",
+      "courseStartDate": "2025-03-15 14:00:00",
+      "courseEndDate": "2025-03-15 16:00:00",
+      "courseSelectStartDate": "2025-03-01 08:00:00",
+      "courseSelectEndDate": "2025-03-14 23:59:59",
+      "courseMaxCount": 200,
+      "courseCurrentCount": 150,
+      "category": "人文素养",
+      "subCategory": "传统文化",
+      "status": "可选",
+      "selected": false,
+      "courseDesc": "课程简介..."
+    }
+  ],
+  "total": 50
+}
+```
+
+### 获取课程详情
+- **GET /api/v1/bykc/courses/{courseId}**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **路径参数**：
+  - `courseId`: 课程ID
+- **成功响应**：
+```json
+{
+  "id": 12345,
+  "courseName": "中国传统文化讲座",
+  "coursePosition": "学术交流厅",
+  "courseContact": "李老师",
+  "courseContactMobile": "13800138000",
+  "courseTeacher": "王教授",
+  "courseStartDate": "2025-03-15 14:00:00",
+  "courseEndDate": "2025-03-15 16:00:00",
+  "courseSelectStartDate": "2025-03-01 08:00:00",
+  "courseSelectEndDate": "2025-03-14 23:59:59",
+  "courseCancelEndDate": "2025-03-14 12:00:00",
+  "courseMaxCount": 200,
+  "courseCurrentCount": 150,
+  "category": "人文素养",
+  "subCategory": "传统文化",
+  "status": "可选",
+  "selected": false,
+  "courseDesc": "课程详细介绍...",
+  "signConfig": {
+    "signStartDate": "2025-03-15 13:30:00",
+    "signEndDate": "2025-03-15 14:30:00",
+    "signOutStartDate": "2025-03-15 15:30:00",
+    "signOutEndDate": "2025-03-15 16:30:00",
+    "signPoints": [
+      {"lat": 39.9876, "lng": 116.1234, "radius": 100.0}
+    ]
+  }
+}
+```
+
+### 获取已选课程
+- **GET /api/v1/bykc/courses/chosen**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **成功响应**：
+```json
+[
+  {
+    "id": 67890,
+    "courseName": "中国传统文化讲座",
+    "coursePosition": "学术交流厅",
+    "courseTeacher": "王教授",
+    "courseStartDate": "2025-03-15 14:00:00",
+    "courseEndDate": "2025-03-15 16:00:00",
+    "selectDate": "2025-03-10 10:30:00",
+    "category": "人文素养",
+    "subCategory": "传统文化",
+    "checkin": 1,
+    "score": 85,
+    "pass": 1,
+    "canSign": true,
+    "canSignOut": false,
+    "signConfig": {...}
+  }
+]
+```
+
+### 选课
+- **POST /api/v1/bykc/courses/{courseId}/select**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **路径参数**：
+  - `courseId`: 课程ID
+- **成功响应**：
+```json
+{
+  "message": "选课成功"
+}
+```
+- **错误响应**：
+```json
+{
+  "error": {
+    "code": "already_selected",
+    "message": "已报名过该课程，请不要重复报名"
+  }
+}
+```
+```json
+{
+  "error": {
+    "code": "course_full",
+    "message": "报名失败，该课程人数已满"
+  }
+}
+```
+```json
+{
+  "error": {
+    "code": "course_not_selectable",
+    "message": "选课失败，该课程不可选择"
+  }
+}
+```
+
+### 退选
+- **DELETE /api/v1/bykc/courses/{courseId}/select**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **路径参数**：
+  - `courseId`: 课程ID（与课程列表中的 `id` 一致）
+- **成功响应**：
+```json
+{
+  "message": "退选成功"
+}
+```
+- **错误响应**：
+```json
+{
+  "error": {
+    "code": "deselect_failed",
+    "message": "退选失败，未找到退选课程或已超过退选时间"
+  }
+}
+```
+
+### 签到/签退
+- **POST /api/v1/bykc/courses/{courseId}/sign**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **路径参数**：
+  - `courseId`: 课程ID
+- **请求体**：
+```json
+{
+  "courseId": 12345,
+  "lat": 39.9876,
+  "lng": 116.1234,
+  "signType": 1
+}
+```
+  - `signType`: 1=签到, 2=签退
+- **成功响应**：
+```json
+{
+  "message": "签到成功"
+}
+```
+- **错误响应**：
+```json
+{
+  "error": {
+    "code": "sign_failed",
+    "message": "签到失败：不在签到时间范围内"
+  }
+}
+```
+
+### 课程状态说明
+
+| 状态 | 说明                 |
+| ---- | -------------------- |
+| 过期 | 课程已开始，无法选择 |
+| 已选 | 用户已选择该课程     |
+| 预告 | 选课尚未开始         |
+| 结束 | 选课已结束           |
+| 满员 | 课程人数已满         |
+| 可选 | 可以正常选课         |
+
+---
+
+## 6. 错误码说明
 
 | 错误码                | 说明                 |
 | --------------------- | -------------------- |

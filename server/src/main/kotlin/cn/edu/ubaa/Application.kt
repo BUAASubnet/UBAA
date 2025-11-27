@@ -2,6 +2,7 @@ package cn.edu.ubaa
 
 import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
 import cn.edu.ubaa.auth.authRouting
+import cn.edu.ubaa.bykc.bykcRouting
 import cn.edu.ubaa.schedule.scheduleRouting
 import cn.edu.ubaa.user.userRouting
 import io.ktor.serialization.kotlinx.json.*
@@ -29,6 +30,7 @@ fun Application.module() {
         authRouting()
         userRouting()
         scheduleRouting()
+        bykcRouting()
 
         get("/") { call.respondText("Ktor: ${Greeting().greet()}") }
     }

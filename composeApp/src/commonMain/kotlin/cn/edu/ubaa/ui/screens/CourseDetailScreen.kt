@@ -117,7 +117,6 @@ fun CourseDetailScreen(course: CourseClass, onBack: () -> Unit, modifier: Modifi
             }
         }
     }
-}
 
 @Composable
 private fun CourseInfoRow(label: String, value: String, modifier: Modifier = Modifier) {

@@ -339,25 +339,118 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
   * `AuthService` 处理 422 状态码，触发验证码输入流程
   * 用户输入验证码后自动重新提交登录请求
 
-* **数据结构**
-  * `CaptchaInfo`: 包含验证码ID、类型和图片URL
-  * `CaptchaRequiredResponse`: 422错误响应，包含验证码信息
-  * `LoginRequest`: 支持可选的验证码字段
-  * `CaptchaRequiredException`: 服务端验证码需求异常
+### **10. 博雅课程 (BYKC) 模块**
 
-* **使用说明**
-  * 验证码检测完全自动化，无需手动配置
-  * 用户界面自动显示验证码对话框
-  * 支持验证码输入取消和重试
-  * 验证码图片通过专用端点安全获取
+完整实现 BYKC（博雅课程）系统集成，支持课程查询、选课、退选、签到等功能。
 
-* **与 SessionManager 的集成**
-  * 每个 JWT 令牌唯一映射到一个用户会话
-  * 令牌过期与会话过期保持同步
-  * 支持同一用户的多个有效令牌（如多设备登录）
-  * 会话失效时自动清理所有关联的 JWT 令牌
+#### **a. 架构设计**
 
-### **9. 新增 UI 组件架构**
+```
+server/src/main/kotlin/cn/edu/ubaa/bykc/
+├── BykcCrypto.kt      # RSA+AES 加密工具
+├── BykcClient.kt      # BYKC API 客户端
+├── BykcService.kt     # 业务逻辑层
+├── BykcRoutes.kt      # REST API 路由
+├── BykcModels.kt      # 服务端数据模型
+└── BykcExceptions.kt  # 自定义异常
+
+shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/
+└── Bykc.kt            # 共享 DTO 定义
+```
+
+#### **b. 加密机制 (`BykcCrypto.kt`)**
+
+BYKC 系统使用 RSA+AES 混合加密：
+
+* **RSA 公钥**: 1024-bit，用于加密 AES 密钥和签名
+* **AES 加密**: AES-128-ECB 模式，PKCS5Padding
+* **签名算法**: SHA1 摘要
+
+**加密流程:**
+1. 生成随机 16 字节 AES 密钥
+2. 使用 RSA 公钥加密 AES 密钥 → `ak`
+3. 对请求数据计算 SHA1 签名，RSA 加密 → `sk`
+4. 使用 AES 加密请求体 → `encryptedData`
+5. 生成时间戳 → `ts`
+
+#### **c. API 端点**
+
+| 方法     | 路径                               | 描述             |
+| -------- | ---------------------------------- | ---------------- |
+| `GET`    | `/api/v1/bykc/profile`             | 获取博雅用户信息 |
+| `GET`    | `/api/v1/bykc/courses`             | 获取课程列表     |
+| `GET`    | `/api/v1/bykc/courses/{id}`        | 获取课程详情     |
+| `GET`    | `/api/v1/bykc/courses/chosen`      | 获取已选课程     |
+| `POST`   | `/api/v1/bykc/courses/{id}/select` | 选课             |
+| `DELETE` | `/api/v1/bykc/courses/{id}/select` | 退选             |
+| `POST`   | `/api/v1/bykc/courses/{id}/sign`   | 签到/签退        |
+
+**课程列表查询参数 (`GET /courses`):**
+* `page`: 页码 (默认 1)
+* `size`: 每页数量 (默认 200, 最大 500)
+* `all`: 是否包含已过期课程 (默认 false)
+
+**签到请求体 (`POST /courses/{id}/sign`):**
+```json
+{
+  "courseId": 12345,
+  "lat": 39.9876,
+  "lng": 116.1234,
+  "signType": 1
+}
+```
+* `signType`: 1=签到, 2=签退
+
+#### **d. 课程状态计算**
+
+`BykcService.calculateCourseStatus()` 根据时间和选课情况计算状态：
+
+| 状态   | 条件                 |
+| ------ | -------------------- |
+| `过期` | 课程已开始           |
+| `已选` | 用户已选择该课程     |
+| `预告` | 选课尚未开始         |
+| `结束` | 选课已结束           |
+| `满员` | 当前人数 >= 最大人数 |
+| `可选` | 其他情况             |
+
+#### **e. 共享 DTO (`shared/model/dto/Bykc.kt`)**
+
+| DTO                   | 描述                   |
+| --------------------- | ---------------------- |
+| `BykcCourseDto`       | 课程列表项             |
+| `BykcCourseDetailDto` | 课程详情               |
+| `BykcChosenCourseDto` | 已选课程（含签到状态） |
+| `BykcUserProfileDto`  | 用户信息               |
+| `BykcSignRequest`     | 签到请求               |
+| `BykcSignConfigDto`   | 签到配置               |
+| `BykcCoursesResponse` | 课程列表响应           |
+
+#### **f. 错误处理**
+
+| 异常类                             | 描述          |
+| ---------------------------------- | ------------- |
+| `BykcException`                    | 基础异常      |
+| `BykcLoginException`               | 登录失败      |
+| `BykcSelectException`              | 选课/退选失败 |
+| `BykcAlreadySelectedException`     | 重复选课      |
+| `BykcCourseFullException`          | 课程已满      |
+| `BykcCourseNotSelectableException` | 课程不可选    |
+
+#### **g. 使用示例**
+
+```kotlin
+// 在路由中使用
+authenticatedRoute {
+    get("/courses") {
+        val username = call.jwtUsername ?: return@get unauthorized()
+        val courses = bykcService.getCourses(username, page = 1, pageSize = 200)
+        call.respond(HttpStatusCode.OK, BykcCoursesResponse(courses, courses.size))
+    }
+}
+```
+
+### **11. 新增 UI 组件架构**
 
 本次更新新增了完整的多层次UI架构，实现了现代化的移动应用界面设计。
 
