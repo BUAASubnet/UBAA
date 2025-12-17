@@ -38,6 +38,8 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+            implementation("com.russhwolf:multiplatform-settings:1.1.1")
+            implementation("com.russhwolf:multiplatform-settings-no-arg:1.1.1")
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)

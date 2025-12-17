@@ -12,7 +12,15 @@ object ApiClientProvider {
 
 class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
 
-    suspend fun login(username: String, password: String, captcha: String? = null): Result<LoginResponse> {
+    fun applyStoredToken() {
+        TokenStore.get()?.let { apiClient.updateToken(it) }
+    }
+
+    suspend fun login(
+            username: String,
+            password: String,
+            captcha: String? = null
+    ): Result<LoginResponse> {
         return try {
             val response =
                     apiClient.getClient().post("api/v1/auth/login") {
@@ -33,7 +41,12 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
                 }
                 HttpStatusCode.UnprocessableEntity -> { // 422 - CAPTCHA required
                     val captchaResponse = response.body<CaptchaRequiredResponse>()
-                    Result.failure(CaptchaRequiredClientException(captchaResponse.captcha, captchaResponse.message))
+                    Result.failure(
+                            CaptchaRequiredClientException(
+                                    captchaResponse.captcha,
+                                    captchaResponse.message
+                            )
+                    )
                 }
                 else -> {
                     Result.failure(Exception("Login failed with status: ${response.status}"))
@@ -84,22 +97,26 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
             when (serverResponse.status) {
                 HttpStatusCode.OK -> {
                     // Close the API client after successful logout
+                    TokenStore.clear()
                     apiClient.close()
                     Result.success(Unit)
                 }
                 HttpStatusCode.Unauthorized -> {
                     // Even if unauthorized, clear local state
+                    TokenStore.clear()
                     apiClient.close()
                     Result.success(Unit)
                 }
                 else -> {
                     // Even if server logout fails, clear local state
+                    TokenStore.clear()
                     apiClient.close()
                     Result.failure(Exception("Logout failed with status: ${serverResponse.status}"))
                 }
             }
         } catch (e: Exception) {
             // Even if network request fails, clear local state
+            TokenStore.clear()
             apiClient.close()
             Result.failure(e)
         }
@@ -256,10 +273,219 @@ data class SessionStatusResponse(
         val authenticatedAt: String
 )
 
-/**
- * Client-side exception thrown when CAPTCHA is required for login
- */
-class CaptchaRequiredClientException(
-    val captchaInfo: CaptchaInfo,
-    message: String
-) : Exception(message)
+/** Client-side exception thrown when CAPTCHA is required for login */
+class CaptchaRequiredClientException(val captchaInfo: CaptchaInfo, message: String) :
+        Exception(message)
+
+/** BYKC (博雅课程) service for managing liberal arts courses */
+class BykcService(private val apiClient: ApiClient = ApiClientProvider.shared) {
+
+    suspend fun getProfile(): Result<BykcUserProfileDto> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/bykc/profile")
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val profile = response.body<BykcUserProfileDto>()
+                    Result.success(profile)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(
+                            Exception(
+                                    "Failed to fetch BYKC profile with status: ${response.status}"
+                            )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCourses(
+            page: Int = 1,
+            size: Int = 200,
+            all: Boolean = false
+    ): Result<BykcCoursesResponse> {
+        return try {
+            val response =
+                    apiClient.getClient().get("api/v1/bykc/courses") {
+                        parameter("page", page)
+                        parameter("size", size)
+                        parameter("all", all)
+                    }
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val coursesResponse = response.body<BykcCoursesResponse>()
+                    Result.success(coursesResponse)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(
+                            Exception(
+                                    "Failed to fetch BYKC courses with status: ${response.status}"
+                            )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getCourseDetail(courseId: Long): Result<BykcCourseDetailDto> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/bykc/courses/$courseId")
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val detail = response.body<BykcCourseDetailDto>()
+                    Result.success(detail)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                HttpStatusCode.NotFound -> {
+                    Result.failure(Exception("课程不存在"))
+                }
+                else -> {
+                    Result.failure(
+                            Exception(
+                                    "Failed to fetch course detail with status: ${response.status}"
+                            )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getChosenCourses(): Result<List<BykcChosenCourseDto>> {
+        return try {
+            val response = apiClient.getClient().get("api/v1/bykc/courses/chosen")
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val courses = response.body<List<BykcChosenCourseDto>>()
+                    Result.success(courses)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    Result.failure(
+                            Exception(
+                                    "Failed to fetch chosen courses with status: ${response.status}"
+                            )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun selectCourse(courseId: Long): Result<BykcSuccessResponse> {
+        return try {
+            val response =
+                    apiClient.getClient().post("api/v1/bykc/courses/$courseId/select") {
+                        contentType(ContentType.Application.Json)
+                    }
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val successResponse = response.body<BykcSuccessResponse>()
+                    Result.success(successResponse)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    try {
+                        val error = response.body<ApiErrorResponse>()
+                        Result.failure(Exception(error.error.message))
+                    } catch (e: Exception) {
+                        Result.failure(Exception("选课失败: ${response.status}"))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deselectCourse(courseId: Long): Result<BykcSuccessResponse> {
+        return try {
+            val response = apiClient.getClient().delete("api/v1/bykc/courses/$courseId/select")
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val successResponse = response.body<BykcSuccessResponse>()
+                    Result.success(successResponse)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    try {
+                        val error = response.body<ApiErrorResponse>()
+                        Result.failure(Exception(error.error.message))
+                    } catch (e: Exception) {
+                        Result.failure(Exception("退选失败: ${response.status}"))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun signCourse(
+            courseId: Long,
+            lat: Double? = null,
+            lng: Double? = null,
+            signType: Int
+    ): Result<BykcSuccessResponse> {
+        return try {
+            val response =
+                    apiClient.getClient().post("api/v1/bykc/courses/$courseId/sign") {
+                        contentType(ContentType.Application.Json)
+                        setBody(BykcSignRequest(courseId, lat, lng, signType))
+                    }
+
+            when (response.status) {
+                HttpStatusCode.OK -> {
+                    val successResponse = response.body<BykcSuccessResponse>()
+                    Result.success(successResponse)
+                }
+                HttpStatusCode.Unauthorized -> {
+                    val error = response.body<ApiErrorResponse>()
+                    Result.failure(Exception(error.error.message))
+                }
+                else -> {
+                    try {
+                        val error = response.body<ApiErrorResponse>()
+                        Result.failure(Exception(error.error.message))
+                    } catch (e: Exception) {
+                        Result.failure(Exception("签到/签退失败: ${response.status}"))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}

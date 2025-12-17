@@ -100,6 +100,9 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
         try {
             val userData = verifySession(client)
             if (userData != null) {
+                // Initialize BYXT session for schedule access
+                initializeByxtSession(client)
+
                 val sessionWithToken =
                         sessionManager.commitSessionWithToken(sessionCandidate, userData)
                 log.info("Session verified successfully for user: {} with JWT", request.username)
@@ -184,6 +187,73 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
         }
     }
 
+    /**
+     * Initializes BYXT (博雅校园通) session by performing SSO authentication.
+     *
+     * The correct flow is:
+     * 1. Access BYXT index.do → redirects to SSO with service parameter
+     * 2. SSO (already logged in) → redirects back with ticket parameter
+     * 3. BYXT validates ticket → sets GS_SESSIONID cookie
+     * 4. Session is now authenticated for BYXT APIs
+     */
+    private suspend fun initializeByxtSession(client: HttpClient) {
+        log.debug("Initializing BYXT session via SSO")
+        try {
+            // The key is to access the index.do endpoint which will trigger the SSO flow
+            // Since followRedirects=true, Ktor will automatically follow all redirects
+            // including the SSO redirect with the ticket
+            val byxtIndexUrl = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do"
+
+            log.debug("Step 1: Accessing BYXT index.do to trigger SSO authentication")
+            val byxtResponse = client.get(byxtIndexUrl)
+            log.debug("BYXT index.do response status: {}", byxtResponse.status)
+
+            // If we get 200 OK, the SSO authentication was successful
+            if (byxtResponse.status == HttpStatusCode.OK) {
+                val body = byxtResponse.bodyAsText()
+                // Check if we got the actual page content (not a login page)
+                if (body.contains("homeapp") || body.contains("首页") || body.length > 1000) {
+                    log.info("BYXT session initialized successfully via SSO redirect flow")
+
+                    // Optionally verify by calling an API endpoint
+                    val apiUrl =
+                            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getUserInfo.do"
+                    val apiResponse =
+                            client.get(apiUrl) {
+                                header(
+                                        HttpHeaders.Accept,
+                                        "application/json, text/javascript, */*; q=0.01"
+                                )
+                                header("X-Requested-With", "XMLHttpRequest")
+                                header(HttpHeaders.Referrer, byxtIndexUrl)
+                            }
+                    val apiBody = apiResponse.bodyAsText()
+                    log.debug(
+                            "BYXT API verification response: status={}, body={}",
+                            apiResponse.status,
+                            apiBody.take(200)
+                    )
+
+                    if (apiResponse.status == HttpStatusCode.OK &&
+                                    apiBody.contains("\"code\":\"0\"")
+                    ) {
+                        log.info("BYXT API access verified successfully")
+                    } else {
+                        log.warn("BYXT API verification returned unexpected response")
+                    }
+                } else {
+                    log.warn("BYXT index.do returned 200 but content looks like a login page")
+                    log.debug("Response body (first 500 chars): {}", body.take(500))
+                }
+            } else {
+                log.warn("BYXT index.do returned unexpected status: {}", byxtResponse.status)
+            }
+        } catch (e: Exception) {
+            log.error("Failed to initialize BYXT session", e)
+            // Don't throw - BYXT initialization failure shouldn't block login
+        }
+    }
+
     companion object {
         // 使用直连地址而非 WebVPN
         private const val UC_SERVICE_URL = "https://uc.buaa.edu.cn/"
@@ -192,6 +262,12 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                         URLEncoder.encode(UC_SERVICE_URL, StandardCharsets.UTF_8.name())
         private const val UC_STATUS_URL = "https://uc.buaa.edu.cn/api/uc/status"
         private const val CAPTCHA_URL_BASE = "https://sso.buaa.edu.cn/captcha"
+
+        // BYXT (博雅校园通) 需要通过 SSO 认证
+        private const val BYXT_SERVICE_URL = "https://byxt.buaa.edu.cn/"
+        private val BYXT_SSO_URL: String =
+                "https://sso.buaa.edu.cn/login?service=" +
+                        URLEncoder.encode(BYXT_SERVICE_URL, StandardCharsets.UTF_8.name())
     }
 
     private suspend fun findLoginError(response: HttpResponse): String? {

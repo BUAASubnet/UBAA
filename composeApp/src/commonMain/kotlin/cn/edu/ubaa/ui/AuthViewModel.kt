@@ -24,6 +24,10 @@ class AuthViewModel : ViewModel() {
     private val _loginForm = MutableStateFlow(LoginFormState())
     val loginForm: StateFlow<LoginFormState> = _loginForm.asStateFlow()
 
+    init {
+        restoreSession()
+    }
+
     fun updateUsername(username: String) {
         _loginForm.value = _loginForm.value.copy(username = username)
     }
@@ -94,6 +98,35 @@ class AuthViewModel : ViewModel() {
                                         )
                             }
                         }
+                    }
+        }
+    }
+
+    /** Try to restore session from stored token and validate with status endpoint. */
+    fun restoreSession() {
+        viewModelScope.launch {
+            val storedToken = cn.edu.ubaa.api.TokenStore.get()
+            if (storedToken.isNullOrBlank()) return@launch
+
+            authService.applyStoredToken()
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            authService
+                    .getAuthStatus()
+                    .onSuccess { status ->
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isLoggedIn = true,
+                                        isLoading = false,
+                                        userData = status.user,
+                                        token = storedToken,
+                                        error = null
+                                )
+                        loadUserInfo()
+                    }
+                    .onFailure {
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                        cn.edu.ubaa.api.TokenStore.clear()
                     }
         }
     }

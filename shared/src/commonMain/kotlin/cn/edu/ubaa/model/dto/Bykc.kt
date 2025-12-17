@@ -4,12 +4,12 @@ import kotlinx.serialization.Serializable
 
 /** 博雅课程状态 */
 object BykcCourseStatus {
-    const val EXPIRED = "过期"
-    const val SELECTED = "已选"
-    const val PREVIEW = "预告"
-    const val ENDED = "结束"
-    const val FULL = "满员"
-    const val AVAILABLE = "可选"
+        const val EXPIRED = "过期"
+        const val SELECTED = "已选"
+        const val PREVIEW = "预告"
+        const val ENDED = "结束"
+        const val FULL = "满员"
+        const val AVAILABLE = "可选"
 }
 
 /** 博雅课程列表项 DTO（用于客户端展示） */
@@ -60,6 +60,7 @@ data class BykcCourseDetailDto(
 @Serializable
 data class BykcChosenCourseDto(
         val id: Long,
+        val courseId: Long, // 课程本身的 ID（用于查询课程详情）
         val courseName: String,
         val coursePosition: String? = null,
         val courseTeacher: String? = null,
@@ -73,7 +74,12 @@ data class BykcChosenCourseDto(
         val pass: Int = 0,
         val canSign: Boolean = false,
         val canSignOut: Boolean = false,
-        val signConfig: BykcSignConfigDto? = null
+        val signConfig: BykcSignConfigDto? = null,
+        val courseSignType: Int? = null,
+        val homework: String? = null,
+        val homeworkAttachmentName: String? = null,
+        val homeworkAttachmentPath: String? = null,
+        val signInfo: String? = null
 )
 
 /** 签到配置 DTO */
@@ -110,8 +116,8 @@ data class BykcUserProfileDto(
 @Serializable
 data class BykcSignRequest(
         val courseId: Long,
-        val lat: Double,
-        val lng: Double,
+        val lat: Double? = null,
+        val lng: Double? = null,
         /** 1=签到, 2=签退 */
         val signType: Int
 )

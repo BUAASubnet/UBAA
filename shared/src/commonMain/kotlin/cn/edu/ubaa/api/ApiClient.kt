@@ -15,8 +15,12 @@ import kotlinx.serialization.json.Json
 /** Multi-platform HTTP client for API communication */
 class ApiClient {
     private var httpClient: HttpClient? = null
+    private var cachedToken: String? = TokenStore.get()
 
-    fun createClient(engine: HttpClientEngine? = null): HttpClient {
+    private fun createClient(
+            engine: HttpClientEngine? = null,
+            token: String? = cachedToken
+    ): HttpClient {
         return HttpClient(engine ?: getDefaultEngine()) {
             install(ContentNegotiation) {
                 json(
@@ -29,14 +33,7 @@ class ApiClient {
 
             install(Logging) { level = LogLevel.INFO }
 
-            install(Auth) {
-                bearer {
-                    loadTokens {
-                        // Token will be set explicitly when available
-                        null
-                    }
-                }
-            }
+            install(Auth) { bearer { loadTokens { token?.let { BearerTokens(it, it) } } } }
 
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
@@ -49,39 +46,20 @@ class ApiClient {
     }
 
     fun getClient(): HttpClient {
-        return httpClient ?: createClient().also { httpClient = it }
+        return httpClient ?: createClient(token = cachedToken).also { httpClient = it }
     }
 
     fun updateToken(token: String) {
+        cachedToken = token
+        TokenStore.save(token)
         httpClient?.close()
-        httpClient =
-                HttpClient(getDefaultEngine()) {
-                    install(ContentNegotiation) {
-                        json(
-                                Json {
-                                    ignoreUnknownKeys = true
-                                    isLenient = true
-                                }
-                        )
-                    }
-
-                    install(Logging) { level = LogLevel.INFO }
-
-                    install(Auth) { bearer { loadTokens { BearerTokens(token, token) } } }
-
-                    install(HttpTimeout) {
-                        requestTimeoutMillis = 30_000
-                        connectTimeoutMillis = 10_000
-                        socketTimeoutMillis = 30_000
-                    }
-
-                    defaultRequest { url("$SERVER_HOST:$CLIENT_PORT/") }
-                }
+        httpClient = createClient(token = token)
     }
 
     fun close() {
         httpClient?.close()
         httpClient = null
+        cachedToken = null
     }
 }
 

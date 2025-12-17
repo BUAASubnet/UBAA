@@ -12,7 +12,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
-/** BYKC 客户端封装，基于项目现有的 SessionManager 的 HttpClient */
 class BykcClient(private val username: String) {
 
     private val sessionManager: SessionManager = GlobalSessionManager.instance
@@ -22,6 +21,7 @@ class BykcClient(private val username: String) {
 
     // BYKC token extracted from CAS redirect; obtained during login()
     private var bykcToken: String? = null
+    private var lastLoginMillis: Long = 0L
 
     private fun ensureSession(): SessionManager.UserSession {
         session = sessionManager.getSession(username)
@@ -30,6 +30,13 @@ class BykcClient(private val username: String) {
 
     /** 完成 BYKC CAS 登录流程并提取 token */
     fun login(): Boolean = runBlocking {
+        // Fast path: if we already have a token from a recent login, reuse it to avoid
+        // hitting CAS on every call. If a downstream request later fails due to auth, callers can
+        // clear the client cache or reset bykcToken to force a re-login.
+        if (bykcToken != null && (System.currentTimeMillis() - lastLoginMillis) < 10 * 60 * 1000) {
+            return@runBlocking true
+        }
+
         val s = ensureSession()
         val client = s.client
 
@@ -49,6 +56,7 @@ class BykcClient(private val username: String) {
 
         if (token != null) {
             bykcToken = token
+            lastLoginMillis = System.currentTimeMillis()
             return@runBlocking true
         }
 
@@ -57,6 +65,7 @@ class BykcClient(private val username: String) {
             client.get("https://bykc.buaa.edu.cn/cas-login?token=")
         } catch (_: Exception) {}
         // token 未能提取，但客户端的 cookie 可能已建立，会话可用
+        lastLoginMillis = System.currentTimeMillis()
         return@runBlocking true
     }
 
@@ -71,7 +80,6 @@ class BykcClient(private val username: String) {
                 client.post("https://bykc.buaa.edu.cn/sscv/$apiName") {
                     contentType(ContentType.Application.Json)
                     accept(ContentType.Application.Json)
-                    // 如果我们从 CAS 登录中提取到了 token，则把 token 放到头中（兼容原 Python 客户端）
                     bykcToken?.let {
                         header("auth_token", it)
                         header("authtoken", it)
@@ -195,11 +203,11 @@ class BykcClient(private val username: String) {
             lat: Double,
             lng: Double,
             signType: Int
-    ): BykcApiResponse<String> {
+    ): BykcApiResponse<BykcSignResult> {
         val req =
                 "{\"courseId\":$courseId,\"signLat\":$lat,\"signLng\":$lng,\"signType\":$signType}"
         val raw = callApiRaw("signCourseByUser", req)
-        val apiResp = json.decodeFromString<BykcApiResponse<String>>(raw)
+        val apiResp = json.decodeFromString<BykcApiResponse<BykcSignResult>>(raw)
         if (!apiResp.isSuccess) {
             throw BykcException("签到失败: ${apiResp.errmsg}")
         }

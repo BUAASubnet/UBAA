@@ -10,44 +10,82 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AdvancedFeaturesScreen(
-    modifier: Modifier = Modifier
+        onBykcCoursesClick: () -> Unit = {},
+        onBykcChosenClick: () -> Unit = {},
+        modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
+            modifier = modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "高级功能",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+                text = "高级功能",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
+        // Bykc (博雅课程) features
+        Card(modifier = Modifier.fillMaxWidth(), onClick = onBykcCoursesClick) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                        text = "📚 博雅课程",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                        text = "浏览和选择博雅课程，管理已选课程",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth(), onClick = onBykcChosenClick) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                        text = "✅ 我的博雅课程",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                        text = "查看已选课程，进行签到签退",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // More features coming soon
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "敬请期待",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                        text = "更多功能敬请期待",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
-                    text = "高级功能正在开发中，请稍候...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "更多高级功能正在开发中...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -55,45 +93,38 @@ fun AdvancedFeaturesScreen(
 }
 
 @Composable
-fun MyScreen(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+fun MyScreen(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            text = "我的",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+                text = "我的",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
         )
-        
+
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "个人中心",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                        text = "个人中心",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
-                    text = "个人功能正在开发中，请稍候...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "个人功能正在开发中，请稍候...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -101,69 +132,59 @@ fun MyScreen(
 }
 
 @Composable
-fun AboutScreen(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+fun AboutScreen(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(
-            text = "关于",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+                text = "关于",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
         )
-        
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "UBAA 应用",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                        text = "UBAA 应用",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
-                    text = "版本：1.0.0",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "版本：1.0.0",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
-                    text = "UBAA 是一个为北京航空航天大学学生提供服务的多平台应用程序。",
-                    style = MaterialTheme.typography.bodyMedium
+                        text = "UBAA 是一个为北京航空航天大学学生提供服务的多平台应用程序。",
+                        style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
-                    text = "主要功能：",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                        text = "主要功能：",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
-                    text = "• 课程表查询\n• 今日课程提醒\n• 个人信息管理\n• 更多功能持续开发中...",
-                    style = MaterialTheme.typography.bodyMedium
+                        text = "• 课程表查询\n• 今日课程提醒\n• 个人信息管理\n• 更多功能持续开发中...",
+                        style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
-                    text = "技术栈：Kotlin Multiplatform + Compose Multiplatform",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "技术栈：Kotlin Multiplatform + Compose Multiplatform",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

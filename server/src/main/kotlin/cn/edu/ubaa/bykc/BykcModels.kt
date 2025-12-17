@@ -26,7 +26,7 @@ data class BykcUserProfile(
         val studentNo: String? = null,
         val studentType: String? = null,
         val classCode: String? = null,
-        val noticeSwitch: Boolean = false,
+        val noticeSwitch: Boolean? = null,
         val delFlag: Int = 0
 )
 
@@ -149,8 +149,8 @@ data class BykcSemester(
 @Serializable
 data class BykcSignRequest(
         val courseId: Long,
-        val signLat: Double,
-        val signLng: Double,
+        val signLat: Double? = null,
+        val signLng: Double? = null,
         /** 1=签到, 2=签退 */
         val signType: Int
 )
@@ -167,6 +167,14 @@ data class BykcSignConfig(
 
 /** 选课/退选响应数据 */
 @Serializable data class BykcCourseActionResult(val courseCurrentCount: Int? = null)
+
+/** 签到响应数据 */
+@Serializable
+data class BykcSignResult(
+        val id: Long? = null,
+        val userInfo: BykcUserProfile? = null,
+        val courseInfo: BykcCourse? = null
+)
 
 /** 签到地点 */
 @Serializable data class BykcSignPoint(val lat: Double, val lng: Double, val radius: Double = 0.0)

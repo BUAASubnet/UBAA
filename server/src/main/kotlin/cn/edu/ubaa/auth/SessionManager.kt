@@ -5,7 +5,7 @@ import cn.edu.ubaa.utils.JwtUtil
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
+import io.ktor.client.plugins.cookies.CookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.HttpHeaders
@@ -20,18 +20,21 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Now also supports JWT token management, where each JWT token maps to a session.
  */
-class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) {
+class SessionManager(
+        private val sessionTtl: Duration = Duration.ofDays(7),
+        private val dbPath: String = DEFAULT_DB_PATH
+) {
 
     data class SessionCandidate(
             val username: String,
             val client: HttpClient,
-            val cookieStorage: AcceptAllCookiesStorage
+            val cookieStorage: CookiesStorage
     )
 
     class UserSession(
             val username: String,
             val client: HttpClient,
-            val cookieStorage: AcceptAllCookiesStorage,
+            val cookieStorage: CookiesStorage,
             val userData: UserData,
             val authenticatedAt: Instant,
             initialActivity: Instant = authenticatedAt
@@ -50,15 +53,16 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
     data class SessionWithToken(val session: UserSession, val jwtToken: String)
 
     private val sessions = ConcurrentHashMap<String, UserSession>()
-    // Map JWT tokens to usernames for quick lookup
+    // Map JWT tokens to usernames for quick lookup (repopulated lazily after restart)
     private val tokenToUsername = ConcurrentHashMap<String, String>()
+    private val sessionStore = SqliteSessionStore(dbPath)
 
     /**
      * Creates a fresh [SessionCandidate] that can be used for a new login attempt. The caller must
      * close the client manually if authentication fails.
      */
     fun prepareSession(username: String): SessionCandidate {
-        val cookieStorage = AcceptAllCookiesStorage()
+        val cookieStorage = SqliteCookieStorage(dbPath, username)
         val client = buildClient(cookieStorage)
         return SessionCandidate(username, client, cookieStorage)
     }
@@ -95,6 +99,13 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
         // Map the new token to the username
         tokenToUsername[jwtToken] = candidate.username
 
+        sessionStore.saveSession(
+                username = candidate.username,
+                userData = userData,
+                authenticatedAt = newSession.authenticatedAt,
+                lastActivity = newSession.lastActivity()
+        )
+
         return SessionWithToken(newSession, jwtToken)
     }
 
@@ -110,19 +121,15 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
      * Retrieves an active session for the given user. If the session has expired, it is removed.
      */
     fun getSession(username: String): UserSession? {
-        return sessions.compute(username) { _, session ->
-            when {
-                session == null -> null
-                session.isExpired(sessionTtl) -> {
-                    session.client.close()
-                    null
-                }
-                else -> {
-                    session.markActive()
-                    session
-                }
-            }
+        val active = sessions[username] ?: restoreSession(username) ?: return null
+        if (active.isExpired(sessionTtl)) {
+            invalidateSession(username)
+            return null
         }
+        active.markActive()
+        sessionStore.updateLastActivity(username, active.lastActivity())
+        sessions[username] = active
+        return active
     }
 
     /**
@@ -130,16 +137,12 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
      * token is invalid, expired, or no corresponding session exists.
      */
     fun getSessionByToken(jwtToken: String): UserSession? {
-        // First validate the JWT token
         val username = JwtUtil.validateTokenAndGetUsername(jwtToken) ?: return null
-
-        // Check if the token maps to a username in our system
-        if (tokenToUsername[jwtToken] != username) {
-            return null
+        val session = getSession(username) ?: restoreSession(username)
+        if (session != null) {
+            tokenToUsername[jwtToken] = username
         }
-
-        // Retrieve and mark active the session
-        return getSession(username)
+        return session
     }
 
     fun requireSession(username: String): UserSession =
@@ -158,6 +161,7 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
     fun invalidateSession(username: String) {
         sessions.remove(username)?.client?.close()
         cleanupTokensForUser(username)
+        sessionStore.deleteSession(username)
     }
 
     /** Invalidates a session by JWT token. */
@@ -167,6 +171,7 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
             // Only remove session if this was the last token for the user
             if (tokenToUsername.values.none { it == username }) {
                 sessions.remove(username)?.client?.close()
+                sessionStore.deleteSession(username)
             }
         }
     }
@@ -177,6 +182,7 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
                 if (sessions.remove(username, session)) {
                     session.client.close()
                     cleanupTokensForUser(username)
+                    sessionStore.deleteSession(username)
                 }
             }
         }
@@ -193,7 +199,7 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
         tokensToRemove.forEach { token -> tokenToUsername.remove(token) }
     }
 
-    private fun buildClient(cookieStorage: AcceptAllCookiesStorage): HttpClient {
+    private fun buildClient(cookieStorage: CookiesStorage): HttpClient {
         return HttpClient(CIO) {
             install(HttpCookies) { storage = cookieStorage }
             // VpnUrlClientPlugin removed - using direct connection
@@ -217,6 +223,28 @@ class SessionManager(private val sessionTtl: Duration = Duration.ofMinutes(30)) 
                 headers.append(HttpHeaders.AcceptLanguage, "zh-CN,zh;q=0.9")
             }
         }
+    }
+
+    private fun restoreSession(username: String): UserSession? {
+        val record = sessionStore.loadSession(username) ?: return null
+        val cookieStorage = SqliteCookieStorage(dbPath, username)
+        val client = buildClient(cookieStorage)
+        val restored =
+                UserSession(
+                        username = username,
+                        client = client,
+                        cookieStorage = cookieStorage,
+                        userData = record.userData,
+                        authenticatedAt = record.authenticatedAt,
+                        initialActivity = record.lastActivity
+                )
+        sessions[username] = restored
+        return restored
+    }
+
+    companion object {
+        private val DEFAULT_DB_PATH: String =
+                System.getProperty("user.dir") + "/data/session_store.db"
     }
 }
 

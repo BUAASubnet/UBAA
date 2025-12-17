@@ -9,6 +9,12 @@ import cn.edu.ubaa.model.dto.BykcSignConfigDto
 import cn.edu.ubaa.model.dto.BykcSignPointDto
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.random.Random
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
@@ -189,6 +195,7 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
 
             BykcChosenCourseDto(
                     id = chosen.id,
+                    courseId = course?.id ?: 0L, // 课程本身的 ID
                     courseName = course?.courseName ?: "未知课程",
                     coursePosition = course?.coursePosition,
                     courseTeacher = course?.courseTeacher,
@@ -202,7 +209,12 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
                     pass = chosen.pass ?: 0,
                     canSign = canSign(signConfig, now),
                     canSignOut = canSignOut(signConfig, now),
-                    signConfig = signConfig
+                    signConfig = signConfig,
+                    courseSignType = course?.courseSignType,
+                    homework = chosen.homework,
+                    homeworkAttachmentName = chosen.homeworkAttachmentName,
+                    homeworkAttachmentPath = chosen.homeworkAttachmentPath,
+                    signInfo = chosen.signInfo
             )
         }
     }
@@ -239,11 +251,23 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     }
 
     /** 签到 */
-    suspend fun signIn(username: String, courseId: Long, lat: Double, lng: Double): Result<String> {
+    suspend fun signIn(
+            username: String,
+            courseId: Long,
+            lat: Double? = null,
+            lng: Double? = null
+    ): Result<String> {
         return try {
             ensureBykcLogin(username)
             val client = getClient(username)
-            client.signCourse(courseId, lat, lng, 1) // signType=1 签到
+            val signConfig = getSignConfig(client, courseId)
+            val now = LocalDateTime.now()
+            if (!canSign(signConfig, now)) {
+                return Result.failure(BykcException("当前不在签到时间窗口"))
+            }
+
+            val (finalLat, finalLng) = randomSignLocation(signConfig, lat, lng)
+            client.signCourse(courseId, finalLat, finalLng, 1) // signType=1 签到
             log.info("User {} signed in for course {}", username, courseId)
             Result.success("签到成功")
         } catch (e: Exception) {
@@ -256,18 +280,36 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     suspend fun signOut(
             username: String,
             courseId: Long,
-            lat: Double,
-            lng: Double
+            lat: Double? = null,
+            lng: Double? = null
     ): Result<String> {
         return try {
             ensureBykcLogin(username)
             val client = getClient(username)
-            client.signCourse(courseId, lat, lng, 2) // signType=2 签退
+            val signConfig = getSignConfig(client, courseId)
+            val now = LocalDateTime.now()
+            if (!canSignOut(signConfig, now)) {
+                return Result.failure(BykcException("当前不在签退时间窗口"))
+            }
+
+            val (finalLat, finalLng) = randomSignLocation(signConfig, lat, lng)
+            client.signCourse(courseId, finalLat, finalLng, 2) // signType=2 签退
             log.info("User {} signed out for course {}", username, courseId)
             Result.success("签退成功")
         } catch (e: Exception) {
             log.error("User {} failed to sign out for course {}: {}", username, courseId, e.message)
             Result.failure(e)
+        }
+    }
+
+    /** 获取课程的签到配置（如果解析失败返回 null） */
+    private fun getSignConfig(client: BykcClient, courseId: Long): BykcSignConfigDto? {
+        return try {
+            val course = client.queryCourseById(courseId)
+            parseSignConfig(course.courseSignConfig)
+        } catch (e: Exception) {
+            log.warn("Failed to load sign config for course {}: {}", courseId, e.message)
+            null
         }
     }
 
@@ -314,6 +356,57 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         } catch (e: Exception) {
             false
         }
+    }
+
+    /** 在指定签到点半径内随机生成坐标；若没有配置则使用客户端传入的坐标 */
+    private fun randomSignLocation(
+            signConfig: BykcSignConfigDto?,
+            fallbackLat: Double?,
+            fallbackLng: Double?,
+            random: Random = Random
+    ): Pair<Double, Double> {
+        val point = signConfig?.signPoints?.takeIf { it.isNotEmpty() }?.random(random)
+        if (point != null && point.radius > 0.0) {
+            val distance = point.radius * sqrt(random.nextDouble()) // uniform in circle
+            val bearing = random.nextDouble(0.0, 2 * Math.PI)
+            return destinationPoint(point.lat, point.lng, distance, bearing)
+        }
+
+        if (fallbackLat != null && fallbackLng != null) {
+            return fallbackLat to fallbackLng
+        }
+
+        throw BykcException("未提供签到坐标且后端未返回签到范围")
+    }
+
+    /** 依据距离与方位角计算目标坐标 */
+    private fun destinationPoint(
+            lat: Double,
+            lng: Double,
+            distanceMeters: Double,
+            bearingRad: Double
+    ): Pair<Double, Double> {
+        val angularDistance = distanceMeters / EARTH_RADIUS_METERS
+        val latRad = Math.toRadians(lat)
+        val lngRad = Math.toRadians(lng)
+
+        val destLat =
+                asin(
+                        sin(latRad) * cos(angularDistance) +
+                                cos(latRad) * sin(angularDistance) * cos(bearingRad)
+                )
+        val destLng =
+                lngRad +
+                        atan2(
+                                sin(bearingRad) * sin(angularDistance) * cos(latRad),
+                                cos(angularDistance) - sin(latRad) * sin(destLat)
+                        )
+
+        return Math.toDegrees(destLat) to Math.toDegrees(destLng)
+    }
+
+    companion object {
+        private const val EARTH_RADIUS_METERS = 6_371_000.0
     }
 
     /** 计算课程状态 */

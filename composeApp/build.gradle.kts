@@ -48,6 +48,7 @@ kotlin {
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
+            implementation(compose.material) // for pull-to-refresh APIs
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.materialIconsExtended)

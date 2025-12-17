@@ -26,16 +26,6 @@ class ScheduleService(
         header(HttpHeaders.Referrer, "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html")
     }
 
-    private suspend fun SessionManager.UserSession.ensurePortalSession() {
-        runCatching {
-            val portalUrl = "https://byxt.buaa.edu.cn/"
-            client.get(portalUrl) { header(HttpHeaders.CacheControl, "no-cache") }
-        }
-                .onFailure { throwable ->
-                    log.warn("Failed to prefetch BYXT portal for username: {}", username, throwable)
-                }
-    }
-
     suspend fun fetchTerms(username: String): List<Term> {
         log.info("Fetching terms for username: {}", username)
         val session = sessionManager.requireSession(username)
@@ -44,6 +34,16 @@ class ScheduleService(
         val body = response.bodyAsText()
         log.debug("Terms response status: {}", response.status)
         log.debug("Terms response body: {}", body)
+
+        // Check for 401 Unauthorized - BYXT session may have expired
+        if (response.status == HttpStatusCode.Unauthorized || body.contains("Not login")) {
+            log.warn(
+                    "BYXT session appears to be expired or invalid for user: {}. Response: {}",
+                    username,
+                    body.take(200)
+            )
+            throw ScheduleException("BYXT session expired. Please log in again.")
+        }
 
         if (response.status != HttpStatusCode.OK) {
             throw ScheduleException("Failed to fetch terms. Status: ${response.status}")
@@ -176,7 +176,6 @@ class ScheduleService(
         return try {
             val url =
                     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
-            ensurePortalSession()
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
             log.error("Error while calling terms endpoint for username: {}", username, e)
@@ -188,7 +187,6 @@ class ScheduleService(
         return try {
             val url =
                     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode"
-            ensurePortalSession()
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
             log.error("Error while calling weeks endpoint for username: {}", username, e)
@@ -203,7 +201,6 @@ class ScheduleService(
         return try {
             val url =
                     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
-            ensurePortalSession()
             client.post(url) {
                 applyScheduleHeaders()
                 setBody(
@@ -227,7 +224,6 @@ class ScheduleService(
         return try {
             val url =
                     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student"
-            ensurePortalSession()
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
             log.error("Error while calling today schedule endpoint for username: {}", username, e)

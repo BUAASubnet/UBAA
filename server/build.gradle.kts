@@ -14,8 +14,14 @@ application {
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xmulti-platform")
+    }
+}
+
 dependencies {
-    implementation(projects.shared)
+    implementation(project(":shared"))
     implementation(libs.logback)
     implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
 
@@ -43,6 +49,9 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jvm:3.3.0")
     implementation("io.ktor:ktor-server-auth-jwt-jvm:3.3.0")
     implementation("com.auth0:java-jwt:4.4.0")
+
+    // SQLite for persistent sessions
+    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
 
     // Test
     testImplementation(libs.ktor.serverTestHost)

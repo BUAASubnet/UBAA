@@ -6,7 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -18,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cn.edu.ubaa.model.dto.*
@@ -223,16 +227,21 @@ private fun WeeklyScheduleView(
         onCourseClick: (CourseClass) -> Unit,
         modifier: Modifier = Modifier
 ) {
-    val timeLabels = (1..12).map { it.toString() }
+    val maxEndSection = schedule.arrangedList.maxOfOrNull { it.endSection ?: 0 } ?: 0
+    val totalPeriods = maxOf(12, maxEndSection)
+    val timeLabels = (1..totalPeriods).map { it.toString() }
     // **FIX 1**: 使用静态的星期标签，不再依赖 schedule.dayList
     val dayLabels = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+    val rowHeight: Dp = 64.dp
+    val scrollState = rememberScrollState()
 
     Column(modifier = modifier.padding(horizontal = 8.dp)) {
         HeaderRow(dayLabels = dayLabels)
         Spacer(modifier = Modifier.height(4.dp))
         Row(
                 modifier =
-                        Modifier.fillMaxSize()
+                        Modifier.fillMaxWidth()
+                                .verticalScroll(scrollState)
                                 .background(
                                         color =
                                                 MaterialTheme.colorScheme.surfaceVariant.copy(
@@ -241,11 +250,16 @@ private fun WeeklyScheduleView(
                                         shape = RoundedCornerShape(8.dp)
                                 )
         ) {
-            TimeColumn(timeLabels = timeLabels, modifier = Modifier.width(36.dp))
+            TimeColumn(
+                    timeLabels = timeLabels,
+                    rowHeight = rowHeight,
+                    modifier = Modifier.width(36.dp)
+            )
             WeeklyScheduleGrid(
                     schedule = schedule,
                     onCourseClick = onCourseClick,
                     totalPeriods = timeLabels.size,
+                    rowHeight = rowHeight,
                     modifier = Modifier.weight(1f)
             )
         }
@@ -271,11 +285,11 @@ private fun HeaderRow(dayLabels: List<String>) {
 }
 
 @Composable
-private fun TimeColumn(timeLabels: List<String>, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxHeight()) {
+private fun TimeColumn(timeLabels: List<String>, rowHeight: Dp, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
         timeLabels.forEach { time ->
             Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier.height(rowHeight).fillMaxWidth(),
                     contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -295,20 +309,22 @@ private fun WeeklyScheduleGrid(
         schedule: WeeklySchedule,
         onCourseClick: (CourseClass) -> Unit,
         totalPeriods: Int,
+        rowHeight: Dp,
         modifier: Modifier = Modifier
 ) {
     val totalDays = 7
     val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
     val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val cellHeight = maxHeight / totalPeriods
+    BoxWithConstraints(modifier = modifier.height(rowHeight * totalPeriods)) {
+        val density = LocalDensity.current
+        val cellHeightPx = with(density) { rowHeight.toPx() }
         val cellWidth = maxWidth / totalDays
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             // ... (Canvas code remains the same)
             for (i in 1 until totalPeriods) {
-                val y = i * cellHeight.toPx()
+                val y = i * cellHeightPx
                 drawLine(
                         color = gridColor,
                         start = Offset(0f, y),
@@ -329,10 +345,9 @@ private fun WeeklyScheduleGrid(
                     (course.endSection ?: course.beginSection ?: 1) - (course.beginSection ?: 1) + 1
 
             if (dayIndex in 0 until totalDays && startPeriodIndex in 0 until totalPeriods) {
-                // **FIX 2**: 修正 Dp 和 Int 的乘法顺序
                 val xOffset = cellWidth * dayIndex
-                val yOffset = cellHeight * startPeriodIndex
-                val courseHeight = (cellHeight * periodSpan)
+                val yOffset = rowHeight * startPeriodIndex
+                val courseHeight = (rowHeight * periodSpan)
 
                 CourseCell(
                         course = course,
