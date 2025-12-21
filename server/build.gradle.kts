@@ -5,6 +5,8 @@ plugins {
     application
 }
 
+import org.gradle.api.file.DuplicatesStrategy
+
 group = "cn.edu.ubaa"
 version = "1.0.0"
 application {
@@ -14,8 +16,24 @@ application {
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xmulti-platform")
+    }
+    sourceSets {
+        val main by getting {
+            kotlin.srcDir("src/main/kotlin")
+            resources.srcDir("src/main/resources")
+        }
+    }
+}
+
+tasks.processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
-    implementation(projects.shared)
+    implementation(project(":shared"))
     implementation(libs.logback)
     implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
 
@@ -31,15 +49,21 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
 
     // Kotlinx Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation(libs.kotlinx.serialization.json)
 
     // Jsoup
     implementation(libs.jsoup)
 
+    // BouncyCastle for BYKC crypto
+    implementation(libs.bouncycastle)
+
     // JWT
-    implementation("io.ktor:ktor-server-auth-jvm:3.3.0")
-    implementation("io.ktor:ktor-server-auth-jwt-jvm:3.3.0")
-    implementation("com.auth0:java-jwt:4.4.0")
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.auth.jwt)
+    implementation(libs.java.jwt)
+
+    // SQLite for persistent sessions
+    implementation(libs.sqlite.jdbc)
 
     // Test
     testImplementation(libs.ktor.serverTestHost)

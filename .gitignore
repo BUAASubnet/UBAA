@@ -1,19 +1,81 @@
+# IntelliJ IDEA / Android Studio
+.idea
 *.iml
+*.iws
+*.ipr
 .kotlin
 .gradle
-**/build/
-xcuserdata
-!src/**/build/
-local.properties
-.idea
-.DS_Store
-captures
+out/
+captures/
 .externalNativeBuild
 .cxx
+
+# Gradle
+**/build/
+!src/**/build/
+**/bin/
+.gradle
+build/
+gradle-app.setting
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Local Configuration
+local.properties
+
+# Kotlin Multiplatform / Native
+*.hprof
+*.klib
+
+# Android
+*.apk
+*.ap_
+*.dex
+*.class
+**/android/local.properties
+.cxx/
+*.jks
+*.keystore
+
+# iOS / Xcode
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.moved-aside
+
+# Web / Node.js
 node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+.js/
+.wasm/
+kotlin-js-store/
+
+# OS Specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary Files
+tmp/
+*.log
+*.swp
+*~
+
+.VSCodeCounter/
+.vscode/

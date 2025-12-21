@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.ui.AuthViewModel
 import cn.edu.ubaa.ui.LoginScreen
-import cn.edu.ubaa.ui.UserInfoScreen
+import cn.edu.ubaa.ui.MainAppScreen
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -23,36 +23,42 @@ fun App() {
 
         val userData = uiState.userData
         if (uiState.isLoggedIn && userData != null) {
-            // Show user info screen when logged in
-            UserInfoScreen(
-                userData = userData,
-                userInfo = uiState.userInfo,
-                onLogoutClick = { authViewModel.logout() },
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .safeContentPadding()
-                    .fillMaxSize()
+            // 已登录，显示主界面
+            MainAppScreen(
+                    userData = userData,
+                    userInfo = uiState.userInfo,
+                    onLogoutClick = { authViewModel.logout() },
+                    modifier =
+                            Modifier.background(MaterialTheme.colorScheme.background)
+                                    .safeContentPadding()
+                                    .fillMaxSize()
             )
         } else {
-            // Show login screen when not logged in
+            // 未登录，显示登录界面
             LoginScreen(
-                loginFormState = loginForm,
-                onUsernameChange = { authViewModel.updateUsername(it) },
-                onPasswordChange = { authViewModel.updatePassword(it) },
-                onLoginClick = { authViewModel.login() },
-                isLoading = uiState.isLoading,
-                error = uiState.error,
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.background)
-                    .safeContentPadding()
-                    .fillMaxSize()
+                    loginFormState = loginForm,
+                    onUsernameChange = { authViewModel.updateUsername(it) },
+                    onPasswordChange = { authViewModel.updatePassword(it) },
+                    onCaptchaChange = { authViewModel.updateCaptcha(it) },
+                    onLoginClick = { authViewModel.login() },
+                    onRefreshCaptcha = { authViewModel.refreshCaptcha() },
+                    isLoading = uiState.isLoading,
+                    isPreloading = uiState.isPreloading,
+                    isRefreshingCaptcha = uiState.isRefreshingCaptcha,
+                    captchaRequired = uiState.captchaRequired,
+                    captchaInfo = uiState.captchaInfo,
+                    error = uiState.error,
+                    modifier =
+                            Modifier.background(MaterialTheme.colorScheme.background)
+                                    .safeContentPadding()
+                                    .fillMaxSize()
             )
         }
 
-        // Clear error when the user interacts
+        // 用户操作后自动清除错误
         LaunchedEffect(uiState.error) {
             if (uiState.error != null) {
-                delay(5000) // Clear error after 5 seconds
+                delay(5000) // 5秒后清除错误
                 authViewModel.clearError()
             }
         }

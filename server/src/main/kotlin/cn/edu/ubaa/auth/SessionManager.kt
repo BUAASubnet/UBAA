@@ -2,59 +2,39 @@ package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
-import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.api.Send
-import io.ktor.client.plugins.api.createClientPlugin
-import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
+import io.ktor.client.plugins.cookies.CookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.HttpHeaders
-import io.ktor.http.takeFrom
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.launch
 
-/**
- * SessionManager is responsible for maintaining independent authenticated sessions for
- * multiple UBAA users. Each session owns its own [HttpClient] instance and cookie storage,
- * ensuring that cookies won't leak between users.
- * 
- * Now also supports JWT token management, where each JWT token maps to a session.
- */
-private val VpnUrlClientPlugin = createClientPlugin("VpnUrlClientPlugin") {
-    on(Send) { request ->
-        val originalUrl = request.url.buildString()
-        val vpnUrl = VpnCipher.toVpnUrl(originalUrl)
-        if (vpnUrl != originalUrl) {
-            request.url.takeFrom(vpnUrl)
-        }
-        proceed(request)
-    }
-}
-
+/** 会话管理器，隔离多用户认证会话，管理 JWT Token 映射 */
 class SessionManager(
-    private val sessionTtl: Duration = Duration.ofMinutes(30)
+        private val sessionTtl: Duration = Duration.ofMinutes(30),
+        private val dbPath: String = DEFAULT_DB_PATH
 ) {
 
     data class SessionCandidate(
-        val username: String,
-        val client: HttpClient,
-        val cookieStorage: AcceptAllCookiesStorage
+            val username: String,
+            val client: HttpClient,
+            val cookieStorage: CookiesStorage
     )
 
     class UserSession(
-        val username: String,
-        val client: HttpClient,
-        val cookieStorage: AcceptAllCookiesStorage,
-        val userData: UserData,
-        val authenticatedAt: Instant,
-        initialActivity: Instant = authenticatedAt
+            val username: String,
+            val client: HttpClient,
+            val cookieStorage: CookiesStorage,
+            val userData: UserData,
+            val authenticatedAt: Instant,
+            initialActivity: Instant = authenticatedAt
     ) {
-        @Volatile
-        private var lastActivity: Instant = initialActivity
+        @Volatile private var lastActivity: Instant = initialActivity
 
         fun isExpired(ttl: Duration): Boolean = Instant.now().isAfter(lastActivity.plus(ttl))
 
@@ -65,43 +45,103 @@ class SessionManager(
         fun lastActivity(): Instant = lastActivity
     }
 
-    data class SessionWithToken(
-        val session: UserSession,
-        val jwtToken: String
-    )
+    data class SessionWithToken(val session: UserSession, val jwtToken: String)
+
+    /** 预登录会话候选：用于 preload 阶段，尚未绑定用户名 */
+    data class PreLoginCandidate(
+            val clientId: String,
+            val client: HttpClient,
+            val cookieStorage: CookiesStorage,
+            val createdAt: Instant = Instant.now()
+    ) {
+        fun isExpired(ttl: Duration): Boolean = Instant.now().isAfter(createdAt.plus(ttl))
+    }
 
     private val sessions = ConcurrentHashMap<String, UserSession>()
-    // Map JWT tokens to usernames for quick lookup
+    // 仅为 token 快速查找用户名（重启后懒加载）
     private val tokenToUsername = ConcurrentHashMap<String, String>()
+    private val sessionStore = SqliteSessionStore(dbPath)
 
-    /**
-     * Creates a fresh [SessionCandidate] that can be used for a new login attempt.
-     * The caller must close the client manually if authentication fails.
-     */
+    // 预登录会话缓存：clientId -> PreLoginCandidate（用于 preload 到 login 之间的会话保持）
+    private val preLoginSessions = ConcurrentHashMap<String, PreLoginCandidate>()
+    // 预登录会话的 TTL（5 分钟，足够用户填写表单）
+    private val preLoginTtl: Duration = Duration.ofMinutes(5)
+
+    /** 为 preload 创建预登录会话（基于 clientId） */
+    fun preparePreLoginSession(clientId: String): PreLoginCandidate {
+        // 如果已存在未过期的预登录会话，复用它
+        preLoginSessions[clientId]?.let { existing ->
+            if (!existing.isExpired(preLoginTtl)) {
+                return existing
+            }
+            // 过期则关闭旧会话
+            existing.client.close()
+            preLoginSessions.remove(clientId)
+        }
+
+        // 创建新的预登录会话（使用 clientId 作为 cookie 存储的标识）
+        val cookieStorage = SqliteCookieStorage(dbPath, "prelogin_$clientId")
+        val client = buildClient(cookieStorage)
+        val candidate = PreLoginCandidate(clientId, client, cookieStorage)
+        preLoginSessions[clientId] = candidate
+        return candidate
+    }
+
+    /** 获取预登录会话 */
+    fun getPreLoginSession(clientId: String): PreLoginCandidate? {
+        val candidate = preLoginSessions[clientId] ?: return null
+        if (candidate.isExpired(preLoginTtl)) {
+            candidate.client.close()
+            preLoginSessions.remove(clientId)
+            // 清理预登录 cookies（异步清理，不阻塞）
+            kotlinx.coroutines.GlobalScope.launch {
+                runCatching { SqliteCookieStorage(dbPath, "prelogin_$clientId").clear() }
+            }
+            return null
+        }
+        return candidate
+    }
+
+    /** 将预登录会话转换为正式的用户会话候选 */
+    fun promotePreLoginSession(clientId: String, username: String): SessionCandidate? {
+        val preLogin = preLoginSessions.remove(clientId) ?: return null
+        if (preLogin.isExpired(preLoginTtl)) {
+            preLogin.client.close()
+            return null
+        }
+        return SessionCandidate(username, preLogin.client, preLogin.cookieStorage)
+    }
+
+    /** 清理预登录会话（登录失败或超时时调用） */
+    fun cleanupPreLoginSession(clientId: String) {
+        preLoginSessions.remove(clientId)?.let { candidate ->
+            candidate.client.close()
+            // 异步清理 cookies
+            kotlinx.coroutines.GlobalScope.launch {
+                runCatching { SqliteCookieStorage(dbPath, "prelogin_$clientId").clear() }
+            }
+        }
+    }
+
+    /** 为新登录请求准备会话环境。 若后续认证失败，调用者需手动关闭 client。 */
     fun prepareSession(username: String): SessionCandidate {
-        val cookieStorage = AcceptAllCookiesStorage()
+        val cookieStorage = SqliteCookieStorage(dbPath, username)
         val client = buildClient(cookieStorage)
         return SessionCandidate(username, client, cookieStorage)
     }
 
-    /**
-     * Stores a successfully authenticated session for the given user and generates a JWT token.
-     * Any previous session will be closed and replaced atomically.
-     * 
-     * @param candidate The session candidate from prepareSession
-     * @param userData The user data obtained after successful authentication
-     * @return SessionWithToken containing the session and generated JWT token
-     */
+    /** 保存认证成功的会话并生成 JWT。 原子性地替换该用户可能存在的旧会话。 */
     fun commitSessionWithToken(candidate: SessionCandidate, userData: UserData): SessionWithToken {
-        val newSession = UserSession(
-            username = candidate.username,
-            client = candidate.client,
-            cookieStorage = candidate.cookieStorage,
-            userData = userData,
-            authenticatedAt = Instant.now()
-        )
+        val newSession =
+                UserSession(
+                        username = candidate.username,
+                        client = candidate.client,
+                        cookieStorage = candidate.cookieStorage,
+                        userData = userData,
+                        authenticatedAt = Instant.now()
+                )
 
-        // Generate JWT token for this session
+        // 为当前会话生成 JWT
         val jwtToken = JwtUtil.generateToken(candidate.username, sessionTtl)
 
         sessions.compute(candidate.username) { _, previous ->
@@ -109,128 +149,150 @@ class SessionManager(
             newSession
         }
 
-        // Clean up old tokens for this user
+        // 清理该用户的旧 Token
         cleanupTokensForUser(candidate.username)
-        
-        // Map the new token to the username
+
+        // 映射新 Token 至用户名
         tokenToUsername[jwtToken] = candidate.username
+
+        sessionStore.saveSession(
+                username = candidate.username,
+                userData = userData,
+                authenticatedAt = newSession.authenticatedAt,
+                lastActivity = newSession.lastActivity()
+        )
 
         return SessionWithToken(newSession, jwtToken)
     }
 
-    /**
-     * Stores a successfully authenticated session for the given user.
-     * Any previous session will be closed and replaced atomically.
-     * This is the legacy method for backward compatibility.
-     */
+    /** (兼容旧代码) 保存认证成功的会话。 */
     fun commitSession(candidate: SessionCandidate, userData: UserData): UserSession {
         return commitSessionWithToken(candidate, userData).session
     }
 
-    /**
-     * Retrieves an active session for the given user. If the session has expired, it is removed.
-     */
-    fun getSession(username: String): UserSession? {
-        return sessions.compute(username) { _, session ->
-            when {
-                session == null -> null
-                session.isExpired(sessionTtl) -> {
-                    session.client.close()
-                    null
-                }
-                else -> {
-                    session.markActive()
-                    session
-                }
-            }
-        }
-    }
-
-    /**
-     * Retrieves an active session by JWT token, marking it as recently active.
-     * Returns null if the token is invalid, expired, or no corresponding session exists.
-     */
-    fun getSessionByToken(jwtToken: String): UserSession? {
-        // First validate the JWT token
-        val username = JwtUtil.validateTokenAndGetUsername(jwtToken) ?: return null
-        
-        // Check if the token maps to a username in our system
-        if (tokenToUsername[jwtToken] != username) {
+    /** 获取活跃会话。若已过期则自动移除。 */
+    suspend fun getSession(username: String): UserSession? {
+        val active = sessions[username] ?: restoreSession(username) ?: return null
+        if (active.isExpired(sessionTtl)) {
+            invalidateSession(username)
             return null
         }
-        
-        // Retrieve and mark active the session
-        return getSession(username)
+        active.markActive()
+        sessionStore.updateLastActivity(username, active.lastActivity())
+        sessions[username] = active
+        return active
     }
 
-    fun requireSession(username: String): UserSession =
-        getSession(username) ?: throw LoginException("Session for $username is not available or has expired.")
+    /** 通过 JWT 获取活跃会话，并标记为活跃。 */
+    suspend fun getSessionByToken(jwtToken: String): UserSession? {
+        val username = JwtUtil.validateTokenAndGetUsername(jwtToken) ?: return null
+        val session = getSession(username) ?: restoreSession(username)
+        if (session != null) {
+            tokenToUsername[jwtToken] = username
+        }
+        return session
+    }
 
-    /**
-     * Requires a session by JWT token, throwing an exception if not found.
-     */
-    fun requireSessionByToken(jwtToken: String): UserSession {
+    suspend fun requireSession(username: String): UserSession =
+            getSession(username)
+                    ?: throw LoginException(
+                            "Session for $username is not available or has expired."
+                    )
+
+    /** 通过 JWT 获取会话，若不存在则抛出异常。 */
+    suspend fun requireSessionByToken(jwtToken: String): UserSession {
         return getSessionByToken(jwtToken)
-            ?: throw LoginException("No active session found for JWT token")
+                ?: throw LoginException("No active session found for JWT token")
     }
 
-    /**
-     * Invalidates a session and all associated JWT tokens for the given username.
-     */
-    fun invalidateSession(username: String) {
-        sessions.remove(username)?.client?.close()
+    /** 销毁指定用户的会话及所有关联 Token。 */
+    suspend fun invalidateSession(username: String) {
+        val session = sessions.remove(username)
+        session?.client?.close()
+
+        // 清理 Cookie
+        val storage =
+                session?.cookieStorage as? SqliteCookieStorage
+                        ?: SqliteCookieStorage(dbPath, username)
+        storage.clear()
+
         cleanupTokensForUser(username)
+        sessionStore.deleteSession(username)
     }
 
-    /**
-     * Invalidates a session by JWT token.
-     */
-    fun invalidateSessionByToken(jwtToken: String) {
+    /** 通过 Token 销毁会话。 */
+    suspend fun invalidateSessionByToken(jwtToken: String) {
         val username = tokenToUsername.remove(jwtToken)
         if (username != null) {
-            // Only remove session if this was the last token for the user
+            // 仅在该用户没有其他活跃 Token 时销毁会话
             if (tokenToUsername.values.none { it == username }) {
-                sessions.remove(username)?.client?.close()
+                invalidateSession(username)
             }
         }
     }
 
-    fun cleanupExpiredSessions() {
+    suspend fun cleanupExpiredSessions() {
         sessions.forEach { (username, session) ->
             if (session.isExpired(sessionTtl)) {
-                if (sessions.remove(username, session)) {
-                    session.client.close()
-                    cleanupTokensForUser(username)
-                }
+                invalidateSession(username)
             }
         }
-        
-        // Also clean up expired tokens that might still be in the map
-        val expiredTokens = tokenToUsername.keys.filter { token ->
-            JwtUtil.isTokenExpired(token)
-        }
-        expiredTokens.forEach { token ->
-            tokenToUsername.remove(token)
+
+        // 清理过期 Token
+        val expiredTokens = tokenToUsername.keys.filter { token -> JwtUtil.isTokenExpired(token) }
+        expiredTokens.forEach { token -> tokenToUsername.remove(token) }
+
+        // 清理过期的预登录会话
+        preLoginSessions.forEach { (clientId, candidate) ->
+            if (candidate.isExpired(preLoginTtl)) {
+                cleanupPreLoginSession(clientId)
+            }
         }
     }
 
-    /**
-     * Removes all JWT tokens associated with a specific user.
-     */
+    /** 移除该用户关联的所有 JWT Token。 */
     private fun cleanupTokensForUser(username: String) {
-        val tokensToRemove = tokenToUsername.entries
-            .filter { it.value == username }
-            .map { it.key }
-        
-        tokensToRemove.forEach { token ->
-            tokenToUsername.remove(token)
-        }
+        val tokensToRemove = tokenToUsername.entries.filter { it.value == username }.map { it.key }
+
+        tokensToRemove.forEach { token -> tokenToUsername.remove(token) }
     }
 
-    private fun buildClient(cookieStorage: AcceptAllCookiesStorage): HttpClient {
+    private fun buildClient(cookieStorage: CookiesStorage): HttpClient {
         return HttpClient(CIO) {
+            // 代理配置：通过环境变量 HTTP_PROXY 或 HTTPS_PROXY 设置
+            // 例如: HTTP_PROXY=http://127.0.0.1:7890
+            // SSL 证书信任：通过环境变量 TRUST_ALL_CERTS=true 禁用证书验证（仅用于开发环境）
+            engine {
+                val proxyUrl =
+                        System.getenv("HTTPS_PROXY")
+                                ?: System.getenv("HTTP_PROXY") ?: System.getenv("https_proxy")
+                                        ?: System.getenv("http_proxy")
+                if (!proxyUrl.isNullOrBlank()) {
+                    proxy = io.ktor.client.engine.ProxyBuilder.http(io.ktor.http.Url(proxyUrl))
+                }
+
+                // 开发环境下信任所有证书（用于代理 MITM 场景）
+                val trustAllCerts = System.getenv("TRUST_ALL_CERTS")?.lowercase() == "true"
+                if (trustAllCerts) {
+                    https {
+                        trustManager =
+                                object : javax.net.ssl.X509TrustManager {
+                                    override fun checkClientTrusted(
+                                            chain: Array<java.security.cert.X509Certificate>?,
+                                            authType: String?
+                                    ) {}
+                                    override fun checkServerTrusted(
+                                            chain: Array<java.security.cert.X509Certificate>?,
+                                            authType: String?
+                                    ) {}
+                                    override fun getAcceptedIssuers():
+                                            Array<java.security.cert.X509Certificate> = arrayOf()
+                                }
+                    }
+                }
+            }
+
             install(HttpCookies) { storage = cookieStorage }
-            install(VpnUrlClientPlugin)
             install(HttpTimeout) {
                 requestTimeoutMillis = Duration.ofSeconds(30).toMillis()
                 connectTimeoutMillis = Duration.ofSeconds(10).toMillis()
@@ -240,11 +302,39 @@ class SessionManager(
             expectSuccess = false
 
             defaultRequest {
-                headers.append(HttpHeaders.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-                headers.append(HttpHeaders.Accept, "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+                headers.append(
+                        HttpHeaders.UserAgent,
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+                )
+                headers.append(
+                        HttpHeaders.Accept,
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+                )
                 headers.append(HttpHeaders.AcceptLanguage, "zh-CN,zh;q=0.9")
             }
         }
+    }
+
+    private fun restoreSession(username: String): UserSession? {
+        val record = sessionStore.loadSession(username) ?: return null
+        val cookieStorage = SqliteCookieStorage(dbPath, username)
+        val client = buildClient(cookieStorage)
+        val restored =
+                UserSession(
+                        username = username,
+                        client = client,
+                        cookieStorage = cookieStorage,
+                        userData = record.userData,
+                        authenticatedAt = record.authenticatedAt,
+                        initialActivity = record.lastActivity
+                )
+        sessions[username] = restored
+        return restored
+    }
+
+    companion object {
+        private val DEFAULT_DB_PATH: String =
+                System.getProperty("user.dir") + "/data/session_store.db"
     }
 }
 

@@ -4,6 +4,7 @@ import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
 import java.time.Duration
 import kotlin.test.*
+import kotlinx.coroutines.runBlocking
 
 class JwtUtilTest {
 
@@ -67,7 +68,7 @@ class JwtUtilTest {
 class SessionManagerJwtTest {
 
     @Test
-    fun testSessionWithTokenCommit() {
+    fun testSessionWithTokenCommit() = runBlocking {
         val sessionManager = SessionManager()
         val username = "testuser"
         val userData = UserData("Test User", "123456")
@@ -86,14 +87,14 @@ class SessionManagerJwtTest {
     }
 
     @Test
-    fun testGetSessionByInvalidToken() {
+    fun testGetSessionByInvalidToken() = runBlocking {
         val sessionManager = SessionManager()
         val session = sessionManager.getSessionByToken("invalid.token")
         assertNull(session)
     }
 
     @Test
-    fun testInvalidateSessionByToken() {
+    fun testInvalidateSessionByToken() = runBlocking {
         val sessionManager = SessionManager()
         val username = "testuser"
         val userData = UserData("Test User", "123456")
@@ -114,8 +115,8 @@ class SessionManagerJwtTest {
     }
 
     @Test
-    fun testCleanupExpiredTokens() {
-    val sessionManager = SessionManager(Duration.ofSeconds(1)) // Short TTL for test
+    fun testCleanupExpiredTokens() = runBlocking {
+        val sessionManager = SessionManager(Duration.ofSeconds(1)) // Short TTL for test
         val username = "testuser"
         val userData = UserData("Test User", "123456")
 
@@ -127,7 +128,7 @@ class SessionManagerJwtTest {
         assertNotNull(retrievedSession)
 
         // Wait for session to expire
-    Thread.sleep(1500)
+        Thread.sleep(1500)
 
         // Clean up expired sessions
         sessionManager.cleanupExpiredSessions()
