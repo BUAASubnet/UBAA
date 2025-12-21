@@ -15,6 +15,7 @@ import cn.edu.ubaa.model.dto.TodayClass
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 
+// 首页屏幕
 @Composable
 fun HomeScreen(
     todayClasses: List<TodayClass>,
@@ -28,7 +29,7 @@ fun HomeScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Header
+        // 顶部标题栏
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -40,13 +41,9 @@ fun HomeScreen(
                 fontWeight = FontWeight.Bold
             )
             
-            // Get current date
-            val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-            Text(
-                text = "${currentDate.month.value}月${currentDate.dayOfMonth}日",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    // 获取当前日期
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val dateStr = "${today.monthNumber}月${today.dayOfMonth}日"
         }
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -134,27 +131,19 @@ fun HomeScreen(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Sort classes by start time
-                    val sortedClasses = todayClasses.sortedBy { todayClass ->
-                        todayClass.time?.let { timeRange ->
-                            // Extract start time from "14:00-15:35" format
-                            val startTime = timeRange.split("-").firstOrNull()?.trim()
-                            startTime?.let { 
-                                val timeParts = it.split(":")
-                                if (timeParts.size == 2) {
-                                    timeParts[0].toIntOrNull()?.let { hour ->
-                                        hour * 60 + (timeParts[1].toIntOrNull() ?: 0)
-                                    }
-                                } else null
-                            }
-                        } ?: Int.MAX_VALUE // Put classes without time at the end
-                    }
+    // 按开始时间排序课程
+    val sortedClasses =
+            todayClasses.sortedBy { course ->
+                // 从 "14:00-15:35" 格式提取开始时间
+                val startTimeStr = course.time?.split("-")?.firstOrNull()
+                startTimeStr?.replace(":", "")?.toIntOrNull() ?: Int.MAX_VALUE // 无时间课程排在最后
+            }
                     
                     items(sortedClasses) { todayClass ->
                         TodayClassCard(todayClass = todayClass)
                     }
                     
-                    // Add refresh button at the bottom
+                    // 底部刷新按钮
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedButton(

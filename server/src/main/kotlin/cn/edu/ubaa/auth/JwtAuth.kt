@@ -10,6 +10,8 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import kotlinx.serialization.Serializable
 
+import cn.edu.ubaa.utils.JwtUtil
+
 @Serializable
 data class JwtErrorResponse(val error: JwtErrorDetails)
 
@@ -22,12 +24,6 @@ data class JwtErrorDetails(val code: String, val message: String)
 object JwtAuth {
     const val JWT_AUTH = "jwt-auth"
     
-    // Use the same secret as JwtUtil
-    private val jwtSecret = System.getenv("JWT_SECRET") ?: "ubaa-default-jwt-secret-change-in-production"
-    private val algorithm = Algorithm.HMAC256(jwtSecret)
-    private const val issuer = "ubaa-server"
-    private const val audienceClaim = "ubaa-users"
-    
     /**
      * Configures JWT authentication for the Ktor application.
      */
@@ -35,9 +31,9 @@ object JwtAuth {
         install(Authentication) {
             jwt(JWT_AUTH) {
                 verifier(
-                    JWT.require(algorithm)
-                        .withIssuer(issuer)
-                        .withAudience(audienceClaim)
+                    JWT.require(JwtUtil.algorithm)
+                        .withIssuer(JwtUtil.ISSUER)
+                        .withAudience(JwtUtil.AUDIENCE)
                         .build()
                 )
                 validate { credential ->

@@ -179,6 +179,24 @@ data class BykcSignResult(
 /** 签到地点 */
 @Serializable data class BykcSignPoint(val lat: Double, val lng: Double, val radius: Double = 0.0)
 
+/** 统计信息数据 */
+@Serializable
+data class BykcStatisticsData(
+        val statistical: Map<String, Map<String, BykcSubCategoryStats>> = emptyMap(),
+        val validCount: Int = 0
+)
+
+/** 子类统计信息 */
+@Serializable
+data class BykcSubCategoryStats(
+        val assessmentCount: Int = 0,
+        val selectAssessmentCount: Int = 0,
+        val completeAssessmentCount: Int = 0,
+        val failAssessmentCount: Int = 0,
+        val undoneAssessmentCount: Int = 0,
+        val courseUserList: List<BykcChosenCourse> = emptyList()
+)
+
 // ============ 内部枚举（用于服务端状态计算） ============
 
 /** 课程状态枚举（服务端内部使用） */

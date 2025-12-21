@@ -10,10 +10,7 @@ import java.sql.DriverManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/**
- * A simple SQLite-backed cookie storage. Cookies are scoped by username and survive process
- * restarts.
- */
+/** SQLite Cookie 存储，按用户隔离，支持持久化 */
 class SqliteCookieStorage(private val dbPath: String, private val username: String) :
         CookiesStorage {
     private val mutex = Mutex()
@@ -122,6 +119,18 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
 
     override fun close() {
         // nothing to close; connections are short-lived
+    }
+
+    suspend fun clear() {
+        mutex.withLock {
+            getConnection().use { conn ->
+                conn.prepareStatement("DELETE FROM cookies WHERE username=?").apply {
+                    setString(1, username)
+                    executeUpdate()
+                    close()
+                }
+            }
+        }
     }
 
     private fun isExpired(

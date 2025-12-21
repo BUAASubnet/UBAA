@@ -5,8 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
+import cn.edu.ubaa.ui.components.AppTopBar
 import cn.edu.ubaa.ui.components.BottomNavTab
 import cn.edu.ubaa.ui.components.BottomNavigation
 import cn.edu.ubaa.ui.components.Sidebar
@@ -29,12 +29,16 @@ enum class AppScreen {
     MY,
     ABOUT,
     SCHEDULE,
+    EXAM,
     COURSE_DETAIL,
+    BYKC_HOME,
     BYKC_COURSES,
     BYKC_DETAIL,
-    BYKC_CHOSEN
+    BYKC_CHOSEN,
+    BYKC_STATISTICS
 }
 
+// 主界面入口
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppScreen(
@@ -43,8 +47,11 @@ fun MainAppScreen(
         onLogoutClick: () -> Unit,
         modifier: Modifier = Modifier
 ) {
-    val navStack = remember { mutableStateListOf(AppScreen.HOME) }
-    val currentScreen by remember { derivedStateOf { navStack.last() } }
+    val navController = rememberNavigationController()
+    val currentScreen =
+    // 导航栈变化时重组界面
+    navController.currentScreen
+
     var selectedBottomTab by remember { mutableStateOf(BottomNavTab.HOME) }
     var showSidebar by remember { mutableStateOf(false) }
 
@@ -52,7 +59,11 @@ fun MainAppScreen(
     val scheduleUiState by scheduleViewModel.uiState.collectAsState()
     val todayScheduleState by scheduleViewModel.todayScheduleState.collectAsState()
 
-    // Key the BYKC VM by user id so switching accounts recreates state and reloads fresh data
+    val examViewModel: ExamViewModel = viewModel()
+    val examUiState by examViewModel.uiState.collectAsState()
+    var showExamTermMenu by remember { mutableStateOf(false) }
+
+    // 以用户ID为key，切换账号时重建并刷新BYKC VM
     val bykcViewModel: BykcViewModel = viewModel(key = "bykc-${userData.schoolid}")
     val bykcCoursesState by bykcViewModel.coursesState.collectAsState()
     val bykcDetailState by bykcViewModel.courseDetailState.collectAsState()
@@ -63,28 +74,29 @@ fun MainAppScreen(
     var showBykcIncludeExpired by remember { mutableStateOf(false) }
 
     fun setRoot(screen: AppScreen, tab: BottomNavTab) {
-        navStack.clear()
-        navStack.add(screen)
+        navController.setRoot(screen)
         selectedBottomTab = tab
         showSidebar = false
     }
 
-    // Navigation logic
+    // 导航逻辑
     fun navigateTo(screen: AppScreen, bottomTab: BottomNavTab? = null) {
-        if (navStack.lastOrNull() != screen) {
-            navStack.add(screen)
-        }
+        navController.navigateTo(screen)
 
         val tab =
                 bottomTab
                         ?: when (screen) {
                             AppScreen.HOME -> BottomNavTab.HOME
-                            AppScreen.REGULAR, AppScreen.SCHEDULE, AppScreen.COURSE_DETAIL ->
-                                    BottomNavTab.REGULAR
+                            AppScreen.REGULAR,
+                            AppScreen.SCHEDULE,
+                            AppScreen.EXAM,
+                            AppScreen.COURSE_DETAIL -> BottomNavTab.REGULAR
                             AppScreen.ADVANCED,
+                            AppScreen.BYKC_HOME,
                             AppScreen.BYKC_COURSES,
                             AppScreen.BYKC_DETAIL,
-                            AppScreen.BYKC_CHOSEN -> BottomNavTab.ADVANCED
+                            AppScreen.BYKC_CHOSEN,
+                            AppScreen.BYKC_STATISTICS -> BottomNavTab.ADVANCED
                             else -> null
                         }
         tab?.let { selectedBottomTab = it }
@@ -95,18 +107,21 @@ fun MainAppScreen(
     }
 
     fun navigateBack() {
-        if (navStack.size > 1) {
-            navStack.removeLast()
-            val top = navStack.last()
+        if (navController.navigateBack()) {
+            val top = navController.currentScreen
             val tab =
                     when (top) {
                         AppScreen.HOME -> BottomNavTab.HOME
-                        AppScreen.REGULAR, AppScreen.SCHEDULE, AppScreen.COURSE_DETAIL ->
-                                BottomNavTab.REGULAR
+                        AppScreen.REGULAR,
+                        AppScreen.SCHEDULE,
+                        AppScreen.EXAM,
+                        AppScreen.COURSE_DETAIL -> BottomNavTab.REGULAR
                         AppScreen.ADVANCED,
+                        AppScreen.BYKC_HOME,
                         AppScreen.BYKC_COURSES,
                         AppScreen.BYKC_DETAIL,
-                        AppScreen.BYKC_CHOSEN -> BottomNavTab.ADVANCED
+                        AppScreen.BYKC_CHOSEN,
+                        AppScreen.BYKC_STATISTICS -> BottomNavTab.ADVANCED
                         else -> null
                     }
             tab?.let { selectedBottomTab = it }
@@ -114,13 +129,13 @@ fun MainAppScreen(
                 showSidebar = true
             }
         } else {
-            // already at root
+            // 已在根页面，重置底栏和侧边栏
             selectedBottomTab = BottomNavTab.HOME
             showSidebar = false
         }
     }
 
-    // Get current screen title
+    // 获取当前页面标题
     val screenTitle =
             when (currentScreen) {
                 AppScreen.HOME -> "首页"
@@ -129,14 +144,17 @@ fun MainAppScreen(
                 AppScreen.MY -> "我的"
                 AppScreen.ABOUT -> "关于"
                 AppScreen.SCHEDULE -> "课程表"
+                AppScreen.EXAM -> "考试查询"
                 AppScreen.COURSE_DETAIL -> "课程详情"
-                AppScreen.BYKC_COURSES -> "博雅课程"
+                AppScreen.BYKC_HOME -> "博雅课程"
+                AppScreen.BYKC_COURSES -> "选择课程"
                 AppScreen.BYKC_DETAIL -> "课程详情"
-                AppScreen.BYKC_CHOSEN -> "已选课程"
+                AppScreen.BYKC_CHOSEN -> "我的课程"
+                AppScreen.BYKC_STATISTICS -> "课程统计"
             }
 
     Box(modifier = modifier.fillMaxSize()) {
-        BackHandlerCompat(enabled = showSidebar || navStack.size > 1) {
+        BackHandlerCompat(enabled = showSidebar || navController.navStack.size > 1) {
             if (showSidebar) {
                 showSidebar = false
             } else {
@@ -144,75 +162,49 @@ fun MainAppScreen(
             }
         }
 
-        // Main content
+        // 主内容区域
         Column(modifier = Modifier.fillMaxSize()) {
-            // Unified Top app bar - always show but content varies by screen
-            when (currentScreen) {
-                AppScreen.MY, AppScreen.ABOUT -> {
-                    TopAppBar(
-                            title = { Text(screenTitle) },
-                            navigationIcon = {
-                                IconButton(onClick = { navigateBack() }) {
-                                    Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "返回"
-                                    )
-                                }
-                            }
-                    )
-                }
-                AppScreen.SCHEDULE -> {
-                    TopAppBar(
-                            title = { Text(screenTitle) },
-                            navigationIcon = {
-                                IconButton(onClick = { navigateBack() }) {
-                                    Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "返回"
-                                    )
-                                }
-                            }
-                    )
-                }
-                AppScreen.COURSE_DETAIL -> {
-                    TopAppBar(
-                            title = { Text(screenTitle) },
-                            navigationIcon = {
-                                IconButton(onClick = { navigateBack() }) {
-                                    Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "返回"
-                                    )
-                                }
-                            }
-                    )
-                }
-                AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN -> {
-                    TopAppBar(
-                            title = { Text(screenTitle) },
-                            navigationIcon = {
-                                IconButton(onClick = { navigateBack() }) {
-                                    Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "返回"
-                                    )
-                                }
-                            }
-                    )
-                }
-                else -> {
-                    TopAppBar(
-                            title = { Text(screenTitle) },
-                            navigationIcon = {
-                                IconButton(onClick = { showSidebar = !showSidebar }) {
-                                    Icon(Icons.Default.Menu, contentDescription = "菜单")
-                                }
-                            }
-                    )
-                }
-            }
+            // 顶部导航栏统一处理
+            val isRootScreen =
+                    currentScreen in listOf(AppScreen.HOME, AppScreen.REGULAR, AppScreen.ADVANCED)
 
-            // Main content area
+            AppTopBar(
+                    title = screenTitle,
+                    canNavigateBack = !isRootScreen,
+                    onNavigationIconClick = {
+                        if (isRootScreen) {
+                            showSidebar = !showSidebar
+                        } else {
+                            navigateBack()
+                        }
+                    },
+                    actions = {
+                        if (currentScreen == AppScreen.EXAM) {
+                            Box {
+                                TextButton(onClick = { showExamTermMenu = true }) {
+                                    Text(examUiState.selectedTerm?.itemName ?: "选择学期")
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                }
+                                DropdownMenu(
+                                        expanded = showExamTermMenu,
+                                        onDismissRequest = { showExamTermMenu = false }
+                                ) {
+                                    examUiState.terms.forEach { term ->
+                                        DropdownMenuItem(
+                                                text = { Text(term.itemName) },
+                                                onClick = {
+                                                    examViewModel.selectTerm(term)
+                                                    showExamTermMenu = false
+                                                }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+            )
+
+            // 主内容区，根据当前页面切换
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 when (currentScreen) {
                     AppScreen.HOME -> {
@@ -224,13 +216,14 @@ fun MainAppScreen(
                         )
                     }
                     AppScreen.REGULAR -> {
-                        RegularFeaturesScreen(onScheduleClick = { navigateTo(AppScreen.SCHEDULE) })
+                        RegularFeaturesScreen(
+                                onScheduleClick = { navigateTo(AppScreen.SCHEDULE) },
+                                onExamClick = { navigateTo(AppScreen.EXAM) },
+                                onBykcClick = { navigateTo(AppScreen.BYKC_HOME) }
+                        )
                     }
                     AppScreen.ADVANCED -> {
-                        AdvancedFeaturesScreen(
-                                onBykcCoursesClick = { navigateTo(AppScreen.BYKC_COURSES) },
-                                onBykcChosenClick = { navigateTo(AppScreen.BYKC_CHOSEN) }
-                        )
+                        AdvancedFeaturesScreen()
                     }
                     AppScreen.MY -> {
                         MyScreen()
@@ -256,10 +249,26 @@ fun MainAppScreen(
                                 onBack = { navigateBack() }
                         )
                     }
+                    AppScreen.EXAM -> {
+                        ExamScreen(viewModel = examViewModel)
+                    }
                     AppScreen.COURSE_DETAIL -> {
                         selectedCourse?.let { course ->
                             CourseDetailScreen(course = course, onBack = { navigateBack() })
                         }
+                    }
+                    AppScreen.BYKC_HOME -> {
+                        BykcHomeScreen(
+                                onSelectCourseClick = { navigateTo(AppScreen.BYKC_COURSES) },
+                                onMyCoursesClick = { navigateTo(AppScreen.BYKC_CHOSEN) },
+                                onStatisticsClick = {
+                                    bykcViewModel.loadStatistics()
+                                    navigateTo(AppScreen.BYKC_STATISTICS)
+                                }
+                        )
+                    }
+                    AppScreen.BYKC_STATISTICS -> {
+                        BykcStatisticsScreen(viewModel = bykcViewModel)
                     }
                     AppScreen.BYKC_COURSES -> {
                         BykcCoursesScreen(
@@ -321,7 +330,7 @@ fun MainAppScreen(
                                 isLoading = bykcChosenState.isLoading,
                                 error = bykcChosenState.error,
                                 onCourseClick = { course ->
-                                    // 使用 courseId (课程ID) 而不是 id (选课记录ID) 来查询课程详情
+                                    // 选课详情用 courseId 查询，避免混淆
                                     selectedBykcCourseId = course.courseId
                                     bykcViewModel.loadCourseDetail(course.courseId)
                                     navigateTo(AppScreen.BYKC_DETAIL)
@@ -332,10 +341,11 @@ fun MainAppScreen(
                 }
             }
 
-            // Bottom navigation (hide for certain screens)
+            // 底部导航栏（部分页面隐藏）
             if (currentScreen !in
                             listOf(
                                     AppScreen.SCHEDULE,
+                                    AppScreen.EXAM,
                                     AppScreen.COURSE_DETAIL,
                                     AppScreen.MY,
                                     AppScreen.ABOUT,
@@ -359,27 +369,39 @@ fun MainAppScreen(
             }
         }
 
-        // Floating Sidebar - overlay on top of content with animation
+        // 浮动侧边栏，带动画覆盖内容
+        AnimatedVisibility(visible = showSidebar, enter = fadeIn(), exit = fadeOut()) {
+            // 半透明背景，点击关闭侧边栏
+            Box(
+                    modifier =
+                            Modifier.fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .clickable { showSidebar = false }
+            )
+        }
+
         AnimatedVisibility(
                 visible = showSidebar,
-                enter = fadeIn() + slideInHorizontally(),
-                exit = fadeOut() + slideOutHorizontally()
+                // 仅让侧边栏自身滑动，避免整屏参与动画导致掉帧
+                enter = slideInHorizontally(),
+                // 退出时滑出视窗外再移除，避免“滑一截然后瞬移”
+                exit = slideOutHorizontally(targetOffsetX = { -it * 2 })
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Semi-transparent backdrop with fade animation
-                Box(
-                        modifier =
-                                Modifier.fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.5f))
-                                        .clickable { showSidebar = false }
-                )
-
-                // Sidebar with slide animation
+            Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.CenterStart) {
                 Sidebar(
                         userData = userData,
-                        onLogoutClick = onLogoutClick,
-                        onMyClick = { navigateTo(AppScreen.MY) },
-                        onAboutClick = { navigateTo(AppScreen.ABOUT) },
+                        onLogoutClick = {
+                            showSidebar = false
+                            onLogoutClick()
+                        },
+                        onMyClick = {
+                            showSidebar = false
+                            navigateTo(AppScreen.MY)
+                        },
+                        onAboutClick = {
+                            showSidebar = false
+                            navigateTo(AppScreen.ABOUT)
+                        },
                         modifier = Modifier.align(Alignment.CenterStart)
                 )
             }

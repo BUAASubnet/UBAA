@@ -15,6 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.School
+
 data class FeatureItem(
     val id: String,
     val title: String,
@@ -25,6 +28,8 @@ data class FeatureItem(
 @Composable
 fun RegularFeaturesScreen(
     onScheduleClick: () -> Unit,
+    onExamClick: () -> Unit,
+    onBykcClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val features = listOf(
@@ -33,8 +38,19 @@ fun RegularFeaturesScreen(
             title = "课表查询",
             description = "查看课程表，支持周视图和学期切换",
             icon = Icons.Default.CalendarToday
+        ),
+        FeatureItem(
+            id = "exam",
+            title = "考试查询",
+            description = "查看考试安排，支持学期切换",
+            icon = Icons.Default.Assignment
+        ),
+        FeatureItem(
+            id = "bykc",
+            title = "博雅课程",
+            description = "浏览选课，查看已选，签到签退",
+            icon = Icons.Default.School
         )
-        // 可以在这里添加更多功能
     )
 
     Column(
@@ -60,6 +76,8 @@ fun RegularFeaturesScreen(
                     onClick = {
                         when (feature.id) {
                             "schedule" -> onScheduleClick()
+                            "exam" -> onExamClick()
+                            "bykc" -> onBykcClick()
                         }
                     }
                 )

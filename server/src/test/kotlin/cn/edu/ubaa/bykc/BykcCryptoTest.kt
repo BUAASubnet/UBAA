@@ -3,7 +3,7 @@ package cn.edu.ubaa.bykc
 import java.util.Base64
 import kotlin.test.*
 
-/** BykcCrypto 加密模块单元测试 */
+/** BykcCrypto 加密模块单元测试类 */
 class BykcCryptoTest {
 
     @Test

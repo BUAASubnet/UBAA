@@ -9,19 +9,11 @@ import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 
-/**
- * 博雅课程系统 (BYKC) 加密模块
- *
- * BYKC系统使用 RSA+AES 混合加密方案:
- * 1. 随机生成16字节AES密钥
- * 2. 使用RSA公钥加密AES密钥
- * 3. 使用AES-ECB模式加密请求数据
- * 4. 服务器返回的数据使用相同的AES密钥解密
- */
+/** BYKC 加密模块，RSA+AES 混合加密 */
 object BykcCrypto {
 
     init {
-        // 注册 BouncyCastle 提供者
+        // 注册 BouncyCastle 提供者，兼容加密算法
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(BouncyCastleProvider())
         }
@@ -88,7 +80,7 @@ object BykcCrypto {
      * @return Base64编码的加密结果
      */
     fun rsaEncrypt(data: ByteArray): String {
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC")
         cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
         val encrypted = cipher.doFinal(data)
         return Base64.getEncoder().encodeToString(encrypted)

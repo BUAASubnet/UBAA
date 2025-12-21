@@ -8,33 +8,33 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import java.util.Base64
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 class BykcClient(private val username: String) {
 
+    private val log = LoggerFactory.getLogger(BykcClient::class.java)
     private val sessionManager: SessionManager = GlobalSessionManager.instance
-    private var session = sessionManager.getSession(username)
+    private var session: SessionManager.UserSession? = null
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    // BYKC token extracted from CAS redirect; obtained during login()
+    // BYKC Token，登录时从 CAS 重定向获取
     private var bykcToken: String? = null
     private var lastLoginMillis: Long = 0L
 
-    private fun ensureSession(): SessionManager.UserSession {
+    private suspend fun ensureSession(): SessionManager.UserSession {
         session = sessionManager.getSession(username)
         return session ?: throw IllegalStateException("No active session for $username")
     }
 
-    /** 完成 BYKC CAS 登录流程并提取 token */
-    fun login(): Boolean = runBlocking {
-        // Fast path: if we already have a token from a recent login, reuse it to avoid
-        // hitting CAS on every call. If a downstream request later fails due to auth, callers can
-        // clear the client cache or reset bykcToken to force a re-login.
-        if (bykcToken != null && (System.currentTimeMillis() - lastLoginMillis) < 10 * 60 * 1000) {
-            return@runBlocking true
+    /** 完成 BYKC 登录并提取 token */
+    suspend fun login(forceRefresh: Boolean = false): Boolean {
+        // 快速路径：若已有 Token 且不强制刷新，则复用
+        // 依赖下游请求失败来触发刷新机制
+        if (!forceRefresh && bykcToken != null) {
+            return true
         }
 
         val s = ensureSession()
@@ -57,7 +57,7 @@ class BykcClient(private val username: String) {
         if (token != null) {
             bykcToken = token
             lastLoginMillis = System.currentTimeMillis()
-            return@runBlocking true
+            return true
         }
 
         // 如果没有直接获取 token，尝试访问 cas-login 路径以触发会话检查
@@ -66,10 +66,23 @@ class BykcClient(private val username: String) {
         } catch (_: Exception) {}
         // token 未能提取，但客户端的 cookie 可能已建立，会话可用
         lastLoginMillis = System.currentTimeMillis()
-        return@runBlocking true
+        return true
     }
 
-    private fun callApiRaw(apiName: String, requestJson: String): String = runBlocking {
+    private suspend fun callApiRaw(apiName: String, requestJson: String): String {
+        return try {
+            // 初次尝试
+            doCallApiRaw(apiName, requestJson)
+        } catch (e: Exception) {
+            // 简单重试策略：若失败则强制登录并重试一次
+            // BYKC 接口错误信息多样，统一重试以增强鲁棒性
+            log.warn("API call failed, retrying after login: {}", e.message)
+            login(forceRefresh = true)
+            doCallApiRaw(apiName, requestJson)
+        }
+    }
+
+    private suspend fun doCallApiRaw(apiName: String, requestJson: String): String {
         val s = ensureSession()
         val client = s.client
 
@@ -78,8 +91,21 @@ class BykcClient(private val username: String) {
 
         val httpResponse: HttpResponse =
                 client.post("https://bykc.buaa.edu.cn/sscv/$apiName") {
-                    contentType(ContentType.Application.Json)
+                    contentType(ContentType.Application.Json.withCharset(Charsets.UTF_8))
                     accept(ContentType.Application.Json)
+                    header(HttpHeaders.Referrer, "https://bykc.buaa.edu.cn/system/course-select")
+                    header(HttpHeaders.Origin, "https://bykc.buaa.edu.cn")
+                    // 模拟浏览器 Headers 避免被 WAF 拦截
+                    header(
+                            "sec-ch-ua",
+                            "\"Microsoft Edge\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\""
+                    )
+                    header("sec-ch-ua-mobile", "?0")
+                    header("sec-ch-ua-platform", "\"Windows\"")
+
+                    // 禁用 Expect: 100-continue 避免延迟
+                    headers.remove(HttpHeaders.Expect)
+
                     bykcToken?.let {
                         header("auth_token", it)
                         header("authtoken", it)
@@ -91,7 +117,7 @@ class BykcClient(private val username: String) {
                 }
 
         // 先读取响应体以便在非 200 时包含更多调试信息
-        val respBytes = httpResponse.readBytes()
+        val respBytes = httpResponse.readRawBytes()
         val respBodyText =
                 try {
                     String(respBytes, Charsets.UTF_8)
@@ -112,7 +138,7 @@ class BykcClient(private val username: String) {
                 } catch (_: Exception) {
                     respBodyText
                 }
-        // some endpoints return base64-encoded bytes — try decode
+        // 部分接口返回 Base64 编码数据 — 尝试解码
         val decoded =
                 try {
                     val b = Base64.getDecoder().decode(respBase64)
@@ -126,10 +152,14 @@ class BykcClient(private val username: String) {
                     }
                 }
 
-        return@runBlocking decoded
+        // 暂不进行响应内容的通用鉴权失败检查
+        // BYKC 错误信息多样，目前依赖 doCallApiRaw 抛出异常或由调用方处理具体错误
+        // 若解码内容包含“未登录”，可考虑在此处抛出异常触发重试
+
+        return decoded
     }
 
-    fun getUserProfile(): BykcUserProfile {
+    suspend fun getUserProfile(): BykcUserProfile {
         val raw = callApiRaw("getUserProfile", "{}").trim()
         val apiResp = json.decodeFromString<BykcApiResponse<BykcUserProfile>>(raw)
         if (!apiResp.isSuccess || apiResp.data == null)
@@ -137,7 +167,10 @@ class BykcClient(private val username: String) {
         return apiResp.data
     }
 
-    fun queryStudentSemesterCourseByPage(pageNumber: Int, pageSize: Int): BykcCoursePageResult {
+    suspend fun queryStudentSemesterCourseByPage(
+            pageNumber: Int,
+            pageSize: Int
+    ): BykcCoursePageResult {
         val req = "{\"pageNumber\":$pageNumber,\"pageSize\":$pageSize}"
         val raw = callApiRaw("queryStudentSemesterCourseByPage", req)
         val apiResp = json.decodeFromString<BykcApiResponse<BykcCoursePageResult>>(raw)
@@ -146,7 +179,7 @@ class BykcClient(private val username: String) {
         return apiResp.data
     }
 
-    fun choseCourse(courseId: Long): BykcApiResponse<BykcCourseActionResult> {
+    suspend fun choseCourse(courseId: Long): BykcApiResponse<BykcCourseActionResult> {
         val req = "{\"courseId\":$courseId}"
         val raw = callApiRaw("choseCourse", req)
         val apiResp = json.decodeFromString<BykcApiResponse<BykcCourseActionResult>>(raw)
@@ -155,7 +188,7 @@ class BykcClient(private val username: String) {
     }
 
     /** 退选课程 */
-    fun delChosenCourse(chosenCourseId: Long): BykcApiResponse<BykcCourseActionResult> {
+    suspend fun delChosenCourse(chosenCourseId: Long): BykcApiResponse<BykcCourseActionResult> {
         val req = "{\"id\":$chosenCourseId}"
         val raw = callApiRaw("delChosenCourse", req)
         val apiResp = json.decodeFromString<BykcApiResponse<BykcCourseActionResult>>(raw)
@@ -169,7 +202,7 @@ class BykcClient(private val username: String) {
     }
 
     /** 获取系统配置（学期、校区等） */
-    fun getAllConfig(): BykcAllConfig {
+    suspend fun getAllConfig(): BykcAllConfig {
         val raw = callApiRaw("getAllConfig", "{}")
         val apiResp = json.decodeFromString<BykcApiResponse<BykcAllConfig>>(raw)
         if (!apiResp.isSuccess || apiResp.data == null)
@@ -178,7 +211,7 @@ class BykcClient(private val username: String) {
     }
 
     /** 查询已选课程 */
-    fun queryChosenCourse(startDate: String, endDate: String): List<BykcChosenCourse> {
+    suspend fun queryChosenCourse(startDate: String, endDate: String): List<BykcChosenCourse> {
         val req = "{\"startDate\":\"$startDate\",\"endDate\":\"$endDate\"}"
         val raw = callApiRaw("queryChosenCourse", req)
         val apiResp = json.decodeFromString<BykcApiResponse<BykcChosenCoursePayload>>(raw)
@@ -188,7 +221,7 @@ class BykcClient(private val username: String) {
     }
 
     /** 根据 ID 查询课程详情 */
-    fun queryCourseById(id: Long): BykcCourse {
+    suspend fun queryCourseById(id: Long): BykcCourse {
         val req = "{\"id\":$id}"
         val raw = callApiRaw("queryCourseById", req)
         val apiResp = json.decodeFromString<BykcApiResponse<BykcCourse>>(raw)
@@ -198,7 +231,7 @@ class BykcClient(private val username: String) {
     }
 
     /** 签到/签退 */
-    fun signCourse(
+    suspend fun signCourse(
             courseId: Long,
             lat: Double,
             lng: Double,
@@ -212,5 +245,14 @@ class BykcClient(private val username: String) {
             throw BykcException("签到失败: ${apiResp.errmsg}")
         }
         return apiResp
+    }
+
+    /** 查询课程统计信息 */
+    suspend fun queryStatisticByUserId(): BykcStatisticsData {
+        val raw = callApiRaw("queryStatisticByUserId", "{}")
+        val apiResp = json.decodeFromString<BykcApiResponse<BykcStatisticsData>>(raw)
+        if (!apiResp.isSuccess || apiResp.data == null)
+                throw RuntimeException("BYKC queryStatisticByUserId failed: ${apiResp.errmsg}")
+        return apiResp.data
     }
 }

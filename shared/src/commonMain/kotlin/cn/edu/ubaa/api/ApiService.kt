@@ -3,489 +3,84 @@ package cn.edu.ubaa.api
 import cn.edu.ubaa.model.dto.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.http.*
 
-/** Authentication service for handling login/logout operations */
-object ApiClientProvider {
-    val shared: ApiClient by lazy { ApiClient() }
+interface ApiService {
+    suspend fun getTerms(): Result<List<Term>>
+    suspend fun getWeeks(termCode: String): Result<List<Week>>
+    suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule>
+    suspend fun getTodaySchedule(): Result<List<TodayClass>>
+    suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData>
+    
+    // 博雅课程
+    suspend fun getBykcProfile(): Result<BykcUserProfileDto>
+    suspend fun getBykcCourses(page: Int = 1, pageSize: Int = 20, all: Boolean = false): Result<List<BykcCourseDto>>
+    suspend fun getBykcCourseDetail(id: Int): Result<BykcCourseDetailDto>
+    suspend fun getBykcChosenCourses(): Result<List<BykcChosenCourseDto>>
+    suspend fun getBykcStatistics(): Result<BykcStatisticsDto>
+    suspend fun selectBykcCourse(courseId: Int): Result<Unit>
+    suspend fun unselectBykcCourse(courseId: Int): Result<Unit>
 }
 
-class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
-
-    fun applyStoredToken() {
-        TokenStore.get()?.let { apiClient.updateToken(it) }
+class ApiServiceImpl(private val apiClient: ApiClient) : ApiService {
+    
+    override suspend fun getTerms(): Result<List<Term>> = safeApiCall {
+        apiClient.getClient().get("api/v1/schedule/terms")
     }
 
-    suspend fun login(
-            username: String,
-            password: String,
-            captcha: String? = null
-    ): Result<LoginResponse> {
-        return try {
-            val response =
-                    apiClient.getClient().post("api/v1/auth/login") {
-                        contentType(ContentType.Application.Json)
-                        setBody(LoginRequest(username, password, captcha))
-                    }
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val loginResponse = response.body<LoginResponse>()
-                    // Update the client with the new token
-                    apiClient.updateToken(loginResponse.token)
-                    Result.success(loginResponse)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                HttpStatusCode.UnprocessableEntity -> { // 422 - CAPTCHA required
-                    val captchaResponse = response.body<CaptchaRequiredResponse>()
-                    Result.failure(
-                            CaptchaRequiredClientException(
-                                    captchaResponse.captcha,
-                                    captchaResponse.message
-                            )
-                    )
-                }
-                else -> {
-                    Result.failure(Exception("Login failed with status: ${response.status}"))
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun getWeeks(termCode: String): Result<List<Week>> = safeApiCall {
+        apiClient.getClient().get("api/v1/schedule/weeks") {
+            parameter("termCode", termCode)
         }
     }
 
-    suspend fun getAuthStatus(): Result<SessionStatusResponse> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/auth/status")
+    override suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> = safeApiCall {
+        apiClient.getClient().get("api/v1/schedule/week") {
+            parameter("termCode", termCode)
+            parameter("week", week)
+        }
+    }
+    
+    override suspend fun getTodaySchedule(): Result<List<TodayClass>> = safeApiCall {
+        apiClient.getClient().get("api/v1/schedule/today")
+    }
 
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val status = response.body<SessionStatusResponse>()
-                    Result.success(status)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(Exception("Status check failed with status: ${response.status}"))
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData> = safeApiCall {
+        apiClient.getClient().get("api/v1/exam/list") {
+            parameter("termCode", termCode)
         }
     }
 
-    suspend fun logout(): Result<Unit> {
-        return try {
-            // First attempt to logout from the server
-            val serverResponse = apiClient.getClient().post("api/v1/auth/logout")
-
-            // Then attempt SSO logout regardless of server response
-            try {
-                val ssoResponse = apiClient.getClient().get("https://sso.buaa.edu.cn/logout")
-                println("SSO logout response: ${ssoResponse.status}")
-            } catch (ssoException: Exception) {
-                println(
-                        "SSO logout failed (this is expected in some environments): ${ssoException.message}"
-                )
-            }
-
-            when (serverResponse.status) {
-                HttpStatusCode.OK -> {
-                    // Close the API client after successful logout
-                    TokenStore.clear()
-                    apiClient.close()
-                    Result.success(Unit)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    // Even if unauthorized, clear local state
-                    TokenStore.clear()
-                    apiClient.close()
-                    Result.success(Unit)
-                }
-                else -> {
-                    // Even if server logout fails, clear local state
-                    TokenStore.clear()
-                    apiClient.close()
-                    Result.failure(Exception("Logout failed with status: ${serverResponse.status}"))
-                }
-            }
-        } catch (e: Exception) {
-            // Even if network request fails, clear local state
-            TokenStore.clear()
-            apiClient.close()
-            Result.failure(e)
-        }
-    }
-}
-
-/** User service for fetching user information */
-class UserService(private val apiClient: ApiClient = ApiClientProvider.shared) {
-
-    suspend fun getUserInfo(): Result<UserInfo> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/user/info")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val userInfo = response.body<UserInfo>()
-                    Result.success(userInfo)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception("Failed to fetch user info with status: ${response.status}")
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-}
-
-/** Schedule service for fetching course schedules */
-class ScheduleService(private val apiClient: ApiClient = ApiClientProvider.shared) {
-
-    suspend fun getTerms(): Result<List<Term>> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/schedule/terms")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val terms = response.body<List<Term>>()
-                    Result.success(terms)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception("Failed to fetch terms with status: ${response.status}")
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun getBykcProfile(): Result<BykcUserProfileDto> = safeApiCall {
+        apiClient.getClient().get("api/v1/bykc/profile")
     }
 
-    suspend fun getWeeks(termCode: String): Result<List<Week>> {
-        return try {
-            val response =
-                    apiClient.getClient().get("api/v1/schedule/weeks") {
-                        parameter("termCode", termCode)
-                    }
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val weeks = response.body<List<Week>>()
-                    Result.success(weeks)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception("Failed to fetch weeks with status: ${response.status}")
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun getBykcCourses(page: Int, pageSize: Int, all: Boolean): Result<List<BykcCourseDto>> = runCatching {
+        // 因需手动提取响应体中的 courses 列表，此处暂不使用 safeApiCall
+        // 后续可为 Result 添加 map 扩展函数来优化
+        apiClient.getClient().get("api/v1/bykc/courses") {
+            parameter("page", page)
+            parameter("size", pageSize)
+            parameter("all", all)
+        }.body<BykcCoursesResponse>().courses
     }
 
-    suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> {
-        return try {
-            val response =
-                    apiClient.getClient().get("api/v1/schedule/week") {
-                        parameter("termCode", termCode)
-                        parameter("week", week)
-                    }
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val schedule = response.body<WeeklySchedule>()
-                    Result.success(schedule)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception("Failed to fetch schedule with status: ${response.status}")
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun getBykcCourseDetail(id: Int): Result<BykcCourseDetailDto> = safeApiCall {
+        apiClient.getClient().get("api/v1/bykc/courses/$id")
     }
 
-    suspend fun getTodaySchedule(): Result<List<TodayClass>> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/schedule/today")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val todaySchedule = response.body<List<TodayClass>>()
-                    Result.success(todaySchedule)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception(
-                                    "Failed to fetch today's schedule with status: ${response.status}"
-                            )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-}
-
-// Additional DTOs needed for API responses
-@kotlinx.serialization.Serializable data class ApiErrorResponse(val error: ApiErrorDetails)
-
-@kotlinx.serialization.Serializable
-data class ApiErrorDetails(val code: String, val message: String)
-
-@kotlinx.serialization.Serializable
-data class SessionStatusResponse(
-        val user: UserData,
-        val lastActivity: String,
-        val authenticatedAt: String
-)
-
-/** Client-side exception thrown when CAPTCHA is required for login */
-class CaptchaRequiredClientException(val captchaInfo: CaptchaInfo, message: String) :
-        Exception(message)
-
-/** BYKC (博雅课程) service for managing liberal arts courses */
-class BykcService(private val apiClient: ApiClient = ApiClientProvider.shared) {
-
-    suspend fun getProfile(): Result<BykcUserProfileDto> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/bykc/profile")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val profile = response.body<BykcUserProfileDto>()
-                    Result.success(profile)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception(
-                                    "Failed to fetch BYKC profile with status: ${response.status}"
-                            )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun getBykcChosenCourses(): Result<List<BykcChosenCourseDto>> = safeApiCall {
+        apiClient.getClient().get("api/v1/bykc/courses/chosen")
     }
 
-    suspend fun getCourses(
-            page: Int = 1,
-            size: Int = 200,
-            all: Boolean = false
-    ): Result<BykcCoursesResponse> {
-        return try {
-            val response =
-                    apiClient.getClient().get("api/v1/bykc/courses") {
-                        parameter("page", page)
-                        parameter("size", size)
-                        parameter("all", all)
-                    }
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val coursesResponse = response.body<BykcCoursesResponse>()
-                    Result.success(coursesResponse)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception(
-                                    "Failed to fetch BYKC courses with status: ${response.status}"
-                            )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun getBykcStatistics(): Result<BykcStatisticsDto> = safeApiCall {
+        apiClient.getClient().get("api/v1/bykc/statistics")
     }
 
-    suspend fun getCourseDetail(courseId: Long): Result<BykcCourseDetailDto> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/bykc/courses/$courseId")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val detail = response.body<BykcCourseDetailDto>()
-                    Result.success(detail)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                HttpStatusCode.NotFound -> {
-                    Result.failure(Exception("课程不存在"))
-                }
-                else -> {
-                    Result.failure(
-                            Exception(
-                                    "Failed to fetch course detail with status: ${response.status}"
-                            )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun selectBykcCourse(courseId: Int): Result<Unit> = safeApiCall {
+        apiClient.getClient().post("api/v1/bykc/courses/$courseId/select")
     }
 
-    suspend fun getChosenCourses(): Result<List<BykcChosenCourseDto>> {
-        return try {
-            val response = apiClient.getClient().get("api/v1/bykc/courses/chosen")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val courses = response.body<List<BykcChosenCourseDto>>()
-                    Result.success(courses)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    Result.failure(
-                            Exception(
-                                    "Failed to fetch chosen courses with status: ${response.status}"
-                            )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun selectCourse(courseId: Long): Result<BykcSuccessResponse> {
-        return try {
-            val response =
-                    apiClient.getClient().post("api/v1/bykc/courses/$courseId/select") {
-                        contentType(ContentType.Application.Json)
-                    }
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val successResponse = response.body<BykcSuccessResponse>()
-                    Result.success(successResponse)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    try {
-                        val error = response.body<ApiErrorResponse>()
-                        Result.failure(Exception(error.error.message))
-                    } catch (e: Exception) {
-                        Result.failure(Exception("选课失败: ${response.status}"))
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun deselectCourse(courseId: Long): Result<BykcSuccessResponse> {
-        return try {
-            val response = apiClient.getClient().delete("api/v1/bykc/courses/$courseId/select")
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val successResponse = response.body<BykcSuccessResponse>()
-                    Result.success(successResponse)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    try {
-                        val error = response.body<ApiErrorResponse>()
-                        Result.failure(Exception(error.error.message))
-                    } catch (e: Exception) {
-                        Result.failure(Exception("退选失败: ${response.status}"))
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun signCourse(
-            courseId: Long,
-            lat: Double? = null,
-            lng: Double? = null,
-            signType: Int
-    ): Result<BykcSuccessResponse> {
-        return try {
-            val response =
-                    apiClient.getClient().post("api/v1/bykc/courses/$courseId/sign") {
-                        contentType(ContentType.Application.Json)
-                        setBody(BykcSignRequest(courseId, lat, lng, signType))
-                    }
-
-            when (response.status) {
-                HttpStatusCode.OK -> {
-                    val successResponse = response.body<BykcSuccessResponse>()
-                    Result.success(successResponse)
-                }
-                HttpStatusCode.Unauthorized -> {
-                    val error = response.body<ApiErrorResponse>()
-                    Result.failure(Exception(error.error.message))
-                }
-                else -> {
-                    try {
-                        val error = response.body<ApiErrorResponse>()
-                        Result.failure(Exception(error.error.message))
-                    } catch (e: Exception) {
-                        Result.failure(Exception("签到/签退失败: ${response.status}"))
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun unselectBykcCourse(courseId: Int): Result<Unit> = safeApiCall {
+        apiClient.getClient().delete("api/v1/bykc/courses/$courseId/select")
     }
 }

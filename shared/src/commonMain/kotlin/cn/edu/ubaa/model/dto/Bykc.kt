@@ -53,7 +53,9 @@ data class BykcCourseDetailDto(
         val status: String,
         val selected: Boolean = false,
         val courseDesc: String? = null,
-        val signConfig: BykcSignConfigDto? = null
+        val signConfig: BykcSignConfigDto? = null,
+        val checkin: Int? = null,
+        val pass: Int? = null
 )
 
 /** 已选博雅课程 DTO */
@@ -71,7 +73,7 @@ data class BykcChosenCourseDto(
         val subCategory: String? = null,
         val checkin: Int = 0,
         val score: Int? = null,
-        val pass: Int = 0,
+        val pass: Int? = null,
         val canSign: Boolean = false,
         val canSignOut: Boolean = false,
         val signConfig: BykcSignConfigDto? = null,
@@ -107,6 +109,23 @@ data class BykcUserProfileDto(
         val classCode: String? = null,
         val collegeName: String? = null,
         val termName: String? = null
+)
+
+/** 博雅课程统计 DTO */
+@Serializable
+data class BykcStatisticsDto(
+    val totalValidCount: Int,
+    val categories: List<BykcCategoryStatisticsDto>
+)
+
+/** 博雅课程分类统计 DTO */
+@Serializable
+data class BykcCategoryStatisticsDto(
+    val categoryName: String, // 大类 (e.g. "博雅课程")
+    val subCategoryName: String, // 小类 (e.g. "德育")
+    val requiredCount: Int, // 考核指标
+    val passedCount: Int, // 考核通过
+    val isQualified: Boolean // 是否达标 (passed >= required)
 )
 
 /** 选课请求 */

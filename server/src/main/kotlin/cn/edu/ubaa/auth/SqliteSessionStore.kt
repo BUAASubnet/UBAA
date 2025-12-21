@@ -6,6 +6,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.time.Instant
 
+// Sqlite 会话存储，持久化用户会话
 class SqliteSessionStore(private val dbPath: String) {
 
     init {

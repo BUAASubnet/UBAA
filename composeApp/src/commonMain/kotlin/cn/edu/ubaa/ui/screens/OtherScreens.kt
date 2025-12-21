@@ -10,8 +10,6 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AdvancedFeaturesScreen(
-        onBykcCoursesClick: () -> Unit = {},
-        onBykcChosenClick: () -> Unit = {},
         modifier: Modifier = Modifier
 ) {
     Column(
@@ -24,43 +22,6 @@ fun AdvancedFeaturesScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
         )
-
-        // Bykc (博雅课程) features
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onBykcCoursesClick) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(
-                        text = "📚 博雅课程",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                        text = "浏览和选择博雅课程，管理已选课程",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onBykcChosenClick) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(
-                        text = "✅ 我的博雅课程",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                        text = "查看已选课程，进行签到签退",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
 
         // More features coming soon
         Card(

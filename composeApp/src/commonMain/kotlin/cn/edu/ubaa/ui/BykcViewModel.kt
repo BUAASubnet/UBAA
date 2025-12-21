@@ -2,14 +2,14 @@ package cn.edu.ubaa.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.BykcService
+import cn.edu.ubaa.api.BykcApi
 import cn.edu.ubaa.model.dto.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** UI state for BYKC course list */
+/** BYKC课程列表UI状态 */
 data class BykcCoursesUiState(
         val isLoading: Boolean = false,
         val courses: List<BykcCourseDto> = emptyList(),
@@ -18,7 +18,7 @@ data class BykcCoursesUiState(
         val profile: BykcUserProfileDto? = null
 )
 
-/** UI state for BYKC course detail */
+/** BYKC课程详情UI状态 */
 data class BykcCourseDetailUiState(
         val isLoading: Boolean = false,
         val course: BykcCourseDetailDto? = null,
@@ -27,16 +27,23 @@ data class BykcCourseDetailUiState(
         val operationMessage: String? = null
 )
 
-/** UI state for chosen BYKC courses */
+/** 已选BYKC课程UI状态 */
 data class BykcChosenCoursesUiState(
         val isLoading: Boolean = false,
         val courses: List<BykcChosenCourseDto> = emptyList(),
         val error: String? = null
 )
 
-/** ViewModel managing BYKC (博雅课程) related state and operations */
+/** BYKC统计信息UI状态 */
+data class BykcStatisticsUiState(
+        val isLoading: Boolean = false,
+        val statistics: BykcStatisticsDto? = null,
+        val error: String? = null
+)
+
+/** 管理博雅课程相关状态与操作的ViewModel */
 class BykcViewModel : ViewModel() {
-        private val bykcService = BykcService()
+        private val bykcApi = BykcApi()
 
         private val _coursesState = MutableStateFlow(BykcCoursesUiState())
         val coursesState: StateFlow<BykcCoursesUiState> = _coursesState.asStateFlow()
@@ -48,22 +55,51 @@ class BykcViewModel : ViewModel() {
         val chosenCoursesState: StateFlow<BykcChosenCoursesUiState> =
                 _chosenCoursesState.asStateFlow()
 
+        private val _statisticsState = MutableStateFlow(BykcStatisticsUiState())
+        val statisticsState: StateFlow<BykcStatisticsUiState> = _statisticsState.asStateFlow()
+
         init {
                 loadProfile()
                 loadCourses()
                 loadChosenCourses()
+                loadStatistics()
+        }
+
+        fun loadStatistics() {
+                viewModelScope.launch {
+                        _statisticsState.value =
+                                _statisticsState.value.copy(isLoading = true, error = null)
+
+                        bykcApi
+                                .getStatistics()
+                                .onSuccess { stats ->
+                                        _statisticsState.value =
+                                                _statisticsState.value.copy(
+                                                        isLoading = false,
+                                                        statistics = stats,
+                                                        error = null
+                                                )
+                                }
+                                .onFailure { exception ->
+                                        _statisticsState.value =
+                                                _statisticsState.value.copy(
+                                                        isLoading = false,
+                                                        error = exception.message ?: "加载统计信息失败"
+                                                )
+                                }
+                }
         }
 
         fun loadProfile() {
                 viewModelScope.launch {
-                        bykcService
+                        bykcApi
                                 .getProfile()
                                 .onSuccess { profile ->
                                         _coursesState.value =
                                                 _coursesState.value.copy(profile = profile)
                                 }
                                 .onFailure { exception ->
-                                        // Profile is optional, don't show error for this
+                                        // 个人信息可选，失败不提示
                                         println("Failed to load BYKC profile: ${exception.message}")
                                 }
                 }
@@ -74,7 +110,7 @@ class BykcViewModel : ViewModel() {
                         _coursesState.value =
                                 _coursesState.value.copy(isLoading = true, error = null)
 
-                        bykcService
+                        bykcApi
                                 .getCourses(page, size, includeExpired)
                                 .onSuccess { response ->
                                         _coursesState.value =
@@ -99,7 +135,7 @@ class BykcViewModel : ViewModel() {
                 viewModelScope.launch {
                         _courseDetailState.value = BykcCourseDetailUiState(isLoading = true)
 
-                        bykcService
+                        bykcApi
                                 .getCourseDetail(courseId)
                                 .onSuccess { course ->
                                         _courseDetailState.value =
@@ -124,7 +160,7 @@ class BykcViewModel : ViewModel() {
                         _chosenCoursesState.value =
                                 _chosenCoursesState.value.copy(isLoading = true, error = null)
 
-                        bykcService
+                        bykcApi
                                 .getChosenCourses()
                                 .onSuccess { courses ->
                                         _chosenCoursesState.value =
@@ -149,7 +185,7 @@ class BykcViewModel : ViewModel() {
                         _courseDetailState.value =
                                 _courseDetailState.value.copy(operationInProgress = true)
 
-                        bykcService
+                        bykcApi
                                 .selectCourse(courseId)
                                 .onSuccess { response ->
                                         _courseDetailState.value =
@@ -158,10 +194,10 @@ class BykcViewModel : ViewModel() {
                                                         operationMessage = response.message
                                                 )
                                         onComplete(true, response.message)
-                                        // Refresh course detail and chosen courses
+                                        // 操作成功后刷新详情和已选课程
                                         loadCourseDetail(courseId)
                                         loadChosenCourses()
-                                        loadCourses() // Refresh list to update status
+                                        loadCourses() // 刷新列表状态
                                 }
                                 .onFailure { exception ->
                                         val message = exception.message ?: "选课失败"
@@ -180,7 +216,7 @@ class BykcViewModel : ViewModel() {
                         _courseDetailState.value =
                                 _courseDetailState.value.copy(operationInProgress = true)
 
-                        bykcService
+                        bykcApi
                                 .deselectCourse(courseId)
                                 .onSuccess { response ->
                                         _courseDetailState.value =
@@ -189,10 +225,10 @@ class BykcViewModel : ViewModel() {
                                                         operationMessage = response.message
                                                 )
                                         onComplete(true, response.message)
-                                        // Refresh course detail and chosen courses
+                                        // 操作成功后刷新详情和已选课程
                                         loadCourseDetail(courseId)
                                         loadChosenCourses()
-                                        loadCourses() // Refresh list to update status
+                                        loadCourses() // 刷新列表状态
                                 }
                                 .onFailure { exception ->
                                         val message = exception.message ?: "退选失败"
@@ -217,7 +253,7 @@ class BykcViewModel : ViewModel() {
                         _courseDetailState.value =
                                 _courseDetailState.value.copy(operationInProgress = true)
 
-                        bykcService
+                        bykcApi
                                 .signCourse(courseId, lat, lng, signType)
                                 .onSuccess { response ->
                                         _courseDetailState.value =
@@ -226,7 +262,7 @@ class BykcViewModel : ViewModel() {
                                                         operationMessage = response.message
                                                 )
                                         onComplete(true, response.message)
-                                        // Refresh course detail and chosen courses
+                                        // 签到/签退后刷新详情和已选课程
                                         loadCourseDetail(courseId)
                                         loadChosenCourses()
                                 }

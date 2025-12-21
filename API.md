@@ -278,7 +278,33 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## 5. 博雅课程 (BYKC) 接口
+## 5. 考试安排接口
+
+### 获取考试列表
+- **GET /api/v1/exam/list?termCode={termCode}**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **请求参数**：
+  - `termCode` (必须): 学期代码
+- **成功响应**：
+```json
+{
+  "arranged": [
+    {
+      "courseName": "高等数学",
+      "examTimeDescription": "14:00-16:00",
+      "examDate": "2025-06-20",
+      "examPlace": "J1-101",
+      "examSeatNo": "15"
+    }
+  ],
+  "notArranged": []
+}
+```
+
+## 6. 博雅课程 (BYKC) 接口
 
 ### 获取博雅用户信息
 - **GET /api/v1/bykc/profile**
@@ -333,6 +359,28 @@ Authorization: Bearer <jwt-token>
     }
   ],
   "total": 50
+}
+```
+
+### 获取课程统计信息
+- **GET /api/v1/bykc/statistics**
+- **请求头**：
+```
+Authorization: Bearer <jwt-token>
+```
+- **成功响应**：
+```json
+{
+  "totalValidCount": 5,
+  "categories": [
+    {
+      "categoryName": "博雅课程",
+      "subCategoryName": "美育",
+      "requiredCount": 2,
+      "passedCount": 1,
+      "isQualified": false
+    }
+  ]
 }
 ```
 
@@ -517,7 +565,7 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## 6. 错误码说明
+## 7. 错误码说明
 
 | 错误码                | 说明                 |
 | --------------------- | -------------------- |
@@ -532,7 +580,7 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## 6. 认证机制说明
+## 8. 认证机制说明
 
 - 登录成功后返回 JWT 令牌，后续所有受保护接口需在 `Authorization` 头中携带：
   `Authorization: Bearer <jwt-token>`
@@ -542,7 +590,7 @@ Authorization: Bearer <jwt-token>
 
 ---
 
-## 7. 响应示例
+## 9. 响应示例
 
 ### 成功响应
 ```json

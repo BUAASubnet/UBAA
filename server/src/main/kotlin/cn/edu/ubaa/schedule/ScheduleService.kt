@@ -33,10 +33,10 @@ class ScheduleService(
         val response = session.getTerms()
         val body = response.bodyAsText()
         log.debug("Terms response status: {}", response.status)
-        log.debug("Terms response body: {}", body)
+        log.debug("Terms response body (truncated): {}", body.take(200))
 
-        // Check for 401 Unauthorized - BYXT session may have expired
-        if (response.status == HttpStatusCode.Unauthorized || body.contains("Not login")) {
+        // 检查 401 Unauthorized - BYXT 会话可能已过期
+        if (response.status == HttpStatusCode.Unauthorized) {
             log.warn(
                     "BYXT session appears to be expired or invalid for user: {}. Response: {}",
                     username,
@@ -75,7 +75,7 @@ class ScheduleService(
         val response = session.getWeeks(termCode)
         val body = response.bodyAsText()
         log.debug("Weeks response status: {}", response.status)
-        log.debug("Weeks response body: {}", body)
+        log.debug("Weeks response body (truncated): {}", body.take(200))
 
         if (response.status != HttpStatusCode.OK) {
             throw ScheduleException("Failed to fetch weeks. Status: ${response.status}")
@@ -112,7 +112,7 @@ class ScheduleService(
         val response = session.getWeeklySchedule(termCode, week)
         val body = response.bodyAsText()
         log.debug("Weekly schedule response status: {}", response.status)
-        log.debug("Weekly schedule response body: {}", body)
+        log.debug("Weekly schedule response body (truncated): {}", body.take(200))
 
         if (response.status != HttpStatusCode.OK) {
             throw ScheduleException("Failed to fetch weekly schedule. Status: ${response.status}")
@@ -146,7 +146,7 @@ class ScheduleService(
         val response = session.getTodaySchedule(today)
         val body = response.bodyAsText()
         log.debug("Today schedule response status: {}", response.status)
-        log.debug("Today schedule response body: {}", body)
+        log.debug("Today schedule response body (truncated): {}", body.take(200))
 
         if (response.status != HttpStatusCode.OK) {
             throw ScheduleException("Failed to fetch today's schedule. Status: ${response.status}")

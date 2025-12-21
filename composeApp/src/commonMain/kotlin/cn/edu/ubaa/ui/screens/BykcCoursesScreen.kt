@@ -36,61 +36,63 @@ fun BykcCoursesScreen(
 ) {
     val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = onRefresh)
 
-    Column(modifier = modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
-        // Filter controls
-        Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                colors =
-                        CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-        ) {
-            Row(
+    Box(modifier = modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+        // 筛选控件
+            Card(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    colors =
+                            CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = includeExpired, onCheckedChange = onIncludeExpiredChange)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("显示已过期课程")
-                }
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = includeExpired, onCheckedChange = onIncludeExpiredChange)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("显示已过期课程")
+                    }
 
-                IconButton(onClick = onRefresh) {
-                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                }
-            }
-        }
-
-        when {
-            isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("加载课程列表...")
+                    IconButton(onClick = onRefresh) {
+                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
                     }
                 }
             }
-            error != null -> {
-                Box(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        contentAlignment = Alignment.Center
-                ) { Text(text = "加载失败: $error", color = MaterialTheme.colorScheme.error) }
-            }
-            courses.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("暂无可选课程")
+
+            when {
+                isLoading && courses.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("加载课程列表...")
+                        }
+                    }
                 }
-            }
-            else -> {
-                LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(courses) { course ->
-                        BykcCourseCard(course = course, onClick = { onCourseClick(course) })
+                error != null -> {
+                    Box(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            contentAlignment = Alignment.Center
+                    ) { Text(text = "加载失败: $error", color = MaterialTheme.colorScheme.error) }
+                }
+                courses.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("暂无可选课程")
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(courses) { course ->
+                            BykcCourseCard(course = course, onClick = { onCourseClick(course) })
+                        }
                     }
                 }
             }
@@ -99,7 +101,10 @@ fun BykcCoursesScreen(
         PullRefreshIndicator(
                 refreshing = isLoading,
                 state = pullRefreshState,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                scale = true
         )
     }
 }
@@ -112,7 +117,7 @@ fun BykcCourseCard(course: BykcCourseDto, onClick: () -> Unit, modifier: Modifie
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Course name and status
+            // 课程名称与状态
             Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -134,7 +139,7 @@ fun BykcCourseCard(course: BykcCourseDto, onClick: () -> Unit, modifier: Modifie
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Course info
+            // 课程信息
             course.courseTeacher?.let { teacher -> InfoRow(label = "教师", value = teacher) }
 
             course.coursePosition?.let { position -> InfoRow(label = "地点", value = position) }
@@ -168,7 +173,7 @@ fun BykcCourseCard(course: BykcCourseDto, onClick: () -> Unit, modifier: Modifie
                 }
             }
 
-            // Enrollment info
+                // 选课情况
             Spacer(modifier = Modifier.height(8.dp))
             val progress =
                     remember(course.courseCurrentCount, course.courseMaxCount) {
@@ -258,8 +263,8 @@ fun InfoRow(label: String, value: String) {
 }
 
 fun formatDateRange(startDate: String, endDate: String): String {
-    // Expected format: "2025-03-15 14:00:00"
-    // Extract date and time parts
+    // 期望格式: "2025-03-15 14:00:00"
+    // 提取日期和时间部分
     val startParts = startDate.split(" ")
     val endParts = endDate.split(" ")
 
@@ -270,11 +275,11 @@ fun formatDateRange(startDate: String, endDate: String): String {
         val endTimePart = endParts[1].substring(0, 5)
 
         return if (startDatePart == endDatePart) {
-            // Same day
-            "$startDatePart $startTimePart-$endTimePart"
+                    // 同一天
+                    "$startDatePart $startTimePart - $endTimePart"
         } else {
-            // Different days
-            "$startDatePart $startTimePart - $endDatePart $endTimePart"
+        // 跨天
+        "$startDatePart $startTimePart - $endDate"
         }
     }
 

@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,9 +38,9 @@ fun BykcChosenCoursesScreen(
 ) {
     val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = onRefresh)
 
-    Column(modifier = modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
+    Box(modifier = modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
         when {
-            isLoading -> {
+            isLoading && courses.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
@@ -94,7 +95,10 @@ fun BykcChosenCoursesScreen(
         PullRefreshIndicator(
                 refreshing = isLoading,
                 state = pullRefreshState,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                scale = true
         )
     }
 }
@@ -111,9 +115,8 @@ fun BykcChosenCourseCard(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Course name
-            Text(
-                    text = course.courseName,
+                                        // 课程名称
+                                        Text(                    text = course.courseName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
@@ -122,7 +125,7 @@ fun BykcChosenCourseCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Course info
+            // 课程信息区
             course.courseTeacher?.let { teacher -> InfoRow(label = "教师", value = teacher) }
 
             course.coursePosition?.let { position -> InfoRow(label = "地点", value = position) }
@@ -136,7 +139,7 @@ fun BykcChosenCourseCard(
                 InfoRow(label = "选课时间", value = selectDate.substringBefore(" 00:00:00"))
             }
 
-            // Category chips
+            // 分类标签
             if (course.category != null || course.subCategory != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
@@ -160,71 +163,56 @@ fun BykcChosenCourseCard(
                 }
             }
 
-            // Status indicator based on start/end times and results
+                        // 状态指示（签到与考核）
+                        Column(horizontalAlignment = Alignment.End) {
             Spacer(modifier = Modifier.height(12.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
 
-            val statusType =
-                    remember(
-                            course.courseStartDate,
-                            course.courseEndDate,
-                            course.checkin,
-                            course.pass
-                    ) { computeChosenCourseStatus(course) }
-
-            val statusLabel =
-                    when (statusType) {
-                        ChosenCourseStatusType.NOT_STARTED -> "未开始"
-                        ChosenCourseStatusType.IN_PROGRESS -> "进行中"
-                        ChosenCourseStatusType.PASSED -> "已通过"
-                        ChosenCourseStatusType.FAILED -> "未通过"
-                        ChosenCourseStatusType.CHECKED_IN -> "已签到"
-                        ChosenCourseStatusType.NOT_CHECKED_IN -> "未签到"
-                    }
-
-            val statusIcon: ImageVector =
-                    when (statusType) {
-                        ChosenCourseStatusType.NOT_STARTED, ChosenCourseStatusType.NOT_CHECKED_IN ->
-                                Icons.Default.HourglassEmpty
-                        ChosenCourseStatusType.IN_PROGRESS -> Icons.Default.PlayArrow
-                        ChosenCourseStatusType.PASSED, ChosenCourseStatusType.CHECKED_IN ->
-                                Icons.Default.CheckCircle
-                        ChosenCourseStatusType.FAILED -> Icons.Default.Cancel
-                    }
-
-            val statusColor =
-                    when (statusType) {
-                        ChosenCourseStatusType.NOT_STARTED, ChosenCourseStatusType.NOT_CHECKED_IN ->
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        ChosenCourseStatusType.IN_PROGRESS -> MaterialTheme.colorScheme.primary
-                        ChosenCourseStatusType.PASSED -> MaterialTheme.colorScheme.tertiary
-                        ChosenCourseStatusType.FAILED -> MaterialTheme.colorScheme.error
-                        ChosenCourseStatusType.CHECKED_IN -> MaterialTheme.colorScheme.primary
-                    }
+            val (checkinText, checkinColor) = getCheckinStatus(course.checkin)
+            val (passText, passColor) = getPassStatus(course.pass)
 
             Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 签到状态
+                            // 签到状态
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                            imageVector = statusIcon,
+                            imageVector = Icons.Default.AssignmentInd,
                             contentDescription = null,
-                            tint = statusColor,
+                            tint = checkinColor,
                             modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                            text = statusLabel,
+                            text = checkinText,
                             style = MaterialTheme.typography.bodySmall,
-                            color = statusColor
+                            color = checkinColor
                     )
                 }
 
-                // Score (only when available)
-                course.score?.let { score ->
+                            // 考核状态
+                            // 签到状态
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                            imageVector = if (course.pass == 1) Icons.Default.CheckCircle else Icons.Default.Info,
+                            contentDescription = null,
+                            tint = passColor,
+                            modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                            text = passText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = passColor
+                    )
+                }
+
+                            // 分数显示（有分数时）
+                            if (course.score != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                                 imageVector = Icons.Default.Grade,
@@ -234,7 +222,7 @@ fun BykcChosenCourseCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                                text = "$score 分",
+                                text = "${course.score} 分",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.secondary
@@ -243,46 +231,76 @@ fun BykcChosenCourseCard(
                 }
             }
 
-            // Sign-in action indicators
-            if (course.canSign || course.canSignOut) {
+                    // 签到/签退操作区
+                    Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                    ) {
+            val now = remember { mutableStateOf(Clock.System.now()) }
+            LaunchedEffect(Unit) {
+                while(true) {
+                    kotlinx.coroutines.delay(5000)
+                    now.value = Clock.System.now()
+                }
+            }
+
+            val isInSignInWindow = remember(course.signConfig?.signStartDate, course.signConfig?.signEndDate, now.value) {
+                isWithinWindow(course.signConfig?.signStartDate, course.signConfig?.signEndDate)
+            }
+            val isInSignOutWindow = remember(course.signConfig?.signOutStartDate, course.signConfig?.signOutEndDate, now.value) {
+                isWithinWindow(course.signConfig?.signOutStartDate, course.signConfig?.signOutEndDate)
+            }
+
+            // 逻辑说明：
+            // 可签到：未签到(0)且在时间窗口
+            val canSignIn = (course.checkin == 0) && isInSignInWindow
+            
+            // 可签退：已签到未签退(5或6)且在时间窗口
+            val canSignOut = (course.checkin == 5 || course.checkin == 6) && isInSignOutWindow
+
+            // 考核通过(1)时隐藏按钮
+            val showButtons = course.pass != 1 && course.signConfig != null
+
+            if (showButtons) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (course.canSign) {
-                        AssistChip(
-                                onClick = {},
-                                label = {
-                                    Text("可签到", style = MaterialTheme.typography.labelSmall)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                            Icons.Default.Login,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
+                    AssistChip(
+                            onClick = { if (canSignIn) onClick() },
+                            enabled = canSignIn,
+                            label = {
+                                Text("签到", style = MaterialTheme.typography.labelSmall)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Login,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors =
+                                    AssistChipDefaults.assistChipColors(
+                                            containerColor =
+                                                    MaterialTheme.colorScheme.primaryContainer,
+                                            labelColor =
+                                                    MaterialTheme.colorScheme.onPrimaryContainer,
+                                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                     )
-                                },
-                                colors =
-                                        AssistChipDefaults.assistChipColors(
-                                                containerColor =
-                                                        MaterialTheme.colorScheme.primaryContainer,
-                                                labelColor =
-                                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                        )
-                    }
-                    if (course.canSignOut) {
-                        AssistChip(
-                                onClick = {},
-                                label = {
-                                    Text("可签退", style = MaterialTheme.typography.labelSmall)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                            Icons.Default.Logout,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
+                    )
+                    AssistChip(
+                            onClick = { if (canSignOut) onClick() },
+                            enabled = canSignOut,
+                            label = {
+                                Text("签退", style = MaterialTheme.typography.labelSmall)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                        Icons.Default.Logout,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 },
                                 colors =
@@ -292,49 +310,63 @@ fun BykcChosenCourseCard(
                                                                 .secondaryContainer,
                                                 labelColor =
                                                         MaterialTheme.colorScheme
-                                                                .onSecondaryContainer
+                                                                .onSecondaryContainer,
+                                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                         )
                         )
-                    }
                 }
             }
         }
     }
 }
-
-private enum class ChosenCourseStatusType {
-    NOT_STARTED,
-    IN_PROGRESS,
-    PASSED,
-    FAILED,
-    CHECKED_IN,
-    NOT_CHECKED_IN
+}
 }
 
-private fun computeChosenCourseStatus(course: BykcChosenCourseDto): ChosenCourseStatusType {
-    val start =
-            course.courseStartDate?.let {
-                runCatching { LocalDateTime.parse(it.replace(" ", "T")) }.getOrNull()
-            }
-    val end =
-            course.courseEndDate?.let {
-                runCatching { LocalDateTime.parse(it.replace(" ", "T")) }.getOrNull()
-            }
-    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-
-    if (start != null && end != null) {
-        return when {
-            now < start -> ChosenCourseStatusType.NOT_STARTED
-            now >= start && now <= end -> ChosenCourseStatusType.IN_PROGRESS
-            course.checkin == 1 && course.pass == 1 -> ChosenCourseStatusType.PASSED
-            else -> ChosenCourseStatusType.FAILED
-        }
+private fun isWithinWindow(start: String?, end: String?): Boolean {
+    if (start.isNullOrBlank() || end.isNullOrBlank()) return false
+    return try {
+        val startDt = LocalDateTime.parse(start.replace(" ", "T"))
+        val endDt = LocalDateTime.parse(end.replace(" ", "T"))
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        now >= startDt && now <= endDt
+    } catch (_: Exception) {
+        false
     }
+}
 
-    // Fallback if dates are missing or parsing failed
-    return when {
-        course.pass == 1 -> ChosenCourseStatusType.PASSED
-        course.checkin == 1 -> ChosenCourseStatusType.CHECKED_IN
-        else -> ChosenCourseStatusType.NOT_CHECKED_IN
+@Composable
+fun getCheckinStatus(checkin: Int): Pair<String, Color> {
+    val successColor = MaterialTheme.colorScheme.primary
+    val warningColor = MaterialTheme.colorScheme.tertiary
+    val errorColor = MaterialTheme.colorScheme.error
+    val defaultColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    return when (checkin) {
+        1 -> "考勤通过" to successColor
+        2 -> "迟到" to errorColor
+        3 -> "早退" to errorColor
+        4 -> "缺勤" to errorColor
+        5 -> "已签到、未签退" to warningColor
+        6 -> "已签到(异常)、未签退" to warningColor
+        7 -> "未签到、已签退" to warningColor
+        8 -> "未签到、已签退(异常)" to warningColor
+        9 -> "已签到(异常)、已签退" to warningColor
+        10 -> "已签到、已签退(异常)" to warningColor
+        11 -> "已签到(异常)、已签退(异常)" to warningColor
+        else -> "待考勤" to defaultColor
+    }
+}
+
+@Composable
+fun getPassStatus(pass: Int?): Pair<String, Color> {
+    val successColor = MaterialTheme.colorScheme.primary
+    val errorColor = MaterialTheme.colorScheme.error
+    val defaultColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    return when (pass) {
+        1 -> "考核通过" to successColor
+        0 -> "考核未通过" to errorColor
+        else -> "待考核" to defaultColor
     }
 }

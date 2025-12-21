@@ -2,11 +2,13 @@ package cn.edu.ubaa.bykc
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.model.dto.BykcCategoryStatisticsDto
 import cn.edu.ubaa.model.dto.BykcChosenCourseDto
 import cn.edu.ubaa.model.dto.BykcCourseDetailDto
 import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.BykcSignConfigDto
 import cn.edu.ubaa.model.dto.BykcSignPointDto
+import cn.edu.ubaa.model.dto.BykcStatisticsDto
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.asin
@@ -18,23 +20,15 @@ import kotlin.random.Random
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
-/**
- * 博雅课程服务层
- *
- * 封装 BykcClient，提供高层业务逻辑，包括：
- * - 课程列表查询与状态计算
- * - 选课/退选
- * - 已选课程查询
- * - 签到/签退
- */
+/** 博雅课程服务，封装 BykcClient，提供课程、选课、签到等业务逻辑 */
 class BykcService(private val sessionManager: SessionManager = GlobalSessionManager.instance) {
     private val log = LoggerFactory.getLogger(BykcService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    // 缓存每个用户的 BykcClient 实例
+    // 缓存用户 BykcClient，提升复用
     private val clientCache = mutableMapOf<String, BykcClient>()
 
-    /** 获取或创建指定用户的 BykcClient */
+    /** 获取或创建用户 BykcClient */
     private fun getClient(username: String): BykcClient {
         return clientCache.getOrPut(username) {
             BykcClient(username).also { log.debug("Created new BykcClient for user: {}", username) }
@@ -54,7 +48,7 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         }
     }
 
-    /** 获取用户的博雅课程个人信息 */
+    /** 获取用户博雅课程信息 */
     suspend fun getUserProfile(username: String): BykcUserProfile {
         ensureBykcLogin(username)
         val client = getClient(username)
@@ -72,7 +66,7 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     suspend fun getCourses(
             username: String,
             pageNumber: Int = 1,
-            pageSize: Int = 200
+            pageSize: Int = 50
     ): List<BykcCourseDto> {
         ensureBykcLogin(username)
         val client = getClient(username)
@@ -115,7 +109,7 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     suspend fun getAllCourses(
             username: String,
             pageNumber: Int = 1,
-            pageSize: Int = 200
+            pageSize: Int = 50
     ): List<BykcCourseDto> {
         ensureBykcLogin(username)
         val client = getClient(username)
@@ -206,7 +200,7 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
                     subCategory = course?.courseNewKind2?.kindName,
                     checkin = chosen.checkin ?: 0,
                     score = chosen.score,
-                    pass = chosen.pass ?: 0,
+                    pass = chosen.pass,
                     canSign = canSign(signConfig, now),
                     canSignOut = canSignOut(signConfig, now),
                     signConfig = signConfig,
@@ -227,6 +221,34 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         val status = calculateCourseStatus(course)
         val signConfig = parseSignConfig(course.courseSignConfig)
 
+        var checkin: Int? = null
+        var pass: Int? = null
+
+        if (course.selected == true) {
+            // 已选课程尝试从 queryChosenCourse 结果获取状态
+            // 需复用 queryChosenCourse 的日期范围逻辑，后续应优化为缓存查询
+            try {
+                // 暂需全量拉取列表
+                // 依赖 getChosenCourses 中计算好的日期范围
+                val config = client.getAllConfig()
+                val semester = config.semester.firstOrNull()
+                if (semester?.semesterStartDate != null && semester.semesterEndDate != null) {
+                    val chosenList =
+                            client.queryChosenCourse(
+                                    semester.semesterStartDate,
+                                    semester.semesterEndDate
+                            )
+                    val chosen = chosenList.find { it.courseInfo?.id == courseId }
+                    if (chosen != null) {
+                        checkin = chosen.checkin
+                        pass = chosen.pass
+                    }
+                }
+            } catch (e: Exception) {
+                log.warn("Failed to fetch chosen status for course detail: {}", e.message)
+            }
+        }
+
         return BykcCourseDetailDto(
                 id = course.id,
                 courseName = course.courseName,
@@ -246,7 +268,9 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
                 status = status.displayName,
                 selected = course.selected ?: false,
                 courseDesc = course.courseDesc,
-                signConfig = signConfig
+                signConfig = signConfig,
+                checkin = checkin,
+                pass = pass
         )
     }
 
@@ -303,7 +327,7 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     }
 
     /** 获取课程的签到配置（如果解析失败返回 null） */
-    private fun getSignConfig(client: BykcClient, courseId: Long): BykcSignConfigDto? {
+    private suspend fun getSignConfig(client: BykcClient, courseId: Long): BykcSignConfigDto? {
         return try {
             val course = client.queryCourseById(courseId)
             parseSignConfig(course.courseSignConfig)
@@ -367,9 +391,9 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     ): Pair<Double, Double> {
         val point = signConfig?.signPoints?.takeIf { it.isNotEmpty() }?.random(random)
         if (point != null && point.radius > 0.0) {
-            val distance = point.radius * sqrt(random.nextDouble()) // uniform in circle
-            val bearing = random.nextDouble(0.0, 2 * Math.PI)
-            return destinationPoint(point.lat, point.lng, distance, bearing)
+            val distance = point.radius * sqrt(random.nextDouble()) // 在圆内均匀分布
+            val angle = random.nextDouble() * 2 * Math.PI
+            return destinationPoint(point.lat, point.lng, distance, angle)
         }
 
         if (fallbackLat != null && fallbackLng != null) {
@@ -455,6 +479,37 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     fun clearAllClientCache() {
         clientCache.clear()
         log.debug("Cleared all BykcClient caches")
+    }
+
+    /** 获取课程统计信息 */
+    suspend fun getStatistics(username: String): BykcStatisticsDto {
+        ensureBykcLogin(username)
+        val client = getClient(username)
+        val statsData = client.queryStatisticByUserId()
+
+        val categories = mutableListOf<BykcCategoryStatisticsDto>()
+
+        statsData.statistical.forEach { (categoryKey, subMap) ->
+            // categoryKey format: "60|博雅课程"
+            val categoryName = categoryKey.substringAfter("|")
+
+            subMap.forEach { (subKey, stats) ->
+                // subKey format: "55|德育"
+                val subCategoryName = subKey.substringAfter("|")
+
+                categories.add(
+                        BykcCategoryStatisticsDto(
+                                categoryName = categoryName,
+                                subCategoryName = subCategoryName,
+                                requiredCount = stats.assessmentCount,
+                                passedCount = stats.completeAssessmentCount,
+                                isQualified = stats.completeAssessmentCount >= stats.assessmentCount
+                        )
+                )
+            }
+        }
+
+        return BykcStatisticsDto(totalValidCount = statsData.validCount, categories = categories)
     }
 }
 

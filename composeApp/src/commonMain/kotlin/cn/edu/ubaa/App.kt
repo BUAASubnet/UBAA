@@ -23,7 +23,7 @@ fun App() {
 
         val userData = uiState.userData
         if (uiState.isLoggedIn && userData != null) {
-            // Show main app when logged in
+            // 已登录，显示主界面
             MainAppScreen(
                     userData = userData,
                     userInfo = uiState.userInfo,
@@ -34,22 +34,20 @@ fun App() {
                                     .fillMaxSize()
             )
         } else {
-            // Show login screen when not logged in
+            // 未登录，显示登录界面
             LoginScreen(
                     loginFormState = loginForm,
                     onUsernameChange = { authViewModel.updateUsername(it) },
                     onPasswordChange = { authViewModel.updatePassword(it) },
-                    onLoginClick = { authViewModel.login() },
-                    isLoading = uiState.isLoading,
-                    error = uiState.error,
-                    showCaptchaDialog = uiState.showCaptchaDialog,
-                    captchaInfo = uiState.captchaInfo,
                     onCaptchaChange = { authViewModel.updateCaptcha(it) },
-                    onCaptchaConfirm = {
-                        authViewModel.hideCaptchaDialog(clearInput = false)
-                        authViewModel.login()
-                    },
-                    onCaptchaDismiss = { authViewModel.hideCaptchaDialog() },
+                    onLoginClick = { authViewModel.login() },
+                    onRefreshCaptcha = { authViewModel.refreshCaptcha() },
+                    isLoading = uiState.isLoading,
+                    isPreloading = uiState.isPreloading,
+                    isRefreshingCaptcha = uiState.isRefreshingCaptcha,
+                    captchaRequired = uiState.captchaRequired,
+                    captchaInfo = uiState.captchaInfo,
+                    error = uiState.error,
                     modifier =
                             Modifier.background(MaterialTheme.colorScheme.background)
                                     .safeContentPadding()
@@ -57,10 +55,10 @@ fun App() {
             )
         }
 
-        // Clear error when the user interacts
+        // 用户操作后自动清除错误
         LaunchedEffect(uiState.error) {
             if (uiState.error != null) {
-                delay(5000) // Clear error after 5 seconds
+                delay(5000) // 5秒后清除错误
                 authViewModel.clearError()
             }
         }

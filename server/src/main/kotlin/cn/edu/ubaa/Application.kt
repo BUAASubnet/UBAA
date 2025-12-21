@@ -1,12 +1,15 @@
 package cn.edu.ubaa
 
+import cn.edu.ubaa.auth.JwtAuth
 import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
 import cn.edu.ubaa.auth.authRouting
 import cn.edu.ubaa.bykc.bykcRouting
+import cn.edu.ubaa.exam.examRouting
 import cn.edu.ubaa.schedule.scheduleRouting
 import cn.edu.ubaa.user.userRouting
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -19,18 +22,22 @@ fun main() {
 }
 
 fun Application.module() {
-    // Configure JWT Authentication
+    // 配置 JWT 认证（安全性）
     configureJwtAuth()
 
-    // Install the ContentNegotiation plugin to handle JSON serialization
+    // 启用 JSON 序列化
     install(ContentNegotiation) { json() }
 
     routing {
-        // Include the authentication routes
+        // 认证相关路由
         authRouting()
-        userRouting()
-        scheduleRouting()
-        bykcRouting()
+
+        authenticate(JwtAuth.JWT_AUTH) {
+            userRouting()
+            scheduleRouting()
+            bykcRouting()
+            examRouting()
+        }
 
         get("/") { call.respondText("Ktor: ${Greeting().greet()}") }
     }

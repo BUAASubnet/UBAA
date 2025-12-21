@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** ViewModel managing authentication and user state */
+/** 认证与用户状态的ViewModel */
 class AuthViewModel : ViewModel() {
     private val authService = AuthService()
     private val userService = UserService()
@@ -40,36 +40,88 @@ class AuthViewModel : ViewModel() {
         _loginForm.value = _loginForm.value.copy(captcha = captcha)
     }
 
-    fun showCaptchaDialog(captchaInfo: CaptchaInfo) {
-        _uiState.value =
-                _uiState.value.copy(
-                        captchaInfo = captchaInfo,
-                        showCaptchaDialog = true,
-                        isLoading = false,
-                        error = null
-                )
-        _loginForm.value = _loginForm.value.copy(captcha = "")
+    /** 预加载登录状态：为当前设备创建会话，获取验证码（如果需要） */
+    fun preloadLoginState() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isPreloading = true, error = null)
+
+            authService
+                    .preloadLoginState()
+                    .onSuccess { response ->
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isPreloading = false,
+                                        captchaRequired = response.captchaRequired,
+                                        captchaInfo = response.captcha,
+                                        execution = response.execution,
+                                        error = null
+                                )
+                        _loginForm.value = _loginForm.value.copy(captcha = "")
+                    }
+                    .onFailure { exception ->
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isPreloading = false,
+                                        captchaRequired = false,
+                                        error = "加载登录状态失败: ${exception.message}"
+                                )
+                    }
+        }
     }
 
-    fun hideCaptchaDialog(clearInput: Boolean = true) {
-        _uiState.value = _uiState.value.copy(showCaptchaDialog = false)
-        if (clearInput) {
-            _loginForm.value = _loginForm.value.copy(captcha = "")
+    /** 刷新验证码：仅重新获取验证码，不触发整页加载 */
+    fun refreshCaptcha() {
+        viewModelScope.launch {
+            // 设置验证码刷新中状态（不设置 isPreloading，避免整页刷新）
+            _uiState.value = _uiState.value.copy(isRefreshingCaptcha = true, error = null)
+
+            authService
+                    .preloadLoginState()
+                    .onSuccess { response ->
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isRefreshingCaptcha = false,
+                                        captchaRequired = response.captchaRequired,
+                                        captchaInfo = response.captcha,
+                                        execution = response.execution,
+                                        error = null
+                                )
+                        _loginForm.value = _loginForm.value.copy(captcha = "")
+                    }
+                    .onFailure { exception ->
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isRefreshingCaptcha = false,
+                                        error = "刷新验证码失败: ${exception.message}"
+                                )
+                    }
         }
     }
 
     fun login() {
         val form = _loginForm.value
+        val state = _uiState.value
         if (form.username.isBlank() || form.password.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "用户名和密码不能为空")
+            return
+        }
+
+        // 如果需要验证码但用户未填写
+        if (state.captchaRequired && state.captchaInfo != null && form.captcha.isBlank()) {
+            _uiState.value = _uiState.value.copy(error = "请输入验证码")
             return
         }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
+            // 使用 preload 时获取的 execution 和用户输入的验证码
+            val captcha =
+                    if (state.captchaRequired && form.captcha.isNotBlank()) form.captcha else null
+            val execution = state.execution // 始终传递 execution（如果有的话）
+
             authService
-                    .login(form.username, form.password, form.captcha.ifBlank { null })
+                    .login(form.username, form.password, captcha, execution)
                     .onSuccess { loginResponse ->
                         _uiState.value =
                                 _uiState.value.copy(
@@ -77,18 +129,31 @@ class AuthViewModel : ViewModel() {
                                         isLoading = false,
                                         userData = loginResponse.user,
                                         token = loginResponse.token,
-                                        showCaptchaDialog = false,
-                                        captchaInfo = null
+                                        captchaRequired = false,
+                                        captchaInfo = null,
+                                        execution = null
                                 )
-                        // Clear the form for security
+                        // 登录成功后清空表单
                         _loginForm.value = LoginFormState()
-                        // Load user info
+                        // 登录后加载用户信息
                         loadUserInfo()
                     }
                     .onFailure { exception ->
                         when (exception) {
                             is CaptchaRequiredClientException -> {
-                                showCaptchaDialog(exception.captchaInfo)
+                                // 服务端返回需要验证码，更新 captchaInfo 和 execution
+                                // 优先使用 base64Image
+                                val updatedCaptchaInfo = exception.captcha
+
+                                _uiState.value =
+                                        _uiState.value.copy(
+                                                isLoading = false,
+                                                captchaRequired = true,
+                                                captchaInfo = updatedCaptchaInfo,
+                                                execution = exception.execution,
+                                                error = null
+                                        )
+                                _loginForm.value = _loginForm.value.copy(captcha = "")
                             }
                             else -> {
                                 _uiState.value =
@@ -102,11 +167,15 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /** Try to restore session from stored token and validate with status endpoint. */
+    /** 尝试用本地token恢复会话并校验 */
     fun restoreSession() {
         viewModelScope.launch {
             val storedToken = cn.edu.ubaa.api.TokenStore.get()
-            if (storedToken.isNullOrBlank()) return@launch
+            if (storedToken.isNullOrBlank()) {
+                // 没有存储的 token，预加载登录状态
+                preloadLoginState()
+                return@launch
+            }
 
             authService.applyStoredToken()
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -127,6 +196,8 @@ class AuthViewModel : ViewModel() {
                     .onFailure {
                         _uiState.value = _uiState.value.copy(isLoading = false)
                         cn.edu.ubaa.api.TokenStore.clear()
+                        // 会话恢复失败，预加载登录状态
+                        preloadLoginState()
                     }
         }
     }
@@ -140,15 +211,18 @@ class AuthViewModel : ViewModel() {
                     .onSuccess {
                         _uiState.value = AuthUiState()
                         _loginForm.value = LoginFormState()
+                        // 注销后预加载登录状态
+                        preloadLoginState()
                     }
                     .onFailure { exception ->
-                        // Even if logout fails, clear local state
+                        // 登出失败也要清除本地状态
                         _uiState.value =
                                 AuthUiState(
                                         error =
                                                 "Logout completed with warnings: ${exception.message}"
                                 )
                         _loginForm.value = LoginFormState()
+                        preloadLoginState()
                     }
         }
     }
@@ -161,28 +235,30 @@ class AuthViewModel : ViewModel() {
                         _uiState.value = _uiState.value.copy(userInfo = userInfo)
                     }
                     .onFailure { exception ->
-                        // Don't show error for user info failure if already logged in
+                        // 用户信息加载失败不提示
                         println("Failed to load user info: ${exception.message}")
                     }
         }
     }
 
     fun clearError() {
-        _uiState.value =
-                _uiState.value.copy(error = null, showCaptchaDialog = false, captchaInfo = null)
+        _uiState.value = _uiState.value.copy(error = null)
         _loginForm.value = _loginForm.value.copy(captcha = "")
     }
 }
 
 data class AuthUiState(
         val isLoading: Boolean = false,
+        val isPreloading: Boolean = false,
+        val isRefreshingCaptcha: Boolean = false,
         val isLoggedIn: Boolean = false,
         val userData: UserData? = null,
         val userInfo: UserInfo? = null,
         val token: String? = null,
         val error: String? = null,
+        val captchaRequired: Boolean = false,
         val captchaInfo: CaptchaInfo? = null,
-        val showCaptchaDialog: Boolean = false
+        val execution: String? = null
 )
 
 data class LoginFormState(

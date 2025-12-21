@@ -230,7 +230,7 @@ private fun WeeklyScheduleView(
     val maxEndSection = schedule.arrangedList.maxOfOrNull { it.endSection ?: 0 } ?: 0
     val totalPeriods = maxOf(12, maxEndSection)
     val timeLabels = (1..totalPeriods).map { it.toString() }
-    // **FIX 1**: 使用静态的星期标签，不再依赖 schedule.dayList
+    // 使用静态星期标签，解耦对 schedule 数据结构的依赖
     val dayLabels = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
     val rowHeight: Dp = 64.dp
     val scrollState = rememberScrollState()
@@ -366,13 +366,15 @@ private fun WeeklyScheduleGrid(
 // region 课程单元格
 @Composable
 private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val parsedColor = remember(course.color) { parseColor(course.color) }
+    val containerColor = parsedColor ?: MaterialTheme.colorScheme.primaryContainer
+
     Card(
             modifier = modifier.fillMaxSize().clickable { onClick() },
             shape = RoundedCornerShape(6.dp),
             colors =
                     CardDefaults.cardColors(
-                            containerColor = parseColor(course.color)
-                                            ?: MaterialTheme.colorScheme.primaryContainer
+                            containerColor = containerColor
                     )
     ) {
         Column(
@@ -406,7 +408,7 @@ private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modif
 // endregion
 
 // region 辅助函数
-// **FIX 3**: 使用平台无关的颜色解析函数
+// 跨平台颜色解析函数（替代 Android Color.parseColor）
 private fun parseColor(colorString: String?): Color? {
     return try {
         colorString?.let {

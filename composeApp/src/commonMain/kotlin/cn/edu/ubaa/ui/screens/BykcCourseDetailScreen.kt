@@ -50,28 +50,39 @@ fun BykcCourseDetailScreen(
             ) { Text(text = "加载失败: $error", color = MaterialTheme.colorScheme.error) }
         }
         course != null -> {
-            val now = remember { Clock.System.now() }
+            var now by remember { mutableStateOf(Clock.System.now()) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    kotlinx.coroutines.delay(5000)
+                    now = Clock.System.now()
+                }
+            }
+
             val canSignIn =
                     remember(
                             course.signConfig?.signStartDate,
                             course.signConfig?.signEndDate,
-                            now
+                            now,
+                            course.checkin
                     ) {
-                        isWithinWindow(
-                                course.signConfig?.signStartDate,
-                                course.signConfig?.signEndDate
-                        )
+                        (course.checkin == 0 || course.checkin == null) &&
+                                isWithinWindow(
+                                        course.signConfig?.signStartDate,
+                                        course.signConfig?.signEndDate
+                                )
                     }
             val canSignOut =
                     remember(
                             course.signConfig?.signOutStartDate,
                             course.signConfig?.signOutEndDate,
-                            now
+                            now,
+                            course.checkin
                     ) {
-                        isWithinWindow(
-                                course.signConfig?.signOutStartDate,
-                                course.signConfig?.signOutEndDate
-                        )
+                        (course.checkin == 5 || course.checkin == 6) &&
+                                isWithinWindow(
+                                        course.signConfig?.signOutStartDate,
+                                        course.signConfig?.signOutEndDate
+                                )
                     }
 
             LazyColumn(
@@ -79,7 +90,6 @@ fun BykcCourseDetailScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Course title and status
                 item {
                     Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -102,9 +112,8 @@ fun BykcCourseDetailScreen(
                     }
                 }
 
-                // Basic information
                 item {
-                    DetailCard(title = "基本信息") {
+                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                         course.courseTeacher?.let { teacher ->
                             DetailItem(label = "授课教师", value = teacher, icon = Icons.Default.Person)
                         }
@@ -125,9 +134,8 @@ fun BykcCourseDetailScreen(
                     }
                 }
 
-                // Time information
                 item {
-                    DetailCard(title = "时间安排") {
+                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                         course.courseStartDate?.let { startDate ->
                             course.courseEndDate?.let { endDate ->
                                 DetailItem(
@@ -156,8 +164,9 @@ fun BykcCourseDetailScreen(
                     }
                 }
 
-                // Contact information
-                if (course.courseContact != null || course.courseContactMobile != null) {
+                if (!course.courseContact.isNullOrBlank() ||
+                                !course.courseContactMobile.isNullOrBlank()
+                ) {
                     item {
                         DetailCard(title = "联系方式") {
                             course.courseContact?.let { contact ->
@@ -178,7 +187,6 @@ fun BykcCourseDetailScreen(
                     }
                 }
 
-                // Course description
                 course.courseDesc?.takeIf { it.isNotBlank() }?.let { desc ->
                     item {
                         val parsedDesc = remember(desc) { desc.toPlainText() }
@@ -192,12 +200,11 @@ fun BykcCourseDetailScreen(
                     }
                 }
 
-                // Sign-in configuration (if available)
-                course.signConfig?.let { signConfig ->
+                course.signConfig?.let { config ->
                     item {
                         DetailCard(title = "签到信息") {
-                            signConfig.signStartDate?.let { signStart ->
-                                signConfig.signEndDate?.let { signEnd ->
+                            config.signStartDate?.let { signStart ->
+                                config.signEndDate?.let { signEnd ->
                                     DetailItem(
                                             label = "签到时间",
                                             value = formatDateRange(signStart, signEnd),
@@ -205,8 +212,8 @@ fun BykcCourseDetailScreen(
                                     )
                                 }
                             }
-                            signConfig.signOutStartDate?.let { signOutStart ->
-                                signConfig.signOutEndDate?.let { signOutEnd ->
+                            config.signOutStartDate?.let { signOutStart ->
+                                config.signOutEndDate?.let { signOutEnd ->
                                     DetailItem(
                                             label = "签退时间",
                                             value = formatDateRange(signOutStart, signOutEnd),
@@ -214,10 +221,10 @@ fun BykcCourseDetailScreen(
                                     )
                                 }
                             }
-                            if (signConfig.signPoints.isNotEmpty()) {
+                            if (config.signPoints.isNotEmpty()) {
                                 DetailItem(
                                         label = "签到地点数",
-                                        value = "${signConfig.signPoints.size} 个",
+                                        value = "${config.signPoints.size} 个",
                                         icon = Icons.Default.Place
                                 )
                             }
@@ -225,15 +232,14 @@ fun BykcCourseDetailScreen(
                     }
                 }
 
-                // Action buttons
                 item {
                     Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (course.selected) {
-                            // Show sign-in/out buttons only when sign config is present
-                            if (course.signConfig != null) {
+                            val showButtons = course.pass != 1 && course.signConfig != null
+                            if (showButtons) {
                                 Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -265,13 +271,30 @@ fun BykcCourseDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
-                                if (!canSignIn || !canSignOut) {
+                                if (!canSignIn && !canSignOut) {
+                                    val reason =
+                                            when {
+                                                course.checkin != 0 &&
+                                                        course.checkin != null &&
+                                                        course.checkin != 5 &&
+                                                        course.checkin != 6 -> "当前考勤状态不可签到/签退。"
+                                                else -> "当前不在签到/签退时间窗口内。"
+                                            }
                                     Text(
-                                            text = "当前不在签到/签退时间窗口内时按钮将被禁用。",
+                                            text = reason,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.error
                                     )
                                 }
+                            } else if (course.signConfig != null) {
+                                Text(
+                                        text = "课程已考核完成，无需签到。",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
                             }
 
                             OutlinedButton(
@@ -290,7 +313,6 @@ fun BykcCourseDetailScreen(
                                 Text("退选")
                             }
                         } else {
-                            // Show select button for non-selected courses
                             Button(
                                     onClick = onSelectClick,
                                     modifier = Modifier.fillMaxWidth(),
