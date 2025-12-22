@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui
+package cn.edu.ubaa.ui.screens.auth
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,7 +11,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import cn.edu.ubaa.ui.screens.auth.LoginFormState
+import cn.edu.ubaa.model.dto.CaptchaInfo
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -33,7 +33,7 @@ fun LoginScreen(
     isPreloading: Boolean,
     isRefreshingCaptcha: Boolean,
     captchaRequired: Boolean,
-    captchaInfo: cn.edu.ubaa.model.dto.CaptchaInfo?,
+    captchaInfo: CaptchaInfo?,
     error: String?,
     modifier: Modifier = Modifier
 ) {
@@ -192,7 +192,7 @@ fun LoginScreen(
 
 @Composable
 private fun CaptchaImage(
-        captchaInfo: cn.edu.ubaa.model.dto.CaptchaInfo,
+        captchaInfo: CaptchaInfo,
         onClick: () -> Unit,
         isRefreshing: Boolean,
         modifier: Modifier = Modifier

@@ -2,6 +2,7 @@ package cn.edu.ubaa.bykc
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -41,7 +42,7 @@ class BykcClient(private val username: String) {
         val client = s.client
 
         // 发起 CAS 登录请求（跟随重定向），最终 URL 中通常包含 ?token=xxx
-        val resp = client.get("https://bykc.buaa.edu.cn/sscv/cas/login")
+        val resp = client.get(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/cas/login"))
         val finalUrl = resp.request.url.toString()
         val token =
                 if (finalUrl.contains("?token=")) {
@@ -62,7 +63,7 @@ class BykcClient(private val username: String) {
 
         // 如果没有直接获取 token，尝试访问 cas-login 路径以触发会话检查
         try {
-            client.get("https://bykc.buaa.edu.cn/cas-login?token=")
+            client.get(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/cas-login?token="))
         } catch (_: Exception) {}
         // token 未能提取，但客户端的 cookie 可能已建立，会话可用
         lastLoginMillis = System.currentTimeMillis()
@@ -90,11 +91,11 @@ class BykcClient(private val username: String) {
         val enc = BykcCrypto.encryptRequest(requestJson)
 
         val httpResponse: HttpResponse =
-                client.post("https://bykc.buaa.edu.cn/sscv/$apiName") {
+                client.post(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/$apiName")) {
                     contentType(ContentType.Application.Json.withCharset(Charsets.UTF_8))
                     accept(ContentType.Application.Json)
-                    header(HttpHeaders.Referrer, "https://bykc.buaa.edu.cn/system/course-select")
-                    header(HttpHeaders.Origin, "https://bykc.buaa.edu.cn")
+                    header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/system/course-select"))
+                    header(HttpHeaders.Origin, VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn"))
                     // 模拟浏览器 Headers 避免被 WAF 拦截
                     header(
                             "sec-ch-ua",

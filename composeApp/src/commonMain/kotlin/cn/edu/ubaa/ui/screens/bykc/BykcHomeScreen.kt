@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.screens
+package cn.edu.ubaa.ui.screens.bykc
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

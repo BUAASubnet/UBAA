@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.screens
+package cn.edu.ubaa.ui.screens.menu
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.TodayClass
-import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 
 // 首页屏幕

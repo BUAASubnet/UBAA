@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.screens
+package cn.edu.ubaa.ui.screens.menu
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -42,7 +42,7 @@ fun AdvancedFeaturesScreen(onSigninClick: () -> Unit, modifier: Modifier = Modif
                         }
                 }
 
-                // More features coming soon
+                // More schedule coming soon
                 Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors =

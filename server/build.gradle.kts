@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.graalvm)
     application
 }
 
@@ -68,4 +69,20 @@ dependencies {
     // Test
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("ubaa-server")
+            mainClass.set("cn.edu.ubaa.ApplicationKt")
+            buildArgs.add("--no-fallback")
+        }
+    }
+    metadataRepository {
+        enabled.set(true)
+    }
+    agent {
+        defaultMode.set("standard")
+    }
 }

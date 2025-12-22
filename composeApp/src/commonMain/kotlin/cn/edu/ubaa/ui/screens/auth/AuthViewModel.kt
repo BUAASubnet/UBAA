@@ -1,9 +1,11 @@
-package cn.edu.ubaa.ui
+package cn.edu.ubaa.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.edu.ubaa.api.AuthService
 import cn.edu.ubaa.api.CaptchaRequiredClientException
+import cn.edu.ubaa.api.CredentialStore
+import cn.edu.ubaa.api.TokenStore
 import cn.edu.ubaa.api.UserService
 import cn.edu.ubaa.model.dto.CaptchaInfo
 import cn.edu.ubaa.model.dto.UserData
@@ -30,11 +32,11 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun loadSavedCredentials() {
-        val remember = cn.edu.ubaa.api.CredentialStore.isRememberPassword()
-        val auto = cn.edu.ubaa.api.CredentialStore.isAutoLogin()
+        val remember = CredentialStore.isRememberPassword()
+        val auto = CredentialStore.isAutoLogin()
         if (remember) {
-            val username = cn.edu.ubaa.api.CredentialStore.getUsername() ?: ""
-            val password = cn.edu.ubaa.api.CredentialStore.getPassword() ?: ""
+            val username = CredentialStore.getUsername() ?: ""
+            val password = CredentialStore.getPassword() ?: ""
             _loginForm.value =
                     _loginForm.value.copy(
                             username = username,
@@ -202,10 +204,10 @@ class AuthViewModel : ViewModel() {
                                 )
 
                         // 保存凭据设置
-                        cn.edu.ubaa.api.CredentialStore.setRememberPassword(form.rememberPassword)
-                        cn.edu.ubaa.api.CredentialStore.setAutoLogin(form.autoLogin)
+                        CredentialStore.setRememberPassword(form.rememberPassword)
+                        CredentialStore.setAutoLogin(form.autoLogin)
                         if (form.rememberPassword) {
-                            cn.edu.ubaa.api.CredentialStore.saveCredentials(
+                            CredentialStore.saveCredentials(
                                     form.username,
                                     form.password
                             )
@@ -252,10 +254,10 @@ class AuthViewModel : ViewModel() {
     /** 尝试用本地token恢复会话并校验 */
     fun restoreSession() {
         viewModelScope.launch {
-            val storedToken = cn.edu.ubaa.api.TokenStore.get()
+            val storedToken = TokenStore.get()
             if (storedToken.isNullOrBlank()) {
                 // 没有存储的 token，检查是否开启自动登录
-                if (cn.edu.ubaa.api.CredentialStore.isAutoLogin()) {
+                if (CredentialStore.isAutoLogin()) {
                     login()
                 } else {
                     // 没有 token 且不自动登录，预加载登录状态
@@ -282,10 +284,10 @@ class AuthViewModel : ViewModel() {
                     }
                     .onFailure {
                         _uiState.value = _uiState.value.copy(isLoading = false)
-                        cn.edu.ubaa.api.TokenStore.clear()
+                        TokenStore.clear()
 
                         // 会话恢复失败，检查是否开启自动登录
-                        if (cn.edu.ubaa.api.CredentialStore.isAutoLogin()) {
+                        if (CredentialStore.isAutoLogin()) {
                             login()
                         } else {
                             // 不自动登录则预加载登录状态

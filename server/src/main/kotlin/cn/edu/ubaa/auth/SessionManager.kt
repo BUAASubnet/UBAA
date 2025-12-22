@@ -68,7 +68,7 @@ class SessionManager(
     private val preLoginTtl: Duration = Duration.ofMinutes(5)
 
     /** 为 preload 创建预登录会话（基于 clientId） */
-    fun preparePreLoginSession(clientId: String): PreLoginCandidate {
+    suspend fun preparePreLoginSession(clientId: String): PreLoginCandidate {
         // 如果已存在未过期的预登录会话，复用它
         preLoginSessions[clientId]?.let { existing ->
             if (!existing.isExpired(preLoginTtl)) {
@@ -81,6 +81,9 @@ class SessionManager(
 
         // 创建新的预登录会话（使用 clientId 作为 cookie 存储的标识）
         val cookieStorage = SqliteCookieStorage(dbPath, "prelogin_$clientId")
+        // 确保新会话是干净的，清除可能残留的旧 cookies
+        cookieStorage.clear()
+
         val client = buildClient(cookieStorage)
         val candidate = PreLoginCandidate(clientId, client, cookieStorage)
         preLoginSessions[clientId] = candidate
@@ -103,13 +106,26 @@ class SessionManager(
     }
 
     /** 将预登录会话转换为正式的用户会话候选 */
-    fun promotePreLoginSession(clientId: String, username: String): SessionCandidate? {
+    suspend fun promotePreLoginSession(clientId: String, username: String): SessionCandidate? {
         val preLogin = preLoginSessions.remove(clientId) ?: return null
         if (preLogin.isExpired(preLoginTtl)) {
             preLogin.client.close()
             return null
         }
-        return SessionCandidate(username, preLogin.client, preLogin.cookieStorage)
+
+        // 迁移 cookies 到正式用户名下
+        if (preLogin.cookieStorage is SqliteCookieStorage) {
+            preLogin.cookieStorage.migrateTo(username)
+        }
+
+        // 创建新的正式会话环境（使用迁移后的 cookies）
+        val newCookieStorage = SqliteCookieStorage(dbPath, username)
+        val newClient = buildClient(newCookieStorage)
+
+        // 关闭旧的预登录 client
+        preLogin.client.close()
+
+        return SessionCandidate(username, newClient, newCookieStorage)
     }
 
     /** 清理预登录会话（登录失败或超时时调用） */
@@ -124,8 +140,11 @@ class SessionManager(
     }
 
     /** 为新登录请求准备会话环境。 若后续认证失败，调用者需手动关闭 client。 */
-    fun prepareSession(username: String): SessionCandidate {
+    suspend fun prepareSession(username: String): SessionCandidate {
         val cookieStorage = SqliteCookieStorage(dbPath, username)
+        // 确保新登录流程开始时 Cookie 是干净的
+        cookieStorage.clear()
+
         val client = buildClient(cookieStorage)
         return SessionCandidate(username, client, cookieStorage)
     }

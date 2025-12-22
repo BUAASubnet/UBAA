@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui
+package cn.edu.ubaa.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -15,6 +15,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
+import cn.edu.ubaa.ui.screens.bykc.BykcViewModel
+import cn.edu.ubaa.ui.screens.classroom.ClassroomViewModel
+import cn.edu.ubaa.ui.screens.exam.ExamViewModel
+import cn.edu.ubaa.ui.screens.schedule.ScheduleViewModel
+import cn.edu.ubaa.ui.screens.signin.SigninViewModel
 import cn.edu.ubaa.ui.common.components.AppTopBar
 import cn.edu.ubaa.ui.common.components.BottomNavTab
 import cn.edu.ubaa.ui.common.components.BottomNavigation
@@ -24,18 +29,17 @@ import cn.edu.ubaa.ui.screens.bykc.BykcCourseDetailScreen
 import cn.edu.ubaa.ui.screens.bykc.BykcCoursesScreen
 import cn.edu.ubaa.ui.screens.bykc.BykcHomeScreen
 import cn.edu.ubaa.ui.screens.bykc.BykcStatisticsScreen
-import cn.edu.ubaa.ui.screens.features.ClassroomQueryScreen
-import cn.edu.ubaa.ui.screens.features.CourseDetailScreen
-import cn.edu.ubaa.ui.screens.features.ExamScreen
-import cn.edu.ubaa.ui.screens.features.ScheduleScreen
-import cn.edu.ubaa.ui.screens.features.SigninScreen
+import cn.edu.ubaa.ui.screens.classroom.ClassroomQueryScreen
+import cn.edu.ubaa.ui.screens.schedule.CourseDetailScreen
+import cn.edu.ubaa.ui.screens.exam.ExamScreen
+import cn.edu.ubaa.ui.screens.schedule.ScheduleScreen
+import cn.edu.ubaa.ui.screens.signin.SigninScreen
 import cn.edu.ubaa.ui.screens.menu.AboutScreen
 import cn.edu.ubaa.ui.screens.menu.AdvancedFeaturesScreen
 import cn.edu.ubaa.ui.screens.menu.HomeScreen
 import cn.edu.ubaa.ui.screens.menu.MyScreen
 import cn.edu.ubaa.ui.screens.menu.RegularFeaturesScreen
 import cn.edu.ubaa.ui.common.util.BackHandlerCompat
-import cn.edu.ubaa.ui.navigation.rememberNavigationController
 
 enum class AppScreen {
     HOME,

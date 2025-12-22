@@ -42,5 +42,7 @@ data class LoginPreloadResponse(
         val captchaRequired: Boolean,
         val captcha: CaptchaInfo? = null,
         val execution: String? = null,
-        val clientId: String? = null // 返回客户端标识，用于后续登录
+        val clientId: String? = null, // 返回客户端标识，用于后续登录
+        val token: String? = null, // 如果已登录，直接返回 JWT
+        val userData: UserData? = null // 如果已登录，直接返回用户信息
 )

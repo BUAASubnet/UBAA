@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui
+package cn.edu.ubaa.ui.screens.bykc
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

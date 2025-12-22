@@ -4,8 +4,10 @@ import cn.edu.ubaa.auth.JwtAuth
 import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
 import cn.edu.ubaa.auth.authRouting
 import cn.edu.ubaa.bykc.bykcRouting
+import cn.edu.ubaa.classroom.classroomRouting
 import cn.edu.ubaa.exam.examRouting
 import cn.edu.ubaa.schedule.scheduleRouting
+import cn.edu.ubaa.signin.signinRouting
 import cn.edu.ubaa.user.userRouting
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -17,6 +19,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun main() {
+    // 启动前自动检测网络环境
+    // VpnCipher.autoDetectEnvironment()
+
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
             .start(wait = true)
 }
@@ -37,6 +42,8 @@ fun Application.module() {
             scheduleRouting()
             bykcRouting()
             examRouting()
+            signinRouting()
+            classroomRouting()
         }
 
         get("/") { call.respondText("Ktor: ${Greeting().greet()}") }

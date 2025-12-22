@@ -1,7 +1,8 @@
 package cn.edu.ubaa.ui
 
-import cn.edu.ubaa.model.dto.LoginResponse
 import cn.edu.ubaa.model.dto.UserData
+import cn.edu.ubaa.ui.screens.auth.AuthUiState
+import cn.edu.ubaa.ui.screens.auth.LoginFormState
 import kotlin.test.*
 
 class AuthViewModelTest {

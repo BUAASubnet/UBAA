@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui
+package cn.edu.ubaa.ui.screens.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*

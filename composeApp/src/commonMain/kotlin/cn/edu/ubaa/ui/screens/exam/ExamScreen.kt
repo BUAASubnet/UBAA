@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.screens.schedule
+package cn.edu.ubaa.ui.screens.exam
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.Exam
-import cn.edu.ubaa.ui.ExamViewModel
 import kotlin.collections.get
 
 @Composable

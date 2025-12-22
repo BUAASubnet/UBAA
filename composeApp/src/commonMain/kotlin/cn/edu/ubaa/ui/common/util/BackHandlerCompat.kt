@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.util
+package cn.edu.ubaa.ui.common.util
 
 import androidx.compose.runtime.Composable
 

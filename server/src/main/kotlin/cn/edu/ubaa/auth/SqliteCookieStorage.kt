@@ -133,6 +133,39 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
         }
     }
 
+    suspend fun migrateTo(newUsername: String) {
+        mutex.withLock {
+            getConnection().use { conn ->
+                conn.prepareStatement(
+                                """
+                    INSERT INTO cookies(username, name, value, domain, path, expires_at, secure, http_only, max_age, created_at)
+                    SELECT ?, name, value, domain, path, expires_at, secure, http_only, max_age, created_at
+                    FROM cookies WHERE username=?
+                    ON CONFLICT(username, name, domain, path) DO UPDATE SET
+                        value=excluded.value,
+                        expires_at=excluded.expires_at,
+                        secure=excluded.secure,
+                        http_only=excluded.http_only,
+                        max_age=excluded.max_age,
+                        created_at=excluded.created_at
+                """
+                        )
+                        .apply {
+                            setString(1, newUsername)
+                            setString(2, username)
+                            executeUpdate()
+                            close()
+                        }
+
+                conn.prepareStatement("DELETE FROM cookies WHERE username=?").apply {
+                    setString(1, username)
+                    executeUpdate()
+                    close()
+                }
+            }
+        }
+    }
+
     private fun isExpired(
             nowMillis: Long,
             expiresAt: Long?,

@@ -2,6 +2,7 @@ package cn.edu.ubaa.user
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.utils.VpnCipher
 import cn.edu.ubaa.model.dto.UserInfo
 import cn.edu.ubaa.model.dto.UserInfoResponse
 import io.ktor.client.request.get
@@ -55,7 +56,7 @@ class UserService(
     private suspend fun SessionManager.UserSession.getUserInfo(): HttpResponse {
         // 调用用户信息接口
         return try {
-            client.get("https://uc.buaa.edu.cn/api/uc/userinfo")
+            client.get(VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/api/uc/userinfo"))
         } catch (e: Exception) {
             log.error("Error while calling user info endpoint for username: {}", username, e)
             throw UserInfoException("Failed to call user info endpoint.")

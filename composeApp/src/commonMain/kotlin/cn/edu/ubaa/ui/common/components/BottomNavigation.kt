@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.components
+package cn.edu.ubaa.ui.common.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

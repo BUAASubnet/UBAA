@@ -2,6 +2,7 @@ package cn.edu.ubaa.exam
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.utils.VpnCipher
 import cn.edu.ubaa.model.dto.ExamArrangementData
 import cn.edu.ubaa.model.dto.ExamResponse
 import io.ktor.client.request.*
@@ -20,7 +21,7 @@ class ExamService(
     private fun HttpRequestBuilder.applyExamHeaders() {
         header(HttpHeaders.Accept, "*/*")
         header("X-Requested-With", "XMLHttpRequest")
-        header(HttpHeaders.Referrer, "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html")
+        header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html"))
     }
 
     suspend fun getExamArrangement(username: String, termCode: String): ExamArrangementData {
@@ -55,7 +56,7 @@ class ExamService(
 
     private suspend fun SessionManager.UserSession.getExams(termCode: String): HttpResponse {
         return try {
-            val url = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=$termCode"
+            val url = VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=$termCode")
             client.get(url) {
                 applyExamHeaders()
             }
