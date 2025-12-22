@@ -25,7 +25,26 @@ class AuthViewModel : ViewModel() {
     val loginForm: StateFlow<LoginFormState> = _loginForm.asStateFlow()
 
     init {
+        loadSavedCredentials()
         restoreSession()
+    }
+
+    private fun loadSavedCredentials() {
+        val remember = cn.edu.ubaa.api.CredentialStore.isRememberPassword()
+        val auto = cn.edu.ubaa.api.CredentialStore.isAutoLogin()
+        if (remember) {
+            val username = cn.edu.ubaa.api.CredentialStore.getUsername() ?: ""
+            val password = cn.edu.ubaa.api.CredentialStore.getPassword() ?: ""
+            _loginForm.value =
+                    _loginForm.value.copy(
+                            username = username,
+                            password = password,
+                            rememberPassword = true,
+                            autoLogin = auto
+                    )
+        } else {
+            _loginForm.value = _loginForm.value.copy(rememberPassword = false, autoLogin = false)
+        }
     }
 
     fun updateUsername(username: String) {
@@ -40,6 +59,20 @@ class AuthViewModel : ViewModel() {
         _loginForm.value = _loginForm.value.copy(captcha = captcha)
     }
 
+    fun updateRememberPassword(enabled: Boolean) {
+        _loginForm.value = _loginForm.value.copy(rememberPassword = enabled)
+        if (!enabled) {
+            _loginForm.value = _loginForm.value.copy(autoLogin = false)
+        }
+    }
+
+    fun updateAutoLogin(enabled: Boolean) {
+        _loginForm.value = _loginForm.value.copy(autoLogin = enabled)
+        if (enabled) {
+            _loginForm.value = _loginForm.value.copy(rememberPassword = true)
+        }
+    }
+
     /** 预加载登录状态：为当前设备创建会话，获取验证码（如果需要） */
     fun preloadLoginState() {
         viewModelScope.launch {
@@ -48,15 +81,32 @@ class AuthViewModel : ViewModel() {
             authService
                     .preloadLoginState()
                     .onSuccess { response ->
-                        _uiState.value =
-                                _uiState.value.copy(
-                                        isPreloading = false,
-                                        captchaRequired = response.captchaRequired,
-                                        captchaInfo = response.captcha,
-                                        execution = response.execution,
-                                        error = null
-                                )
-                        _loginForm.value = _loginForm.value.copy(captcha = "")
+                        if (response.token != null && response.userData != null) {
+                            // 自动登录成功（SSO 已登录）
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isPreloading = false,
+                                            isLoggedIn = true,
+                                            userData = response.userData,
+                                            token = response.token,
+                                            captchaRequired = false,
+                                            captchaInfo = null,
+                                            execution = null,
+                                            error = null
+                                    )
+                            _loginForm.value = LoginFormState()
+                            loadUserInfo()
+                        } else {
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isPreloading = false,
+                                            captchaRequired = response.captchaRequired,
+                                            captchaInfo = response.captcha,
+                                            execution = response.execution,
+                                            error = null
+                                    )
+                            _loginForm.value = _loginForm.value.copy(captcha = "")
+                        }
                     }
                     .onFailure { exception ->
                         _uiState.value =
@@ -78,15 +128,32 @@ class AuthViewModel : ViewModel() {
             authService
                     .preloadLoginState()
                     .onSuccess { response ->
-                        _uiState.value =
-                                _uiState.value.copy(
-                                        isRefreshingCaptcha = false,
-                                        captchaRequired = response.captchaRequired,
-                                        captchaInfo = response.captcha,
-                                        execution = response.execution,
-                                        error = null
-                                )
-                        _loginForm.value = _loginForm.value.copy(captcha = "")
+                        if (response.token != null && response.userData != null) {
+                            // 自动登录成功
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isRefreshingCaptcha = false,
+                                            isLoggedIn = true,
+                                            userData = response.userData,
+                                            token = response.token,
+                                            captchaRequired = false,
+                                            captchaInfo = null,
+                                            execution = null,
+                                            error = null
+                                    )
+                            _loginForm.value = LoginFormState()
+                            loadUserInfo()
+                        } else {
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isRefreshingCaptcha = false,
+                                            captchaRequired = response.captchaRequired,
+                                            captchaInfo = response.captcha,
+                                            execution = response.execution,
+                                            error = null
+                                    )
+                            _loginForm.value = _loginForm.value.copy(captcha = "")
+                        }
                     }
                     .onFailure { exception ->
                         _uiState.value =
@@ -133,8 +200,23 @@ class AuthViewModel : ViewModel() {
                                         captchaInfo = null,
                                         execution = null
                                 )
-                        // 登录成功后清空表单
-                        _loginForm.value = LoginFormState()
+
+                        // 保存凭据设置
+                        cn.edu.ubaa.api.CredentialStore.setRememberPassword(form.rememberPassword)
+                        cn.edu.ubaa.api.CredentialStore.setAutoLogin(form.autoLogin)
+                        if (form.rememberPassword) {
+                            cn.edu.ubaa.api.CredentialStore.saveCredentials(
+                                    form.username,
+                                    form.password
+                            )
+                        }
+
+                        // 登录成功后清空表单（如果不记住密码）
+                        if (!form.rememberPassword) {
+                            _loginForm.value = LoginFormState()
+                        } else {
+                            _loginForm.value = _loginForm.value.copy(captcha = "")
+                        }
                         // 登录后加载用户信息
                         loadUserInfo()
                     }
@@ -172,8 +254,13 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             val storedToken = cn.edu.ubaa.api.TokenStore.get()
             if (storedToken.isNullOrBlank()) {
-                // 没有存储的 token，预加载登录状态
-                preloadLoginState()
+                // 没有存储的 token，检查是否开启自动登录
+                if (cn.edu.ubaa.api.CredentialStore.isAutoLogin()) {
+                    login()
+                } else {
+                    // 没有 token 且不自动登录，预加载登录状态
+                    preloadLoginState()
+                }
                 return@launch
             }
 
@@ -196,8 +283,14 @@ class AuthViewModel : ViewModel() {
                     .onFailure {
                         _uiState.value = _uiState.value.copy(isLoading = false)
                         cn.edu.ubaa.api.TokenStore.clear()
-                        // 会话恢复失败，预加载登录状态
-                        preloadLoginState()
+
+                        // 会话恢复失败，检查是否开启自动登录
+                        if (cn.edu.ubaa.api.CredentialStore.isAutoLogin()) {
+                            login()
+                        } else {
+                            // 不自动登录则预加载登录状态
+                            preloadLoginState()
+                        }
                     }
         }
     }
@@ -264,5 +357,7 @@ data class AuthUiState(
 data class LoginFormState(
         val username: String = "",
         val password: String = "",
-        val captcha: String = ""
+        val captcha: String = "",
+        val rememberPassword: Boolean = false,
+        val autoLogin: Boolean = false
 )

@@ -113,7 +113,7 @@ fun BykcCourseDetailScreen(
                 }
 
                 item {
-                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    DetailCard(title = "基本信息") {
                         course.courseTeacher?.let { teacher ->
                             DetailItem(label = "授课教师", value = teacher, icon = Icons.Default.Person)
                         }
@@ -135,7 +135,7 @@ fun BykcCourseDetailScreen(
                 }
 
                 item {
-                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    DetailCard(title = "时间安排") {
                         course.courseStartDate?.let { startDate ->
                             course.courseEndDate?.let { endDate ->
                                 DetailItem(

@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.screens
+package cn.edu.ubaa.ui.screens.schedule
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
@@ -14,11 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.Exam
 import cn.edu.ubaa.ui.ExamViewModel
+import kotlin.collections.get
 
 @Composable
 fun ExamScreen(viewModel: ExamViewModel) {
@@ -180,9 +182,9 @@ fun ExamCard(exam: Exam, showSeat: Boolean) {
                     CardDefaults.outlinedCardBorder()
                             .copy(
                                     brush =
-                                            androidx.compose.ui.graphics.SolidColor(
-                                                    MaterialTheme.colorScheme.outlineVariant
-                                            )
+                                        SolidColor(
+                                                MaterialTheme.colorScheme.outlineVariant
+                                        )
                             )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

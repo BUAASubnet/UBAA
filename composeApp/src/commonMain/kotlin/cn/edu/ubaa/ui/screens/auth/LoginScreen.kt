@@ -11,6 +11,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import cn.edu.ubaa.ui.screens.auth.LoginFormState
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
@@ -20,19 +21,21 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 // 登录界面
 @Composable
 fun LoginScreen(
-        loginFormState: LoginFormState,
-        onUsernameChange: (String) -> Unit,
-        onPasswordChange: (String) -> Unit,
-        onCaptchaChange: (String) -> Unit,
-        onLoginClick: () -> Unit,
-        onRefreshCaptcha: () -> Unit,
-        isLoading: Boolean,
-        isPreloading: Boolean,
-        isRefreshingCaptcha: Boolean,
-        captchaRequired: Boolean,
-        captchaInfo: cn.edu.ubaa.model.dto.CaptchaInfo?,
-        error: String?,
-        modifier: Modifier = Modifier
+    loginFormState: LoginFormState,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onCaptchaChange: (String) -> Unit,
+    onRememberPasswordChange: (Boolean) -> Unit,
+    onAutoLoginChange: (Boolean) -> Unit,
+    onLoginClick: () -> Unit,
+    onRefreshCaptcha: () -> Unit,
+    isLoading: Boolean,
+    isPreloading: Boolean,
+    isRefreshingCaptcha: Boolean,
+    captchaRequired: Boolean,
+    captchaInfo: cn.edu.ubaa.model.dto.CaptchaInfo?,
+    error: String?,
+    modifier: Modifier = Modifier
 ) {
         // 预加载状态显示
         if (isPreloading) {
@@ -107,6 +110,43 @@ fun LoginScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 8.dp)
                         )
+                }
+
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                        Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                        Modifier.clickable {
+                                                onRememberPasswordChange(
+                                                        !loginFormState.rememberPassword
+                                                )
+                                        }
+                        ) {
+                                Checkbox(
+                                        checked = loginFormState.rememberPassword,
+                                        onCheckedChange = onRememberPasswordChange,
+                                        enabled = !isLoading
+                                )
+                                Text("记住密码", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                        Modifier.clickable {
+                                                onAutoLoginChange(!loginFormState.autoLogin)
+                                        }
+                        ) {
+                                Checkbox(
+                                        checked = loginFormState.autoLogin,
+                                        onCheckedChange = onAutoLoginChange,
+                                        enabled = !isLoading
+                                )
+                                Text("自动登录", style = MaterialTheme.typography.bodyMedium)
+                        }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

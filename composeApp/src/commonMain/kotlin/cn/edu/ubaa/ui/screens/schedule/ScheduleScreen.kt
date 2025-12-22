@@ -1,4 +1,4 @@
-package cn.edu.ubaa.ui.screens
+package cn.edu.ubaa.ui.screens.features
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

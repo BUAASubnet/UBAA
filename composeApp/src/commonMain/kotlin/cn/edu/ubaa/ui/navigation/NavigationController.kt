@@ -3,7 +3,6 @@ package cn.edu.ubaa.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import cn.edu.ubaa.ui.components.BottomNavTab
 
 class NavigationController {
     val navStack = mutableStateListOf(AppScreen.HOME)
