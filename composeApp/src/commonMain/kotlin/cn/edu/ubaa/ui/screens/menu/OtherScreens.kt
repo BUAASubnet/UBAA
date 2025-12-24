@@ -1,73 +1,103 @@
 package cn.edu.ubaa.ui.screens.menu
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.HowToReg
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.UserInfo
 
 @Composable
 fun AdvancedFeaturesScreen(onSigninClick: () -> Unit, modifier: Modifier = Modifier) {
-        Column(
-                modifier = modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        val features =
+                listOf(
+                        FeatureItem(
+                                id = "signin",
+                                title = "课程签到",
+                                description = "快速完成课堂签到",
+                                icon = Icons.Default.HowToReg
+                        ),
+                        FeatureItem(
+                                id = "more",
+                                title = "更多功能",
+                                description = "更多高级功能正在开发中...",
+                                icon = Icons.Default.MoreHoriz
+                        )
+                )
+
+        Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
                 Text(
                         text = "高级功能",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                Card(onClick = onSigninClick, modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                        ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                                text = "课程签到",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                                text = "快速完成课堂签到",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                }
+                LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                        items(features) { feature ->
+                                FeatureCard(
+                                        feature = feature,
+                                        onClick = {
+                                                if (feature.id == "signin") {
+                                                        onSigninClick()
+                                                }
+                                        }
+                                )
                         }
                 }
+        }
+}
 
-                // More schedule coming soon
-                Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                                CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
+@Composable
+private fun FeatureCard(feature: FeatureItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
+        Card(
+                modifier = modifier.fillMaxWidth().heightIn(min = 160.dp).clickable { onClick() },
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+                Column(
+                        modifier = Modifier.padding(16.dp).fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                 ) {
-                        Column(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                                Text(
-                                        text = "更多功能敬请期待",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Text(
-                                        text = "更多高级功能正在开发中...",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                        }
+                        Icon(
+                                imageVector = feature.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                                text = feature.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                                text = feature.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight
+                        )
                 }
         }
 }

@@ -14,7 +14,7 @@ data class SigninUiState(
         val classes: List<SigninClassDto> = emptyList(),
         val error: String? = null,
         val signinResult: String? = null,
-        val isSigningIn: Boolean = false
+        val signingInCourseId: String? = null
 )
 
 class SigninViewModel : ViewModel() {
@@ -52,13 +52,13 @@ class SigninViewModel : ViewModel() {
 
     fun performSignin(courseId: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSigningIn = true, signinResult = null)
+            _uiState.value = _uiState.value.copy(signingInCourseId = courseId, signinResult = null)
             signinApi
                     .performSignin(courseId)
                     .onSuccess { response ->
                         _uiState.value =
                                 _uiState.value.copy(
-                                        isSigningIn = false,
+                                        signingInCourseId = null,
                                         signinResult =
                                                 if (response.success) "签到成功"
                                                 else "签到失败: ${response.message}"
@@ -70,7 +70,7 @@ class SigninViewModel : ViewModel() {
                     .onFailure { exception ->
                         _uiState.value =
                                 _uiState.value.copy(
-                                        isSigningIn = false,
+                                        signingInCourseId = null,
                                         signinResult = "签到异常: ${exception.message}"
                                 )
                     }

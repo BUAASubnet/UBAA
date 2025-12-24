@@ -21,27 +21,38 @@ jobs:
 
       - name: Build Native Image
         run: |
-          docker run --rm -v ${{ github.workspace }}:/home/gradle/project -w /home/gradle/project \
+          docker run --rm --platform linux/arm64 -v ${{ github.workspace }}:/home/gradle/project -w /home/gradle/project \
             --env SERVER_HOST="${{ secrets.SERVER_HOST }}" \
             --env SERVER_PORT="${{ secrets.SERVER_PORT }}" \
             --env CLIENT_PORT="${{ secrets.CLIENT_PORT }}" \
             --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             --env VERSION="${{ steps.get_version.outputs.VERSION }}" \
-            arm64v8/alpine:3.19 /bin/sh -c "
-              # 安装构建依赖
-              apk add --no-cache bash openjdk21 g++ make zlib-dev musl-dev wget zlib-static gcompat
+            arm64v8/debian:bookworm-slim /bin/bash -c "
+              set -e
+              apt-get update && apt-get install -y build-essential wget musl-tools curl git zlib1g-dev
               
-              # 下载 GraalVM for AArch64 (JDK 21)
+              # 1. 编译 zlib for musl (GraalVM 静态链接 musl 必须)
+              wget -q https://zlib.net/zlib-1.3.1.tar.gz
+              tar -xzf zlib-1.3.1.tar.gz
+              cd zlib-1.3.1
+              CC=musl-gcc ./configure --static --prefix=/usr/local/musl
+              make -j\$(nproc) && make install
+              cd ..
+              
+              # 2. 下载 GraalVM for AArch64 (JDK 21)
               wget -q https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz
-              tar -xzf graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz
-              export JAVA_HOME=\$PWD/graalvm-community-jdk-21.0.2+13.1
+              mkdir -p graalvm-jdk
+              tar -xzf graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz -C graalvm-jdk --strip-components=1
+              export JAVA_HOME=\$PWD/graalvm-jdk
               export PATH=\$JAVA_HOME/bin:\$PATH
               
-              # 执行构建 (使用 -Pstatic-musl 触发 build.gradle.kts 中的静态链接配置)
+              # 3. 执行构建
+              # 我们需要告诉 GraalVM zlib musl 的位置
               chmod +x gradlew
-              ./gradlew :server:nativeCompile -Pstatic-musl --no-daemon
+              ./gradlew :server:nativeCompile -Pstatic-musl --no-daemon \
+                -Pkotlin.daemon.jvmargs=\"-Xmx4g\"
               
-              # 重命名产物
+              # 4. 重命名产物
               mv server/build/native/nativeCompile/ubaa-server UBAA-Server-Native-AArch64-Musl-v\$VERSION
             "
 

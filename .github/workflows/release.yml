@@ -58,56 +58,132 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-others:
-    name: Build Desktop, Server, and Web
+  build-desktop-linux:
+    name: Build Desktop Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Get Version
         id: get_version
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+      - name: Build Deb
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+        run: ./gradlew :composeApp:packageReleaseDeb
+      - name: Upload Deb Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: composeApp/build/compose/binaries/**/deb/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build All Platforms
+  build-server:
+    name: Build Server JAR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+      - name: Build Server
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          ./gradlew :composeApp:packageReleaseDeb
           ./gradlew :server:buildFatJar
-          ./gradlew :composeApp:wasmJsBrowserDistribution
-          ./gradlew :composeApp:jsBrowserDistribution
-          # 重命名 Server JAR
-          mv server/build/libs/*-all.jar server/build/libs/UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
-
-      # 仅在发布 Release 时压缩 Web 产物
-      - name: Archive Web Products
-        if: github.event_name == 'release'
-        run: |
-          zip -r UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/wasmJs/productionExecutable/
-          zip -r UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/js/productionExecutable/
-
-      - name: Upload Other Release Assets
+          mv server/build/libs/*-all.jar UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
+      - name: Upload Server Release Assets
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            composeApp/build/compose/binaries/**/deb/*.deb
-            server/build/libs/UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
-            UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip
-            UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip
+          files: UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-web-wasm:
+    name: Build Web Wasm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+      - name: Build Web Wasm
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution
+      - name: Archive Web Wasm
+        if: github.event_name == 'release'
+        run: zip -r UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/wasmJs/productionExecutable/
+      - name: Upload Web Wasm Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-web-js:
+    name: Build Web JS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+      - name: Build Web JS
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+        run: ./gradlew :composeApp:jsBrowserDistribution
+      - name: Archive Web JS
+        if: github.event_name == 'release'
+        run: zip -r UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/js/productionExecutable/
+      - name: Upload Web JS Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
