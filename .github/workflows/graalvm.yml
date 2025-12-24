@@ -1,10 +1,46 @@
-name: Build AArch64 Musl Native Image
+name: Build Native Images
 
 on:
   workflow_dispatch:
 
 jobs:
+  build-x86_64:
+    name: Build x86_64 Native Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Build Native Image
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          ./gradlew :server:nativeCompile --no-daemon --no-configuration-cache
+          mv server/build/native/nativeCompile/ubaa-server UBAA-Server-Native-x86_64-v${{ steps.get_version.outputs.VERSION }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UBAA-Server-Native-x86_64-v${{ steps.get_version.outputs.VERSION }}
+          path: UBAA-Server-Native-x86_64-v${{ steps.get_version.outputs.VERSION }}
+
   build-aarch64-musl:
+    name: Build AArch64 Musl Native Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
