@@ -4,13 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.SigninClassDto
@@ -57,15 +57,27 @@ fun SigninScreen(viewModel: SigninViewModel) {
                 }
             } else {
                 LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()
                 ) {
                     items(uiState.classes) { clazz ->
                         SigninClassCard(
                                 clazz = clazz,
                                 onSigninClick = { viewModel.performSignin(clazz.courseId) },
-                                isSigningIn = uiState.isSigningIn
+                                isSigningIn = uiState.signingInCourseId == clazz.courseId
                         )
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                                onClick = { viewModel.loadTodayClasses() },
+                                modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("刷新课程")
+                        }
                     }
                 }
             }
@@ -82,44 +94,51 @@ fun SigninClassCard(clazz: SigninClassDto, onSigninClick: () -> Unit, isSigningI
             colors =
                     CardDefaults.cardColors(
                             containerColor =
-                                    if (isSigned)
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(
-                                                    alpha = 0.5f
-                                            )
-                                    else MaterialTheme.colorScheme.surface
+                                    if (isSigned) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant
                     ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                modifier = Modifier.padding(20.dp).fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                         text = clazz.courseName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                        text = "${clazz.classBeginTime} - ${clazz.classEndTime}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                            text = "${clazz.classBeginTime} - ${clazz.classEndTime}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (isSigned) {
                 Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "已签到",
-                        tint = Color(0xFF4CAF50)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
                 )
             } else {
                 Button(
                         onClick = onSigninClick,
                         enabled = !isSigningIn,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     if (isSigningIn) {
                         SizedCircularProgressIndicator()
