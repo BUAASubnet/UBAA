@@ -7,6 +7,7 @@ plugins {
 }
 
 import org.gradle.api.file.DuplicatesStrategy
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 group = "cn.edu.ubaa"
 version = project.property("project.version").toString()
@@ -20,6 +21,7 @@ application {
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xmulti-platform")
+        jvmTarget.set(JvmTarget.JVM_21)
     }
     sourceSets {
         val main by getting {
@@ -33,9 +35,14 @@ tasks.processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+tasks.withType<JavaExec> {
+    workingDir = rootProject.projectDir
+}
+
 dependencies {
     implementation(project(":shared"))
     implementation(libs.logback)
+    implementation(libs.dotenv.kotlin)
 
     // Ktor Server
     implementation(libs.ktor.serverCore)
@@ -77,6 +84,10 @@ graalvmNative {
             imageName.set("ubaa-server")
             mainClass.set("cn.edu.ubaa.ApplicationKt")
             buildArgs.add("--no-fallback")
+            if (project.hasProperty("static-musl")) {
+                buildArgs.add("--static")
+                buildArgs.add("--libc=musl")
+            }
         }
     }
     metadataRepository {

@@ -1,0 +1,52 @@
+name: Build AArch64 Musl Native Image
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-aarch64-musl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build Native Image
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/home/gradle/project -w /home/gradle/project \
+            --env SERVER_HOST="${{ secrets.SERVER_HOST }}" \
+            --env SERVER_PORT="${{ secrets.SERVER_PORT }}" \
+            --env CLIENT_PORT="${{ secrets.CLIENT_PORT }}" \
+            --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            --env VERSION="${{ steps.get_version.outputs.VERSION }}" \
+            arm64v8/alpine:3.19 /bin/sh -c "
+              # 安装构建依赖
+              apk add --no-cache bash openjdk21 g++ make zlib-dev musl-dev wget zlib-static gcompat
+              
+              # 下载 GraalVM for AArch64 (JDK 21)
+              wget -q https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz
+              tar -xzf graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz
+              export JAVA_HOME=\$PWD/graalvm-community-jdk-21.0.2+13.1
+              export PATH=\$JAVA_HOME/bin:\$PATH
+              
+              # 执行构建 (使用 -Pstatic-musl 触发 build.gradle.kts 中的静态链接配置)
+              chmod +x gradlew
+              ./gradlew :server:nativeCompile -Pstatic-musl --no-daemon
+              
+              # 重命名产物
+              mv server/build/native/nativeCompile/ubaa-server UBAA-Server-Native-AArch64-Musl-v\$VERSION
+            "
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UBAA-Server-Native-AArch64-Musl-v${{ steps.get_version.outputs.VERSION }}
+          path: UBAA-Server-Native-AArch64-Musl-v${{ steps.get_version.outputs.VERSION }}

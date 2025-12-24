@@ -25,6 +25,7 @@ build/
 
 # Local Configuration
 local.properties
+.env
 
 # Kotlin Multiplatform / Native
 *.hprof

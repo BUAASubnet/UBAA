@@ -9,6 +9,8 @@ import cn.edu.ubaa.exam.examRouting
 import cn.edu.ubaa.schedule.scheduleRouting
 import cn.edu.ubaa.signin.signinRouting
 import cn.edu.ubaa.user.userRouting
+import io.github.cdimascio.dotenv.dotenv
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -18,16 +20,18 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.http.*
 import org.slf4j.LoggerFactory
 
 fun main() {
+    val dotenv = dotenv { ignoreIfMissing = true }
+    val serverPort = dotenv["SERVER_PORT"]?.toInt() ?: 5432
+
     val log = LoggerFactory.getLogger("Application")
     log.info("Starting UBAA Server...")
     // 启动前自动检测网络环境
     // VpnCipher.autoDetectEnvironment()
 
-    embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
+    embeddedServer(Netty, port = serverPort, host = "0.0.0.0", module = Application::module)
             .start(wait = true)
 }
 

@@ -1,0 +1,198 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  release:
+    types: [published]
+
+jobs:
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Decode Keystore
+        if: github.event_name == 'release'
+        run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > composeApp/release.jks
+
+      - name: Build Android
+        env:
+          SIGNING_KEY: release.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            ./gradlew :composeApp:assembleRelease
+            mv composeApp/build/outputs/apk/release/composeApp-release.apk composeApp/build/outputs/apk/release/UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
+          else
+            ./gradlew :composeApp:assembleDebug
+          fi
+
+      - name: Upload Android Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: composeApp/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-others:
+    name: Build Desktop, Server, and Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Build All Platforms
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          ./gradlew :composeApp:packageReleaseDeb
+          ./gradlew :server:buildFatJar
+          ./gradlew :composeApp:wasmJsBrowserDistribution
+          ./gradlew :composeApp:jsBrowserDistribution
+          # 重命名 Server JAR
+          mv server/build/libs/*-all.jar server/build/libs/UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
+
+      # 仅在发布 Release 时压缩 Web 产物
+      - name: Archive Web Products
+        if: github.event_name == 'release'
+        run: |
+          zip -r UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/wasmJs/productionExecutable/
+          zip -r UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/js/productionExecutable/
+
+      - name: Upload Other Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            composeApp/build/compose/binaries/**/deb/*.deb
+            server/build/libs/UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
+            UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip
+            UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Build iOS Framework
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+        run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
+
+      # 如果需要上传 iOS 框架（通常是给 Xcode 使用的 .framework）
+      - name: Archive iOS Framework
+        if: github.event_name == 'release'
+        run: |
+          cd composeApp/build/bin/iosArm64/releaseFramework
+          zip -r ../../../../UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip .
+
+      - name: Upload iOS Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Get Version
+        id: get_version
+        shell: bash
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Build Windows Exe
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+        run: ./gradlew :composeApp:packageReleaseExe
+
+      - name: Prepare Windows Assets
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          # 寻找生成的 exe 并重命名
+          EXE_PATH=$(ls composeApp/build/compose/binaries/main-release/exe/*.exe | head -n 1)
+          cp "$EXE_PATH" "UBAA-Windows-v${{ steps.get_version.outputs.VERSION }}.exe"
+
+      - name: Upload Windows Release Assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: UBAA-Windows-v${{ steps.get_version.outputs.VERSION }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

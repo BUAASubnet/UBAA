@@ -1,16 +1,38 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.codingfeline.buildkonfig.compiler.FieldSpec
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.buildkonfig)
+}
+
+import java.util.Properties
+
+val env = Properties().apply {
+    val envFile = rootProject.file(".env")
+    if (envFile.exists()) {
+        envFile.inputStream().use { load(it) }
+    }
+}
+
+buildkonfig {
+    packageName = "cn.edu.ubaa"
+    objectName = "BuildKonfig"
+
+    defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "SERVER_HOST", env.getProperty("SERVER_HOST") ?: System.getenv("SERVER_HOST") ?: "https://ubaa.mofrp.top")
+        buildConfigField(FieldSpec.Type.INT, "SERVER_PORT", env.getProperty("SERVER_PORT") ?: System.getenv("SERVER_PORT") ?: "5432")
+        buildConfigField(FieldSpec.Type.INT, "CLIENT_PORT", env.getProperty("CLIENT_PORT") ?: System.getenv("CLIENT_PORT") ?: "2021")
+    }
 }
 
 kotlin {
     androidTarget {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
     }
     
