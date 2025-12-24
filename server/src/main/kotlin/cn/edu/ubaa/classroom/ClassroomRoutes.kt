@@ -14,16 +14,25 @@ fun Route.classroomRouting() {
             val username = call.jwtUsername ?: return@get call.respond(HttpStatusCode.Unauthorized)
             val xqid = call.parameters["xqid"]?.toIntOrNull() ?: 1
             val date = call.parameters["date"] ?: ""
+            application.log.info(
+                    "Classroom query request from user: {}, xqid: {}, date: {}",
+                    username,
+                    xqid,
+                    date
+            )
 
             if (date.isEmpty()) {
+                application.log.warn("Classroom query failed: date is missing")
                 return@get call.respond(HttpStatusCode.BadRequest, "Date is required")
             }
 
             try {
                 val client = ClassroomClient(username)
                 val result = client.query(xqid, date)
+                application.log.info("Classroom query successful for user: {}", username)
                 call.respond(HttpStatusCode.OK, result)
             } catch (e: Exception) {
+                application.log.error("Classroom query failed for user: {}", username, e)
                 call.respond(
                         HttpStatusCode.InternalServerError,
                         ErrorResponse(

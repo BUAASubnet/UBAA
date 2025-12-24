@@ -1,9 +1,9 @@
-package cn.edu.ubaa.ui.util
+package cn.edu.ubaa.ui.common.util
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 
+/** No-op back handler for iOS. */
 @Composable
 actual fun BackHandlerCompat(enabled: Boolean, onBack: () -> Unit) {
-    BackHandler(enabled = enabled, onBack = onBack)
+    /* no-op */
 }

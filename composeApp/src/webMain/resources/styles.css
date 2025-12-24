@@ -1,7 +1,15 @@
-html, body {
+html,
+body {
     width: 100%;
     height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
+    /* 为 Compose Canvas 渲染提供中文字体支持 */
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif;
+}
+
+/* 确保 canvas 也继承字体设置 */
+canvas {
+    font-family: inherit;
 }

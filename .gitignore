@@ -79,3 +79,7 @@ tmp/
 
 .VSCodeCounter/
 .vscode/
+
+session_store.db
+
+release/

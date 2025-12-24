@@ -40,13 +40,20 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
 
         // 检查是否有 clientId（来自 preload 的会话）
         val hasClientId = !request.clientId.isNullOrBlank()
+        // 检查是否携带了 execution（可能来自 preload）
+        val hasExecution = !request.execution.isNullOrBlank()
         // 只有同时携带 execution 与 captcha 时才视为“验证码登录表单”
-        val hasCaptchaForm = !request.execution.isNullOrBlank() && !request.captcha.isNullOrBlank()
+        val hasCaptchaForm = hasExecution && !request.captcha.isNullOrBlank()
 
-        log.debug("hasClientId: {}, hasCaptchaForm: {}", hasClientId, hasCaptchaForm)
+        log.debug(
+                "hasClientId: {}, hasExecution: {}, hasCaptchaForm: {}",
+                hasClientId,
+                hasExecution,
+                hasCaptchaForm
+        )
 
-        // 如果没有 clientId 且没有验证码表单，检查已有会话
-        if (!hasClientId && !hasCaptchaForm) {
+        // 如果没有 clientId 且没有 execution，检查已有会话
+        if (!hasClientId && !hasExecution) {
             sessionManager.getSession(request.username)?.let { existingSession ->
                 log.debug("Validating cached session for user: {}", request.username)
                 val cachedUser = runCatching { verifySession(existingSession.client) }.getOrNull()
@@ -86,18 +93,17 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
         val client = sessionCandidate.client
         val noRedirectClient = client.config { followRedirects = false }
 
-        // 如果携带 execution+captcha，走验证码登录表单分支
-        if (hasCaptchaForm) {
-            val execution = request.execution ?: throw LoginException("execution is missing")
-            val captcha = request.captcha ?: throw LoginException("验证码缺失，请重新输入")
+        // 如果携带 execution，尝试直接提交（减少一次 GET 请求，提高稳定性）
+        if (hasExecution) {
+            val execution = request.execution!!
+            log.debug("Direct login with provided execution={}", execution.take(10))
 
-            log.debug("Direct login with execution={}", execution.take(10))
-
-            // 直接使用用户提供的 execution 和 captcha 构建登录表单
             val loginFormParameters =
-                    CasParser.buildCaptchaLoginParameters(
-                            request.copy(captcha = captcha, execution = execution)
-                    )
+                    if (!request.captcha.isNullOrBlank()) {
+                        CasParser.buildCaptchaLoginParameters(request)
+                    } else {
+                        CasParser.buildDefaultParameters(request, execution)
+                    }
 
             val loginSubmitResponse =
                     noRedirectClient.post(LOGIN_URL) {
@@ -105,7 +111,7 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                     }
 
             log.debug(
-                    "CAPTCHA login form submitted. Response status: {}",
+                    "Login form submitted with provided execution. Response status: {}",
                     loginSubmitResponse.status
             )
 
@@ -185,7 +191,9 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
         // 3. 触发 UC 服务登录（建立 UC 会话的关键步骤）
         log.debug("Triggering UC service login...")
         client.get(
-                VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
+                VpnCipher.toVpnUrl(
+                        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+                )
         )
 
         try {
@@ -223,7 +231,8 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
         val session = sessionManager.getSession(username)
         if (session != null) {
             try {
-                val logoutResponse = session.client.get(VpnCipher.toVpnUrl("https://sso.buaa.edu.cn/logout"))
+                val logoutResponse =
+                        session.client.get(VpnCipher.toVpnUrl("https://sso.buaa.edu.cn/logout"))
                 log.debug("SSO logout response status: {}", logoutResponse.status)
             } catch (e: Exception) {
                 log.warn("Error calling BUAA SSO logout for user: {}", username, e)
@@ -259,7 +268,9 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
 
                 // 触发 UC 服务登录以建立 UC 会话
                 client.get(
-                        VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
+                        VpnCipher.toVpnUrl(
+                                "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+                        )
                 )
 
                 val userData = verifySession(client)
@@ -342,7 +353,10 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
                 client.get(VpnCipher.toVpnUrl(UC_STATUS_URL)) {
                     header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
                     header("X-Requested-With", "XMLHttpRequest")
-                    header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/#/user/login"))
+                    header(
+                            HttpHeaders.Referrer,
+                            VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/#/user/login")
+                    )
                 }
         val statusBody = statusResponse.bodyAsText()
         log.debug("Status API response status: {}", statusResponse.status)
@@ -411,17 +425,18 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
             val location = currentResponse.headers[HttpHeaders.Location]
             if (location.isNullOrBlank()) break
             log.debug("Following redirect to: {}", location)
-            
+
             // 使用 java.net.URL 处理相对路径，确保在 JVM 环境下的稳定性
             // 避免 Ktor URLBuilder 在处理某些 WebVPN 格式路径时出现的解析问题
-            val nextUrl = try {
-                val base = java.net.URL(currentResponse.request.url.toString())
-                java.net.URL(base, location).toString()
-            } catch (e: Exception) {
-                // 回退逻辑，通常不会触发
-                location
-            }
-            
+            val nextUrl =
+                    try {
+                        val base = java.net.URL(currentResponse.request.url.toString())
+                        java.net.URL(base, location).toString()
+                    } catch (e: Exception) {
+                        // 回退逻辑，通常不会触发
+                        location
+                    }
+
             currentResponse = noRedirectClient.get(nextUrl)
         }
 

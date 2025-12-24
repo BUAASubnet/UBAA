@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 class NavigationController {
     val navStack = mutableStateListOf(AppScreen.HOME)
     val currentScreen: AppScreen
-        get() = navStack.last()
+        get() = navStack.lastOrNull() ?: AppScreen.HOME
 
     // 底部 Tab 和侧边栏状态由 UI 驱动，此处仅管理导航栈
     fun navigateTo(screen: AppScreen) {
@@ -18,13 +18,14 @@ class NavigationController {
 
     fun navigateBack(): Boolean {
         if (navStack.size > 1) {
-            navStack.removeLast()
+            navStack.removeAt(navStack.size - 1)
             return true
         }
         return false
     }
-    
+
     fun setRoot(screen: AppScreen) {
+        if (navStack.size == 1 && navStack[0] == screen) return
         navStack.clear()
         navStack.add(screen)
     }

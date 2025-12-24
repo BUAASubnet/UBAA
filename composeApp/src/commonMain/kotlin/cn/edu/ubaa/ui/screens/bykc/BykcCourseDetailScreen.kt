@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -211,7 +212,7 @@ fun BykcCourseDetailScreen(
                                     DetailItem(
                                             label = "签到时间",
                                             value = formatDateRange(signStart, signEnd),
-                                            icon = Icons.Default.Login
+                                            icon = Icons.AutoMirrored.Filled.Login
                                     )
                                 }
                             }
@@ -220,7 +221,7 @@ fun BykcCourseDetailScreen(
                                     DetailItem(
                                             label = "签退时间",
                                             value = formatDateRange(signOutStart, signOutEnd),
-                                            icon = Icons.Default.Logout
+                                            icon = Icons.AutoMirrored.Filled.Logout
                                     )
                                 }
                             }
@@ -252,7 +253,10 @@ fun BykcCourseDetailScreen(
                                             modifier = Modifier.weight(1f),
                                             enabled = !operationInProgress && canSignIn
                                     ) {
-                                        Icon(Icons.Default.Login, contentDescription = null)
+                                        Icon(
+                                                Icons.AutoMirrored.Filled.Login,
+                                                contentDescription = null
+                                        )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("签到")
                                     }
@@ -262,7 +266,10 @@ fun BykcCourseDetailScreen(
                                             modifier = Modifier.weight(1f),
                                             enabled = !operationInProgress && canSignOut
                                     ) {
-                                        Icon(Icons.Default.Logout, contentDescription = null)
+                                        Icon(
+                                                Icons.AutoMirrored.Filled.Logout,
+                                                contentDescription = null
+                                        )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("签退")
                                     }

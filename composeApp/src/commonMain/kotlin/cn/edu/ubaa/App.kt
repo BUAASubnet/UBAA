@@ -7,17 +7,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
 import cn.edu.ubaa.ui.screens.auth.LoginScreen
-import cn.edu.ubaa.ui.navigation.MainAppScreen
+import cn.edu.ubaa.ui.theme.PreloadFonts
+import cn.edu.ubaa.ui.theme.UBAATheme
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
-        val authViewModel: AuthViewModel = viewModel()
+    PreloadFonts()
+
+    UBAATheme {
+        val authViewModel: AuthViewModel = viewModel { AuthViewModel() }
         val uiState by authViewModel.uiState.collectAsState()
         val loginForm by authViewModel.loginForm.collectAsState()
 
@@ -28,10 +32,7 @@ fun App() {
                     userData = userData,
                     userInfo = uiState.userInfo,
                     onLogoutClick = { authViewModel.logout() },
-                    modifier =
-                            Modifier.background(MaterialTheme.colorScheme.background)
-                                    .safeContentPadding()
-                                    .fillMaxSize()
+                    modifier = Modifier.safeContentPadding().fillMaxSize()
             )
         } else {
             // 未登录，显示登录界面

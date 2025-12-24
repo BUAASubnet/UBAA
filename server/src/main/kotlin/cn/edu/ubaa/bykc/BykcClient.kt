@@ -94,7 +94,10 @@ class BykcClient(private val username: String) {
                 client.post(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/$apiName")) {
                     contentType(ContentType.Application.Json.withCharset(Charsets.UTF_8))
                     accept(ContentType.Application.Json)
-                    header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/system/course-select"))
+                    header(
+                            HttpHeaders.Referrer,
+                            VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/system/course-select")
+                    )
                     header(HttpHeaders.Origin, VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn"))
                     // 模拟浏览器 Headers 避免被 WAF 拦截
                     header(
@@ -153,9 +156,10 @@ class BykcClient(private val username: String) {
                     }
                 }
 
-        // 暂不进行响应内容的通用鉴权失败检查
-        // BYKC 错误信息多样，目前依赖 doCallApiRaw 抛出异常或由调用方处理具体错误
-        // 若解码内容包含“未登录”，可考虑在此处抛出异常触发重试
+        // 响应内容的通用鉴权失败检查
+        if (decoded.contains("会话已失效") || decoded.contains("未登录")) {
+            throw BykcSessionExpiredException()
+        }
 
         return decoded
     }

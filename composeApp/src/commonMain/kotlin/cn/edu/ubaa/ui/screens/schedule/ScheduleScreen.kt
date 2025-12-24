@@ -3,6 +3,7 @@ package cn.edu.ubaa.ui.screens.schedule
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,7 +45,6 @@ fun ScheduleScreen(
         onTermSelected: (Term) -> Unit, // 保留学期选择逻辑
         onWeekSelected: (Week) -> Unit,
         onCourseClick: (CourseClass) -> Unit,
-        onBack: () -> Unit,
         modifier: Modifier = Modifier
 ) {
     var showWeekSelector by remember { mutableStateOf(false) }
@@ -65,8 +66,7 @@ fun ScheduleScreen(
                             }
                         },
                         isNextEnabled = currentWeekIndex != -1 && currentWeekIndex < weeks.size - 1,
-                        onTitleClick = { showWeekSelector = true },
-                        onBack = onBack
+                        onTitleClick = { showWeekSelector = true }
                 )
             },
             modifier = modifier
@@ -133,8 +133,7 @@ private fun ScheduleTopAppBar(
         isPreviousEnabled: Boolean,
         onNextClick: () -> Unit,
         isNextEnabled: Boolean,
-        onTitleClick: () -> Unit,
-        onBack: () -> Unit
+        onTitleClick: () -> Unit
 ) {
     CenterAlignedTopAppBar(
             title = {
@@ -150,12 +149,10 @@ private fun ScheduleTopAppBar(
                     )
                 }
             },
-            navigationIcon = {
+            actions = {
                 IconButton(onClick = onPreviousClick, enabled = isPreviousEnabled) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "上一周")
                 }
-            },
-            actions = {
                 IconButton(onClick = onNextClick, enabled = isNextEnabled) {
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "下一周")
                 }
@@ -366,15 +363,46 @@ private fun WeeklyScheduleGrid(
 // region 课程单元格
 @Composable
 private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val isDark = isSystemInDarkTheme()
     val parsedColor = remember(course.color) { parseColor(course.color) }
-    val containerColor = parsedColor ?: MaterialTheme.colorScheme.primaryContainer
+
+    // 基础背景色
+    val baseContainerColor = parsedColor ?: MaterialTheme.colorScheme.primaryContainer
+
+    // 在黑夜模式下，如果使用自定义颜色，稍微降低透明度，让底色透出来从而变暗
+    val containerColor =
+            remember(baseContainerColor, isDark) {
+                if (isDark && parsedColor != null) {
+                    baseContainerColor.copy(alpha = 0.7f)
+                } else {
+                    baseContainerColor
+                }
+            }
+
+    // 根据背景亮度计算文字颜色
+    val contentColor =
+            remember(containerColor) {
+                if (parsedColor != null) {
+                    if (containerColor.luminance() > 0.5f) Color.Black else Color.White
+                } else {
+                    Color.Unspecified
+                }
+            }
+
+    val finalContentColor =
+            if (contentColor == Color.Unspecified) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                contentColor
+            }
 
     Card(
             modifier = modifier.fillMaxSize().clickable { onClick() },
             shape = RoundedCornerShape(6.dp),
             colors =
                     CardDefaults.cardColors(
-                            containerColor = containerColor
+                            containerColor = containerColor,
+                            contentColor = finalContentColor
                     )
     ) {
         Column(
@@ -397,7 +425,7 @@ private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modif
                         fontSize = 11.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 13.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        color = LocalContentColor.current.copy(alpha = 0.8f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                 )

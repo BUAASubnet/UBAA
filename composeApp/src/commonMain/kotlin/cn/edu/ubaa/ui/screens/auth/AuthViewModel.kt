@@ -207,10 +207,7 @@ class AuthViewModel : ViewModel() {
                         CredentialStore.setRememberPassword(form.rememberPassword)
                         CredentialStore.setAutoLogin(form.autoLogin)
                         if (form.rememberPassword) {
-                            CredentialStore.saveCredentials(
-                                    form.username,
-                                    form.password
-                            )
+                            CredentialStore.saveCredentials(form.username, form.password)
                         }
 
                         // 登录成功后清空表单（如果不记住密码）
@@ -243,7 +240,11 @@ class AuthViewModel : ViewModel() {
                                 _uiState.value =
                                         _uiState.value.copy(
                                                 isLoading = false,
-                                                error = exception.message ?: "登录失败"
+                                                error = exception.message ?: "登录失败",
+                                                // 登录失败时清除 execution 和验证码状态，确保下次尝试时重新获取
+                                                execution = null,
+                                                captchaRequired = false,
+                                                captchaInfo = null
                                         )
                             }
                         }

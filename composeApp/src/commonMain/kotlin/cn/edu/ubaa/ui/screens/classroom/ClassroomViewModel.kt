@@ -22,7 +22,7 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
     private val _uiState = MutableStateFlow<ClassroomUiState>(ClassroomUiState.Idle)
     val uiState: StateFlow<ClassroomUiState> = _uiState.asStateFlow()
 
-    private val _xqid = MutableStateFlow(1) // 1: 学院路, 2: 沙河, 3: 杭研院
+    private val _xqid = MutableStateFlow(1) // 1: 学院路, 2: 沙河, 3: 杭州
     val xqid: StateFlow<Int> = _xqid.asStateFlow()
 
     private val _date = MutableStateFlow(getCurrentDate())

@@ -2,7 +2,9 @@ package cn.edu.ubaa.ui.screens.auth
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,21 +23,21 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 // 登录界面
 @Composable
 fun LoginScreen(
-    loginFormState: LoginFormState,
-    onUsernameChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onCaptchaChange: (String) -> Unit,
-    onRememberPasswordChange: (Boolean) -> Unit,
-    onAutoLoginChange: (Boolean) -> Unit,
-    onLoginClick: () -> Unit,
-    onRefreshCaptcha: () -> Unit,
-    isLoading: Boolean,
-    isPreloading: Boolean,
-    isRefreshingCaptcha: Boolean,
-    captchaRequired: Boolean,
-    captchaInfo: CaptchaInfo?,
-    error: String?,
-    modifier: Modifier = Modifier
+        loginFormState: LoginFormState,
+        onUsernameChange: (String) -> Unit,
+        onPasswordChange: (String) -> Unit,
+        onCaptchaChange: (String) -> Unit,
+        onRememberPasswordChange: (Boolean) -> Unit,
+        onAutoLoginChange: (Boolean) -> Unit,
+        onLoginClick: () -> Unit,
+        onRefreshCaptcha: () -> Unit,
+        isLoading: Boolean,
+        isPreloading: Boolean,
+        isRefreshingCaptcha: Boolean,
+        captchaRequired: Boolean,
+        captchaInfo: CaptchaInfo?,
+        error: String?,
+        modifier: Modifier = Modifier
 ) {
         // 预加载状态显示
         if (isPreloading) {
@@ -50,7 +52,8 @@ fun LoginScreen(
         }
 
         Column(
-                modifier = modifier.fillMaxSize().padding(32.dp),
+                modifier =
+                        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
         ) {

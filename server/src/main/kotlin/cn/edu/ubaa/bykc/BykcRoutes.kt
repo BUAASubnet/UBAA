@@ -22,6 +22,7 @@ fun Route.bykcRouting() {
                 /** 获取博雅课程用户信息 */
                 get("/profile") {
                         val username = call.jwtUsername!!
+                        application.log.info("Fetching BYKC profile for user: {}", username)
 
                         try {
                                 val profile = bykcService.getUserProfile(username)
@@ -38,6 +39,11 @@ fun Route.bykcRouting() {
                                         )
                                 call.respond(HttpStatusCode.OK, profileDto)
                         } catch (e: LoginException) {
+                                application.log.warn(
+                                        "BYKC profile fetch failed for user {}: {}",
+                                        username,
+                                        e.message
+                                )
                                 call.respond(
                                         HttpStatusCode.Unauthorized,
                                         ErrorResponse(

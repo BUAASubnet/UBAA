@@ -16,33 +16,61 @@ fun Route.examRouting() {
         get("/list") {
             val username = call.jwtUsername!!
             val termCode = call.request.queryParameters["termCode"]
+            application.log.info(
+                    "Exam list request from user: {}, termCode: {}",
+                    username,
+                    termCode
+            )
 
             if (termCode.isNullOrBlank()) {
+                application.log.warn("Exam list request failed: termCode is missing")
                 call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse(ErrorDetails("invalid_request", "termCode parameter is required"))
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse(
+                                ErrorDetails("invalid_request", "termCode parameter is required")
+                        )
                 )
                 return@get
             }
 
             try {
                 val examData = examService.getExamArrangement(username, termCode)
+                application.log.info("Exam list fetched successfully for user: {}", username)
                 call.respond(HttpStatusCode.OK, examData)
             } catch (e: LoginException) {
+                application.log.warn("Exam list fetch failed for user {}: {}", username, e.message)
                 call.respond(
-                    HttpStatusCode.Unauthorized,
-                    ErrorResponse(ErrorDetails("unauthenticated", e.message ?: "Session is not available."))
+                        HttpStatusCode.Unauthorized,
+                        ErrorResponse(
+                                ErrorDetails(
+                                        "unauthenticated",
+                                        e.message ?: "Session is not available."
+                                )
+                        )
                 )
             } catch (e: ExamException) {
                 call.respond(
-                    HttpStatusCode.BadGateway,
-                    ErrorResponse(ErrorDetails("upstream_error", e.message ?: "Failed to fetch exam data."))
+                        HttpStatusCode.BadGateway,
+                        ErrorResponse(
+                                ErrorDetails(
+                                        "upstream_error",
+                                        e.message ?: "Failed to fetch exam data."
+                                )
+                        )
                 )
             } catch (e: Exception) {
-                call.application.environment.log.error("Unexpected error while fetching exam list.", e)
+                call.application.environment.log.error(
+                        "Unexpected error while fetching exam list.",
+                        e
+                )
                 call.respond(
-                    HttpStatusCode.InternalServerError,
-                    ErrorResponse(ErrorDetails("internal_server_error", "An unexpected server error occurred."))
+                        HttpStatusCode.InternalServerError,
+                        ErrorResponse(
+                                ErrorDetails(
+                                        "internal_server_error",
+                                        "An unexpected server error occurred."
+                                )
+                        )
                 )
             }
         }

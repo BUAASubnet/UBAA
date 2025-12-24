@@ -143,7 +143,7 @@ object CasParser {
         }
     }
 
-    private fun buildDefaultParameters(request: LoginRequest, execution: String): Parameters {
+    fun buildDefaultParameters(request: LoginRequest, execution: String): Parameters {
         return Parameters.build {
             append("username", request.username)
             append("password", request.password)

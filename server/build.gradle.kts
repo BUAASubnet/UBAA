@@ -9,7 +9,7 @@ plugins {
 import org.gradle.api.file.DuplicatesStrategy
 
 group = "cn.edu.ubaa"
-version = "1.0.0"
+version = project.property("project.version").toString()
 application {
     mainClass.set("cn.edu.ubaa.ApplicationKt")
 
@@ -36,12 +36,12 @@ tasks.processResources {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.logback)
-    implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
 
     // Ktor Server
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.cors)
     implementation(libs.ktor.serialization.kotlinx.json)
 
     // Ktor Client

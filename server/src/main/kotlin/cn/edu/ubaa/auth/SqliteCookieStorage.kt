@@ -2,6 +2,7 @@ package cn.edu.ubaa.auth
 
 import io.ktor.client.plugins.cookies.CookiesStorage
 import io.ktor.http.Cookie
+import io.ktor.http.CookieEncoding
 import io.ktor.http.Url
 import io.ktor.util.date.GMTDate
 import java.io.File
@@ -102,7 +103,8 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
                                                 expires = expires,
                                                 secure = secure,
                                                 httpOnly = httpOnly,
-                                                maxAge = maxAge
+                                                maxAge = maxAge,
+                                                encoding = CookieEncoding.RAW
                                         )
                                 )
                             }

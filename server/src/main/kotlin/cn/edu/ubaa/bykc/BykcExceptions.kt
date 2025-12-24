@@ -20,3 +20,6 @@ class BykcCourseFullException(message: String = "报名失败，该课程人数�
 /** 课程不可选异常 */
 class BykcCourseNotSelectableException(message: String = "选课失败，该课程不可选择") :
         BykcSelectException(message)
+
+/** 会话失效异常 */
+class BykcSessionExpiredException(message: String = "您的会话已失效,请重新登录后再试") : BykcException(message)

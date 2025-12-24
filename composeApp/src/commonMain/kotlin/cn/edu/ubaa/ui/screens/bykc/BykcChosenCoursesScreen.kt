@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -115,8 +116,9 @@ fun BykcChosenCourseCard(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-                                        // 课程名称
-                                        Text(                    text = course.courseName,
+            // 课程名称
+            Text(
+                    text = course.courseName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
@@ -163,164 +165,197 @@ fun BykcChosenCourseCard(
                 }
             }
 
-                        // 状态指示（签到与考核）
-                        Column(horizontalAlignment = Alignment.End) {
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(12.dp))
+            // 状态指示（签到与考核）
+            Column(horizontalAlignment = Alignment.End) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
 
-            val (checkinText, checkinColor) = getCheckinStatus(course.checkin)
-            val (passText, passColor) = getPassStatus(course.pass)
+                val (checkinText, checkinColor) = getCheckinStatus(course.checkin)
+                val (passText, passColor) = getPassStatus(course.pass)
 
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                            // 签到状态
-                            // 签到状态
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                            imageVector = Icons.Default.AssignmentInd,
-                            contentDescription = null,
-                            tint = checkinColor,
-                            modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                            text = checkinText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = checkinColor
-                    )
-                }
-
-                            // 考核状态
-                            // 签到状态
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                            imageVector = if (course.pass == 1) Icons.Default.CheckCircle else Icons.Default.Info,
-                            contentDescription = null,
-                            tint = passColor,
-                            modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                            text = passText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = passColor
-                    )
-                }
-
-                            // 分数显示（有分数时）
-                            if (course.score != null) {
+                Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 签到状态
+                    // 签到状态
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                                imageVector = Icons.Default.Grade,
+                                imageVector = Icons.Default.AssignmentInd,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
+                                tint = checkinColor,
                                 modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                                text = "${course.score} 分",
+                                text = checkinText,
                                 style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
+                                color = checkinColor
                         )
                     }
-                }
-            }
 
-                    // 签到/签退操作区
-                    Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.End
-                    ) {
-            val now = remember { mutableStateOf(Clock.System.now()) }
-            LaunchedEffect(Unit) {
-                while(true) {
-                    delay(5000)
-                    now.value = Clock.System.now()
-                }
-            }
-
-            val isInSignInWindow = remember(course.signConfig?.signStartDate, course.signConfig?.signEndDate, now.value) {
-                isWithinWindow(course.signConfig?.signStartDate, course.signConfig?.signEndDate)
-            }
-            val isInSignOutWindow = remember(course.signConfig?.signOutStartDate, course.signConfig?.signOutEndDate, now.value) {
-                isWithinWindow(course.signConfig?.signOutStartDate, course.signConfig?.signOutEndDate)
-            }
-
-            // 逻辑说明：
-            // 可签到：未签到(0)且在时间窗口
-            val canSignIn = (course.checkin == 0) && isInSignInWindow
-            
-            // 可签退：已签到未签退(5或6)且在时间窗口
-            val canSignOut = (course.checkin == 5 || course.checkin == 6) && isInSignOutWindow
-
-            // 考核通过(1)时隐藏按钮
-            val showButtons = course.pass != 1 && course.signConfig != null
-
-            if (showButtons) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AssistChip(
-                            onClick = { if (canSignIn) onClick() },
-                            enabled = canSignIn,
-                            label = {
-                                Text("签到", style = MaterialTheme.typography.labelSmall)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                        Icons.Default.Login,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors =
-                                    AssistChipDefaults.assistChipColors(
-                                            containerColor =
-                                                    MaterialTheme.colorScheme.primaryContainer,
-                                            labelColor =
-                                                    MaterialTheme.colorScheme.onPrimaryContainer,
-                                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                    )
-                    AssistChip(
-                            onClick = { if (canSignOut) onClick() },
-                            enabled = canSignOut,
-                            label = {
-                                Text("签退", style = MaterialTheme.typography.labelSmall)
-                            },
-                            leadingIcon = {
-                                Icon(
-                                        Icons.Default.Logout,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                },
-                                colors =
-                                        AssistChipDefaults.assistChipColors(
-                                                containerColor =
-                                                        MaterialTheme.colorScheme
-                                                                .secondaryContainer,
-                                                labelColor =
-                                                        MaterialTheme.colorScheme
-                                                                .onSecondaryContainer,
-                                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                        )
+                    // 考核状态
+                    // 签到状态
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                                imageVector =
+                                        if (course.pass == 1) Icons.Default.CheckCircle
+                                        else Icons.Default.Info,
+                                contentDescription = null,
+                                tint = passColor,
+                                modifier = Modifier.size(20.dp)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                                text = passText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = passColor
+                        )
+                    }
+
+                    // 分数显示（有分数时）
+                    if (course.score != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                    imageVector = Icons.Default.Grade,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                    text = "${course.score} 分",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                }
+
+                // 签到/签退操作区
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                ) {
+                    val now = remember { mutableStateOf(Clock.System.now()) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(5000)
+                            now.value = Clock.System.now()
+                        }
+                    }
+
+                    val isInSignInWindow =
+                            remember(
+                                    course.signConfig?.signStartDate,
+                                    course.signConfig?.signEndDate,
+                                    now.value
+                            ) {
+                                isWithinWindow(
+                                        course.signConfig?.signStartDate,
+                                        course.signConfig?.signEndDate
+                                )
+                            }
+                    val isInSignOutWindow =
+                            remember(
+                                    course.signConfig?.signOutStartDate,
+                                    course.signConfig?.signOutEndDate,
+                                    now.value
+                            ) {
+                                isWithinWindow(
+                                        course.signConfig?.signOutStartDate,
+                                        course.signConfig?.signOutEndDate
+                                )
+                            }
+
+                    // 逻辑说明：
+                    // 可签到：未签到(0)且在时间窗口
+                    val canSignIn = (course.checkin == 0) && isInSignInWindow
+
+                    // 可签退：已签到未签退(5或6)且在时间窗口
+                    val canSignOut =
+                            (course.checkin == 5 || course.checkin == 6) && isInSignOutWindow
+
+                    // 考核通过(1)时隐藏按钮
+                    val showButtons = course.pass != 1 && course.signConfig != null
+
+                    if (showButtons) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            AssistChip(
+                                    onClick = { if (canSignIn) onClick() },
+                                    enabled = canSignIn,
+                                    label = {
+                                        Text("签到", style = MaterialTheme.typography.labelSmall)
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                                Icons.AutoMirrored.Filled.Login,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    colors =
+                                            AssistChipDefaults.assistChipColors(
+                                                    containerColor =
+                                                            MaterialTheme.colorScheme
+                                                                    .primaryContainer,
+                                                    labelColor =
+                                                            MaterialTheme.colorScheme
+                                                                    .onPrimaryContainer,
+                                                    disabledContainerColor =
+                                                            MaterialTheme.colorScheme.surfaceVariant
+                                                                    .copy(alpha = 0.5f),
+                                                    disabledLabelColor =
+                                                            MaterialTheme.colorScheme
+                                                                    .onSurfaceVariant.copy(
+                                                                    alpha = 0.5f
+                                                            )
+                                            )
+                            )
+                            AssistChip(
+                                    onClick = { if (canSignOut) onClick() },
+                                    enabled = canSignOut,
+                                    label = {
+                                        Text("签退", style = MaterialTheme.typography.labelSmall)
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                                Icons.AutoMirrored.Filled.Logout,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    colors =
+                                            AssistChipDefaults.assistChipColors(
+                                                    containerColor =
+                                                            MaterialTheme.colorScheme
+                                                                    .secondaryContainer,
+                                                    labelColor =
+                                                            MaterialTheme.colorScheme
+                                                                    .onSecondaryContainer,
+                                                    disabledContainerColor =
+                                                            MaterialTheme.colorScheme.surfaceVariant
+                                                                    .copy(alpha = 0.5f),
+                                                    disabledLabelColor =
+                                                            MaterialTheme.colorScheme
+                                                                    .onSurfaceVariant.copy(
+                                                                    alpha = 0.5f
+                                                            )
+                                            )
+                            )
+                        }
+                    }
                 }
             }
         }
     }
-}
-}
 }
 
 private fun isWithinWindow(start: String?, end: String?): Boolean {
