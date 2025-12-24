@@ -32,25 +32,12 @@ fun LoginScreen(
         onLoginClick: () -> Unit,
         onRefreshCaptcha: () -> Unit,
         isLoading: Boolean,
-        isPreloading: Boolean,
         isRefreshingCaptcha: Boolean,
         captchaRequired: Boolean,
         captchaInfo: CaptchaInfo?,
         error: String?,
         modifier: Modifier = Modifier
 ) {
-        // 预加载状态显示
-        if (isPreloading) {
-                Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator()
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("正在加载...")
-                        }
-                }
-                return
-        }
-
         Column(
                 modifier =
                         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(32.dp),
