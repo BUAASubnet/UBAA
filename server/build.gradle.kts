@@ -2,13 +2,14 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.graalvm)
     application
 }
 
 import org.gradle.api.file.DuplicatesStrategy
 
 group = "cn.edu.ubaa"
-version = "1.0.0"
+version = project.property("project.version").toString()
 application {
     mainClass.set("cn.edu.ubaa.ApplicationKt")
 
@@ -35,12 +36,12 @@ tasks.processResources {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.logback)
-    implementation("io.ktor:ktor-server-content-negotiation:2.3.4")
 
     // Ktor Server
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.server.content.negotiation)
+    implementation(libs.ktor.server.cors)
     implementation(libs.ktor.serialization.kotlinx.json)
 
     // Ktor Client
@@ -68,4 +69,20 @@ dependencies {
     // Test
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("ubaa-server")
+            mainClass.set("cn.edu.ubaa.ApplicationKt")
+            buildArgs.add("--no-fallback")
+        }
+    }
+    metadataRepository {
+        enabled.set(true)
+    }
+    agent {
+        defaultMode.set("standard")
+    }
 }

@@ -32,6 +32,10 @@ fun Route.authRouting() {
                         try {
                                 val request =
                                         call.receive<cn.edu.ubaa.model.dto.LoginPreloadRequest>()
+                                application.log.info(
+                                        "Preloading login state for clientId: {}",
+                                        request.clientId
+                                )
                                 val preloadResponse =
                                         authService.preloadLoginState(request.clientId)
                                 call.respond(HttpStatusCode.OK, preloadResponse)
@@ -66,7 +70,12 @@ fun Route.authRouting() {
                 post("/login") {
                         try {
                                 val request = call.receive<LoginRequest>()
+                                application.log.info("Login attempt for user: {}", request.username)
                                 val loginResponse = authService.loginWithToken(request)
+                                application.log.info(
+                                        "Login successful for user: {}",
+                                        request.username
+                                )
                                 call.respond(HttpStatusCode.OK, loginResponse)
                         } catch (e: ContentTransformationException) {
                                 call.respond(
@@ -120,6 +129,10 @@ fun Route.authRouting() {
                         try {
                                 val session = call.getUserSession()
                                 if (session != null) {
+                                        application.log.info(
+                                                "Session status check: user {} is authenticated",
+                                                session.userData.name
+                                        )
                                         val statusResponse =
                                                 SessionStatusResponse(
                                                         user = session.userData,
@@ -130,6 +143,9 @@ fun Route.authRouting() {
                                                 )
                                         call.respond(HttpStatusCode.OK, statusResponse)
                                 } else {
+                                        application.log.warn(
+                                                "Session status check failed: invalid or expired token"
+                                        )
                                         call.respond(
                                                 HttpStatusCode.Unauthorized,
                                                 ErrorResponse(

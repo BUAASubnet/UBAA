@@ -82,8 +82,8 @@ android {
         applicationId = "cn.edu.ubaa"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = project.property("project.version.code").toString().toInt()
+        versionName = project.property("project.version").toString()
     }
     packaging {
         resources {
@@ -110,9 +110,9 @@ compose.desktop {
         mainClass = "cn.edu.ubaa.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "cn.edu.ubaa"
-            packageVersion = "1.0.0"
+            packageVersion = project.property("project.version").toString()
         }
     }
 }

@@ -2,6 +2,7 @@ package cn.edu.ubaa.schedule
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.utils.VpnCipher
 import cn.edu.ubaa.model.dto.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -23,7 +24,7 @@ class ScheduleService(
     private fun HttpRequestBuilder.applyScheduleHeaders() {
         header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
         header("X-Requested-With", "XMLHttpRequest")
-        header(HttpHeaders.Referrer, "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html")
+        header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html"))
     }
 
     suspend fun fetchTerms(username: String): List<Term> {
@@ -175,7 +176,7 @@ class ScheduleService(
     private suspend fun SessionManager.UserSession.getTerms(): HttpResponse {
         return try {
             val url =
-                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
+                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do")
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
             log.error("Error while calling terms endpoint for username: {}", username, e)
@@ -186,7 +187,7 @@ class ScheduleService(
     private suspend fun SessionManager.UserSession.getWeeks(termCode: String): HttpResponse {
         return try {
             val url =
-                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode"
+                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode")
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
             log.error("Error while calling weeks endpoint for username: {}", username, e)
@@ -200,7 +201,7 @@ class ScheduleService(
     ): HttpResponse {
         return try {
             val url =
-                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
+                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do")
             client.post(url) {
                 applyScheduleHeaders()
                 setBody(
@@ -223,7 +224,7 @@ class ScheduleService(
     private suspend fun SessionManager.UserSession.getTodaySchedule(date: String): HttpResponse {
         return try {
             val url =
-                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student"
+                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student")
             client.get(url) { applyScheduleHeaders() }
         } catch (e: Exception) {
             log.error("Error while calling today schedule endpoint for username: {}", username, e)
