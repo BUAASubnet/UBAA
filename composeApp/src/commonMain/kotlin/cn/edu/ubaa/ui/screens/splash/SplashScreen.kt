@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun SplashScreen(modifier: Modifier = Modifier) {
     Box(
-            modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+            modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
     ) {
         Column(
@@ -31,7 +31,7 @@ fun SplashScreen(modifier: Modifier = Modifier) {
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 72.sp
                             ),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
             )
 
@@ -44,7 +44,7 @@ fun SplashScreen(modifier: Modifier = Modifier) {
                             MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Medium
                             ),
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center
             )
         }

@@ -16,6 +16,7 @@ import cn.edu.ubaa.api.UpdateService
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
 import cn.edu.ubaa.ui.screens.auth.LoginScreen
+import cn.edu.ubaa.ui.screens.splash.SplashScreen
 import cn.edu.ubaa.ui.theme.PreloadFonts
 import cn.edu.ubaa.ui.theme.UBAATheme
 import kotlinx.coroutines.delay
@@ -30,6 +31,12 @@ fun App() {
         val authViewModel: AuthViewModel = viewModel { AuthViewModel() }
         val uiState by authViewModel.uiState.collectAsState()
         val loginForm by authViewModel.loginForm.collectAsState()
+
+        // 检查用户是否有存储凭据（老用户）
+        val hasStoredCredentials =
+                loginForm.rememberPassword &&
+                        loginForm.username.isNotBlank() &&
+                        loginForm.password.isNotBlank()
 
         // 启动状态管理
         var isSplashFinished by remember { mutableStateOf(false) }
@@ -48,8 +55,30 @@ fun App() {
         }
 
         // 监听认证状态变化，决定是否结束启动界面
-        LaunchedEffect(uiState.isLoggedIn, uiState.error) {
-            if (uiState.isLoggedIn || uiState.error != null) {
+        LaunchedEffect(
+                uiState.isLoggedIn,
+                uiState.error,
+                uiState.isLoading,
+                uiState.isPreloading,
+                uiState.isRefreshingCaptcha
+        ) {
+            // 结束启动界面的情况：
+            // 1. 已成功登录且有用户数据
+            // 2. 出现错误且没有正在加载（避免错误时的闪烁）
+            // 3. 初始化完成但未登录（新用户）
+            val shouldEndSplash =
+                    (uiState.isLoggedIn && uiState.userData != null) ||
+                            (uiState.error != null &&
+                                    !uiState.isLoading &&
+                                    !uiState.isPreloading &&
+                                    !uiState.isRefreshingCaptcha) ||
+                            (!uiState.isLoading &&
+                                    !uiState.isPreloading &&
+                                    !uiState.isRefreshingCaptcha &&
+                                    !uiState.isLoggedIn &&
+                                    uiState.error == null)
+
+            if (shouldEndSplash) {
                 isSplashFinished = true
             }
         }
@@ -88,8 +117,12 @@ fun App() {
                         modifier = Modifier.safeContentPadding().fillMaxSize()
                 )
             }
+            hasStoredCredentials && !uiState.isLoggedIn && uiState.error == null -> {
+                // 老用户正在自动登录，显示启动界面直到登录完成或失败
+                SplashScreen(modifier = Modifier.fillMaxSize())
+            }
             else -> {
-                // 未登录或登录失败，显示登录界面
+                // 新用户或登录失败，显示登录界面
                 LoginScreen(
                         loginFormState = loginForm,
                         onUsernameChange = { authViewModel.updateUsername(it) },
@@ -100,7 +133,6 @@ fun App() {
                         onLoginClick = { authViewModel.login() },
                         onRefreshCaptcha = { authViewModel.refreshCaptcha() },
                         isLoading = uiState.isLoading,
-                        isPreloading = uiState.isPreloading,
                         isRefreshingCaptcha = uiState.isRefreshingCaptcha,
                         captchaRequired = uiState.captchaRequired,
                         captchaInfo = uiState.captchaInfo,
