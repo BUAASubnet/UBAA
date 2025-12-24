@@ -31,12 +31,28 @@ fun App() {
         val uiState by authViewModel.uiState.collectAsState()
         val loginForm by authViewModel.loginForm.collectAsState()
 
+        // 启动状态管理
+        var isSplashFinished by remember { mutableStateOf(false) }
+
         // 检测更新
         val updateService = remember { UpdateService() }
         var updateInfo by remember { mutableStateOf<GitHubRelease?>(null) }
         val uriHandler = LocalUriHandler.current
 
         LaunchedEffect(Unit) { updateInfo = updateService.checkUpdate() }
+
+        // 启动界面逻辑
+        LaunchedEffect(Unit) {
+            // 立即开始自动登录流程，不需要延迟
+            authViewModel.initializeApp()
+        }
+
+        // 监听认证状态变化，决定是否结束启动界面
+        LaunchedEffect(uiState.isLoggedIn, uiState.error) {
+            if (uiState.isLoggedIn || uiState.error != null) {
+                isSplashFinished = true
+            }
+        }
 
         if (updateInfo != null) {
             val release = updateInfo!!
@@ -56,37 +72,45 @@ fun App() {
             )
         }
 
-        val userData = uiState.userData
-        if (uiState.isLoggedIn && userData != null) {
-            // 已登录，显示主界面
-            MainAppScreen(
-                    userData = userData,
-                    userInfo = uiState.userInfo,
-                    onLogoutClick = { authViewModel.logout() },
-                    modifier = Modifier.safeContentPadding().fillMaxSize()
-            )
-        } else {
-            // 未登录，显示登录界面
-            LoginScreen(
-                    loginFormState = loginForm,
-                    onUsernameChange = { authViewModel.updateUsername(it) },
-                    onPasswordChange = { authViewModel.updatePassword(it) },
-                    onCaptchaChange = { authViewModel.updateCaptcha(it) },
-                    onRememberPasswordChange = { authViewModel.updateRememberPassword(it) },
-                    onAutoLoginChange = { authViewModel.updateAutoLogin(it) },
-                    onLoginClick = { authViewModel.login() },
-                    onRefreshCaptcha = { authViewModel.refreshCaptcha() },
-                    isLoading = uiState.isLoading,
-                    isPreloading = uiState.isPreloading,
-                    isRefreshingCaptcha = uiState.isRefreshingCaptcha,
-                    captchaRequired = uiState.captchaRequired,
-                    captchaInfo = uiState.captchaInfo,
-                    error = uiState.error,
-                    modifier =
-                            Modifier.background(MaterialTheme.colorScheme.background)
-                                    .safeContentPadding()
-                                    .fillMaxSize()
-            )
+        // 根据状态决定显示什么界面
+        when {
+            !isSplashFinished -> {
+                // 显示启动界面
+                SplashScreen(modifier = Modifier.fillMaxSize())
+            }
+            uiState.isLoggedIn && uiState.userData != null -> {
+                // 已登录，显示主界面
+                val userData = uiState.userData!!
+                MainAppScreen(
+                        userData = userData,
+                        userInfo = uiState.userInfo,
+                        onLogoutClick = { authViewModel.logout() },
+                        modifier = Modifier.safeContentPadding().fillMaxSize()
+                )
+            }
+            else -> {
+                // 未登录或登录失败，显示登录界面
+                LoginScreen(
+                        loginFormState = loginForm,
+                        onUsernameChange = { authViewModel.updateUsername(it) },
+                        onPasswordChange = { authViewModel.updatePassword(it) },
+                        onCaptchaChange = { authViewModel.updateCaptcha(it) },
+                        onRememberPasswordChange = { authViewModel.updateRememberPassword(it) },
+                        onAutoLoginChange = { authViewModel.updateAutoLogin(it) },
+                        onLoginClick = { authViewModel.login() },
+                        onRefreshCaptcha = { authViewModel.refreshCaptcha() },
+                        isLoading = uiState.isLoading,
+                        isPreloading = uiState.isPreloading,
+                        isRefreshingCaptcha = uiState.isRefreshingCaptcha,
+                        captchaRequired = uiState.captchaRequired,
+                        captchaInfo = uiState.captchaInfo,
+                        error = uiState.error,
+                        modifier =
+                                Modifier.background(MaterialTheme.colorScheme.background)
+                                        .safeContentPadding()
+                                        .fillMaxSize()
+                )
+            }
         }
 
         // 用户操作后自动清除错误

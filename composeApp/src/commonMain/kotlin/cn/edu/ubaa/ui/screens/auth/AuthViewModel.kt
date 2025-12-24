@@ -28,7 +28,7 @@ class AuthViewModel : ViewModel() {
 
     init {
         loadSavedCredentials()
-        restoreSession()
+        // 注意：不再在init中自动调用restoreSession，而是在启动界面逻辑中调用initializeApp
     }
 
     private fun loadSavedCredentials() {
@@ -252,8 +252,8 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /** 尝试用本地token恢复会话并校验 */
-    fun restoreSession() {
+    /** 应用启动时的初始化，用于启动界面期间的自动登录 */
+    fun initializeApp() {
         viewModelScope.launch {
             val storedToken = TokenStore.get()
             if (storedToken.isNullOrBlank()) {

@@ -14,7 +14,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
 
     suspend fun getCourses(
         page: Int = 1,
-        size: Int = 200,
+        size: Int = 20,
         all: Boolean = false
     ): Result<BykcCoursesResponse> {
         return safeApiCall {

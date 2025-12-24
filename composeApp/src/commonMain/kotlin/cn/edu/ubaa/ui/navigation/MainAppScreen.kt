@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
@@ -240,6 +241,21 @@ fun MainAppScreen(
                                     }
                                 }
                             }
+                        } else if (currentScreen == AppScreen.BYKC_COURSES) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                        text = "显示已过期",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Checkbox(
+                                        checked = showBykcIncludeExpired,
+                                        onCheckedChange = { include ->
+                                            showBykcIncludeExpired = include
+                                            bykcViewModel.loadCourses(includeExpired = include)
+                                        }
+                                )
+                            }
                         }
                     }
             )
@@ -317,6 +333,8 @@ fun MainAppScreen(
                         BykcCoursesScreen(
                                 courses = bykcCoursesState.courses,
                                 isLoading = bykcCoursesState.isLoading,
+                                isLoadingMore = bykcCoursesState.isLoadingMore,
+                                hasMorePages = bykcCoursesState.hasMorePages,
                                 error = bykcCoursesState.error,
                                 onCourseClick = { course ->
                                     selectedBykcCourseId = course.id
@@ -328,10 +346,10 @@ fun MainAppScreen(
                                             includeExpired = showBykcIncludeExpired
                                     )
                                 },
-                                includeExpired = showBykcIncludeExpired,
-                                onIncludeExpiredChange = { include ->
-                                    showBykcIncludeExpired = include
-                                    bykcViewModel.loadCourses(includeExpired = include)
+                                onLoadMore = {
+                                    bykcViewModel.loadMoreCourses(
+                                            includeExpired = showBykcIncludeExpired
+                                    )
                                 }
                         )
                     }

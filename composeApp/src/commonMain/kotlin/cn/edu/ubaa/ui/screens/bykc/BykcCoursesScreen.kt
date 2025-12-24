@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -27,42 +26,18 @@ import cn.edu.ubaa.model.dto.BykcCourseStatus
 fun BykcCoursesScreen(
         courses: List<BykcCourseDto>,
         isLoading: Boolean,
+        isLoadingMore: Boolean,
+        hasMorePages: Boolean,
         error: String?,
         onCourseClick: (BykcCourseDto) -> Unit,
         onRefresh: () -> Unit,
-        includeExpired: Boolean,
-        onIncludeExpiredChange: (Boolean) -> Unit,
+        onLoadMore: () -> Unit,
         modifier: Modifier = Modifier
 ) {
     val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = onRefresh)
 
     Box(modifier = modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
         Column(modifier = Modifier.fillMaxSize()) {
-        // 筛选控件
-            Card(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    colors =
-                            CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-            ) {
-                Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = includeExpired, onCheckedChange = onIncludeExpiredChange)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("显示已过期课程")
-                    }
-
-                    IconButton(onClick = onRefresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                    }
-                }
-            }
-
             when {
                 isLoading && courses.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -92,6 +67,46 @@ fun BykcCoursesScreen(
                     ) {
                         items(courses) { course ->
                             BykcCourseCard(course = course, onClick = { onCourseClick(course) })
+                        }
+
+                        // 加载更多指示器
+                        if (hasMorePages) {
+                            item {
+                                Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                ) {
+                                    if (isLoadingMore) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(
+                                                    modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                    "加载更多课程...",
+                                                    style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    } else {
+                                        // 触发加载更多的区域
+                                        LaunchedEffect(Unit) { onLoadMore() }
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
+                                }
+                            }
+                        } else if (courses.isNotEmpty()) {
+                            item {
+                                Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                            "没有更多课程了",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -173,7 +188,7 @@ fun BykcCourseCard(course: BykcCourseDto, onClick: () -> Unit, modifier: Modifie
                 }
             }
 
-                // 选课情况
+            // 选课情况
             Spacer(modifier = Modifier.height(8.dp))
             val progress =
                     remember(course.courseCurrentCount, course.courseMaxCount) {
@@ -275,11 +290,11 @@ fun formatDateRange(startDate: String, endDate: String): String {
         val endTimePart = endParts[1].substring(0, 5)
 
         return if (startDatePart == endDatePart) {
-                    // 同一天
-                    "$startDatePart $startTimePart - $endTimePart"
+            // 同一天
+            "$startDatePart $startTimePart - $endTimePart"
         } else {
-        // 跨天
-        "$startDatePart $startTimePart - $endDate"
+            // 跨天
+            "$startDatePart $startTimePart - $endDate"
         }
     }
 
