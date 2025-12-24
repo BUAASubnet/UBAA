@@ -23,6 +23,7 @@ buildkonfig {
     objectName = "BuildKonfig"
 
     defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "VERSION", project.version.toString())
         buildConfigField(FieldSpec.Type.STRING, "SERVER_HOST", env.getProperty("SERVER_HOST") ?: System.getenv("SERVER_HOST") ?: "https://ubaa.mofrp.top")
         buildConfigField(FieldSpec.Type.INT, "SERVER_PORT", env.getProperty("SERVER_PORT") ?: System.getenv("SERVER_PORT") ?: "5432")
         buildConfigField(FieldSpec.Type.INT, "CLIENT_PORT", env.getProperty("CLIENT_PORT") ?: System.getenv("CLIENT_PORT") ?: "2021")

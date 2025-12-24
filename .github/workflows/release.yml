@@ -40,12 +40,12 @@ jobs:
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
         run: |
           ./gradlew :composeApp:assembleRelease
-          mv composeApp/build/outputs/apk/release/composeApp-release.apk composeApp/build/outputs/apk/release/UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
+          cp composeApp/build/outputs/apk/release/composeApp-release.apk UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
 
       - name: Upload Android Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/outputs/apk/release/*.apk
+          files: UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,10 +71,16 @@ jobs:
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
         run: ./gradlew :composeApp:packageReleaseDeb
+
+      - name: Prepare Linux Assets
+        run: |
+          DEB_PATH=$(ls composeApp/build/compose/binaries/main-release/deb/*.deb | head -n 1)
+          cp "$DEB_PATH" "UBAA-Linux-v${{ steps.get_version.outputs.VERSION }}.deb"
+
       - name: Upload Deb Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: composeApp/build/compose/binaries/**/deb/*.deb
+          files: UBAA-Linux-v${{ steps.get_version.outputs.VERSION }}.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -102,7 +108,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           ./gradlew :server:buildFatJar
-          mv server/build/libs/*-all.jar UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
+          cp server/build/libs/*-all.jar UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
       - name: Upload Server Release Assets
         uses: softprops/action-gh-release@v2
         with:
