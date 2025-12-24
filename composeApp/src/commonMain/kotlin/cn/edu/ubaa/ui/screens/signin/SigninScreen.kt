@@ -68,17 +68,7 @@ fun SigninScreen(viewModel: SigninViewModel) {
                         )
                     }
 
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                                onClick = { viewModel.loadTodayClasses() },
-                                modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("刷新课程")
-                        }
-                    }
+                    // ...已移除底部重复的刷新按钮...
                 }
             }
         }
