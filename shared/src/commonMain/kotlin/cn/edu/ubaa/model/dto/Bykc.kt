@@ -114,18 +114,18 @@ data class BykcUserProfileDto(
 /** 博雅课程统计 DTO */
 @Serializable
 data class BykcStatisticsDto(
-    val totalValidCount: Int,
-    val categories: List<BykcCategoryStatisticsDto>
+        val totalValidCount: Int,
+        val categories: List<BykcCategoryStatisticsDto>
 )
 
 /** 博雅课程分类统计 DTO */
 @Serializable
 data class BykcCategoryStatisticsDto(
-    val categoryName: String, // 大类 (e.g. "博雅课程")
-    val subCategoryName: String, // 小类 (e.g. "德育")
-    val requiredCount: Int, // 考核指标
-    val passedCount: Int, // 考核通过
-    val isQualified: Boolean // 是否达标 (passed >= required)
+        val categoryName: String, // 大类 (e.g. "博雅课程")
+        val subCategoryName: String, // 小类 (e.g. "德育")
+        val requiredCount: Int, // 考核指标
+        val passedCount: Int, // 考核通过
+        val isQualified: Boolean // 是否达标 (passed >= required)
 )
 
 /** 选课请求 */
@@ -141,8 +141,25 @@ data class BykcSignRequest(
         val signType: Int
 )
 
+/** 博雅课程分页结果 */
+@Serializable
+data class BykcCoursePage(
+        val courses: List<BykcCourseDto>,
+        val totalElements: Int,
+        val totalPages: Int,
+        val currentPage: Int,
+        val pageSize: Int
+)
+
 /** 博雅课程列表响应 */
-@Serializable data class BykcCoursesResponse(val courses: List<BykcCourseDto>, val total: Int)
+@Serializable
+data class BykcCoursesResponse(
+        val courses: List<BykcCourseDto>,
+        val total: Int,
+        val totalPages: Int = 0,
+        val currentPage: Int = 1,
+        val pageSize: Int = 20
+)
 
 /** 操作成功响应 */
 @Serializable data class BykcSuccessResponse(val message: String)

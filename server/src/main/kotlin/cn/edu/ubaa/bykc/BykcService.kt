@@ -6,6 +6,7 @@ import cn.edu.ubaa.model.dto.BykcCategoryStatisticsDto
 import cn.edu.ubaa.model.dto.BykcChosenCourseDto
 import cn.edu.ubaa.model.dto.BykcCourseDetailDto
 import cn.edu.ubaa.model.dto.BykcCourseDto
+import cn.edu.ubaa.model.dto.BykcCoursePage
 import cn.edu.ubaa.model.dto.BykcSignConfigDto
 import cn.edu.ubaa.model.dto.BykcSignPointDto
 import cn.edu.ubaa.model.dto.BykcStatisticsDto
@@ -61,80 +62,99 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
      * @param username 用户名
      * @param pageNumber 页码（从1开始）
      * @param pageSize 每页数量
-     * @return 课程列表（带状态计算）
+     * @return 课程分页结果（带状态计算）
      */
     suspend fun getCourses(
             username: String,
             pageNumber: Int = 1,
-            pageSize: Int = 50
-    ): List<BykcCourseDto> {
+            pageSize: Int = 20
+    ): BykcCoursePage {
         ensureBykcLogin(username)
         val client = getClient(username)
         val result = client.queryStudentSemesterCourseByPage(pageNumber, pageSize)
 
-        return result.content.mapNotNull { course ->
-            try {
-                val status = calculateCourseStatus(course)
-                // 过滤掉已过期和已结束的课程（可选）
-                if (status == BykcCourseStatusEnum.EXPIRED || status == BykcCourseStatusEnum.ENDED
-                ) {
-                    return@mapNotNull null
+        val courses =
+                result.content.mapNotNull { course ->
+                    try {
+                        val status = calculateCourseStatus(course)
+                        // 过滤掉已过期和已结束的课程（可选）
+                        if (status == BykcCourseStatusEnum.EXPIRED ||
+                                        status == BykcCourseStatusEnum.ENDED
+                        ) {
+                            return@mapNotNull null
+                        }
+
+                        BykcCourseDto(
+                                id = course.id,
+                                courseName = course.courseName,
+                                coursePosition = course.coursePosition,
+                                courseTeacher = course.courseTeacher,
+                                courseStartDate = course.courseStartDate,
+                                courseEndDate = course.courseEndDate,
+                                courseSelectStartDate = course.courseSelectStartDate,
+                                courseSelectEndDate = course.courseSelectEndDate,
+                                courseMaxCount = course.courseMaxCount,
+                                courseCurrentCount = course.courseCurrentCount ?: 0,
+                                category = course.courseNewKind1?.kindName,
+                                subCategory = course.courseNewKind2?.kindName,
+                                status = status.displayName,
+                                selected = course.selected ?: false,
+                                courseDesc = course.courseDesc
+                        )
+                    } catch (e: Exception) {
+                        log.warn("Failed to process course {}: {}", course.id, e.message)
+                        null
+                    }
                 }
 
-                BykcCourseDto(
-                        id = course.id,
-                        courseName = course.courseName,
-                        coursePosition = course.coursePosition,
-                        courseTeacher = course.courseTeacher,
-                        courseStartDate = course.courseStartDate,
-                        courseEndDate = course.courseEndDate,
-                        courseSelectStartDate = course.courseSelectStartDate,
-                        courseSelectEndDate = course.courseSelectEndDate,
-                        courseMaxCount = course.courseMaxCount,
-                        courseCurrentCount = course.courseCurrentCount ?: 0,
-                        category = course.courseNewKind1?.kindName,
-                        subCategory = course.courseNewKind2?.kindName,
-                        status = status.displayName,
-                        selected = course.selected ?: false,
-                        courseDesc = course.courseDesc
-                )
-            } catch (e: Exception) {
-                log.warn("Failed to process course {}: {}", course.id, e.message)
-                null
-            }
-        }
+        return BykcCoursePage(
+                courses = courses,
+                totalElements = result.totalElements,
+                totalPages = result.totalPages,
+                currentPage = pageNumber,
+                pageSize = pageSize
+        )
     }
 
     /** 获取所有课程（包括已过期的） */
     suspend fun getAllCourses(
             username: String,
             pageNumber: Int = 1,
-            pageSize: Int = 50
-    ): List<BykcCourseDto> {
+            pageSize: Int = 20
+    ): BykcCoursePage {
         ensureBykcLogin(username)
         val client = getClient(username)
         val result = client.queryStudentSemesterCourseByPage(pageNumber, pageSize)
 
-        return result.content.map { course ->
-            val status = calculateCourseStatus(course)
-            BykcCourseDto(
-                    id = course.id,
-                    courseName = course.courseName,
-                    coursePosition = course.coursePosition,
-                    courseTeacher = course.courseTeacher,
-                    courseStartDate = course.courseStartDate,
-                    courseEndDate = course.courseEndDate,
-                    courseSelectStartDate = course.courseSelectStartDate,
-                    courseSelectEndDate = course.courseSelectEndDate,
-                    courseMaxCount = course.courseMaxCount,
-                    courseCurrentCount = course.courseCurrentCount ?: 0,
-                    category = course.courseNewKind1?.kindName,
-                    subCategory = course.courseNewKind2?.kindName,
-                    status = status.displayName,
-                    selected = course.selected ?: false,
-                    courseDesc = course.courseDesc
-            )
-        }
+        val courses =
+                result.content.map { course ->
+                    val status = calculateCourseStatus(course)
+                    BykcCourseDto(
+                            id = course.id,
+                            courseName = course.courseName,
+                            coursePosition = course.coursePosition,
+                            courseTeacher = course.courseTeacher,
+                            courseStartDate = course.courseStartDate,
+                            courseEndDate = course.courseEndDate,
+                            courseSelectStartDate = course.courseSelectStartDate,
+                            courseSelectEndDate = course.courseSelectEndDate,
+                            courseMaxCount = course.courseMaxCount,
+                            courseCurrentCount = course.courseCurrentCount ?: 0,
+                            category = course.courseNewKind1?.kindName,
+                            subCategory = course.courseNewKind2?.kindName,
+                            status = status.displayName,
+                            selected = course.selected ?: false,
+                            courseDesc = course.courseDesc
+                    )
+                }
+
+        return BykcCoursePage(
+                courses = courses,
+                totalElements = result.totalElements,
+                totalPages = result.totalPages,
+                currentPage = pageNumber,
+                pageSize = pageSize
+        )
     }
 
     /** 选择课程 */

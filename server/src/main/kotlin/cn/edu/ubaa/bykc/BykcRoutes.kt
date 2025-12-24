@@ -85,14 +85,14 @@ fun Route.bykcRouting() {
                  *
                  * Query params:
                  * - page: 页码 (默认 1)
-                 * - size: 每页数量 (默认 200)
+                 * - size: 每页数量 (默认 20)
                  * - all: 是否包含已过期课程 (默认 false)
                  */
                 get("/courses") {
                         val username = call.jwtUsername!!
 
                         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 200
+                        val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                         val includeAll = call.request.queryParameters["all"]?.toBoolean() ?: false
 
                         if (page < 1) {
@@ -119,7 +119,7 @@ fun Route.bykcRouting() {
                         }
 
                         try {
-                                val courses =
+                                val coursePage =
                                         if (includeAll) {
                                                 bykcService.getAllCourses(username, page, size)
                                         } else {
@@ -128,7 +128,13 @@ fun Route.bykcRouting() {
 
                                 call.respond(
                                         HttpStatusCode.OK,
-                                        BykcCoursesResponse(courses = courses, total = courses.size)
+                                        BykcCoursesResponse(
+                                                courses = coursePage.courses,
+                                                total = coursePage.totalElements,
+                                                totalPages = coursePage.totalPages,
+                                                currentPage = coursePage.currentPage,
+                                                pageSize = coursePage.pageSize
+                                        )
                                 )
                         } catch (e: LoginException) {
                                 call.respond(

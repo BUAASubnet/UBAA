@@ -12,8 +12,13 @@ import kotlinx.coroutines.launch
 /** BYKC课程列表UI状态 */
 data class BykcCoursesUiState(
         val isLoading: Boolean = false,
+        val isLoadingMore: Boolean = false,
         val courses: List<BykcCourseDto> = emptyList(),
         val total: Int = 0,
+        val totalPages: Int = 0,
+        val currentPage: Int = 0,
+        val pageSize: Int = 20,
+        val hasMorePages: Boolean = true,
         val error: String? = null,
         val profile: BykcUserProfileDto? = null
 )
@@ -70,8 +75,7 @@ class BykcViewModel : ViewModel() {
                         _statisticsState.value =
                                 _statisticsState.value.copy(isLoading = true, error = null)
 
-                        bykcApi
-                                .getStatistics()
+                        bykcApi.getStatistics()
                                 .onSuccess { stats ->
                                         _statisticsState.value =
                                                 _statisticsState.value.copy(
@@ -92,8 +96,7 @@ class BykcViewModel : ViewModel() {
 
         fun loadProfile() {
                 viewModelScope.launch {
-                        bykcApi
-                                .getProfile()
+                        bykcApi.getProfile()
                                 .onSuccess { profile ->
                                         _coursesState.value =
                                                 _coursesState.value.copy(profile = profile)
@@ -105,19 +108,24 @@ class BykcViewModel : ViewModel() {
                 }
         }
 
-        fun loadCourses(page: Int = 1, size: Int = 200, includeExpired: Boolean = false) {
+        fun loadCourses(page: Int = 1, size: Int = 20, includeExpired: Boolean = false) {
                 viewModelScope.launch {
                         _coursesState.value =
                                 _coursesState.value.copy(isLoading = true, error = null)
 
-                        bykcApi
-                                .getCourses(page, size, includeExpired)
+                        bykcApi.getCourses(page, size, includeExpired)
                                 .onSuccess { response ->
                                         _coursesState.value =
                                                 _coursesState.value.copy(
                                                         isLoading = false,
                                                         courses = response.courses,
                                                         total = response.total,
+                                                        totalPages = response.totalPages,
+                                                        currentPage = response.currentPage,
+                                                        pageSize = response.pageSize,
+                                                        hasMorePages =
+                                                                response.currentPage <
+                                                                        response.totalPages,
                                                         error = null
                                                 )
                                 }
@@ -131,12 +139,45 @@ class BykcViewModel : ViewModel() {
                 }
         }
 
+        fun loadMoreCourses(includeExpired: Boolean = false) {
+                val currentState = _coursesState.value
+                if (currentState.isLoadingMore || !currentState.hasMorePages) return
+
+                viewModelScope.launch {
+                        _coursesState.value = currentState.copy(isLoadingMore = true)
+
+                        val nextPage = currentState.currentPage + 1
+                        bykcApi.getCourses(nextPage, currentState.pageSize, includeExpired)
+                                .onSuccess { response ->
+                                        val updatedCourses = currentState.courses + response.courses
+                                        _coursesState.value =
+                                                currentState.copy(
+                                                        isLoadingMore = false,
+                                                        courses = updatedCourses,
+                                                        total = response.total,
+                                                        totalPages = response.totalPages,
+                                                        currentPage = response.currentPage,
+                                                        hasMorePages =
+                                                                response.currentPage <
+                                                                        response.totalPages,
+                                                        error = null
+                                                )
+                                }
+                                .onFailure { exception ->
+                                        _coursesState.value =
+                                                currentState.copy(
+                                                        isLoadingMore = false,
+                                                        error = exception.message ?: "加载更多课程失败"
+                                                )
+                                }
+                }
+        }
+
         fun loadCourseDetail(courseId: Long) {
                 viewModelScope.launch {
                         _courseDetailState.value = BykcCourseDetailUiState(isLoading = true)
 
-                        bykcApi
-                                .getCourseDetail(courseId)
+                        bykcApi.getCourseDetail(courseId)
                                 .onSuccess { course ->
                                         _courseDetailState.value =
                                                 BykcCourseDetailUiState(
@@ -160,8 +201,7 @@ class BykcViewModel : ViewModel() {
                         _chosenCoursesState.value =
                                 _chosenCoursesState.value.copy(isLoading = true, error = null)
 
-                        bykcApi
-                                .getChosenCourses()
+                        bykcApi.getChosenCourses()
                                 .onSuccess { courses ->
                                         _chosenCoursesState.value =
                                                 _chosenCoursesState.value.copy(
@@ -185,8 +225,7 @@ class BykcViewModel : ViewModel() {
                         _courseDetailState.value =
                                 _courseDetailState.value.copy(operationInProgress = true)
 
-                        bykcApi
-                                .selectCourse(courseId)
+                        bykcApi.selectCourse(courseId)
                                 .onSuccess { response ->
                                         _courseDetailState.value =
                                                 _courseDetailState.value.copy(
@@ -216,8 +255,7 @@ class BykcViewModel : ViewModel() {
                         _courseDetailState.value =
                                 _courseDetailState.value.copy(operationInProgress = true)
 
-                        bykcApi
-                                .deselectCourse(courseId)
+                        bykcApi.deselectCourse(courseId)
                                 .onSuccess { response ->
                                         _courseDetailState.value =
                                                 _courseDetailState.value.copy(
@@ -253,8 +291,7 @@ class BykcViewModel : ViewModel() {
                         _courseDetailState.value =
                                 _courseDetailState.value.copy(operationInProgress = true)
 
-                        bykcApi
-                                .signCourse(courseId, lat, lng, signType)
+                        bykcApi.signCourse(courseId, lat, lng, signType)
                                 .onSuccess { response ->
                                         _courseDetailState.value =
                                                 _courseDetailState.value.copy(
