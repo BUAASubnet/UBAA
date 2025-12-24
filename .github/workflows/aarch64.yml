@@ -28,13 +28,15 @@ jobs:
             --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             --env VERSION="${{ steps.get_version.outputs.VERSION }}" \
             arm64v8/alpine:3.19 /bin/sh -c "
+              set -e
               # 安装构建依赖
               apk add --no-cache bash openjdk21 g++ make zlib-dev musl-dev wget zlib-static gcompat
               
               # 下载 GraalVM for AArch64 (JDK 21)
               wget -q https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz
-              tar -xzf graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz
-              export JAVA_HOME=\$PWD/graalvm-community-jdk-21.0.2+13.1
+              mkdir -p graalvm-jdk
+              tar -xzf graalvm-community-jdk-21.0.2_linux-aarch64_bin.tar.gz -C graalvm-jdk --strip-components=1
+              export JAVA_HOME=\$PWD/graalvm-jdk
               export PATH=\$JAVA_HOME/bin:\$PATH
               
               # 执行构建 (使用 -Pstatic-musl 触发 build.gradle.kts 中的静态链接配置)
