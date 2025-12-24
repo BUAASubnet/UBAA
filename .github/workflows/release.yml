@@ -1,12 +1,9 @@
 name: Build and Release
 
 on:
-  push:
-    branches: [ main, dev ]
-  pull_request:
-    branches: [ main, dev ]
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build-android:
@@ -30,7 +27,6 @@ jobs:
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
 
       - name: Decode Keystore
-        if: github.event_name == 'release'
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > composeApp/release.jks
 
       - name: Build Android
@@ -43,15 +39,10 @@ jobs:
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
         run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            ./gradlew :composeApp:assembleRelease
-            mv composeApp/build/outputs/apk/release/composeApp-release.apk composeApp/build/outputs/apk/release/UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
-          else
-            ./gradlew :composeApp:assembleDebug
-          fi
+          ./gradlew :composeApp:assembleRelease
+          mv composeApp/build/outputs/apk/release/composeApp-release.apk composeApp/build/outputs/apk/release/UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
 
       - name: Upload Android Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: composeApp/build/outputs/apk/release/*.apk
@@ -81,7 +72,6 @@ jobs:
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
         run: ./gradlew :composeApp:packageReleaseDeb
       - name: Upload Deb Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: composeApp/build/compose/binaries/**/deb/*.deb
@@ -114,7 +104,6 @@ jobs:
           ./gradlew :server:buildFatJar
           mv server/build/libs/*-all.jar UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
       - name: Upload Server Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
@@ -144,10 +133,8 @@ jobs:
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
         run: ./gradlew :composeApp:wasmJsBrowserDistribution
       - name: Archive Web Wasm
-        if: github.event_name == 'release'
         run: zip -r UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/wasmJs/productionExecutable/
       - name: Upload Web Wasm Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip
@@ -177,10 +164,8 @@ jobs:
           CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
         run: ./gradlew :composeApp:jsBrowserDistribution
       - name: Archive Web JS
-        if: github.event_name == 'release'
         run: zip -r UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/js/productionExecutable/
       - name: Upload Web JS Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip
@@ -216,13 +201,11 @@ jobs:
 
       # 如果需要上传 iOS 框架（通常是给 Xcode 使用的 .framework）
       - name: Archive iOS Framework
-        if: github.event_name == 'release'
         run: |
           cd composeApp/build/bin/iosArm64/releaseFramework
           zip -r ../../../../UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip .
 
       - name: Upload iOS Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip
@@ -258,7 +241,6 @@ jobs:
         run: ./gradlew :composeApp:packageReleaseExe
 
       - name: Prepare Windows Assets
-        if: github.event_name == 'release'
         shell: bash
         run: |
           # 寻找生成的 exe 并重命名
@@ -266,7 +248,6 @@ jobs:
           cp "$EXE_PATH" "UBAA-Windows-v${{ steps.get_version.outputs.VERSION }}.exe"
 
       - name: Upload Windows Release Assets
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: UBAA-Windows-v${{ steps.get_version.outputs.VERSION }}.exe
