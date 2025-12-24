@@ -19,9 +19,9 @@ application {
 }
 
 kotlin {
+    jvmToolchain(21)
     compilerOptions {
         freeCompilerArgs.add("-Xmulti-platform")
-        jvmTarget.set(JvmTarget.JVM_21)
     }
     sourceSets {
         val main by getting {
