@@ -45,10 +45,8 @@ jobs:
               mv server/build/native/nativeCompile/ubaa-server UBAA-Server-Native-AArch64-Musl-v\$VERSION
             "
 
-      - name: Upload Release Asset
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: UBAA-Server-Native-AArch64-Musl-v${{ steps.get_version.outputs.VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: UBAA-Server-Native-AArch64-Musl-v${{ steps.get_version.outputs.VERSION }}
+          path: UBAA-Server-Native-AArch64-Musl-v${{ steps.get_version.outputs.VERSION }}
