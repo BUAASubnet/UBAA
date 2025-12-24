@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.codingfeline.buildkonfig.compiler.FieldSpec
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -8,8 +9,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.buildkonfig)
 }
-
-import java.util.Properties
 
 val env = Properties().apply {
     val envFile = rootProject.file(".env")
