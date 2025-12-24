@@ -1,8 +1,6 @@
 name: Build AArch64 Musl Native Image
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -49,7 +47,7 @@ jobs:
               # 3. 执行构建
               # 我们需要告诉 GraalVM zlib musl 的位置
               chmod +x gradlew
-              ./gradlew :server:nativeCompile -Pstatic-musl --no-daemon \
+              ./gradlew :server:nativeCompile -Pstatic-musl --no-daemon --no-configuration-cache \
                 -Pkotlin.daemon.jvmargs=\"-Xmx4g\"
               
               # 4. 重命名产物
