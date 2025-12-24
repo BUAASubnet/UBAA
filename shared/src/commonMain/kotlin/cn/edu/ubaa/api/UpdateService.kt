@@ -36,6 +36,8 @@ class UpdateService {
                     client.get("https://api.botium.cn/github/repos/BUAASubnet/UBAA/releases/latest")
                             .body()
             val currentVersion = BuildKonfig.VERSION
+            
+            println("UpdateCheck: Latest=${latestRelease.tagName}, Current=$currentVersion")
 
             if (isNewerVersion(latestRelease.tagName, currentVersion)) {
                 latestRelease
@@ -48,17 +50,22 @@ class UpdateService {
     }
 
     private fun isNewerVersion(latest: String, current: String): Boolean {
-        val latestClean = latest.removePrefix("v").split("-")[0]
-        val currentClean = current.removePrefix("v").split("-")[0]
+        val latestClean = latest.trim().removePrefix("v").split("-")[0].trim()
+        val currentClean = current.trim().removePrefix("v").split("-")[0].trim()
+
+        if (latestClean == currentClean) return false
 
         val latestParts = latestClean.split(".").mapNotNull { it.toIntOrNull() }
         val currentParts = currentClean.split(".").mapNotNull { it.toIntOrNull() }
 
-        for (i in 0 until minOf(latestParts.size, currentParts.size)) {
-            if (latestParts[i] > currentParts[i]) return true
-            if (latestParts[i] < currentParts[i]) return false
+        val maxLength = maxOf(latestParts.size, currentParts.size)
+        for (i in 0 until maxLength) {
+            val latestPart = latestParts.getOrElse(i) { 0 }
+            val currentPart = currentParts.getOrElse(i) { 0 }
+            if (latestPart > currentPart) return true
+            if (latestPart < currentPart) return false
         }
 
-        return latestParts.size > currentParts.size
+        return false
     }
 }

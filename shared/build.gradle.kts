@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.codingfeline.buildkonfig.compiler.FieldSpec
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -8,8 +9,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.buildkonfig)
 }
-
-import java.util.Properties
 
 val env = Properties().apply {
     val envFile = rootProject.file(".env")
@@ -23,7 +22,7 @@ buildkonfig {
     objectName = "BuildKonfig"
 
     defaultConfigs {
-        buildConfigField(FieldSpec.Type.STRING, "VERSION", project.version.toString())
+        buildConfigField(FieldSpec.Type.STRING, "VERSION", project.property("project.version").toString())
         buildConfigField(FieldSpec.Type.STRING, "SERVER_HOST", env.getProperty("SERVER_HOST") ?: System.getenv("SERVER_HOST") ?: "https://ubaa.mofrp.top")
         buildConfigField(FieldSpec.Type.INT, "SERVER_PORT", env.getProperty("SERVER_PORT") ?: System.getenv("SERVER_PORT") ?: "5432")
         buildConfigField(FieldSpec.Type.INT, "CLIENT_PORT", env.getProperty("CLIENT_PORT") ?: System.getenv("CLIENT_PORT") ?: "2021")

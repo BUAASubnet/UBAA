@@ -1,5 +1,6 @@
 package cn.edu.ubaa.utils
 
+import io.github.cdimascio.dotenv.dotenv
 import java.net.URL
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -12,12 +13,14 @@ private val log = LoggerFactory.getLogger("VpnCipher")
 object VpnCipher {
     private const val TAG = "VpnCipher"
 
+    private val dotenv = dotenv { ignoreIfMissing = true }
+
     /** 是否启用VPN访问 初始状态由环境变量决定，若未设置则默认为 false (等待自动检测结果) */
-    var isEnabled: Boolean = System.getenv("USE_VPN")?.toBoolean() ?: false
+    var isEnabled: Boolean = (dotenv["USE_VPN"] ?: System.getenv("USE_VPN"))?.toBoolean() ?: false
 
     /** 自动检测网络环境并设置 VPN 模式 仅在环境变量 USE_VPN 未设置时生效 */
     fun autoDetectEnvironment() {
-        if (System.getenv("USE_VPN") != null) {
+        if (dotenv["USE_VPN"] != null || System.getenv("USE_VPN") != null) {
             log.info("VPN mode explicitly set to $isEnabled via environment variable.")
             return
         }

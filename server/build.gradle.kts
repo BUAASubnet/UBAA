@@ -1,3 +1,6 @@
+import org.gradle.api.file.DuplicatesStrategy
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
@@ -5,9 +8,6 @@ plugins {
     alias(libs.plugins.graalvm)
     application
 }
-
-import org.gradle.api.file.DuplicatesStrategy
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 group = "cn.edu.ubaa"
 version = project.property("project.version").toString()
