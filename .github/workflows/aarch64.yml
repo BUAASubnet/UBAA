@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Native Image
         run: |
-          docker run --rm -v ${{ github.workspace }}:/home/gradle/project -w /home/gradle/project \
+          docker run --rm --platform linux/arm64 -v ${{ github.workspace }}:/home/gradle/project -w /home/gradle/project \
             --env SERVER_HOST="${{ secrets.SERVER_HOST }}" \
             --env SERVER_PORT="${{ secrets.SERVER_PORT }}" \
             --env CLIENT_PORT="${{ secrets.CLIENT_PORT }}" \
