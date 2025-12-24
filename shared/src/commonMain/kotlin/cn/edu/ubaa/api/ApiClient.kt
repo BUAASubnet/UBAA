@@ -1,7 +1,6 @@
 package cn.edu.ubaa.api
 
-import cn.edu.ubaa.CLIENT_PORT
-import cn.edu.ubaa.SERVER_HOST
+import cn.edu.ubaa.BuildKonfig
 import io.ktor.client.*
 import io.ktor.client.engine.*
 import io.ktor.client.plugins.*
@@ -41,7 +40,7 @@ class ApiClient {
                 socketTimeoutMillis = 30_000
             }
 
-            defaultRequest { url("$SERVER_HOST:$CLIENT_PORT/") }
+            defaultRequest { url("${BuildKonfig.SERVER_HOST}:${BuildKonfig.CLIENT_PORT}/") }
         }
     }
 
