@@ -76,7 +76,8 @@ fun App() {
                                     !uiState.isPreloading &&
                                     !uiState.isRefreshingCaptcha &&
                                     !uiState.isLoggedIn &&
-                                    uiState.error == null)
+                                    uiState.error == null &&
+                                    !loginForm.autoLogin)
 
             if (shouldEndSplash) {
                 isSplashFinished = true
@@ -116,10 +117,6 @@ fun App() {
                         onLogoutClick = { authViewModel.logout() },
                         modifier = Modifier.safeContentPadding().fillMaxSize()
                 )
-            }
-            hasStoredCredentials && !uiState.isLoggedIn && uiState.error == null -> {
-                // 老用户正在自动登录，显示启动界面直到登录完成或失败
-                SplashScreen(modifier = Modifier.fillMaxSize())
             }
             else -> {
                 // 新用户或登录失败，显示登录界面
