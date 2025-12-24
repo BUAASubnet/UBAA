@@ -3,10 +3,16 @@ package cn.edu.ubaa
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cn.edu.ubaa.api.GitHubRelease
+import cn.edu.ubaa.api.UpdateService
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
 import cn.edu.ubaa.ui.screens.auth.LoginScreen
@@ -24,6 +30,31 @@ fun App() {
         val authViewModel: AuthViewModel = viewModel { AuthViewModel() }
         val uiState by authViewModel.uiState.collectAsState()
         val loginForm by authViewModel.loginForm.collectAsState()
+
+        // 检测更新
+        val updateService = remember { UpdateService() }
+        var updateInfo by remember { mutableStateOf<GitHubRelease?>(null) }
+        val uriHandler = LocalUriHandler.current
+
+        LaunchedEffect(Unit) { updateInfo = updateService.checkUpdate() }
+
+        if (updateInfo != null) {
+            val release = updateInfo!!
+            AlertDialog(
+                    onDismissRequest = { updateInfo = null },
+                    title = { Text("发现新版本 ${release.tagName}") },
+                    text = { Text(release.body ?: "点击下方按钮前往下载最新版本。") },
+                    confirmButton = {
+                        TextButton(
+                                onClick = {
+                                    uriHandler.openUri(release.htmlUrl)
+                                    updateInfo = null
+                                }
+                        ) { Text("前往下载") }
+                    },
+                    dismissButton = { TextButton(onClick = { updateInfo = null }) { Text("稍后再说") } }
+            )
+        }
 
         val userData = uiState.userData
         if (uiState.isLoggedIn && userData != null) {
