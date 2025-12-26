@@ -8,7 +8,13 @@ import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
 
-// 个人信息界面
+/**
+ * 用户个人资料展示界面。
+ *
+ * @param userData 基础身份数据（姓名、学号）。
+ * @param userInfo 详细档案数据（邮箱、电话、证件号等）。
+ * @param onLogoutClick 点击退出登录按钮的回调。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInfoScreen(
@@ -27,23 +33,13 @@ fun UserInfoScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                        text = "基本信息",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                )
-
+                Text(text = "基本信息", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 16.dp))
                 UserInfoRow("姓名", userData.name)
                 UserInfoRow("学号", userData.schoolid)
 
                 userInfo?.let { info ->
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                            text = "详细信息",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
+                    Text(text = "详细信息", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 16.dp))
                     info.username?.let { UserInfoRow("用户名", it) }
                     info.email?.let { UserInfoRow("邮箱", it) }
                     info.phone?.let { UserInfoRow("手机", it) }
@@ -54,32 +50,20 @@ fun UserInfoScreen(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-
-        OutlinedButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            Text("退出登录")
-        }
+        OutlinedButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("退出登录") }
     }
 }
 
+/** 资料行组件。 */
 @Composable
 private fun UserInfoRow(label: String, value: String, modifier: Modifier = Modifier) {
-    Row(
-            modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Row(modifier = modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text = value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
+/** 对证件号进行脱敏处理。 */
 private fun maskIdCard(idCard: String): String {
-    return if (idCard.length >= 8) {
-        idCard.substring(0, 4) + "****" + idCard.substring(idCard.length - 4)
-    } else {
-        idCard
-    }
+    return if (idCard.length >= 8) idCard.substring(0, 4) + "****" + idCard.substring(idCard.length - 4) else idCard
 }

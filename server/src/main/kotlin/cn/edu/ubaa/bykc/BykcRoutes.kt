@@ -14,12 +14,19 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
+/**
+ * 注册博雅课程 (BYKC) 相关路由。
+ * 包含用户信息、课程列表、统计信息、选课、退选及签到功能。
+ */
 fun Route.bykcRouting() {
         val bykcService = GlobalBykcService.instance
 
         route("/api/v1/bykc") {
 
-                /** 获取博雅课程用户信息 */
+                /**
+                 * GET /api/v1/bykc/profile
+                 * 获取用户在博雅系统中的个人资料（如学号、学院、当前学期）。
+                 */
                 get("/profile") {
                         val username = call.jwtUsername!!
                         application.log.info("Fetching BYKC profile for user: {}", username)
@@ -39,93 +46,43 @@ fun Route.bykcRouting() {
                                         )
                                 call.respond(HttpStatusCode.OK, profileDto)
                         } catch (e: LoginException) {
-                                application.log.warn(
-                                        "BYKC profile fetch failed for user {}: {}",
-                                        username,
-                                        e.message
-                                )
                                 call.respond(
                                         HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
+                                        ErrorResponse(ErrorDetails("unauthenticated", e.message ?: "Session is not available."))
                                 )
                         } catch (e: BykcException) {
                                 call.respond(
                                         HttpStatusCode.BadGateway,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "bykc_error",
-                                                        e.message ?: "Failed to fetch BYKC profile."
-                                                )
-                                        )
+                                        ErrorResponse(ErrorDetails("bykc_error", e.message ?: "Failed to fetch BYKC profile."))
                                 )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching BYKC profile.",
-                                        e
-                                )
                                 call.respond(
                                         HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
+                                        ErrorResponse(ErrorDetails("internal_server_error", "An unexpected server error occurred."))
                                 )
                         }
                 }
 
                 /**
-                 * GET /api/v1/bykc/courses 获取博雅课程列表
-                 *
-                 * Query params:
-                 * - page: 页码 (默认 1)
-                 * - size: 每页数量 (默认 20)
-                 * - all: 是否包含已过期课程 (默认 false)
+                 * GET /api/v1/bykc/courses
+                 * 获取博雅课程列表（支持分页和过滤）。
+                 * @param page 页码（从 1 开始）。
+                 * @param size 每页数量。
+                 * @param all 是否包含已结束课程。
                  */
                 get("/courses") {
                         val username = call.jwtUsername!!
-
                         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                         val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
                         val includeAll = call.request.queryParameters["all"]?.toBoolean() ?: false
 
-                        if (page < 1) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails("invalid_request", "page must be >= 1")
-                                        )
-                                )
-                                return@get
-                        }
-
-                        if (size < 1 || size > 500) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "invalid_request",
-                                                        "size must be between 1 and 500"
-                                                )
-                                        )
-                                )
+                        if (page < 1 || size < 1 || size > 500) {
+                                call.respond(HttpStatusCode.BadRequest, ErrorResponse(ErrorDetails("invalid_request", "Invalid page or size")))
                                 return@get
                         }
 
                         try {
-                                val coursePage =
-                                        if (includeAll) {
-                                                bykcService.getAllCourses(username, page, size)
-                                        } else {
-                                                bykcService.getCourses(username, page, size)
-                                        }
-
+                                val coursePage = if (includeAll) bykcService.getAllCourses(username, page, size) else bykcService.getCourses(username, page, size)
                                 call.respond(
                                         HttpStatusCode.OK,
                                         BykcCoursesResponse(
@@ -136,504 +93,122 @@ fun Route.bykcRouting() {
                                                 pageSize = coursePage.pageSize
                                         )
                                 )
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
-                        } catch (e: BykcException) {
-                                call.respond(
-                                        HttpStatusCode.BadGateway,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "bykc_error",
-                                                        e.message ?: "Failed to fetch BYKC courses."
-                                                )
-                                        )
-                                )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching BYKC courses.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_server_error", e.message ?: "Error")))
                         }
                 }
 
-                /** GET /api/v1/bykc/statistics 获取课程统计信息 */
+                /**
+                 * GET /api/v1/bykc/statistics
+                 * 获取用户的博雅课程修读统计（有效次数及各分类达标情况）。
+                 */
                 get("/statistics") {
                         val username = call.jwtUsername!!
-
                         try {
                                 val statistics = bykcService.getStatistics(username)
                                 call.respond(HttpStatusCode.OK, statistics)
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching BYKC statistics.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_server_error", "Error")))
                         }
                 }
 
-                /** GET /api/v1/bykc/statistics 获取课程统计信息 */
-                get("/statistics") {
-                        val username = call.jwtUsername!!
-
-                        try {
-                                val statistics = bykcService.getStatistics(username)
-                                call.respond(HttpStatusCode.OK, statistics)
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
-                        } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching BYKC statistics.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
-                        }
-                }
-
-                /** POST /api/v1/bykc/courses/{courseId}/select 选择课程 */
+                /**
+                 * POST /api/v1/bykc/courses/{courseId}/select
+                 * 选课（报名）。
+                 */
                 post("/courses/{courseId}/select") {
                         val username = call.jwtUsername!!
-
-                        val courseIdStr = call.parameters["courseId"]
-                        val courseId = courseIdStr?.toLongOrNull()
-
-                        if (courseId == null) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "invalid_request",
-                                                        "courseId must be a valid number"
-                                                )
-                                        )
-                                )
-                                return@post
-                        }
+                        val courseId = call.parameters["courseId"]?.toLongOrNull() ?: return@post call.respond(HttpStatusCode.BadRequest)
 
                         try {
-                                val result = bykcService.selectCourse(username, courseId)
-                                result.fold(
-                                        onSuccess = { message ->
-                                                call.respond(
-                                                        HttpStatusCode.OK,
-                                                        BykcSuccessResponse(message)
-                                                )
-                                        },
+                                bykcService.selectCourse(username, courseId).fold(
+                                        onSuccess = { call.respond(HttpStatusCode.OK, BykcSuccessResponse(it)) },
                                         onFailure = { error ->
-                                                when {
-                                                        error.message?.contains("重复报名") == true -> {
-                                                                call.respond(
-                                                                        HttpStatusCode.Conflict,
-                                                                        ErrorResponse(
-                                                                                ErrorDetails(
-                                                                                        "already_selected",
-                                                                                        error.message
-                                                                                                ?: "已报名过该课程"
-                                                                                )
-                                                                        )
-                                                                )
-                                                        }
-                                                        error.message?.contains("人数已满") == true -> {
-                                                                call.respond(
-                                                                        HttpStatusCode.Conflict,
-                                                                        ErrorResponse(
-                                                                                ErrorDetails(
-                                                                                        "course_full",
-                                                                                        error.message
-                                                                                                ?: "课程人数已满"
-                                                                                )
-                                                                        )
-                                                                )
-                                                        }
-                                                        error.message?.contains("不可选择") == true -> {
-                                                                call.respond(
-                                                                        HttpStatusCode.Conflict,
-                                                                        ErrorResponse(
-                                                                                ErrorDetails(
-                                                                                        "course_not_selectable",
-                                                                                        error.message
-                                                                                                ?: "该课程不可选择"
-                                                                                )
-                                                                        )
-                                                                )
-                                                        }
-                                                        else -> {
-                                                                call.respond(
-                                                                        HttpStatusCode.BadGateway,
-                                                                        ErrorResponse(
-                                                                                ErrorDetails(
-                                                                                        "select_failed",
-                                                                                        error.message
-                                                                                                ?: "选课失败"
-                                                                                )
-                                                                        )
-                                                                )
-                                                        }
+                                                val code = when {
+                                                        error.message?.contains("重复报名") == true -> "already_selected"
+                                                        error.message?.contains("人数已满") == true -> "course_full"
+                                                        error.message?.contains("不可选择") == true -> "course_not_selectable"
+                                                        else -> "select_failed"
                                                 }
+                                                call.respond(HttpStatusCode.Conflict, ErrorResponse(ErrorDetails(code, error.message ?: "Failed")))
                                         }
                                 )
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while selecting course.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_error", "Error")))
                         }
                 }
 
-                /** DELETE /api/v1/bykc/courses/{courseId}/select 退选课程 */
+                /**
+                 * DELETE /api/v1/bykc/courses/{courseId}/select
+                 * 退选（取消报名）。
+                 */
                 delete("/courses/{courseId}/select") {
                         val username = call.jwtUsername!!
-
-                        val courseIdStr = call.parameters["courseId"]
-                        val courseId = courseIdStr?.toLongOrNull()
-
-                        if (courseId == null) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "invalid_request",
-                                                        "courseId must be a valid number"
-                                                )
-                                        )
-                                )
-                                return@delete
-                        }
+                        val courseId = call.parameters["courseId"]?.toLongOrNull() ?: return@delete call.respond(HttpStatusCode.BadRequest)
 
                         try {
-                                val result = bykcService.deselectCourse(username, courseId)
-                                result.fold(
-                                        onSuccess = { message ->
-                                                call.respond(
-                                                        HttpStatusCode.OK,
-                                                        BykcSuccessResponse(message)
-                                                )
-                                        },
-                                        onFailure = { error ->
-                                                call.respond(
-                                                        HttpStatusCode.BadRequest,
-                                                        ErrorResponse(
-                                                                ErrorDetails(
-                                                                        "deselect_failed",
-                                                                        error.message ?: "退选失败"
-                                                                )
-                                                        )
-                                                )
-                                        }
-                                )
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
+                                bykcService.deselectCourse(username, courseId).fold(
+                                        onSuccess = { call.respond(HttpStatusCode.OK, BykcSuccessResponse(it)) },
+                                        onFailure = { call.respond(HttpStatusCode.BadRequest, ErrorResponse(ErrorDetails("deselect_failed", it.message ?: "Failed"))) }
                                 )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while deselecting course.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_error", "Error")))
                         }
                 }
 
-                /** GET /api/v1/bykc/courses/chosen 获取已选课程列表 */
+                /**
+                 * GET /api/v1/bykc/courses/chosen
+                 * 获取当前用户已报名的博雅课程。
+                 */
                 get("/courses/chosen") {
                         val username = call.jwtUsername!!
-
                         try {
                                 val chosenCourses = bykcService.getChosenCourses(username)
                                 call.respond(HttpStatusCode.OK, chosenCourses)
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
-                        } catch (e: BykcException) {
-                                call.respond(
-                                        HttpStatusCode.BadGateway,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "bykc_error",
-                                                        e.message
-                                                                ?: "Failed to fetch chosen courses."
-                                                )
-                                        )
-                                )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching chosen courses.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_error", "Error")))
                         }
                 }
 
-                /** GET /api/v1/bykc/courses/{courseId} 获取课程详情 */
+                /**
+                 * GET /api/v1/bykc/courses/{courseId}
+                 * 获取单门课程的详细信息。
+                 */
                 get("/courses/{courseId}") {
                         val username = call.jwtUsername!!
-
-                        val courseIdStr = call.parameters["courseId"]
-                        val courseId = courseIdStr?.toLongOrNull()
-
-                        if (courseId == null) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "invalid_request",
-                                                        "courseId must be a valid number"
-                                                )
-                                        )
-                                )
-                                return@get
-                        }
-
+                        val courseId = call.parameters["courseId"]?.toLongOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
                         try {
                                 val courseDetail = bykcService.getCourseDetail(username, courseId)
                                 call.respond(HttpStatusCode.OK, courseDetail)
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
-                        } catch (e: BykcException) {
-                                call.respond(
-                                        HttpStatusCode.BadGateway,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "bykc_error",
-                                                        e.message
-                                                                ?: "Failed to fetch course detail."
-                                                )
-                                        )
-                                )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching course detail.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_error", "Error")))
                         }
                 }
 
-                /** POST /api/v1/bykc/courses/{courseId}/sign 签到/签退 */
+                /**
+                 * POST /api/v1/bykc/courses/{courseId}/sign
+                 * 执行签到或签退操作。
+                 */
                 post("/courses/{courseId}/sign") {
                         val username = call.jwtUsername!!
-
-                        val courseIdStr = call.parameters["courseId"]
-                        val courseId = courseIdStr?.toLongOrNull()
-
-                        if (courseId == null) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "invalid_request",
-                                                        "courseId must be a valid number"
-                                                )
-                                        )
-                                )
-                                return@post
-                        }
-
-                        val signRequest =
-                                try {
-                                        call.receive<BykcSignRequest>()
-                                } catch (e: Exception) {
-                                        call.respond(
-                                                HttpStatusCode.BadRequest,
-                                                ErrorResponse(
-                                                        ErrorDetails(
-                                                                "invalid_request",
-                                                                "Invalid request body"
-                                                        )
-                                                )
-                                        )
-                                        return@post
-                                }
-
-                        if (signRequest.signType !in listOf(1, 2)) {
-                                call.respond(
-                                        HttpStatusCode.BadRequest,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "invalid_request",
-                                                        "signType must be 1 (sign in) or 2 (sign out)"
-                                                )
-                                        )
-                                )
-                                return@post
+                        val courseId = call.parameters["courseId"]?.toLongOrNull() ?: return@post call.respond(HttpStatusCode.BadRequest)
+                        val signRequest = try { call.receive<BykcSignRequest>() } catch (e: Exception) {
+                                return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse(ErrorDetails("invalid_request", "Invalid body")))
                         }
 
                         try {
-                                val result =
-                                        if (signRequest.signType == 1) {
-                                                bykcService.signIn(
-                                                        username,
-                                                        courseId,
-                                                        signRequest.lat,
-                                                        signRequest.lng
-                                                )
-                                        } else {
-                                                bykcService.signOut(
-                                                        username,
-                                                        courseId,
-                                                        signRequest.lat,
-                                                        signRequest.lng
-                                                )
-                                        }
+                                val result = if (signRequest.signType == 1) {
+                                        bykcService.signIn(username, courseId, signRequest.lat, signRequest.lng)
+                                } else {
+                                        bykcService.signOut(username, courseId, signRequest.lat, signRequest.lng)
+                                }
 
                                 result.fold(
-                                        onSuccess = { message ->
-                                                call.respond(
-                                                        HttpStatusCode.OK,
-                                                        BykcSuccessResponse(message)
-                                                )
-                                        },
-                                        onFailure = { error ->
-                                                call.respond(
-                                                        HttpStatusCode.BadRequest,
-                                                        ErrorResponse(
-                                                                ErrorDetails(
-                                                                        "sign_failed",
-                                                                        error.message ?: "签到/签退失败"
-                                                                )
-                                                        )
-                                                )
-                                        }
-                                )
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
+                                        onSuccess = { call.respond(HttpStatusCode.OK, BykcSuccessResponse(it)) },
+                                        onFailure = { call.respond(HttpStatusCode.BadRequest, ErrorResponse(ErrorDetails("sign_failed", it.message ?: "Failed"))) }
                                 )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while signing course.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                call.respond(HttpStatusCode.InternalServerError, ErrorResponse(ErrorDetails("internal_error", "Error")))
                         }
                 }
         }

@@ -15,137 +15,72 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.SigninClassDto
 
+/**
+ * 课堂签到主界面。
+ * 展示今日课程列表并提供一键签到按钮。
+ */
 @Composable
 fun SigninScreen(viewModel: SigninViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.signinResult) {
-        uiState.signinResult?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSigninResult()
-        }
+        uiState.signinResult?.let { snackbarHostState.showSnackbar(it); viewModel.clearSigninResult() }
     }
 
     Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             floatingActionButton = {
-                FloatingActionButton(onClick = { viewModel.loadTodayClasses() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                }
+                FloatingActionButton(onClick = { viewModel.loadTodayClasses() }) { Icon(Icons.Default.Refresh, "刷新") }
             }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            Text(
-                    text = "课程签到",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Text(text = "课程签到", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 16.dp))
 
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
-                }
-            } else if (uiState.classes.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "今日无课程安排")
-                }
-            } else {
-                LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
-                ) {
-                    items(uiState.classes) { clazz ->
-                        SigninClassCard(
-                                clazz = clazz,
-                                onSigninClick = { viewModel.performSignin(clazz.courseId) },
-                                isSigningIn = uiState.signingInCourseId == clazz.courseId
-                        )
+            when {
+                uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+                uiState.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error) }
+                uiState.classes.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("今日无课程安排") }
+                else -> {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()) {
+                        items(uiState.classes) { clazz ->
+                            SigninClassCard(clazz, { viewModel.performSignin(clazz.courseId) }, uiState.signingInCourseId == clazz.courseId)
+                        }
                     }
-
-                    // ...已移除底部重复的刷新按钮...
                 }
             }
         }
     }
 }
 
+/** 单个签到课程卡片。 */
 @Composable
 fun SigninClassCard(clazz: SigninClassDto, onSigninClick: () -> Unit, isSigningIn: Boolean) {
     val isSigned = clazz.signStatus == 1
-
     Card(
             modifier = Modifier.fillMaxWidth(),
-            colors =
-                    CardDefaults.cardColors(
-                            containerColor =
-                                    if (isSigned) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                    ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            colors = CardDefaults.cardColors(containerColor = if (isSigned) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Row(
-                modifier = Modifier.padding(20.dp).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                        text = clazz.courseName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                )
+                Text(text = clazz.courseName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Icon(Icons.Default.AccessTime, null, Modifier.size(14.dp), MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                            text = "${clazz.classBeginTime} - ${clazz.classEndTime}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(text = "${clazz.classBeginTime} - ${clazz.classEndTime}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-
-            if (isSigned) {
-                Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "已签到",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
+            if (isSigned) Icon(Icons.Default.CheckCircle, "已签到", Modifier.size(32.dp), MaterialTheme.colorScheme.primary)
+            else Button(onClick = onSigninClick, enabled = !isSigningIn) {
+                if (isSigningIn) CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
                 )
-            } else {
-                Button(
-                        onClick = onSigninClick,
-                        enabled = !isSigningIn,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    if (isSigningIn) {
-                        SizedCircularProgressIndicator()
-                    } else {
-                        Text("签到")
-                    }
-                }
+                else Text("签到")
             }
         }
     }
-}
-
-@Composable
-fun SizedCircularProgressIndicator() {
-    CircularProgressIndicator(
-            modifier = Modifier.size(16.dp),
-            strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.onPrimary
-    )
 }

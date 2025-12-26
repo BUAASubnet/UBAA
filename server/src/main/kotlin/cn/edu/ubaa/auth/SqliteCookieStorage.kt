@@ -11,7 +11,13 @@ import java.sql.DriverManager
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** SQLite Cookie 存储，按用户隔离，支持持久化 */
+/**
+ * 基于 SQLite 实现的持久化 Cookie 存储。
+ * 为每个用户提供隔离的 Cookie 空间，确保重启后用户在上游系统（如 SSO）的登录状态依然有效。
+ *
+ * @param dbPath SQLite 数据库文件路径。
+ * @param username 关联的用户名（隔离标识）。
+ */
 class SqliteCookieStorage(private val dbPath: String, private val username: String) :
         CookiesStorage {
     private val mutex = Mutex()
@@ -20,6 +26,7 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
         ensureDatabase()
     }
 
+    /** 将 Cookie 保存到数据库，若已存在则更新。 */
     override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
         val domain = (cookie.domain ?: requestUrl.host).lowercase()
         val path = (cookie.path ?: requestUrl.encodedPath.ifBlank { "/" })
@@ -60,6 +67,7 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
         }
     }
 
+    /** 从数据库中检索适用于指定 URL 的 Cookie 列表，并自动清理过期项。 */
     override suspend fun get(requestUrl: Url): List<Cookie> {
         val now = System.currentTimeMillis()
         return mutex.withLock {
@@ -83,8 +91,7 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
                                 val maxAge = rs.getInt(8)
                                 val createdAt = rs.getLong(9)
 
-                                val isExpired = isExpired(now, expiresAt, maxAge, createdAt)
-                                if (isExpired) {
+                                if (isExpired(now, expiresAt, maxAge, createdAt)) {
                                     expiredKeys.add(CookieKey(name, domain, path))
                                     continue
                                 }
@@ -93,14 +100,13 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
                                 if (!pathMatches(requestUrl.encodedPath, path)) continue
                                 if (secure && !isHttps(requestUrl)) continue
 
-                                val expires = expiresAt?.let { GMTDate(it) }
                                 results.add(
                                         Cookie(
                                                 name = name,
                                                 value = value,
                                                 domain = domain,
                                                 path = path,
-                                                expires = expires,
+                                                expires = expiresAt?.let { GMTDate(it) },
                                                 secure = secure,
                                                 httpOnly = httpOnly,
                                                 maxAge = maxAge,
@@ -109,20 +115,16 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
                                 )
                             }
                             close()
-
-                            if (expiredKeys.isNotEmpty()) {
-                                deleteExpired(conn, expiredKeys)
-                            }
+                            if (expiredKeys.isNotEmpty()) deleteExpired(conn, expiredKeys)
                         }
             }
             results
         }
     }
 
-    override fun close() {
-        // nothing to close; connections are short-lived
-    }
+    override fun close() {}
 
+    /** 清空该用户的所有 Cookie。 */
     suspend fun clear() {
         mutex.withLock {
             getConnection().use { conn ->
@@ -135,6 +137,7 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
         }
     }
 
+    /** 将当前隔离空间下的所有 Cookie 迁移到另一个用户名下（用于预登录转换）。 */
     suspend fun migrateTo(newUsername: String) {
         mutex.withLock {
             getConnection().use { conn ->
@@ -158,7 +161,6 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
                             executeUpdate()
                             close()
                         }
-
                 conn.prepareStatement("DELETE FROM cookies WHERE username=?").apply {
                     setString(1, username)
                     executeUpdate()
@@ -168,17 +170,9 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
         }
     }
 
-    private fun isExpired(
-            nowMillis: Long,
-            expiresAt: Long?,
-            maxAge: Int,
-            createdAt: Long
-    ): Boolean {
-        if (expiresAt != null && expiresAt <= nowMillis) return true
-        if (maxAge >= 0) {
-            val deadline = createdAt + maxAge * 1000L
-            if (nowMillis >= deadline) return true
-        }
+    private fun isExpired(now: Long, expiresAt: Long?, maxAge: Int, createdAt: Long): Boolean {
+        if (expiresAt != null && expiresAt <= now) return true
+        if (maxAge >= 0 && now >= (createdAt + maxAge * 1000L)) return true
         return false
     }
 
@@ -189,10 +183,9 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
     }
 
     private fun pathMatches(requestPath: String, cookiePath: String): Boolean {
-        if (cookiePath.isEmpty()) return true
-        val req = if (requestPath.isEmpty()) "/" else requestPath
-        val normalized = if (cookiePath.endsWith("/")) cookiePath else "$cookiePath/"
-        return req.startsWith(normalized.removeSuffix("/"))
+        val req = requestPath.ifBlank { "/" }
+        val norm = if (cookiePath.endsWith("/")) cookiePath else "$cookiePath/"
+        return req.startsWith(norm.removeSuffix("/"))
     }
 
     private fun ensureDatabase() {
@@ -221,28 +214,16 @@ class SqliteCookieStorage(private val dbPath: String, private val username: Stri
     }
 
     private fun deleteExpired(conn: Connection, keys: List<CookieKey>) {
-        conn.prepareStatement(
-                        "DELETE FROM cookies WHERE username=? AND name=? AND domain=? AND path=?"
-                )
-                .use { ps ->
-                    keys.forEach { key ->
-                        ps.setString(1, username)
-                        ps.setString(2, key.name)
-                        ps.setString(3, key.domain)
-                        ps.setString(4, key.path)
-                        ps.addBatch()
-                    }
-                    ps.executeBatch()
-                }
+        conn.prepareStatement("DELETE FROM cookies WHERE username=? AND name=? AND domain=? AND path=?").use { ps ->
+            keys.forEach {
+                ps.setString(1, username); ps.setString(2, it.name); ps.setString(3, it.domain); ps.setString(4, it.path)
+                ps.addBatch()
+            }
+            ps.executeBatch()
+        }
     }
 
-    private fun getConnection(): Connection {
-        return DriverManager.getConnection("jdbc:sqlite:$dbPath")
-    }
-
-    private fun isHttps(url: Url): Boolean {
-        return url.protocol.name.equals("https", ignoreCase = true)
-    }
-
+    private fun getConnection(): Connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
+    private fun isHttps(url: Url): Boolean = url.protocol.name.equals("https", true)
     private data class CookieKey(val name: String, val domain: String, val path: String)
 }

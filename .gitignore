@@ -85,3 +85,9 @@ session_store.db
 
 release/
 server/data/session_store.db
+
+_bmad
+_bmad-output
+.gemini
+.github/agents
+docs

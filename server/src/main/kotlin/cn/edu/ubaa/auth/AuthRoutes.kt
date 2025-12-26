@@ -3,31 +3,38 @@ package cn.edu.ubaa.auth
 import cn.edu.ubaa.auth.JwtAuth.getUserSession
 import cn.edu.ubaa.model.dto.CaptchaRequiredResponse
 import cn.edu.ubaa.model.dto.LoginRequest
+import cn.edu.ubaa.api.SessionStatusResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 
-// 错误响应类，前后端统一
-@kotlinx.serialization.Serializable data class ErrorResponse(val error: ErrorDetails)
+/** 统一的错误响应类。 */
+@Serializable data class ErrorResponse(val error: ErrorDetails)
 
-@kotlinx.serialization.Serializable data class ErrorDetails(val code: String, val message: String)
+/**
+ * 错误详细信息。
+ * @property code 错误码。
+ * @property message 错误描述。
+ */
+@Serializable data class ErrorDetails(val code: String, val message: String)
 
-@kotlinx.serialization.Serializable
-data class SessionStatusResponse(
-        val user: cn.edu.ubaa.model.dto.UserData,
-        val lastActivity: String,
-        val authenticatedAt: String
-)
-
+/**
+ * 注册认证相关路由。
+ * 包含预加载、登录、状态查询、注销和验证码获取。
+ */
 fun Route.authRouting() {
         val sessionManager = GlobalSessionManager.instance
         val authService = AuthService(sessionManager)
 
         route("/api/v1/auth") {
-                // 预加载登录状态：为 clientId 创建专属会话，获取验证码（如果需要）
+                /**
+                 * POST /api/v1/auth/preload
+                 * 预加载登录状态。为指定 clientId 创建或恢复一个预登录会话，并探测是否需要验证码。
+                 */
                 post("/preload") {
                         try {
                                 val request =
@@ -66,7 +73,10 @@ fun Route.authRouting() {
                         }
                 }
 
-                // 登录接口
+                /**
+                 * POST /api/v1/auth/login
+                 * 用户登录接口。支持普通登录和带验证码/执行标识的二次提交。
+                 */
                 post("/login") {
                         try {
                                 val request = call.receive<LoginRequest>()
@@ -107,7 +117,6 @@ fun Route.authRouting() {
                                         )
                                 )
                         } catch (e: Exception) {
-                                // 记录异常，便于排查
                                 application.log.error(
                                         "An unexpected error occurred during login.",
                                         e
@@ -124,7 +133,10 @@ fun Route.authRouting() {
                         }
                 }
 
-                // 查询会话状态，校验 JWT
+                /**
+                 * GET /api/v1/auth/status
+                 * 查询当前会话状态。需携带有效的 JWT 令牌。
+                 */
                 get("/status") {
                         try {
                                 val session = call.getUserSession()
@@ -173,7 +185,10 @@ fun Route.authRouting() {
                         }
                 }
 
-                // 注销，清理会话
+                /**
+                 * POST /api/v1/auth/logout
+                 * 用户注销接口。清理服务端会话并尝试使上游 SSO 失效。
+                 */
                 post("/logout") {
                         try {
                                 val session = call.getUserSession()
@@ -211,7 +226,10 @@ fun Route.authRouting() {
                         }
                 }
 
-                // 获取验证码图片
+                /**
+                 * GET /api/v1/auth/captcha/{captchaId}
+                 * 获取验证码图片。
+                 */
                 get("/captcha/{captchaId}") {
                         try {
                                 val captchaId = call.parameters["captchaId"]
@@ -228,7 +246,6 @@ fun Route.authRouting() {
                                         return@get
                                 }
 
-                                // 复用 Client，减少资源消耗
                                 val imageBytes =
                                         authService.getCaptchaImage(
                                                 cn.edu.ubaa.utils.HttpClients.sharedClient,

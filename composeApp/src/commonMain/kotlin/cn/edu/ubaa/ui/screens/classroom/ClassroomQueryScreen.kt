@@ -21,6 +21,13 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+/**
+ * 教室查询功能屏幕。
+ * 支持校区切换、日期筛选、关键字搜索，并以复杂的网格图表展示各时段教室的空闲情况。
+ *
+ * @param viewModel 控制查询逻辑的状态机。
+ * @param onBackClick 点击返回按钮的回调。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClassroomQueryScreen(
@@ -33,367 +40,126 @@ fun ClassroomQueryScreen(
         val date by viewModel.date.collectAsState()
         val searchQuery by viewModel.searchQuery.collectAsState()
         val filteredData by viewModel.filteredData.collectAsState()
-
         var showDatePicker by remember { mutableStateOf(false) }
 
-        LaunchedEffect(Unit) {
-                if (uiState is ClassroomUiState.Idle) {
-                        viewModel.query()
-                }
-        }
+        LaunchedEffect(Unit) { if (uiState is ClassroomUiState.Idle) viewModel.query() }
 
         if (showDatePicker) {
                 val datePickerState = rememberDatePickerState()
                 DatePickerDialog(
                         onDismissRequest = { showDatePicker = false },
                         confirmButton = {
-                                TextButton(
-                                        onClick = {
-                                                datePickerState.selectedDateMillis?.let { millis ->
-                                                        val instant =
-                                                                Instant.fromEpochMilliseconds(
-                                                                        millis
-                                                                )
-                                                        val localDate =
-                                                                instant.toLocalDateTime(
-                                                                                TimeZone.UTC
-                                                                        )
-                                                                        .date
-                                                        viewModel.setDate(localDate.toString())
-                                                }
-                                                showDatePicker = false
-                                        }
-                                ) { Text("确定") }
+                                TextButton(onClick = {
+                                        datePickerState.selectedDateMillis?.let { viewModel.setDate(Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date.toString()) }
+                                        showDatePicker = false
+                                })
+                                { Text("确定") }
                         },
-                        dismissButton = {
-                                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-                        }
+                        dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("取消") } }
                 ) { DatePicker(state = datePickerState) }
         }
 
         Column(modifier = modifier.fillMaxSize()) {
-                // Campus Selection
                 Surface(tonalElevation = 2.dp, shadowElevation = 1.dp) {
-                        Row(
-                                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
+                        Row(Modifier.fillMaxWidth().padding(8.dp), Arrangement.SpaceEvenly) {
                                 CampusButton("学院路", 1, xqid == 1) { viewModel.setXqid(1) }
                                 CampusButton("沙河", 2, xqid == 2) { viewModel.setXqid(2) }
                                 CampusButton("杭州", 3, xqid == 3) { viewModel.setXqid(3) }
                         }
                 }
 
-                // Date Selection & Search
-                Row(
-                        modifier =
-                                Modifier.fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                ) {
-                        OutlinedCard(
-                                onClick = { showDatePicker = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                        ) {
+                Row(Modifier.fillMaxWidth().padding(16.dp, 8.dp), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
+                        OutlinedCard(onClick = { showDatePicker = true }, Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                                 Row(
-                                        modifier =
-                                                Modifier.padding(
-                                                        horizontal = 12.dp,
-                                                        vertical = 12.dp
-                                                ),
+                                        modifier = Modifier.padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                        Text(
-                                                text = date,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Icon(
-                                                imageVector = Icons.Default.DateRange,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = MaterialTheme.colorScheme.primary
-                                        )
+                                ) { 
+                                        Text(text = date, style = MaterialTheme.typography.bodyMedium); Icon(Icons.Default.DateRange, null, Modifier.size(20.dp), MaterialTheme.colorScheme.primary)
                                 }
                         }
-
                         OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { viewModel.setSearchQuery(it) },
-                                placeholder = { Text("搜索教室/楼栋") },
-                                modifier = Modifier.weight(1.5f),
-                                shape = RoundedCornerShape(12.dp),
-                                singleLine = true,
-                                leadingIcon = {
-                                        Icon(Icons.Default.Search, contentDescription = null)
-                                },
-                                colors =
-                                        OutlinedTextFieldDefaults.colors(
-                                                unfocusedContainerColor = Color.Transparent,
-                                                focusedContainerColor = Color.Transparent
-                                        )
+                                value = searchQuery, onValueChange = { viewModel.setSearchQuery(it) }, placeholder = { Text("搜索教室/楼栋") },
+                                modifier = Modifier.weight(1.5f), shape = RoundedCornerShape(12.dp), singleLine = true,
+                                leadingIcon = { Icon(Icons.Default.Search, null) }
                         )
                 }
 
                 when (val state = uiState) {
-                        is ClassroomUiState.Idle, is ClassroomUiState.Loading -> {
-                                Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                CircularProgressIndicator()
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Text(
-                                                        "正在查询空教室...",
-                                                        style = MaterialTheme.typography.bodyMedium
-                                                )
-                                        }
+                        is ClassroomUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { 
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) { CircularProgressIndicator(); Spacer(Modifier.height(8.dp)); Text("正在查询...") }
+                        }
+                        is ClassroomUiState.Success -> if (filteredData.isEmpty()) Box(Modifier.fillMaxSize(), Alignment.Center) { Text("未找到匹配教室") }
+                                else ClassroomTable(filteredData)
+                        is ClassroomUiState.Error -> Box(Modifier.fillMaxSize().padding(16.dp), Alignment.Center) { 
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = "查询失败: ${state.message}", color = MaterialTheme.colorScheme.error); Spacer(Modifier.height(16.dp)); Button(onClick = { viewModel.query() }) { Text("重试") }
                                 }
                         }
-                        is ClassroomUiState.Success -> {
-                                if (filteredData.isEmpty()) {
-                                        Box(
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentAlignment = Alignment.Center
-                                        ) {
-                                                Text(
-                                                        "未找到匹配的教室",
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color =
-                                                                MaterialTheme.colorScheme
-                                                                        .onSurfaceVariant
-                                                )
-                                        }
-                                } else {
-                                        ClassroomTable(filteredData)
-                                }
-                        }
-                        is ClassroomUiState.Error -> {
-                                Box(
-                                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(
-                                                        text = "查询失败: ${state.message}",
-                                                        color = MaterialTheme.colorScheme.error,
-                                                        textAlign = TextAlign.Center
-                                                )
-                                                Spacer(modifier = Modifier.height(16.dp))
-                                                Button(onClick = { viewModel.query() }) {
-                                                        Text("重试")
-                                                }
-                                        }
-                                }
-                        }
+                        else -> {}
                 }
         }
 }
 
+/** 校区切换按钮。 */
 @Composable
 fun CampusButton(name: String, id: Int, selected: Boolean, onClick: () -> Unit) {
-        FilterChip(
-                selected = selected,
-                onClick = onClick,
-                label = { Text(name) },
-                colors =
-                        FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-        )
+        FilterChip(selected = selected, onClick = onClick, label = { Text(name) })
 }
 
-private val timeSlots =
-        listOf(
-                "1-3" to listOf(1, 2, 3),
-                "4-5" to listOf(4, 5),
-                "6-7" to listOf(6, 7),
-                "8-10" to listOf(8, 9, 10),
-                "11-13" to listOf(11, 12, 13),
-                "14" to listOf(14)
-        )
+private val timeSlots = listOf("1-3" to listOf(1, 2, 3), "4-5" to listOf(4, 5), "6-7" to listOf(6, 7), "8-10" to listOf(8, 9, 10), "11-13" to listOf(11, 12, 13), "14" to listOf(14))
 
+/** 教室排布表。以楼栋为组进行展示。 */
 @Composable
 fun ClassroomTable(list: Map<String, List<ClassroomInfo>>) {
         val horizontalScrollState = rememberScrollState()
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize()) {
                 list.forEach { (building, classrooms) ->
                         item { BuildingHeader(building) }
-
                         item {
-                                // Table Header
-                                Row(
-                                        modifier =
-                                                Modifier.fillMaxWidth()
-                                                        .horizontalScroll(horizontalScrollState)
-                                                        .background(
-                                                                MaterialTheme.colorScheme
-                                                                        .surfaceVariant.copy(
-                                                                        alpha = 0.3f
-                                                                )
-                                                        )
-                                                        .border(
-                                                                0.5.dp,
-                                                                MaterialTheme.colorScheme
-                                                                        .outlineVariant
-                                                        )
-                                ) {
-                                        TableCell(text = "教室\n节数", weight = 1.5f, isHeader = true)
+                                Row(Modifier.fillMaxWidth().horizontalScroll(horizontalScrollState).background(MaterialTheme.colorScheme.surfaceVariant.copy(0.3f)).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                                        TableCell("教室\n节数", 1.5f, true)
                                         timeSlots.forEach { (label, periods) ->
-                                                Box(
-                                                        modifier =
-                                                                Modifier.weight(
-                                                                                periods.size
-                                                                                        .toFloat()
-                                                                        )
-                                                                        .widthIn(
-                                                                                min =
-                                                                                        40.dp *
-                                                                                                periods.size
-                                                                        )
-                                                                        .height(48.dp)
-                                                                        .border(
-                                                                                0.6.dp,
-                                                                                MaterialTheme
-                                                                                        .colorScheme
-                                                                                        .outlineVariant
-                                                                        ),
-                                                        contentAlignment = Alignment.Center
-                                                ) {
-                                                        Text(
-                                                                text = label,
-                                                                style =
-                                                                        MaterialTheme.typography
-                                                                                .labelSmall,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color =
-                                                                        MaterialTheme.colorScheme
-                                                                                .onSurfaceVariant,
-                                                                textAlign = TextAlign.Center
-                                                        )
+                                                Box(Modifier.width(40.dp * periods.size).height(48.dp).border(0.6.dp, MaterialTheme.colorScheme.outlineVariant), Alignment.Center) { 
+                                                        Text(text = label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                                 }
                                         }
                                 }
                         }
-
-                        items(classrooms) { classroom ->
-                                ClassroomRow(classroom, horizontalScrollState)
-                        }
-
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
+                        items(classrooms) { ClassroomRow(it, horizontalScrollState) }
+                        item { Spacer(Modifier.height(16.dp)) }
                 }
         }
 }
 
+/** 楼栋分组标题。 */
 @Composable
 fun BuildingHeader(name: String) {
-        Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-        ) {
-                Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(4.dp)
-                ) {
-                        Text(
-                                text = name,
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                fontWeight = FontWeight.Bold
-                        )
+        Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), Alignment.Center) {
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(4.dp)) {
+                        Text(text = name, Modifier.padding(24.dp, 4.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
         }
 }
 
+/** 教室详情行。展示每个节次的空闲背景色。 */
 @Composable
 fun ClassroomRow(classroom: ClassroomInfo, scrollState: ScrollState) {
         val freePeriods = classroom.kxsds.split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
-        val freeColor = Color(0xFF98FB98) // Pale Green
-
-        Row(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .horizontalScroll(scrollState)
-                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-        ) {
-                // Classroom Name
-                TableCell(
-                        text = classroom.name,
-                        weight = 1.5f,
-                        textColor = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                )
-
-                // Time Slots - Grouped by blocks with thicker borders
+        Row(Modifier.fillMaxWidth().horizontalScroll(scrollState).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                TableCell(classroom.name, 1.5f, false, MaterialTheme.colorScheme.primary, FontWeight.Medium)
                 timeSlots.forEach { (_, periods) ->
-                        Row(
-                                modifier =
-                                        Modifier.weight(periods.size.toFloat())
-                                                .widthIn(min = 40.dp * periods.size)
-                                                .height(48.dp)
-                                                .border(
-                                                        0.6.dp,
-                                                        MaterialTheme.colorScheme.outlineVariant
-                                                )
-                        ) {
-                                periods.forEach { period ->
-                                        val isFree = period in freePeriods
-                                        Box(
-                                                modifier =
-                                                        Modifier.weight(1f)
-                                                                .fillMaxHeight()
-                                                                .background(
-                                                                        if (isFree) freeColor
-                                                                        else Color.Transparent
-                                                                )
-                                                                .border(
-                                                                        0.3.dp,
-                                                                        MaterialTheme.colorScheme
-                                                                                .outlineVariant
-                                                                                .copy(alpha = 0.3f)
-                                                                )
-                                        )
-                                }
+                        Row(Modifier.width(40.dp * periods.size).height(48.dp).border(0.6.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                                periods.forEach { Box(Modifier.weight(1f).fillMaxHeight().background(if (it in freePeriods) Color(0xFF98FB98) else Color.Transparent).border(0.3.dp, MaterialTheme.colorScheme.outlineVariant.copy(0.3f))) }
                         }
                 }
         }
 }
 
+/** 通用单元格容器。 */
 @Composable
-fun RowScope.TableCell(
-        text: String,
-        weight: Float,
-        isHeader: Boolean = false,
-        textColor: Color = Color.Unspecified,
-        fontWeight: FontWeight? = null
-) {
-        Box(
-                modifier =
-                        Modifier.weight(weight)
-                                .widthIn(min = 60.dp)
-                                .height(48.dp)
-                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-                contentAlignment = Alignment.Center
-        ) {
-                Text(
-                        text = text,
-                        style =
-                                if (isHeader) MaterialTheme.typography.labelSmall
-                                else MaterialTheme.typography.bodySmall,
-                        fontWeight = fontWeight
-                                        ?: if (isHeader) FontWeight.Bold else FontWeight.Normal,
-                        color =
-                                if (isHeader) MaterialTheme.colorScheme.onSurfaceVariant
-                                else textColor,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 14.sp
-                )
+fun RowScope.TableCell(text: String, weight: Float, isHeader: Boolean, textColor: Color = Color.Unspecified, fontWeight: FontWeight? = null) {
+        Box(Modifier.weight(weight).widthIn(60.dp).height(48.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant), Alignment.Center) {
+                Text(text = text, style = if (isHeader) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall, fontWeight = fontWeight ?: if (isHeader) FontWeight.Bold else FontWeight.Normal, color = if (isHeader) MaterialTheme.colorScheme.onSurfaceVariant else textColor, textAlign = TextAlign.Center, lineHeight = 14.sp)
         }
 }

@@ -21,7 +21,15 @@ import kotlin.random.Random
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
-/** 博雅课程服务，封装 BykcClient，提供课程、选课、签到等业务逻辑 */
+/**
+ * 博雅课程业务服务类。
+ * 封装了复杂的业务逻辑，包括：
+ * 1. 自动维护用户的博雅系统登录会话。
+ * 2. 课程状态计算（可选、已满、结束、过期等）。
+ * 3. 选课与退选流程处理。
+ * 4. 签到逻辑，包括签到点地理位置随机生成（模拟真实坐标）。
+ * 5. 课程统计信息的汇总与分类处理。
+ */
 class BykcService(private val sessionManager: SessionManager = GlobalSessionManager.instance) {
     private val log = LoggerFactory.getLogger(BykcService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
@@ -29,19 +37,18 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
     // 缓存用户 BykcClient，提升复用
     private val clientCache = mutableMapOf<String, BykcClient>()
 
-    /** 获取或创建用户 BykcClient */
+    /** 获取或创建用户专属的博雅客户端。 */
     private fun getClient(username: String): BykcClient {
         return clientCache.getOrPut(username) {
             BykcClient(username).also { log.debug("Created new BykcClient for user: {}", username) }
         }
     }
 
-    /** 确保用户已登录 BYKC 系统 */
+    /** 确保用户已在博雅系统中完成登录。 */
     suspend fun ensureBykcLogin(username: String): Boolean {
         val client = getClient(username)
         return try {
             client.login()
-            log.info("BYKC login successful for user: {}", username)
             true
         } catch (e: Exception) {
             log.error("BYKC login failed for user: {}", username, e)
@@ -49,20 +56,15 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         }
     }
 
-    /** 获取用户博雅课程信息 */
+    /** 获取用户的博雅个人资料。 */
     suspend fun getUserProfile(username: String): BykcUserProfile {
         ensureBykcLogin(username)
-        val client = getClient(username)
-        return client.getUserProfile()
+        return getClient(username).getUserProfile()
     }
 
     /**
-     * 查询当前学期的博雅课程列表
-     *
-     * @param username 用户名
-     * @param pageNumber 页码（从1开始）
-     * @param pageSize 每页数量
-     * @return 课程分页结果（带状态计算）
+     * 查询当前可选或已开始的博雅课程列表。
+     * 会自动计算每门课程的状态并进行分页。
      */
     suspend fun getCourses(
             username: String,
@@ -73,143 +75,98 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         val client = getClient(username)
         val result = client.queryStudentSemesterCourseByPage(pageNumber, pageSize)
 
-        val courses =
-                result.content.mapNotNull { course ->
-                    try {
-                        val status = calculateCourseStatus(course)
-                        // 过滤掉已过期和已结束的课程（可选）
-                        if (status == BykcCourseStatusEnum.EXPIRED ||
-                                        status == BykcCourseStatusEnum.ENDED
-                        ) {
-                            return@mapNotNull null
-                        }
+        val courses = result.content.mapNotNull { course ->
+            try {
+                val status = calculateCourseStatus(course)
+                // 默认过滤掉已过期的课程
+                if (status == BykcCourseStatusEnum.EXPIRED || status == BykcCourseStatusEnum.ENDED) return@mapNotNull null
 
-                        BykcCourseDto(
-                                id = course.id,
-                                courseName = course.courseName,
-                                coursePosition = course.coursePosition,
-                                courseTeacher = course.courseTeacher,
-                                courseStartDate = course.courseStartDate,
-                                courseEndDate = course.courseEndDate,
-                                courseSelectStartDate = course.courseSelectStartDate,
-                                courseSelectEndDate = course.courseSelectEndDate,
-                                courseMaxCount = course.courseMaxCount,
-                                courseCurrentCount = course.courseCurrentCount ?: 0,
-                                category = course.courseNewKind1?.kindName,
-                                subCategory = course.courseNewKind2?.kindName,
-                                status = status.displayName,
-                                selected = course.selected ?: false,
-                                courseDesc = course.courseDesc
-                        )
-                    } catch (e: Exception) {
-                        log.warn("Failed to process course {}: {}", course.id, e.message)
-                        null
-                    }
-                }
+                BykcCourseDto(
+                        id = course.id,
+                        courseName = course.courseName,
+                        coursePosition = course.coursePosition,
+                        courseTeacher = course.courseTeacher,
+                        courseStartDate = course.courseStartDate,
+                        courseEndDate = course.courseEndDate,
+                        courseSelectStartDate = course.courseSelectStartDate,
+                        courseSelectEndDate = course.courseSelectEndDate,
+                        courseMaxCount = course.courseMaxCount,
+                        courseCurrentCount = course.courseCurrentCount ?: 0,
+                        category = course.courseNewKind1?.kindName,
+                        subCategory = course.courseNewKind2?.kindName,
+                        status = status.displayName,
+                        selected = course.selected ?: false,
+                        courseDesc = course.courseDesc
+                )
+            } catch (e: Exception) { null }
+        }
 
-        return BykcCoursePage(
-                courses = courses,
-                totalElements = result.totalElements,
-                totalPages = result.totalPages,
-                currentPage = pageNumber,
-                pageSize = pageSize
-        )
+        return BykcCoursePage(courses, result.totalElements, result.totalPages, pageNumber, pageSize)
     }
 
-    /** 获取所有课程（包括已过期的） */
-    suspend fun getAllCourses(
-            username: String,
-            pageNumber: Int = 1,
-            pageSize: Int = 20
-    ): BykcCoursePage {
+    /** 获取所有博雅课程（包括已结束和过期的）。 */
+    suspend fun getAllCourses(username: String, pageNumber: Int, pageSize: Int): BykcCoursePage {
         ensureBykcLogin(username)
         val client = getClient(username)
         val result = client.queryStudentSemesterCourseByPage(pageNumber, pageSize)
 
-        val courses =
-                result.content.map { course ->
-                    val status = calculateCourseStatus(course)
-                    BykcCourseDto(
-                            id = course.id,
-                            courseName = course.courseName,
-                            coursePosition = course.coursePosition,
-                            courseTeacher = course.courseTeacher,
-                            courseStartDate = course.courseStartDate,
-                            courseEndDate = course.courseEndDate,
-                            courseSelectStartDate = course.courseSelectStartDate,
-                            courseSelectEndDate = course.courseSelectEndDate,
-                            courseMaxCount = course.courseMaxCount,
-                            courseCurrentCount = course.courseCurrentCount ?: 0,
-                            category = course.courseNewKind1?.kindName,
-                            subCategory = course.courseNewKind2?.kindName,
-                            status = status.displayName,
-                            selected = course.selected ?: false,
-                            courseDesc = course.courseDesc
-                    )
-                }
-
-        return BykcCoursePage(
-                courses = courses,
-                totalElements = result.totalElements,
-                totalPages = result.totalPages,
-                currentPage = pageNumber,
-                pageSize = pageSize
-        )
+        val courses = result.content.map { course ->
+            val status = calculateCourseStatus(course)
+            BykcCourseDto(
+                    id = course.id,
+                    courseName = course.courseName,
+                    coursePosition = course.coursePosition,
+                    courseTeacher = course.courseTeacher,
+                    courseStartDate = course.courseStartDate,
+                    courseEndDate = course.courseEndDate,
+                    courseSelectStartDate = course.courseSelectStartDate,
+                    courseSelectEndDate = course.courseSelectEndDate,
+                    courseMaxCount = course.courseMaxCount,
+                    courseCurrentCount = course.courseCurrentCount ?: 0,
+                    category = course.courseNewKind1?.kindName,
+                    subCategory = course.courseNewKind2?.kindName,
+                    status = status.displayName,
+                    selected = course.selected ?: false,
+                    courseDesc = course.courseDesc
+            )
+        }
+        return BykcCoursePage(courses, result.totalElements, result.totalPages, pageNumber, pageSize)
     }
 
-    /** 选择课程 */
+    /** 选课。 */
     suspend fun selectCourse(username: String, courseId: Long): Result<String> {
         return try {
             ensureBykcLogin(username)
-            val client = getClient(username)
-            val response = client.choseCourse(courseId)
-            log.info("User {} selected course {}", username, courseId)
+            getClient(username).choseCourse(courseId)
             Result.success("选课成功")
-        } catch (e: Exception) {
-            log.error("User {} failed to select course {}: {}", username, courseId, e.message)
-            Result.failure(e)
-        }
+        } catch (e: Exception) { Result.failure(e) }
     }
 
-    /** 退选课程 */
+    /** 退选。 */
     suspend fun deselectCourse(username: String, courseId: Long): Result<String> {
         return try {
             ensureBykcLogin(username)
-            val client = getClient(username)
-            client.delChosenCourse(courseId)
-            log.info("User {} deselected course {}", username, courseId)
+            getClient(username).delChosenCourse(courseId)
             Result.success("退选成功")
-        } catch (e: BykcSelectException) {
-            log.warn("User {} failed to deselect course {}: {}", username, courseId, e.message)
-            Result.failure(e)
-        } catch (e: Exception) {
-            log.error("User {} failed to deselect course {}: {}", username, courseId, e.message)
-            Result.failure(e)
-        }
+        } catch (e: Exception) { Result.failure(e) }
     }
 
-    /** 获取已选课程列表 */
+    /** 获取当前用户已报名并待修读或已完成的课程列表。 */
     suspend fun getChosenCourses(username: String): List<BykcChosenCourseDto> {
         ensureBykcLogin(username)
         val client = getClient(username)
-
-        // 获取当前学期的时间范围
         val config = client.getAllConfig()
         val semester = config.semester.firstOrNull() ?: throw BykcException("无法获取当前学期信息")
-
-        val startDate = semester.semesterStartDate ?: throw BykcException("学期开始日期为空")
-        val endDate = semester.semesterEndDate ?: throw BykcException("学期结束日期为空")
-
-        val chosenCourses = client.queryChosenCourse(startDate, endDate)
+        
+        val chosenCourses = client.queryChosenCourse(semester.semesterStartDate!!, semester.semesterEndDate!!)
+        val now = LocalDateTime.now()
 
         return chosenCourses.map { chosen ->
             val course = chosen.courseInfo
             val signConfig = parseSignConfig(course?.courseSignConfig)
-            val now = LocalDateTime.now()
-
             BykcChosenCourseDto(
                     id = chosen.id,
-                    courseId = course?.id ?: 0L, // 课程本身的 ID
+                    courseId = course?.id ?: 0L,
                     courseName = course?.courseName ?: "未知课程",
                     coursePosition = course?.coursePosition,
                     courseTeacher = course?.courseTeacher,
@@ -226,14 +183,12 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
                     signConfig = signConfig,
                     courseSignType = course?.courseSignType,
                     homework = chosen.homework,
-                    homeworkAttachmentName = chosen.homeworkAttachmentName,
-                    homeworkAttachmentPath = chosen.homeworkAttachmentPath,
                     signInfo = chosen.signInfo
             )
         }
     }
 
-    /** 获取课程详情 */
+    /** 获取博雅课程详情，包括状态和签到配置。 */
     suspend fun getCourseDetail(username: String, courseId: Long): BykcCourseDetailDto {
         ensureBykcLogin(username)
         val client = getClient(username)
@@ -245,42 +200,24 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         var pass: Int? = null
 
         if (course.selected == true) {
-            // 已选课程尝试从 queryChosenCourse 结果获取状态
-            // 需复用 queryChosenCourse 的日期范围逻辑，后续应优化为缓存查询
             try {
-                // 暂需全量拉取列表
-                // 依赖 getChosenCourses 中计算好的日期范围
                 val config = client.getAllConfig()
                 val semester = config.semester.firstOrNull()
                 if (semester?.semesterStartDate != null && semester.semesterEndDate != null) {
-                    val chosenList =
-                            client.queryChosenCourse(
-                                    semester.semesterStartDate,
-                                    semester.semesterEndDate
-                            )
-                    val chosen = chosenList.find { it.courseInfo?.id == courseId }
-                    if (chosen != null) {
-                        checkin = chosen.checkin
-                        pass = chosen.pass
-                    }
+                    val chosen = client.queryChosenCourse(semester.semesterStartDate, semester.semesterEndDate).find { it.courseInfo?.id == courseId }
+                    checkin = chosen?.checkin
+                    pass = chosen?.pass
                 }
-            } catch (e: Exception) {
-                log.warn("Failed to fetch chosen status for course detail: {}", e.message)
-            }
+            } catch (_: Exception) {}
         }
 
         return BykcCourseDetailDto(
                 id = course.id,
                 courseName = course.courseName,
                 coursePosition = course.coursePosition,
-                courseContact = course.courseContact,
-                courseContactMobile = course.courseContactMobile,
                 courseTeacher = course.courseTeacher,
                 courseStartDate = course.courseStartDate,
                 courseEndDate = course.courseEndDate,
-                courseSelectStartDate = course.courseSelectStartDate,
-                courseSelectEndDate = course.courseSelectEndDate,
-                courseCancelEndDate = course.courseCancelEndDate,
                 courseMaxCount = course.courseMaxCount,
                 courseCurrentCount = course.courseCurrentCount ?: 0,
                 category = course.courseNewKind1?.kindName,
@@ -294,70 +231,38 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
         )
     }
 
-    /** 签到 */
-    suspend fun signIn(
-            username: String,
-            courseId: Long,
-            lat: Double? = null,
-            lng: Double? = null
-    ): Result<String> {
+    /** 签到。自动根据服务端配置的签到范围随机生成经纬度。 */
+    suspend fun signIn(username: String, courseId: Long, lat: Double?, lng: Double?): Result<String> {
         return try {
             ensureBykcLogin(username)
             val client = getClient(username)
             val signConfig = getSignConfig(client, courseId)
-            val now = LocalDateTime.now()
-            if (!canSign(signConfig, now)) {
-                return Result.failure(BykcException("当前不在签到时间窗口"))
-            }
+            if (!canSign(signConfig, LocalDateTime.now())) return Result.failure(BykcException("当前不在签到时间窗口"))
 
             val (finalLat, finalLng) = randomSignLocation(signConfig, lat, lng)
-            client.signCourse(courseId, finalLat, finalLng, 1) // signType=1 签到
-            log.info("User {} signed in for course {}", username, courseId)
+            client.signCourse(courseId, finalLat, finalLng, 1)
             Result.success("签到成功")
-        } catch (e: Exception) {
-            log.error("User {} failed to sign in for course {}: {}", username, courseId, e.message)
-            Result.failure(e)
-        }
+        } catch (e: Exception) { Result.failure(e) }
     }
 
-    /** 签退 */
-    suspend fun signOut(
-            username: String,
-            courseId: Long,
-            lat: Double? = null,
-            lng: Double? = null
-    ): Result<String> {
+    /** 签退。 */
+    suspend fun signOut(username: String, courseId: Long, lat: Double?, lng: Double?): Result<String> {
         return try {
             ensureBykcLogin(username)
             val client = getClient(username)
             val signConfig = getSignConfig(client, courseId)
-            val now = LocalDateTime.now()
-            if (!canSignOut(signConfig, now)) {
-                return Result.failure(BykcException("当前不在签退时间窗口"))
-            }
+            if (!canSignOut(signConfig, LocalDateTime.now())) return Result.failure(BykcException("当前不在签退时间窗口"))
 
             val (finalLat, finalLng) = randomSignLocation(signConfig, lat, lng)
-            client.signCourse(courseId, finalLat, finalLng, 2) // signType=2 签退
-            log.info("User {} signed out for course {}", username, courseId)
+            client.signCourse(courseId, finalLat, finalLng, 2)
             Result.success("签退成功")
-        } catch (e: Exception) {
-            log.error("User {} failed to sign out for course {}: {}", username, courseId, e.message)
-            Result.failure(e)
-        }
+        } catch (e: Exception) { Result.failure(e) }
     }
 
-    /** 获取课程的签到配置（如果解析失败返回 null） */
     private suspend fun getSignConfig(client: BykcClient, courseId: Long): BykcSignConfigDto? {
-        return try {
-            val course = client.queryCourseById(courseId)
-            parseSignConfig(course.courseSignConfig)
-        } catch (e: Exception) {
-            log.warn("Failed to load sign config for course {}: {}", courseId, e.message)
-            null
-        }
+        return try { parseSignConfig(client.queryCourseById(courseId).courseSignConfig) } catch (_: Exception) { null }
     }
 
-    /** 解析签到配置 */
     private fun parseSignConfig(configJson: String?): BykcSignConfigDto? {
         if (configJson.isNullOrBlank()) return null
         return try {
@@ -367,173 +272,85 @@ class BykcService(private val sessionManager: SessionManager = GlobalSessionMana
                     signEndDate = config.signEndDate,
                     signOutStartDate = config.signOutStartDate,
                     signOutEndDate = config.signOutEndDate,
-                    signPoints =
-                            config.signPointList.map { BykcSignPointDto(it.lat, it.lng, it.radius) }
+                    signPoints = config.signPointList.map { BykcSignPointDto(it.lat, it.lng, it.radius) }
             )
-        } catch (e: Exception) {
-            log.warn("Failed to parse sign config: {}", e.message)
-            null
-        }
+        } catch (_: Exception) { null }
     }
 
-    /** 判断当前是否可签到 */
     private fun canSign(signConfig: BykcSignConfigDto?, now: LocalDateTime): Boolean {
         if (signConfig == null) return false
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val f = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         return try {
-            val start = signConfig.signStartDate?.let { LocalDateTime.parse(it, formatter) }
-            val end = signConfig.signEndDate?.let { LocalDateTime.parse(it, formatter) }
-            start != null && end != null && now.isAfter(start) && now.isBefore(end)
-        } catch (e: Exception) {
-            false
-        }
+            val s = signConfig.signStartDate?.let { LocalDateTime.parse(it, f) }
+            val e = signConfig.signEndDate?.let { LocalDateTime.parse(it, f) }
+            s != null && e != null && now.isAfter(s) && now.isBefore(e)
+        } catch (_: Exception) { false }
     }
 
-    /** 判断当前是否可签退 */
     private fun canSignOut(signConfig: BykcSignConfigDto?, now: LocalDateTime): Boolean {
         if (signConfig == null) return false
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val f = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         return try {
-            val start = signConfig.signOutStartDate?.let { LocalDateTime.parse(it, formatter) }
-            val end = signConfig.signOutEndDate?.let { LocalDateTime.parse(it, formatter) }
-            start != null && end != null && now.isAfter(start) && now.isBefore(end)
-        } catch (e: Exception) {
-            false
-        }
+            val s = signConfig.signOutStartDate?.let { LocalDateTime.parse(it, f) }
+            val e = signConfig.signOutEndDate?.let { LocalDateTime.parse(it, f) }
+            s != null && e != null && now.isAfter(s) && now.isBefore(e)
+        } catch (_: Exception) { false }
     }
 
-    /** 在指定签到点半径内随机生成坐标；若没有配置则使用客户端传入的坐标 */
-    private fun randomSignLocation(
-            signConfig: BykcSignConfigDto?,
-            fallbackLat: Double?,
-            fallbackLng: Double?,
-            random: Random = Random
-    ): Pair<Double, Double> {
-        val point = signConfig?.signPoints?.takeIf { it.isNotEmpty() }?.random(random)
+    /** 随机坐标生成：在合法的签到半径内随机化，提高安全性。 */
+    private fun randomSignLocation(signConfig: BykcSignConfigDto?, fallbackLat: Double?, fallbackLng: Double?): Pair<Double, Double> {
+        val point = signConfig?.signPoints?.randomOrNull()
         if (point != null && point.radius > 0.0) {
-            val distance = point.radius * sqrt(random.nextDouble()) // 在圆内均匀分布
-            val angle = random.nextDouble() * 2 * Math.PI
-            return destinationPoint(point.lat, point.lng, distance, angle)
+            val dist = point.radius * sqrt(Random.nextDouble())
+            val angle = Random.nextDouble() * 2 * Math.PI
+            return destinationPoint(point.lat, point.lng, dist, angle)
         }
-
-        if (fallbackLat != null && fallbackLng != null) {
-            return fallbackLat to fallbackLng
-        }
-
+        if (fallbackLat != null && fallbackLng != null) return fallbackLat to fallbackLng
         throw BykcException("未提供签到坐标且后端未返回签到范围")
     }
 
-    /** 依据距离与方位角计算目标坐标 */
-    private fun destinationPoint(
-            lat: Double,
-            lng: Double,
-            distanceMeters: Double,
-            bearingRad: Double
-    ): Pair<Double, Double> {
-        val angularDistance = distanceMeters / EARTH_RADIUS_METERS
-        val latRad = Math.toRadians(lat)
-        val lngRad = Math.toRadians(lng)
-
-        val destLat =
-                asin(
-                        sin(latRad) * cos(angularDistance) +
-                                cos(latRad) * sin(angularDistance) * cos(bearingRad)
-                )
-        val destLng =
-                lngRad +
-                        atan2(
-                                sin(bearingRad) * sin(angularDistance) * cos(latRad),
-                                cos(angularDistance) - sin(latRad) * sin(destLat)
-                        )
-
-        return Math.toDegrees(destLat) to Math.toDegrees(destLng)
+    private fun destinationPoint(lat: Double, lng: Double, dist: Double, angle: Double): Pair<Double, Double> {
+        val r = dist / 6_371_000.0
+        val lr = Math.toRadians(lat); val gr = Math.toRadians(lng)
+        val dLat = asin(sin(lr) * cos(r) + cos(lr) * sin(r) * cos(angle))
+        val dLng = gr + atan2(sin(angle) * sin(r) * cos(lr), cos(r) - sin(lr) * sin(dLat))
+        return Math.toDegrees(dLat) to Math.toDegrees(dLng)
     }
 
-    companion object {
-        private const val EARTH_RADIUS_METERS = 6_371_000.0
-    }
-
-    /** 计算课程状态 */
+    /** 根据课程时间配置计算课程状态。 */
     private fun calculateCourseStatus(course: BykcCourse): BykcCourseStatusEnum {
-        val now = LocalDateTime.now()
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-
+        val now = LocalDateTime.now(); val f = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         return try {
-            val courseStartDate = course.courseStartDate?.let { LocalDateTime.parse(it, formatter) }
-            val selectStartDate =
-                    course.courseSelectStartDate?.let { LocalDateTime.parse(it, formatter) }
-            val selectEndDate =
-                    course.courseSelectEndDate?.let { LocalDateTime.parse(it, formatter) }
-
+            val cs = course.courseStartDate?.let { LocalDateTime.parse(it, f) }
+            val ss = course.courseSelectStartDate?.let { LocalDateTime.parse(it, f) }
+            val se = course.courseSelectEndDate?.let { LocalDateTime.parse(it, f) }
             when {
-                // 课程已开始 -> 过期
-                courseStartDate != null && now.isAfter(courseStartDate) ->
-                        BykcCourseStatusEnum.EXPIRED
-                // 已选
+                cs != null && now.isAfter(cs) -> BykcCourseStatusEnum.EXPIRED
                 course.selected == true -> BykcCourseStatusEnum.SELECTED
-                // 选课尚未开始 -> 预告
-                selectStartDate != null && now.isBefore(selectStartDate) ->
-                        BykcCourseStatusEnum.PREVIEW
-                // 选课已结束
-                selectEndDate != null && now.isAfter(selectEndDate) -> BykcCourseStatusEnum.ENDED
-                // 人数已满
-                course.courseCurrentCount != null &&
-                        course.courseCurrentCount >= course.courseMaxCount ->
-                        BykcCourseStatusEnum.FULL
-                // 可选
+                ss != null && now.isBefore(ss) -> BykcCourseStatusEnum.PREVIEW
+                se != null && now.isAfter(se) -> BykcCourseStatusEnum.ENDED
+                course.courseCurrentCount != null && course.courseCurrentCount >= course.courseMaxCount -> BykcCourseStatusEnum.FULL
                 else -> BykcCourseStatusEnum.AVAILABLE
             }
-        } catch (e: Exception) {
-            log.warn("Failed to calculate status for course {}: {}", course.id, e.message)
-            BykcCourseStatusEnum.AVAILABLE
-        }
+        } catch (_: Exception) { BykcCourseStatusEnum.AVAILABLE }
     }
 
-    /** 清理用户的 BYKC 客户端缓存 */
-    fun clearClientCache(username: String) {
-        clientCache.remove(username)
-        log.debug("Cleared BykcClient cache for user: {}", username)
-    }
-
-    /** 清理所有客户端缓存 */
-    fun clearAllClientCache() {
-        clientCache.clear()
-        log.debug("Cleared all BykcClient caches")
-    }
-
-    /** 获取课程统计信息 */
+    /** 汇总修读统计。 */
     suspend fun getStatistics(username: String): BykcStatisticsDto {
         ensureBykcLogin(username)
-        val client = getClient(username)
-        val statsData = client.queryStatisticByUserId()
-
-        val categories = mutableListOf<BykcCategoryStatisticsDto>()
-
-        statsData.statistical.forEach { (categoryKey, subMap) ->
-            // categoryKey format: "60|博雅课程"
-            val categoryName = categoryKey.substringAfter("|")
-
+        val statsData = getClient(username).queryStatisticByUserId()
+        val cats = mutableListOf<BykcCategoryStatisticsDto>()
+        statsData.statistical.forEach { (catKey, subMap) ->
+            val catName = catKey.substringAfter("|")
             subMap.forEach { (subKey, stats) ->
-                // subKey format: "55|德育"
-                val subCategoryName = subKey.substringAfter("|")
-
-                categories.add(
-                        BykcCategoryStatisticsDto(
-                                categoryName = categoryName,
-                                subCategoryName = subCategoryName,
-                                requiredCount = stats.assessmentCount,
-                                passedCount = stats.completeAssessmentCount,
-                                isQualified = stats.completeAssessmentCount >= stats.assessmentCount
-                        )
-                )
+                cats.add(BykcCategoryStatisticsDto(catName, subKey.substringAfter("|"), stats.assessmentCount, stats.completeAssessmentCount, stats.completeAssessmentCount >= stats.assessmentCount))
             }
         }
-
-        return BykcStatisticsDto(totalValidCount = statsData.validCount, categories = categories)
+        return BykcStatisticsDto(statsData.validCount, cats)
     }
 }
 
-/** 全局 BykcService 单例 */
+/** 全局博雅服务单例。 */
 object GlobalBykcService {
     val instance: BykcService by lazy { BykcService() }
 }

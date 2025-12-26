@@ -8,39 +8,34 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
+/**
+ * 注册教室查询相关路由。
+ */
 fun Route.classroomRouting() {
     route("/api/v1/classroom") {
+        /**
+         * GET /api/v1/classroom/query
+         * 查询空闲教室列表。
+         * @param xqid 校区 ID（默认 1: 学院路）。
+         * @param date 查询日期（yyyy-MM-dd）。
+         */
         get("/query") {
             val username = call.jwtUsername ?: return@get call.respond(HttpStatusCode.Unauthorized)
             val xqid = call.parameters["xqid"]?.toIntOrNull() ?: 1
             val date = call.parameters["date"] ?: ""
-            application.log.info(
-                    "Classroom query request from user: {}, xqid: {}, date: {}",
-                    username,
-                    xqid,
-                    date
-            )
 
             if (date.isEmpty()) {
-                application.log.warn("Classroom query failed: date is missing")
                 return@get call.respond(HttpStatusCode.BadRequest, "Date is required")
             }
 
             try {
                 val client = ClassroomClient(username)
                 val result = client.query(xqid, date)
-                application.log.info("Classroom query successful for user: {}", username)
                 call.respond(HttpStatusCode.OK, result)
             } catch (e: Exception) {
-                application.log.error("Classroom query failed for user: {}", username, e)
                 call.respond(
                         HttpStatusCode.InternalServerError,
-                        ErrorResponse(
-                                ErrorDetails(
-                                        "classroom_query_failed",
-                                        e.message ?: "Failed to query classrooms"
-                                )
-                        )
+                        ErrorResponse(ErrorDetails("classroom_query_failed", e.message ?: "Error"))
                 )
             }
         }

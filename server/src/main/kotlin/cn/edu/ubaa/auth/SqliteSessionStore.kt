@@ -6,19 +6,24 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.time.Instant
 
-// Sqlite 会话存储，持久化用户会话
+/**
+ * SQLite 会话持久化仓库。
+ * 负责将会话元数据（用户身份、认证时间、活跃时间）保存到数据库，以便服务重启后能恢复活跃会话。
+ */
 class SqliteSessionStore(private val dbPath: String) {
 
     init {
         ensureTable()
     }
 
+    /** 会话记录实体。 */
     data class SessionRecord(
             val userData: UserData,
             val authenticatedAt: Instant,
             val lastActivity: Instant
     )
 
+    /** 保存或更新会话信息。 */
     fun saveSession(
             username: String,
             userData: UserData,
@@ -49,6 +54,7 @@ class SqliteSessionStore(private val dbPath: String) {
         }
     }
 
+    /** 仅更新会话的最后活动时间。 */
     fun updateLastActivity(username: String, lastActivity: Instant) {
         getConnection().use { conn ->
             conn.prepareStatement("UPDATE sessions SET last_activity=? WHERE username=?").apply {
@@ -60,6 +66,7 @@ class SqliteSessionStore(private val dbPath: String) {
         }
     }
 
+    /** 从数据库加载指定用户的会话记录。 */
     fun loadSession(username: String): SessionRecord? {
         getConnection().use { conn ->
             conn.prepareStatement(
@@ -70,39 +77,31 @@ class SqliteSessionStore(private val dbPath: String) {
                         val rs = executeQuery()
                         val record =
                                 if (rs.next()) {
-                                    val name = rs.getString(1)
-                                    val schoolid = rs.getString(2)
-                                    val authenticatedAt = Instant.ofEpochMilli(rs.getLong(3))
-                                    val lastActivity = Instant.ofEpochMilli(rs.getLong(4))
                                     SessionRecord(
-                                            userData = UserData(name = name, schoolid = schoolid),
-                                            authenticatedAt = authenticatedAt,
-                                            lastActivity = lastActivity
+                                            userData = UserData(name = rs.getString(1), schoolid = rs.getString(2)),
+                                            authenticatedAt = Instant.ofEpochMilli(rs.getLong(3)),
+                                            lastActivity = Instant.ofEpochMilli(rs.getLong(4))
                                     )
-                                } else {
-                                    null
-                                }
+                                } else null
                         close()
                         return record
                     }
         }
     }
 
+    /** 删除指定用户的会话及关联 Cookie。 */
     fun deleteSession(username: String) {
         getConnection().use { conn ->
             conn.prepareStatement("DELETE FROM sessions WHERE username=?").apply {
-                setString(1, username)
-                executeUpdate()
-                close()
+                setString(1, username); executeUpdate(); close()
             }
             conn.prepareStatement("DELETE FROM cookies WHERE username=?").apply {
-                setString(1, username)
-                executeUpdate()
-                close()
+                setString(1, username); executeUpdate(); close()
             }
         }
     }
 
+    /** 清空所有会话数据。 */
     fun deleteAll() {
         getConnection().use { conn ->
             conn.createStatement().use { it.executeUpdate("DELETE FROM sessions") }
@@ -129,7 +128,5 @@ class SqliteSessionStore(private val dbPath: String) {
         }
     }
 
-    private fun getConnection(): Connection {
-        return DriverManager.getConnection("jdbc:sqlite:$dbPath")
-    }
+    private fun getConnection(): Connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
 }

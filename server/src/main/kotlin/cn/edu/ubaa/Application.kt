@@ -22,25 +22,33 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
 
+/**
+ * 后端服务入口函数。
+ * 负责加载环境变量、配置服务器端口并启动 Netty 引擎。
+ */
 fun main() {
     val dotenv = dotenv { ignoreIfMissing = true }
     val serverPort = dotenv["SERVER_PORT"]?.toInt() ?: 5432
+    val serverHost = dotenv["SERVER_BIND_HOST"] ?: "0.0.0.0"
 
     val log = LoggerFactory.getLogger("Application")
-    log.info("Starting UBAA Server...")
-    // 启动前自动检测网络环境
-    // VpnCipher.autoDetectEnvironment()
+    log.info("Starting UBAA Server on $serverHost:$serverPort...")
 
-    embeddedServer(Netty, port = serverPort, host = "0.0.0.0", module = Application::module)
+    embeddedServer(Netty, port = serverPort, host = serverHost, module = Application::module)
             .start(wait = true)
 }
 
+/**
+ * Ktor 应用模块主配置。
+ * 负责安装插件（JWT, CORS, ContentNegotiation）并注册业务路由。
+ */
 fun Application.module() {
     log.info("Initializing Application module...")
-    // 配置 JWT 认证（安全性）
+    
+    // 配置 JWT 认证
     configureJwtAuth()
 
-    // 配置 CORS
+    // 配置跨域支持 (CORS)
     install(CORS) {
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Put)
@@ -49,16 +57,17 @@ fun Application.module() {
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.AccessControlAllowOrigin)
-        anyHost() // 或者 allowHost("localhost:8080")
+        anyHost() 
     }
 
-    // 启用 JSON 序列化
+    // 启用基于 Kotlinx Serialization 的 JSON 序列化
     install(ContentNegotiation) { json() }
 
     routing {
-        // 认证相关路由
+        // 1. 无需认证的路由（如登录、验证码）
         authRouting()
 
+        // 2. 需 JWT 认证保护的业务路由
         authenticate(JwtAuth.JWT_AUTH) {
             log.info("Registering authenticated routes...")
             userRouting()
@@ -69,8 +78,8 @@ fun Application.module() {
             classroomRouting()
         }
 
+        /** 根路径健康检查。 */
         get("/") {
-            log.info("Root endpoint accessed")
             call.respondText("Ktor: ${Greeting().greet()}")
         }
     }

@@ -11,51 +11,22 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 
+/**
+ * 注册用户信息相关路由。
+ */
 fun Route.userRouting() {
         val userService = UserService()
 
         route("/api/v1/user") {
-                // 获取用户信息
+                /** GET /api/v1/user/info 获取当前登录用户的详细考籍与个人信息。 */
                 get("/info") {
                         val username = call.jwtUsername!!
-
                         try {
                                 val userInfo = userService.fetchUserInfo(username)
                                 call.respond(HttpStatusCode.OK, userInfo)
-                        } catch (e: LoginException) {
-                                call.respond(
-                                        HttpStatusCode.Unauthorized,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "unauthenticated",
-                                                        e.message ?: "Session is not available."
-                                                )
-                                        )
-                                )
-                        } catch (e: UserInfoException) {
-                                call.respond(
-                                        HttpStatusCode.BadGateway,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "upstream_error",
-                                                        e.message ?: "Failed to fetch user info."
-                                                )
-                                        )
-                                )
                         } catch (e: Exception) {
-                                call.application.environment.log.error(
-                                        "Unexpected error while fetching user info.",
-                                        e
-                                )
-                                call.respond(
-                                        HttpStatusCode.InternalServerError,
-                                        ErrorResponse(
-                                                ErrorDetails(
-                                                        "internal_server_error",
-                                                        "An unexpected server error occurred."
-                                                )
-                                        )
-                                )
+                                val status = if (e is LoginException) HttpStatusCode.Unauthorized else HttpStatusCode.BadGateway
+                                call.respond(status, ErrorResponse(ErrorDetails("error", e.message ?: "Error")))
                         }
                 }
         }

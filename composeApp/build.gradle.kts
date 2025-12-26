@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
+    // 引入 Kplatform, Android 应用, Compose 及其编译器/热重载插件
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
@@ -14,33 +15,23 @@ plugins {
 kotlin {
     jvmToolchain(21)
     androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_21) }
     }
     
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
+    // iOS 框架配置
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
         }
     }
     
-    jvm()
+    jvm() // Desktop 目标
     
-    js {
-        browser()
-        binaries.executable()
-    }
+    js { browser(); binaries.executable() } // Web JS 目标
     
     @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
+    wasmJs { browser(); binaries.executable() } // Web Wasm 目标
     
     sourceSets {
         androidMain.dependencies {
@@ -50,7 +41,7 @@ kotlin {
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
-            implementation(compose.material) // for pull-to-refresh APIs
+            implementation(compose.material)
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.materialIconsExtended)
@@ -64,10 +55,7 @@ kotlin {
             implementation(libs.kamel.image)
             implementation(libs.coil3.compose)
             implementation(libs.coil3.network.ktor)
-            implementation(projects.shared)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(projects.shared) // 核心共享逻辑依赖
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -80,6 +68,7 @@ android {
     namespace = "cn.edu.ubaa"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
+    // 读取本地 properties 以获取签名配置
     val localProperties = Properties().apply {
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
@@ -103,11 +92,6 @@ android {
             keyPassword = localProperties.getProperty("SIGNING_KEY_PASSWORD") ?: System.getenv("SIGNING_KEY_PASSWORD")
         }
     }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
@@ -120,14 +104,10 @@ android {
     }
 }
 
-dependencies {
-    debugImplementation(compose.uiTooling)
-}
-
+// Compose Desktop 发布配置：生成各平台的安装包
 compose.desktop {
     application {
         mainClass = "cn.edu.ubaa.MainKt"
-
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "cn.edu.ubaa"
