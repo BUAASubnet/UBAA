@@ -77,6 +77,7 @@ graalvmNative {
             imageName.set("ubaa-server")
             mainClass.set("cn.edu.ubaa.ApplicationKt")
             buildArgs.add("--no-fallback")
+            buildArgs.add("--initialize-at-run-time=kotlin.DeprecationLevel")
             if (project.hasProperty("static-musl")) {
                 buildArgs.add("--static")
                 buildArgs.add("--libc=musl")

@@ -288,8 +288,8 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
         while (currentResponse.status.value in 300..399) {
             val location = currentResponse.headers[HttpHeaders.Location] ?: break
             val nextUrl = try {
-                val base = java.net.URL(currentResponse.request.url.toString())
-                java.net.URL(base, location).toString()
+                val base = java.net.URI.create(currentResponse.request.url.toString())
+                base.resolve(location).toURL().toString()
             } catch (e: Exception) { location }
             log.debug("Redirecting to: {}", nextUrl)
             currentResponse = noRedirectClient.get(nextUrl)

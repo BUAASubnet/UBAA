@@ -1,6 +1,7 @@
 package cn.edu.ubaa.utils
 
 import io.github.cdimascio.dotenv.dotenv
+import java.net.URI
 import java.net.URL
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -28,7 +29,7 @@ object VpnCipher {
         if (dotenv["USE_VPN"] != null || System.getenv("USE_VPN") != null) return
 
         try {
-            val connection = URL("https://byxt.buaa.edu.cn").openConnection() as java.net.HttpURLConnection
+            val connection = URI.create("https://byxt.buaa.edu.cn").toURL().openConnection() as java.net.HttpURLConnection
             connection.requestMethod = "HEAD"; connection.connectTimeout = 3000; connection.connect()
             isEnabled = !(connection.responseCode == 200 || connection.responseCode == 302)
             connection.disconnect()
@@ -63,7 +64,7 @@ object VpnCipher {
     fun toVpnUrl(url: String): String {
         if (!isEnabled) return url
         return try {
-            val u = URL(url)
+            val u = URI.create(url).toURL()
             if (u.host == "d.buaa.edu.cn") return url
             val p = when {
                 u.port == -1 -> u.protocol
