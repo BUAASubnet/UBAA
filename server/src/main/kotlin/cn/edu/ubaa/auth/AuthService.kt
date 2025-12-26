@@ -243,8 +243,12 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
             val data = resp.data
             if (resp.code == 0 && data != null) {
                 UserData(name = data.name.orEmpty(), schoolid = data.schoolid.orEmpty())
-            } else null
+            } else {
+                log.warn("Verify session response code not 0: {}", resp.code)
+                null
+            }
         } catch (e: Exception) {
+            log.warn("Verify session failed: {}", e.message)
             null
         }
     }
@@ -280,12 +284,14 @@ class AuthService(private val sessionManager: SessionManager = GlobalSessionMana
             client: HttpClient
     ): HttpResponse {
         var currentResponse = initialResponse
+        log.debug("Following redirects starting from: {}", initialResponse.request.url)
         while (currentResponse.status.value in 300..399) {
             val location = currentResponse.headers[HttpHeaders.Location] ?: break
             val nextUrl = try {
                 val base = java.net.URL(currentResponse.request.url.toString())
                 java.net.URL(base, location).toString()
             } catch (e: Exception) { location }
+            log.debug("Redirecting to: {}", nextUrl)
             currentResponse = noRedirectClient.get(nextUrl)
         }
 
