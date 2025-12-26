@@ -222,11 +222,11 @@ class BykcModelsTest {
 
     @Test
     fun `BykcCourseStatusEnum enum has correct display names`() {
-        assertEquals("过期", BykcCourseStatusEnum.EXPIRED.displayName)
+        assertEquals("已过期", BykcCourseStatusEnum.EXPIRED.displayName)
         assertEquals("已选", BykcCourseStatusEnum.SELECTED.displayName)
         assertEquals("预告", BykcCourseStatusEnum.PREVIEW.displayName)
-        assertEquals("结束", BykcCourseStatusEnum.ENDED.displayName)
-        assertEquals("满员", BykcCourseStatusEnum.FULL.displayName)
+        assertEquals("已结束", BykcCourseStatusEnum.ENDED.displayName)
+        assertEquals("人数已满", BykcCourseStatusEnum.FULL.displayName)
         assertEquals("可选", BykcCourseStatusEnum.AVAILABLE.displayName)
     }
 

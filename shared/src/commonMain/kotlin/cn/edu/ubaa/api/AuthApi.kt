@@ -6,11 +6,20 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 
-/** 认证服务：登录、注销、会话管理 */
+/**
+ * 认证服务提供者，管理全局共享的 ApiClient。
+ */
 object ApiClientProvider {
+    /** 全局共享的 ApiClient 实例。 */
     val shared: ApiClient by lazy { ApiClient() }
 }
 
+/**
+ * 会话状态响应。
+ * @property user 用户基本身份信息。
+ * @property lastActivity 最后活动时间。
+ * @property authenticatedAt 认证时间。
+ */
 @Serializable
 data class SessionStatusResponse(
         val user: UserData,
@@ -18,13 +27,25 @@ data class SessionStatusResponse(
         val authenticatedAt: String
 )
 
+/**
+ * 认证服务，负责登录、预加载、注销及会话状态查询。
+ * @param apiClient 使用的 ApiClient 实例，默认为单例 shared。
+ */
 class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
 
+    /**
+     * 将本地存储的令牌应用到当前 ApiClient 中。
+     */
     fun applyStoredToken() {
         TokenStore.get()?.let { apiClient.updateToken(it) }
     }
 
-    /** 预加载登录状态：为当前客户端创建专属会话，获取验证码（如果需要） */
+    /**
+     * 预加载登录状态。
+     * 为当前客户端创建或关联专属会话，并获取登录所需的附加信息（如验证码）。
+     *
+     * @return 预加载结果，包含验证码信息或已登录的令牌。
+     */
     suspend fun preloadLoginState(): Result<LoginPreloadResponse> {
         return try {
             val clientId = ClientIdStore.getOrCreate()
@@ -46,7 +67,16 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
         }
     }
 
-    /** 登录：使用 preload 时创建的会话 */
+    /**
+     * 执行用户登录。
+     * 使用 preload 时创建的会话和执行标识（execution）进行认证。
+     *
+     * @param username 用户名（学号）。
+     * @param password 密码。
+     * @param captcha 验证码（如果需要）。
+     * @param execution SSO 流程执行标识。
+     * @return 登录结果，成功则返回 LoginResponse 并自动更新 ApiClient 令牌。
+     */
     suspend fun login(
             username: String,
             password: String,
@@ -92,10 +122,19 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
         }
     }
 
+    /**
+     * 查询当前会话状态。
+     * @return 包含用户信息和活动时间的 SessionStatusResponse。
+     */
     suspend fun getAuthStatus(): Result<SessionStatusResponse> {
         return safeApiCall { apiClient.getClient().get("api/v1/auth/status") }
     }
 
+    /**
+     * 注销当前用户。
+     * 会尝试通知服务端和上游 SSO 注销，并清理本地令牌和 ApiClient 状态。
+     * @return 注销操作结果。
+     */
     suspend fun logout(): Result<Unit> {
         return try {
             // 尝试服务端注销
@@ -104,10 +143,10 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
             // 无论服务端结果如何，尝试 SSO 注销
             try {
                 val ssoResponse = apiClient.getClient().get("https://sso.buaa.edu.cn/logout")
-                println("SSO logout response: ${ssoResponse.status}")
+                println("SSO 注销响应: ${ssoResponse.status}")
             } catch (ssoException: Exception) {
                 println(
-                        "SSO logout failed (this is expected in some environments): ${ssoException.message}"
+                        "SSO 注销失败（在某些网络环境下符合预期）: ${ssoException.message}"
                 )
             }
 
@@ -124,8 +163,15 @@ class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
     }
 }
 
-/** 用户服务：获取用户信息 */
+/**
+ * 用户相关服务，负责获取用户的详细考籍或个人信息。
+ * @param apiClient 使用的 ApiClient 实例。
+ */
 class UserService(private val apiClient: ApiClient = ApiClientProvider.shared) {
+    /**
+     * 获取当前用户的详细资料信息。
+     * @return 包含用户姓名、学号等信息的 UserInfo。
+     */
     suspend fun getUserInfo(): Result<UserInfo> {
         return safeApiCall { apiClient.getClient().get("api/v1/user/info") }
     }

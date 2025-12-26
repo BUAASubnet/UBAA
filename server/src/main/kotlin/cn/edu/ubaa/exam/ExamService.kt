@@ -6,65 +6,57 @@ import cn.edu.ubaa.utils.VpnCipher
 import cn.edu.ubaa.model.dto.ExamArrangementData
 import cn.edu.ubaa.model.dto.ExamResponse
 import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
+/**
+ * 考试安排业务服务。
+ * 负责从教务系统 (BYXT) 抓取并解析考试数据。
+ */
 class ExamService(
     private val sessionManager: SessionManager = GlobalSessionManager.instance,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val log = LoggerFactory.getLogger(ExamService::class.java)
 
+    /** 设置教务系统所需的公共请求头。 */
     private fun HttpRequestBuilder.applyExamHeaders() {
         header(HttpHeaders.Accept, "*/*")
         header("X-Requested-With", "XMLHttpRequest")
         header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html"))
     }
 
+    /**
+     * 获取指定学期的考试安排。
+     *
+     * @param username 用户名。
+     * @param termCode 学期代码。
+     * @return 包含考试列表的汇总数据。
+     */
     suspend fun getExamArrangement(username: String, termCode: String): ExamArrangementData {
-        log.info("Fetching exams via homeapp for username: {}, termCode: {}", username, termCode)
         val session = sessionManager.requireSession(username)
-
         val response = session.getExams(termCode)
         val body = response.bodyAsText()
-        log.debug("Exams response status: {}", response.status)
-        log.debug("Exams response body (truncated): {}", body.take(200))
 
-        if (response.status != HttpStatusCode.OK) {
-            throw ExamException("Failed to fetch exams. Status: ${response.status}")
+        if (response.status != HttpStatusCode.OK) throw ExamException("Fetch failed: ${response.status}")
+
+        val examResponse = try { json.decodeFromString<ExamResponse>(body) } catch (e: Exception) {
+            throw ExamException("Parse failed")
         }
 
-        val examResponse = runCatching {
-            json.decodeFromString<ExamResponse>(body)
-        }.getOrElse { throwable ->
-            log.error("Failed to parse exams response for username: {}", username, throwable)
-            throw ExamException("Failed to parse exams response.")
-        }
+        if (examResponse.code != "0") throw ExamException("Business error: ${examResponse.msg}")
 
-        if (examResponse.code != "0") {
-             throw ExamException("Failed to retrieve exams. Code: ${examResponse.code}, Message: ${examResponse.msg}")
-        }
-
-        // 将扁平列表映射为客户端期望的结构（全部放入 arranged 列表）
-        return ExamArrangementData(
-            arranged = examResponse.datas
-        )
+        return ExamArrangementData(arranged = examResponse.datas)
     }
 
+    /** 执行具体的 HTTP 请求抓取考试数据。 */
     private suspend fun SessionManager.UserSession.getExams(termCode: String): HttpResponse {
-        return try {
-            val url = VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=$termCode")
-            client.get(url) {
-                applyExamHeaders()
-            }
-        } catch (e: Exception) {
-            log.error("Error while calling exams endpoint for username: {}", username, e)
-            throw ExamException("Failed to call exams endpoint.")
-        }
+        val url = VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=$termCode")
+        return client.get(url) { applyExamHeaders() }
     }
 }
 
+/** 考试模块自定义异常。 */
 class ExamException(message: String) : Exception(message)

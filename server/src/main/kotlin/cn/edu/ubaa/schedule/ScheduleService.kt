@@ -14,222 +14,94 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
+/**
+ * 课表业务服务。
+ * 负责与教务系统 (BYXT) 通信，获取学期、周次及排课数据。
+ */
 class ScheduleService(
         private val sessionManager: SessionManager = GlobalSessionManager.instance,
         private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
-
     private val log = LoggerFactory.getLogger(ScheduleService::class.java)
 
+    /** 设置请求头以匹配教务系统的 AJAX 请求要求。 */
     private fun HttpRequestBuilder.applyScheduleHeaders() {
         header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
         header("X-Requested-With", "XMLHttpRequest")
         header(HttpHeaders.Referrer, VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html"))
     }
 
+    /** 获取用户可选的所有学期列表。 */
     suspend fun fetchTerms(username: String): List<Term> {
-        log.info("Fetching terms for username: {}", username)
         val session = sessionManager.requireSession(username)
-
         val response = session.getTerms()
         val body = response.bodyAsText()
-        log.debug("Terms response status: {}", response.status)
-        log.debug("Terms response body (truncated): {}", body.take(200))
 
-        // 检查 401 Unauthorized - BYXT 会话可能已过期
-        if (response.status == HttpStatusCode.Unauthorized) {
-            log.warn(
-                    "BYXT session appears to be expired or invalid for user: {}. Response: {}",
-                    username,
-                    body.take(200)
-            )
-            throw ScheduleException("BYXT session expired. Please log in again.")
-        }
+        if (response.status == HttpStatusCode.Unauthorized) throw ScheduleException("BYXT session expired")
+        if (response.status != HttpStatusCode.OK) throw ScheduleException("Fetch terms failed")
 
-        if (response.status != HttpStatusCode.OK) {
-            throw ScheduleException("Failed to fetch terms. Status: ${response.status}")
-        }
-
-        val termResponse =
-                runCatching { json.decodeFromString<TermResponse>(body) }.getOrElse { throwable ->
-                    log.error(
-                            "Failed to parse terms response for username: {}",
-                            username,
-                            throwable
-                    )
-                    throw ScheduleException("Failed to parse terms response.")
-                }
-
-        if (termResponse.code != "0") {
-            throw ScheduleException(
-                    "Failed to retrieve terms. Code: ${termResponse.code}, Message: ${termResponse.msg}"
-            )
-        }
+        val termResponse = try { json.decodeFromString<TermResponse>(body) } catch (_: Exception) { throw ScheduleException("Parse failed") }
+        if (termResponse.code != "0") throw ScheduleException("Error: ${termResponse.msg}")
 
         return termResponse.datas
     }
 
+    /** 获取指定学期的周次划分。 */
     suspend fun fetchWeeks(username: String, termCode: String): List<Week> {
-        log.info("Fetching weeks for username: {} and termCode: {}", username, termCode)
         val session = sessionManager.requireSession(username)
-
         val response = session.getWeeks(termCode)
         val body = response.bodyAsText()
-        log.debug("Weeks response status: {}", response.status)
-        log.debug("Weeks response body (truncated): {}", body.take(200))
 
-        if (response.status != HttpStatusCode.OK) {
-            throw ScheduleException("Failed to fetch weeks. Status: ${response.status}")
-        }
-
-        val weekResponse =
-                runCatching { json.decodeFromString<WeekResponse>(body) }.getOrElse { throwable ->
-                    log.error(
-                            "Failed to parse weeks response for username: {}",
-                            username,
-                            throwable
-                    )
-                    throw ScheduleException("Failed to parse weeks response.")
-                }
-
-        if (weekResponse.code != "0") {
-            throw ScheduleException(
-                    "Failed to retrieve weeks. Code: ${weekResponse.code}, Message: ${weekResponse.msg}"
-            )
-        }
-
+        if (response.status != HttpStatusCode.OK) throw ScheduleException("Fetch weeks failed")
+        val weekResponse = try { json.decodeFromString<WeekResponse>(body) } catch (_: Exception) { throw ScheduleException("Parse failed") }
+        
         return weekResponse.datas
     }
 
+    /** 获取周课表详情。 */
     suspend fun fetchWeeklySchedule(username: String, termCode: String, week: Int): WeeklySchedule {
-        log.info(
-                "Fetching weekly schedule for username: {}, termCode: {}, week: {}",
-                username,
-                termCode,
-                week
-        )
         val session = sessionManager.requireSession(username)
-
         val response = session.getWeeklySchedule(termCode, week)
         val body = response.bodyAsText()
-        log.debug("Weekly schedule response status: {}", response.status)
-        log.debug("Weekly schedule response body (truncated): {}", body.take(200))
 
-        if (response.status != HttpStatusCode.OK) {
-            throw ScheduleException("Failed to fetch weekly schedule. Status: ${response.status}")
-        }
-
-        val scheduleResponse =
-                runCatching { json.decodeFromString<WeeklyScheduleResponse>(body) }.getOrElse {
-                        throwable ->
-                    log.error(
-                            "Failed to parse weekly schedule response for username: {}",
-                            username,
-                            throwable
-                    )
-                    throw ScheduleException("Failed to parse weekly schedule response.")
-                }
-
-        if (scheduleResponse.code != "0") {
-            throw ScheduleException(
-                    "Failed to retrieve weekly schedule. Code: ${scheduleResponse.code}, Message: ${scheduleResponse.msg}"
-            )
-        }
+        if (response.status != HttpStatusCode.OK) throw ScheduleException("Fetch schedule failed")
+        val scheduleResponse = try { json.decodeFromString<WeeklyScheduleResponse>(body) } catch (_: Exception) { throw ScheduleException("Parse failed") }
 
         return scheduleResponse.datas
     }
 
+    /** 获取今日排课摘要。 */
     suspend fun fetchTodaySchedule(username: String): List<TodayClass> {
-        log.info("Fetching today's schedule for username: {}", username)
         val session = sessionManager.requireSession(username)
-
         val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         val response = session.getTodaySchedule(today)
         val body = response.bodyAsText()
-        log.debug("Today schedule response status: {}", response.status)
-        log.debug("Today schedule response body (truncated): {}", body.take(200))
 
-        if (response.status != HttpStatusCode.OK) {
-            throw ScheduleException("Failed to fetch today's schedule. Status: ${response.status}")
-        }
-
-        val todayResponse =
-                runCatching { json.decodeFromString<TodayScheduleResponse>(body) }.getOrElse {
-                        throwable ->
-                    log.error(
-                            "Failed to parse today's schedule response for username: {}",
-                            username,
-                            throwable
-                    )
-                    throw ScheduleException("Failed to parse today's schedule response.")
-                }
-
-        if (todayResponse.code != "0") {
-            throw ScheduleException(
-                    "Failed to retrieve today's schedule. Code: ${todayResponse.code}, Message: ${todayResponse.msg}"
-            )
-        }
+        if (response.status != HttpStatusCode.OK) throw ScheduleException("Fetch today schedule failed")
+        val todayResponse = try { json.decodeFromString<TodayScheduleResponse>(body) } catch (_: Exception) { throw ScheduleException("Parse failed") }
 
         return todayResponse.datas
     }
 
     private suspend fun SessionManager.UserSession.getTerms(): HttpResponse {
-        return try {
-            val url =
-                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do")
-            client.get(url) { applyScheduleHeaders() }
-        } catch (e: Exception) {
-            log.error("Error while calling terms endpoint for username: {}", username, e)
-            throw ScheduleException("Failed to call terms endpoint.")
-        }
+        return client.get(VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do")) { applyScheduleHeaders() }
     }
 
     private suspend fun SessionManager.UserSession.getWeeks(termCode: String): HttpResponse {
-        return try {
-            val url =
-                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode")
-            client.get(url) { applyScheduleHeaders() }
-        } catch (e: Exception) {
-            log.error("Error while calling weeks endpoint for username: {}", username, e)
-            throw ScheduleException("Failed to call weeks endpoint.")
-        }
+        return client.get(VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode")) { applyScheduleHeaders() }
     }
 
-    private suspend fun SessionManager.UserSession.getWeeklySchedule(
-            termCode: String,
-            week: Int
-    ): HttpResponse {
-        return try {
-            val url =
-                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do")
-            client.post(url) {
-                applyScheduleHeaders()
-                setBody(
-                        FormDataContent(
-                                Parameters.build {
-                                    append("termCode", termCode)
-                                    append("campusCode", "")
-                                    append("type", "week")
-                                    append("week", week.toString())
-                                }
-                        )
-                )
-            }
-        } catch (e: Exception) {
-            log.error("Error while calling weekly schedule endpoint for username: {}", username, e)
-            throw ScheduleException("Failed to call weekly schedule endpoint.")
+    private suspend fun SessionManager.UserSession.getWeeklySchedule(termCode: String, week: Int): HttpResponse {
+        return client.post(VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do")) {
+            applyScheduleHeaders()
+            setBody(FormDataContent(Parameters.build {
+                append("termCode", termCode); append("type", "week"); append("week", week.toString())
+            }))
         }
     }
 
     private suspend fun SessionManager.UserSession.getTodaySchedule(date: String): HttpResponse {
-        return try {
-            val url =
-                    VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student")
-            client.get(url) { applyScheduleHeaders() }
-        } catch (e: Exception) {
-            log.error("Error while calling today schedule endpoint for username: {}", username, e)
-            throw ScheduleException("Failed to call today schedule endpoint.")
-        }
+        return client.get(VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student")) { applyScheduleHeaders() }
     }
 }
 

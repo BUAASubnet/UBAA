@@ -2,6 +2,7 @@ import org.gradle.api.file.DuplicatesStrategy
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
+    // 引入 Kotlin JVM, Ktor, 序列化及 GraalVM 原生镜像插件
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlinSerialization)
@@ -11,9 +12,9 @@ plugins {
 
 group = "cn.edu.ubaa"
 version = project.property("project.version").toString()
+
 application {
     mainClass.set("cn.edu.ubaa.ApplicationKt")
-
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
@@ -35,49 +36,41 @@ tasks.processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-tasks.withType<JavaExec> {
-    workingDir = rootProject.projectDir
-}
-
 dependencies {
+    // 依赖 shared 模块获取 DTO 和基础逻辑
     implementation(project(":shared"))
     implementation(libs.logback)
     implementation(libs.dotenv.kotlin)
 
-    // Ktor Server
+    // Ktor Server 核心及插件
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
+    implementation(libs.ktor.server.call.logging)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.metrics.micrometer)
+    implementation(libs.micrometer.registry.prometheus)
     implementation(libs.ktor.serialization.kotlinx.json)
 
-    // Ktor Client
+    // 内部抓取使用的 Ktor Client
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
 
-    // Kotlinx Serialization
+    // 其他实用工具库
     implementation(libs.kotlinx.serialization.json)
-
-    // Jsoup
-    implementation(libs.jsoup)
-
-    // BouncyCastle for BYKC crypto
-    implementation(libs.bouncycastle)
-
-    // JWT
+    implementation(libs.jsoup) // HTML 抓取
+    implementation(libs.bouncycastle) // BYKC 加密支持
     implementation(libs.ktor.server.auth)
-    implementation(libs.ktor.server.auth.jwt)
+    implementation(libs.ktor.server.auth.jwt) // JWT 认证
     implementation(libs.java.jwt)
+    implementation(libs.sqlite.jdbc) // 会话持久化数据库
 
-    // SQLite for persistent sessions
-    implementation(libs.sqlite.jdbc)
-
-    // Test
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 }
 
+// GraalVM 配置：生成高性能的原生可执行文件
 graalvmNative {
     binaries {
         named("main") {
@@ -90,10 +83,6 @@ graalvmNative {
             }
         }
     }
-    metadataRepository {
-        enabled.set(true)
-    }
-    agent {
-        defaultMode.set("standard")
-    }
+    metadataRepository { enabled.set(true) }
+    agent { defaultMode.set("standard") }
 }

@@ -31,7 +31,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cn.edu.ubaa.model.dto.*
 
-// region 主屏幕 Composable
+/**
+ * 课表展示主屏幕。
+ * 以网格形式展示选定周次的课程安排，并提供周次切换功能。
+ *
+ * @param terms 所有可选学期列表。
+ * @param weeks 当前学期的所有周次列表。
+ * @param weeklySchedule 当前选定周次的排课数据。
+ * @param selectedTerm 当前选中的学期。
+ * @param selectedWeek 当前选中的周次。
+ * @param isLoading 是否正在加载数据。
+ * @param error 错误信息。
+ * @param onTermSelected 学期选择回调。
+ * @param onWeekSelected 周次选择回调。
+ * @param onCourseClick 点击课程单元格的回调。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
@@ -42,7 +56,7 @@ fun ScheduleScreen(
         selectedWeek: Week?,
         isLoading: Boolean,
         error: String?,
-        onTermSelected: (Term) -> Unit, // 保留学期选择逻辑
+        onTermSelected: (Term) -> Unit,
         onWeekSelected: (Week) -> Unit,
         onCourseClick: (CourseClass) -> Unit,
         modifier: Modifier = Modifier
@@ -54,17 +68,9 @@ fun ScheduleScreen(
             topBar = {
                 ScheduleTopAppBar(
                         title = selectedWeek?.name ?: "选择周次",
-                        onPreviousClick = {
-                            if (currentWeekIndex > 0) {
-                                onWeekSelected(weeks[currentWeekIndex - 1])
-                            }
-                        },
+                        onPreviousClick = { if (currentWeekIndex > 0) onWeekSelected(weeks[currentWeekIndex - 1]) },
                         isPreviousEnabled = currentWeekIndex > 0,
-                        onNextClick = {
-                            if (currentWeekIndex != -1 && currentWeekIndex < weeks.size - 1) {
-                                onWeekSelected(weeks[currentWeekIndex + 1])
-                            }
-                        },
+                        onNextClick = { if (currentWeekIndex != -1 && currentWeekIndex < weeks.size - 1) onWeekSelected(weeks[currentWeekIndex + 1]) },
                         isNextEnabled = currentWeekIndex != -1 && currentWeekIndex < weeks.size - 1,
                         onTitleClick = { showWeekSelector = true }
                 )
@@ -76,22 +82,13 @@ fun ScheduleScreen(
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("加载课程表...")
+                            CircularProgressIndicator(); Spacer(modifier = Modifier.height(8.dp)); Text("加载课程表...")
                         }
                     }
                 }
                 error != null -> {
-                    Box(
-                            modifier = Modifier.fillMaxSize().padding(16.dp),
-                            contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                                text = "加载失败: $error",
-                                color = MaterialTheme.colorScheme.error,
-                                textAlign = TextAlign.Center
-                        )
+                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(text = "加载失败: $error", color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     }
                 }
                 weeklySchedule != null && selectedWeek != null -> {
@@ -99,11 +96,7 @@ fun ScheduleScreen(
                 }
                 else -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                                text = "请选择学期和周次",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text(text = "请选择学期和周次", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -111,347 +104,143 @@ fun ScheduleScreen(
     }
 
     if (showWeekSelector) {
-        WeekSelectionSheet(
-                weeks = weeks,
-                selectedWeek = selectedWeek,
-                onWeekSelected = {
-                    onWeekSelected(it)
-                    showWeekSelector = false
-                },
-                onDismiss = { showWeekSelector = false }
-        )
+        WeekSelectionSheet(weeks = weeks, selectedWeek = selectedWeek, onWeekSelected = { onWeekSelected(it); showWeekSelector = false }, onDismiss = { showWeekSelector = false })
     }
 }
-// endregion
 
-// region 顶部导航栏
+/** 课表页面专用顶部栏。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScheduleTopAppBar(
-        title: String,
-        onPreviousClick: () -> Unit,
-        isPreviousEnabled: Boolean,
-        onNextClick: () -> Unit,
-        isNextEnabled: Boolean,
-        onTitleClick: () -> Unit
-) {
+private fun ScheduleTopAppBar(title: String, onPreviousClick: () -> Unit, isPreviousEnabled: Boolean, onNextClick: () -> Unit, isNextEnabled: Boolean, onTitleClick: () -> Unit) {
     CenterAlignedTopAppBar(
             title = {
-                Row(
-                        modifier = Modifier.clickable(onClick = onTitleClick),
-                        verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                            text = title,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                    )
+                Row(modifier = Modifier.clickable(onClick = onTitleClick), verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             },
             actions = {
-                IconButton(onClick = onPreviousClick, enabled = isPreviousEnabled) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "上一周")
-                }
-                IconButton(onClick = onNextClick, enabled = isNextEnabled) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "下一周")
-                }
+                IconButton(onClick = onPreviousClick, enabled = isPreviousEnabled) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "上一周") }
+                IconButton(onClick = onNextClick, enabled = isNextEnabled) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "下一周") }
             }
     )
 }
-// endregion
 
-// region 周次选择底部弹窗
+/** 周次选择底部弹窗。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WeekSelectionSheet(
-        weeks: List<Week>,
-        selectedWeek: Week?,
-        onWeekSelected: (Week) -> Unit,
-        onDismiss: () -> Unit
-) {
+private fun WeekSelectionSheet(weeks: List<Week>, selectedWeek: Week?, onWeekSelected: (Week) -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
-            item {
-                Text(
-                        text = "选择周次",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+            item { Text(text = "选择周次", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(16.dp)) }
             items(weeks) { week ->
                 ListItem(
                         headlineContent = { Text(week.name) },
                         modifier = Modifier.clickable { onWeekSelected(week) },
                         leadingContent = {
-                            if (week.curWeek) {
-                                Surface(
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                            text = "本周",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            modifier =
-                                                    Modifier.padding(
-                                                            horizontal = 6.dp,
-                                                            vertical = 2.dp
-                                                    )
-                                    )
-                                }
+                            if (week.curWeek) Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(4.dp)) {
+                                Text(text = "本周", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                         },
-                        trailingContent = {
-                            if (week == selectedWeek) {
-                                Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "已选择",
-                                        tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                        trailingContent = { if (week == selectedWeek) Icon(Icons.Default.Check, "已选择", tint = MaterialTheme.colorScheme.primary) }
                 )
             }
         }
     }
 }
-// endregion
 
-// region 课程表视图
+/** 核心周课表视图组件。包含星期标题行、时间轴列和课程网格。 */
 @Composable
-private fun WeeklyScheduleView(
-        schedule: WeeklySchedule,
-        onCourseClick: (CourseClass) -> Unit,
-        modifier: Modifier = Modifier
-) {
-    val maxEndSection = schedule.arrangedList.maxOfOrNull { it.endSection ?: 0 } ?: 0
-    val totalPeriods = maxOf(12, maxEndSection)
+private fun WeeklyScheduleView(schedule: WeeklySchedule, onCourseClick: (CourseClass) -> Unit, modifier: Modifier = Modifier) {
+    val totalPeriods = maxOf(12, schedule.arrangedList.maxOfOrNull { it.endSection ?: 0 } ?: 0)
     val timeLabels = (1..totalPeriods).map { it.toString() }
-    // 使用静态星期标签，解耦对 schedule 数据结构的依赖
     val dayLabels = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
     val rowHeight: Dp = 64.dp
     val scrollState = rememberScrollState()
 
     Column(modifier = modifier.padding(horizontal = 8.dp)) {
-        HeaderRow(dayLabels = dayLabels)
+        HeaderRow(dayLabels)
         Spacer(modifier = Modifier.height(4.dp))
-        Row(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .verticalScroll(scrollState)
-                                .background(
-                                        color =
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(
-                                                        alpha = 0.3f
-                                                ),
-                                        shape = RoundedCornerShape(8.dp)
-                                )
-        ) {
-            TimeColumn(
-                    timeLabels = timeLabels,
-                    rowHeight = rowHeight,
-                    modifier = Modifier.width(36.dp)
-            )
-            WeeklyScheduleGrid(
-                    schedule = schedule,
-                    onCourseClick = onCourseClick,
-                    totalPeriods = timeLabels.size,
-                    rowHeight = rowHeight,
-                    modifier = Modifier.weight(1f)
-            )
+        Row(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).background(MaterialTheme.colorScheme.surfaceVariant.copy(0.3f), RoundedCornerShape(8.dp))) {
+            TimeColumn(timeLabels, rowHeight, Modifier.width(36.dp))
+            WeeklyScheduleGrid(schedule, onCourseClick, timeLabels.size, rowHeight, Modifier.weight(1f))
         }
     }
 }
 
+/** 星期标题行。 */
 @Composable
 private fun HeaderRow(dayLabels: List<String>) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Spacer(modifier = Modifier.width(36.dp))
-        dayLabels.forEach { dayLabel ->
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text(
-                        text = dayLabel,
-                        textAlign = TextAlign.Center,
-                        fontSize = 12.sp,
-                        lineHeight = 14.sp,
-                        fontWeight = FontWeight.Medium
-                )
-            }
-        }
+        dayLabels.forEach { Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { Text(text = it, fontSize = 12.sp, fontWeight = FontWeight.Medium) } }
     }
 }
 
+/** 时间轴列。 */
 @Composable
 private fun TimeColumn(timeLabels: List<String>, rowHeight: Dp, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
-        timeLabels.forEach { time ->
-            Box(
-                    modifier = Modifier.height(rowHeight).fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-            ) {
-                Text(
-                        text = time,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        timeLabels.forEach { Box(modifier = Modifier.height(rowHeight).fillMaxWidth(), contentAlignment = Alignment.Center) { Text(text = it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
     }
 }
-// endregion
 
-// region 全新高效的课程表网格
+/** 课程表网格。负责绘制背景辅助线和摆放课程单元格。 */
 @Composable
-private fun WeeklyScheduleGrid(
-        schedule: WeeklySchedule,
-        onCourseClick: (CourseClass) -> Unit,
-        totalPeriods: Int,
-        rowHeight: Dp,
-        modifier: Modifier = Modifier
-) {
+private fun WeeklyScheduleGrid(schedule: WeeklySchedule, onCourseClick: (CourseClass) -> Unit, totalPeriods: Int, rowHeight: Dp, modifier: Modifier = Modifier) {
     val totalDays = 7
-    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-    val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-
+    val gridColor = MaterialTheme.colorScheme.onSurface.copy(0.1f)
     BoxWithConstraints(modifier = modifier.height(rowHeight * totalPeriods)) {
         val density = LocalDensity.current
         val cellHeightPx = with(density) { rowHeight.toPx() }
         val cellWidth = maxWidth / totalDays
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // ... (Canvas code remains the same)
+            val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
             for (i in 1 until totalPeriods) {
                 val y = i * cellHeightPx
-                drawLine(
-                        color = gridColor,
-                        start = Offset(0f, y),
-                        end = Offset(size.width, y),
-                        pathEffect = pathEffect
-                )
+                drawLine(gridColor, Offset(0f, y), Offset(size.width, y), pathEffect = pathEffect)
             }
             for (i in 1 until totalDays) {
                 val x = i * cellWidth.toPx()
-                drawLine(color = gridColor, start = Offset(x, 0f), end = Offset(x, size.height))
+                drawLine(gridColor, Offset(x, 0f), Offset(x, size.height))
             }
         }
 
         schedule.arrangedList.forEach { course ->
             val dayIndex = (course.dayOfWeek ?: 1) - 1
-            val startPeriodIndex = (course.beginSection ?: 1) - 1
-            val periodSpan =
-                    (course.endSection ?: course.beginSection ?: 1) - (course.beginSection ?: 1) + 1
-
-            if (dayIndex in 0 until totalDays && startPeriodIndex in 0 until totalPeriods) {
-                val xOffset = cellWidth * dayIndex
-                val yOffset = rowHeight * startPeriodIndex
-                val courseHeight = (rowHeight * periodSpan)
-
-                CourseCell(
-                        course = course,
-                        onClick = { onCourseClick(course) },
-                        modifier =
-                                Modifier.offset(x = xOffset, y = yOffset)
-                                        .size(width = cellWidth, height = courseHeight)
-                                        .padding(1.dp)
-                )
+            val startIdx = (course.beginSection ?: 1) - 1
+            val span = (course.endSection ?: course.beginSection ?: 1) - (course.beginSection ?: 1) + 1
+            if (dayIndex in 0 until totalDays && startIdx in 0 until totalPeriods) {
+                CourseCell(course, { onCourseClick(course) }, Modifier.offset(cellWidth * dayIndex, rowHeight * startIdx).size(cellWidth, rowHeight * span).padding(1.dp))
             }
         }
     }
 }
-// endregion
 
-// region 课程单元格
+/** 单个课程卡片组件。 */
 @Composable
 private fun CourseCell(course: CourseClass, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
     val parsedColor = remember(course.color) { parseColor(course.color) }
+    val containerColor = remember(parsedColor, isDark) {
+        val base = parsedColor ?: Color(0xFF6200EE)
+        if (isDark && parsedColor != null) base.copy(alpha = 0.7f) else base
+    }
+    val contentColor = if (containerColor.luminance() > 0.5f) Color.Black else Color.White
 
-    // 基础背景色
-    val baseContainerColor = parsedColor ?: MaterialTheme.colorScheme.primaryContainer
-
-    // 在黑夜模式下，如果使用自定义颜色，稍微降低透明度，让底色透出来从而变暗
-    val containerColor =
-            remember(baseContainerColor, isDark) {
-                if (isDark && parsedColor != null) {
-                    baseContainerColor.copy(alpha = 0.7f)
-                } else {
-                    baseContainerColor
-                }
-            }
-
-    // 根据背景亮度计算文字颜色
-    val contentColor =
-            remember(containerColor) {
-                if (parsedColor != null) {
-                    if (containerColor.luminance() > 0.5f) Color.Black else Color.White
-                } else {
-                    Color.Unspecified
-                }
-            }
-
-    val finalContentColor =
-            if (contentColor == Color.Unspecified) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                contentColor
-            }
-
-    Card(
-            modifier = modifier.fillMaxSize().clickable { onClick() },
-            shape = RoundedCornerShape(6.dp),
-            colors =
-                    CardDefaults.cardColors(
-                            containerColor = containerColor,
-                            contentColor = finalContentColor
-                    )
-    ) {
-        Column(
-                modifier = Modifier.fillMaxSize().padding(vertical = 4.dp, horizontal = 3.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                    text = course.courseName,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 14.sp,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis
-            )
-            course.placeName?.let {
-                Text(
-                        text = "@$it",
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 13.sp,
-                        color = LocalContentColor.current.copy(alpha = 0.8f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                )
-            }
+    Card(modifier = modifier.fillMaxSize().clickable { onClick() }, shape = RoundedCornerShape(6.dp), colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor)) {
+        Column(modifier = Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = course.courseName, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, lineHeight = 14.sp, maxLines = 4, overflow = TextOverflow.Ellipsis)
+            course.placeName?.let { Text(text = "@$it", fontSize = 11.sp, textAlign = TextAlign.Center, lineHeight = 13.sp, color = contentColor.copy(0.8f), maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
-// endregion
 
-// region 辅助函数
-// 跨平台颜色解析函数（替代 Android Color.parseColor）
+/** 解析十六进制颜色字符串。 */
 private fun parseColor(colorString: String?): Color? {
     return try {
-        colorString?.let {
-            if (it.startsWith("#") && it.length == 7) {
-                val hex = it.substring(1)
-                val r = hex.substring(0, 2).toInt(16)
-                val g = hex.substring(2, 4).toInt(16)
-                val b = hex.substring(4, 6).toInt(16)
-                Color(r, g, b)
-            } else {
-                null
-            }
-        }
-    } catch (e: Exception) {
-        null
-    }
+        if (colorString?.startsWith("#") == true && colorString.length == 7) {
+            Color(colorString.substring(1).toInt(16) or (0xFF shl 24))
+        } else null
+    } catch (_: Exception) { null }
 }
-// endregion

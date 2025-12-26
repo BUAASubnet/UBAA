@@ -22,9 +22,19 @@ import cn.edu.ubaa.ui.theme.UBAATheme
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * 应用程序顶层入口 Composable。
+ * 负责全局状态管理，包括：
+ * 1. 字体预加载。
+ * 2. 整体主题应用。
+ * 3. 认证状态监听与自动登录逻辑。
+ * 4. 启动界面 (Splash) 与主界面/登录界面的切换。
+ * 5. 软件更新检测与弹窗提示。
+ */
 @Composable
 @Preview
 fun App() {
+    // 预加载应用所需的中文字体
     PreloadFonts()
 
     UBAATheme {
@@ -32,29 +42,20 @@ fun App() {
         val uiState by authViewModel.uiState.collectAsState()
         val loginForm by authViewModel.loginForm.collectAsState()
 
-        // 检查用户是否有存储凭据（老用户）
-        val hasStoredCredentials =
-                loginForm.rememberPassword &&
-                        loginForm.username.isNotBlank() &&
-                        loginForm.password.isNotBlank()
-
-        // 启动状态管理
+        // 启动流程控制状态
         var isSplashFinished by remember { mutableStateOf(false) }
 
-        // 检测更新
+        // 更新检测逻辑
         val updateService = remember { UpdateService() }
         var updateInfo by remember { mutableStateOf<GitHubRelease?>(null) }
         val uriHandler = LocalUriHandler.current
 
         LaunchedEffect(Unit) { updateInfo = updateService.checkUpdate() }
 
-        // 启动界面逻辑
-        LaunchedEffect(Unit) {
-            // 立即开始自动登录流程，不需要延迟
-            authViewModel.initializeApp()
-        }
+        // 核心初始化逻辑：尝试恢复会话
+        LaunchedEffect(Unit) { authViewModel.initializeApp() }
 
-        // 监听认证状态变化，决定是否结束启动界面
+        // 根据认证状态和加载进度决定何时隐藏 Splash 界面
         LaunchedEffect(
                 uiState.isLoggedIn,
                 uiState.error,
@@ -62,28 +63,15 @@ fun App() {
                 uiState.isPreloading,
                 uiState.isRefreshingCaptcha
         ) {
-            // 结束启动界面的情况：
-            // 1. 已成功登录且有用户数据
-            // 2. 出现错误且没有正在加载（避免错误时的闪烁）
-            // 3. 初始化完成但未登录（新用户）
             val shouldEndSplash =
                     (uiState.isLoggedIn && uiState.userData != null) ||
-                            (uiState.error != null &&
-                                    !uiState.isLoading &&
-                                    !uiState.isPreloading &&
-                                    !uiState.isRefreshingCaptcha) ||
-                            (!uiState.isLoading &&
-                                    !uiState.isPreloading &&
-                                    !uiState.isRefreshingCaptcha &&
-                                    !uiState.isLoggedIn &&
-                                    uiState.error == null &&
-                                    !loginForm.autoLogin)
+                            (uiState.error != null && !uiState.isLoading && !uiState.isPreloading && !uiState.isRefreshingCaptcha) ||
+                            (!uiState.isLoading && !uiState.isPreloading && !uiState.isRefreshingCaptcha && !uiState.isLoggedIn && uiState.error == null && !loginForm.autoLogin)
 
-            if (shouldEndSplash) {
-                isSplashFinished = true
-            }
+            if (shouldEndSplash) isSplashFinished = true
         }
 
+        // 版本更新对话框
         if (updateInfo != null) {
             val release = updateInfo!!
             AlertDialog(
@@ -91,25 +79,16 @@ fun App() {
                     title = { Text("发现新版本 ${release.tagName}") },
                     text = { Text(release.body ?: "点击下方按钮前往下载最新版本。") },
                     confirmButton = {
-                        TextButton(
-                                onClick = {
-                                    uriHandler.openUri(release.htmlUrl)
-                                    updateInfo = null
-                                }
-                        ) { Text("前往下载") }
+                        TextButton(onClick = { uriHandler.openUri(release.htmlUrl); updateInfo = null }) { Text("前往下载") }
                     },
                     dismissButton = { TextButton(onClick = { updateInfo = null }) { Text("稍后再说") } }
             )
         }
 
-        // 根据状态决定显示什么界面
+        // 视图切换状态机
         when {
-            !isSplashFinished -> {
-                // 显示启动界面
-                SplashScreen(modifier = Modifier.fillMaxSize())
-            }
+            !isSplashFinished -> SplashScreen(modifier = Modifier.fillMaxSize())
             uiState.isLoggedIn && uiState.userData != null -> {
-                // 已登录，显示主界面
                 val userData = uiState.userData!!
                 MainAppScreen(
                         userData = userData,
@@ -119,7 +98,6 @@ fun App() {
                 )
             }
             else -> {
-                // 新用户或登录失败，显示登录界面
                 LoginScreen(
                         loginFormState = loginForm,
                         onUsernameChange = { authViewModel.updateUsername(it) },
@@ -134,18 +112,15 @@ fun App() {
                         captchaRequired = uiState.captchaRequired,
                         captchaInfo = uiState.captchaInfo,
                         error = uiState.error,
-                        modifier =
-                                Modifier.background(MaterialTheme.colorScheme.background)
-                                        .safeContentPadding()
-                                        .fillMaxSize()
+                        modifier = Modifier.background(MaterialTheme.colorScheme.background).safeContentPadding().fillMaxSize()
                 )
             }
         }
 
-        // 用户操作后自动清除错误
+        // 错误消息自动淡出
         LaunchedEffect(uiState.error) {
             if (uiState.error != null) {
-                delay(5000) // 5秒后清除错误
+                delay(5000)
                 authViewModel.clearError()
             }
         }
