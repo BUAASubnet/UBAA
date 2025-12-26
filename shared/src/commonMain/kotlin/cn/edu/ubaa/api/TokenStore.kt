@@ -7,7 +7,10 @@ import kotlin.uuid.Uuid
 /** Simple multiplatform token store backed by persistent Settings. */
 object TokenStore {
     private const val KEY_TOKEN = "auth_token"
-    private val settings: Settings = Settings()
+    private var _settings: Settings? = null
+    var settings: Settings
+        get() = _settings ?: Settings().also { _settings = it }
+        set(value) { _settings = value }
 
     fun save(token: String) {
         settings.putString(KEY_TOKEN, token)
@@ -23,7 +26,10 @@ object TokenStore {
 /** 客户端标识存储：用于关联预登录会话 */
 object ClientIdStore {
     private const val KEY_CLIENT_ID = "client_id"
-    private val settings: Settings = Settings()
+    private var _settings: Settings? = null
+    var settings: Settings
+        get() = _settings ?: Settings().also { _settings = it }
+        set(value) { _settings = value }
 
     /** 获取或创建 clientId */
     @OptIn(ExperimentalUuidApi::class)

@@ -14,20 +14,22 @@ import kotlinx.serialization.json.Json
 /**
  * API 通信的多平台 HTTP 客户端。
  * 负责管理 Ktor HttpClient 的创建、配置（序列化、日志、认证、超时）以及令牌更新。
+ *
+ * @param engine 指定的 HTTP 引擎，若为 null 则使用平台默认引擎。
  */
-class ApiClient {
+class ApiClient(private val engine: HttpClientEngine? = null) {
     private var httpClient: HttpClient? = null
     private var cachedToken: String? = TokenStore.get()
 
     /**
      * 创建并配置一个新的 HttpClient 实例。
      *
-     * @param engine 指定的 HTTP 引擎，若为 null 则使用平台默认引擎。
+     * @param engine 指定的 HTTP 引擎，若为 null 则使用构造函数中定义的引擎或平台默认引擎。
      * @param token 认证令牌（Bearer Token），用于请求头验证。默认使用缓存的令牌。
      * @return 配置好的 HttpClient 实例。
      */
     private fun createClient(
-            engine: HttpClientEngine? = null,
+            engine: HttpClientEngine? = this.engine,
             token: String? = cachedToken
     ): HttpClient {
         return HttpClient(engine ?: getDefaultEngine()) {
