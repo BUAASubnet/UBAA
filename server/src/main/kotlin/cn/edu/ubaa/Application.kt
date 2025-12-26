@@ -18,6 +18,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.metrics.micrometer.*
+import io.micrometer.prometheusmetrics.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
@@ -38,13 +40,23 @@ fun main() {
             .start(wait = true)
 }
 
+val log = LoggerFactory.getLogger("Application")
+
+/** 全局 Prometheus 指标注册表。 */
+val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+
 /**
  * Ktor 应用模块主配置。
- * 负责安装插件（JWT, CORS, ContentNegotiation）并注册业务路由。
+ * 负责安装插件（JWT, CORS, ContentNegotiation, Metrics）并注册业务路由。
  */
 fun Application.module() {
     log.info("Initializing Application module...")
     
+    // 安装指标监控插件
+    install(MicrometerMetrics) {
+        registry = appMicrometerRegistry
+    }
+
     // 配置 JWT 认证
     configureJwtAuth()
 
@@ -64,6 +76,11 @@ fun Application.module() {
     install(ContentNegotiation) { json() }
 
     routing {
+        /** 暴露 Prometheus 格式的指标。 */
+        get("/metrics") {
+            call.respondText(appMicrometerRegistry.scrape())
+        }
+
         // 1. 无需认证的路由（如登录、验证码）
         authRouting()
 

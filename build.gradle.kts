@@ -19,4 +19,6 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     // BuildKonfig 插件，用于在构建时生成配置代码
     alias(libs.plugins.buildkonfig) apply false
+    // Kover 插件，用于测试覆盖率报告
+    alias(libs.plugins.kover)
 }
