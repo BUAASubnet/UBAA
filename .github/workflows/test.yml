@@ -23,9 +23,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile Android
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:assembleDebug
 
   test-desktop-linux:
@@ -43,9 +41,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile Desktop
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: |
           ./gradlew :shared:compileKotlinMetadata
           ./gradlew :composeApp:compileKotlinJvm
@@ -65,10 +61,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile Server
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_BIND_HOST: ${{ secrets.SERVER_BIND_HOST || '0.0.0.0' }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          USE_VPN: ${{ secrets.USE_VPN || 'false' }}
         run: ./gradlew :server:compileKotlin
 
   test-web-wasm:
@@ -86,9 +82,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile Web Wasm
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:compileKotlinWasmJs
 
   test-web-js:
@@ -106,9 +100,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile Web JS
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:compileKotlinJs
 
   test-ios:
@@ -126,9 +118,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile iOS
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:compileKotlinIosArm64
 
   test-windows:
@@ -146,7 +136,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile Windows
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:compileKotlinJvm
