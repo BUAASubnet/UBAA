@@ -35,9 +35,7 @@ jobs:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: |
           ./gradlew :composeApp:assembleRelease
           cp composeApp/build/outputs/apk/release/composeApp-release.apk UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
@@ -67,9 +65,7 @@ jobs:
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
       - name: Build Deb
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:packageReleaseDeb
 
       - name: Prepare Linux Assets
@@ -102,10 +98,10 @@ jobs:
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
       - name: Build Server
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_BIND_HOST: ${{ secrets.SERVER_BIND_HOST || '0.0.0.0' }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          USE_VPN: ${{ secrets.USE_VPN || 'false' }}
         run: |
           ./gradlew :server:buildFatJar
           cp server/build/libs/*-all.jar UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
@@ -134,9 +130,7 @@ jobs:
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
       - name: Build Web Wasm
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:wasmJsBrowserDistribution
       - name: Archive Web Wasm
         run: zip -r UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/wasmJs/productionExecutable/
@@ -165,9 +159,7 @@ jobs:
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
       - name: Build Web JS
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:jsBrowserDistribution
       - name: Archive Web JS
         run: zip -r UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/js/productionExecutable/
@@ -200,9 +192,7 @@ jobs:
 
       - name: Build iOS Framework
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
 
       # 如果需要上传 iOS 框架（通常是给 Xcode 使用的 .framework）
@@ -241,9 +231,7 @@ jobs:
 
       - name: Build Windows Exe
         env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          CLIENT_PORT: ${{ secrets.CLIENT_PORT }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:packageReleaseExe
 
       - name: Prepare Windows Assets
