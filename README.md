@@ -1,8 +1,8 @@
 # UBAA (智慧北航 Remake)
 
-![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-blue.svg?style=flat&logo=kotlin)
-![Compose Multiplatform](https://img.shields.io/badge/Compose_Multiplatform-1.7.0-blueviolet.svg?style=flat&logo=jetpack-compose)
-![Ktor](https://img.shields.io/badge/Ktor-3.0.0-orange.svg?style=flat&logo=ktor)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg?style=flat&logo=kotlin)
+![Compose Multiplatform](https://img.shields.io/badge/Compose_Multiplatform-1.9.3-blueviolet.svg?style=flat&logo=jetpack-compose)
+![Ktor](https://img.shields.io/badge/Ktor-3.3.3-orange.svg?style=flat&logo=ktor)
 ![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Desktop%20%7C%20Web-lightgrey.svg?style=flat)
 
 **UBAA** 是一款基于 **Kotlin Multiplatform** 和 **Compose Multiplatform** 构建的现代化跨平台应用，专为北京航空航天大学（BUAA）学生打造。
