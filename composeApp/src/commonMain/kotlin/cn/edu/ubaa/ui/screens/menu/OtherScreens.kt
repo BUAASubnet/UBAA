@@ -6,19 +6,25 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.UserInfo
 
 @Composable
-fun AdvancedFeaturesScreen(onSigninClick: () -> Unit, modifier: Modifier = Modifier) {
+fun AdvancedFeaturesScreen(
+        onSigninClick: () -> Unit,
+        onEvaluationClick: () -> Unit,
+        modifier: Modifier = Modifier
+) {
         val features =
                 listOf(
                         FeatureItem(
@@ -26,6 +32,12 @@ fun AdvancedFeaturesScreen(onSigninClick: () -> Unit, modifier: Modifier = Modif
                                 title = "课程签到",
                                 description = "快速完成课堂签到",
                                 icon = Icons.Default.HowToReg
+                        ),
+                        FeatureItem(
+                                id = "evaluation",
+                                title = "自动评教",
+                                description = "一键完成学期末评教任务",
+                                icon = Icons.Default.AssignmentTurnedIn
                         ),
                         FeatureItem(
                                 id = "more",
@@ -36,12 +48,12 @@ fun AdvancedFeaturesScreen(onSigninClick: () -> Unit, modifier: Modifier = Modif
                 )
 
         Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-                Text(
-                        text = "高级功能",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                )
+                // Text(
+                //         text = "高级功能",
+                //         style = MaterialTheme.typography.headlineMedium,
+                //         fontWeight = FontWeight.Bold,
+                //         modifier = Modifier.padding(bottom = 16.dp)
+                // )
 
                 LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
@@ -52,8 +64,9 @@ fun AdvancedFeaturesScreen(onSigninClick: () -> Unit, modifier: Modifier = Modif
                                 FeatureCard(
                                         feature = feature,
                                         onClick = {
-                                                if (feature.id == "signin") {
-                                                        onSigninClick()
+                                                when (feature.id) {
+                                                        "signin" -> onSigninClick()
+                                                        "evaluation" -> onEvaluationClick()
                                                 }
                                         }
                                 )
@@ -105,12 +118,12 @@ private fun FeatureCard(feature: FeatureItem, onClick: () -> Unit, modifier: Mod
 @Composable
 fun MyScreen(userInfo: UserInfo?, modifier: Modifier = Modifier) {
         Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-                Text(
-                        text = "我的",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                )
+                // Text(
+                //         text = "我的",
+                //         style = MaterialTheme.typography.headlineMedium,
+                //         fontWeight = FontWeight.Bold,
+                //         modifier = Modifier.padding(bottom = 16.dp)
+                // )
 
                 Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -166,12 +179,12 @@ private fun UserInfoItem(label: String, value: String) {
 @Composable
 fun AboutScreen(modifier: Modifier = Modifier) {
         Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-                Text(
-                        text = "关于",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                )
+                // Text(
+                //         text = "关于",
+                //         style = MaterialTheme.typography.headlineMedium,
+                //         fontWeight = FontWeight.Bold,
+                //         modifier = Modifier.padding(bottom = 16.dp)
+                // )
 
                 Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -218,6 +231,36 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                                         text = "技术栈：Kotlin Multiplatform + Compose Multiplatform",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                val uriHandler = LocalUriHandler.current
+
+                                Text(
+                                        text = "开源项目 (GitHub)",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier =
+                                                Modifier.clickable {
+                                                        uriHandler.openUri(
+                                                                "https://github.com/BUAASubnet/UBAA"
+                                                        )
+                                                }
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Text(
+                                        text = "反馈建议 (Issues)",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier =
+                                                Modifier.clickable {
+                                                        uriHandler.openUri(
+                                                                "https://github.com/BUAASubnet/UBAA/issues"
+                                                        )
+                                                }
                                 )
                         }
                 }

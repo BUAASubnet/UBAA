@@ -63,12 +63,12 @@ fun RegularFeaturesScreen(
                 )
 
         Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-                Text(
-                        text = "普通功能",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                )
+                // Text(
+                //         text = "普通功能",
+                //         style = MaterialTheme.typography.headlineMedium,
+                //         fontWeight = FontWeight.Bold,
+                //         modifier = Modifier.padding(bottom = 16.dp)
+                // )
 
                 LazyVerticalGrid(
                         columns = GridCells.Fixed(2),

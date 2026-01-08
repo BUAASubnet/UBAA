@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalUriHandler
 import cn.edu.ubaa.model.dto.CaptchaInfo
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -113,6 +114,17 @@ fun LoginScreen(
                                 Text(text = msg, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(16.dp))
                         }
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
+                val uriHandler = LocalUriHandler.current
+                Text(
+                        text = "开源项目: https://github.com/BUAASubnet/UBAA",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable {
+                                uriHandler.openUri("https://github.com/BUAASubnet/UBAA")
+                        }
+                )
         }
 }
 

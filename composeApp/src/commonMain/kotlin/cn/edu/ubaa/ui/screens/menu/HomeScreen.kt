@@ -12,9 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.TodayClass
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.datetime.*
 
 // 首页屏幕
+@OptIn(ExperimentalTime::class)
 @Composable
 fun HomeScreen(
     todayClasses: List<TodayClass>,

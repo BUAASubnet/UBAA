@@ -24,6 +24,8 @@ import cn.edu.ubaa.ui.common.util.BackHandlerCompat
 import cn.edu.ubaa.ui.screens.bykc.*
 import cn.edu.ubaa.ui.screens.classroom.ClassroomQueryScreen
 import cn.edu.ubaa.ui.screens.classroom.ClassroomViewModel
+import cn.edu.ubaa.ui.screens.evaluation.EvaluationScreen
+import cn.edu.ubaa.ui.screens.evaluation.EvaluationViewModel
 import cn.edu.ubaa.ui.screens.exam.ExamScreen
 import cn.edu.ubaa.ui.screens.exam.ExamViewModel
 import cn.edu.ubaa.ui.screens.menu.*
@@ -36,7 +38,8 @@ import cn.edu.ubaa.ui.screens.signin.SigninViewModel
 /** 应用程序所有的屏幕页面定义。 */
 enum class AppScreen {
     HOME, REGULAR, ADVANCED, MY, ABOUT, SCHEDULE, EXAM, COURSE_DETAIL,
-    BYKC_HOME, BYKC_COURSES, BYKC_DETAIL, BYKC_CHOSEN, BYKC_STATISTICS, SIGNIN, CLASSROOM_QUERY
+    BYKC_HOME, BYKC_COURSES, BYKC_DETAIL, BYKC_CHOSEN, BYKC_STATISTICS, SIGNIN, CLASSROOM_QUERY,
+    EVALUATION
 }
 
 /**
@@ -72,6 +75,7 @@ fun MainAppScreen(
     var showExamTermMenu by remember { mutableStateOf(false) }
 
     val signinViewModel: SigninViewModel = viewModel(key = "signin-${userData.schoolid}") { SigninViewModel() }
+    val evaluationViewModel: EvaluationViewModel = viewModel { EvaluationViewModel() }
     val classroomViewModel: ClassroomViewModel = viewModel { ClassroomViewModel() }
     val bykcViewModel: BykcViewModel = viewModel(key = "bykc-${userData.schoolid}") { BykcViewModel() }
     val bykcCoursesState by bykcViewModel.coursesState.collectAsState()
@@ -93,7 +97,7 @@ fun MainAppScreen(
         val tab = bottomTab ?: when (screen) {
             AppScreen.HOME -> BottomNavTab.HOME
             AppScreen.REGULAR, AppScreen.SCHEDULE, AppScreen.EXAM, AppScreen.COURSE_DETAIL, AppScreen.CLASSROOM_QUERY -> BottomNavTab.REGULAR
-            AppScreen.ADVANCED, AppScreen.BYKC_HOME, AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN, AppScreen.BYKC_STATISTICS, AppScreen.SIGNIN -> BottomNavTab.ADVANCED
+            AppScreen.ADVANCED, AppScreen.BYKC_HOME, AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN, AppScreen.BYKC_STATISTICS, AppScreen.SIGNIN, AppScreen.EVALUATION -> BottomNavTab.ADVANCED
             else -> null
         }
         tab?.let { selectedBottomTab = it }
@@ -107,7 +111,7 @@ fun MainAppScreen(
             val tab = when (top) {
                 AppScreen.HOME -> BottomNavTab.HOME
                 AppScreen.REGULAR, AppScreen.SCHEDULE, AppScreen.EXAM, AppScreen.COURSE_DETAIL, AppScreen.CLASSROOM_QUERY -> BottomNavTab.REGULAR
-                AppScreen.ADVANCED, AppScreen.BYKC_HOME, AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN, AppScreen.BYKC_STATISTICS, AppScreen.SIGNIN -> BottomNavTab.ADVANCED
+                AppScreen.ADVANCED, AppScreen.BYKC_HOME, AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN, AppScreen.BYKC_STATISTICS, AppScreen.SIGNIN, AppScreen.EVALUATION -> BottomNavTab.ADVANCED
                 else -> null
             }
             tab?.let { selectedBottomTab = it }
@@ -128,6 +132,7 @@ fun MainAppScreen(
         AppScreen.EXAM -> "考试查询"; AppScreen.COURSE_DETAIL -> "课程详情"; AppScreen.BYKC_HOME -> "博雅课程"
         AppScreen.BYKC_COURSES -> "选择课程"; AppScreen.BYKC_DETAIL -> "课程详情"; AppScreen.BYKC_CHOSEN -> "我的课程"
         AppScreen.BYKC_STATISTICS -> "课程统计"; AppScreen.SIGNIN -> "课程签到"; AppScreen.CLASSROOM_QUERY -> "空教室查询"
+        AppScreen.EVALUATION -> "自动评教"
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -165,7 +170,7 @@ fun MainAppScreen(
                 when (currentScreen) {
                     AppScreen.HOME -> HomeScreen(todayClasses = todayScheduleState.todayClasses, isLoading = todayScheduleState.isLoading, error = todayScheduleState.error, onRefresh = { scheduleViewModel.loadTodaySchedule() })
                     AppScreen.REGULAR -> RegularFeaturesScreen(onScheduleClick = { navigateTo(AppScreen.SCHEDULE) }, onExamClick = { navigateTo(AppScreen.EXAM) }, onBykcClick = { navigateTo(AppScreen.BYKC_HOME) }, onClassroomClick = { navigateTo(AppScreen.CLASSROOM_QUERY) })
-                    AppScreen.ADVANCED -> AdvancedFeaturesScreen(onSigninClick = { navigateTo(AppScreen.SIGNIN) })
+                    AppScreen.ADVANCED -> AdvancedFeaturesScreen(onSigninClick = { navigateTo(AppScreen.SIGNIN) }, onEvaluationClick = { navigateTo(AppScreen.EVALUATION) })
                     AppScreen.MY -> MyScreen(userInfo = userInfo)
                     AppScreen.ABOUT -> AboutScreen()
                     AppScreen.SCHEDULE -> ScheduleScreen(terms = scheduleUiState.terms, weeks = scheduleUiState.weeks, weeklySchedule = scheduleUiState.weeklySchedule, selectedTerm = scheduleUiState.selectedTerm, selectedWeek = scheduleUiState.selectedWeek, isLoading = scheduleUiState.isLoading, error = scheduleUiState.error, onTermSelected = { scheduleViewModel.selectTerm(it) }, onWeekSelected = { scheduleViewModel.selectWeek(it) }, onCourseClick = { selectedCourse = it; navigateTo(AppScreen.COURSE_DETAIL) })
@@ -178,10 +183,11 @@ fun MainAppScreen(
                     AppScreen.BYKC_DETAIL -> BykcCourseDetailScreen(course = bykcDetailState.course, isLoading = bykcDetailState.isLoading, error = bykcDetailState.error, operationInProgress = bykcDetailState.operationInProgress, operationMessage = bykcDetailState.operationMessage, onSelectClick = { selectedBykcCourseId?.let { bykcViewModel.selectCourse(it) { _, _ -> } } }, onDeselectClick = { selectedBykcCourseId?.let { bykcViewModel.deselectCourse(it) { _, _ -> } } }, onSignInClick = { selectedBykcCourseId?.let { bykcViewModel.signCourse(it, null, null, 1) { _, _ -> } } }, onSignOutClick = { selectedBykcCourseId?.let { bykcViewModel.signCourse(it, null, null, 2) { _, _ -> } } }, onClearMessage = { bykcViewModel.clearOperationMessage() })
                     AppScreen.BYKC_CHOSEN -> BykcChosenCoursesScreen(courses = bykcChosenState.courses, isLoading = bykcChosenState.isLoading, error = bykcChosenState.error, onCourseClick = { selectedBykcCourseId = it.courseId; bykcViewModel.loadCourseDetail(it.courseId); navigateTo(AppScreen.BYKC_DETAIL) }, onRefresh = { bykcViewModel.loadChosenCourses() })
                     AppScreen.CLASSROOM_QUERY -> ClassroomQueryScreen(viewModel = classroomViewModel, onBackClick = { navigateBack() })
+                    AppScreen.EVALUATION -> EvaluationScreen(viewModel = evaluationViewModel)
                 }
             }
 
-            if (currentScreen !in listOf(AppScreen.SCHEDULE, AppScreen.EXAM, AppScreen.COURSE_DETAIL, AppScreen.MY, AppScreen.ABOUT, AppScreen.BYKC_HOME, AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN, AppScreen.BYKC_STATISTICS, AppScreen.CLASSROOM_QUERY)) {
+            if (currentScreen !in listOf(AppScreen.SCHEDULE, AppScreen.EXAM, AppScreen.COURSE_DETAIL, AppScreen.MY, AppScreen.ABOUT, AppScreen.BYKC_HOME, AppScreen.BYKC_COURSES, AppScreen.BYKC_DETAIL, AppScreen.BYKC_CHOSEN, AppScreen.BYKC_STATISTICS, AppScreen.CLASSROOM_QUERY, AppScreen.EVALUATION)) {
                 BottomNavigation(currentTab = selectedBottomTab, onTabSelected = { tab ->
                     when (tab) {
                         BottomNavTab.HOME -> setRoot(AppScreen.HOME, BottomNavTab.HOME)

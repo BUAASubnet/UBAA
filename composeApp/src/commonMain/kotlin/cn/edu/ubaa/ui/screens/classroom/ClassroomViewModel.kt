@@ -7,7 +7,8 @@ import cn.edu.ubaa.model.dto.ClassroomInfo
 import cn.edu.ubaa.model.dto.ClassroomQueryResponse
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -73,6 +74,7 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun getCurrentDate(): String {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return "${now.year}-${now.monthNumber.toString().padStart(2, '0')}-${now.dayOfMonth.toString().padStart(2, '0')}"

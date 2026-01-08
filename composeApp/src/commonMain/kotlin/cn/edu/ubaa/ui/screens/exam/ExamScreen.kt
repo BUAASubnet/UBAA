@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.Exam
 import kotlin.collections.get
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.datetime.*
 
 @Composable
@@ -387,6 +389,7 @@ fun ExamCard(exam: Exam, showSeat: Boolean, isFinished: Boolean = false) {
     }
 }
 
+@OptIn(ExperimentalTime::class)
 private fun isExamFinished(exam: Exam): Boolean {
     val dateStr = exam.examDate?.substringBefore(" ") ?: return false
     val endTimeStr = exam.endTime ?: "23:59"

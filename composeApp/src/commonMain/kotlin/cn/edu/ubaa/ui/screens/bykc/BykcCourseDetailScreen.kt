@@ -17,12 +17,13 @@ import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.BykcCourseDetailDto
 import cn.edu.ubaa.model.dto.BykcCourseStatus
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun BykcCourseDetailScreen(
         course: BykcCourseDetailDto?,
@@ -54,7 +55,7 @@ fun BykcCourseDetailScreen(
             ) { Text(text = "加载失败: $error", color = MaterialTheme.colorScheme.error) }
         }
         course != null -> {
-            var now by remember { mutableStateOf(Clock.System.now()) }
+            var now by remember { mutableStateOf<kotlin.time.Instant>(Clock.System.now()) }
             LaunchedEffect(Unit) {
                 while (true) {
                     delay(5000)
@@ -356,6 +357,7 @@ fun BykcCourseDetailScreen(
     }
 }
 
+@OptIn(ExperimentalTime::class)
 private fun isWithinWindow(start: String?, end: String?): Boolean {
     if (start.isNullOrBlank() || end.isNullOrBlank()) return false
     return try {

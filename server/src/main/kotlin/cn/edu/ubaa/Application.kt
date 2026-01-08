@@ -5,6 +5,7 @@ import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
 import cn.edu.ubaa.auth.authRouting
 import cn.edu.ubaa.bykc.bykcRouting
 import cn.edu.ubaa.classroom.classroomRouting
+import cn.edu.ubaa.evaluation.evaluationRouting
 import cn.edu.ubaa.exam.examRouting
 import cn.edu.ubaa.schedule.scheduleRouting
 import cn.edu.ubaa.signin.signinRouting
@@ -100,6 +101,7 @@ fun Application.module() {
             examRouting()
             signinRouting()
             classroomRouting()
+            evaluationRouting()
         }
 
         /** 根路径健康检查。 */

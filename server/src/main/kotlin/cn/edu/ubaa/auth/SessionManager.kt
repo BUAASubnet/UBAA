@@ -14,6 +14,10 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.launch
 
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
+
 /**
  * 会话管理器。
  * 负责隔离不同用户的 HttpClient 实例、Cookie 存储，以及管理 JWT 与用户会话之间的映射关系。
@@ -215,6 +219,12 @@ class SessionManager(
                 }
             }
             install(HttpCookies) { storage = cookieStorage }
+            install(ContentNegotiation) {
+                json(Json { 
+                    ignoreUnknownKeys = true 
+                    coerceInputValues = true
+                })
+            }
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
                 connectTimeoutMillis = 10_000

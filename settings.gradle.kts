@@ -33,6 +33,7 @@ dependencyResolutionManagement {
 }
 
 // 包含所有子模块
+include(":androidApp")
 include(":composeApp")
 include(":server")
 include(":shared")

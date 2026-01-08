@@ -91,3 +91,5 @@ _bmad-output
 .gemini
 .github/agents
 docs
+.codex
+ktfmt-0.61-with-dependencies.jar

@@ -22,12 +22,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.BykcChosenCourseDto
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
 @Composable
 fun BykcChosenCoursesScreen(
         courses: List<BykcChosenCourseDto>,
@@ -104,6 +105,7 @@ fun BykcChosenCoursesScreen(
     }
 }
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun BykcChosenCourseCard(
         course: BykcChosenCourseDto,
@@ -240,7 +242,7 @@ fun BykcChosenCourseCard(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         horizontalArrangement = Arrangement.End
                 ) {
-                    val now = remember { mutableStateOf(Clock.System.now()) }
+                    val now = remember { mutableStateOf<kotlin.time.Instant>(Clock.System.now()) }
                     LaunchedEffect(Unit) {
                         while (true) {
                             delay(5000)
@@ -358,6 +360,7 @@ fun BykcChosenCourseCard(
     }
 }
 
+@OptIn(ExperimentalTime::class)
 private fun isWithinWindow(start: String?, end: String?): Boolean {
     if (start.isNullOrBlank() || end.isNullOrBlank()) return false
     return try {

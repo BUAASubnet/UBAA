@@ -15,10 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * 身份认证与用户信息管理的 ViewModel。
- * 负责处理登录流程（含预加载和验证码）、自动登录逻辑、用户信息加载以及会话状态同步。
- */
+/** 身份认证与用户信息管理的 ViewModel。 负责处理登录流程（含预加载和验证码）、自动登录逻辑、用户信息加载以及会话状态同步。 */
 class AuthViewModel : ViewModel() {
     private val authService = AuthService()
     private val userService = UserService()
@@ -42,23 +39,30 @@ class AuthViewModel : ViewModel() {
         if (remember) {
             val username = CredentialStore.getUsername() ?: ""
             val password = CredentialStore.getPassword() ?: ""
-            _loginForm.value = _loginForm.value.copy(
-                    username = username,
-                    password = password,
-                    rememberPassword = true,
-                    autoLogin = auto
-            )
+            _loginForm.value =
+                    _loginForm.value.copy(
+                            username = username,
+                            password = password,
+                            rememberPassword = true,
+                            autoLogin = auto
+                    )
         } else {
             _loginForm.value = _loginForm.value.copy(rememberPassword = false, autoLogin = false)
         }
     }
 
     /** 更新表单中的用户名。 */
-    fun updateUsername(username: String) { _loginForm.value = _loginForm.value.copy(username = username) }
+    fun updateUsername(username: String) {
+        _loginForm.value = _loginForm.value.copy(username = username)
+    }
     /** 更新表单中的密码。 */
-    fun updatePassword(password: String) { _loginForm.value = _loginForm.value.copy(password = password) }
+    fun updatePassword(password: String) {
+        _loginForm.value = _loginForm.value.copy(password = password)
+    }
     /** 更新表单中的验证码。 */
-    fun updateCaptcha(captcha: String) { _loginForm.value = _loginForm.value.copy(captcha = captcha) }
+    fun updateCaptcha(captcha: String) {
+        _loginForm.value = _loginForm.value.copy(captcha = captcha)
+    }
 
     /** 更新“记住密码”勾选状态。 */
     fun updateRememberPassword(enabled: Boolean) {
@@ -72,31 +76,42 @@ class AuthViewModel : ViewModel() {
         if (enabled) _loginForm.value = _loginForm.value.copy(rememberPassword = true)
     }
 
-    /**
-     * 预加载登录状态。
-     * 访问服务端探测当前 SSO 是否已登录，并获取登录所需的执行标识（execution）或验证码。
-     */
+    /** 预加载登录状态。 访问服务端探测当前 SSO 是否已登录，并获取登录所需的执行标识（execution）或验证码。 */
     fun preloadLoginState() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isPreloading = true, error = null)
-            authService.preloadLoginState()
+            authService
+                    .preloadLoginState()
                     .onSuccess { response ->
                         if (response.token != null && response.userData != null) {
                             // SSO 已登录，执行自动登录逻辑
-                            _uiState.value = _uiState.value.copy(
-                                    isPreloading = false, isLoggedIn = true, userData = response.userData, token = response.token
-                            )
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isPreloading = false,
+                                            isLoggedIn = true,
+                                            userData = response.userData,
+                                            token = response.token
+                                    )
                             _loginForm.value = LoginFormState()
                             loadUserInfo()
                         } else {
-                            _uiState.value = _uiState.value.copy(
-                                    isPreloading = false, captchaRequired = response.captchaRequired,
-                                    captchaInfo = response.captcha, execution = response.execution
-                            )
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isPreloading = false,
+                                            captchaRequired = response.captchaRequired,
+                                            captchaInfo = response.captcha,
+                                            execution = response.execution
+                                    )
                             _loginForm.value = _loginForm.value.copy(captcha = "")
                         }
                     }
-                    .onFailure { _uiState.value = _uiState.value.copy(isPreloading = false, error = "加载登录状态失败: ${it.message}") }
+                    .onFailure {
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isPreloading = false,
+                                        error = "加载登录状态失败: ${it.message}"
+                                )
+                    }
         }
     }
 
@@ -104,14 +119,24 @@ class AuthViewModel : ViewModel() {
     fun refreshCaptcha() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshingCaptcha = true, error = null)
-            authService.preloadLoginState()
+            authService
+                    .preloadLoginState()
                     .onSuccess { response ->
-                        _uiState.value = _uiState.value.copy(
-                                isRefreshingCaptcha = false, captchaRequired = response.captchaRequired,
-                                captchaInfo = response.captcha, execution = response.execution
-                        )
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isRefreshingCaptcha = false,
+                                        captchaRequired = response.captchaRequired,
+                                        captchaInfo = response.captcha,
+                                        execution = response.execution
+                                )
                     }
-                    .onFailure { _uiState.value = _uiState.value.copy(isRefreshingCaptcha = false, error = "刷新验证码失败: ${it.message}") }
+                    .onFailure {
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isRefreshingCaptcha = false,
+                                        error = "刷新验证码失败: ${it.message}"
+                                )
+                    }
         }
     }
 
@@ -131,31 +156,44 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val captcha = if (state.captchaRequired) form.captcha else null
-            authService.login(form.username, form.password, captcha, state.execution)
+            authService
+                    .login(form.username, form.password, captcha, state.execution)
                     .onSuccess { loginResponse ->
-                        _uiState.value = _uiState.value.copy(
-                                isLoggedIn = true, isLoading = false, userData = loginResponse.user, token = loginResponse.token
-                        )
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isLoggedIn = true,
+                                        isLoading = false,
+                                        userData = loginResponse.user,
+                                        token = loginResponse.token
+                                )
                         CredentialStore.setRememberPassword(form.rememberPassword)
                         CredentialStore.setAutoLogin(form.autoLogin)
-                        if (form.rememberPassword) CredentialStore.saveCredentials(form.username, form.password)
+                        if (form.rememberPassword)
+                                CredentialStore.saveCredentials(form.username, form.password)
                         if (!form.rememberPassword) _loginForm.value = LoginFormState()
                         loadUserInfo()
                     }
                     .onFailure { exception ->
                         if (exception is CaptchaRequiredClientException) {
-                            _uiState.value = _uiState.value.copy(isLoading = false, captchaRequired = true, captchaInfo = exception.captcha, execution = exception.execution)
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isLoading = false,
+                                            captchaRequired = true,
+                                            captchaInfo = exception.captcha,
+                                            execution = exception.execution
+                                    )
                         } else {
-                            _uiState.value = _uiState.value.copy(isLoading = false, error = exception.message ?: "登录失败")
+                            _uiState.value =
+                                    _uiState.value.copy(
+                                            isLoading = false,
+                                            error = exception.message ?: "登录失败"
+                                    )
                         }
                     }
         }
     }
 
-    /**
-     * 应用全局初始化入口。
-     * 用于检查本地 Token 是否有效，若失效则根据设置决定跳转登录页或尝试自动登录。
-     */
+    /** 应用全局初始化入口。 用于检查本地 Token 是否有效，若失效则根据设置决定跳转登录页或尝试自动登录。 */
     fun initializeApp() {
         viewModelScope.launch {
             val storedToken = TokenStore.get()
@@ -166,9 +204,16 @@ class AuthViewModel : ViewModel() {
 
             authService.applyStoredToken()
             _uiState.value = _uiState.value.copy(isLoading = true)
-            authService.getAuthStatus()
+            authService
+                    .getAuthStatus()
                     .onSuccess { status ->
-                        _uiState.value = _uiState.value.copy(isLoggedIn = true, isLoading = false, userData = status.user, token = storedToken)
+                        _uiState.value =
+                                _uiState.value.copy(
+                                        isLoggedIn = true,
+                                        isLoading = false,
+                                        userData = status.user,
+                                        token = storedToken
+                                )
                         loadUserInfo()
                     }
                     .onFailure {
@@ -183,16 +228,26 @@ class AuthViewModel : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            authService.logout()
-                    .onSuccess { _uiState.value = AuthUiState(); _loginForm.value = LoginFormState(); preloadLoginState() }
-                    .onFailure { _uiState.value = AuthUiState(error = "注销完成但有警告: ${it.message}"); preloadLoginState() }
+            authService
+                    .logout()
+                    .onSuccess {
+                        _uiState.value = AuthUiState()
+                        _loginForm.value = LoginFormState()
+                        preloadLoginState()
+                    }
+                    .onFailure {
+                        _uiState.value = AuthUiState(error = "注销完成但有警告: ${it.message}")
+                        preloadLoginState()
+                    }
         }
     }
 
     /** 加载用户的详细档案信息。 */
     private fun loadUserInfo() {
         viewModelScope.launch {
-            userService.getUserInfo().onSuccess { info -> _uiState.value = _uiState.value.copy(userInfo = info) }
+            userService.getUserInfo().onSuccess { info ->
+                _uiState.value = _uiState.value.copy(userInfo = info)
+            }
         }
     }
 

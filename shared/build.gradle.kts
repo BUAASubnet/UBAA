@@ -6,7 +6,7 @@ import java.util.Properties
 plugins {
     // 引入 KMP、Android 库、序列化及 BuildKonfig 插件
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.buildkonfig)
 }
@@ -35,11 +35,10 @@ kotlin {
     // 配置 JDK 21 工具链
     jvmToolchain(21)
     
-    // 配置 Android 目标
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
+    androidLibrary {
+        namespace = "cn.edu.ubaa.shared"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
     
     // 配置 iOS 目标 (Arm64 及 模拟器)
@@ -86,17 +85,5 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.multiplatform.settings.test)
         }
-    }
-}
-
-android {
-    namespace = "cn.edu.ubaa.shared"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }
