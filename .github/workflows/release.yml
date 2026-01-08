@@ -37,8 +37,8 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: |
-          ./gradlew :composeApp:assembleRelease
-          cp composeApp/build/outputs/apk/release/composeApp-release.apk UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
+          ./gradlew :androidApp:assembleRelease
+          cp androidApp/build/outputs/apk/release/androidApp-release.apk UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
 
       - name: Upload Android Release Assets
         uses: softprops/action-gh-release@v2

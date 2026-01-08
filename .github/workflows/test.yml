@@ -24,7 +24,7 @@ jobs:
       - name: Compile Android
         env:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
-        run: ./gradlew :composeApp:assembleDebug
+        run: ./gradlew :androidApp:assembleDebug
 
   test-desktop-linux:
     name: Test Desktop Linux
