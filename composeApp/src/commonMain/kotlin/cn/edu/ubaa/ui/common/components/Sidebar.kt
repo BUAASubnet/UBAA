@@ -24,124 +24,114 @@ import cn.edu.ubaa.model.dto.UserData
 
 @Composable
 fun Sidebar(
-    userData: UserData,
-    onLogoutClick: () -> Unit,
-    onMyClick: () -> Unit,
-    onAboutClick: () -> Unit,
-    modifier: Modifier = Modifier
+  userData: UserData,
+  onLogoutClick: () -> Unit,
+  onMyClick: () -> Unit,
+  onAboutClick: () -> Unit,
+  modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxHeight()
-            .width(280.dp),
-        shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+  Card(
+    modifier = modifier.fillMaxHeight().width(280.dp),
+    shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+  ) {
+    Column(
+      modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(16.dp)
     ) {
+      // User Info Section
+      Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+      ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(16.dp)
+          modifier = Modifier.fillMaxWidth().padding(16.dp),
+          horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // User Info Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // User Avatar
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "用户头像",
-                            modifier = Modifier.fillMaxSize().padding(8.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+          // User Avatar
+          Box(
+            modifier =
+              Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary)
+          ) {
+            Icon(
+              imageVector = Icons.Default.AccountCircle,
+              contentDescription = "用户头像",
+              modifier = Modifier.fillMaxSize().padding(8.dp),
+              tint = MaterialTheme.colorScheme.onPrimary,
+            )
+          }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+          Spacer(modifier = Modifier.height(12.dp))
 
-                    // User Name
-                    Text(
-                        text = userData.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+          // User Name
+          Text(
+            text = userData.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+          )
 
-                    // School ID
-                    Text(
-                        text = userData.schoolid,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Menu Items
-            SidebarMenuItem(icon = Icons.Default.Person, title = "我的", onClick = onMyClick)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SidebarMenuItem(icon = Icons.Default.Info, title = "关于", onClick = onAboutClick)
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Logout Button
-            OutlinedButton(
-                onClick = onLogoutClick,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("退出登录")
-            }
+          // School ID
+          Text(
+            text = userData.schoolid,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
         }
+      }
+
+      Spacer(modifier = Modifier.height(24.dp))
+
+      // Menu Items
+      SidebarMenuItem(icon = Icons.Default.Person, title = "我的", onClick = onMyClick)
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      SidebarMenuItem(icon = Icons.Default.Info, title = "关于", onClick = onAboutClick)
+
+      Spacer(modifier = Modifier.weight(1f))
+
+      // Logout Button
+      OutlinedButton(
+        onClick = onLogoutClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+          ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+      ) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+          contentDescription = null,
+          modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("退出登录")
+      }
     }
+  }
 }
 
 @Composable
 private fun SidebarMenuItem(
-    icon: ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+  icon: ImageVector,
+  title: String,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth().clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+  Card(
+    modifier = modifier.fillMaxWidth().clickable { onClick() },
+    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+    border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(16.dp),
+      verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
-        }
+      Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurface,
+      )
+      Spacer(modifier = Modifier.width(12.dp))
+      Text(text = title, style = MaterialTheme.typography.bodyLarge)
     }
+  }
 }

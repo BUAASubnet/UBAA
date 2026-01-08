@@ -9,15 +9,15 @@ import org.w3c.dom.HTMLElement
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    ComposeViewport(document.body!!) {
-        App()
-        LaunchedEffect(Unit) {
-            val loader = document.getElementById("app-loader") as? HTMLElement
-            if (loader != null) {
-                loader.style.opacity = "0"
-                delay(500)
-                loader.remove()
-            }
-        }
+  ComposeViewport(document.body!!) {
+    App()
+    LaunchedEffect(Unit) {
+      val loader = document.getElementById("app-loader") as? HTMLElement
+      if (loader != null) {
+        loader.style.opacity = "0"
+        delay(500)
+        loader.remove()
+      }
     }
+  }
 }

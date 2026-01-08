@@ -1,92 +1,72 @@
 package cn.edu.ubaa.auth
 
+import cn.edu.ubaa.utils.JwtUtil
+import com.auth0.jwt.JWT
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import kotlinx.serialization.Serializable
 
-import cn.edu.ubaa.utils.JwtUtil
+@Serializable data class JwtErrorResponse(val error: JwtErrorDetails)
 
-@Serializable
-data class JwtErrorResponse(val error: JwtErrorDetails)
+@Serializable data class JwtErrorDetails(val code: String, val message: String)
 
-@Serializable
-data class JwtErrorDetails(val code: String, val message: String)
-
-/**
- * JWT Authentication configuration and utilities for protecting routes.
- */
+/** JWT Authentication configuration and utilities for protecting routes. */
 object JwtAuth {
-    const val JWT_AUTH = "jwt-auth"
-    
-    /**
-     * Configures JWT authentication for the Ktor application.
-     */
-    fun Application.configureJwtAuth() {
-        install(Authentication) {
-            jwt(JWT_AUTH) {
-                verifier(
-                    JWT.require(JwtUtil.algorithm)
-                        .withIssuer(JwtUtil.ISSUER)
-                        .withAudience(JwtUtil.AUDIENCE)
-                        .build()
-                )
-                validate { credential ->
-                    val username = credential.payload.subject
-                    if (username != null && 
-                        GlobalSessionManager.instance.getSession(username) != null) {
-                        JWTPrincipal(credential.payload)
-                    } else {
-                        null
-                    }
-                }
-                challenge { _, _ ->
-                    call.respond(
-                        HttpStatusCode.Unauthorized,
-                        JwtErrorResponse(JwtErrorDetails("invalid_token", "Invalid or expired JWT token"))
-                    )
-                }
-            }
+  const val JWT_AUTH = "jwt-auth"
+
+  /** Configures JWT authentication for the Ktor application. */
+  fun Application.configureJwtAuth() {
+    install(Authentication) {
+      jwt(JWT_AUTH) {
+        verifier(
+          JWT.require(JwtUtil.algorithm)
+            .withIssuer(JwtUtil.ISSUER)
+            .withAudience(JwtUtil.AUDIENCE)
+            .build()
+        )
+        validate { credential ->
+          val username = credential.payload.subject
+          if (username != null && GlobalSessionManager.instance.getSession(username) != null) {
+            JWTPrincipal(credential.payload)
+          } else {
+            null
+          }
         }
-    }
-    
-    /**
-     * Extension function to get the username from JWT principal.
-     */
-    val ApplicationCall.jwtUsername: String?
-        get() = principal<JWTPrincipal>()?.payload?.subject
-        
-    /**
-     * Extension function to get the user session from JWT token in the request.
-     */
-    suspend fun ApplicationCall.getUserSession(): SessionManager.UserSession? {
-        val authHeader = request.headers[HttpHeaders.Authorization]
-        if (authHeader?.startsWith("Bearer ") == true) {
-            val token = authHeader.removePrefix("Bearer ")
-            return GlobalSessionManager.instance.getSessionByToken(token)
+        challenge { _, _ ->
+          call.respond(
+            HttpStatusCode.Unauthorized,
+            JwtErrorResponse(JwtErrorDetails("invalid_token", "Invalid or expired JWT token")),
+          )
         }
-        return null
+      }
     }
-    
-    /**
-     * Extension function to require a user session, throwing an exception if not found.
-     */
-    suspend fun ApplicationCall.requireUserSession(): SessionManager.UserSession {
-        return getUserSession() 
-            ?: throw IllegalStateException("No valid session found for JWT token")
+  }
+
+  /** Extension function to get the username from JWT principal. */
+  val ApplicationCall.jwtUsername: String?
+    get() = principal<JWTPrincipal>()?.payload?.subject
+
+  /** Extension function to get the user session from JWT token in the request. */
+  suspend fun ApplicationCall.getUserSession(): SessionManager.UserSession? {
+    val authHeader = request.headers[HttpHeaders.Authorization]
+    if (authHeader?.startsWith("Bearer ") == true) {
+      val token = authHeader.removePrefix("Bearer ")
+      return GlobalSessionManager.instance.getSessionByToken(token)
     }
+    return null
+  }
+
+  /** Extension function to require a user session, throwing an exception if not found. */
+  suspend fun ApplicationCall.requireUserSession(): SessionManager.UserSession {
+    return getUserSession() ?: throw IllegalStateException("No valid session found for JWT token")
+  }
 }
 
-/**
- * Route extension to apply JWT authentication.
- */
+/** Route extension to apply JWT authentication. */
 fun Route.authenticatedRoute(build: Route.() -> Unit): Route {
-    return authenticate(JwtAuth.JWT_AUTH) {
-        build()
-    }
+  return authenticate(JwtAuth.JWT_AUTH) { build() }
 }

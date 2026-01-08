@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * 教室详细信息。
+ *
  * @property id 教室 ID。
  * @property floorid 楼栋/楼层 ID。
  * @property name 教室名称（如“J1-101”）。
@@ -17,8 +18,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ClassroomInfo(
-        val id: String,
-        val floorid: String,
-        val name: String,
-        val kxsds: String // "1,2,5,6,7,8,9,10,11,12,13,14"
+  val id: String,
+  val floorid: String,
+  val name: String,
+  val kxsds: String, // "1,2,5,6,7,8,9,10,11,12,13,14"
 )

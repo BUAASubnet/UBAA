@@ -11,19 +11,19 @@ import ubaa.composeapp.generated.resources.yahei
 
 @Composable
 actual fun getAppFontFamily(): FontFamily {
-    val font = Font(Res.font.yahei)
-    return remember(font) { FontFamily(font) }
+  val font = Font(Res.font.yahei)
+  return remember(font) { FontFamily(font) }
 }
 
 @Composable
 actual fun PreloadFonts() {
-    val fontFamilyResolver = LocalFontFamilyResolver.current
-    val font = Font(Res.font.yahei)
-    LaunchedEffect(font) {
-        try {
-            fontFamilyResolver.preload(FontFamily(font))
-        } catch (e: Exception) {
-            println("Font preload failed: ${e.message}")
-        }
+  val fontFamilyResolver = LocalFontFamilyResolver.current
+  val font = Font(Res.font.yahei)
+  LaunchedEffect(font) {
+    try {
+      fontFamilyResolver.preload(FontFamily(font))
+    } catch (e: Exception) {
+      println("Font preload failed: ${e.message}")
     }
+  }
 }

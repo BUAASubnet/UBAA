@@ -7,7 +7,7 @@ import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalTime::class)
 fun testClock() {
-    val now = Clock.System.now()
-    val localDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
-    println(localDateTime)
+  val now = Clock.System.now()
+  val localDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
+  println(localDateTime)
 }
