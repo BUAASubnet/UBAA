@@ -43,17 +43,21 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
 
   /** 根据搜索关键字过滤后的教室数据流。 自动响应 uiState 和 searchQuery 的变化。 */
   val filteredData: StateFlow<Map<String, List<ClassroomInfo>>> =
-    combine(_uiState, _searchQuery) { state, query ->
-        if (state is ClassroomUiState.Success) {
-          val allData = state.data.d.list
-          if (query.isBlank()) allData
-          else
-            allData
-              .mapValues { (_, list) -> list.filter { it.name.contains(query, true) } }
-              .filter { (building, list) -> building.contains(query, true) || list.isNotEmpty() }
-        } else emptyMap()
-      }
-      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+          combine(_uiState, _searchQuery) { state, query ->
+                    if (state is ClassroomUiState.Success) {
+                      val allData = state.data.d.list
+                      if (query.isBlank()) allData
+                      else
+                              allData
+                                      .mapValues { (_, list) ->
+                                        list.filter { it.name.contains(query, true) }
+                                      }
+                                      .filter { (building, list) ->
+                                        building.contains(query, true) || list.isNotEmpty()
+                                      }
+                    } else emptyMap()
+                  }
+                  .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
   /** 更新搜索关键字。 */
   fun setSearchQuery(query: String) {
@@ -76,10 +80,9 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
   fun query() {
     viewModelScope.launch {
       _uiState.value = ClassroomUiState.Loading
-      api
-        .queryClassrooms(_xqid.value, _date.value)
-        .onSuccess { _uiState.value = ClassroomUiState.Success(it) }
-        .onFailure { _uiState.value = ClassroomUiState.Error(it.message ?: "未知错误") }
+      api.queryClassrooms(_xqid.value, _date.value)
+              .onSuccess { _uiState.value = ClassroomUiState.Success(it) }
+              .onFailure { _uiState.value = ClassroomUiState.Error(it.message ?: "未知错误") }
     }
   }
 

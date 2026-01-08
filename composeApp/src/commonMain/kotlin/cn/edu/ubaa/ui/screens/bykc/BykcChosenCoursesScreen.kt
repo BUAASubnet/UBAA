@@ -31,12 +31,12 @@ import kotlinx.datetime.toLocalDateTime
 @OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
 @Composable
 fun BykcChosenCoursesScreen(
-  courses: List<BykcChosenCourseDto>,
-  isLoading: Boolean,
-  error: String?,
-  onCourseClick: (BykcChosenCourseDto) -> Unit,
-  onRefresh: () -> Unit,
-  modifier: Modifier = Modifier,
+        courses: List<BykcChosenCourseDto>,
+        isLoading: Boolean,
+        error: String?,
+        onCourseClick: (BykcChosenCourseDto) -> Unit,
+        onRefresh: () -> Unit,
+        modifier: Modifier = Modifier,
 ) {
   val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = onRefresh)
 
@@ -64,25 +64,25 @@ fun BykcChosenCoursesScreen(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
           Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-              imageVector = Icons.Default.EventBusy,
-              contentDescription = null,
-              modifier = Modifier.size(64.dp),
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    imageVector = Icons.Default.EventBusy,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-              text = "暂无已选课程",
-              style = MaterialTheme.typography.bodyLarge,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "暂无已选课程",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
         }
       }
       else -> {
         LazyColumn(
-          modifier = Modifier.fillMaxSize(),
-          contentPadding = PaddingValues(16.dp),
-          verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
           items(courses) { course ->
             BykcChosenCourseCard(course = course, onClick = { onCourseClick(course) })
@@ -92,12 +92,12 @@ fun BykcChosenCoursesScreen(
     }
 
     PullRefreshIndicator(
-      refreshing = isLoading,
-      state = pullRefreshState,
-      modifier = Modifier.align(Alignment.TopCenter),
-      backgroundColor = MaterialTheme.colorScheme.surface,
-      contentColor = MaterialTheme.colorScheme.primary,
-      scale = true,
+            refreshing = isLoading,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            backgroundColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary,
+            scale = true,
     )
   }
 }
@@ -105,23 +105,23 @@ fun BykcChosenCoursesScreen(
 @OptIn(ExperimentalTime::class)
 @Composable
 fun BykcChosenCourseCard(
-  course: BykcChosenCourseDto,
-  onClick: () -> Unit,
-  modifier: Modifier = Modifier,
+        course: BykcChosenCourseDto,
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier,
 ) {
   Card(
-    modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-    shape = RoundedCornerShape(12.dp),
-    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+          modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+          shape = RoundedCornerShape(12.dp),
+          elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
   ) {
     Column(modifier = Modifier.padding(16.dp)) {
       // 课程名称
       Text(
-        text = course.courseName,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
+              text = course.courseName,
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold,
+              maxLines = 2,
+              overflow = TextOverflow.Ellipsis,
       )
 
       Spacer(modifier = Modifier.height(8.dp))
@@ -146,15 +146,15 @@ fun BykcChosenCourseCard(
         Row {
           course.category?.let { category ->
             SuggestionChip(
-              onClick = {},
-              label = { Text(category, style = MaterialTheme.typography.labelSmall) },
-              modifier = Modifier.padding(end = 4.dp),
+                    onClick = {},
+                    label = { Text(category, style = MaterialTheme.typography.labelSmall) },
+                    modifier = Modifier.padding(end = 4.dp),
             )
           }
           course.subCategory?.let { subCategory ->
             SuggestionChip(
-              onClick = {},
-              label = { Text(subCategory, style = MaterialTheme.typography.labelSmall) },
+                    onClick = {},
+                    label = { Text(subCategory, style = MaterialTheme.typography.labelSmall) },
             )
           }
         }
@@ -170,24 +170,24 @@ fun BykcChosenCourseCard(
         val (passText, passColor) = getPassStatus(course.pass)
 
         Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
         ) {
           // 签到状态
           // 签到状态
           Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-              imageVector = Icons.Default.AssignmentInd,
-              contentDescription = null,
-              tint = checkinColor,
-              modifier = Modifier.size(20.dp),
+                    imageVector = Icons.Default.AssignmentInd,
+                    contentDescription = null,
+                    tint = checkinColor,
+                    modifier = Modifier.size(20.dp),
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-              text = checkinText,
-              style = MaterialTheme.typography.bodySmall,
-              color = checkinColor,
+                    text = checkinText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = checkinColor,
             )
           }
 
@@ -195,10 +195,11 @@ fun BykcChosenCourseCard(
           // 签到状态
           Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-              imageVector = if (course.pass == 1) Icons.Default.CheckCircle else Icons.Default.Info,
-              contentDescription = null,
-              tint = passColor,
-              modifier = Modifier.size(20.dp),
+                    imageVector =
+                            if (course.pass == 1) Icons.Default.CheckCircle else Icons.Default.Info,
+                    contentDescription = null,
+                    tint = passColor,
+                    modifier = Modifier.size(20.dp),
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(text = passText, style = MaterialTheme.typography.bodySmall, color = passColor)
@@ -208,17 +209,17 @@ fun BykcChosenCourseCard(
           if (course.score != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
               Icon(
-                imageVector = Icons.Default.Grade,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(20.dp),
+                      imageVector = Icons.Default.Grade,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.secondary,
+                      modifier = Modifier.size(20.dp),
               )
               Spacer(modifier = Modifier.width(4.dp))
               Text(
-                text = "${course.score} 分",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.secondary,
+                      text = "${course.score} 分",
+                      style = MaterialTheme.typography.bodySmall,
+                      fontWeight = FontWeight.Bold,
+                      color = MaterialTheme.colorScheme.secondary,
               )
             }
           }
@@ -226,8 +227,8 @@ fun BykcChosenCourseCard(
 
         // 签到/签退操作区
         Row(
-          modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-          horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
         ) {
           val now = remember { mutableStateOf<kotlin.time.Instant>(Clock.System.now()) }
           LaunchedEffect(Unit) {
@@ -238,17 +239,24 @@ fun BykcChosenCourseCard(
           }
 
           val isInSignInWindow =
-            remember(course.signConfig?.signStartDate, course.signConfig?.signEndDate, now.value) {
-              isWithinWindow(course.signConfig?.signStartDate, course.signConfig?.signEndDate)
-            }
+                  remember(
+                          course.signConfig?.signStartDate,
+                          course.signConfig?.signEndDate,
+                          now.value
+                  ) {
+                    isWithinWindow(course.signConfig?.signStartDate, course.signConfig?.signEndDate)
+                  }
           val isInSignOutWindow =
-            remember(
-              course.signConfig?.signOutStartDate,
-              course.signConfig?.signOutEndDate,
-              now.value,
-            ) {
-              isWithinWindow(course.signConfig?.signOutStartDate, course.signConfig?.signOutEndDate)
-            }
+                  remember(
+                          course.signConfig?.signOutStartDate,
+                          course.signConfig?.signOutEndDate,
+                          now.value,
+                  ) {
+                    isWithinWindow(
+                            course.signConfig?.signOutStartDate,
+                            course.signConfig?.signOutEndDate
+                    )
+                  }
 
           // 逻辑说明：
           // 可签到：未签到(0)且在时间窗口
@@ -263,50 +271,58 @@ fun BykcChosenCourseCard(
           if (showButtons) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
               AssistChip(
-                onClick = { if (canSignIn) onClick() },
-                enabled = canSignIn,
-                label = { Text("签到", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = {
-                  Icon(
-                    Icons.AutoMirrored.Filled.Login,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                  )
-                },
-                colors =
-                  AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    disabledContainerColor =
-                      MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    disabledLabelColor =
-                      MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                  ),
+                      onClick = { if (canSignIn) onClick() },
+                      enabled = canSignIn,
+                      label = { Text("签到", style = MaterialTheme.typography.labelSmall) },
+                      leadingIcon = {
+                        Icon(
+                                Icons.AutoMirrored.Filled.Login,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                        )
+                      },
+                      colors =
+                              AssistChipDefaults.assistChipColors(
+                                      containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                      labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                      disabledContainerColor =
+                                              MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                      alpha = 0.5f
+                                              ),
+                                      disabledLabelColor =
+                                              MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                      alpha = 0.5f
+                                              ),
+                              ),
               )
               AssistChip(
-                onClick = { if (canSignOut) onClick() },
-                enabled = canSignOut,
-                label = { Text("签退", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = {
-                  Icon(
-                    Icons.AutoMirrored.Filled.Logout,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                  )
-                },
-                colors =
-                  AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    disabledContainerColor =
-                      MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    disabledLabelColor =
-                      MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                  ),
+                      onClick = { if (canSignOut) onClick() },
+                      enabled = canSignOut,
+                      label = { Text("签退", style = MaterialTheme.typography.labelSmall) },
+                      leadingIcon = {
+                        Icon(
+                                Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                        )
+                      },
+                      colors =
+                              AssistChipDefaults.assistChipColors(
+                                      containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                      labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                      disabledContainerColor =
+                                              MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                      alpha = 0.5f
+                                              ),
+                                      disabledLabelColor =
+                                              MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                      alpha = 0.5f
+                                              ),
+                              ),
               )
             }
           }

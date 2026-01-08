@@ -20,23 +20,23 @@ import kotlinx.datetime.*
 @OptIn(ExperimentalTime::class)
 @Composable
 fun HomeScreen(
-  todayClasses: List<TodayClass>,
-  isLoading: Boolean,
-  error: String?,
-  onRefresh: () -> Unit,
-  modifier: Modifier = Modifier,
+        todayClasses: List<TodayClass>,
+        isLoading: Boolean,
+        error: String?,
+        onRefresh: () -> Unit,
+        modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
     // 顶部标题栏
     Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
-        text = "今日课表",
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold,
+              text = "今日课表",
+              style = MaterialTheme.typography.headlineMedium,
+              fontWeight = FontWeight.Bold,
       )
 
       // 获取当前日期
@@ -56,71 +56,72 @@ fun HomeScreen(
           }
         }
       }
-
       error != null -> {
         Card(
-          modifier = Modifier.fillMaxWidth(),
-          colors =
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
         ) {
           Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                  modifier = Modifier.padding(16.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
-              text = "加载失败",
-              style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.onErrorContainer,
+                    text = "加载失败",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-              text = error,
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onErrorContainer,
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
             )
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onRefresh) { Text("重试") }
           }
         }
       }
-
       todayClasses.isEmpty() -> {
         Card(
-          modifier = Modifier.fillMaxWidth(),
-          colors =
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
         ) {
           Column(
-            modifier = Modifier.fillMaxWidth().padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                  modifier = Modifier.fillMaxWidth().padding(32.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Icon(
-              imageVector = Icons.Default.Schedule,
-              contentDescription = null,
-              modifier = Modifier.size(64.dp),
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-              text = "今天没有课程安排",
-              style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "今天没有课程安排",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onRefresh) { Text("刷新") }
           }
         }
       }
-
       else -> {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
           // 按开始时间排序课程
           val sortedClasses =
-            todayClasses.sortedBy { course ->
-              // 从 "14:00-15:35" 格式提取开始时间
-              val startTimeStr = course.time?.split("-")?.firstOrNull()
-              startTimeStr?.replace(":", "")?.toIntOrNull() ?: Int.MAX_VALUE // 无时间课程排在最后
-            }
+                  todayClasses.sortedBy { course ->
+                    // 从 "14:00-15:35" 格式提取开始时间
+                    val startTimeStr = course.time?.split("-")?.firstOrNull()
+                    startTimeStr?.replace(":", "")?.toIntOrNull() ?: Int.MAX_VALUE // 无时间课程排在最后
+                  }
 
           items(sortedClasses) { todayClass -> TodayClassCard(todayClass = todayClass) }
 
@@ -138,14 +139,17 @@ fun HomeScreen(
 @Composable
 private fun TodayClassCard(todayClass: TodayClass, modifier: Modifier = Modifier) {
   Card(
-    modifier = modifier.fillMaxWidth(),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+          modifier = modifier.fillMaxWidth(),
+          colors =
+                  CardDefaults.cardColors(
+                          containerColor = MaterialTheme.colorScheme.surfaceVariant
+                  ),
   ) {
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
       Text(
-        text = todayClass.bizName,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
+              text = todayClass.bizName,
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold,
       )
 
       Spacer(modifier = Modifier.height(8.dp))
@@ -154,31 +158,33 @@ private fun TodayClassCard(todayClass: TodayClass, modifier: Modifier = Modifier
         Column {
           todayClass.time?.let { time ->
             Text(
-              text = "时间：$time",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "时间：$time",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
 
           todayClass.place?.let { place ->
             Text(
-              text = "地点：$place",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "地点：$place",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
         }
 
         todayClass.shortName?.let { shortName ->
           Card(
-            colors =
-              CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                  colors =
+                          CardDefaults.cardColors(
+                                  containerColor = MaterialTheme.colorScheme.primaryContainer
+                          )
           ) {
             Text(
-              text = shortName,
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onPrimaryContainer,
-              modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    text = shortName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             )
           }
         }
