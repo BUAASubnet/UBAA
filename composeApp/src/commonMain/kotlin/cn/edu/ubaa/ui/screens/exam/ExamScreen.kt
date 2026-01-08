@@ -22,9 +22,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.Exam
 import kotlin.collections.get
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.datetime.*
+import kotlinx.datetime.Clock
 
 @Composable
 fun ExamScreen(viewModel: ExamViewModel) {
@@ -44,8 +44,8 @@ fun ExamScreen(viewModel: ExamViewModel) {
       }
       uiState.examData != null -> {
         ExamTimelineList(
-          arranged = uiState.examData!!.arranged,
-          notArranged = uiState.examData!!.notArranged,
+                arranged = uiState.examData!!.arranged,
+                notArranged = uiState.examData!!.notArranged,
         )
       }
     }
@@ -70,26 +70,27 @@ fun ExamTimelineList(arranged: List<Exam>, notArranged: List<Exam>) {
     if (finished.isNotEmpty()) {
       item {
         Surface(
-          onClick = { showFinished = !showFinished },
-          modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-          color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-          shape = RoundedCornerShape(8.dp),
+                onClick = { showFinished = !showFinished },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(8.dp),
         ) {
           Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+                  modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.SpaceBetween,
           ) {
             Text(
-              text = "已结束考试 (${finished.size})",
-              style = MaterialTheme.typography.titleSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "已结束考试 (${finished.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Icon(
-              imageVector =
-                if (showFinished) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-              contentDescription = if (showFinished) "收起" else "展开",
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    imageVector =
+                            if (showFinished) Icons.Default.ExpandLess
+                            else Icons.Default.ExpandMore,
+                    contentDescription = if (showFinished) "收起" else "展开",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
         }
@@ -100,15 +101,15 @@ fun ExamTimelineList(arranged: List<Exam>, notArranged: List<Exam>) {
           val exams = groupedFinished[date]!!
           items(exams.size) { index ->
             ExamTimelineItem(
-              exam = exams[index],
-              dateString = if (index == 0) date else null,
-              isLastInGroup = index == exams.size - 1,
-              isLastGlobal =
-                date == finishedSortedKeys.last() &&
-                  index == exams.size - 1 &&
-                  upcoming.isEmpty() &&
-                  notArranged.isEmpty(),
-              isFinished = true,
+                    exam = exams[index],
+                    dateString = if (index == 0) date else null,
+                    isLastInGroup = index == exams.size - 1,
+                    isLastGlobal =
+                            date == finishedSortedKeys.last() &&
+                                    index == exams.size - 1 &&
+                                    upcoming.isEmpty() &&
+                                    notArranged.isEmpty(),
+                    isFinished = true,
             )
           }
         }
@@ -117,8 +118,8 @@ fun ExamTimelineList(arranged: List<Exam>, notArranged: List<Exam>) {
           item {
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider(
-              modifier = Modifier.padding(vertical = 8.dp),
-              color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             )
             Spacer(modifier = Modifier.height(16.dp))
           }
@@ -129,10 +130,10 @@ fun ExamTimelineList(arranged: List<Exam>, notArranged: List<Exam>) {
     if (upcoming.isNotEmpty()) {
       item {
         Text(
-          text = "即将到来",
-          style = MaterialTheme.typography.titleMedium,
-          color = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.padding(bottom = 16.dp),
+                text = "即将到来",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp),
         )
       }
 
@@ -140,32 +141,32 @@ fun ExamTimelineList(arranged: List<Exam>, notArranged: List<Exam>) {
         val exams = groupedUpcoming[date]!!
         items(exams.size) { index ->
           ExamTimelineItem(
-            exam = exams[index],
-            dateString = if (index == 0) date else null,
-            isLastInGroup = index == exams.size - 1,
-            isLastGlobal =
-              date == upcomingSortedKeys.last() && index == exams.size - 1 && notArranged.isEmpty(),
+                  exam = exams[index],
+                  dateString = if (index == 0) date else null,
+                  isLastInGroup = index == exams.size - 1,
+                  isLastGlobal =
+                          date == upcomingSortedKeys.last() &&
+                                  index == exams.size - 1 &&
+                                  notArranged.isEmpty(),
           )
         }
       }
     } else if (notArranged.isEmpty() && finished.isEmpty()) {
       item {
         Box(
-          modifier = Modifier.fillMaxWidth().padding(32.dp),
-          contentAlignment = Alignment.Center,
-        ) {
-          Text("暂无考试安排", style = MaterialTheme.typography.bodyLarge)
-        }
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center,
+        ) { Text("暂无考试安排", style = MaterialTheme.typography.bodyLarge) }
       }
     }
 
     if (notArranged.isNotEmpty()) {
       item {
         Text(
-          text = "未安排/其他",
-          style = MaterialTheme.typography.titleMedium,
-          color = MaterialTheme.colorScheme.secondary,
-          modifier = Modifier.padding(top = 24.dp, bottom = 16.dp),
+                text = "未安排/其他",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(top = 24.dp, bottom = 16.dp),
         )
       }
       items(notArranged) { exam ->
@@ -179,14 +180,14 @@ fun ExamTimelineList(arranged: List<Exam>, notArranged: List<Exam>) {
 
 @Composable
 fun ExamTimelineItem(
-  exam: Exam,
-  dateString: String?,
-  isLastInGroup: Boolean,
-  isLastGlobal: Boolean,
-  isFinished: Boolean = false,
+        exam: Exam,
+        dateString: String?,
+        isLastInGroup: Boolean,
+        isLastGlobal: Boolean,
+        isFinished: Boolean = false,
 ) {
   val timelineColor =
-    if (isFinished) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
+          if (isFinished) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary
 
   Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     // 左侧：日期与时间线
@@ -194,19 +195,19 @@ fun ExamTimelineItem(
       if (dateString != null && dateString != "待定") {
         // 解析日期为月-日
         val shortDate =
-          try {
-            val parts = dateString.split("-")
-            if (parts.size >= 3) "${parts[1]}-${parts[2]}" else dateString
-          } catch (e: Exception) {
-            dateString
-          }
+                try {
+                  val parts = dateString.split("-")
+                  if (parts.size >= 3) "${parts[1]}-${parts[2]}" else dateString
+                } catch (e: Exception) {
+                  dateString
+                }
 
         Text(
-          text = shortDate,
-          style = MaterialTheme.typography.labelMedium,
-          fontWeight = FontWeight.Bold,
-          color = timelineColor,
-          textAlign = TextAlign.Center,
+                text = shortDate,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = timelineColor,
+                textAlign = TextAlign.Center,
         )
       }
 
@@ -214,15 +215,15 @@ fun ExamTimelineItem(
         Canvas(modifier = Modifier.fillMaxHeight().width(2.dp)) {
           val lineEnd = if (isLastGlobal) size.height * 0.2f else size.height
           drawLine(
-            color = timelineColor.copy(alpha = 0.3f),
-            start = Offset(size.width / 2, 0f),
-            end = Offset(size.width / 2, lineEnd),
-            strokeWidth = 2.dp.toPx(),
+                  color = timelineColor.copy(alpha = 0.3f),
+                  start = Offset(size.width / 2, 0f),
+                  end = Offset(size.width / 2, lineEnd),
+                  strokeWidth = 2.dp.toPx(),
           )
           drawCircle(
-            color = timelineColor,
-            radius = 4.dp.toPx(),
-            center = Offset(size.width / 2, 16.dp.toPx()), // 圆点与卡片顶部对齐
+                  color = timelineColor,
+                  radius = 4.dp.toPx(),
+                  center = Offset(size.width / 2, 16.dp.toPx()), // 圆点与卡片顶部对齐
           )
         }
       }
@@ -240,64 +241,75 @@ fun ExamCard(exam: Exam, showSeat: Boolean, isFinished: Boolean = false) {
   val alpha = if (isFinished) 0.6f else 1f
 
   CompositionLocalProvider(
-    LocalContentColor provides LocalContentColor.current.copy(alpha = alpha)
+          LocalContentColor provides LocalContentColor.current.copy(alpha = alpha)
   ) {
     OutlinedCard(
-      modifier = Modifier.fillMaxWidth(),
-      colors =
-        CardDefaults.outlinedCardColors(
-          containerColor =
-            if (isFinished) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.surface
-        ),
-      border =
-        CardDefaults.outlinedCardBorder()
-          .copy(brush = SolidColor(MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha))),
+            modifier = Modifier.fillMaxWidth(),
+            colors =
+                    CardDefaults.outlinedCardColors(
+                            containerColor =
+                                    if (isFinished)
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.3f
+                                            )
+                                    else MaterialTheme.colorScheme.surface
+                    ),
+            border =
+                    CardDefaults.outlinedCardBorder()
+                            .copy(
+                                    brush =
+                                            SolidColor(
+                                                    MaterialTheme.colorScheme.outlineVariant.copy(
+                                                            alpha = alpha
+                                                    )
+                                            )
+                            ),
     ) {
       Column(modifier = Modifier.padding(16.dp)) {
         Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
         ) {
           Text(
-            text = exam.courseName,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
+                  text = exam.courseName,
+                  style = MaterialTheme.typography.titleMedium,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.weight(1f),
           )
 
           if (showSeat && !exam.examSeatNo.isNullOrBlank()) {
 
             Surface(
-              color =
-                if (isFinished) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                else MaterialTheme.colorScheme.secondaryContainer,
-              shape = RoundedCornerShape(8.dp),
+                    color =
+                            if (isFinished)
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(8.dp),
             ) {
               Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                      modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                      verticalAlignment = Alignment.CenterVertically,
               ) {
                 Icon(
-                  imageVector = Icons.Default.Chair,
-                  contentDescription = null,
-                  modifier = Modifier.size(14.dp),
-                  tint =
-                    if (isFinished) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onSecondaryContainer,
+                        imageVector = Icons.Default.Chair,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint =
+                                if (isFinished) MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSecondaryContainer,
                 )
 
                 Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
-                  text = "${exam.examSeatNo}号",
-                  style = MaterialTheme.typography.labelMedium,
-                  fontWeight = FontWeight.Bold,
-                  color =
-                    if (isFinished) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onSecondaryContainer,
+                        text = "${exam.examSeatNo}号",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color =
+                                if (isFinished) MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.onSecondaryContainer,
                 )
               }
             }
@@ -310,29 +322,29 @@ fun ExamCard(exam: Exam, showSeat: Boolean, isFinished: Boolean = false) {
 
         Row(verticalAlignment = Alignment.CenterVertically) {
           Icon(
-            imageVector = Icons.Default.AccessTime,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint =
-              if (isFinished) MaterialTheme.colorScheme.outline
-              else MaterialTheme.colorScheme.primary,
+                  imageVector = Icons.Default.AccessTime,
+                  contentDescription = null,
+                  modifier = Modifier.size(16.dp),
+                  tint =
+                          if (isFinished) MaterialTheme.colorScheme.outline
+                          else MaterialTheme.colorScheme.primary,
           )
 
           Spacer(modifier = Modifier.width(8.dp))
 
           val timeText =
-            if (exam.startTime != null && exam.endTime != null) {
+                  if (exam.startTime != null && exam.endTime != null) {
 
-              "${exam.startTime} - ${exam.endTime}"
-            } else {
+                    "${exam.startTime} - ${exam.endTime}"
+                  } else {
 
-              exam.examTimeDescription ?: "时间待定"
-            }
+                    exam.examTimeDescription ?: "时间待定"
+                  }
 
           Text(
-            text = timeText,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  text = timeText,
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
         }
 
@@ -343,20 +355,20 @@ fun ExamCard(exam: Exam, showSeat: Boolean, isFinished: Boolean = false) {
 
           Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-              imageVector = Icons.Default.LocationOn,
-              contentDescription = null,
-              modifier = Modifier.size(16.dp),
-              tint =
-                if (isFinished) MaterialTheme.colorScheme.outline
-                else MaterialTheme.colorScheme.primary,
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint =
+                            if (isFinished) MaterialTheme.colorScheme.outline
+                            else MaterialTheme.colorScheme.primary,
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-              text = place,
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = place,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
         }
@@ -373,11 +385,11 @@ private fun isExamFinished(exam: Exam): Boolean {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     val examDate = LocalDate.parse(dateStr)
     val examEndTime =
-      try {
-        LocalTime.parse(endTimeStr)
-      } catch (e: Exception) {
-        LocalTime(23, 59)
-      }
+            try {
+              LocalTime.parse(endTimeStr)
+            } catch (e: Exception) {
+              LocalTime(23, 59)
+            }
 
     if (now.date > examDate) true else if (now.date < examDate) false else now.time > examEndTime
   } catch (e: Exception) {
