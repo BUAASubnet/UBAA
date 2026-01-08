@@ -4,17 +4,17 @@ import kotlinx.serialization.Serializable
 
 /** 博雅课程状态常量定义。 */
 object BykcCourseStatus {
-        const val EXPIRED = "过期"
-        const val SELECTED = "已选"
-        const val PREVIEW = "预告"
-        const val ENDED = "结束"
-        const val FULL = "满员"
-        const val AVAILABLE = "可选"
+  const val EXPIRED = "过期"
+  const val SELECTED = "已选"
+  const val PREVIEW = "预告"
+  const val ENDED = "结束"
+  const val FULL = "满员"
+  const val AVAILABLE = "可选"
 }
 
 /**
- * 博雅课程简要信息 DTO。
- * 用于课程列表展示。
+ * 博雅课程简要信息 DTO。 用于课程列表展示。
+ *
  * @property id 课程 ID。
  * @property courseName 课程名称。
  * @property coursePosition 上课地点。
@@ -33,25 +33,26 @@ object BykcCourseStatus {
  */
 @Serializable
 data class BykcCourseDto(
-        val id: Long,
-        val courseName: String,
-        val coursePosition: String? = null,
-        val courseTeacher: String? = null,
-        val courseStartDate: String? = null,
-        val courseEndDate: String? = null,
-        val courseSelectStartDate: String? = null,
-        val courseSelectEndDate: String? = null,
-        val courseMaxCount: Int = 0,
-        val courseCurrentCount: Int = 0,
-        val category: String? = null,
-        val subCategory: String? = null,
-        val status: String,
-        val selected: Boolean = false,
-        val courseDesc: String? = null
+  val id: Long,
+  val courseName: String,
+  val coursePosition: String? = null,
+  val courseTeacher: String? = null,
+  val courseStartDate: String? = null,
+  val courseEndDate: String? = null,
+  val courseSelectStartDate: String? = null,
+  val courseSelectEndDate: String? = null,
+  val courseMaxCount: Int = 0,
+  val courseCurrentCount: Int = 0,
+  val category: String? = null,
+  val subCategory: String? = null,
+  val status: String,
+  val selected: Boolean = false,
+  val courseDesc: String? = null,
 )
 
 /**
  * 博雅课程详细信息 DTO。
+ *
  * @property id 课程 ID。
  * @property courseName 课程名称。
  * @property coursePosition 上课地点。
@@ -76,31 +77,32 @@ data class BykcCourseDto(
  */
 @Serializable
 data class BykcCourseDetailDto(
-        val id: Long,
-        val courseName: String,
-        val coursePosition: String? = null,
-        val courseContact: String? = null,
-        val courseContactMobile: String? = null,
-        val courseTeacher: String? = null,
-        val courseStartDate: String? = null,
-        val courseEndDate: String? = null,
-        val courseSelectStartDate: String? = null,
-        val courseSelectEndDate: String? = null,
-        val courseCancelEndDate: String? = null,
-        val courseMaxCount: Int = 0,
-        val courseCurrentCount: Int = 0,
-        val category: String? = null,
-        val subCategory: String? = null,
-        val status: String,
-        val selected: Boolean = false,
-        val courseDesc: String? = null,
-        val signConfig: BykcSignConfigDto? = null,
-        val checkin: Int? = null,
-        val pass: Int? = null
+  val id: Long,
+  val courseName: String,
+  val coursePosition: String? = null,
+  val courseContact: String? = null,
+  val courseContactMobile: String? = null,
+  val courseTeacher: String? = null,
+  val courseStartDate: String? = null,
+  val courseEndDate: String? = null,
+  val courseSelectStartDate: String? = null,
+  val courseSelectEndDate: String? = null,
+  val courseCancelEndDate: String? = null,
+  val courseMaxCount: Int = 0,
+  val courseCurrentCount: Int = 0,
+  val category: String? = null,
+  val subCategory: String? = null,
+  val status: String,
+  val selected: Boolean = false,
+  val courseDesc: String? = null,
+  val signConfig: BykcSignConfigDto? = null,
+  val checkin: Int? = null,
+  val pass: Int? = null,
 )
 
 /**
  * 用户已选博雅课程信息 DTO。
+ *
  * @property id 选课记录 ID。
  * @property courseId 课程本体 ID。
  * @property courseName 课程名称。
@@ -125,31 +127,32 @@ data class BykcCourseDetailDto(
  */
 @Serializable
 data class BykcChosenCourseDto(
-        val id: Long,
-        val courseId: Long, // 课程本身的 ID（用于查询课程详情）
-        val courseName: String,
-        val coursePosition: String? = null,
-        val courseTeacher: String? = null,
-        val courseStartDate: String? = null,
-        val courseEndDate: String? = null,
-        val selectDate: String? = null,
-        val category: String? = null,
-        val subCategory: String? = null,
-        val checkin: Int = 0,
-        val score: Int? = null,
-        val pass: Int? = null,
-        val canSign: Boolean = false,
-        val canSignOut: Boolean = false,
-        val signConfig: BykcSignConfigDto? = null,
-        val courseSignType: Int? = null,
-        val homework: String? = null,
-        val homeworkAttachmentName: String? = null,
-        val homeworkAttachmentPath: String? = null,
-        val signInfo: String? = null
+  val id: Long,
+  val courseId: Long, // 课程本身的 ID（用于查询课程详情）
+  val courseName: String,
+  val coursePosition: String? = null,
+  val courseTeacher: String? = null,
+  val courseStartDate: String? = null,
+  val courseEndDate: String? = null,
+  val selectDate: String? = null,
+  val category: String? = null,
+  val subCategory: String? = null,
+  val checkin: Int = 0,
+  val score: Int? = null,
+  val pass: Int? = null,
+  val canSign: Boolean = false,
+  val canSignOut: Boolean = false,
+  val signConfig: BykcSignConfigDto? = null,
+  val courseSignType: Int? = null,
+  val homework: String? = null,
+  val homeworkAttachmentName: String? = null,
+  val homeworkAttachmentPath: String? = null,
+  val signInfo: String? = null,
 )
 
 /**
  * 签到时间配置 DTO。
+ *
  * @property signStartDate 允许签到的起始时间。
  * @property signEndDate 允许签到的截止时间。
  * @property signOutStartDate 允许签退的起始时间。
@@ -158,15 +161,16 @@ data class BykcChosenCourseDto(
  */
 @Serializable
 data class BykcSignConfigDto(
-        val signStartDate: String? = null,
-        val signEndDate: String? = null,
-        val signOutStartDate: String? = null,
-        val signOutEndDate: String? = null,
-        val signPoints: List<BykcSignPointDto> = emptyList()
+  val signStartDate: String? = null,
+  val signEndDate: String? = null,
+  val signOutStartDate: String? = null,
+  val signOutEndDate: String? = null,
+  val signPoints: List<BykcSignPointDto> = emptyList(),
 )
 
 /**
  * 签到地理位置 DTO。
+ *
  * @property lat 纬度。
  * @property lng 经度。
  * @property radius 允许误差半径（米）。
@@ -176,6 +180,7 @@ data class BykcSignPointDto(val lat: Double, val lng: Double, val radius: Double
 
 /**
  * 博雅课程系统用户信息 DTO。
+ *
  * @property id 用户 ID。
  * @property employeeId 教职工/学生内部 ID。
  * @property realName 真实姓名。
@@ -187,29 +192,31 @@ data class BykcSignPointDto(val lat: Double, val lng: Double, val radius: Double
  */
 @Serializable
 data class BykcUserProfileDto(
-        val id: Long,
-        val employeeId: String,
-        val realName: String,
-        val studentNo: String? = null,
-        val studentType: String? = null,
-        val classCode: String? = null,
-        val collegeName: String? = null,
-        val termName: String? = null
+  val id: Long,
+  val employeeId: String,
+  val realName: String,
+  val studentNo: String? = null,
+  val studentType: String? = null,
+  val classCode: String? = null,
+  val collegeName: String? = null,
+  val termName: String? = null,
 )
 
 /**
  * 博雅课程修读统计汇总 DTO。
+ *
  * @property totalValidCount 累计有效修读次数。
  * @property categories 各分类的详细统计信息。
  */
 @Serializable
 data class BykcStatisticsDto(
-        val totalValidCount: Int,
-        val categories: List<BykcCategoryStatisticsDto>
+  val totalValidCount: Int,
+  val categories: List<BykcCategoryStatisticsDto>,
 )
 
 /**
  * 博雅课程分类统计明细 DTO。
+ *
  * @property categoryName 课程大类名称（如“博雅课程”）。
  * @property subCategoryName 课程小类名称（如“德育”）。
  * @property requiredCount 考核指标（要求的修读次数）。
@@ -218,11 +225,11 @@ data class BykcStatisticsDto(
  */
 @Serializable
 data class BykcCategoryStatisticsDto(
-        val categoryName: String, // 大类 (e.g. "博雅课程")
-        val subCategoryName: String, // 小类 (e.g. "德育")
-        val requiredCount: Int, // 考核指标
-        val passedCount: Int, // 考核通过
-        val isQualified: Boolean // 是否达标 (passed >= required)
+  val categoryName: String, // 大类 (e.g. "博雅课程")
+  val subCategoryName: String, // 小类 (e.g. "德育")
+  val requiredCount: Int, // 考核指标
+  val passedCount: Int, // 考核通过
+  val isQualified: Boolean, // 是否达标 (passed >= required)
 )
 
 /** 选课请求负载。 */
@@ -230,6 +237,7 @@ data class BykcCategoryStatisticsDto(
 
 /**
  * 签到/签退请求负载。
+ *
  * @property courseId 课程 ID。
  * @property lat 上传的纬度。
  * @property lng 上传的经度。
@@ -237,31 +245,31 @@ data class BykcCategoryStatisticsDto(
  */
 @Serializable
 data class BykcSignRequest(
-        val courseId: Long,
-        val lat: Double? = null,
-        val lng: Double? = null,
-        /** 1=签到, 2=签退 */
-        val signType: Int
+  val courseId: Long,
+  val lat: Double? = null,
+  val lng: Double? = null,
+  /** 1=签到, 2=签退 */
+  val signType: Int,
 )
 
 /** 博雅课程分页查询结果。 */
 @Serializable
 data class BykcCoursePage(
-        val courses: List<BykcCourseDto>,
-        val totalElements: Int,
-        val totalPages: Int,
-        val currentPage: Int,
-        val pageSize: Int
+  val courses: List<BykcCourseDto>,
+  val totalElements: Int,
+  val totalPages: Int,
+  val currentPage: Int,
+  val pageSize: Int,
 )
 
 /** 博雅课程列表 API 响应体。 */
 @Serializable
 data class BykcCoursesResponse(
-        val courses: List<BykcCourseDto>,
-        val total: Int,
-        val totalPages: Int = 0,
-        val currentPage: Int = 1,
-        val pageSize: Int = 20
+  val courses: List<BykcCourseDto>,
+  val total: Int,
+  val totalPages: Int = 0,
+  val currentPage: Int = 1,
+  val pageSize: Int = 20,
 )
 
 /** 统一的操作成功响应消息。 */

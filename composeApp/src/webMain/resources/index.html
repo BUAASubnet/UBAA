@@ -1,19 +1,41 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+    <!DOCTYPE html>
+    <html lang="zh-CN">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBAA</title>
-    <!-- 预加载 Google Fonts 思源黑体，确保中文渲染 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link type="text/css" rel="stylesheet" href="styles.css">
-    <script type="application/javascript" src="composeApp.js"></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>UBAA</title>
+        <!-- PWA Support -->
+        <link rel="manifest" href="manifest.json">
+        <meta name="theme-color" content="#1976d2">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <link rel="apple-touch-icon" href="pwa-icon.svg">
+        
+        <link type="text/css" rel="stylesheet" href="styles.css">
+        <script type="application/javascript" src="composeApp.js"></script>
+        
+        <!-- Register Service Worker -->
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then((registration) => {
+                            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        })
+                        .catch((err) => {
+                            console.log('ServiceWorker registration failed: ', err);
+                        });
+                });
+            }
+        </script>
+    </head>
 
-<body>
-</body>
+    <body>
+        <div id="app-loader">
+            <div class="spinner"></div>
+            <div class="loading-text">UBAA Loading...</div>
+        </div>
+    </body>
 
-</html>
+    </html>

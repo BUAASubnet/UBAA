@@ -7,7 +7,7 @@ open class LoginException(message: String) : Exception(message)
 
 /** 需要验证码时抛出的异常 */
 class CaptchaRequiredException(
-        val captchaInfo: CaptchaInfo,
-        val execution: String,
-        message: String = "CAPTCHA verification required"
+  val captchaInfo: CaptchaInfo,
+  val execution: String,
+  message: String = "CAPTCHA verification required",
 ) : LoginException(message)

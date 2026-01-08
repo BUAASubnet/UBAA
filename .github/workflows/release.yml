@@ -37,8 +37,8 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: |
-          ./gradlew :composeApp:assembleRelease
-          cp composeApp/build/outputs/apk/release/composeApp-release.apk UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
+          ./gradlew :androidApp:assembleRelease
+          cp androidApp/build/outputs/apk/release/androidApp-release.apk UBAA-Android-v${{ steps.get_version.outputs.VERSION }}.apk
 
       - name: Upload Android Release Assets
         uses: softprops/action-gh-release@v2
@@ -198,8 +198,7 @@ jobs:
       # 如果需要上传 iOS 框架（通常是给 Xcode 使用的 .framework）
       - name: Archive iOS Framework
         run: |
-          cd composeApp/build/bin/iosArm64/releaseFramework
-          zip -r ../../../../UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip .
+          zip -r UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/bin/iosArm64/releaseFramework
 
       - name: Upload iOS Release Assets
         uses: softprops/action-gh-release@v2

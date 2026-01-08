@@ -7,22 +7,22 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 
 @Composable
 actual fun BackHandlerCompat(enabled: Boolean, onBack: () -> Unit) {
-    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val currentOnBack by rememberUpdatedState(onBack)
+  val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+  val lifecycleOwner = LocalLifecycleOwner.current
+  val currentOnBack by rememberUpdatedState(onBack)
 
-    val backCallback = remember {
-        object : OnBackPressedCallback(enabled) {
-            override fun handleOnBackPressed() {
-                currentOnBack()
-            }
-        }
+  val backCallback = remember {
+    object : OnBackPressedCallback(enabled) {
+      override fun handleOnBackPressed() {
+        currentOnBack()
+      }
     }
+  }
 
-    SideEffect { backCallback.isEnabled = enabled }
+  SideEffect { backCallback.isEnabled = enabled }
 
-    DisposableEffect(lifecycleOwner, backDispatcher) {
-        backDispatcher?.addCallback(lifecycleOwner, backCallback)
-        onDispose { backCallback.remove() }
-    }
+  DisposableEffect(lifecycleOwner, backDispatcher) {
+    backDispatcher?.addCallback(lifecycleOwner, backCallback)
+    onDispose { backCallback.remove() }
+  }
 }

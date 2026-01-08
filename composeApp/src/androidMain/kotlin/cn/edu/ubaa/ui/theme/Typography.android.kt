@@ -7,5 +7,5 @@ import androidx.compose.ui.text.font.FontFamily
 
 @Composable
 actual fun PreloadFonts() {
-    // Android 不需要预加载自定义字体
+  // Android 不需要预加载自定义字体
 }
