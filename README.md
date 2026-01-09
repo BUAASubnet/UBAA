@@ -7,7 +7,10 @@
 
 **UBAA** 是一款基于 **Kotlin Multiplatform** 和 **Compose Multiplatform** 构建的现代化跨平台应用，专为北京航空航天大学（BUAA）学生打造。
 
-它不仅仅是一个客户端，更是一个智能的**服务聚合网关**。通过专用的 Ktor 后端，它将复杂的校内遗留系统（如 CAS 认证、教务系统、博雅系统）的数据进行标准化清洗与聚合，为 Android、iOS、Desktop 和 Web 端用户提供统一、流畅且美观的 Material Design 3 体验。
+### [立刻下载](https://github.com/BUAASubnet/UBAA/releases)
+### [网页版](https://app.buaa.team)
+
+它不仅仅是一个客户端，更是一个智能的**服务聚合网关**。通过专用的 Ktor 后端，它将复杂的校内系统（如 CAS 认证、教务系统、博雅系统）的数据进行标准化清洗与聚合，为 Android、iOS、Desktop 和 Web 端用户提供统一、流畅且美观的 Material Design 3 体验。
 
 ---
 
