@@ -33,10 +33,12 @@ class RedisCookieStorage(
   private val mutex = Mutex()
   @Volatile private var key = storageKey(initialSubject)
   private val keyTtlSeconds = 1800L
+  private var writeThrough = false
 
   // 内存缓存：field -> serializedCookie。null 表示尚未从 Redis 加载。
   private var cache: MutableMap<String, String>? = null
   private val dirtyFields = mutableSetOf<String>()
+  private val deletedFields = mutableSetOf<String>()
 
   override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
     val domain = (cookie.domain ?: requestUrl.host).lowercase()
@@ -45,6 +47,7 @@ class RedisCookieStorage(
     val expiresAt = cookie.expires?.timestamp
     val maxAge = cookie.maxAge ?: -1
     val createdAt = System.currentTimeMillis()
+    val expired = isExpired(createdAt, expiresAt, maxAge, createdAt)
     val value =
             serializeCookie(
                     name = cookie.name,
@@ -60,8 +63,18 @@ class RedisCookieStorage(
 
     mutex.withLock {
       ensureCacheLoaded()
-      cache!![field] = value
-      dirtyFields.add(field)
+      if (expired) {
+        cache!!.remove(field)
+        dirtyFields.remove(field)
+        deletedFields.add(field)
+      } else {
+        cache!![field] = value
+        dirtyFields.add(field)
+        deletedFields.remove(field)
+      }
+      if (writeThrough) {
+        flushInternal()
+      }
     }
   }
 
@@ -107,7 +120,11 @@ class RedisCookieStorage(
 
       for (f in expiredFields) {
         cookieMap.remove(f)
-        dirtyFields.remove(f) // 不需要写回已过期的
+        dirtyFields.remove(f)
+        deletedFields.add(f)
+      }
+      if (writeThrough && expiredFields.isNotEmpty()) {
+        flushInternal()
       }
 
       results
@@ -119,6 +136,15 @@ class RedisCookieStorage(
     mutex.withLock { flushInternal() }
   }
 
+  override suspend fun setWriteThrough(enabled: Boolean) {
+    mutex.withLock {
+      writeThrough = enabled
+      if (enabled) {
+        flushInternal()
+      }
+    }
+  }
+
   override fun close() {
     // No-op: Redis 连接生命周期由 RedisCookieStorageFactory 统一管理
   }
@@ -127,6 +153,7 @@ class RedisCookieStorage(
     mutex.withLock {
       cache = mutableMapOf()
       dirtyFields.clear()
+      deletedFields.clear()
       redis { commands.del(key) }
     }
   }
@@ -156,6 +183,8 @@ class RedisCookieStorage(
 
       key = targetKey
       cache = null // 下次访问时重新从新 key 加载
+      dirtyFields.clear()
+      deletedFields.clear()
     }
   }
 
@@ -166,13 +195,22 @@ class RedisCookieStorage(
 
   private suspend fun flushInternal() {
     val map = cache ?: return
-    if (dirtyFields.isEmpty()) return
+    if (dirtyFields.isEmpty() && deletedFields.isEmpty()) return
     val batch = dirtyFields.mapNotNull { f -> map[f]?.let { f to it } }.toMap()
+    val ttl = computeCacheTtlSeconds(map.values, System.currentTimeMillis())
     redis {
+      if (deletedFields.isNotEmpty()) {
+        commands.hdel(key, *deletedFields.toTypedArray())
+      }
       if (batch.isNotEmpty()) commands.hset(key, batch)
-      commands.expire(key, keyTtlSeconds)
+      when {
+        map.isEmpty() -> commands.del(key)
+        ttl != null -> commands.expire(key, ttl)
+        else -> commands.expire(key, keyTtlSeconds)
+      }
     }
     dirtyFields.clear()
+    deletedFields.clear()
   }
 
   private suspend fun <T> redis(block: () -> T): T = withContext(Dispatchers.IO) { block() }
@@ -231,6 +269,29 @@ class RedisCookieStorage(
     } else {
       ((cookieExpiryMs - now) / 1000).coerceAtLeast(1L)
     }
+  }
+
+  private fun computeCacheTtlSeconds(values: Collection<String>, now: Long): Long? {
+    var hasSessionCookie = false
+    var minExpiry: Long? = null
+    for (encoded in values) {
+      val record = decodeCookie(encoded) ?: continue
+      if (isExpired(now, record.expiresAt, record.maxAge, record.createdAt)) continue
+      val expiry =
+              listOfNotNull(
+                              record.expiresAt,
+                              record.maxAge.takeIf { it >= 0 }?.let { record.createdAt + it * 1000L },
+                      )
+                      .minOrNull()
+      if (expiry == null) {
+        hasSessionCookie = true
+        continue
+      }
+      minExpiry = minExpiry?.coerceAtMost(expiry) ?: expiry
+    }
+
+    if (hasSessionCookie) return keyTtlSeconds
+    return minExpiry?.let { ((it - now) / 1000).coerceAtLeast(1L) }
   }
 
   private fun escape(value: String): String {

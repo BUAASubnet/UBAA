@@ -48,6 +48,9 @@ interface ManagedCookieStorage : CookiesStorage {
 
   /** 将内存中的待写回数据刷到持久层。实现不需要持久化的可留空。 */
   suspend fun flush() {}
+
+  /** 会话正式提交后切换到写穿模式，确保后续 Cookie 变更可跨重启恢复。 */
+  suspend fun setWriteThrough(enabled: Boolean) {}
 }
 
 interface ManagedCookieStorageFactory {
@@ -138,6 +141,7 @@ class SessionManager(
 
     val cookieStorage = cookieStorageFactory.create(preLoginSubject(clientId))
     cookieStorage.clear()
+    cookieStorage.setWriteThrough(false)
 
     val client = clientFactory(cookieStorage)
     val candidate = PreLoginCandidate(clientId, client, cookieStorage)
@@ -160,6 +164,7 @@ class SessionManager(
   suspend fun prepareSession(username: String): SessionCandidate {
     val cookieStorage = cookieStorageFactory.create(username)
     cookieStorage.clear()
+    cookieStorage.setWriteThrough(false)
     val client = clientFactory(cookieStorage)
     return SessionCandidate(username, client, cookieStorage)
   }
@@ -170,6 +175,7 @@ class SessionManager(
   ): SessionWithToken {
     // 登录期间 Cookie 只缓存在内存中，此处批量写回 Redis
     candidate.cookieStorage.flush()
+    candidate.cookieStorage.setWriteThrough(true)
 
     val newSession =
             UserSession(
@@ -314,30 +320,37 @@ class SessionManager(
 
   private suspend fun restoreSession(username: String): UserSession? {
     val mutex = restoreMutexes.computeIfAbsent(username) { Mutex() }
-    return mutex.withLock {
-      sessions[username]?.let { return@withLock it }
+    return try {
+      mutex.withLock {
+        sessions[username]?.let { return@withLock it }
 
-      val record = sessionStore.loadSession(username) ?: return@withLock null
-      val cookieStorage = cookieStorageFactory.create(username)
-      val client = clientFactory(cookieStorage)
-      val restored =
-              UserSession(
-                      username = username,
-                      client = client,
-                      cookieStorage = cookieStorage,
-                      userData = record.userData,
-                      authenticatedAt = record.authenticatedAt,
-                      initialActivity = record.lastActivity,
-              )
+        val record = sessionStore.loadSession(username) ?: return@withLock null
+        val cookieStorage = cookieStorageFactory.create(username)
+        cookieStorage.setWriteThrough(true)
+        val client = clientFactory(cookieStorage)
+        val restored =
+                UserSession(
+                        username = username,
+                        client = client,
+                        cookieStorage = cookieStorage,
+                        userData = record.userData,
+                        authenticatedAt = record.authenticatedAt,
+                        initialActivity = record.lastActivity,
+                )
 
-      val existing = sessions.putIfAbsent(username, restored)
-      if (existing != null) {
-        client.close()
-        closeCookieStorage(cookieStorage)
-        return@withLock existing
+        val existing = sessions.putIfAbsent(username, restored)
+        if (existing != null) {
+          client.close()
+          closeCookieStorage(cookieStorage)
+          return@withLock existing
+        }
+
+        restored
       }
-
-      restored
+    } finally {
+      if (sessions[username] == null) {
+        restoreMutexes.remove(username, mutex)
+      }
     }
   }
 
@@ -365,6 +378,8 @@ class SessionManager(
   }
 
   private fun preLoginSubject(clientId: String): String = "prelogin_$clientId"
+
+  internal fun restoreMutexCountForTesting(): Int = restoreMutexes.size
 
   companion object {
     private val DEFAULT_REDIS_URI: String = System.getenv("REDIS_URI") ?: "redis://localhost:6379"
