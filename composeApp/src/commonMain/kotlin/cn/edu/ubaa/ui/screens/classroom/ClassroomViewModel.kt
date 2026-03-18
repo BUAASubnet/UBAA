@@ -50,7 +50,7 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
     _uiState
       .map { state ->
         if (state is ClassroomUiState.Success) {
-          state.data.d.list.keys.toList()
+          sortBuildings(state.data.d.list)
         } else {
           emptyList()
         }
@@ -123,4 +123,111 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     return "${now.year}-${now.monthNumber.toString().padStart(2, '0')}-${now.dayOfMonth.toString().padStart(2, '0')}"
   }
+}
+
+internal fun sortBuildings(allData: Map<String, List<ClassroomInfo>>): List<String> {
+  val analysis = analyzeBuildingFloorIds(allData)
+  return if (analysis.canUseFloorIdOrdering) {
+    analysis.entries
+      .sortedWith(
+        compareBy<BuildingFloorAnalysisEntry> { it.floorId }
+          .thenComparator { left, right -> naturalCompare(left.name, right.name) }
+      )
+      .map { it.name }
+  } else {
+    allData.keys.sortedWith(::naturalCompare)
+  }
+}
+
+internal fun analyzeBuildingFloorIds(
+  allData: Map<String, List<ClassroomInfo>>
+): BuildingFloorAnalysis {
+  val entries =
+    allData.map { (building, classrooms) ->
+      val floorIds = classrooms.map { it.floorid.trim() }.filter { it.isNotEmpty() }.toSet()
+      BuildingFloorAnalysisEntry(
+        name = building,
+        floorIds = floorIds,
+        floorId = floorIds.singleOrNull(),
+      )
+    }
+
+  val canUseFloorIdOrdering =
+    entries.isNotEmpty() &&
+      entries.all { it.floorIds.size == 1 && it.floorId != null } &&
+      entries.mapNotNull { it.floorId }.distinct().size == entries.size
+
+  return BuildingFloorAnalysis(entries = entries, canUseFloorIdOrdering = canUseFloorIdOrdering)
+}
+
+internal data class BuildingFloorAnalysis(
+  val entries: List<BuildingFloorAnalysisEntry>,
+  val canUseFloorIdOrdering: Boolean,
+)
+
+internal data class BuildingFloorAnalysisEntry(
+  val name: String,
+  val floorIds: Set<String>,
+  val floorId: String?,
+)
+
+internal fun naturalCompare(left: String, right: String): Int {
+  val leftParts = splitNaturalParts(left)
+  val rightParts = splitNaturalParts(right)
+  val maxSize = maxOf(leftParts.size, rightParts.size)
+  for (index in 0 until maxSize) {
+    val leftPart = leftParts.getOrNull(index) ?: return -1
+    val rightPart = rightParts.getOrNull(index) ?: return 1
+    val result =
+      when {
+        leftPart is NaturalPart.Number && rightPart is NaturalPart.Number ->
+          leftPart.value.compareTo(rightPart.value)
+        leftPart is NaturalPart.Text && rightPart is NaturalPart.Text ->
+          leftPart.value.compareTo(rightPart.value)
+        leftPart is NaturalPart.Number -> -1
+        else -> 1
+      }
+    if (result != 0) return result
+  }
+  return 0
+}
+
+internal fun splitNaturalParts(value: String): List<NaturalPart> {
+  if (value.isEmpty()) return emptyList()
+
+  val parts = mutableListOf<NaturalPart>()
+  val buffer = StringBuilder()
+  var digitMode = value.first().isDigit()
+
+  fun flush() {
+    if (buffer.isEmpty()) return
+    val text = buffer.toString()
+    parts +=
+      if (digitMode) {
+        NaturalPart.Number(text.toIntOrNull() ?: Int.MAX_VALUE)
+      } else {
+        NaturalPart.Text(text)
+      }
+    buffer.clear()
+  }
+
+  value.forEach { char ->
+    val isDigit = char.isDigit()
+    if (buffer.isNotEmpty() && isDigit != digitMode) {
+      flush()
+      digitMode = isDigit
+    } else if (buffer.isEmpty()) {
+      digitMode = isDigit
+    }
+    buffer.append(char)
+  }
+  flush()
+
+  return parts
+}
+
+internal sealed interface NaturalPart {
+  data class Number(val value: Int) : NaturalPart
+
+  data class Text(val value: String) : NaturalPart
 }
