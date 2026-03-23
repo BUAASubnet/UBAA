@@ -225,11 +225,14 @@ class CgyyService(
           CgyyTimeSlotDto(id = id, beginTime = begin, endTime = end, label = "$begin-$end")
         } ?: emptyList()
     val timeSlotIds = timeSlots.map { it.id }.toSet()
+    val reservationDateSpaceInfo = raw["reservationDateSpaceInfo"]?.jsonObject
     val dateKey =
-        raw["reservationDateSpaceInfo"]?.jsonObject?.keys?.firstOrNull() ?: reservationDate
+        when {
+          reservationDateSpaceInfo?.containsKey(reservationDate) == true -> reservationDate
+          else -> reservationDateSpaceInfo?.keys?.firstOrNull() ?: reservationDate
+        }
     val spaces =
-        raw["reservationDateSpaceInfo"]
-            ?.jsonObject
+        reservationDateSpaceInfo
             ?.get(dateKey)
             ?.jsonArray
             ?.map { element ->

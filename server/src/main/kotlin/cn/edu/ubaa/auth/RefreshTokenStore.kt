@@ -119,10 +119,29 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
   private suspend fun readRecord(username: String): RefreshTokenRecord? {
     val raw = redis { commands.get(userKey(username)) } ?: return null
     val parts = raw.split("|")
-    if (parts.size != 3) return null
+    if (parts.size != 3) {
+      // Malformed record: remove user key and, if possible, the indexed token hash
+      redis {
+        commands.del(userKey(username))
+        if (parts.isNotEmpty()) {
+          commands.del(indexKey(parts[0]))
+        }
+      }
+      return null
+    }
     val tokenHash = parts[0]
-    val issuedAt = parts[1].toLongOrNull()?.let(Instant::ofEpochMilli) ?: return null
-    val expiresAt = parts[2].toLongOrNull()?.let(Instant::ofEpochMilli) ?: return null
+    val issuedAtMillis = parts[1].toLongOrNull()
+    val expiresAtMillis = parts[2].toLongOrNull()
+    if (issuedAtMillis == null || expiresAtMillis == null) {
+      // Malformed timestamps: clean up associated keys
+      redis {
+        commands.del(userKey(username))
+        commands.del(indexKey(tokenHash))
+      }
+      return null
+    }
+    val issuedAt = Instant.ofEpochMilli(issuedAtMillis)
+    val expiresAt = Instant.ofEpochMilli(expiresAtMillis)
     return RefreshTokenRecord(username, tokenHash, issuedAt, expiresAt)
   }
 
