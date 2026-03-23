@@ -19,10 +19,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 data class RefreshTokenRecord(
-    val username: String,
-    val tokenHash: String,
-    val issuedAt: Instant,
-    val expiresAt: Instant,
+        val username: String,
+        val tokenHash: String,
+        val issuedAt: Instant,
+        val expiresAt: Instant,
 )
 
 interface RefreshTokenStore {
@@ -31,11 +31,11 @@ interface RefreshTokenStore {
   suspend fun findToken(token: String): RefreshTokenRecord?
 
   suspend fun rotateToken(
-      username: String,
-      oldToken: String,
-      newToken: String,
-      issuedAt: Instant,
-      expiresAt: Instant,
+          username: String,
+          oldToken: String,
+          newToken: String,
+          issuedAt: Instant,
+          expiresAt: Instant,
   ): Boolean
 
   suspend fun deleteByUsername(username: String)
@@ -50,10 +50,10 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
   private val mutexes = ConcurrentHashMap<String, Mutex>()
 
   override suspend fun saveToken(
-      username: String,
-      token: String,
-      issuedAt: Instant,
-      expiresAt: Instant,
+          username: String,
+          token: String,
+          issuedAt: Instant,
+          expiresAt: Instant,
   ) {
     withUserLock(username) {
       val existing = readRecord(username)
@@ -78,11 +78,11 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
   }
 
   override suspend fun rotateToken(
-      username: String,
-      oldToken: String,
-      newToken: String,
-      issuedAt: Instant,
-      expiresAt: Instant,
+          username: String,
+          oldToken: String,
+          newToken: String,
+          issuedAt: Instant,
+          expiresAt: Instant,
   ): Boolean {
     return withUserLock(username) {
       val current = readRecord(username) ?: return@withUserLock false
@@ -127,16 +127,17 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
   }
 
   private suspend fun writeRecord(
-      username: String,
-      tokenHash: String,
-      issuedAt: Instant,
-      expiresAt: Instant,
+          username: String,
+          tokenHash: String,
+          issuedAt: Instant,
+          expiresAt: Instant,
   ) {
     val ttlSeconds = ttlSecondsUntil(expiresAt)
     redis {
       commands.set(
-          userKey(username),
-          listOf(tokenHash, issuedAt.toEpochMilli(), expiresAt.toEpochMilli()).joinToString("|"),
+              userKey(username),
+              listOf(tokenHash, issuedAt.toEpochMilli(), expiresAt.toEpochMilli())
+                      .joinToString("|"),
       )
       commands.expire(userKey(username), ttlSeconds)
       commands.set(indexKey(tokenHash), username)
@@ -164,19 +165,20 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
 }
 
 class RefreshTokenService(
-    private val accessTokenTtl: Duration = AuthConfig.accessTokenTtl,
-    private val refreshTokenTtl: Duration = AuthConfig.refreshTokenTtl,
-    private val refreshTokenStore: RefreshTokenStore = RedisRefreshTokenStore(AuthConfig.redisUri),
+        private val accessTokenTtl: Duration = AuthConfig.accessTokenTtl,
+        private val refreshTokenTtl: Duration = AuthConfig.refreshTokenTtl,
+        private val refreshTokenStore: RefreshTokenStore =
+                RedisRefreshTokenStore(AuthConfig.redisUri),
 ) {
 
-  suspend fun issueLoginTokens(userData: UserData): LoginResponse {
-    val refreshed = issueTokens(userData.schoolid)
+  suspend fun issueLoginTokens(userData: UserData, username: String): LoginResponse {
+    val refreshed = issueTokens(username)
     return LoginResponse(
-        user = userData,
-        accessToken = refreshed.accessToken,
-        refreshToken = refreshed.refreshToken,
-        accessTokenExpiresAt = refreshed.accessTokenExpiresAt,
-        refreshTokenExpiresAt = refreshed.refreshTokenExpiresAt,
+            user = userData,
+            accessToken = refreshed.accessToken,
+            refreshToken = refreshed.refreshToken,
+            accessTokenExpiresAt = refreshed.accessTokenExpiresAt,
+            refreshTokenExpiresAt = refreshed.refreshTokenExpiresAt,
     )
   }
 
@@ -189,44 +191,44 @@ class RefreshTokenService(
     refreshTokenStore.saveToken(username, refreshToken, now, refreshTokenExpiresAt)
 
     return TokenRefreshResponse(
-        accessToken = JwtUtil.generateToken(username, accessTokenTtl),
-        refreshToken = refreshToken,
-        accessTokenExpiresAt = accessTokenExpiresAt.toString(),
-        refreshTokenExpiresAt = refreshTokenExpiresAt.toString(),
+            accessToken = JwtUtil.generateToken(username, accessTokenTtl),
+            refreshToken = refreshToken,
+            accessTokenExpiresAt = accessTokenExpiresAt.toString(),
+            refreshTokenExpiresAt = refreshTokenExpiresAt.toString(),
     )
   }
 
   suspend fun refreshTokens(
-      refreshToken: String,
-      sessionManager: SessionManager,
+          refreshToken: String,
+          sessionManager: SessionManager,
   ): TokenRefreshResponse? {
     val current = refreshTokenStore.findToken(refreshToken) ?: return null
     val session =
-        sessionManager.getSession(current.username, SessionManager.SessionAccess.TOUCH)
-            ?: run {
-              refreshTokenStore.deleteByUsername(current.username)
-              return null
-            }
+            sessionManager.getSession(current.username, SessionManager.SessionAccess.TOUCH)
+                    ?: run {
+                      refreshTokenStore.deleteByUsername(current.username)
+                      return null
+                    }
 
     val now = Instant.now()
     val accessTokenExpiresAt = now.plus(accessTokenTtl)
     val refreshTokenExpiresAt = now.plus(refreshTokenTtl)
     val newRefreshToken = RefreshTokenUtil.generateToken()
     val rotated =
-        refreshTokenStore.rotateToken(
-            username = session.username,
-            oldToken = refreshToken,
-            newToken = newRefreshToken,
-            issuedAt = now,
-            expiresAt = refreshTokenExpiresAt,
-        )
+            refreshTokenStore.rotateToken(
+                    username = session.username,
+                    oldToken = refreshToken,
+                    newToken = newRefreshToken,
+                    issuedAt = now,
+                    expiresAt = refreshTokenExpiresAt,
+            )
     if (!rotated) return null
 
     return TokenRefreshResponse(
-        accessToken = JwtUtil.generateToken(session.username, accessTokenTtl),
-        refreshToken = newRefreshToken,
-        accessTokenExpiresAt = accessTokenExpiresAt.toString(),
-        refreshTokenExpiresAt = refreshTokenExpiresAt.toString(),
+            accessToken = JwtUtil.generateToken(session.username, accessTokenTtl),
+            refreshToken = newRefreshToken,
+            accessTokenExpiresAt = accessTokenExpiresAt.toString(),
+            refreshTokenExpiresAt = refreshTokenExpiresAt.toString(),
     )
   }
 
