@@ -97,7 +97,9 @@ fun Route.authRouting() {
         } else {
           call.respond(
               HttpStatusCode.Unauthorized,
-              ErrorResponse(ErrorDetails("invalid_refresh_token", "Invalid or expired refresh token")),
+              ErrorResponse(
+                  ErrorDetails("invalid_refresh_token", "Invalid or expired refresh token")
+              ),
           )
         }
       } catch (e: ContentTransformationException) {

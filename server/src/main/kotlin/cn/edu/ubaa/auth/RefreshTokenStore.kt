@@ -202,10 +202,11 @@ class RefreshTokenService(
   ): TokenRefreshResponse? {
     val current = refreshTokenStore.findToken(refreshToken) ?: return null
     val session =
-        sessionManager.getSession(current.username, SessionManager.SessionAccess.TOUCH) ?: run {
-          refreshTokenStore.deleteByUsername(current.username)
-          return null
-        }
+        sessionManager.getSession(current.username, SessionManager.SessionAccess.TOUCH)
+            ?: run {
+              refreshTokenStore.deleteByUsername(current.username)
+              return null
+            }
 
     val now = Instant.now()
     val accessTokenExpiresAt = now.plus(accessTokenTtl)

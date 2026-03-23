@@ -2,8 +2,8 @@ package cn.edu.ubaa.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.AuthTokensStore
 import cn.edu.ubaa.api.AuthService
+import cn.edu.ubaa.api.AuthTokensStore
 import cn.edu.ubaa.api.CaptchaRequiredClientException
 import cn.edu.ubaa.api.CredentialStore
 import cn.edu.ubaa.api.UserService

@@ -138,7 +138,8 @@ class SessionManagerJwtTest {
     sessionManager.commitSession(candidate, userData)
     val initialTokens = refreshTokenService.issueTokens(username)
 
-    val refreshedTokens = refreshTokenService.refreshTokens(initialTokens.refreshToken, sessionManager)
+    val refreshedTokens =
+        refreshTokenService.refreshTokens(initialTokens.refreshToken, sessionManager)
 
     assertNotNull(refreshedTokens)
     assertNotEquals(initialTokens.refreshToken, refreshedTokens.refreshToken)
@@ -169,8 +170,7 @@ class SessionManagerJwtTest {
   @Test
   fun testRefreshFailsWhenSessionExpired() = runBlocking {
     val sessionManager = createSessionManager(sessionTtl = Duration.ofMillis(1))
-    val refreshTokenService =
-        RefreshTokenService(refreshTokenStore = InMemoryRefreshTokenStore())
+    val refreshTokenService = RefreshTokenService(refreshTokenStore = InMemoryRefreshTokenStore())
     val username = "expired-session"
     val userData = UserData("Expired Session", "10013")
 

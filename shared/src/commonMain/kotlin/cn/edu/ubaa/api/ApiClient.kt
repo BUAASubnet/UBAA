@@ -58,9 +58,7 @@ class ApiClient(private val engine: HttpClientEngine? = null) {
             val refreshToken = expiredTokens.refreshToken ?: return@refreshTokens null
             refreshMutex.withLock {
               val latestTokens = cachedTokens
-              if (
-                  latestTokens != null && latestTokens.refreshToken != expiredTokens.refreshToken
-              ) {
+              if (latestTokens != null && latestTokens.refreshToken != expiredTokens.refreshToken) {
                 return@withLock latestTokens
               }
 
@@ -75,7 +73,8 @@ class ApiClient(private val engine: HttpClientEngine? = null) {
                 return@withLock null
               }
 
-              val refreshedTokens = refreshResponse.body<TokenRefreshResponse>().toStoredAuthTokens()
+              val refreshedTokens =
+                  refreshResponse.body<TokenRefreshResponse>().toStoredAuthTokens()
               updateTokens(refreshedTokens)
               refreshedTokens.toBearerTokens()
             }
@@ -107,9 +106,7 @@ class ApiClient(private val engine: HttpClientEngine? = null) {
     return httpClient ?: createClient().also { httpClient = it }
   }
 
-  /**
-   * 从持久化存储重新加载令牌到当前客户端。
-   */
+  /** 从持久化存储重新加载令牌到当前客户端。 */
   fun applyStoredTokens() {
     cachedTokens = AuthTokensStore.get()?.toBearerTokens()
   }
