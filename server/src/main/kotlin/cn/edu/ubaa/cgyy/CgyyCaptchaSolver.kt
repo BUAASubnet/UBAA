@@ -83,8 +83,12 @@ class CgyyCaptchaSolver : CgyyCaptchaAutoSolver {
   }
 
   internal fun encrypt(plainText: String, secretKey: String): String {
+    val keyBytes = secretKey.toByteArray(Charsets.UTF_8)
+    if (keyBytes.size != 16 && keyBytes.size != 24 && keyBytes.size != 32) {
+      throw CgyyException("无效的验证码密钥长度: ${keyBytes.size} 字节（必须为 16/24/32 字节）", "captcha_error")
+    }
     val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
-    val keySpec = SecretKeySpec(secretKey.toByteArray(Charsets.UTF_8), "AES")
+    val keySpec = SecretKeySpec(keyBytes, "AES")
     cipher.init(Cipher.ENCRYPT_MODE, keySpec)
     val encrypted = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
     return Base64.getEncoder().encodeToString(encrypted)
