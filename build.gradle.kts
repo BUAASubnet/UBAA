@@ -25,4 +25,22 @@ plugins {
   alias(libs.plugins.buildkonfig) apply false
   // Kover 插件，用于测试覆盖率报告
   alias(libs.plugins.kover)
+  // Spotless 插件，用于统一 Kotlin/Gradle Kotlin DSL 代码格式
+  alias(libs.plugins.spotless)
+}
+
+spotless {
+  lineEndings = com.diffplug.spotless.LineEnding.UNIX
+
+  kotlin {
+    target("**/*.kt")
+    targetExclude("**/build/**", "tmp/**")
+    ktfmt()
+  }
+
+  kotlinGradle {
+    target("*.gradle.kts", "**/*.gradle.kts")
+    targetExclude("**/build/**", "tmp/**")
+    ktfmt()
+  }
 }
