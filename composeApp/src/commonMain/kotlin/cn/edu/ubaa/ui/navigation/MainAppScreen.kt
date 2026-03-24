@@ -121,6 +121,7 @@ fun MainAppScreen(
   var selectedCourse by remember { mutableStateOf<CourseClass?>(null) }
   var selectedBykcCourseId by remember { mutableStateOf<Long?>(null) }
   var showBykcIncludeExpired by remember { mutableStateOf(false) }
+  var hideBykcFullCourses by remember { mutableStateOf(false) }
   var selectedSpocAssignmentId by remember { mutableStateOf<String?>(null) }
   var showSpocSortFilterDialog by remember { mutableStateOf(false) }
 
@@ -353,12 +354,14 @@ fun MainAppScreen(
                   isLoading = bykcCoursesState.isLoading,
                   isLoadingMore = bykcCoursesState.isLoadingMore,
                   hasMorePages = bykcCoursesState.hasMorePages,
+                  hideFullCourses = hideBykcFullCourses,
                   error = bykcCoursesState.error,
                   onCourseClick = {
                     selectedBykcCourseId = it.id
                     bykcViewModel.loadCourseDetail(it.id)
                     navigateTo(AppScreen.BYKC_DETAIL)
                   },
+                  onHideFullCoursesChange = { hideBykcFullCourses = it },
                   onRefresh = {
                     bykcViewModel.loadCourses(includeExpired = showBykcIncludeExpired)
                   },

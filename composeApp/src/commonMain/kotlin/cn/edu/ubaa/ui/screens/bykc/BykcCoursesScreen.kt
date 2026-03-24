@@ -28,16 +28,33 @@ fun BykcCoursesScreen(
     isLoading: Boolean,
     isLoadingMore: Boolean,
     hasMorePages: Boolean,
+    hideFullCourses: Boolean,
     error: String?,
     onCourseClick: (BykcCourseDto) -> Unit,
+    onHideFullCoursesChange: (Boolean) -> Unit,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = onRefresh)
+  val visibleCourses =
+      remember(courses, hideFullCourses) {
+        if (hideFullCourses) courses.filterNot { it.isFullCourse() } else courses
+      }
 
   Box(modifier = modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
     Column(modifier = Modifier.fillMaxSize()) {
+      Row(
+          modifier =
+              Modifier.fillMaxWidth()
+                  .padding(horizontal = 16.dp, vertical = 8.dp)
+                  .clickable { onHideFullCoursesChange(!hideFullCourses) },
+          verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Checkbox(checked = hideFullCourses, onCheckedChange = onHideFullCoursesChange)
+        Text("隐藏满人课程", style = MaterialTheme.typography.bodyMedium)
+      }
+
       when {
         isLoading && courses.isEmpty() -> {
           Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -56,19 +73,27 @@ fun BykcCoursesScreen(
             Text(text = "加载失败: $error", color = MaterialTheme.colorScheme.error)
           }
         }
-        courses.isEmpty() -> {
-          Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("暂无可选课程")
-          }
-        }
         else -> {
           LazyColumn(
               modifier = Modifier.fillMaxSize(),
               contentPadding = PaddingValues(16.dp),
               verticalArrangement = Arrangement.spacedBy(12.dp),
           ) {
-            items(courses) { course ->
-              BykcCourseCard(course = course, onClick = { onCourseClick(course) })
+            if (visibleCourses.isEmpty()) {
+              item {
+                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                  Text(
+                      text =
+                          if (hideFullCourses && courses.isNotEmpty()) "当前筛选条件下暂无有空位课程"
+                          else "暂无可选课程",
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  )
+                }
+              }
+            } else {
+              items(visibleCourses) { course ->
+                BykcCourseCard(course = course, onClick = { onCourseClick(course) })
+              }
             }
 
             // 加载更多指示器
@@ -91,7 +116,7 @@ fun BykcCoursesScreen(
                   }
                 }
               }
-            } else if (courses.isNotEmpty()) {
+            } else if (visibleCourses.isNotEmpty()) {
               item {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -120,6 +145,10 @@ fun BykcCoursesScreen(
     )
   }
 }
+
+private fun BykcCourseDto.isFullCourse(): Boolean =
+    status == BykcCourseStatus.FULL ||
+        (courseMaxCount > 0 && courseCurrentCount >= courseMaxCount)
 
 @Composable
 fun BykcCourseCard(course: BykcCourseDto, onClick: () -> Unit, modifier: Modifier = Modifier) {
