@@ -3,6 +3,8 @@ package cn.edu.ubaa.ui.screens.cgyy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.edu.ubaa.api.CgyyApi
+import cn.edu.ubaa.api.CgyyReservationFormStore
+import cn.edu.ubaa.api.StoredCgyyReservationForm
 import cn.edu.ubaa.model.dto.CgyyDayInfoResponse
 import cn.edu.ubaa.model.dto.CgyyLockCodeResponse
 import cn.edu.ubaa.model.dto.CgyyOrdersPageResponse
@@ -10,6 +12,7 @@ import cn.edu.ubaa.model.dto.CgyyPurposeTypeDto
 import cn.edu.ubaa.model.dto.CgyyReservationSelectionDto
 import cn.edu.ubaa.model.dto.CgyyReservationSubmitRequest
 import cn.edu.ubaa.model.dto.CgyyVenueSiteDto
+import kotlin.math.abs
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +76,7 @@ class CgyyViewModel(
     const val ALL_CAMPUSES = "全部"
   }
 
-  private val _uiState = MutableStateFlow(CgyyUiState())
+  private val _uiState = MutableStateFlow(createInitialState())
   val uiState: StateFlow<CgyyUiState> = _uiState.asStateFlow()
 
   init {
@@ -103,7 +106,10 @@ class CgyyViewModel(
               selectedCampus = _uiState.value.selectedCampus.ifBlank { ALL_CAMPUSES },
               purposeTypes = purposeTypes,
               selectedSiteId = siteId,
-              purposeType = _uiState.value.purposeType ?: purposeTypes.firstOrNull()?.key,
+              purposeType =
+                  _uiState.value.purposeType
+                      ?.takeIf { currentType -> purposeTypes.any { it.key == currentType } }
+                      ?: purposeTypes.firstOrNull()?.key,
               initialError =
                   sitesResult.exceptionOrNull()?.message
                       ?: purposeTypesResult.exceptionOrNull()?.message,
@@ -177,18 +183,27 @@ class CgyyViewModel(
   }
 
   fun toggleSlot(spaceId: Int, timeId: Int, venueSpaceGroupId: Int?) {
-    val existingSelection = _uiState.value.selections.firstOrNull()
+    val currentState = _uiState.value
+    val tappedSelection =
+        CgyyReservationSelectionDto(
+            spaceId = spaceId,
+            timeId = timeId,
+            venueSpaceGroupId = venueSpaceGroupId,
+        )
+    val orderedTimeIds = currentState.dayInfo?.timeSlots?.mapIndexed { index, slot -> slot.id to index }?.toMap()
+    val existingSelections =
+        currentState.selections.sortedBy { orderedTimeIds?.get(it.timeId) ?: Int.MAX_VALUE }
     val nextSelections =
-        if (existingSelection?.spaceId == spaceId && existingSelection.timeId == timeId) {
-          emptyList()
-        } else {
-          listOf(
-              CgyyReservationSelectionDto(
-                  spaceId = spaceId,
-                  timeId = timeId,
-                  venueSpaceGroupId = venueSpaceGroupId,
-              )
-          )
+        when {
+          existingSelections.any { it.spaceId == spaceId && it.timeId == timeId } ->
+              existingSelections.filterNot { it.spaceId == spaceId && it.timeId == timeId }
+          existingSelections.isEmpty() -> listOf(tappedSelection)
+          existingSelections.any { it.spaceId != spaceId } -> listOf(tappedSelection)
+          existingSelections.size == 1 &&
+              areAdjacent(existingSelections.first().timeId, timeId, orderedTimeIds) ->
+              listOf(existingSelections.first(), tappedSelection)
+                  .sortedBy { orderedTimeIds?.get(it.timeId) ?: Int.MAX_VALUE }
+          else -> listOf(tappedSelection)
         }
     val nextState = _uiState.value.copy(selections = nextSelections, actionMessage = null)
     _uiState.value = nextState.copy(reservationSummary = buildReservationSummary(nextState))
@@ -274,17 +289,31 @@ class CgyyViewModel(
           )
       result
           .onSuccess {
+            val storedForm =
+                StoredCgyyReservationForm(
+                    phone = current.phone,
+                    theme = current.theme,
+                    purposeType = purposeType,
+                    joinerNum = current.joinerNum,
+                    activityContent = current.activityContent,
+                    joiners = current.joiners,
+                    isPhilosophySocialSciences = current.isPhilosophySocialSciences,
+                    isOffSchoolJoiner = current.isOffSchoolJoiner,
+                )
+            CgyyReservationFormStore.save(storedForm)
             _uiState.value =
                 _uiState.value.copy(
                     isSubmitting = false,
                     selections = emptyList(),
                     reservationSummary = null,
-                    theme = "",
-                    joinerNum = "1",
-                    activityContent = "",
-                    joiners = "",
-                    isPhilosophySocialSciences = false,
-                    isOffSchoolJoiner = false,
+                    phone = storedForm.phone,
+                    theme = storedForm.theme,
+                    purposeType = storedForm.purposeType,
+                    joinerNum = storedForm.joinerNum,
+                    activityContent = storedForm.activityContent,
+                    joiners = storedForm.joiners,
+                    isPhilosophySocialSciences = storedForm.isPhilosophySocialSciences,
+                    isOffSchoolJoiner = storedForm.isOffSchoolJoiner,
                     hasTriedSubmitReservation = false,
                     actionMessage = it.message,
                 )
@@ -414,6 +443,26 @@ class CgyyViewModel(
 
   private fun setActionMessage(message: String) {
     _uiState.value = _uiState.value.copy(actionMessage = message)
+  }
+
+  private fun createInitialState(): CgyyUiState {
+    val storedForm = CgyyReservationFormStore.get()
+    return CgyyUiState(
+        phone = storedForm?.phone.orEmpty(),
+        theme = storedForm?.theme.orEmpty(),
+        purposeType = storedForm?.purposeType,
+        joinerNum = storedForm?.joinerNum ?: "1",
+        activityContent = storedForm?.activityContent.orEmpty(),
+        joiners = storedForm?.joiners.orEmpty(),
+        isPhilosophySocialSciences = storedForm?.isPhilosophySocialSciences ?: false,
+        isOffSchoolJoiner = storedForm?.isOffSchoolJoiner ?: false,
+    )
+  }
+
+  private fun areAdjacent(firstTimeId: Int, secondTimeId: Int, orderedTimeIds: Map<Int, Int>?): Boolean {
+    val firstIndex = orderedTimeIds?.get(firstTimeId) ?: return false
+    val secondIndex = orderedTimeIds[secondTimeId] ?: return false
+    return abs(firstIndex - secondIndex) == 1
   }
 
   private fun buildReservationSummary(state: CgyyUiState): CgyyReservationSummary? {

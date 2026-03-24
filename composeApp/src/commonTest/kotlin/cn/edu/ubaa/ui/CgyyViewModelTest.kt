@@ -1,5 +1,6 @@
 package cn.edu.ubaa.ui
 
+import cn.edu.ubaa.api.CgyyReservationFormStore
 import cn.edu.ubaa.api.CgyyApi
 import cn.edu.ubaa.model.dto.CgyyDayInfoResponse
 import cn.edu.ubaa.model.dto.CgyyLockCodeResponse
@@ -34,6 +35,7 @@ class CgyyViewModelTest {
   @AfterTest
   fun tearDown() {
     Dispatchers.resetMain()
+    CgyyReservationFormStore.clear()
   }
 
   @Test
@@ -52,23 +54,29 @@ class CgyyViewModelTest {
   }
 
   @Test
-  fun `toggle slot keeps only one selection and builds summary`() = runTest {
+  fun `toggle slot allows at most two consecutive selections and builds summary`() = runTest {
     setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
     val viewModel = CgyyViewModel(FakeCgyyApi(), currentDateProvider = { "2026-03-29" })
 
     advanceUntilIdle()
+    viewModel.toggleSlot(6, 241, null)
     viewModel.toggleSlot(6, 242, null)
-    viewModel.toggleSlot(7, 242, null)
 
-    assertEquals(1, viewModel.uiState.value.selections.size)
-    assertEquals(7, viewModel.uiState.value.selections.first().spaceId)
+    assertEquals(2, viewModel.uiState.value.selections.size)
+    assertEquals(listOf(241, 242), viewModel.uiState.value.selections.map { it.timeId })
     assertNotNull(viewModel.uiState.value.reservationSummary)
-    assertEquals("主205", viewModel.uiState.value.reservationSummary?.spaceName)
+    assertEquals("主204", viewModel.uiState.value.reservationSummary?.spaceName)
+    assertEquals(
+        listOf("12:30-14:00", "14:00-15:35"),
+        viewModel.uiState.value.reservationSummary?.slotLabels,
+    )
   }
 
   @Test
   fun `tapping same slot twice clears selection`() = runTest {
     setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
     val viewModel = CgyyViewModel(FakeCgyyApi(), currentDateProvider = { "2026-03-29" })
 
     advanceUntilIdle()
@@ -80,8 +88,27 @@ class CgyyViewModelTest {
   }
 
   @Test
+  fun `non consecutive or third slot resets to latest single selection`() = runTest {
+    setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
+    val viewModel = CgyyViewModel(FakeCgyyApi(), currentDateProvider = { "2026-03-29" })
+
+    advanceUntilIdle()
+    viewModel.toggleSlot(6, 241, null)
+    viewModel.toggleSlot(6, 243, null)
+    assertEquals(listOf(243), viewModel.uiState.value.selections.map { it.timeId })
+
+    viewModel.toggleSlot(6, 242, null)
+    assertEquals(listOf(242, 243), viewModel.uiState.value.selections.map { it.timeId })
+
+    viewModel.toggleSlot(6, 241, null)
+    assertEquals(listOf(241), viewModel.uiState.value.selections.map { it.timeId })
+  }
+
+  @Test
   fun `submit reservation refreshes orders`() = runTest {
     setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
     val api = FakeCgyyApi()
     val viewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
 
@@ -99,12 +126,13 @@ class CgyyViewModelTest {
     assertEquals(1, api.ordersCalls)
     assertEquals("预约成功", viewModel.uiState.value.actionMessage)
     assertTrue(viewModel.uiState.value.selections.isEmpty())
-    assertEquals("", viewModel.uiState.value.theme)
+    assertEquals("讨论", viewModel.uiState.value.theme)
   }
 
   @Test
   fun `ensure orders loaded fetches orders lazily`() = runTest {
     setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
     val api = FakeCgyyApi()
     val viewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
 
@@ -119,6 +147,7 @@ class CgyyViewModelTest {
   @Test
   fun `load lock code stores raw value`() = runTest {
     setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
     val viewModel = CgyyViewModel(FakeCgyyApi(), currentDateProvider = { "2026-03-29" })
 
     advanceUntilIdle()
@@ -126,6 +155,37 @@ class CgyyViewModelTest {
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.lockCode?.rawData.toString().contains("123456"))
+  }
+
+  @Test
+  fun `successful reservation saves form for next time`() = runTest {
+    setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
+    val api = FakeCgyyApi()
+    val firstViewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
+
+    advanceUntilIdle()
+    firstViewModel.updatePhone("18800000000")
+    firstViewModel.updateTheme("课题讨论")
+    firstViewModel.updateJoinerNum("5")
+    firstViewModel.updateActivityContent("研讨内容")
+    firstViewModel.updateJoiners("张三、李四")
+    firstViewModel.setPhilosophySocialSciences(true)
+    firstViewModel.setOffSchoolJoiner(true)
+    firstViewModel.toggleSlot(6, 241, null)
+    firstViewModel.submitReservation()
+    advanceUntilIdle()
+
+    val secondViewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
+    advanceUntilIdle()
+
+    assertEquals("18800000000", secondViewModel.uiState.value.phone)
+    assertEquals("课题讨论", secondViewModel.uiState.value.theme)
+    assertEquals("5", secondViewModel.uiState.value.joinerNum)
+    assertEquals("研讨内容", secondViewModel.uiState.value.activityContent)
+    assertEquals("张三、李四", secondViewModel.uiState.value.joiners)
+    assertTrue(secondViewModel.uiState.value.isPhilosophySocialSciences)
+    assertTrue(secondViewModel.uiState.value.isOffSchoolJoiner)
   }
 
   private fun setMainDispatcher(testScheduler: TestCoroutineScheduler) {
@@ -156,7 +216,12 @@ class CgyyViewModelTest {
               venueSiteId = venueSiteId,
               reservationDate = date,
               availableDates = listOf(date),
-              timeSlots = listOf(CgyyTimeSlotDto(242, "14:00", "15:35", "14:00-15:35")),
+              timeSlots =
+                  listOf(
+                      CgyyTimeSlotDto(241, "12:30", "14:00", "12:30-14:00"),
+                      CgyyTimeSlotDto(242, "14:00", "15:35", "14:00-15:35"),
+                      CgyyTimeSlotDto(243, "15:35", "17:10", "15:35-17:10"),
+                  ),
               spaces =
                   listOf(
                       CgyySpaceAvailabilityDto(
@@ -166,7 +231,17 @@ class CgyyViewModelTest {
                           slots =
                               listOf(
                                   CgyySlotStatusDto(
+                                      timeId = 241,
+                                      reservationStatus = 1,
+                                      isReservable = true,
+                                  ),
+                                  CgyySlotStatusDto(
                                       timeId = 242,
+                                      reservationStatus = 1,
+                                      isReservable = true,
+                                  ),
+                                  CgyySlotStatusDto(
+                                      timeId = 243,
                                       reservationStatus = 1,
                                       isReservable = true,
                                   )
@@ -179,7 +254,17 @@ class CgyyViewModelTest {
                           slots =
                               listOf(
                                   CgyySlotStatusDto(
+                                      timeId = 241,
+                                      reservationStatus = 1,
+                                      isReservable = true,
+                                  ),
+                                  CgyySlotStatusDto(
                                       timeId = 242,
+                                      reservationStatus = 1,
+                                      isReservable = true,
+                                  ),
+                                  CgyySlotStatusDto(
+                                      timeId = 243,
                                       reservationStatus = 1,
                                       isReservable = true,
                                   )
