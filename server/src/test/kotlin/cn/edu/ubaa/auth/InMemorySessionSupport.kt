@@ -14,13 +14,20 @@ class InMemorySessionStore : SessionPersistence {
       userData: cn.edu.ubaa.model.dto.UserData,
       authenticatedAt: java.time.Instant,
       lastActivity: java.time.Instant,
+      portalType: AcademicPortalType,
   ) {
-    sessions[username] = SessionPersistence.SessionRecord(userData, authenticatedAt, lastActivity)
+    sessions[username] =
+        SessionPersistence.SessionRecord(userData, authenticatedAt, lastActivity, portalType)
   }
 
   override suspend fun updateLastActivity(username: String, lastActivity: java.time.Instant) {
     val current = sessions[username] ?: return
     sessions[username] = current.copy(lastActivity = lastActivity)
+  }
+
+  override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {
+    val current = sessions[username] ?: return
+    sessions[username] = current.copy(portalType = portalType)
   }
 
   override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? =

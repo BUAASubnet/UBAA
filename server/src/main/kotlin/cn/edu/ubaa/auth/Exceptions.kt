@@ -11,3 +11,8 @@ class CaptchaRequiredException(
     val execution: String,
     message: String = "CAPTCHA verification required",
 ) : LoginException(message)
+
+/** 当前账号类型暂不支持访问该接口。 */
+class UnsupportedAcademicPortalException(
+    message: String = "当前账号类型暂不支持该接口",
+) : Exception(message)

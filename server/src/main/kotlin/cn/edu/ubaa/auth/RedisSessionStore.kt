@@ -34,6 +34,7 @@ class RedisSessionStore(
       userData: UserData,
       authenticatedAt: Instant,
       lastActivity: Instant,
+      portalType: AcademicPortalType,
   ) {
     withUserLock(username) {
       val key = keyFor(username)
@@ -43,6 +44,7 @@ class RedisSessionStore(
               "schoolid" to userData.schoolid,
               "authenticated_at" to authenticatedAt.toEpochMilli().toString(),
               "last_activity" to lastActivity.toEpochMilli().toString(),
+              "portal_type" to portalType.name,
           )
 
       redis {
@@ -62,6 +64,16 @@ class RedisSessionStore(
     }
   }
 
+  override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {
+    withUserLock(username) {
+      val key = keyFor(username)
+      redis {
+        commands.hset(key, "portal_type", portalType.name)
+        commands.expire(key, sessionTtl)
+      }
+    }
+  }
+
   override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? {
     return withUserLock(username) {
       val sessionMap = redis { commands.hgetall(keyFor(username)) }.orEmpty()
@@ -72,11 +84,16 @@ class RedisSessionStore(
       val authenticatedAtMs =
           sessionMap["authenticated_at"]?.toLongOrNull() ?: return@withUserLock null
       val lastActivityMs = sessionMap["last_activity"]?.toLongOrNull() ?: return@withUserLock null
+      val portalType =
+          sessionMap["portal_type"]
+              ?.let { runCatching { AcademicPortalType.valueOf(it) }.getOrNull() }
+              ?: AcademicPortalType.UNKNOWN
 
       SessionPersistence.SessionRecord(
           userData = UserData(name = name, schoolid = schoolid),
           authenticatedAt = Instant.ofEpochMilli(authenticatedAtMs),
           lastActivity = Instant.ofEpochMilli(lastActivityMs),
+          portalType = portalType,
       )
     }
   }

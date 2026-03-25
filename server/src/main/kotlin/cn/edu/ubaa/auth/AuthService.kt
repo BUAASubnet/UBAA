@@ -78,7 +78,9 @@ class AuthService(
       sessionManager.getSession(request.username, SessionManager.SessionAccess.READ_ONLY)?.let {
           existingSession ->
         val cachedUser = runCatching { verifySession(existingSession.client) }.getOrNull()
-        if (cachedUser != null) {
+        val portalState = runCatching { ByxtService.initializeSession(existingSession.client) }.getOrNull()
+        if (cachedUser != null && portalState?.isReady == true) {
+          sessionManager.updateSessionPortalType(request.username, portalState.portalType)
           return refreshTokenService.issueLoginTokens(cachedUser, request.username)
         }
         sessionManager.invalidateSession(request.username)
@@ -171,19 +173,19 @@ class AuthService(
       )
 
       val userData: UserData?
-      val byxtReady: Boolean
+      val portalState: AcademicPortalProbeResult
       coroutineScope {
-        val byxtJob = async { ByxtService.initializeSession(client) }
+        val portalJob = async { ByxtService.initializeSession(client) }
         userData = verifySession(client)
-        byxtReady = byxtJob.await()
+        portalState = portalJob.await()
       }
 
-      if (userData != null && byxtReady) {
-        sessionManager.commitSession(activeCandidate, userData)
+      if (userData != null && portalState.isReady) {
+        sessionManager.commitSession(activeCandidate, userData, portalState.portalType)
         committed = true
         return refreshTokenService.issueLoginTokens(userData, activeCandidate.username)
       }
-      failLogin("session verification failed or BYXT initialization failed")
+      failLogin("session verification failed or academic portal initialization failed")
     } finally {
       if (!committed) {
         sessionCandidate?.let {
@@ -239,18 +241,18 @@ class AuthService(
           )
 
           val userData: UserData?
-          val byxtReady: Boolean
+          val portalState: AcademicPortalProbeResult
           coroutineScope {
-            val byxtJob = async { ByxtService.initializeSession(client) }
+            val portalJob = async { ByxtService.initializeSession(client) }
             userData = verifySession(client)
-            byxtReady = byxtJob.await()
+            portalState = portalJob.await()
           }
 
-          if (userData != null && byxtReady && !userData.schoolid.isNullOrBlank()) {
+          if (userData != null && portalState.isReady && !userData.schoolid.isNullOrBlank()) {
             val sessionCandidate =
                 sessionManager.promotePreLoginSession(clientId, userData.schoolid)
             if (sessionCandidate != null) {
-              sessionManager.commitSession(sessionCandidate, userData)
+              sessionManager.commitSession(sessionCandidate, userData, portalState.portalType)
               val tokenResponse = refreshTokenService.issueTokens(sessionCandidate.username)
               return@withNoRedirectClient LoginPreloadResponse(
                   captchaRequired = false,
@@ -364,13 +366,17 @@ class AuthService(
 
   suspend fun validateSession(session: SessionManager.UserSession): Boolean {
     val userData: UserData?
-    val byxtReady: Boolean
+    val portalState: AcademicPortalProbeResult
     coroutineScope {
-      val byxtJob = async { ByxtService.initializeSession(session.client) }
+      val portalJob = async { ByxtService.initializeSession(session.client) }
       userData = verifySession(session.client)
-      byxtReady = byxtJob.await()
+      portalState = portalJob.await()
     }
-    return userData != null && byxtReady
+    if (userData != null && portalState.isReady) {
+      sessionManager.updateSessionPortalType(session.username, portalState.portalType)
+      return true
+    }
+    return false
   }
 
   /**

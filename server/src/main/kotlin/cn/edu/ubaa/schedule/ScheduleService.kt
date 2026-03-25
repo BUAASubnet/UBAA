@@ -4,6 +4,9 @@ import cn.edu.ubaa.auth.ByxtService
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.auth.AcademicPortalProbeResult
+import cn.edu.ubaa.auth.AcademicPortalType
+import cn.edu.ubaa.auth.UnsupportedAcademicPortalException
 import cn.edu.ubaa.model.dto.*
 import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.request.*
@@ -36,6 +39,7 @@ class ScheduleService(
   /** 获取用户可选的所有学期列表。 */
   suspend fun fetchTerms(username: String): List<Term> {
     val session = sessionManager.requireSession(username)
+    ensureUndergradPortal(username, session)
     val response = session.getTerms()
     val body = response.bodyAsText()
 
@@ -59,6 +63,7 @@ class ScheduleService(
   /** 获取指定学期的周次划分。 */
   suspend fun fetchWeeks(username: String, termCode: String): List<Week> {
     val session = sessionManager.requireSession(username)
+    ensureUndergradPortal(username, session)
     val response = session.getWeeks(termCode)
     val body = response.bodyAsText()
 
@@ -80,6 +85,7 @@ class ScheduleService(
   /** 获取周课表详情。 */
   suspend fun fetchWeeklySchedule(username: String, termCode: String, week: Int): WeeklySchedule {
     val session = sessionManager.requireSession(username)
+    ensureUndergradPortal(username, session)
     val response = session.getWeeklySchedule(termCode, week)
     val body = response.bodyAsText()
 
@@ -101,6 +107,7 @@ class ScheduleService(
   /** 获取今日排课摘要。 */
   suspend fun fetchTodaySchedule(username: String): List<TodayClass> {
     val session = sessionManager.requireSession(username)
+    ensureUndergradPortal(username, session)
     val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     val response = session.getTodaySchedule(today)
     val body = response.bodyAsText()
@@ -175,6 +182,34 @@ class ScheduleService(
   private fun isByxtSessionExpired(response: HttpResponse, body: String): Boolean =
       response.status == HttpStatusCode.Unauthorized ||
           !ByxtService.isSessionReady(response.status, response.request.url.toString(), body)
+
+  private suspend fun ensureUndergradPortal(
+      username: String,
+      session: SessionManager.UserSession,
+  ) {
+    when (session.portalType) {
+      AcademicPortalType.UNDERGRAD -> return
+      AcademicPortalType.GRADUATE ->
+          throw UnsupportedAcademicPortalException("研究生账号暂不支持当前本科教务接口")
+      AcademicPortalType.UNKNOWN -> {
+        when (val result = ByxtService.initializeSession(session.client)) {
+          AcademicPortalProbeResult.UNDERGRAD_READY -> {
+            sessionManager.updateSessionPortalType(username, AcademicPortalType.UNDERGRAD)
+            return
+          }
+          AcademicPortalProbeResult.GRADUATE_READY -> {
+            sessionManager.updateSessionPortalType(username, AcademicPortalType.GRADUATE)
+            throw UnsupportedAcademicPortalException("研究生账号暂不支持当前本科教务接口")
+          }
+          AcademicPortalProbeResult.SSO_REQUIRED -> {
+            sessionManager.invalidateSession(username)
+            throw LoginException("BYXT session expired")
+          }
+          AcademicPortalProbeResult.UNAVAILABLE -> throw ScheduleException("BYXT service unavailable")
+        }
+      }
+    }
+  }
 }
 
 class ScheduleException(message: String) : Exception(message)

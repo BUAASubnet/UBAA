@@ -23,6 +23,7 @@ interface SessionPersistence {
       val userData: UserData,
       val authenticatedAt: Instant,
       val lastActivity: Instant,
+      val portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
   )
 
   suspend fun saveSession(
@@ -30,9 +31,12 @@ interface SessionPersistence {
       userData: UserData,
       authenticatedAt: Instant,
       lastActivity: Instant,
+      portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
   )
 
   suspend fun updateLastActivity(username: String, lastActivity: Instant)
+
+  suspend fun updatePortalType(username: String, portalType: AcademicPortalType)
 
   suspend fun loadSession(username: String): SessionRecord?
 
@@ -91,10 +95,12 @@ class SessionManager(
       val cookieStorage: ManagedCookieStorage,
       val userData: UserData,
       val authenticatedAt: Instant,
+      portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
       initialActivity: Instant = authenticatedAt,
   ) {
     @Volatile private var lastActivity: Instant = initialActivity
     @Volatile private var lastPersistedActivity: Instant = initialActivity
+    @Volatile var portalType: AcademicPortalType = portalType
 
     fun isExpired(ttl: Duration): Boolean = Instant.now().isAfter(lastActivity.plus(ttl))
 
@@ -169,6 +175,7 @@ class SessionManager(
   suspend fun commitSession(
       candidate: SessionCandidate,
       userData: UserData,
+      portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
   ): UserSession {
     // 登录期间 Cookie 只缓存在内存中，此处批量写回 Redis
     candidate.cookieStorage.flush()
@@ -181,6 +188,7 @@ class SessionManager(
             cookieStorage = candidate.cookieStorage,
             userData = userData,
             authenticatedAt = Instant.now(),
+            portalType = portalType,
         )
 
     sessions.compute(candidate.username) { _, previous ->
@@ -194,6 +202,7 @@ class SessionManager(
         userData = userData,
         authenticatedAt = newSession.authenticatedAt,
         lastActivity = newSession.lastActivity(),
+        portalType = portalType,
     )
 
     return newSession
@@ -226,6 +235,13 @@ class SessionManager(
   suspend fun requireSession(username: String): UserSession {
     return getSession(username, SessionAccess.TOUCH)
         ?: throw RuntimeException("Session expired or invalid for user: $username")
+  }
+
+  suspend fun updateSessionPortalType(username: String, portalType: AcademicPortalType) {
+    val session = sessions[username] ?: return
+    if (session.portalType == portalType) return
+    session.portalType = portalType
+    sessionStore.updatePortalType(username, portalType)
   }
 
   suspend fun invalidateSession(username: String) {
@@ -333,6 +349,7 @@ class SessionManager(
                 cookieStorage = cookieStorage,
                 userData = record.userData,
                 authenticatedAt = record.authenticatedAt,
+                portalType = record.portalType,
                 initialActivity = record.lastActivity,
             )
 

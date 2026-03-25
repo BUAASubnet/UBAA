@@ -17,6 +17,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -215,6 +216,44 @@ class AuthServiceResourceTest {
   }
 
   @Test
+  fun restoredSessionsKeepPortalTypeMetadata() = runBlocking {
+    val sessionStore = PersistentSessionStore()
+    val sessionManager =
+        SessionManager(
+            sessionStore = sessionStore,
+            cookieStorageFactory = InMemoryCookieStorageFactory(),
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    try {
+      val candidate = sessionManager.prepareSession("graduate-user")
+      sessionManager.commitSession(
+          candidate,
+          UserData("Graduate User", "SY0001"),
+          AcademicPortalType.GRADUATE,
+      )
+    } finally {
+      sessionManager.close()
+    }
+
+    val restoredManager =
+        SessionManager(
+            sessionStore = sessionStore,
+            cookieStorageFactory = InMemoryCookieStorageFactory(),
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    try {
+      val restored =
+          restoredManager.getSession("graduate-user", SessionManager.SessionAccess.READ_ONLY)
+      assertNotNull(restored)
+      assertEquals(AcademicPortalType.GRADUATE, restored.portalType)
+    } finally {
+      restoredManager.close()
+    }
+  }
+
+  @Test
   fun restoreSessionMissDoesNotLeakMutexes() = runBlocking {
     val sessionManager =
         SessionManager(
@@ -259,9 +298,12 @@ class AuthServiceResourceTest {
         userData: UserData,
         authenticatedAt: Instant,
         lastActivity: Instant,
+        portalType: AcademicPortalType,
     ) {}
 
     override suspend fun updateLastActivity(username: String, lastActivity: Instant) {}
+
+    override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {}
 
     override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? {
       loadCount.incrementAndGet()
@@ -280,9 +322,12 @@ class AuthServiceResourceTest {
         userData: UserData,
         authenticatedAt: Instant,
         lastActivity: Instant,
+        portalType: AcademicPortalType,
     ) {}
 
     override suspend fun updateLastActivity(username: String, lastActivity: Instant) {}
+
+    override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {}
 
     override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? = null
 
@@ -299,13 +344,20 @@ class AuthServiceResourceTest {
         userData: UserData,
         authenticatedAt: Instant,
         lastActivity: Instant,
+        portalType: AcademicPortalType,
     ) {
-      sessions[username] = SessionPersistence.SessionRecord(userData, authenticatedAt, lastActivity)
+      sessions[username] =
+          SessionPersistence.SessionRecord(userData, authenticatedAt, lastActivity, portalType)
     }
 
     override suspend fun updateLastActivity(username: String, lastActivity: Instant) {
       val current = sessions[username] ?: return
       sessions[username] = current.copy(lastActivity = lastActivity)
+    }
+
+    override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {
+      val current = sessions[username] ?: return
+      sessions[username] = current.copy(portalType = portalType)
     }
 
     override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? =
