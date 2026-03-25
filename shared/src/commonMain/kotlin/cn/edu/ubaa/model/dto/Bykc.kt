@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 
 /** 博雅课程状态常量定义。 */
 object BykcCourseStatus {
-  const val EXPIRED = "过期"
+  const val EXPIRED = "已过期"
   const val SELECTED = "已选"
   const val PREVIEW = "预告"
-  const val ENDED = "结束"
-  const val FULL = "满员"
+  const val ENDED = "已结束"
+  const val FULL = "人数已满"
   const val AVAILABLE = "可选"
 }
 
@@ -113,6 +113,7 @@ data class BykcCourseDetailDto(
  * @property courseStartDate 开始时间。
  * @property courseEndDate 结束时间。
  * @property selectDate 选课操作时间。
+ * @property courseCancelEndDate 退选截止时间。
  * @property category 课程大类。
  * @property subCategory 课程小类。
  * @property checkin 签到状态。
@@ -137,6 +138,7 @@ data class BykcChosenCourseDto(
     val courseStartDate: String? = null,
     val courseEndDate: String? = null,
     val selectDate: String? = null,
+    val courseCancelEndDate: String? = null,
     val category: String? = null,
     val subCategory: String? = null,
     val checkin: Int = 0,

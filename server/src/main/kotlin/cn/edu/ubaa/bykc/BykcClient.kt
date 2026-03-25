@@ -42,7 +42,7 @@ open class BykcClient(private val username: String) {
    * @return 登录是否成功。
    * @throws IllegalStateException 当没有活跃会话时抛出。
    */
-  suspend fun login(forceRefresh: Boolean = false): Boolean {
+  open suspend fun login(forceRefresh: Boolean = false): Boolean {
 
     if (!forceRefresh && bykcToken != null) return true
 
@@ -270,7 +270,7 @@ open class BykcClient(private val username: String) {
    *
    * @throws RuntimeException 当获取配置失败时抛出。
    */
-  suspend fun getAllConfig(): BykcAllConfig {
+  open suspend fun getAllConfig(): BykcAllConfig {
 
     val raw = callApiRaw("getAllConfig", "{}")
 
@@ -287,7 +287,7 @@ open class BykcClient(private val username: String) {
    *
    * @throws RuntimeException 当查询失败时抛出。
    */
-  suspend fun queryChosenCourse(startDate: String, endDate: String): List<BykcChosenCourse> {
+  open suspend fun queryChosenCourse(startDate: String, endDate: String): List<BykcChosenCourse> {
 
     val req = "{\"startDate\":\"$startDate\",\"endDate\":\"$endDate\"}"
 
@@ -306,7 +306,7 @@ open class BykcClient(private val username: String) {
    *
    * @throws RuntimeException 当查询失败时抛出。
    */
-  suspend fun queryCourseById(id: Long): BykcCourse {
+  open suspend fun queryCourseById(id: Long): BykcCourse {
 
     val req = "{\"id\":$id}"
 

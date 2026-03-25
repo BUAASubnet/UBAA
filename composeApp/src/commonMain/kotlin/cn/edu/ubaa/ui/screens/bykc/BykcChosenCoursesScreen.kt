@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -23,14 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.BykcChosenCourseDto
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlinx.coroutines.delay
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun BykcChosenCoursesScreen(
     courses: List<BykcChosenCourseDto>,
@@ -104,7 +97,7 @@ fun BykcChosenCoursesScreen(
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalTime::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BykcChosenCourseCard(
     course: BykcChosenCourseDto,
@@ -138,8 +131,8 @@ fun BykcChosenCourseCard(
         InfoRow(label = "时间", value = formatDateRange(startDate, endDate))
       }
 
-      course.selectDate?.let { selectDate ->
-        InfoRow(label = "选课时间", value = selectDate.substringBefore(" 00:00:00"))
+      course.courseCancelEndDate?.let { cancelEnd ->
+        InfoRow(label = "退选截止", value = formatDateTimeDisplay(cancelEnd))
       }
 
       // 分类标签
@@ -229,116 +222,8 @@ fun BykcChosenCourseCard(
             }
           }
         }
-
-        // 签到/签退操作区
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.End,
-        ) {
-          val now = remember { mutableStateOf<kotlin.time.Instant>(Clock.System.now()) }
-          LaunchedEffect(Unit) {
-            while (true) {
-              delay(5000)
-              now.value = Clock.System.now()
-            }
-          }
-
-          val isInSignInWindow =
-              remember(
-                  course.signConfig?.signStartDate,
-                  course.signConfig?.signEndDate,
-                  now.value,
-              ) {
-                isWithinWindow(course.signConfig?.signStartDate, course.signConfig?.signEndDate)
-              }
-          val isInSignOutWindow =
-              remember(
-                  course.signConfig?.signOutStartDate,
-                  course.signConfig?.signOutEndDate,
-                  now.value,
-              ) {
-                isWithinWindow(
-                    course.signConfig?.signOutStartDate,
-                    course.signConfig?.signOutEndDate,
-                )
-              }
-
-          // 逻辑说明：
-          // 可签到：未签到(0)且在时间窗口
-          val canSignIn = (course.checkin == 0) && isInSignInWindow
-
-          // 可签退：已签到未签退(5或6)且在时间窗口
-          val canSignOut = (course.checkin == 5 || course.checkin == 6) && isInSignOutWindow
-
-          // 考核通过(1)时隐藏按钮
-          val showButtons = course.pass != 1 && course.signConfig != null
-
-          if (showButtons) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-              AssistChip(
-                  onClick = { if (canSignIn) onClick() },
-                  enabled = canSignIn,
-                  label = { Text("签到", style = MaterialTheme.typography.labelSmall) },
-                  leadingIcon = {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Login,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                  },
-                  colors =
-                      AssistChipDefaults.assistChipColors(
-                          containerColor = MaterialTheme.colorScheme.primaryContainer,
-                          labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                          disabledContainerColor =
-                              MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                          disabledLabelColor =
-                              MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                      ),
-              )
-              AssistChip(
-                  onClick = { if (canSignOut) onClick() },
-                  enabled = canSignOut,
-                  label = { Text("签退", style = MaterialTheme.typography.labelSmall) },
-                  leadingIcon = {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                  },
-                  colors =
-                      AssistChipDefaults.assistChipColors(
-                          containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                          labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                          disabledContainerColor =
-                              MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                          disabledLabelColor =
-                              MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                      ),
-              )
-            }
-          }
-        }
       }
     }
-  }
-}
-
-@OptIn(ExperimentalTime::class)
-private fun isWithinWindow(start: String?, end: String?): Boolean {
-  if (start.isNullOrBlank() || end.isNullOrBlank()) return false
-  return try {
-    val startDt = LocalDateTime.parse(start.replace(" ", "T"))
-    val endDt = LocalDateTime.parse(end.replace(" ", "T"))
-    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    now >= startDt && now <= endDt
-  } catch (_: Exception) {
-    false
   }
 }
 

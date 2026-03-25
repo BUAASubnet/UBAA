@@ -239,11 +239,11 @@ class BykcModelsTest {
 
   @Test
   fun `BykcCourseStatus constants have correct values`() {
-    assertEquals("过期", BykcCourseStatus.EXPIRED)
+    assertEquals("已过期", BykcCourseStatus.EXPIRED)
     assertEquals("已选", BykcCourseStatus.SELECTED)
     assertEquals("预告", BykcCourseStatus.PREVIEW)
-    assertEquals("结束", BykcCourseStatus.ENDED)
-    assertEquals("满员", BykcCourseStatus.FULL)
+    assertEquals("已结束", BykcCourseStatus.ENDED)
+    assertEquals("人数已满", BykcCourseStatus.FULL)
     assertEquals("可选", BykcCourseStatus.AVAILABLE)
   }
 }

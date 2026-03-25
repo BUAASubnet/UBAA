@@ -194,6 +194,13 @@ fun BykcCourseCard(course: BykcCourseDto, onClick: () -> Unit, modifier: Modifie
         val endDate = course.courseEndDate ?: ""
         InfoRow(label = "时间", value = formatDateRange(startDate, endDate))
       }
+      val selectTimeDisplay =
+          remember(course.courseSelectStartDate, course.courseSelectEndDate) {
+            resolveSelectTimeDisplay(course.courseSelectStartDate, course.courseSelectEndDate)
+          }
+      selectTimeDisplay?.let { selectTime ->
+        InfoRow(label = selectTime.label, value = selectTime.value)
+      }
 
       // 分类与签到标签
       if (course.subCategory != null || course.hasSignPoints) {
@@ -306,28 +313,4 @@ fun InfoRow(label: String, value: String) {
         overflow = TextOverflow.Ellipsis,
     )
   }
-}
-
-fun formatDateRange(startDate: String, endDate: String): String {
-  // 期望格式: "2025-03-15 14:00:00"
-  // 提取日期和时间部分
-  val startParts = startDate.split(" ")
-  val endParts = endDate.split(" ")
-
-  if (startParts.size == 2 && endParts.size == 2) {
-    val startDatePart = startParts[0] // "2025-03-15"
-    val startTimePart = startParts[1].substring(0, 5) // "14:00"
-    val endDatePart = endParts[0]
-    val endTimePart = endParts[1].substring(0, 5)
-
-    return if (startDatePart == endDatePart) {
-      // 同一天
-      "$startDatePart $startTimePart - $endTimePart"
-    } else {
-      // 跨天
-      "$startDatePart $startTimePart - $endDate"
-    }
-  }
-
-  return "$startDate - $endDate"
 }

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
@@ -137,6 +138,7 @@ fun MainAppScreen(
 
   var selectedCourse by remember { mutableStateOf<CourseClass?>(null) }
   var selectedBykcCourseId by remember { mutableStateOf<Long?>(null) }
+  var selectedBykcCourseSnapshot by remember { mutableStateOf<BykcCourseDto?>(null) }
   var showBykcIncludeExpired by remember { mutableStateOf(false) }
   var hideBykcFullCourses by remember { mutableStateOf(false) }
   var selectedSpocAssignmentId by remember { mutableStateOf<String?>(null) }
@@ -264,6 +266,7 @@ fun MainAppScreen(
     when (val action = todoItem.action) {
       is HomeTodoAction.OpenBykcCourse -> {
         selectedBykcCourseId = action.courseId
+        selectedBykcCourseSnapshot = null
         bykcViewModel.loadCourseDetail(action.courseId)
         navigateTo(AppScreen.BYKC_DETAIL)
       }
@@ -461,6 +464,7 @@ fun MainAppScreen(
                   error = bykcCoursesState.error,
                   onCourseClick = {
                     selectedBykcCourseId = it.id
+                    selectedBykcCourseSnapshot = it
                     bykcViewModel.loadCourseDetail(it.id)
                     navigateTo(AppScreen.BYKC_DETAIL)
                   },
@@ -475,6 +479,7 @@ fun MainAppScreen(
           AppScreen.BYKC_DETAIL ->
               BykcCourseDetailScreen(
                   course = bykcDetailState.course,
+                  listSnapshot = selectedBykcCourseSnapshot,
                   isLoading = bykcDetailState.isLoading,
                   error = bykcDetailState.error,
                   operationInProgress = bykcDetailState.operationInProgress,
@@ -504,6 +509,7 @@ fun MainAppScreen(
                   error = bykcChosenState.error,
                   onCourseClick = {
                     selectedBykcCourseId = it.courseId
+                    selectedBykcCourseSnapshot = null
                     bykcViewModel.loadCourseDetail(it.courseId)
                     navigateTo(AppScreen.BYKC_DETAIL)
                   },
