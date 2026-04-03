@@ -5,6 +5,9 @@ on:
     types: [published]
   workflow_dispatch:
 
+env:
+  UPDATE_DOWNLOAD_URL: https://bhpan.buaa.edu.cn/link/AA61B7EDC6F2BC4AF5B040FAF0563AD160
+
 jobs:
   build-android:
     name: Build Android
@@ -133,7 +136,9 @@ jobs:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:wasmJsBrowserDistribution
       - name: Archive Web Wasm
-        run: zip -r UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/wasmJs/productionExecutable/
+        run: |
+          cd composeApp/build/dist/wasmJs/productionExecutable
+          zip -r "$GITHUB_WORKSPACE/UBAA-Web-Wasm-v${{ steps.get_version.outputs.VERSION }}.zip" .
       - name: Upload Web Wasm Release Assets
         uses: softprops/action-gh-release@v2
         with:
@@ -162,7 +167,9 @@ jobs:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
         run: ./gradlew :composeApp:jsBrowserDistribution
       - name: Archive Web JS
-        run: zip -r UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/dist/js/productionExecutable/
+        run: |
+          cd composeApp/build/dist/js/productionExecutable
+          zip -r "$GITHUB_WORKSPACE/UBAA-Web-JS-v${{ steps.get_version.outputs.VERSION }}.zip" .
       - name: Upload Web JS Release Assets
         uses: softprops/action-gh-release@v2
         with:

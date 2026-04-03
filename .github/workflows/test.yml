@@ -7,6 +7,9 @@ on:
     branches: [ main, dev ]
   workflow_dispatch:
 
+env:
+  UPDATE_DOWNLOAD_URL: https://bhpan.buaa.edu.cn/link/AA61B7EDC6F2BC4AF5B040FAF0563AD160
+
 jobs:
   test-android:
     name: Test Android
