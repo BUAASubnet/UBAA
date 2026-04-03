@@ -8,12 +8,10 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
-import java.util.Properties
 import io.ktor.utils.io.ByteReadChannel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -186,18 +184,5 @@ class AppVersionServiceTest {
 
     assertNotSame(first, second)
     GlobalAppVersionService.close()
-  }
-
-  @Test
-  fun embeddedVersionResourceIsPackaged() {
-    val resourceStream =
-        AppVersionRuntimeConfig::class.java.classLoader?.getResourceAsStream("ubaa-version.properties")
-
-    assertNotNull(resourceStream)
-
-    val properties = Properties()
-    resourceStream.use { properties.load(it) }
-
-    assertTrue(properties.getProperty("project.version")?.isNotBlank() == true)
   }
 }

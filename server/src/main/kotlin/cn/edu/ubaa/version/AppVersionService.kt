@@ -23,7 +23,6 @@ data class AppVersionRuntimeConfig(
   companion object {
     private const val FALLBACK_DOWNLOAD_URL = "https://github.com/BUAASubnet/UBAA/releases"
     private const val UNKNOWN_SERVER_VERSION = "unknown"
-    private const val VERSION_RESOURCE_NAME = "ubaa-version.properties"
 
     fun load(): AppVersionRuntimeConfig =
         AppVersionRuntimeConfig(
@@ -38,7 +37,7 @@ data class AppVersionRuntimeConfig(
     internal fun loadServerVersion(): String {
       loadVersionFromSystemProperty()?.let { return it }
       loadVersionFromEnvironment()?.let { return it }
-      loadVersionFromEmbeddedResource()?.let { return it }
+      loadVersionFromManifest()?.let { return it }
       loadVersionFromGradlePropertiesFile()?.let { return it }
       return UNKNOWN_SERVER_VERSION
     }
@@ -53,13 +52,10 @@ data class AppVersionRuntimeConfig(
             ?.trim()
             ?.takeIf { it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION }
 
-    private fun loadVersionFromEmbeddedResource(): String? {
-      val properties = Properties()
-      val resourceStream =
-          AppVersionRuntimeConfig::class.java.classLoader?.getResourceAsStream(VERSION_RESOURCE_NAME)
-      resourceStream?.use { properties.load(it) }
-      return properties.getProperty("project.version")?.trim()?.takeIf { it.isNotEmpty() }
-    }
+    private fun loadVersionFromManifest(): String? =
+        AppVersionRuntimeConfig::class.java.`package`?.implementationVersion
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
 
     private fun loadVersionFromGradlePropertiesFile(): String? {
       val gradleProperties = File("gradle.properties")

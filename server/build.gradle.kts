@@ -1,5 +1,6 @@
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.testing.Test
+import org.gradle.jvm.tasks.Jar
 
 plugins {
   // 引入 Kotlin JVM, Ktor, 序列化及 GraalVM 原生镜像插件
@@ -14,7 +15,6 @@ group = "cn.edu.ubaa"
 version = project.property("project.version").toString()
 
 val serverVersion = version.toString()
-val versionResourceTokens = mapOf("serverVersion" to serverVersion)
 
 application {
   mainClass.set("cn.edu.ubaa.ApplicationKt")
@@ -38,10 +38,10 @@ kotlin {
   }
 }
 
-tasks.processResources {
-  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-  inputs.properties(versionResourceTokens)
-  filesMatching("ubaa-version.properties") { expand(versionResourceTokens) }
+tasks.processResources { duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
+
+tasks.withType<Jar>().configureEach {
+  manifest.attributes["Implementation-Version"] = serverVersion
 }
 
 tasks.withType<Test>().configureEach { systemProperty("ubaa.server.version", serverVersion) }
