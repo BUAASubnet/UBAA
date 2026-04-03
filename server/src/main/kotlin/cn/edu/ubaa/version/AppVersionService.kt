@@ -35,22 +35,30 @@ data class AppVersionRuntimeConfig(
         )
 
     internal fun loadServerVersion(): String {
-      loadVersionFromSystemProperty()?.let { return it }
-      loadVersionFromEnvironment()?.let { return it }
-      loadVersionFromManifest()?.let { return it }
-      loadVersionFromGradlePropertiesFile()?.let { return it }
+      loadVersionFromSystemProperty()?.let {
+        return it
+      }
+      loadVersionFromEnvironment()?.let {
+        return it
+      }
+      loadVersionFromEmbeddedResource()?.let {
+        return it
+      }
+      loadVersionFromGradlePropertiesFile()?.let {
+        return it
+      }
       return UNKNOWN_SERVER_VERSION
     }
 
     private fun loadVersionFromSystemProperty(): String? =
-        System.getProperty("ubaa.server.version")
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION }
+        System.getProperty("ubaa.server.version")?.trim()?.takeIf {
+          it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION
+        }
 
     private fun loadVersionFromEnvironment(): String? =
-        System.getenv("UBAA_SERVER_VERSION")
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION }
+        System.getenv("UBAA_SERVER_VERSION")?.trim()?.takeIf {
+          it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION
+        }
 
     private fun loadVersionFromManifest(): String? =
         AppVersionRuntimeConfig::class.java.`package`?.implementationVersion
