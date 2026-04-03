@@ -170,7 +170,11 @@ class AuthService(
                     execution,
                 )
               }
-              val loginFormParameters = CasParser.buildCaptchaLoginParameters(request)
+              val loginFormParameters =
+                  CasParser.buildCasLoginParameters(
+                      loginPageHtml,
+                      request.copy(execution = execution),
+                  )
               val loginSubmitResponse =
                   timeline.measure("submitCas") {
                     noRedirectClient.post(LOGIN_URL) {

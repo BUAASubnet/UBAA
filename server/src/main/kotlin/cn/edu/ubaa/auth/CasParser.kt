@@ -136,14 +136,17 @@ object CasParser {
   }
 
   /** 构建包含验证码的固定格式登录参数。 */
-  fun buildCaptchaLoginParameters(request: LoginRequest): Parameters {
+  fun buildCaptchaLoginParameters(
+      request: LoginRequest,
+      execution: String = request.execution.orEmpty(),
+  ): Parameters {
     val captcha = request.captcha ?: ""
-    val execution = request.execution ?: ""
 
     return Parameters.build {
       append("username", request.username)
       append("password", request.password)
       append("captcha", captcha)
+      append("captchaResponse", captcha)
       append("execution", execution)
       append("_eventId", "submit")
       append("submit", "登录")
