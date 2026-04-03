@@ -1,8 +1,12 @@
 package cn.edu.ubaa
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -10,8 +14,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import cn.edu.ubaa.api.GitHubRelease
+import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.api.UpdateService
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
@@ -46,7 +51,7 @@ fun App() {
 
     // 更新检测逻辑
     val updateService = remember { UpdateService() }
-    var updateInfo by remember { mutableStateOf<GitHubRelease?>(null) }
+    var updateInfo by remember { mutableStateOf<AppVersionCheckResponse?>(null) }
     val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(Unit) { updateInfo = updateService.checkUpdate() }
@@ -81,14 +86,31 @@ fun App() {
     // 版本更新对话框
     if (updateInfo != null) {
       val release = updateInfo!!
+      val releaseNotes =
+          release.releaseNotes?.takeIf { it.isNotBlank() } ?: "点击下方按钮下载与服务端版本对齐的客户端。"
+      val updateMessage =
+          buildString {
+            append("当前客户端版本：")
+            append(AppInfo.version)
+            append('\n')
+            append("当前服务端版本：")
+            append(release.serverVersion)
+            append("\n\n")
+            append(releaseNotes)
+          }
+
       AlertDialog(
           onDismissRequest = { updateInfo = null },
-          title = { Text("发现新版本 ${release.tagName}") },
-          text = { Text(release.body ?: "点击下方按钮前往下载最新版本。") },
+          title = { Text("客户端与服务端版本不一致") },
+          text = {
+            Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+              Text(updateMessage)
+            }
+          },
           confirmButton = {
             TextButton(
                 onClick = {
-                  uriHandler.openUri(release.htmlUrl)
+                  uriHandler.openUri(release.downloadUrl)
                   updateInfo = null
                 }
             ) {

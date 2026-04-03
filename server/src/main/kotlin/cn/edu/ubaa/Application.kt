@@ -23,6 +23,9 @@ import cn.edu.ubaa.spoc.GlobalSpocService
 import cn.edu.ubaa.spoc.spocRouting
 import cn.edu.ubaa.user.userRouting
 import cn.edu.ubaa.utils.HeadlessImageSupport
+import cn.edu.ubaa.version.AppVersionService
+import cn.edu.ubaa.version.GlobalAppVersionService
+import cn.edu.ubaa.version.appVersionRouting
 import cn.edu.ubaa.ygdk.GlobalYgdkService
 import cn.edu.ubaa.ygdk.ygdkRouting
 import io.github.cdimascio.dotenv.dotenv
@@ -71,12 +74,13 @@ val log = LoggerFactory.getLogger("Application")
 fun Application.module() {
   val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
   val loginMetricsRecorder = LoginMetricsRecorder(RedisLoginStatsStore(), metricsRegistry)
-  module(metricsRegistry, loginMetricsRecorder)
+  module(metricsRegistry, loginMetricsRecorder, GlobalAppVersionService.instance)
 }
 
 internal fun Application.module(
     metricsRegistry: PrometheusMeterRegistry,
     loginMetricsRecorder: LoginMetricsRecorder,
+    appVersionService: AppVersionService = GlobalAppVersionService.instance,
 ) {
   log.info("Initializing Application module...")
   loginMetricsRecorder.bindMetrics()
@@ -155,6 +159,7 @@ internal fun Application.module(
     ygdkService.clearCache()
     GlobalAcademicPortalWarmupCoordinator.instance.close()
     sessionManager.close()
+    appVersionService.close()
     GlobalRefreshTokenService.instance.close()
     loginMetricsRecorder.close()
   }
@@ -162,6 +167,7 @@ internal fun Application.module(
   routing {
     get("/metrics") { call.respondText(metricsRegistry.scrape()) }
 
+    appVersionRouting(appVersionService)
     authRouting(loginMetricsRecorder)
 
     authenticate(JwtAuth.JWT_AUTH) {
