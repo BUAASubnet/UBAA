@@ -60,6 +60,8 @@ data class AppVersionRuntimeConfig(
           it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION
         }
 
+    private fun loadVersionFromEmbeddedResource(): String? = loadVersionFromManifest()
+
     private fun loadVersionFromManifest(): String? =
         AppVersionRuntimeConfig::class.java.`package`?.implementationVersion
             ?.trim()

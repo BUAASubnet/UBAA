@@ -2,6 +2,7 @@ package cn.edu.ubaa.metrics
 
 import cn.edu.ubaa.auth.AuthConfig
 import io.lettuce.core.RedisClient
+import io.lettuce.core.Value
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.sync.RedisCommands
 import io.micrometer.core.instrument.MeterRegistry
@@ -90,6 +91,8 @@ class LoginMetricsRecorder(
 class RedisLoginStatsStore(
     private val redisUri: String = AuthConfig.redisUri,
 ) : LoginStatsStore {
+  private val log = LoggerFactory.getLogger(RedisLoginStatsStore::class.java)
+
   private enum class WindowMetricType {
     EVENTS,
     UNIQUE_USERS,
@@ -135,7 +138,7 @@ class RedisLoginStatsStore(
       if (keys.isEmpty()) {
         0L
       } else {
-        commands.mget(*keys.toTypedArray()).sumOf { entry -> entry.value?.toLongOrNull() ?: 0L }
+        sumCounterValues(commands.mget(*keys.toTypedArray()))
       }
     }
   }
@@ -184,7 +187,17 @@ class RedisLoginStatsStore(
           return it.value
         }
 
-    val value = runCatching(loader).getOrDefault(0L)
+    val value =
+        runCatching(loader)
+            .onFailure { error ->
+              log.warn(
+                  "Failed to load login metric window type={} window={}",
+                  type,
+                  window.tagValue,
+                  error,
+              )
+            }
+            .getOrDefault(0L)
     windowCache[cacheKey] =
         CachedWindowValue(value = value, expiresAtMillis = nowMillis + readCacheTtl.toMillis())
     cleanupExpiredWindowCache(nowMillis)
@@ -242,4 +255,8 @@ private fun hashUsername(username: String): String {
   val digest = MessageDigest.getInstance("SHA-256")
   val hash = digest.digest(username.toByteArray(StandardCharsets.UTF_8))
   return hash.joinToString("") { "%02x".format(it) }
+}
+
+internal fun sumCounterValues(values: Iterable<Value<String>?>): Long {
+  return values.sumOf { value -> value?.optional()?.orElse(null)?.toLongOrNull() ?: 0L }
 }

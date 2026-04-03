@@ -44,8 +44,10 @@ class ApplicationMetricsTest {
     assertContains(metrics, "ubaa_auth_login_success_total")
     assertContains(metrics, "mode=\"manual\"")
     assertContains(metrics, "mode=\"preload_auto\"")
-    assertContains(metrics, "ubaa_auth_login_events_window{window=\"1h\"}")
-    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"1h\"}")
+    assertContains(metrics, "ubaa_auth_login_events_window{window=\"1h\"} 2.0")
+    assertContains(metrics, "ubaa_auth_login_events_window{window=\"24h\"} 2.0")
+    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"1h\"} 2.0")
+    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"24h\"} 2.0")
     assertContains(metrics, "ktor_http_server_requests_seconds_count")
   }
 

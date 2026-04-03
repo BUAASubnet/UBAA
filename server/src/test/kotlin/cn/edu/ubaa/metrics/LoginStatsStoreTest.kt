@@ -1,11 +1,42 @@
 package cn.edu.ubaa.metrics
 
+import io.lettuce.core.KeyValue
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.runBlocking
 
 class LoginStatsStoreTest {
+
+  @Test
+  fun sumCounterValuesIgnoresMissingAndMalformedBuckets() {
+    assertEquals(
+        9L,
+        sumCounterValues(
+            listOf(
+                KeyValue.just("metrics:login:events:1", "2"),
+                KeyValue.empty("metrics:login:events:2"),
+                KeyValue.just("metrics:login:events:3", "7"),
+                KeyValue.just("metrics:login:events:4", "invalid"),
+            ),
+        ),
+    )
+  }
+
+  @Test
+  fun sumCounterValuesKeepsLongWindowTotalsWhenMostBucketsAreEmpty() {
+    val buckets =
+        buildList {
+          repeat(24) { index ->
+            val key = "metrics:login:events:$index"
+            add(KeyValue.empty<String, String>(key))
+          }
+          set(3, KeyValue.just("metrics:login:events:3", "4"))
+          set(18, KeyValue.just("metrics:login:events:18", "6"))
+        }
+
+    assertEquals(10L, sumCounterValues(buckets))
+  }
 
   @Test
   fun repeatedLoginsInSameHourIncreaseEventsButNotUniqueUsers() = runBlocking {
