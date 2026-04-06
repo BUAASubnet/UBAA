@@ -386,9 +386,10 @@ class CgyyViewModel(
   }
 
   fun loadLockCode() {
+    if (_uiState.value.isLockCodeLoading) return
     lockCodeLoadedOnce = true
+    _uiState.value = _uiState.value.copy(isLockCodeLoading = true, lockCodeError = null)
     viewModelScope.launch {
-      _uiState.value = _uiState.value.copy(isLockCodeLoading = true, lockCodeError = null)
       cgyyApi
           .getLockCode()
           .onSuccess {

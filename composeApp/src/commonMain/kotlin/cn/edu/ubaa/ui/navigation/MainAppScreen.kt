@@ -359,17 +359,14 @@ fun MainAppScreen(
       AppScreen.CGYY_RESERVE_PICKER,
       AppScreen.CGYY_RESERVE_FORM -> {
         cgyyViewModel?.ensureInitialDataLoaded()
-        cgyyViewModel?.setDefaultPhone(userInfo?.phone)
       }
       AppScreen.CGYY_ORDERS -> {
         cgyyViewModel?.ensureInitialDataLoaded()
-        cgyyViewModel?.setDefaultPhone(userInfo?.phone)
         cgyyViewModel?.ensureOrdersLoaded()
       }
       AppScreen.CGYY_LOCK_CODE -> {
         cgyyViewModel?.ensureInitialDataLoaded()
-        cgyyViewModel?.setDefaultPhone(userInfo?.phone)
-        cgyyViewModel?.ensureLockCodeLoaded()
+        cgyyViewModel?.ensureLockCodeLoaded(forceRefresh = true)
       }
       AppScreen.EVALUATION -> evaluationViewModel?.ensureLoaded()
       AppScreen.SPOC_ASSIGNMENTS,

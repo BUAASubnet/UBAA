@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -38,13 +39,20 @@ fun CgyyLockCodeScreen(viewModel: CgyyViewModel) {
   val uiState by viewModel.uiState.collectAsState()
   val parsedLockCode = uiState.lockCode?.rawData.toLockCodeDisplayModel()
 
-  LaunchedEffect(Unit) { viewModel.ensureLockCodeLoaded() }
-
   val pullRefreshState =
       rememberPullRefreshState(
           refreshing = uiState.isLockCodeLoading,
           onRefresh = viewModel::loadLockCode,
       )
+
+  LaunchedEffect(parsedLockCode?.hasLockCode, parsedLockCode?.hasUpcomingReservation) {
+    if (parsedLockCode?.hasLockCode == true || parsedLockCode?.hasUpcomingReservation == true) {
+      while (true) {
+        delay(30_000)
+        viewModel.loadLockCode()
+      }
+    }
+  }
 
   Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
     Column(
@@ -137,7 +145,7 @@ fun CgyyLockCodeScreen(viewModel: CgyyViewModel) {
       }
 
       Text(
-          text = "若无密码但确认已到预约时段，请下拉刷新或重新进入页面。",
+          text = "页面会每 30 秒自动刷新一次密码，你也可以手动下拉刷新。",
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.primary,
       )
