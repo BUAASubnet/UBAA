@@ -93,6 +93,33 @@ class AppVersionServiceTest {
   }
 
   @Test
+  fun unknownServerVersionDoesNotTriggerUpdatePrompt() = runTest {
+    var fetchCalls = 0
+    val service =
+        AppVersionService(
+            config =
+                AppVersionRuntimeConfig(
+                    serverVersion = "unknown",
+                    downloadUrl = "https://download.example.com",
+                ),
+            releaseNotesFetcher =
+                object : ReleaseNotesFetcher {
+                  override suspend fun fetchReleaseNotes(serverVersion: String): String? {
+                    fetchCalls += 1
+                    return "should not be used"
+                  }
+                },
+        )
+
+    val response = service.checkVersion("1.5.1")
+
+    assertTrue(response.aligned)
+    assertEquals("unknown", response.serverVersion)
+    assertNull(response.releaseNotes)
+    assertEquals(0, fetchCalls)
+  }
+
+  @Test
   fun downloadUrlFallsBackToGithubReleasesWhenBlank() {
     assertEquals(
         "https://github.com/BUAASubnet/UBAA/releases",

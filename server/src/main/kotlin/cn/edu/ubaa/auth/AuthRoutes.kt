@@ -4,6 +4,7 @@ import cn.edu.ubaa.api.SessionStatusResponse
 import cn.edu.ubaa.auth.JwtAuth.getUserSession
 import cn.edu.ubaa.metrics.LoginMetricsSink
 import cn.edu.ubaa.metrics.NoOpLoginMetricsSink
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import cn.edu.ubaa.model.dto.CaptchaRequiredResponse
 import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.TokenRefreshRequest
@@ -34,126 +35,154 @@ fun Route.authRouting(loginMetricsSink: LoginMetricsSink = NoOpLoginMetricsSink)
   route("/api/v1/auth") {
     /** POST /api/v1/auth/preload 预加载登录状态。为指定 clientId 创建或恢复一个预登录会话，并探测是否需要验证码。 */
     post("/preload") {
-      try {
-        val request = call.receive<cn.edu.ubaa.model.dto.LoginPreloadRequest>()
-        application.log.info("Preloading login state for clientId: {}", request.clientId)
-        val preloadResponse = authService.preloadLoginState(request.clientId)
-        call.respond(HttpStatusCode.OK, preloadResponse)
-      } catch (e: ContentTransformationException) {
-        call.respondError(HttpStatusCode.BadRequest, "invalid_request", "请提供有效的客户端标识")
-      } catch (e: Exception) {
-        application.log.error("An unexpected error occurred during login preload.", e)
-        call.respondError(
-            HttpStatusCode.InternalServerError,
-            "internal_server_error",
-            "登录状态加载失败，请稍后重试",
-        )
+      call.observeBusinessOperation("auth", "preload") {
+        try {
+          val request = call.receive<cn.edu.ubaa.model.dto.LoginPreloadRequest>()
+          application.log.info("Preloading login state for clientId: {}", request.clientId)
+          val preloadResponse = authService.preloadLoginState(request.clientId)
+          call.respond(HttpStatusCode.OK, preloadResponse)
+        } catch (e: ContentTransformationException) {
+          markBusinessFailure()
+          call.respondError(HttpStatusCode.BadRequest, "invalid_request", "请提供有效的客户端标识")
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during login preload.", e)
+          call.respondError(
+              HttpStatusCode.InternalServerError,
+              "internal_server_error",
+              "登录状态加载失败，请稍后重试",
+          )
+        }
       }
     }
 
     /** POST /api/v1/auth/login 用户登录接口。支持普通登录和带验证码/执行标识的二次提交。 */
     post("/login") {
-      try {
-        val request = call.receive<LoginRequest>()
-        application.log.info("Login attempt for user: {}", request.username)
-        val loginResponse = authService.login(request)
-        application.log.info("Login successful for user: {}", request.username)
-        call.respond(HttpStatusCode.OK, loginResponse)
-      } catch (e: ContentTransformationException) {
-        call.respondError(HttpStatusCode.BadRequest, "invalid_request", "登录请求格式不正确")
-      } catch (e: CaptchaRequiredException) {
-        call.respond(
-            HttpStatusCode.UnprocessableEntity, // 需验证码
-            CaptchaRequiredResponse(e.captchaInfo, e.execution, e.message ?: "需要验证码"),
-        )
-      } catch (e: LoginException) {
-        call.respondError(HttpStatusCode.Unauthorized, "invalid_credentials")
-      } catch (e: Exception) {
-        application.log.error("An unexpected error occurred during login.", e)
-        call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
+      call.observeBusinessOperation("auth", "login") {
+        try {
+          val request = call.receive<LoginRequest>()
+          application.log.info("Login attempt for user: {}", request.username)
+          val loginResponse = authService.login(request)
+          application.log.info("Login successful for user: {}", request.username)
+          call.respond(HttpStatusCode.OK, loginResponse)
+        } catch (e: ContentTransformationException) {
+          markBusinessFailure()
+          call.respondError(HttpStatusCode.BadRequest, "invalid_request", "登录请求格式不正确")
+        } catch (e: CaptchaRequiredException) {
+          markBusinessFailure()
+          call.respond(
+              HttpStatusCode.UnprocessableEntity,
+              CaptchaRequiredResponse(e.captchaInfo, e.execution, e.message ?: "需要验证码"),
+          )
+        } catch (e: LoginException) {
+          markUnauthenticated()
+          call.respondError(HttpStatusCode.Unauthorized, "invalid_credentials")
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during login.", e)
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
+        }
       }
     }
 
     /** POST /api/v1/auth/refresh 使用 refresh token 换取新的 token 对。 */
     post("/refresh") {
-      try {
-        val request = call.receive<TokenRefreshRequest>()
-        val refreshResponse = authService.refreshTokens(request.refreshToken)
-        if (refreshResponse != null) {
-          call.respond(HttpStatusCode.OK, refreshResponse)
-        } else {
-          call.respondError(HttpStatusCode.Unauthorized, "invalid_refresh_token")
+      call.observeBusinessOperation("auth", "refresh") {
+        try {
+          val request = call.receive<TokenRefreshRequest>()
+          val refreshResponse = authService.refreshTokens(request.refreshToken)
+          if (refreshResponse != null) {
+            call.respond(HttpStatusCode.OK, refreshResponse)
+          } else {
+            markBusinessFailure()
+            call.respondError(HttpStatusCode.Unauthorized, "invalid_refresh_token")
+          }
+        } catch (e: ContentTransformationException) {
+          markBusinessFailure()
+          call.respondError(HttpStatusCode.BadRequest, "invalid_request", "刷新令牌请求格式不正确")
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during token refresh.", e)
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
         }
-      } catch (e: ContentTransformationException) {
-        call.respondError(HttpStatusCode.BadRequest, "invalid_request", "刷新令牌请求格式不正确")
-      } catch (e: Exception) {
-        application.log.error("An unexpected error occurred during token refresh.", e)
-        call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
       }
     }
 
     /** GET /api/v1/auth/status 查询当前会话状态。需携带有效的 JWT 令牌。 */
     get("/status") {
-      try {
-        val session = call.getUserSession()
-        if (session != null && authService.validateSession(session)) {
-          application.log.info(
-              "Session status check: user {} is authenticated",
-              session.userData.name,
-          )
-          val statusResponse =
-              SessionStatusResponse(
-                  user = session.userData,
-                  lastActivity = session.lastActivity().toString(),
-                  authenticatedAt = session.authenticatedAt.toString(),
-              )
-          call.respond(HttpStatusCode.OK, statusResponse)
-        } else {
-          session?.let { sessionManager.invalidateSession(it.username) }
-          application.log.warn("Session status check failed: invalid or expired token")
-          call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
+      call.observeBusinessOperation("auth", "status") {
+        try {
+          val session = call.getUserSession()
+          if (session != null && authService.validateSession(session)) {
+            application.log.info(
+                "Session status check: user {} is authenticated",
+                session.userData.name,
+            )
+            val statusResponse =
+                SessionStatusResponse(
+                    user = session.userData,
+                    lastActivity = session.lastActivity().toString(),
+                    authenticatedAt = session.authenticatedAt.toString(),
+                )
+            call.respond(HttpStatusCode.OK, statusResponse)
+          } else {
+            markUnauthenticated()
+            session?.let { sessionManager.invalidateSession(it.username) }
+            application.log.warn("Session status check failed: invalid or expired token")
+            call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
+          }
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during status check.", e)
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
         }
-      } catch (e: Exception) {
-        application.log.error("An unexpected error occurred during status check.", e)
-        call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
       }
     }
 
     /** POST /api/v1/auth/logout 用户注销接口。清理服务端会话并尝试使上游 SSO 失效。 */
     post("/logout") {
-      try {
-        val session = call.getUserSession()
-        if (session != null) {
-          authService.logout(session.username)
-          call.respond(HttpStatusCode.OK, mapOf("message" to "Logged out successfully"))
-        } else {
-          call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
+      call.observeBusinessOperation("auth", "logout") {
+        try {
+          val session = call.getUserSession()
+          if (session != null) {
+            authService.logout(session.username)
+            call.respond(HttpStatusCode.OK, mapOf("message" to "Logged out successfully"))
+          } else {
+            markUnauthenticated()
+            call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
+          }
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during logout.", e)
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
         }
-      } catch (e: Exception) {
-        application.log.error("An unexpected error occurred during logout.", e)
-        call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
       }
     }
 
     /** GET /api/v1/auth/captcha/{captchaId} 获取验证码图片。 */
     get("/captcha/{captchaId}") {
-      try {
-        val captchaId = call.parameters["captchaId"]
-        if (captchaId.isNullOrBlank()) {
-          call.respondError(HttpStatusCode.BadRequest, "invalid_request", "请提供验证码标识")
-          return@get
-        }
+      call.observeBusinessOperation("auth", "captcha") {
+        try {
+          val captchaId = call.parameters["captchaId"]
+          if (captchaId.isNullOrBlank()) {
+            markBusinessFailure()
+            call.respondError(HttpStatusCode.BadRequest, "invalid_request", "请提供验证码标识")
+            return@observeBusinessOperation
+          }
 
-        val imageBytes =
-            authService.getCaptchaImage(cn.edu.ubaa.utils.HttpClients.sharedClient, captchaId)
-        if (imageBytes != null) {
-          call.respondBytes(bytes = imageBytes, contentType = ContentType.Image.JPEG)
-        } else {
-          call.respondError(HttpStatusCode.NotFound, "captcha_not_found")
+          val imageBytes =
+              authService.getCaptchaImage(cn.edu.ubaa.utils.HttpClients.sharedClient, captchaId)
+          if (imageBytes != null) {
+            call.respondBytes(bytes = imageBytes, contentType = ContentType.Image.JPEG)
+          } else {
+            markBusinessFailure()
+            call.respondError(HttpStatusCode.NotFound, "captcha_not_found")
+          }
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during CAPTCHA fetch.", e)
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
         }
-      } catch (e: Exception) {
-        application.log.error("An unexpected error occurred during CAPTCHA fetch.", e)
-        call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
       }
     }
   }

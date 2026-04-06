@@ -2,6 +2,7 @@ package cn.edu.ubaa.classroom
 
 import cn.edu.ubaa.auth.JwtAuth.jwtUsername
 import cn.edu.ubaa.auth.respondError
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -27,12 +28,15 @@ fun Route.classroomRouting() {
         return@get call.respondError(HttpStatusCode.BadRequest, "invalid_request")
       }
 
-      try {
-        val client = ClassroomClient(username)
-        val result = client.query(xqid, date)
-        call.respond(HttpStatusCode.OK, result)
-      } catch (e: Exception) {
-        call.respondError(HttpStatusCode.InternalServerError, "classroom_query_failed")
+      call.observeBusinessOperation("classroom", "query") {
+        try {
+          val client = ClassroomClient(username)
+          val result = client.query(xqid, date)
+          call.respond(HttpStatusCode.OK, result)
+        } catch (e: Exception) {
+          markError()
+          call.respondError(HttpStatusCode.InternalServerError, "classroom_query_failed")
+        }
       }
     }
   }

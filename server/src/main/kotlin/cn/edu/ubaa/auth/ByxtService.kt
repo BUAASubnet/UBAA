@@ -1,5 +1,6 @@
 package cn.edu.ubaa.auth
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -112,7 +113,10 @@ object ByxtService {
 
   private suspend fun probeUndergradPortal(client: HttpClient): AcademicPortalProbeResult {
     return try {
-      val response = client.get(UNDERGRAD_CURRENT_USER_URL)
+      val response =
+          AppObservability.observeUpstreamRequest("byxt", "probe_undergrad_portal") {
+            client.get(UNDERGRAD_CURRENT_USER_URL)
+          }
       val body = response.bodyAsText()
       val result = classifyUndergradResponse(response.status, response.request.url.toString(), body)
       log.debug(
@@ -130,7 +134,10 @@ object ByxtService {
 
   private suspend fun probeGraduatePortal(client: HttpClient): AcademicPortalProbeResult {
     return try {
-      val response = client.get(GRADUATE_USER_INFO_URL)
+      val response =
+          AppObservability.observeUpstreamRequest("gsmis", "probe_graduate_portal") {
+            client.get(GRADUATE_USER_INFO_URL)
+          }
       val body = response.bodyAsText()
       val result = classifyGraduateResponse(response.status, response.request.url.toString(), body)
       log.debug(

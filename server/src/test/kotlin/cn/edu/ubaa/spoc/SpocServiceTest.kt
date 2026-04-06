@@ -3,8 +3,12 @@ package cn.edu.ubaa.spoc
 import cn.edu.ubaa.auth.InMemoryCookieStorageFactory
 import cn.edu.ubaa.auth.InMemorySessionStore
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.SpocSubmissionStatus
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
@@ -63,16 +67,27 @@ class SpocServiceTest {
 
   @Test
   fun `get assignments tolerates course lookup failure with degraded metadata`() = runBlocking {
+    val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    AppObservability.initialize(registry)
     val fakeClient = CourseLookupFailureSpocClient()
     val service = SpocService(clientProvider = { fakeClient })
 
-    val response = service.getAssignments("24182104")
+    try {
+      val response = service.getAssignments("24182104")
 
-    assertEquals(1, response.assignments.size)
-    assertEquals("编译原理", response.assignments.first().courseName)
-    assertEquals(null, response.assignments.first().teacherName)
-    assertEquals(1, fakeClient.courseCalls)
-    assertTrue(fakeClient.pagedAssignmentsCalls > 0)
+      assertEquals(1, response.assignments.size)
+      assertEquals("编译原理", response.assignments.first().courseName)
+      assertEquals(null, response.assignments.first().teacherName)
+      assertEquals(1, fakeClient.courseCalls)
+      assertTrue(fakeClient.pagedAssignmentsCalls > 0)
+      assertContains(
+          registry.scrape(),
+          "ubaa_fallback_events_total{feature=\"spoc\",operation=\"list_assignments\",reason=\"spoc_missing_course_metadata\"}",
+      )
+    } finally {
+      AppObservability.reset(registry)
+      registry.close()
+    }
   }
 
   private class FakeSpocClient :

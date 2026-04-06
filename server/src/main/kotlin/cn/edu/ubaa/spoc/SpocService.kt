@@ -1,5 +1,6 @@
 package cn.edu.ubaa.spoc
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.SpocAssignmentDetailDto
 import cn.edu.ubaa.model.dto.SpocAssignmentSummaryDto
 import cn.edu.ubaa.model.dto.SpocAssignmentsResponse
@@ -29,6 +30,11 @@ internal class SpocService(private val clientProvider: (String) -> SpocClient = 
           } catch (e: Exception) {
             // Degrade gracefully: assignments can still be shown even if course metadata is
             // missing.
+            AppObservability.recordFallbackEvent(
+                "spoc",
+                "list_assignments",
+                "spoc_missing_course_metadata",
+            )
             log.warn(
                 "Failed to fetch SPOC courses for username={} termCode={}, continuing without course metadata",
                 username,

@@ -2,6 +2,7 @@ package cn.edu.ubaa.evaluation
 
 import cn.edu.ubaa.auth.JwtAuth.jwtUsername
 import cn.edu.ubaa.auth.respondError
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import cn.edu.ubaa.model.evaluation.EvaluationCourse
 import cn.edu.ubaa.utils.UpstreamTimeoutException
 import io.ktor.http.*
@@ -25,14 +26,18 @@ fun Route.evaluationRouting() {
       val username =
           call.jwtUsername
               ?: return@get call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
-      try {
-        val response = evaluationService.getAllCourses(username)
-        call.respond(HttpStatusCode.OK, response)
-      } catch (e: UpstreamTimeoutException) {
-        call.respondError(HttpStatusCode.GatewayTimeout, e.code, "评教服务响应超时，请稍后重试")
-      } catch (e: Exception) {
-        log.error("Failed to fetch evaluation list for $username", e)
-        call.respondError(HttpStatusCode.InternalServerError, "evaluation_error")
+      call.observeBusinessOperation("evaluation", "list") {
+        try {
+          val response = evaluationService.getAllCourses(username)
+          call.respond(HttpStatusCode.OK, response)
+        } catch (e: UpstreamTimeoutException) {
+          markTimeout()
+          call.respondError(HttpStatusCode.GatewayTimeout, e.code, "评教服务响应超时，请稍后重试")
+        } catch (e: Exception) {
+          markError()
+          log.error("Failed to fetch evaluation list for $username", e)
+          call.respondError(HttpStatusCode.InternalServerError, "evaluation_error")
+        }
       }
     }
 
@@ -41,19 +46,27 @@ fun Route.evaluationRouting() {
       val username =
           call.jwtUsername
               ?: return@post call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
-      try {
-        val coursesToEvaluate = call.receive<List<EvaluationCourse>>()
-        if (coursesToEvaluate.isEmpty()) {
-          return@post call.respondError(HttpStatusCode.BadRequest, "invalid_request")
-        }
+      call.observeBusinessOperation("evaluation", "submit") {
+        try {
+          val coursesToEvaluate = call.receive<List<EvaluationCourse>>()
+          if (coursesToEvaluate.isEmpty()) {
+            markBusinessFailure()
+            return@observeBusinessOperation call.respondError(
+                HttpStatusCode.BadRequest,
+                "invalid_request",
+            )
+          }
 
-        val results = evaluationService.autoEvaluate(username, coursesToEvaluate)
-        call.respond(HttpStatusCode.OK, results)
-      } catch (e: ContentTransformationException) {
-        call.respondError(HttpStatusCode.BadRequest, "invalid_request")
-      } catch (e: Exception) {
-        log.error("Failed to submit evaluations for $username", e)
-        call.respondError(HttpStatusCode.InternalServerError, "evaluation_error")
+          val results = evaluationService.autoEvaluate(username, coursesToEvaluate)
+          call.respond(HttpStatusCode.OK, results)
+        } catch (e: ContentTransformationException) {
+          markBusinessFailure()
+          call.respondError(HttpStatusCode.BadRequest, "invalid_request")
+        } catch (e: Exception) {
+          markError()
+          log.error("Failed to submit evaluations for $username", e)
+          call.respondError(HttpStatusCode.InternalServerError, "evaluation_error")
+        }
       }
     }
   }

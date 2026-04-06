@@ -1,6 +1,7 @@
 package cn.edu.ubaa.version
 
 import cn.edu.ubaa.api.AppVersionCheckResponse
+import cn.edu.ubaa.metrics.AppObservability
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -22,6 +23,7 @@ data class AppVersionRuntimeConfig(
 ) {
   companion object {
     private const val FALLBACK_DOWNLOAD_URL = "https://github.com/BUAASubnet/UBAA/releases"
+    private const val UNKNOWN_SERVER_VERSION = "unknown"
 
     fun load(): AppVersionRuntimeConfig =
         AppVersionRuntimeConfig(
@@ -34,24 +36,54 @@ data class AppVersionRuntimeConfig(
         )
 
     internal fun loadServerVersion(): String {
-      System.getProperty("ubaa.server.version")
-          ?.trim()
-          ?.takeIf { it.isNotEmpty() }
-          ?.let {
-            return it
-          }
+      loadVersionFromSystemProperty()?.let {
+        return it
+      }
+      loadVersionFromEnvironment()?.let {
+        return it
+      }
+      loadVersionFromEmbeddedResource()?.let {
+        return it
+      }
+      loadVersionFromGradlePropertiesFile()?.let {
+        return it
+      }
+      return UNKNOWN_SERVER_VERSION
+    }
 
-      val properties = Properties()
+    private fun loadVersionFromSystemProperty(): String? =
+        System.getProperty("ubaa.server.version")?.trim()?.takeIf {
+          it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION
+        }
+
+    private fun loadVersionFromEnvironment(): String? =
+        System.getenv("UBAA_SERVER_VERSION")?.trim()?.takeIf {
+          it.isNotEmpty() && it != UNKNOWN_SERVER_VERSION
+        }
+
+    private fun loadVersionFromEmbeddedResource(): String? = loadVersionFromManifest()
+
+    private fun loadVersionFromManifest(): String? =
+        AppVersionRuntimeConfig::class.java.`package`?.implementationVersion?.trim()?.takeIf {
+          it.isNotEmpty()
+        }
+
+    private fun loadVersionFromGradlePropertiesFile(): String? {
       val gradleProperties = File("gradle.properties")
-      if (gradleProperties.exists()) {
-        gradleProperties.inputStream().use { properties.load(it) }
+      if (!gradleProperties.exists()) {
+        return null
       }
 
-      return properties.getProperty("project.version")?.trim().orEmpty().ifBlank { "unknown" }
+      val properties = Properties()
+      gradleProperties.inputStream().use { properties.load(it) }
+      return properties.getProperty("project.version")?.trim()?.takeIf { it.isNotEmpty() }
     }
 
     internal fun resolveDownloadUrl(configuredUrl: String?): String =
         configuredUrl?.trim()?.takeIf { it.isNotEmpty() } ?: FALLBACK_DOWNLOAD_URL
+
+    internal fun isKnownServerVersion(version: String): Boolean =
+        version.trim().isNotEmpty() && version.trim() != UNKNOWN_SERVER_VERSION
   }
 }
 
@@ -69,7 +101,12 @@ internal class ProxyReleaseNotesFetcher(
   override suspend fun fetchReleaseNotes(serverVersion: String): String? {
     for (tag in tagCandidates(serverVersion)) {
       val response =
-          runCatching { client.get("$releasesBaseUrl/tags/$tag") }.getOrNull() ?: continue
+          runCatching {
+                AppObservability.observeUpstreamRequest("release_proxy", "fetch_release_notes") {
+                  client.get("$releasesBaseUrl/tags/$tag")
+                }
+              }
+              .getOrNull() ?: continue
       if (response.status != HttpStatusCode.OK) continue
 
       val release = runCatching { response.body<ReleaseProxyResponse>() }.getOrNull() ?: continue
@@ -118,7 +155,9 @@ class AppVersionService(
   private var releaseNotesCacheInitialized = false
 
   suspend fun checkVersion(clientVersion: String): AppVersionCheckResponse {
-    val aligned = normalizeVersion(clientVersion) == normalizeVersion(config.serverVersion)
+    val aligned =
+        !AppVersionRuntimeConfig.isKnownServerVersion(config.serverVersion) ||
+            normalizeVersion(clientVersion) == normalizeVersion(config.serverVersion)
     val releaseNotes = if (aligned) null else loadReleaseNotes(config.serverVersion)
 
     return AppVersionCheckResponse(

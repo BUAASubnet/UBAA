@@ -1,5 +1,11 @@
 package cn.edu.ubaa.model.dto
 
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -269,8 +275,33 @@ fun CgyyOrderDto.displayStatus(): CgyyOrderDisplayStatus {
   }
 }
 
+fun CgyyOrderDto.canCancelAt(
+    now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): Boolean {
+  if (!displayStatus().isCancelable) return false
+
+  val startDateTime = reservationStartDate.parseCgyyDateTime()
+  if (startDateTime != null) {
+    val cancelDeadline = startDateTime.toInstant(timeZone) - 4.hours
+    return now < cancelDeadline
+  }
+
+  val endDateTime = reservationEndDate.parseCgyyDateTime()
+  if (endDateTime != null) {
+    return now < endDateTime.toInstant(timeZone)
+  }
+
+  return true
+}
+
 private fun String?.normalizedText(): String? =
     this?.trim()?.replace('T', ' ')?.takeIf { it.isNotEmpty() }
+
+private fun String?.parseCgyyDateTime(): LocalDateTime? {
+  val normalized = normalizedText() ?: return null
+  return runCatching { LocalDateTime.parse(normalized.replace(" ", "T")) }.getOrNull()
+}
 
 private fun String.containsExplicitDate(): Boolean =
     contains('-') &&

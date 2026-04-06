@@ -2,6 +2,7 @@ package cn.edu.ubaa.cgyy
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -95,6 +96,7 @@ class CgyyZhjsClient(
   override suspend fun getVenueSites(): JsonArray {
     val data =
         requestJson(
+                operation = "list_sites",
                 HttpMethod.Get,
                 "/api/front/website/venues",
                 params = mapOf("page" to -1, "size" to -1, "reservationRoleId" to 3),
@@ -104,12 +106,18 @@ class CgyyZhjsClient(
   }
 
   override suspend fun getPurposeTypesRaw(): JsonElement? {
-    return requestJson(HttpMethod.Get, "/api/codes").data
+    return requestJson(
+            operation = "list_purpose_types",
+            method = HttpMethod.Get,
+            path = "/api/codes",
+        )
+        .data
   }
 
   override suspend fun getReservationDayInfo(searchDate: String, venueSiteId: Int): JsonObject {
     val response =
         requestJson(
+            operation = "get_day_info",
             method = HttpMethod.Get,
             path = "/api/reservation/day/info",
             params = mapOf("searchDate" to searchDate, "venueSiteId" to venueSiteId),
@@ -125,6 +133,7 @@ class CgyyZhjsClient(
       token: String,
   ): CgyyApiEnvelope {
     return requestJson(
+        operation = "create_reservation_order",
         method = HttpMethod.Post,
         path = "/api/reservation/order/info",
         form =
@@ -142,6 +151,7 @@ class CgyyZhjsClient(
     val now = System.currentTimeMillis()
     val data =
         requestJson(
+                operation = "get_captcha",
                 method = HttpMethod.Get,
                 path = "/api/captcha/get",
                 params =
@@ -172,6 +182,7 @@ class CgyyZhjsClient(
   override suspend fun verifyCaptcha(pointJson: String, token: String): JsonObject {
     val data =
         requestJson(
+                operation = "verify_captcha",
                 method = HttpMethod.Post,
                 path = "/api/captcha/check",
                 form = mapOf("pointJson" to pointJson, "token" to token),
@@ -205,6 +216,7 @@ class CgyyZhjsClient(
       isOffSchoolJoiner: Int,
   ): CgyyApiEnvelope {
     return requestJson(
+        operation = "submit_reservation_order",
         method = HttpMethod.Post,
         path = "/api/reservation/order/submit",
         form =
@@ -230,6 +242,7 @@ class CgyyZhjsClient(
   override suspend fun getMineOrders(page: Int, size: Int): JsonObject {
     val response =
         requestJson(
+            operation = "list_orders",
             method = HttpMethod.Get,
             path = "/api/orders/mine",
             params = mapOf("page" to page, "size" to size),
@@ -238,21 +251,36 @@ class CgyyZhjsClient(
   }
 
   override suspend fun getOrderDetail(orderId: Int): JsonObject {
-    val response = requestJson(HttpMethod.Get, "/api/orders/$orderId")
+    val response =
+        requestJson(
+            operation = "get_order_detail",
+            method = HttpMethod.Get,
+            path = "/api/orders/$orderId",
+        )
     return response.data?.jsonObject ?: buildJsonObject {}
   }
 
   override suspend fun cancelOrder(orderId: Int): CgyyApiEnvelope {
-    return requestJson(HttpMethod.Post, "/api/orders/new/cancel/$orderId")
+    return requestJson(
+        operation = "cancel_order",
+        method = HttpMethod.Post,
+        path = "/api/orders/new/cancel/$orderId",
+    )
   }
 
   override suspend fun getLockCode(): JsonElement? {
-    return requestJson(HttpMethod.Get, "/api/orders/lock/code").data
+    return requestJson(
+            operation = "get_lock_code",
+            method = HttpMethod.Get,
+            path = "/api/orders/lock/code",
+        )
+        .data
   }
 
   override fun close() {}
 
   private suspend fun requestJson(
+      operation: String,
       method: HttpMethod,
       path: String,
       params: Map<String, Any?> = emptyMap(),
@@ -274,27 +302,31 @@ class CgyyZhjsClient(
     val sign = signer.sign(pathOnly, signSource, timestamp)
 
     val response =
-        session.client.request(buildUrl(pathOnly)) {
-          this.method = method
-          header(HttpHeaders.Accept, "application/json, text/plain, */*")
-          header(HttpHeaders.Referrer, "https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation")
-          header("app-key", signer.appKey)
-          header("timestamp", timestamp.toString())
-          header("sign", sign)
-          if (includeAuthorization) {
-            header("cgAuthorization", requireNotNull(accessToken) { "CGYY access token missing" })
-          }
-          extraHeaders.forEach { (key, value) -> header(key, value) }
+        AppObservability.observeUpstreamRequest("cgyy", operation) {
+          session.client.request(buildUrl(pathOnly)) {
+            this.method = method
+            header(HttpHeaders.Accept, "application/json, text/plain, */*")
+            header(HttpHeaders.Referrer, "https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation")
+            header("app-key", signer.appKey)
+            header("timestamp", timestamp.toString())
+            header("sign", sign)
+            if (includeAuthorization) {
+              header("cgAuthorization", requireNotNull(accessToken) { "CGYY access token missing" })
+            }
+            extraHeaders.forEach { (key, value) -> header(key, value) }
 
-          requestParams.forEach { (key, value) ->
-            if (method == HttpMethod.Get && value != null) parameter(key, value.toString())
-          }
-          if (method != HttpMethod.Get) {
-            val formParameters =
-                Parameters.build {
-                  form.forEach { (key, value) -> if (value != null) append(key, value.toString()) }
-                }
-            setBody(FormDataContent(formParameters))
+            requestParams.forEach { (key, value) ->
+              if (method == HttpMethod.Get && value != null) parameter(key, value.toString())
+            }
+            if (method != HttpMethod.Get) {
+              val formParameters =
+                  Parameters.build {
+                    form.forEach { (key, value) ->
+                      if (value != null) append(key, value.toString())
+                    }
+                  }
+              setBody(FormDataContent(formParameters))
+            }
           }
         }
 
@@ -306,6 +338,7 @@ class CgyyZhjsClient(
       }
       ensureBusinessLogin()
       return requestJson(
+          operation = operation,
           method = method,
           path = path,
           params = params,
@@ -336,7 +369,9 @@ class CgyyZhjsClient(
       if (!accessToken.isNullOrBlank()) return@withLock
 
       val session = sessionManager.requireSession(username)
-      session.client.get("$BASE_URL/sso/manageLogin")
+      AppObservability.observeUpstreamRequest("cgyy", "manage_login") {
+        session.client.get("$BASE_URL/sso/manageLogin")
+      }
       val ssoToken =
           session.cookieStorage
               .get(Url("$BASE_URL"))
@@ -347,6 +382,7 @@ class CgyyZhjsClient(
 
       val loginResponse =
           requestJson(
+              operation = "business_login",
               method = HttpMethod.Post,
               path = "/api/login",
               extraHeaders = mapOf("Sso-Token" to ssoToken),

@@ -22,6 +22,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -155,7 +156,8 @@ class CgyyViewModelTest {
   fun `load lock code stores raw value`() = runTest {
     setMainDispatcher(testScheduler)
     CgyyReservationFormStore.clear()
-    val viewModel = CgyyViewModel(FakeCgyyApi(), currentDateProvider = { "2026-03-29" })
+    val api = FakeCgyyApi()
+    val viewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
 
     viewModel.ensureInitialDataLoaded()
     advanceUntilIdle()
@@ -163,6 +165,42 @@ class CgyyViewModelTest {
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.lockCode?.rawData.toString().contains("123456"))
+    assertEquals(1, api.lockCodeCalls)
+  }
+
+  @Test
+  fun `force refresh lock code bypasses loaded cache`() = runTest {
+    setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
+    val api = FakeCgyyApi()
+    val viewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
+
+    viewModel.ensureInitialDataLoaded()
+    advanceUntilIdle()
+    viewModel.ensureLockCodeLoaded()
+    advanceUntilIdle()
+    viewModel.ensureLockCodeLoaded()
+    advanceUntilIdle()
+    viewModel.ensureLockCodeLoaded(forceRefresh = true)
+    advanceUntilIdle()
+
+    assertEquals(2, api.lockCodeCalls)
+  }
+
+  @Test
+  fun `load lock code ignores overlapping refresh requests`() = runTest {
+    setMainDispatcher(testScheduler)
+    CgyyReservationFormStore.clear()
+    val api = FakeCgyyApi().apply { lockCodeDelayMillis = 1_000 }
+    val viewModel = CgyyViewModel(api, currentDateProvider = { "2026-03-29" })
+
+    viewModel.ensureInitialDataLoaded()
+    advanceUntilIdle()
+    viewModel.loadLockCode()
+    viewModel.loadLockCode()
+    advanceUntilIdle()
+
+    assertEquals(1, api.lockCodeCalls)
   }
 
   @Test
@@ -254,6 +292,8 @@ class CgyyViewModelTest {
     var dayInfoCalls = 0
     var submitCalls = 0
     var ordersCalls = 0
+    var lockCodeCalls = 0
+    var lockCodeDelayMillis = 0L
     var purposeTypesResult: Result<List<CgyyPurposeTypeDto>> =
         Result.success(listOf(CgyyPurposeTypeDto(3, "学术研讨类")))
 
@@ -362,7 +402,9 @@ class CgyyViewModelTest {
     }
 
     override suspend fun getLockCode(): Result<CgyyLockCodeResponse> {
-      return Result.success(CgyyLockCodeResponse(buildJsonObject { put("password", "123456") }))
+      lockCodeCalls++
+      if (lockCodeDelayMillis > 0) delay(lockCodeDelayMillis)
+      return Result.success(CgyyLockCodeResponse(buildJsonObject { put("qrCode", "123456") }))
     }
   }
 }

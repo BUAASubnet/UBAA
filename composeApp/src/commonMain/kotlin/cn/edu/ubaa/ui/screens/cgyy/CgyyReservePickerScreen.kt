@@ -8,53 +8,54 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cn.edu.ubaa.model.dto.CgyyReservationSelectionDto
 import cn.edu.ubaa.model.dto.CgyySpaceAvailabilityDto
 import cn.edu.ubaa.model.dto.CgyyTimeSlotDto
 import cn.edu.ubaa.model.dto.CgyyVenueSiteDto
+import kotlin.time.Clock
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+
+private val roomColumnWidth = 112.dp
+private val timeSlotColumnWidth = 86.dp
+private val tableHeaderHeight = 62.dp
+private val tableRowHeight = 56.dp
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -63,7 +64,6 @@ fun CgyyReservePickerScreen(
     onNext: () -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsState()
-  var showDateDialog by remember { mutableStateOf(false) }
 
   if (uiState.isInitialLoading && uiState.sites.isEmpty()) {
     CgyyLoadingState("正在加载场地与可预约信息...")
@@ -85,38 +85,14 @@ fun CgyyReservePickerScreen(
       } else {
         uiState.sites.filter { it.campusName == selectedCampus }
       }
-  val visibleSites =
-      campusSites.filter { site ->
-        val query = uiState.reserveSearchQuery.trim()
-        query.isBlank() ||
-            site.venueName.contains(query, ignoreCase = true) ||
-            site.siteName.contains(query, ignoreCase = true)
-      }
-  val visibleSpaces =
-      uiState.dayInfo?.spaces.orEmpty().filter { space ->
-        val query = uiState.reserveSearchQuery.trim()
-        query.isBlank() ||
-            space.spaceName.contains(query, ignoreCase = true) ||
-            selectedSiteLabel(uiState.sites, uiState.selectedSiteId)
-                .contains(query, ignoreCase = true)
-      }
+  val visibleSites = campusSites
+  val availableDates = uiState.dayInfo?.availableDates.orEmpty()
+  val visibleSpaces = uiState.dayInfo?.spaces.orEmpty()
   val pullRefreshState =
       rememberPullRefreshState(
           refreshing = uiState.isInitialLoading || uiState.isDayInfoLoading,
           onRefresh = viewModel::refreshReserveData,
       )
-
-  if (showDateDialog) {
-    CgyyDateDialog(
-        dates = uiState.dayInfo?.availableDates.orEmpty(),
-        selectedDate = uiState.selectedDate,
-        onDismiss = { showDateDialog = false },
-        onSelect = {
-          viewModel.selectDate(it)
-          showDateDialog = false
-        },
-    )
-  }
 
   Scaffold(
       bottomBar = {
@@ -144,68 +120,65 @@ fun CgyyReservePickerScreen(
                 .pullRefresh(pullRefreshState)
     ) {
       Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          campusOptions.forEach { campus ->
+          items(campusOptions) { campus ->
             FilterChip(
                 selected = selectedCampus == campus,
                 onClick = { viewModel.setReserveCampus(campus) },
-                label = { Text(campusDisplayName(campus)) },
+                label = {
+                  Text(
+                      text = campusDisplayName(campus),
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                  )
+                },
             )
           }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-          OutlinedCard(
-              onClick = { showDateDialog = true },
-              modifier = Modifier.weight(1f),
-              shape = RoundedCornerShape(12.dp),
+        if (availableDates.isNotEmpty()) {
+          LazyRow(
+              modifier = Modifier.fillMaxWidth(),
+              contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
           ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-              Text(uiState.selectedDate.ifBlank { "选择日期" })
-              androidx.compose.material3.Icon(
-                  imageVector = Icons.Default.DateRange,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.primary,
+            items(availableDates) { date ->
+              FilterChip(
+                  selected = uiState.selectedDate == date,
+                  onClick = { viewModel.selectDate(date) },
+                  label = {
+                    Text(
+                        text = formatCompactDateLabel(date),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                  },
               )
             }
           }
-          OutlinedTextField(
-              value = uiState.reserveSearchQuery,
-              onValueChange = viewModel::updateReserveSearchQuery,
-              modifier = Modifier.weight(1.5f),
-              singleLine = true,
-              placeholder = { Text("搜索楼栋/教室") },
-              leadingIcon = {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                )
-              },
-          )
         }
 
         if (visibleSites.isNotEmpty()) {
           LazyRow(
               modifier = Modifier.fillMaxWidth(),
-              contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+              contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
               horizontalArrangement = Arrangement.spacedBy(8.dp),
           ) {
             items(visibleSites) { site ->
               FilterChip(
                   selected = uiState.selectedSiteId == site.id,
                   onClick = { viewModel.selectSite(site.id) },
-                  label = { Text(siteSelectionLabel(site)) },
+                  label = {
+                    Text(
+                        text = siteSelectionLabel(site),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                  },
               )
             }
           }
@@ -227,6 +200,7 @@ fun CgyyReservePickerScreen(
               )
         }
       }
+
       PullRefreshIndicator(
           refreshing = uiState.isInitialLoading || uiState.isDayInfoLoading,
           state = pullRefreshState,
@@ -234,35 +208,6 @@ fun CgyyReservePickerScreen(
       )
     }
   }
-}
-
-@Composable
-private fun CgyyDateDialog(
-    dates: List<String>,
-    selectedDate: String,
-    onDismiss: () -> Unit,
-    onSelect: (String) -> Unit,
-) {
-  AlertDialog(
-      onDismissRequest = onDismiss,
-      title = { Text("选择日期") },
-      text = {
-        if (dates.isEmpty()) {
-          Text("当前楼栋暂无可预约日期")
-        } else {
-          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            dates.forEach { date ->
-              FilterChip(
-                  selected = selectedDate == date,
-                  onClick = { onSelect(date) },
-                  label = { Text(date) },
-              )
-            }
-          }
-        }
-      },
-      confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } },
-  )
 }
 
 @Composable
@@ -282,33 +227,36 @@ private fun CgyyReservationTable(
                   .background(MaterialTheme.colorScheme.surface)
                   .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
       ) {
-        CgyyTableCell("教室", 2.2f, true)
-        timeSlots.forEach { slot -> CgyyTableCell(slotHeaderLabel(slot), 1.4f, true) }
+        CgyyTableRoomHeaderCell("教室")
+        timeSlots.forEach { slot -> CgyyTableTimeHeaderCell(slot) }
       }
     }
     items(spaces) { space ->
       Row(
           modifier =
               Modifier.fillMaxWidth()
-                  .height(44.dp)
+                  .height(tableRowHeight)
                   .horizontalScroll(horizontalScroll)
                   .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
       ) {
         Box(
             modifier =
-                Modifier.weight(2.2f)
+                Modifier.width(roomColumnWidth)
                     .fillMaxHeight()
-                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-            contentAlignment = Alignment.Center,
+                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.CenterStart,
         ) {
           Text(
               text = space.spaceName,
               style = MaterialTheme.typography.bodyMedium,
               fontWeight = FontWeight.Bold,
-              textAlign = TextAlign.Center,
-              fontSize = 13.sp,
+              fontSize = 15.sp,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
           )
         }
+
         timeSlots.forEach { slot ->
           val slotState = space.slots.firstOrNull { it.timeId == slot.id }
           val selected =
@@ -320,9 +268,10 @@ private fun CgyyReservationTable(
                 isReservable -> Color(0xFF98FB98)
                 else -> Color.Transparent
               }
+
           Box(
               modifier =
-                  Modifier.weight(1.4f)
+                  Modifier.width(timeSlotColumnWidth)
                       .fillMaxHeight()
                       .background(background)
                       .border(0.3.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -337,20 +286,17 @@ private fun CgyyReservationTable(
                 },
                 enabled = slotState != null && (isReservable || selected),
                 contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.fillMaxSize(),
             ) {
               Text(
-                  text =
-                      when {
-                        selected -> "已选"
-                        isReservable -> ""
-                        else -> ""
-                      },
+                  text = if (selected) "已选" else "",
                   color =
-                      when {
-                        selected -> MaterialTheme.colorScheme.onPrimary
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                      if (selected) {
+                        MaterialTheme.colorScheme.onPrimary
+                      } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
                       },
-                  fontSize = 10.sp,
+                  fontSize = 11.sp,
               )
             }
           }
@@ -362,31 +308,54 @@ private fun CgyyReservationTable(
 }
 
 @Composable
-private fun RowScope.CgyyTableCell(text: String, weight: Float, header: Boolean) {
+private fun CgyyTableRoomHeaderCell(text: String) {
   Box(
       modifier =
-          Modifier.weight(weight)
-              .height(40.dp)
-              .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-      contentAlignment = Alignment.Center,
+          Modifier.width(roomColumnWidth)
+              .height(tableHeaderHeight)
+              .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+              .padding(horizontal = 8.dp),
+      contentAlignment = Alignment.CenterStart,
   ) {
     Text(
         text = text,
-        style =
-            if (header) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
-        fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
-        textAlign = TextAlign.Center,
-        fontSize = if (header) 11.sp else 10.sp,
-        lineHeight = if (header) 12.sp else 11.sp,
-        modifier = Modifier.padding(horizontal = 4.dp),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
     )
   }
 }
 
-private fun slotHeaderLabel(slot: CgyyTimeSlotDto): String = "${slot.beginTime}\n-${slot.endTime}"
-
-private fun selectedSiteLabel(sites: List<CgyyVenueSiteDto>, selectedSiteId: Int?): String =
-    sites.firstOrNull { it.id == selectedSiteId }?.let(::siteSelectionLabel).orEmpty()
+@Composable
+private fun CgyyTableTimeHeaderCell(slot: CgyyTimeSlotDto) {
+  Column(
+      modifier =
+          Modifier.width(timeSlotColumnWidth)
+              .height(tableHeaderHeight)
+              .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+              .padding(horizontal = 4.dp, vertical = 6.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.Center,
+  ) {
+    Text(
+        text = slot.beginTime,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+    Text(
+        text = "-${slot.endTime}",
+        style = MaterialTheme.typography.labelSmall,
+        textAlign = TextAlign.Center,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+  }
+}
 
 private fun siteSelectionLabel(site: CgyyVenueSiteDto): String = buildString {
   append(shortVenueName(site.venueName))
@@ -411,3 +380,22 @@ private fun campusSortKey(name: String): Int =
       name.contains("沙河") -> 1
       else -> 99
     }
+
+private fun formatCompactDateLabel(date: String): String =
+    if (date.length >= 10) "${date.takeLast(5)} ${dateWeekdaySuffix(date)}" else date
+
+private fun dateWeekdaySuffix(date: String): String {
+  val parsedDate = runCatching { LocalDate.parse(date) }.getOrNull() ?: return ""
+  val weekday =
+      when (parsedDate.dayOfWeek) {
+        DayOfWeek.MONDAY -> "周一"
+        DayOfWeek.TUESDAY -> "周二"
+        DayOfWeek.WEDNESDAY -> "周三"
+        DayOfWeek.THURSDAY -> "周四"
+        DayOfWeek.FRIDAY -> "周五"
+        DayOfWeek.SATURDAY -> "周六"
+        DayOfWeek.SUNDAY -> "周日"
+      }
+  val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+  return if (date == today) "今天" else weekday
+}

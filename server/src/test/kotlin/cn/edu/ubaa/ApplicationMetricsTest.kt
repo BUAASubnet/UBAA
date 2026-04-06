@@ -1,5 +1,6 @@
 package cn.edu.ubaa
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.metrics.InMemoryLoginStatsStore
 import cn.edu.ubaa.metrics.LoginMetricsRecorder
 import cn.edu.ubaa.metrics.LoginSuccessMode
@@ -29,13 +30,23 @@ class ApplicationMetricsTest {
 
     application { module(registry, recorder) }
 
+    val rootResponse = client.get("/")
+    assertEquals(HttpStatusCode.OK, rootResponse.status)
+
     runBlocking {
       recorder.recordSuccess("2333", LoginSuccessMode.MANUAL)
       recorder.recordSuccess("2444", LoginSuccessMode.PRELOAD_AUTO)
+      AppObservability.observeBusinessOperation("auth", "login") {}
+      AppObservability.observeUpstreamRequest("uc", "fetch_uc_user") { "ok" }
+      AppObservability.recordSessionResolve("memory_hit")
+      AppObservability.recordCleanupRemovals("session", 2)
+      AppObservability.recordRetryEvent("cgyy", "submit_reservation", "captcha_retry")
+      AppObservability.recordFallbackEvent(
+          "spoc",
+          "list_assignments",
+          "spoc_missing_course_metadata",
+      )
     }
-
-    val rootResponse = client.get("/")
-    assertEquals(HttpStatusCode.OK, rootResponse.status)
 
     val metricsResponse = client.get("/metrics")
     assertEquals(HttpStatusCode.OK, metricsResponse.status)
@@ -44,8 +55,16 @@ class ApplicationMetricsTest {
     assertContains(metrics, "ubaa_auth_login_success_total")
     assertContains(metrics, "mode=\"manual\"")
     assertContains(metrics, "mode=\"preload_auto\"")
-    assertContains(metrics, "ubaa_auth_login_events_window{window=\"1h\"}")
-    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"1h\"}")
+    assertContains(metrics, "ubaa_auth_login_events_window{window=\"1h\"} 2.0")
+    assertContains(metrics, "ubaa_auth_login_events_window{window=\"24h\"} 2.0")
+    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"1h\"} 2.0")
+    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"24h\"} 2.0")
+    assertContains(metrics, "ubaa_business_operations_seconds_count")
+    assertContains(metrics, "ubaa_upstream_requests_seconds_count")
+    assertContains(metrics, "ubaa_auth_session_resolve_total")
+    assertContains(metrics, "ubaa_cleanup_removals_total")
+    assertContains(metrics, "ubaa_retry_events_total")
+    assertContains(metrics, "ubaa_fallback_events_total")
     assertContains(metrics, "ktor_http_server_requests_seconds_count")
   }
 
@@ -65,6 +84,10 @@ class ApplicationMetricsTest {
     assertEquals(
         4,
         registry.meters.count { it.id.name == "ubaa.auth.login.unique.users.window" },
+    )
+    assertEquals(
+        2,
+        registry.meters.count { it.id.name == "ubaa.auth.login.success" },
     )
 
     registerPerformanceGauges(
@@ -93,6 +116,7 @@ class ApplicationMetricsTest {
             "ubaa.cgyy.cache",
             "ubaa.spoc.cache",
             "ubaa.ygdk.cache",
+            "ubaa.ygdk.context.cache",
         )
     assertTrue(
         registry.meters

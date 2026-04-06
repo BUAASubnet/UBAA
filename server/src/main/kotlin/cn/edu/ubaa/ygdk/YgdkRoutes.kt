@@ -2,6 +2,8 @@ package cn.edu.ubaa.ygdk
 
 import cn.edu.ubaa.auth.JwtAuth.jwtUsername
 import cn.edu.ubaa.auth.respondError
+import cn.edu.ubaa.metrics.BusinessOperationScope
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
 import cn.edu.ubaa.model.dto.YgdkPhotoUpload
 import cn.edu.ubaa.utils.UpstreamTimeoutException
@@ -22,12 +24,14 @@ internal fun Route.ygdkRouting(ygdkService: YgdkService = GlobalYgdkService.inst
   route("/api/v1/ygdk") {
     get("/overview") {
       val username = call.jwtUsername!!
-      try {
-        call.respond(HttpStatusCode.OK, ygdkService.getOverview(username))
-      } catch (e: UpstreamTimeoutException) {
-        call.respondUpstreamTimeout(e)
-      } catch (e: YgdkException) {
-        call.respondYgdkError(e)
+      call.observeBusinessOperation("ygdk", "get_overview") {
+        try {
+          call.respond(HttpStatusCode.OK, ygdkService.getOverview(username))
+        } catch (e: UpstreamTimeoutException) {
+          call.respondUpstreamTimeout(e, this)
+        } catch (e: YgdkException) {
+          call.respondYgdkError(e, this)
+        }
       }
     }
 
@@ -35,12 +39,14 @@ internal fun Route.ygdkRouting(ygdkService: YgdkService = GlobalYgdkService.inst
       val username = call.jwtUsername!!
       val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
       val size = call.request.queryParameters["size"]?.toIntOrNull() ?: 20
-      try {
-        call.respond(HttpStatusCode.OK, ygdkService.getRecords(username, page, size))
-      } catch (e: UpstreamTimeoutException) {
-        call.respondUpstreamTimeout(e)
-      } catch (e: YgdkException) {
-        call.respondYgdkError(e)
+      call.observeBusinessOperation("ygdk", "get_records") {
+        try {
+          call.respond(HttpStatusCode.OK, ygdkService.getRecords(username, page, size))
+        } catch (e: UpstreamTimeoutException) {
+          call.respondUpstreamTimeout(e, this)
+        } catch (e: YgdkException) {
+          call.respondYgdkError(e, this)
+        }
       }
     }
 
@@ -52,12 +58,14 @@ internal fun Route.ygdkRouting(ygdkService: YgdkService = GlobalYgdkService.inst
           } catch (_: Exception) {
             return@post call.respondError(HttpStatusCode.BadRequest, "invalid_request")
           }
-      try {
-        call.respond(HttpStatusCode.OK, ygdkService.submitClockin(username, request))
-      } catch (e: UpstreamTimeoutException) {
-        call.respondUpstreamTimeout(e)
-      } catch (e: YgdkException) {
-        call.respondYgdkError(e)
+      call.observeBusinessOperation("ygdk", "submit_clockin") {
+        try {
+          call.respond(HttpStatusCode.OK, ygdkService.submitClockin(username, request))
+        } catch (e: UpstreamTimeoutException) {
+          call.respondUpstreamTimeout(e, this)
+        } catch (e: YgdkException) {
+          call.respondYgdkError(e, this)
+        }
       }
     }
   }
@@ -108,16 +116,28 @@ private suspend fun ApplicationCall.parseClockinRequest(): YgdkClockinSubmitRequ
   )
 }
 
-private suspend fun ApplicationCall.respondYgdkError(e: YgdkException) {
+private suspend fun ApplicationCall.respondYgdkError(
+    e: YgdkException,
+    scope: BusinessOperationScope? = null,
+) {
   val status =
       when (e.code) {
         "invalid_request" -> HttpStatusCode.BadRequest
         "unauthenticated" -> HttpStatusCode.Unauthorized
         else -> HttpStatusCode.BadGateway
       }
+  when (e.code) {
+    "invalid_request" -> scope?.markBusinessFailure()
+    "unauthenticated" -> scope?.markUnauthenticated()
+    else -> scope?.markError()
+  }
   respondError(status, e.code)
 }
 
-private suspend fun ApplicationCall.respondUpstreamTimeout(e: UpstreamTimeoutException) {
+private suspend fun ApplicationCall.respondUpstreamTimeout(
+    e: UpstreamTimeoutException,
+    scope: BusinessOperationScope? = null,
+) {
+  scope?.markTimeout()
   respondError(HttpStatusCode.GatewayTimeout, e.code)
 }

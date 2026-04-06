@@ -4,6 +4,7 @@ import cn.edu.ubaa.auth.JwtAuth.jwtUsername
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.UnsupportedAcademicPortalException
 import cn.edu.ubaa.auth.respondError
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -16,12 +17,15 @@ fun Route.scheduleRouting() {
     /** GET /api/v1/schedule/terms 获取可用学期列表。 */
     get("/terms") {
       val username = call.jwtUsername!!
-      try {
-        val terms = scheduleService.fetchTerms(username)
-        call.respond(HttpStatusCode.OK, terms)
-      } catch (e: Exception) {
-        val (status, code) = scheduleErrorResponse(e)
-        call.respondError(status, code)
+      call.observeBusinessOperation("schedule", "list_terms") {
+        try {
+          val terms = scheduleService.fetchTerms(username)
+          call.respond(HttpStatusCode.OK, terms)
+        } catch (e: Exception) {
+          markScheduleFailure(e)
+          val (status, code) = scheduleErrorResponse(e)
+          call.respondError(status, code)
+        }
       }
     }
 
@@ -31,12 +35,15 @@ fun Route.scheduleRouting() {
       val termCode =
           call.request.queryParameters["termCode"]
               ?: return@get call.respondError(HttpStatusCode.BadRequest, "invalid_request")
-      try {
-        val weeks = scheduleService.fetchWeeks(username, termCode)
-        call.respond(HttpStatusCode.OK, weeks)
-      } catch (e: Exception) {
-        val (status, code) = scheduleErrorResponse(e)
-        call.respondError(status, code)
+      call.observeBusinessOperation("schedule", "list_weeks") {
+        try {
+          val weeks = scheduleService.fetchWeeks(username, termCode)
+          call.respond(HttpStatusCode.OK, weeks)
+        } catch (e: Exception) {
+          markScheduleFailure(e)
+          val (status, code) = scheduleErrorResponse(e)
+          call.respondError(status, code)
+        }
       }
     }
 
@@ -49,26 +56,40 @@ fun Route.scheduleRouting() {
       val week =
           call.request.queryParameters["week"]?.toIntOrNull()
               ?: return@get call.respondError(HttpStatusCode.BadRequest, "invalid_request")
-      try {
-        val schedule = scheduleService.fetchWeeklySchedule(username, termCode, week)
-        call.respond(HttpStatusCode.OK, schedule)
-      } catch (e: Exception) {
-        val (status, code) = scheduleErrorResponse(e)
-        call.respondError(status, code)
+      call.observeBusinessOperation("schedule", "get_week") {
+        try {
+          val schedule = scheduleService.fetchWeeklySchedule(username, termCode, week)
+          call.respond(HttpStatusCode.OK, schedule)
+        } catch (e: Exception) {
+          markScheduleFailure(e)
+          val (status, code) = scheduleErrorResponse(e)
+          call.respondError(status, code)
+        }
       }
     }
 
     /** GET /api/v1/schedule/today 获取今日课程安排摘要。 */
     get("/today") {
       val username = call.jwtUsername!!
-      try {
-        val todaySchedule = scheduleService.fetchTodaySchedule(username)
-        call.respond(HttpStatusCode.OK, todaySchedule)
-      } catch (e: Exception) {
-        val (status, code) = scheduleErrorResponse(e)
-        call.respondError(status, code)
+      call.observeBusinessOperation("schedule", "get_today") {
+        try {
+          val todaySchedule = scheduleService.fetchTodaySchedule(username)
+          call.respond(HttpStatusCode.OK, todaySchedule)
+        } catch (e: Exception) {
+          markScheduleFailure(e)
+          val (status, code) = scheduleErrorResponse(e)
+          call.respondError(status, code)
+        }
       }
     }
+  }
+}
+
+private fun cn.edu.ubaa.metrics.BusinessOperationScope.markScheduleFailure(error: Exception) {
+  when (error) {
+    is LoginException -> markUnauthenticated()
+    is UnsupportedAcademicPortalException -> markBusinessFailure()
+    else -> markError()
   }
 }
 

@@ -5,6 +5,7 @@ import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.SessionManager
 import cn.edu.ubaa.auth.ensureUndergradPortalAccess
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.*
 import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.request.*
@@ -150,22 +151,26 @@ class ScheduleService(
   }
 
   private suspend fun SessionManager.UserSession.getTerms(): HttpResponse {
-    return client.get(
-        VpnCipher.toVpnUrl(
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
-        )
-    ) {
-      applyScheduleHeaders()
+    return AppObservability.observeUpstreamRequest("byxt", "list_terms") {
+      client.get(
+          VpnCipher.toVpnUrl(
+              "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
+          )
+      ) {
+        applyScheduleHeaders()
+      }
     }
   }
 
   private suspend fun SessionManager.UserSession.getWeeks(termCode: String): HttpResponse {
-    return client.get(
-        VpnCipher.toVpnUrl(
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode"
-        )
-    ) {
-      applyScheduleHeaders()
+    return AppObservability.observeUpstreamRequest("byxt", "list_weeks") {
+      client.get(
+          VpnCipher.toVpnUrl(
+              "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do?termCode=$termCode"
+          )
+      ) {
+        applyScheduleHeaders()
+      }
     }
   }
 
@@ -173,31 +178,35 @@ class ScheduleService(
       termCode: String,
       week: Int,
   ): HttpResponse {
-    return client.post(
-        VpnCipher.toVpnUrl(
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
-        )
-    ) {
-      applyScheduleHeaders()
-      setBody(
-          FormDataContent(
-              Parameters.build {
-                append("termCode", termCode)
-                append("type", "week")
-                append("week", week.toString())
-              }
+    return AppObservability.observeUpstreamRequest("byxt", "get_week") {
+      client.post(
+          VpnCipher.toVpnUrl(
+              "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
           )
-      )
+      ) {
+        applyScheduleHeaders()
+        setBody(
+            FormDataContent(
+                Parameters.build {
+                  append("termCode", termCode)
+                  append("type", "week")
+                  append("week", week.toString())
+                }
+            )
+        )
+      }
     }
   }
 
   private suspend fun SessionManager.UserSession.getTodaySchedule(date: String): HttpResponse {
-    return client.get(
-        VpnCipher.toVpnUrl(
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student"
-        )
-    ) {
-      applyScheduleHeaders()
+    return AppObservability.observeUpstreamRequest("byxt", "get_today") {
+      client.get(
+          VpnCipher.toVpnUrl(
+              "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do?rq=${date}&lxdm=student"
+          )
+      ) {
+        applyScheduleHeaders()
+      }
     }
   }
 

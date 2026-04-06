@@ -68,6 +68,7 @@ kotlin {
     // 公共源码集依赖
     commonMain.dependencies {
       implementation(libs.kotlinx.serialization.json)
+      implementation(libs.kotlinx.datetime)
       implementation(libs.kotlinx.coroutinesCore)
       implementation(libs.ktor.client.core)
       implementation(libs.ktor.client.content.negotiation)

@@ -2,6 +2,7 @@ package cn.edu.ubaa.ygdk
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
@@ -121,7 +122,7 @@ internal open class YgdkClient(
   private val authMutex = Mutex()
 
   open suspend fun getClassifyList(): List<YgdkClassifyRaw> {
-    val result = postForm("/Front/Clockin/Classify/getList")
+    val result = postForm(operation = "get_classify_list", path = "/Front/Clockin/Classify/getList")
     val list = result.jsonObject["list"]?.jsonArray.orEmpty()
     return list.mapNotNull { it.jsonObjectOrNull()?.toClassifyRaw() }
   }
@@ -135,6 +136,7 @@ internal open class YgdkClient(
         }
     val result =
         postForm(
+            operation = "get_item_list",
             path = "/Front/Clockin/Item/getList",
             queryParameters = parameters,
             formParameters = parameters,
@@ -148,6 +150,7 @@ internal open class YgdkClient(
     val uid = authData?.uid ?: throw YgdkAuthenticationException()
     val result =
         postForm(
+            operation = "get_check_count",
             path = "/Front/Clockin/Clockin/getCount",
             formParameters =
                 Parameters.build {
@@ -159,7 +162,7 @@ internal open class YgdkClient(
   }
 
   open suspend fun getTerm(): YgdkTermRaw {
-    val result = postForm("/Front/Clockin/Term/get")
+    val result = postForm(operation = "get_term", path = "/Front/Clockin/Term/get")
     val obj = result.jsonObject
     return YgdkTermRaw(
         termId = obj.int("term_id"),
@@ -173,6 +176,7 @@ internal open class YgdkClient(
     val uid = authData?.uid ?: throw YgdkAuthenticationException()
     val result =
         postForm(
+            operation = "get_records",
             path = "/Front/Clockin/Clockin/getList",
             formParameters =
                 Parameters.build {
@@ -199,32 +203,34 @@ internal open class YgdkClient(
     val auth = authData ?: throw YgdkAuthenticationException()
     val session = sessionManager.requireSession(username)
     val response =
-        session.client.post("$API_BASE/Front/Upload/File/post") {
-          header("X-Requested-With", "XMLHttpRequest")
-          setBody(
-              MultiPartFormDataContent(
-                  formData {
-                    append("uid", auth.uid.toString())
-                    append("token", auth.token)
-                    append(
-                        "file",
-                        bytes,
-                        Headers.build {
-                          append(
-                              HttpHeaders.ContentDisposition,
-                              ContentDisposition.File.withParameter(
-                                      ContentDisposition.Parameters.Name,
-                                      "file",
-                                  )
-                                  .withParameter(ContentDisposition.Parameters.FileName, fileName)
-                                  .toString(),
-                          )
-                          append(HttpHeaders.ContentType, mimeType)
-                        },
-                    )
-                  }
-              )
-          )
+        AppObservability.observeUpstreamRequest("ygdk", "upload_image") {
+          session.client.post("$API_BASE/Front/Upload/File/post") {
+            header("X-Requested-With", "XMLHttpRequest")
+            setBody(
+                MultiPartFormDataContent(
+                    formData {
+                      append("uid", auth.uid.toString())
+                      append("token", auth.token)
+                      append(
+                          "file",
+                          bytes,
+                          Headers.build {
+                            append(
+                                HttpHeaders.ContentDisposition,
+                                ContentDisposition.File.withParameter(
+                                        ContentDisposition.Parameters.Name,
+                                        "file",
+                                    )
+                                    .withParameter(ContentDisposition.Parameters.FileName, fileName)
+                                    .toString(),
+                            )
+                            append(HttpHeaders.ContentType, mimeType)
+                          },
+                      )
+                    }
+                )
+            )
+          }
         }
     val result = unwrapResponse(response.bodyAsText())
     val obj = result.jsonObject
@@ -248,6 +254,7 @@ internal open class YgdkClient(
     val zoneId = ZoneId.of(CHINA_ZONE_ID)
     val result =
         postForm(
+            operation = "clockin",
             path = "/Front/Clockin/Clockin/clockin",
             formParameters =
                 Parameters.build {
@@ -285,7 +292,10 @@ internal open class YgdkClient(
     try {
       var currentUrl = OAUTH_URL
       repeat(10) {
-        val response = noRedirectClient.get(currentUrl)
+        val response =
+            AppObservability.observeUpstreamRequest("app_buaa", "fetch_oauth_code") {
+              noRedirectClient.get(currentUrl)
+            }
         extractCodeFromUrl(response.call.request.url.toString())?.let {
           return it
         }
@@ -306,8 +316,10 @@ internal open class YgdkClient(
   private suspend fun exchangeCode(code: String): YgdkAuthData {
     val session = sessionManager.requireSession(username)
     val response =
-        session.client.get("$API_BASE/Front/Clockin/User/campusAppLogin") {
-          url.parameters.append("code", code)
+        AppObservability.observeUpstreamRequest("ygdk", "exchange_code") {
+          session.client.get("$API_BASE/Front/Clockin/User/campusAppLogin") {
+            url.parameters.append("code", code)
+          }
         }
     val result = unwrapResponse(response.bodyAsText())
     val data = result.jsonObject["data"]?.jsonObject ?: result.jsonObject
@@ -319,6 +331,7 @@ internal open class YgdkClient(
   }
 
   private suspend fun postForm(
+      operation: String,
       path: String,
       queryParameters: Parameters = Parameters.Empty,
       formParameters: Parameters = Parameters.Empty,
@@ -335,15 +348,17 @@ internal open class YgdkClient(
           append("token", auth.token)
         }
     val response =
-        session.client.post("$API_BASE$path") {
-          header("X-Requested-With", "XMLHttpRequest")
-          contentType(FORM_CONTENT_TYPE)
-          queryParameters.names().forEach { name ->
-            queryParameters.getAll(name).orEmpty().forEach { value ->
-              url.parameters.append(name, value)
+        AppObservability.observeUpstreamRequest("ygdk", operation) {
+          session.client.post("$API_BASE$path") {
+            header("X-Requested-With", "XMLHttpRequest")
+            contentType(FORM_CONTENT_TYPE)
+            queryParameters.names().forEach { name ->
+              queryParameters.getAll(name).orEmpty().forEach { value ->
+                url.parameters.append(name, value)
+              }
             }
+            setBody(FormDataContent(body))
           }
-          setBody(FormDataContent(body))
         }
     return unwrapResponse(response.bodyAsText())
   }

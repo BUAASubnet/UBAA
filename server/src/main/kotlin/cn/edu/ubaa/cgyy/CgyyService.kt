@@ -1,5 +1,6 @@
 package cn.edu.ubaa.cgyy
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.CgyyDayInfoResponse
 import cn.edu.ubaa.model.dto.CgyyLockCodeResponse
 import cn.edu.ubaa.model.dto.CgyyOrderDto
@@ -47,7 +48,16 @@ class CgyyService(
     return withCgyyDeadline("研讨室活动类型加载超时") {
       val dynamic =
           runCatching { parsePurposeTypes(getClient(username).getPurposeTypesRaw()) }.getOrNull()
-      if (!dynamic.isNullOrEmpty()) dynamic else fallbackPurposeTypes()
+      if (!dynamic.isNullOrEmpty()) {
+        dynamic
+      } else {
+        AppObservability.recordFallbackEvent(
+            "cgyy",
+            "list_purpose_types",
+            "cgyy_static_purpose_types",
+        )
+        fallbackPurposeTypes()
+      }
     }
   }
 
@@ -101,7 +111,7 @@ class CgyyService(
       )
 
       var lastCaptchaError: Exception? = null
-      repeat(3) {
+      repeat(3) { attempt ->
         try {
           val challenge = client.getCaptcha()
           val solved = captchaSolver.solve(challenge)
@@ -132,6 +142,9 @@ class CgyyService(
           )
         } catch (e: Exception) {
           lastCaptchaError = e
+          if (attempt < 2) {
+            AppObservability.recordRetryEvent("cgyy", "submit_reservation", "captcha_retry")
+          }
         }
       }
 
@@ -144,7 +157,7 @@ class CgyyService(
 
   suspend fun getOrders(username: String, page: Int, size: Int): CgyyOrdersPageResponse {
     return withCgyyDeadline("研讨室预约列表加载超时") {
-      withFreshClientRetry(username) { client ->
+      withFreshClientRetry(username, "list_orders") { client ->
         val data = client.getMineOrders(page, size)
         CgyyOrdersPageResponse(
             content = data["content"]?.jsonArray?.map { mapOrder(it.jsonObject) } ?: emptyList(),
@@ -158,23 +171,31 @@ class CgyyService(
   }
 
   suspend fun getOrderDetail(username: String, orderId: Int): CgyyOrderDto {
-    return withCgyyDeadline("研讨室预约详情加载超时") { mapOrder(getClient(username).getOrderDetail(orderId)) }
+    return withCgyyDeadline("研讨室预约详情加载超时") {
+      withFreshClientRetry(username, "get_order_detail") { client ->
+        mapOrder(client.getOrderDetail(orderId))
+      }
+    }
   }
 
   suspend fun cancelOrder(username: String, orderId: Int): CgyyReservationSubmitResponse {
     return withCgyyDeadline("研讨室预约取消超时") {
-      val response = getClient(username).cancelOrder(orderId)
-      CgyyReservationSubmitResponse(
-          success = true,
-          message = response.message.ifBlank { "取消成功" },
-          order = null,
-      )
+      withFreshClientRetry(username, "cancel_order") { client ->
+        val response = client.cancelOrder(orderId)
+        CgyyReservationSubmitResponse(
+            success = true,
+            message = response.message.ifBlank { "取消成功" },
+            order = null,
+        )
+      }
     }
   }
 
   suspend fun getLockCode(username: String): CgyyLockCodeResponse {
     return withCgyyDeadline("研讨室门锁密码加载超时") {
-      CgyyLockCodeResponse(rawData = getClient(username).getLockCode())
+      withFreshClientRetry(username, "get_lock_code") { client ->
+        CgyyLockCodeResponse(rawData = client.getLockCode())
+      }
     }
   }
 
@@ -208,6 +229,7 @@ class CgyyService(
 
   private suspend fun <T> withFreshClientRetry(
       username: String,
+      operation: String,
       block: suspend (CgyyGateway) -> T,
   ): T {
     return try {
@@ -216,6 +238,7 @@ class CgyyService(
       if (e.code != "unauthenticated" && e.code != "cgyy_error") {
         throw e
       }
+      AppObservability.recordRetryEvent("cgyy", operation, "client_refresh")
       discardClient(username)
       block(getClient(username))
     }

@@ -1,5 +1,6 @@
 package cn.edu.ubaa.ygdk
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitResponse
 import cn.edu.ubaa.model.dto.YgdkItemDto
@@ -94,7 +95,7 @@ internal class YgdkService(
       if (page <= 0 || size <= 0) throw YgdkException("分页参数无效", code = "invalid_request")
       val context = resolveContext(username)
       val records =
-          withFreshClientRetry(username) { client ->
+          withFreshClientRetry(username, "get_records") { client ->
             client.getRecords(context.classify.classifyId, page, size)
           }
       val itemMap = context.items.associateBy { it.itemId }
@@ -126,10 +127,17 @@ internal class YgdkService(
       val upload =
           request.photo?.let {
             YgdkGeneratedImage(bytes = it.bytes, fileName = it.fileName, mimeType = it.mimeType)
-          } ?: imageGenerator.generate()
+          }
+              ?: imageGenerator.generate().also {
+                AppObservability.recordFallbackEvent(
+                    "ygdk",
+                    "submit_clockin",
+                    "ygdk_generated_photo",
+                )
+              }
 
       val uploadedFile =
-          withFreshClientRetry(username) { client ->
+          withFreshClientRetry(username, "submit_clockin") { client ->
             client.uploadImage(
                 bytes = upload.bytes,
                 fileName = upload.fileName,
@@ -137,7 +145,7 @@ internal class YgdkService(
             )
           }
       val result =
-          withFreshClientRetry(username) { client ->
+          withFreshClientRetry(username, "submit_clockin") { client ->
             client.clockin(
                 classifyId = context.classify.classifyId,
                 itemId = item.itemId,
@@ -176,6 +184,8 @@ internal class YgdkService(
   }
 
   fun cacheSize(): Int = clientCache.size
+
+  fun contextCacheSize(): Int = contextCache.size
 
   fun clearCache() {
     clientCache.values.forEach { it.client.close() }
@@ -235,7 +245,7 @@ internal class YgdkService(
           }
 
       val context =
-          withFreshClientRetry(username) { client ->
+          withFreshClientRetry(username, "get_overview") { client ->
             val classify = resolveSportsClassify(client.getClassifyList())
             val items = client.getItemList(classify.classifyId)
             val defaultItem = resolveDefaultItem(items)
@@ -268,11 +278,13 @@ internal class YgdkService(
 
   private suspend fun <T> withFreshClientRetry(
       username: String,
+      operation: String,
       block: suspend (YgdkClient) -> T,
   ): T {
     return try {
       block(getClient(username))
     } catch (e: YgdkAuthenticationException) {
+      AppObservability.recordRetryEvent("ygdk", operation, "client_refresh")
       discardClient(username)
       invalidateContext(username)
       block(getClient(username))
@@ -288,10 +300,14 @@ internal class YgdkService(
   }
 
   private fun cleanupExpiredContexts(nowMillis: Long) {
+    var removed = 0
     for ((username, cached) in contextCache.entries.toList()) {
       if (cached.expiresAtMillis > nowMillis) continue
-      contextCache.remove(username, cached)
+      if (contextCache.remove(username, cached)) {
+        removed++
+      }
     }
+    AppObservability.recordCleanupRemovals("ygdk_context", removed)
   }
 
   private fun cleanupOrphanedContextMutexes() {

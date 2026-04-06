@@ -1,6 +1,7 @@
 package cn.edu.ubaa.version
 
 import cn.edu.ubaa.auth.respondError
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -13,14 +14,19 @@ fun Route.appVersionRouting(appVersionService: AppVersionService) {
   route("/api/v1/app") {
     /** GET /api/v1/app/version 查询客户端与服务端版本是否对齐。 */
     get("/version") {
-      val clientVersion =
-          call.request.queryParameters["clientVersion"]
-              ?: return@get call.respondError(
-                  HttpStatusCode.BadRequest,
-                  "missing_client_version",
-              )
+      call.observeBusinessOperation("app_version", "check") {
+        val clientVersion =
+            call.request.queryParameters["clientVersion"]
+                ?: run {
+                  markBusinessFailure()
+                  return@observeBusinessOperation call.respondError(
+                      HttpStatusCode.BadRequest,
+                      "missing_client_version",
+                  )
+                }
 
-      call.respond(HttpStatusCode.OK, appVersionService.checkVersion(clientVersion))
+        call.respond(HttpStatusCode.OK, appVersionService.checkVersion(clientVersion))
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ package cn.edu.ubaa.exam
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
 import cn.edu.ubaa.auth.ensureUndergradPortalAccess
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.ExamArrangementData
 import cn.edu.ubaa.model.dto.ExamResponse
 import cn.edu.ubaa.utils.VpnCipher
@@ -69,7 +70,9 @@ class ExamService(
         VpnCipher.toVpnUrl(
             "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=$termCode"
         )
-    return client.get(url) { applyExamHeaders() }
+    return AppObservability.observeUpstreamRequest("byxt", "list_exams") {
+      client.get(url) { applyExamHeaders() }
+    }
   }
 }
 

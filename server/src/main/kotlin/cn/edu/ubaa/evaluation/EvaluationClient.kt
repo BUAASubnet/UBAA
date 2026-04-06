@@ -2,6 +2,7 @@ package cn.edu.ubaa.evaluation
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -99,7 +100,10 @@ class EvaluationClient(
    * @return 若会话初始化成功返回 true，否则返回 false。
    */
   suspend fun initSession(): Boolean {
-    val resp = getClient().get("$baseUrl/cas")
+    val resp =
+        AppObservability.observeUpstreamRequest("evaluation", "init_session") {
+          getClient().get("$baseUrl/cas")
+        }
     return resp.status.isSuccess()
   }
 
@@ -131,7 +135,9 @@ class EvaluationClient(
   suspend fun fetchCurrentXnxq(): String? {
     return try {
       val resp: SpocResult<List<JsonObject>> =
-          getClient().post("$baseUrl/component/queryXnxq").body()
+          AppObservability.observeUpstreamRequest("evaluation", "fetch_current_xnxq") {
+            getClient().post("$baseUrl/component/queryXnxq").body()
+          }
       val first = resp.content?.firstOrNull() ?: return null
       val xn = first["xn"]?.toString()?.replace("\"", "") ?: ""
       val xq = first["xq"]?.toString()?.replace("\"", "") ?: ""
@@ -150,15 +156,17 @@ class EvaluationClient(
   suspend fun fetchTasks(): List<SpocTask> {
     return try {
       val resp: SpocResult<SpocPage<SpocTask>> =
-          getClient()
-              .get("$baseUrl/personnelEvaluation/listObtainPersonnelEvaluationTasks") {
-                parameter("yhdm", username)
-                parameter("rwmc", "")
-                parameter("sfyp", "0")
-                parameter("pageNum", "1")
-                parameter("pageSize", "10")
-              }
-              .body()
+          AppObservability.observeUpstreamRequest("evaluation", "fetch_tasks") {
+            getClient()
+                .get("$baseUrl/personnelEvaluation/listObtainPersonnelEvaluationTasks") {
+                  parameter("yhdm", username)
+                  parameter("rwmc", "")
+                  parameter("sfyp", "0")
+                  parameter("pageNum", "1")
+                  parameter("pageSize", "10")
+                }
+                .body()
+          }
       resp.result?.list ?: emptyList()
     } catch (e: Exception) {
       log.error("Failed to fetch tasks", e)
@@ -175,14 +183,16 @@ class EvaluationClient(
   suspend fun fetchQuestionnaires(rwid: String): List<SpocQuestionnaire> {
     return try {
       val resp: SpocResult<List<SpocQuestionnaire>> =
-          getClient()
-              .get("$baseUrl/evaluationMethodSix/getQuestionnaireListToTask") {
-                parameter("rwid", rwid)
-                parameter("sfyp", "0")
-                parameter("pageNum", "1")
-                parameter("pageSize", "999")
-              }
-              .body()
+          AppObservability.observeUpstreamRequest("evaluation", "fetch_questionnaires") {
+            getClient()
+                .get("$baseUrl/evaluationMethodSix/getQuestionnaireListToTask") {
+                  parameter("rwid", rwid)
+                  parameter("sfyp", "0")
+                  parameter("pageNum", "1")
+                  parameter("pageSize", "999")
+                }
+                .body()
+          }
       resp.result ?: emptyList()
     } catch (e: Exception) {
       log.error("Failed to fetch questionnaires", e)
@@ -217,15 +227,17 @@ class EvaluationClient(
       reviseQuestionnairePattern(rwid, wjid, msid)
 
       val resp: SpocResult<List<SpocCourse>> =
-          getClient()
-              .get("$baseUrl/evaluationMethodSix/getRequiredReviewsData") {
-                parameter("sfyp", sfyp)
-                parameter("wjid", wjid)
-                parameter("xnxq", xnxq)
-                parameter("pageNum", "1")
-                parameter("pageSize", "999")
-              }
-              .body()
+          AppObservability.observeUpstreamRequest("evaluation", "fetch_courses") {
+            getClient()
+                .get("$baseUrl/evaluationMethodSix/getRequiredReviewsData") {
+                  parameter("sfyp", sfyp)
+                  parameter("wjid", wjid)
+                  parameter("xnxq", xnxq)
+                  parameter("pageNum", "1")
+                  parameter("pageSize", "999")
+                }
+                .body()
+          }
       resp.result?.map { it.copy(msid = msid) } ?: emptyList()
     } catch (e: Exception) {
       log.error("Failed to fetch courses (sfyp=$sfyp)", e)
@@ -242,15 +254,17 @@ class EvaluationClient(
    */
   suspend fun reviseQuestionnairePattern(rwid: String, wjid: String, msid: String = "1") {
     try {
-      getClient().post("$baseUrl/evaluationMethodSix/reviseQuestionnairePattern") {
-        contentType(ContentType.Application.Json)
-        setBody(
-            buildJsonObject {
-              put("rwid", rwid)
-              put("wjid", wjid)
-              put("msid", msid)
-            }
-        )
+      AppObservability.observeUpstreamRequest("evaluation", "revise_questionnaire_pattern") {
+        getClient().post("$baseUrl/evaluationMethodSix/reviseQuestionnairePattern") {
+          contentType(ContentType.Application.Json)
+          setBody(
+              buildJsonObject {
+                put("rwid", rwid)
+                put("wjid", wjid)
+                put("msid", msid)
+              }
+          )
+        }
       }
     } catch (e: Exception) {
       log.error("Failed to revise questionnaire pattern", e)
@@ -266,28 +280,30 @@ class EvaluationClient(
   suspend fun fetchQuestionnaireTopic(course: SpocCourse): JsonObject? {
     return try {
       val resp: HttpResponse =
-          getClient().get("$baseUrl/evaluationMethodSix/getQuestionnaireTopic") {
-            parameter("id", "")
-            parameter("rwid", course.rwid)
-            parameter("wjid", course.wjid)
-            parameter("zdmc", course.zdmc ?: "STID")
-            parameter("ypjcs", course.ypjcs ?: 0)
-            parameter("xypjcs", course.xypjcs ?: 1)
-            parameter("sxz", course.sxz ?: "")
-            parameter("pjrdm", course.pjrdm ?: "")
-            parameter("pjrmc", course.pjrmc ?: "")
-            parameter("bpdm", course.bpdm ?: "")
-            parameter("bpmc", course.bpmc ?: "")
-            parameter("kcdm", course.kcdm ?: "")
-            parameter("kcmc", course.kcmc ?: "")
-            parameter("rwh", course.rwh ?: "")
-            parameter("xn", course.xn ?: "")
-            parameter("xq", course.xq ?: "")
-            parameter("xnxq", course.xnxq ?: "")
-            parameter("pjlxid", course.pjlxid ?: "2")
-            parameter("sfksqbpj", course.sfksqbpj ?: "1")
-            parameter("yxsfktjst", course.yxsfktjst ?: "")
-            parameter("yxdm", "")
+          AppObservability.observeUpstreamRequest("evaluation", "fetch_questionnaire_topic") {
+            getClient().get("$baseUrl/evaluationMethodSix/getQuestionnaireTopic") {
+              parameter("id", "")
+              parameter("rwid", course.rwid)
+              parameter("wjid", course.wjid)
+              parameter("zdmc", course.zdmc ?: "STID")
+              parameter("ypjcs", course.ypjcs ?: 0)
+              parameter("xypjcs", course.xypjcs ?: 1)
+              parameter("sxz", course.sxz ?: "")
+              parameter("pjrdm", course.pjrdm ?: "")
+              parameter("pjrmc", course.pjrmc ?: "")
+              parameter("bpdm", course.bpdm ?: "")
+              parameter("bpmc", course.bpmc ?: "")
+              parameter("kcdm", course.kcdm ?: "")
+              parameter("kcmc", course.kcmc ?: "")
+              parameter("rwh", course.rwh ?: "")
+              parameter("xn", course.xn ?: "")
+              parameter("xq", course.xq ?: "")
+              parameter("xnxq", course.xnxq ?: "")
+              parameter("pjlxid", course.pjlxid ?: "2")
+              parameter("sfksqbpj", course.sfksqbpj ?: "1")
+              parameter("yxsfktjst", course.yxsfktjst ?: "")
+              parameter("yxdm", "")
+            }
           }
       val data: SpocResult<List<JsonObject>> = resp.body()
       data.result?.firstOrNull()
@@ -311,9 +327,11 @@ class EvaluationClient(
         put("pjzt", "1")
       }
       val httpResponse =
-          getClient().post("$baseUrl/evaluationMethodSix/submitSaveEvaluation") {
-            contentType(ContentType.Application.Json)
-            setBody(payload)
+          AppObservability.observeUpstreamRequest("evaluation", "submit_evaluation") {
+            getClient().post("$baseUrl/evaluationMethodSix/submitSaveEvaluation") {
+              contentType(ContentType.Application.Json)
+              setBody(payload)
+            }
           }
 
       // 先读取原始字符串，便于诊断后端返回的真实字段

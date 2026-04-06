@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -128,7 +127,7 @@ fun App() {
             userData = userData,
             userInfo = uiState.userInfo,
             onLogoutClick = { authViewModel.logout() },
-            modifier = Modifier.safeContentPadding().fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
         )
       }
       else -> {
@@ -146,10 +145,7 @@ fun App() {
             captchaRequired = uiState.captchaRequired,
             captchaInfo = uiState.captchaInfo,
             error = uiState.error,
-            modifier =
-                Modifier.background(MaterialTheme.colorScheme.background)
-                    .safeContentPadding()
-                    .fillMaxSize(),
+            modifier = Modifier.background(MaterialTheme.colorScheme.background).fillMaxSize(),
         )
       }
     }

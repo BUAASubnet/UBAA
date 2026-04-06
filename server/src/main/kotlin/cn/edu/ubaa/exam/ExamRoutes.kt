@@ -4,6 +4,7 @@ import cn.edu.ubaa.auth.JwtAuth.jwtUsername
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.UnsupportedAcademicPortalException
 import cn.edu.ubaa.auth.respondError
+import cn.edu.ubaa.metrics.observeBusinessOperation
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -27,12 +28,19 @@ fun Route.examRouting() {
         return@get call.respondError(HttpStatusCode.BadRequest, "invalid_request")
       }
 
-      try {
-        val examData = examService.getExamArrangement(username, termCode)
-        call.respond(HttpStatusCode.OK, examData)
-      } catch (e: Exception) {
-        val (status, code) = examErrorResponse(e)
-        call.respondError(status, code)
+      call.observeBusinessOperation("exam", "list_exams") {
+        try {
+          val examData = examService.getExamArrangement(username, termCode)
+          call.respond(HttpStatusCode.OK, examData)
+        } catch (e: Exception) {
+          when (e) {
+            is LoginException -> markUnauthenticated()
+            is UnsupportedAcademicPortalException -> markBusinessFailure()
+            else -> markError()
+          }
+          val (status, code) = examErrorResponse(e)
+          call.respondError(status, code)
+        }
       }
     }
   }

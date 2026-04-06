@@ -2,6 +2,7 @@ package cn.edu.ubaa.spoc
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -38,15 +39,19 @@ internal open class SpocClient(
   open suspend fun getCurrentTerm(): SpocCurrentTermContent {
     return withAuthenticatedCall {
       postEnvelope<SpocCurrentTermContent, SpocQueryOneRequest>(
-          "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne",
-          SpocQueryOneRequest(CURRENT_TERM_PARAM),
+          operation = "get_current_term",
+          url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne",
+          body = SpocQueryOneRequest(CURRENT_TERM_PARAM),
       )
     }
   }
 
   open suspend fun getCourses(termCode: String): List<SpocCourseRaw> {
     return withAuthenticatedCall {
-      getEnvelope<List<SpocCourseRaw>>("https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb") {
+      getEnvelope<List<SpocCourseRaw>>(
+          operation = "get_courses",
+          url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb",
+      ) {
         parameter("kcmc", "")
         parameter("xnxq", termCode)
       }
@@ -69,8 +74,9 @@ internal open class SpocClient(
               )
           )
       postEnvelope<SpocAssignmentsPageContent, SpocEncryptedParamRequest>(
-          "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage",
-          SpocEncryptedParamRequest(SpocCrypto.encryptParam(plainText)),
+          operation = "get_assignments_page",
+          url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage",
+          body = SpocEncryptedParamRequest(SpocCrypto.encryptParam(plainText)),
       )
     }
   }
@@ -92,7 +98,8 @@ internal open class SpocClient(
   open suspend fun getAssignmentDetail(assignmentId: String): SpocAssignmentDetailRaw {
     return withAuthenticatedCall {
       getEnvelope<SpocAssignmentDetailRaw>(
-          "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid"
+          operation = "get_assignment_detail",
+          url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid",
       ) {
         parameter("id", assignmentId)
       }
@@ -102,7 +109,8 @@ internal open class SpocClient(
   open suspend fun getSubmission(assignmentId: String): SpocSubmissionRaw? {
     return withAuthenticatedCall {
       getEnvelope<SpocSubmissionRaw?>(
-          "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo"
+          operation = "get_submission",
+          url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo",
       ) {
         parameter("kczyid", assignmentId)
       }
@@ -140,7 +148,10 @@ internal open class SpocClient(
     try {
       var currentUrl = VpnCipher.toVpnUrl("https://spoc.buaa.edu.cn/spocnewht/cas")
       repeat(8) {
-        val response = noRedirectClient.get(currentUrl)
+        val response =
+            AppObservability.observeUpstreamRequest("spoc", "fetch_login_tokens") {
+              noRedirectClient.get(currentUrl)
+            }
         SpocParsers.extractLoginTokens(response.call.request.url.toString())?.let {
           return it
         }
@@ -164,11 +175,13 @@ internal open class SpocClient(
       loginToken: String,
   ): SpocCasLoginContent {
     val response =
-        baseClient.post(normalizeUrl("https://spoc.buaa.edu.cn/spocnewht/sys/casLogin")) {
-          contentType(ContentType.Application.Json)
-          header("X-Requested-With", "XMLHttpRequest")
-          header("Token", "Inco-$loginToken")
-          setBody(SpocCasLoginRequest(loginToken))
+        AppObservability.observeUpstreamRequest("spoc", "cas_login") {
+          baseClient.post(normalizeUrl("https://spoc.buaa.edu.cn/spocnewht/sys/casLogin")) {
+            contentType(ContentType.Application.Json)
+            header("X-Requested-With", "XMLHttpRequest")
+            header("Token", "Inco-$loginToken")
+            setBody(SpocCasLoginRequest(loginToken))
+          }
         }
     val bodyText = response.bodyAsText()
     val envelope = decodeEnvelope<SpocCasLoginContent>(bodyText)
@@ -189,6 +202,7 @@ internal open class SpocClient(
   }
 
   private suspend inline fun <reified T> getEnvelope(
+      operation: String,
       url: String,
       crossinline builder: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {},
   ): T {
@@ -196,28 +210,36 @@ internal open class SpocClient(
     val currentRoleCode = roleCode ?: throw SpocAuthenticationException("SPOC roleCode 未初始化")
     val session = sessionManager.requireSession(username)
     val response =
-        session.client.get(normalizeUrl(url)) {
-          header("X-Requested-With", "XMLHttpRequest")
-          header("Token", "Inco-$currentToken")
-          header("RoleCode", currentRoleCode)
-          builder()
+        AppObservability.observeUpstreamRequest("spoc", operation) {
+          session.client.get(normalizeUrl(url)) {
+            header("X-Requested-With", "XMLHttpRequest")
+            header("Token", "Inco-$currentToken")
+            header("RoleCode", currentRoleCode)
+            builder()
+          }
         }
     val bodyText = response.bodyAsText()
     val envelope = decodeEnvelope<T>(bodyText)
     return unwrapEnvelope(envelope, bodyText)
   }
 
-  private suspend inline fun <reified T, reified B : Any> postEnvelope(url: String, body: B): T {
+  private suspend inline fun <reified T, reified B : Any> postEnvelope(
+      operation: String,
+      url: String,
+      body: B,
+  ): T {
     val currentToken = token ?: throw SpocAuthenticationException("SPOC token 未初始化")
     val currentRoleCode = roleCode ?: throw SpocAuthenticationException("SPOC roleCode 未初始化")
     val session = sessionManager.requireSession(username)
     val response =
-        session.client.post(normalizeUrl(url)) {
-          contentType(ContentType.Application.Json)
-          header("X-Requested-With", "XMLHttpRequest")
-          header("Token", "Inco-$currentToken")
-          header("RoleCode", currentRoleCode)
-          setBody(body)
+        AppObservability.observeUpstreamRequest("spoc", operation) {
+          session.client.post(normalizeUrl(url)) {
+            contentType(ContentType.Application.Json)
+            header("X-Requested-With", "XMLHttpRequest")
+            header("Token", "Inco-$currentToken")
+            header("RoleCode", currentRoleCode)
+            setBody(body)
+          }
         }
     val bodyText = response.bodyAsText()
     val envelope = decodeEnvelope<T>(bodyText)

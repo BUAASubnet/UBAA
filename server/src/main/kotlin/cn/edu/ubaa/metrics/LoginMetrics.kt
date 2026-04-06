@@ -2,6 +2,7 @@ package cn.edu.ubaa.metrics
 
 import cn.edu.ubaa.auth.AuthConfig
 import io.lettuce.core.RedisClient
+import io.lettuce.core.Value
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.sync.RedisCommands
 import io.micrometer.core.instrument.MeterRegistry
@@ -37,11 +38,13 @@ object NoOpLoginMetricsSink : LoginMetricsSink {
 }
 
 interface LoginStatsStore {
-  suspend fun recordLogin(username: String, recordedAt: Instant)
+  suspend fun recordLogin(userId: String, mode: LoginSuccessMode, recordedAt: Instant)
 
   fun countEvents(window: LoginMetricWindow, now: Instant): Long
 
   fun countUniqueUsers(window: LoginMetricWindow, now: Instant): Long
+
+  fun countSuccessTotal(mode: LoginSuccessMode): Long
 
   fun close()
 }
@@ -54,6 +57,16 @@ class LoginMetricsRecorder(
   private val log = LoggerFactory.getLogger(LoginMetricsRecorder::class.java)
 
   fun bindMetrics() {
+    for (mode in LoginSuccessMode.entries) {
+      FunctionCounterBindings.bind(
+          registry = registry,
+          name = "ubaa.auth.login.success",
+          tags = mapOf("mode" to mode.tagValue),
+      ) {
+        store.countSuccessTotal(mode).toDouble()
+      }
+    }
+
     for (window in LoginMetricWindow.entries) {
       GaugeBindings.bind(
           registry = registry,
@@ -74,9 +87,8 @@ class LoginMetricsRecorder(
   }
 
   override suspend fun recordSuccess(username: String, mode: LoginSuccessMode) {
-    registry.counter("ubaa.auth.login.success", "mode", mode.tagValue).increment()
     try {
-      store.recordLogin(username, clock.instant())
+      store.recordLogin(username, mode, clock.instant())
     } catch (e: Exception) {
       log.warn("Failed to persist login statistics for user {}", username, e)
     }
@@ -90,6 +102,8 @@ class LoginMetricsRecorder(
 class RedisLoginStatsStore(
     private val redisUri: String = AuthConfig.redisUri,
 ) : LoginStatsStore {
+  private val log = LoggerFactory.getLogger(RedisLoginStatsStore::class.java)
+
   private enum class WindowMetricType {
     EVENTS,
     UNIQUE_USERS,
@@ -113,11 +127,16 @@ class RedisLoginStatsStore(
   private val readCacheTtl = Duration.ofSeconds(15)
   private val windowCache = ConcurrentHashMap<WindowCacheKey, CachedWindowValue>()
 
-  override suspend fun recordLogin(username: String, recordedAt: Instant) {
+  override suspend fun recordLogin(
+      userId: String,
+      mode: LoginSuccessMode,
+      recordedAt: Instant,
+  ) {
     val bucket = bucketOf(recordedAt)
     val eventKey = eventKey(bucket)
     val uniqueKey = uniqueKey(bucket)
-    val usernameHash = hashUsername(username)
+    val successTotalKey = successTotalKey(mode)
+    val usernameHash = hashUsername(userId)
     val ttlSeconds = keyTtl.seconds.coerceAtLeast(1L)
 
     withContext(Dispatchers.IO) {
@@ -125,6 +144,7 @@ class RedisLoginStatsStore(
       commands.expire(eventKey, ttlSeconds)
       commands.pfadd(uniqueKey, usernameHash)
       commands.expire(uniqueKey, ttlSeconds)
+      commands.incr(successTotalKey)
     }
     windowCache.clear()
   }
@@ -135,7 +155,7 @@ class RedisLoginStatsStore(
       if (keys.isEmpty()) {
         0L
       } else {
-        commands.mget(*keys.toTypedArray()).sumOf { entry -> entry.value?.toLongOrNull() ?: 0L }
+        sumCounterValues(commands.mget(*keys.toTypedArray()))
       }
     }
   }
@@ -149,6 +169,11 @@ class RedisLoginStatsStore(
         commands.pfcount(*keys.toTypedArray())
       }
     }
+  }
+
+  override fun countSuccessTotal(mode: LoginSuccessMode): Long {
+    return runCatching { commands.get(successTotalKey(mode))?.toLongOrNull() ?: 0L }
+        .getOrDefault(0L)
   }
 
   override fun close() {
@@ -169,6 +194,9 @@ class RedisLoginStatsStore(
 
   private fun uniqueKey(bucket: Long): String = "metrics:login:users:$bucket"
 
+  private fun successTotalKey(mode: LoginSuccessMode): String =
+      "metrics:login:success:total:${mode.tagValue}"
+
   private fun cachedWindowValue(
       type: WindowMetricType,
       window: LoginMetricWindow,
@@ -184,7 +212,17 @@ class RedisLoginStatsStore(
           return it.value
         }
 
-    val value = runCatching(loader).getOrDefault(0L)
+    val value =
+        runCatching(loader)
+            .onFailure { error ->
+              log.warn(
+                  "Failed to load login metric window type={} window={}",
+                  type,
+                  window.tagValue,
+                  error,
+              )
+            }
+            .getOrDefault(0L)
     windowCache[cacheKey] =
         CachedWindowValue(value = value, expiresAtMillis = nowMillis + readCacheTtl.toMillis())
     cleanupExpiredWindowCache(nowMillis)
@@ -206,11 +244,20 @@ class InMemoryLoginStatsStore : LoginStatsStore {
   )
 
   private val buckets = ConcurrentHashMap<Long, LoginBucket>()
+  private val successTotals =
+      ConcurrentHashMap<LoginSuccessMode, AtomicLong>().apply {
+        LoginSuccessMode.entries.forEach { put(it, AtomicLong(0)) }
+      }
 
-  override suspend fun recordLogin(username: String, recordedAt: Instant) {
+  override suspend fun recordLogin(
+      userId: String,
+      mode: LoginSuccessMode,
+      recordedAt: Instant,
+  ) {
     val bucket = buckets.computeIfAbsent(bucketOf(recordedAt)) { LoginBucket() }
     bucket.events.incrementAndGet()
-    bucket.users += hashUsername(username)
+    bucket.users += hashUsername(userId)
+    successTotals.computeIfAbsent(mode) { AtomicLong(0) }.incrementAndGet()
   }
 
   override fun countEvents(window: LoginMetricWindow, now: Instant): Long {
@@ -225,8 +272,13 @@ class InMemoryLoginStatsStore : LoginStatsStore {
     return uniqueUsers.size.toLong()
   }
 
+  override fun countSuccessTotal(mode: LoginSuccessMode): Long {
+    return successTotals[mode]?.get() ?: 0L
+  }
+
   override fun close() {
     buckets.clear()
+    successTotals.clear()
   }
 
   private fun bucketsFor(window: LoginMetricWindow, now: Instant): LongRange {
@@ -242,4 +294,8 @@ private fun hashUsername(username: String): String {
   val digest = MessageDigest.getInstance("SHA-256")
   val hash = digest.digest(username.toByteArray(StandardCharsets.UTF_8))
   return hash.joinToString("") { "%02x".format(it) }
+}
+
+internal fun sumCounterValues(values: Iterable<Value<String>?>): Long {
+  return values.sumOf { value -> value?.optional()?.orElse(null)?.toLongOrNull() ?: 0L }
 }

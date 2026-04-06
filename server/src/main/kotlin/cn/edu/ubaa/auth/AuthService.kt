@@ -1,5 +1,6 @@
 package cn.edu.ubaa.auth
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.metrics.LoginMetricsSink
 import cn.edu.ubaa.metrics.LoginSuccessMode
 import cn.edu.ubaa.metrics.NoOpLoginMetricsSink
@@ -136,14 +137,20 @@ class AuthService(
 
           val loginSubmitResponse =
               timeline.measure("submitCas") {
-                noRedirectClient.post(LOGIN_URL) { setBody(FormDataContent(loginFormParameters)) }
+                AppObservability.observeUpstreamRequest("sso", "submit_credentials") {
+                  noRedirectClient.post(LOGIN_URL) { setBody(FormDataContent(loginFormParameters)) }
+                }
               }
 
           followRedirectsAndCheckError(loginSubmitResponse, noRedirectClient)
         } else {
           // 标准流程：先拉取登录页获取 execution
           val loginPageResponse =
-              timeline.measure("loadLoginPage") { noRedirectClient.get(LOGIN_URL) }
+              timeline.measure("loadLoginPage") {
+                AppObservability.observeUpstreamRequest("sso", "load_login_page") {
+                  noRedirectClient.get(LOGIN_URL)
+                }
+              }
           if (
               !loginPageResponse.status.isSuccess() &&
                   loginPageResponse.status != HttpStatusCode.Found
@@ -177,8 +184,10 @@ class AuthService(
                   )
               val loginSubmitResponse =
                   timeline.measure("submitCas") {
-                    noRedirectClient.post(LOGIN_URL) {
-                      setBody(FormDataContent(loginFormParameters))
+                    AppObservability.observeUpstreamRequest("sso", "submit_credentials") {
+                      noRedirectClient.post(LOGIN_URL) {
+                        setBody(FormDataContent(loginFormParameters))
+                      }
                     }
                   }
               followRedirectsAndCheckError(loginSubmitResponse, noRedirectClient)
@@ -186,8 +195,10 @@ class AuthService(
               val loginFormParameters = CasParser.buildCasLoginParameters(loginPageHtml, request)
               val loginSubmitResponse =
                   timeline.measure("submitCas") {
-                    noRedirectClient.post(LOGIN_URL) {
-                      setBody(FormDataContent(loginFormParameters))
+                    AppObservability.observeUpstreamRequest("sso", "submit_credentials") {
+                      noRedirectClient.post(LOGIN_URL) {
+                        setBody(FormDataContent(loginFormParameters))
+                      }
                     }
                   }
               followRedirectsAndCheckError(loginSubmitResponse, noRedirectClient)
@@ -198,11 +209,13 @@ class AuthService(
 
       // 3. 激活 UC 并验证核心会话（不再同步等待教务门户探活）
       timeline.measure("activateUc") {
-        client.get(
-            VpnCipher.toVpnUrl(
-                "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
-            )
-        )
+        AppObservability.observeUpstreamRequest("uc", "activate_login") {
+          client.get(
+              VpnCipher.toVpnUrl(
+                  "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+              )
+          )
+        }
       }
 
       val userData = timeline.measure("ucVerify") { verifySession(client) }
@@ -217,7 +230,10 @@ class AuthService(
             timeline.measure("issueTokens") {
               refreshTokenService.issueLoginTokens(userData, activeCandidate.username)
             }
-        safeRecordLoginSuccess(activeCandidate.username, LoginSuccessMode.MANUAL)
+        safeRecordLoginSuccess(
+            userData.schoolid.ifBlank { activeCandidate.username },
+            LoginSuccessMode.MANUAL,
+        )
         timeline.measure("portalWarmupAsync") { maybeWarmupPortal(committedSession) }
         timeline.logSuccess("manual")
         return response
@@ -248,7 +264,9 @@ class AuthService(
     val session = sessionManager.getSession(username, SessionManager.SessionAccess.READ_ONLY)
     if (session != null) {
       try {
-        session.client.get(VpnCipher.toVpnUrl("https://sso.buaa.edu.cn/logout"))
+        AppObservability.observeUpstreamRequest("sso", "logout") {
+          session.client.get(VpnCipher.toVpnUrl("https://sso.buaa.edu.cn/logout"))
+        }
       } catch (e: Exception) {
         log.warn("Error calling SSO logout: {}", e.message)
       }
@@ -270,15 +288,20 @@ class AuthService(
 
     return try {
       withNoRedirectClient(client) { noRedirectClient ->
-        val loginPageResponse = noRedirectClient.get(LOGIN_URL)
+        val loginPageResponse =
+            AppObservability.observeUpstreamRequest("sso", "preload_sso_check") {
+              noRedirectClient.get(LOGIN_URL)
+            }
 
         // 检测自动登录（已在 SSO 登录）
         if (loginPageResponse.status.value in 300..399) {
-          client.get(
-              VpnCipher.toVpnUrl(
-                  "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
-              )
-          )
+          AppObservability.observeUpstreamRequest("uc", "activate_login") {
+            client.get(
+                VpnCipher.toVpnUrl(
+                    "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+                )
+            )
+          }
 
           val userData = verifySession(client)
 
@@ -288,7 +311,10 @@ class AuthService(
             if (sessionCandidate != null) {
               val committedSession = sessionManager.commitSession(sessionCandidate, userData)
               val tokenResponse = refreshTokenService.issueTokens(sessionCandidate.username)
-              safeRecordLoginSuccess(sessionCandidate.username, LoginSuccessMode.PRELOAD_AUTO)
+              safeRecordLoginSuccess(
+                  userData.schoolid.ifBlank { sessionCandidate.username },
+                  LoginSuccessMode.PRELOAD_AUTO,
+              )
               maybeWarmupPortal(committedSession)
               return@withNoRedirectClient LoginPreloadResponse(
                   captchaRequired = false,
@@ -358,9 +384,11 @@ class AuthService(
   /** 访问状态接口验证当前客户端是否已成功认证。 */
   private suspend fun verifySession(client: HttpClient): UserData? {
     val statusResponse =
-        client.get(VpnCipher.toVpnUrl(UC_STATUS_URL)) {
-          header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
-          header("X-Requested-With", "XMLHttpRequest")
+        AppObservability.observeUpstreamRequest("uc", "fetch_uc_user") {
+          client.get(VpnCipher.toVpnUrl(UC_STATUS_URL)) {
+            header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
+            header("X-Requested-With", "XMLHttpRequest")
+          }
         }
     if (statusResponse.status != HttpStatusCode.OK) return null
     val body = statusResponse.bodyAsText()
@@ -390,7 +418,10 @@ class AuthService(
   /** 获取验证码图片的字节数组。 */
   suspend fun getCaptchaImage(client: HttpClient, captchaId: String): ByteArray? {
     return try {
-      val response = client.get("$CAPTCHA_URL_BASE?captchaId=$captchaId")
+      val response =
+          AppObservability.observeUpstreamRequest("sso", "captcha_fetch") {
+            client.get("$CAPTCHA_URL_BASE?captchaId=$captchaId")
+          }
       if (response.status == HttpStatusCode.OK) response.body<ByteArray>() else null
     } catch (e: Exception) {
       null

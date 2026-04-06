@@ -3,6 +3,7 @@ package cn.edu.ubaa.user
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.UserInfo
 import cn.edu.ubaa.model.dto.UserInfoResponse
 import cn.edu.ubaa.utils.VpnCipher
@@ -47,7 +48,9 @@ class UserService(
   }
 
   private suspend fun SessionManager.UserSession.getUserInfo(): HttpResponse {
-    return client.get(VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/api/uc/userinfo"))
+    return AppObservability.observeUpstreamRequest("uc", "user_info") {
+      client.get(VpnCipher.toVpnUrl("https://uc.buaa.edu.cn/api/uc/userinfo"))
+    }
   }
 
   private fun isUcSessionExpired(response: HttpResponse, body: String): Boolean {

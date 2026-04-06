@@ -3,7 +3,10 @@ package cn.edu.ubaa.ygdk
 import cn.edu.ubaa.auth.InMemoryCookieStorageFactory
 import cn.edu.ubaa.auth.InMemorySessionStore
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import java.io.ByteArrayInputStream
 import java.time.Duration
 import java.time.LocalDate
@@ -11,6 +14,7 @@ import java.time.LocalDateTime
 import javax.imageio.ImageIO
 import kotlin.random.Random
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -55,6 +59,8 @@ class YgdkServiceTest {
 
   @Test
   fun `getOverview retries with fresh client after auth failure`() = runBlocking {
+    val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    AppObservability.initialize(registry)
     val firstClient = ExpiringYgdkClient()
     val secondClient = FakeYgdkClient()
     var creations = 0
@@ -66,12 +72,21 @@ class YgdkServiceTest {
             }
         )
 
-    val overview = service.getOverview("2418")
+    try {
+      val overview = service.getOverview("2418")
 
-    assertEquals(2, creations)
-    assertTrue(firstClient.closed)
-    assertEquals(1, overview.defaultItemId)
-    assertEquals("跑步", overview.defaultItemName)
+      assertEquals(2, creations)
+      assertTrue(firstClient.closed)
+      assertEquals(1, overview.defaultItemId)
+      assertEquals("跑步", overview.defaultItemName)
+      assertContains(
+          registry.scrape(),
+          "ubaa_retry_events_total{feature=\"ygdk\",operation=\"get_overview\",reason=\"client_refresh\"}",
+      )
+    } finally {
+      AppObservability.reset(registry)
+      registry.close()
+    }
   }
 
   @Test
@@ -151,6 +166,8 @@ class YgdkServiceTest {
 
   @Test
   fun `submitClockin fills defaults and uploads generated image`() = runBlocking {
+    val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    AppObservability.initialize(registry)
     val generatedImage =
         YgdkGeneratedImage(
             bytes = byteArrayOf(9, 8, 7, 6),
@@ -173,32 +190,41 @@ class YgdkServiceTest {
                 },
         )
 
-    val result = service.submitClockin("2418", YgdkClockinSubmitRequest())
+    try {
+      val result = service.submitClockin("2418", YgdkClockinSubmitRequest())
 
-    assertTrue(result.success)
-    assertEquals("打卡成功", result.message)
-    assertEquals(1001, result.recordId)
-    assertEquals("操场", client.lastClockinPlace)
-    assertFalse(client.lastClockinOpen)
-    assertEquals(1, client.lastClockinItemId)
-    assertEquals("跑步", client.lastClockinItemName)
-    val startAt = assertNotNull(client.lastClockinStartAt)
-    val endAt = assertNotNull(client.lastClockinEndAt)
-    val today = LocalDate.parse("2026-04-01")
-    assertEquals(1L, Duration.between(startAt, endAt).toHours())
-    assertEquals(startAt.toLocalDate(), endAt.toLocalDate())
-    assertTrue(startAt.toLocalDate() in LocalDate.parse("2026-03-30")..today)
-    assertTrue(startAt.hour in 8..21)
-    assertEquals(0, startAt.minute)
-    if (startAt.toLocalDate() == today) {
-      assertTrue(endAt <= LocalDateTime.parse("2026-04-01T15:30:00"))
-    } else {
-      assertTrue(endAt.hour in 9..22)
+      assertTrue(result.success)
+      assertEquals("打卡成功", result.message)
+      assertEquals(1001, result.recordId)
+      assertEquals("操场", client.lastClockinPlace)
+      assertFalse(client.lastClockinOpen)
+      assertEquals(1, client.lastClockinItemId)
+      assertEquals("跑步", client.lastClockinItemName)
+      val startAt = assertNotNull(client.lastClockinStartAt)
+      val endAt = assertNotNull(client.lastClockinEndAt)
+      val today = LocalDate.parse("2026-04-01")
+      assertEquals(1L, Duration.between(startAt, endAt).toHours())
+      assertEquals(startAt.toLocalDate(), endAt.toLocalDate())
+      assertTrue(startAt.toLocalDate() in LocalDate.parse("2026-03-30")..today)
+      assertTrue(startAt.hour in 8..21)
+      assertEquals(0, startAt.minute)
+      if (startAt.toLocalDate() == today) {
+        assertTrue(endAt <= LocalDateTime.parse("2026-04-01T15:30:00"))
+      } else {
+        assertTrue(endAt.hour in 9..22)
+      }
+      assertContentEquals(generatedImage.bytes, client.uploadedBytes)
+      assertEquals(generatedImage.fileName, client.uploadedFileName)
+      assertEquals(generatedImage.mimeType, client.uploadedMimeType)
+      assertEquals(5, result.summary?.termCount)
+      assertContains(
+          registry.scrape(),
+          "ubaa_fallback_events_total{feature=\"ygdk\",operation=\"submit_clockin\",reason=\"ygdk_generated_photo\"}",
+      )
+    } finally {
+      AppObservability.reset(registry)
+      registry.close()
     }
-    assertContentEquals(generatedImage.bytes, client.uploadedBytes)
-    assertEquals(generatedImage.fileName, client.uploadedFileName)
-    assertEquals(generatedImage.mimeType, client.uploadedMimeType)
-    assertEquals(5, result.summary?.termCount)
   }
 
   @Test

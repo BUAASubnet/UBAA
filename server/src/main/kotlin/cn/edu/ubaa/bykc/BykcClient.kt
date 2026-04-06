@@ -2,6 +2,7 @@ package cn.edu.ubaa.bykc
 
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.SessionManager
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -55,7 +56,10 @@ open class BykcClient(private val username: String) {
       val s = ensureSession()
       val client = s.client
 
-      val resp = client.get(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/cas/login"))
+      val resp =
+          AppObservability.observeUpstreamRequest("bykc", "login") {
+            client.get(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/cas/login"))
+          }
       val finalUrl = resp.request.url.toString()
 
       val token =
@@ -74,7 +78,9 @@ open class BykcClient(private val username: String) {
       }
 
       try {
-        client.get(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/cas-login?token="))
+        AppObservability.observeUpstreamRequest("bykc", "login") {
+          client.get(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/cas-login?token="))
+        }
       } catch (_: Exception) {}
 
       lastLoginMillis = System.currentTimeMillis()
@@ -121,31 +127,30 @@ open class BykcClient(private val username: String) {
     val enc = BykcCrypto.encryptRequest(requestJson)
 
     val httpResponse: HttpResponse =
-        client.post(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/$apiName")) {
-          contentType(ContentType.Application.Json.withCharset(Charsets.UTF_8))
+        AppObservability.observeUpstreamRequest("bykc", toMetricOperation(apiName)) {
+          client.post(VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/sscv/$apiName")) {
+            contentType(ContentType.Application.Json.withCharset(Charsets.UTF_8))
 
-          accept(ContentType.Application.Json)
+            accept(ContentType.Application.Json)
 
-          header(
-              HttpHeaders.Referrer,
-              VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/system/course-select"),
-          )
+            header(
+                HttpHeaders.Referrer,
+                VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn/system/course-select"),
+            )
 
-          header(HttpHeaders.Origin, VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn"))
+            header(HttpHeaders.Origin, VpnCipher.toVpnUrl("https://bykc.buaa.edu.cn"))
 
-          // 携带认证令牌
+            bykcToken?.let {
+              header("auth_token", it)
+              header("authtoken", it)
+            }
 
-          bykcToken?.let {
-            header("auth_token", it)
+            header("ak", enc.ak)
+            header("sk", enc.sk)
+            header("ts", enc.ts)
 
-            header("authtoken", it)
+            setBody(enc.encryptedData)
           }
-
-          header("ak", enc.ak)
-          header("sk", enc.sk)
-          header("ts", enc.ts)
-
-          setBody(enc.encryptedData)
         }
 
     val respBodyText =
@@ -359,6 +364,10 @@ open class BykcClient(private val username: String) {
   open fun close() {
     bykcToken = null
     lastLoginMillis = 0L
+  }
+
+  private fun toMetricOperation(apiName: String): String {
+    return apiName.replace(Regex("([a-z0-9])([A-Z])"), "$1_$2").lowercase()
   }
 }
 

@@ -14,6 +14,7 @@ import cn.edu.ubaa.cgyy.cgyyRouting
 import cn.edu.ubaa.classroom.classroomRouting
 import cn.edu.ubaa.evaluation.evaluationRouting
 import cn.edu.ubaa.exam.examRouting
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.metrics.GaugeBindings
 import cn.edu.ubaa.metrics.LoginMetricsRecorder
 import cn.edu.ubaa.metrics.RedisLoginStatsStore
@@ -84,6 +85,7 @@ internal fun Application.module(
     appVersionService: AppVersionService = GlobalAppVersionService.instance,
 ) {
   log.info("Initializing Application module...")
+  AppObservability.initialize(metricsRegistry)
   loginMetricsRecorder.bindMetrics()
 
   install(MicrometerMetrics) { registry = metricsRegistry }
@@ -129,6 +131,13 @@ internal fun Application.module(
       val expiredCgyyClients = cgyyService.cleanupExpiredClients()
       val expiredSpocClients = spocService.cleanupExpiredClients()
       val expiredYgdkClients = ygdkService.cleanupExpiredClients()
+      AppObservability.recordCleanupRemovals("session", expiredSessions)
+      AppObservability.recordCleanupRemovals("prelogin", expiredPreLogin)
+      AppObservability.recordCleanupRemovals("signin_client", expiredSigninClients)
+      AppObservability.recordCleanupRemovals("bykc_client", expiredBykcClients)
+      AppObservability.recordCleanupRemovals("cgyy_client", expiredCgyyClients)
+      AppObservability.recordCleanupRemovals("spoc_client", expiredSpocClients)
+      AppObservability.recordCleanupRemovals("ygdk_client", expiredYgdkClients)
       if (
           expiredSessions +
               expiredPreLogin +
@@ -164,6 +173,7 @@ internal fun Application.module(
     GlobalAppVersionService.release(appVersionService)
     GlobalRefreshTokenService.instance.close()
     loginMetricsRecorder.close()
+    AppObservability.reset(metricsRegistry)
   }
 
   routing {
@@ -210,4 +220,7 @@ internal fun registerPerformanceGauges(
   GaugeBindings.bind(metricsRegistry, "ubaa.cgyy.cache") { cgyyService.cacheSize().toDouble() }
   GaugeBindings.bind(metricsRegistry, "ubaa.spoc.cache") { spocService.cacheSize().toDouble() }
   GaugeBindings.bind(metricsRegistry, "ubaa.ygdk.cache") { ygdkService.cacheSize().toDouble() }
+  GaugeBindings.bind(metricsRegistry, "ubaa.ygdk.context.cache") {
+    ygdkService.contextCacheSize().toDouble()
+  }
 }

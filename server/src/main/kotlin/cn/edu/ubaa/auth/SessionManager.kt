@@ -1,5 +1,6 @@
 package cn.edu.ubaa.auth
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
 import io.ktor.client.HttpClient
@@ -75,6 +76,13 @@ class SessionManager(
         RedisCookieStorageFactory(redisUri),
     private val clientFactory: (CookiesStorage) -> HttpClient = ::buildManagedClient,
 ) {
+  private sealed interface RestoreAttempt {
+    data class Restored(val session: UserSession) : RestoreAttempt
+
+    data class RaceReused(val session: UserSession) : RestoreAttempt
+
+    data object Miss : RestoreAttempt
+  }
 
   enum class SessionAccess {
     READ_ONLY,
@@ -214,16 +222,28 @@ class SessionManager(
       username: String,
       access: SessionAccess = SessionAccess.TOUCH,
   ): UserSession? {
-    val active = sessions[username] ?: restoreSession(username) ?: return null
-    if (active.isExpired(sessionTtl)) {
-      invalidateSession(username)
-      return null
+    sessions[username]?.let { active ->
+      return finalizeResolvedSession(username, active, access, "memory_hit")
     }
-    if (access == SessionAccess.TOUCH) {
-      touchSession(username, active)
+
+    val restoreAttempt =
+        try {
+          restoreSession(username)
+        } catch (e: Exception) {
+          AppObservability.recordSessionResolve("failed")
+          throw e
+        }
+
+    return when (restoreAttempt) {
+      RestoreAttempt.Miss -> {
+        AppObservability.recordSessionResolve("miss")
+        null
+      }
+      is RestoreAttempt.Restored ->
+          finalizeResolvedSession(username, restoreAttempt.session, access, "redis_restored")
+      is RestoreAttempt.RaceReused ->
+          finalizeResolvedSession(username, restoreAttempt.session, access, "race_reused")
     }
-    sessions[username] = active
-    return active
   }
 
   suspend fun getSessionByToken(
@@ -335,15 +355,34 @@ class SessionManager(
     }
   }
 
-  private suspend fun restoreSession(username: String): UserSession? {
+  private suspend fun finalizeResolvedSession(
+      username: String,
+      session: UserSession,
+      access: SessionAccess,
+      result: String,
+  ): UserSession? {
+    if (session.isExpired(sessionTtl)) {
+      AppObservability.recordSessionResolve("expired")
+      invalidateSession(username)
+      return null
+    }
+    if (access == SessionAccess.TOUCH) {
+      touchSession(username, session)
+    }
+    sessions[username] = session
+    AppObservability.recordSessionResolve(result)
+    return session
+  }
+
+  private suspend fun restoreSession(username: String): RestoreAttempt {
     val mutex = restoreMutexes.computeIfAbsent(username) { Mutex() }
     return try {
       mutex.withLock {
         sessions[username]?.let {
-          return@withLock it
+          return@withLock RestoreAttempt.RaceReused(it)
         }
 
-        val record = sessionStore.loadSession(username) ?: return@withLock null
+        val record = sessionStore.loadSession(username) ?: return@withLock RestoreAttempt.Miss
         val cookieStorage = cookieStorageFactory.create(username)
         cookieStorage.setWriteThrough(true)
         val client = clientFactory(cookieStorage)
@@ -362,10 +401,10 @@ class SessionManager(
         if (existing != null) {
           client.close()
           closeCookieStorage(cookieStorage)
-          return@withLock existing
+          return@withLock RestoreAttempt.RaceReused(existing)
         }
 
-        restored
+        RestoreAttempt.Restored(restored)
       }
     } finally {
       if (sessions[username] == null) {

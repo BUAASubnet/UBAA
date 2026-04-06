@@ -1,9 +1,13 @@
 package cn.edu.ubaa.cgyy
 
+import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.CgyyReservationSelectionDto
 import cn.edu.ubaa.model.dto.CgyyReservationSubmitRequest
 import cn.edu.ubaa.model.dto.CgyyVenueSiteDto
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -115,6 +119,8 @@ class CgyyServiceTest {
 
   @Test
   fun `getOrders retries with fresh client after transient gateway failure`() = runTest {
+    val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    AppObservability.initialize(registry)
     var closedFirstClient = false
     var clientCreations = 0
     val service =
@@ -147,12 +153,41 @@ class CgyyServiceTest {
             }
         )
 
-    val orders = service.getOrders("2418", page = 0, size = 20)
+    try {
+      val orders = service.getOrders("2418", page = 0, size = 20)
 
-    assertEquals(2, clientCreations)
-    assertTrue(closedFirstClient)
-    assertEquals(1, orders.content.size)
-    assertEquals(9, orders.content.first().id)
+      assertEquals(2, clientCreations)
+      assertTrue(closedFirstClient)
+      assertEquals(1, orders.content.size)
+      assertEquals(9, orders.content.first().id)
+      assertContains(
+          registry.scrape(),
+          "ubaa_retry_events_total{feature=\"cgyy\",operation=\"list_orders\",reason=\"client_refresh\"}",
+      )
+    } finally {
+      AppObservability.reset(registry)
+      registry.close()
+    }
+  }
+
+  @Test
+  fun `getPurposeTypes falls back to static definitions when gateway payload is empty`() = runTest {
+    val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    AppObservability.initialize(registry)
+    val service = CgyyService(clientProvider = { FakeGateway() })
+
+    try {
+      val types = service.getPurposeTypes("2418")
+
+      assertTrue(types.isNotEmpty())
+      assertContains(
+          registry.scrape(),
+          "ubaa_fallback_events_total{feature=\"cgyy\",operation=\"list_purpose_types\",reason=\"cgyy_static_purpose_types\"}",
+      )
+    } finally {
+      AppObservability.reset(registry)
+      registry.close()
+    }
   }
 
   @Test
