@@ -2,8 +2,8 @@ package cn.edu.ubaa.metrics
 
 import io.micrometer.core.instrument.FunctionCounter
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.concurrent.ConcurrentHashMap
 import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 internal object FunctionCounterBindings {
