@@ -5,9 +5,6 @@ on:
     types: [published]
   workflow_dispatch:
 
-env:
-  UPDATE_DOWNLOAD_URL: https://bhpan.buaa.edu.cn/link/AA61B7EDC6F2BC4AF5B040FAF0563AD160
-
 jobs:
   build-android:
     name: Build Android
@@ -100,11 +97,6 @@ jobs:
         id: get_version
         run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
       - name: Build Server
-        env:
-          SERVER_BIND_HOST: ${{ secrets.SERVER_BIND_HOST || '0.0.0.0' }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          USE_VPN: ${{ secrets.USE_VPN || 'false' }}
         run: |
           ./gradlew :server:buildFatJar
           cp server/build/libs/*-all.jar UBAA-Server-v${{ steps.get_version.outputs.VERSION }}.jar
