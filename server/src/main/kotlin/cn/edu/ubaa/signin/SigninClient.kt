@@ -107,7 +107,8 @@ class SigninClient(private val studentId: String) {
             }
         val body = response.bodyAsText()
         val result =
-            json.parseToJsonElement(body).jsonObject["result"]?.jsonArray ?: return@observeUpstreamRequest emptyList()
+            json.parseToJsonElement(body).jsonObject["result"]?.jsonArray
+                ?: return@observeUpstreamRequest emptyList()
         result.map {
           val obj = it.jsonObject
           SigninClassDto(
@@ -130,18 +131,17 @@ class SigninClient(private val studentId: String) {
     return try {
       val serverTimestamp =
           AppObservability.observeUpstreamRequest("iclass", "get_timestamp") {
-                client
-                    .get(
-                        VpnCipher.toVpnUrl(
-                            "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
-                        )
+            client
+                .get(
+                    VpnCipher.toVpnUrl(
+                        "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
                     )
-                    .body<JsonObject>()
-                    .get("timestamp")
-                    ?.jsonPrimitive
-                    ?.content
-              }
-              ?: return false to "获取服务器时间失败"
+                )
+                .body<JsonObject>()
+                .get("timestamp")
+                ?.jsonPrimitive
+                ?.content
+          } ?: return false to "获取服务器时间失败"
 
       AppObservability.observeUpstreamRequest("iclass", "sign_in") {
         val response =
@@ -155,8 +155,11 @@ class SigninClient(private val studentId: String) {
         val jsonResponse = json.parseToJsonElement(response.bodyAsText()).jsonObject
         val success =
             jsonResponse["STATUS"]?.jsonPrimitive?.intOrNull == 0 &&
-                jsonResponse["result"]?.jsonObject?.get("stuSignStatus")?.jsonPrimitive?.intOrNull ==
-                    1
+                jsonResponse["result"]
+                    ?.jsonObject
+                    ?.get("stuSignStatus")
+                    ?.jsonPrimitive
+                    ?.intOrNull == 1
         if (!success) {
           markError()
         }

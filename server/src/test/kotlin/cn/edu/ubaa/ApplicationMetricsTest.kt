@@ -36,12 +36,16 @@ class ApplicationMetricsTest {
     runBlocking {
       recorder.recordSuccess("2333", LoginSuccessMode.MANUAL)
       recorder.recordSuccess("2444", LoginSuccessMode.PRELOAD_AUTO)
-      AppObservability.observeBusinessOperation("auth", "login") { }
+      AppObservability.observeBusinessOperation("auth", "login") {}
       AppObservability.observeUpstreamRequest("uc", "fetch_uc_user") { "ok" }
       AppObservability.recordSessionResolve("memory_hit")
       AppObservability.recordCleanupRemovals("session", 2)
       AppObservability.recordRetryEvent("cgyy", "submit_reservation", "captcha_retry")
-      AppObservability.recordFallbackEvent("spoc", "list_assignments", "spoc_missing_course_metadata")
+      AppObservability.recordFallbackEvent(
+          "spoc",
+          "list_assignments",
+          "spoc_missing_course_metadata",
+      )
     }
 
     val metricsResponse = client.get("/metrics")

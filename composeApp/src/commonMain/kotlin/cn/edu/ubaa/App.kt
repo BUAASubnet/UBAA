@@ -145,9 +145,7 @@ fun App() {
             captchaRequired = uiState.captchaRequired,
             captchaInfo = uiState.captchaInfo,
             error = uiState.error,
-            modifier =
-                Modifier.background(MaterialTheme.colorScheme.background)
-                    .fillMaxSize(),
+            modifier = Modifier.background(MaterialTheme.colorScheme.background).fillMaxSize(),
         )
       }
     }

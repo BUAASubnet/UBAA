@@ -135,14 +135,12 @@ class AuthService(
                 CasParser.buildDefaultParameters(request, execution)
               }
 
-              val loginSubmitResponse =
-                  timeline.measure("submitCas") {
-                    AppObservability.observeUpstreamRequest("sso", "submit_credentials") {
-                      noRedirectClient.post(LOGIN_URL) {
-                        setBody(FormDataContent(loginFormParameters))
-                      }
-                    }
-                  }
+          val loginSubmitResponse =
+              timeline.measure("submitCas") {
+                AppObservability.observeUpstreamRequest("sso", "submit_credentials") {
+                  noRedirectClient.post(LOGIN_URL) { setBody(FormDataContent(loginFormParameters)) }
+                }
+              }
 
           followRedirectsAndCheckError(loginSubmitResponse, noRedirectClient)
         } else {
@@ -232,7 +230,10 @@ class AuthService(
             timeline.measure("issueTokens") {
               refreshTokenService.issueLoginTokens(userData, activeCandidate.username)
             }
-        safeRecordLoginSuccess(userData.schoolid.ifBlank { activeCandidate.username }, LoginSuccessMode.MANUAL)
+        safeRecordLoginSuccess(
+            userData.schoolid.ifBlank { activeCandidate.username },
+            LoginSuccessMode.MANUAL,
+        )
         timeline.measure("portalWarmupAsync") { maybeWarmupPortal(committedSession) }
         timeline.logSuccess("manual")
         return response
@@ -310,7 +311,10 @@ class AuthService(
             if (sessionCandidate != null) {
               val committedSession = sessionManager.commitSession(sessionCandidate, userData)
               val tokenResponse = refreshTokenService.issueTokens(sessionCandidate.username)
-              safeRecordLoginSuccess(userData.schoolid.ifBlank { sessionCandidate.username }, LoginSuccessMode.PRELOAD_AUTO)
+              safeRecordLoginSuccess(
+                  userData.schoolid.ifBlank { sessionCandidate.username },
+                  LoginSuccessMode.PRELOAD_AUTO,
+              )
               maybeWarmupPortal(committedSession)
               return@withNoRedirectClient LoginPreloadResponse(
                   captchaRequired = false,

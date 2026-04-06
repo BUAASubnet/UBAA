@@ -5,8 +5,8 @@ package cn.edu.ubaa.ui.screens.ygdk
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,10 +16,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Delete
@@ -452,9 +452,9 @@ private fun YgdkWheelPicker(
     snapshotFlow {
           val layoutInfo = listState.layoutInfo
           val center = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
-          layoutInfo.visibleItemsInfo.minByOrNull { item ->
-            abs((item.offset + item.size / 2) - center)
-          }?.index
+          layoutInfo.visibleItemsInfo
+              .minByOrNull { item -> abs((item.offset + item.size / 2) - center) }
+              ?.index
         }
         .filterNotNull()
         .map { it.coerceIn(values.indices) }
@@ -490,13 +490,9 @@ private fun YgdkWheelPicker(
           val isSelected = index == selectedIndex
           Box(
               modifier =
-                  Modifier.fillMaxWidth()
-                      .height(rowHeight)
-                      .clickable {
-                        coroutineScope.launch {
-                          listState.animateScrollToItem(index)
-                        }
-                      },
+                  Modifier.fillMaxWidth().height(rowHeight).clickable {
+                    coroutineScope.launch { listState.animateScrollToItem(index) }
+                  },
               contentAlignment = Alignment.Center,
           ) {
             Text(

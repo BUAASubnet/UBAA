@@ -51,7 +51,10 @@ fun Route.evaluationRouting() {
           val coursesToEvaluate = call.receive<List<EvaluationCourse>>()
           if (coursesToEvaluate.isEmpty()) {
             markBusinessFailure()
-            return@observeBusinessOperation call.respondError(HttpStatusCode.BadRequest, "invalid_request")
+            return@observeBusinessOperation call.respondError(
+                HttpStatusCode.BadRequest,
+                "invalid_request",
+            )
           }
 
           val results = evaluationService.autoEvaluate(username, coursesToEvaluate)

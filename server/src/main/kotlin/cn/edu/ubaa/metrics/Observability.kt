@@ -205,7 +205,8 @@ internal fun classifyBusinessThrowable(error: Throwable): String {
     is UpstreamTimeoutException -> "timeout"
     is LoginException,
     is YgdkAuthenticationException -> "unauthenticated"
-    is CgyyException -> if (error.code == "unauthenticated") "unauthenticated" else "business_failure"
+    is CgyyException ->
+        if (error.code == "unauthenticated") "unauthenticated" else "business_failure"
     is CaptchaRequiredException,
     is UnsupportedAcademicPortalException,
     is BykcException,

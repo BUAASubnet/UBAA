@@ -99,7 +99,7 @@ internal open class SpocClient(
     return withAuthenticatedCall {
       getEnvelope<SpocAssignmentDetailRaw>(
           operation = "get_assignment_detail",
-          url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid"
+          url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid",
       ) {
         parameter("id", assignmentId)
       }
@@ -110,7 +110,7 @@ internal open class SpocClient(
     return withAuthenticatedCall {
       getEnvelope<SpocSubmissionRaw?>(
           operation = "get_submission",
-          url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo"
+          url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo",
       ) {
         parameter("kczyid", assignmentId)
       }

@@ -162,7 +162,9 @@ private suspend fun ApplicationCall.respondCgyyError(
         else -> HttpStatusCode.BadGateway
       }
   when (e.code) {
-    "invalid_request", "reservation_invalid", "reservation_token_missing" -> scope?.markBusinessFailure()
+    "invalid_request",
+    "reservation_invalid",
+    "reservation_token_missing" -> scope?.markBusinessFailure()
     "unauthenticated" -> scope?.markUnauthenticated()
     else -> scope?.markError()
   }

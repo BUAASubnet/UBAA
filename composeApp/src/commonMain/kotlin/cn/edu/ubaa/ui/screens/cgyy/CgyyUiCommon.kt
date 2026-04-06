@@ -46,8 +46,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
-internal fun shouldShowCancelAction(order: CgyyOrderDto): Boolean =
-    order.canCancelAt()
+internal fun shouldShowCancelAction(order: CgyyOrderDto): Boolean = order.canCancelAt()
 
 @Composable
 internal fun CgyyOrderDisplayColor.toComposeColor(): Color =

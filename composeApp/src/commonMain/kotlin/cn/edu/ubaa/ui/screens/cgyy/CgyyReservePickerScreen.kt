@@ -357,7 +357,6 @@ private fun CgyyTableTimeHeaderCell(slot: CgyyTimeSlotDto) {
   }
 }
 
-
 private fun siteSelectionLabel(site: CgyyVenueSiteDto): String = buildString {
   append(shortVenueName(site.venueName))
   if (site.siteName.isNotBlank()) {
@@ -397,7 +396,6 @@ private fun dateWeekdaySuffix(date: String): String {
         DayOfWeek.SATURDAY -> "周六"
         DayOfWeek.SUNDAY -> "周日"
       }
-  val today =
-      Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+  val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
   return if (date == today) "今天" else weekday
 }

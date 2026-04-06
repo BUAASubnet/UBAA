@@ -106,7 +106,12 @@ class CgyyZhjsClient(
   }
 
   override suspend fun getPurposeTypesRaw(): JsonElement? {
-    return requestJson(operation = "list_purpose_types", method = HttpMethod.Get, path = "/api/codes").data
+    return requestJson(
+            operation = "list_purpose_types",
+            method = HttpMethod.Get,
+            path = "/api/codes",
+        )
+        .data
   }
 
   override suspend fun getReservationDayInfo(searchDate: String, venueSiteId: Int): JsonObject {
@@ -246,7 +251,12 @@ class CgyyZhjsClient(
   }
 
   override suspend fun getOrderDetail(orderId: Int): JsonObject {
-    val response = requestJson(operation = "get_order_detail", method = HttpMethod.Get, path = "/api/orders/$orderId")
+    val response =
+        requestJson(
+            operation = "get_order_detail",
+            method = HttpMethod.Get,
+            path = "/api/orders/$orderId",
+        )
     return response.data?.jsonObject ?: buildJsonObject {}
   }
 
@@ -259,7 +269,12 @@ class CgyyZhjsClient(
   }
 
   override suspend fun getLockCode(): JsonElement? {
-    return requestJson(operation = "get_lock_code", method = HttpMethod.Get, path = "/api/orders/lock/code").data
+    return requestJson(
+            operation = "get_lock_code",
+            method = HttpMethod.Get,
+            path = "/api/orders/lock/code",
+        )
+        .data
   }
 
   override fun close() {}
@@ -306,7 +321,9 @@ class CgyyZhjsClient(
             if (method != HttpMethod.Get) {
               val formParameters =
                   Parameters.build {
-                    form.forEach { (key, value) -> if (value != null) append(key, value.toString()) }
+                    form.forEach { (key, value) ->
+                      if (value != null) append(key, value.toString())
+                    }
                   }
               setBody(FormDataContent(formParameters))
             }

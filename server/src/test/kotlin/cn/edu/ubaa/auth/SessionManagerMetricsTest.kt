@@ -56,10 +56,6 @@ class SessionManagerMetricsTest {
   }
 
   private fun createNoopClient(): HttpClient {
-    return HttpClient(MockEngine) {
-      engine {
-        addHandler { respond("", HttpStatusCode.OK) }
-      }
-    }
+    return HttpClient(MockEngine) { engine { addHandler { respond("", HttpStatusCode.OK) } } }
   }
 }

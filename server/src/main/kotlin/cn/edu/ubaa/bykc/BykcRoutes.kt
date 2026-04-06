@@ -69,7 +69,10 @@ fun Route.bykcRouting() {
         return@get
       }
 
-      call.observeBusinessOperation("bykc", if (includeAll) "list_all_courses" else "list_courses") {
+      call.observeBusinessOperation(
+          "bykc",
+          if (includeAll) "list_all_courses" else "list_courses",
+      ) {
         try {
           val coursePage =
               if (includeAll) bykcService.getAllCourses(username, page, size)
@@ -227,7 +230,10 @@ fun Route.bykcRouting() {
                 call.respond(
                     HttpStatusCode.BadRequest,
                     ErrorResponse(
-                        ErrorDetails("sign_failed", cn.edu.ubaa.auth.userFacingMessage("sign_failed"))
+                        ErrorDetails(
+                            "sign_failed",
+                            cn.edu.ubaa.auth.userFacingMessage("sign_failed"),
+                        )
                     ),
                 )
               },
