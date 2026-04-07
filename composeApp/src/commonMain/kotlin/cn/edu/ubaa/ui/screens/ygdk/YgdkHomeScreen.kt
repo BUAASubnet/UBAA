@@ -220,7 +220,7 @@ private fun YgdkOverviewResponse?.summaryText(): String {
   val summary = this?.summary
   val count = summary?.termCount ?: 0
   val target = summary?.termTarget
-  return if (target != null && target > 0) "本学期打卡 $count / $target" else "本学期打卡 $count 次"
+  return if (target != null && target > 0) "本学期认定次数 $count / $target" else "本学期认定次数 $count 次"
 }
 
 private fun YgdkOverviewResponse?.weeklySummaryText(): String? {
