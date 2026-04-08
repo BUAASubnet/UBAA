@@ -85,7 +85,7 @@ fun SpocAssignmentsScreen(
         FloatingActionButton(onClick = { showSearchDialog = true }) {
           Icon(Icons.Default.Search, contentDescription = "搜索")
         }
-      }
+      },
   ) { padding ->
     Box(modifier = Modifier.fillMaxSize().padding(padding).pullRefresh(pullRefreshState)) {
       when {

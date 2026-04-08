@@ -126,7 +126,7 @@ fun YgdkClockinFormScreen(
         ) {
           Text(if (uiState.isSubmitting) "提交中..." else "提交打卡")
         }
-      }
+      },
   ) { padding ->
     Column(
         modifier =

@@ -46,7 +46,7 @@ fun SpocAssignmentDetailScreen(
         FloatingActionButton(onClick = onRetry) {
           Icon(Icons.Default.Refresh, contentDescription = "刷新")
         }
-      }
+      },
   ) { padding ->
     when {
       uiState.isDetailLoading ->

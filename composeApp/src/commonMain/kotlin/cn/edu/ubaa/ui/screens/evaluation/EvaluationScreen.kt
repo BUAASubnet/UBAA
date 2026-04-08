@@ -44,7 +44,7 @@ fun EvaluationScreen(viewModel: EvaluationViewModel) {
               contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
           )
         }
-      }
+      },
   ) { padding ->
     Box(modifier = Modifier.fillMaxSize().padding(padding)) {
       Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
