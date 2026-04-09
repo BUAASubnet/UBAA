@@ -32,7 +32,12 @@ import kotlinx.serialization.Serializable
 fun Route.authRouting(
     loginMetricsSink: LoginMetricsSink = NoOpLoginMetricsSink,
     sessionManager: SessionManager = GlobalSessionManager.instance,
-    authService: AuthService = AuthService(sessionManager, loginMetricsSink = loginMetricsSink),
+    authService: AuthService =
+        AuthService(
+            sessionManager,
+            loginMetricsSink = loginMetricsSink,
+            distributedLockManager = GlobalDistributedLockManager.instance,
+        ),
 ) {
 
   route("/api/v1/auth") {

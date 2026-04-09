@@ -1,8 +1,6 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.UserData
-import io.lettuce.core.RedisClient
-import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.async.RedisAsyncCommands
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -12,21 +10,14 @@ import kotlinx.coroutines.sync.withLock
 
 /** Redis 会话持久化仓库。 负责将会话元数据（用户身份、认证时间、活跃时间）保存到 Redis，以便服务重启后能恢复活跃会话。 */
 class RedisSessionStore(
-    private val redisUri: String,
+    private val runtime: RedisRuntime = GlobalRedisRuntime.instance,
     sessionTtl: java.time.Duration = AuthConfig.sessionTtl,
 ) : SessionPersistence {
   private val mutexes = ConcurrentHashMap<String, Mutex>()
-  private val client: RedisClient by lazy { RedisClient.create(redisUri) }
-  private val connection: StatefulRedisConnection<String, String> by lazy { client.connect() }
-  private val commands: RedisAsyncCommands<String, String> by lazy { connection.async() }
+  private val commands: RedisAsyncCommands<String, String>
+    get() = runtime.asyncCommands
   private val keyPrefix = "session:"
   private val sessionTtl = sessionTtl.seconds.coerceAtLeast(1L)
-
-  data class SessionRecord(
-      val userData: UserData,
-      val authenticatedAt: Instant,
-      val lastActivity: Instant,
-  )
 
   override suspend fun saveSession(
       username: String,
@@ -34,9 +25,12 @@ class RedisSessionStore(
       authenticatedAt: Instant,
       lastActivity: Instant,
       portalType: AcademicPortalType,
-  ) {
-    withUserLock(username) {
+  ): SessionPersistence.SessionVersion {
+    return withUserLock(username) {
       val key = keyFor(username)
+      val generation =
+          (commands.hget(key, "generation").await()?.toLongOrNull() ?: 0L) + 1L
+      val version = SessionPersistence.SessionVersion(generation = generation, revision = 1L)
       val sessionData =
           mapOf(
               "name" to userData.name,
@@ -44,26 +38,47 @@ class RedisSessionStore(
               "authenticated_at" to authenticatedAt.toEpochMilli().toString(),
               "last_activity" to lastActivity.toEpochMilli().toString(),
               "portal_type" to portalType.name,
+              "generation" to version.generation.toString(),
+              "revision" to version.revision.toString(),
           )
 
       commands.hset(key, sessionData).await()
       commands.expire(key, sessionTtl).await()
+      version
     }
   }
 
-  override suspend fun updateLastActivity(username: String, lastActivity: Instant) {
-    withUserLock(username) {
+  override suspend fun updateLastActivity(
+      username: String,
+      lastActivity: Instant,
+  ): SessionPersistence.SessionVersion? {
+    return withUserLock(username) {
       val key = keyFor(username)
+      if (commands.exists(key).await() == 0L) {
+        return@withUserLock null
+      }
       commands.hset(key, "last_activity", lastActivity.toEpochMilli().toString()).await()
+      val revision = commands.hincrby(key, "revision", 1).await()
+      val generation = commands.hget(key, "generation").await()?.toLongOrNull() ?: 1L
       commands.expire(key, sessionTtl).await()
+      SessionPersistence.SessionVersion(generation = generation, revision = revision)
     }
   }
 
-  override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {
-    withUserLock(username) {
+  override suspend fun updatePortalType(
+      username: String,
+      portalType: AcademicPortalType,
+  ): SessionPersistence.SessionVersion? {
+    return withUserLock(username) {
       val key = keyFor(username)
+      if (commands.exists(key).await() == 0L) {
+        return@withUserLock null
+      }
       commands.hset(key, "portal_type", portalType.name).await()
+      val revision = commands.hincrby(key, "revision", 1).await()
+      val generation = commands.hget(key, "generation").await()?.toLongOrNull() ?: 1L
       commands.expire(key, sessionTtl).await()
+      SessionPersistence.SessionVersion(generation = generation, revision = revision)
     }
   }
 
@@ -81,13 +96,33 @@ class RedisSessionStore(
           sessionMap["portal_type"]?.let {
             runCatching { AcademicPortalType.valueOf(it) }.getOrNull()
           } ?: AcademicPortalType.UNKNOWN
+      val revision = sessionMap["revision"]?.toLongOrNull() ?: 1L
 
       SessionPersistence.SessionRecord(
           userData = UserData(name = name, schoolid = schoolid),
           authenticatedAt = Instant.ofEpochMilli(authenticatedAtMs),
           lastActivity = Instant.ofEpochMilli(lastActivityMs),
           portalType = portalType,
+          generation = sessionMap["generation"]?.toLongOrNull() ?: 1L,
+          revision = revision,
       )
+    }
+  }
+
+  override suspend fun currentVersion(username: String): SessionPersistence.SessionVersion? {
+    return withUserLock(username) {
+      val key = keyFor(username)
+      val generation = commands.hget(key, "generation").await()?.toLongOrNull()
+      val revision = commands.hget(key, "revision").await()?.toLongOrNull()
+      if (generation != null || revision != null) {
+        return@withUserLock SessionPersistence.SessionVersion(
+            generation = generation ?: 1L,
+            revision = revision ?: 1L,
+        )
+      }
+
+      val exists = commands.exists(key).await()
+      if (exists > 0) SessionPersistence.SessionVersion(1L, 1L) else null
     }
   }
 
@@ -105,10 +140,7 @@ class RedisSessionStore(
   }
 
   override fun close() {
-    try {
-      runCatching { connection.close() }
-      client.shutdown()
-    } catch (_: Exception) {}
+    // No-op: Redis 连接由 GlobalRedisRuntime 统一管理
   }
 
   private suspend fun <T> withUserLock(username: String, block: suspend () -> T): T {

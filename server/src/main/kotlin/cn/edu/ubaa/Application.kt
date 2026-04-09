@@ -1,7 +1,10 @@
 package cn.edu.ubaa
 
 import cn.edu.ubaa.auth.GlobalAcademicPortalWarmupCoordinator
+import cn.edu.ubaa.auth.AuthConfig
+import cn.edu.ubaa.auth.GlobalDistributedLockManager
 import cn.edu.ubaa.auth.GlobalRefreshTokenService
+import cn.edu.ubaa.auth.GlobalRedisRuntime
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.JwtAuth
 import cn.edu.ubaa.auth.JwtAuth.configureJwtAuth
@@ -14,6 +17,8 @@ import cn.edu.ubaa.cgyy.cgyyRouting
 import cn.edu.ubaa.classroom.classroomRouting
 import cn.edu.ubaa.evaluation.evaluationRouting
 import cn.edu.ubaa.exam.examRouting
+import cn.edu.ubaa.health.RedisReadinessProbe
+import cn.edu.ubaa.health.healthRouting
 import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.metrics.GaugeBindings
 import cn.edu.ubaa.metrics.LoginMetricsRecorder
@@ -38,13 +43,17 @@ import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.callid.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.forwardedheaders.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheusmetrics.*
+import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -97,11 +106,32 @@ internal fun Application.module(
     appVersionService: AppVersionService = GlobalAppVersionService.instance,
 ) {
   log.info("Initializing Application module...")
+  AuthConfig.validateDistributedLockBudgets()
   AppObservability.initialize(metricsRegistry)
   loginMetricsRecorder.bindMetrics()
 
   install(MicrometerMetrics) { registry = metricsRegistry }
-  install(CallLogging) { level = Level.INFO }
+
+  if (ServerRuntimeConfig.enableForwardedHeaders) {
+    install(XForwardedHeaders)
+  }
+
+  install(CallId) {
+    retrieveFromHeader(HttpHeaders.XRequestId)
+    generate { UUID.randomUUID().toString() }
+    verify { callId -> callId.isNotBlank() }
+    replyToHeader(HttpHeaders.XRequestId)
+  }
+
+  install(CallLogging) {
+    level = Level.INFO
+    callIdMdc("requestId")
+    mdc("instanceId") { ServerRuntimeConfig.instanceId }
+    mdc("forwardedFor") {
+      it.request.headers["X-Forwarded-For"]?.substringBefore(',')?.trim()
+          ?: it.request.local.remoteHost
+    }
+  }
   configureJwtAuth()
 
   install(CORS) {
@@ -112,12 +142,21 @@ internal fun Application.module(
     allowHeader(HttpHeaders.Authorization)
     allowHeader(HttpHeaders.ContentType)
     allowHeader(HttpHeaders.AccessControlAllowOrigin)
-    anyHost()
+    allowHeader(HttpHeaders.XRequestId)
+
+    if (ServerRuntimeConfig.allowAnyCorsHost) {
+      anyHost()
+    } else {
+      ServerRuntimeConfig.corsAllowedOrigins.forEach { origin ->
+        allowHost(origin.host, schemes = origin.schemes)
+      }
+    }
   }
 
   install(ContentNegotiation) { json() }
   configureGlobalErrorHandling()
 
+  val readinessProbe = RedisReadinessProbe()
   val sessionManager = GlobalSessionManager.instance
   val bykcService = GlobalBykcService.instance
   val cgyyService = GlobalCgyyService.instance
@@ -130,9 +169,16 @@ internal fun Application.module(
       cgyyService,
       spocService,
       ygdkService,
+      readinessProbe,
   )
 
   val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  cleanupScope.launch {
+    while (isActive) {
+      readinessProbe.isReady()
+      delay(15.seconds)
+    }
+  }
   cleanupScope.launch {
     while (isActive) {
       delay(5.minutes)
@@ -181,15 +227,18 @@ internal fun Application.module(
     spocService.clearCache()
     ygdkService.clearCache()
     GlobalAcademicPortalWarmupCoordinator.close()
-    sessionManager.close()
+    GlobalSessionManager.close()
     GlobalAppVersionService.release(appVersionService)
-    GlobalRefreshTokenService.instance.close()
+    GlobalRefreshTokenService.close()
+    GlobalDistributedLockManager.close()
     loginMetricsRecorder.close()
+    GlobalRedisRuntime.close()
     AppObservability.reset(metricsRegistry)
   }
 
   routing {
     get("/metrics") { call.respondText(metricsRegistry.scrape()) }
+    healthRouting(readinessProbe)
 
     appVersionRouting(appVersionService)
     authRouting(loginMetricsRecorder)
@@ -220,6 +269,7 @@ internal fun registerPerformanceGauges(
     cgyyService: cn.edu.ubaa.cgyy.CgyyService,
     spocService: cn.edu.ubaa.spoc.SpocService,
     ygdkService: cn.edu.ubaa.ygdk.YgdkService,
+    readinessProbe: RedisReadinessProbe,
 ) {
   GaugeBindings.bind(metricsRegistry, "ubaa.sessions.active") {
     sessionManager.activeSessionCount().toDouble()
@@ -234,5 +284,8 @@ internal fun registerPerformanceGauges(
   GaugeBindings.bind(metricsRegistry, "ubaa.ygdk.cache") { ygdkService.cacheSize().toDouble() }
   GaugeBindings.bind(metricsRegistry, "ubaa.ygdk.context.cache") {
     ygdkService.contextCacheSize().toDouble()
+  }
+  GaugeBindings.bind(metricsRegistry, "ubaa.redis.ready") {
+    if (readinessProbe.lastKnownReady()) 1.0 else 0.0
   }
 }

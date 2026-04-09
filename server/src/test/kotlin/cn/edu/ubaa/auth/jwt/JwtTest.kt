@@ -182,4 +182,32 @@ class SessionManagerJwtTest {
 
     assertNull(refreshTokenService.refreshTokens(initialTokens.refreshToken, sessionManager))
   }
+
+  @Test
+  fun globalSessionManagerCanBeRecreatedAfterClose() {
+    val first = GlobalSessionManager.instance
+    GlobalSessionManager.close()
+
+    val second = GlobalSessionManager.instance
+
+    try {
+      assertNotSame(first, second)
+    } finally {
+      GlobalSessionManager.close()
+    }
+  }
+
+  @Test
+  fun globalRefreshTokenServiceCanBeRecreatedAfterClose() {
+    val first = GlobalRefreshTokenService.instance
+    GlobalRefreshTokenService.close()
+
+    val second = GlobalRefreshTokenService.instance
+
+    try {
+      assertNotSame(first, second)
+    } finally {
+      GlobalRefreshTokenService.close()
+    }
+  }
 }

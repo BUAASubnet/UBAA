@@ -93,33 +93,44 @@ cp .env.sample .env
 | `API_ENDPOINT`             | `http://localhost:5432`  | 客户端连接的后端地址           |
 | `SERVER_PORT`              | `5432`                   | 服务端监听端口                 |
 | `SERVER_BIND_HOST`         | `0.0.0.0`                | 服务端绑定地址                 |
+| `INSTANCE_ID`              | `HOSTNAME / JVM name`    | 后端节点唯一标识，用于日志与监控 drill-down |
 | `JWT_SECRET`               | *(需修改)*               | 用于签名 access token 的密钥   |
 | `USE_VPN`                  | `false`                  | 是否通过 WebVPN 代理访问校内网 |
+| `ENABLE_FORWARDED_HEADERS` | `true`                   | 是否信任 Nginx 注入的 `X-Forwarded-*` |
+| `CORS_ALLOWED_ORIGINS`     | 空                       | 逗号分隔的跨域白名单；同域 Nginx 部署可留空 |
 | `ACCESS_TOKEN_TTL_MINUTES` | `30`                     | access token 有效期            |
 | `REFRESH_TOKEN_TTL_DAYS`   | `7`                      | refresh token 有效期           |
 | `SESSION_TTL_DAYS`         | `7`                      | Redis 会话与 Cookie 有效期     |
+| `PRELOGIN_TTL_MINUTES`     | `5`                      | 预登录会话在 Redis 中的有效期  |
+| `SESSION_COOKIE_SYNC_INTERVAL_MS` | `5000`           | 已提交会话 Cookie 从 Redis 回源同步的最小间隔（毫秒） |
 | `LOGIN_MAX_CONCURRENCY`    | `6`                      | 服务端允许并行 fresh login 的最大数量 |
+| `AUTH_DISTRIBUTED_LOCK_TTL_MS` | `20000`             | fresh login / 预登录提升使用的 Redis 锁 TTL（毫秒） |
+| `AUTH_DISTRIBUTED_LOCK_WAIT_MS` | `5000`             | fresh login / 预登录提升锁等待上限（毫秒） |
 | `AUTH_VALIDATION_TIMEOUT_MS` | `3000`                 | 认证状态校验/会话复用校验的上游超时预算（毫秒） |
 | `AUTH_PRELOAD_TIMEOUT_MS`  | `3000`                   | `/api/v1/auth/preload` 探测的上游超时预算（毫秒） |
 | `AUTH_LOGIN_TIMEOUT_MS`    | `18000`                  | 单次 fresh login 的总超时预算（毫秒） |
 | `REDIS_URI`                | `redis://localhost:6379` | Redis 会话持久化地址           |
+| `REDIS_HEALTH_TIMEOUT_MS`  | `1000`                   | `/health/ready` 检查 Redis 的超时预算（毫秒） |
 
 认证调优说明：
 *   `AUTH_VALIDATION_TIMEOUT_MS` 命中后，服务端会返回可重试的 `503 auth_upstream_timeout`，不会清理现有会话。
 *   `AUTH_PRELOAD_TIMEOUT_MS` 命中后，`/api/v1/auth/preload` 会降级返回最小可用结果，不会阻塞等待上游。
 *   `AUTH_LOGIN_TIMEOUT_MS` 控制 fresh login 的整体截止时间，避免上游卡顿导致 50-100 秒长挂。
 *   `LOGIN_MAX_CONCURRENCY` 只限制 fresh login，不影响已建立会话的状态查询。
+*   服务启动时会校验 `AUTH_DISTRIBUTED_LOCK_TTL_MS` 是否至少比 `AUTH_LOGIN_TIMEOUT_MS` / `AUTH_PRELOAD_TIMEOUT_MS` 大 2 秒，避免锁提前过期导致并发 fresh login 串写。
+*   多节点部署时，所有后端节点必须共享同一个 `JWT_SECRET`、`REDIS_URI`，并各自设置不同的 `INSTANCE_ID`。
+*   默认推荐“同域 Nginx 统一前端 + 后端无粘性负载均衡”部署，此时 `CORS_ALLOWED_ORIGINS` 可以留空；本地跨域联调时再按需显式配置。
 
 ---
 
 ## 📊 监控与运维 (Observability)
 
-服务端内置了企业级的监控与日志能力，保障服务稳定运行。
+服务端内置了面向多节点部署的监控、探针与链路日志能力，保障服务稳定运行。
 
 *   **📈 指标监控 (Metrics)**:
     *   Endpoint: `GET /metrics`
     *   格式: Prometheus 文本格式
-    *   内容: JVM 内存/GC、HTTP 请求吞吐/延迟、线程池状态，以及登录成功统计。
+    *   内容: JVM 内存/GC、HTTP 请求吞吐/延迟、线程池状态，以及登录成功统计、Redis readiness、预登录跨节点恢复、分布式锁等待/超时、清理跳过等多节点运行指标。
     *   常用 PromQL:
         *   接口调用次数:
             `sum by (route, method, status) (increase(ktor_http_server_requests_seconds_count[24h]))`
@@ -131,16 +142,32 @@ cp .env.sample .env
             `ubaa_auth_login_events_window{window="24h"}`
         *   固定窗口唯一登录用户数:
             `ubaa_auth_login_unique_users_window{window="24h"}`
+        *   集群 Redis readiness:
+            `sum(ubaa_redis_ready)`
+        *   预登录跨节点恢复速率:
+            `sum(rate(ubaa_auth_prelogin_resolve_total{result="redis_restored"}[5m]))`
+        *   分布式锁超时速率:
+            `sum(rate(ubaa_distributed_lock_timeout_total[5m])) by (scope)`
     *   登录统计说明:
         *   `ubaa_auth_login_success_total{mode="manual|preload_auto"}` 统计成功建立会话的登录次数。
         *   `ubaa_auth_login_events_window{window="1h|24h|7d|30d"}` 统计固定窗口内的成功登录人次。
         *   `ubaa_auth_login_unique_users_window{window="1h|24h|7d|30d"}` 使用 Redis HyperLogLog 做近似去重，适合监控看板，不保证绝对精确。
+        *   `ubaa_redis_ready` 是单节点 gauge，启动后默认从 `0` 开始，并会由后台每 15 秒刷新一次 Redis readiness；`1` 表示最近一次检查通过。
+        *   `ubaa_cleanup_skipped_total{kind="session",reason="redis_fresh"}` 表示本地清理时发现 Redis 里仍有更新会话，因此跳过误删。
+        *   多节点下 `logout` 或新登录覆盖旧会话后，其他节点会在下一次访问时通过 Redis 中的会话代际 / revision 对账淘汰本地旧副本。
+
+*   **🩺 健康探针 (Health Checks)**:
+    *   `GET /health/live`: 仅表示应用进程仍在运行。
+    *   `GET /health/ready`: 以 Redis 连通性为准，Redis 不可用时返回 `503`，适合给外部负载均衡 / 容器平台做摘流判断。
+    *   仓库里的 `ops/nginx/ubaa.conf` 只是把 `/health/*` 透传到后端；它本身不做主动健康摘流，真正的主动摘流需要外部 LB、Kubernetes probe 或额外的健康检查组件。
+    *   即使没有外部持续访问 `/health/ready`，服务端也会后台周期刷新 readiness 状态，确保 `/metrics` 中的 `ubaa_redis_ready` 可直接用于监控面板。
 
 *   **📝 日志系统 (Logging)**:
     *   **控制台**: 实时输出 Info 级别以上日志。
     *   **文件归档**: 自动写入 `server/logs/server.log`。
         *   策略: 按天滚动，保留 30 天历史。
         *   内容: 包含完整的请求链路追踪 (Trace) 和异常堆栈。
+    *   每个请求都会附带 `X-Request-Id`；如果前置 Nginx 已注入，则服务端沿用并回写到响应头，同时写入日志 MDC 中的 `req` / `inst` / `fwd` 字段。
 
 ---
 

@@ -28,11 +28,14 @@ import kotlinx.coroutines.sync.withLock
 class RedisCookieStorage(
     private val commands: RedisAsyncCommands<String, String>,
     initialSubject: String,
+    ttl: java.time.Duration = AuthConfig.sessionTtl,
+    private val syncIntervalMillis: Long = AuthConfig.sessionCookieSyncIntervalMillis,
 ) : ManagedCookieStorage {
   private val mutex = Mutex()
   @Volatile private var key = storageKey(initialSubject)
-  private val keyTtlSeconds = AuthConfig.sessionTtl.seconds.coerceAtLeast(1L)
+  @Volatile private var keyTtlSeconds = ttl.seconds.coerceAtLeast(1L)
   private var writeThrough = false
+  private var lastRedisSyncAtMillis = 0L
 
   // 内存缓存：field -> serializedCookie。null 表示尚未从 Redis 加载。
   private var cache: MutableMap<String, String>? = null
@@ -80,7 +83,7 @@ class RedisCookieStorage(
   override suspend fun get(requestUrl: Url): List<Cookie> {
     val now = System.currentTimeMillis()
     return mutex.withLock {
-      ensureCacheLoaded()
+      ensureCacheLoaded(forceReload = shouldReloadFromRedis(now))
       val cookieMap = cache!!
       if (cookieMap.isEmpty()) return@withLock emptyList()
 
@@ -148,6 +151,22 @@ class RedisCookieStorage(
     // No-op: Redis 连接生命周期由 RedisCookieStorageFactory 统一管理
   }
 
+  override suspend fun updatePersistenceTtl(ttl: java.time.Duration) {
+    mutex.withLock {
+      keyTtlSeconds = ttl.seconds.coerceAtLeast(1L)
+      if (writeThrough) {
+        applyPersistenceTtlInternal()
+      }
+    }
+  }
+
+  override suspend fun touchPersistence(ttl: java.time.Duration?) {
+    mutex.withLock {
+      ttl?.let { keyTtlSeconds = it.seconds.coerceAtLeast(1L) }
+      applyPersistenceTtlInternal()
+    }
+  }
+
   override suspend fun clear() {
     mutex.withLock {
       cache = mutableMapOf()
@@ -169,25 +188,26 @@ class RedisCookieStorage(
       } else {
         commands.del(targetKey).await()
         commands.hset(targetKey, cookieMap).await()
-        val ttl = commands.ttl(key).await()
-        if (ttl != null && ttl > 0) {
-          commands.expire(targetKey, ttl).await()
-        } else {
-          commands.expire(targetKey, keyTtlSeconds).await()
-        }
+        val ttl = computeCacheTtlSeconds(cookieMap.values, System.currentTimeMillis()) ?: keyTtlSeconds
+        commands.expire(targetKey, ttl).await()
         commands.del(key).await()
       }
 
       key = targetKey
       cache = null // 下次访问时重新从新 key 加载
+      lastRedisSyncAtMillis = 0L
       dirtyFields.clear()
       deletedFields.clear()
     }
   }
 
-  private suspend fun ensureCacheLoaded() {
-    if (cache != null) return
+  private suspend fun ensureCacheLoaded(forceReload: Boolean = false) {
+    if (!forceReload && cache != null) return
+    if (forceReload) {
+      flushInternal()
+    }
     cache = commands.hgetall(key).await()?.toMutableMap() ?: mutableMapOf()
+    lastRedisSyncAtMillis = System.currentTimeMillis()
   }
 
   private suspend fun flushInternal() {
@@ -206,6 +226,14 @@ class RedisCookieStorage(
     }
     dirtyFields.clear()
     deletedFields.clear()
+  }
+
+  private suspend fun applyPersistenceTtlInternal() {
+    if ((cache?.isEmpty() == true) && dirtyFields.isEmpty() && deletedFields.isEmpty()) {
+      return
+    }
+    commands.expire(key, keyTtlSeconds).await()
+    lastRedisSyncAtMillis = System.currentTimeMillis()
   }
 
   private fun serializeCookie(
@@ -299,6 +327,11 @@ class RedisCookieStorage(
   }
 
   private fun isHttps(url: Url): Boolean = url.protocol.name.equals("https", true)
+
+  private fun shouldReloadFromRedis(now: Long): Boolean {
+    if (!writeThrough || syncIntervalMillis <= 0L) return false
+    return cache != null && now - lastRedisSyncAtMillis >= syncIntervalMillis
+  }
 
   private data class StoredCookie(
       val name: String,

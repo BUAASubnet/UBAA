@@ -22,6 +22,16 @@ class ApplicationTest {
   }
 
   @Test
+  fun requestIdHeaderIsEchoedBack() = testApplication {
+    application { module() }
+
+    val response = client.get("/") { header(HttpHeaders.XRequestId, "req-test-123") }
+
+    assertEquals(HttpStatusCode.OK, response.status)
+    assertEquals("req-test-123", response.headers[HttpHeaders.XRequestId])
+  }
+
+  @Test
   fun userInfoWithoutTokenReturnsUnauthorized() = testApplication {
     application { module() }
 

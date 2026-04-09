@@ -4,6 +4,7 @@ import io.ktor.http.Cookie
 import io.ktor.http.Url
 import io.ktor.util.date.GMTDate
 import java.time.Instant
+import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
 class InMemorySessionStore : SessionPersistence {
@@ -15,23 +16,46 @@ class InMemorySessionStore : SessionPersistence {
       authenticatedAt: java.time.Instant,
       lastActivity: java.time.Instant,
       portalType: AcademicPortalType,
-  ) {
-    sessions[username] =
-        SessionPersistence.SessionRecord(userData, authenticatedAt, lastActivity, portalType)
+  ): SessionPersistence.SessionVersion {
+    val nextGeneration = (sessions[username]?.generation ?: 0L) + 1L
+    val record =
+        SessionPersistence.SessionRecord(
+            userData = userData,
+            authenticatedAt = authenticatedAt,
+            lastActivity = lastActivity,
+            portalType = portalType,
+            generation = nextGeneration,
+            revision = 1L,
+        )
+    sessions[username] = record
+    return record.version()
   }
 
-  override suspend fun updateLastActivity(username: String, lastActivity: java.time.Instant) {
-    val current = sessions[username] ?: return
-    sessions[username] = current.copy(lastActivity = lastActivity)
+  override suspend fun updateLastActivity(
+      username: String,
+      lastActivity: java.time.Instant,
+  ): SessionPersistence.SessionVersion? {
+    val current = sessions[username] ?: return null
+    val updated = current.copy(lastActivity = lastActivity, revision = current.revision + 1)
+    sessions[username] = updated
+    return updated.version()
   }
 
-  override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {
-    val current = sessions[username] ?: return
-    sessions[username] = current.copy(portalType = portalType)
+  override suspend fun updatePortalType(
+      username: String,
+      portalType: AcademicPortalType,
+  ): SessionPersistence.SessionVersion? {
+    val current = sessions[username] ?: return null
+    val updated = current.copy(portalType = portalType, revision = current.revision + 1)
+    sessions[username] = updated
+    return updated.version()
   }
 
   override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? =
       sessions[username]
+
+  override suspend fun currentVersion(username: String): SessionPersistence.SessionVersion? =
+      sessions[username]?.version()
 
   override suspend fun deleteSession(username: String) {
     sessions.remove(username)
@@ -45,7 +69,7 @@ class InMemorySessionStore : SessionPersistence {
 open class InMemoryCookieStorageFactory : ManagedCookieStorageFactory {
   private val storages = ConcurrentHashMap<String, InMemoryCookieStorage>()
 
-  override fun create(subject: String): ManagedCookieStorage {
+  override fun create(subject: String, ttl: Duration): ManagedCookieStorage {
     return storages.computeIfAbsent(subject) { createStorage() }
   }
 
@@ -100,6 +124,10 @@ open class InMemoryCookieStorageFactory : ManagedCookieStorageFactory {
       target.cookies.putAll(cookies)
       cookies.clear()
     }
+
+    override suspend fun updatePersistenceTtl(ttl: Duration) = Unit
+
+    override suspend fun touchPersistence(ttl: Duration?) = Unit
 
     override fun close() {}
 
@@ -188,6 +216,25 @@ class InMemoryRefreshTokenStore : RefreshTokenStore {
 
   override suspend fun deleteByUsername(username: String) {
     records.remove(username)
+  }
+
+  override fun close() {
+    // Keep the in-memory contents available to other SessionManager instances in tests.
+  }
+}
+
+class InMemoryPreLoginStore : PreLoginPersistence {
+  private val records = ConcurrentHashMap<String, PreLoginPersistence.PreLoginRecord>()
+
+  override suspend fun save(clientId: String, lastTouchedAt: Instant) {
+    records[clientId] =
+        PreLoginPersistence.PreLoginRecord(clientId = clientId, lastTouchedAt = lastTouchedAt)
+  }
+
+  override suspend fun load(clientId: String): PreLoginPersistence.PreLoginRecord? = records[clientId]
+
+  override suspend fun delete(clientId: String) {
+    records.remove(clientId)
   }
 
   override fun close() {

@@ -1,6 +1,7 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.LoginRequest
+import cn.edu.ubaa.model.dto.LoginPreloadRequest
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
 import cn.edu.ubaa.utils.UpstreamTimeoutException
@@ -147,6 +148,41 @@ class AuthRoutesTest {
         )
       }
 
+  @Test
+  fun preloadLockTimeoutReturnsDegradedResponseInsteadOfServerError() = testApplication {
+    val sessionManager = createSessionManager { authMockClient() }
+    val authService =
+        AuthService(
+            sessionManager = sessionManager,
+            refreshTokenService = RefreshTokenService(refreshTokenStore = InMemoryRefreshTokenStore()),
+            distributedLockManager =
+                object : DistributedLockManager {
+                  override suspend fun <T> withLock(
+                      scope: String,
+                      key: String,
+                      block: suspend () -> T,
+                  ): T {
+                    throw UpstreamTimeoutException("认证请求繁忙，请稍后重试", "auth_lock_timeout")
+                  }
+                },
+        )
+
+    application {
+      install(ContentNegotiation) { json() }
+      routing { authRouting(sessionManager = sessionManager, authService = authService) }
+    }
+
+    val response =
+        client.post("/api/v1/auth/preload") {
+          contentType(ContentType.Application.Json)
+          setBody(json.encodeToString(LoginPreloadRequest(clientId = "lock-timeout")))
+        }
+
+    assertEquals(HttpStatusCode.OK, response.status)
+    assertTrue(response.bodyAsText().contains("\"clientId\":\"lock-timeout\""))
+    assertTrue(response.bodyAsText().contains("\"captchaRequired\":false"))
+  }
+
   private suspend fun prepareSession(sessionManager: SessionManager, username: String): String {
     val candidate = sessionManager.prepareSession(username)
     sessionManager.commitSession(candidate, UserData(name = "Alice", schoolid = username))
@@ -156,6 +192,7 @@ class AuthRoutesTest {
   private fun createSessionManager(clientFactory: () -> HttpClient): SessionManager {
     return SessionManager(
         sessionStore = InMemorySessionStore(),
+        preLoginStore = InMemoryPreLoginStore(),
         cookieStorageFactory = InMemoryCookieStorageFactory(),
         clientFactory = { _: CookiesStorage -> clientFactory() },
     )

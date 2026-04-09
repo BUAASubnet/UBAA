@@ -4,8 +4,6 @@ import cn.edu.ubaa.model.dto.LoginResponse
 import cn.edu.ubaa.model.dto.TokenRefreshResponse
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
-import io.lettuce.core.RedisClient
-import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.async.RedisAsyncCommands
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -42,10 +40,11 @@ interface RefreshTokenStore {
   fun close()
 }
 
-class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
-  private val client: RedisClient by lazy { RedisClient.create(redisUri) }
-  private val connection: StatefulRedisConnection<String, String> by lazy { client.connect() }
-  private val commands: RedisAsyncCommands<String, String> by lazy { connection.async() }
+class RedisRefreshTokenStore(
+    private val runtime: RedisRuntime = GlobalRedisRuntime.instance,
+) : RefreshTokenStore {
+  private val commands: RedisAsyncCommands<String, String>
+    get() = runtime.asyncCommands
   private val mutexes = ConcurrentHashMap<String, Mutex>()
 
   override suspend fun saveToken(
@@ -106,8 +105,7 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
   }
 
   override fun close() {
-    runCatching { connection.close() }
-    runCatching { client.shutdown() }
+    // No-op: Redis 连接由 GlobalRedisRuntime 统一管理
   }
 
   private suspend fun <T> withUserLock(username: String, block: suspend () -> T): T {
@@ -176,7 +174,7 @@ class RedisRefreshTokenStore(private val redisUri: String) : RefreshTokenStore {
 class RefreshTokenService(
     private val accessTokenTtl: Duration = AuthConfig.accessTokenTtl,
     private val refreshTokenTtl: Duration = AuthConfig.refreshTokenTtl,
-    private val refreshTokenStore: RefreshTokenStore = RedisRefreshTokenStore(AuthConfig.redisUri),
+    private val refreshTokenStore: RefreshTokenStore = RedisRefreshTokenStore(),
 ) {
 
   suspend fun issueLoginTokens(userData: UserData, username: String): LoginResponse {
@@ -250,7 +248,20 @@ class RefreshTokenService(
 }
 
 object GlobalRefreshTokenService {
-  val instance: RefreshTokenService by lazy { RefreshTokenService() }
+  @Volatile private var current: RefreshTokenService? = null
+
+  val instance: RefreshTokenService
+    get() {
+      current?.let { return it }
+      return synchronized(this) { current ?: RefreshTokenService().also { current = it } }
+    }
+
+  fun close() {
+    synchronized(this) {
+      current?.close()
+      current = null
+    }
+  }
 }
 
 private object RefreshTokenUtil {

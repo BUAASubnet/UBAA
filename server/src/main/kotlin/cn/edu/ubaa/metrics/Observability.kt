@@ -189,6 +189,43 @@ object AppObservability {
     incrementCounter("ubaa.cleanup.removals", mapOf("kind" to kind), count.toDouble())
   }
 
+  fun recordCleanupSkipped(kind: String, reason: String, amount: Double = 1.0) {
+    incrementCounter(
+        "ubaa.cleanup.skipped",
+        mapOf("kind" to kind, "reason" to reason),
+        amount,
+    )
+  }
+
+  fun recordPreLoginResolve(result: String, amount: Double = 1.0) {
+    incrementCounter("ubaa.auth.prelogin.resolve", mapOf("result" to result), amount)
+  }
+
+  fun recordDistributedLockAcquire(scope: String, waited: Boolean, amount: Double = 1.0) {
+    incrementCounter(
+        "ubaa.distributed.lock.acquire",
+        mapOf("scope" to scope, "waited" to waited.toString()),
+        amount,
+    )
+  }
+
+  fun recordDistributedLockTimeout(scope: String, amount: Double = 1.0) {
+    incrementCounter("ubaa.distributed.lock.timeout", mapOf("scope" to scope), amount)
+  }
+
+  fun recordDistributedLockWait(scope: String, durationNanos: Long) {
+    if (durationNanos <= 0L) return
+    recordTimer(
+        "ubaa.distributed.lock.wait",
+        mapOf("scope" to scope),
+        durationNanos,
+    )
+  }
+
+  fun recordReadinessCheck(check: String, result: String, amount: Double = 1.0) {
+    incrementCounter("ubaa.readiness.check", mapOf("check" to check, "result" to result), amount)
+  }
+
   private fun recordTimer(name: String, tags: Map<String, String>, durationNanos: Long) {
     val activeRegistry = registry ?: return
     Timer.builder(name)

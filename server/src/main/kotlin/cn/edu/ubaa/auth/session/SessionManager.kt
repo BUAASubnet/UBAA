@@ -21,12 +21,21 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 interface SessionPersistence {
+  data class SessionVersion(
+      val generation: Long,
+      val revision: Long,
+  )
+
   data class SessionRecord(
       val userData: UserData,
       val authenticatedAt: Instant,
       val lastActivity: Instant,
       val portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
-  )
+      val generation: Long = 1L,
+      val revision: Long = 1L,
+  ) {
+    fun version(): SessionVersion = SessionVersion(generation = generation, revision = revision)
+  }
 
   suspend fun saveSession(
       username: String,
@@ -34,13 +43,18 @@ interface SessionPersistence {
       authenticatedAt: Instant,
       lastActivity: Instant,
       portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
-  )
+  ): SessionVersion
 
-  suspend fun updateLastActivity(username: String, lastActivity: Instant)
+  suspend fun updateLastActivity(username: String, lastActivity: Instant): SessionVersion?
 
-  suspend fun updatePortalType(username: String, portalType: AcademicPortalType)
+  suspend fun updatePortalType(
+      username: String,
+      portalType: AcademicPortalType,
+  ): SessionVersion?
 
   suspend fun loadSession(username: String): SessionRecord?
+
+  suspend fun currentVersion(username: String): SessionVersion? = loadSession(username)?.version()
 
   suspend fun deleteSession(username: String)
 
@@ -52,6 +66,10 @@ interface ManagedCookieStorage : CookiesStorage {
 
   suspend fun migrateTo(newSubject: String)
 
+  suspend fun updatePersistenceTtl(ttl: Duration) {}
+
+  suspend fun touchPersistence(ttl: Duration? = null) {}
+
   /** 将内存中的待写回数据刷到持久层。实现不需要持久化的可留空。 */
   suspend fun flush() {}
 
@@ -60,7 +78,7 @@ interface ManagedCookieStorage : CookiesStorage {
 }
 
 interface ManagedCookieStorageFactory {
-  fun create(subject: String): ManagedCookieStorage
+  fun create(subject: String, ttl: Duration = AuthConfig.sessionTtl): ManagedCookieStorage
 
   suspend fun clearSubject(subject: String)
 
@@ -70,11 +88,11 @@ interface ManagedCookieStorageFactory {
 /** 会话管理器。 负责隔离不同用户的 HttpClient 实例、Cookie 存储，以及管理 JWT 与用户会话之间的映射关系。 支持会话持久化到 Redis，实现重启后的会话恢复。 */
 class SessionManager(
     private val sessionTtl: Duration = AuthConfig.sessionTtl,
-    private val redisUri: String = AuthConfig.redisUri,
     private val activityPersistInterval: Duration = Duration.ofSeconds(60),
-    private val sessionStore: SessionPersistence = RedisSessionStore(redisUri, sessionTtl),
+    private val sessionStore: SessionPersistence = RedisSessionStore(sessionTtl = sessionTtl),
+    private val preLoginStore: PreLoginPersistence = RedisPreLoginStore(),
     private val cookieStorageFactory: ManagedCookieStorageFactory =
-        RedisCookieStorageFactory(redisUri),
+        RedisCookieStorageFactory(),
     private val clientFactory: (CookiesStorage) -> HttpClient = ::buildManagedClient,
 ) {
   private sealed interface RestoreAttempt {
@@ -106,10 +124,14 @@ class SessionManager(
       val authenticatedAt: Instant,
       portalType: AcademicPortalType = AcademicPortalType.UNKNOWN,
       initialActivity: Instant = authenticatedAt,
+      generation: Long = 1L,
+      revision: Long = 1L,
   ) {
     @Volatile private var lastActivity: Instant = initialActivity
     @Volatile private var lastPersistedActivity: Instant = initialActivity
     @Volatile var portalType: AcademicPortalType = portalType
+    @Volatile private var generation: Long = generation
+    @Volatile private var revision: Long = revision
 
     fun isExpired(ttl: Duration): Boolean = Instant.now().isAfter(lastActivity.plus(ttl))
 
@@ -125,56 +147,106 @@ class SessionManager(
       lastPersistedActivity = at
     }
 
+    fun updateVersion(version: SessionPersistence.SessionVersion) {
+      generation = version.generation
+      revision = version.revision
+    }
+
+    fun generation(): Long = generation
+
+    fun revision(): Long = revision
+
+    fun refreshFromRecord(record: SessionPersistence.SessionRecord) {
+      lastActivity = record.lastActivity
+      lastPersistedActivity = record.lastActivity
+      portalType = record.portalType
+      generation = record.generation
+      revision = record.revision
+    }
+
     fun lastActivity(): Instant = lastActivity
   }
 
   /** 预登录会话：用于 preload 阶段，此时用户尚未输入凭据，通过 clientId 标识。 */
-  data class PreLoginCandidate(
+  class PreLoginCandidate(
       val clientId: String,
       val client: HttpClient,
       val cookieStorage: ManagedCookieStorage,
-      val createdAt: Instant = Instant.now(),
+      lastTouchedAt: Instant = Instant.now(),
   ) {
-    fun isExpired(ttl: Duration): Boolean = Instant.now().isAfter(createdAt.plus(ttl))
+    @Volatile private var lastTouchedAt: Instant = lastTouchedAt
+
+    fun isExpired(ttl: Duration): Boolean = Instant.now().isAfter(lastTouchedAt.plus(ttl))
+
+    fun touch(now: Instant = Instant.now()) {
+      lastTouchedAt = now
+    }
+
+    fun lastTouchedAt(): Instant = lastTouchedAt
   }
 
   private val sessions = ConcurrentHashMap<String, UserSession>()
   private val preLoginSessions = ConcurrentHashMap<String, PreLoginCandidate>()
   private val restoreMutexes = ConcurrentHashMap<String, Mutex>()
-  private val preLoginTtl: Duration = Duration.ofMinutes(5)
+  private val preLoginTtl: Duration = AuthConfig.preLoginTtl
 
   suspend fun preparePreLoginSession(clientId: String): PreLoginCandidate {
     preLoginSessions[clientId]?.let { existing ->
-      if (!existing.isExpired(preLoginTtl)) return existing
+      if (!existing.isExpired(preLoginTtl)) {
+        existing.touch()
+        existing.cookieStorage.touchPersistence(preLoginTtl)
+        preLoginStore.save(clientId, existing.lastTouchedAt())
+        return existing
+      }
       if (preLoginSessions.remove(clientId, existing)) {
         disposePreLoginCandidate(existing, clearCookies = true)
       }
     }
 
-    val cookieStorage = cookieStorageFactory.create(preLoginSubject(clientId))
+    val cookieStorage = cookieStorageFactory.create(preLoginSubject(clientId), preLoginTtl)
     cookieStorage.clear()
     cookieStorage.setWriteThrough(false)
 
     val client = clientFactory(cookieStorage)
     val candidate = PreLoginCandidate(clientId, client, cookieStorage)
     preLoginSessions[clientId] = candidate
+    preLoginStore.save(clientId, candidate.lastTouchedAt())
     return candidate
   }
 
+  suspend fun persistPreLoginSession(clientId: String) {
+    val candidate = preLoginSessions[clientId] ?: return
+    candidate.touch()
+    candidate.cookieStorage.flush()
+    candidate.cookieStorage.touchPersistence(preLoginTtl)
+    preLoginStore.save(clientId, candidate.lastTouchedAt())
+  }
+
   suspend fun promotePreLoginSession(clientId: String, username: String): SessionCandidate? {
-    val preLogin = preLoginSessions.remove(clientId) ?: return null
+    val resolved =
+        preLoginSessions.remove(clientId)?.let { "memory_hit" to it }
+            ?: restorePreLoginCandidate(clientId)?.let { "redis_restored" to it }
+            ?: run {
+              AppObservability.recordPreLoginResolve("miss")
+              return null
+            }
+    val (source, preLogin) = resolved
     if (preLogin.isExpired(preLoginTtl)) {
       disposePreLoginCandidate(preLogin, clearCookies = true)
+      AppObservability.recordPreLoginResolve("expired")
       return null
     }
 
-    // 仅迁移 Redis 中 Cookie 的归属 key，复用已有 HttpClient 以保留 TCP 连接
+    preLogin.cookieStorage.updatePersistenceTtl(sessionTtl)
     preLogin.cookieStorage.migrateTo(username)
+    preLogin.cookieStorage.touchPersistence(sessionTtl)
+    preLoginStore.delete(clientId)
+    AppObservability.recordPreLoginResolve(source)
     return SessionCandidate(username, preLogin.client, preLogin.cookieStorage)
   }
 
   suspend fun prepareSession(username: String): SessionCandidate {
-    val cookieStorage = cookieStorageFactory.create(username)
+    val cookieStorage = cookieStorageFactory.create(username, sessionTtl)
     cookieStorage.clear()
     cookieStorage.setWriteThrough(false)
     val client = clientFactory(cookieStorage)
@@ -192,14 +264,26 @@ class SessionManager(
     candidate.cookieStorage.flush()
     candidate.cookieStorage.setWriteThrough(true)
 
+    val authenticatedAt = Instant.now()
+    val persistedVersion =
+        sessionStore.saveSession(
+            username = candidate.username,
+            userData = userData,
+            authenticatedAt = authenticatedAt,
+            lastActivity = authenticatedAt,
+            portalType = portalType,
+        )
+
     val newSession =
         UserSession(
             username = candidate.username,
             client = candidate.client,
             cookieStorage = candidate.cookieStorage,
             userData = userData,
-            authenticatedAt = Instant.now(),
+            authenticatedAt = authenticatedAt,
             portalType = portalType,
+            generation = persistedVersion.generation,
+            revision = persistedVersion.revision,
         )
 
     sessions.compute(candidate.username) { _, previous ->
@@ -207,14 +291,6 @@ class SessionManager(
       closeCookieStorage(previous?.cookieStorage)
       newSession
     }
-
-    sessionStore.saveSession(
-        username = candidate.username,
-        userData = userData,
-        authenticatedAt = newSession.authenticatedAt,
-        lastActivity = newSession.lastActivity(),
-        portalType = portalType,
-    )
 
     return newSession
   }
@@ -241,9 +317,21 @@ class SessionManager(
         null
       }
       is RestoreAttempt.Restored ->
-          finalizeResolvedSession(username, restoreAttempt.session, access, "redis_restored")
+          finalizeResolvedSession(
+              username,
+              restoreAttempt.session,
+              access,
+              "redis_restored",
+              skipStoreReconcile = true,
+          )
       is RestoreAttempt.RaceReused ->
-          finalizeResolvedSession(username, restoreAttempt.session, access, "race_reused")
+          finalizeResolvedSession(
+              username,
+              restoreAttempt.session,
+              access,
+              "race_reused",
+              skipStoreReconcile = true,
+          )
     }
   }
 
@@ -264,7 +352,10 @@ class SessionManager(
     val session = sessions[username] ?: return
     if (session.portalType == portalType) return
     session.portalType = portalType
-    sessionStore.updatePortalType(username, portalType)
+    sessionStore.updatePortalType(username, portalType)?.let { version ->
+      session.updateVersion(version)
+      session.cookieStorage.touchPersistence(sessionTtl)
+    }
   }
 
   suspend fun invalidateSession(username: String) {
@@ -286,13 +377,12 @@ class SessionManager(
     for ((username, session) in sessions.entries.toList()) {
       if (!session.isExpired(sessionTtl)) continue
       if (!sessions.remove(username, session)) continue
-      GlobalAcademicPortalWarmupCoordinator.clear(username)
-      clearCookieStorage(username, session.cookieStorage)
-      session.client.close()
-      closeCookieStorage(session.cookieStorage)
-      sessionStore.deleteSession(username)
-      restoreMutexes.remove(username)
-      removed++
+      val reconciled = resolveExpiredSession(username, session)
+      if (reconciled == null) {
+        removed++
+      } else {
+        sessions[username] = reconciled
+      }
     }
     return removed
   }
@@ -309,8 +399,13 @@ class SessionManager(
   }
 
   suspend fun cleanupPreLoginSession(clientId: String) {
-    val candidate = preLoginSessions.remove(clientId) ?: return
-    disposePreLoginCandidate(candidate, clearCookies = true)
+    val candidate = preLoginSessions.remove(clientId)
+    if (candidate != null) {
+      disposePreLoginCandidate(candidate, clearCookies = true)
+      return
+    }
+    preLoginStore.delete(clientId)
+    cookieStorageFactory.clearSubject(preLoginSubject(clientId))
   }
 
   fun activeSessionCount(): Int = sessions.size
@@ -333,6 +428,7 @@ class SessionManager(
 
     restoreMutexes.clear()
     sessionStore.close()
+    preLoginStore.close()
     cookieStorageFactory.close()
   }
 
@@ -351,8 +447,11 @@ class SessionManager(
     val now = Instant.now()
     session.markActive(now)
     if (session.shouldPersistActivity(now, activityPersistInterval)) {
-      sessionStore.updateLastActivity(username, now)
-      session.markPersistedActivity(now)
+      sessionStore.updateLastActivity(username, now)?.let { version ->
+        session.updateVersion(version)
+        session.markPersistedActivity(now)
+        session.cookieStorage.touchPersistence(sessionTtl)
+      }
     }
   }
 
@@ -361,18 +460,32 @@ class SessionManager(
       session: UserSession,
       access: SessionAccess,
       result: String,
+      skipStoreReconcile: Boolean = false,
   ): UserSession? {
-    if (session.isExpired(sessionTtl)) {
-      AppObservability.recordSessionResolve("expired")
-      invalidateSession(username)
-      return null
+    val reconciled =
+        (if (skipStoreReconcile) session else reconcileSessionWithStore(username, session))
+            ?: run {
+          AppObservability.recordSessionResolve("missing")
+          return null
+        }
+    if (reconciled.isExpired(sessionTtl)) {
+      val refreshed = resolveExpiredSession(username, reconciled) ?: run {
+        AppObservability.recordSessionResolve("expired")
+        return null
+      }
+      if (access == SessionAccess.TOUCH) {
+        touchSession(username, refreshed)
+      }
+      sessions[username] = refreshed
+      AppObservability.recordSessionResolve("expired_refreshed")
+      return refreshed
     }
     if (access == SessionAccess.TOUCH) {
-      touchSession(username, session)
+      touchSession(username, reconciled)
     }
-    sessions[username] = session
+    sessions[username] = reconciled
     AppObservability.recordSessionResolve(result)
-    return session
+    return reconciled
   }
 
   private suspend fun restoreSession(username: String): RestoreAttempt {
@@ -384,19 +497,10 @@ class SessionManager(
         }
 
         val record = sessionStore.loadSession(username) ?: return@withLock RestoreAttempt.Miss
-        val cookieStorage = cookieStorageFactory.create(username)
+        val cookieStorage = cookieStorageFactory.create(username, sessionTtl)
         cookieStorage.setWriteThrough(true)
         val client = clientFactory(cookieStorage)
-        val restored =
-            UserSession(
-                username = username,
-                client = client,
-                cookieStorage = cookieStorage,
-                userData = record.userData,
-                authenticatedAt = record.authenticatedAt,
-                portalType = record.portalType,
-                initialActivity = record.lastActivity,
-            )
+        val restored = createSessionFromRecord(username, client, cookieStorage, record)
 
         val existing = sessions.putIfAbsent(username, restored)
         if (existing != null) {
@@ -418,6 +522,7 @@ class SessionManager(
       candidate: PreLoginCandidate,
       clearCookies: Boolean,
   ) {
+    preLoginStore.delete(candidate.clientId)
     if (clearCookies) {
       clearCookieStorage(preLoginSubject(candidate.clientId), candidate.cookieStorage)
     }
@@ -437,14 +542,189 @@ class SessionManager(
     runCatching { storage?.close() }
   }
 
+  private suspend fun resolveExpiredSession(
+      username: String,
+      session: UserSession,
+  ): UserSession? {
+    val persisted = sessionStore.loadSession(username)
+    if (
+        persisted != null &&
+            persisted.generation == session.generation() &&
+            !Instant.now().isAfter(persisted.lastActivity.plus(sessionTtl))
+    ) {
+      session.refreshFromRecord(persisted)
+      AppObservability.recordCleanupSkipped("session", "redis_fresh")
+      return session
+    }
+
+    disposeManagedSession(
+        username = username,
+        session = session,
+        clearPersistedCookies = persisted == null,
+        deletePersisted = persisted == null,
+    )
+    return null
+  }
+
+  private suspend fun reconcileSessionWithStore(
+      username: String,
+      session: UserSession,
+  ): UserSession? {
+    val persistedVersion = sessionStore.currentVersion(username) ?: run {
+      disposeManagedSession(
+          username = username,
+          session = session,
+          clearPersistedCookies = false,
+          deletePersisted = false,
+      )
+      return null
+    }
+
+    if (
+        persistedVersion.generation == session.generation() &&
+            persistedVersion.revision == session.revision()
+    ) {
+      return session
+    }
+
+    val persisted = sessionStore.loadSession(username) ?: run {
+      disposeManagedSession(
+          username = username,
+          session = session,
+          clearPersistedCookies = false,
+          deletePersisted = false,
+      )
+      return null
+    }
+
+    if (persisted.generation != session.generation()) {
+      val cookieStorage = cookieStorageFactory.create(username, sessionTtl)
+      cookieStorage.setWriteThrough(true)
+      val client = clientFactory(cookieStorage)
+      val rebuilt = createSessionFromRecord(username, client, cookieStorage, persisted)
+      if (sessions.replace(username, session, rebuilt)) {
+        releaseManagedSession(
+            username = username,
+            session = session,
+            clearPersistedCookies = false,
+            deletePersisted = false,
+        )
+        return rebuilt
+      }
+
+      val winner = sessions[username]
+      if (
+          winner != null &&
+              winner.generation() == persisted.generation &&
+              winner.revision() == persisted.revision
+      ) {
+        client.close()
+        closeCookieStorage(cookieStorage)
+        return winner
+      }
+
+      val previous = sessions.put(username, rebuilt)
+      previous?.takeIf { it !== rebuilt }?.let {
+        releaseManagedSession(
+            username = username,
+            session = it,
+            clearPersistedCookies = false,
+            deletePersisted = false,
+        )
+      }
+      return rebuilt
+    }
+
+    session.refreshFromRecord(persisted)
+    return session
+  }
+
+  private suspend fun disposeManagedSession(
+      username: String,
+      session: UserSession,
+      clearPersistedCookies: Boolean,
+      deletePersisted: Boolean,
+  ) {
+    sessions.remove(username, session)
+    releaseManagedSession(
+        username = username,
+        session = session,
+        clearPersistedCookies = clearPersistedCookies,
+        deletePersisted = deletePersisted,
+    )
+    restoreMutexes.remove(username)
+  }
+
+  private suspend fun releaseManagedSession(
+      username: String,
+      session: UserSession,
+      clearPersistedCookies: Boolean,
+      deletePersisted: Boolean,
+  ) {
+    GlobalAcademicPortalWarmupCoordinator.clear(username)
+    if (clearPersistedCookies) {
+      clearCookieStorage(username, session.cookieStorage)
+    }
+    session.client.close()
+    closeCookieStorage(session.cookieStorage)
+    if (deletePersisted) {
+      sessionStore.deleteSession(username)
+    }
+  }
+
+  private suspend fun restorePreLoginCandidate(clientId: String): PreLoginCandidate? {
+    val record = preLoginStore.load(clientId) ?: return null
+    val cookieStorage = cookieStorageFactory.create(preLoginSubject(clientId), preLoginTtl)
+    cookieStorage.setWriteThrough(false)
+    val client = clientFactory(cookieStorage)
+    return PreLoginCandidate(
+        clientId = clientId,
+        client = client,
+        cookieStorage = cookieStorage,
+        lastTouchedAt = record.lastTouchedAt,
+    )
+  }
+
   private fun preLoginSubject(clientId: String): String = "prelogin_$clientId"
 
   internal fun restoreMutexCountForTesting(): Int = restoreMutexes.size
+
+  private fun createSessionFromRecord(
+      username: String,
+      client: HttpClient,
+      cookieStorage: ManagedCookieStorage,
+      record: SessionPersistence.SessionRecord,
+  ): UserSession {
+    return UserSession(
+        username = username,
+        client = client,
+        cookieStorage = cookieStorage,
+        userData = record.userData,
+        authenticatedAt = record.authenticatedAt,
+        portalType = record.portalType,
+        initialActivity = record.lastActivity,
+        generation = record.generation,
+        revision = record.revision,
+    )
+  }
 }
 
 /** 全局会话管理器单例。 */
 object GlobalSessionManager {
-  val instance: SessionManager by lazy { SessionManager() }
+  @Volatile private var current: SessionManager? = null
+
+  val instance: SessionManager
+    get() {
+      current?.let { return it }
+      return synchronized(this) { current ?: SessionManager().also { current = it } }
+    }
+
+  fun close() {
+    synchronized(this) {
+      current?.close()
+      current = null
+    }
+  }
 }
 
 private fun buildManagedClient(cookieStorage: CookiesStorage): HttpClient {

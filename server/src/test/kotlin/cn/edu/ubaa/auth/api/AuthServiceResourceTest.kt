@@ -8,6 +8,7 @@ import io.ktor.client.plugins.cookies.CookiesStorage
 import io.ktor.http.Cookie
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
+import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -15,8 +16,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -215,6 +218,173 @@ class AuthServiceResourceTest {
   }
 
   @Test
+  fun preLoginSessionsCanBePromotedAcrossManagers() = runBlocking {
+    val preLoginStore = InMemoryPreLoginStore()
+    val cookieFactory = PersistentCookieStorageFactory()
+    val requestUrl = Url("https://sso.buaa.edu.cn/login")
+
+    val firstManager =
+        SessionManager(
+            sessionStore = InMemorySessionStore(),
+            preLoginStore = preLoginStore,
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    val candidate = firstManager.preparePreLoginSession("device-1")
+    candidate.cookieStorage.addCookie(requestUrl, Cookie("CASTGC", "prelogin-cookie"))
+    firstManager.persistPreLoginSession("device-1")
+
+    val secondManager =
+        SessionManager(
+            sessionStore = InMemorySessionStore(),
+            preLoginStore = preLoginStore,
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    try {
+      val promoted = secondManager.promotePreLoginSession("device-1", "2333")
+      assertNotNull(promoted)
+      val cookies = promoted.cookieStorage.get(requestUrl).associateBy { it.name }
+      assertEquals("prelogin-cookie", cookies["CASTGC"]?.value)
+    } finally {
+      secondManager.close()
+      firstManager.close()
+    }
+  }
+
+  @Test
+  fun preLoginPromotionUsesCommittedSessionTtlForPersistedCookies() = runBlocking {
+    val sessionTtl = Duration.ofMinutes(30)
+    val cookieFactory = PersistentCookieStorageFactory()
+    val sessionManager =
+        SessionManager(
+            sessionTtl = sessionTtl,
+            sessionStore = PersistentSessionStore(),
+            preLoginStore = InMemoryPreLoginStore(),
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+    val requestUrl = Url("https://sso.buaa.edu.cn/login")
+
+    try {
+      val candidate = sessionManager.preparePreLoginSession("ttl-device")
+      candidate.cookieStorage.addCookie(requestUrl, Cookie("CASTGC", "prelogin-cookie"))
+      sessionManager.persistPreLoginSession("ttl-device")
+
+      assertEquals(Duration.ofMinutes(5).toMillis(), cookieFactory.currentTtlMillis("prelogin_ttl-device"))
+
+      val promoted = sessionManager.promotePreLoginSession("ttl-device", "2333")
+      assertNotNull(promoted)
+      assertEquals(sessionTtl.toMillis(), cookieFactory.currentTtlMillis("2333"))
+
+      val cookies = promoted.cookieStorage.get(requestUrl).associateBy { it.name }
+      assertEquals("prelogin-cookie", cookies["CASTGC"]?.value)
+    } finally {
+      sessionManager.close()
+    }
+  }
+
+  @Test
+  fun touchedSessionRefreshesCookieTtlAndRemainsRestorableAcrossManagers() = runBlocking {
+    val sessionTtl = Duration.ofMinutes(30)
+    val cookieFactory = PersistentCookieStorageFactory()
+    val sessionStore = PersistentSessionStore()
+    val requestUrl = Url("https://example.com/app")
+
+    val firstManager =
+        SessionManager(
+            sessionTtl = sessionTtl,
+            activityPersistInterval = Duration.ofMillis(1),
+            sessionStore = sessionStore,
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    try {
+      val candidate = firstManager.prepareSession("touch-user")
+      candidate.cookieStorage.addCookie(requestUrl, Cookie("active", "v1"))
+      firstManager.commitSession(candidate, UserData("Touch User", "20001"))
+
+      cookieFactory.advanceTimeBy(sessionTtl.toMillis() - 5)
+      Thread.sleep(10)
+
+      assertNotNull(firstManager.getSession("touch-user", SessionManager.SessionAccess.TOUCH))
+      assertTrue(cookieFactory.touchCount("touch-user") > 0)
+
+      cookieFactory.advanceTimeBy(10)
+    } finally {
+      firstManager.close()
+    }
+
+    val restoredManager =
+        SessionManager(
+            sessionTtl = sessionTtl,
+            sessionStore = sessionStore,
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    try {
+      val restored =
+          restoredManager.getSession("touch-user", SessionManager.SessionAccess.READ_ONLY)
+      assertNotNull(restored)
+      val cookies = restored.cookieStorage.get(requestUrl).associateBy { it.name }
+      assertEquals("v1", cookies["active"]?.value)
+    } finally {
+      restoredManager.close()
+    }
+  }
+
+  @Test
+  fun remoteSessionOverwriteRebuildsLocalSessionInsteadOfReusingStaleClient() = runBlocking {
+    val cookieFactory = PersistentCookieStorageFactory()
+    val sessionStore = PersistentSessionStore()
+    val requestUrl = Url("https://example.com/app")
+
+    val firstManager =
+        SessionManager(
+            sessionStore = sessionStore,
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+    val secondManager =
+        SessionManager(
+            sessionStore = sessionStore,
+            cookieStorageFactory = cookieFactory,
+            clientFactory = { _: CookiesStorage -> mockClient() },
+        )
+
+    try {
+      val firstCandidate = firstManager.prepareSession("replace-user")
+      firstCandidate.cookieStorage.addCookie(requestUrl, Cookie("session", "old"))
+      firstManager.commitSession(firstCandidate, UserData("Alice", "30001"))
+
+      val original =
+          firstManager.getSession("replace-user", SessionManager.SessionAccess.READ_ONLY)
+      assertNotNull(original)
+
+      Thread.sleep(5)
+
+      val secondCandidate = secondManager.prepareSession("replace-user")
+      secondCandidate.cookieStorage.addCookie(requestUrl, Cookie("session", "new"))
+      secondManager.commitSession(secondCandidate, UserData("Alice", "30001"))
+
+      val rebuilt =
+          firstManager.getSession("replace-user", SessionManager.SessionAccess.READ_ONLY)
+      assertNotNull(rebuilt)
+      assertNotSame(original, rebuilt)
+
+      val cookies = rebuilt.cookieStorage.get(requestUrl).associateBy { it.name }
+      assertEquals("new", cookies["session"]?.value)
+    } finally {
+      secondManager.close()
+      firstManager.close()
+    }
+  }
+
+  @Test
   fun restoredSessionsKeepPortalTypeMetadata() = runBlocking {
     val sessionStore = PersistentSessionStore()
     val sessionManager =
@@ -298,11 +468,17 @@ class AuthServiceResourceTest {
         authenticatedAt: Instant,
         lastActivity: Instant,
         portalType: AcademicPortalType,
-    ) {}
+    ): SessionPersistence.SessionVersion = record.version()
 
-    override suspend fun updateLastActivity(username: String, lastActivity: Instant) {}
+    override suspend fun updateLastActivity(
+        username: String,
+        lastActivity: Instant,
+    ): SessionPersistence.SessionVersion? = null
 
-    override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {}
+    override suspend fun updatePortalType(
+        username: String,
+        portalType: AcademicPortalType,
+    ): SessionPersistence.SessionVersion? = null
 
     override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? {
       loadCount.incrementAndGet()
@@ -322,11 +498,17 @@ class AuthServiceResourceTest {
         authenticatedAt: Instant,
         lastActivity: Instant,
         portalType: AcademicPortalType,
-    ) {}
+    ): SessionPersistence.SessionVersion = SessionPersistence.SessionVersion(1L, 1L)
 
-    override suspend fun updateLastActivity(username: String, lastActivity: Instant) {}
+    override suspend fun updateLastActivity(
+        username: String,
+        lastActivity: Instant,
+    ): SessionPersistence.SessionVersion? = null
 
-    override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {}
+    override suspend fun updatePortalType(
+        username: String,
+        portalType: AcademicPortalType,
+    ): SessionPersistence.SessionVersion? = null
 
     override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? = null
 
@@ -344,23 +526,46 @@ class AuthServiceResourceTest {
         authenticatedAt: Instant,
         lastActivity: Instant,
         portalType: AcademicPortalType,
-    ) {
-      sessions[username] =
-          SessionPersistence.SessionRecord(userData, authenticatedAt, lastActivity, portalType)
+    ): SessionPersistence.SessionVersion {
+      val generation = (sessions[username]?.generation ?: 0L) + 1L
+      val record =
+          SessionPersistence.SessionRecord(
+              userData = userData,
+              authenticatedAt = authenticatedAt,
+              lastActivity = lastActivity,
+              portalType = portalType,
+              generation = generation,
+              revision = 1L,
+          )
+      sessions[username] = record
+      return record.version()
     }
 
-    override suspend fun updateLastActivity(username: String, lastActivity: Instant) {
-      val current = sessions[username] ?: return
-      sessions[username] = current.copy(lastActivity = lastActivity)
+    override suspend fun updateLastActivity(
+        username: String,
+        lastActivity: Instant,
+    ): SessionPersistence.SessionVersion? {
+      val current = sessions[username] ?: return null
+      val updated = current.copy(lastActivity = lastActivity, revision = current.revision + 1)
+      sessions[username] = updated
+      return updated.version()
     }
 
-    override suspend fun updatePortalType(username: String, portalType: AcademicPortalType) {
-      val current = sessions[username] ?: return
-      sessions[username] = current.copy(portalType = portalType)
+    override suspend fun updatePortalType(
+        username: String,
+        portalType: AcademicPortalType,
+    ): SessionPersistence.SessionVersion? {
+      val current = sessions[username] ?: return null
+      val updated = current.copy(portalType = portalType, revision = current.revision + 1)
+      sessions[username] = updated
+      return updated.version()
     }
 
     override suspend fun loadSession(username: String): SessionPersistence.SessionRecord? =
         sessions[username]
+
+    override suspend fun currentVersion(username: String): SessionPersistence.SessionVersion? =
+        sessions[username]?.version()
 
     override suspend fun deleteSession(username: String) {
       sessions.remove(username)
@@ -370,16 +575,37 @@ class AuthServiceResourceTest {
   }
 
   private class PersistentCookieStorageFactory : ManagedCookieStorageFactory {
-    private val persistedCookies = ConcurrentHashMap<String, ConcurrentHashMap<String, Cookie>>()
+    private data class PersistedState(
+        val cookies: ConcurrentHashMap<String, Cookie>,
+        var ttlMillis: Long,
+        var expiresAtMillis: Long,
+    )
 
-    override fun create(subject: String): ManagedCookieStorage = PersistentCookieStorage(subject)
+    private val persistedCookies = ConcurrentHashMap<String, PersistedState>()
+    private val touchCounts = ConcurrentHashMap<String, AtomicInteger>()
+    private val clockMillis = java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis())
+
+    override fun create(subject: String, ttl: java.time.Duration): ManagedCookieStorage =
+        PersistentCookieStorage(subject, ttl.toMillis().coerceAtLeast(1L))
 
     override suspend fun clearSubject(subject: String) {
       persistedCookies.remove(subject)
     }
 
-    private inner class PersistentCookieStorage(initialSubject: String) : ManagedCookieStorage {
+    fun advanceTimeBy(deltaMillis: Long) {
+      clockMillis.addAndGet(deltaMillis)
+    }
+
+    fun currentTtlMillis(subject: String): Long? = loadPersistedState(subject)?.ttlMillis
+
+    fun touchCount(subject: String): Int = touchCounts[subject]?.get() ?: 0
+
+    private inner class PersistentCookieStorage(
+        initialSubject: String,
+        initialTtlMillis: Long,
+    ) : ManagedCookieStorage {
       private var subject = initialSubject
+      private var currentTtlMillis = initialTtlMillis
       private var writeThrough = false
       private var loaded = false
       private val cookies = LinkedHashMap<String, Cookie>()
@@ -408,7 +634,17 @@ class AuthServiceResourceTest {
 
       override suspend fun migrateTo(newSubject: String) {
         flush()
-        persistedCookies[newSubject] = ConcurrentHashMap(persistedCookies[subject].orEmpty())
+        val source = loadPersistedState(subject)
+        if (source != null) {
+          persistedCookies[newSubject] =
+              PersistedState(
+                  cookies = ConcurrentHashMap(source.cookies),
+                  ttlMillis = currentTtlMillis,
+                  expiresAtMillis = nowMillis() + currentTtlMillis,
+              )
+        } else {
+          persistedCookies.remove(newSubject)
+        }
         persistedCookies.remove(subject)
         subject = newSubject
         loaded = false
@@ -418,7 +654,12 @@ class AuthServiceResourceTest {
       override suspend fun flush() {
         ensureLoaded()
         if (!dirty) return
-        persistedCookies[subject] = ConcurrentHashMap(cookies)
+        persistedCookies[subject] =
+            PersistedState(
+                cookies = ConcurrentHashMap(cookies),
+                ttlMillis = currentTtlMillis,
+                expiresAtMillis = nowMillis() + currentTtlMillis,
+            )
         dirty = false
       }
 
@@ -429,12 +670,32 @@ class AuthServiceResourceTest {
         }
       }
 
+      override suspend fun updatePersistenceTtl(ttl: java.time.Duration) {
+        currentTtlMillis = ttl.toMillis().coerceAtLeast(1L)
+        loadPersistedState(subject)?.let { state ->
+          state.ttlMillis = currentTtlMillis
+        }
+      }
+
+      override suspend fun touchPersistence(ttl: java.time.Duration?) {
+        ttl?.let { currentTtlMillis = it.toMillis().coerceAtLeast(1L) }
+        loadPersistedState(subject)?.let { state ->
+          state.ttlMillis = currentTtlMillis
+          state.expiresAtMillis = nowMillis() + currentTtlMillis
+        }
+        touchCounts.computeIfAbsent(subject) { AtomicInteger(0) }.incrementAndGet()
+      }
+
       override fun close() {}
 
       private fun ensureLoaded() {
         if (loaded) return
         cookies.clear()
-        cookies.putAll(persistedCookies[subject].orEmpty())
+        val state = loadPersistedState(subject)
+        if (state != null) {
+          cookies.putAll(state.cookies)
+          currentTtlMillis = state.ttlMillis
+        }
         loaded = true
       }
 
@@ -444,5 +705,16 @@ class AuthServiceResourceTest {
         return "$domain|$path|${cookie.name}"
       }
     }
+
+    private fun loadPersistedState(subject: String): PersistedState? {
+      val state = persistedCookies[subject] ?: return null
+      if (state.expiresAtMillis <= nowMillis()) {
+        persistedCookies.remove(subject, state)
+        return null
+      }
+      return state
+    }
+
+    private fun nowMillis(): Long = clockMillis.get()
   }
 }

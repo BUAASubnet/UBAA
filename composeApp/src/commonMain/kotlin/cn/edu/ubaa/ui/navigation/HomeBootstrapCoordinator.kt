@@ -4,17 +4,18 @@ import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 internal data class HomeBootstrapActions(
     val loadTodaySchedule: (Boolean) -> Unit,
     val loadSignin: (Boolean) -> Unit,
     val loadSpoc: (Boolean) -> Unit,
     val loadBykc: (Boolean) -> Unit,
+    val loadCgyy: (Boolean) -> Unit,
 )
 
 internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
@@ -35,12 +36,11 @@ internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
         scope.launch(start = CoroutineStart.LAZY) {
           try {
             actions.loadTodaySchedule(forceRefresh)
-            delay(250)
             actions.loadSignin(forceRefresh)
-            delay(1500)
             actions.loadSpoc(forceRefresh)
-            delay(1000)
             actions.loadBykc(forceRefresh)
+            actions.loadCgyy(forceRefresh)
+            yield()
           } finally {
             if (job === coroutineContext[Job]) {
               job = null

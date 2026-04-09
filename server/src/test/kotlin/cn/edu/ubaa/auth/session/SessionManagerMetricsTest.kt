@@ -55,6 +55,38 @@ class SessionManagerMetricsTest {
     }
   }
 
+  @Test
+  fun restoredSessionIsInvalidatedWhenAnotherManagerDeletesIt() = runBlocking {
+    val store = InMemorySessionStore()
+
+    val primaryManager =
+        SessionManager(
+            sessionStore = store,
+            cookieStorageFactory = InMemoryCookieStorageFactory(),
+            clientFactory = { createNoopClient() },
+        )
+    val restoredManager =
+        SessionManager(
+            sessionStore = store,
+            cookieStorageFactory = InMemoryCookieStorageFactory(),
+            clientFactory = { createNoopClient() },
+        )
+
+    try {
+      val candidate = primaryManager.prepareSession("2333")
+      primaryManager.commitSession(candidate, UserData(name = "Alice", schoolid = "2333"))
+
+      assertNotNull(restoredManager.getSession("2333", SessionManager.SessionAccess.READ_ONLY))
+
+      primaryManager.invalidateSession("2333")
+
+      assertNull(restoredManager.getSession("2333", SessionManager.SessionAccess.READ_ONLY))
+    } finally {
+      primaryManager.close()
+      restoredManager.close()
+    }
+  }
+
   private fun createNoopClient(): HttpClient {
     return HttpClient(MockEngine) { engine { addHandler { respond("", HttpStatusCode.OK) } } }
   }

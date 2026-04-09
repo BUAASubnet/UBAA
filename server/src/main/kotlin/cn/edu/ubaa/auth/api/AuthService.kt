@@ -42,6 +42,7 @@ class AuthService(
     private val loginMetricsSink: LoginMetricsSink = NoOpLoginMetricsSink,
     private val portalWarmupCoordinator: AcademicPortalWarmupCoordinator =
         GlobalAcademicPortalWarmupCoordinator.instance,
+    private val distributedLockManager: DistributedLockManager = NoOpDistributedLockManager,
 ) {
   internal sealed interface SessionValidationResult {
     data class Valid(val userData: UserData) : SessionValidationResult
@@ -118,12 +119,22 @@ class AuthService(
         }
 
         withFreshLoginPermit {
-          withUpstreamDeadline(
-              AuthConfig.loginTimeoutMillis.milliseconds,
-              "认证服务响应超时，请稍后重试",
-              "auth_upstream_timeout",
-          ) {
-            performFreshLogin(request, timeline)
+          distributedLockManager.withLock("auth_login", request.username) {
+            if (request.execution.isNullOrBlank() && request.clientId.isNullOrBlank()) {
+              tryReuseCommittedSession(request, timeline)?.let { reusedResponse ->
+                AppObservability.recordLoginFlowEvent("login_reuse_after_lock")
+                timeline.logSuccess("reused_session_after_lock")
+                return@withLock reusedResponse
+              }
+            }
+
+            withUpstreamDeadline(
+                AuthConfig.loginTimeoutMillis.milliseconds,
+                "认证服务响应超时，请稍后重试",
+                "auth_upstream_timeout",
+            ) {
+              performFreshLogin(request, timeline)
+            }
           }
         }
       } catch (e: Exception) {
@@ -157,103 +168,109 @@ class AuthService(
    */
   suspend fun preloadLoginState(clientId: String): LoginPreloadResponse {
     require(clientId.isNotBlank()) { "clientId is required" }
-    val preLoginCandidate = sessionManager.preparePreLoginSession(clientId)
-    val client = preLoginCandidate.client
-
     return try {
-      withUpstreamDeadline(
-          AuthConfig.preloadTimeoutMillis.milliseconds,
-          "登录状态加载超时，请稍后重试",
-          "auth_upstream_timeout",
-      ) {
-        withNoRedirectClient(client) { noRedirectClient ->
-          val loginPageResponse =
-              AppObservability.observeUpstreamRequest("sso", "preload_sso_check") {
-                noRedirectClient.get(LOGIN_URL)
-              }
+      distributedLockManager.withLock("auth_prelogin", clientId) {
+        val preLoginCandidate = sessionManager.preparePreLoginSession(clientId)
+        val client = preLoginCandidate.client
 
-          // 检测自动登录（已在 SSO 登录）
-          if (loginPageResponse.status.value in 300..399) {
-            AppObservability.observeUpstreamRequest("uc", "activate_login") {
-              client.get(
-                  VpnCipher.toVpnUrl(
-                      "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
-                  )
-              )
-            }
+        withUpstreamDeadline(
+            AuthConfig.preloadTimeoutMillis.milliseconds,
+            "登录状态加载超时，请稍后重试",
+            "auth_upstream_timeout",
+        ) {
+          withNoRedirectClient(client) { noRedirectClient ->
+            val loginPageResponse =
+                AppObservability.observeUpstreamRequest("sso", "preload_sso_check") {
+                  noRedirectClient.get(LOGIN_URL)
+                }
 
-            when (
-                val validationResult =
-                    validateSession("preload:$clientId", client, recordShared = false)
-            ) {
-              is SessionValidationResult.Valid -> {
-                val userData = validationResult.userData
-                if (!userData.schoolid.isNullOrBlank()) {
-                  val sessionCandidate =
-                      sessionManager.promotePreLoginSession(clientId, userData.schoolid)
-                  if (sessionCandidate != null) {
-                    val committedSession = sessionManager.commitSession(sessionCandidate, userData)
-                    val tokenResponse = refreshTokenService.issueTokens(sessionCandidate.username)
-                    safeRecordLoginSuccess(
-                        userData.schoolid.ifBlank { sessionCandidate.username },
-                        LoginSuccessMode.PRELOAD_AUTO,
+            // 检测自动登录（已在 SSO 登录）
+            if (loginPageResponse.status.value in 300..399) {
+              AppObservability.observeUpstreamRequest("uc", "activate_login") {
+                client.get(
+                    VpnCipher.toVpnUrl(
+                        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
                     )
-                    maybeWarmupPortal(committedSession)
+                )
+              }
+              sessionManager.persistPreLoginSession(clientId)
+
+              when (
+                  val validationResult =
+                      validateSession("preload:$clientId", client, recordShared = false)
+              ) {
+                is SessionValidationResult.Valid -> {
+                  val userData = validationResult.userData
+                  if (!userData.schoolid.isNullOrBlank()) {
+                    val sessionCandidate =
+                        sessionManager.promotePreLoginSession(clientId, userData.schoolid)
+                    if (sessionCandidate != null) {
+                      val committedSession = sessionManager.commitSession(sessionCandidate, userData)
+                      val tokenResponse = refreshTokenService.issueTokens(sessionCandidate.username)
+                      safeRecordLoginSuccess(
+                          userData.schoolid.ifBlank { sessionCandidate.username },
+                          LoginSuccessMode.PRELOAD_AUTO,
+                      )
+                      maybeWarmupPortal(committedSession)
+                      return@withNoRedirectClient LoginPreloadResponse(
+                          captchaRequired = false,
+                          clientId = clientId,
+                          accessToken = tokenResponse.accessToken,
+                          refreshToken = tokenResponse.refreshToken,
+                          accessTokenExpiresAt = tokenResponse.accessTokenExpiresAt,
+                          refreshTokenExpiresAt = tokenResponse.refreshTokenExpiresAt,
+                          userData = userData,
+                      )
+                    }
+                  }
+                }
+                SessionValidationResult.Invalid ->
                     return@withNoRedirectClient LoginPreloadResponse(
                         captchaRequired = false,
                         clientId = clientId,
-                        accessToken = tokenResponse.accessToken,
-                        refreshToken = tokenResponse.refreshToken,
-                        accessTokenExpiresAt = tokenResponse.accessTokenExpiresAt,
-                        refreshTokenExpiresAt = tokenResponse.refreshTokenExpiresAt,
-                        userData = userData,
                     )
-                  }
-                }
+                is SessionValidationResult.RetryableFailure ->
+                    throw authUpstreamTimeout(validationResult.cause)
               }
-              SessionValidationResult.Invalid ->
-                  return@withNoRedirectClient LoginPreloadResponse(
-                      captchaRequired = false,
-                      clientId = clientId,
-                  )
-              is SessionValidationResult.RetryableFailure ->
-                  throw authUpstreamTimeout(validationResult.cause)
-            }
 
-            return@withNoRedirectClient LoginPreloadResponse(
-                captchaRequired = false,
-                clientId = clientId,
-            )
-          }
-
-          if (loginPageResponse.status != HttpStatusCode.OK)
               return@withNoRedirectClient LoginPreloadResponse(
                   captchaRequired = false,
                   clientId = clientId,
               )
+            }
 
-          val loginPageHtml = loginPageResponse.bodyAsText()
-          val execution = CasParser.extractExecution(loginPageHtml)
-          val captchaInfo = CasParser.detectCaptcha(loginPageHtml, CAPTCHA_URL_BASE)
+            if (loginPageResponse.status != HttpStatusCode.OK)
+                return@withNoRedirectClient LoginPreloadResponse(
+                    captchaRequired = false,
+                    clientId = clientId,
+                )
 
-          if (captchaInfo != null) {
-            val captchaImageBytes = getCaptchaImage(client, captchaInfo.id)
-            val base64Image =
-                captchaImageBytes?.let {
-                  "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(it)
+            val loginPageHtml = loginPageResponse.bodyAsText()
+            val execution = CasParser.extractExecution(loginPageHtml)
+            val captchaInfo = CasParser.detectCaptcha(loginPageHtml, CAPTCHA_URL_BASE)
+
+            val response =
+                if (captchaInfo != null) {
+                  val captchaImageBytes = getCaptchaImage(client, captchaInfo.id)
+                  val base64Image =
+                      captchaImageBytes?.let {
+                        "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(it)
+                      }
+                  LoginPreloadResponse(
+                      captchaRequired = true,
+                      captcha = captchaInfo.copy(base64Image = base64Image),
+                      execution = execution,
+                      clientId = clientId,
+                  )
+                } else {
+                  LoginPreloadResponse(
+                      captchaRequired = false,
+                      execution = execution.takeIf { it.isNotBlank() },
+                      clientId = clientId,
+                  )
                 }
-            LoginPreloadResponse(
-                captchaRequired = true,
-                captcha = captchaInfo.copy(base64Image = base64Image),
-                execution = execution,
-                clientId = clientId,
-            )
-          } else {
-            LoginPreloadResponse(
-                captchaRequired = false,
-                execution = execution.takeIf { it.isNotBlank() },
-                clientId = clientId,
-            )
+            sessionManager.persistPreLoginSession(clientId)
+            response
           }
         }
       }
@@ -365,11 +382,13 @@ class AuthService(
     try {
       sessionCandidate =
           if (hasClientId && hasExecution) {
-            sessionManager.promotePreLoginSession(request.clientId!!, request.username)
-                ?: run {
-                  AppObservability.recordLoginFlowEvent("login_prelogin_miss")
-                  sessionManager.prepareSession(request.username)
-                }
+            distributedLockManager.withLock("auth_prelogin", request.clientId!!) {
+              sessionManager.promotePreLoginSession(request.clientId!!, request.username)
+                  ?: run {
+                    AppObservability.recordLoginFlowEvent("login_prelogin_miss")
+                    sessionManager.prepareSession(request.username)
+                  }
+            }
           } else {
             sessionManager.prepareSession(request.username)
           }

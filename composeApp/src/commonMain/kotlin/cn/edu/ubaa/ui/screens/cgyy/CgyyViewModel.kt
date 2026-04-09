@@ -135,6 +135,8 @@ class CgyyViewModel(
     loadOrders()
   }
 
+  internal fun hasOrdersLoaded(): Boolean = ordersLoadedOnce
+
   fun ensureLockCodeLoaded(forceRefresh: Boolean = false) {
     if (!forceRefresh && lockCodeLoadedOnce) return
     loadLockCode()

@@ -20,6 +20,7 @@ internal fun userFacingMessage(code: String, fallback: String? = null): String {
     "invalid_token",
     "unauthenticated" -> "登录状态已失效，请重新登录"
     "auth_upstream_timeout" -> "认证服务响应超时，请稍后重试"
+    "auth_lock_timeout" -> "当前登录请求较多，请稍后重试"
     "captcha_not_found" -> "验证码已失效，请刷新后重试"
     "captcha_error" -> "验证码处理失败，请稍后重试"
     "missing_client_version" -> "缺少客户端版本信息"

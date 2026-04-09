@@ -198,6 +198,7 @@ class AuthServiceLoginMetricsTest {
   private fun createSessionManager(clientFactory: () -> HttpClient): SessionManager {
     return SessionManager(
         sessionStore = InMemorySessionStore(),
+        preLoginStore = InMemoryPreLoginStore(),
         cookieStorageFactory = InMemoryCookieStorageFactory(),
         clientFactory = { _: CookiesStorage -> clientFactory() },
     )

@@ -133,7 +133,8 @@ fun MainAppScreen(
         }
       }
   var hasVisitedCgyy by remember { mutableStateOf(false) }
-  val shouldKeepCgyyViewModel = hasVisitedCgyy || currentScreen in cgyyScreens
+  val shouldKeepCgyyViewModel =
+      currentScreen == AppScreen.HOME || hasVisitedCgyy || currentScreen in cgyyScreens
 
   // 初始化各模块 ViewModel
   val scheduleViewModel: ScheduleViewModel = viewModel { ScheduleViewModel() }
@@ -231,7 +232,8 @@ fun MainAppScreen(
             !scheduleViewModel.hasTodayLoaded() ||
             !signinViewModel.hasTodayLoaded() ||
             !spocViewModel.hasAssignmentsLoaded() ||
-            !bykcViewModel.hasChosenCoursesLoaded()
+            !bykcViewModel.hasChosenCoursesLoaded() ||
+            cgyyViewModel?.hasOrdersLoaded() != true
     homeBootstrapCoordinator.restart(
         HomeBootstrapActions(
             loadTodaySchedule = { force ->
@@ -240,6 +242,7 @@ fun MainAppScreen(
             loadSignin = { force -> signinViewModel.ensureTodayLoaded(forceRefresh = force) },
             loadSpoc = { force -> spocViewModel.ensureAssignmentsLoaded(forceRefresh = force) },
             loadBykc = { force -> bykcViewModel.ensureChosenCoursesLoaded(forceRefresh = force) },
+            loadCgyy = { force -> cgyyViewModel?.ensureOrdersLoaded(forceRefresh = force) },
         ),
         forceRefresh = forceRefresh,
         showLoading = showLoading,
