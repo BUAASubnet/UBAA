@@ -1,10 +1,10 @@
 package cn.edu.ubaa
 
+import cn.edu.ubaa.health.RedisReadinessProbe
 import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.metrics.InMemoryLoginStatsStore
 import cn.edu.ubaa.metrics.LoginMetricsRecorder
 import cn.edu.ubaa.metrics.LoginSuccessMode
-import cn.edu.ubaa.health.RedisReadinessProbe
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode

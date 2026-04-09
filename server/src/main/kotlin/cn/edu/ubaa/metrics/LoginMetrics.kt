@@ -1,9 +1,7 @@
 package cn.edu.ubaa.metrics
 
-import cn.edu.ubaa.auth.AuthConfig
 import cn.edu.ubaa.auth.GlobalRedisRuntime
 import cn.edu.ubaa.auth.RedisRuntime
-import io.lettuce.core.RedisClient
 import io.lettuce.core.Value
 import io.lettuce.core.api.async.RedisAsyncCommands
 import io.lettuce.core.api.sync.RedisCommands
@@ -123,9 +121,11 @@ class RedisLoginStatsStore(
 
   private val asyncCommands: RedisAsyncCommands<String, String>
     get() = runtime.asyncCommands
+
   // Gauge 回调是非 suspend 的，需要同步 API 读取
   private val syncCommands: RedisCommands<String, String>
     get() = runtime.syncCommands
+
   private val keyTtl = Duration.ofDays(32)
   private val readCacheTtl = Duration.ofSeconds(15)
   private val windowCache = ConcurrentHashMap<WindowCacheKey, CachedWindowValue>()

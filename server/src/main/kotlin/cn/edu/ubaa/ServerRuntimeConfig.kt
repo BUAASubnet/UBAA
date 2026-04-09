@@ -14,8 +14,7 @@ object ServerRuntimeConfig {
   private val dotenv = dotenv { ignoreIfMissing = true }
 
   val instanceId: String =
-      env("INSTANCE_ID")
-          ?.takeIf(String::isNotBlank)
+      env("INSTANCE_ID")?.takeIf(String::isNotBlank)
           ?: env("HOSTNAME")?.takeIf(String::isNotBlank)
           ?: ManagementFactory.getRuntimeMXBean().name
 

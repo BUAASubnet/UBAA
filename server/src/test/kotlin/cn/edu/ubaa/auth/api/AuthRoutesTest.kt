@@ -1,7 +1,7 @@
 package cn.edu.ubaa.auth
 
-import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.LoginPreloadRequest
+import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.utils.JwtUtil
 import cn.edu.ubaa.utils.UpstreamTimeoutException
@@ -154,7 +154,8 @@ class AuthRoutesTest {
     val authService =
         AuthService(
             sessionManager = sessionManager,
-            refreshTokenService = RefreshTokenService(refreshTokenStore = InMemoryRefreshTokenStore()),
+            refreshTokenService =
+                RefreshTokenService(refreshTokenStore = InMemoryRefreshTokenStore()),
             distributedLockManager =
                 object : DistributedLockManager {
                   override suspend fun <T> withLock(

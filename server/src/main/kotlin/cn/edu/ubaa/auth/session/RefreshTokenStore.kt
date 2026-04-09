@@ -45,6 +45,7 @@ class RedisRefreshTokenStore(
 ) : RefreshTokenStore {
   private val commands: RedisAsyncCommands<String, String>
     get() = runtime.asyncCommands
+
   private val mutexes = ConcurrentHashMap<String, Mutex>()
 
   override suspend fun saveToken(
@@ -252,7 +253,9 @@ object GlobalRefreshTokenService {
 
   val instance: RefreshTokenService
     get() {
-      current?.let { return it }
+      current?.let {
+        return it
+      }
       return synchronized(this) { current ?: RefreshTokenService().also { current = it } }
     }
 

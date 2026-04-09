@@ -205,7 +205,8 @@ class AuthService(
                     val sessionCandidate =
                         sessionManager.promotePreLoginSession(clientId, userData.schoolid)
                     if (sessionCandidate != null) {
-                      val committedSession = sessionManager.commitSession(sessionCandidate, userData)
+                      val committedSession =
+                          sessionManager.commitSession(sessionCandidate, userData)
                       val tokenResponse = refreshTokenService.issueTokens(sessionCandidate.username)
                       safeRecordLoginSuccess(
                           userData.schoolid.ifBlank { sessionCandidate.username },

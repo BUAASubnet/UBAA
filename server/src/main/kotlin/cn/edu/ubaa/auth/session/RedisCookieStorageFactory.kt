@@ -1,6 +1,5 @@
 package cn.edu.ubaa.auth
 
-import io.lettuce.core.RedisClient
 import io.lettuce.core.api.async.RedisAsyncCommands
 import kotlinx.coroutines.future.await
 

@@ -3,8 +3,8 @@ package cn.edu.ubaa.auth
 import io.ktor.http.Cookie
 import io.ktor.http.Url
 import io.ktor.util.date.GMTDate
-import java.time.Instant
 import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 class InMemorySessionStore : SessionPersistence {
@@ -231,7 +231,8 @@ class InMemoryPreLoginStore : PreLoginPersistence {
         PreLoginPersistence.PreLoginRecord(clientId = clientId, lastTouchedAt = lastTouchedAt)
   }
 
-  override suspend fun load(clientId: String): PreLoginPersistence.PreLoginRecord? = records[clientId]
+  override suspend fun load(clientId: String): PreLoginPersistence.PreLoginRecord? =
+      records[clientId]
 
   override suspend fun delete(clientId: String) {
     records.remove(clientId)

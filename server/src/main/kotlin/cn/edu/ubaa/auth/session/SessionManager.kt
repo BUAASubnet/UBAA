@@ -91,8 +91,7 @@ class SessionManager(
     private val activityPersistInterval: Duration = Duration.ofSeconds(60),
     private val sessionStore: SessionPersistence = RedisSessionStore(sessionTtl = sessionTtl),
     private val preLoginStore: PreLoginPersistence = RedisPreLoginStore(),
-    private val cookieStorageFactory: ManagedCookieStorageFactory =
-        RedisCookieStorageFactory(),
+    private val cookieStorageFactory: ManagedCookieStorageFactory = RedisCookieStorageFactory(),
     private val clientFactory: (CookiesStorage) -> HttpClient = ::buildManagedClient,
 ) {
   private sealed interface RestoreAttempt {
@@ -465,14 +464,16 @@ class SessionManager(
     val reconciled =
         (if (skipStoreReconcile) session else reconcileSessionWithStore(username, session))
             ?: run {
-          AppObservability.recordSessionResolve("missing")
-          return null
-        }
+              AppObservability.recordSessionResolve("missing")
+              return null
+            }
     if (reconciled.isExpired(sessionTtl)) {
-      val refreshed = resolveExpiredSession(username, reconciled) ?: run {
-        AppObservability.recordSessionResolve("expired")
-        return null
-      }
+      val refreshed =
+          resolveExpiredSession(username, reconciled)
+              ?: run {
+                AppObservability.recordSessionResolve("expired")
+                return null
+              }
       if (access == SessionAccess.TOUCH) {
         touchSession(username, refreshed)
       }
@@ -570,15 +571,17 @@ class SessionManager(
       username: String,
       session: UserSession,
   ): UserSession? {
-    val persistedVersion = sessionStore.currentVersion(username) ?: run {
-      disposeManagedSession(
-          username = username,
-          session = session,
-          clearPersistedCookies = false,
-          deletePersisted = false,
-      )
-      return null
-    }
+    val persistedVersion =
+        sessionStore.currentVersion(username)
+            ?: run {
+              disposeManagedSession(
+                  username = username,
+                  session = session,
+                  clearPersistedCookies = false,
+                  deletePersisted = false,
+              )
+              return null
+            }
 
     if (
         persistedVersion.generation == session.generation() &&
@@ -587,15 +590,17 @@ class SessionManager(
       return session
     }
 
-    val persisted = sessionStore.loadSession(username) ?: run {
-      disposeManagedSession(
-          username = username,
-          session = session,
-          clearPersistedCookies = false,
-          deletePersisted = false,
-      )
-      return null
-    }
+    val persisted =
+        sessionStore.loadSession(username)
+            ?: run {
+              disposeManagedSession(
+                  username = username,
+                  session = session,
+                  clearPersistedCookies = false,
+                  deletePersisted = false,
+              )
+              return null
+            }
 
     if (persisted.generation != session.generation()) {
       val cookieStorage = cookieStorageFactory.create(username, sessionTtl)
@@ -624,14 +629,16 @@ class SessionManager(
       }
 
       val previous = sessions.put(username, rebuilt)
-      previous?.takeIf { it !== rebuilt }?.let {
-        releaseManagedSession(
-            username = username,
-            session = it,
-            clearPersistedCookies = false,
-            deletePersisted = false,
-        )
-      }
+      previous
+          ?.takeIf { it !== rebuilt }
+          ?.let {
+            releaseManagedSession(
+                username = username,
+                session = it,
+                clearPersistedCookies = false,
+                deletePersisted = false,
+            )
+          }
       return rebuilt
     }
 
@@ -715,7 +722,9 @@ object GlobalSessionManager {
 
   val instance: SessionManager
     get() {
-      current?.let { return it }
+      current?.let {
+        return it
+      }
       return synchronized(this) { current ?: SessionManager().also { current = it } }
     }
 

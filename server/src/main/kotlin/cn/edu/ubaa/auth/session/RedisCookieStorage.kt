@@ -188,7 +188,8 @@ class RedisCookieStorage(
       } else {
         commands.del(targetKey).await()
         commands.hset(targetKey, cookieMap).await()
-        val ttl = computeCacheTtlSeconds(cookieMap.values, System.currentTimeMillis()) ?: keyTtlSeconds
+        val ttl =
+            computeCacheTtlSeconds(cookieMap.values, System.currentTimeMillis()) ?: keyTtlSeconds
         commands.expire(targetKey, ttl).await()
         commands.del(key).await()
       }

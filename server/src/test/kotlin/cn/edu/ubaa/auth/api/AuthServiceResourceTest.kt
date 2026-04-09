@@ -273,7 +273,10 @@ class AuthServiceResourceTest {
       candidate.cookieStorage.addCookie(requestUrl, Cookie("CASTGC", "prelogin-cookie"))
       sessionManager.persistPreLoginSession("ttl-device")
 
-      assertEquals(Duration.ofMinutes(5).toMillis(), cookieFactory.currentTtlMillis("prelogin_ttl-device"))
+      assertEquals(
+          Duration.ofMinutes(5).toMillis(),
+          cookieFactory.currentTtlMillis("prelogin_ttl-device"),
+      )
 
       val promoted = sessionManager.promotePreLoginSession("ttl-device", "2333")
       assertNotNull(promoted)
@@ -361,8 +364,7 @@ class AuthServiceResourceTest {
       firstCandidate.cookieStorage.addCookie(requestUrl, Cookie("session", "old"))
       firstManager.commitSession(firstCandidate, UserData("Alice", "30001"))
 
-      val original =
-          firstManager.getSession("replace-user", SessionManager.SessionAccess.READ_ONLY)
+      val original = firstManager.getSession("replace-user", SessionManager.SessionAccess.READ_ONLY)
       assertNotNull(original)
 
       Thread.sleep(5)
@@ -371,8 +373,7 @@ class AuthServiceResourceTest {
       secondCandidate.cookieStorage.addCookie(requestUrl, Cookie("session", "new"))
       secondManager.commitSession(secondCandidate, UserData("Alice", "30001"))
 
-      val rebuilt =
-          firstManager.getSession("replace-user", SessionManager.SessionAccess.READ_ONLY)
+      val rebuilt = firstManager.getSession("replace-user", SessionManager.SessionAccess.READ_ONLY)
       assertNotNull(rebuilt)
       assertNotSame(original, rebuilt)
 
@@ -672,9 +673,7 @@ class AuthServiceResourceTest {
 
       override suspend fun updatePersistenceTtl(ttl: java.time.Duration) {
         currentTtlMillis = ttl.toMillis().coerceAtLeast(1L)
-        loadPersistedState(subject)?.let { state ->
-          state.ttlMillis = currentTtlMillis
-        }
+        loadPersistedState(subject)?.let { state -> state.ttlMillis = currentTtlMillis }
       }
 
       override suspend fun touchPersistence(ttl: java.time.Duration?) {

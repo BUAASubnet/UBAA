@@ -34,9 +34,8 @@ class RedisDistributedLockManager(
 
     while (true) {
       val acquired =
-          runtime.asyncCommands
-              .set(redisKey, token, SetArgs.Builder.nx().px(ttlMillis))
-              .await() == "OK"
+          runtime.asyncCommands.set(redisKey, token, SetArgs.Builder.nx().px(ttlMillis)).await() ==
+              "OK"
       if (acquired) {
         break
       }
@@ -85,7 +84,9 @@ object GlobalDistributedLockManager {
 
   val instance: RedisDistributedLockManager
     get() {
-      current?.let { return it }
+      current?.let {
+        return it
+      }
       return synchronized(this) { current ?: RedisDistributedLockManager().also { current = it } }
     }
 

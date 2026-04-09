@@ -89,7 +89,10 @@ class HomeBootstrapCoordinatorTest {
   fun restartClearsRunningWhenFirstStageThrows() = runTest {
     val failures = mutableListOf<Throwable>()
     val exceptionHandler = CoroutineExceptionHandler { _, throwable -> failures += throwable }
-    val coordinator = HomeBootstrapCoordinator(CoroutineScope(coroutineContext + SupervisorJob() + exceptionHandler))
+    val coordinator =
+        HomeBootstrapCoordinator(
+            CoroutineScope(coroutineContext + SupervisorJob() + exceptionHandler)
+        )
     val actions =
         HomeBootstrapActions(
             loadTodaySchedule = { throw IllegalStateException("boom") },

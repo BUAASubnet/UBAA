@@ -38,15 +38,14 @@ class RedisPreLoginStore(
   override suspend fun load(clientId: String): PreLoginPersistence.PreLoginRecord? {
     return withClientLock(clientId) {
       val raw = runtime.asyncCommands.get(keyFor(clientId)).await() ?: return@withClientLock null
-      val lastTouchedAt = raw.toLongOrNull()?.let(Instant::ofEpochMilli) ?: return@withClientLock null
+      val lastTouchedAt =
+          raw.toLongOrNull()?.let(Instant::ofEpochMilli) ?: return@withClientLock null
       PreLoginPersistence.PreLoginRecord(clientId = clientId, lastTouchedAt = lastTouchedAt)
     }
   }
 
   override suspend fun delete(clientId: String) {
-    withClientLock(clientId) {
-      runtime.asyncCommands.del(keyFor(clientId)).await()
-    }
+    withClientLock(clientId) { runtime.asyncCommands.del(keyFor(clientId)).await() }
     mutexes.remove(clientId)
   }
 

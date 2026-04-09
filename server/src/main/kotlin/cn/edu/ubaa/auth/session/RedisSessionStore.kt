@@ -16,6 +16,7 @@ class RedisSessionStore(
   private val mutexes = ConcurrentHashMap<String, Mutex>()
   private val commands: RedisAsyncCommands<String, String>
     get() = runtime.asyncCommands
+
   private val keyPrefix = "session:"
   private val sessionTtl = sessionTtl.seconds.coerceAtLeast(1L)
 
@@ -28,8 +29,7 @@ class RedisSessionStore(
   ): SessionPersistence.SessionVersion {
     return withUserLock(username) {
       val key = keyFor(username)
-      val generation =
-          (commands.hget(key, "generation").await()?.toLongOrNull() ?: 0L) + 1L
+      val generation = (commands.hget(key, "generation").await()?.toLongOrNull() ?: 0L) + 1L
       val version = SessionPersistence.SessionVersion(generation = generation, revision = 1L)
       val sessionData =
           mapOf(

@@ -43,7 +43,11 @@ object GlobalRedisRuntime {
 
   val instance: RedisRuntime
     get() {
-      current?.takeUnless { it.isClosed() }?.let { return it }
+      current
+          ?.takeUnless { it.isClosed() }
+          ?.let {
+            return it
+          }
       return synchronized(this) {
         current?.takeUnless { it.isClosed() } ?: RedisRuntime().also { current = it }
       }
