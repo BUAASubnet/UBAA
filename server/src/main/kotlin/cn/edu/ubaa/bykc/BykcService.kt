@@ -197,11 +197,12 @@ class BykcService(
       ensureBykcLogin(username)
       val client = getClient(username)
       val config = client.getAllConfig()
-      val semester = config.semester.firstOrNull() ?: throw BykcException("无法获取当前学期信息")
-
-      val chosenCourses =
-          client.queryChosenCourse(semester.semesterStartDate!!, semester.semesterEndDate!!)
       val now = nowProvider()
+      val semester = resolveCurrentSemester(config, now)
+      val semesterStartDate = semester.semesterStartDate ?: throw BykcException("无法获取当前学期信息")
+      val semesterEndDate = semester.semesterEndDate ?: throw BykcException("无法获取当前学期信息")
+
+      val chosenCourses = client.queryChosenCourse(semesterStartDate, semesterEndDate)
 
       chosenCourses.map { chosen ->
         val course = chosen.courseInfo
@@ -378,7 +379,7 @@ class BykcService(
       courseId: Long,
   ): BykcChosenCourse? {
     val config = client.getAllConfig()
-    val semester = config.semester.firstOrNull() ?: throw BykcException("无法获取当前学期信息")
+    val semester = resolveCurrentSemester(config, nowProvider())
     val semesterStartDate = semester.semesterStartDate ?: throw BykcException("无法获取当前学期信息")
     val semesterEndDate = semester.semesterEndDate ?: throw BykcException("无法获取当前学期信息")
 
@@ -417,6 +418,24 @@ class BykcService(
 
   private fun canSignOut(signConfig: BykcSignConfigDto?, now: LocalDateTime): Boolean {
     return isWithinWindow(signConfig?.signOutStartDate, signConfig?.signOutEndDate, now)
+  }
+
+  private fun resolveCurrentSemester(
+      config: BykcAllConfig,
+      now: LocalDateTime,
+  ): BykcSemester {
+    val semesters = config.semester
+    if (semesters.isEmpty()) throw BykcException("无法获取当前学期信息")
+
+    semesters.firstOrNull { semester ->
+      isWithinWindow(semester.semesterStartDate, semester.semesterEndDate, now)
+    }?.let {
+      return it
+    }
+
+    log.warn("Unable to match BYKC current semester by time window, falling back to latest semester")
+    return semesters.maxByOrNull { parseDateTime(it.semesterEndDate) ?: LocalDateTime.MIN }
+        ?: throw BykcException("无法获取当前学期信息")
   }
 
   /** 随机坐标生成：在合法的签到半径内随机化，提高安全性。 */
@@ -477,7 +496,7 @@ class BykcService(
       now: LocalDateTime,
   ): AttendanceAvailability {
     val canSign = pass != 1 && isUnsignedCheckin(checkin) && canSign(signConfig, now)
-    val canSignOut = pass != 1 && isSignedAwaitingSignOut(checkin) && canSignOut(signConfig, now)
+    val canSignOut = pass != 1 && isEligibleForSignOut(checkin) && canSignOut(signConfig, now)
     return AttendanceAvailability(canSign = canSign, canSignOut = canSignOut)
   }
 
@@ -491,11 +510,14 @@ class BykcService(
   private fun resolveSignOutUnavailableReason(checkin: Int?, pass: Int?): String =
       when {
         pass == 1 -> "课程已考核完成，无需签退"
-        !isSignedAwaitingSignOut(checkin) -> "当前考勤状态不可签退"
+        !isEligibleForSignOut(checkin) -> "当前考勤状态不可签退"
         else -> "当前不在签退时间窗口"
       }
 
   private fun isUnsignedCheckin(checkin: Int?): Boolean = checkin == null || checkin == 0
+
+  private fun isEligibleForSignOut(checkin: Int?): Boolean =
+      isUnsignedCheckin(checkin) || isSignedAwaitingSignOut(checkin)
 
   private fun isSignedAwaitingSignOut(checkin: Int?): Boolean = checkin == 5 || checkin == 6
 
