@@ -13,24 +13,9 @@ object BykcCourseStatus {
 }
 
 /**
- * 博雅课程简要信息 DTO。 用于课程列表展示。
+ * 博雅课程列表项 DTO。
  *
- * @property id 课程 ID。
- * @property courseName 课程名称。
- * @property coursePosition 上课地点。
- * @property courseTeacher 授课教师。
- * @property courseStartDate 课程开始时间。
- * @property courseEndDate 课程结束时间。
- * @property courseSelectStartDate 选课开始时间。
- * @property courseSelectEndDate 选课结束时间。
- * @property courseMaxCount 最大人数。
- * @property courseCurrentCount 当前已报名人数。
- * @property category 课程大类。
- * @property subCategory 课程小类。
- * @property hasSignPoints 是否存在签到地点配置。
- * @property status 课程当前状态描述（如“可选”、“已选”）。
- * @property selected 当前用户是否已选该课。
- * @property courseDesc 课程简介。
+ * 仅保留课程广场列表与卡片展示真正需要的字段，避免把详情态、签到态、原始兼容字段一并暴露到前端。
  */
 @Serializable
 data class BykcCourseDto(
@@ -42,50 +27,37 @@ data class BykcCourseDto(
     val courseEndDate: String? = null,
     val courseSelectStartDate: String? = null,
     val courseSelectEndDate: String? = null,
+    val courseCancelEndDate: String? = null,
     val courseMaxCount: Int = 0,
-    val courseCurrentCount: Int = 0,
+    /**
+     * 当前报名人数。
+     *
+     * 列表接口通常会返回该值；若上游未返回，则保留为 `null`，避免把缺失信息误写成 `0`。
+     */
+    val courseCurrentCount: Int? = null,
+    /** BYKC 新版一级分类，如“博雅课程”。 */
     val category: String? = null,
+    /** BYKC 新版二级分类，如“德育/美育/劳动教育/安全健康”。 */
     val subCategory: String? = null,
+    /** 是否存在基于地点的签到点配置。 */
     val hasSignPoints: Boolean = false,
+    /** 服务端统一计算后的课程状态。 */
     val status: String,
+    /** 当前用户是否已选择该课程。 */
     val selected: Boolean = false,
-    val courseDesc: String? = null,
 )
 
 /**
- * 博雅课程详细信息 DTO。
+ * 博雅课程详情 DTO。
  *
- * @property id 课程 ID。
- * @property courseName 课程名称。
- * @property coursePosition 上课地点。
- * @property courseContact 联系人。
- * @property courseContactMobile 联系电话。
- * @property courseTeacher 授课教师。
- * @property courseStartDate 课程开始时间。
- * @property courseEndDate 课程结束时间。
- * @property courseSelectStartDate 选课开始时间。
- * @property courseSelectEndDate 选课结束时间。
- * @property courseCancelEndDate 退选截止时间。
- * @property courseMaxCount 最大人数。
- * @property courseCurrentCount 当前已报名人数。
- * @property category 课程大类。
- * @property subCategory 课程小类。
- * @property status 课程状态。
- * @property selected 是否已选。
- * @property courseDesc 课程详细描述。
- * @property signConfig 签到配置。
- * @property checkin 签到状态（通常 0 为未签，1 为已签）。
- * @property pass 是否通过考核。
- * @property canSign 当前是否允许执行签到。
- * @property canSignOut 当前是否允许执行签退。
+ * 字段设计上保持为 [BykcCourseDto] 的超集：列表页已有的展示字段在详情页仍然可用，
+ * 仅额外补充正文、联系方式、受众范围、签到信息等详情专属数据。
  */
 @Serializable
 data class BykcCourseDetailDto(
     val id: Long,
     val courseName: String,
     val coursePosition: String? = null,
-    val courseContact: String? = null,
-    val courseContactMobile: String? = null,
     val courseTeacher: String? = null,
     val courseStartDate: String? = null,
     val courseEndDate: String? = null,
@@ -93,16 +65,37 @@ data class BykcCourseDetailDto(
     val courseSelectEndDate: String? = null,
     val courseCancelEndDate: String? = null,
     val courseMaxCount: Int = 0,
-    val courseCurrentCount: Int = 0,
+    val courseCurrentCount: Int? = null,
     val category: String? = null,
     val subCategory: String? = null,
+    val hasSignPoints: Boolean = false,
     val status: String,
     val selected: Boolean = false,
+    /** 课程联系人。 */
+    val courseContact: String? = null,
+    /** 课程联系人电话。 */
+    val courseContactMobile: String? = null,
+    /** 开课单位名称。 */
+    val organizerCollegeName: String? = null,
+    /** 课程简介；BYKC 原始返回中通常为 HTML 片段。 */
     val courseDesc: String? = null,
+    /** 允许报名的校区范围文本。 */
+    val audienceCampuses: List<String> = emptyList(),
+    /** 允许报名的学院范围文本。 */
+    val audienceColleges: List<String> = emptyList(),
+    /** 允许报名的年级范围文本。 */
+    val audienceTerms: List<String> = emptyList(),
+    /** 允许报名的人群范围文本，如“本科”。 */
+    val audienceGroups: List<String> = emptyList(),
+    /** 解析后的签到配置。 */
     val signConfig: BykcSignConfigDto? = null,
+    /** 当前用户的签到状态。 */
     val checkin: Int? = null,
+    /** 当前用户的考核状态。 */
     val pass: Int? = null,
+    /** 当前是否可执行签到。 */
     val canSign: Boolean = false,
+    /** 当前是否可执行签退。 */
     val canSignOut: Boolean = false,
 )
 

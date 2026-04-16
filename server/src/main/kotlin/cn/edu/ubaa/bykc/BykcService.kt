@@ -107,25 +107,7 @@ class BykcService(
               if (status == BykcCourseStatusEnum.EXPIRED || status == BykcCourseStatusEnum.ENDED)
                   return@mapNotNull null
 
-              BykcCourseDto(
-                  id = course.id,
-                  courseName = course.courseName,
-                  coursePosition = course.coursePosition,
-                  courseTeacher = course.courseTeacher,
-                  courseStartDate = course.courseStartDate,
-                  courseEndDate = course.courseEndDate,
-                  courseSelectStartDate = course.courseSelectStartDate,
-                  courseSelectEndDate = course.courseSelectEndDate,
-                  courseMaxCount = course.courseMaxCount,
-                  courseCurrentCount = course.courseCurrentCount ?: 0,
-                  category = course.courseNewKind1?.kindName,
-                  subCategory = course.courseNewKind2?.kindName,
-                  hasSignPoints =
-                      parseSignConfig(course.courseSignConfig)?.signPoints?.isNotEmpty() == true,
-                  status = status.displayName,
-                  selected = course.selected ?: false,
-                  courseDesc = course.courseDesc,
-              )
+              course.toCourseDto(status)
             } catch (e: Exception) {
               null
             }
@@ -145,25 +127,7 @@ class BykcService(
       val courses =
           result.content.map { course ->
             val status = calculateCourseStatus(course)
-            BykcCourseDto(
-                id = course.id,
-                courseName = course.courseName,
-                coursePosition = course.coursePosition,
-                courseTeacher = course.courseTeacher,
-                courseStartDate = course.courseStartDate,
-                courseEndDate = course.courseEndDate,
-                courseSelectStartDate = course.courseSelectStartDate,
-                courseSelectEndDate = course.courseSelectEndDate,
-                courseMaxCount = course.courseMaxCount,
-                courseCurrentCount = course.courseCurrentCount ?: 0,
-                category = course.courseNewKind1?.kindName,
-                subCategory = course.courseNewKind2?.kindName,
-                hasSignPoints =
-                    parseSignConfig(course.courseSignConfig)?.signPoints?.isNotEmpty() == true,
-                status = status.displayName,
-                selected = course.selected ?: false,
-                courseDesc = course.courseDesc,
-            )
+            course.toCourseDto(status)
           }
       BykcCoursePage(courses, result.totalElements, result.totalPages, pageNumber, pageSize)
     }
@@ -259,30 +223,12 @@ class BykcService(
       }
       val availability = resolveAttendanceAvailability(signConfig, checkin, pass, now)
 
-      BykcCourseDetailDto(
-          id = course.id,
-          courseName = course.courseName,
-          coursePosition = course.coursePosition,
-          courseContact = course.courseContact,
-          courseContactMobile = course.courseContactMobile,
-          courseTeacher = course.courseTeacher,
-          courseStartDate = course.courseStartDate,
-          courseEndDate = course.courseEndDate,
-          courseSelectStartDate = course.courseSelectStartDate,
-          courseSelectEndDate = course.courseSelectEndDate,
-          courseCancelEndDate = course.courseCancelEndDate,
-          courseMaxCount = course.courseMaxCount,
-          courseCurrentCount = course.courseCurrentCount ?: 0,
-          category = course.courseNewKind1?.kindName,
-          subCategory = course.courseNewKind2?.kindName,
-          status = status.displayName,
-          selected = course.selected ?: false,
-          courseDesc = course.courseDesc,
+      course.toCourseDetailDto(
+          status = status,
           signConfig = signConfig,
           checkin = checkin,
           pass = pass,
-          canSign = availability.canSign,
-          canSignOut = availability.canSignOut,
+          availability = availability,
       )
     }
   }
@@ -411,6 +357,72 @@ class BykcService(
     }
   }
 
+  private fun BykcRawCourse.toCourseDto(status: BykcCourseStatusEnum): BykcCourseDto {
+    return BykcCourseDto(
+        id = id,
+        courseName = courseName.trim(),
+        coursePosition = coursePosition.normalizedOrNull(),
+        courseTeacher = courseTeacher.normalizedOrNull(),
+        courseStartDate = courseStartDate.normalizedOrNull(),
+        courseEndDate = courseEndDate.normalizedOrNull(),
+        courseSelectStartDate = courseSelectStartDate.normalizedOrNull(),
+        courseSelectEndDate = courseSelectEndDate.normalizedOrNull(),
+        courseCancelEndDate = courseCancelEndDate.normalizedOrNull(),
+        courseMaxCount = courseMaxCount,
+        courseCurrentCount = courseCurrentCount,
+        category = courseNewKind1?.kindName.normalizedOrNull(),
+        subCategory = courseNewKind2?.kindName.normalizedOrNull(),
+        hasSignPoints = parseSignConfig(courseSignConfig)?.signPoints?.isNotEmpty() == true,
+        status = status.displayName,
+        selected = selected == true,
+    )
+  }
+
+  private fun BykcRawCourse.toCourseDetailDto(
+      status: BykcCourseStatusEnum,
+      signConfig: BykcSignConfigDto?,
+      checkin: Int?,
+      pass: Int?,
+      availability: AttendanceAvailability,
+  ): BykcCourseDetailDto {
+    return BykcCourseDetailDto(
+        id = id,
+        courseName = courseName.trim(),
+        coursePosition = coursePosition.normalizedOrNull(),
+        courseTeacher = courseTeacher.normalizedOrNull(),
+        courseStartDate = courseStartDate.normalizedOrNull(),
+        courseEndDate = courseEndDate.normalizedOrNull(),
+        courseSelectStartDate = courseSelectStartDate.normalizedOrNull(),
+        courseSelectEndDate = courseSelectEndDate.normalizedOrNull(),
+        courseCancelEndDate = courseCancelEndDate.normalizedOrNull(),
+        courseMaxCount = courseMaxCount,
+        courseCurrentCount = courseCurrentCount,
+        category = courseNewKind1?.kindName.normalizedOrNull(),
+        subCategory = courseNewKind2?.kindName.normalizedOrNull(),
+        hasSignPoints = signConfig?.signPoints?.isNotEmpty() == true,
+        status = status.displayName,
+        selected = selected == true,
+        courseContact = courseContact.normalizedOrNull(),
+        courseContactMobile = courseContactMobile.normalizedOrNull(),
+        organizerCollegeName = courseBelongCollege?.collegeName.normalizedOrNull(),
+        courseDesc = courseDesc.normalizedOrNull(),
+        audienceCampuses = courseCampusList.normalizedTextList(),
+        audienceColleges = courseCollegeList.normalizedTextList(),
+        audienceTerms = courseTermList.normalizedTextList(),
+        audienceGroups = courseGroupList.normalizedTextList(),
+        signConfig = signConfig,
+        checkin = checkin,
+        pass = pass,
+        canSign = availability.canSign,
+        canSignOut = availability.canSignOut,
+    )
+  }
+
+  private fun String?.normalizedOrNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+
+  private fun List<String>?.normalizedTextList(): List<String> =
+      this.orEmpty().mapNotNull { it.normalizedOrNull() }
+
   private fun canSign(signConfig: BykcSignConfigDto?, now: LocalDateTime): Boolean {
     return isWithinWindow(signConfig?.signStartDate, signConfig?.signEndDate, now)
   }
@@ -450,7 +462,7 @@ class BykcService(
   }
 
   /** 根据课程时间配置计算课程状态。 */
-  private fun calculateCourseStatus(course: BykcCourse): BykcCourseStatusEnum {
+  private fun calculateCourseStatus(course: BykcRawCourse): BykcCourseStatusEnum {
     val now = nowProvider()
     return try {
       val cs = parseDateTime(course.courseStartDate)

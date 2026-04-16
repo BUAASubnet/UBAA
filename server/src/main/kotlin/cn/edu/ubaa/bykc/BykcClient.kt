@@ -13,6 +13,7 @@ import java.util.Base64
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.slf4j.LoggerFactory
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory
 open class BykcClient(private val username: String) {
 
   private val log = LoggerFactory.getLogger(BykcClient::class.java)
+  private val debugLog = LoggerFactory.getLogger("cn.edu.ubaa.bykc.debug")
   private val sessionManager: SessionManager = GlobalSessionManager.instance
   private val json = Json { ignoreUnknownKeys = true }
   private val loginMutex = Mutex()
@@ -99,14 +101,18 @@ open class BykcClient(private val username: String) {
 
     return try {
 
-      doCallApiRaw(apiName, requestJson)
+      doCallApiRaw(apiName, requestJson).also {
+        appendRawLog(apiName = apiName, requestJson = requestJson, raw = it, retried = false)
+      }
     } catch (e: Exception) {
 
       log.warn("API call failed, retrying after login: {}", e.message)
 
       login(forceRefresh = true)
 
-      doCallApiRaw(apiName, requestJson)
+      doCallApiRaw(apiName, requestJson).also {
+        appendRawLog(apiName = apiName, requestJson = requestJson, raw = it, retried = true)
+      }
     }
   }
 
@@ -225,6 +231,8 @@ open class BykcClient(private val username: String) {
     if (!apiResp.isSuccess || apiResp.data == null)
         throw RuntimeException("BYKC query courses failed: ${apiResp.errmsg}")
 
+    appendParsedRawCourseLog("queryStudentSemesterCourseByPage", apiResp.data.content)
+
     return apiResp.data
   }
 
@@ -301,6 +309,11 @@ open class BykcClient(private val username: String) {
     if (!apiResp.isSuccess || apiResp.data == null)
         throw RuntimeException("BYKC queryChosenCourse failed: ${apiResp.errmsg}")
 
+    appendParsedRawCourseLog(
+        "queryChosenCourse",
+        apiResp.data.courseList.mapNotNull { it.courseInfo },
+    )
+
     return apiResp.data.courseList
   }
 
@@ -309,16 +322,18 @@ open class BykcClient(private val username: String) {
    *
    * @throws RuntimeException 当查询失败时抛出。
    */
-  open suspend fun queryCourseById(id: Long): BykcCourse {
+  open suspend fun queryCourseById(id: Long): BykcRawCourse {
 
     val req = "{\"id\":$id}"
 
     val raw = callApiRaw("queryCourseById", req)
 
-    val apiResp = json.decodeFromString<BykcApiResponse<BykcCourse>>(raw)
+    val apiResp = json.decodeFromString<BykcApiResponse<BykcRawCourse>>(raw)
 
     if (!apiResp.isSuccess || apiResp.data == null)
         throw RuntimeException("BYKC queryCourseById failed: ${apiResp.errmsg}")
+
+    appendParsedRawCourseLog("queryCourseById", listOf(apiResp.data))
 
     return apiResp.data
   }
@@ -368,6 +383,42 @@ open class BykcClient(private val username: String) {
 
   private fun toMetricOperation(apiName: String): String {
     return apiName.replace(Regex("([a-z0-9])([A-Z])"), "$1_$2").lowercase()
+  }
+
+  private fun appendRawLog(apiName: String, requestJson: String, raw: String, retried: Boolean) {
+    if (!BykcDebugConfig.rawApiLogEnabled) return
+    debugLog.info(
+        "user={} api={} retried={}\nrequest={}\nraw={}\n-----",
+        username,
+        apiName,
+        retried,
+        requestJson,
+        raw,
+    )
+  }
+
+  private fun appendParsedRawCourseLog(apiName: String, courses: List<BykcRawCourse>) {
+    if (!BykcDebugConfig.parsedCourseLogEnabled || courses.isEmpty()) return
+    val payload =
+        courses.joinToString(separator = "\n") { course ->
+          parsedLogJson.encodeToString(BykcRawCourse.serializer(), course)
+        }
+    debugLog.info(
+        "user={} parsed=BykcRawCourse api={} count={}\n{}\n-----",
+        username,
+        apiName,
+        courses.size,
+        payload,
+    )
+  }
+
+  companion object {
+    private val parsedLogJson =
+        Json {
+          ignoreUnknownKeys = true
+          encodeDefaults = true
+          explicitNulls = true
+        }
   }
 }
 

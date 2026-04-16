@@ -1,6 +1,7 @@
 package cn.edu.ubaa.bykc
 
 import cn.edu.ubaa.model.dto.BykcCourseDto
+import cn.edu.ubaa.model.dto.BykcCourseDetailDto
 import cn.edu.ubaa.model.dto.BykcCourseStatus
 import kotlin.test.*
 import kotlinx.serialization.json.Json
@@ -65,7 +66,7 @@ class BykcModelsTest {
   }
 
   @Test
-  fun `BykcCourse can parse full course data`() {
+  fun `BykcRawCourse can parse full course data`() {
     val jsonStr =
         """
         {
@@ -103,7 +104,7 @@ class BykcModelsTest {
         """
             .trimIndent()
 
-    val course = json.decodeFromString<BykcCourse>(jsonStr)
+    val course = json.decodeFromString<BykcRawCourse>(jsonStr)
 
     assertEquals(8748L, course.id)
     assertEquals("AI时代,建构英语学习新思维", course.courseName)
@@ -214,7 +215,6 @@ class BykcModelsTest {
             hasSignPoints = true,
             status = BykcCourseStatus.AVAILABLE,
             selected = false,
-            courseDesc = "课程描述",
         )
 
     val serialized = json.encodeToString(BykcCourseDto.serializer(), dto)
@@ -225,6 +225,45 @@ class BykcModelsTest {
     assertEquals(dto.status, deserialized.status)
     assertEquals(dto.category, deserialized.category)
     assertEquals(dto.hasSignPoints, deserialized.hasSignPoints)
+  }
+
+  @Test
+  fun `BykcCourseDetailDto serialization keeps detail only fields`() {
+    val dto =
+        BykcCourseDetailDto(
+            id = 1234L,
+            courseName = "测试课程",
+            coursePosition = "测试地点",
+            courseTeacher = "测试教师",
+            courseStartDate = "2025-11-26 19:00:00",
+            courseEndDate = "2025-11-26 21:00:00",
+            courseSelectStartDate = "2025-11-25 19:00:00",
+            courseSelectEndDate = "2025-11-26 18:00:00",
+            courseMaxCount = 100,
+            courseCurrentCount = null,
+            category = "博雅课程",
+            subCategory = "德育",
+            hasSignPoints = false,
+            status = BykcCourseStatus.AVAILABLE,
+            selected = true,
+            organizerCollegeName = "学生中心",
+            courseContact = "曹老师",
+            courseContactMobile = "13800000000",
+            courseDesc = "课程描述",
+            audienceCampuses = listOf("沙河校区"),
+            audienceGroups = listOf("本科"),
+            canSign = true,
+        )
+
+    val serialized = json.encodeToString(BykcCourseDetailDto.serializer(), dto)
+    val deserialized = json.decodeFromString<BykcCourseDetailDto>(serialized)
+
+    assertEquals(dto.organizerCollegeName, deserialized.organizerCollegeName)
+    assertEquals(dto.courseDesc, deserialized.courseDesc)
+    assertEquals(dto.audienceCampuses, deserialized.audienceCampuses)
+    assertEquals(dto.audienceGroups, deserialized.audienceGroups)
+    assertEquals(dto.canSign, deserialized.canSign)
+    assertEquals(dto.courseCurrentCount, deserialized.courseCurrentCount)
   }
 
   @Test

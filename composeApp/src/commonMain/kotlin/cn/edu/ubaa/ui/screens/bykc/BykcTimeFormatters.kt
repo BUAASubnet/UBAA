@@ -68,11 +68,11 @@ fun resolveSelectTimeDisplay(
 }
 
 fun isBykcCourseFull(
-    courseCurrentCount: Int,
+    courseCurrentCount: Int?,
     courseMaxCount: Int,
     status: String?,
 ): Boolean {
-  val fullByCount = courseMaxCount > 0 && courseCurrentCount >= courseMaxCount
+  val fullByCount = courseCurrentCount != null && courseMaxCount > 0 && courseCurrentCount >= courseMaxCount
   return fullByCount || status == BykcCourseStatus.FULL
 }
 

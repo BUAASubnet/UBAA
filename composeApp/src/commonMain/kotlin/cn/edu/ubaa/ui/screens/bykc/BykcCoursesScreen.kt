@@ -165,7 +165,11 @@ fun BykcCoursesScreen(
 }
 
 private fun BykcCourseDto.isFullCourse(): Boolean =
-    status == BykcCourseStatus.FULL || (courseMaxCount > 0 && courseCurrentCount >= courseMaxCount)
+    run {
+      val currentCount = courseCurrentCount
+      status == BykcCourseStatus.FULL ||
+          (currentCount != null && courseMaxCount > 0 && currentCount >= courseMaxCount)
+    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -246,10 +250,11 @@ fun BykcCourseCard(
 
       // 选课情况
       Spacer(modifier = Modifier.height(8.dp))
+      val currentCount = course.courseCurrentCount
       val progress =
-          remember(course.courseCurrentCount, course.courseMaxCount) {
-            if (course.courseMaxCount > 0) {
-              (course.courseCurrentCount.toFloat() / course.courseMaxCount.toFloat()).coerceIn(
+          remember(currentCount, course.courseMaxCount) {
+            if (currentCount != null && course.courseMaxCount > 0) {
+              (currentCount.toFloat() / course.courseMaxCount.toFloat()).coerceIn(
                   0f,
                   1f,
               )
@@ -261,7 +266,9 @@ fun BykcCourseCard(
       )
       Spacer(modifier = Modifier.height(4.dp))
       Text(
-          text = "已报名 ${course.courseCurrentCount} / ${course.courseMaxCount}",
+          text =
+              currentCount?.let { "已报名 $it / ${course.courseMaxCount}" }
+                  ?: "人数上限 ${course.courseMaxCount}",
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
