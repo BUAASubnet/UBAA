@@ -26,7 +26,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    *
    * @param page 页码，从 1 开始。
    * @param size 每页记录数。
-   * @param all 是否包含已结束/过期的课程。
+   * @param all 是否包含选课结束/已过期的课程。
    * @return 课程分页结果响应。
    */
   suspend fun getCourses(

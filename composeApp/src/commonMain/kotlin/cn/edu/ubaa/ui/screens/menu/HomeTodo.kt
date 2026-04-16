@@ -94,8 +94,8 @@ private fun buildBykcTodoItems(
     now: LocalDateTime,
 ): List<HomeTodoItem> =
     courses.mapNotNull { course ->
-      val start = parseHomeDateTime(course.courseStartDate)
-      val end = parseHomeDateTime(course.courseEndDate)
+      val start = course.courseStartDate
+      val end = course.courseEndDate
       val hasEnded = end?.let { it < now } == true
       if (hasEnded || (start == null && end == null)) {
         return@mapNotNull null

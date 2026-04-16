@@ -71,6 +71,7 @@ dependencies {
   implementation(libs.ktor.client.content.negotiation)
 
   // 其他实用工具库
+  implementation(libs.kotlinx.datetime)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.jsoup) // HTML 抓取
   implementation(libs.bouncycastle) // BYKC 加密支持

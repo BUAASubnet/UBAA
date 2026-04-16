@@ -20,59 +20,40 @@ data class BykcAttendanceActionState(
     val disabledReason: String? = null,
 )
 
-fun formatDateTimeDisplay(dateTime: String): String {
-  val parts = dateTime.split(" ")
-  if (parts.size != 2) return dateTime
+fun formatDateTimeDisplay(dateTime: LocalDateTime): String =
+    "${formatBykcDate(dateTime)} ${formatBykcTime(dateTime)}"
 
-  val datePart = parts[0]
-  val timePart = parts[1]
-  if (timePart.length < 5) return dateTime
-
-  return "$datePart ${timePart.take(5)}"
-}
-
-fun formatDateRange(startDate: String, endDate: String): String {
-  val startParts = startDate.split(" ")
-  val endParts = endDate.split(" ")
-
-  if (startParts.size == 2 && endParts.size == 2) {
-    val startDatePart = startParts[0]
-    val startTimePart = startParts[1].take(5)
-    val endDatePart = endParts[0]
-    val endTimePart = endParts[1].take(5)
-
-    return if (startDatePart == endDatePart) {
-      "$startDatePart $startTimePart - $endTimePart"
+fun formatDateRange(startDate: LocalDateTime, endDate: LocalDateTime): String =
+    if (startDate.date == endDate.date) {
+      "${formatBykcDate(startDate)} ${formatBykcTime(startDate)} - ${formatBykcTime(endDate)}"
     } else {
       "${formatDateTimeDisplay(startDate)} - ${formatDateTimeDisplay(endDate)}"
     }
-  }
 
-  return "$startDate - $endDate"
-}
+fun formatDateRangeOrStart(startDate: LocalDateTime, endDate: LocalDateTime?): String =
+    endDate?.let { formatDateRange(startDate, it) } ?: formatDateTimeDisplay(startDate)
 
 fun resolveSelectTimeDisplay(
-    startDate: String?,
-    endDate: String?,
+    startDate: LocalDateTime?,
+    endDate: LocalDateTime?,
     now: LocalDateTime = currentBykcLocalDateTime(),
 ): BykcSelectTimeDisplay? {
-  val start = parseBykcDateTime(startDate)
-
   return when {
-    !startDate.isNullOrBlank() && start != null && now < start ->
+    startDate != null && now < startDate ->
         BykcSelectTimeDisplay("开始选课", formatDateTimeDisplay(startDate))
-    !endDate.isNullOrBlank() -> BykcSelectTimeDisplay("截止选课", formatDateTimeDisplay(endDate))
-    !startDate.isNullOrBlank() -> BykcSelectTimeDisplay("开始选课", formatDateTimeDisplay(startDate))
+    endDate != null -> BykcSelectTimeDisplay("截止选课", formatDateTimeDisplay(endDate))
+    startDate != null -> BykcSelectTimeDisplay("开始选课", formatDateTimeDisplay(startDate))
     else -> null
   }
 }
 
 fun isBykcCourseFull(
-    courseCurrentCount: Int,
+    courseCurrentCount: Int?,
     courseMaxCount: Int,
-    status: String?,
+    status: BykcCourseStatus?,
 ): Boolean {
-  val fullByCount = courseMaxCount > 0 && courseCurrentCount >= courseMaxCount
+  val fullByCount =
+      courseCurrentCount != null && courseMaxCount > 0 && courseCurrentCount >= courseMaxCount
   return fullByCount || status == BykcCourseStatus.FULL
 }
 
@@ -93,19 +74,19 @@ fun resolveBykcSelectButtonState(
   if (isFull) return BykcSelectButtonState(false, "该课程人数已满，当前不可选择。")
   if (course.selected) return BykcSelectButtonState(false, "该课程已选，无法重复选择。")
 
-  val selectStart = parseBykcDateTime(course.courseSelectStartDate)
+  val selectStart = course.courseSelectStartDate
   if (selectStart != null && now < selectStart) {
     return BykcSelectButtonState(false, "该课程尚未开始选课。")
   }
 
-  val selectEnd = parseBykcDateTime(course.courseSelectEndDate)
+  val selectEnd = course.courseSelectEndDate
   if (selectEnd != null && now > selectEnd) {
     return BykcSelectButtonState(false, "该课程已截止选课，当前不可选择。")
   }
 
   return when (course.status) {
     BykcCourseStatus.AVAILABLE -> BykcSelectButtonState(true)
-    BykcCourseStatus.ENDED -> BykcSelectButtonState(false, "该课程已结束，当前不可选择。")
+    BykcCourseStatus.ENDED -> BykcSelectButtonState(false, "该课程选课已结束，当前不可选择。")
     BykcCourseStatus.EXPIRED -> BykcSelectButtonState(false, "该课程已过期，当前不可选择。")
     else -> BykcSelectButtonState(false, "该课程当前状态不可选择。")
   }
@@ -115,7 +96,7 @@ fun resolveBykcDisplayStatus(
     course: BykcCourseDetailDto,
     listSnapshot: BykcCourseDto? = null,
     now: LocalDateTime = currentBykcLocalDateTime(),
-): String {
+): BykcCourseStatus {
   val isFull =
       isBykcCourseFull(course.courseCurrentCount, course.courseMaxCount, course.status) ||
           listSnapshot?.let {
@@ -123,10 +104,10 @@ fun resolveBykcDisplayStatus(
           } == true
   if (isFull) return BykcCourseStatus.FULL
 
-  val selectStart = parseBykcDateTime(course.courseSelectStartDate)
+  val selectStart = course.courseSelectStartDate
   if (selectStart != null && now < selectStart) return BykcCourseStatus.PREVIEW
 
-  val selectEnd = parseBykcDateTime(course.courseSelectEndDate)
+  val selectEnd = course.courseSelectEndDate
   if (selectEnd != null && now > selectEnd) return BykcCourseStatus.ENDED
 
   return course.status
@@ -151,15 +132,6 @@ fun resolveBykcAttendanceActionState(course: BykcCourseDetailDto): BykcAttendanc
   )
 }
 
-fun parseBykcDateTime(dateTime: String?): LocalDateTime? {
-  if (dateTime.isNullOrBlank()) return null
-  return try {
-    LocalDateTime.parse(dateTime.replace(" ", "T"))
-  } catch (_: Exception) {
-    null
-  }
-}
-
 private fun isBykcCheckinStateWaitingForSignOut(checkin: Int?): Boolean =
     checkin == 5 || checkin == 6
 
@@ -168,3 +140,14 @@ private fun isBykcCheckinStateBlockingAttendanceActions(checkin: Int?): Boolean 
 
 private fun currentBykcLocalDateTime(): LocalDateTime =
     Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+
+private fun formatBykcDate(dateTime: LocalDateTime): String = buildString {
+  append(dateTime.year)
+  append('-')
+  append((dateTime.month.ordinal + 1).toString().padStart(2, '0'))
+  append('-')
+  append(dateTime.day.toString().padStart(2, '0'))
+}
+
+private fun formatBykcTime(dateTime: LocalDateTime): String =
+    "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"

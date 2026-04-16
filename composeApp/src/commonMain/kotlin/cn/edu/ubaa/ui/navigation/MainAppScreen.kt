@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cn.edu.ubaa.api.BykcCourseFilterStore
 import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
@@ -192,8 +193,15 @@ fun MainAppScreen(
   var selectedBykcCourseId by remember { mutableStateOf<Long?>(null) }
   var selectedBykcCourseSnapshot by remember { mutableStateOf<BykcCourseDto?>(null) }
   val bykcCoursesListState = rememberLazyListState()
-  var showBykcIncludeExpired by remember { mutableStateOf(false) }
-  var hideBykcFullCourses by remember { mutableStateOf(false) }
+  val bykcFilterUserKey = userData.schoolid
+  val defaultBykcFilters = remember { defaultBykcCourseFilters() }
+  var bykcCourseFilters by
+      remember(bykcFilterUserKey) {
+        mutableStateOf(
+            BykcCourseFilterStore.get(bykcFilterUserKey)?.toBykcCourseFilters()
+                ?: defaultBykcFilters
+        )
+      }
   var selectedSpocAssignmentId by remember { mutableStateOf<String?>(null) }
   var showSpocSortFilterDialog by remember { mutableStateOf(false) }
   val homeTodoItems =
@@ -251,6 +259,20 @@ fun MainAppScreen(
 
   fun refreshHomeData() {
     startHomeBootstrap(forceRefresh = true)
+  }
+
+  fun updateBykcCourseFilters(newFilters: BykcCourseFilters) {
+    val shouldReloadCourses =
+        bykcCourseFilters.requiresAllCourses() != newFilters.requiresAllCourses()
+    bykcCourseFilters = newFilters
+    if (newFilters == defaultBykcFilters) {
+      BykcCourseFilterStore.clear(bykcFilterUserKey)
+    } else {
+      BykcCourseFilterStore.save(bykcFilterUserKey, newFilters.toStored())
+    }
+    if (shouldReloadCourses) {
+      bykcViewModel.loadCourses(includeExpired = newFilters.requiresAllCourses())
+    }
   }
 
   /** 重置导航栈至指定根页面。 */
@@ -379,7 +401,7 @@ fun MainAppScreen(
       AppScreen.EXAM -> examViewModel?.ensureLoaded()
       AppScreen.BYKC_COURSES -> {
         bykcViewModel.ensureProfileLoaded()
-        bykcViewModel.ensureCoursesLoaded(includeExpired = showBykcIncludeExpired)
+        bykcViewModel.ensureCoursesLoaded(includeExpired = bykcCourseFilters.requiresAllCourses())
       }
       AppScreen.BYKC_CHOSEN -> bykcViewModel.ensureChosenCoursesLoaded()
       AppScreen.BYKC_STATISTICS -> bykcViewModel.ensureStatisticsLoaded()
@@ -483,21 +505,6 @@ fun MainAppScreen(
                     }
                   }
                 }
-              } else if (currentScreen == AppScreen.BYKC_COURSES) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                  Text(
-                      text = "显示已过期",
-                      style = MaterialTheme.typography.labelMedium,
-                      modifier = Modifier.padding(end = 8.dp),
-                  )
-                  Checkbox(
-                      checked = showBykcIncludeExpired,
-                      onCheckedChange = {
-                        showBykcIncludeExpired = it
-                        bykcViewModel.loadCourses(includeExpired = it)
-                      },
-                  )
-                }
               } else if (currentScreen == AppScreen.SPOC_ASSIGNMENTS) {
                 IconButton(onClick = { showSpocSortFilterDialog = true }) {
                   Icon(Icons.Default.Tune, contentDescription = "排序和筛选")
@@ -577,7 +584,7 @@ fun MainAppScreen(
                   isLoading = bykcCoursesState.isLoading,
                   isLoadingMore = bykcCoursesState.isLoadingMore,
                   hasMorePages = bykcCoursesState.hasMorePages,
-                  hideFullCourses = hideBykcFullCourses,
+                  filters = bykcCourseFilters,
                   error = bykcCoursesState.error,
                   listState = bykcCoursesListState,
                   onCourseClick = {
@@ -586,12 +593,16 @@ fun MainAppScreen(
                     bykcViewModel.loadCourseDetail(it.id)
                     navigateTo(AppScreen.BYKC_DETAIL)
                   },
-                  onHideFullCoursesChange = { hideBykcFullCourses = it },
+                  onFiltersChange = ::updateBykcCourseFilters,
                   onRefresh = {
-                    bykcViewModel.loadCourses(includeExpired = showBykcIncludeExpired)
+                    bykcViewModel.loadCourses(
+                        includeExpired = bykcCourseFilters.requiresAllCourses()
+                    )
                   },
                   onLoadMore = {
-                    bykcViewModel.loadMoreCourses(includeExpired = showBykcIncludeExpired)
+                    bykcViewModel.loadMoreCourses(
+                        includeExpired = bykcCourseFilters.requiresAllCourses()
+                    )
                   },
               )
           AppScreen.BYKC_DETAIL ->
