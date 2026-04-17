@@ -65,6 +65,7 @@ fun ScheduleScreen(
 ) {
   var showWeekSelector by remember { mutableStateOf(false) }
   val currentWeekIndex = weeks.indexOf(selectedWeek)
+  val headerDayLabels = selectedWeek?.headerDayLabels() ?: defaultScheduleHeaderDayLabels()
 
   Scaffold(
       topBar = {
@@ -109,7 +110,11 @@ fun ScheduleScreen(
           }
         }
         weeklySchedule != null && selectedWeek != null -> {
-          WeeklyScheduleView(schedule = weeklySchedule, onCourseClick = onCourseClick)
+          WeeklyScheduleView(
+              schedule = weeklySchedule,
+              headerDayLabels = headerDayLabels,
+              onCourseClick = onCourseClick,
+          )
         }
         else -> {
           Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -227,17 +232,17 @@ private fun WeekSelectionSheet(
 @Composable
 private fun WeeklyScheduleView(
     schedule: WeeklySchedule,
+    headerDayLabels: List<ScheduleHeaderDayLabel>,
     onCourseClick: (CourseClass) -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val totalPeriods = maxOf(12, schedule.arrangedList.maxOfOrNull { it.endSection ?: 0 } ?: 0)
   val timeLabels = (1..totalPeriods).map { it.toString() }
-  val dayLabels = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
   val rowHeight: Dp = 64.dp
   val scrollState = rememberScrollState()
 
   Column(modifier = modifier.padding(horizontal = 8.dp)) {
-    HeaderRow(dayLabels)
+    HeaderRow(headerDayLabels)
     Spacer(modifier = Modifier.height(4.dp))
     Row(
         modifier =
@@ -256,12 +261,22 @@ private fun WeeklyScheduleView(
 
 /** 星期标题行。 */
 @Composable
-private fun HeaderRow(dayLabels: List<String>) {
+private fun HeaderRow(dayLabels: List<ScheduleHeaderDayLabel>) {
   Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
     Spacer(modifier = Modifier.width(36.dp))
     dayLabels.forEach {
       Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-        Text(text = it, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          Text(text = it.weekdayLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+          it.dateLabel?.let { dateLabel ->
+            Text(
+                text = dateLabel,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+          }
+        }
       }
     }
   }
