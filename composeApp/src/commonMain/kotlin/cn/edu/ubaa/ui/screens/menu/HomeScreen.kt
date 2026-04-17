@@ -52,9 +52,11 @@ import kotlinx.datetime.toLocalDateTime
 internal fun HomeScreen(
     todayClasses: List<TodayClass>,
     isLoading: Boolean,
+    isRefreshing: Boolean,
     error: String?,
     todoItems: List<HomeTodoItem>,
     todoLoading: Boolean,
+    todoLoadingSources: List<HomeTodoSource>,
     todoFailedSources: List<HomeTodoSource>,
     signingTodoId: String?,
     onRetrySchedule: () -> Unit,
@@ -64,8 +66,8 @@ internal fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
   val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-  val isRefreshing = isLoading || todoLoading
   val pullRefreshState = rememberPullRefreshState(refreshing = isRefreshing, onRefresh = onRefresh)
+  val todoLoadingSummary = todoLoadingSources.joinToString("、") { it.label }
   val sortedClasses =
       todayClasses.sortedBy { course ->
         course.time?.split("-")?.firstOrNull()?.replace(":", "")?.toIntOrNull() ?: Int.MAX_VALUE
@@ -78,11 +80,19 @@ internal fun HomeScreen(
     ) {
       item {
         Column(modifier = Modifier.padding(top = 16.dp)) {
-          Text(
-              text = "今日课表",
-              style = MaterialTheme.typography.headlineMedium,
-              fontWeight = FontWeight.Bold,
-          )
+          Row(
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Text(
+                text = "今日课表",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            if (isLoading && sortedClasses.isEmpty()) {
+              HomeSectionLoadingChip(text = "加载中")
+            }
+          }
           Spacer(modifier = Modifier.height(4.dp))
           Text(
               text = "${today.month.ordinal + 1}月${today.day}日",
@@ -95,6 +105,13 @@ internal fun HomeScreen(
       when {
         error != null && sortedClasses.isEmpty() ->
             item { HomeErrorCard(message = error, onRetry = onRetrySchedule) }
+        isLoading && sortedClasses.isEmpty() ->
+            item {
+              HomeLoadingCard(
+                  title = "今日课表正在后台加载",
+                  subtitle = "课程安排会在这里补齐，不影响先浏览首页其他内容。",
+              )
+            }
         sortedClasses.isEmpty() && !isLoading ->
             item { HomeEmptyCard(title = "今天没有课程安排", subtitle = "今天可以安心处理其他事项。") }
         else -> items(sortedClasses) { todayClass -> TodayClassCard(todayClass = todayClass) }
@@ -107,13 +124,26 @@ internal fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
           Column {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+              Text(
+                  text = "待办区",
+                  style = MaterialTheme.typography.titleLarge,
+                  fontWeight = FontWeight.Bold,
+              )
+              if (todoLoading) {
+                HomeSectionLoadingChip(text = "后台加载中")
+              }
+            }
             Text(
-                text = "待办区",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "聚合近期需要处理的课程和任务",
+                text =
+                    if (todoLoadingSummary.isNotBlank()) {
+                      "正在加载 $todoLoadingSummary"
+                    } else {
+                      "聚合近期需要处理的课程和任务"
+                    },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -131,6 +161,18 @@ internal fun HomeScreen(
 
       if (todoItems.isEmpty() && !todoLoading) {
         item { HomeEmptyCard(title = "当前没有待办", subtitle = "近期事项都处理得很干净。") }
+      } else if (todoItems.isEmpty()) {
+        item {
+          HomeLoadingCard(
+              title = "待办正在后台加载",
+              subtitle =
+                  if (todoLoadingSummary.isNotBlank()) {
+                    "正在同步 $todoLoadingSummary 的数据。"
+                  } else {
+                    "待办数据会在这里逐步补齐。"
+                  },
+          )
+        }
       } else {
         items(todoItems) { todoItem ->
           HomeTodoCard(
@@ -150,6 +192,52 @@ internal fun HomeScreen(
         state = pullRefreshState,
         modifier = Modifier.align(Alignment.TopCenter),
     )
+  }
+}
+
+@Composable
+private fun HomeSectionLoadingChip(text: String) {
+  Surface(
+      color = MaterialTheme.colorScheme.primaryContainer,
+      contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+      shape = MaterialTheme.shapes.small,
+  ) {
+    Row(
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+      Text(text = text, style = MaterialTheme.typography.labelSmall)
+    }
+  }
+}
+
+@Composable
+private fun HomeLoadingCard(title: String, subtitle: String) {
+  Card(
+      modifier = Modifier.fillMaxWidth(),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+  ) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
+      Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+    }
   }
 }
 

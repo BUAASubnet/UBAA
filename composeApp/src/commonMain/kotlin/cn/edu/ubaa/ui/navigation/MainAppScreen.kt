@@ -121,6 +121,8 @@ fun MainAppScreen(
 
   var selectedBottomTab by remember { mutableStateOf(BottomNavTab.HOME) }
   var showSidebar by remember { mutableStateOf(false) }
+  var homeManualRefreshPending by remember { mutableStateOf(false) }
+  var homeManualRefreshStarted by remember { mutableStateOf(false) }
   val homeSnackbarHostState = remember { SnackbarHostState() }
   val homeBootstrapCoordinator = remember(scope) { HomeBootstrapCoordinator(scope) }
   val homeBootstrapRunning by homeBootstrapCoordinator.isRunning.collectAsState()
@@ -220,13 +222,17 @@ fun MainAppScreen(
             now = homeNow,
         )
       }
-  val homeTodoLoading =
-      homeBootstrapRunning ||
-          bykcChosenState.isLoading ||
-          spocUiState.isLoading ||
-          spocUiState.isRefreshing ||
-          signinUiState.isLoading ||
-          cgyyUiState.isOrdersLoading
+  val homeTodoLoadingSources = buildList {
+    if (bykcChosenState.isLoading) add(HomeTodoSource.BYKC)
+    if (spocUiState.isLoading || spocUiState.isRefreshing) add(HomeTodoSource.SPOC)
+    if (cgyyUiState.isOrdersLoading) add(HomeTodoSource.CGYY)
+    if (signinUiState.isLoading) add(HomeTodoSource.SIGNIN)
+  }
+  val homeTodoLoading = homeTodoLoadingSources.isNotEmpty()
+  val homeContentLoading = todayScheduleState.isLoading || homeTodoLoading
+  val homeIsRefreshing =
+      homeManualRefreshPending &&
+          (homeManualRefreshStarted || homeBootstrapRunning || homeContentLoading)
   val homeTodoFailedSources = buildList {
     if (bykcChosenState.error != null) add(HomeTodoSource.BYKC)
     if (spocUiState.error != null) add(HomeTodoSource.SPOC)
@@ -258,6 +264,7 @@ fun MainAppScreen(
   }
 
   fun refreshHomeData() {
+    homeManualRefreshPending = true
     startHomeBootstrap(forceRefresh = true)
   }
 
@@ -386,8 +393,29 @@ fun MainAppScreen(
     if (currentScreen in cgyyScreens) {
       hasVisitedCgyy = true
     }
+    if (currentScreen != AppScreen.HOME) {
+      homeManualRefreshPending = false
+      homeManualRefreshStarted = false
+    }
     if (currentScreen == AppScreen.MY) {
       onEnsureUserInfo()
+    }
+  }
+
+  // Don't clear a manual refresh until we've observed real loading at least once.
+  LaunchedEffect(
+      homeManualRefreshPending,
+      homeManualRefreshStarted,
+      homeBootstrapRunning,
+      homeContentLoading,
+  ) {
+    if (!homeManualRefreshPending) {
+      homeManualRefreshStarted = false
+    } else if (homeBootstrapRunning || homeContentLoading) {
+      homeManualRefreshStarted = true
+    } else if (homeManualRefreshStarted) {
+      homeManualRefreshPending = false
+      homeManualRefreshStarted = false
     }
   }
 
@@ -520,9 +548,11 @@ fun MainAppScreen(
               HomeScreen(
                   todayClasses = todayScheduleState.todayClasses,
                   isLoading = todayScheduleState.isLoading,
+                  isRefreshing = homeIsRefreshing,
                   error = todayScheduleState.error,
                   todoItems = homeTodoItems,
                   todoLoading = homeTodoLoading,
+                  todoLoadingSources = homeTodoLoadingSources,
                   todoFailedSources = homeTodoFailedSources,
                   signingTodoId =
                       signinUiState.signingInCourseId?.let { courseId -> "signin:$courseId" },
