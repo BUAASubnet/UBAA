@@ -16,7 +16,9 @@ internal fun defaultScheduleHeaderDayLabels(): List<ScheduleHeaderDayLabel> =
     }
 
 internal fun Week.headerDayLabels(): List<ScheduleHeaderDayLabel> {
-  val parsedStart = runCatching { LocalDate.parse(startDate.trim()) }.getOrNull()
+  val parsedStart =
+      parseWeekBoundaryDate(startDate)
+          ?: parseWeekBoundaryDate(endDate)?.plus(DatePeriod(days = -6))
   val defaults = defaultScheduleHeaderDayLabels()
   if (parsedStart == null) return defaults
 
@@ -28,4 +30,21 @@ internal fun Week.headerDayLabels(): List<ScheduleHeaderDayLabel> {
   }
 }
 
+private fun parseWeekBoundaryDate(raw: String?): LocalDate? {
+  val normalized = raw?.trim().orEmpty()
+  if (normalized.isEmpty()) return null
+
+  runCatching { LocalDate.parse(normalized) }
+      .getOrNull()
+      ?.let {
+        return it
+      }
+
+  val match = FLEXIBLE_DATE_PATTERN.find(normalized) ?: return null
+  val (yearText, monthText, dayText) = match.destructured
+  return runCatching { LocalDate(yearText.toInt(), monthText.toInt(), dayText.toInt()) }.getOrNull()
+}
+
 private fun LocalDate.toMonthDayLabel(): String = "${month.ordinal + 1}月${day}日"
+
+private val FLEXIBLE_DATE_PATTERN = Regex("""(\d{4})\D+(\d{1,2})\D+(\d{1,2})""")
