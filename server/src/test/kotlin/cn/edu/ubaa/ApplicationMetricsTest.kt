@@ -63,8 +63,14 @@ class ApplicationMetricsTest {
     assertContains(metrics, "connection_mode=\"all\"")
     assertContains(metrics, "connection_mode=\"server_relay\"")
     assertContains(metrics, "connection_mode=\"direct\"")
-    assertContains(metrics, "ubaa_auth_login_events_window{connection_mode=\"all\",window=\"1h\"} 2.0")
-    assertContains(metrics, "ubaa_auth_login_events_window{connection_mode=\"direct\",window=\"1h\"} 1.0")
+    assertContains(
+        metrics,
+        "ubaa_auth_login_events_window{connection_mode=\"all\",window=\"1h\"} 2.0",
+    )
+    assertContains(
+        metrics,
+        "ubaa_auth_login_events_window{connection_mode=\"direct\",window=\"1h\"} 1.0",
+    )
     assertContains(
         metrics,
         "ubaa_auth_login_events_window{connection_mode=\"server_relay\",window=\"1h\"} 1.0",

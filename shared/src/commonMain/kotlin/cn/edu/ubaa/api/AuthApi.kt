@@ -63,7 +63,9 @@ interface UserServiceBackend {
  * @param apiClient 使用的 ApiClient 实例，默认为单例 shared。
  */
 open class AuthService(
-    private val backendProvider: () -> AuthServiceBackend = { ConnectionRuntime.apiFactory().authService() }
+    private val backendProvider: () -> AuthServiceBackend = {
+      ConnectionRuntime.apiFactory().authService()
+    }
 ) {
   internal constructor(backend: AuthServiceBackend) : this({ backend })
 
@@ -247,7 +249,9 @@ private fun LoginPreloadResponse.toStoredAuthTokensOrNull(): StoredAuthTokens? {
  * @param apiClient 使用的 ApiClient 实例。
  */
 open class UserService(
-    private val backendProvider: () -> UserServiceBackend = { ConnectionRuntime.apiFactory().userService() }
+    private val backendProvider: () -> UserServiceBackend = {
+      ConnectionRuntime.apiFactory().userService()
+    }
 ) {
   internal constructor(backend: UserServiceBackend) : this({ backend })
 

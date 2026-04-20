@@ -140,10 +140,11 @@ internal class PersistentLocalCookieStorage(private val mode: ConnectionMode) : 
   override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
     mutex.withLock {
       val records = LocalCookieStore.load(mode)
-      val normalized = cookie.copy(
-          domain = (cookie.domain ?: requestUrl.host).lowercase(),
-          path = cookie.path ?: defaultCookiePath(requestUrl.encodedPath),
-      )
+      val normalized =
+          cookie.copy(
+              domain = (cookie.domain ?: requestUrl.host).lowercase(),
+              path = cookie.path ?: defaultCookiePath(requestUrl.encodedPath),
+          )
       val key = cookieKey(normalized)
       records.removeAll { cookieKey(it.cookie) == key }
       if ((normalized.maxAge ?: -1L) != 0L) {
@@ -603,7 +604,9 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
 private fun localUcStatusUrl(): String = localUpstreamUrl("https://uc.buaa.edu.cn/api/uc/status")
 
 private fun localUcActivateUrl(): String =
-    localUpstreamUrl("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
+    localUpstreamUrl(
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+    )
 
 internal class LocalUserServiceBackend : UserServiceBackend {
   private val json = Json { ignoreUnknownKeys = true }

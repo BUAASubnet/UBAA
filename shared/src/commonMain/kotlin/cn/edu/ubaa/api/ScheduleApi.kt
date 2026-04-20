@@ -17,7 +17,9 @@ interface ScheduleApiBackend {
 }
 
 class ScheduleApi(
-    private val backendProvider: () -> ScheduleApiBackend = { ConnectionRuntime.apiFactory().scheduleApi() }
+    private val backendProvider: () -> ScheduleApiBackend = {
+      ConnectionRuntime.apiFactory().scheduleApi()
+    }
 ) {
   internal constructor(backend: ScheduleApiBackend) : this({ backend })
 

@@ -21,7 +21,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.Url
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.PI
@@ -302,7 +301,8 @@ internal class LocalBykcApiBackend(
   private suspend fun mapFailure(error: Exception, defaultMessage: String): Exception =
       when (error) {
         is LocalBykcUnauthenticatedException,
-        is LocalBykcSessionExpiredException -> resolveLocalBusinessAuthenticationFailure("bykc_error")
+        is LocalBykcSessionExpiredException ->
+            resolveLocalBusinessAuthenticationFailure("bykc_error")
         is LocalBykcActionException ->
             ApiCallException(
                 message = userFacingMessageForCode(error.code, error.status),

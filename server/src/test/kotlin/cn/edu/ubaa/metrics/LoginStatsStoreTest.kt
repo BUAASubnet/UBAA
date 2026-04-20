@@ -125,7 +125,10 @@ class LoginStatsStoreTest {
         ),
     )
     assertEquals(2L, store.countSuccessTotal(LoginSuccessMode.MANUAL))
-    assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY))
+    assertEquals(
+        1L,
+        store.countSuccessTotal(LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY),
+    )
     assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.MANUAL, LoginConnectionMode.DIRECT))
     assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.PRELOAD_AUTO))
     assertEquals(

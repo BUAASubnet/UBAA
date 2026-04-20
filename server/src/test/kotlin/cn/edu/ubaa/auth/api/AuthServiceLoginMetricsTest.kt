@@ -1,7 +1,7 @@
 package cn.edu.ubaa.auth
 
-import cn.edu.ubaa.metrics.LoginMetricsSink
 import cn.edu.ubaa.metrics.LoginConnectionMode
+import cn.edu.ubaa.metrics.LoginMetricsSink
 import cn.edu.ubaa.metrics.LoginSuccessMode
 import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.UserData

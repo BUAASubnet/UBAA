@@ -81,7 +81,8 @@ class LoginMetricsRecorder(
     private val clock: Clock = Clock.systemUTC(),
 ) : LoginMetricsSink {
   private val log = LoggerFactory.getLogger(LoginMetricsRecorder::class.java)
-  private val boundConnectionModes = listOf<LoginConnectionMode?>(null) + LoginConnectionMode.entries
+  private val boundConnectionModes =
+      listOf<LoginConnectionMode?>(null) + LoginConnectionMode.entries
 
   fun bindMetrics() {
     for (mode in LoginSuccessMode.entries) {
@@ -242,7 +243,9 @@ class RedisLoginStatsStore(
       mode: LoginSuccessMode,
       connectionMode: LoginConnectionMode?,
   ): Long {
-    return runCatching { syncCommands.get(successTotalKey(mode, connectionMode))?.toLongOrNull() ?: 0L }
+    return runCatching {
+          syncCommands.get(successTotalKey(mode, connectionMode))?.toLongOrNull() ?: 0L
+        }
         .getOrDefault(0L)
   }
 
@@ -331,18 +334,19 @@ class InMemoryLoginStatsStore : LoginStatsStore {
       }
   private val modeSuccessTotals =
       ConcurrentHashMap<
-          LoginConnectionMode,
-          ConcurrentHashMap<LoginSuccessMode, AtomicLong>,
-      >().apply {
-        LoginConnectionMode.entries.forEach { connectionMode ->
-          put(
-              connectionMode,
-              ConcurrentHashMap<LoginSuccessMode, AtomicLong>().apply {
-                LoginSuccessMode.entries.forEach { put(it, AtomicLong(0)) }
-              },
-          )
-        }
-      }
+              LoginConnectionMode,
+              ConcurrentHashMap<LoginSuccessMode, AtomicLong>,
+          >()
+          .apply {
+            LoginConnectionMode.entries.forEach { connectionMode ->
+              put(
+                  connectionMode,
+                  ConcurrentHashMap<LoginSuccessMode, AtomicLong>().apply {
+                    LoginSuccessMode.entries.forEach { put(it, AtomicLong(0)) }
+                  },
+              )
+            }
+          }
 
   override suspend fun recordLogin(
       userId: String,

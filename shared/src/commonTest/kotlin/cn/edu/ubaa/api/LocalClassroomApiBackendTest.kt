@@ -117,9 +117,9 @@ class LocalClassroomApiBackendTest {
   }
 
   @Test
-  fun `classroom api clears local session when upstream redirects to sso and uc session is invalid`() = runTest {
-    val engine =
-        MockEngine { request ->
+  fun `classroom api clears local session when upstream redirects to sso and uc session is invalid`() =
+      runTest {
+        val engine = MockEngine { request ->
           when {
             request.url.host == "sso.buaa.edu.cn" && request.url.encodedPath == "/login" ->
                 respond(
@@ -141,19 +141,19 @@ class LocalClassroomApiBackendTest {
                             HttpHeaders.Location,
                             "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn",
                         ),
-                    )
+                )
             else -> error("Unexpected url: ${request.url}")
           }
         }
-    useMockUpstream(engine)
+        useMockUpstream(engine)
 
-    val result = ClassroomApi().queryClassrooms(xqid = 1, date = "2026-04-20")
+        val result = ClassroomApi().queryClassrooms(xqid = 1, date = "2026-04-20")
 
-    assertTrue(result.isFailure)
-    val exception = assertIs<ApiCallException>(result.exceptionOrNull())
-    assertEquals("unauthenticated", exception.code)
-    assertNull(LocalAuthSessionStore.get())
-  }
+        assertTrue(result.isFailure)
+        val exception = assertIs<ApiCallException>(result.exceptionOrNull())
+        assertEquals("unauthenticated", exception.code)
+        assertNull(LocalAuthSessionStore.get())
+      }
 
   private fun useMockUpstream(engine: MockEngine) {
     LocalUpstreamClientProvider.clientFactory = { followRedirects ->

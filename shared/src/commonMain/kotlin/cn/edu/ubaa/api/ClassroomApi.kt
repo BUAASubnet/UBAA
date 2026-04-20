@@ -9,7 +9,9 @@ interface ClassroomApiBackend {
 
 /** 教室查询相关 API。 用于查询指定校区和日期的空闲教室分布情况。 */
 open class ClassroomApi(
-    private val backendProvider: () -> ClassroomApiBackend = { ConnectionRuntime.apiFactory().classroomApi() }
+    private val backendProvider: () -> ClassroomApiBackend = {
+      ConnectionRuntime.apiFactory().classroomApi()
+    }
 ) {
   internal constructor(backend: ClassroomApiBackend) : this({ backend })
 

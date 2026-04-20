@@ -12,7 +12,9 @@ interface SigninApiBackend {
 
 /** 课堂签到 API 服务。 用于查询今日可签到的课堂及执行签到动作。 */
 class SigninApi(
-    private val backendProvider: () -> SigninApiBackend = { ConnectionRuntime.apiFactory().signinApi() }
+    private val backendProvider: () -> SigninApiBackend = {
+      ConnectionRuntime.apiFactory().signinApi()
+    }
 ) {
   internal constructor(backend: SigninApiBackend) : this({ backend })
 

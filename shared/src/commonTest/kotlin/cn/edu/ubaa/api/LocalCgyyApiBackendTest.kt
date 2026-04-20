@@ -507,15 +507,16 @@ class LocalCgyyApiBackendTest {
   }
 
   @Test
-  fun `cgyy business auth failure keeps global local session when uc session is still valid`() = runTest {
-    val engine =
-        MockEngine { request ->
+  fun `cgyy business auth failure keeps global local session when uc session is still valid`() =
+      runTest {
+        val engine = MockEngine { request ->
           when (request.url.toString()) {
             "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin" ->
                 respond(
                     content = ByteReadChannel("{}"),
                     status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    headers =
+                        headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
                 )
             "https://uc.buaa.edu.cn/api/uc/status" ->
                 respondJson(
@@ -554,30 +555,31 @@ class LocalCgyyApiBackendTest {
             else -> error("Unexpected request: ${request.method.value} ${request.url}")
           }
         }
-    useMockUpstream(engine)
+        useMockUpstream(engine)
 
-    val cgyyResult = CgyyApi(LocalCgyyApiBackend()).getMyOrders(page = 1, size = 10)
+        val cgyyResult = CgyyApi(LocalCgyyApiBackend()).getMyOrders(page = 1, size = 10)
 
-    assertTrue(cgyyResult.isFailure)
-    assertEquals("cgyy_error", (cgyyResult.exceptionOrNull() as? ApiCallException)?.code)
-    assertNotNull(LocalAuthSessionStore.get())
+        assertTrue(cgyyResult.isFailure)
+        assertEquals("cgyy_error", (cgyyResult.exceptionOrNull() as? ApiCallException)?.code)
+        assertNotNull(LocalAuthSessionStore.get())
 
-    val scheduleResult = LocalScheduleApiBackend().getTerms()
+        val scheduleResult = LocalScheduleApiBackend().getTerms()
 
-    assertTrue(scheduleResult.isSuccess, scheduleResult.exceptionOrNull()?.message.orEmpty())
-    assertEquals("2025-2026-1", scheduleResult.getOrNull()?.singleOrNull()?.itemCode)
-  }
+        assertTrue(scheduleResult.isSuccess, scheduleResult.exceptionOrNull()?.message.orEmpty())
+        assertEquals("2025-2026-1", scheduleResult.getOrNull()?.singleOrNull()?.itemCode)
+      }
 
   @Test
-  fun `cgyy business auth failure clears global local session when uc session is invalid`() = runTest {
-    val engine =
-        MockEngine { request ->
+  fun `cgyy business auth failure clears global local session when uc session is invalid`() =
+      runTest {
+        val engine = MockEngine { request ->
           when (request.url.toString()) {
             "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin" ->
                 respond(
                     content = ByteReadChannel("{}"),
                     status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    headers =
+                        headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
                 )
             "https://uc.buaa.edu.cn/api/uc/status" ->
                 respond(
@@ -587,14 +589,14 @@ class LocalCgyyApiBackendTest {
             else -> error("Unexpected request: ${request.method.value} ${request.url}")
           }
         }
-    useMockUpstream(engine)
+        useMockUpstream(engine)
 
-    val result = CgyyApi(LocalCgyyApiBackend()).getMyOrders(page = 1, size = 10)
+        val result = CgyyApi(LocalCgyyApiBackend()).getMyOrders(page = 1, size = 10)
 
-    assertTrue(result.isFailure)
-    assertEquals("unauthenticated", (result.exceptionOrNull() as? ApiCallException)?.code)
-    assertNull(LocalAuthSessionStore.get())
-  }
+        assertTrue(result.isFailure)
+        assertEquals("unauthenticated", (result.exceptionOrNull() as? ApiCallException)?.code)
+        assertNull(LocalAuthSessionStore.get())
+      }
 
   private fun useMockUpstream(engine: MockEngine) {
     LocalUpstreamClientProvider.clientFactory = { followRedirects ->

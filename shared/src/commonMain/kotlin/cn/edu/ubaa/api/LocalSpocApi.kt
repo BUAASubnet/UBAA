@@ -224,7 +224,9 @@ private class LocalSpocClient {
       var currentUrl = localUpstreamUrl("https://spoc.buaa.edu.cn/spocnewht/cas")
       repeat(8) {
         val response = noRedirectClient.get(currentUrl)
-        LocalSpocParsers.extractLoginTokens(response.call.request.url.toString())?.let { return it }
+        LocalSpocParsers.extractLoginTokens(response.call.request.url.toString())?.let {
+          return it
+        }
         val location =
             response.headers[HttpHeaders.Location]
                 ?: throw LocalSpocAuthenticationException("SPOC 登录跳转缺少 Location")
