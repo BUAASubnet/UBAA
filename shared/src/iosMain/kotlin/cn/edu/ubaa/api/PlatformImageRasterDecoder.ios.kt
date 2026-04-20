@@ -3,6 +3,7 @@ package cn.edu.ubaa.api
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.usePinned
+import platform.CoreGraphics.CGImageAlphaInfo
 import platform.CoreGraphics.CGBitmapContextCreate
 import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
 import platform.CoreGraphics.CGContextDrawImage
@@ -10,7 +11,6 @@ import platform.CoreGraphics.CGImageGetHeight
 import platform.CoreGraphics.CGImageGetWidth
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.kCGBitmapByteOrder32Big
-import platform.CoreGraphics.kCGImageAlphaPremultipliedLast
 import platform.Foundation.NSData
 import platform.Foundation.create
 import platform.UIKit.UIImage
@@ -36,7 +36,9 @@ internal actual object PlatformImageRasterDecoder {
               bitsPerComponent = 8.convert(),
               bytesPerRow = (width * 4).convert(),
               space = colorSpace,
-              bitmapInfo = (kCGImageAlphaPremultipliedLast or kCGBitmapByteOrder32Big),
+              bitmapInfo =
+                  (CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value or
+                      kCGBitmapByteOrder32Big),
           ) ?: error("Failed to create bitmap context for captcha")
       CGContextDrawImage(
           context,

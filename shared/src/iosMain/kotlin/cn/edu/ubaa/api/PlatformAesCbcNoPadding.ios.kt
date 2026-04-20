@@ -1,16 +1,20 @@
 package cn.edu.ubaa.api
 
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.ULongVar
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.size_tVar
+import kotlinx.cinterop.pointed
+import kotlinx.cinterop.ptr
 import kotlinx.cinterop.usePinned
-import platform.CommonCrypto.CCCrypt
-import platform.CommonCrypto.kCCAlgorithmAES
-import platform.CommonCrypto.kCCDecrypt
-import platform.CommonCrypto.kCCEncrypt
-import platform.CommonCrypto.kCCSuccess
+import kotlinx.cinterop.value
+import platform.CoreCrypto.CCCrypt
+import platform.CoreCrypto.kCCAlgorithmAES
+import platform.CoreCrypto.kCCDecrypt
+import platform.CoreCrypto.kCCEncrypt
+import platform.CoreCrypto.kCCSuccess
 
 internal actual object PlatformAesCbcNoPadding {
   actual fun encrypt(input: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =
@@ -27,7 +31,7 @@ internal actual object PlatformAesCbcNoPadding {
   ): ByteArray {
     val output = ByteArray(input.size + 16)
     return memScoped {
-      val outputLength = alloc<size_tVar>()
+      val outputLength: CPointer<ULongVar> = alloc<ULongVar>().ptr
       val status =
           input.usePinned { inputPinned ->
             key.usePinned { keyPinned ->
@@ -44,7 +48,7 @@ internal actual object PlatformAesCbcNoPadding {
                       input.size.convert(),
                       outputPinned.addressOf(0),
                       output.size.convert(),
-                      outputLength.ptr,
+                      outputLength,
                   )
                 }
               }
@@ -53,7 +57,7 @@ internal actual object PlatformAesCbcNoPadding {
       if (status != kCCSuccess) {
         error("AES/CBC operation failed with status $status")
       }
-      output.copyOf(outputLength.value.toInt())
+      output.copyOf(outputLength.pointed.value.toInt())
     }
   }
 }

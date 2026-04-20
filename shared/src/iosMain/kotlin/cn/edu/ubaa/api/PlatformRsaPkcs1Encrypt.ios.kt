@@ -1,16 +1,19 @@
 package cn.edu.ubaa.api
 
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.UByteVar
+import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import platform.CoreFoundation.CFDataCreate
 import platform.CoreFoundation.CFDataGetBytePtr
 import platform.CoreFoundation.CFDataGetLength
 import platform.CoreFoundation.CFDictionaryRef
+import platform.CoreFoundation.CFErrorRefVar
 import platform.CoreFoundation.kCFAllocatorDefault
-import platform.Security.CFErrorRefVar
 import platform.Security.SecKeyCreateEncryptedData
 import platform.Security.SecKeyCreateWithData
 import platform.Security.kSecAttrKeyClass
@@ -30,7 +33,7 @@ internal actual object PlatformRsaPkcs1Encrypt {
             kSecAttrKeySizeInBits to 1024L,
         )
             as CFDictionaryRef
-    val error = alloc<CFErrorRefVar?>()
+    val error = alloc<CFErrorRefVar>()
     val publicKey =
         SecKeyCreateWithData(publicKeyDer.toCfData(), attributes, error.ptr)
             ?: error("RSA public key initialization failed")
@@ -45,7 +48,7 @@ internal actual object PlatformRsaPkcs1Encrypt {
   }
 
   private fun ByteArray.toCfData() = usePinned { pinned ->
-    CFDataCreate(kCFAllocatorDefault, pinned.addressOf(0), size.convert())
+    CFDataCreate(kCFAllocatorDefault, pinned.addressOf(0).reinterpret<UByteVar>(), size.convert())
         ?: error("CFData allocation failed")
   }
 

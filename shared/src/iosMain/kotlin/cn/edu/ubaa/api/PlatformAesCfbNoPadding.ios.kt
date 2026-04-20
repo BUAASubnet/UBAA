@@ -1,23 +1,26 @@
 package cn.edu.ubaa.api
 
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.CPointer
+import kotlinx.cinterop.ULongVar
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
-import kotlinx.cinterop.size_tVar
 import kotlinx.cinterop.usePinned
-import platform.CommonCrypto.CCCryptorCreateWithMode
-import platform.CommonCrypto.CCCryptorFinal
-import platform.CommonCrypto.CCCryptorRefVar
-import platform.CommonCrypto.CCCryptorRelease
-import platform.CommonCrypto.CCCryptorUpdate
-import platform.CommonCrypto.ccNoPadding
-import platform.CommonCrypto.kCCAlgorithmAES
-import platform.CommonCrypto.kCCDecrypt
-import platform.CommonCrypto.kCCEncrypt
-import platform.CommonCrypto.kCCModeCFB
-import platform.CommonCrypto.kCCSuccess
+import kotlinx.cinterop.value
+import platform.CoreCrypto.CCCryptorCreateWithMode
+import platform.CoreCrypto.CCCryptorFinal
+import platform.CoreCrypto.CCCryptorRefVar
+import platform.CoreCrypto.CCCryptorRelease
+import platform.CoreCrypto.CCCryptorUpdate
+import platform.CoreCrypto.ccNoPadding
+import platform.CoreCrypto.kCCAlgorithmAES
+import platform.CoreCrypto.kCCDecrypt
+import platform.CoreCrypto.kCCEncrypt
+import platform.CoreCrypto.kCCModeCFB
+import platform.CoreCrypto.kCCSuccess
 
 internal actual object PlatformAesCfbNoPadding {
   actual fun encrypt(input: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =
@@ -32,7 +35,7 @@ internal actual object PlatformAesCfbNoPadding {
       key: ByteArray,
       iv: ByteArray,
   ): ByteArray = memScoped {
-    val cryptor = alloc<CCCryptorRefVar>()
+    val cryptor: CPointer<CCCryptorRefVar> = alloc<CCCryptorRefVar>().ptr
     val createStatus =
         key.usePinned { keyPinned ->
           iv.usePinned { ivPinned ->
@@ -47,8 +50,8 @@ internal actual object PlatformAesCfbNoPadding {
                 null,
                 0.convert(),
                 0,
-                0,
-                cryptor.ptr,
+                0u,
+                cryptor,
             )
           }
         }
@@ -58,18 +61,18 @@ internal actual object PlatformAesCfbNoPadding {
 
     try {
       val output = ByteArray(input.size + 16)
-      val updateLength = alloc<size_tVar>()
-      val finalLength = alloc<size_tVar>()
+      val updateLength: CPointer<ULongVar> = alloc<ULongVar>().ptr
+      val finalLength: CPointer<ULongVar> = alloc<ULongVar>().ptr
       val updateStatus =
           input.usePinned { inputPinned ->
             output.usePinned { outputPinned ->
               CCCryptorUpdate(
-                  cryptor.value,
+                  cryptor.pointed.value,
                   inputPinned.addressOf(0),
                   input.size.convert(),
                   outputPinned.addressOf(0),
                   output.size.convert(),
-                  updateLength.ptr,
+                  updateLength,
               )
             }
           }
@@ -80,19 +83,19 @@ internal actual object PlatformAesCfbNoPadding {
       val finalStatus =
           output.usePinned { outputPinned ->
             CCCryptorFinal(
-                cryptor.value,
-                outputPinned.addressOf(updateLength.value.toInt()),
-                (output.size - updateLength.value.toInt()).convert(),
-                finalLength.ptr,
+                cryptor.pointed.value,
+                outputPinned.addressOf(updateLength.pointed.value.toInt()),
+                (output.size - updateLength.pointed.value.toInt()).convert(),
+                finalLength,
             )
           }
       if (finalStatus != kCCSuccess) {
         error("AES/CFB final operation failed with status $finalStatus")
       }
 
-      output.copyOf((updateLength.value + finalLength.value).toInt())
+      output.copyOf((updateLength.pointed.value + finalLength.pointed.value).toInt())
     } finally {
-      CCCryptorRelease(cryptor.value)
+      CCCryptorRelease(cryptor.pointed.value)
     }
   }
 }
