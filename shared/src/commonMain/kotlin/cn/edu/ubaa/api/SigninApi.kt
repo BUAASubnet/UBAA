@@ -16,7 +16,6 @@ class SigninApi(
 ) {
   constructor(apiClient: ApiClient) : this(RelaySigninApiBackend(apiClient))
 
-
   /**
    * 获取今日所有有签到任务的课堂列表。
    *
@@ -37,9 +36,8 @@ class SigninApi(
   }
 }
 
-internal class RelaySigninApiBackend(
-    private val apiClient: ApiClient = ApiClientProvider.shared
-) : SigninApiBackend {
+internal class RelaySigninApiBackend(private val apiClient: ApiClient = ApiClientProvider.shared) :
+    SigninApiBackend {
   override suspend fun getTodayClasses(): Result<SigninStatusResponse> {
     return safeApiCall { apiClient.getClient().get("api/v1/signin/today") }
   }

@@ -3,30 +3,30 @@ package cn.edu.ubaa.api
 import cn.edu.ubaa.model.dto.SigninActionResponse
 import cn.edu.ubaa.model.dto.SigninClassDto
 import cn.edu.ubaa.model.dto.SigninStatusResponse
+import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
-import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
+import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.time.Clock
 
 internal class LocalSigninApiBackend : SigninApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
 
   override suspend fun getTodayClasses(): Result<SigninStatusResponse> {
-    val authSession = LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val authSession =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val signinSession = runCatching { login(authSession.studentId()) }.getOrNull()
     if (signinSession == null) {
       return Result.success(SigninStatusResponse(code = 200, message = "获取成功"))
@@ -35,7 +35,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     return try {
       val response =
           LocalUpstreamClientProvider.shared().get(
-              localUpstreamUrl("https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action")
+              localUpstreamUrl(
+                  "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action"
+              )
           ) {
             header("sessionId", signinSession.sessionId)
             parameter("id", signinSession.userId)
@@ -53,7 +55,8 @@ internal class LocalSigninApiBackend : SigninApiBackend {
   }
 
   override suspend fun performSignin(courseId: String): Result<SigninActionResponse> {
-    val authSession = LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val authSession =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val signinSession = runCatching { login(authSession.studentId()) }.getOrNull()
     if (signinSession == null) {
       return Result.success(SigninActionResponse(code = 400, success = false, message = "登录失败"))
@@ -62,7 +65,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     return try {
       val timestamp =
           LocalUpstreamClientProvider.shared()
-              .get(localUpstreamUrl("http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"))
+              .get(
+                  localUpstreamUrl("http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action")
+              )
               .bodyAsText()
               .let(json::parseToJsonElement)
               .jsonObject["timestamp"]
@@ -85,16 +90,13 @@ internal class LocalSigninApiBackend : SigninApiBackend {
       val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
       val success =
           payload["STATUS"]?.jsonPrimitive?.intOrNull == 0 &&
-              payload["result"]
-                  ?.jsonObject
-                  ?.get("stuSignStatus")
-                  ?.jsonPrimitive
-                  ?.intOrNull == 1
+              payload["result"]?.jsonObject?.get("stuSignStatus")?.jsonPrimitive?.intOrNull == 1
       Result.success(
           SigninActionResponse(
               code = if (success) 200 else 400,
               success = success,
-              message = sanitizeLocalSigninMessage(success, payload["ERRMSG"]?.jsonPrimitive?.content),
+              message =
+                  sanitizeLocalSigninMessage(success, payload["ERRMSG"]?.jsonPrimitive?.content),
           )
       )
     } catch (_: Exception) {
@@ -104,7 +106,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
 
   private suspend fun login(studentId: String): LocalSigninSession? {
     val response =
-        LocalUpstreamClientProvider.shared().get(localUpstreamUrl("https://iclass.buaa.edu.cn:8347/app/user/login.action")) {
+        LocalUpstreamClientProvider.shared().get(
+            localUpstreamUrl("https://iclass.buaa.edu.cn:8347/app/user/login.action")
+        ) {
           parameter("password", "")
           parameter("phone", studentId)
           parameter("userLevel", "1")

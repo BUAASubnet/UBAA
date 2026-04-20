@@ -1,12 +1,11 @@
 package cn.edu.ubaa.api
 
 import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.pin
-import kotlinx.cinterop.usePinned
-import kotlinx.cinterop.alloc
 import kotlinx.cinterop.size_tVar
+import kotlinx.cinterop.usePinned
 import platform.CommonCrypto.CCCrypt
 import platform.CommonCrypto.kCCAlgorithmAES
 import platform.CommonCrypto.kCCDecrypt

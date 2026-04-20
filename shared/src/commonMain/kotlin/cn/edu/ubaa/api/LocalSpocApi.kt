@@ -23,9 +23,7 @@ internal class LocalSpocApiBackend : SpocApiBackend {
   override suspend fun getAssignments(): Result<SpocAssignmentsResponse> =
       runLocalSpocCall("SPOC 作业列表加载失败，请稍后重试") { getAssignmentsResponse() }
 
-  override suspend fun getAssignmentDetail(
-      assignmentId: String
-  ): Result<SpocAssignmentDetailDto> =
+  override suspend fun getAssignmentDetail(assignmentId: String): Result<SpocAssignmentDetailDto> =
       runLocalSpocCall("SPOC 作业详情加载失败，请稍后重试") { getAssignmentDetailResponse(assignmentId) }
 
   private suspend fun LocalSpocClient.getAssignmentsResponse(): SpocAssignmentsResponse {
@@ -91,8 +89,7 @@ internal class LocalSpocApiBackend : SpocApiBackend {
             startTime = LocalSpocParsers.normalizeDateTime(detail.zykssj) ?: summary.startTime,
             dueTime = LocalSpocParsers.normalizeDateTime(detail.zyjzsj) ?: summary.dueTime,
             submissionStatus = status,
-            submissionStatusText =
-                LocalSpocParsers.submissionStatusText(status, submission?.tjzt),
+            submissionStatusText = LocalSpocParsers.submissionStatusText(status, submission?.tjzt),
         )
         .toLocalSpocDetail(
             contentPlainText = LocalSpocParsers.toPlainText(detail.zynr),
@@ -228,7 +225,9 @@ private class LocalSpocClient {
       var currentUrl = localUpstreamUrl("https://spoc.buaa.edu.cn/spocnewht/cas")
       repeat(8) {
         val response = noRedirectClient.get(currentUrl)
-        LocalSpocParsers.extractLoginTokens(response.call.request.url.toString())?.let { return it }
+        LocalSpocParsers.extractLoginTokens(response.call.request.url.toString())?.let {
+          return it
+        }
         val body = response.bodyAsText()
         if (isLocalSpocSessionExpired(response, body)) {
           throw LocalSpocAuthenticationException("SPOC 登录状态异常，请重新登录后重试")
@@ -236,7 +235,9 @@ private class LocalSpocClient {
         val location =
             response.headers[HttpHeaders.Location]
                 ?: throw LocalSpocAuthenticationException("SPOC 登录跳转缺少 Location")
-        LocalSpocParsers.extractLoginTokens(location)?.let { return it }
+        LocalSpocParsers.extractLoginTokens(location)?.let {
+          return it
+        }
         currentUrl = resolveRedirectUrl(response.call.request.url, location)
       }
       throw LocalSpocAuthenticationException("未能在 SPOC 登录跳转链中获取 token")
@@ -246,21 +247,21 @@ private class LocalSpocClient {
   }
 
   private suspend fun performCasLogin(loginToken: String): LocalSpocCasLoginContent {
-    return LocalUpstreamClientProvider.shared().post(
-        localUpstreamUrl("https://spoc.buaa.edu.cn/spocnewht/sys/casLogin")
-    ) {
-      contentType(ContentType.Application.Json)
-      header("X-Requested-With", "XMLHttpRequest")
-      header("Token", "Inco-$loginToken")
-      setBody(LocalSpocCasLoginRequest(loginToken))
-    }.let { response ->
-      val bodyText = response.bodyAsText()
-      if (isLocalSpocSessionExpired(response, bodyText)) {
-        throw LocalSpocAuthenticationException("SPOC 登录状态异常，请重新登录后重试")
-      }
-      val envelope = decodeEnvelope<LocalSpocCasLoginContent>(bodyText)
-      unwrapEnvelope(envelope, bodyText)
-    }
+    return LocalUpstreamClientProvider.shared()
+        .post(localUpstreamUrl("https://spoc.buaa.edu.cn/spocnewht/sys/casLogin")) {
+          contentType(ContentType.Application.Json)
+          header("X-Requested-With", "XMLHttpRequest")
+          header("Token", "Inco-$loginToken")
+          setBody(LocalSpocCasLoginRequest(loginToken))
+        }
+        .let { response ->
+          val bodyText = response.bodyAsText()
+          if (isLocalSpocSessionExpired(response, bodyText)) {
+            throw LocalSpocAuthenticationException("SPOC 登录状态异常，请重新登录后重试")
+          }
+          val envelope = decodeEnvelope<LocalSpocCasLoginContent>(bodyText)
+          unwrapEnvelope(envelope, bodyText)
+        }
   }
 
   private suspend inline fun <T> withAuthenticatedCall(crossinline block: suspend () -> T): T {
@@ -278,10 +279,8 @@ private class LocalSpocClient {
       url: String,
       crossinline builder: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {},
   ): T {
-    val currentToken =
-        token ?: throw LocalSpocAuthenticationException("SPOC token 未初始化")
-    val currentRoleCode =
-        roleCode ?: throw LocalSpocAuthenticationException("SPOC roleCode 未初始化")
+    val currentToken = token ?: throw LocalSpocAuthenticationException("SPOC token 未初始化")
+    val currentRoleCode = roleCode ?: throw LocalSpocAuthenticationException("SPOC roleCode 未初始化")
     val response =
         LocalUpstreamClientProvider.shared().get(url) {
           header("X-Requested-With", "XMLHttpRequest")
@@ -302,10 +301,8 @@ private class LocalSpocClient {
       url: String,
       body: B,
   ): T {
-    val currentToken =
-        token ?: throw LocalSpocAuthenticationException("SPOC token 未初始化")
-    val currentRoleCode =
-        roleCode ?: throw LocalSpocAuthenticationException("SPOC roleCode 未初始化")
+    val currentToken = token ?: throw LocalSpocAuthenticationException("SPOC token 未初始化")
+    val currentRoleCode = roleCode ?: throw LocalSpocAuthenticationException("SPOC roleCode 未初始化")
     val response =
         LocalUpstreamClientProvider.shared().post(url) {
           contentType(ContentType.Application.Json)
@@ -344,14 +341,16 @@ private class LocalSpocClient {
     if (looksLikeAuthenticationFailure(message, bodyText)) {
       throw LocalSpocAuthenticationException(message)
     }
-    throw ApiCallException(message = message, status = HttpStatusCode.BadGateway, code = "spoc_error")
+    throw ApiCallException(
+        message = message,
+        status = HttpStatusCode.BadGateway,
+        code = "spoc_error",
+    )
   }
 
   private fun looksLikeAuthenticationFailure(message: String, bodyText: String): Boolean {
     val text = "$message $bodyText"
-    return listOf("登录", "token", "未认证", "未登录", "权限").any {
-      text.contains(it, ignoreCase = true)
-    }
+    return listOf("登录", "token", "未认证", "未登录", "权限").any { text.contains(it, ignoreCase = true) }
   }
 
   private fun resolveRedirectUrl(currentUrl: Url, location: String): String {
@@ -374,8 +373,7 @@ private class LocalSpocClient {
   companion object {
     private const val CURRENT_TERM_PARAM =
         "YHrxtTavu6raCwC0/qdgYffB9evWHBkTng/XS4W6j3f/TPo02iEPSoegscDTRNzIPRG49o3RHl4JiFCXAiBkkA=="
-    private const val ASSIGNMENTS_PAGE_SQL_ID =
-        "1713252980496efac7d5d9985e81693116d3e8a52ebf2b"
+    private const val ASSIGNMENTS_PAGE_SQL_ID = "1713252980496efac7d5d9985e81693116d3e8a52ebf2b"
     private const val DEFAULT_PAGE_SIZE = 15
   }
 }
@@ -389,8 +387,7 @@ private fun isLocalSpocSessionExpired(response: HttpResponse, body: String): Boo
       trimmed.startsWith("<!DOCTYPE html", ignoreCase = true) ||
           trimmed.startsWith("<html", ignoreCase = true)
   ) {
-    return body.contains("input name=\"execution\"") ||
-        body.contains("统一身份认证", ignoreCase = true)
+    return body.contains("input name=\"execution\"") || body.contains("统一身份认证", ignoreCase = true)
   }
   return false
 }

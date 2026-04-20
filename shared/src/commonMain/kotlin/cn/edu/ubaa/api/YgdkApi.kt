@@ -39,9 +39,8 @@ open class YgdkApi(private val backend: YgdkApiBackend = ConnectionRuntime.apiFa
   }
 }
 
-internal class RelayYgdkApiBackend(
-    private val apiClient: ApiClient = ApiClientProvider.shared
-) : YgdkApiBackend {
+internal class RelayYgdkApiBackend(private val apiClient: ApiClient = ApiClientProvider.shared) :
+    YgdkApiBackend {
   override suspend fun getOverview(): Result<YgdkOverviewResponse> {
     return safeApiCall { apiClient.getClient().get("api/v1/ygdk/overview") }
   }

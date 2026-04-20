@@ -61,112 +61,111 @@ class LocalBykcApiBackendTest {
 
   @Test
   fun `bykc api fetches profile and filters ended courses in direct mode`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://bykc.buaa.edu.cn/sscv/cas/login" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location,
-                            "https://bykc.buaa.edu.cn/cas-login?token=test-token",
-                        ),
-                )
-            "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                )
-            "https://bykc.buaa.edu.cn/sscv/getUserProfile" -> {
-              assertEquals("test-token", request.headers["auth_token"])
-              respondJson(
-                  """
-                  {
-                    "status":"0",
-                    "errmsg":"",
-                    "data":{
-                      "id":1,
-                      "employeeId":"22373333",
-                      "realName":"测试学生",
-                      "studentNo":"22373333",
-                      "studentType":"BENKE",
-                      "classCode":"0101",
-                      "college":{"id":61,"collegeName":"计算机学院"},
-                      "term":{"id":2,"termName":"2025-2026-2"}
-                    }
-                  }
-                  """
-                      .trimIndent()
-              )
-            }
-            "https://bykc.buaa.edu.cn/sscv/queryStudentSemesterCourseByPage" -> {
-              assertTrue(request.headers["ak"].orEmpty().isNotBlank())
-              assertTrue(request.headers["sk"].orEmpty().isNotBlank())
-              assertTrue(request.headers["ts"].orEmpty().isNotBlank())
-              respondJson(
-                  """
-                  {
-                    "status":"0",
-                    "errmsg":"",
-                    "data":{
-                      "content":[
-                        {
-                          "id":101,
-                          "courseName":"可选课程",
-                          "coursePosition":"学院路校区主M101",
-                          "courseTeacher":"张老师",
-                          "courseStartDate":"2026-04-21 19:00:00",
-                          "courseEndDate":"2026-04-21 21:00:00",
-                          "courseSelectStartDate":"2026-04-19 08:00:00",
-                          "courseSelectEndDate":"2026-04-21 18:00:00",
-                          "courseCancelEndDate":"2026-04-21 18:00:00",
-                          "courseMaxCount":30,
-                          "courseCurrentCount":10,
-                          "courseNewKind1":{"id":1,"kindName":"博雅课程"},
-                          "courseNewKind2":{"id":2,"kindName":"德育"},
-                          "courseCampusList":["学院路校区"],
-                          "selected":false
-                        },
-                        {
-                          "id":102,
-                          "courseName":"满员课程",
-                          "courseStartDate":"2026-04-22 19:00:00",
-                          "courseEndDate":"2026-04-22 21:00:00",
-                          "courseSelectStartDate":"2026-04-18 08:00:00",
-                          "courseSelectEndDate":"2026-04-22 18:00:00",
-                          "courseCancelEndDate":"2026-04-22 18:00:00",
-                          "courseMaxCount":30,
-                          "courseCurrentCount":30,
-                          "selected":false
-                        },
-                        {
-                          "id":103,
-                          "courseName":"已结束课程",
-                          "courseStartDate":"2026-04-25 19:00:00",
-                          "courseEndDate":"2026-04-25 21:00:00",
-                          "courseSelectStartDate":"2026-04-10 08:00:00",
-                          "courseSelectEndDate":"2026-04-19 18:00:00",
-                          "courseCancelEndDate":"2026-04-19 18:00:00",
-                          "courseMaxCount":30,
-                          "courseCurrentCount":12,
-                          "selected":false
-                        }
-                      ],
-                      "totalElements":3,
-                      "totalPages":1,
-                      "size":20,
-                      "number":1
-                    }
-                  }
-                  """
-                      .trimIndent()
-              )
-            }
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://bykc.buaa.edu.cn/sscv/cas/login" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://bykc.buaa.edu.cn/cas-login?token=test-token",
+                    ),
+            )
+        "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+            )
+        "https://bykc.buaa.edu.cn/sscv/getUserProfile" -> {
+          assertEquals("test-token", request.headers["auth_token"])
+          respondJson(
+              """
+              {
+                "status":"0",
+                "errmsg":"",
+                "data":{
+                  "id":1,
+                  "employeeId":"22373333",
+                  "realName":"测试学生",
+                  "studentNo":"22373333",
+                  "studentType":"BENKE",
+                  "classCode":"0101",
+                  "college":{"id":61,"collegeName":"计算机学院"},
+                  "term":{"id":2,"termName":"2025-2026-2"}
+                }
+              }
+              """
+                  .trimIndent()
+          )
         }
+        "https://bykc.buaa.edu.cn/sscv/queryStudentSemesterCourseByPage" -> {
+          assertTrue(request.headers["ak"].orEmpty().isNotBlank())
+          assertTrue(request.headers["sk"].orEmpty().isNotBlank())
+          assertTrue(request.headers["ts"].orEmpty().isNotBlank())
+          respondJson(
+              """
+              {
+                "status":"0",
+                "errmsg":"",
+                "data":{
+                  "content":[
+                    {
+                      "id":101,
+                      "courseName":"可选课程",
+                      "coursePosition":"学院路校区主M101",
+                      "courseTeacher":"张老师",
+                      "courseStartDate":"2026-04-21 19:00:00",
+                      "courseEndDate":"2026-04-21 21:00:00",
+                      "courseSelectStartDate":"2026-04-19 08:00:00",
+                      "courseSelectEndDate":"2026-04-21 18:00:00",
+                      "courseCancelEndDate":"2026-04-21 18:00:00",
+                      "courseMaxCount":30,
+                      "courseCurrentCount":10,
+                      "courseNewKind1":{"id":1,"kindName":"博雅课程"},
+                      "courseNewKind2":{"id":2,"kindName":"德育"},
+                      "courseCampusList":["学院路校区"],
+                      "selected":false
+                    },
+                    {
+                      "id":102,
+                      "courseName":"满员课程",
+                      "courseStartDate":"2026-04-22 19:00:00",
+                      "courseEndDate":"2026-04-22 21:00:00",
+                      "courseSelectStartDate":"2026-04-18 08:00:00",
+                      "courseSelectEndDate":"2026-04-22 18:00:00",
+                      "courseCancelEndDate":"2026-04-22 18:00:00",
+                      "courseMaxCount":30,
+                      "courseCurrentCount":30,
+                      "selected":false
+                    },
+                    {
+                      "id":103,
+                      "courseName":"已结束课程",
+                      "courseStartDate":"2026-04-25 19:00:00",
+                      "courseEndDate":"2026-04-25 21:00:00",
+                      "courseSelectStartDate":"2026-04-10 08:00:00",
+                      "courseSelectEndDate":"2026-04-19 18:00:00",
+                      "courseCancelEndDate":"2026-04-19 18:00:00",
+                      "courseMaxCount":30,
+                      "courseCurrentCount":12,
+                      "selected":false
+                    }
+                  ],
+                  "totalElements":3,
+                  "totalPages":1,
+                  "size":20,
+                  "number":1
+                }
+              }
+              """
+                  .trimIndent()
+          )
+        }
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = BykcApi(LocalBykcApiBackend(nowProvider = { fixedNow }))
 
@@ -187,112 +186,110 @@ class LocalBykcApiBackendTest {
 
   @Test
   fun `bykc api resolves detail chosen courses and statistics in direct mode`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://bykc.buaa.edu.cn/sscv/cas/login" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location,
-                            "https://bykc.buaa.edu.cn/cas-login?token=test-token",
-                        ),
-                )
-            "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                )
-            "https://bykc.buaa.edu.cn/sscv/queryCourseById" ->
-                respondJson(selectedCourseDetailJson)
-            "https://bykc.buaa.edu.cn/sscv/getAllConfig" ->
-                respondJson(
-                    """
-                    {
-                      "status":"0",
-                      "errmsg":"",
-                      "data":{
-                        "semester":[
-                          {
-                            "id":1,
-                            "semesterName":"2025-2026-1",
-                            "semesterStartDate":"2025-09-01 00:00:00",
-                            "semesterEndDate":"2026-01-31 23:59:59"
-                          },
-                          {
-                            "id":2,
-                            "semesterName":"2025-2026-2",
-                            "semesterStartDate":"2026-02-23 00:00:00",
-                            "semesterEndDate":"2026-07-12 23:59:59"
-                          }
-                        ]
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://bykc.buaa.edu.cn/sscv/cas/login" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://bykc.buaa.edu.cn/cas-login?token=test-token",
+                    ),
+            )
+        "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+            )
+        "https://bykc.buaa.edu.cn/sscv/queryCourseById" -> respondJson(selectedCourseDetailJson)
+        "https://bykc.buaa.edu.cn/sscv/getAllConfig" ->
+            respondJson(
+                """
+                {
+                  "status":"0",
+                  "errmsg":"",
+                  "data":{
+                    "semester":[
+                      {
+                        "id":1,
+                        "semesterName":"2025-2026-1",
+                        "semesterStartDate":"2025-09-01 00:00:00",
+                        "semesterEndDate":"2026-01-31 23:59:59"
+                      },
+                      {
+                        "id":2,
+                        "semesterName":"2025-2026-2",
+                        "semesterStartDate":"2026-02-23 00:00:00",
+                        "semesterEndDate":"2026-07-12 23:59:59"
                       }
-                    }
-                    """
-                        .trimIndent()
-                )
-            "https://bykc.buaa.edu.cn/sscv/queryChosenCourse" ->
-                respondJson(
-                    """
-                    {
-                      "status":"0",
-                      "errmsg":"",
-                      "data":{
-                        "courseList":[
-                          {
-                            "id":9001,
-                            "selectDate":"2026-04-19 10:00:00",
-                            "checkin":5,
-                            "pass":0,
-                            "score":100,
-                            "courseInfo":{
-                              "id":9527,
-                              "courseName":"耕趣农场劳动课",
-                              "coursePosition":"沙河校区农场",
-                              "courseTeacher":"李老师",
-                              "courseStartDate":"2026-04-20 09:00:00",
-                              "courseEndDate":"2026-04-20 11:00:00",
-                              "courseCancelEndDate":"2026-04-19 18:00:00",
-                              "courseMaxCount":100,
-                              "courseCurrentCount":60,
-                              "courseNewKind1":{"id":1,"kindName":"博雅课程"},
-                              "courseNewKind2":{"id":2,"kindName":"劳动教育"},
-                              "courseSignType":2,
-                              "courseSignConfig":"{\"signStartDate\":\"2026-04-20 08:50:00\",\"signEndDate\":\"2026-04-20 09:20:00\",\"signOutStartDate\":\"2026-04-20 09:50:00\",\"signOutEndDate\":\"2026-04-20 10:20:00\",\"signPointList\":[{\"lat\":40.1001,\"lng\":116.3001,\"radius\":8.0}]}"
-                            }
-                          }
-                        ]
+                    ]
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        "https://bykc.buaa.edu.cn/sscv/queryChosenCourse" ->
+            respondJson(
+                """
+                {
+                  "status":"0",
+                  "errmsg":"",
+                  "data":{
+                    "courseList":[
+                      {
+                        "id":9001,
+                        "selectDate":"2026-04-19 10:00:00",
+                        "checkin":5,
+                        "pass":0,
+                        "score":100,
+                        "courseInfo":{
+                          "id":9527,
+                          "courseName":"耕趣农场劳动课",
+                          "coursePosition":"沙河校区农场",
+                          "courseTeacher":"李老师",
+                          "courseStartDate":"2026-04-20 09:00:00",
+                          "courseEndDate":"2026-04-20 11:00:00",
+                          "courseCancelEndDate":"2026-04-19 18:00:00",
+                          "courseMaxCount":100,
+                          "courseCurrentCount":60,
+                          "courseNewKind1":{"id":1,"kindName":"博雅课程"},
+                          "courseNewKind2":{"id":2,"kindName":"劳动教育"},
+                          "courseSignType":2,
+                          "courseSignConfig":"{\"signStartDate\":\"2026-04-20 08:50:00\",\"signEndDate\":\"2026-04-20 09:20:00\",\"signOutStartDate\":\"2026-04-20 09:50:00\",\"signOutEndDate\":\"2026-04-20 10:20:00\",\"signPointList\":[{\"lat\":40.1001,\"lng\":116.3001,\"radius\":8.0}]}"
+                        }
                       }
-                    }
-                    """
-                        .trimIndent()
-                )
-            "https://bykc.buaa.edu.cn/sscv/queryStatisticByUserId" ->
-                respondJson(
-                    """
-                    {
-                      "status":"0",
-                      "errmsg":"",
-                      "data":{
-                        "validCount":4,
-                        "statistical":{
-                          "1|博雅课程":{
-                            "2|劳动教育":{
-                              "assessmentCount":2,
-                              "completeAssessmentCount":2
-                            }
-                          }
+                    ]
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        "https://bykc.buaa.edu.cn/sscv/queryStatisticByUserId" ->
+            respondJson(
+                """
+                {
+                  "status":"0",
+                  "errmsg":"",
+                  "data":{
+                    "validCount":4,
+                    "statistical":{
+                      "1|博雅课程":{
+                        "2|劳动教育":{
+                          "assessmentCount":2,
+                          "completeAssessmentCount":2
                         }
                       }
                     }
-                    """
-                        .trimIndent()
-                )
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
-        }
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = BykcApi(LocalBykcApiBackend(nowProvider = { fixedNow }))
 
@@ -317,81 +314,80 @@ class LocalBykcApiBackendTest {
 
   @Test
   fun `bykc api supports select deselect and sign in direct mode`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://bykc.buaa.edu.cn/sscv/cas/login" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location,
-                            "https://bykc.buaa.edu.cn/cas-login?token=test-token",
-                        ),
-                )
-            "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                )
-            "https://bykc.buaa.edu.cn/sscv/choseCourse" ->
-                respondJson("""{"status":"0","errmsg":"","data":{"courseCurrentCount":61}}""")
-            "https://bykc.buaa.edu.cn/sscv/delChosenCourse" ->
-                respondJson("""{"status":"0","errmsg":"","data":{"courseCurrentCount":60}}""")
-            "https://bykc.buaa.edu.cn/sscv/getAllConfig" ->
-                respondJson(
-                    """
-                    {
-                      "status":"0",
-                      "errmsg":"",
-                      "data":{
-                        "semester":[
-                          {
-                            "id":2,
-                            "semesterName":"2025-2026-2",
-                            "semesterStartDate":"2026-02-23 00:00:00",
-                            "semesterEndDate":"2026-07-12 23:59:59"
-                          }
-                        ]
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://bykc.buaa.edu.cn/sscv/cas/login" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://bykc.buaa.edu.cn/cas-login?token=test-token",
+                    ),
+            )
+        "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+            )
+        "https://bykc.buaa.edu.cn/sscv/choseCourse" ->
+            respondJson("""{"status":"0","errmsg":"","data":{"courseCurrentCount":61}}""")
+        "https://bykc.buaa.edu.cn/sscv/delChosenCourse" ->
+            respondJson("""{"status":"0","errmsg":"","data":{"courseCurrentCount":60}}""")
+        "https://bykc.buaa.edu.cn/sscv/getAllConfig" ->
+            respondJson(
+                """
+                {
+                  "status":"0",
+                  "errmsg":"",
+                  "data":{
+                    "semester":[
+                      {
+                        "id":2,
+                        "semesterName":"2025-2026-2",
+                        "semesterStartDate":"2026-02-23 00:00:00",
+                        "semesterEndDate":"2026-07-12 23:59:59"
                       }
-                    }
-                    """
-                        .trimIndent()
-                )
-            "https://bykc.buaa.edu.cn/sscv/queryChosenCourse" ->
-                respondJson(
-                    """
-                    {
-                      "status":"0",
-                      "errmsg":"",
-                      "data":{
-                        "courseList":[
-                          {
-                            "id":9001,
-                            "selectDate":"2026-04-19 10:00:00",
-                            "checkin":0,
-                            "pass":0,
-                            "courseInfo":{
-                              "id":9527,
-                              "courseName":"耕趣农场劳动课",
-                              "courseMaxCount":100,
-                              "courseSignConfig":"{\"signStartDate\":\"2026-04-20 08:50:00\",\"signEndDate\":\"2026-04-20 10:20:00\",\"signOutStartDate\":\"2026-04-20 10:30:00\",\"signOutEndDate\":\"2026-04-20 11:00:00\",\"signPointList\":[{\"lat\":40.1001,\"lng\":116.3001,\"radius\":8.0}]}"
-                            }
-                          }
-                        ]
+                    ]
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        "https://bykc.buaa.edu.cn/sscv/queryChosenCourse" ->
+            respondJson(
+                """
+                {
+                  "status":"0",
+                  "errmsg":"",
+                  "data":{
+                    "courseList":[
+                      {
+                        "id":9001,
+                        "selectDate":"2026-04-19 10:00:00",
+                        "checkin":0,
+                        "pass":0,
+                        "courseInfo":{
+                          "id":9527,
+                          "courseName":"耕趣农场劳动课",
+                          "courseMaxCount":100,
+                          "courseSignConfig":"{\"signStartDate\":\"2026-04-20 08:50:00\",\"signEndDate\":\"2026-04-20 10:20:00\",\"signOutStartDate\":\"2026-04-20 10:30:00\",\"signOutEndDate\":\"2026-04-20 11:00:00\",\"signPointList\":[{\"lat\":40.1001,\"lng\":116.3001,\"radius\":8.0}]}"
+                        }
                       }
-                    }
-                    """
-                        .trimIndent()
-                )
-            "https://bykc.buaa.edu.cn/sscv/signCourseByUser" -> {
-              assertEquals("test-token", request.headers["auth_token"])
-              respondJson("""{"status":"0","errmsg":"","data":{}}""")
-            }
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
+                    ]
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        "https://bykc.buaa.edu.cn/sscv/signCourseByUser" -> {
+          assertEquals("test-token", request.headers["auth_token"])
+          respondJson("""{"status":"0","errmsg":"","data":{}}""")
         }
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = BykcApi(LocalBykcApiBackend(nowProvider = { fixedNow }))
 
@@ -420,40 +416,42 @@ class LocalBykcApiBackendTest {
         )
     )
     val requestedUrls = mutableListOf<String>()
-    val wrappedCasLogin = LocalWebVpnSupport.toWebVpnUrl("https://bykc.buaa.edu.cn/cas-login?token=test-token")
-    val engine =
-        MockEngine { request ->
-          requestedUrls += request.url.toString()
-          when {
-            request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/sscv/cas/login") ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers = headersOf(HttpHeaders.Location, wrappedCasLogin),
-                )
-            request.url.toString() == wrappedCasLogin ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                )
-            request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/sscv/getUserProfile") ->
-                respondJson(
-                    """
-                    {
-                      "status":"0",
-                      "errmsg":"",
-                      "data":{
-                        "id":1,
-                        "employeeId":"22374444",
-                        "realName":"WebVPN 用户"
-                      }
-                    }
-                    """
-                        .trimIndent()
-                )
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
-        }
+    val wrappedCasLogin =
+        LocalWebVpnSupport.toWebVpnUrl("https://bykc.buaa.edu.cn/cas-login?token=test-token")
+    val engine = MockEngine { request ->
+      requestedUrls += request.url.toString()
+      when {
+        request.url.host == "d.buaa.edu.cn" &&
+            request.url.encodedPath.endsWith("/sscv/cas/login") ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers = headersOf(HttpHeaders.Location, wrappedCasLogin),
+            )
+        request.url.toString() == wrappedCasLogin ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+            )
+        request.url.host == "d.buaa.edu.cn" &&
+            request.url.encodedPath.endsWith("/sscv/getUserProfile") ->
+            respondJson(
+                """
+                {
+                  "status":"0",
+                  "errmsg":"",
+                  "data":{
+                    "id":1,
+                    "employeeId":"22374444",
+                    "realName":"WebVPN 用户"
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = BykcApi(LocalBykcApiBackend(nowProvider = { fixedNow }))
 

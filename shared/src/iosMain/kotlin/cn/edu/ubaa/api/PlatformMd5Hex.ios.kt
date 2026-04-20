@@ -5,7 +5,6 @@ import kotlinx.cinterop.convert
 import kotlinx.cinterop.usePinned
 import platform.CommonCrypto.CC_MD5
 import platform.CommonCrypto.CC_MD5_DIGEST_LENGTH
-import platform.posix.memcpy
 
 internal actual object PlatformMd5Hex {
   actual fun digest(input: ByteArray): String {

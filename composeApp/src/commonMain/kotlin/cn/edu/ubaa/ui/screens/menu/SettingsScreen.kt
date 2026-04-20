@@ -108,11 +108,7 @@ fun SettingsScreen(
             Text("确认切换")
           }
         },
-        dismissButton = {
-          TextButton(onClick = { pendingMode = null }) {
-            Text("取消")
-          }
-        },
+        dismissButton = { TextButton(onClick = { pendingMode = null }) { Text("取消") } },
     )
   }
 }

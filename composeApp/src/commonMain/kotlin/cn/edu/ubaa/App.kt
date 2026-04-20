@@ -13,6 +13,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.api.AppVersionCheckResponse
@@ -26,9 +27,8 @@ import cn.edu.ubaa.ui.screens.auth.LoginScreen
 import cn.edu.ubaa.ui.screens.splash.SplashScreen
 import cn.edu.ubaa.ui.theme.PreloadFonts
 import cn.edu.ubaa.ui.theme.UBAATheme
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.launch
 
 /**
  * 应用程序顶层入口 Composable。 负责全局状态管理，包括：

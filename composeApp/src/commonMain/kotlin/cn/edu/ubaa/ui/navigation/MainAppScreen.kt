@@ -472,12 +472,12 @@ fun MainAppScreen(
 
   val screenTitle =
       when (currentScreen) {
-      AppScreen.HOME -> "首页"
-      AppScreen.REGULAR -> "普通功能"
-      AppScreen.ADVANCED -> "高级功能"
-      AppScreen.MY -> "我的"
-      AppScreen.SETTINGS -> "设置"
-      AppScreen.ABOUT -> "关于"
+        AppScreen.HOME -> "首页"
+        AppScreen.REGULAR -> "普通功能"
+        AppScreen.ADVANCED -> "高级功能"
+        AppScreen.MY -> "我的"
+        AppScreen.SETTINGS -> "设置"
+        AppScreen.ABOUT -> "关于"
         AppScreen.SCHEDULE -> "课程表"
         AppScreen.EXAM -> "考试查询"
         AppScreen.COURSE_DETAIL -> "课程详情"

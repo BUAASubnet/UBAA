@@ -11,22 +11,22 @@ import cn.edu.ubaa.model.dto.WeekResponse
 import cn.edu.ubaa.model.dto.WeeklySchedule
 import cn.edu.ubaa.model.dto.WeeklyScheduleResponse
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
-import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
+import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlin.time.Clock
 
 internal class LocalScheduleApiBackend : ScheduleApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
@@ -38,7 +38,9 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       ) {
         val response =
             LocalUpstreamClientProvider.shared().get(
-                localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do")
+                localUpstreamUrl(
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do"
+                )
             ) {
               applyScheduleHeaders()
             }
@@ -52,7 +54,9 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       ) {
         val response =
             LocalUpstreamClientProvider.shared().get(
-                localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do")
+                localUpstreamUrl(
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do"
+                )
             ) {
               parameter("termCode", termCode)
               applyScheduleHeaders()
@@ -67,7 +71,9 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       ) {
         val response =
             LocalUpstreamClientProvider.shared().post(
-                localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do")
+                localUpstreamUrl(
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do"
+                )
             ) {
               applyScheduleHeaders()
               setBody(
@@ -88,10 +94,13 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
           unsupportedMessage = "研究生账号暂不支持当前本科教务接口",
           unavailableCode = "schedule_error",
       ) {
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+        val today =
+            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
         val response =
             LocalUpstreamClientProvider.shared().get(
-                localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do")
+                localUpstreamUrl(
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do"
+                )
             ) {
               parameter("rq", today)
               parameter("lxdm", "student")
@@ -107,7 +116,9 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       ) {
         val response =
             LocalUpstreamClientProvider.shared().get(
-                localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do")
+                localUpstreamUrl(
+                    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do"
+                )
             ) {
               parameter("termCode", termCode)
               applyExamHeaders()
@@ -118,13 +129,19 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
   private fun HttpRequestBuilder.applyScheduleHeaders() {
     header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
     header("X-Requested-With", "XMLHttpRequest")
-    header(HttpHeaders.Referrer, localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html"))
+    header(
+        HttpHeaders.Referrer,
+        localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html"),
+    )
   }
 
   private fun HttpRequestBuilder.applyExamHeaders() {
     header(HttpHeaders.Accept, "*/*")
     header("X-Requested-With", "XMLHttpRequest")
-    header(HttpHeaders.Referrer, localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html"))
+    header(
+        HttpHeaders.Referrer,
+        localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html"),
+    )
   }
 
   private suspend fun parseTerms(response: HttpResponse): Result<List<Term>> =
@@ -237,9 +254,10 @@ internal enum class LocalUndergradPortalProbeResult {
 
 internal suspend fun probeLocalUndergradPortal(): LocalUndergradPortalProbeResult {
   val response =
-      LocalUpstreamClientProvider.shared().get(
-          localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do")
-      )
+      LocalUpstreamClientProvider.shared()
+          .get(
+              localUpstreamUrl("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do")
+          )
   val body = response.bodyAsText()
   return classifyLocalUndergradResponse(response.status, response.call.request.url.toString(), body)
 }
@@ -249,7 +267,8 @@ internal fun classifyLocalUndergradResponse(
     finalUrl: String,
     body: String,
 ): LocalUndergradPortalProbeResult {
-  if (isLocalSsoRedirect(status, finalUrl, body)) return LocalUndergradPortalProbeResult.SSO_REQUIRED
+  if (isLocalSsoRedirect(status, finalUrl, body))
+      return LocalUndergradPortalProbeResult.SSO_REQUIRED
   if (status != HttpStatusCode.OK) return LocalUndergradPortalProbeResult.UNAVAILABLE
 
   val trimmed = body.trimStart()

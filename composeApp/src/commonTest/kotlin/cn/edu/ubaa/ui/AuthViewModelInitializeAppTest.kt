@@ -212,9 +212,8 @@ class AuthViewModelInitializeAppTest {
     }
   }
 
-  private class PreloadedSessionAuthService(
-      private val preloadResponse: LoginPreloadResponse
-  ) : AuthService() {
+  private class PreloadedSessionAuthService(private val preloadResponse: LoginPreloadResponse) :
+      AuthService() {
     var preloadCalls = 0
       private set
 

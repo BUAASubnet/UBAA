@@ -24,9 +24,9 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.http.Url
+import kotlin.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.time.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -182,9 +182,7 @@ internal class LocalCgyyApiBackend(
       }
 
   override suspend fun getOrderDetail(orderId: Int): Result<CgyyOrderDto> =
-      execute("研讨室预约详情加载失败，请稍后重试") { _, client ->
-        mapOrder(client.getOrderDetail(orderId))
-      }
+      execute("研讨室预约详情加载失败，请稍后重试") { _, client -> mapOrder(client.getOrderDetail(orderId)) }
 
   override suspend fun cancelOrder(orderId: Int): Result<CgyyReservationSubmitResponse> =
       execute("研讨室预约取消失败，请稍后重试") { _, client ->
@@ -208,7 +206,8 @@ internal class LocalCgyyApiBackend(
       defaultMessage: String,
       block: suspend (String, LocalCgyyClient) -> T,
   ): Result<T> {
-    val session = LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val session =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val username = session.user.schoolid.ifBlank { session.username }
     if (username.isBlank()) return Result.failure(localUnauthenticatedApiException())
     return try {
@@ -335,7 +334,8 @@ internal class LocalCgyyApiBackend(
     return CgyySlotStatusDto(
         timeId = timeId,
         reservationStatus = reservationStatus,
-        isReservable = reservationStatus == 1 && tradeNo == null && orderId == null && takeUp != true,
+        isReservable =
+            reservationStatus == 1 && tradeNo == null && orderId == null && takeUp != true,
         startDate = raw["startDate"]?.jsonPrimitive?.contentOrNull,
         endDate = raw["endDate"]?.jsonPrimitive?.contentOrNull,
         tradeNo = tradeNo,
@@ -657,7 +657,10 @@ private class LocalCgyyClient(
         LocalUpstreamClientProvider.shared().request(buildUrl(pathOnly)) {
           this.method = method
           header(HttpHeaders.Accept, "application/json, text/plain, */*")
-          header(HttpHeaders.Referrer, localUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation"))
+          header(
+              HttpHeaders.Referrer,
+              localUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation"),
+          )
           header("app-key", signer.appKey)
           header("timestamp", timestamp.toString())
           header("sign", sign)
@@ -674,9 +677,7 @@ private class LocalCgyyClient(
           if (method != HttpMethod.Get) {
             val parameters =
                 Parameters.build {
-                  form.forEach { (key, value) ->
-                    if (value != null) append(key, value.toString())
-                  }
+                  form.forEach { (key, value) -> if (value != null) append(key, value.toString()) }
                 }
             setBody(FormDataContent(parameters))
           }
@@ -704,7 +705,11 @@ private class LocalCgyyClient(
     val raw =
         runCatching { json.parseToJsonElement(body).jsonObject }
             .getOrElse {
-              throw LocalCgyyApiException("研讨室系统返回了非 JSON 响应", "cgyy_error", HttpStatusCode.BadGateway)
+              throw LocalCgyyApiException(
+                  "研讨室系统返回了非 JSON 响应",
+                  "cgyy_error",
+                  HttpStatusCode.BadGateway,
+              )
             }
     val code = raw["code"]?.jsonPrimitive?.intOrNull
     if (code != 200) {
@@ -722,7 +727,8 @@ private class LocalCgyyClient(
   }
 
   private suspend fun ensureBusinessLogin(forceRefresh: Boolean = false) {
-    LocalAuthSessionStore.get() ?: throw LocalCgyyApiException("登录状态已失效", "unauthenticated", HttpStatusCode.Unauthorized)
+    LocalAuthSessionStore.get()
+        ?: throw LocalCgyyApiException("登录状态已失效", "unauthenticated", HttpStatusCode.Unauthorized)
     if (!forceRefresh && !accessToken.isNullOrBlank()) return
 
     loginMutex.withLock {
@@ -742,7 +748,10 @@ private class LocalCgyyClient(
               .getAll(HttpHeaders.SetCookie)
               .orEmpty()
               .firstNotNullOfOrNull { header ->
-                header.substringBefore(';').split('=', limit = 2).takeIf { it.size == 2 }
+                header
+                    .substringBefore(';')
+                    .split('=', limit = 2)
+                    .takeIf { it.size == 2 }
                     ?.takeIf { it[0].trim() == SSO_COOKIE_NAME }
                     ?.get(1)
                     ?.trim()
@@ -760,7 +769,11 @@ private class LocalCgyyClient(
                   .firstOrNull { it.name == SSO_COOKIE_NAME }
                   ?.value
                   ?.takeIf { it.isNotBlank() }
-              ?: throw LocalCgyyApiException("未获取到研讨室 SSO Token", "unauthenticated", HttpStatusCode.Unauthorized)
+              ?: throw LocalCgyyApiException(
+                  "未获取到研讨室 SSO Token",
+                  "unauthenticated",
+                  HttpStatusCode.Unauthorized,
+              )
 
       val loginResponse =
           requestJson(
@@ -794,7 +807,8 @@ private class LocalCgyyClient(
     return body.contains("name=\"execution\"") && body.contains("username_password")
   }
 
-  private fun buildUrl(path: String): String = localUpstreamUrl("$BASE_URL${path.removePrefix("/")}")
+  private fun buildUrl(path: String): String =
+      localUpstreamUrl("$BASE_URL${path.removePrefix("/")}")
 
   private fun normalizePath(path: String): String = if (path.startsWith("/")) path else "/$path"
 

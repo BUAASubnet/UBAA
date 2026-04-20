@@ -9,8 +9,8 @@ import platform.CoreGraphics.CGContextDrawImage
 import platform.CoreGraphics.CGImageGetHeight
 import platform.CoreGraphics.CGImageGetWidth
 import platform.CoreGraphics.CGRectMake
-import platform.CoreGraphics.kCGImageAlphaPremultipliedLast
 import platform.CoreGraphics.kCGBitmapByteOrder32Big
+import platform.CoreGraphics.kCGImageAlphaPremultipliedLast
 import platform.Foundation.NSData
 import platform.Foundation.create
 import platform.UIKit.UIImage
@@ -38,7 +38,11 @@ internal actual object PlatformImageRasterDecoder {
               space = colorSpace,
               bitmapInfo = (kCGImageAlphaPremultipliedLast or kCGBitmapByteOrder32Big),
           ) ?: error("Failed to create bitmap context for captcha")
-      CGContextDrawImage(context, CGRectMake(0.0, 0.0, width.toDouble(), height.toDouble()), cgImage)
+      CGContextDrawImage(
+          context,
+          CGRectMake(0.0, 0.0, width.toDouble(), height.toDouble()),
+          cgImage,
+      )
     }
     val pixels =
         IntArray(width * height) { index ->

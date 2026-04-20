@@ -51,9 +51,8 @@ object AuthTokensStore {
             settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
                 ?: legacyValue(KEY_ACCESS_TOKEN_EXPIRES_AT),
         refreshTokenExpiresAt =
-            settings.getStringOrNull(
-                ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT)
-            ) ?: legacyValue(KEY_REFRESH_TOKEN_EXPIRES_AT),
+            settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
+                ?: legacyValue(KEY_REFRESH_TOKEN_EXPIRES_AT),
     )
   }
 
@@ -64,7 +63,10 @@ object AuthTokensStore {
     settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN))
     settings.remove(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
     settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
-    if (ConnectionModeStore.get() == null || ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY) {
+    if (
+        ConnectionModeStore.get() == null ||
+            ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+    ) {
       settings.remove(ModeScopedSessionStore.legacyKey(KEY_ACCESS_TOKEN))
       settings.remove(ModeScopedSessionStore.legacyKey(KEY_REFRESH_TOKEN))
       settings.remove(ModeScopedSessionStore.legacyKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
@@ -86,7 +88,10 @@ object AuthTokensStore {
   }
 
   private fun legacyValue(key: String): String? =
-      if (ConnectionModeStore.get() == null || ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY) {
+      if (
+          ConnectionModeStore.get() == null ||
+              ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+      ) {
         settings.getStringOrNull(ModeScopedSessionStore.legacyKey(key))
       } else {
         null
@@ -122,7 +127,10 @@ object ClientIdStore {
   /** 清除 clientId（通常不需要，除非要完全重置客户端） */
   fun clear() {
     settings.remove(ModeScopedSessionStore.scopedKey(KEY_CLIENT_ID))
-    if (ConnectionModeStore.get() == null || ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY) {
+    if (
+        ConnectionModeStore.get() == null ||
+            ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+    ) {
       settings.remove(ModeScopedSessionStore.legacyKey(KEY_CLIENT_ID))
     }
   }
@@ -135,7 +143,10 @@ object ClientIdStore {
   }
 
   private fun legacyValue(): String? =
-      if (ConnectionModeStore.get() == null || ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY) {
+      if (
+          ConnectionModeStore.get() == null ||
+              ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+      ) {
         settings.getStringOrNull(ModeScopedSessionStore.legacyKey(KEY_CLIENT_ID))
       } else {
         null

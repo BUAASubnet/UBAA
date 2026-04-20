@@ -2,7 +2,6 @@ package cn.edu.ubaa.api
 
 import cn.edu.ubaa.model.dto.CaptchaInfo
 import cn.edu.ubaa.model.dto.LoginPreloadResponse
-import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.evaluation.EvaluationCoursesResponse
 import com.russhwolf.settings.MapSettings
 import kotlin.test.AfterTest
@@ -215,8 +214,9 @@ private class FakeCgyyApiBackend : CgyyApiBackend {
 
   override suspend fun getDayInfo(venueSiteId: Int, date: String) = error("unused")
 
-  override suspend fun submitReservation(request: cn.edu.ubaa.model.dto.CgyyReservationSubmitRequest) =
-      error("unused")
+  override suspend fun submitReservation(
+      request: cn.edu.ubaa.model.dto.CgyyReservationSubmitRequest
+  ) = error("unused")
 
   override suspend fun getMyOrders(page: Int, size: Int) = error("unused")
 
@@ -254,6 +254,7 @@ private class FakeEvaluationServiceBackend : EvaluationServiceBackend {
     )
   }
 
-  override suspend fun submitEvaluations(courses: List<cn.edu.ubaa.model.evaluation.EvaluationCourse>) =
-      emptyList<cn.edu.ubaa.model.evaluation.EvaluationResult>()
+  override suspend fun submitEvaluations(
+      courses: List<cn.edu.ubaa.model.evaluation.EvaluationCourse>
+  ) = emptyList<cn.edu.ubaa.model.evaluation.EvaluationResult>()
 }

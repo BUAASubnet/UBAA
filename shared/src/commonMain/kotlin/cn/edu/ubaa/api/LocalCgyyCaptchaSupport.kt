@@ -27,11 +27,18 @@ internal class DefaultLocalCgyyCaptchaSolver : LocalCgyyCaptchaSolver {
   override fun solve(challenge: LocalCgyyCaptchaChallenge): LocalCgyySolvedCaptcha {
     val background =
         PlatformImageRasterDecoder.decode(
-            Base64.decode(challenge.originalImageBase64.substringAfter("base64,", challenge.originalImageBase64))
+            Base64.decode(
+                challenge.originalImageBase64.substringAfter(
+                    "base64,",
+                    challenge.originalImageBase64,
+                )
+            )
         )
     val piece =
         PlatformImageRasterDecoder.decode(
-            Base64.decode(challenge.jigsawImageBase64.substringAfter("base64,", challenge.jigsawImageBase64))
+            Base64.decode(
+                challenge.jigsawImageBase64.substringAfter("base64,", challenge.jigsawImageBase64)
+            )
         )
     val moveDistance = solveOffset(background, piece)
     val pointJsonData = """{"x":$moveDistance,"y":5}"""
@@ -59,7 +66,10 @@ internal class DefaultLocalCgyyCaptchaSolver : LocalCgyyCaptchaSolver {
     var bestScore = Double.NEGATIVE_INFINITY
     var bestX = 0
     val yMax = (bgEdges.size - pieceEdges.size).coerceAtLeast(0)
-    val xMax = ((bgEdges.firstOrNull()?.size ?: 0) - (pieceEdges.firstOrNull()?.size ?: 0)).coerceAtLeast(0)
+    val xMax =
+        ((bgEdges.firstOrNull()?.size ?: 0) - (pieceEdges.firstOrNull()?.size ?: 0)).coerceAtLeast(
+            0
+        )
 
     for (y in 0..yMax) {
       for (x in 0..xMax) {
@@ -97,8 +107,7 @@ internal class DefaultLocalCgyyCaptchaSolver : LocalCgyyCaptchaSolver {
     require(keyBytes.size == 16 || keyBytes.size == 24 || keyBytes.size == 32) {
       "Invalid AES key size: ${keyBytes.size}"
     }
-    val encrypted =
-        PlatformAesEcbPkcs5Padding.encrypt(plainText.encodeToByteArray(), keyBytes)
+    val encrypted = PlatformAesEcbPkcs5Padding.encrypt(plainText.encodeToByteArray(), keyBytes)
     return Base64.encode(encrypted)
   }
 

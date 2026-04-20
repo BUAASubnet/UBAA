@@ -7,7 +7,9 @@ internal class ResettableSharedInstance<T : Any>(
   private var instance: T? = null
 
   fun getOrCreate(): T {
-    instance?.let { return it }
+    instance?.let {
+      return it
+    }
     val created = factory()
     val existing = instance
     return if (existing != null) {

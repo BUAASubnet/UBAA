@@ -78,45 +78,43 @@ class UpdateServiceTest {
 
   @Test
   fun reusesCurrentApiClientProviderAfterPreviousClientIsClosed() = runTest {
-    val firstEngine =
-        MockEngine {
-          respond(
-              content =
-                  ByteReadChannel(
-                      json.encodeToString(
+    val firstEngine = MockEngine {
+      respond(
+          content =
+              ByteReadChannel(
+                  json.encodeToString(
                       AppVersionCheckResponse(
                           latestVersion = BuildKonfig.VERSION,
                           status = AppUpdateStatus.UP_TO_DATE,
                           updateAvailable = false,
                           downloadUrl = "https://github.com/BUAASubnet/UBAA/releases",
                       )
-                      )
-                  ),
-              status = HttpStatusCode.OK,
-              headers = headersOf(HttpHeaders.ContentType, "application/json"),
-          )
-        }
-    val secondEngine =
-        MockEngine { request ->
-          assertEquals("/api/v1/app/version", request.url.encodedPath)
-          assertEquals("1.4.0", request.url.parameters["clientVersion"])
-          respond(
-              content =
-                  ByteReadChannel(
-                      json.encodeToString(
+                  )
+              ),
+          status = HttpStatusCode.OK,
+          headers = headersOf(HttpHeaders.ContentType, "application/json"),
+      )
+    }
+    val secondEngine = MockEngine { request ->
+      assertEquals("/api/v1/app/version", request.url.encodedPath)
+      assertEquals("1.4.0", request.url.parameters["clientVersion"])
+      respond(
+          content =
+              ByteReadChannel(
+                  json.encodeToString(
                       AppVersionCheckResponse(
                           latestVersion = "1.5.0",
                           status = AppUpdateStatus.UPDATE_AVAILABLE,
                           updateAvailable = true,
                           downloadUrl = "https://download.example.com",
                           releaseNotes = "修复登录问题",
-                          )
                       )
-                  ),
-              status = HttpStatusCode.OK,
-              headers = headersOf(HttpHeaders.ContentType, "application/json"),
-          )
-        }
+                  )
+              ),
+          status = HttpStatusCode.OK,
+          headers = headersOf(HttpHeaders.ContentType, "application/json"),
+      )
+    }
 
     val firstClient = ApiClient(firstEngine)
     val secondClient = ApiClient(secondEngine)

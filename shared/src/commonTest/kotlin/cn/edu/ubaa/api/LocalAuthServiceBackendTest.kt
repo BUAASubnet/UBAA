@@ -46,41 +46,45 @@ class LocalAuthServiceBackendTest {
 
   @Test
   fun `preloadLoginState restores direct session from upstream cookies`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://sso.buaa.edu.cn/login" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location to listOf("/cas/success"),
-                            HttpHeaders.SetCookie to
-                                listOf("CASTGC=sso-ticket; Domain=sso.buaa.edu.cn; Path=/; Secure"),
-                        ),
-                )
-            "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                    headers =
-                        headersOf(HttpHeaders.SetCookie, "JSESSIONID=uc-session; Domain=uc.buaa.edu.cn; Path=/; Secure"),
-                )
-            "https://uc.buaa.edu.cn/api/uc/status" -> {
-              assertTrue(request.headers[HttpHeaders.Cookie].orEmpty().contains("JSESSIONID=uc-session"))
-              respond(
-                  content =
-                      ByteReadChannel(
-                          """{"code":0,"data":{"name":"Test User","schoolid":"22373333","username":"22373333"}}"""
-                      ),
-                  status = HttpStatusCode.OK,
-                  headers = headersOf(HttpHeaders.ContentType, "application/json"),
-              )
-            }
-            else -> error("Unexpected url: ${request.url}")
-          }
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://sso.buaa.edu.cn/login" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location to listOf("/cas/success"),
+                        HttpHeaders.SetCookie to
+                            listOf("CASTGC=sso-ticket; Domain=sso.buaa.edu.cn; Path=/; Secure"),
+                    ),
+            )
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(
+                        HttpHeaders.SetCookie,
+                        "JSESSIONID=uc-session; Domain=uc.buaa.edu.cn; Path=/; Secure",
+                    ),
+            )
+        "https://uc.buaa.edu.cn/api/uc/status" -> {
+          assertTrue(
+              request.headers[HttpHeaders.Cookie].orEmpty().contains("JSESSIONID=uc-session")
+          )
+          respond(
+              content =
+                  ByteReadChannel(
+                      """{"code":0,"data":{"name":"Test User","schoolid":"22373333","username":"22373333"}}"""
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, "application/json"),
+          )
         }
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = LocalAuthServiceBackend().preloadLoginState()
@@ -98,45 +102,48 @@ class LocalAuthServiceBackendTest {
         ConnectionModeStore.save(ConnectionMode.WEBVPN)
         ConnectionRuntime.resolveSelectedMode()
         val requestedUrls = mutableListOf<String>()
-        val engine =
-            MockEngine { request ->
-              requestedUrls += request.url.toString()
-              when {
-                request.url.host == "d.buaa.edu.cn" &&
-                    request.url.encodedPath.endsWith("/api/login") ->
-                    respond(
-                        content = ByteReadChannel.Empty,
-                        status = HttpStatusCode.OK,
-                        headers =
-                            headersOf(HttpHeaders.SetCookie, "JSESSIONID=uc-session; Domain=d.buaa.edu.cn; Path=/; Secure"),
-                    )
-                request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/login") ->
-                    respond(
-                        content = ByteReadChannel.Empty,
-                        status = HttpStatusCode.Found,
-                        headers =
-                            headersOf(
-                                HttpHeaders.Location to listOf("/cas/success"),
-                                HttpHeaders.SetCookie to
-                                    listOf("CASTGC=sso-ticket; Domain=d.buaa.edu.cn; Path=/; Secure"),
-                            ),
-                    )
-                request.url.host == "d.buaa.edu.cn" &&
-                    request.url.encodedPath.endsWith("/api/uc/status") -> {
-                  assertTrue(request.url.encodedPath.startsWith("/https/"))
-                  assertTrue(request.headers[HttpHeaders.Cookie].orEmpty().contains("JSESSIONID=uc-session"))
-                  respond(
-                      content =
-                          ByteReadChannel(
-                              """{"code":0,"data":{"name":"WebVPN User","schoolid":"22374444","username":"22374444"}}"""
-                          ),
-                      status = HttpStatusCode.OK,
-                      headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                  )
-                }
-                else -> error("Unexpected url: ${request.url}")
-              }
+        val engine = MockEngine { request ->
+          requestedUrls += request.url.toString()
+          when {
+            request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/api/login") ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.OK,
+                    headers =
+                        headersOf(
+                            HttpHeaders.SetCookie,
+                            "JSESSIONID=uc-session; Domain=d.buaa.edu.cn; Path=/; Secure",
+                        ),
+                )
+            request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/login") ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers =
+                        headersOf(
+                            HttpHeaders.Location to listOf("/cas/success"),
+                            HttpHeaders.SetCookie to
+                                listOf("CASTGC=sso-ticket; Domain=d.buaa.edu.cn; Path=/; Secure"),
+                        ),
+                )
+            request.url.host == "d.buaa.edu.cn" &&
+                request.url.encodedPath.endsWith("/api/uc/status") -> {
+              assertTrue(request.url.encodedPath.startsWith("/https/"))
+              assertTrue(
+                  request.headers[HttpHeaders.Cookie].orEmpty().contains("JSESSIONID=uc-session")
+              )
+              respond(
+                  content =
+                      ByteReadChannel(
+                          """{"code":0,"data":{"name":"WebVPN User","schoolid":"22374444","username":"22374444"}}"""
+                      ),
+                  status = HttpStatusCode.OK,
+                  headers = headersOf(HttpHeaders.ContentType, "application/json"),
+              )
             }
+            else -> error("Unexpected url: ${request.url}")
+          }
+        }
         useMockUpstream(engine)
 
         val result = LocalAuthServiceBackend().preloadLoginState()
@@ -161,28 +168,29 @@ class LocalAuthServiceBackendTest {
             </script>
           </body>
         </html>
-        """.trimIndent()
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://sso.buaa.edu.cn/login" ->
-                respond(
-                    content = ByteReadChannel(loginHtml),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
-                )
-            "https://sso.buaa.edu.cn/captcha?captchaId=captcha-1" ->
-                respond(
-                    content = ByteReadChannel(byteArrayOf(1, 2, 3, 4)),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "image/jpeg"),
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
-        }
+        """
+            .trimIndent()
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://sso.buaa.edu.cn/login" ->
+            respond(
+                content = ByteReadChannel(loginHtml),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/html"),
+            )
+        "https://sso.buaa.edu.cn/captcha?captchaId=captcha-1" ->
+            respond(
+                content = ByteReadChannel(byteArrayOf(1, 2, 3, 4)),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "image/jpeg"),
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
-    val result = LocalAuthServiceBackend().login("22373333", "secret", captcha = null, execution = null)
+    val result =
+        LocalAuthServiceBackend().login("22373333", "secret", captcha = null, execution = null)
 
     assertTrue(result.isFailure)
     val exception = result.exceptionOrNull()
@@ -201,17 +209,16 @@ class LocalAuthServiceBackendTest {
             lastActivity = "2026-04-20T08:30:00Z",
         )
     )
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://uc.buaa.edu.cn/api/uc/status" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Unauthorized,
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
-        }
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://uc.buaa.edu.cn/api/uc/status" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Unauthorized,
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = LocalAuthServiceBackend().getAuthStatus()
@@ -225,7 +232,8 @@ class LocalAuthServiceBackendTest {
       HttpClient(engine) {
         this.followRedirects = followRedirects
         install(HttpCookies) {
-          storage = LocalCookieStore.storage(ConnectionRuntime.currentMode() ?: ConnectionMode.DIRECT)
+          storage =
+              LocalCookieStore.storage(ConnectionRuntime.currentMode() ?: ConnectionMode.DIRECT)
         }
       }
     }

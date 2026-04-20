@@ -1,7 +1,7 @@
 package cn.edu.ubaa
 
-import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.api.AppUpdateStatus
+import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.version.AppVersionRuntimeConfig
 import io.ktor.client.request.*
 import io.ktor.client.statement.*

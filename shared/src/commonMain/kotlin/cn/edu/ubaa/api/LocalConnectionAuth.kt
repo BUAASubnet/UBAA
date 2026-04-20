@@ -10,10 +10,10 @@ import cn.edu.ubaa.model.dto.UserInfoResponse
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.CookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.forms.FormDataContent
@@ -31,13 +31,13 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.date.GMTDate
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.time.Instant
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.time.Instant
 
 @Serializable
 data class LocalAuthSession(
@@ -59,7 +59,10 @@ object LocalAuthSessionStore {
   private val json = Json { ignoreUnknownKeys = true }
 
   fun save(session: LocalAuthSession) {
-    settings.putString(ModeScopedSessionStore.scopedKey(KEY_LOCAL_AUTH_SESSION), json.encodeToString(session))
+    settings.putString(
+        ModeScopedSessionStore.scopedKey(KEY_LOCAL_AUTH_SESSION),
+        json.encodeToString(session),
+    )
   }
 
   fun get(): LocalAuthSession? {
@@ -89,8 +92,9 @@ internal object LocalCookieStore {
 
   private val json = Json { ignoreUnknownKeys = true }
 
-  fun storage(mode: ConnectionMode = ConnectionRuntime.currentMode() ?: ConnectionMode.DIRECT):
-      PersistentLocalCookieStorage = PersistentLocalCookieStorage(mode)
+  fun storage(
+      mode: ConnectionMode = ConnectionRuntime.currentMode() ?: ConnectionMode.DIRECT
+  ): PersistentLocalCookieStorage = PersistentLocalCookieStorage(mode)
 
   fun clear(mode: ConnectionMode = ConnectionRuntime.currentMode() ?: ConnectionMode.DIRECT) {
     settings.remove(ModeScopedSessionStore.scopedKey(KEY_LOCAL_COOKIES, mode))
@@ -129,18 +133,17 @@ internal data class StoredCookieRecord(
     val createdAtEpochMillis: Long,
 )
 
-internal class PersistentLocalCookieStorage(
-    private val mode: ConnectionMode
-) : CookiesStorage {
+internal class PersistentLocalCookieStorage(private val mode: ConnectionMode) : CookiesStorage {
   private val mutex = Mutex()
 
   override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
     mutex.withLock {
       val records = LocalCookieStore.load(mode)
-      val normalized = cookie.copy(
-          domain = (cookie.domain ?: requestUrl.host).lowercase(),
-          path = cookie.path ?: requestUrl.encodedPath.ifBlank { "/" },
-      )
+      val normalized =
+          cookie.copy(
+              domain = (cookie.domain ?: requestUrl.host).lowercase(),
+              path = cookie.path ?: requestUrl.encodedPath.ifBlank { "/" },
+          )
       val key = cookieKey(normalized)
       records.removeAll { cookieKey(it.cookie) == key }
       if ((normalized.maxAge ?: -1L) != 0L) {
@@ -164,7 +167,8 @@ internal class PersistentLocalCookieStorage(
           active += record
           if (!domainMatches(requestUrl.host, cookie.domain ?: requestUrl.host)) return@forEach
           if (!pathMatches(requestUrl.encodedPath, cookie.path ?: "/")) return@forEach
-          if (cookie.secure && !requestUrl.protocol.name.equals("https", ignoreCase = true)) return@forEach
+          if (cookie.secure && !requestUrl.protocol.name.equals("https", ignoreCase = true))
+              return@forEach
           result += cookie.copy(expires = cookie.expires?.timestamp?.let(::GMTDate))
         }
         LocalCookieStore.save(mode, active)
@@ -214,7 +218,8 @@ internal object LocalUpstreamClientProvider {
     )
   }
 
-  private val sharedClient = ResettableSharedInstance(factory = { clientFactory(true) }, disposer = HttpClient::close)
+  private val sharedClient =
+      ResettableSharedInstance(factory = { clientFactory(true) }, disposer = HttpClient::close)
 
   fun shared(): HttpClient = sharedClient.getOrCreate()
 
@@ -284,7 +289,8 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
                       userData = validation.user,
                   )
               )
-          SessionValidationState.Invalid -> Result.success(LoginPreloadResponse(captchaRequired = false))
+          SessionValidationState.Invalid ->
+              Result.success(LoginPreloadResponse(captchaRequired = false))
         }
       }
 
@@ -295,7 +301,8 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       val loginPageHtml = response.bodyAsText()
       val execution = LocalCasParser.extractExecution(loginPageHtml).takeIf { it.isNotBlank() }
       val captchaInfo = LocalCasParser.detectCaptcha(loginPageHtml, captchaUrl())
-      val hydratedCaptcha = captchaInfo?.let { info -> info.withBase64Image(fetchCaptchaImage(info.id)) }
+      val hydratedCaptcha =
+          captchaInfo?.let { info -> info.withBase64Image(fetchCaptchaImage(info.id)) }
 
       Result.success(
           LoginPreloadResponse(
@@ -320,7 +327,10 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
     val noRedirectClient = LocalUpstreamClientProvider.newNoRedirectClient()
     return try {
       val loginPageResponse = noRedirectClient.get(loginUrl())
-      if (loginPageResponse.status != HttpStatusCode.OK && loginPageResponse.status.value !in 300..399) {
+      if (
+          loginPageResponse.status != HttpStatusCode.OK &&
+              loginPageResponse.status.value !in 300..399
+      ) {
         return Result.failure(ApiCallException("登录失败，请稍后重试"))
       }
 
@@ -334,7 +344,13 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
 
         val actualExecution =
             execution?.takeIf { it.isNotBlank() } ?: LocalCasParser.extractExecution(loginPageHtml)
-        val request = LoginRequest(username = username, password = password, captcha = captcha, execution = actualExecution)
+        val request =
+            LoginRequest(
+                username = username,
+                password = password,
+                captcha = captcha,
+                execution = actualExecution,
+            )
         val captchaInfo = LocalCasParser.detectCaptcha(loginPageHtml, captchaUrl())
         if (captchaInfo != null && captcha.isNullOrBlank()) {
           return Result.failure(
@@ -372,7 +388,8 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
         SessionValidationState.Invalid ->
             Result.failure(
                 ApiCallException(
-                    message = userFacingMessageForCode("unauthenticated", HttpStatusCode.Unauthorized),
+                    message =
+                        userFacingMessageForCode("unauthenticated", HttpStatusCode.Unauthorized),
                     status = HttpStatusCode.Unauthorized,
                     code = "unauthenticated",
                 )
@@ -390,7 +407,8 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
         LocalAuthSessionStore.get()
             ?: return Result.failure(
                 ApiCallException(
-                    message = userFacingMessageForCode("unauthenticated", HttpStatusCode.Unauthorized),
+                    message =
+                        userFacingMessageForCode("unauthenticated", HttpStatusCode.Unauthorized),
                     status = HttpStatusCode.Unauthorized,
                     code = "unauthenticated",
                 )
@@ -418,7 +436,8 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
           clearStoredSession()
           Result.failure(
               ApiCallException(
-                  message = userFacingMessageForCode("unauthenticated", HttpStatusCode.Unauthorized),
+                  message =
+                      userFacingMessageForCode("unauthenticated", HttpStatusCode.Unauthorized),
                   status = HttpStatusCode.Unauthorized,
                   code = "unauthenticated",
               )
@@ -503,7 +522,8 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
     if ("exception.message=" in finalUrl) {
       throw ApiCallException(finalUrl.substringAfter("exception.message=").substringBefore("&"))
     }
-    val loginError = LocalCasParser.findLoginError(bodyText) ?: LocalCasParser.extractTipText(bodyText)
+    val loginError =
+        LocalCasParser.findLoginError(bodyText) ?: LocalCasParser.extractTipText(bodyText)
     if (currentResponse.status == HttpStatusCode.Unauthorized || !loginError.isNullOrBlank()) {
       throw ApiCallException(loginError ?: "账号或密码错误，请重试")
     }
@@ -539,7 +559,9 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
   private fun ucStatusUrl(): String = localUpstreamUrl("https://uc.buaa.edu.cn/api/uc/status")
 
   private fun ucActivateUrl(): String =
-      localUpstreamUrl("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
+      localUpstreamUrl(
+          "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+      )
 
   private sealed interface SessionValidationState {
     data class Valid(val user: UserData) : SessionValidationState
@@ -553,7 +575,9 @@ internal class LocalUserServiceBackend : UserServiceBackend {
 
   override suspend fun getUserInfo(): Result<UserInfo> {
     return try {
-      val response = LocalUpstreamClientProvider.shared().get(localUpstreamUrl("https://uc.buaa.edu.cn/api/uc/userinfo"))
+      val response =
+          LocalUpstreamClientProvider.shared()
+              .get(localUpstreamUrl("https://uc.buaa.edu.cn/api/uc/userinfo"))
       val body = response.bodyAsText()
       if (isUcSessionExpired(response, body)) {
         clearLocalConnectionSession()
@@ -574,7 +598,11 @@ internal class LocalUserServiceBackend : UserServiceBackend {
       if (payload.code != 0 || info == null) {
         return Result.failure(
             ApiCallException(
-                message = userFacingMessageForCode("user_info_failed", HttpStatusCode.InternalServerError),
+                message =
+                    userFacingMessageForCode(
+                        "user_info_failed",
+                        HttpStatusCode.InternalServerError,
+                    ),
                 status = HttpStatusCode.InternalServerError,
                 code = "user_info_failed",
             )
@@ -620,15 +648,19 @@ private fun CaptchaInfo.withBase64Image(encodedImage: String?): CaptchaInfo =
 
 internal object LocalCasParser {
   private val executionRegex =
-      Regex("""<input[^>]*name=["']execution["'][^>]*value=["']([^"']+)["'][^>]*>""", RegexOption.IGNORE_CASE)
+      Regex(
+          """<input[^>]*name=["']execution["'][^>]*value=["']([^"']+)["'][^>]*>""",
+          RegexOption.IGNORE_CASE,
+      )
   private val tipRegex =
-      Regex("""<div[^>]*class=["'][^"']*tip-text[^"']*["'][^>]*>([\s\S]*?)</div>""", RegexOption.IGNORE_CASE)
+      Regex(
+          """<div[^>]*class=["'][^"']*tip-text[^"']*["'][^>]*>([\s\S]*?)</div>""",
+          RegexOption.IGNORE_CASE,
+      )
   private val captchaRegex =
       Regex("""config\.captcha\s*=\s*\{\s*type:\s*['"]([^'"]+)['"],\s*id:\s*['"]([^'"]+)['"]""")
-  private val inputRegex =
-      Regex("""<input\b([^>]*)>""", RegexOption.IGNORE_CASE)
-  private val attrRegex =
-      Regex("""([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*["']([^"']*)["']""")
+  private val inputRegex = Regex("""<input\b([^>]*)>""", RegexOption.IGNORE_CASE)
+  private val attrRegex = Regex("""([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*["']([^"']*)["']""")
 
   fun extractExecution(html: String): String =
       executionRegex.find(html)?.groupValues?.getOrNull(1).orEmpty()
@@ -641,17 +673,33 @@ internal object LocalCasParser {
   }
 
   fun extractTipText(html: String): String? =
-      tipRegex.find(html)?.groupValues?.getOrNull(1)?.stripHtml()?.trim()?.takeIf { it.isNotBlank() }
+      tipRegex.find(html)?.groupValues?.getOrNull(1)?.stripHtml()?.trim()?.takeIf {
+        it.isNotBlank()
+      }
 
   fun findLoginError(html: String): String? {
     if (html.isBlank()) return null
-    extractTipText(html)?.let { return it }
+    extractTipText(html)?.let {
+      return it
+    }
     val candidates =
         listOf(
-            Regex("""<div[^>]*id=["']errorDiv["'][^>]*>([\s\S]*?)</div>""", RegexOption.IGNORE_CASE),
-            Regex("""<div[^>]*class=["'][^"']*errors[^"']*["'][^>]*>([\s\S]*?)</div>""", RegexOption.IGNORE_CASE),
-            Regex("""<p[^>]*class=["'][^"']*errors[^"']*["'][^>]*>([\s\S]*?)</p>""", RegexOption.IGNORE_CASE),
-            Regex("""<span[^>]*class=["'][^"']*errors[^"']*["'][^>]*>([\s\S]*?)</span>""", RegexOption.IGNORE_CASE),
+            Regex(
+                """<div[^>]*id=["']errorDiv["'][^>]*>([\s\S]*?)</div>""",
+                RegexOption.IGNORE_CASE,
+            ),
+            Regex(
+                """<div[^>]*class=["'][^"']*errors[^"']*["'][^>]*>([\s\S]*?)</div>""",
+                RegexOption.IGNORE_CASE,
+            ),
+            Regex(
+                """<p[^>]*class=["'][^"']*errors[^"']*["'][^>]*>([\s\S]*?)</p>""",
+                RegexOption.IGNORE_CASE,
+            ),
+            Regex(
+                """<span[^>]*class=["'][^"']*errors[^"']*["'][^>]*>([\s\S]*?)</span>""",
+                RegexOption.IGNORE_CASE,
+            ),
         )
     return candidates
         .asSequence()
@@ -697,10 +745,13 @@ internal object LocalCasParser {
       append("username", request.username)
       append("password", request.password)
       append("submit", "登录")
-      request.captcha?.takeIf { it.isNotBlank() }?.let { captchaValue ->
-        if (inputs.any { it["name"] == "captcha" }) append("captcha", captchaValue)
-        if (inputs.any { it["name"] == "captchaResponse" }) append("captchaResponse", captchaValue)
-      }
+      request.captcha
+          ?.takeIf { it.isNotBlank() }
+          ?.let { captchaValue ->
+            if (inputs.any { it["name"] == "captcha" }) append("captcha", captchaValue)
+            if (inputs.any { it["name"] == "captchaResponse" })
+                append("captchaResponse", captchaValue)
+          }
       if (!presentNames.contains("_eventId")) append("_eventId", "submit")
       if (!presentNames.contains("execution")) append("execution", request.execution.orEmpty())
       if (!presentNames.contains("type")) append("type", "username_password")

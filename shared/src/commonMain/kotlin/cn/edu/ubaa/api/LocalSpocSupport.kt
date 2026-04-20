@@ -14,7 +14,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -104,7 +103,9 @@ internal object LocalSpocParsers {
 
   fun normalizeDateTime(rawValue: String?): String? {
     val normalized = rawValue?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    return runCatching { Instant.parse(normalized).toLocalDateTime(chinaTimeZone).toSpocDateTimeText() }
+    return runCatching {
+          Instant.parse(normalized).toLocalDateTime(chinaTimeZone).toSpocDateTimeText()
+        }
         .getOrElse { normalized.replace('T', ' ').substringBefore('.') }
   }
 

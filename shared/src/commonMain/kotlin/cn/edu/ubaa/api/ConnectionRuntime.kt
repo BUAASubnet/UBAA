@@ -47,7 +47,8 @@ object ConnectionModeStore {
     settings.putString(KEY_CONNECTION_MODE, mode.storageKey)
   }
 
-  fun get(): ConnectionMode? = ConnectionMode.fromStorageKey(settings.getStringOrNull(KEY_CONNECTION_MODE))
+  fun get(): ConnectionMode? =
+      ConnectionMode.fromStorageKey(settings.getStringOrNull(KEY_CONNECTION_MODE))
 
   fun clear() {
     settings.remove(KEY_CONNECTION_MODE)
@@ -85,7 +86,9 @@ object ConnectionRuntime {
   fun currentMode(): ConnectionMode? = _currentMode.value ?: resolveSelectedMode()
 
   fun switchMode(mode: ConnectionMode) {
-    require(mode in availableModes()) { "Connection mode ${mode.name} is not supported on this platform" }
+    require(mode in availableModes()) {
+      "Connection mode ${mode.name} is not supported on this platform"
+    }
     val current = currentMode()
     if (current == mode && ConnectionModeStore.get() == mode) {
       return

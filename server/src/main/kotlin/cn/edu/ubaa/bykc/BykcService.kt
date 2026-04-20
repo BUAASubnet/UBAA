@@ -479,8 +479,7 @@ class BykcService(
     )
     return semesters.maxByOrNull {
       parseDateTime(it.semesterEndDate) ?: LocalDateTime.parse("1970-01-01T00:00:00")
-    }
-        ?: throw BykcException("无法获取当前学期信息")
+    } ?: throw BykcException("无法获取当前学期信息")
   }
 
   /** 随机坐标生成：在合法的签到半径内随机化，提高安全性。 */

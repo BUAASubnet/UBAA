@@ -59,46 +59,45 @@ class LocalScheduleApiBackendTest {
 
   @Test
   fun `schedule api uses direct upstream backend to fetch terms`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do" ->
-                respond(
-                    content = ByteReadChannel("""{"user":"ok"}"""),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                )
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do" -> {
-              assertEquals(
-                  "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html",
-                  request.headers[HttpHeaders.Referrer],
-              )
-              respond(
-                  content =
-                      ByteReadChannel(
-                          json.encodeToString(
-                              TermResponse(
-                                  datas =
-                                      listOf(
-                                          Term(
-                                              itemCode = "2025-2026-1",
-                                              itemName = "2025-2026学年第一学期",
-                                              selected = true,
-                                              itemIndex = 1,
-                                          )
-                                      ),
-                                  code = "0",
-                                  msg = null,
-                              )
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do" ->
+            respond(
+                content = ByteReadChannel("""{"user":"ok"}"""),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do" -> {
+          assertEquals(
+              "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html",
+              request.headers[HttpHeaders.Referrer],
+          )
+          respond(
+              content =
+                  ByteReadChannel(
+                      json.encodeToString(
+                          TermResponse(
+                              datas =
+                                  listOf(
+                                      Term(
+                                          itemCode = "2025-2026-1",
+                                          itemName = "2025-2026学年第一学期",
+                                          selected = true,
+                                          itemIndex = 1,
+                                      )
+                                  ),
+                              code = "0",
+                              msg = null,
                           )
-                      ),
-                  status = HttpStatusCode.OK,
-                  headers = headersOf(HttpHeaders.ContentType, "application/json"),
-              )
-            }
-            else -> error("Unexpected url: ${request.url}")
-          }
+                      )
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, "application/json"),
+          )
         }
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = ScheduleApi().getTerms()
@@ -109,39 +108,38 @@ class LocalScheduleApiBackendTest {
 
   @Test
   fun `schedule api uses direct upstream backend to fetch exam arrangement`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do" ->
-                respond(
-                    content = ByteReadChannel("""{"user":"ok"}"""),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                )
-            "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=2025-2026-1" ->
-                respond(
-                    content =
-                        ByteReadChannel(
-                            json.encodeToString(
-                                ExamResponse(
-                                    code = "0",
-                                    datas =
-                                        listOf(
-                                            Exam(
-                                                courseName = "高等数学",
-                                                courseNo = "MATH001",
-                                                examPlace = "主M101",
-                                            )
-                                        ),
-                                )
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do" ->
+            respond(
+                content = ByteReadChannel("""{"user":"ok"}"""),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do?termCode=2025-2026-1" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        json.encodeToString(
+                            ExamResponse(
+                                code = "0",
+                                datas =
+                                    listOf(
+                                        Exam(
+                                            courseName = "高等数学",
+                                            courseNo = "MATH001",
+                                            examPlace = "主M101",
+                                        )
+                                    ),
                             )
-                        ),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
-        }
+                        )
+                    ),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = ScheduleApi().getExamArrangement("2025-2026-1")

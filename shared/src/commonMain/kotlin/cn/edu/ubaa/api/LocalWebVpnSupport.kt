@@ -36,7 +36,11 @@ internal object LocalWebVpnSupport {
           parts.firstOrNull().orEmpty() to parts.getOrNull(1)?.toIntOrNull()
         }
     if (scheme.isBlank()) return url
-    val host = runCatching { decryptHost(encodedHost) }.getOrElse { return url }
+    val host =
+        runCatching { decryptHost(encodedHost) }
+            .getOrElse {
+              return url
+            }
     val authority =
         when (port) {
           null -> "$scheme://$host"
@@ -69,16 +73,15 @@ internal object LocalWebVpnSupport {
     require(encodedHost.length >= 32) { "Invalid WebVPN host payload" }
     val iv = encodedHost.substring(0, 32).hexToBytes()
     val cipherHex =
-        encodedHost.substring(32).let { text ->
-          text + "0".repeat((32 - text.length % 32) % 32)
-        }
+        encodedHost.substring(32).let { text -> text + "0".repeat((32 - text.length % 32) % 32) }
     val decrypted =
         PlatformAesCfbNoPadding.decrypt(cipherHex.hexToBytes(), keyBytes, iv)
             .copyOf(encodedHost.length / 2 - 16)
     return decrypted.decodeToString()
   }
 
-  private fun ByteArray.toHex(): String = joinToString("") { byte -> byte.toUByte().toString(16).padStart(2, '0') }
+  private fun ByteArray.toHex(): String =
+      joinToString("") { byte -> byte.toUByte().toString(16).padStart(2, '0') }
 
   private fun String.hexToBytes(): ByteArray =
       ByteArray(length / 2) { index ->

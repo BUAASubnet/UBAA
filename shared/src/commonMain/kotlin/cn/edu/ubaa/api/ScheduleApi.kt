@@ -3,9 +3,7 @@ package cn.edu.ubaa.api
 import cn.edu.ubaa.model.dto.*
 import io.ktor.client.request.*
 
-/**
- * 课程表与考试查询服务。 负责从后端获取学期、周次、课表安排以及考试安排等信息。
- */
+/** 课程表与考试查询服务。 负责从后端获取学期、周次、课表安排以及考试安排等信息。 */
 interface ScheduleApiBackend {
   suspend fun getTerms(): Result<List<Term>>
 
@@ -22,7 +20,6 @@ class ScheduleApi(
     private val backend: ScheduleApiBackend = ConnectionRuntime.apiFactory().scheduleApi()
 ) {
   constructor(apiClient: ApiClient) : this(RelayScheduleApiBackend(apiClient))
-
 
   /**
    * 获取所有可用学期列表。

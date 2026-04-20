@@ -62,158 +62,157 @@ class LocalCgyyApiBackendTest {
   fun `cgyy api fetches direct upstream data`() = runTest {
     var manageLoginCalls = 0
     var apiLoginCalls = 0
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.encodedPath == "/venue-zhjs-server/sso/manageLogin" -> {
-              manageLoginCalls++
-              respond(
-                  content = ByteReadChannel.Empty,
-                  status = HttpStatusCode.OK,
-                  headers =
-                      headersOf(
-                          HttpHeaders.SetCookie,
-                          "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
-                      ),
-              )
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/login" -> {
-              apiLoginCalls++
-              assertEquals("sso-token", request.headers["Sso-Token"])
-              respondJson(
-                  """
-                  {
-                    "code":200,
-                    "message":"OK",
-                    "data":{
-                      "token":{
-                        "access_token":"access-1"
-                      }
-                    }
+    val engine = MockEngine { request ->
+      when {
+        request.url.encodedPath == "/venue-zhjs-server/sso/manageLogin" -> {
+          manageLoginCalls++
+          respond(
+              content = ByteReadChannel.Empty,
+              status = HttpStatusCode.OK,
+              headers =
+                  headersOf(
+                      HttpHeaders.SetCookie,
+                      "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
+                  ),
+          )
+        }
+        request.url.encodedPath == "/venue-zhjs-server/api/login" -> {
+          apiLoginCalls++
+          assertEquals("sso-token", request.headers["Sso-Token"])
+          respondJson(
+              """
+              {
+                "code":200,
+                "message":"OK",
+                "data":{
+                  "token":{
+                    "access_token":"access-1"
                   }
-                  """
-                      .trimIndent()
-              )
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/front/website/venues" -> {
-              assertEquals("access-1", request.headers["cgAuthorization"])
-              assertEquals("3", request.url.parameters["reservationRoleId"])
-              assertTrue(request.headers["sign"].orEmpty().isNotBlank())
-              respondJson(
-                  """
-                  {
-                    "code":200,
-                    "message":"OK",
-                    "data":{
-                      "content":[
+                }
+              }
+              """
+                  .trimIndent()
+          )
+        }
+        request.url.encodedPath == "/venue-zhjs-server/api/front/website/venues" -> {
+          assertEquals("access-1", request.headers["cgAuthorization"])
+          assertEquals("3", request.url.parameters["reservationRoleId"])
+          assertTrue(request.headers["sign"].orEmpty().isNotBlank())
+          respondJson(
+              """
+              {
+                "code":200,
+                "message":"OK",
+                "data":{
+                  "content":[
+                    {
+                      "id":10,
+                      "venueName":"沙河研讨室",
+                      "campusName":"沙河校区",
+                      "siteList":[
                         {
-                          "id":10,
-                          "venueName":"沙河研讨室",
-                          "campusName":"沙河校区",
-                          "siteList":[
-                            {
-                              "id":"101",
-                              "siteName":"A101"
-                            }
-                          ]
+                          "id":"101",
+                          "siteName":"A101"
                         }
                       ]
                     }
-                  }
-                  """
-                      .trimIndent()
-              )
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/codes" -> {
-              respondJson(
-                  """
+                  ]
+                }
+              }
+              """
+                  .trimIndent()
+          )
+        }
+        request.url.encodedPath == "/venue-zhjs-server/api/codes" -> {
+          respondJson(
+              """
+              {
+                "code":200,
+                "message":"OK",
+                "data":[
                   {
-                    "code":200,
-                    "message":"OK",
-                    "data":[
+                    "children":[
                       {
-                        "children":[
-                          {
-                            "key":3,
-                            "name":"学术研讨类"
-                          }
-                        ]
+                        "key":3,
+                        "name":"学术研讨类"
                       }
                     ]
                   }
-                  """
-                      .trimIndent()
-              )
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/reservation/day/info" -> {
-              assertEquals("2026-04-22", request.url.parameters["searchDate"])
-              assertEquals("101", request.url.parameters["venueSiteId"])
-              assertTrue(request.url.parameters["nocache"].orEmpty().isNotBlank())
-              respondJson(
-                  """
-                  {
-                    "code":200,
-                    "message":"OK",
-                    "data":{
-                      "token":"day-token",
-                      "reservationTotalNum":1,
-                      "reservationDateList":["2026-04-22"],
-                      "spaceTimeInfo":[
-                        {"id":201,"beginTime":"14:00","endTime":"15:35"}
-                      ],
-                      "reservationDateSpaceInfo":{
-                        "2026-04-22":[
-                          {
-                            "id":301,
-                            "spaceName":"A101-1",
-                            "venueSiteId":101,
-                            "201":{
-                              "reservationStatus":1,
-                              "startDate":"2026-04-22 14:00",
-                              "endDate":"2026-04-22 15:35",
-                              "tradeNo":null,
-                              "orderId":null,
-                              "takeUp":false
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                  """
-                      .trimIndent()
-              )
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/orders/mine" -> {
-              assertEquals("1", request.url.parameters["page"])
-              assertEquals("10", request.url.parameters["size"])
-              respondJson(
-                  """
-                  {
-                    "code":200,
-                    "message":"OK",
-                    "data":{
-                      "content":[
-                        {
-                          "id":1,
-                          "theme":"课程讨论",
-                          "orderStatus":1,
-                          "checkStatus":2
-                        }
-                      ],
-                      "totalElements":1,
-                      "totalPages":1,
-                      "size":10,
-                      "number":1
-                    }
-                  }
-                  """
-                      .trimIndent()
-              )
-            }
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
+                ]
+              }
+              """
+                  .trimIndent()
+          )
         }
+        request.url.encodedPath == "/venue-zhjs-server/api/reservation/day/info" -> {
+          assertEquals("2026-04-22", request.url.parameters["searchDate"])
+          assertEquals("101", request.url.parameters["venueSiteId"])
+          assertTrue(request.url.parameters["nocache"].orEmpty().isNotBlank())
+          respondJson(
+              """
+              {
+                "code":200,
+                "message":"OK",
+                "data":{
+                  "token":"day-token",
+                  "reservationTotalNum":1,
+                  "reservationDateList":["2026-04-22"],
+                  "spaceTimeInfo":[
+                    {"id":201,"beginTime":"14:00","endTime":"15:35"}
+                  ],
+                  "reservationDateSpaceInfo":{
+                    "2026-04-22":[
+                      {
+                        "id":301,
+                        "spaceName":"A101-1",
+                        "venueSiteId":101,
+                        "201":{
+                          "reservationStatus":1,
+                          "startDate":"2026-04-22 14:00",
+                          "endDate":"2026-04-22 15:35",
+                          "tradeNo":null,
+                          "orderId":null,
+                          "takeUp":false
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+              """
+                  .trimIndent()
+          )
+        }
+        request.url.encodedPath == "/venue-zhjs-server/api/orders/mine" -> {
+          assertEquals("1", request.url.parameters["page"])
+          assertEquals("10", request.url.parameters["size"])
+          respondJson(
+              """
+              {
+                "code":200,
+                "message":"OK",
+                "data":{
+                  "content":[
+                    {
+                      "id":1,
+                      "theme":"课程讨论",
+                      "orderStatus":1,
+                      "checkStatus":2
+                    }
+                  ],
+                  "totalElements":1,
+                  "totalPages":1,
+                  "size":10,
+                  "number":1
+                }
+              }
+              """
+                  .trimIndent()
+          )
+        }
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = CgyyApi(LocalCgyyApiBackend())
 
@@ -231,7 +230,9 @@ class LocalCgyyApiBackendTest {
 
     assertTrue(dayInfo.isSuccess, dayInfo.exceptionOrNull()?.message.orEmpty())
     assertEquals("day-token", dayInfo.getOrNull()?.reservationToken)
-    assertTrue(dayInfo.getOrNull()?.spaces?.singleOrNull()?.slots?.singleOrNull()?.isReservable == true)
+    assertTrue(
+        dayInfo.getOrNull()?.spaces?.singleOrNull()?.slots?.singleOrNull()?.isReservable == true
+    )
 
     assertTrue(orders.isSuccess, orders.exceptionOrNull()?.message.orEmpty())
     assertEquals(1, orders.getOrNull()?.content?.size)
@@ -256,136 +257,135 @@ class LocalCgyyApiBackendTest {
             )
           }
         }
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.encodedPath == "/venue-zhjs-server/sso/manageLogin" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                    headers =
-                        headersOf(
-                            HttpHeaders.SetCookie,
-                            "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
-                        ),
-                )
-            request.url.encodedPath == "/venue-zhjs-server/api/login" ->
-                respondJson(
-                    """
-                    {
-                      "code":200,
-                      "message":"OK",
-                      "data":{
-                        "token":{
-                          "access_token":"access-2"
-                        }
-                      }
-                    }
-                    """
-                        .trimIndent()
-                )
-            request.url.encodedPath == "/venue-zhjs-server/api/reservation/day/info" ->
-                respondJson(
-                    """
-                    {
-                      "code":200,
-                      "message":"OK",
-                      "data":{
-                        "token":"day-token",
-                        "reservationDateList":["2026-04-22"],
-                        "spaceTimeInfo":[
-                          {"id":201,"beginTime":"14:00","endTime":"15:35"}
-                        ],
-                        "reservationDateSpaceInfo":{
-                          "2026-04-22":[
-                            {
-                              "id":301,
-                              "spaceName":"A101-1",
-                              "venueSiteId":101,
-                              "201":{
-                                "reservationStatus":1,
-                                "startDate":"2026-04-22 14:00",
-                                "endDate":"2026-04-22 15:35",
-                                "tradeNo":null,
-                                "orderId":null,
-                                "takeUp":false
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                    """
-                        .trimIndent()
-                )
-            request.url.encodedPath == "/venue-zhjs-server/api/reservation/order/info" ->
-                respondJson("""{"code":200,"message":"OK","data":null}""")
-            request.url.encodedPath == "/venue-zhjs-server/api/captcha/get" ->
-                respondJson(
-                    """
-                    {
-                      "code":200,
-                      "message":"OK",
-                      "data":{
-                        "success":true,
-                        "repData":{
-                          "secretKey":"1234567890abcdef",
-                          "token":"captcha-token",
-                          "originalImageBase64":"data:image/png;base64,AA==",
-                          "jigsawImageBase64":"data:image/png;base64,AA=="
-                        }
-                      }
-                    }
-                    """
-                        .trimIndent()
-                )
-            request.url.encodedPath == "/venue-zhjs-server/api/captcha/check" -> {
-              captchaCheckCalls++
-              respondJson("""{"code":200,"message":"OK","data":{"success":true}}""")
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/reservation/order/submit" -> {
-              assertEquals("access-2", request.headers["cgAuthorization"])
-              respondJson(
-                  """
-                  {
-                    "code":200,
-                    "message":"预约成功",
-                    "data":{
-                      "orderInfo":{
-                        "id":1,
-                        "tradeNo":"D1",
-                        "theme":"课程讨论"
-                      }
+    val engine = MockEngine { request ->
+      when {
+        request.url.encodedPath == "/venue-zhjs-server/sso/manageLogin" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(
+                        HttpHeaders.SetCookie,
+                        "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
+                    ),
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/login" ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "token":{
+                      "access_token":"access-2"
                     }
                   }
-                  """
-                      .trimIndent()
-              )
-            }
-            request.url.encodedPath == "/venue-zhjs-server/api/orders/1" ->
-                respondJson(
-                    """
-                    {
-                      "code":200,
-                      "message":"OK",
-                      "data":{
-                        "id":1,
-                        "theme":"课程讨论",
-                        "venueName":"沙河研讨室",
-                        "siteName":"A101",
-                        "reservationDate":"2026-04-22"
-                      }
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/reservation/day/info" ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "token":"day-token",
+                    "reservationDateList":["2026-04-22"],
+                    "spaceTimeInfo":[
+                      {"id":201,"beginTime":"14:00","endTime":"15:35"}
+                    ],
+                    "reservationDateSpaceInfo":{
+                      "2026-04-22":[
+                        {
+                          "id":301,
+                          "spaceName":"A101-1",
+                          "venueSiteId":101,
+                          "201":{
+                            "reservationStatus":1,
+                            "startDate":"2026-04-22 14:00",
+                            "endDate":"2026-04-22 15:35",
+                            "tradeNo":null,
+                            "orderId":null,
+                            "takeUp":false
+                          }
+                        }
+                      ]
                     }
-                    """
-                        .trimIndent()
-                )
-            request.url.encodedPath == "/venue-zhjs-server/api/orders/new/cancel/1" ->
-                respondJson("""{"code":200,"message":"取消成功","data":null}""")
-            request.url.encodedPath == "/venue-zhjs-server/api/orders/lock/code" ->
-                respondJson("""{"code":200,"message":"OK","data":{"password":"654321"}}""")
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/reservation/order/info" ->
+            respondJson("""{"code":200,"message":"OK","data":null}""")
+        request.url.encodedPath == "/venue-zhjs-server/api/captcha/get" ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "success":true,
+                    "repData":{
+                      "secretKey":"1234567890abcdef",
+                      "token":"captcha-token",
+                      "originalImageBase64":"data:image/png;base64,AA==",
+                      "jigsawImageBase64":"data:image/png;base64,AA=="
+                    }
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/captcha/check" -> {
+          captchaCheckCalls++
+          respondJson("""{"code":200,"message":"OK","data":{"success":true}}""")
         }
+        request.url.encodedPath == "/venue-zhjs-server/api/reservation/order/submit" -> {
+          assertEquals("access-2", request.headers["cgAuthorization"])
+          respondJson(
+              """
+              {
+                "code":200,
+                "message":"预约成功",
+                "data":{
+                  "orderInfo":{
+                    "id":1,
+                    "tradeNo":"D1",
+                    "theme":"课程讨论"
+                  }
+                }
+              }
+              """
+                  .trimIndent()
+          )
+        }
+        request.url.encodedPath == "/venue-zhjs-server/api/orders/1" ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "id":1,
+                    "theme":"课程讨论",
+                    "venueName":"沙河研讨室",
+                    "siteName":"A101",
+                    "reservationDate":"2026-04-22"
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/orders/new/cancel/1" ->
+            respondJson("""{"code":200,"message":"取消成功","data":null}""")
+        request.url.encodedPath == "/venue-zhjs-server/api/orders/lock/code" ->
+            respondJson("""{"code":200,"message":"OK","data":{"password":"654321"}}""")
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = CgyyApi(LocalCgyyApiBackend(captchaSolver = solver))
 
@@ -436,66 +436,64 @@ class LocalCgyyApiBackendTest {
         )
     )
     val requestedUrls = mutableListOf<String>()
-    val engine =
-        MockEngine { request ->
-          requestedUrls += request.url.toString()
-          when {
-            request.url.host == "d.buaa.edu.cn" &&
-                request.url.encodedPath.endsWith("/sso/manageLogin") ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                    headers =
-                        headersOf(
-                            HttpHeaders.SetCookie,
-                            "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
-                        ),
-                )
-            request.url.host == "d.buaa.edu.cn" &&
-                request.url.encodedPath.endsWith("/api/login") ->
-                respondJson(
-                    """
-                    {
-                      "code":200,
-                      "message":"OK",
-                      "data":{
-                        "token":{
-                          "access_token":"access-3"
-                        }
-                      }
+    val engine = MockEngine { request ->
+      requestedUrls += request.url.toString()
+      when {
+        request.url.host == "d.buaa.edu.cn" &&
+            request.url.encodedPath.endsWith("/sso/manageLogin") ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(
+                        HttpHeaders.SetCookie,
+                        "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
+                    ),
+            )
+        request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/api/login") ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "token":{
+                      "access_token":"access-3"
                     }
-                    """
-                        .trimIndent()
-                )
-            request.url.host == "d.buaa.edu.cn" &&
-                request.url.encodedPath.endsWith("/api/front/website/venues") ->
-                respondJson(
-                    """
-                    {
-                      "code":200,
-                      "message":"OK",
-                      "data":{
-                        "content":[
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.host == "d.buaa.edu.cn" &&
+            request.url.encodedPath.endsWith("/api/front/website/venues") ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "content":[
+                      {
+                        "id":20,
+                        "venueName":"学院路研讨室",
+                        "campusName":"学院路校区",
+                        "siteList":[
                           {
-                            "id":20,
-                            "venueName":"学院路研讨室",
-                            "campusName":"学院路校区",
-                            "siteList":[
-                              {
-                                "id":"202",
-                                "siteName":"B202"
-                              }
-                            ]
+                            "id":"202",
+                            "siteName":"B202"
                           }
                         ]
                       }
-                    }
-                    """
-                        .trimIndent()
-                )
-            else -> error("Unexpected request: ${request.method.value} ${request.url}")
-          }
-        }
+                    ]
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
     useMockUpstream(engine)
     val api = CgyyApi(LocalCgyyApiBackend())
 

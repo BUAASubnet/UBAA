@@ -1,7 +1,7 @@
 package cn.edu.ubaa.version
 
-import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.api.AppUpdateStatus
+import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.metrics.AppObservability
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.HttpClient

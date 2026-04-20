@@ -11,11 +11,8 @@ interface SpocApiBackend {
 }
 
 /** SPOC 作业查询 API。 */
-open class SpocApi(
-    private val backend: SpocApiBackend = ConnectionRuntime.apiFactory().spocApi()
-) {
+open class SpocApi(private val backend: SpocApiBackend = ConnectionRuntime.apiFactory().spocApi()) {
   constructor(apiClient: ApiClient) : this(RelaySpocApiBackend(apiClient))
-
 
   /** 获取当前默认学期的所有作业摘要。 */
   open suspend fun getAssignments(): Result<SpocAssignmentsResponse> {
@@ -28,16 +25,13 @@ open class SpocApi(
   }
 }
 
-internal class RelaySpocApiBackend(
-    private val apiClient: ApiClient = ApiClientProvider.shared
-) : SpocApiBackend {
+internal class RelaySpocApiBackend(private val apiClient: ApiClient = ApiClientProvider.shared) :
+    SpocApiBackend {
   override suspend fun getAssignments(): Result<SpocAssignmentsResponse> {
     return safeApiCall { apiClient.getClient().get("api/v1/spoc/assignments") }
   }
 
-  override suspend fun getAssignmentDetail(
-      assignmentId: String
-  ): Result<SpocAssignmentDetailDto> {
+  override suspend fun getAssignmentDetail(assignmentId: String): Result<SpocAssignmentDetailDto> {
     return safeApiCall { apiClient.getClient().get("api/v1/spoc/assignments/$assignmentId") }
   }
 }

@@ -54,86 +54,86 @@ class LocalEvaluationServiceBackendTest {
 
   @Test
   fun `local evaluation service fetches courses from direct upstream`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.host == "spoc.buaa.edu.cn" && request.url.encodedPath == "/pjxt/cas" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
-                )
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/component/queryXnxq" ->
-                respondJson(
-                    """{"code":200,"content":[{"xn":"2025-2026","xq":"1"}]}"""
-                )
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/personnelEvaluation/listObtainPersonnelEvaluationTasks" -> {
-              assertEquals("22373333", request.url.parameters["yhdm"])
-              respondJson("""{"code":200,"result":{"list":[{"rwid":"rw1","rwmc":"2026春评教"}]}}""")
-            }
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/getQuestionnaireListToTask" -> {
-              assertEquals("rw1", request.url.parameters["rwid"])
-              respondJson("""{"code":200,"result":[{"wjid":"wj1","wjmc":"教学评价","msid":"2"}]}""")
-            }
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/reviseQuestionnairePattern" ->
-                respondJson("""{"code":200}""")
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/getRequiredReviewsData" &&
-                request.url.parameters["sfyp"] == "0" ->
-                respondJson(
-                    """
-                    {
-                      "code": 200,
-                      "result": [
-                        {
-                          "kcdm": "CS101",
-                          "kcmc": "操作系统",
-                          "bpmc": "李老师",
-                          "bpdm": "T001",
-                          "pjrdm": "22373333",
-                          "pjrmc": "测试学生",
-                          "zdmc": "STID",
-                          "ypjcs": 0,
-                          "xypjcs": 1,
-                          "sxz": "1",
-                          "rwh": "rwh-1",
-                          "xn": "2025-2026",
-                          "xq": "1",
-                          "pjlxid": "2",
-                          "sfksqbpj": "1",
-                          "yxsfktjst": "0"
-                        }
-                      ]
-                    }
-                    """.trimIndent()
-                )
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/getRequiredReviewsData" &&
-                request.url.parameters["sfyp"] == "1" ->
-                respondJson(
-                    """
-                    {
-                      "code": 200,
-                      "result": [
-                        {
-                          "kcdm": "CS102",
-                          "kcmc": "编译原理",
-                          "bpmc": "王老师",
-                          "bpdm": "T002",
-                          "pjrdm": "22373333",
-                          "pjrmc": "测试学生"
-                        }
-                      ]
-                    }
-                    """.trimIndent()
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
+    val engine = MockEngine { request ->
+      when {
+        request.url.host == "spoc.buaa.edu.cn" && request.url.encodedPath == "/pjxt/cas" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/html"),
+            )
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/component/queryXnxq" ->
+            respondJson("""{"code":200,"content":[{"xn":"2025-2026","xq":"1"}]}""")
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath ==
+                "/pjxt/personnelEvaluation/listObtainPersonnelEvaluationTasks" -> {
+          assertEquals("22373333", request.url.parameters["yhdm"])
+          respondJson("""{"code":200,"result":{"list":[{"rwid":"rw1","rwmc":"2026春评教"}]}}""")
         }
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/getQuestionnaireListToTask" -> {
+          assertEquals("rw1", request.url.parameters["rwid"])
+          respondJson("""{"code":200,"result":[{"wjid":"wj1","wjmc":"教学评价","msid":"2"}]}""")
+        }
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/reviseQuestionnairePattern" ->
+            respondJson("""{"code":200}""")
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/getRequiredReviewsData" &&
+            request.url.parameters["sfyp"] == "0" ->
+            respondJson(
+                """
+                {
+                  "code": 200,
+                  "result": [
+                    {
+                      "kcdm": "CS101",
+                      "kcmc": "操作系统",
+                      "bpmc": "李老师",
+                      "bpdm": "T001",
+                      "pjrdm": "22373333",
+                      "pjrmc": "测试学生",
+                      "zdmc": "STID",
+                      "ypjcs": 0,
+                      "xypjcs": 1,
+                      "sxz": "1",
+                      "rwh": "rwh-1",
+                      "xn": "2025-2026",
+                      "xq": "1",
+                      "pjlxid": "2",
+                      "sfksqbpj": "1",
+                      "yxsfktjst": "0"
+                    }
+                  ]
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/getRequiredReviewsData" &&
+            request.url.parameters["sfyp"] == "1" ->
+            respondJson(
+                """
+                {
+                  "code": 200,
+                  "result": [
+                    {
+                      "kcdm": "CS102",
+                      "kcmc": "编译原理",
+                      "bpmc": "王老师",
+                      "bpdm": "T002",
+                      "pjrdm": "22373333",
+                      "pjrmc": "测试学生"
+                    }
+                  ]
+                }
+                """
+                    .trimIndent()
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = LocalEvaluationServiceBackend().getAllEvaluations()
@@ -153,75 +153,75 @@ class LocalEvaluationServiceBackendTest {
 
   @Test
   fun `local evaluation service submits evaluation through direct upstream`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.host == "spoc.buaa.edu.cn" && request.url.encodedPath == "/pjxt/cas" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "text/html"),
-                )
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/reviseQuestionnairePattern" ->
-                respondJson("""{"code":200}""")
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/getQuestionnaireTopic" -> {
-              assertEquals("rw1", request.url.parameters["rwid"])
-              assertEquals("wj1", request.url.parameters["wjid"])
-              assertEquals("CS101", request.url.parameters["kcdm"])
-              respondJson(
-                  """
+    val engine = MockEngine { request ->
+      when {
+        request.url.host == "spoc.buaa.edu.cn" && request.url.encodedPath == "/pjxt/cas" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/html"),
+            )
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/reviseQuestionnairePattern" ->
+            respondJson("""{"code":200}""")
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/getQuestionnaireTopic" -> {
+          assertEquals("rw1", request.url.parameters["rwid"])
+          assertEquals("wj1", request.url.parameters["wjid"])
+          assertEquals("CS101", request.url.parameters["kcdm"])
+          respondJson(
+              """
+              {
+                "code": 200,
+                "result": [
                   {
-                    "code": 200,
-                    "result": [
-                      {
-                        "pjxtWjWjbReturnEntity": {
-                          "wjzblist": [
+                    "pjxtWjWjbReturnEntity": {
+                      "wjzblist": [
+                        {
+                          "tklist": [
                             {
-                              "tklist": [
-                                {
-                                  "tmlx": "1",
-                                  "tmid": "q1",
-                                  "tmxxlist": [
-                                    {"tmxxid": "optA"},
-                                    {"tmxxid": "optB"}
-                                  ]
-                                }
+                              "tmlx": "1",
+                              "tmid": "q1",
+                              "tmxxlist": [
+                                {"tmxxid": "optA"},
+                                {"tmxxid": "optB"}
                               ]
                             }
                           ]
-                        },
-                        "pjxtPjjgPjjgckb": [
-                          {
-                            "wjssrwid": "ssrw1",
-                            "bprdm": "T001",
-                            "bprmc": "李老师",
-                            "kcdm": "CS101",
-                            "kcmc": "操作系统",
-                            "pjfs": "1",
-                            "pjid": "pj1",
-                            "pjlx": "2",
-                            "pjrdm": "22373333",
-                            "pjrjsdm": "22373333",
-                            "pjrxm": "测试学生",
-                            "xnxq": "2025-20261",
-                            "sfxxpj": "1"
-                          }
-                        ],
-                        "pjmap": {"source": "test"}
+                        }
+                      ]
+                    },
+                    "pjxtPjjgPjjgckb": [
+                      {
+                        "wjssrwid": "ssrw1",
+                        "bprdm": "T001",
+                        "bprmc": "李老师",
+                        "kcdm": "CS101",
+                        "kcmc": "操作系统",
+                        "pjfs": "1",
+                        "pjid": "pj1",
+                        "pjlx": "2",
+                        "pjrdm": "22373333",
+                        "pjrjsdm": "22373333",
+                        "pjrxm": "测试学生",
+                        "xnxq": "2025-20261",
+                        "sfxxpj": "1"
                       }
-                    ]
+                    ],
+                    "pjmap": {"source": "test"}
                   }
-                  """.trimIndent()
-              )
-            }
-            request.url.host == "spoc.buaa.edu.cn" &&
-                request.url.encodedPath == "/pjxt/evaluationMethodSix/submitSaveEvaluation" ->
-                respondJson("""{"code":200,"message":"提交成功","result":{}}""")
-            else -> error("Unexpected url: ${request.url}")
-          }
+                ]
+              }
+              """
+                  .trimIndent()
+          )
         }
+        request.url.host == "spoc.buaa.edu.cn" &&
+            request.url.encodedPath == "/pjxt/evaluationMethodSix/submitSaveEvaluation" ->
+            respondJson("""{"code":200,"message":"提交成功","result":{}}""")
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result =

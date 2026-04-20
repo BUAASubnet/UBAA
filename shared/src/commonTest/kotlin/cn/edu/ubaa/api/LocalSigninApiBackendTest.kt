@@ -16,10 +16,10 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 class LocalSigninApiBackendTest {
   @BeforeTest
@@ -56,45 +56,46 @@ class LocalSigninApiBackendTest {
   @Test
   fun `signin api uses direct upstream backend to fetch today classes`() = runTest {
     val expectedDate = currentSigninDate()
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://iclass.buaa.edu.cn:8347/app/user/login.action?password=&phone=22373333&userLevel=1&verificationType=2&verificationUrl=" ->
-                respond(
-                    content =
-                        ByteReadChannel(
-                            """{"STATUS":0,"result":{"id":"user-1","sessionId":"session-1"}}"""
-                        ),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-                )
-            "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action?id=user-1&dateStr=$expectedDate" -> {
-              assertEquals("session-1", request.headers["sessionId"])
-              respond(
-                  content =
-                      ByteReadChannel(
-                          """
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://iclass.buaa.edu.cn:8347/app/user/login.action?password=&phone=22373333&userLevel=1&verificationType=2&verificationUrl=" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        """{"STATUS":0,"result":{"id":"user-1","sessionId":"session-1"}}"""
+                    ),
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action?id=user-1&dateStr=$expectedDate" -> {
+          assertEquals("session-1", request.headers["sessionId"])
+          respond(
+              content =
+                  ByteReadChannel(
+                      """
+                      {
+                        "STATUS": 0,
+                        "result": [
                           {
-                            "STATUS": 0,
-                            "result": [
-                              {
-                                "id": "course-1",
-                                "courseName": "软件工程",
-                                "classBeginTime": "08:00",
-                                "classEndTime": "09:40",
-                                "signStatus": 0
-                              }
-                            ]
+                            "id": "course-1",
+                            "courseName": "软件工程",
+                            "classBeginTime": "08:00",
+                            "classEndTime": "09:40",
+                            "signStatus": 0
                           }
-                          """.trimIndent()
-                      ),
-                  status = HttpStatusCode.OK,
-                  headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-              )
-            }
-            else -> error("Unexpected url: ${request.url}")
-          }
+                        ]
+                      }
+                      """
+                          .trimIndent()
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+          )
         }
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = SigninApi().getTodayClasses()
@@ -106,36 +107,38 @@ class LocalSigninApiBackendTest {
 
   @Test
   fun `signin api uses direct upstream backend to perform signin`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when (request.url.toString()) {
-            "https://iclass.buaa.edu.cn:8347/app/user/login.action?password=&phone=22373333&userLevel=1&verificationType=2&verificationUrl=" ->
-                respond(
-                    content =
-                        ByteReadChannel(
-                            """{"STATUS":0,"result":{"id":"user-1","sessionId":"session-1"}}"""
-                        ),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-                )
-            "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action" ->
-                respond(
-                    content = ByteReadChannel("""{"timestamp":"1713600000"}"""),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-                )
-            "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
-                respond(
-                    content =
-                        ByteReadChannel(
-                            """{"STATUS":0,"ERRMSG":"签到成功","result":{"stuSignStatus":1}}"""
-                        ),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
-        }
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://iclass.buaa.edu.cn:8347/app/user/login.action?password=&phone=22373333&userLevel=1&verificationType=2&verificationUrl=" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        """{"STATUS":0,"result":{"id":"user-1","sessionId":"session-1"}}"""
+                    ),
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action" ->
+            respond(
+                content = ByteReadChannel("""{"timestamp":"1713600000"}"""),
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        """{"STATUS":0,"ERRMSG":"签到成功","result":{"stuSignStatus":1}}"""
+                    ),
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = SigninApi().performSignin("course-1")

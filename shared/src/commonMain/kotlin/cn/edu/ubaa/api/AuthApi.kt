@@ -8,7 +8,8 @@ import kotlinx.serialization.Serializable
 
 /** 认证服务提供者，管理全局共享的 ApiClient。 */
 object ApiClientProvider {
-  private val sharedClient = ResettableSharedInstance(factory = ::ApiClient, disposer = ApiClient::close)
+  private val sharedClient =
+      ResettableSharedInstance(factory = ::ApiClient, disposer = ApiClient::close)
 
   /** 全局共享的 ApiClient 实例。 */
   val shared: ApiClient

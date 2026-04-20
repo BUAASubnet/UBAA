@@ -73,9 +73,8 @@ open class CgyyApi(private val backend: CgyyApiBackend = ConnectionRuntime.apiFa
   }
 }
 
-internal class RelayCgyyApiBackend(
-    private val apiClient: ApiClient = ApiClientProvider.shared
-) : CgyyApiBackend {
+internal class RelayCgyyApiBackend(private val apiClient: ApiClient = ApiClientProvider.shared) :
+    CgyyApiBackend {
   override suspend fun getVenueSites(): Result<List<CgyyVenueSiteDto>> {
     return safeApiCall { apiClient.getClient().get("api/v1/cgyy/sites") }
   }

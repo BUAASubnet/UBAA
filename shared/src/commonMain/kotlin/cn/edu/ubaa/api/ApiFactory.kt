@@ -23,7 +23,8 @@ interface ApiFactory {
 }
 
 internal object DefaultApiFactory : ApiFactory {
-  private fun mode(): ConnectionMode = ConnectionRuntime.currentMode() ?: ConnectionMode.SERVER_RELAY
+  private fun mode(): ConnectionMode =
+      ConnectionRuntime.currentMode() ?: ConnectionMode.SERVER_RELAY
 
   override fun authService(): AuthServiceBackend =
       when (mode()) {

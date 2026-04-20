@@ -27,6 +27,9 @@ import io.ktor.http.Url
 import io.ktor.http.decodeURLQueryComponent
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -40,10 +43,6 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.random.Random
-import kotlin.time.Instant
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
 
 internal class LocalYgdkApiBackend : YgdkApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
@@ -70,7 +69,11 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
   override suspend fun getRecords(page: Int, size: Int): Result<YgdkRecordsPageResponse> =
       runLocalYgdkCall("阳光打卡记录加载失败，请稍后重试") { studentId ->
         if (page <= 0 || size <= 0) {
-          throw ApiCallException("分页参数无效", status = HttpStatusCode.BadRequest, code = "invalid_request")
+          throw ApiCallException(
+              "分页参数无效",
+              status = HttpStatusCode.BadRequest,
+              code = "invalid_request",
+          )
         }
 
         val session = createLocalYgdkSession(studentId)
@@ -107,7 +110,8 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
 
         val (startAt, endAt) = resolveClockinTimeRange(request.startTime, request.endTime)
         val upload =
-            request.photo ?: YgdkPhotoUpload(defaultTransparentPhotoBytes(), "ygdk_auto.png", "image/png")
+            request.photo
+                ?: YgdkPhotoUpload(defaultTransparentPhotoBytes(), "ygdk_auto.png", "image/png")
         val uploadedFileName = uploadPhoto(session, upload)
         val result =
             clockin(
@@ -116,7 +120,8 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
                 item = selectedItem,
                 startAt = startAt,
                 endAt = endAt,
-                place = request.place?.trim().takeUnless { it.isNullOrBlank() } ?: DEFAULT_YGDK_PLACE,
+                place =
+                    request.place?.trim().takeUnless { it.isNullOrBlank() } ?: DEFAULT_YGDK_PLACE,
                 imageName = uploadedFileName,
                 isOpen = request.shareToSquare ?: false,
             )
@@ -133,7 +138,8 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
       defaultMessage: String,
       block: suspend (String) -> T,
   ): Result<T> {
-    val authSession = LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val authSession =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val studentId = authSession.user.schoolid.ifBlank { authSession.username }
     return try {
       Result.success(block(studentId))
@@ -148,7 +154,9 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
   private suspend fun createLocalYgdkSession(studentId: String): LocalYgdkSession {
     val code = fetchOauthCode()
     val response =
-        LocalUpstreamClientProvider.shared().get(localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin")) {
+        LocalUpstreamClientProvider.shared().get(
+            localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin")
+        ) {
           parameter("code", code)
         }
     val result = unwrapYgdkResponse(response.bodyAsText())
@@ -166,10 +174,14 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
       var currentUrl = localYgdkOauthUrl()
       repeat(10) {
         val response = noRedirectClient.get(currentUrl)
-        extractOauthCode(response.call.request.url.toString())?.let { return it }
+        extractOauthCode(response.call.request.url.toString())?.let {
+          return it
+        }
         val location = response.headers[HttpHeaders.Location] ?: return@repeat
         val nextUrl = resolveRedirectUrl(response.call.request.url, location)
-        extractOauthCode(nextUrl)?.let { return it }
+        extractOauthCode(nextUrl)?.let {
+          return it
+        }
         currentUrl = nextUrl
       }
       throw LocalYgdkAuthenticationException("无法获取阳光打卡登录 code，请重新登录 UBAA")
@@ -179,7 +191,11 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
   }
 
   private suspend fun fetchClassifyList(session: LocalYgdkSession): List<LocalYgdkClassifyRaw> {
-    val result = postForm(session, localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Classify/getList"))
+    val result =
+        postForm(
+            session,
+            localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Classify/getList"),
+        )
     val list = result.jsonObject["list"]?.jsonArray.orEmpty()
     return list.mapNotNull { element ->
       val payload = element as? JsonObject ?: return@mapNotNull null
@@ -256,7 +272,9 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
   }
 
   private suspend fun fetchTerm(session: LocalYgdkSession): LocalYgdkTermRaw {
-    val payload = postForm(session, localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Term/get")).jsonObject
+    val payload =
+        postForm(session, localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Term/get"))
+            .jsonObject
     return LocalYgdkTermRaw(
         termId = payload.int("term_id"),
         id = payload.int("id"),
@@ -280,7 +298,8 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
     val payload =
         postForm(
                 session = session,
-                url = localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Clockin/getList"),
+                url =
+                    localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Clockin/getList"),
                 queryParameters = parameters,
                 formParameters = parameters,
             )
@@ -309,7 +328,9 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
 
   private suspend fun uploadPhoto(session: LocalYgdkSession, photo: YgdkPhotoUpload): String {
     val response =
-        LocalUpstreamClientProvider.shared().post(localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Upload/File/post")) {
+        LocalUpstreamClientProvider.shared().post(
+            localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Upload/File/post")
+        ) {
           header("X-Requested-With", "XMLHttpRequest")
           setBody(
               MultiPartFormDataContent(
@@ -326,7 +347,10 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
                                       ContentDisposition.Parameters.Name,
                                       "file",
                                   )
-                                  .withParameter(ContentDisposition.Parameters.FileName, photo.fileName)
+                                  .withParameter(
+                                      ContentDisposition.Parameters.FileName,
+                                      photo.fileName,
+                                  )
                                   .toString(),
                           )
                           append(HttpHeaders.ContentType, photo.mimeType)
@@ -353,11 +377,18 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
     val payload =
         postForm(
                 session = session,
-                url = localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Clockin/clockin"),
+                url =
+                    localUpstreamUrl("https://ygdk.buaa.edu.cn/api/Front/Clockin/Clockin/clockin"),
                 formParameters =
                     Parameters.build {
-                      append("start_time", startAt.toInstant(LOCAL_YGDK_TIME_ZONE).epochSeconds.toString())
-                      append("end_time", endAt.toInstant(LOCAL_YGDK_TIME_ZONE).epochSeconds.toString())
+                      append(
+                          "start_time",
+                          startAt.toInstant(LOCAL_YGDK_TIME_ZONE).epochSeconds.toString(),
+                      )
+                      append(
+                          "end_time",
+                          endAt.toInstant(LOCAL_YGDK_TIME_ZONE).epochSeconds.toString(),
+                      )
                       append("place_type", "1")
                       append("place", place)
                       append("isopen", if (isOpen) "1" else "0")
@@ -404,9 +435,7 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
           header("X-Requested-With", "XMLHttpRequest")
           header(HttpHeaders.ContentType, "application/x-www-form-urlencoded; charset=UTF-8")
           queryParameters.names().forEach { name ->
-            queryParameters.getAll(name).orEmpty().forEach { value ->
-              parameter(name, value)
-            }
+            queryParameters.getAll(name).orEmpty().forEach { value -> parameter(name, value) }
           }
           setBody(FormDataContent(body))
         }
@@ -422,7 +451,8 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
       -98 -> throw LocalYgdkAuthenticationException()
       else ->
           throw ApiCallException(
-              payload.string("msg") ?: userFacingMessageForCode("ygdk_error", HttpStatusCode.BadGateway),
+              payload.string("msg")
+                  ?: userFacingMessageForCode("ygdk_error", HttpStatusCode.BadGateway),
               status = HttpStatusCode.BadGateway,
               code = "ygdk_error",
           )
@@ -510,8 +540,15 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
   ): Pair<LocalDateTime, LocalDateTime> {
     val normalizedStart = startTime?.trim().orEmpty()
     val normalizedEnd = endTime?.trim().orEmpty()
-    if ((normalizedStart.isBlank() && normalizedEnd.isNotBlank()) || (normalizedStart.isNotBlank() && normalizedEnd.isBlank())) {
-      throw ApiCallException("开始时间和结束时间需要同时填写", status = HttpStatusCode.BadRequest, code = "invalid_request")
+    if (
+        (normalizedStart.isBlank() && normalizedEnd.isNotBlank()) ||
+            (normalizedStart.isNotBlank() && normalizedEnd.isBlank())
+    ) {
+      throw ApiCallException(
+          "开始时间和结束时间需要同时填写",
+          status = HttpStatusCode.BadRequest,
+          code = "invalid_request",
+      )
     }
     if (normalizedStart.isBlank() && normalizedEnd.isBlank()) {
       return generateDefaultClockinTimeRange()
@@ -520,10 +557,18 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
     val startAt = parseClockinDateTime(normalizedStart)
     val endAt = parseClockinDateTime(normalizedEnd)
     if (startAt.date != endAt.date) {
-      throw ApiCallException("当前仅支持同一天内的一小时打卡", status = HttpStatusCode.BadRequest, code = "invalid_request")
+      throw ApiCallException(
+          "当前仅支持同一天内的一小时打卡",
+          status = HttpStatusCode.BadRequest,
+          code = "invalid_request",
+      )
     }
     if (endAt.toInstant(LOCAL_YGDK_TIME_ZONE) <= startAt.toInstant(LOCAL_YGDK_TIME_ZONE)) {
-      throw ApiCallException("结束时间必须晚于开始时间", status = HttpStatusCode.BadRequest, code = "invalid_request")
+      throw ApiCallException(
+          "结束时间必须晚于开始时间",
+          status = HttpStatusCode.BadRequest,
+          code = "invalid_request",
+      )
     }
     return startAt to endAt
   }
@@ -531,7 +576,11 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
   private fun parseClockinDateTime(value: String): LocalDateTime =
       runCatching { LocalDateTime.parse(value.replace(' ', 'T')) }
           .getOrElse {
-            throw ApiCallException("时间格式错误，请使用 yyyy-MM-dd HH:mm", status = HttpStatusCode.BadRequest, code = "invalid_request")
+            throw ApiCallException(
+                "时间格式错误，请使用 yyyy-MM-dd HH:mm",
+                status = HttpStatusCode.BadRequest,
+                code = "invalid_request",
+            )
           }
 
   private fun generateDefaultClockinTimeRange(): Pair<LocalDateTime, LocalDateTime> {
@@ -539,7 +588,8 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
     val startHour = (now.hour - 1).coerceIn(8, 21)
     val usePreviousDay = now.hour < 9
     val startDate =
-        if (usePreviousDay) (Clock.System.now() - 24.hours).toLocalDateTime(LOCAL_YGDK_TIME_ZONE).date
+        if (usePreviousDay)
+            (Clock.System.now() - 24.hours).toLocalDateTime(LOCAL_YGDK_TIME_ZONE).date
         else now.date
     val resolvedStartHour = if (usePreviousDay) 20 else startHour
     val startAt =
@@ -552,8 +602,9 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
             second = 0,
             nanosecond = 0,
         )
-    return startAt to Instant.fromEpochSeconds(startAt.toInstant(LOCAL_YGDK_TIME_ZONE).epochSeconds + 3600)
-        .toLocalDateTime(LOCAL_YGDK_TIME_ZONE)
+    return startAt to
+        Instant.fromEpochSeconds(startAt.toInstant(LOCAL_YGDK_TIME_ZONE).epochSeconds + 3600)
+            .toLocalDateTime(LOCAL_YGDK_TIME_ZONE)
   }
 }
 
@@ -646,7 +697,11 @@ private fun extractRecordImages(source: JsonObject): List<String> {
       is kotlinx.serialization.json.JsonArray ->
           return formatted.mapNotNull { it.jsonPrimitive.contentOrNull }
       is kotlinx.serialization.json.JsonPrimitive ->
-          formatted.contentOrNull?.takeIf { it.isNotBlank() }?.let { return listOf(it) }
+          formatted.contentOrNull
+              ?.takeIf { it.isNotBlank() }
+              ?.let {
+                return listOf(it)
+              }
       else -> Unit
     }
   }
@@ -660,7 +715,9 @@ private fun extractRecordImages(source: JsonObject): List<String> {
 
 private fun timestampToDateTimeText(timestampSeconds: Long?): String? {
   if (timestampSeconds == null) return null
-  return Instant.fromEpochSeconds(timestampSeconds).toLocalDateTime(LOCAL_YGDK_TIME_ZONE).toYgdkDateTimeText()
+  return Instant.fromEpochSeconds(timestampSeconds)
+      .toLocalDateTime(LOCAL_YGDK_TIME_ZONE)
+      .toYgdkDateTimeText()
 }
 
 private fun formatClockinTimeRange(startAt: LocalDateTime, endAt: LocalDateTime): String =
@@ -678,9 +735,9 @@ private fun extractOauthCode(url: String): String? =
         ?.decodeURLQueryComponent()
 
 private fun resolveRedirectUrl(currentUrl: Url, location: String): String {
-    if (location.startsWith("http://") || location.startsWith("https://")) {
-      return localUpstreamUrl(location)
-    }
+  if (location.startsWith("http://") || location.startsWith("https://")) {
+    return localUpstreamUrl(location)
+  }
   if (location.startsWith("//")) {
     return "${currentUrl.protocol.name}:$location"
   }
@@ -705,4 +762,6 @@ private val LOCAL_YGDK_TIME_ZONE = TimeZone.of("Asia/Shanghai")
 private const val DEFAULT_YGDK_PLACE = "操场"
 
 private fun localYgdkOauthUrl(): String =
-    localUpstreamUrl("https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1")
+    localUpstreamUrl(
+        "https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1"
+    )

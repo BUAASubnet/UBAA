@@ -32,7 +32,6 @@ interface BykcApiBackend {
 class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory().bykcApi()) {
   constructor(apiClient: ApiClient) : this(RelayBykcApiBackend(apiClient))
 
-
   /**
    * 获取博雅系统中的用户个人资料。
    *
@@ -125,9 +124,8 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
   }
 }
 
-internal class RelayBykcApiBackend(
-    private val apiClient: ApiClient = ApiClientProvider.shared
-) : BykcApiBackend {
+internal class RelayBykcApiBackend(private val apiClient: ApiClient = ApiClientProvider.shared) :
+    BykcApiBackend {
   override suspend fun getProfile(): Result<BykcUserProfileDto> {
     return safeApiCall { apiClient.getClient().get("api/v1/bykc/profile") }
   }

@@ -11,7 +11,8 @@ class LocalCgyyCaptchaSolverTest {
     val backgroundWidth = 120
     val backgroundHeight = 50
     val pieceSize = 18
-    val backgroundPixels = IntArray(backgroundWidth * backgroundHeight) { opaqueColor(255, 255, 255) }
+    val backgroundPixels =
+        IntArray(backgroundWidth * backgroundHeight) { opaqueColor(255, 255, 255) }
     val piecePixels = IntArray(pieceSize * pieceSize) { opaqueColor(0, 0, 0) }
 
     for (y in 10 until 28) {

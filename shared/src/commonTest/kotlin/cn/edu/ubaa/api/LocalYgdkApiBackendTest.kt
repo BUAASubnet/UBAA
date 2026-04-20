@@ -55,47 +55,42 @@ class LocalYgdkApiBackendTest {
 
   @Test
   fun `ygdk api uses direct upstream backend to fetch overview`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.host == "app.buaa.edu.cn" && request.url.encodedPath == "/uc/api/oauth/index" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location,
-                            "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
-                        ),
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" ->
-                respondJson(
-                    """{"code":1,"result":{"uid":1001,"token":"token-1"}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
-                respondJson(
-                    """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
-                respondJson(
-                    """{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1},{"item_id":2,"name":"健走","sort":2}]}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Clockin/getCount" ->
-                respondJson(
-                    """{"code":1,"result":{"term_good_count_show":5,"term_num":16,"week_count":2,"week_num":3}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Term/get" ->
-                respondJson(
-                    """{"code":1,"result":{"term_id":20261,"name":"2026春"}}"""
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
-        }
+    val engine = MockEngine { request ->
+      when {
+        request.url.host == "app.buaa.edu.cn" && request.url.encodedPath == "/uc/api/oauth/index" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
+                    ),
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" ->
+            respondJson("""{"code":1,"result":{"uid":1001,"token":"token-1"}}""")
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1},{"item_id":2,"name":"健走","sort":2}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Clockin/getCount" ->
+            respondJson(
+                """{"code":1,"result":{"term_good_count_show":5,"term_num":16,"week_count":2,"week_num":3}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Term/get" ->
+            respondJson("""{"code":1,"result":{"term_id":20261,"name":"2026春"}}""")
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = YgdkApi().getOverview()
@@ -110,64 +105,62 @@ class LocalYgdkApiBackendTest {
 
   @Test
   fun `ygdk api uses direct upstream backend to fetch records`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.host == "app.buaa.edu.cn" && request.url.encodedPath == "/uc/api/oauth/index" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location,
-                            "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
-                        ),
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" ->
-                respondJson(
-                    """{"code":1,"result":{"uid":1001,"token":"token-1"}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
-                respondJson(
-                    """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
-                respondJson(
-                    """{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1},{"item_id":2,"name":"健走","sort":2}]}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Clockin/getList" -> {
-              assertEquals("2", request.url.parameters["page"])
-              assertEquals("5", request.url.parameters["limit"])
-              respondJson(
-                  """
-                  {
-                    "code": 1,
-                    "result": {
-                      "total": 1,
-                      "list": [
-                        {
-                          "record_id": 10,
-                          "item_id": 1,
-                          "item_name": "跑步",
-                          "start_time": "1743465600",
-                          "end_time": "1743469200",
-                          "place": "操场",
-                          "isopen": 0,
-                          "create_time_fmt": "2026-04-01 09:00"
-                        }
-                      ]
+    val engine = MockEngine { request ->
+      when {
+        request.url.host == "app.buaa.edu.cn" && request.url.encodedPath == "/uc/api/oauth/index" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
+                    ),
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" ->
+            respondJson("""{"code":1,"result":{"uid":1001,"token":"token-1"}}""")
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1},{"item_id":2,"name":"健走","sort":2}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Clockin/getList" -> {
+          assertEquals("2", request.url.parameters["page"])
+          assertEquals("5", request.url.parameters["limit"])
+          respondJson(
+              """
+              {
+                "code": 1,
+                "result": {
+                  "total": 1,
+                  "list": [
+                    {
+                      "record_id": 10,
+                      "item_id": 1,
+                      "item_name": "跑步",
+                      "start_time": "1743465600",
+                      "end_time": "1743469200",
+                      "place": "操场",
+                      "isopen": 0,
+                      "create_time_fmt": "2026-04-01 09:00"
                     }
-                  }
-                  """.trimIndent()
-              )
-            }
-            else -> error("Unexpected url: ${request.url}")
-          }
+                  ]
+                }
+              }
+              """
+                  .trimIndent()
+          )
         }
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result = YgdkApi().getRecords(page = 2, size = 5)
@@ -181,47 +174,44 @@ class LocalYgdkApiBackendTest {
 
   @Test
   fun `ygdk api uses direct upstream backend to submit clockin`() = runTest {
-    val engine =
-        MockEngine { request ->
-          when {
-            request.url.host == "app.buaa.edu.cn" && request.url.encodedPath == "/uc/api/oauth/index" ->
-                respond(
-                    content = ByteReadChannel.Empty,
-                    status = HttpStatusCode.Found,
-                    headers =
-                        headersOf(
-                            HttpHeaders.Location,
-                            "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
-                        ),
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" ->
-                respondJson(
-                    """{"code":1,"result":{"uid":1001,"token":"token-1"}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
-                respondJson(
-                    """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
-                respondJson(
-                    """{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1},{"item_id":2,"name":"健走","sort":2}]}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Upload/File/post" ->
-                respondJson(
-                    """{"code":1,"result":{"file_name":"uploaded-proof.png","file_url":"https://ygdk.buaa.edu.cn/file/uploaded-proof.png"}}"""
-                )
-            request.url.host == "ygdk.buaa.edu.cn" &&
-                request.url.encodedPath == "/api/Front/Clockin/Clockin/clockin" ->
-                respondJson(
-                    """{"code":1,"result":{"record_id":77,"term_good_count_show":6,"term_num":16}}"""
-                )
-            else -> error("Unexpected url: ${request.url}")
-          }
-        }
+    val engine = MockEngine { request ->
+      when {
+        request.url.host == "app.buaa.edu.cn" && request.url.encodedPath == "/uc/api/oauth/index" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
+                    ),
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" ->
+            respondJson("""{"code":1,"result":{"uid":1001,"token":"token-1"}}""")
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1},{"item_id":2,"name":"健走","sort":2}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Upload/File/post" ->
+            respondJson(
+                """{"code":1,"result":{"file_name":"uploaded-proof.png","file_url":"https://ygdk.buaa.edu.cn/file/uploaded-proof.png"}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Clockin/clockin" ->
+            respondJson(
+                """{"code":1,"result":{"record_id":77,"term_good_count_show":6,"term_num":16}}"""
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
     useMockUpstream(engine)
 
     val result =

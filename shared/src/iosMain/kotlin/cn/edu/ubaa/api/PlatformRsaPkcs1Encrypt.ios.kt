@@ -28,7 +28,8 @@ internal actual object PlatformRsaPkcs1Encrypt {
             kSecAttrKeyType to kSecAttrKeyTypeRSA,
             kSecAttrKeyClass to kSecAttrKeyClassPublic,
             kSecAttrKeySizeInBits to 1024L,
-        ) as CFDictionaryRef
+        )
+            as CFDictionaryRef
     val error = alloc<CFErrorRefVar?>()
     val publicKey =
         SecKeyCreateWithData(publicKeyDer.toCfData(), attributes, error.ptr)
@@ -43,11 +44,10 @@ internal actual object PlatformRsaPkcs1Encrypt {
     encrypted.toByteArray()
   }
 
-  private fun ByteArray.toCfData() =
-      usePinned { pinned ->
-        CFDataCreate(kCFAllocatorDefault, pinned.addressOf(0), size.convert())
-            ?: error("CFData allocation failed")
-      }
+  private fun ByteArray.toCfData() = usePinned { pinned ->
+    CFDataCreate(kCFAllocatorDefault, pinned.addressOf(0), size.convert())
+        ?: error("CFData allocation failed")
+  }
 
   private fun platform.CoreFoundation.CFDataRef.toByteArray(): ByteArray {
     val length = CFDataGetLength(this).toInt()

@@ -23,15 +23,13 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.putJsonObject
-import kotlinx.serialization.json.buildJsonObject
 
 internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
   private val json = Json { ignoreUnknownKeys = true }
@@ -103,9 +101,7 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
 
     return try {
       if (!activateEvaluationSession()) {
-        return courses.map { course ->
-          EvaluationResult(false, "评教提交失败，请稍后重试", course.kcmc)
-        }
+        return courses.map { course -> EvaluationResult(false, "评教提交失败，请稍后重试", course.kcmc) }
       }
 
       courses.map { course ->
@@ -121,8 +117,7 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
         } catch (e: Exception) {
           EvaluationResult(
               success = false,
-              message =
-                  e.toUserFacingApiException("评教提交失败，请稍后重试").message ?: "评教提交失败，请稍后重试",
+              message = e.toUserFacingApiException("评教提交失败，请稍后重试").message ?: "评教提交失败，请稍后重试",
               courseName = course.kcmc,
           )
         }
@@ -144,7 +139,8 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
 
   private suspend fun submitSingleEvaluation(course: EvaluationCourse): EvaluationResult {
     reviseQuestionnairePattern(course.rwid, course.wjid, course.msid)
-    val topic = fetchQuestionnaireTopic(course) ?: return EvaluationResult(false, "无法获取问卷题目", course.kcmc)
+    val topic =
+        fetchQuestionnaireTopic(course) ?: return EvaluationResult(false, "无法获取问卷题目", course.kcmc)
     val payload = buildEvaluationPayload(course, topic)
     if (payload.isEmpty()) {
       return EvaluationResult(false, "问卷没有题目", course.kcmc)
@@ -162,7 +158,9 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
 
   private suspend fun activateEvaluationSession(): Boolean {
     return try {
-      val response = LocalUpstreamClientProvider.shared().get(localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/cas"))
+      val response =
+          LocalUpstreamClientProvider.shared()
+              .get(localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/cas"))
       val body = response.bodyAsText()
       if (isLocalEvaluationSessionExpired(response, body)) {
         throw LocalEvaluationAuthenticationException()
@@ -178,7 +176,8 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
   private suspend fun fetchCurrentXnxq(): String? {
     return try {
       val response =
-          LocalUpstreamClientProvider.shared().post(localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/component/queryXnxq"))
+          LocalUpstreamClientProvider.shared()
+              .post(localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/component/queryXnxq"))
       val envelope = decodeEnvelope<List<JsonObject>>(response)
       val first = envelope.content?.firstOrNull() ?: return null
       val xn = first.string("xn").orEmpty()
@@ -193,10 +192,13 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
 
   private suspend fun fetchTasks(): List<LocalEvaluationTask> {
     return try {
-      val authSession = LocalAuthSessionStore.get() ?: throw LocalEvaluationAuthenticationException()
+      val authSession =
+          LocalAuthSessionStore.get() ?: throw LocalEvaluationAuthenticationException()
       val response =
           LocalUpstreamClientProvider.shared().get(
-              localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/personnelEvaluation/listObtainPersonnelEvaluationTasks")
+              localUpstreamUrl(
+                  "https://spoc.buaa.edu.cn/pjxt/personnelEvaluation/listObtainPersonnelEvaluationTasks"
+              )
           ) {
             parameter("yhdm", authSession.user.schoolid.ifBlank { authSession.username })
             parameter("rwmc", "")
@@ -216,7 +218,9 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     return try {
       val response =
           LocalUpstreamClientProvider.shared().get(
-              localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getQuestionnaireListToTask")
+              localUpstreamUrl(
+                  "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getQuestionnaireListToTask"
+              )
           ) {
             parameter("rwid", rwid)
             parameter("sfyp", "0")
@@ -242,7 +246,9 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
       reviseQuestionnairePattern(rwid, wjid, msid)
       val response =
           LocalUpstreamClientProvider.shared().get(
-              localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getRequiredReviewsData")
+              localUpstreamUrl(
+                  "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getRequiredReviewsData"
+              )
           ) {
             parameter("sfyp", sfyp)
             parameter("wjid", wjid)
@@ -262,7 +268,9 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     try {
       val response =
           LocalUpstreamClientProvider.shared().post(
-              localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/reviseQuestionnairePattern")
+              localUpstreamUrl(
+                  "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/reviseQuestionnairePattern"
+              )
           ) {
             contentType(ContentType.Application.Json)
             setBody(
@@ -287,7 +295,9 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     return try {
       val response =
           LocalUpstreamClientProvider.shared().get(
-              localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getQuestionnaireTopic")
+              localUpstreamUrl(
+                  "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getQuestionnaireTopic"
+              )
           ) {
             parameter("id", "")
             parameter("rwid", course.rwid)
@@ -325,7 +335,9 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     return try {
       val response =
           LocalUpstreamClientProvider.shared().post(
-              localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/submitSaveEvaluation")
+              localUpstreamUrl(
+                  "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/submitSaveEvaluation"
+              )
           ) {
             contentType(ContentType.Application.Json)
             setBody(
@@ -345,7 +357,10 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     }
   }
 
-  private fun buildEvaluationPayload(course: EvaluationCourse, topic: JsonObject): List<JsonObject> {
+  private fun buildEvaluationPayload(
+      course: EvaluationCourse,
+      topic: JsonObject,
+  ): List<JsonObject> {
     val questionnaireEntity = topic["pjxtWjWjbReturnEntity"]?.jsonObjectOrNull()
     val sections = questionnaireEntity?.get("wjzblist")?.jsonArray ?: JsonArray(emptyList())
     val questions = mutableListOf<JsonObject>()
@@ -424,9 +439,7 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
         put("wjstctid", "")
       }
       put("wjstid", question["tmid"] ?: JsonNull)
-      putJsonArray("xxdalist") {
-        if (selectedOptionId != null) add(selectedOptionId)
-      }
+      putJsonArray("xxdalist") { if (selectedOptionId != null) add(selectedOptionId) }
     }
   }
 
@@ -466,7 +479,11 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     val envelope =
         runCatching { json.decodeFromString<LocalEvaluationEnvelope<T>>(body) }
             .getOrElse {
-              throw ApiCallException("评教服务返回无法解析", status = HttpStatusCode.BadGateway, code = "evaluation_error")
+              throw ApiCallException(
+                  "评教服务返回无法解析",
+                  status = HttpStatusCode.BadGateway,
+                  code = "evaluation_error",
+              )
             }
     if (!envelope.isSuccess()) {
       throw ApiCallException(
@@ -575,7 +592,10 @@ private fun isLocalEvaluationSessionExpired(response: HttpResponse, body: String
   val finalUrl = response.call.request.url.toString()
   if (localIsSsoUrl(finalUrl)) return true
   val trimmed = body.trimStart()
-  if (trimmed.startsWith("<!DOCTYPE html", ignoreCase = true) || trimmed.startsWith("<html", ignoreCase = true)) {
+  if (
+      trimmed.startsWith("<!DOCTYPE html", ignoreCase = true) ||
+          trimmed.startsWith("<html", ignoreCase = true)
+  ) {
     return body.contains("input name=\"execution\"") || body.contains("统一身份认证", ignoreCase = true)
   }
   return false

@@ -17,10 +17,10 @@ interface EvaluationServiceBackend {
 }
 
 class EvaluationService(
-    private val backend: EvaluationServiceBackend = ConnectionRuntime.apiFactory().evaluationService()
+    private val backend: EvaluationServiceBackend =
+        ConnectionRuntime.apiFactory().evaluationService()
 ) {
   constructor(apiClient: ApiClient) : this(RelayEvaluationServiceBackend(apiClient))
-
 
   /** 获取所有评教课程（包括已评教和未评教），附带进度信息。 */
   suspend fun getAllEvaluations(): Result<EvaluationCoursesResponse> {
@@ -48,9 +48,7 @@ internal class RelayEvaluationServiceBackend(
     return safeApiCall { apiClient.getClient().get("/api/v1/evaluation/list") }
   }
 
-  override suspend fun submitEvaluations(
-      courses: List<EvaluationCourse>
-  ): List<EvaluationResult> {
+  override suspend fun submitEvaluations(courses: List<EvaluationCourse>): List<EvaluationResult> {
     return try {
       apiClient
           .getClient()

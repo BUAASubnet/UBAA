@@ -13,12 +13,10 @@ import cn.edu.ubaa.model.dto.BykcSignPointDto
 import cn.edu.ubaa.model.dto.BykcStatisticsDto
 import cn.edu.ubaa.model.dto.BykcSuccessResponse
 import cn.edu.ubaa.model.dto.BykcUserProfileDto
-import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -71,7 +69,9 @@ internal class LocalBykcApiBackend(
         val courses =
             result.content.mapNotNull { course ->
               val status = calculateCourseStatus(course, nowProvider())
-              if (!all && (status == BykcCourseStatus.EXPIRED || status == BykcCourseStatus.ENDED)) {
+              if (
+                  !all && (status == BykcCourseStatus.EXPIRED || status == BykcCourseStatus.ENDED)
+              ) {
                 null
               } else {
                 course.toCourseDto(status)
@@ -112,10 +112,8 @@ internal class LocalBykcApiBackend(
       execute("博雅已选课程加载失败，请稍后重试") { _, client ->
         client.login()
         val semester = resolveCurrentSemester(client.getAllConfig(), nowProvider())
-        val semesterStartDate =
-            semester.semesterStartDate ?: throw LocalBykcException("无法获取当前学期信息")
-        val semesterEndDate =
-            semester.semesterEndDate ?: throw LocalBykcException("无法获取当前学期信息")
+        val semesterStartDate = semester.semesterStartDate ?: throw LocalBykcException("无法获取当前学期信息")
+        val semesterEndDate = semester.semesterEndDate ?: throw LocalBykcException("无法获取当前学期信息")
 
         client.queryChosenCourse(semesterStartDate, semesterEndDate).map { chosen ->
           val course = chosen.courseInfo
@@ -132,7 +130,10 @@ internal class LocalBykcApiBackend(
               courseEndDate = course?.courseEndDate.toDtoLocalDateTime(),
               selectDate = chosen.selectDate.toDtoLocalDateTime(),
               courseCancelEndDate = course?.courseCancelEndDate.toDtoLocalDateTime(),
-              category = BykcCourseCategory.fromDisplayName(course?.courseNewKind1?.kindName.normalizedOrNull()),
+              category =
+                  BykcCourseCategory.fromDisplayName(
+                      course?.courseNewKind1?.kindName.normalizedOrNull()
+                  ),
               subCategory =
                   BykcCourseSubCategory.fromDisplayName(
                       course?.courseNewKind2?.kindName.normalizedOrNull()
@@ -189,7 +190,11 @@ internal class LocalBykcApiBackend(
           client.delChosenCourse(courseId)
           BykcSuccessResponse("退选成功")
         } catch (error: Exception) {
-          throw LocalBykcActionException("deselect_failed", HttpStatusCode.BadRequest, error.message)
+          throw LocalBykcActionException(
+              "deselect_failed",
+              HttpStatusCode.BadRequest,
+              error.message,
+          )
         }
       }
 
@@ -220,11 +225,13 @@ internal class LocalBykcApiBackend(
       lat: Double?,
       lng: Double?,
   ) {
-    val chosen = findChosenCourseForCurrentSemester(client, courseId)
-        ?: throw LocalBykcException("该课程未选，无法签到")
+    val chosen =
+        findChosenCourseForCurrentSemester(client, courseId)
+            ?: throw LocalBykcException("该课程未选，无法签到")
     val signConfig =
         parseSignConfig(chosen.courseInfo?.courseSignConfig) ?: getSignConfig(client, courseId)
-    val availability = resolveAttendanceAvailability(signConfig, chosen.checkin, chosen.pass, nowProvider())
+    val availability =
+        resolveAttendanceAvailability(signConfig, chosen.checkin, chosen.pass, nowProvider())
     if (!availability.canSign) {
       throw LocalBykcException(resolveSignInUnavailableReason(chosen.checkin, chosen.pass))
     }
@@ -239,11 +246,13 @@ internal class LocalBykcApiBackend(
       lat: Double?,
       lng: Double?,
   ) {
-    val chosen = findChosenCourseForCurrentSemester(client, courseId)
-        ?: throw LocalBykcException("该课程未选，无法签退")
+    val chosen =
+        findChosenCourseForCurrentSemester(client, courseId)
+            ?: throw LocalBykcException("该课程未选，无法签退")
     val signConfig =
         parseSignConfig(chosen.courseInfo?.courseSignConfig) ?: getSignConfig(client, courseId)
-    val availability = resolveAttendanceAvailability(signConfig, chosen.checkin, chosen.pass, nowProvider())
+    val availability =
+        resolveAttendanceAvailability(signConfig, chosen.checkin, chosen.pass, nowProvider())
     if (!availability.canSignOut) {
       throw LocalBykcException(resolveSignOutUnavailableReason(chosen.checkin, chosen.pass))
     }
@@ -255,17 +264,16 @@ internal class LocalBykcApiBackend(
   private suspend fun getSignConfig(
       client: LocalBykcClient,
       courseId: Long,
-  ): BykcSignConfigDto? = runCatching { parseSignConfig(client.queryCourseById(courseId).courseSignConfig) }.getOrNull()
+  ): BykcSignConfigDto? =
+      runCatching { parseSignConfig(client.queryCourseById(courseId).courseSignConfig) }.getOrNull()
 
   private suspend fun findChosenCourseForCurrentSemester(
       client: LocalBykcClient,
       courseId: Long,
   ): LocalBykcChosenCourse? {
     val semester = resolveCurrentSemester(client.getAllConfig(), nowProvider())
-    val semesterStartDate =
-        semester.semesterStartDate ?: throw LocalBykcException("无法获取当前学期信息")
-    val semesterEndDate =
-        semester.semesterEndDate ?: throw LocalBykcException("无法获取当前学期信息")
+    val semesterStartDate = semester.semesterStartDate ?: throw LocalBykcException("无法获取当前学期信息")
+    val semesterEndDate = semester.semesterEndDate ?: throw LocalBykcException("无法获取当前学期信息")
     return client.queryChosenCourse(semesterStartDate, semesterEndDate).find {
       it.courseInfo?.id == courseId
     }
@@ -278,7 +286,8 @@ internal class LocalBykcApiBackend(
       defaultMessage: String,
       block: suspend (String, LocalBykcClient) -> T,
   ): Result<T> {
-    val session = LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val session =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val username = session.user.schoolid.ifBlank { session.username }
     if (username.isBlank()) {
       return Result.failure(localUnauthenticatedApiException())
@@ -447,7 +456,9 @@ private class LocalBykcClient(
   private suspend fun doCallApiRaw(apiName: String, requestJson: String): String {
     val encrypted = LocalBykcCrypto.encryptRequest(requestJson)
     val response =
-        LocalUpstreamClientProvider.shared().post(localUpstreamUrl("https://bykc.buaa.edu.cn/sscv/$apiName")) {
+        LocalUpstreamClientProvider.shared().post(
+            localUpstreamUrl("https://bykc.buaa.edu.cn/sscv/$apiName")
+        ) {
           header(HttpHeaders.ContentType, "application/json; charset=UTF-8")
           header(HttpHeaders.Accept, ContentType.Application.Json.toString())
           header(
@@ -472,10 +483,12 @@ private class LocalBykcClient(
       throw LocalBykcException("BYKC server returned ${response.status}")
     }
 
-    val encodedPayload = runCatching { json.decodeFromString<String>(responseBody) }.getOrNull() ?: responseBody
+    val encodedPayload =
+        runCatching { json.decodeFromString<String>(responseBody) }.getOrNull() ?: responseBody
     val decoded =
         runCatching {
-              LocalBykcCrypto.aesDecrypt(Base64.decode(encodedPayload), encrypted.aesKey).decodeToString()
+              LocalBykcCrypto.aesDecrypt(Base64.decode(encodedPayload), encrypted.aesKey)
+                  .decodeToString()
             }
             .getOrElse { encodedPayload }
     if (decoded.contains("会话已失效") || decoded.contains("未登录")) {
@@ -494,7 +507,9 @@ private class LocalBykcClient(
   }
 
   private fun extractToken(url: String): String? =
-      Regex("""[?&]token=([^&]+)""").find(url)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
+      Regex("""[?&]token=([^&]+)""").find(url)?.groupValues?.getOrNull(1)?.takeIf {
+        it.isNotBlank()
+      }
 
   private fun resolveRedirectUrl(currentUrl: Url, location: String): String {
     if (location.startsWith("http://") || location.startsWith("https://")) {
@@ -549,7 +564,8 @@ private fun LocalBykcRawCourse.toCourseDto(status: BykcCourseStatus): BykcCourse
       courseMaxCount = courseMaxCount,
       courseCurrentCount = courseCurrentCount,
       category = BykcCourseCategory.fromDisplayName(courseNewKind1?.kindName.normalizedOrNull()),
-      subCategory = BykcCourseSubCategory.fromDisplayName(courseNewKind2?.kindName.normalizedOrNull()),
+      subCategory =
+          BykcCourseSubCategory.fromDisplayName(courseNewKind2?.kindName.normalizedOrNull()),
       audienceCampuses = audienceCampuses,
       hasSignPoints = parseSignConfig(courseSignConfig)?.signPoints?.isNotEmpty() == true,
       status = status,
@@ -578,7 +594,8 @@ private fun LocalBykcRawCourse.toCourseDetailDto(
       courseMaxCount = courseMaxCount,
       courseCurrentCount = courseCurrentCount,
       category = BykcCourseCategory.fromDisplayName(courseNewKind1?.kindName.normalizedOrNull()),
-      subCategory = BykcCourseSubCategory.fromDisplayName(courseNewKind2?.kindName.normalizedOrNull()),
+      subCategory =
+          BykcCourseSubCategory.fromDisplayName(courseNewKind2?.kindName.normalizedOrNull()),
       hasSignPoints = signConfig?.signPoints?.isNotEmpty() == true,
       status = status,
       selected = selected == true,
@@ -598,7 +615,10 @@ private fun LocalBykcRawCourse.toCourseDetailDto(
   )
 }
 
-private fun calculateCourseStatus(course: LocalBykcRawCourse, now: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())): BykcCourseStatus =
+private fun calculateCourseStatus(
+    course: LocalBykcRawCourse,
+    now: LocalDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()),
+): BykcCourseStatus =
     try {
       val courseStart = parseDateTime(course.courseStartDate)
       val selectStart = parseDateTime(course.courseSelectStartDate)
@@ -619,9 +639,7 @@ private fun calculateCourseStatus(course: LocalBykcRawCourse, now: LocalDateTime
 private fun parseSignConfig(configJson: String?): BykcSignConfigDto? {
   if (configJson.isNullOrBlank()) return null
   val json = Json { ignoreUnknownKeys = true }
-  return runCatching {
-        json.decodeFromString<LocalBykcSignConfig>(configJson)
-      }
+  return runCatching { json.decodeFromString<LocalBykcSignConfig>(configJson) }
       .getOrNull()
       ?.let { config ->
         BykcSignConfigDto(
@@ -640,7 +658,11 @@ private fun resolveCurrentSemester(
 ): LocalBykcSemester {
   val semesters = config.semester
   if (semesters.isEmpty()) throw LocalBykcException("无法获取当前学期信息")
-  semesters.firstOrNull { isWithinWindow(it.semesterStartDate, it.semesterEndDate, now) }?.let { return it }
+  semesters
+      .firstOrNull { isWithinWindow(it.semesterStartDate, it.semesterEndDate, now) }
+      ?.let {
+        return it
+      }
   return semesters.maxByOrNull {
     parseDateTime(it.semesterEndDate) ?: LocalDateTime.parse("1970-01-01T00:00:00")
   } ?: throw LocalBykcException("无法获取当前学期信息")
@@ -657,8 +679,14 @@ private fun resolveAttendanceAvailability(
     pass: Int?,
     now: LocalDateTime,
 ): AttendanceAvailability {
-  val canSign = pass != 1 && isUnsignedCheckin(checkin) && isWithinWindow(signConfig?.signStartDate, signConfig?.signEndDate, now)
-  val canSignOut = pass != 1 && isEligibleForSignOut(checkin) && isWithinWindow(signConfig?.signOutStartDate, signConfig?.signOutEndDate, now)
+  val canSign =
+      pass != 1 &&
+          isUnsignedCheckin(checkin) &&
+          isWithinWindow(signConfig?.signStartDate, signConfig?.signEndDate, now)
+  val canSignOut =
+      pass != 1 &&
+          isEligibleForSignOut(checkin) &&
+          isWithinWindow(signConfig?.signOutStartDate, signConfig?.signOutEndDate, now)
   return AttendanceAvailability(canSign = canSign, canSignOut = canSignOut)
 }
 
@@ -700,10 +728,13 @@ private fun destinationPoint(
   val r = dist / 6_371_000.0
   val latRadians = degreesToRadians(lat)
   val lngRadians = degreesToRadians(lng)
-  val destinationLat =
-      asin(sin(latRadians) * cos(r) + cos(latRadians) * sin(r) * cos(angle))
+  val destinationLat = asin(sin(latRadians) * cos(r) + cos(latRadians) * sin(r) * cos(angle))
   val destinationLng =
-      lngRadians + atan2(sin(angle) * sin(r) * cos(latRadians), cos(r) - sin(latRadians) * sin(destinationLat))
+      lngRadians +
+          atan2(
+              sin(angle) * sin(r) * cos(latRadians),
+              cos(r) - sin(latRadians) * sin(destinationLat),
+          )
   return radiansToDegrees(destinationLat) to radiansToDegrees(destinationLng)
 }
 
@@ -713,7 +744,8 @@ private fun radiansToDegrees(value: Double): Double = value * 180.0 / PI
 
 private fun isUnsignedCheckin(checkin: Int?): Boolean = checkin == null || checkin == 0
 
-private fun isEligibleForSignOut(checkin: Int?): Boolean = isUnsignedCheckin(checkin) || checkin == 5 || checkin == 6
+private fun isEligibleForSignOut(checkin: Int?): Boolean =
+    isUnsignedCheckin(checkin) || checkin == 5 || checkin == 6
 
 private fun isWithinWindow(
     startDate: LocalDateTime?,
@@ -735,7 +767,8 @@ private fun parseDateTime(text: String?): LocalDateTime? = text.toDtoLocalDateTi
 
 private fun String?.normalizedOrNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
 
-private fun List<String>?.normalizedTextList(): List<String> = this.orEmpty().mapNotNull { it.normalizedOrNull() }
+private fun List<String>?.normalizedTextList(): List<String> =
+    this.orEmpty().mapNotNull { it.normalizedOrNull() }
 
 private fun List<String>?.toAudienceCampusLabels(rawCampus: String?): List<String> {
   val normalized = normalizedTextList().map { if (it == "全部校区") "未指定校区" else it }.distinct()
@@ -759,7 +792,10 @@ private fun isBykcLoginRedirect(
   if (status == HttpStatusCode.Unauthorized) return true
   if (localIsSsoUrl(finalUrl)) return true
   val trimmed = body.trimStart()
-  if (trimmed.startsWith("<!DOCTYPE html", ignoreCase = true) || trimmed.startsWith("<html", ignoreCase = true)) {
+  if (
+      trimmed.startsWith("<!DOCTYPE html", ignoreCase = true) ||
+          trimmed.startsWith("<html", ignoreCase = true)
+  ) {
     return body.contains("input name=\"execution\"") || body.contains("统一身份认证", ignoreCase = true)
   }
   return false

@@ -33,9 +33,10 @@ fun ConnectionModeSelectionScreen(
     onConfirm: (ConnectionMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  var selectedMode by remember(availableModes) {
-    mutableStateOf(availableModes.firstOrNull() ?: ConnectionMode.SERVER_RELAY)
-  }
+  var selectedMode by
+      remember(availableModes) {
+        mutableStateOf(availableModes.firstOrNull() ?: ConnectionMode.SERVER_RELAY)
+      }
 
   Column(
       modifier = modifier.fillMaxSize().padding(24.dp),
