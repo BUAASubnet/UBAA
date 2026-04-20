@@ -16,15 +16,19 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.api.AppVersionCheckResponse
+import cn.edu.ubaa.api.ConnectionMode
+import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.UpdateService
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
+import cn.edu.ubaa.ui.screens.auth.ConnectionModeSelectionScreen
 import cn.edu.ubaa.ui.screens.auth.LoginScreen
 import cn.edu.ubaa.ui.screens.splash.SplashScreen
 import cn.edu.ubaa.ui.theme.PreloadFonts
 import cn.edu.ubaa.ui.theme.UBAATheme
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * 应用程序顶层入口 Composable。 负责全局状态管理，包括：
@@ -44,6 +48,10 @@ fun App() {
     val authViewModel: AuthViewModel = viewModel { AuthViewModel() }
     val uiState by authViewModel.uiState.collectAsState()
     val loginForm by authViewModel.loginForm.collectAsState()
+    val appScope = rememberCoroutineScope()
+    val availableConnectionModes = remember { ConnectionRuntime.availableModes() }
+    var selectedConnectionMode by remember { mutableStateOf<ConnectionMode?>(null) }
+    var modeResolved by remember { mutableStateOf(false) }
 
     // 启动流程控制状态
     var isSplashFinished by remember { mutableStateOf(false) }
@@ -53,10 +61,17 @@ fun App() {
     var updateInfo by remember { mutableStateOf<AppVersionCheckResponse?>(null) }
     val uriHandler = LocalUriHandler.current
 
-    LaunchedEffect(Unit) { updateInfo = updateService.checkUpdate() }
+    suspend fun bootstrapForMode(mode: ConnectionMode) {
+      selectedConnectionMode = mode
+      updateInfo = updateService.checkUpdate()
+      authViewModel.initializeApp()
+    }
 
-    // 核心初始化逻辑：尝试恢复会话
-    LaunchedEffect(Unit) { authViewModel.initializeApp() }
+    LaunchedEffect(Unit) {
+      selectedConnectionMode = ConnectionRuntime.resolveSelectedMode()
+      modeResolved = true
+      selectedConnectionMode?.let { bootstrapForMode(it) }
+    }
 
     // 根据认证状态和加载进度决定何时隐藏 Splash 界面
     LaunchedEffect(
@@ -85,20 +100,20 @@ fun App() {
     // 版本更新对话框
     if (updateInfo != null) {
       val release = updateInfo!!
-      val releaseNotes = release.releaseNotes?.takeIf { it.isNotBlank() } ?: "点击下方按钮下载与服务端版本对齐的客户端。"
+      val releaseNotes = release.releaseNotes?.takeIf { it.isNotBlank() } ?: "点击下方按钮下载最新客户端。"
       val updateMessage = buildString {
         append("当前客户端版本：")
         append(AppInfo.version)
         append('\n')
-        append("当前服务端版本：")
-        append(release.serverVersion)
+        append("最新客户端版本：")
+        append(release.latestVersion)
         append("\n\n")
         append(releaseNotes)
       }
 
       AlertDialog(
           onDismissRequest = { updateInfo = null },
-          title = { Text("客户端与服务端版本不一致") },
+          title = { Text("发现新版本") },
           text = {
             Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
               Text(updateMessage)
@@ -120,13 +135,29 @@ fun App() {
 
     // 视图切换状态机
     when {
+      !modeResolved -> SplashScreen(modifier = Modifier.fillMaxSize())
+      selectedConnectionMode == null ->
+          ConnectionModeSelectionScreen(
+              availableModes = availableConnectionModes,
+              onConfirm = { mode ->
+                appScope.launch { bootstrapForMode(mode.also(ConnectionRuntime::switchMode)) }
+              },
+              modifier = Modifier.fillMaxSize(),
+          )
       !isSplashFinished -> SplashScreen(modifier = Modifier.fillMaxSize())
       uiState.isLoggedIn && uiState.userData != null -> {
         val userData = uiState.userData!!
         MainAppScreen(
             userData = userData,
             userInfo = uiState.userInfo,
+            connectionMode = selectedConnectionMode ?: ConnectionMode.SERVER_RELAY,
+            availableConnectionModes = availableConnectionModes,
             onEnsureUserInfo = { authViewModel.ensureUserInfoLoaded() },
+            onConnectionModeSelected = { mode ->
+              selectedConnectionMode = mode
+              authViewModel.switchConnectionMode(mode)
+              appScope.launch { updateInfo = updateService.checkUpdate() }
+            },
             onLogoutClick = { authViewModel.logout() },
             modifier = Modifier.fillMaxSize(),
         )

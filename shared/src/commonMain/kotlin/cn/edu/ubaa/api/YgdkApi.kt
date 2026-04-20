@@ -13,12 +13,40 @@ import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 
-open class YgdkApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
+interface YgdkApiBackend {
+  suspend fun getOverview(): Result<YgdkOverviewResponse>
+
+  suspend fun getRecords(page: Int, size: Int): Result<YgdkRecordsPageResponse>
+
+  suspend fun submitClockin(request: YgdkClockinSubmitRequest): Result<YgdkClockinSubmitResponse>
+}
+
+open class YgdkApi(private val backend: YgdkApiBackend = ConnectionRuntime.apiFactory().ygdkApi()) {
+  constructor(apiClient: ApiClient) : this(RelayYgdkApiBackend(apiClient))
+
   open suspend fun getOverview(): Result<YgdkOverviewResponse> {
-    return safeApiCall { apiClient.getClient().get("api/v1/ygdk/overview") }
+    return backend.getOverview()
   }
 
   open suspend fun getRecords(page: Int = 1, size: Int = 20): Result<YgdkRecordsPageResponse> {
+    return backend.getRecords(page, size)
+  }
+
+  open suspend fun submitClockin(
+      request: YgdkClockinSubmitRequest
+  ): Result<YgdkClockinSubmitResponse> {
+    return backend.submitClockin(request)
+  }
+}
+
+internal class RelayYgdkApiBackend(
+    private val apiClient: ApiClient = ApiClientProvider.shared
+) : YgdkApiBackend {
+  override suspend fun getOverview(): Result<YgdkOverviewResponse> {
+    return safeApiCall { apiClient.getClient().get("api/v1/ygdk/overview") }
+  }
+
+  override suspend fun getRecords(page: Int, size: Int): Result<YgdkRecordsPageResponse> {
     return safeApiCall {
       apiClient.getClient().get("api/v1/ygdk/records") {
         parameter("page", page)
@@ -27,7 +55,7 @@ open class YgdkApi(private val apiClient: ApiClient = ApiClientProvider.shared) 
     }
   }
 
-  open suspend fun submitClockin(
+  override suspend fun submitClockin(
       request: YgdkClockinSubmitRequest
   ): Result<YgdkClockinSubmitResponse> {
     return safeApiCall {

@@ -18,8 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -163,7 +163,7 @@ private fun YgdkRecordCard(record: YgdkRecordDto) {
   Card(modifier = Modifier.fillMaxWidth()) {
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.DirectionsRun, contentDescription = null)
+        Icon(Icons.AutoMirrored.Filled.DirectionsRun, contentDescription = null)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = record.itemName ?: "运动打卡",

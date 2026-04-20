@@ -42,9 +42,9 @@ class BykcModelsTest {
     assertEquals("0", response.status)
     assertEquals("请求成功", response.errmsg)
     assertNotNull(response.data)
-    assertEquals(12345L, response.data?.id)
-    assertEquals("20201234", response.data?.employeeId)
-    assertEquals("张三", response.data?.realName)
+    assertEquals(12345L, response.data.id)
+    assertEquals("20201234", response.data.employeeId)
+    assertEquals("张三", response.data.realName)
   }
 
   @Test

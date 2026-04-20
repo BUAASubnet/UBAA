@@ -360,7 +360,12 @@ internal class YgdkService(
   ): YgdkTermSummaryDto {
     return existing.copy(
         termId = result.termId ?: existing.termId,
-        termCount = result.termGoodCountShow ?: result.termGoodCount ?: existing.termCount,
+        termCount =
+            result.termGoodCountShow
+                ?: result.termGoodCount
+                ?: result.termCountShow
+                ?: result.termCount
+                ?: existing.termCount,
         termTarget = result.termNum ?: existing.termTarget,
         weekCount = result.weekCount ?: existing.weekCount,
         weekTarget = result.weekNum ?: existing.weekTarget,

@@ -10,11 +10,21 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
-class EvaluationService(private val apiClient: ApiClient) {
+interface EvaluationServiceBackend {
+  suspend fun getAllEvaluations(): Result<EvaluationCoursesResponse>
+
+  suspend fun submitEvaluations(courses: List<EvaluationCourse>): List<EvaluationResult>
+}
+
+class EvaluationService(
+    private val backend: EvaluationServiceBackend = ConnectionRuntime.apiFactory().evaluationService()
+) {
+  constructor(apiClient: ApiClient) : this(RelayEvaluationServiceBackend(apiClient))
+
 
   /** 获取所有评教课程（包括已评教和未评教），附带进度信息。 */
   suspend fun getAllEvaluations(): Result<EvaluationCoursesResponse> {
-    return safeApiCall { apiClient.getClient().get("/api/v1/evaluation/list") }
+    return backend.getAllEvaluations()
   }
 
   /**
@@ -27,6 +37,20 @@ class EvaluationService(private val apiClient: ApiClient) {
   }
 
   suspend fun submitEvaluations(courses: List<EvaluationCourse>): List<EvaluationResult> {
+    return backend.submitEvaluations(courses)
+  }
+}
+
+internal class RelayEvaluationServiceBackend(
+    private val apiClient: ApiClient = ApiClientProvider.shared
+) : EvaluationServiceBackend {
+  override suspend fun getAllEvaluations(): Result<EvaluationCoursesResponse> {
+    return safeApiCall { apiClient.getClient().get("/api/v1/evaluation/list") }
+  }
+
+  override suspend fun submitEvaluations(
+      courses: List<EvaluationCourse>
+  ): List<EvaluationResult> {
     return try {
       apiClient
           .getClient()

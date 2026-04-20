@@ -477,7 +477,9 @@ class BykcService(
     log.warn(
         "Unable to match BYKC current semester by time window, falling back to latest semester"
     )
-    return semesters.maxByOrNull { parseDateTime(it.semesterEndDate) ?: LocalDateTime.MIN }
+    return semesters.maxByOrNull {
+      parseDateTime(it.semesterEndDate) ?: LocalDateTime.parse("1970-01-01T00:00:00")
+    }
         ?: throw BykcException("无法获取当前学期信息")
   }
 
@@ -571,6 +573,16 @@ class BykcService(
   ): Boolean {
     val start = startDate ?: return false
     val end = endDate ?: return false
+    return now >= start && now <= end
+  }
+
+  private fun isWithinWindow(
+      startDate: String?,
+      endDate: String?,
+      now: LocalDateTime,
+  ): Boolean {
+    val start = parseDateTime(startDate) ?: return false
+    val end = parseDateTime(endDate) ?: return false
     return now >= start && now <= end
   }
 

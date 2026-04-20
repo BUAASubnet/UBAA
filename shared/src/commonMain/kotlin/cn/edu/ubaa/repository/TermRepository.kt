@@ -34,6 +34,10 @@ class TermRepository(private val scheduleApi: ScheduleApi = ScheduleApi()) {
       scheduleApi.getTerms().onSuccess { terms -> cachedTerms = terms }
     }
   }
+
+  fun clear() {
+    cachedTerms = null
+  }
 }
 
 object GlobalTermRepository {

@@ -6,6 +6,8 @@ import cn.edu.ubaa.api.ApiCallException
 import cn.edu.ubaa.api.AuthService
 import cn.edu.ubaa.api.AuthTokensStore
 import cn.edu.ubaa.api.CaptchaRequiredClientException
+import cn.edu.ubaa.api.ConnectionMode
+import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.CredentialStore
 import cn.edu.ubaa.api.UserService
 import cn.edu.ubaa.model.dto.CaptchaInfo
@@ -89,14 +91,14 @@ class AuthViewModel(
       authService
           .preloadLoginState()
           .onSuccess { response ->
-            if (response.accessToken != null && response.userData != null) {
+            if (response.userData != null) {
               // SSO 已登录，执行自动登录逻辑
               _uiState.value =
                   _uiState.value.copy(
                       isPreloading = false,
                       isLoggedIn = true,
                       userData = response.userData,
-                      accessToken = response.accessToken,
+                      accessToken = response.accessToken?.takeIf { it.isNotBlank() },
                   )
               resetUserInfoState()
               _loginForm.value = LoginFormState()
@@ -164,7 +166,7 @@ class AuthViewModel(
                     isLoggedIn = true,
                     isLoading = false,
                     userData = loginResponse.user,
-                    accessToken = loginResponse.accessToken,
+                    accessToken = loginResponse.accessToken.takeIf { it.isNotBlank() },
                 )
             resetUserInfoState()
             CredentialStore.setRememberPassword(form.rememberPassword)
@@ -191,10 +193,10 @@ class AuthViewModel(
 
   /** 应用全局初始化入口。 用于检查本地 Token 是否有效，若失效则根据设置决定跳转登录页或尝试自动登录。 */
   fun initializeApp() {
+    if (ConnectionRuntime.currentMode() == null) return
     viewModelScope.launch {
-      val storedTokens = AuthTokensStore.get()
-      val storedAccessToken = storedTokens?.accessToken
-      if (storedAccessToken.isNullOrBlank()) {
+      val restoredAccessToken = AuthTokensStore.get()?.accessToken?.takeIf { it.isNotBlank() }
+      if (!authService.hasPersistedSession()) {
         if (CredentialStore.isAutoLogin()) login() else preloadLoginState()
         return@launch
       }
@@ -209,7 +211,7 @@ class AuthViewModel(
                     isLoggedIn = true,
                     isLoading = false,
                     userData = status.user,
-                    accessToken = storedAccessToken,
+                    accessToken = restoredAccessToken,
                 )
             resetUserInfoState()
           }
@@ -219,9 +221,19 @@ class AuthViewModel(
               _uiState.value = _uiState.value.copy(error = error.message)
               return@onFailure
             }
-            AuthTokensStore.clear()
+            authService.clearStoredSession()
             if (CredentialStore.isAutoLogin()) login() else preloadLoginState()
           }
+    }
+  }
+
+  fun switchConnectionMode(mode: ConnectionMode) {
+    viewModelScope.launch {
+      ConnectionRuntime.switchMode(mode)
+      resetUserInfoState()
+      _uiState.value = AuthUiState()
+      loadSavedCredentials()
+      preloadLoginState()
     }
   }
 

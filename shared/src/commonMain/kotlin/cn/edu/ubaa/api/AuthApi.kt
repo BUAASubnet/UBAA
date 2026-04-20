@@ -8,8 +8,13 @@ import kotlinx.serialization.Serializable
 
 /** 认证服务提供者，管理全局共享的 ApiClient。 */
 object ApiClientProvider {
+  private val sharedClient = ResettableSharedInstance(factory = ::ApiClient, disposer = ApiClient::close)
+
   /** 全局共享的 ApiClient 实例。 */
-  val shared: ApiClient by lazy { ApiClient() }
+  val shared: ApiClient
+    get() = sharedClient.getOrCreate()
+
+  fun reset() = sharedClient.reset()
 }
 
 /**
@@ -26,16 +31,50 @@ data class SessionStatusResponse(
     val authenticatedAt: String,
 )
 
+interface AuthServiceBackend {
+  fun hasPersistedSession(): Boolean
+
+  fun applyStoredSession()
+
+  fun clearStoredSession()
+
+  suspend fun preloadLoginState(): Result<LoginPreloadResponse>
+
+  suspend fun login(
+      username: String,
+      password: String,
+      captcha: String?,
+      execution: String?,
+  ): Result<LoginResponse>
+
+  suspend fun getAuthStatus(): Result<SessionStatusResponse>
+
+  suspend fun logout(): Result<Unit>
+}
+
+interface UserServiceBackend {
+  suspend fun getUserInfo(): Result<UserInfo>
+}
+
 /**
  * 认证服务，负责登录、预加载、注销及会话状态查询。
  *
  * @param apiClient 使用的 ApiClient 实例，默认为单例 shared。
  */
-open class AuthService(private val apiClient: ApiClient = ApiClientProvider.shared) {
+open class AuthService(
+    private val backend: AuthServiceBackend = ConnectionRuntime.apiFactory().authService()
+) {
+  constructor(apiClient: ApiClient) : this(RelayAuthServiceBackend(apiClient))
+
+  open fun hasPersistedSession(): Boolean = backend.hasPersistedSession()
 
   /** 将本地存储的令牌应用到当前 ApiClient 中。 */
   open fun applyStoredTokens() {
-    apiClient.applyStoredTokens()
+    backend.applyStoredSession()
+  }
+
+  open fun clearStoredSession() {
+    backend.clearStoredSession()
   }
 
   /**
@@ -44,6 +83,61 @@ open class AuthService(private val apiClient: ApiClient = ApiClientProvider.shar
    * @return 预加载结果，包含验证码信息或已登录的令牌。
    */
   open suspend fun preloadLoginState(): Result<LoginPreloadResponse> {
+    return backend.preloadLoginState()
+  }
+
+  /**
+   * 执行用户登录。 使用 preload 时创建的会话和执行标识（execution）进行认证。
+   *
+   * @param username 用户名（学号）。
+   * @param password 密码。
+   * @param captcha 验证码（如果需要）。
+   * @param execution SSO 流程执行标识。
+   * @return 登录结果，成功则返回 LoginResponse 并自动更新 ApiClient 令牌。
+   */
+  open suspend fun login(
+      username: String,
+      password: String,
+      captcha: String? = null,
+      execution: String? = null,
+  ): Result<LoginResponse> {
+    return backend.login(username, password, captcha, execution)
+  }
+
+  /**
+   * 查询当前会话状态。
+   *
+   * @return 包含用户信息和活动时间的 SessionStatusResponse。
+   */
+  open suspend fun getAuthStatus(): Result<SessionStatusResponse> {
+    return backend.getAuthStatus()
+  }
+
+  /**
+   * 注销当前用户。 会尝试通知服务端和上游 SSO 注销，并清理本地令牌和 ApiClient 状态。
+   *
+   * @return 注销操作结果。
+   */
+  open suspend fun logout(): Result<Unit> {
+    return backend.logout()
+  }
+}
+
+internal class RelayAuthServiceBackend(
+    private val apiClient: ApiClient = ApiClientProvider.shared
+) : AuthServiceBackend {
+  override fun hasPersistedSession(): Boolean = AuthTokensStore.get() != null
+
+  override fun applyStoredSession() {
+    apiClient.applyStoredTokens()
+  }
+
+  override fun clearStoredSession() {
+    apiClient.clearAuthTokens()
+    apiClient.close()
+  }
+
+  override suspend fun preloadLoginState(): Result<LoginPreloadResponse> {
     return try {
       val clientId = ClientIdStore.getOrCreate()
       val response =
@@ -64,20 +158,11 @@ open class AuthService(private val apiClient: ApiClient = ApiClientProvider.shar
     }
   }
 
-  /**
-   * 执行用户登录。 使用 preload 时创建的会话和执行标识（execution）进行认证。
-   *
-   * @param username 用户名（学号）。
-   * @param password 密码。
-   * @param captcha 验证码（如果需要）。
-   * @param execution SSO 流程执行标识。
-   * @return 登录结果，成功则返回 LoginResponse 并自动更新 ApiClient 令牌。
-   */
-  open suspend fun login(
+  override suspend fun login(
       username: String,
       password: String,
-      captcha: String? = null,
-      execution: String? = null,
+      captcha: String?,
+      execution: String?,
   ): Result<LoginResponse> {
     return try {
       val clientId = ClientIdStore.get()
@@ -94,7 +179,7 @@ open class AuthService(private val apiClient: ApiClient = ApiClientProvider.shar
           Result.success(loginResponse)
         }
         HttpStatusCode.Unauthorized -> Result.failure(response.toApiCallException())
-        HttpStatusCode.UnprocessableEntity -> { // 422 - 需要验证码
+        HttpStatusCode.UnprocessableEntity -> {
           val captchaResponse = response.body<CaptchaRequiredResponse>()
           Result.failure(
               CaptchaRequiredClientException(
@@ -111,41 +196,22 @@ open class AuthService(private val apiClient: ApiClient = ApiClientProvider.shar
     }
   }
 
-  /**
-   * 查询当前会话状态。
-   *
-   * @return 包含用户信息和活动时间的 SessionStatusResponse。
-   */
-  open suspend fun getAuthStatus(): Result<SessionStatusResponse> {
+  override suspend fun getAuthStatus(): Result<SessionStatusResponse> {
     return safeApiCall { apiClient.getClient().get("api/v1/auth/status") }
   }
 
-  /**
-   * 注销当前用户。 会尝试通知服务端和上游 SSO 注销，并清理本地令牌和 ApiClient 状态。
-   *
-   * @return 注销操作结果。
-   */
-  open suspend fun logout(): Result<Unit> {
+  override suspend fun logout(): Result<Unit> {
     return try {
-      // 尝试服务端注销
-      val serverResponse = apiClient.getClient().post("api/v1/auth/logout")
+      apiClient.getClient().post("api/v1/auth/logout")
 
-      // 无论服务端结果如何，尝试 SSO 注销
       try {
-        val ssoResponse = apiClient.getClient().get("https://sso.buaa.edu.cn/logout")
-        println("SSO 注销响应: ${ssoResponse.status}")
-      } catch (ssoException: Exception) {
-        println("SSO 注销失败（在某些网络环境下符合预期）: ${ssoException.message}")
-      }
+        apiClient.getClient().get("https://sso.buaa.edu.cn/logout")
+      } catch (_: Exception) {}
 
-      // 始终清理本地状态
-      apiClient.clearAuthTokens()
-      apiClient.close()
+      clearStoredSession()
       Result.success(Unit)
     } catch (e: Exception) {
-      // 网络异常时也要清理本地状态
-      apiClient.clearAuthTokens()
-      apiClient.close()
+      clearStoredSession()
       Result.failure(e.toUserFacingApiException("注销时出现异常，本地登录状态已清除"))
     }
   }
@@ -175,13 +241,25 @@ private fun LoginPreloadResponse.toStoredAuthTokensOrNull(): StoredAuthTokens? {
  *
  * @param apiClient 使用的 ApiClient 实例。
  */
-open class UserService(private val apiClient: ApiClient = ApiClientProvider.shared) {
+open class UserService(
+    private val backend: UserServiceBackend = ConnectionRuntime.apiFactory().userService()
+) {
+  constructor(apiClient: ApiClient) : this(RelayUserServiceBackend(apiClient))
+
   /**
    * 获取当前用户的详细资料信息。
    *
    * @return 包含用户姓名、学号等信息的 UserInfo。
    */
   open suspend fun getUserInfo(): Result<UserInfo> {
+    return backend.getUserInfo()
+  }
+}
+
+internal class RelayUserServiceBackend(
+    private val apiClient: ApiClient = ApiClientProvider.shared
+) : UserServiceBackend {
+  override suspend fun getUserInfo(): Result<UserInfo> {
     return safeApiCall { apiClient.getClient().get("api/v1/user/info") }
   }
 }

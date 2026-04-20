@@ -9,7 +9,12 @@ object CredentialStore {
   private const val KEY_REMEMBER_PASSWORD = "remember_password"
   private const val KEY_AUTO_LOGIN = "auto_login"
 
-  private val settings: Settings = Settings()
+  private var _settings: Settings? = null
+  var settings: Settings
+    get() = _settings ?: Settings().also { _settings = it }
+    set(value) {
+      _settings = value
+    }
 
   fun saveCredentials(username: String, password: String) {
     settings.putString(KEY_USERNAME, username)

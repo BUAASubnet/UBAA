@@ -236,10 +236,10 @@ class BykcTimeFormattersTest {
                     selected = true,
                     signConfig =
                         BykcSignConfigDto(
-                            signStartDate = "2025-03-16 16:20:00",
-                            signEndDate = "2025-03-16 16:40:00",
-                            signOutStartDate = "2025-03-16 17:50:00",
-                            signOutEndDate = "2025-03-16 18:15:00",
+                            signStartDate = LocalDateTime.parse("2025-03-16T16:20:00"),
+                            signEndDate = LocalDateTime.parse("2025-03-16T16:40:00"),
+                            signOutStartDate = LocalDateTime.parse("2025-03-16T17:50:00"),
+                            signOutEndDate = LocalDateTime.parse("2025-03-16T18:15:00"),
                         ),
                     checkin = 5,
                     canSign = false,
@@ -265,10 +265,10 @@ class BykcTimeFormattersTest {
                     selected = true,
                     signConfig =
                         BykcSignConfigDto(
-                            signStartDate = "2025-03-16 16:20:00",
-                            signEndDate = "2025-03-16 16:40:00",
-                            signOutStartDate = "2025-03-16 17:50:00",
-                            signOutEndDate = "2025-03-16 18:15:00",
+                            signStartDate = LocalDateTime.parse("2025-03-16T16:20:00"),
+                            signEndDate = LocalDateTime.parse("2025-03-16T16:40:00"),
+                            signOutStartDate = LocalDateTime.parse("2025-03-16T17:50:00"),
+                            signOutEndDate = LocalDateTime.parse("2025-03-16T18:15:00"),
                         ),
                     checkin = 0,
                     canSign = false,

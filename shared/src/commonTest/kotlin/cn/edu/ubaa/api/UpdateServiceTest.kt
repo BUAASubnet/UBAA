@@ -28,8 +28,9 @@ class UpdateServiceTest {
               ByteReadChannel(
                   json.encodeToString(
                       AppVersionCheckResponse(
-                          serverVersion = BuildKonfig.VERSION,
-                          aligned = true,
+                          latestVersion = BuildKonfig.VERSION,
+                          status = AppUpdateStatus.UP_TO_DATE,
+                          updateAvailable = false,
                           downloadUrl = "https://github.com/BUAASubnet/UBAA/releases",
                       )
                   )
@@ -55,8 +56,9 @@ class UpdateServiceTest {
               ByteReadChannel(
                   json.encodeToString(
                       AppVersionCheckResponse(
-                          serverVersion = "1.5.0",
-                          aligned = false,
+                          latestVersion = "1.5.0",
+                          status = AppUpdateStatus.UPDATE_AVAILABLE,
+                          updateAvailable = true,
                           downloadUrl = "https://download.example.com",
                           releaseNotes = "修复登录问题",
                       )
@@ -69,7 +71,66 @@ class UpdateServiceTest {
 
     val updateInfo = UpdateService(ApiClient(mockEngine)).checkUpdate("1.4.0")
 
-    assertEquals("1.5.0", updateInfo?.serverVersion)
+    assertEquals("1.5.0", updateInfo?.latestVersion)
+    assertEquals("https://download.example.com", updateInfo?.downloadUrl)
+    assertEquals("修复登录问题", updateInfo?.releaseNotes)
+  }
+
+  @Test
+  fun reusesCurrentApiClientProviderAfterPreviousClientIsClosed() = runTest {
+    val firstEngine =
+        MockEngine {
+          respond(
+              content =
+                  ByteReadChannel(
+                      json.encodeToString(
+                      AppVersionCheckResponse(
+                          latestVersion = BuildKonfig.VERSION,
+                          status = AppUpdateStatus.UP_TO_DATE,
+                          updateAvailable = false,
+                          downloadUrl = "https://github.com/BUAASubnet/UBAA/releases",
+                      )
+                      )
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, "application/json"),
+          )
+        }
+    val secondEngine =
+        MockEngine { request ->
+          assertEquals("/api/v1/app/version", request.url.encodedPath)
+          assertEquals("1.4.0", request.url.parameters["clientVersion"])
+          respond(
+              content =
+                  ByteReadChannel(
+                      json.encodeToString(
+                      AppVersionCheckResponse(
+                          latestVersion = "1.5.0",
+                          status = AppUpdateStatus.UPDATE_AVAILABLE,
+                          updateAvailable = true,
+                          downloadUrl = "https://download.example.com",
+                          releaseNotes = "修复登录问题",
+                          )
+                      )
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, "application/json"),
+          )
+        }
+
+    val firstClient = ApiClient(firstEngine)
+    val secondClient = ApiClient(secondEngine)
+    var currentClient = firstClient
+    val updateService = UpdateService { currentClient }
+
+    assertNull(updateService.checkUpdate())
+
+    firstClient.close()
+    currentClient = secondClient
+
+    val updateInfo = updateService.checkUpdate("1.4.0")
+
+    assertEquals("1.5.0", updateInfo?.latestVersion)
     assertEquals("https://download.example.com", updateInfo?.downloadUrl)
     assertEquals("修复登录问题", updateInfo?.releaseNotes)
   }

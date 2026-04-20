@@ -163,45 +163,12 @@ private fun canBykcSignOut(course: BykcCourseDetailDto, now: LocalDateTime): Boo
         )
 
 private fun isBykcWithinWindow(
-    startDate: String?,
-    endDate: String?,
+    startDate: LocalDateTime?,
+    endDate: LocalDateTime?,
     now: LocalDateTime,
 ): Boolean {
-  val start = parseBykcDateTime(startDate) ?: return false
-  val end = parseBykcDateTime(endDate) ?: return false
-  return now >= start && now <= end
-}
-
-private fun isBykcCheckinStateUnsigned(checkin: Int?): Boolean = checkin == null || checkin == 0
-
-private fun isBykcCheckinStateSignOutEligible(checkin: Int?): Boolean =
-    isBykcCheckinStateUnsigned(checkin) || isBykcCheckinStateWaitingForSignOut(checkin)
-
-private fun canBykcSignIn(course: BykcCourseDetailDto, now: LocalDateTime): Boolean =
-    course.pass != 1 &&
-        isBykcCheckinStateUnsigned(course.checkin) &&
-        isBykcWithinWindow(
-            course.signConfig?.signStartDate,
-            course.signConfig?.signEndDate,
-            now,
-        )
-
-private fun canBykcSignOut(course: BykcCourseDetailDto, now: LocalDateTime): Boolean =
-    course.pass != 1 &&
-        isBykcCheckinStateSignOutEligible(course.checkin) &&
-        isBykcWithinWindow(
-            course.signConfig?.signOutStartDate,
-            course.signConfig?.signOutEndDate,
-            now,
-        )
-
-private fun isBykcWithinWindow(
-    startDate: String?,
-    endDate: String?,
-    now: LocalDateTime,
-): Boolean {
-  val start = parseBykcDateTime(startDate) ?: return false
-  val end = parseBykcDateTime(endDate) ?: return false
+  val start = startDate ?: return false
+  val end = endDate ?: return false
   return now >= start && now <= end
 }
 

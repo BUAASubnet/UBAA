@@ -5,10 +5,24 @@ import io.ktor.client.request.*
 
 /**
  * 课程表与考试查询服务。 负责从后端获取学期、周次、课表安排以及考试安排等信息。
- *
- * @param apiClient 使用的 ApiClient 实例。
  */
-class ScheduleApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
+interface ScheduleApiBackend {
+  suspend fun getTerms(): Result<List<Term>>
+
+  suspend fun getWeeks(termCode: String): Result<List<Week>>
+
+  suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule>
+
+  suspend fun getTodaySchedule(): Result<List<TodayClass>>
+
+  suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData>
+}
+
+class ScheduleApi(
+    private val backend: ScheduleApiBackend = ConnectionRuntime.apiFactory().scheduleApi()
+) {
+  constructor(apiClient: ApiClient) : this(RelayScheduleApiBackend(apiClient))
+
 
   /**
    * 获取所有可用学期列表。
@@ -16,7 +30,7 @@ class ScheduleApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 学期信息列表。
    */
   suspend fun getTerms(): Result<List<Term>> {
-    return safeApiCall { apiClient.getClient().get("api/v1/schedule/terms") }
+    return backend.getTerms()
   }
 
   /**
@@ -26,9 +40,7 @@ class ScheduleApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 该学期的教学周列表。
    */
   suspend fun getWeeks(termCode: String): Result<List<Week>> {
-    return safeApiCall {
-      apiClient.getClient().get("api/v1/schedule/weeks") { parameter("termCode", termCode) }
-    }
+    return backend.getWeeks(termCode)
   }
 
   /**
@@ -39,12 +51,7 @@ class ScheduleApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 包含该周所有排课信息的 WeeklySchedule。
    */
   suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> {
-    return safeApiCall {
-      apiClient.getClient().get("api/v1/schedule/week") {
-        parameter("termCode", termCode)
-        parameter("week", week)
-      }
-    }
+    return backend.getWeeklySchedule(termCode, week)
   }
 
   /**
@@ -53,7 +60,7 @@ class ScheduleApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 今日课程列表。
    */
   suspend fun getTodaySchedule(): Result<List<TodayClass>> {
-    return safeApiCall { apiClient.getClient().get("api/v1/schedule/today") }
+    return backend.getTodaySchedule()
   }
 
   /**
@@ -63,6 +70,37 @@ class ScheduleApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 包含学生信息、已安排考试和未安排考试的数据汇总。
    */
   suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData> {
+    return backend.getExamArrangement(termCode)
+  }
+}
+
+internal class RelayScheduleApiBackend(
+    private val apiClient: ApiClient = ApiClientProvider.shared
+) : ScheduleApiBackend {
+  override suspend fun getTerms(): Result<List<Term>> {
+    return safeApiCall { apiClient.getClient().get("api/v1/schedule/terms") }
+  }
+
+  override suspend fun getWeeks(termCode: String): Result<List<Week>> {
+    return safeApiCall {
+      apiClient.getClient().get("api/v1/schedule/weeks") { parameter("termCode", termCode) }
+    }
+  }
+
+  override suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> {
+    return safeApiCall {
+      apiClient.getClient().get("api/v1/schedule/week") {
+        parameter("termCode", termCode)
+        parameter("week", week)
+      }
+    }
+  }
+
+  override suspend fun getTodaySchedule(): Result<List<TodayClass>> {
+    return safeApiCall { apiClient.getClient().get("api/v1/schedule/today") }
+  }
+
+  override suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData> {
     return safeApiCall {
       apiClient.getClient().get("api/v1/exam/list") { parameter("termCode", termCode) }
     }

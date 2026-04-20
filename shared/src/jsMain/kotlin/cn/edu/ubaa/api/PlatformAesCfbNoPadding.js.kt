@@ -1,0 +1,9 @@
+package cn.edu.ubaa.api
+
+internal actual object PlatformAesCfbNoPadding {
+  actual fun encrypt(input: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =
+      error("Local AES support is unavailable on JS")
+
+  actual fun decrypt(input: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =
+      error("Local AES support is unavailable on JS")
+}

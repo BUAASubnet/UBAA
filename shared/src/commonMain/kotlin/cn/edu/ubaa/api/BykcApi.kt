@@ -5,12 +5,33 @@ import io.ktor.client.call.body
 import io.ktor.client.request.*
 import io.ktor.http.*
 
-/**
- * 博雅课程 (BYKC) API 服务。 提供课程查询、详情查看、选课、退选、签到以及修读统计等功能。
- *
- * @param apiClient 使用的 ApiClient 实例。
- */
-class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
+interface BykcApiBackend {
+  suspend fun getProfile(): Result<BykcUserProfileDto>
+
+  suspend fun getCourses(page: Int, size: Int, all: Boolean): Result<BykcCoursesResponse>
+
+  suspend fun getCourseDetail(courseId: Long): Result<BykcCourseDetailDto>
+
+  suspend fun getChosenCourses(): Result<List<BykcChosenCourseDto>>
+
+  suspend fun getStatistics(): Result<BykcStatisticsDto>
+
+  suspend fun selectCourse(courseId: Long): Result<BykcSuccessResponse>
+
+  suspend fun deselectCourse(courseId: Long): Result<BykcSuccessResponse>
+
+  suspend fun signCourse(
+      courseId: Long,
+      lat: Double?,
+      lng: Double?,
+      signType: Int,
+  ): Result<BykcSuccessResponse>
+}
+
+/** 博雅课程 (BYKC) API 服务。 提供课程查询、详情查看、选课、退选、签到以及修读统计等功能。 */
+class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory().bykcApi()) {
+  constructor(apiClient: ApiClient) : this(RelayBykcApiBackend(apiClient))
+
 
   /**
    * 获取博雅系统中的用户个人资料。
@@ -18,7 +39,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 用户基本信息。
    */
   suspend fun getProfile(): Result<BykcUserProfileDto> {
-    return safeApiCall { apiClient.getClient().get("api/v1/bykc/profile") }
+    return backend.getProfile()
   }
 
   /**
@@ -34,13 +55,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
       size: Int = 20,
       all: Boolean = false,
   ): Result<BykcCoursesResponse> {
-    return safeApiCall {
-      apiClient.getClient().get("api/v1/bykc/courses") {
-        parameter("page", page)
-        parameter("size", size)
-        parameter("all", all)
-      }
-    }
+    return backend.getCourses(page, size, all)
   }
 
   /**
@@ -50,17 +65,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 课程详细信息，包含签到配置等。
    */
   suspend fun getCourseDetail(courseId: Long): Result<BykcCourseDetailDto> {
-    return try {
-      val response = apiClient.getClient().get("api/v1/bykc/courses/$courseId")
-
-      when (response.status) {
-        HttpStatusCode.OK -> Result.success(response.body())
-        HttpStatusCode.NotFound -> Result.failure(ApiCallException("课程不存在或已下线"))
-        else -> Result.failure(response.toApiCallException())
-      }
-    } catch (e: Exception) {
-      Result.failure(e.toUserFacingApiException("课程详情加载失败，请稍后重试"))
-    }
+    return backend.getCourseDetail(courseId)
   }
 
   /**
@@ -69,7 +74,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 已选课程列表。
    */
   suspend fun getChosenCourses(): Result<List<BykcChosenCourseDto>> {
-    return safeApiCall { apiClient.getClient().get("api/v1/bykc/courses/chosen") }
+    return backend.getChosenCourses()
   }
 
   /**
@@ -78,7 +83,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 各分类的统计结果。
    */
   suspend fun getStatistics(): Result<BykcStatisticsDto> {
-    return safeApiCall { apiClient.getClient().get("api/v1/bykc/statistics") }
+    return backend.getStatistics()
   }
 
   /**
@@ -88,11 +93,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 操作成功响应。
    */
   suspend fun selectCourse(courseId: Long): Result<BykcSuccessResponse> {
-    return safeApiCall {
-      apiClient.getClient().post("api/v1/bykc/courses/$courseId/select") {
-        contentType(ContentType.Application.Json)
-      }
-    }
+    return backend.selectCourse(courseId)
   }
 
   /**
@@ -102,7 +103,7 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
    * @return 操作成功响应。
    */
   suspend fun deselectCourse(courseId: Long): Result<BykcSuccessResponse> {
-    return safeApiCall { apiClient.getClient().delete("api/v1/bykc/courses/$courseId/select") }
+    return backend.deselectCourse(courseId)
   }
 
   /**
@@ -118,6 +119,71 @@ class BykcApi(private val apiClient: ApiClient = ApiClientProvider.shared) {
       courseId: Long,
       lat: Double? = null,
       lng: Double? = null,
+      signType: Int,
+  ): Result<BykcSuccessResponse> {
+    return backend.signCourse(courseId, lat, lng, signType)
+  }
+}
+
+internal class RelayBykcApiBackend(
+    private val apiClient: ApiClient = ApiClientProvider.shared
+) : BykcApiBackend {
+  override suspend fun getProfile(): Result<BykcUserProfileDto> {
+    return safeApiCall { apiClient.getClient().get("api/v1/bykc/profile") }
+  }
+
+  override suspend fun getCourses(
+      page: Int,
+      size: Int,
+      all: Boolean,
+  ): Result<BykcCoursesResponse> {
+    return safeApiCall {
+      apiClient.getClient().get("api/v1/bykc/courses") {
+        parameter("page", page)
+        parameter("size", size)
+        parameter("all", all)
+      }
+    }
+  }
+
+  override suspend fun getCourseDetail(courseId: Long): Result<BykcCourseDetailDto> {
+    return try {
+      val response = apiClient.getClient().get("api/v1/bykc/courses/$courseId")
+
+      when (response.status) {
+        HttpStatusCode.OK -> Result.success(response.body())
+        HttpStatusCode.NotFound -> Result.failure(ApiCallException("课程不存在或已下线"))
+        else -> Result.failure(response.toApiCallException())
+      }
+    } catch (e: Exception) {
+      Result.failure(e.toUserFacingApiException("课程详情加载失败，请稍后重试"))
+    }
+  }
+
+  override suspend fun getChosenCourses(): Result<List<BykcChosenCourseDto>> {
+    return safeApiCall { apiClient.getClient().get("api/v1/bykc/courses/chosen") }
+  }
+
+  override suspend fun getStatistics(): Result<BykcStatisticsDto> {
+    return safeApiCall { apiClient.getClient().get("api/v1/bykc/statistics") }
+  }
+
+  override suspend fun selectCourse(courseId: Long): Result<BykcSuccessResponse> {
+    return safeApiCall {
+      apiClient.getClient().post("api/v1/bykc/courses/$courseId/select") {
+        contentType(ContentType.Application.Json)
+      }
+    }
+  }
+
+  override suspend fun deselectCourse(courseId: Long): Result<BykcSuccessResponse> {
+    return safeApiCall { apiClient.getClient().delete("api/v1/bykc/courses/$courseId/select") }
+  }
+
+  override suspend fun signCourse(
+      courseId: Long,
+      lat: Double?,
+      lng: Double?,
       signType: Int,
   ): Result<BykcSuccessResponse> {
     return safeApiCall {

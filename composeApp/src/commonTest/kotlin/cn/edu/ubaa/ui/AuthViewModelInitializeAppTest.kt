@@ -4,6 +4,9 @@ import cn.edu.ubaa.api.ApiCallException
 import cn.edu.ubaa.api.AuthService
 import cn.edu.ubaa.api.AuthTokensStore
 import cn.edu.ubaa.api.ClientIdStore
+import cn.edu.ubaa.api.ConnectionMode
+import cn.edu.ubaa.api.ConnectionModeStore
+import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.CredentialStore
 import cn.edu.ubaa.api.SessionStatusResponse
 import cn.edu.ubaa.api.StoredAuthTokens
@@ -36,6 +39,8 @@ class AuthViewModelInitializeAppTest {
     AuthTokensStore.clear()
     ClientIdStore.clear()
     CredentialStore.clear()
+    ConnectionModeStore.clear()
+    ConnectionRuntime.clearSelectedMode()
   }
 
   @AfterTest
@@ -44,12 +49,36 @@ class AuthViewModelInitializeAppTest {
     CredentialStore.clear()
     AuthTokensStore.clear()
     ClientIdStore.clear()
+    ConnectionModeStore.clear()
+    ConnectionRuntime.clearSelectedMode()
+  }
+
+  @Test
+  fun `initializeApp is skipped until connection mode is selected`() = runTest {
+    Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+    val authService = TimeoutAuthService()
+    val viewModel =
+        AuthViewModel(
+            authService = authService,
+            userService = StubUserService(),
+        )
+
+    viewModel.initializeApp()
+    advanceUntilIdle()
+
+    assertEquals(0, authService.statusCalls)
+    assertEquals(0, authService.preloadCalls)
+    assertEquals(0, authService.loginCalls)
+    assertFalse(authService.applyStoredTokensCalled)
+    assertFalse(viewModel.uiState.value.isLoading)
+    assertNull(viewModel.uiState.value.error)
   }
 
   @Test
   fun `initializeApp preserves tokens and skips relogin when auth status times out upstream`() =
       runTest {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        ConnectionModeStore.save(ConnectionMode.SERVER_RELAY)
         AuthTokensStore.save(
             StoredAuthTokens(
                 accessToken = "stale-access-token",
@@ -82,7 +111,62 @@ class AuthViewModelInitializeAppTest {
         assertEquals("stale-refresh-token", AuthTokensStore.get()?.refreshToken)
       }
 
-  private class TimeoutAuthService : AuthService() {
+  @Test
+  fun `initializeApp relies on auth service persisted session contract instead of relay tokens`() =
+      runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        ConnectionModeStore.save(ConnectionMode.DIRECT)
+        val authService = TimeoutAuthService(hasPersistedSession = true)
+        val viewModel =
+            AuthViewModel(
+                authService = authService,
+                userService = StubUserService(),
+            )
+
+        viewModel.initializeApp()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, authService.statusCalls)
+        assertEquals(0, authService.preloadCalls)
+        assertEquals(0, authService.loginCalls)
+        assertTrue(authService.applyStoredTokensCalled)
+        assertFalse(state.isLoading)
+        assertEquals("认证服务响应超时，请稍后重试", state.error)
+      }
+
+  @Test
+  fun `preloadLoginState treats local mode restored session as logged in without relay token`() =
+      runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        ConnectionModeStore.save(ConnectionMode.DIRECT)
+        val authService =
+            PreloadedSessionAuthService(
+                LoginPreloadResponse(
+                    captchaRequired = false,
+                    userData = cn.edu.ubaa.model.dto.UserData("Test User", "22373333"),
+                )
+            )
+        val viewModel =
+            AuthViewModel(
+                authService = authService,
+                userService = StubUserService(),
+            )
+
+        viewModel.preloadLoginState()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, authService.preloadCalls)
+        assertTrue(state.isLoggedIn)
+        assertEquals("Test User", state.userData?.name)
+        assertNull(state.accessToken)
+        assertFalse(state.isPreloading)
+      }
+
+  private class TimeoutAuthService(
+      private val hasPersistedSession: Boolean = AuthTokensStore.get() != null
+  ) : AuthService() {
     var applyStoredTokensCalled = false
       private set
 
@@ -94,6 +178,8 @@ class AuthViewModelInitializeAppTest {
 
     var loginCalls = 0
       private set
+
+    override fun hasPersistedSession(): Boolean = hasPersistedSession
 
     override fun applyStoredTokens() {
       applyStoredTokensCalled = true
@@ -123,6 +209,31 @@ class AuthViewModelInitializeAppTest {
               code = "auth_upstream_timeout",
           )
       )
+    }
+  }
+
+  private class PreloadedSessionAuthService(
+      private val preloadResponse: LoginPreloadResponse
+  ) : AuthService() {
+    var preloadCalls = 0
+      private set
+
+    override suspend fun preloadLoginState(): Result<LoginPreloadResponse> {
+      preloadCalls++
+      return Result.success(preloadResponse)
+    }
+
+    override suspend fun login(
+        username: String,
+        password: String,
+        captcha: String?,
+        execution: String?,
+    ): Result<LoginResponse> {
+      return Result.failure(IllegalStateException("login should not be called"))
+    }
+
+    override suspend fun getAuthStatus(): Result<SessionStatusResponse> {
+      return Result.failure(IllegalStateException("status should not be called"))
     }
   }
 
