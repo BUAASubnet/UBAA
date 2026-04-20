@@ -14,14 +14,20 @@ class BykcTimeFormattersTest {
 
   @Test
   fun `formatDateTimeDisplay trims seconds`() {
-    assertEquals("2025-03-15 14:00", formatDateTimeDisplay("2025-03-15 14:00:00"))
+    assertEquals(
+        "2025-03-15 14:00",
+        formatDateTimeDisplay(LocalDateTime.parse("2025-03-15T14:00:00")),
+    )
   }
 
   @Test
   fun `formatDateRange keeps same-day end time compact`() {
     assertEquals(
         "2025-03-15 14:00 - 16:30",
-        formatDateRange("2025-03-15 14:00:00", "2025-03-15 16:30:00"),
+        formatDateRange(
+            LocalDateTime.parse("2025-03-15T14:00:00"),
+            LocalDateTime.parse("2025-03-15T16:30:00"),
+        ),
     )
   }
 
@@ -29,7 +35,18 @@ class BykcTimeFormattersTest {
   fun `formatDateRange shows full cross-day timestamps`() {
     assertEquals(
         "2025-03-15 23:30 - 2025-03-16 08:15",
-        formatDateRange("2025-03-15 23:30:00", "2025-03-16 08:15:00"),
+        formatDateRange(
+            LocalDateTime.parse("2025-03-15T23:30:00"),
+            LocalDateTime.parse("2025-03-16T08:15:00"),
+        ),
+    )
+  }
+
+  @Test
+  fun `formatDateRangeOrStart falls back to start time when end is missing`() {
+    assertEquals(
+        "2025-03-15 14:00",
+        formatDateRangeOrStart(LocalDateTime.parse("2025-03-15T14:00:00"), null),
     )
   }
 
@@ -37,8 +54,8 @@ class BykcTimeFormattersTest {
   fun `resolveSelectTimeDisplay shows start before selection begins`() {
     val display =
         resolveSelectTimeDisplay(
-            startDate = "2025-03-16 08:00:00",
-            endDate = "2025-03-16 18:00:00",
+            startDate = LocalDateTime.parse("2025-03-16T08:00:00"),
+            endDate = LocalDateTime.parse("2025-03-16T18:00:00"),
             now = LocalDateTime.parse("2025-03-16T07:30:00"),
         )
 
@@ -50,8 +67,8 @@ class BykcTimeFormattersTest {
   fun `resolveSelectTimeDisplay shows end after selection begins`() {
     val display =
         resolveSelectTimeDisplay(
-            startDate = "2025-03-16 08:00:00",
-            endDate = "2025-03-16 18:00:00",
+            startDate = LocalDateTime.parse("2025-03-16T08:00:00"),
+            endDate = LocalDateTime.parse("2025-03-16T18:00:00"),
             now = LocalDateTime.parse("2025-03-16T08:30:00"),
         )
 
@@ -64,7 +81,7 @@ class BykcTimeFormattersTest {
     val display =
         resolveSelectTimeDisplay(
             startDate = null,
-            endDate = "2025-03-16 18:00:00",
+            endDate = LocalDateTime.parse("2025-03-16T18:00:00"),
             now = LocalDateTime.parse("2025-03-16T08:30:00"),
         )
 
@@ -74,7 +91,13 @@ class BykcTimeFormattersTest {
 
   @Test
   fun `isBykcCourseFull returns true for full count and full status`() {
-    assertTrue(isBykcCourseFull(courseCurrentCount = 10, courseMaxCount = 10, status = "可选"))
+    assertTrue(
+        isBykcCourseFull(
+            courseCurrentCount = 10,
+            courseMaxCount = 10,
+            status = BykcCourseStatus.AVAILABLE,
+        )
+    )
     assertTrue(
         isBykcCourseFull(
             courseCurrentCount = 5,
@@ -94,8 +117,8 @@ class BykcTimeFormattersTest {
                     courseName = "测试课程",
                     courseMaxCount = 10,
                     courseCurrentCount = 5,
-                    courseSelectStartDate = "2025-03-16 08:00:00",
-                    courseSelectEndDate = "2025-03-16 18:00:00",
+                    courseSelectStartDate = LocalDateTime.parse("2025-03-16T08:00:00"),
+                    courseSelectEndDate = LocalDateTime.parse("2025-03-16T18:00:00"),
                     status = BykcCourseStatus.AVAILABLE,
                 ),
             listSnapshot =
@@ -124,8 +147,8 @@ class BykcTimeFormattersTest {
                     courseName = "测试课程",
                     courseMaxCount = 10,
                     courseCurrentCount = 5,
-                    courseSelectStartDate = "2025-03-16 08:00:00",
-                    courseSelectEndDate = "2025-03-16 18:00:00",
+                    courseSelectStartDate = LocalDateTime.parse("2025-03-16T08:00:00"),
+                    courseSelectEndDate = LocalDateTime.parse("2025-03-16T18:00:00"),
                     status = BykcCourseStatus.AVAILABLE,
                 ),
             listSnapshot =

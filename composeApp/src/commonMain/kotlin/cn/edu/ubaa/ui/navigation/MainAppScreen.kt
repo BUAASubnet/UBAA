@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cn.edu.ubaa.api.BykcCourseFilterStore
 import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
@@ -120,6 +121,8 @@ fun MainAppScreen(
 
   var selectedBottomTab by remember { mutableStateOf(BottomNavTab.HOME) }
   var showSidebar by remember { mutableStateOf(false) }
+  var homeManualRefreshPending by remember { mutableStateOf(false) }
+  var homeManualRefreshStarted by remember { mutableStateOf(false) }
   val homeSnackbarHostState = remember { SnackbarHostState() }
   val homeBootstrapCoordinator = remember(scope) { HomeBootstrapCoordinator(scope) }
   val homeBootstrapRunning by homeBootstrapCoordinator.isRunning.collectAsState()
@@ -192,8 +195,15 @@ fun MainAppScreen(
   var selectedBykcCourseId by remember { mutableStateOf<Long?>(null) }
   var selectedBykcCourseSnapshot by remember { mutableStateOf<BykcCourseDto?>(null) }
   val bykcCoursesListState = rememberLazyListState()
-  var showBykcIncludeExpired by remember { mutableStateOf(false) }
-  var hideBykcFullCourses by remember { mutableStateOf(false) }
+  val bykcFilterUserKey = userData.schoolid
+  val defaultBykcFilters = remember { defaultBykcCourseFilters() }
+  var bykcCourseFilters by
+      remember(bykcFilterUserKey) {
+        mutableStateOf(
+            BykcCourseFilterStore.get(bykcFilterUserKey)?.toBykcCourseFilters()
+                ?: defaultBykcFilters
+        )
+      }
   var selectedSpocAssignmentId by remember { mutableStateOf<String?>(null) }
   var showSpocSortFilterDialog by remember { mutableStateOf(false) }
   val homeTodoItems =
@@ -212,13 +222,17 @@ fun MainAppScreen(
             now = homeNow,
         )
       }
-  val homeTodoLoading =
-      homeBootstrapRunning ||
-          bykcChosenState.isLoading ||
-          spocUiState.isLoading ||
-          spocUiState.isRefreshing ||
-          signinUiState.isLoading ||
-          cgyyUiState.isOrdersLoading
+  val homeTodoLoadingSources = buildList {
+    if (bykcChosenState.isLoading) add(HomeTodoSource.BYKC)
+    if (spocUiState.isLoading || spocUiState.isRefreshing) add(HomeTodoSource.SPOC)
+    if (cgyyUiState.isOrdersLoading) add(HomeTodoSource.CGYY)
+    if (signinUiState.isLoading) add(HomeTodoSource.SIGNIN)
+  }
+  val homeTodoLoading = homeTodoLoadingSources.isNotEmpty()
+  val homeContentLoading = todayScheduleState.isLoading || homeTodoLoading
+  val homeIsRefreshing =
+      homeManualRefreshPending &&
+          (homeManualRefreshStarted || homeBootstrapRunning || homeContentLoading)
   val homeTodoFailedSources = buildList {
     if (bykcChosenState.error != null) add(HomeTodoSource.BYKC)
     if (spocUiState.error != null) add(HomeTodoSource.SPOC)
@@ -250,7 +264,22 @@ fun MainAppScreen(
   }
 
   fun refreshHomeData() {
+    homeManualRefreshPending = true
     startHomeBootstrap(forceRefresh = true)
+  }
+
+  fun updateBykcCourseFilters(newFilters: BykcCourseFilters) {
+    val shouldReloadCourses =
+        bykcCourseFilters.requiresAllCourses() != newFilters.requiresAllCourses()
+    bykcCourseFilters = newFilters
+    if (newFilters == defaultBykcFilters) {
+      BykcCourseFilterStore.clear(bykcFilterUserKey)
+    } else {
+      BykcCourseFilterStore.save(bykcFilterUserKey, newFilters.toStored())
+    }
+    if (shouldReloadCourses) {
+      bykcViewModel.loadCourses(includeExpired = newFilters.requiresAllCourses())
+    }
   }
 
   /** 重置导航栈至指定根页面。 */
@@ -364,8 +393,29 @@ fun MainAppScreen(
     if (currentScreen in cgyyScreens) {
       hasVisitedCgyy = true
     }
+    if (currentScreen != AppScreen.HOME) {
+      homeManualRefreshPending = false
+      homeManualRefreshStarted = false
+    }
     if (currentScreen == AppScreen.MY) {
       onEnsureUserInfo()
+    }
+  }
+
+  // Don't clear a manual refresh until we've observed real loading at least once.
+  LaunchedEffect(
+      homeManualRefreshPending,
+      homeManualRefreshStarted,
+      homeBootstrapRunning,
+      homeContentLoading,
+  ) {
+    if (!homeManualRefreshPending) {
+      homeManualRefreshStarted = false
+    } else if (homeBootstrapRunning || homeContentLoading) {
+      homeManualRefreshStarted = true
+    } else if (homeManualRefreshStarted) {
+      homeManualRefreshPending = false
+      homeManualRefreshStarted = false
     }
   }
 
@@ -379,7 +429,7 @@ fun MainAppScreen(
       AppScreen.EXAM -> examViewModel?.ensureLoaded()
       AppScreen.BYKC_COURSES -> {
         bykcViewModel.ensureProfileLoaded()
-        bykcViewModel.ensureCoursesLoaded(includeExpired = showBykcIncludeExpired)
+        bykcViewModel.ensureCoursesLoaded(includeExpired = bykcCourseFilters.requiresAllCourses())
       }
       AppScreen.BYKC_CHOSEN -> bykcViewModel.ensureChosenCoursesLoaded()
       AppScreen.BYKC_STATISTICS -> bykcViewModel.ensureStatisticsLoaded()
@@ -483,21 +533,6 @@ fun MainAppScreen(
                     }
                   }
                 }
-              } else if (currentScreen == AppScreen.BYKC_COURSES) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                  Text(
-                      text = "显示已过期",
-                      style = MaterialTheme.typography.labelMedium,
-                      modifier = Modifier.padding(end = 8.dp),
-                  )
-                  Checkbox(
-                      checked = showBykcIncludeExpired,
-                      onCheckedChange = {
-                        showBykcIncludeExpired = it
-                        bykcViewModel.loadCourses(includeExpired = it)
-                      },
-                  )
-                }
               } else if (currentScreen == AppScreen.SPOC_ASSIGNMENTS) {
                 IconButton(onClick = { showSpocSortFilterDialog = true }) {
                   Icon(Icons.Default.Tune, contentDescription = "排序和筛选")
@@ -513,9 +548,11 @@ fun MainAppScreen(
               HomeScreen(
                   todayClasses = todayScheduleState.todayClasses,
                   isLoading = todayScheduleState.isLoading,
+                  isRefreshing = homeIsRefreshing,
                   error = todayScheduleState.error,
                   todoItems = homeTodoItems,
                   todoLoading = homeTodoLoading,
+                  todoLoadingSources = homeTodoLoadingSources,
                   todoFailedSources = homeTodoFailedSources,
                   signingTodoId =
                       signinUiState.signingInCourseId?.let { courseId -> "signin:$courseId" },
@@ -577,7 +614,7 @@ fun MainAppScreen(
                   isLoading = bykcCoursesState.isLoading,
                   isLoadingMore = bykcCoursesState.isLoadingMore,
                   hasMorePages = bykcCoursesState.hasMorePages,
-                  hideFullCourses = hideBykcFullCourses,
+                  filters = bykcCourseFilters,
                   error = bykcCoursesState.error,
                   listState = bykcCoursesListState,
                   onCourseClick = {
@@ -586,12 +623,16 @@ fun MainAppScreen(
                     bykcViewModel.loadCourseDetail(it.id)
                     navigateTo(AppScreen.BYKC_DETAIL)
                   },
-                  onHideFullCoursesChange = { hideBykcFullCourses = it },
+                  onFiltersChange = ::updateBykcCourseFilters,
                   onRefresh = {
-                    bykcViewModel.loadCourses(includeExpired = showBykcIncludeExpired)
+                    bykcViewModel.loadCourses(
+                        includeExpired = bykcCourseFilters.requiresAllCourses()
+                    )
                   },
                   onLoadMore = {
-                    bykcViewModel.loadMoreCourses(includeExpired = showBykcIncludeExpired)
+                    bykcViewModel.loadMoreCourses(
+                        includeExpired = bykcCourseFilters.requiresAllCourses()
+                    )
                   },
               )
           AppScreen.BYKC_DETAIL ->

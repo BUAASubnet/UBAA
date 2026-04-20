@@ -57,7 +57,7 @@ fun Route.bykcRouting() {
      *
      * @param page 页码（从 1 开始）。
      * @param size 每页数量。
-     * @param all 是否包含已结束课程。
+     * @param all 是否包含选课结束课程。
      */
     get("/courses") {
       val username = call.jwtUsername!!

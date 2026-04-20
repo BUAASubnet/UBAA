@@ -145,11 +145,19 @@ fun BykcCourseDetailScreen(
                 course.coursePosition?.let { position ->
                   DetailItem(label = "上课地点", value = position, icon = Icons.Default.Place)
                 }
+                course.organizerCollegeName?.let { organizerCollegeName ->
+                  DetailItem(
+                      label = "开课单位",
+                      value = organizerCollegeName,
+                      icon = Icons.Default.Business,
+                  )
+                }
                 course.category?.let { category ->
+                  val subCategory = course.subCategory
                   val categoryText =
-                      if (course.subCategory != null) {
-                        "$category / ${course.subCategory}"
-                      } else category
+                      if (subCategory != null) {
+                        "${category.displayName} / ${subCategory.displayName}"
+                      } else category.displayName
                   DetailItem(
                       label = "课程分类",
                       value = categoryText,
@@ -188,6 +196,54 @@ fun BykcCourseDetailScreen(
                       value = formatDateTimeDisplay(cancelEnd),
                       icon = Icons.Default.Close,
                   )
+                }
+              }
+            }
+
+            if (
+                course.audienceCampuses.isNotEmpty() ||
+                    course.audienceColleges.isNotEmpty() ||
+                    course.audienceTerms.isNotEmpty() ||
+                    course.audienceGroups.isNotEmpty()
+            ) {
+              item {
+                DetailCard(title = "适用范围") {
+                  course.audienceCampuses
+                      .takeIf { it.isNotEmpty() }
+                      ?.let { campuses ->
+                        DetailItem(
+                            label = "校区",
+                            value = campuses.joinToString(" / "),
+                            icon = Icons.Default.Map,
+                        )
+                      }
+                  course.audienceColleges
+                      .takeIf { it.isNotEmpty() }
+                      ?.let { colleges ->
+                        DetailItem(
+                            label = "学院",
+                            value = colleges.joinToString(" / "),
+                            icon = Icons.Default.AccountBalance,
+                        )
+                      }
+                  course.audienceTerms
+                      .takeIf { it.isNotEmpty() }
+                      ?.let { terms ->
+                        DetailItem(
+                            label = "年级",
+                            value = terms.joinToString(" / "),
+                            icon = Icons.Default.School,
+                        )
+                      }
+                  course.audienceGroups
+                      .takeIf { it.isNotEmpty() }
+                      ?.let { groups ->
+                        DetailItem(
+                            label = "人群",
+                            value = groups.joinToString(" / "),
+                            icon = Icons.Default.Groups,
+                        )
+                      }
                 }
               }
             }

@@ -127,8 +127,7 @@ fun BykcChosenCourseCard(
       course.coursePosition?.let { position -> InfoRow(label = "地点", value = position) }
 
       course.courseStartDate?.let { startDate ->
-        val endDate = course.courseEndDate ?: ""
-        InfoRow(label = "时间", value = formatDateRange(startDate, endDate))
+        InfoRow(label = "时间", value = formatDateRangeOrStart(startDate, course.courseEndDate))
       }
 
       course.courseCancelEndDate?.let { cancelEnd ->
@@ -146,7 +145,9 @@ fun BykcChosenCourseCard(
           course.subCategory?.let { subCategory ->
             SuggestionChip(
                 onClick = {},
-                label = { Text(subCategory, style = MaterialTheme.typography.labelSmall) },
+                label = {
+                  Text(subCategory.displayName, style = MaterialTheme.typography.labelSmall)
+                },
             )
           }
           if (hasSignPoints) {

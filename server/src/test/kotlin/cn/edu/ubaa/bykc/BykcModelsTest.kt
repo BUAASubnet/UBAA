@@ -1,8 +1,12 @@
 package cn.edu.ubaa.bykc
 
+import cn.edu.ubaa.model.dto.BykcCourseCategory
+import cn.edu.ubaa.model.dto.BykcCourseDetailDto
 import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.BykcCourseStatus
+import cn.edu.ubaa.model.dto.BykcCourseSubCategory
 import kotlin.test.*
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 
 /** BYKC 数据模型序列化测试 */
@@ -65,7 +69,7 @@ class BykcModelsTest {
   }
 
   @Test
-  fun `BykcCourse can parse full course data`() {
+  fun `BykcRawCourse can parse full course data`() {
     val jsonStr =
         """
         {
@@ -103,7 +107,7 @@ class BykcModelsTest {
         """
             .trimIndent()
 
-    val course = json.decodeFromString<BykcCourse>(jsonStr)
+    val course = json.decodeFromString<BykcRawCourse>(jsonStr)
 
     assertEquals(8748L, course.id)
     assertEquals("AI时代,建构英语学习新思维", course.courseName)
@@ -203,47 +207,90 @@ class BykcModelsTest {
             courseName = "测试课程",
             coursePosition = "测试地点",
             courseTeacher = "测试教师",
-            courseStartDate = "2025-11-26 19:00:00",
-            courseEndDate = "2025-11-26 21:00:00",
-            courseSelectStartDate = "2025-11-25 19:00:00",
-            courseSelectEndDate = "2025-11-26 18:00:00",
+            courseStartDate = LocalDateTime.parse("2025-11-26T19:00:00"),
+            courseEndDate = LocalDateTime.parse("2025-11-26T21:00:00"),
+            courseSelectStartDate = LocalDateTime.parse("2025-11-25T19:00:00"),
+            courseSelectEndDate = LocalDateTime.parse("2025-11-26T18:00:00"),
             courseMaxCount = 100,
             courseCurrentCount = 50,
-            category = "博雅课程",
-            subCategory = "德育",
+            category = BykcCourseCategory.BOYA,
+            subCategory = BykcCourseSubCategory.MORAL,
+            audienceCampuses = listOf("学院路校区"),
             hasSignPoints = true,
             status = BykcCourseStatus.AVAILABLE,
             selected = false,
-            courseDesc = "课程描述",
         )
 
     val serialized = json.encodeToString(BykcCourseDto.serializer(), dto)
     val deserialized = json.decodeFromString<BykcCourseDto>(serialized)
 
+    assertTrue(serialized.contains("\"courseStartDate\":\"2025-11-26 19:00:00\""))
+    assertTrue(serialized.contains("\"status\":\"可选\""))
     assertEquals(dto.id, deserialized.id)
     assertEquals(dto.courseName, deserialized.courseName)
     assertEquals(dto.status, deserialized.status)
     assertEquals(dto.category, deserialized.category)
+    assertEquals(dto.audienceCampuses, deserialized.audienceCampuses)
     assertEquals(dto.hasSignPoints, deserialized.hasSignPoints)
   }
 
   @Test
-  fun `BykcCourseStatusEnum enum has correct display names`() {
-    assertEquals("已过期", BykcCourseStatusEnum.EXPIRED.displayName)
-    assertEquals("已选", BykcCourseStatusEnum.SELECTED.displayName)
-    assertEquals("预告", BykcCourseStatusEnum.PREVIEW.displayName)
-    assertEquals("已结束", BykcCourseStatusEnum.ENDED.displayName)
-    assertEquals("人数已满", BykcCourseStatusEnum.FULL.displayName)
-    assertEquals("可选", BykcCourseStatusEnum.AVAILABLE.displayName)
+  fun `BykcCourseDetailDto serialization keeps detail only fields`() {
+    val dto =
+        BykcCourseDetailDto(
+            id = 1234L,
+            courseName = "测试课程",
+            coursePosition = "测试地点",
+            courseTeacher = "测试教师",
+            courseStartDate = LocalDateTime.parse("2025-11-26T19:00:00"),
+            courseEndDate = LocalDateTime.parse("2025-11-26T21:00:00"),
+            courseSelectStartDate = LocalDateTime.parse("2025-11-25T19:00:00"),
+            courseSelectEndDate = LocalDateTime.parse("2025-11-26T18:00:00"),
+            courseMaxCount = 100,
+            courseCurrentCount = null,
+            category = BykcCourseCategory.BOYA,
+            subCategory = BykcCourseSubCategory.MORAL,
+            hasSignPoints = false,
+            status = BykcCourseStatus.AVAILABLE,
+            selected = true,
+            organizerCollegeName = "学生中心",
+            courseContact = "曹老师",
+            courseContactMobile = "13800000000",
+            courseDesc = "课程描述",
+            audienceCampuses = listOf("沙河校区"),
+            audienceGroups = listOf("本科"),
+            canSign = true,
+        )
+
+    val serialized = json.encodeToString(BykcCourseDetailDto.serializer(), dto)
+    val deserialized = json.decodeFromString<BykcCourseDetailDto>(serialized)
+
+    assertTrue(serialized.contains("\"category\":\"博雅课程\""))
+    assertTrue(serialized.contains("\"subCategory\":\"德育\""))
+    assertEquals(dto.organizerCollegeName, deserialized.organizerCollegeName)
+    assertEquals(dto.courseDesc, deserialized.courseDesc)
+    assertEquals(dto.audienceCampuses, deserialized.audienceCampuses)
+    assertEquals(dto.audienceGroups, deserialized.audienceGroups)
+    assertEquals(dto.canSign, deserialized.canSign)
+    assertEquals(dto.courseCurrentCount, deserialized.courseCurrentCount)
   }
 
   @Test
-  fun `BykcCourseStatus constants have correct values`() {
-    assertEquals("已过期", BykcCourseStatus.EXPIRED)
-    assertEquals("已选", BykcCourseStatus.SELECTED)
-    assertEquals("预告", BykcCourseStatus.PREVIEW)
-    assertEquals("已结束", BykcCourseStatus.ENDED)
-    assertEquals("人数已满", BykcCourseStatus.FULL)
-    assertEquals("可选", BykcCourseStatus.AVAILABLE)
+  fun `BykcCourseStatus enum has correct display names`() {
+    assertEquals("已过期", BykcCourseStatus.EXPIRED.displayName)
+    assertEquals("已选", BykcCourseStatus.SELECTED.displayName)
+    assertEquals("预告", BykcCourseStatus.PREVIEW.displayName)
+    assertEquals("选课结束", BykcCourseStatus.ENDED.displayName)
+    assertEquals("人数已满", BykcCourseStatus.FULL.displayName)
+    assertEquals("可选", BykcCourseStatus.AVAILABLE.displayName)
+  }
+
+  @Test
+  fun `Bykc course category parsers keep known and unknown values`() {
+    assertEquals(BykcCourseCategory.BOYA, BykcCourseCategory.fromDisplayName("博雅课程"))
+    assertEquals(BykcCourseCategory.UNKNOWN, BykcCourseCategory.fromDisplayName("神秘分类"))
+    assertEquals(BykcCourseSubCategory.MORAL, BykcCourseSubCategory.fromDisplayName("德育"))
+    assertEquals(BykcCourseSubCategory.UNKNOWN, BykcCourseSubCategory.fromDisplayName("神秘二级"))
+    assertNull(BykcCourseCategory.fromDisplayName(null))
   }
 }
