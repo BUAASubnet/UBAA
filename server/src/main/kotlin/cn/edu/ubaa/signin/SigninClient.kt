@@ -29,28 +29,22 @@ class SigninClient(private val studentId: String) {
 
   /** 创建专用于 iclass 的 HttpClient，配置较宽松的 SSL 验证。 */
   private val client =
-          HttpClient(CIO) {
-            install(ContentNegotiation) { json(json) }
-            install(HttpTimeout) { requestTimeoutMillis = 30000 }
-            engine {
-              https {
-                trustManager =
-                        object : X509TrustManager {
-                          override fun checkClientTrusted(
-                                  c: Array<out X509Certificate>?,
-                                  a: String?
-                          ) {}
+      HttpClient(CIO) {
+        install(ContentNegotiation) { json(json) }
+        install(HttpTimeout) { requestTimeoutMillis = 30000 }
+        engine {
+          https {
+            trustManager =
+                object : X509TrustManager {
+                  override fun checkClientTrusted(c: Array<out X509Certificate>?, a: String?) {}
 
-                          override fun checkServerTrusted(
-                                  c: Array<out X509Certificate>?,
-                                  a: String?
-                          ) {}
+                  override fun checkServerTrusted(c: Array<out X509Certificate>?, a: String?) {}
 
-                          override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                        }
-              }
-            }
+                  override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                }
           }
+        }
+      }
 
   private var userId: String? = null
   private var sessionId: String? = null
@@ -65,17 +59,15 @@ class SigninClient(private val studentId: String) {
       try {
         AppObservability.observeUpstreamRequest("iclass", "login") {
           val response =
-                  client.get(
-                          VpnCipher.toVpnUrl(
-                                  "https://iclass.buaa.edu.cn:8347/app/user/login.action"
-                          )
-                  ) {
-                    parameter("password", "")
-                    parameter("phone", studentId)
-                    parameter("userLevel", "1")
-                    parameter("verificationType", "2")
-                    parameter("verificationUrl", "")
-                  }
+              client.get(
+                  VpnCipher.toVpnUrl("https://iclass.buaa.edu.cn:8347/app/user/login.action")
+              ) {
+                parameter("password", "")
+                parameter("phone", studentId)
+                parameter("userLevel", "1")
+                parameter("verificationType", "2")
+                parameter("verificationUrl", "")
+              }
           if (!response.status.isSuccess()) {
             markUnauthenticated()
             return@observeUpstreamRequest false
@@ -104,27 +96,27 @@ class SigninClient(private val studentId: String) {
     return try {
       AppObservability.observeUpstreamRequest("iclass", "get_today") {
         val response =
-                client.get(
-                        VpnCipher.toVpnUrl(
-                                "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action"
-                        )
-                ) {
-                  header("sessionId", sessionId)
-                  parameter("id", userId)
-                  parameter("dateStr", dateStr)
-                }
+            client.get(
+                VpnCipher.toVpnUrl(
+                    "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action"
+                )
+            ) {
+              header("sessionId", sessionId)
+              parameter("id", userId)
+              parameter("dateStr", dateStr)
+            }
         val body = response.bodyAsText()
         val result =
-                json.parseToJsonElement(body).jsonObject["result"]?.jsonArray
-                        ?: return@observeUpstreamRequest emptyList()
+            json.parseToJsonElement(body).jsonObject["result"]?.jsonArray
+                ?: return@observeUpstreamRequest emptyList()
         result.map {
           val obj = it.jsonObject
           SigninClassDto(
-                  courseId = obj["id"]?.jsonPrimitive?.content ?: "",
-                  courseName = obj["courseName"]?.jsonPrimitive?.content ?: "",
-                  classBeginTime = obj["classBeginTime"]?.jsonPrimitive?.content ?: "",
-                  classEndTime = obj["classEndTime"]?.jsonPrimitive?.content ?: "",
-                  signStatus = obj["signStatus"]?.jsonPrimitive?.intOrNull ?: 0,
+              courseId = obj["id"]?.jsonPrimitive?.content ?: "",
+              courseName = obj["courseName"]?.jsonPrimitive?.content ?: "",
+              classBeginTime = obj["classBeginTime"]?.jsonPrimitive?.content ?: "",
+              classEndTime = obj["classEndTime"]?.jsonPrimitive?.content ?: "",
+              signStatus = obj["signStatus"]?.jsonPrimitive?.intOrNull ?: 0,
           )
         }
       }
@@ -138,36 +130,36 @@ class SigninClient(private val studentId: String) {
     if (userId == null || sessionId == null) if (!login()) return false to "登录失败"
     return try {
       val serverTimestamp =
-              AppObservability.observeUpstreamRequest("iclass", "get_timestamp") {
-                client.get(
-                                VpnCipher.toVpnUrl(
-                                        "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
-                                )
-                        )
-                        .body<JsonObject>()
-                        .get("timestamp")
-                        ?.jsonPrimitive
-                        ?.content
-              }
-                      ?: return false to "获取服务器时间失败"
+          AppObservability.observeUpstreamRequest("iclass", "get_timestamp") {
+            client
+                .get(
+                    VpnCipher.toVpnUrl(
+                        "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
+                    )
+                )
+                .body<JsonObject>()
+                .get("timestamp")
+                ?.jsonPrimitive
+                ?.content
+          } ?: return false to "获取服务器时间失败"
 
       AppObservability.observeUpstreamRequest("iclass", "sign_in") {
         val response =
-                client.post(
-                        VpnCipher.toVpnUrl(
-                                "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action"
-                        )
-                ) {
-                  parameter("courseSchedId", courseId)
-                  parameter("timestamp", serverTimestamp)
-                  setBody(FormDataContent(Parameters.build { append("id", userId!!) }))
-                }
+            client.post(
+                VpnCipher.toVpnUrl("http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action")
+            ) {
+              parameter("courseSchedId", courseId)
+              parameter("timestamp", serverTimestamp)
+              setBody(FormDataContent(Parameters.build { append("id", userId!!) }))
+            }
         val jsonResponse = json.parseToJsonElement(response.bodyAsText()).jsonObject
         val success =
-                jsonResponse["STATUS"]?.jsonPrimitive?.intOrNull == 0 &&
-                        jsonResponse["result"]?.jsonObject?.get("stuSignStatus")
-                                ?.jsonPrimitive
-                                ?.intOrNull == 1
+            jsonResponse["STATUS"]?.jsonPrimitive?.intOrNull == 0 &&
+                jsonResponse["result"]
+                    ?.jsonObject
+                    ?.get("stuSignStatus")
+                    ?.jsonPrimitive
+                    ?.intOrNull == 1
         if (!success) {
           markError()
         }
