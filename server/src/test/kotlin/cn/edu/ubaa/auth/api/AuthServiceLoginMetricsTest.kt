@@ -1,6 +1,7 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.metrics.LoginMetricsSink
+import cn.edu.ubaa.metrics.LoginConnectionMode
 import cn.edu.ubaa.metrics.LoginSuccessMode
 import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.UserData
@@ -33,7 +34,10 @@ class AuthServiceLoginMetricsTest {
     val response = authService.login(LoginRequest(username = "2333", password = "secret"))
 
     assertEquals("2333", response.user.schoolid)
-    assertEquals(listOf(LoginRecord("2333", LoginSuccessMode.MANUAL)), sink.records)
+    assertEquals(
+        listOf(LoginRecord("2333", LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY)),
+        sink.records,
+    )
   }
 
   @Test
@@ -45,7 +49,16 @@ class AuthServiceLoginMetricsTest {
 
     assertNotNull(response.accessToken)
     assertEquals("2333", response.userData?.schoolid)
-    assertEquals(listOf(LoginRecord("2333", LoginSuccessMode.PRELOAD_AUTO)), sink.records)
+    assertEquals(
+        listOf(
+            LoginRecord(
+                "2333",
+                LoginSuccessMode.PRELOAD_AUTO,
+                LoginConnectionMode.SERVER_RELAY,
+            )
+        ),
+        sink.records,
+    )
   }
 
   @Test
@@ -130,7 +143,10 @@ class AuthServiceLoginMetricsTest {
     val response = authService.login(LoginRequest(username = "2333", password = "secret"))
 
     assertEquals("2333", response.user.schoolid)
-    assertEquals(listOf(LoginRecord("2333", LoginSuccessMode.MANUAL)), sink.records)
+    assertEquals(
+        listOf(LoginRecord("2333", LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY)),
+        sink.records,
+    )
   }
 
   @Test
@@ -350,13 +366,21 @@ class AuthServiceLoginMetricsTest {
       headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
 }
 
-private data class LoginRecord(val username: String, val mode: LoginSuccessMode)
+private data class LoginRecord(
+    val username: String,
+    val mode: LoginSuccessMode,
+    val connectionMode: LoginConnectionMode,
+)
 
 private class RecordingLoginMetricsSink : LoginMetricsSink {
   val records = mutableListOf<LoginRecord>()
 
-  override suspend fun recordSuccess(username: String, mode: LoginSuccessMode) {
-    records += LoginRecord(username, mode)
+  override suspend fun recordSuccess(
+      username: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+  ) {
+    records += LoginRecord(username, mode, connectionMode)
   }
 }
 

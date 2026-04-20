@@ -2,8 +2,13 @@ package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.api.SessionStatusResponse
 import cn.edu.ubaa.auth.JwtAuth.getUserSession
+import cn.edu.ubaa.metrics.LoginConnectionMode
 import cn.edu.ubaa.metrics.LoginMetricsSink
+import cn.edu.ubaa.metrics.LoginSuccessMode
 import cn.edu.ubaa.metrics.NoOpLoginMetricsSink
+import cn.edu.ubaa.model.dto.LoginStatsConnectionMode
+import cn.edu.ubaa.model.dto.LoginStatsReportRequest
+import cn.edu.ubaa.model.dto.LoginStatsSuccessMode
 import cn.edu.ubaa.metrics.observeBusinessOperation
 import cn.edu.ubaa.model.dto.CaptchaRequiredResponse
 import cn.edu.ubaa.model.dto.LoginRequest
@@ -94,6 +99,32 @@ fun Route.authRouting(
         } catch (e: Exception) {
           markError()
           application.log.error("An unexpected error occurred during login.", e)
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
+        }
+      }
+    }
+
+    post("/login-stats") {
+      call.observeBusinessOperation("auth", "login_stats") {
+        try {
+          val request = call.receive<LoginStatsReportRequest>()
+          if (request.username.isBlank()) {
+            markBusinessFailure()
+            call.respondError(HttpStatusCode.BadRequest, "invalid_request", "请提供有效的用户名")
+            return@observeBusinessOperation
+          }
+          loginMetricsSink.recordSuccess(
+              request.username,
+              request.successMode.toMetricMode(),
+              request.connectionMode.toMetricMode(),
+          )
+          call.respond(HttpStatusCode.OK)
+        } catch (e: ContentTransformationException) {
+          markBusinessFailure()
+          call.respondError(HttpStatusCode.BadRequest, "invalid_request", "登录统计请求格式不正确")
+        } catch (e: Exception) {
+          markError()
+          application.log.error("An unexpected error occurred during login stats reporting.", e)
           call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
         }
       }
@@ -219,3 +250,16 @@ fun Route.authRouting(
     }
   }
 }
+
+private fun LoginStatsSuccessMode.toMetricMode(): LoginSuccessMode =
+    when (this) {
+      LoginStatsSuccessMode.MANUAL -> LoginSuccessMode.MANUAL
+      LoginStatsSuccessMode.PRELOAD_AUTO -> LoginSuccessMode.PRELOAD_AUTO
+    }
+
+private fun LoginStatsConnectionMode.toMetricMode(): LoginConnectionMode =
+    when (this) {
+      LoginStatsConnectionMode.DIRECT -> LoginConnectionMode.DIRECT
+      LoginStatsConnectionMode.WEBVPN -> LoginConnectionMode.WEBVPN
+      LoginStatsConnectionMode.SERVER_RELAY -> LoginConnectionMode.SERVER_RELAY
+    }

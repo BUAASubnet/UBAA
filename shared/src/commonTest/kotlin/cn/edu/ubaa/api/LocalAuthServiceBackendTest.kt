@@ -1,5 +1,8 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.model.dto.LoginStatsConnectionMode
+import cn.edu.ubaa.model.dto.LoginStatsReportRequest
+import cn.edu.ubaa.model.dto.LoginStatsSuccessMode
 import cn.edu.ubaa.model.dto.UserData
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
@@ -21,6 +24,8 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
 class LocalAuthServiceBackendTest {
+  private val reportedLogins = mutableListOf<LoginStatsReportRequest>()
+
   @BeforeTest
   fun setup() {
     runTest { localConnectionTestMutex.lock() }
@@ -33,14 +38,18 @@ class LocalAuthServiceBackendTest {
     LocalAuthSessionStore.clearAllScopes()
     LocalCookieStore.clearAllScopes()
     LocalUpstreamClientProvider.reset()
+    reportedLogins.clear()
+    LoginStatsReporter.reporter = { request -> reportedLogins += request }
   }
 
   @AfterTest
   fun tearDown() {
+    LoginStatsReporter.reset()
     LocalUpstreamClientProvider.reset()
     LocalAuthSessionStore.clearAllScopes()
     LocalCookieStore.clearAllScopes()
     ConnectionRuntime.clearSelectedMode()
+    reportedLogins.clear()
     localConnectionTestMutex.unlock()
   }
 
@@ -94,6 +103,16 @@ class LocalAuthServiceBackendTest {
     assertNull(result.getOrNull()?.accessToken)
     assertEquals("22373333", LocalAuthSessionStore.get()?.username)
     assertNotNull(LocalCookieStore.load(ConnectionMode.DIRECT))
+    assertEquals(
+        listOf(
+            LoginStatsReportRequest(
+                username = "22373333",
+                successMode = LoginStatsSuccessMode.PRELOAD_AUTO,
+                connectionMode = LoginStatsConnectionMode.DIRECT,
+            )
+        ),
+        reportedLogins,
+    )
   }
 
   @Test
@@ -152,7 +171,90 @@ class LocalAuthServiceBackendTest {
         assertEquals("22374444", result.getOrNull()?.userData?.schoolid)
         assertTrue(requestedUrls.all { it.startsWith("https://d.buaa.edu.cn/") })
         assertNotNull(LocalCookieStore.load(ConnectionMode.WEBVPN))
+        assertEquals(
+            listOf(
+                LoginStatsReportRequest(
+                    username = "22374444",
+                    successMode = LoginStatsSuccessMode.PRELOAD_AUTO,
+                    connectionMode = LoginStatsConnectionMode.WEBVPN,
+                )
+            ),
+            reportedLogins,
+        )
       }
+
+  @Test
+  fun `login reports direct login stats after successful authentication`() = runTest {
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://sso.buaa.edu.cn/login" ->
+            when (request.method.value) {
+              "GET" ->
+                  respond(
+                      content =
+                          ByteReadChannel(
+                              """
+                              <html>
+                                <body>
+                                  <form id="fm1">
+                                    <input type="hidden" name="execution" value="e1s1" />
+                                  </form>
+                                </body>
+                              </html>
+                              """
+                                  .trimIndent()
+                          ),
+                      status = HttpStatusCode.OK,
+                      headers = headersOf(HttpHeaders.ContentType, "text/html"),
+                  )
+              "POST" ->
+                  respond(
+                      content = ByteReadChannel.Empty,
+                      status = HttpStatusCode.Found,
+                      headers = headersOf(HttpHeaders.Location, "https://uc.buaa.edu.cn/landing"),
+                  )
+              else -> error("Unexpected method: ${request.method}")
+            }
+        "https://uc.buaa.edu.cn/landing" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+            )
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+            )
+        "https://uc.buaa.edu.cn/api/uc/status" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        """{"code":0,"data":{"name":"Direct User","schoolid":"22375555","username":"22375555"}}"""
+                    ),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
+    useMockUpstream(engine)
+
+    val result =
+        LocalAuthServiceBackend().login("22375555", "secret", captcha = null, execution = null)
+
+    assertTrue(result.isSuccess)
+    assertEquals("22375555", result.getOrNull()?.user?.schoolid)
+    assertEquals(
+        listOf(
+            LoginStatsReportRequest(
+                username = "22375555",
+                successMode = LoginStatsSuccessMode.MANUAL,
+                connectionMode = LoginStatsConnectionMode.DIRECT,
+            )
+        ),
+        reportedLogins,
+    )
+  }
 
   @Test
   fun `login returns captcha requirement when direct mode upstream asks for captcha`() = runTest {

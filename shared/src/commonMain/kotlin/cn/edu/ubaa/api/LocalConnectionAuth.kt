@@ -4,6 +4,7 @@ import cn.edu.ubaa.model.dto.CaptchaInfo
 import cn.edu.ubaa.model.dto.LoginPreloadResponse
 import cn.edu.ubaa.model.dto.LoginRequest
 import cn.edu.ubaa.model.dto.LoginResponse
+import cn.edu.ubaa.model.dto.LoginStatsSuccessMode
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
 import cn.edu.ubaa.model.dto.UserInfoResponse
@@ -328,6 +329,13 @@ internal suspend fun resolveLocalBusinessAuthenticationFailure(
   }
 }
 
+private suspend fun reportLocalLoginSuccess(username: String, successMode: LoginStatsSuccessMode) {
+  val connectionMode =
+      ConnectionRuntime.currentMode()?.takeIf { it != ConnectionMode.SERVER_RELAY }
+          ?: ConnectionMode.DIRECT
+  LoginStatsReporter.reportSuccess(username, successMode, connectionMode)
+}
+
 internal class LocalAuthServiceBackend : AuthServiceBackend {
   override fun hasPersistedSession(): Boolean = LocalAuthSessionStore.get() != null
 
@@ -344,13 +352,18 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       if (response.status.value in 300..399) {
         activateUcLogin()
         return when (val validation = validateLocalConnectionSession()) {
-          is LocalConnectionSessionValidationState.Valid ->
-              Result.success(
-                  LoginPreloadResponse(
-                      captchaRequired = false,
-                      userData = validation.session.user,
-                  )
-              )
+          is LocalConnectionSessionValidationState.Valid -> {
+            reportLocalLoginSuccess(
+                validation.session.username.ifBlank { validation.session.user.schoolid },
+                LoginStatsSuccessMode.PRELOAD_AUTO,
+            )
+            Result.success(
+                LoginPreloadResponse(
+                    captchaRequired = false,
+                    userData = validation.session.user,
+                )
+            )
+          }
           LocalConnectionSessionValidationState.Invalid ->
               Result.success(LoginPreloadResponse(captchaRequired = false))
         }
@@ -437,16 +450,21 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       }
 
       when (val validation = validateLocalConnectionSession()) {
-        is LocalConnectionSessionValidationState.Valid ->
-            Result.success(
-                LoginResponse(
-                    user = validation.session.user,
-                    accessToken = "",
-                    refreshToken = "",
-                    accessTokenExpiresAt = "",
-                    refreshTokenExpiresAt = "",
-                )
-            )
+        is LocalConnectionSessionValidationState.Valid -> {
+          reportLocalLoginSuccess(
+              validation.session.username.ifBlank { validation.session.user.schoolid },
+              LoginStatsSuccessMode.MANUAL,
+          )
+          Result.success(
+              LoginResponse(
+                  user = validation.session.user,
+                  accessToken = "",
+                  refreshToken = "",
+                  accessTokenExpiresAt = "",
+                  refreshTokenExpiresAt = "",
+              )
+          )
+        }
         LocalConnectionSessionValidationState.Invalid ->
             Result.failure(
                 ApiCallException(

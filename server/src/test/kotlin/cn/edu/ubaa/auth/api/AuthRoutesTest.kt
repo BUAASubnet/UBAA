@@ -2,7 +2,13 @@ package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.model.dto.LoginPreloadRequest
 import cn.edu.ubaa.model.dto.LoginRequest
+import cn.edu.ubaa.model.dto.LoginStatsConnectionMode
+import cn.edu.ubaa.model.dto.LoginStatsReportRequest
+import cn.edu.ubaa.model.dto.LoginStatsSuccessMode
 import cn.edu.ubaa.model.dto.UserData
+import cn.edu.ubaa.metrics.LoginConnectionMode
+import cn.edu.ubaa.metrics.LoginMetricsSink
+import cn.edu.ubaa.metrics.LoginSuccessMode
 import cn.edu.ubaa.utils.JwtUtil
 import cn.edu.ubaa.utils.UpstreamTimeoutException
 import io.ktor.client.HttpClient
@@ -184,6 +190,47 @@ class AuthRoutesTest {
     assertTrue(response.bodyAsText().contains("\"captchaRequired\":false"))
   }
 
+  @Test
+  fun anonymousLoginStatsRouteRecordsConnectionMode() = testApplication {
+    val sink = RecordingRouteLoginMetricsSink()
+
+    application {
+      install(ContentNegotiation) { json() }
+      routing {
+        authRouting(
+            loginMetricsSink = sink,
+            sessionManager = createSessionManager { authMockClient() },
+        )
+      }
+    }
+
+    val response =
+        client.post("/api/v1/auth/login-stats") {
+          contentType(ContentType.Application.Json)
+          setBody(
+              json.encodeToString(
+                  LoginStatsReportRequest(
+                      username = "2333",
+                      successMode = LoginStatsSuccessMode.PRELOAD_AUTO,
+                      connectionMode = LoginStatsConnectionMode.WEBVPN,
+                  )
+              )
+          )
+        }
+
+    assertEquals(HttpStatusCode.OK, response.status)
+    assertEquals(
+        listOf(
+            RouteLoginRecord(
+                "2333",
+                LoginSuccessMode.PRELOAD_AUTO,
+                LoginConnectionMode.WEBVPN,
+            )
+        ),
+        sink.records,
+    )
+  }
+
   private suspend fun prepareSession(sessionManager: SessionManager, username: String): String {
     val candidate = sessionManager.prepareSession(username)
     sessionManager.commitSession(candidate, UserData(name = "Alice", schoolid = username))
@@ -272,4 +319,22 @@ class AuthRoutesTest {
 
   private fun jsonHeaders() =
       headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+}
+
+private data class RouteLoginRecord(
+    val username: String,
+    val mode: LoginSuccessMode,
+    val connectionMode: LoginConnectionMode,
+)
+
+private class RecordingRouteLoginMetricsSink : LoginMetricsSink {
+  val records = mutableListOf<RouteLoginRecord>()
+
+  override suspend fun recordSuccess(
+      username: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+  ) {
+    records += RouteLoginRecord(username, mode, connectionMode)
+  }
 }
