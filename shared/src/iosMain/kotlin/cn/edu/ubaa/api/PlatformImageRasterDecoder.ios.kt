@@ -3,10 +3,10 @@ package cn.edu.ubaa.api
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.usePinned
-import platform.CoreGraphics.CGImageAlphaInfo
 import platform.CoreGraphics.CGBitmapContextCreate
 import platform.CoreGraphics.CGColorSpaceCreateDeviceRGB
 import platform.CoreGraphics.CGContextDrawImage
+import platform.CoreGraphics.CGImageAlphaInfo
 import platform.CoreGraphics.CGImageGetHeight
 import platform.CoreGraphics.CGImageGetWidth
 import platform.CoreGraphics.CGRectMake
