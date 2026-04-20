@@ -291,9 +291,9 @@ class AuthServiceTest {
     val result = authService.getAuthStatus()
 
     assertTrue(result.isFailure)
-    val exception = result.exceptionOrNull()
-    assertTrue(exception is ApiCallException)
-    assertEquals("auth_upstream_timeout", (exception as ApiCallException).code)
+    val exception = result.exceptionOrNull() as? ApiCallException
+    assertTrue(exception != null)
+    assertEquals("auth_upstream_timeout", exception.code)
     assertEquals("stale-access-token", AuthTokensStore.get()?.accessToken)
     assertEquals("stale-refresh-token", AuthTokensStore.get()?.refreshToken)
   }

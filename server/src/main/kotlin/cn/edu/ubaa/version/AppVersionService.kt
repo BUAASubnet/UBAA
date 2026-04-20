@@ -1,5 +1,6 @@
 package cn.edu.ubaa.version
 
+import cn.edu.ubaa.api.AppUpdateStatus
 import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.metrics.AppObservability
 import io.github.cdimascio.dotenv.dotenv
@@ -18,7 +19,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 data class AppVersionRuntimeConfig(
-    val serverVersion: String,
+    val latestVersion: String,
     val downloadUrl: String,
 ) {
   companion object {
@@ -27,7 +28,7 @@ data class AppVersionRuntimeConfig(
 
     fun load(): AppVersionRuntimeConfig =
         AppVersionRuntimeConfig(
-            serverVersion = loadServerVersion(),
+            latestVersion = loadServerVersion(),
             downloadUrl =
                 resolveDownloadUrl(
                     dotenv { ignoreIfMissing = true }["UPDATE_DOWNLOAD_URL"]
@@ -88,7 +89,7 @@ data class AppVersionRuntimeConfig(
 }
 
 interface ReleaseNotesFetcher {
-  suspend fun fetchReleaseNotes(serverVersion: String): String?
+  suspend fun fetchReleaseNotes(latestVersion: String): String?
 
   fun close() {}
 }
@@ -98,8 +99,8 @@ internal class ProxyReleaseNotesFetcher(
     private val releasesBaseUrl: String = RELEASES_PROXY_BASE_URL,
 ) : ReleaseNotesFetcher {
 
-  override suspend fun fetchReleaseNotes(serverVersion: String): String? {
-    for (tag in tagCandidates(serverVersion)) {
+  override suspend fun fetchReleaseNotes(latestVersion: String): String? {
+    for (tag in tagCandidates(latestVersion)) {
       val response =
           runCatching {
                 AppObservability.observeUpstreamRequest("release_proxy", "fetch_release_notes") {
@@ -119,8 +120,8 @@ internal class ProxyReleaseNotesFetcher(
     client.close()
   }
 
-  private fun tagCandidates(serverVersion: String): List<String> {
-    val normalizedVersion = AppVersionService.normalizeVersion(serverVersion)
+  private fun tagCandidates(latestVersion: String): List<String> {
+    val normalizedVersion = AppVersionService.normalizeVersion(latestVersion)
     return listOf("v$normalizedVersion", normalizedVersion).distinct()
   }
 
@@ -155,14 +156,21 @@ class AppVersionService(
   private var releaseNotesCacheInitialized = false
 
   suspend fun checkVersion(clientVersion: String): AppVersionCheckResponse {
-    val aligned =
-        !AppVersionRuntimeConfig.isKnownServerVersion(config.serverVersion) ||
-            normalizeVersion(clientVersion) == normalizeVersion(config.serverVersion)
-    val releaseNotes = if (aligned) null else loadReleaseNotes(config.serverVersion)
+    val status =
+        when {
+          !AppVersionRuntimeConfig.isKnownServerVersion(config.latestVersion) ->
+              AppUpdateStatus.UNKNOWN_LATEST_VERSION
+          compareVersions(clientVersion, config.latestVersion) < 0 ->
+              AppUpdateStatus.UPDATE_AVAILABLE
+          else -> AppUpdateStatus.UP_TO_DATE
+        }
+    val updateAvailable = status == AppUpdateStatus.UPDATE_AVAILABLE
+    val releaseNotes = if (updateAvailable) loadReleaseNotes(config.latestVersion) else null
 
     return AppVersionCheckResponse(
-        serverVersion = config.serverVersion,
-        aligned = aligned,
+        latestVersion = config.latestVersion,
+        status = status,
+        updateAvailable = updateAvailable,
         downloadUrl = config.downloadUrl,
         releaseNotes = releaseNotes,
     )
@@ -176,14 +184,14 @@ class AppVersionService(
 
   internal fun isClosed(): Boolean = closed
 
-  private suspend fun loadReleaseNotes(serverVersion: String): String? {
-    val normalizedVersion = normalizeVersion(serverVersion)
+  private suspend fun loadReleaseNotes(latestVersion: String): String? {
+    val normalizedVersion = normalizeVersion(latestVersion)
     return releaseNotesCacheMutex.withLock {
       if (releaseNotesCacheInitialized && cachedReleaseNotesVersion == normalizedVersion) {
         return@withLock cachedReleaseNotes
       }
 
-      val releaseNotes = releaseNotesFetcher.fetchReleaseNotes(serverVersion)
+      val releaseNotes = releaseNotesFetcher.fetchReleaseNotes(latestVersion)
       cachedReleaseNotesVersion = normalizedVersion
       cachedReleaseNotes = releaseNotes
       releaseNotesCacheInitialized = true
@@ -193,6 +201,20 @@ class AppVersionService(
 
   companion object {
     internal fun normalizeVersion(version: String): String = version.trim().removePrefix("v")
+
+    internal fun compareVersions(left: String, right: String): Int {
+      val leftParts = normalizeVersion(left).split('.').map { it.toIntOrNull() ?: 0 }
+      val rightParts = normalizeVersion(right).split('.').map { it.toIntOrNull() ?: 0 }
+      val size = maxOf(leftParts.size, rightParts.size)
+      for (index in 0 until size) {
+        val leftValue = leftParts.getOrElse(index) { 0 }
+        val rightValue = rightParts.getOrElse(index) { 0 }
+        if (leftValue != rightValue) {
+          return leftValue.compareTo(rightValue)
+        }
+      }
+      return 0
+    }
   }
 }
 

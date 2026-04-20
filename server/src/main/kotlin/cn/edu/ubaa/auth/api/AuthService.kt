@@ -1,6 +1,7 @@
 package cn.edu.ubaa.auth
 
 import cn.edu.ubaa.metrics.AppObservability
+import cn.edu.ubaa.metrics.LoginConnectionMode
 import cn.edu.ubaa.metrics.LoginMetricsSink
 import cn.edu.ubaa.metrics.LoginSuccessMode
 import cn.edu.ubaa.metrics.NoOpLoginMetricsSink
@@ -211,6 +212,7 @@ class AuthService(
                       safeRecordLoginSuccess(
                           userData.schoolid.ifBlank { sessionCandidate.username },
                           LoginSuccessMode.PRELOAD_AUTO,
+                          LoginConnectionMode.SERVER_RELAY,
                       )
                       maybeWarmupPortal(committedSession)
                       return@withNoRedirectClient LoginPreloadResponse(
@@ -330,9 +332,13 @@ class AuthService(
     return validationResult
   }
 
-  private suspend fun safeRecordLoginSuccess(username: String, mode: LoginSuccessMode) {
+  private suspend fun safeRecordLoginSuccess(
+      username: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+  ) {
     try {
-      loginMetricsSink.recordSuccess(username, mode)
+      loginMetricsSink.recordSuccess(username, mode, connectionMode)
     } catch (e: Exception) {
       log.warn("Failed to record login metrics for user {}", username, e)
     }
@@ -507,6 +513,7 @@ class AuthService(
           safeRecordLoginSuccess(
               userData.schoolid.ifBlank { activeCandidate.username },
               LoginSuccessMode.MANUAL,
+              LoginConnectionMode.SERVER_RELAY,
           )
           timeline.measure("portalWarmupAsync") { maybeWarmupPortal(committedSession) }
           timeline.logSuccess("manual")

@@ -3,6 +3,7 @@ package cn.edu.ubaa
 import cn.edu.ubaa.health.RedisReadinessProbe
 import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.metrics.InMemoryLoginStatsStore
+import cn.edu.ubaa.metrics.LoginConnectionMode
 import cn.edu.ubaa.metrics.LoginMetricsRecorder
 import cn.edu.ubaa.metrics.LoginSuccessMode
 import io.ktor.client.request.get
@@ -35,8 +36,8 @@ class ApplicationMetricsTest {
     assertEquals(HttpStatusCode.OK, rootResponse.status)
 
     runBlocking {
-      recorder.recordSuccess("2333", LoginSuccessMode.MANUAL)
-      recorder.recordSuccess("2444", LoginSuccessMode.PRELOAD_AUTO)
+      recorder.recordSuccess("2333", LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY)
+      recorder.recordSuccess("2444", LoginSuccessMode.PRELOAD_AUTO, LoginConnectionMode.DIRECT)
       AppObservability.observeBusinessOperation("auth", "login") {}
       AppObservability.observeUpstreamRequest("uc", "fetch_uc_user") { "ok" }
       AppObservability.recordSessionResolve("memory_hit")
@@ -59,10 +60,33 @@ class ApplicationMetricsTest {
     assertContains(metrics, "ubaa_auth_login_success_total")
     assertContains(metrics, "mode=\"manual\"")
     assertContains(metrics, "mode=\"preload_auto\"")
-    assertContains(metrics, "ubaa_auth_login_events_window{window=\"1h\"} 2.0")
-    assertContains(metrics, "ubaa_auth_login_events_window{window=\"24h\"} 2.0")
-    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"1h\"} 2.0")
-    assertContains(metrics, "ubaa_auth_login_unique_users_window{window=\"24h\"} 2.0")
+    assertContains(metrics, "connection_mode=\"all\"")
+    assertContains(metrics, "connection_mode=\"server_relay\"")
+    assertContains(metrics, "connection_mode=\"direct\"")
+    assertContains(
+        metrics,
+        "ubaa_auth_login_events_window{connection_mode=\"all\",window=\"1h\"} 2.0",
+    )
+    assertContains(
+        metrics,
+        "ubaa_auth_login_events_window{connection_mode=\"direct\",window=\"1h\"} 1.0",
+    )
+    assertContains(
+        metrics,
+        "ubaa_auth_login_events_window{connection_mode=\"server_relay\",window=\"1h\"} 1.0",
+    )
+    assertContains(
+        metrics,
+        "ubaa_auth_login_unique_users_window{connection_mode=\"all\",window=\"1h\"} 2.0",
+    )
+    assertContains(
+        metrics,
+        "ubaa_auth_login_unique_users_window{connection_mode=\"direct\",window=\"1h\"} 1.0",
+    )
+    assertContains(
+        metrics,
+        "ubaa_auth_login_unique_users_window{connection_mode=\"server_relay\",window=\"1h\"} 1.0",
+    )
     assertContains(metrics, "ubaa_business_operations_seconds_count")
     assertContains(metrics, "ubaa_upstream_requests_seconds_count")
     assertContains(metrics, "ubaa_auth_session_resolve_total")
@@ -85,15 +109,15 @@ class ApplicationMetricsTest {
     secondRecorder.bindMetrics()
 
     assertEquals(
-        4,
+        16,
         registry.meters.count { it.id.name == "ubaa.auth.login.events.window" },
     )
     assertEquals(
-        4,
+        16,
         registry.meters.count { it.id.name == "ubaa.auth.login.unique.users.window" },
     )
     assertEquals(
-        2,
+        8,
         registry.meters.count { it.id.name == "ubaa.auth.login.success" },
     )
 

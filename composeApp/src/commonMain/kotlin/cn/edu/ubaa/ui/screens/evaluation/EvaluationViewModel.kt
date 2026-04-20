@@ -2,7 +2,6 @@ package cn.edu.ubaa.ui.screens.evaluation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.ApiClient
 import cn.edu.ubaa.api.EvaluationService
 import cn.edu.ubaa.model.evaluation.EvaluationCourse
 import cn.edu.ubaa.model.evaluation.EvaluationProgress
@@ -14,7 +13,7 @@ import kotlinx.coroutines.launch
 
 /** 自动评教业务逻辑 ViewModel。 负责管理待评教课程列表、处理用户选择以及执行分批次评教提交。 */
 class EvaluationViewModel(
-    private val evaluationService: EvaluationService = EvaluationService(ApiClient()),
+    private val evaluationService: EvaluationService = EvaluationService(),
 ) : ViewModel() {
   private var loadedOnce = false
 

@@ -174,6 +174,20 @@ class BykcServiceDetailTest {
   }
 
   @Test
+  fun `getCourseDetail exposes sign out availability during sign out window even when unsigned`() =
+      runBlocking {
+        val detail =
+            createSignedCourseDetail(
+                now = LocalDateTime.parse("2025-11-26T21:05:00"),
+                checkin = 0,
+                pass = 0,
+            )
+
+        assertFalse(detail.canSign)
+        assertTrue(detail.canSignOut)
+      }
+
+  @Test
   fun `getCourseDetail keeps sign actions disabled outside window`() = runBlocking {
     val detail =
         createSignedCourseDetail(
@@ -198,6 +212,163 @@ class BykcServiceDetailTest {
     assertFalse(detail.canSign)
     assertFalse(detail.canSignOut)
   }
+
+  @Test
+  fun `getCourseDetail uses semester containing now instead of first semester`() = runBlocking {
+    val now = LocalDateTime.parse("2026-04-09T17:53:00")
+    val service =
+        BykcService(
+            clientProvider = { _ ->
+              object : BykcClient("test-user") {
+                override suspend fun login(forceRefresh: Boolean): Boolean = true
+
+                override suspend fun queryCourseById(id: Long): BykcRawCourse =
+                    BykcRawCourse(
+                        id = 9527L,
+                        courseName = "耕趣农场劳动课",
+                        courseSignConfig =
+                            """
+                            {
+                              "signStartDate": "2026-04-09 16:20:00",
+                              "signEndDate": "2026-04-09 16:40:00",
+                              "signOutStartDate": "2026-04-09 17:50:00",
+                              "signOutEndDate": "2026-04-09 18:15:00",
+                              "signPointList": []
+                            }
+                            """
+                                .trimIndent(),
+                        courseMaxCount = 100,
+                        selected = true,
+                    )
+
+                override suspend fun getAllConfig(): BykcAllConfig =
+                    BykcAllConfig(
+                        semester =
+                            listOf(
+                                BykcSemester(
+                                    id = 1L,
+                                    semesterName = "2025-2026-1",
+                                    semesterStartDate = "2025-09-01 00:00:00",
+                                    semesterEndDate = "2026-01-31 23:59:59",
+                                ),
+                                BykcSemester(
+                                    id = 2L,
+                                    semesterName = "2025-2026-2",
+                                    semesterStartDate = "2026-02-23 00:00:00",
+                                    semesterEndDate = "2026-07-12 23:59:59",
+                                ),
+                            )
+                    )
+
+                override suspend fun queryChosenCourse(
+                    startDate: String,
+                    endDate: String,
+                ): List<BykcChosenCourse> {
+                  return if (
+                      startDate == "2026-02-23 00:00:00" && endDate == "2026-07-12 23:59:59"
+                  ) {
+                    listOf(
+                        BykcChosenCourse(
+                            id = 1L,
+                            courseInfo = queryCourseById(9527L),
+                            checkin = 5,
+                            pass = 0,
+                        )
+                    )
+                  } else {
+                    emptyList()
+                  }
+                }
+              }
+            },
+            nowProvider = { now },
+        )
+
+    val detail = service.getCourseDetail("test-user", 9527L)
+
+    assertEquals(5, detail.checkin)
+    assertFalse(detail.canSign)
+    assertTrue(detail.canSignOut)
+  }
+
+  @Test
+  fun `getCourseDetail falls back to latest semester when now is outside all semesters`() =
+      runBlocking {
+        val now = LocalDateTime.parse("2026-08-01T10:00:00")
+        val service =
+            BykcService(
+                clientProvider = { _ ->
+                  object : BykcClient("test-user") {
+                    override suspend fun login(forceRefresh: Boolean): Boolean = true
+
+                    override suspend fun queryCourseById(id: Long): BykcRawCourse =
+                        BykcRawCourse(
+                            id = 9527L,
+                            courseName = "耕趣农场劳动课",
+                            courseSignConfig =
+                                """
+                                {
+                                  "signStartDate": "2026-04-09 16:20:00",
+                                  "signEndDate": "2026-04-09 16:40:00",
+                                  "signOutStartDate": "2026-04-09 17:50:00",
+                                  "signOutEndDate": "2026-04-09 18:15:00",
+                                  "signPointList": []
+                                }
+                                """
+                                    .trimIndent(),
+                            courseMaxCount = 100,
+                            selected = true,
+                        )
+
+                    override suspend fun getAllConfig(): BykcAllConfig =
+                        BykcAllConfig(
+                            semester =
+                                listOf(
+                                    BykcSemester(
+                                        id = 1L,
+                                        semesterName = "2025-2026-1",
+                                        semesterStartDate = "2025-09-01 00:00:00",
+                                        semesterEndDate = "2026-01-31 23:59:59",
+                                    ),
+                                    BykcSemester(
+                                        id = 2L,
+                                        semesterName = "2025-2026-2",
+                                        semesterStartDate = "2026-02-23 00:00:00",
+                                        semesterEndDate = "2026-07-12 23:59:59",
+                                    ),
+                                )
+                        )
+
+                    override suspend fun queryChosenCourse(
+                        startDate: String,
+                        endDate: String,
+                    ): List<BykcChosenCourse> {
+                      return if (
+                          startDate == "2026-02-23 00:00:00" && endDate == "2026-07-12 23:59:59"
+                      ) {
+                        listOf(
+                            BykcChosenCourse(
+                                id = 1L,
+                                courseInfo = queryCourseById(9527L),
+                                checkin = 5,
+                                pass = 0,
+                            )
+                        )
+                      } else {
+                        emptyList()
+                      }
+                    }
+                  }
+                },
+                nowProvider = { now },
+            )
+
+        val detail = service.getCourseDetail("test-user", 9527L)
+
+        assertEquals(5, detail.checkin)
+        assertFalse(detail.canSign)
+        assertFalse(detail.canSignOut)
+      }
 
   private suspend fun createSignedCourseDetail(
       now: LocalDateTime,

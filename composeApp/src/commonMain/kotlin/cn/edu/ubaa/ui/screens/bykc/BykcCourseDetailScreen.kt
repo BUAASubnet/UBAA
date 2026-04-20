@@ -104,7 +104,10 @@ fun BykcCourseDetailScreen(
                     now = localNow,
                 )
               }
-          val attendanceActionState = remember(course) { resolveBykcAttendanceActionState(course) }
+          val attendanceActionState =
+              remember(course, localNow) {
+                resolveBykcAttendanceActionState(course = course, now = localNow)
+              }
           val canSelectCourse = selectButtonState.enabled
           val selectDisabledReason = selectButtonState.disabledReason
 

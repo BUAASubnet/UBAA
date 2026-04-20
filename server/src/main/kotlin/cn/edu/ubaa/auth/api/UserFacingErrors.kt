@@ -3,7 +3,6 @@ package cn.edu.ubaa.auth
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.PipelineCall
 import io.ktor.server.application.install
 import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -62,52 +61,44 @@ internal suspend fun ApplicationCall.respondError(
   respond(status, ErrorResponse(ErrorDetails(code, userFacingMessage(code, fallback))))
 }
 
-internal suspend fun PipelineCall.respondError(
-    status: HttpStatusCode,
-    code: String,
-    fallback: String? = null,
-) {
-  respond(status, ErrorResponse(ErrorDetails(code, userFacingMessage(code, fallback))))
-}
-
 internal fun Application.configureGlobalErrorHandling() {
   install(StatusPages) {
-    exception(ContentTransformationException::class.java) { cause ->
-      context.application.environment.log.debug(
-          "Failed to transform request body for ${context.requestDescription()}",
+    exception<ContentTransformationException> { call, cause ->
+      call.application.environment.log.debug(
+          "Failed to transform request body for ${call.requestDescription()}",
           cause,
       )
-      if (!context.response.isCommitted) {
-        context.respondError(HttpStatusCode.BadRequest, "invalid_request")
+      if (!call.response.isCommitted) {
+        call.respondError(HttpStatusCode.BadRequest, "invalid_request")
       }
     }
 
-    exception(IllegalStateException::class.java) { cause ->
+    exception<IllegalStateException> { call, cause ->
       if (cause.message == "No valid session found for request") {
-        context.application.environment.log.debug(
-            "Missing valid session for ${context.requestDescription()}"
+        call.application.environment.log.debug(
+            "Missing valid session for ${call.requestDescription()}"
         )
-        if (!context.response.isCommitted) {
-          context.respondError(HttpStatusCode.Unauthorized, "invalid_token")
+        if (!call.response.isCommitted) {
+          call.respondError(HttpStatusCode.Unauthorized, "invalid_token")
         }
       } else {
-        context.application.environment.log.error(
-            "Unexpected application state for ${context.requestDescription()}",
+        call.application.environment.log.error(
+            "Unexpected application state for ${call.requestDescription()}",
             cause,
         )
-        if (!context.response.isCommitted) {
-          context.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
+        if (!call.response.isCommitted) {
+          call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
         }
       }
     }
 
-    exception(Throwable::class.java) { cause ->
-      context.application.environment.log.error(
-          "Unhandled exception for ${context.requestDescription()}",
+    exception<Throwable> { call, cause ->
+      call.application.environment.log.error(
+          "Unhandled exception for ${call.requestDescription()}",
           cause,
       )
-      if (!context.response.isCommitted) {
-        context.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
+      if (!call.response.isCommitted) {
+        call.respondError(HttpStatusCode.InternalServerError, "internal_server_error")
       }
     }
   }

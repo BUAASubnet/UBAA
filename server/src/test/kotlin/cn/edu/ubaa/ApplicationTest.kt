@@ -1,5 +1,6 @@
 package cn.edu.ubaa
 
+import cn.edu.ubaa.api.AppUpdateStatus
 import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.version.AppVersionRuntimeConfig
 import io.ktor.client.request.*
@@ -46,12 +47,13 @@ class ApplicationTest {
   fun versionEndpointReturnsAlignedResponseForMatchingVersion() = testApplication {
     application { module() }
 
-    val serverVersion = AppVersionRuntimeConfig.load().serverVersion
-    val response = client.get("/api/v1/app/version") { parameter("clientVersion", serverVersion) }
+    val latestVersion = AppVersionRuntimeConfig.load().latestVersion
+    val response = client.get("/api/v1/app/version") { parameter("clientVersion", latestVersion) }
     val payload = json.decodeFromString<AppVersionCheckResponse>(response.bodyAsText())
 
     assertEquals(HttpStatusCode.OK, response.status)
-    assertTrue(payload.aligned)
-    assertEquals(serverVersion, payload.serverVersion)
+    assertFalse(payload.updateAvailable)
+    assertEquals(AppUpdateStatus.UP_TO_DATE, payload.status)
+    assertEquals(latestVersion, payload.latestVersion)
   }
 }

@@ -7,19 +7,29 @@ import io.ktor.http.*
 import kotlinx.serialization.Serializable
 
 @Serializable
+enum class AppUpdateStatus {
+  UP_TO_DATE,
+  UPDATE_AVAILABLE,
+  UNKNOWN_LATEST_VERSION,
+}
+
+@Serializable
 data class AppVersionCheckResponse(
-    val serverVersion: String,
-    val aligned: Boolean,
+    val latestVersion: String,
+    val status: AppUpdateStatus,
+    val updateAvailable: Boolean,
     val downloadUrl: String,
     val releaseNotes: String? = null,
 )
 
-/** 更新检测服务。 负责通过服务端检查客户端与服务端版本是否对齐。 */
-class UpdateService(private val apiClient: ApiClient = ApiClientProvider.shared) {
+/** 更新检测服务。 固定通过 relay 服务端检查客户端是否存在新版本。 */
+class UpdateService(private val apiClientProvider: () -> ApiClient = { ApiClientProvider.shared }) {
+  constructor(apiClient: ApiClient) : this({ apiClient })
 
   /** 检查当前客户端是否需要更新。 */
   suspend fun checkUpdate(clientVersion: String = BuildKonfig.VERSION): AppVersionCheckResponse? {
     return try {
+      val apiClient = apiClientProvider()
       val response =
           apiClient.getClient().get("api/v1/app/version") {
             parameter("clientVersion", clientVersion)
@@ -27,7 +37,9 @@ class UpdateService(private val apiClient: ApiClient = ApiClientProvider.shared)
       if (response.status != HttpStatusCode.OK) {
         return null
       }
-      response.body<AppVersionCheckResponse>().takeUnless { it.aligned }
+      response.body<AppVersionCheckResponse>().takeIf {
+        it.status == AppUpdateStatus.UPDATE_AVAILABLE
+      }
     } catch (e: Exception) {
       null
     }

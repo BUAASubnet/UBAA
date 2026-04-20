@@ -112,6 +112,26 @@ data class LoginPreloadResponse(
     val userData: UserData? = null, // 如果已登录，直接返回用户信息
 )
 
+@Serializable
+enum class LoginStatsSuccessMode {
+  MANUAL,
+  PRELOAD_AUTO,
+}
+
+@Serializable
+enum class LoginStatsConnectionMode {
+  DIRECT,
+  WEBVPN,
+  SERVER_RELAY,
+}
+
+@Serializable
+data class LoginStatsReportRequest(
+    val username: String,
+    val successMode: LoginStatsSuccessMode,
+    val connectionMode: LoginStatsConnectionMode,
+)
+
 /** 刷新 token 请求。 */
 @Serializable data class TokenRefreshRequest(val refreshToken: String)
 

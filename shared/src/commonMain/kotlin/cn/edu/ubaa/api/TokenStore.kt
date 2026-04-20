@@ -25,33 +25,77 @@ object AuthTokensStore {
     }
 
   fun save(tokens: StoredAuthTokens) {
-    settings.putString(KEY_ACCESS_TOKEN, tokens.accessToken)
-    settings.putString(KEY_REFRESH_TOKEN, tokens.refreshToken)
-    tokens.accessTokenExpiresAt?.let { settings.putString(KEY_ACCESS_TOKEN_EXPIRES_AT, it) }
-        ?: settings.remove(KEY_ACCESS_TOKEN_EXPIRES_AT)
-    tokens.refreshTokenExpiresAt?.let { settings.putString(KEY_REFRESH_TOKEN_EXPIRES_AT, it) }
-        ?: settings.remove(KEY_REFRESH_TOKEN_EXPIRES_AT)
+    settings.putString(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN), tokens.accessToken)
+    settings.putString(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN), tokens.refreshToken)
+    tokens.accessTokenExpiresAt?.let {
+      settings.putString(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT), it)
+    } ?: settings.remove(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
+    tokens.refreshTokenExpiresAt?.let {
+      settings.putString(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT), it)
+    } ?: settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
   }
 
   fun get(): StoredAuthTokens? {
-    val accessToken = settings.getStringOrNull(KEY_ACCESS_TOKEN) ?: return null
-    val refreshToken = settings.getStringOrNull(KEY_REFRESH_TOKEN) ?: return null
+    val accessToken =
+        settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN))
+            ?: legacyValue(KEY_ACCESS_TOKEN)
+            ?: return null
+    val refreshToken =
+        settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN))
+            ?: legacyValue(KEY_REFRESH_TOKEN)
+            ?: return null
     return StoredAuthTokens(
         accessToken = accessToken,
         refreshToken = refreshToken,
-        accessTokenExpiresAt = settings.getStringOrNull(KEY_ACCESS_TOKEN_EXPIRES_AT),
-        refreshTokenExpiresAt = settings.getStringOrNull(KEY_REFRESH_TOKEN_EXPIRES_AT),
+        accessTokenExpiresAt =
+            settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
+                ?: legacyValue(KEY_ACCESS_TOKEN_EXPIRES_AT),
+        refreshTokenExpiresAt =
+            settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
+                ?: legacyValue(KEY_REFRESH_TOKEN_EXPIRES_AT),
     )
   }
 
   fun getAccessToken(): String? = get()?.accessToken
 
   fun clear() {
-    settings.remove(KEY_ACCESS_TOKEN)
-    settings.remove(KEY_REFRESH_TOKEN)
-    settings.remove(KEY_ACCESS_TOKEN_EXPIRES_AT)
-    settings.remove(KEY_REFRESH_TOKEN_EXPIRES_AT)
+    settings.remove(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN))
+    settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN))
+    settings.remove(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
+    settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
+    if (
+        ConnectionModeStore.get() == null ||
+            ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+    ) {
+      settings.remove(ModeScopedSessionStore.legacyKey(KEY_ACCESS_TOKEN))
+      settings.remove(ModeScopedSessionStore.legacyKey(KEY_REFRESH_TOKEN))
+      settings.remove(ModeScopedSessionStore.legacyKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
+      settings.remove(ModeScopedSessionStore.legacyKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
+    }
   }
+
+  fun clearAllScopes() {
+    ConnectionMode.entries.forEach { mode ->
+      settings.remove(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN, mode))
+      settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN, mode))
+      settings.remove(ModeScopedSessionStore.scopedKey(KEY_ACCESS_TOKEN_EXPIRES_AT, mode))
+      settings.remove(ModeScopedSessionStore.scopedKey(KEY_REFRESH_TOKEN_EXPIRES_AT, mode))
+    }
+    settings.remove(ModeScopedSessionStore.legacyKey(KEY_ACCESS_TOKEN))
+    settings.remove(ModeScopedSessionStore.legacyKey(KEY_REFRESH_TOKEN))
+    settings.remove(ModeScopedSessionStore.legacyKey(KEY_ACCESS_TOKEN_EXPIRES_AT))
+    settings.remove(ModeScopedSessionStore.legacyKey(KEY_REFRESH_TOKEN_EXPIRES_AT))
+  }
+
+  private fun legacyValue(key: String): String? =
+      if (
+          ConnectionModeStore.get() == null ||
+              ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+      ) {
+        settings.getStringOrNull(ModeScopedSessionStore.legacyKey(key))
+      } else {
+        null
+      }
 }
 
 /** 客户端标识存储：用于关联预登录会话 */
@@ -67,19 +111,44 @@ object ClientIdStore {
   /** 获取或创建 clientId */
   @OptIn(ExperimentalUuidApi::class)
   fun getOrCreate(): String {
-    return settings.getStringOrNull(KEY_CLIENT_ID)
+    return settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_CLIENT_ID))
+        ?: legacyValue()
         ?: run {
           val newId = Uuid.random().toString()
-          settings.putString(KEY_CLIENT_ID, newId)
+          settings.putString(ModeScopedSessionStore.scopedKey(KEY_CLIENT_ID), newId)
           newId
         }
   }
 
   /** 获取 clientId（可能为 null） */
-  fun get(): String? = settings.getStringOrNull(KEY_CLIENT_ID)
+  fun get(): String? =
+      settings.getStringOrNull(ModeScopedSessionStore.scopedKey(KEY_CLIENT_ID)) ?: legacyValue()
 
   /** 清除 clientId（通常不需要，除非要完全重置客户端） */
   fun clear() {
-    settings.remove(KEY_CLIENT_ID)
+    settings.remove(ModeScopedSessionStore.scopedKey(KEY_CLIENT_ID))
+    if (
+        ConnectionModeStore.get() == null ||
+            ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+    ) {
+      settings.remove(ModeScopedSessionStore.legacyKey(KEY_CLIENT_ID))
+    }
   }
+
+  fun clearAllScopes() {
+    ConnectionMode.entries.forEach { mode ->
+      settings.remove(ModeScopedSessionStore.scopedKey(KEY_CLIENT_ID, mode))
+    }
+    settings.remove(ModeScopedSessionStore.legacyKey(KEY_CLIENT_ID))
+  }
+
+  private fun legacyValue(): String? =
+      if (
+          ConnectionModeStore.get() == null ||
+              ConnectionModeStore.get() == ConnectionMode.SERVER_RELAY
+      ) {
+        settings.getStringOrNull(ModeScopedSessionStore.legacyKey(KEY_CLIENT_ID))
+      } else {
+        null
+      }
 }

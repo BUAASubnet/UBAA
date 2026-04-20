@@ -122,7 +122,7 @@ class ClassroomViewModel(private val api: ClassroomApi = ClassroomApi()) : ViewM
   @OptIn(ExperimentalTime::class)
   private fun getCurrentDate(): String {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${now.year}-${now.monthNumber.toString().padStart(2, '0')}-${now.dayOfMonth.toString().padStart(2, '0')}"
+    return "${now.year}-${(now.month.ordinal + 1).toString().padStart(2, '0')}-${now.day.toString().padStart(2, '0')}"
   }
 }
 

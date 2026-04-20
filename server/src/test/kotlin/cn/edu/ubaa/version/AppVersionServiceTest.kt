@@ -1,5 +1,6 @@
 package cn.edu.ubaa.version
 
+import cn.edu.ubaa.api.AppUpdateStatus
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -28,12 +29,12 @@ class AppVersionServiceTest {
         AppVersionService(
             config =
                 AppVersionRuntimeConfig(
-                    serverVersion = "1.5.0",
+                    latestVersion = "1.5.0",
                     downloadUrl = "https://download.example.com",
                 ),
             releaseNotesFetcher =
                 object : ReleaseNotesFetcher {
-                  override suspend fun fetchReleaseNotes(serverVersion: String): String? {
+                  override suspend fun fetchReleaseNotes(latestVersion: String): String? {
                     fetchCalls += 1
                     return "ignored"
                   }
@@ -42,7 +43,8 @@ class AppVersionServiceTest {
 
     val response = service.checkVersion("v1.5.0")
 
-    assertTrue(response.aligned)
+    assertFalse(response.updateAvailable)
+    assertEquals(AppUpdateStatus.UP_TO_DATE, response.status)
     assertNull(response.releaseNotes)
     assertEquals(0, fetchCalls)
   }
@@ -53,43 +55,45 @@ class AppVersionServiceTest {
         AppVersionService(
             config =
                 AppVersionRuntimeConfig(
-                    serverVersion = "1.5.0",
+                    latestVersion = "1.5.0",
                     downloadUrl = "https://download.example.com",
                 ),
             releaseNotesFetcher =
                 object : ReleaseNotesFetcher {
-                  override suspend fun fetchReleaseNotes(serverVersion: String): String? = "修复了一批问题"
+                  override suspend fun fetchReleaseNotes(latestVersion: String): String? = "修复了一批问题"
                 },
         )
 
     val response = service.checkVersion("1.4.0")
 
-    assertFalse(response.aligned)
-    assertEquals("1.5.0", response.serverVersion)
+    assertTrue(response.updateAvailable)
+    assertEquals(AppUpdateStatus.UPDATE_AVAILABLE, response.status)
+    assertEquals("1.5.0", response.latestVersion)
     assertEquals("https://download.example.com", response.downloadUrl)
     assertEquals("修复了一批问题", response.releaseNotes)
   }
 
   @Test
-  fun higherClientVersionStillReturnsUpdateInfoWhenNotAligned() = runTest {
+  fun higherClientVersionDoesNotTriggerUpdatePrompt() = runTest {
     val service =
         AppVersionService(
             config =
                 AppVersionRuntimeConfig(
-                    serverVersion = "1.5.0",
+                    latestVersion = "1.5.0",
                     downloadUrl = "https://download.example.com",
                 ),
             releaseNotesFetcher =
                 object : ReleaseNotesFetcher {
-                  override suspend fun fetchReleaseNotes(serverVersion: String): String? =
+                  override suspend fun fetchReleaseNotes(latestVersion: String): String? =
                       "请回退到服务端版本"
                 },
         )
 
     val response = service.checkVersion("1.6.0")
 
-    assertFalse(response.aligned)
-    assertEquals("请回退到服务端版本", response.releaseNotes)
+    assertFalse(response.updateAvailable)
+    assertEquals(AppUpdateStatus.UP_TO_DATE, response.status)
+    assertNull(response.releaseNotes)
   }
 
   @Test
@@ -99,12 +103,12 @@ class AppVersionServiceTest {
         AppVersionService(
             config =
                 AppVersionRuntimeConfig(
-                    serverVersion = "unknown",
+                    latestVersion = "unknown",
                     downloadUrl = "https://download.example.com",
                 ),
             releaseNotesFetcher =
                 object : ReleaseNotesFetcher {
-                  override suspend fun fetchReleaseNotes(serverVersion: String): String? {
+                  override suspend fun fetchReleaseNotes(latestVersion: String): String? {
                     fetchCalls += 1
                     return "should not be used"
                   }
@@ -113,8 +117,9 @@ class AppVersionServiceTest {
 
     val response = service.checkVersion("1.5.1")
 
-    assertTrue(response.aligned)
-    assertEquals("unknown", response.serverVersion)
+    assertFalse(response.updateAvailable)
+    assertEquals(AppUpdateStatus.UNKNOWN_LATEST_VERSION, response.status)
+    assertEquals("unknown", response.latestVersion)
     assertNull(response.releaseNotes)
     assertEquals(0, fetchCalls)
   }

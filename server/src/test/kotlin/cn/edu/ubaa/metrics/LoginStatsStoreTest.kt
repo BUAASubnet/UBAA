@@ -42,11 +42,25 @@ class LoginStatsStoreTest {
     val store = InMemoryLoginStatsStore()
     val now = Instant.parse("2026-04-02T08:15:00Z")
 
-    repeat(3) { store.recordLogin("2333", LoginSuccessMode.MANUAL, now) }
+    repeat(3) {
+      store.recordLogin("2333", LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY, now)
+    }
 
     assertEquals(3L, store.countEvents(LoginMetricWindow.ONE_HOUR, now))
+    assertEquals(
+        3L,
+        store.countEvents(LoginMetricWindow.ONE_HOUR, now, LoginConnectionMode.SERVER_RELAY),
+    )
     assertEquals(1L, store.countUniqueUsers(LoginMetricWindow.ONE_HOUR, now))
+    assertEquals(
+        1L,
+        store.countUniqueUsers(LoginMetricWindow.ONE_HOUR, now, LoginConnectionMode.SERVER_RELAY),
+    )
     assertEquals(3L, store.countSuccessTotal(LoginSuccessMode.MANUAL))
+    assertEquals(
+        3L,
+        store.countSuccessTotal(LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY),
+    )
   }
 
   @Test
@@ -54,14 +68,73 @@ class LoginStatsStoreTest {
     val store = InMemoryLoginStatsStore()
     val now = Instant.parse("2026-04-02T08:15:00Z")
 
-    store.recordLogin("2333", LoginSuccessMode.MANUAL, now.minusSeconds(2 * 3600))
-    store.recordLogin("2333", LoginSuccessMode.MANUAL, now)
-    store.recordLogin("2444", LoginSuccessMode.PRELOAD_AUTO, now.minusSeconds(3600))
+    store.recordLogin(
+        "2333",
+        LoginSuccessMode.MANUAL,
+        LoginConnectionMode.SERVER_RELAY,
+        now.minusSeconds(2 * 3600),
+    )
+    store.recordLogin("2333", LoginSuccessMode.MANUAL, LoginConnectionMode.DIRECT, now)
+    store.recordLogin(
+        "2444",
+        LoginSuccessMode.PRELOAD_AUTO,
+        LoginConnectionMode.WEBVPN,
+        now.minusSeconds(3600),
+    )
 
     assertEquals(3L, store.countEvents(LoginMetricWindow.TWENTY_FOUR_HOURS, now))
+    assertEquals(
+        1L,
+        store.countEvents(
+            LoginMetricWindow.TWENTY_FOUR_HOURS,
+            now,
+            LoginConnectionMode.SERVER_RELAY,
+        ),
+    )
+    assertEquals(
+        1L,
+        store.countEvents(LoginMetricWindow.TWENTY_FOUR_HOURS, now, LoginConnectionMode.DIRECT),
+    )
+    assertEquals(
+        1L,
+        store.countEvents(LoginMetricWindow.TWENTY_FOUR_HOURS, now, LoginConnectionMode.WEBVPN),
+    )
     assertEquals(2L, store.countUniqueUsers(LoginMetricWindow.TWENTY_FOUR_HOURS, now))
+    assertEquals(
+        1L,
+        store.countUniqueUsers(
+            LoginMetricWindow.TWENTY_FOUR_HOURS,
+            now,
+            LoginConnectionMode.SERVER_RELAY,
+        ),
+    )
+    assertEquals(
+        1L,
+        store.countUniqueUsers(
+            LoginMetricWindow.TWENTY_FOUR_HOURS,
+            now,
+            LoginConnectionMode.DIRECT,
+        ),
+    )
+    assertEquals(
+        1L,
+        store.countUniqueUsers(
+            LoginMetricWindow.TWENTY_FOUR_HOURS,
+            now,
+            LoginConnectionMode.WEBVPN,
+        ),
+    )
     assertEquals(2L, store.countSuccessTotal(LoginSuccessMode.MANUAL))
+    assertEquals(
+        1L,
+        store.countSuccessTotal(LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY),
+    )
+    assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.MANUAL, LoginConnectionMode.DIRECT))
     assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.PRELOAD_AUTO))
+    assertEquals(
+        1L,
+        store.countSuccessTotal(LoginSuccessMode.PRELOAD_AUTO, LoginConnectionMode.WEBVPN),
+    )
   }
 
   @Test
@@ -69,12 +142,57 @@ class LoginStatsStoreTest {
     val store = InMemoryLoginStatsStore()
     val now = Instant.parse("2026-04-02T08:15:00Z")
 
-    store.recordLogin("2333", LoginSuccessMode.MANUAL, now.minusSeconds(31 * 24 * 3600))
-    store.recordLogin("2444", LoginSuccessMode.PRELOAD_AUTO, now)
+    store.recordLogin(
+        "2333",
+        LoginSuccessMode.MANUAL,
+        LoginConnectionMode.SERVER_RELAY,
+        now.minusSeconds(31 * 24 * 3600),
+    )
+    store.recordLogin("2444", LoginSuccessMode.PRELOAD_AUTO, LoginConnectionMode.DIRECT, now)
 
     assertEquals(1L, store.countEvents(LoginMetricWindow.THIRTY_DAYS, now))
     assertEquals(1L, store.countUniqueUsers(LoginMetricWindow.THIRTY_DAYS, now))
     assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.MANUAL))
     assertEquals(1L, store.countSuccessTotal(LoginSuccessMode.PRELOAD_AUTO))
+    assertEquals(
+        0L,
+        store.countEvents(LoginMetricWindow.THIRTY_DAYS, now, LoginConnectionMode.SERVER_RELAY),
+    )
+    assertEquals(
+        1L,
+        store.countEvents(LoginMetricWindow.THIRTY_DAYS, now, LoginConnectionMode.DIRECT),
+    )
+    assertEquals(
+        0L,
+        store.countUniqueUsers(
+            LoginMetricWindow.THIRTY_DAYS,
+            now,
+            LoginConnectionMode.SERVER_RELAY,
+        ),
+    )
+    assertEquals(
+        1L,
+        store.countUniqueUsers(LoginMetricWindow.THIRTY_DAYS, now, LoginConnectionMode.DIRECT),
+    )
+  }
+
+  @Test
+  fun overallUniqueUsersRemainDeduplicatedAcrossDifferentConnectionModes() = runBlocking {
+    val store = InMemoryLoginStatsStore()
+    val now = Instant.parse("2026-04-02T08:15:00Z")
+
+    store.recordLogin("2333", LoginSuccessMode.MANUAL, LoginConnectionMode.SERVER_RELAY, now)
+    store.recordLogin("2333", LoginSuccessMode.PRELOAD_AUTO, LoginConnectionMode.DIRECT, now)
+
+    assertEquals(2L, store.countEvents(LoginMetricWindow.ONE_HOUR, now))
+    assertEquals(1L, store.countUniqueUsers(LoginMetricWindow.ONE_HOUR, now))
+    assertEquals(
+        1L,
+        store.countUniqueUsers(LoginMetricWindow.ONE_HOUR, now, LoginConnectionMode.SERVER_RELAY),
+    )
+    assertEquals(
+        1L,
+        store.countUniqueUsers(LoginMetricWindow.ONE_HOUR, now, LoginConnectionMode.DIRECT),
+    )
   }
 }

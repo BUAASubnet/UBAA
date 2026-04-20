@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ fun Sidebar(
     userData: UserData,
     onLogoutClick: () -> Unit,
     onMyClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onAboutClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,6 +88,10 @@ fun Sidebar(
 
       // Menu Items
       SidebarMenuItem(icon = Icons.Default.Person, title = "我的", onClick = onMyClick)
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      SidebarMenuItem(icon = Icons.Default.Settings, title = "设置", onClick = onSettingsClick)
 
       Spacer(modifier = Modifier.height(8.dp))
 

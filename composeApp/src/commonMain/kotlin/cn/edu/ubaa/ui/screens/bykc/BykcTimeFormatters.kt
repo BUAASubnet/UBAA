@@ -113,9 +113,12 @@ fun resolveBykcDisplayStatus(
   return course.status
 }
 
-fun resolveBykcAttendanceActionState(course: BykcCourseDetailDto): BykcAttendanceActionState {
-  val canSignIn = course.canSign
-  val canSignOut = course.canSignOut
+fun resolveBykcAttendanceActionState(
+    course: BykcCourseDetailDto,
+    now: LocalDateTime = currentBykcLocalDateTime(),
+): BykcAttendanceActionState {
+  val canSignIn = course.canSign || canBykcSignIn(course, now)
+  val canSignOut = course.canSignOut || canBykcSignOut(course, now)
 
   val disabledReason =
       when {
@@ -131,6 +134,48 @@ fun resolveBykcAttendanceActionState(course: BykcCourseDetailDto): BykcAttendanc
       disabledReason = disabledReason,
   )
 }
+
+fun parseBykcDateTime(dateTime: String?): LocalDateTime? {
+  if (dateTime.isNullOrBlank()) return null
+  return try {
+    LocalDateTime.parse(dateTime.replace(" ", "T"))
+  } catch (_: Exception) {
+    null
+  }
+}
+
+private fun canBykcSignIn(course: BykcCourseDetailDto, now: LocalDateTime): Boolean =
+    course.pass != 1 &&
+        isBykcCheckinStateUnsigned(course.checkin) &&
+        isBykcWithinWindow(
+            course.signConfig?.signStartDate,
+            course.signConfig?.signEndDate,
+            now,
+        )
+
+private fun canBykcSignOut(course: BykcCourseDetailDto, now: LocalDateTime): Boolean =
+    course.pass != 1 &&
+        isBykcCheckinStateSignOutEligible(course.checkin) &&
+        isBykcWithinWindow(
+            course.signConfig?.signOutStartDate,
+            course.signConfig?.signOutEndDate,
+            now,
+        )
+
+private fun isBykcWithinWindow(
+    startDate: LocalDateTime?,
+    endDate: LocalDateTime?,
+    now: LocalDateTime,
+): Boolean {
+  val start = startDate ?: return false
+  val end = endDate ?: return false
+  return now >= start && now <= end
+}
+
+private fun isBykcCheckinStateUnsigned(checkin: Int?): Boolean = checkin == null || checkin == 0
+
+private fun isBykcCheckinStateSignOutEligible(checkin: Int?): Boolean =
+    isBykcCheckinStateUnsigned(checkin) || isBykcCheckinStateWaitingForSignOut(checkin)
 
 private fun isBykcCheckinStateWaitingForSignOut(checkin: Int?): Boolean =
     checkin == 5 || checkin == 6

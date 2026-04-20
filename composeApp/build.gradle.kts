@@ -10,10 +10,14 @@ plugins {
   // alias(libs.plugins.composeHotReload)
 }
 
+val composeVersion = libs.versions.composeMultiplatform.get()
+val composeMaterial3Version = "1.9.0"
+val composeMaterialIconsExtendedVersion = "1.7.3"
+
 kotlin {
   jvmToolchain(21)
 
-  androidLibrary {
+  android {
     namespace = "cn.edu.ubaa.compose"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     minSdk = libs.versions.android.minSdk.get().toInt()
@@ -41,18 +45,20 @@ kotlin {
 
   sourceSets {
     androidMain.dependencies {
-      implementation(compose.preview)
+      implementation("org.jetbrains.compose.ui:ui-tooling-preview:$composeVersion")
       implementation(libs.androidx.activity.compose)
     }
     commonMain.dependencies {
-      implementation(compose.runtime)
-      implementation(compose.foundation)
-      implementation(compose.material)
-      implementation(compose.material3)
-      implementation(compose.ui)
-      implementation(compose.materialIconsExtended)
-      implementation(compose.components.resources)
-      implementation(compose.components.uiToolingPreview)
+      implementation("org.jetbrains.compose.runtime:runtime:$composeVersion")
+      implementation("org.jetbrains.compose.foundation:foundation:$composeVersion")
+      implementation("org.jetbrains.compose.material:material:$composeVersion")
+      implementation("org.jetbrains.compose.material3:material3:$composeMaterial3Version")
+      implementation("org.jetbrains.compose.ui:ui:$composeVersion")
+      implementation(
+          "org.jetbrains.compose.material:material-icons-extended:$composeMaterialIconsExtendedVersion"
+      )
+      implementation("org.jetbrains.compose.components:components-resources:$composeVersion")
+      implementation("org.jetbrains.compose.ui:ui-tooling-preview:$composeVersion")
       implementation(kotlin("reflect"))
       implementation(libs.androidx.lifecycle.viewmodelCompose)
       implementation(libs.androidx.lifecycle.runtimeCompose)

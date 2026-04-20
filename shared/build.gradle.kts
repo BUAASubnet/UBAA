@@ -44,8 +44,12 @@ buildkonfig {
 kotlin {
   // 配置 JDK 21 工具链
   jvmToolchain(21)
+  compilerOptions {
+    freeCompilerArgs.add("-Xexpect-actual-classes")
+    freeCompilerArgs.add("-opt-in=kotlinx.cinterop.ExperimentalForeignApi")
+  }
 
-  androidLibrary {
+  android {
     namespace = "cn.edu.ubaa.shared"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     minSdk = libs.versions.android.minSdk.get().toInt()

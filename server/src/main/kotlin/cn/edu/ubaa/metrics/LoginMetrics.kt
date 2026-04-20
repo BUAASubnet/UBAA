@@ -21,6 +21,12 @@ enum class LoginSuccessMode(val tagValue: String) {
   PRELOAD_AUTO("preload_auto"),
 }
 
+enum class LoginConnectionMode(val tagValue: String) {
+  DIRECT("direct"),
+  WEBVPN("webvpn"),
+  SERVER_RELAY("server_relay"),
+}
+
 enum class LoginMetricWindow(val tagValue: String, val hours: Long) {
   ONE_HOUR("1h", 1),
   TWENTY_FOUR_HOURS("24h", 24),
@@ -29,21 +35,42 @@ enum class LoginMetricWindow(val tagValue: String, val hours: Long) {
 }
 
 interface LoginMetricsSink {
-  suspend fun recordSuccess(username: String, mode: LoginSuccessMode)
+  suspend fun recordSuccess(
+      username: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+  )
 }
 
 object NoOpLoginMetricsSink : LoginMetricsSink {
-  override suspend fun recordSuccess(username: String, mode: LoginSuccessMode) = Unit
+  override suspend fun recordSuccess(
+      username: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+  ) = Unit
 }
 
 interface LoginStatsStore {
-  suspend fun recordLogin(userId: String, mode: LoginSuccessMode, recordedAt: Instant)
+  suspend fun recordLogin(
+      userId: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+      recordedAt: Instant,
+  )
 
-  fun countEvents(window: LoginMetricWindow, now: Instant): Long
+  fun countEvents(
+      window: LoginMetricWindow,
+      now: Instant,
+      connectionMode: LoginConnectionMode? = null,
+  ): Long
 
-  fun countUniqueUsers(window: LoginMetricWindow, now: Instant): Long
+  fun countUniqueUsers(
+      window: LoginMetricWindow,
+      now: Instant,
+      connectionMode: LoginConnectionMode? = null,
+  ): Long
 
-  fun countSuccessTotal(mode: LoginSuccessMode): Long
+  fun countSuccessTotal(mode: LoginSuccessMode, connectionMode: LoginConnectionMode? = null): Long
 
   fun close()
 }
@@ -54,40 +81,62 @@ class LoginMetricsRecorder(
     private val clock: Clock = Clock.systemUTC(),
 ) : LoginMetricsSink {
   private val log = LoggerFactory.getLogger(LoginMetricsRecorder::class.java)
+  private val boundConnectionModes =
+      listOf<LoginConnectionMode?>(null) + LoginConnectionMode.entries
 
   fun bindMetrics() {
     for (mode in LoginSuccessMode.entries) {
-      FunctionCounterBindings.bind(
-          registry = registry,
-          name = "ubaa.auth.login.success",
-          tags = mapOf("mode" to mode.tagValue),
-      ) {
-        store.countSuccessTotal(mode).toDouble()
+      for (connectionMode in boundConnectionModes) {
+        FunctionCounterBindings.bind(
+            registry = registry,
+            name = "ubaa.auth.login.success",
+            tags =
+                mapOf(
+                    "mode" to mode.tagValue,
+                    "connection_mode" to connectionMode.tagValue(),
+                ),
+        ) {
+          store.countSuccessTotal(mode, connectionMode).toDouble()
+        }
       }
     }
 
     for (window in LoginMetricWindow.entries) {
-      GaugeBindings.bind(
-          registry = registry,
-          name = "ubaa.auth.login.events.window",
-          tags = mapOf("window" to window.tagValue),
-      ) {
-        store.countEvents(window, clock.instant()).toDouble()
-      }
+      for (connectionMode in boundConnectionModes) {
+        GaugeBindings.bind(
+            registry = registry,
+            name = "ubaa.auth.login.events.window",
+            tags =
+                mapOf(
+                    "connection_mode" to connectionMode.tagValue(),
+                    "window" to window.tagValue,
+                ),
+        ) {
+          store.countEvents(window, clock.instant(), connectionMode).toDouble()
+        }
 
-      GaugeBindings.bind(
-          registry = registry,
-          name = "ubaa.auth.login.unique.users.window",
-          tags = mapOf("window" to window.tagValue),
-      ) {
-        store.countUniqueUsers(window, clock.instant()).toDouble()
+        GaugeBindings.bind(
+            registry = registry,
+            name = "ubaa.auth.login.unique.users.window",
+            tags =
+                mapOf(
+                    "connection_mode" to connectionMode.tagValue(),
+                    "window" to window.tagValue,
+                ),
+        ) {
+          store.countUniqueUsers(window, clock.instant(), connectionMode).toDouble()
+        }
       }
     }
   }
 
-  override suspend fun recordSuccess(username: String, mode: LoginSuccessMode) {
+  override suspend fun recordSuccess(
+      username: String,
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
+  ) {
     try {
-      store.recordLogin(username, mode, clock.instant())
+      store.recordLogin(username, mode, connectionMode, clock.instant())
     } catch (e: Exception) {
       log.warn("Failed to persist login statistics for user {}", username, e)
     }
@@ -116,6 +165,7 @@ class RedisLoginStatsStore(
   private data class WindowCacheKey(
       val type: WindowMetricType,
       val window: LoginMetricWindow,
+      val connectionMode: LoginConnectionMode?,
       val currentBucket: Long,
   )
 
@@ -133,26 +183,39 @@ class RedisLoginStatsStore(
   override suspend fun recordLogin(
       userId: String,
       mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
       recordedAt: Instant,
   ) {
     val bucket = bucketOf(recordedAt)
-    val eventKey = eventKey(bucket)
-    val uniqueKey = uniqueKey(bucket)
-    val successTotalKey = successTotalKey(mode)
     val usernameHash = hashUsername(userId)
     val ttlSeconds = keyTtl.seconds.coerceAtLeast(1L)
 
-    asyncCommands.incr(eventKey).await()
-    asyncCommands.expire(eventKey, ttlSeconds).await()
-    asyncCommands.pfadd(uniqueKey, usernameHash).await()
-    asyncCommands.expire(uniqueKey, ttlSeconds).await()
-    asyncCommands.incr(successTotalKey).await()
+    suspend fun incrementEvent(key: String) {
+      asyncCommands.incr(key).await()
+      asyncCommands.expire(key, ttlSeconds).await()
+    }
+
+    suspend fun addUniqueUser(key: String) {
+      asyncCommands.pfadd(key, usernameHash).await()
+      asyncCommands.expire(key, ttlSeconds).await()
+    }
+
+    incrementEvent(eventKey(bucket))
+    incrementEvent(eventKey(bucket, connectionMode))
+    addUniqueUser(uniqueKey(bucket))
+    addUniqueUser(uniqueKey(bucket, connectionMode))
+    asyncCommands.incr(successTotalKey(mode)).await()
+    asyncCommands.incr(successTotalKey(mode, connectionMode)).await()
     windowCache.clear()
   }
 
-  override fun countEvents(window: LoginMetricWindow, now: Instant): Long {
-    return cachedWindowValue(WindowMetricType.EVENTS, window, now) {
-      val keys = bucketsFor(window, now).map(::eventKey)
+  override fun countEvents(
+      window: LoginMetricWindow,
+      now: Instant,
+      connectionMode: LoginConnectionMode?,
+  ): Long {
+    return cachedWindowValue(WindowMetricType.EVENTS, window, connectionMode, now) {
+      val keys = bucketsFor(window, now).map { bucket -> eventKey(bucket, connectionMode) }
       if (keys.isEmpty()) {
         0L
       } else {
@@ -161,9 +224,13 @@ class RedisLoginStatsStore(
     }
   }
 
-  override fun countUniqueUsers(window: LoginMetricWindow, now: Instant): Long {
-    return cachedWindowValue(WindowMetricType.UNIQUE_USERS, window, now) {
-      val keys = bucketsFor(window, now).map(::uniqueKey)
+  override fun countUniqueUsers(
+      window: LoginMetricWindow,
+      now: Instant,
+      connectionMode: LoginConnectionMode?,
+  ): Long {
+    return cachedWindowValue(WindowMetricType.UNIQUE_USERS, window, connectionMode, now) {
+      val keys = bucketsFor(window, now).map { bucket -> uniqueKey(bucket, connectionMode) }
       if (keys.isEmpty()) {
         0L
       } else {
@@ -172,8 +239,13 @@ class RedisLoginStatsStore(
     }
   }
 
-  override fun countSuccessTotal(mode: LoginSuccessMode): Long {
-    return runCatching { syncCommands.get(successTotalKey(mode))?.toLongOrNull() ?: 0L }
+  override fun countSuccessTotal(
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode?,
+  ): Long {
+    return runCatching {
+          syncCommands.get(successTotalKey(mode, connectionMode))?.toLongOrNull() ?: 0L
+        }
         .getOrDefault(0L)
   }
 
@@ -189,21 +261,30 @@ class RedisLoginStatsStore(
 
   private fun bucketOf(at: Instant): Long = at.epochSecond / 3600
 
-  private fun eventKey(bucket: Long): String = "metrics:login:events:$bucket"
+  private fun eventKey(bucket: Long, connectionMode: LoginConnectionMode? = null): String =
+      connectionMode?.let { "metrics:login:events:${it.tagValue}:$bucket" }
+          ?: "metrics:login:events:$bucket"
 
-  private fun uniqueKey(bucket: Long): String = "metrics:login:users:$bucket"
+  private fun uniqueKey(bucket: Long, connectionMode: LoginConnectionMode? = null): String =
+      connectionMode?.let { "metrics:login:users:${it.tagValue}:$bucket" }
+          ?: "metrics:login:users:$bucket"
 
-  private fun successTotalKey(mode: LoginSuccessMode): String =
-      "metrics:login:success:total:${mode.tagValue}"
+  private fun successTotalKey(
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode? = null,
+  ): String =
+      connectionMode?.let { "metrics:login:success:total:${mode.tagValue}:${it.tagValue}" }
+          ?: "metrics:login:success:total:${mode.tagValue}"
 
   private fun cachedWindowValue(
       type: WindowMetricType,
       window: LoginMetricWindow,
+      connectionMode: LoginConnectionMode?,
       now: Instant,
       loader: () -> Long,
   ): Long {
     val currentBucket = bucketOf(now)
-    val cacheKey = WindowCacheKey(type, window, currentBucket)
+    val cacheKey = WindowCacheKey(type, window, connectionMode, currentBucket)
     val nowMillis = System.currentTimeMillis()
     windowCache[cacheKey]
         ?.takeIf { it.expiresAtMillis > nowMillis }
@@ -242,28 +323,73 @@ class InMemoryLoginStatsStore : LoginStatsStore {
       val users: MutableSet<String> = ConcurrentHashMap.newKeySet(),
   )
 
-  private val buckets = ConcurrentHashMap<Long, LoginBucket>()
+  private val overallBuckets = ConcurrentHashMap<Long, LoginBucket>()
+  private val modeBuckets =
+      ConcurrentHashMap<LoginConnectionMode, ConcurrentHashMap<Long, LoginBucket>>().apply {
+        LoginConnectionMode.entries.forEach { put(it, ConcurrentHashMap()) }
+      }
   private val successTotals =
       ConcurrentHashMap<LoginSuccessMode, AtomicLong>().apply {
         LoginSuccessMode.entries.forEach { put(it, AtomicLong(0)) }
       }
+  private val modeSuccessTotals =
+      ConcurrentHashMap<
+              LoginConnectionMode,
+              ConcurrentHashMap<LoginSuccessMode, AtomicLong>,
+          >()
+          .apply {
+            LoginConnectionMode.entries.forEach { connectionMode ->
+              put(
+                  connectionMode,
+                  ConcurrentHashMap<LoginSuccessMode, AtomicLong>().apply {
+                    LoginSuccessMode.entries.forEach { put(it, AtomicLong(0)) }
+                  },
+              )
+            }
+          }
 
   override suspend fun recordLogin(
       userId: String,
       mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode,
       recordedAt: Instant,
   ) {
-    val bucket = buckets.computeIfAbsent(bucketOf(recordedAt)) { LoginBucket() }
-    bucket.events.incrementAndGet()
-    bucket.users += hashUsername(userId)
+    val bucketKey = bucketOf(recordedAt)
+    val userHash = hashUsername(userId)
+    val overallBucket = overallBuckets.computeIfAbsent(bucketKey) { LoginBucket() }
+    overallBucket.events.incrementAndGet()
+    overallBucket.users += userHash
+    val scopedBuckets =
+        modeBuckets.computeIfAbsent(connectionMode) { ConcurrentHashMap<Long, LoginBucket>() }
+    val scopedBucket = scopedBuckets.computeIfAbsent(bucketKey) { LoginBucket() }
+    scopedBucket.events.incrementAndGet()
+    scopedBucket.users += userHash
     successTotals.computeIfAbsent(mode) { AtomicLong(0) }.incrementAndGet()
+    modeSuccessTotals
+        .computeIfAbsent(connectionMode) {
+          ConcurrentHashMap<LoginSuccessMode, AtomicLong>().apply {
+            LoginSuccessMode.entries.forEach { put(it, AtomicLong(0)) }
+          }
+        }
+        .computeIfAbsent(mode) { AtomicLong(0) }
+        .incrementAndGet()
   }
 
-  override fun countEvents(window: LoginMetricWindow, now: Instant): Long {
+  override fun countEvents(
+      window: LoginMetricWindow,
+      now: Instant,
+      connectionMode: LoginConnectionMode?,
+  ): Long {
+    val buckets = bucketStore(connectionMode)
     return bucketsFor(window, now).sumOf { bucket -> buckets[bucket]?.events?.get() ?: 0L }
   }
 
-  override fun countUniqueUsers(window: LoginMetricWindow, now: Instant): Long {
+  override fun countUniqueUsers(
+      window: LoginMetricWindow,
+      now: Instant,
+      connectionMode: LoginConnectionMode?,
+  ): Long {
+    val buckets = bucketStore(connectionMode)
     val uniqueUsers = linkedSetOf<String>()
     for (bucket in bucketsFor(window, now)) {
       uniqueUsers += buckets[bucket]?.users.orEmpty()
@@ -271,13 +397,22 @@ class InMemoryLoginStatsStore : LoginStatsStore {
     return uniqueUsers.size.toLong()
   }
 
-  override fun countSuccessTotal(mode: LoginSuccessMode): Long {
-    return successTotals[mode]?.get() ?: 0L
+  override fun countSuccessTotal(
+      mode: LoginSuccessMode,
+      connectionMode: LoginConnectionMode?,
+  ): Long {
+    return if (connectionMode == null) {
+      successTotals[mode]?.get() ?: 0L
+    } else {
+      modeSuccessTotals[connectionMode]?.get(mode)?.get() ?: 0L
+    }
   }
 
   override fun close() {
-    buckets.clear()
+    overallBuckets.clear()
+    modeBuckets.clear()
     successTotals.clear()
+    modeSuccessTotals.clear()
   }
 
   private fun bucketsFor(window: LoginMetricWindow, now: Instant): LongRange {
@@ -287,7 +422,18 @@ class InMemoryLoginStatsStore : LoginStatsStore {
   }
 
   private fun bucketOf(at: Instant): Long = at.epochSecond / 3600
+
+  private fun bucketStore(
+      connectionMode: LoginConnectionMode?
+  ): ConcurrentHashMap<Long, LoginBucket> =
+      if (connectionMode == null) {
+        overallBuckets
+      } else {
+        modeBuckets.computeIfAbsent(connectionMode) { ConcurrentHashMap() }
+      }
 }
+
+private fun LoginConnectionMode?.tagValue(): String = this?.tagValue ?: "all"
 
 private fun hashUsername(username: String): String {
   val digest = MessageDigest.getInstance("SHA-256")

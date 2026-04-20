@@ -223,4 +223,62 @@ class BykcTimeFormattersTest {
 
     assertEquals("当前考勤状态不可签到/签退。", state.disabledReason)
   }
+
+  @Test
+  fun `resolveBykcAttendanceActionState enables sign out when local time enters sign out window`() {
+    val state =
+        resolveBykcAttendanceActionState(
+            course =
+                BykcCourseDetailDto(
+                    id = 1L,
+                    courseName = "测试课程",
+                    status = BykcCourseStatus.SELECTED,
+                    selected = true,
+                    signConfig =
+                        BykcSignConfigDto(
+                            signStartDate = LocalDateTime.parse("2025-03-16T16:20:00"),
+                            signEndDate = LocalDateTime.parse("2025-03-16T16:40:00"),
+                            signOutStartDate = LocalDateTime.parse("2025-03-16T17:50:00"),
+                            signOutEndDate = LocalDateTime.parse("2025-03-16T18:15:00"),
+                        ),
+                    checkin = 5,
+                    canSign = false,
+                    canSignOut = false,
+                ),
+            now = LocalDateTime.parse("2025-03-16T17:53:00"),
+        )
+
+    assertFalse(state.canSignIn)
+    assertTrue(state.canSignOut)
+    assertEquals(null, state.disabledReason)
+  }
+
+  @Test
+  fun `resolveBykcAttendanceActionState enables sign out for unsigned course in sign out window`() {
+    val state =
+        resolveBykcAttendanceActionState(
+            course =
+                BykcCourseDetailDto(
+                    id = 1L,
+                    courseName = "测试课程",
+                    status = BykcCourseStatus.SELECTED,
+                    selected = true,
+                    signConfig =
+                        BykcSignConfigDto(
+                            signStartDate = LocalDateTime.parse("2025-03-16T16:20:00"),
+                            signEndDate = LocalDateTime.parse("2025-03-16T16:40:00"),
+                            signOutStartDate = LocalDateTime.parse("2025-03-16T17:50:00"),
+                            signOutEndDate = LocalDateTime.parse("2025-03-16T18:15:00"),
+                        ),
+                    checkin = 0,
+                    canSign = false,
+                    canSignOut = false,
+                ),
+            now = LocalDateTime.parse("2025-03-16T17:53:00"),
+        )
+
+    assertFalse(state.canSignIn)
+    assertTrue(state.canSignOut)
+    assertEquals(null, state.disabledReason)
+  }
 }

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.api.BykcCourseFilterStore
+import cn.edu.ubaa.api.ConnectionMode
 import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.CourseClass
 import cn.edu.ubaa.model.dto.UserData
@@ -66,6 +67,7 @@ enum class AppScreen {
   REGULAR,
   ADVANCED,
   MY,
+  SETTINGS,
   ABOUT,
   SCHEDULE,
   EXAM,
@@ -101,7 +103,10 @@ enum class AppScreen {
 fun MainAppScreen(
     userData: UserData,
     userInfo: UserInfo?,
+    connectionMode: ConnectionMode,
+    availableConnectionModes: List<ConnectionMode>,
     onEnsureUserInfo: () -> Unit,
+    onConnectionModeSelected: (ConnectionMode) -> Unit,
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -321,7 +326,7 @@ fun MainAppScreen(
               else -> null
             }
     tab?.let { selectedBottomTab = it }
-    if (screen !in listOf(AppScreen.MY, AppScreen.ABOUT)) showSidebar = false
+    if (screen !in listOf(AppScreen.MY, AppScreen.SETTINGS, AppScreen.ABOUT)) showSidebar = false
   }
 
   /** 统一的返回逻辑处理。 */
@@ -356,7 +361,7 @@ fun MainAppScreen(
             else -> null
           }
       tab?.let { selectedBottomTab = it }
-      if (top in listOf(AppScreen.MY, AppScreen.ABOUT)) showSidebar = true
+      if (top in listOf(AppScreen.MY, AppScreen.SETTINGS, AppScreen.ABOUT)) showSidebar = true
     } else {
       selectedBottomTab =
           when (navController.currentScreen) {
@@ -471,6 +476,7 @@ fun MainAppScreen(
         AppScreen.REGULAR -> "普通功能"
         AppScreen.ADVANCED -> "高级功能"
         AppScreen.MY -> "我的"
+        AppScreen.SETTINGS -> "设置"
         AppScreen.ABOUT -> "关于"
         AppScreen.SCHEDULE -> "课程表"
         AppScreen.EXAM -> "考试查询"
@@ -577,6 +583,12 @@ fun MainAppScreen(
                   onYgdkClick = { navigateTo(AppScreen.YGDK_HOME) },
               )
           AppScreen.MY -> MyScreen(userInfo = userInfo)
+          AppScreen.SETTINGS ->
+              SettingsScreen(
+                  currentMode = connectionMode,
+                  availableModes = availableConnectionModes,
+                  onModeSelected = onConnectionModeSelected,
+              )
           AppScreen.ABOUT -> AboutScreen()
           AppScreen.SCHEDULE ->
               ScheduleScreen(
@@ -761,6 +773,7 @@ fun MainAppScreen(
                   AppScreen.EXAM,
                   AppScreen.COURSE_DETAIL,
                   AppScreen.MY,
+                  AppScreen.SETTINGS,
                   AppScreen.ABOUT,
                   AppScreen.BYKC_HOME,
                   AppScreen.BYKC_COURSES,
@@ -816,6 +829,10 @@ fun MainAppScreen(
             onMyClick = {
               showSidebar = false
               navigateTo(AppScreen.MY)
+            },
+            onSettingsClick = {
+              showSidebar = false
+              navigateTo(AppScreen.SETTINGS)
             },
             onAboutClick = {
               showSidebar = false
