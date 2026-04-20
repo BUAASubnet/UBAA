@@ -427,13 +427,17 @@ class BykcService(
     val semesters = config.semester
     if (semesters.isEmpty()) throw BykcException("无法获取当前学期信息")
 
-    semesters.firstOrNull { semester ->
-      isWithinWindow(semester.semesterStartDate, semester.semesterEndDate, now)
-    }?.let {
-      return it
-    }
+    semesters
+        .firstOrNull { semester ->
+          isWithinWindow(semester.semesterStartDate, semester.semesterEndDate, now)
+        }
+        ?.let {
+          return it
+        }
 
-    log.warn("Unable to match BYKC current semester by time window, falling back to latest semester")
+    log.warn(
+        "Unable to match BYKC current semester by time window, falling back to latest semester"
+    )
     return semesters.maxByOrNull { parseDateTime(it.semesterEndDate) ?: LocalDateTime.MIN }
         ?: throw BykcException("无法获取当前学期信息")
   }
