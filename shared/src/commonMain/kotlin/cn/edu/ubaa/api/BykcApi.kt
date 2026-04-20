@@ -29,8 +29,14 @@ interface BykcApiBackend {
 }
 
 /** 博雅课程 (BYKC) API 服务。 提供课程查询、详情查看、选课、退选、签到以及修读统计等功能。 */
-class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory().bykcApi()) {
-  constructor(apiClient: ApiClient) : this(RelayBykcApiBackend(apiClient))
+class BykcApi(
+    private val backendProvider: () -> BykcApiBackend = { ConnectionRuntime.apiFactory().bykcApi() }
+) {
+  internal constructor(backend: BykcApiBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayBykcApiBackend(apiClient) })
+
+  private fun currentBackend(): BykcApiBackend = backendProvider()
 
   /**
    * 获取博雅系统中的用户个人资料。
@@ -38,7 +44,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
    * @return 用户基本信息。
    */
   suspend fun getProfile(): Result<BykcUserProfileDto> {
-    return backend.getProfile()
+    return currentBackend().getProfile()
   }
 
   /**
@@ -54,7 +60,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
       size: Int = 20,
       all: Boolean = false,
   ): Result<BykcCoursesResponse> {
-    return backend.getCourses(page, size, all)
+    return currentBackend().getCourses(page, size, all)
   }
 
   /**
@@ -64,7 +70,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
    * @return 课程详细信息，包含签到配置等。
    */
   suspend fun getCourseDetail(courseId: Long): Result<BykcCourseDetailDto> {
-    return backend.getCourseDetail(courseId)
+    return currentBackend().getCourseDetail(courseId)
   }
 
   /**
@@ -73,7 +79,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
    * @return 已选课程列表。
    */
   suspend fun getChosenCourses(): Result<List<BykcChosenCourseDto>> {
-    return backend.getChosenCourses()
+    return currentBackend().getChosenCourses()
   }
 
   /**
@@ -82,7 +88,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
    * @return 各分类的统计结果。
    */
   suspend fun getStatistics(): Result<BykcStatisticsDto> {
-    return backend.getStatistics()
+    return currentBackend().getStatistics()
   }
 
   /**
@@ -92,7 +98,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
    * @return 操作成功响应。
    */
   suspend fun selectCourse(courseId: Long): Result<BykcSuccessResponse> {
-    return backend.selectCourse(courseId)
+    return currentBackend().selectCourse(courseId)
   }
 
   /**
@@ -102,7 +108,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
    * @return 操作成功响应。
    */
   suspend fun deselectCourse(courseId: Long): Result<BykcSuccessResponse> {
-    return backend.deselectCourse(courseId)
+    return currentBackend().deselectCourse(courseId)
   }
 
   /**
@@ -120,7 +126,7 @@ class BykcApi(private val backend: BykcApiBackend = ConnectionRuntime.apiFactory
       lng: Double? = null,
       signType: Int,
   ): Result<BykcSuccessResponse> {
-    return backend.signCourse(courseId, lat, lng, signType)
+    return currentBackend().signCourse(courseId, lat, lng, signType)
   }
 }
 

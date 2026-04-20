@@ -21,21 +21,27 @@ interface YgdkApiBackend {
   suspend fun submitClockin(request: YgdkClockinSubmitRequest): Result<YgdkClockinSubmitResponse>
 }
 
-open class YgdkApi(private val backend: YgdkApiBackend = ConnectionRuntime.apiFactory().ygdkApi()) {
-  constructor(apiClient: ApiClient) : this(RelayYgdkApiBackend(apiClient))
+open class YgdkApi(
+    private val backendProvider: () -> YgdkApiBackend = { ConnectionRuntime.apiFactory().ygdkApi() }
+) {
+  internal constructor(backend: YgdkApiBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayYgdkApiBackend(apiClient) })
+
+  private fun currentBackend(): YgdkApiBackend = backendProvider()
 
   open suspend fun getOverview(): Result<YgdkOverviewResponse> {
-    return backend.getOverview()
+    return currentBackend().getOverview()
   }
 
   open suspend fun getRecords(page: Int = 1, size: Int = 20): Result<YgdkRecordsPageResponse> {
-    return backend.getRecords(page, size)
+    return currentBackend().getRecords(page, size)
   }
 
   open suspend fun submitClockin(
       request: YgdkClockinSubmitRequest
   ): Result<YgdkClockinSubmitResponse> {
-    return backend.submitClockin(request)
+    return currentBackend().submitClockin(request)
   }
 }
 

@@ -17,9 +17,13 @@ interface ScheduleApiBackend {
 }
 
 class ScheduleApi(
-    private val backend: ScheduleApiBackend = ConnectionRuntime.apiFactory().scheduleApi()
+    private val backendProvider: () -> ScheduleApiBackend = { ConnectionRuntime.apiFactory().scheduleApi() }
 ) {
-  constructor(apiClient: ApiClient) : this(RelayScheduleApiBackend(apiClient))
+  internal constructor(backend: ScheduleApiBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayScheduleApiBackend(apiClient) })
+
+  private fun currentBackend(): ScheduleApiBackend = backendProvider()
 
   /**
    * 获取所有可用学期列表。
@@ -27,7 +31,7 @@ class ScheduleApi(
    * @return 学期信息列表。
    */
   suspend fun getTerms(): Result<List<Term>> {
-    return backend.getTerms()
+    return currentBackend().getTerms()
   }
 
   /**
@@ -37,7 +41,7 @@ class ScheduleApi(
    * @return 该学期的教学周列表。
    */
   suspend fun getWeeks(termCode: String): Result<List<Week>> {
-    return backend.getWeeks(termCode)
+    return currentBackend().getWeeks(termCode)
   }
 
   /**
@@ -48,7 +52,7 @@ class ScheduleApi(
    * @return 包含该周所有排课信息的 WeeklySchedule。
    */
   suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> {
-    return backend.getWeeklySchedule(termCode, week)
+    return currentBackend().getWeeklySchedule(termCode, week)
   }
 
   /**
@@ -57,7 +61,7 @@ class ScheduleApi(
    * @return 今日课程列表。
    */
   suspend fun getTodaySchedule(): Result<List<TodayClass>> {
-    return backend.getTodaySchedule()
+    return currentBackend().getTodaySchedule()
   }
 
   /**
@@ -67,7 +71,7 @@ class ScheduleApi(
    * @return 包含学生信息、已安排考试和未安排考试的数据汇总。
    */
   suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData> {
-    return backend.getExamArrangement(termCode)
+    return currentBackend().getExamArrangement(termCode)
   }
 }
 

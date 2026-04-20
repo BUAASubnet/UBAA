@@ -117,28 +117,34 @@ class LocalClassroomApiBackendTest {
   }
 
   @Test
-  fun `classroom api clears local session when upstream redirects to sso`() = runTest {
-    val engine = MockEngine { request ->
-      when {
-        request.url.host == "sso.buaa.edu.cn" && request.url.encodedPath == "/login" ->
-            respond(
-                content = ByteReadChannel.Empty,
-                status = HttpStatusCode.OK,
-            )
-        request.url.host == "app.buaa.edu.cn" &&
-            request.url.encodedPath == "/buaafreeclass/wap/default/search1" ->
-            respond(
-                content = ByteReadChannel.Empty,
-                status = HttpStatusCode.Found,
-                headers =
-                    headersOf(
-                        HttpHeaders.Location,
-                        "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn",
-                    ),
-            )
-        else -> error("Unexpected url: ${request.url}")
-      }
-    }
+  fun `classroom api clears local session when upstream redirects to sso and uc session is invalid`() = runTest {
+    val engine =
+        MockEngine { request ->
+          when {
+            request.url.host == "sso.buaa.edu.cn" && request.url.encodedPath == "/login" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.OK,
+                )
+            request.url.host == "uc.buaa.edu.cn" && request.url.encodedPath == "/api/uc/status" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Unauthorized,
+                )
+            request.url.host == "app.buaa.edu.cn" &&
+                request.url.encodedPath == "/buaafreeclass/wap/default/search1" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers =
+                        headersOf(
+                            HttpHeaders.Location,
+                            "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn",
+                        ),
+                    )
+            else -> error("Unexpected url: ${request.url}")
+          }
+        }
     useMockUpstream(engine)
 
     val result = ClassroomApi().queryClassrooms(xqid = 1, date = "2026-04-20")

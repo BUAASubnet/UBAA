@@ -41,6 +41,33 @@ class ApiFactoryDispatchTest {
   }
 
   @Test
+  fun `auth service created before mode selection resolves backend lazily from current mode`() =
+      runTest {
+        val relayBackend = FakeAuthServiceBackend()
+        val localBackend = FakeAuthServiceBackend()
+        ConnectionRuntime.apiFactoryProvider = {
+          FakeApiFactory(
+              authBackend =
+                  when (ConnectionRuntime.currentMode()) {
+                    ConnectionMode.DIRECT -> localBackend
+                    else -> relayBackend
+                  }
+          )
+        }
+
+        val service = AuthService()
+
+        ConnectionModeStore.save(ConnectionMode.DIRECT)
+        ConnectionRuntime.resolveSelectedMode()
+
+        val result = service.preloadLoginState()
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, relayBackend.preloadCalls)
+        assertEquals(1, localBackend.preloadCalls)
+      }
+
+  @Test
   fun `schedule api default constructor delegates to connection runtime api factory`() = runTest {
     val backend = FakeScheduleApiBackend()
     ConnectionRuntime.apiFactoryProvider = {
@@ -54,6 +81,33 @@ class ApiFactoryDispatchTest {
     assertTrue(result.isSuccess)
     assertEquals(1, backend.getTermsCalls)
   }
+
+  @Test
+  fun `schedule api created before mode selection resolves backend lazily from current mode`() =
+      runTest {
+        val relayBackend = FakeScheduleApiBackend()
+        val localBackend = FakeScheduleApiBackend()
+        ConnectionRuntime.apiFactoryProvider = {
+          FakeApiFactory(
+              scheduleBackend =
+                  when (ConnectionRuntime.currentMode()) {
+                    ConnectionMode.DIRECT -> localBackend
+                    else -> relayBackend
+                  }
+          )
+        }
+
+        val api = ScheduleApi()
+
+        ConnectionModeStore.save(ConnectionMode.DIRECT)
+        ConnectionRuntime.resolveSelectedMode()
+
+        val result = api.getTerms()
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, relayBackend.getTermsCalls)
+        assertEquals(1, localBackend.getTermsCalls)
+      }
 
   @Test
   fun `evaluation service default constructor delegates to connection runtime api factory`() =

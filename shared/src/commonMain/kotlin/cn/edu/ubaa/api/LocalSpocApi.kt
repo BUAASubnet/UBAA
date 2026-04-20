@@ -110,8 +110,7 @@ internal class LocalSpocApiBackend : SpocApiBackend {
       val client = LocalSpocClient()
       Result.success(client.block())
     } catch (e: LocalSpocAuthenticationException) {
-      clearLocalConnectionSession()
-      Result.failure(localUnauthenticatedApiException())
+      Result.failure(resolveLocalBusinessAuthenticationFailure("spoc_error"))
     } catch (e: Exception) {
       Result.failure(e.toUserFacingApiException(defaultMessage))
     }
@@ -225,13 +224,7 @@ private class LocalSpocClient {
       var currentUrl = localUpstreamUrl("https://spoc.buaa.edu.cn/spocnewht/cas")
       repeat(8) {
         val response = noRedirectClient.get(currentUrl)
-        LocalSpocParsers.extractLoginTokens(response.call.request.url.toString())?.let {
-          return it
-        }
-        val body = response.bodyAsText()
-        if (isLocalSpocSessionExpired(response, body)) {
-          throw LocalSpocAuthenticationException("SPOC 登录状态异常，请重新登录后重试")
-        }
+        LocalSpocParsers.extractLoginTokens(response.call.request.url.toString())?.let { return it }
         val location =
             response.headers[HttpHeaders.Location]
                 ?: throw LocalSpocAuthenticationException("SPOC 登录跳转缺少 Location")

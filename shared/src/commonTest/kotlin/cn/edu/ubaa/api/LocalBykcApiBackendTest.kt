@@ -185,6 +185,113 @@ class LocalBykcApiBackendTest {
   }
 
   @Test
+  fun `bykc login preserves pathless cookies for subsequent api calls`() = runTest {
+    val engine =
+        MockEngine { request ->
+          when (request.url.toString()) {
+            "https://bykc.buaa.edu.cn/sscv/cas/login" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers =
+                        headersOf(
+                            HttpHeaders.Location,
+                            "https://bykc.buaa.edu.cn/cas-login?token=test-token",
+                        ),
+                )
+            "https://bykc.buaa.edu.cn/cas-login?token=test-token" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.SetCookie, "BYKCSESSION=bykc-session; Domain=bykc.buaa.edu.cn; Secure"),
+                )
+            "https://bykc.buaa.edu.cn/sscv/getUserProfile" -> {
+              assertTrue(request.headers[HttpHeaders.Cookie].orEmpty().contains("BYKCSESSION=bykc-session"))
+              respondJson(
+                  """
+                  {
+                    "status":"0",
+                    "errmsg":"",
+                    "data":{
+                      "id":1,
+                      "employeeId":"22373333",
+                      "realName":"测试学生"
+                    }
+                  }
+                  """
+                      .trimIndent()
+              )
+            }
+            else -> error("Unexpected request: ${request.method.value} ${request.url}")
+          }
+        }
+    useMockUpstream(engine)
+
+    val result = BykcApi(LocalBykcApiBackend(nowProvider = { fixedNow })).getProfile()
+
+    assertTrue(result.isSuccess, result.exceptionOrNull()?.message.orEmpty())
+    assertEquals("测试学生", result.getOrNull()?.realName)
+  }
+
+  @Test
+  fun `bykc login follows sso redirect chain before extracting token`() = runTest {
+    val ssoUrl =
+        "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbykc.buaa.edu.cn%2Fsscv%2Fcas%2Flogin"
+    val serviceUrl = "https://bykc.buaa.edu.cn/sscv/cas/login?ticket=test-ticket"
+    val tokenUrl = "https://bykc.buaa.edu.cn/cas-login?token=test-token"
+    val engine =
+        MockEngine { request ->
+          when (request.url.toString()) {
+            "https://bykc.buaa.edu.cn/sscv/cas/login" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, ssoUrl),
+                )
+            ssoUrl ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, serviceUrl),
+                )
+            serviceUrl ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, tokenUrl),
+                )
+            tokenUrl ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.OK,
+                )
+            "https://bykc.buaa.edu.cn/sscv/getUserProfile" ->
+                respondJson(
+                    """
+                    {
+                      "status":"0",
+                      "errmsg":"",
+                      "data":{
+                        "id":1,
+                        "employeeId":"22373333",
+                        "realName":"测试学生"
+                      }
+                    }
+                    """
+                        .trimIndent()
+                )
+            else -> error("Unexpected request: ${request.method.value} ${request.url}")
+          }
+        }
+    useMockUpstream(engine)
+
+    val result = BykcApi(LocalBykcApiBackend(nowProvider = { fixedNow })).getProfile()
+
+    assertTrue(result.isSuccess, result.exceptionOrNull()?.message.orEmpty())
+    assertEquals("测试学生", result.getOrNull()?.realName)
+  }
+
+  @Test
   fun `bykc api resolves detail chosen courses and statistics in direct mode`() = runTest {
     val engine = MockEngine { request ->
       when (request.url.toString()) {

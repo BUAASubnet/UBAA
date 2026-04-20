@@ -144,8 +144,7 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
     return try {
       Result.success(block(studentId))
     } catch (e: LocalYgdkAuthenticationException) {
-      clearLocalConnectionSession()
-      Result.failure(localUnauthenticatedApiException())
+      Result.failure(resolveLocalBusinessAuthenticationFailure("ygdk_error"))
     } catch (e: Exception) {
       Result.failure(e.toUserFacingApiException(defaultMessage))
     }

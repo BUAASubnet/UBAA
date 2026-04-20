@@ -191,8 +191,7 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
     return try {
       val body = response.bodyAsText()
       if (isLocalByxtSessionExpired(response, body)) {
-        clearLocalConnectionSession()
-        return Result.failure(localUnauthenticatedApiException())
+        return Result.failure(resolveLocalBusinessAuthenticationFailure(code))
       }
       if (response.status != HttpStatusCode.OK) {
         return Result.failure(localBusinessApiException(code, defaultMessage, response.status))
@@ -223,10 +222,8 @@ internal suspend fun <T> withLocalUndergradPortalAccess(
                   code = "unsupported_portal",
               )
           )
-      LocalUndergradPortalProbeResult.SSO_REQUIRED -> {
-        clearLocalConnectionSession()
-        Result.failure(localUnauthenticatedApiException())
-      }
+      LocalUndergradPortalProbeResult.SSO_REQUIRED ->
+          Result.failure(resolveLocalBusinessAuthenticationFailure(unavailableCode))
       LocalUndergradPortalProbeResult.UNAVAILABLE ->
           Result.failure(
               localBusinessApiException(

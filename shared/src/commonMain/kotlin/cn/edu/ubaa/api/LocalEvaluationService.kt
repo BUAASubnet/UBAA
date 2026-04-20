@@ -108,10 +108,10 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
         try {
           submitSingleEvaluation(course)
         } catch (e: LocalEvaluationAuthenticationException) {
-          clearLocalConnectionSession()
+          val failure = resolveLocalBusinessAuthenticationFailure("evaluation_error")
           EvaluationResult(
               success = false,
-              message = localUnauthenticatedApiException().message ?: "登录状态已失效，请重新登录",
+              message = failure.message ?: "评教服务暂时不可用，请稍后重试",
               courseName = course.kcmc,
           )
         } catch (e: Exception) {
@@ -123,11 +123,11 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
         }
       }
     } catch (e: LocalEvaluationAuthenticationException) {
-      clearLocalConnectionSession()
+      val failure = resolveLocalBusinessAuthenticationFailure("evaluation_error")
       courses.map { course ->
         EvaluationResult(
             success = false,
-            message = localUnauthenticatedApiException().message ?: "登录状态已失效，请重新登录",
+            message = failure.message ?: "评教服务暂时不可用，请稍后重试",
             courseName = course.kcmc,
         )
       }
@@ -454,8 +454,7 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     return try {
       Result.success(block())
     } catch (e: LocalEvaluationAuthenticationException) {
-      clearLocalConnectionSession()
-      Result.failure(localUnauthenticatedApiException())
+      Result.failure(resolveLocalBusinessAuthenticationFailure("evaluation_error"))
     } catch (e: Exception) {
       Result.failure(e.toUserFacingApiException(defaultMessage))
     }

@@ -299,13 +299,10 @@ internal class LocalBykcApiBackend(
     }
   }
 
-  private fun mapFailure(error: Exception, defaultMessage: String): Exception =
+  private suspend fun mapFailure(error: Exception, defaultMessage: String): Exception =
       when (error) {
         is LocalBykcUnauthenticatedException,
-        is LocalBykcSessionExpiredException -> {
-          clearLocalConnectionSession()
-          localUnauthenticatedApiException()
-        }
+        is LocalBykcSessionExpiredException -> resolveLocalBusinessAuthenticationFailure("bykc_error")
         is LocalBykcActionException ->
             ApiCallException(
                 message = userFacingMessageForCode(error.code, error.status),
@@ -348,29 +345,18 @@ private class LocalBykcClient(
     return loginMutex.withLock {
       if (!forceRefresh && !bykcToken.isNullOrBlank()) return@withLock true
       bykcToken = null
-      val noRedirectClient = LocalUpstreamClientProvider.newNoRedirectClient()
-      try {
-        var currentUrl = loginUrl()
-        repeat(MAX_LOGIN_REDIRECTS) {
-          val response = noRedirectClient.get(currentUrl)
-          val responseUrl = response.call.request.url.toString()
-          val body = runCatching { response.bodyAsText() }.getOrNull().orEmpty()
-          extractToken(responseUrl)?.let {
-            bykcToken = it
-            return@withLock true
-          }
-          if (isBykcLoginRedirect(response.status, responseUrl, body)) {
-            clearLocalConnectionSession()
-            throw LocalBykcUnauthenticatedException()
-          }
-          val location = response.headers[HttpHeaders.Location] ?: return@repeat
-          currentUrl = resolveRedirectUrl(response.call.request.url, location)
-        }
-        runCatching { LocalUpstreamClientProvider.shared().get(casLoginUrl()) }
-        true
-      } finally {
-        noRedirectClient.close()
+      val response = LocalUpstreamClientProvider.shared().get(loginUrl())
+      val responseUrl = response.call.request.url.toString()
+      extractToken(responseUrl)?.let {
+        bykcToken = it
+        return@withLock true
       }
+      response.headers[HttpHeaders.Location]?.let(::extractToken)?.let {
+        bykcToken = it
+        return@withLock true
+      }
+      runCatching { LocalUpstreamClientProvider.shared().get(casLoginUrl()) }
+      true
     }
   }
 
@@ -511,30 +497,9 @@ private class LocalBykcClient(
         it.isNotBlank()
       }
 
-  private fun resolveRedirectUrl(currentUrl: Url, location: String): String {
-    if (location.startsWith("http://") || location.startsWith("https://")) {
-      return localUpstreamUrl(location)
-    }
-    if (location.startsWith("//")) {
-      return localUpstreamUrl("${currentUrl.protocol.name}:$location")
-    }
-    val authority =
-        "${currentUrl.protocol.name}://${currentUrl.host}${if (currentUrl.specifiedPort != currentUrl.protocol.defaultPort) ":${currentUrl.specifiedPort}" else ""}"
-    if (location.startsWith("/")) {
-      return "$authority$location"
-    }
-    val basePath = currentUrl.encodedPath.substringBeforeLast('/', "")
-    val separator = if (basePath.endsWith("/")) "" else "/"
-    return "$authority$basePath$separator$location"
-  }
-
   private fun loginUrl(): String = localUpstreamUrl("https://bykc.buaa.edu.cn/sscv/cas/login")
 
   private fun casLoginUrl(): String = localUpstreamUrl("https://bykc.buaa.edu.cn/cas-login?token=")
-
-  companion object {
-    private const val MAX_LOGIN_REDIRECTS = 10
-  }
 }
 
 private fun LocalBykcUserProfile.toDto(): BykcUserProfileDto =

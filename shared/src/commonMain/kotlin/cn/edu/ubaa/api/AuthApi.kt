@@ -63,19 +63,23 @@ interface UserServiceBackend {
  * @param apiClient 使用的 ApiClient 实例，默认为单例 shared。
  */
 open class AuthService(
-    private val backend: AuthServiceBackend = ConnectionRuntime.apiFactory().authService()
+    private val backendProvider: () -> AuthServiceBackend = { ConnectionRuntime.apiFactory().authService() }
 ) {
-  constructor(apiClient: ApiClient) : this(RelayAuthServiceBackend(apiClient))
+  internal constructor(backend: AuthServiceBackend) : this({ backend })
 
-  open fun hasPersistedSession(): Boolean = backend.hasPersistedSession()
+  constructor(apiClient: ApiClient) : this({ RelayAuthServiceBackend(apiClient) })
+
+  private fun currentBackend(): AuthServiceBackend = backendProvider()
+
+  open fun hasPersistedSession(): Boolean = currentBackend().hasPersistedSession()
 
   /** 将本地存储的令牌应用到当前 ApiClient 中。 */
   open fun applyStoredTokens() {
-    backend.applyStoredSession()
+    currentBackend().applyStoredSession()
   }
 
   open fun clearStoredSession() {
-    backend.clearStoredSession()
+    currentBackend().clearStoredSession()
   }
 
   /**
@@ -84,7 +88,7 @@ open class AuthService(
    * @return 预加载结果，包含验证码信息或已登录的令牌。
    */
   open suspend fun preloadLoginState(): Result<LoginPreloadResponse> {
-    return backend.preloadLoginState()
+    return currentBackend().preloadLoginState()
   }
 
   /**
@@ -102,7 +106,7 @@ open class AuthService(
       captcha: String? = null,
       execution: String? = null,
   ): Result<LoginResponse> {
-    return backend.login(username, password, captcha, execution)
+    return currentBackend().login(username, password, captcha, execution)
   }
 
   /**
@@ -111,7 +115,7 @@ open class AuthService(
    * @return 包含用户信息和活动时间的 SessionStatusResponse。
    */
   open suspend fun getAuthStatus(): Result<SessionStatusResponse> {
-    return backend.getAuthStatus()
+    return currentBackend().getAuthStatus()
   }
 
   /**
@@ -120,7 +124,7 @@ open class AuthService(
    * @return 注销操作结果。
    */
   open suspend fun logout(): Result<Unit> {
-    return backend.logout()
+    return currentBackend().logout()
   }
 }
 
@@ -243,9 +247,13 @@ private fun LoginPreloadResponse.toStoredAuthTokensOrNull(): StoredAuthTokens? {
  * @param apiClient 使用的 ApiClient 实例。
  */
 open class UserService(
-    private val backend: UserServiceBackend = ConnectionRuntime.apiFactory().userService()
+    private val backendProvider: () -> UserServiceBackend = { ConnectionRuntime.apiFactory().userService() }
 ) {
-  constructor(apiClient: ApiClient) : this(RelayUserServiceBackend(apiClient))
+  internal constructor(backend: UserServiceBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayUserServiceBackend(apiClient) })
+
+  private fun currentBackend(): UserServiceBackend = backendProvider()
 
   /**
    * 获取当前用户的详细资料信息。
@@ -253,7 +261,7 @@ open class UserService(
    * @return 包含用户姓名、学号等信息的 UserInfo。
    */
   open suspend fun getUserInfo(): Result<UserInfo> {
-    return backend.getUserInfo()
+    return currentBackend().getUserInfo()
   }
 }
 

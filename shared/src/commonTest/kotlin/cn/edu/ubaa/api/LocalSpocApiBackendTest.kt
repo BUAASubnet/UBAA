@@ -134,6 +134,96 @@ class LocalSpocApiBackendTest {
   }
 
   @Test
+  fun `spoc login preserves pathless cookies for subsequent api calls`() = runTest {
+    val engine =
+        MockEngine { request ->
+          when (request.url.encodedPath) {
+            "/spocnewht/cas" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers =
+                        headersOf(
+                            HttpHeaders.Location to
+                                listOf(
+                                    "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token&refreshToken=test-refresh"
+                                ),
+                            HttpHeaders.SetCookie to
+                                listOf("SPOCSESSION=spoc-session; Domain=spoc.buaa.edu.cn; Secure"),
+                        ),
+                )
+            "/spocnewht/sys/casLogin" -> {
+              assertTrue(request.headers[HttpHeaders.Cookie].orEmpty().contains("SPOCSESSION=spoc-session"))
+              respondJson("""{"code":200,"content":{"jsdm":"01"}}""")
+            }
+            "/spocnewht/inco/ht/queryOne" ->
+                respondJson("""{"code":200,"content":{"dqxq":"2026年春季学期","mrxq":"2025-20262"}}""")
+            "/spocnewht/jxkj/queryKclb" ->
+                respondJson("""{"code":200,"content":[{"kcid":"course-1","kcmc":"操作系统","skjs":"牛虹婷"}]}""")
+            "/spocnewht/inco/ht/queryListByPage" ->
+                respondJson(
+                    """{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","tjzt":"未做","zyjzsj":"2026-03-31T15:59:59.000+00:00","zymc":"练习题作业1","zykssj":"2026-03-24T08:00:00.000+00:00","sskcid":"course-1","kcmc":"操作系统","mf":"满分:0"}]}}"""
+                )
+            else -> error("Unexpected request: ${request.method.value} ${request.url}")
+          }
+        }
+    useMockUpstream(engine)
+
+    val result = SpocApi().getAssignments()
+
+    assertTrue(result.isSuccess, result.exceptionOrNull()?.message.orEmpty())
+    assertEquals(1, result.getOrNull()?.assignments?.size)
+  }
+
+  @Test
+  fun `spoc login follows sso redirect chain before extracting token`() = runTest {
+    val ssoUrl =
+        "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fspoc.buaa.edu.cn%2Fspocnewht%2FcasLogin"
+    val serviceUrl = "https://spoc.buaa.edu.cn/spocnewht/casLogin?ticket=test-ticket"
+    val tokenUrl = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token&refreshToken=test-refresh"
+    val engine =
+        MockEngine { request ->
+          when (request.url.toString()) {
+            "https://spoc.buaa.edu.cn/spocnewht/cas" ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, ssoUrl),
+                )
+            ssoUrl ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, serviceUrl),
+                )
+            serviceUrl ->
+                respond(
+                    content = ByteReadChannel.Empty,
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location, tokenUrl),
+                )
+            "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin" ->
+                respondJson("""{"code":200,"content":{"jsdm":"01"}}""")
+            "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne" ->
+                respondJson("""{"code":200,"content":{"dqxq":"2026年春季学期","mrxq":"2025-20262"}}""")
+            "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262" ->
+                respondJson("""{"code":200,"content":[{"kcid":"course-1","kcmc":"操作系统","skjs":"牛虹婷"}]}""")
+            "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage" ->
+                respondJson(
+                    """{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","tjzt":"未做","zyjzsj":"2026-03-31T15:59:59.000+00:00","zymc":"练习题作业1","zykssj":"2026-03-24T08:00:00.000+00:00","sskcid":"course-1","kcmc":"操作系统","mf":"满分:0"}]}}"""
+                )
+            else -> error("Unexpected request: ${request.method.value} ${request.url}")
+          }
+        }
+    useMockUpstream(engine)
+
+    val result = SpocApi().getAssignments()
+
+    assertTrue(result.isSuccess, result.exceptionOrNull()?.message.orEmpty())
+    assertEquals(1, result.getOrNull()?.assignments?.size)
+  }
+
+  @Test
   fun `spoc api uses direct upstream backend to fetch assignment detail`() = runTest {
     val engine = MockEngine { request ->
       when (request.url.encodedPath) {

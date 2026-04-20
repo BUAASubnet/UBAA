@@ -35,41 +35,47 @@ interface CgyyApiBackend {
   suspend fun getLockCode(): Result<CgyyLockCodeResponse>
 }
 
-open class CgyyApi(private val backend: CgyyApiBackend = ConnectionRuntime.apiFactory().cgyyApi()) {
-  constructor(apiClient: ApiClient) : this(RelayCgyyApiBackend(apiClient))
+open class CgyyApi(
+    private val backendProvider: () -> CgyyApiBackend = { ConnectionRuntime.apiFactory().cgyyApi() }
+) {
+  internal constructor(backend: CgyyApiBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayCgyyApiBackend(apiClient) })
+
+  private fun currentBackend(): CgyyApiBackend = backendProvider()
 
   open suspend fun getVenueSites(): Result<List<CgyyVenueSiteDto>> {
-    return backend.getVenueSites()
+    return currentBackend().getVenueSites()
   }
 
   open suspend fun getPurposeTypes(): Result<List<CgyyPurposeTypeDto>> {
-    return backend.getPurposeTypes()
+    return currentBackend().getPurposeTypes()
   }
 
   open suspend fun getDayInfo(venueSiteId: Int, date: String): Result<CgyyDayInfoResponse> {
-    return backend.getDayInfo(venueSiteId, date)
+    return currentBackend().getDayInfo(venueSiteId, date)
   }
 
   open suspend fun submitReservation(
       request: CgyyReservationSubmitRequest
   ): Result<CgyyReservationSubmitResponse> {
-    return backend.submitReservation(request)
+    return currentBackend().submitReservation(request)
   }
 
   open suspend fun getMyOrders(page: Int = 0, size: Int = 20): Result<CgyyOrdersPageResponse> {
-    return backend.getMyOrders(page, size)
+    return currentBackend().getMyOrders(page, size)
   }
 
   open suspend fun getOrderDetail(orderId: Int): Result<CgyyOrderDto> {
-    return backend.getOrderDetail(orderId)
+    return currentBackend().getOrderDetail(orderId)
   }
 
   open suspend fun cancelOrder(orderId: Int): Result<CgyyReservationSubmitResponse> {
-    return backend.cancelOrder(orderId)
+    return currentBackend().cancelOrder(orderId)
   }
 
   open suspend fun getLockCode(): Result<CgyyLockCodeResponse> {
-    return backend.getLockCode()
+    return currentBackend().getLockCode()
   }
 }
 

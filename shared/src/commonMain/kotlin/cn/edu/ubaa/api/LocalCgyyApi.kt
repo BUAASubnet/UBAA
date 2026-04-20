@@ -217,12 +217,11 @@ internal class LocalCgyyApiBackend(
     }
   }
 
-  private fun mapFailure(error: Exception, defaultMessage: String): Exception =
+  private suspend fun mapFailure(error: Exception, defaultMessage: String): Exception =
       when (error) {
         is LocalCgyyApiException ->
             if (error.code == "unauthenticated") {
-              clearLocalConnectionSession()
-              localUnauthenticatedApiException()
+              resolveLocalBusinessAuthenticationFailure("cgyy_error")
             } else {
               ApiCallException(
                   message = userFacingMessageForCode(error.code, error.status),
@@ -739,7 +738,6 @@ private class LocalCgyyClient(
           LocalUpstreamClientProvider.shared().get(localUpstreamUrl("${BASE_URL}sso/manageLogin"))
       val manageLoginBody = runCatching { manageLoginResponse.bodyAsText() }.getOrDefault("")
       if (isLoginRedirect(manageLoginResponse, manageLoginBody)) {
-        clearLocalConnectionSession()
         throw LocalCgyyApiException("未获取到研讨室登录态", "unauthenticated", HttpStatusCode.Unauthorized)
       }
 

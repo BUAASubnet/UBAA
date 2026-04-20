@@ -139,11 +139,10 @@ internal class PersistentLocalCookieStorage(private val mode: ConnectionMode) : 
   override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
     mutex.withLock {
       val records = LocalCookieStore.load(mode)
-      val normalized =
-          cookie.copy(
-              domain = (cookie.domain ?: requestUrl.host).lowercase(),
-              path = cookie.path ?: requestUrl.encodedPath.ifBlank { "/" },
-          )
+      val normalized = cookie.copy(
+          domain = (cookie.domain ?: requestUrl.host).lowercase(),
+          path = cookie.path ?: defaultCookiePath(requestUrl.encodedPath),
+      )
       val key = cookieKey(normalized)
       records.removeAll { cookieKey(it.cookie) == key }
       if ((normalized.maxAge ?: -1L) != 0L) {
@@ -192,6 +191,14 @@ internal class PersistentLocalCookieStorage(private val mode: ConnectionMode) : 
 
   private fun cookieKey(cookie: Cookie): String =
       "${cookie.domain.orEmpty()}|${cookie.path.orEmpty()}|${cookie.name}"
+
+  private fun defaultCookiePath(requestPath: String): String {
+    val normalizedRequestPath = requestPath.ifBlank { "/" }
+    if (!normalizedRequestPath.startsWith("/")) return "/"
+    if (normalizedRequestPath == "/") return "/"
+    val lastSlash = normalizedRequestPath.lastIndexOf('/')
+    return if (lastSlash <= 0) "/" else normalizedRequestPath.substring(0, lastSlash)
+  }
 
   private fun domainMatches(host: String, domain: String): Boolean {
     val normalizedHost = host.lowercase()
@@ -264,9 +271,64 @@ private fun buildLocalUpstreamClient(
   }
 }
 
-internal class LocalAuthServiceBackend : AuthServiceBackend {
-  private val json = Json { ignoreUnknownKeys = true }
+private val localConnectionAuthJson = Json { ignoreUnknownKeys = true }
 
+internal sealed interface LocalConnectionSessionValidationState {
+  data class Valid(val session: LocalAuthSession) : LocalConnectionSessionValidationState
+
+  data object Invalid : LocalConnectionSessionValidationState
+}
+
+internal suspend fun validateLocalConnectionSession(): LocalConnectionSessionValidationState {
+  val response =
+      LocalUpstreamClientProvider.shared().get(localUcStatusUrl()) {
+        header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
+        header("X-Requested-With", "XMLHttpRequest")
+      }
+  if (response.status != HttpStatusCode.OK) {
+    return LocalConnectionSessionValidationState.Invalid
+  }
+
+  val body = response.bodyAsText()
+  if (!body.trimStart().startsWith("{")) {
+    return LocalConnectionSessionValidationState.Invalid
+  }
+
+  val payload = localConnectionAuthJson.decodeFromString<UserInfoResponse>(body)
+  val user = payload.data ?: return LocalConnectionSessionValidationState.Invalid
+  if (payload.code != 0) {
+    return LocalConnectionSessionValidationState.Invalid
+  }
+
+  val session =
+      LocalAuthSession(
+          username = user.schoolid ?: user.username ?: "",
+          user = UserData(name = user.name.orEmpty(), schoolid = user.schoolid.orEmpty()),
+          authenticatedAt = LocalAuthSessionStore.get()?.authenticatedAt ?: nowIsoString(),
+          lastActivity = nowIsoString(),
+      )
+  LocalAuthSessionStore.save(session)
+  return LocalConnectionSessionValidationState.Valid(session)
+}
+
+internal suspend fun resolveLocalBusinessAuthenticationFailure(
+    fallbackCode: String,
+    fallbackStatus: HttpStatusCode = HttpStatusCode.BadGateway,
+): ApiCallException {
+  val validation = runCatching { validateLocalConnectionSession() }.getOrNull()
+  return if (validation == LocalConnectionSessionValidationState.Invalid) {
+    clearLocalConnectionSession()
+    localUnauthenticatedApiException()
+  } else {
+    ApiCallException(
+        message = userFacingMessageForCode(fallbackCode, fallbackStatus),
+        status = fallbackStatus,
+        code = fallbackCode,
+    )
+  }
+}
+
+internal class LocalAuthServiceBackend : AuthServiceBackend {
   override fun hasPersistedSession(): Boolean = LocalAuthSessionStore.get() != null
 
   override fun applyStoredSession() = Unit
@@ -281,15 +343,15 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       val response = noRedirectClient.get(loginUrl())
       if (response.status.value in 300..399) {
         activateUcLogin()
-        return when (val validation = validateSession()) {
-          is SessionValidationState.Valid ->
+        return when (val validation = validateLocalConnectionSession()) {
+          is LocalConnectionSessionValidationState.Valid ->
               Result.success(
                   LoginPreloadResponse(
                       captchaRequired = false,
-                      userData = validation.user,
+                      userData = validation.session.user,
                   )
               )
-          SessionValidationState.Invalid ->
+          LocalConnectionSessionValidationState.Invalid ->
               Result.success(LoginPreloadResponse(captchaRequired = false))
         }
       }
@@ -374,18 +436,18 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
         activateUcLogin()
       }
 
-      when (val validation = validateSession()) {
-        is SessionValidationState.Valid ->
+      when (val validation = validateLocalConnectionSession()) {
+        is LocalConnectionSessionValidationState.Valid ->
             Result.success(
                 LoginResponse(
-                    user = validation.user,
+                    user = validation.session.user,
                     accessToken = "",
                     refreshToken = "",
                     accessTokenExpiresAt = "",
                     refreshTokenExpiresAt = "",
                 )
             )
-        SessionValidationState.Invalid ->
+        LocalConnectionSessionValidationState.Invalid ->
             Result.failure(
                 ApiCallException(
                     message =
@@ -415,14 +477,9 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
             )
 
     return try {
-      when (val validation = validateSession()) {
-        is SessionValidationState.Valid -> {
-          val refreshed =
-              storedSession.copy(
-                  username = validation.user.schoolid.ifBlank { storedSession.username },
-                  user = validation.user,
-                  lastActivity = nowIsoString(),
-              )
+      when (val validation = validateLocalConnectionSession()) {
+        is LocalConnectionSessionValidationState.Valid -> {
+          val refreshed = validation.session.copy(authenticatedAt = storedSession.authenticatedAt)
           LocalAuthSessionStore.save(refreshed)
           Result.success(
               SessionStatusResponse(
@@ -432,7 +489,7 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
               )
           )
         }
-        SessionValidationState.Invalid -> {
+        LocalConnectionSessionValidationState.Invalid -> {
           clearStoredSession()
           Result.failure(
               ApiCallException(
@@ -461,39 +518,7 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
   }
 
   private suspend fun activateUcLogin() {
-    LocalUpstreamClientProvider.shared().get(ucActivateUrl())
-  }
-
-  private suspend fun validateSession(): SessionValidationState {
-    val response =
-        LocalUpstreamClientProvider.shared().get(ucStatusUrl()) {
-          header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
-          header("X-Requested-With", "XMLHttpRequest")
-        }
-    if (response.status != HttpStatusCode.OK) {
-      return SessionValidationState.Invalid
-    }
-
-    val body = response.bodyAsText()
-    if (!body.trimStart().startsWith("{")) {
-      return SessionValidationState.Invalid
-    }
-
-    val payload = json.decodeFromString<UserInfoResponse>(body)
-    val user = payload.data ?: return SessionValidationState.Invalid
-    if (payload.code != 0) {
-      return SessionValidationState.Invalid
-    }
-
-    val session =
-        LocalAuthSession(
-            username = user.schoolid ?: user.username ?: "",
-            user = UserData(name = user.name.orEmpty(), schoolid = user.schoolid.orEmpty()),
-            authenticatedAt = LocalAuthSessionStore.get()?.authenticatedAt ?: nowIsoString(),
-            lastActivity = nowIsoString(),
-        )
-    LocalAuthSessionStore.save(session)
-    return SessionValidationState.Valid(session.user)
+    LocalUpstreamClientProvider.shared().get(localUcActivateUrl())
   }
 
   @OptIn(ExperimentalEncodingApi::class)
@@ -555,20 +580,12 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
   private fun captchaUrl(): String = localUpstreamUrl("https://sso.buaa.edu.cn/captcha")
 
   private fun logoutUrl(): String = localUpstreamUrl("https://sso.buaa.edu.cn/logout")
-
-  private fun ucStatusUrl(): String = localUpstreamUrl("https://uc.buaa.edu.cn/api/uc/status")
-
-  private fun ucActivateUrl(): String =
-      localUpstreamUrl(
-          "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
-      )
-
-  private sealed interface SessionValidationState {
-    data class Valid(val user: UserData) : SessionValidationState
-
-    data object Invalid : SessionValidationState
-  }
 }
+
+private fun localUcStatusUrl(): String = localUpstreamUrl("https://uc.buaa.edu.cn/api/uc/status")
+
+private fun localUcActivateUrl(): String =
+    localUpstreamUrl("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
 
 internal class LocalUserServiceBackend : UserServiceBackend {
   private val json = Json { ignoreUnknownKeys = true }

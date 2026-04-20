@@ -17,14 +17,19 @@ interface EvaluationServiceBackend {
 }
 
 class EvaluationService(
-    private val backend: EvaluationServiceBackend =
-        ConnectionRuntime.apiFactory().evaluationService()
+    private val backendProvider: () -> EvaluationServiceBackend = {
+      ConnectionRuntime.apiFactory().evaluationService()
+    }
 ) {
-  constructor(apiClient: ApiClient) : this(RelayEvaluationServiceBackend(apiClient))
+  internal constructor(backend: EvaluationServiceBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayEvaluationServiceBackend(apiClient) })
+
+  private fun currentBackend(): EvaluationServiceBackend = backendProvider()
 
   /** 获取所有评教课程（包括已评教和未评教），附带进度信息。 */
   suspend fun getAllEvaluations(): Result<EvaluationCoursesResponse> {
-    return backend.getAllEvaluations()
+    return currentBackend().getAllEvaluations()
   }
 
   /**
@@ -37,7 +42,7 @@ class EvaluationService(
   }
 
   suspend fun submitEvaluations(courses: List<EvaluationCourse>): List<EvaluationResult> {
-    return backend.submitEvaluations(courses)
+    return currentBackend().submitEvaluations(courses)
   }
 }
 

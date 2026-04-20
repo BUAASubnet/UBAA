@@ -9,9 +9,13 @@ interface ClassroomApiBackend {
 
 /** 教室查询相关 API。 用于查询指定校区和日期的空闲教室分布情况。 */
 open class ClassroomApi(
-    private val backend: ClassroomApiBackend = ConnectionRuntime.apiFactory().classroomApi()
+    private val backendProvider: () -> ClassroomApiBackend = { ConnectionRuntime.apiFactory().classroomApi() }
 ) {
-  constructor(apiClient: ApiClient) : this(RelayClassroomApiBackend(apiClient))
+  internal constructor(backend: ClassroomApiBackend) : this({ backend })
+
+  constructor(apiClient: ApiClient) : this({ RelayClassroomApiBackend(apiClient) })
+
+  private fun currentBackend(): ClassroomApiBackend = backendProvider()
 
   /**
    * 查询空闲教室列表。
@@ -21,7 +25,7 @@ open class ClassroomApi(
    * @return 包含各楼层教室空闲情况的响应体。
    */
   open suspend fun queryClassrooms(xqid: Int, date: String): Result<ClassroomQueryResponse> {
-    return backend.queryClassrooms(xqid, date)
+    return currentBackend().queryClassrooms(xqid, date)
   }
 }
 

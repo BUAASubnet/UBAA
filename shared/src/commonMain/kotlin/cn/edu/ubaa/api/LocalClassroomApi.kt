@@ -54,8 +54,7 @@ internal class LocalClassroomApiBackend : ClassroomApiBackend {
   ): Result<ClassroomQueryResponse> {
     val body = response.bodyAsText()
     if (isLocalClassroomSessionExpired(response, body)) {
-      clearLocalConnectionSession()
-      return Result.failure(localUnauthenticatedApiException())
+      return Result.failure(resolveLocalBusinessAuthenticationFailure("classroom_query_failed"))
     }
     if (response.status != HttpStatusCode.OK) {
       return Result.failure(
