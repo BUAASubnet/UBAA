@@ -8,6 +8,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlin.test.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
@@ -56,4 +57,26 @@ class ApplicationTest {
     assertEquals(AppUpdateStatus.UP_TO_DATE, payload.status)
     assertEquals(latestVersion, payload.latestVersion)
   }
+
+  @Test
+  fun versionEndpointRemainsCompatibleWithLegacyClients() = testApplication {
+    application { module() }
+
+    val latestVersion = AppVersionRuntimeConfig.load().latestVersion
+    val response = client.get("/api/v1/app/version") { parameter("clientVersion", "0.0.0") }
+    val payload = json.decodeFromString<LegacyAppVersionCheckResponse>(response.bodyAsText())
+
+    assertEquals(HttpStatusCode.OK, response.status)
+    assertEquals(latestVersion, payload.serverVersion)
+    assertFalse(payload.aligned)
+    assertTrue(payload.downloadUrl.isNotBlank())
+  }
+
+  @Serializable
+  private data class LegacyAppVersionCheckResponse(
+      val serverVersion: String,
+      val aligned: Boolean,
+      val downloadUrl: String,
+      val releaseNotes: String? = null,
+  )
 }

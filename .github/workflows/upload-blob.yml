@@ -1,0 +1,62 @@
+name: Build and Upload Web Wasm to Azure Blob Storage
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+        
+jobs:
+  build-and-upload-web-wasm:
+    name: Build Web Wasm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Get Version
+        id: get_version
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+      - name: Build Web Wasm
+        env:
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution
+      - name: Sync Web Wasm to Azure Blob Static Website
+        uses: azure/CLI@v2
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT || vars.AZURE_STORAGE_ACCOUNT }}
+          AZURE_STORAGE_WEB_URL: ${{ secrets.AZURE_STORAGE_WEB_URL || vars.AZURE_STORAGE_WEB_URL }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+
+            if [[ -z "${AZURE_STORAGE_ACCOUNT:-}" ]]; then
+              echo "AZURE_STORAGE_ACCOUNT is not set."
+              exit 1
+            fi
+
+            if [[ -z "${AZURE_STORAGE_WEB_URL:-}" ]]; then
+              echo "AZURE_STORAGE_WEB_URL is not set."
+              exit 1
+            fi
+
+            SAS_TOKEN="${AZURE_STORAGE_WEB_URL#*\?}"
+            if [[ -z "$SAS_TOKEN" || "$SAS_TOKEN" == "$AZURE_STORAGE_WEB_URL" ]]; then
+              echo "AZURE_STORAGE_WEB_URL must include a SAS token query string."
+              exit 1
+            fi
+
+            echo "::add-mask::$AZURE_STORAGE_WEB_URL"
+            echo "::add-mask::$SAS_TOKEN"
+
+            az storage blob sync \
+              --account-name "$AZURE_STORAGE_ACCOUNT" \
+              --container '$web' \
+              --source composeApp/build/dist/wasmJs/productionExecutable \
+              --sas-token "$SAS_TOKEN" \
+              --delete-destination true
