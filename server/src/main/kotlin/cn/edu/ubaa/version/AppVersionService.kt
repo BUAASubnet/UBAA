@@ -173,6 +173,8 @@ class AppVersionService(
         updateAvailable = updateAvailable,
         downloadUrl = config.downloadUrl,
         releaseNotes = releaseNotes,
+        serverVersion = config.latestVersion,
+        aligned = !updateAvailable,
     )
   }
 

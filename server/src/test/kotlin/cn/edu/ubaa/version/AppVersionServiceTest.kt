@@ -74,6 +74,27 @@ class AppVersionServiceTest {
   }
 
   @Test
+  fun lowerClientVersionAlsoCarriesLegacyCompatibilityFields() = runTest {
+    val service =
+        AppVersionService(
+            config =
+                AppVersionRuntimeConfig(
+                    latestVersion = "1.5.0",
+                    downloadUrl = "https://download.example.com",
+                ),
+            releaseNotesFetcher =
+                object : ReleaseNotesFetcher {
+                  override suspend fun fetchReleaseNotes(latestVersion: String): String? = "修复了一批问题"
+                },
+        )
+
+    val response = service.checkVersion("1.4.0")
+
+    assertEquals("1.5.0", response.serverVersion)
+    assertEquals(false, response.aligned)
+  }
+
+  @Test
   fun higherClientVersionDoesNotTriggerUpdatePrompt() = runTest {
     val service =
         AppVersionService(
