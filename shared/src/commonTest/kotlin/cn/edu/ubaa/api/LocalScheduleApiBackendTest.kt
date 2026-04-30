@@ -2,6 +2,10 @@ package cn.edu.ubaa.api
 
 import cn.edu.ubaa.model.dto.Exam
 import cn.edu.ubaa.model.dto.ExamResponse
+import cn.edu.ubaa.model.dto.Grade
+import cn.edu.ubaa.model.dto.GradeResponse
+import cn.edu.ubaa.model.dto.GradeResponseDatas
+import cn.edu.ubaa.model.dto.GradeRows
 import cn.edu.ubaa.model.dto.Term
 import cn.edu.ubaa.model.dto.TermResponse
 import cn.edu.ubaa.model.dto.UserData
@@ -146,6 +150,61 @@ class LocalScheduleApiBackendTest {
 
     assertTrue(result.isSuccess)
     assertEquals("高等数学", result.getOrNull()?.arranged?.singleOrNull()?.courseName)
+  }
+
+  @Test
+  fun `grade api uses direct upstream backend to fetch grades`() = runTest {
+    val engine = MockEngine { request ->
+      when (request.url.toString()) {
+        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do" ->
+            respond(
+                content = ByteReadChannel("""{"user":"ok"}"""),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        "https://byxt.buaa.edu.cn/jwapp/sys/cjzhcxapp/modules/wdcj/cxwdcj.do" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        json.encodeToString(
+                            GradeResponse(
+                                code = "0",
+                                datas =
+                                    GradeResponseDatas(
+                                        cxwdcj =
+                                            GradeRows(
+                                                totalSize = 1,
+                                                pageSize = 5000,
+                                                rows =
+                                                    listOf(
+                                                        Grade(
+                                                            termCode = "2025-2026-1",
+                                                            termName = "2025秋季",
+                                                            courseName = "高等数学",
+                                                            courseCode = "MATH001",
+                                                            credit = 4.0,
+                                                            score = "95",
+                                                            gradePoint = "4.0",
+                                                        )
+                                                    ),
+                                            )
+                                    ),
+                            )
+                        )
+                    ),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
+    useMockUpstream(engine)
+
+    val result = GradeApi().getGrades("2025-2026-1")
+
+    assertTrue(result.isSuccess)
+    assertEquals("高等数学", result.getOrNull()?.grades?.singleOrNull()?.courseName)
+    assertEquals("95", result.getOrNull()?.grades?.singleOrNull()?.score)
   }
 
   private fun useMockUpstream(engine: MockEngine) {

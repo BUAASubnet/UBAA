@@ -20,6 +20,8 @@ interface ApiFactory {
   fun classroomApi(): ClassroomApiBackend
 
   fun evaluationService(): EvaluationServiceBackend
+
+  fun gradeApi(): GradeApiBackend
 }
 
 internal object DefaultApiFactory : ApiFactory {
@@ -95,6 +97,13 @@ internal object DefaultApiFactory : ApiFactory {
         ConnectionMode.WEBVPN -> LocalEvaluationServiceBackend()
         ConnectionMode.SERVER_RELAY -> RelayEvaluationServiceBackend()
       }
+
+  override fun gradeApi(): GradeApiBackend =
+      when (mode()) {
+        ConnectionMode.DIRECT -> LocalGradeApiBackend()
+        ConnectionMode.WEBVPN -> LocalGradeApiBackend()
+        ConnectionMode.SERVER_RELAY -> RelayGradeApiBackend()
+      }
 }
 
 internal object RelayApiFactory : ApiFactory {
@@ -117,4 +126,6 @@ internal object RelayApiFactory : ApiFactory {
   override fun classroomApi(): ClassroomApiBackend = RelayClassroomApiBackend()
 
   override fun evaluationService(): EvaluationServiceBackend = RelayEvaluationServiceBackend()
+
+  override fun gradeApi(): GradeApiBackend = RelayGradeApiBackend()
 }

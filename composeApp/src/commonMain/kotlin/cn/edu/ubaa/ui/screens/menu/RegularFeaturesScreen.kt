@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
@@ -31,6 +32,7 @@ data class FeatureItem(
 fun RegularFeaturesScreen(
     onScheduleClick: () -> Unit,
     onExamClick: () -> Unit,
+    onGradeClick: () -> Unit,
     onBykcClick: () -> Unit,
     onClassroomClick: () -> Unit,
     onSpocClick: () -> Unit,
@@ -49,6 +51,12 @@ fun RegularFeaturesScreen(
               title = "考试查询",
               description = "查看考试安排，支持学期切换",
               icon = Icons.AutoMirrored.Filled.Assignment,
+          ),
+          FeatureItem(
+              id = "grade",
+              title = "成绩查询",
+              description = "查看课程成绩、学分和绩点",
+              icon = Icons.Default.Grade,
           ),
           FeatureItem(
               id = "bykc",
@@ -90,6 +98,7 @@ fun RegularFeaturesScreen(
               when (feature.id) {
                 "schedule" -> onScheduleClick()
                 "exam" -> onExamClick()
+                "grade" -> onGradeClick()
                 "bykc" -> onBykcClick()
                 "classroom" -> onClassroomClick()
                 "spoc" -> onSpocClick()

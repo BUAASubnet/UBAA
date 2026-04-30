@@ -83,6 +83,21 @@ class ApiFactoryDispatchTest {
   }
 
   @Test
+  fun `grade api default constructor delegates to connection runtime api factory`() = runTest {
+    val backend = FakeGradeApiBackend()
+    ConnectionRuntime.apiFactoryProvider = {
+      FakeApiFactory(
+          gradeBackend = backend,
+      )
+    }
+
+    val result = GradeApi().getGrades("2025-2026-1")
+
+    assertTrue(result.isSuccess)
+    assertEquals(1, backend.getGradesCalls)
+  }
+
+  @Test
   fun `schedule api created before mode selection resolves backend lazily from current mode`() =
       runTest {
         val relayBackend = FakeScheduleApiBackend()
@@ -140,6 +155,7 @@ class ApiFactoryDispatchTest {
     assertTrue(DefaultApiFactory.ygdkApi() is LocalYgdkApiBackend)
     assertTrue(DefaultApiFactory.classroomApi() is LocalClassroomApiBackend)
     assertTrue(DefaultApiFactory.evaluationService() is LocalEvaluationServiceBackend)
+    assertTrue(DefaultApiFactory.gradeApi() is LocalGradeApiBackend)
   }
 }
 
@@ -154,6 +170,7 @@ private class FakeApiFactory(
     private val ygdkBackend: YgdkApiBackend = FakeYgdkApiBackend(),
     private val classroomBackend: ClassroomApiBackend = FakeClassroomApiBackend(),
     private val evaluationBackend: EvaluationServiceBackend = FakeEvaluationServiceBackend(),
+    private val gradeBackend: GradeApiBackend = FakeGradeApiBackend(),
 ) : ApiFactory {
   override fun authService(): AuthServiceBackend = authBackend
 
@@ -174,6 +191,8 @@ private class FakeApiFactory(
   override fun classroomApi(): ClassroomApiBackend = classroomBackend
 
   override fun evaluationService(): EvaluationServiceBackend = evaluationBackend
+
+  override fun gradeApi(): GradeApiBackend = gradeBackend
 }
 
 private class FakeAuthServiceBackend : AuthServiceBackend {
@@ -228,6 +247,16 @@ private class FakeScheduleApiBackend : ScheduleApiBackend {
   override suspend fun getTodaySchedule() = error("unused")
 
   override suspend fun getExamArrangement(termCode: String) = error("unused")
+}
+
+private class FakeGradeApiBackend : GradeApiBackend {
+  var getGradesCalls = 0
+    private set
+
+  override suspend fun getGrades(termCode: String): Result<cn.edu.ubaa.model.dto.GradeData> {
+    getGradesCalls++
+    return Result.success(cn.edu.ubaa.model.dto.GradeData(termCode = termCode))
+  }
 }
 
 private class FakeSigninApiBackend : SigninApiBackend {

@@ -17,6 +17,7 @@ import cn.edu.ubaa.cgyy.cgyyRouting
 import cn.edu.ubaa.classroom.classroomRouting
 import cn.edu.ubaa.evaluation.evaluationRouting
 import cn.edu.ubaa.exam.examRouting
+import cn.edu.ubaa.grade.gradeRouting
 import cn.edu.ubaa.health.RedisReadinessProbe
 import cn.edu.ubaa.health.healthRouting
 import cn.edu.ubaa.metrics.AppObservability
@@ -249,6 +250,7 @@ internal fun Application.module(
       scheduleRouting()
       bykcRouting()
       examRouting()
+      gradeRouting()
       signinRouting()
       classroomRouting()
       cgyyRouting()

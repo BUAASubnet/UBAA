@@ -41,6 +41,9 @@ import cn.edu.ubaa.ui.screens.evaluation.EvaluationViewModel
 import cn.edu.ubaa.ui.screens.exam.ExamScreen
 import cn.edu.ubaa.ui.screens.exam.ExamUiState
 import cn.edu.ubaa.ui.screens.exam.ExamViewModel
+import cn.edu.ubaa.ui.screens.grade.GradeScreen
+import cn.edu.ubaa.ui.screens.grade.GradeUiState
+import cn.edu.ubaa.ui.screens.grade.GradeViewModel
 import cn.edu.ubaa.ui.screens.menu.*
 import cn.edu.ubaa.ui.screens.schedule.CourseDetailScreen
 import cn.edu.ubaa.ui.screens.schedule.ScheduleScreen
@@ -71,6 +74,7 @@ enum class AppScreen {
   ABOUT,
   SCHEDULE,
   EXAM,
+  GRADE,
   COURSE_DETAIL,
   BYKC_HOME,
   BYKC_COURSES,
@@ -157,6 +161,14 @@ fun MainAppScreen(
       }
   val examUiState = examViewModel?.uiState?.collectAsState()?.value ?: ExamUiState()
   var showExamTermMenu by remember { mutableStateOf(false) }
+  val gradeViewModel: GradeViewModel? =
+      if (currentScreen == AppScreen.GRADE) {
+        viewModel(key = "grade") { GradeViewModel() }
+      } else {
+        null
+      }
+  val gradeUiState = gradeViewModel?.uiState?.collectAsState()?.value ?: GradeUiState()
+  var showGradeTermMenu by remember { mutableStateOf(false) }
 
   val signinViewModel: SigninViewModel =
       viewModel(key = "signin-${userData.schoolid}") { SigninViewModel() }
@@ -304,6 +316,7 @@ fun MainAppScreen(
               AppScreen.REGULAR,
               AppScreen.SCHEDULE,
               AppScreen.EXAM,
+              AppScreen.GRADE,
               AppScreen.COURSE_DETAIL,
               AppScreen.CLASSROOM_QUERY,
               AppScreen.SPOC_ASSIGNMENTS,
@@ -339,6 +352,7 @@ fun MainAppScreen(
             AppScreen.REGULAR,
             AppScreen.SCHEDULE,
             AppScreen.EXAM,
+            AppScreen.GRADE,
             AppScreen.COURSE_DETAIL,
             AppScreen.CLASSROOM_QUERY,
             AppScreen.SPOC_ASSIGNMENTS,
@@ -432,6 +446,7 @@ fun MainAppScreen(
       AppScreen.HOME -> startHomeBootstrap()
       AppScreen.SCHEDULE -> scheduleViewModel.ensureScheduleLoaded()
       AppScreen.EXAM -> examViewModel?.ensureLoaded()
+      AppScreen.GRADE -> gradeViewModel?.ensureLoaded()
       AppScreen.BYKC_COURSES -> {
         bykcViewModel.ensureProfileLoaded()
         bykcViewModel.ensureCoursesLoaded(includeExpired = bykcCourseFilters.requiresAllCourses())
@@ -480,6 +495,7 @@ fun MainAppScreen(
         AppScreen.ABOUT -> "关于"
         AppScreen.SCHEDULE -> "课程表"
         AppScreen.EXAM -> "考试查询"
+        AppScreen.GRADE -> "成绩查询"
         AppScreen.COURSE_DETAIL -> "课程详情"
         AppScreen.BYKC_HOME -> "博雅课程"
         AppScreen.BYKC_COURSES -> "选择课程"
@@ -539,6 +555,27 @@ fun MainAppScreen(
                     }
                   }
                 }
+              } else if (currentScreen == AppScreen.GRADE) {
+                Box {
+                  TextButton(onClick = { showGradeTermMenu = true }) {
+                    Text(gradeUiState.selectedTerm?.itemName ?: "选择学期")
+                    Icon(Icons.Default.ArrowDropDown, null)
+                  }
+                  DropdownMenu(
+                      expanded = showGradeTermMenu,
+                      onDismissRequest = { showGradeTermMenu = false },
+                  ) {
+                    gradeUiState.terms.forEach {
+                      DropdownMenuItem(
+                          text = { Text(it.itemName) },
+                          onClick = {
+                            gradeViewModel?.selectTerm(it)
+                            showGradeTermMenu = false
+                          },
+                      )
+                    }
+                  }
+                }
               } else if (currentScreen == AppScreen.SPOC_ASSIGNMENTS) {
                 IconButton(onClick = { showSpocSortFilterDialog = true }) {
                   Icon(Icons.Default.Tune, contentDescription = "排序和筛选")
@@ -571,6 +608,7 @@ fun MainAppScreen(
               RegularFeaturesScreen(
                   onScheduleClick = { navigateTo(AppScreen.SCHEDULE) },
                   onExamClick = { navigateTo(AppScreen.EXAM) },
+                  onGradeClick = { navigateTo(AppScreen.GRADE) },
                   onBykcClick = { navigateTo(AppScreen.BYKC_HOME) },
                   onClassroomClick = { navigateTo(AppScreen.CLASSROOM_QUERY) },
                   onSpocClick = { navigateTo(AppScreen.SPOC_ASSIGNMENTS) },
@@ -608,6 +646,7 @@ fun MainAppScreen(
                   },
               )
           AppScreen.EXAM -> examViewModel?.let { ExamScreen(viewModel = it) }
+          AppScreen.GRADE -> gradeViewModel?.let { GradeScreen(viewModel = it) }
           AppScreen.COURSE_DETAIL -> selectedCourse?.let { CourseDetailScreen(course = it) }
           AppScreen.BYKC_HOME ->
               BykcHomeScreen(
@@ -771,6 +810,7 @@ fun MainAppScreen(
               listOf(
                   AppScreen.SCHEDULE,
                   AppScreen.EXAM,
+                  AppScreen.GRADE,
                   AppScreen.COURSE_DETAIL,
                   AppScreen.MY,
                   AppScreen.SETTINGS,
