@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.School
@@ -36,6 +37,7 @@ fun RegularFeaturesScreen(
     onBykcClick: () -> Unit,
     onClassroomClick: () -> Unit,
     onSpocClick: () -> Unit,
+    onJudgeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val features =
@@ -76,6 +78,12 @@ fun RegularFeaturesScreen(
               description = "查看当前学期作业与提交状态",
               icon = Icons.Default.AssignmentTurnedIn,
           ),
+          FeatureItem(
+              id = "judge",
+              title = "希冀作业",
+              description = "聚合希冀平台作业与提交进度",
+              icon = Icons.Default.Code,
+          ),
       )
 
   Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
@@ -102,6 +110,7 @@ fun RegularFeaturesScreen(
                 "bykc" -> onBykcClick()
                 "classroom" -> onClassroomClick()
                 "spoc" -> onSpocClick()
+                "judge" -> onJudgeClick()
               }
             },
         )

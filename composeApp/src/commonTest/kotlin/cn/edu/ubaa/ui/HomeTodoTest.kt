@@ -2,6 +2,8 @@ package cn.edu.ubaa.ui
 
 import cn.edu.ubaa.model.dto.BykcChosenCourseDto
 import cn.edu.ubaa.model.dto.CgyyOrderDto
+import cn.edu.ubaa.model.dto.JudgeAssignmentSummaryDto
+import cn.edu.ubaa.model.dto.JudgeSubmissionStatus
 import cn.edu.ubaa.model.dto.SigninClassDto
 import cn.edu.ubaa.model.dto.SpocAssignmentSummaryDto
 import cn.edu.ubaa.model.dto.SpocSubmissionStatus
@@ -60,6 +62,34 @@ class HomeTodoTest {
                         submissionStatusText = "已提交",
                     ),
                 ),
+            judgeAssignments =
+                listOf(
+                    JudgeAssignmentSummaryDto(
+                        courseId = "judge-course-1",
+                        courseName = "希冀课程",
+                        assignmentId = "judge-1",
+                        title = "希冀未完成作业",
+                        dueTime = "2026-03-24 12:20:00",
+                        maxScore = "100",
+                        totalProblems = 2,
+                        submittedCount = 1,
+                        submissionStatus = JudgeSubmissionStatus.PARTIAL,
+                        submissionStatusText = "进行中(1/2)",
+                    ),
+                    JudgeAssignmentSummaryDto(
+                        courseId = "judge-course-2",
+                        courseName = "希冀课程",
+                        assignmentId = "judge-2",
+                        title = "希冀已完成作业",
+                        dueTime = "2026-03-24 12:15:00",
+                        maxScore = "10",
+                        myScore = "10",
+                        totalProblems = 1,
+                        submittedCount = 1,
+                        submissionStatus = JudgeSubmissionStatus.SUBMITTED,
+                        submissionStatusText = "已完成 10/10",
+                    ),
+                ),
             cgyyOrders =
                 listOf(
                     CgyyOrderDto(
@@ -103,7 +133,7 @@ class HomeTodoTest {
         )
 
     assertEquals(
-        listOf("bykc:101", "signin:signin-1", "spoc:spoc-1", "cgyy:201"),
+        listOf("bykc:101", "signin:signin-1", "judge:judge-course-1:judge-1", "spoc:spoc-1", "cgyy:201"),
         items.map { it.id },
     )
     assertEquals("进行中", items.first().statusLabel)
@@ -116,6 +146,7 @@ class HomeTodoTest {
         buildHomeTodoItems(
             bykcCourses = emptyList(),
             spocAssignments = emptyList(),
+            judgeAssignments = emptyList(),
             cgyyOrders = emptyList(),
             signinClasses =
                 listOf(
@@ -136,6 +167,40 @@ class HomeTodoTest {
     assertEquals("signin-1", action.courseId)
     assertEquals("签到", item.actionLabel)
     assertEquals("即将签到", item.statusLabel)
+  }
+
+  @Test
+  fun `judge todo item opens assignment detail with course and assignment ids`() {
+    val items =
+        buildHomeTodoItems(
+            bykcCourses = emptyList(),
+            spocAssignments = emptyList(),
+            judgeAssignments =
+                listOf(
+                    JudgeAssignmentSummaryDto(
+                        courseId = "course-1",
+                        courseName = "希冀课程",
+                        assignmentId = "assignment-1",
+                        title = "待完成希冀作业",
+                        dueTime = "2026-03-24 13:00:00",
+                        maxScore = "100",
+                        totalProblems = 2,
+                        submittedCount = 0,
+                        submissionStatus = JudgeSubmissionStatus.UNSUBMITTED,
+                        submissionStatusText = "未提交",
+                    )
+                ),
+            cgyyOrders = emptyList(),
+            signinClasses = emptyList(),
+            now = NOW,
+            timeZone = TimeZone.UTC,
+        )
+
+    val item = items.single()
+    val action = assertIs<HomeTodoAction.OpenJudgeAssignment>(item.action)
+    assertEquals("course-1", action.courseId)
+    assertEquals("assignment-1", action.assignmentId)
+    assertEquals("待提交", item.statusLabel)
   }
 
   @Test

@@ -11,6 +11,8 @@ interface ApiFactory {
 
   fun spocApi(): SpocApiBackend
 
+  fun judgeApi(): JudgeApiBackend
+
   fun bykcApi(): BykcApiBackend
 
   fun cgyyApi(): CgyyApiBackend
@@ -61,6 +63,13 @@ internal object DefaultApiFactory : ApiFactory {
         ConnectionMode.DIRECT -> LocalSpocApiBackend()
         ConnectionMode.WEBVPN -> LocalSpocApiBackend()
         ConnectionMode.SERVER_RELAY -> RelaySpocApiBackend()
+      }
+
+  override fun judgeApi(): JudgeApiBackend =
+      when (mode()) {
+        ConnectionMode.DIRECT -> LocalJudgeApiBackend()
+        ConnectionMode.WEBVPN -> LocalJudgeApiBackend()
+        ConnectionMode.SERVER_RELAY -> RelayJudgeApiBackend()
       }
 
   override fun bykcApi(): BykcApiBackend =
@@ -116,6 +125,8 @@ internal object RelayApiFactory : ApiFactory {
   override fun signinApi(): SigninApiBackend = RelaySigninApiBackend()
 
   override fun spocApi(): SpocApiBackend = RelaySpocApiBackend()
+
+  override fun judgeApi(): JudgeApiBackend = RelayJudgeApiBackend()
 
   override fun bykcApi(): BykcApiBackend = RelayBykcApiBackend()
 

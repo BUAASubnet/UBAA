@@ -44,6 +44,10 @@ import cn.edu.ubaa.ui.screens.exam.ExamViewModel
 import cn.edu.ubaa.ui.screens.grade.GradeScreen
 import cn.edu.ubaa.ui.screens.grade.GradeUiState
 import cn.edu.ubaa.ui.screens.grade.GradeViewModel
+import cn.edu.ubaa.ui.screens.judge.JudgeAssignmentDetailScreen
+import cn.edu.ubaa.ui.screens.judge.JudgeAssignmentsScreen
+import cn.edu.ubaa.ui.screens.judge.JudgeSortField
+import cn.edu.ubaa.ui.screens.judge.JudgeViewModel
 import cn.edu.ubaa.ui.screens.menu.*
 import cn.edu.ubaa.ui.screens.schedule.CourseDetailScreen
 import cn.edu.ubaa.ui.screens.schedule.ScheduleScreen
@@ -91,6 +95,8 @@ enum class AppScreen {
   EVALUATION,
   SPOC_ASSIGNMENTS,
   SPOC_ASSIGNMENT_DETAIL,
+  JUDGE_ASSIGNMENTS,
+  JUDGE_ASSIGNMENT_DETAIL,
   YGDK_HOME,
   YGDK_FORM,
 }
@@ -195,6 +201,9 @@ fun MainAppScreen(
   val spocViewModel: SpocViewModel =
       viewModel(key = "spoc-${userData.schoolid}") { SpocViewModel() }
   val spocUiState by spocViewModel.uiState.collectAsState()
+  val judgeViewModel: JudgeViewModel =
+      viewModel(key = "judge-${userData.schoolid}") { JudgeViewModel() }
+  val judgeUiState by judgeViewModel.uiState.collectAsState()
   val bykcViewModel: BykcViewModel =
       viewModel(key = "bykc-${userData.schoolid}") { BykcViewModel() }
   val bykcCoursesState by bykcViewModel.coursesState.collectAsState()
@@ -223,10 +232,14 @@ fun MainAppScreen(
       }
   var selectedSpocAssignmentId by remember { mutableStateOf<String?>(null) }
   var showSpocSortFilterDialog by remember { mutableStateOf(false) }
+  var selectedJudgeCourseId by remember { mutableStateOf<String?>(null) }
+  var selectedJudgeAssignmentId by remember { mutableStateOf<String?>(null) }
+  var showJudgeSortFilterDialog by remember { mutableStateOf(false) }
   val homeTodoItems =
       remember(
           bykcChosenState.courses,
           spocUiState.assignmentsResponse,
+          judgeUiState.assignmentsResponse,
           cgyyUiState.orders.content,
           signinUiState.classes,
           homeNow,
@@ -234,6 +247,7 @@ fun MainAppScreen(
         buildHomeTodoItems(
             bykcCourses = bykcChosenState.courses,
             spocAssignments = spocUiState.assignmentsResponse?.assignments.orEmpty(),
+            judgeAssignments = judgeUiState.assignmentsResponse?.assignments.orEmpty(),
             cgyyOrders = cgyyUiState.orders.content,
             signinClasses = signinUiState.classes,
             now = homeNow,
@@ -242,6 +256,7 @@ fun MainAppScreen(
   val homeTodoLoadingSources = buildList {
     if (bykcChosenState.isLoading) add(HomeTodoSource.BYKC)
     if (spocUiState.isLoading || spocUiState.isRefreshing) add(HomeTodoSource.SPOC)
+    if (judgeUiState.isLoading || judgeUiState.isRefreshing) add(HomeTodoSource.JUDGE)
     if (cgyyUiState.isOrdersLoading) add(HomeTodoSource.CGYY)
     if (signinUiState.isLoading) add(HomeTodoSource.SIGNIN)
   }
@@ -253,6 +268,7 @@ fun MainAppScreen(
   val homeTodoFailedSources = buildList {
     if (bykcChosenState.error != null) add(HomeTodoSource.BYKC)
     if (spocUiState.error != null) add(HomeTodoSource.SPOC)
+    if (judgeUiState.error != null) add(HomeTodoSource.JUDGE)
     if (cgyyUiState.ordersError != null) add(HomeTodoSource.CGYY)
     if (signinUiState.error != null) add(HomeTodoSource.SIGNIN)
   }
@@ -263,6 +279,7 @@ fun MainAppScreen(
             !scheduleViewModel.hasTodayLoaded() ||
             !signinViewModel.hasTodayLoaded() ||
             !spocViewModel.hasAssignmentsLoaded() ||
+            !judgeViewModel.hasAssignmentsLoaded() ||
             !bykcViewModel.hasChosenCoursesLoaded() ||
             cgyyViewModel?.hasOrdersLoaded() != true
     homeBootstrapCoordinator.restart(
@@ -272,6 +289,7 @@ fun MainAppScreen(
             },
             loadSignin = { force -> signinViewModel.ensureTodayLoaded(forceRefresh = force) },
             loadSpoc = { force -> spocViewModel.ensureAssignmentsLoaded(forceRefresh = force) },
+            loadJudge = { force -> judgeViewModel.ensureAssignmentsLoaded(forceRefresh = force) },
             loadBykc = { force -> bykcViewModel.ensureChosenCoursesLoaded(forceRefresh = force) },
             loadCgyy = { force -> cgyyViewModel?.ensureOrdersLoaded(forceRefresh = force) },
         ),
@@ -320,7 +338,9 @@ fun MainAppScreen(
               AppScreen.COURSE_DETAIL,
               AppScreen.CLASSROOM_QUERY,
               AppScreen.SPOC_ASSIGNMENTS,
-              AppScreen.SPOC_ASSIGNMENT_DETAIL -> BottomNavTab.REGULAR
+              AppScreen.SPOC_ASSIGNMENT_DETAIL,
+              AppScreen.JUDGE_ASSIGNMENTS,
+              AppScreen.JUDGE_ASSIGNMENT_DETAIL -> BottomNavTab.REGULAR
               AppScreen.ADVANCED,
               AppScreen.BYKC_HOME,
               AppScreen.BYKC_COURSES,
@@ -356,7 +376,9 @@ fun MainAppScreen(
             AppScreen.COURSE_DETAIL,
             AppScreen.CLASSROOM_QUERY,
             AppScreen.SPOC_ASSIGNMENTS,
-            AppScreen.SPOC_ASSIGNMENT_DETAIL -> BottomNavTab.REGULAR
+            AppScreen.SPOC_ASSIGNMENT_DETAIL,
+            AppScreen.JUDGE_ASSIGNMENTS,
+            AppScreen.JUDGE_ASSIGNMENT_DETAIL -> BottomNavTab.REGULAR
             AppScreen.ADVANCED,
             AppScreen.BYKC_HOME,
             AppScreen.BYKC_COURSES,
@@ -399,6 +421,12 @@ fun MainAppScreen(
         selectedSpocAssignmentId = action.assignmentId
         spocViewModel.loadAssignmentDetail(action.assignmentId)
         navigateTo(AppScreen.SPOC_ASSIGNMENT_DETAIL)
+      }
+      is HomeTodoAction.OpenJudgeAssignment -> {
+        selectedJudgeCourseId = action.courseId
+        selectedJudgeAssignmentId = action.assignmentId
+        judgeViewModel.loadAssignmentDetail(action.courseId, action.assignmentId)
+        navigateTo(AppScreen.JUDGE_ASSIGNMENT_DETAIL)
       }
       HomeTodoAction.OpenCgyyOrders -> {
         cgyyViewModel?.ensureOrdersLoaded()
@@ -470,6 +498,8 @@ fun MainAppScreen(
       AppScreen.EVALUATION -> evaluationViewModel?.ensureLoaded()
       AppScreen.SPOC_ASSIGNMENTS,
       AppScreen.SPOC_ASSIGNMENT_DETAIL -> spocViewModel.ensureAssignmentsLoaded()
+      AppScreen.JUDGE_ASSIGNMENTS,
+      AppScreen.JUDGE_ASSIGNMENT_DETAIL -> judgeViewModel.ensureAssignmentsLoaded()
       AppScreen.YGDK_HOME,
       AppScreen.YGDK_FORM -> ygdkViewModel?.ensureLoaded()
       else -> Unit
@@ -512,6 +542,8 @@ fun MainAppScreen(
         AppScreen.EVALUATION -> "自动评教"
         AppScreen.SPOC_ASSIGNMENTS -> "SPOC作业"
         AppScreen.SPOC_ASSIGNMENT_DETAIL -> "作业详情"
+        AppScreen.JUDGE_ASSIGNMENTS -> "希冀作业"
+        AppScreen.JUDGE_ASSIGNMENT_DETAIL -> "作业详情"
         AppScreen.YGDK_HOME -> "阳光打卡"
         AppScreen.YGDK_FORM -> "新增打卡"
       }
@@ -580,6 +612,10 @@ fun MainAppScreen(
                 IconButton(onClick = { showSpocSortFilterDialog = true }) {
                   Icon(Icons.Default.Tune, contentDescription = "排序和筛选")
                 }
+              } else if (currentScreen == AppScreen.JUDGE_ASSIGNMENTS) {
+                IconButton(onClick = { showJudgeSortFilterDialog = true }) {
+                  Icon(Icons.Default.Tune, contentDescription = "排序和筛选")
+                }
               }
             },
         )
@@ -612,6 +648,7 @@ fun MainAppScreen(
                   onBykcClick = { navigateTo(AppScreen.BYKC_HOME) },
                   onClassroomClick = { navigateTo(AppScreen.CLASSROOM_QUERY) },
                   onSpocClick = { navigateTo(AppScreen.SPOC_ASSIGNMENTS) },
+                  onJudgeClick = { navigateTo(AppScreen.JUDGE_ASSIGNMENTS) },
               )
           AppScreen.ADVANCED ->
               AdvancedFeaturesScreen(
@@ -802,6 +839,27 @@ fun MainAppScreen(
                     }
                   },
               )
+          AppScreen.JUDGE_ASSIGNMENTS ->
+              JudgeAssignmentsScreen(
+                  viewModel = judgeViewModel,
+                  onAssignmentClick = {
+                    selectedJudgeCourseId = it.courseId
+                    selectedJudgeAssignmentId = it.assignmentId
+                    judgeViewModel.loadAssignmentDetail(it.courseId, it.assignmentId)
+                    navigateTo(AppScreen.JUDGE_ASSIGNMENT_DETAIL)
+                  },
+              )
+          AppScreen.JUDGE_ASSIGNMENT_DETAIL ->
+              JudgeAssignmentDetailScreen(
+                  viewModel = judgeViewModel,
+                  onRetry = {
+                    val courseId = selectedJudgeCourseId
+                    val assignmentId = selectedJudgeAssignmentId
+                    if (courseId != null && assignmentId != null) {
+                      judgeViewModel.loadAssignmentDetail(courseId, assignmentId)
+                    }
+                  },
+              )
         }
       }
 
@@ -831,6 +889,8 @@ fun MainAppScreen(
                   AppScreen.YGDK_FORM,
                   AppScreen.SPOC_ASSIGNMENTS,
                   AppScreen.SPOC_ASSIGNMENT_DETAIL,
+                  AppScreen.JUDGE_ASSIGNMENTS,
+                  AppScreen.JUDGE_ASSIGNMENT_DETAIL,
               )
       ) {
         BottomNavigation(
@@ -909,6 +969,25 @@ fun MainAppScreen(
           },
       )
     }
+
+    if (showJudgeSortFilterDialog && currentScreen == AppScreen.JUDGE_ASSIGNMENTS) {
+      JudgeSortFilterDialog(
+          sortField = judgeUiState.sortField,
+          sortAscending = judgeUiState.sortAscending,
+          showExpired = judgeUiState.showExpired,
+          showOnlyUnfinished = judgeUiState.showOnlyUnfinished,
+          onDismiss = { showJudgeSortFilterDialog = false },
+          onApply = { sortField, sortAscending, showExpired, showOnlyUnfinished ->
+            judgeViewModel.setSortField(sortField)
+            if (judgeUiState.sortAscending != sortAscending) {
+              judgeViewModel.toggleSortDirection()
+            }
+            judgeViewModel.setShowExpired(showExpired)
+            judgeViewModel.setShowOnlyUnfinished(showOnlyUnfinished)
+            showJudgeSortFilterDialog = false
+          },
+      )
+    }
   }
 }
 
@@ -977,6 +1056,81 @@ private fun SpocSortFilterDialog(
                   selectedSortAscending,
                   selectedShowExpired,
                   selectedShowOnlyUnsubmitted,
+              )
+            }
+        ) {
+          Text("应用")
+        }
+      },
+      dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+  )
+}
+
+@Composable
+private fun JudgeSortFilterDialog(
+    sortField: JudgeSortField,
+    sortAscending: Boolean,
+    showExpired: Boolean,
+    showOnlyUnfinished: Boolean,
+    onDismiss: () -> Unit,
+    onApply: (JudgeSortField, Boolean, Boolean, Boolean) -> Unit,
+) {
+  var selectedSortField by remember(sortField) { mutableStateOf(sortField) }
+  var selectedSortAscending by remember(sortAscending) { mutableStateOf(sortAscending) }
+  var selectedShowExpired by remember(showExpired) { mutableStateOf(showExpired) }
+  var selectedShowOnlyUnfinished by
+      remember(showOnlyUnfinished) { mutableStateOf(showOnlyUnfinished) }
+
+  AlertDialog(
+      onDismissRequest = onDismiss,
+      title = { Text("排序和筛选") },
+      text = {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Text("排序字段", style = MaterialTheme.typography.titleSmall)
+          SpocDialogOptionRow(
+              label = "按截止时间",
+              selected = selectedSortField == JudgeSortField.DUE_TIME,
+              onClick = { selectedSortField = JudgeSortField.DUE_TIME },
+          )
+          SpocDialogOptionRow(
+              label = "按开始时间",
+              selected = selectedSortField == JudgeSortField.START_TIME,
+              onClick = { selectedSortField = JudgeSortField.START_TIME },
+          )
+
+          Text("排序方向", style = MaterialTheme.typography.titleSmall)
+          SpocDialogOptionRow(
+              label = "升序",
+              selected = selectedSortAscending,
+              onClick = { selectedSortAscending = true },
+          )
+          SpocDialogOptionRow(
+              label = "降序",
+              selected = !selectedSortAscending,
+              onClick = { selectedSortAscending = false },
+          )
+
+          Text("筛选条件", style = MaterialTheme.typography.titleSmall)
+          SpocCheckboxRow(
+              label = "仅显示未完成",
+              checked = selectedShowOnlyUnfinished,
+              onCheckedChange = { selectedShowOnlyUnfinished = it },
+          )
+          SpocCheckboxRow(
+              label = "显示已截止",
+              checked = selectedShowExpired,
+              onCheckedChange = { selectedShowExpired = it },
+          )
+        }
+      },
+      confirmButton = {
+        TextButton(
+            onClick = {
+              onApply(
+                  selectedSortField,
+                  selectedSortAscending,
+                  selectedShowExpired,
+                  selectedShowOnlyUnfinished,
               )
             }
         ) {

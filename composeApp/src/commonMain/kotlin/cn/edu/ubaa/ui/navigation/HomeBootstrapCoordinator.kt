@@ -14,6 +14,7 @@ internal data class HomeBootstrapActions(
     val loadTodaySchedule: (Boolean) -> Unit,
     val loadSignin: (Boolean) -> Unit,
     val loadSpoc: (Boolean) -> Unit,
+    val loadJudge: (Boolean) -> Unit,
     val loadBykc: (Boolean) -> Unit,
     val loadCgyy: (Boolean) -> Unit,
 )
@@ -38,6 +39,7 @@ internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
             actions.loadTodaySchedule(forceRefresh)
             actions.loadSignin(forceRefresh)
             actions.loadSpoc(forceRefresh)
+            actions.loadJudge(forceRefresh)
             actions.loadBykc(forceRefresh)
             actions.loadCgyy(forceRefresh)
             yield()

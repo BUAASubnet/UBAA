@@ -17,6 +17,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.Schedule
@@ -481,6 +482,7 @@ private fun sourceContainerColor(source: HomeTodoSource): Color =
     when (source) {
       HomeTodoSource.BYKC -> MaterialTheme.colorScheme.primaryContainer
       HomeTodoSource.SPOC -> MaterialTheme.colorScheme.tertiaryContainer
+      HomeTodoSource.JUDGE -> MaterialTheme.colorScheme.primaryContainer
       HomeTodoSource.CGYY -> MaterialTheme.colorScheme.secondaryContainer
       HomeTodoSource.SIGNIN -> MaterialTheme.colorScheme.errorContainer
     }
@@ -490,6 +492,7 @@ private fun sourceContentColor(source: HomeTodoSource): Color =
     when (source) {
       HomeTodoSource.BYKC -> MaterialTheme.colorScheme.onPrimaryContainer
       HomeTodoSource.SPOC -> MaterialTheme.colorScheme.onTertiaryContainer
+      HomeTodoSource.JUDGE -> MaterialTheme.colorScheme.onPrimaryContainer
       HomeTodoSource.CGYY -> MaterialTheme.colorScheme.onSecondaryContainer
       HomeTodoSource.SIGNIN -> MaterialTheme.colorScheme.onErrorContainer
     }
@@ -498,6 +501,7 @@ private fun sourceIcon(source: HomeTodoSource): ImageVector =
     when (source) {
       HomeTodoSource.BYKC -> Icons.Default.School
       HomeTodoSource.SPOC -> Icons.Default.AssignmentTurnedIn
+      HomeTodoSource.JUDGE -> Icons.Default.Code
       HomeTodoSource.CGYY -> Icons.Default.MeetingRoom
       HomeTodoSource.SIGNIN -> Icons.Default.CheckCircle
     }

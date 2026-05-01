@@ -2,6 +2,8 @@ package cn.edu.ubaa.ui.screens.menu
 
 import cn.edu.ubaa.model.dto.BykcChosenCourseDto
 import cn.edu.ubaa.model.dto.CgyyOrderDto
+import cn.edu.ubaa.model.dto.JudgeAssignmentSummaryDto
+import cn.edu.ubaa.model.dto.JudgeSubmissionStatus
 import cn.edu.ubaa.model.dto.SigninClassDto
 import cn.edu.ubaa.model.dto.SpocAssignmentSummaryDto
 import cn.edu.ubaa.model.dto.SpocSubmissionStatus
@@ -15,6 +17,7 @@ import kotlinx.datetime.toInstant
 internal enum class HomeTodoSource(val label: String) {
   BYKC("博雅"),
   SPOC("SPOC"),
+  JUDGE("希冀"),
   CGYY("研讨室"),
   SIGNIN("签到"),
 }
@@ -23,6 +26,8 @@ internal sealed interface HomeTodoAction {
   data class OpenBykcCourse(val courseId: Long) : HomeTodoAction
 
   data class OpenSpocAssignment(val assignmentId: String) : HomeTodoAction
+
+  data class OpenJudgeAssignment(val courseId: String, val assignmentId: String) : HomeTodoAction
 
   data object OpenCgyyOrders : HomeTodoAction
 
@@ -50,6 +55,7 @@ internal data class HomeTodoItem(
 internal fun buildHomeTodoItems(
     bykcCourses: List<BykcChosenCourseDto>,
     spocAssignments: List<SpocAssignmentSummaryDto>,
+    judgeAssignments: List<JudgeAssignmentSummaryDto>,
     cgyyOrders: List<CgyyOrderDto>,
     signinClasses: List<SigninClassDto>,
     now: LocalDateTime,
@@ -59,6 +65,7 @@ internal fun buildHomeTodoItems(
   return buildList {
         addAll(buildBykcTodoItems(bykcCourses, now))
         addAll(buildSpocTodoItems(spocAssignments, now))
+        addAll(buildJudgeTodoItems(judgeAssignments, now))
         addAll(buildCgyyTodoItems(cgyyOrders, now))
         addAll(buildSigninTodoItems(signinClasses, now, today, timeZone))
       }
@@ -155,6 +162,38 @@ private fun buildSpocTodoItems(
           timeLabel = "截止 ${formatHomeDateTime(dueTime)}",
           sortTime = dueTime,
           action = HomeTodoAction.OpenSpocAssignment(assignment.assignmentId),
+      )
+    }
+
+private fun buildJudgeTodoItems(
+    assignments: List<JudgeAssignmentSummaryDto>,
+    now: LocalDateTime,
+): List<HomeTodoItem> =
+    assignments.mapNotNull { assignment ->
+      val dueTime = parseHomeDateTime(assignment.dueTime)
+      val unfinished =
+          assignment.submissionStatus == JudgeSubmissionStatus.UNSUBMITTED ||
+              assignment.submissionStatus == JudgeSubmissionStatus.PARTIAL
+      if (!unfinished || dueTime == null || dueTime <= now) {
+        return@mapNotNull null
+      }
+
+      val subtitle = assignment.courseName.takeIf { it.isNotBlank() } ?: "希冀作业"
+
+      HomeTodoItem(
+          id = "judge:${assignment.courseId}:${assignment.assignmentId}",
+          source = HomeTodoSource.JUDGE,
+          title = assignment.title,
+          subtitle = subtitle,
+          statusLabel =
+              if (assignment.submissionStatus == JudgeSubmissionStatus.PARTIAL) {
+                "待完成"
+              } else {
+                "待提交"
+              },
+          timeLabel = "截止 ${formatHomeDateTime(dueTime)}",
+          sortTime = dueTime,
+          action = HomeTodoAction.OpenJudgeAssignment(assignment.courseId, assignment.assignmentId),
       )
     }
 

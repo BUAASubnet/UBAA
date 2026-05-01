@@ -150,6 +150,7 @@ class ApiFactoryDispatchTest {
     assertTrue(DefaultApiFactory.scheduleApi() is LocalScheduleApiBackend)
     assertTrue(DefaultApiFactory.signinApi() is LocalSigninApiBackend)
     assertTrue(DefaultApiFactory.spocApi() is LocalSpocApiBackend)
+    assertTrue(DefaultApiFactory.judgeApi() is LocalJudgeApiBackend)
     assertTrue(DefaultApiFactory.bykcApi() is LocalBykcApiBackend)
     assertTrue(DefaultApiFactory.cgyyApi() is LocalCgyyApiBackend)
     assertTrue(DefaultApiFactory.ygdkApi() is LocalYgdkApiBackend)
@@ -165,6 +166,7 @@ private class FakeApiFactory(
     private val scheduleBackend: ScheduleApiBackend = FakeScheduleApiBackend(),
     private val signinBackend: SigninApiBackend = FakeSigninApiBackend(),
     private val spocBackend: SpocApiBackend = FakeSpocApiBackend(),
+    private val judgeBackend: JudgeApiBackend = FakeJudgeApiBackend(),
     private val bykcBackend: BykcApiBackend = FakeBykcApiBackend(),
     private val cgyyBackend: CgyyApiBackend = FakeCgyyApiBackend(),
     private val ygdkBackend: YgdkApiBackend = FakeYgdkApiBackend(),
@@ -181,6 +183,8 @@ private class FakeApiFactory(
   override fun signinApi(): SigninApiBackend = signinBackend
 
   override fun spocApi(): SpocApiBackend = spocBackend
+
+  override fun judgeApi(): JudgeApiBackend = judgeBackend
 
   override fun bykcApi(): BykcApiBackend = bykcBackend
 
@@ -269,6 +273,13 @@ private class FakeSpocApiBackend : SpocApiBackend {
   override suspend fun getAssignments() = error("unused")
 
   override suspend fun getAssignmentDetail(assignmentId: String) = error("unused")
+}
+
+private class FakeJudgeApiBackend : JudgeApiBackend {
+  override suspend fun getAssignments() = error("unused")
+
+  override suspend fun getAssignmentDetail(courseId: String, assignmentId: String) =
+      error("unused")
 }
 
 private class FakeBykcApiBackend : BykcApiBackend {
