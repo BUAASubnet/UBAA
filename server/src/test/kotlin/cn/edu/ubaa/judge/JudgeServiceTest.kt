@@ -71,7 +71,10 @@ class JudgeServiceTest {
 
     override suspend fun getCourses(): List<JudgeCourseRaw> {
       courseCalls++
-      return listOf(JudgeCourseRaw(courseId = "1", courseName = "软件工程"), JudgeCourseRaw("2", "算法设计"))
+      return listOf(
+          JudgeCourseRaw(courseId = "1", courseName = "软件工程"),
+          JudgeCourseRaw("2", "算法设计"),
+      )
     }
 
     override suspend fun getAssignments(course: JudgeCourseRaw): List<JudgeAssignmentRaw> {

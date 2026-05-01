@@ -133,7 +133,13 @@ class HomeTodoTest {
         )
 
     assertEquals(
-        listOf("bykc:101", "signin:signin-1", "judge:judge-course-1:judge-1", "spoc:spoc-1", "cgyy:201"),
+        listOf(
+            "bykc:101",
+            "signin:signin-1",
+            "judge:judge-course-1:judge-1",
+            "spoc:spoc-1",
+            "cgyy:201",
+        ),
         items.map { it.id },
     )
     assertEquals("进行中", items.first().statusLabel)

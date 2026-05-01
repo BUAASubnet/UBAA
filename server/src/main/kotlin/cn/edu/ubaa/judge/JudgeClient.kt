@@ -35,7 +35,8 @@ internal open class JudgeClient(
       title: String,
   ): JudgeAssignmentParsedDetail {
     selectCourse(courseId)
-    val body = getHtml("get_assignment_detail", "$BASE_URL/assignment/index.jsp?assignID=$assignmentId")
+    val body =
+        getHtml("get_assignment_detail", "$BASE_URL/assignment/index.jsp?assignID=$assignmentId")
     return JudgeParsers.parseAssignmentDetail(
         html = body,
         courseId = courseId,

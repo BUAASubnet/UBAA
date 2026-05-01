@@ -27,8 +27,7 @@ internal data class JudgeAssignmentRaw(
 )
 
 internal object JudgeParsers {
-  private val unsubmittedMarkers =
-      listOf("还未提交代码", "未提交文件", "未提交答案", "未作答", "未提交")
+  private val unsubmittedMarkers = listOf("还未提交代码", "未提交文件", "未提交答案", "未作答", "未提交")
   private val submittedMarkers =
       listOf(
           "初次提交时间",
@@ -70,17 +69,18 @@ internal object JudgeParsers {
             return@mapNotNull null
           }
           val assignmentId =
-              Regex("""assignID=(\d+)""").find(href)?.groupValues?.get(1)
-                  ?: return@mapNotNull null
+              Regex("""assignID=(\d+)""").find(href)?.groupValues?.get(1) ?: return@mapNotNull null
           val title = cleanText(anchor.text())
-          title.takeIf { it.isNotBlank() }?.let {
-            JudgeAssignmentRaw(
-                assignmentId = assignmentId,
-                courseId = course.courseId,
-                courseName = course.courseName,
-                title = it,
-            )
-          }
+          title
+              .takeIf { it.isNotBlank() }
+              ?.let {
+                JudgeAssignmentRaw(
+                    assignmentId = assignmentId,
+                    courseId = course.courseId,
+                    courseName = course.courseName,
+                    title = it,
+                )
+              }
         }
         .distinctBy { it.assignmentId }
   }
@@ -101,8 +101,7 @@ internal object JudgeParsers {
             .find(plainText)
     val maxScore = Regex("""作业满分[：:]\s*([\d.]+)""").find(plainText)?.groupValues?.get(1)
     val totalProblems =
-        Regex("""共\s*(\d+)\s*道""").find(plainText)?.groupValues?.get(1)?.toIntOrNull()
-            ?: 0
+        Regex("""共\s*(\d+)\s*道""").find(plainText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     val explicitMyScore = Regex("""总分[：:]\s*([\d.]+)""").find(plainText)?.groupValues?.get(1)
     val parsedProblems = parseProblems(document.body())
     val problems = parsedProblems.map { it.problem }
@@ -113,10 +112,10 @@ internal object JudgeParsers {
         } else {
           estimateSubmittedCount(plainText)
         }
-    val resolvedTotalProblems = if (totalProblems == 0 && problems.isNotEmpty()) problems.size else totalProblems
+    val resolvedTotalProblems =
+        if (totalProblems == 0 && problems.isNotEmpty()) problems.size else totalProblems
     val myScore =
-        explicitMyScore
-            ?: earnedScores.takeIf { it.isNotEmpty() }?.sum()?.let(::formatScore)
+        explicitMyScore ?: earnedScores.takeIf { it.isNotEmpty() }?.sum()?.let(::formatScore)
     val normalizedMaxScore = maxScore?.toDoubleOrNull()?.let(::formatScore) ?: maxScore
     val normalizedMyScore = myScore?.toDoubleOrNull()?.let(::formatScore) ?: myScore
     val status = resolveStatus(resolvedTotalProblems, submittedCount)
@@ -154,7 +153,9 @@ internal object JudgeParsers {
   private fun parseProblems(root: Element): List<ParsedProblem> {
     return root
         .select("table")
-        .filterNot { table -> table.parents().any { it.tagName().equals("table", ignoreCase = true) } }
+        .filterNot { table ->
+          table.parents().any { it.tagName().equals("table", ignoreCase = true) }
+        }
         .flatMap { table ->
           val bodies = table.children().filter { it.tagName().equals("tbody", ignoreCase = true) }
           val containers = bodies.ifEmpty { listOf(table) }
@@ -169,8 +170,7 @@ internal object JudgeParsers {
 
   private fun parseProblemFromRow(row: Element): ParsedProblem? {
     val cells =
-        row
-            .children()
+        row.children()
             .filter {
               it.tagName().equals("th", ignoreCase = true) ||
                   it.tagName().equals("td", ignoreCase = true)
@@ -187,7 +187,8 @@ internal object JudgeParsers {
               JudgeProblemDto(
                   name = cells[1],
                   score =
-                      (earnedScore ?: if (status == JudgeSubmissionStatus.SUBMITTED) maxScore else null)
+                      (earnedScore
+                              ?: if (status == JudgeSubmissionStatus.SUBMITTED) maxScore else null)
                           ?.let(::formatScore),
                   maxScore = formatScore(maxScore),
                   status = status,
@@ -219,10 +220,7 @@ internal object JudgeParsers {
 
   private fun estimateSubmittedCount(text: String): Int {
     val choiceEnd =
-        listOf("填空题", "编程题", "文件上传题")
-            .map { text.indexOf(it) }
-            .filter { it >= 0 }
-            .minOrNull()
+        listOf("填空题", "编程题", "文件上传题").map { text.indexOf(it) }.filter { it >= 0 }.minOrNull()
             ?: text.length
     val choiceCount = Regex("""得分[：:]\s*[\d.]+""").findAll(text.substring(0, choiceEnd)).count()
     val fillStart = text.indexOf("填空题")
@@ -232,20 +230,21 @@ internal object JudgeParsers {
               listOf("编程题", "文件上传题")
                   .map { text.indexOf(it, fillStart + 2) }
                   .filter { it >= 0 }
-                  .minOrNull()
-                  ?: text.length
+                  .minOrNull() ?: text.length
           Regex("""得分[：:]\s*[\d.]+""").findAll(text.substring(fillStart, nextSection)).count()
         } else {
           0
         }
     val programmingCount =
-        text.indexOf("编程题").takeIf { it >= 0 }?.let {
-          Regex("""最后一次提交时间""").findAll(text.substring(it)).count()
-        } ?: 0
+        text
+            .indexOf("编程题")
+            .takeIf { it >= 0 }
+            ?.let { Regex("""最后一次提交时间""").findAll(text.substring(it)).count() } ?: 0
     val fileCount =
-        text.indexOf("文件上传题").takeIf { it >= 0 }?.let {
-          Regex("""初次提交时间""").findAll(text.substring(it)).count()
-        } ?: 0
+        text
+            .indexOf("文件上传题")
+            .takeIf { it >= 0 }
+            ?.let { Regex("""初次提交时间""").findAll(text.substring(it)).count() } ?: 0
     return choiceCount + fillCount + programmingCount + fileCount
   }
 

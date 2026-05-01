@@ -56,7 +56,9 @@ class LocalJudgeApiBackendTest {
   fun `judge api uses direct upstream backend to fetch assignments`() = runTest {
     val requestedPaths = mutableListOf<String>()
     val engine = MockEngine { request ->
-      requestedPaths += request.url.encodedPath + request.url.encodedQuery.takeIf { it.isNotBlank() }?.let { "?$it" }.orEmpty()
+      requestedPaths +=
+          request.url.encodedPath +
+              request.url.encodedQuery.takeIf { it.isNotBlank() }?.let { "?$it" }.orEmpty()
       when (request.url.encodedPath) {
         "/login" ->
             respond(
@@ -84,7 +86,9 @@ class LocalJudgeApiBackendTest {
                   """
               )
             } else {
-              respondHtml("""<html><body><a href="assignment/index.jsp?assignID=101">设计作业</a></body></html>""")
+              respondHtml(
+                  """<html><body><a href="assignment/index.jsp?assignID=101">设计作业</a></body></html>"""
+              )
             }
         else -> error("Unexpected request: ${request.method.value} ${request.url}")
       }
@@ -321,7 +325,9 @@ class LocalJudgeApiBackendTest {
                   """
               )
             } else {
-              respondHtml("""<html><body><a href="assignment/index.jsp?assignID=101">设计作业</a></body></html>""")
+              respondHtml(
+                  """<html><body><a href="assignment/index.jsp?assignID=101">设计作业</a></body></html>"""
+              )
             }
         else -> error("Unexpected request: ${request.method.value} ${request.url}")
       }

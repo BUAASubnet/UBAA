@@ -21,9 +21,7 @@ internal class LocalJudgeApiBackend : JudgeApiBackend {
       courseId: String,
       assignmentId: String,
   ): Result<JudgeAssignmentDetailDto> =
-      runLocalJudgeCall("希冀作业详情加载失败，请稍后重试") {
-        getAssignmentDetailResponse(courseId, assignmentId)
-      }
+      runLocalJudgeCall("希冀作业详情加载失败，请稍后重试") { getAssignmentDetailResponse(courseId, assignmentId) }
 
   private suspend fun LocalJudgeClient.getAssignmentsResponse(): JudgeAssignmentsResponse {
     val assignments =
@@ -31,11 +29,11 @@ internal class LocalJudgeApiBackend : JudgeApiBackend {
             .flatMap { course ->
               getAssignments(course).map { assignment ->
                 getAssignmentDetail(
-                    courseId = assignment.courseId,
-                    courseName = assignment.courseName,
-                    assignmentId = assignment.assignmentId,
-                    title = assignment.title,
-                )
+                        courseId = assignment.courseId,
+                        courseName = assignment.courseName,
+                        assignmentId = assignment.assignmentId,
+                        title = assignment.title,
+                    )
                     .toSummary()
               }
             }
@@ -55,7 +53,9 @@ internal class LocalJudgeApiBackend : JudgeApiBackend {
     val course = getCourses().firstOrNull { it.courseId == courseId }
     val courseName = course?.courseName.orEmpty()
     val assignment =
-        course?.let { getAssignments(it).firstOrNull { assignment -> assignment.assignmentId == assignmentId } }
+        course?.let {
+          getAssignments(it).firstOrNull { assignment -> assignment.assignmentId == assignmentId }
+        }
 
     return getAssignmentDetail(
         courseId = courseId,
@@ -107,7 +107,8 @@ private class LocalJudgeClient {
   ): JudgeAssignmentDetailDto {
     ensureJudgeSession()
     selectCourse(courseId)
-    val body = getHtml("get_assignment_detail", "$BASE_URL/assignment/index.jsp?assignID=$assignmentId")
+    val body =
+        getHtml("get_assignment_detail", "$BASE_URL/assignment/index.jsp?assignID=$assignmentId")
     return LocalJudgeHtmlParsers.parseAssignmentDetail(
         html = body,
         courseId = courseId,
@@ -167,8 +168,7 @@ private class LocalJudgeClient {
   }
 }
 
-private fun judgeServiceLoginUrl(): String =
-    localUpstreamUrl(JUDGE_SERVICE_LOGIN_URL)
+private fun judgeServiceLoginUrl(): String = localUpstreamUrl(JUDGE_SERVICE_LOGIN_URL)
 
 private const val JUDGE_SERVICE_LOGIN_URL =
     "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F"
@@ -205,8 +205,7 @@ private object LocalJudgeHtmlParsers {
   private val rowRegex = Regex("""<tr\b[^>]*>(.*?)</tr>""", linkOptions)
   private val cellRegex = Regex("""<(?:th|td)\b[^>]*>(.*?)</(?:th|td)>""", linkOptions)
   private val tableTagRegex = Regex("""</?table\b[^>]*>""", RegexOption.IGNORE_CASE)
-  private val unsubmittedMarkers =
-      listOf("还未提交代码", "未提交文件", "未提交答案", "未作答", "未提交")
+  private val unsubmittedMarkers = listOf("还未提交代码", "未提交文件", "未提交答案", "未作答", "未提交")
   private val submittedMarkers =
       listOf(
           "初次提交时间",
@@ -255,14 +254,16 @@ private object LocalJudgeHtmlParsers {
             return@mapNotNull null
           }
           val title = cleanText(stripTags(match.groupValues[3]))
-          title.takeIf { it.isNotBlank() }?.let {
-            LocalJudgeAssignmentRaw(
-                assignmentId = match.groupValues[2],
-                courseId = course.courseId,
-                courseName = course.courseName,
-                title = it,
-            )
-          }
+          title
+              .takeIf { it.isNotBlank() }
+              ?.let {
+                LocalJudgeAssignmentRaw(
+                    assignmentId = match.groupValues[2],
+                    courseId = course.courseId,
+                    courseName = course.courseName,
+                    title = it,
+                )
+              }
         }
         .distinctBy { it.assignmentId }
         .toList()
@@ -283,8 +284,7 @@ private object LocalJudgeHtmlParsers {
             .find(plainText)
     val maxScore = Regex("""作业满分[：:]\s*([\d.]+)""").find(plainText)?.groupValues?.get(1)
     val totalProblems =
-        Regex("""共\s*(\d+)\s*道""").find(plainText)?.groupValues?.get(1)?.toIntOrNull()
-            ?: 0
+        Regex("""共\s*(\d+)\s*道""").find(plainText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     val explicitMyScore = Regex("""总分[：:]\s*([\d.]+)""").find(plainText)?.groupValues?.get(1)
     val parsedProblems = parseProblems(html)
     val earnedScores = parsedProblems.mapNotNull { it.earnedScore }
@@ -296,10 +296,10 @@ private object LocalJudgeHtmlParsers {
         } else {
           fallbackSubmitted
         }
-    val resolvedTotalProblems = if (totalProblems == 0 && problems.isNotEmpty()) problems.size else totalProblems
+    val resolvedTotalProblems =
+        if (totalProblems == 0 && problems.isNotEmpty()) problems.size else totalProblems
     val myScore =
-        explicitMyScore
-            ?: earnedScores.takeIf { it.isNotEmpty() }?.sum()?.let(::formatScore)
+        explicitMyScore ?: earnedScores.takeIf { it.isNotEmpty() }?.sum()?.let(::formatScore)
     val status = resolveStatus(resolvedTotalProblems, submittedCount)
 
     return JudgeAssignmentDetailDto(
@@ -314,7 +314,8 @@ private object LocalJudgeHtmlParsers {
         totalProblems = resolvedTotalProblems,
         submittedCount = submittedCount,
         submissionStatus = status,
-        submissionStatusText = submissionStatusText(status, submittedCount, resolvedTotalProblems, myScore, maxScore),
+        submissionStatusText =
+            submissionStatusText(status, submittedCount, resolvedTotalProblems, myScore, maxScore),
         problems = problems,
         contentPlainText = plainText.ifBlank { null },
     )
@@ -326,17 +327,16 @@ private object LocalJudgeHtmlParsers {
   )
 
   private fun parseProblems(html: String): List<ParsedProblem> {
-    return extractTopLevelTables(html)
-        .flatMap { table ->
-          rowRegex.findAll(removeNestedTables(table)).mapNotNull { row ->
-            val cells =
-                cellRegex
-                    .findAll(row.groupValues[1])
-                    .map { cell -> cleanText(stripTags(cell.groupValues[1])) }
-                    .toList()
-            parseProblemFromCells(cells)
-          }
-        }
+    return extractTopLevelTables(html).flatMap { table ->
+      rowRegex.findAll(removeNestedTables(table)).mapNotNull { row ->
+        val cells =
+            cellRegex
+                .findAll(row.groupValues[1])
+                .map { cell -> cleanText(stripTags(cell.groupValues[1])) }
+                .toList()
+        parseProblemFromCells(cells)
+      }
+    }
   }
 
   private fun parseProblemFromCells(cells: List<String>): ParsedProblem? {
@@ -349,8 +349,10 @@ private object LocalJudgeHtmlParsers {
           problem =
               JudgeProblemDto(
                   name = cells[1],
-                  score = (earnedScore ?: if (status == JudgeSubmissionStatus.SUBMITTED) maxScore else null)
-                      ?.let(::formatScore),
+                  score =
+                      (earnedScore
+                              ?: if (status == JudgeSubmissionStatus.SUBMITTED) maxScore else null)
+                          ?.let(::formatScore),
                   maxScore = formatScore(maxScore),
                   status = status,
                   statusText = problemStatusText(status),
@@ -422,10 +424,7 @@ private object LocalJudgeHtmlParsers {
 
   private fun estimateSubmittedCount(text: String): Int {
     val choiceEnd =
-        listOf("填空题", "编程题", "文件上传题")
-            .map { text.indexOf(it) }
-            .filter { it >= 0 }
-            .minOrNull()
+        listOf("填空题", "编程题", "文件上传题").map { text.indexOf(it) }.filter { it >= 0 }.minOrNull()
             ?: text.length
     val choiceCount = Regex("""得分[：:]\s*[\d.]+""").findAll(text.substring(0, choiceEnd)).count()
     val fillStart = text.indexOf("填空题")
@@ -435,20 +434,21 @@ private object LocalJudgeHtmlParsers {
               listOf("编程题", "文件上传题")
                   .map { text.indexOf(it, fillStart + 2) }
                   .filter { it >= 0 }
-                  .minOrNull()
-                  ?: text.length
+                  .minOrNull() ?: text.length
           Regex("""得分[：:]\s*[\d.]+""").findAll(text.substring(fillStart, nextSection)).count()
         } else {
           0
         }
     val programmingCount =
-        text.indexOf("编程题").takeIf { it >= 0 }?.let {
-          Regex("""最后一次提交时间""").findAll(text.substring(it)).count()
-        } ?: 0
+        text
+            .indexOf("编程题")
+            .takeIf { it >= 0 }
+            ?.let { Regex("""最后一次提交时间""").findAll(text.substring(it)).count() } ?: 0
     val fileCount =
-        text.indexOf("文件上传题").takeIf { it >= 0 }?.let {
-          Regex("""初次提交时间""").findAll(text.substring(it)).count()
-        } ?: 0
+        text
+            .indexOf("文件上传题")
+            .takeIf { it >= 0 }
+            ?.let { Regex("""初次提交时间""").findAll(text.substring(it)).count() } ?: 0
     return choiceCount + fillCount + programmingCount + fileCount
   }
 

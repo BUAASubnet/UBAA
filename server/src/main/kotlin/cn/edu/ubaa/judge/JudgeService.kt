@@ -53,7 +53,9 @@ internal class JudgeService(private val clientProvider: (String) -> JudgeClient 
       val course = client.getCourses().firstOrNull { it.courseId == courseId }
       val courseName = course?.courseName.orEmpty()
       val assignment =
-          course?.let { client.getAssignments(it).firstOrNull { raw -> raw.assignmentId == assignmentId } }
+          course?.let {
+            client.getAssignments(it).firstOrNull { raw -> raw.assignmentId == assignmentId }
+          }
 
       client.getAssignmentDetail(
           courseId = courseId,

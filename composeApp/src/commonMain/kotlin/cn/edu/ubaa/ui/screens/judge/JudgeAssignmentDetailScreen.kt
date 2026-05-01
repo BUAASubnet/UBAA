@@ -113,10 +113,12 @@ fun JudgeAssignmentDetailScreen(
                       if (detail.totalProblems > 0) {
                         add("进度：${detail.submittedCount}/${detail.totalProblems}")
                       }
-                      detail.maxScore?.takeIf { it.isNotBlank() }?.let { maxScore ->
-                        val scoreText = detail.myScore?.takeIf { it.isNotBlank() } ?: "无"
-                        add("分数：$scoreText / $maxScore")
-                      }
+                      detail.maxScore
+                          ?.takeIf { it.isNotBlank() }
+                          ?.let { maxScore ->
+                            val scoreText = detail.myScore?.takeIf { it.isNotBlank() } ?: "无"
+                            add("分数：$scoreText / $maxScore")
+                          }
                     },
             )
 
@@ -125,9 +127,7 @@ fun JudgeAssignmentDetailScreen(
                 lines = if (detail.problems.isEmpty()) listOf("暂无题目明细") else emptyList(),
             )
 
-            detail.problems.forEach { problem ->
-              JudgeProblemCard(problem)
-            }
+            detail.problems.forEach { problem -> JudgeProblemCard(problem) }
           }
     }
   }
@@ -183,14 +183,16 @@ private fun JudgeProblemCard(problem: JudgeProblemDto) {
         ElevatedAssistChip(onClick = {}, label = { Text(problem.statusText) })
       }
 
-      problem.maxScore?.takeIf { it.isNotBlank() }?.let { maxScore ->
-        val scoreText = problem.score?.takeIf { it.isNotBlank() } ?: "无"
-        Text(
-            text = "分数：$scoreText / $maxScore",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
+      problem.maxScore
+          ?.takeIf { it.isNotBlank() }
+          ?.let { maxScore ->
+            val scoreText = problem.score?.takeIf { it.isNotBlank() } ?: "无"
+            Text(
+                text = "分数：$scoreText / $maxScore",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
     }
   }
 }

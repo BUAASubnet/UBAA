@@ -15,7 +15,9 @@ interface JudgeApiBackend {
 
 /** 希冀作业查询 API。 */
 open class JudgeApi(
-    private val backendProvider: () -> JudgeApiBackend = { ConnectionRuntime.apiFactory().judgeApi() }
+    private val backendProvider: () -> JudgeApiBackend = {
+      ConnectionRuntime.apiFactory().judgeApi()
+    }
 ) {
   internal constructor(backend: JudgeApiBackend) : this({ backend })
 

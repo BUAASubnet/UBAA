@@ -97,7 +97,6 @@ fun BuaaScoreCourse.toGrade(termCode: String): Grade =
         gradePoint = null,
     )
 
-private fun JsonElement?.asText(): String? =
-    (this as? JsonPrimitive)?.contentOrNull?.cleanText()
+private fun JsonElement?.asText(): String? = (this as? JsonPrimitive)?.contentOrNull?.cleanText()
 
 private fun String?.cleanText(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
