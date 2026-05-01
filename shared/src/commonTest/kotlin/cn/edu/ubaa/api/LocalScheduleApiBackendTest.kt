@@ -2,10 +2,6 @@ package cn.edu.ubaa.api
 
 import cn.edu.ubaa.model.dto.Exam
 import cn.edu.ubaa.model.dto.ExamResponse
-import cn.edu.ubaa.model.dto.Grade
-import cn.edu.ubaa.model.dto.GradeResponse
-import cn.edu.ubaa.model.dto.GradeResponseDatas
-import cn.edu.ubaa.model.dto.GradeRows
 import cn.edu.ubaa.model.dto.Term
 import cn.edu.ubaa.model.dto.TermResponse
 import cn.edu.ubaa.model.dto.UserData
@@ -15,7 +11,9 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
 import kotlin.test.AfterTest
@@ -155,46 +153,31 @@ class LocalScheduleApiBackendTest {
   @Test
   fun `grade api uses direct upstream backend to fetch grades`() = runTest {
     val engine = MockEngine { request ->
-      when (request.url.toString()) {
-        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do" ->
+      when {
+        request.url.toString() == "https://app.buaa.edu.cn/buaascore/wap/default/index" &&
+            request.method == HttpMethod.Get ->
             respond(
-                content = ByteReadChannel("""{"user":"ok"}"""),
+                content = ByteReadChannel("<html>score home</html>"),
                 status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                headers = headersOf(HttpHeaders.ContentType, "text/html"),
             )
-        "https://byxt.buaa.edu.cn/jwapp/sys/cjzhcxapp/modules/wdcj/cxwdcj.do" ->
-            respond(
-                content =
-                    ByteReadChannel(
-                        json.encodeToString(
-                            GradeResponse(
-                                code = "0",
-                                datas =
-                                    GradeResponseDatas(
-                                        cxwdcj =
-                                            GradeRows(
-                                                totalSize = 1,
-                                                pageSize = 5000,
-                                                rows =
-                                                    listOf(
-                                                        Grade(
-                                                            termCode = "2025-2026-1",
-                                                            termName = "2025秋季",
-                                                            courseName = "高等数学",
-                                                            courseCode = "MATH001",
-                                                            credit = 4.0,
-                                                            score = "95",
-                                                            gradePoint = "4.0",
-                                                        )
-                                                    ),
-                                            )
-                                    ),
-                            )
-                        )
-                    ),
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-            )
+        request.url.toString() == "https://app.buaa.edu.cn/buaascore/wap/default/index" &&
+            request.method == HttpMethod.Post -> {
+          val bodyText = request.bodyText()
+          assertTrue("year=2025-2026" in bodyText, "Expected grade request year, got: $bodyText")
+          assertTrue("xq=1" in bodyText, "Expected grade request semester, got: $bodyText")
+          respond(
+              content =
+                  ByteReadChannel(
+                      """
+                      {"e":0,"m":"","d":{"1":{"kcmc":"高等数学","xf":"4.0","kccj":"95","fslx":"百分制","kclx":"必修"}}}
+                      """
+                          .trimIndent()
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, "application/json"),
+          )
+        }
         else -> error("Unexpected url: ${request.url}")
       }
     }
@@ -205,6 +188,7 @@ class LocalScheduleApiBackendTest {
     assertTrue(result.isSuccess)
     assertEquals("高等数学", result.getOrNull()?.grades?.singleOrNull()?.courseName)
     assertEquals("95", result.getOrNull()?.grades?.singleOrNull()?.score)
+    assertEquals(null, result.getOrNull()?.grades?.singleOrNull()?.gradePoint)
   }
 
   private fun useMockUpstream(engine: MockEngine) {
@@ -215,4 +199,10 @@ class LocalScheduleApiBackendTest {
       }
     }
   }
+
+  private fun io.ktor.client.request.HttpRequestData.bodyText(): String =
+      when (val content = body) {
+        is OutgoingContent.ByteArrayContent -> content.bytes().decodeToString()
+        else -> error("Unsupported request body: ${content::class.simpleName}")
+      }
 }

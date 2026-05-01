@@ -134,17 +134,32 @@ private fun GradeCard(grade: Grade) {
       }
 
       Spacer(modifier = Modifier.height(10.dp))
-      GradeInfoRow(label = "课程号", value = grade.courseCode)
-      GradeInfoRow(label = "学分", value = grade.credit?.let(::formatNumber))
-      GradeInfoRow(label = "绩点", value = grade.gradePoint)
-      GradeInfoRow(label = "课程属性", value = grade.courseAttribute)
-      GradeInfoRow(label = "课程类别", value = grade.courseCategory ?: grade.courseGroup)
-      GradeInfoRow(label = "考试性质", value = grade.examType)
-      GradeInfoRow(label = "考试类型", value = grade.examAttempt)
-      GradeInfoRow(label = "成绩认定", value = grade.recognitionType, icon = Icons.Default.Person)
+      gradeDetailRows(grade).forEach { row ->
+        GradeInfoRow(
+            label = row.label,
+            value = row.value,
+            icon = if (row.label == "成绩类型") Icons.Default.Person else null,
+        )
+      }
     }
   }
 }
+
+internal data class GradeDetailRow(val label: String, val value: String)
+
+internal fun gradeDetailRows(grade: Grade): List<GradeDetailRow> =
+    listOf(
+            "课程号" to grade.courseCode,
+            "学分" to grade.credit?.let(::formatNumber),
+            "课程属性" to grade.courseAttribute,
+            "课程类别" to (grade.courseCategory ?: grade.courseGroup),
+            "考试性质" to grade.examType,
+            "考试类型" to grade.examAttempt,
+            "成绩类型" to grade.recognitionType,
+        )
+        .mapNotNull { (label, value) ->
+          value?.takeIf { it.isNotBlank() }?.let { GradeDetailRow(label, it) }
+        }
 
 @Composable
 private fun GradeBadge(score: String?) {

@@ -2,6 +2,9 @@ package cn.edu.ubaa.model.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /** 成绩查询原始响应体。 */
 @Serializable
@@ -49,3 +52,52 @@ data class Grade(
     @SerialName("SFYX_DISPLAY") val effective: String? = null,
     @SerialName("CJRDFSDM_DISPLAY") val recognitionType: String? = null,
 )
+
+/** 北航成绩应用响应体。 */
+@Serializable
+data class BuaaScoreResponse(
+    @SerialName("e") val code: Int = 0,
+    @SerialName("m") val message: String? = null,
+    @SerialName("d") val data: Map<String, BuaaScoreCourse> = emptyMap(),
+)
+
+/** 北航成绩应用中的单门课程成绩。 */
+@Serializable
+data class BuaaScoreCourse(
+    @SerialName("kcmc") val courseName: String? = null,
+    @SerialName("kch") val courseCode: String? = null,
+    @SerialName("xf") val credit: JsonElement? = null,
+    @SerialName("kccj") val score: JsonElement? = null,
+    @SerialName("fslx") val scoreType: String? = null,
+    @SerialName("kclx") val courseType: String? = null,
+)
+
+data class BuaaScoreTerm(val year: String, val semester: Int)
+
+fun parseBuaaScoreTermCode(termCode: String): BuaaScoreTerm {
+  val match =
+      Regex("""^(\d{4}-\d{4})-(\d+)$""").matchEntire(termCode.trim())
+          ?: throw IllegalArgumentException("Unsupported term code: $termCode")
+  val semester =
+      match.groupValues[2].toIntOrNull()
+          ?: throw IllegalArgumentException("Unsupported term code: $termCode")
+  return BuaaScoreTerm(year = match.groupValues[1], semester = semester)
+}
+
+fun BuaaScoreCourse.toGrade(termCode: String): Grade =
+    Grade(
+        termCode = termCode,
+        termName = termCode,
+        courseName = courseName.cleanText(),
+        courseCode = courseCode.cleanText(),
+        credit = credit.asText()?.toDoubleOrNull(),
+        score = score.asText(),
+        courseAttribute = courseType.cleanText(),
+        recognitionType = scoreType.cleanText(),
+        gradePoint = null,
+    )
+
+private fun JsonElement?.asText(): String? =
+    (this as? JsonPrimitive)?.contentOrNull?.cleanText()
+
+private fun String?.cleanText(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
