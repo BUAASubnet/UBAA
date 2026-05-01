@@ -79,6 +79,7 @@ internal fun userFacingMessageForCode(code: String?, status: HttpStatusCode): St
     "ygdk_timeout" -> "阳光打卡服务响应超时，请稍后重试"
     "schedule_error" -> "课表查询失败，请稍后重试"
     "exam_error" -> "考试信息查询失败，请稍后重试"
+    "grade_error" -> "成绩查询失败，请稍后重试"
     "user_info_failed" -> "用户信息查询失败，请稍后重试"
     "classroom_query_failed" -> "空闲教室查询失败，请稍后重试"
     "evaluation_error" -> "评教服务暂时不可用，请稍后重试"

@@ -56,12 +56,18 @@ fun GradeScreen(viewModel: GradeViewModel) {
 
 @Composable
 private fun GradeList(grades: List<Grade>) {
-  LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+  LazyColumn(
+      contentPadding = PaddingValues(16.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
     item { GradeSummaryCard(grades = grades) }
 
     if (grades.isEmpty()) {
       item {
-        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(32.dp),
+            contentAlignment = Alignment.Center,
+        ) {
           Text("暂无成绩", style = MaterialTheme.typography.bodyLarge)
         }
       }
@@ -85,7 +91,10 @@ private fun GradeSummaryCard(grades: List<Grade>) {
       Text("成绩概览", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
       Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
         SummaryValue(label = "课程数", value = grades.size.toString())
-        SummaryValue(label = "总学分", value = if (totalCredits > 0.0) formatNumber(totalCredits) else "--")
+        SummaryValue(
+            label = "总学分",
+            value = if (totalCredits > 0.0) formatNumber(totalCredits) else "--",
+        )
         SummaryValue(label = "均分", value = averageScore?.let(::formatNumber) ?: "--")
       }
     }
@@ -96,7 +105,11 @@ private fun GradeSummaryCard(grades: List<Grade>) {
 private fun SummaryValue(label: String, value: String) {
   Column {
     Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-    Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        label,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
   }
 }
 
@@ -105,7 +118,11 @@ private fun GradeCard(grade: Grade) {
   OutlinedCard(modifier = Modifier.fillMaxWidth()) {
     Column(modifier = Modifier.padding(16.dp)) {
       Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Book, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Icon(
+            Icons.Default.Book,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = grade.courseName ?: "未命名课程",
@@ -131,11 +148,26 @@ private fun GradeCard(grade: Grade) {
 
 @Composable
 private fun GradeBadge(score: String?) {
-  Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-    Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-      Icon(Icons.Default.Grade, contentDescription = null, modifier = Modifier.width(16.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+  Card(
+      colors =
+          CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+  ) {
+    Row(
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Icon(
+          Icons.Default.Grade,
+          contentDescription = null,
+          modifier = Modifier.width(16.dp),
+          tint = MaterialTheme.colorScheme.onSecondaryContainer,
+      )
       Spacer(modifier = Modifier.width(4.dp))
-      Text(score?.takeIf { it.isNotBlank() } ?: "--", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+      Text(
+          score?.takeIf { it.isNotBlank() } ?: "--",
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.onSecondaryContainer,
+      )
     }
   }
 }
@@ -147,12 +179,24 @@ private fun GradeInfoRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
 ) {
   val displayValue = value?.takeIf { it.isNotBlank() } ?: return
-  Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+  Row(
+      modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+      verticalAlignment = Alignment.CenterVertically,
+  ) {
     icon?.let {
-      Icon(it, contentDescription = null, modifier = Modifier.width(16.dp), tint = MaterialTheme.colorScheme.outline)
+      Icon(
+          it,
+          contentDescription = null,
+          modifier = Modifier.width(16.dp),
+          tint = MaterialTheme.colorScheme.outline,
+      )
       Spacer(modifier = Modifier.width(6.dp))
     }
-    Text("$label：", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        "$label：",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Text(displayValue, style = MaterialTheme.typography.bodyMedium)
   }
 }

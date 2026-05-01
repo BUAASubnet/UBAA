@@ -8,8 +8,8 @@ import cn.edu.ubaa.model.dto.GradeData
 import cn.edu.ubaa.model.dto.GradeResponse
 import cn.edu.ubaa.utils.VpnCipher
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.header
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -57,7 +57,8 @@ class GradeService(
 
     val response = session.getGrades(termCode)
     val body = response.bodyAsText()
-    if (response.status != HttpStatusCode.OK) throw GradeException("Fetch failed: ${response.status}")
+    if (response.status != HttpStatusCode.OK)
+        throw GradeException("Fetch failed: ${response.status}")
 
     val gradeResponse =
         try {
@@ -77,9 +78,7 @@ class GradeService(
   private suspend fun SessionManager.UserSession.getGrades(termCode: String): HttpResponse {
     return AppObservability.observeUpstreamRequest("byxt", "list_grades") {
       client.post(
-          VpnCipher.toVpnUrl(
-              "https://byxt.buaa.edu.cn/jwapp/sys/cjzhcxapp/modules/wdcj/cxwdcj.do"
-          )
+          VpnCipher.toVpnUrl("https://byxt.buaa.edu.cn/jwapp/sys/cjzhcxapp/modules/wdcj/cxwdcj.do")
       ) {
         applyGradeHeaders()
         setBody(gradeFormBody())

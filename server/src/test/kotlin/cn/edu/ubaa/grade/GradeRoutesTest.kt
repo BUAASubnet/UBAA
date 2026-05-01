@@ -2,6 +2,7 @@ package cn.edu.ubaa.grade
 
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.UnsupportedAcademicPortalException
+import cn.edu.ubaa.auth.userFacingMessage
 import io.ktor.http.HttpStatusCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,5 +32,10 @@ class GradeRoutesTest {
 
     assertEquals(HttpStatusCode.BadGateway, status)
     assertEquals("grade_error", code)
+  }
+
+  @Test
+  fun gradeErrorHasUserFacingMessage() {
+    assertEquals("成绩查询失败，请稍后重试", userFacingMessage("grade_error"))
   }
 }

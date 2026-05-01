@@ -3,8 +3,8 @@ package cn.edu.ubaa.api
 import cn.edu.ubaa.model.dto.GradeData
 import cn.edu.ubaa.model.dto.GradeResponse
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.header
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -60,7 +60,9 @@ internal class LocalGradeApiBackend : GradeApiBackend {
         return Result.failure(resolveLocalBusinessAuthenticationFailure("grade_error"))
       }
       if (response.status != HttpStatusCode.OK) {
-        return Result.failure(localBusinessApiException("grade_error", "成绩查询失败，请稍后重试", response.status))
+        return Result.failure(
+            localBusinessApiException("grade_error", "成绩查询失败，请稍后重试", response.status)
+        )
       }
 
       val payload = json.decodeFromString<GradeResponse>(body)

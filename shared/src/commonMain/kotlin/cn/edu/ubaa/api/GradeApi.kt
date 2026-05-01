@@ -9,7 +9,9 @@ interface GradeApiBackend {
 }
 
 class GradeApi(
-    private val backendProvider: () -> GradeApiBackend = { ConnectionRuntime.apiFactory().gradeApi() }
+    private val backendProvider: () -> GradeApiBackend = {
+      ConnectionRuntime.apiFactory().gradeApi()
+    }
 ) {
   internal constructor(backend: GradeApiBackend) : this({ backend })
 
@@ -20,9 +22,8 @@ class GradeApi(
   suspend fun getGrades(termCode: String): Result<GradeData> = currentBackend().getGrades(termCode)
 }
 
-internal class RelayGradeApiBackend(
-    private val apiClient: ApiClient = ApiClientProvider.shared
-) : GradeApiBackend {
+internal class RelayGradeApiBackend(private val apiClient: ApiClient = ApiClientProvider.shared) :
+    GradeApiBackend {
   override suspend fun getGrades(termCode: String): Result<GradeData> {
     return safeApiCall {
       apiClient.getClient().get("api/v1/grade/list") { parameter("termCode", termCode) }
