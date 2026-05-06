@@ -165,11 +165,18 @@ fun App() {
       else -> {
         LoginScreen(
             loginFormState = loginForm,
+            currentConnectionMode = selectedConnectionMode ?: ConnectionMode.SERVER_RELAY,
+            availableConnectionModes = availableConnectionModes,
             onUsernameChange = { authViewModel.updateUsername(it) },
             onPasswordChange = { authViewModel.updatePassword(it) },
             onCaptchaChange = { authViewModel.updateCaptcha(it) },
             onRememberPasswordChange = { authViewModel.updateRememberPassword(it) },
             onAutoLoginChange = { authViewModel.updateAutoLogin(it) },
+            onConnectionModeSelected = { mode ->
+              selectedConnectionMode = mode
+              authViewModel.switchConnectionMode(mode)
+              appScope.launch { updateInfo = updateService.checkUpdate() }
+            },
             onLoginClick = { authViewModel.login() },
             onRefreshCaptcha = { authViewModel.refreshCaptcha() },
             isLoading = uiState.isLoading,
