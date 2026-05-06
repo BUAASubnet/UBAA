@@ -89,6 +89,7 @@ server/data/session_store.db
 _bmad
 _bmad-output
 .gemini
+.serena/
 .github/agents
 docs
 .codex
