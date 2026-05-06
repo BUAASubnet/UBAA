@@ -107,21 +107,21 @@ class ApiServiceImpl(private val apiClient: ApiClient) : ApiService {
   }
 
   override suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> =
-    safeApiCall {
-      apiClient.getClient().get("api/v1/schedule/week") {
-        parameter("termCode", termCode)
-        parameter("week", week)
+      safeApiCall {
+        apiClient.getClient().get("api/v1/schedule/week") {
+          parameter("termCode", termCode)
+          parameter("week", week)
+        }
       }
-    }
 
   override suspend fun getTodaySchedule(): Result<List<TodayClass>> = safeApiCall {
     apiClient.getClient().get("api/v1/schedule/today")
   }
 
   override suspend fun getExamArrangement(termCode: String): Result<ExamArrangementData> =
-    safeApiCall {
-      apiClient.getClient().get("api/v1/exam/list") { parameter("termCode", termCode) }
-    }
+      safeApiCall {
+        apiClient.getClient().get("api/v1/exam/list") { parameter("termCode", termCode) }
+      }
 
   override suspend fun getBykcProfile(): Result<BykcUserProfileDto> = safeApiCall {
     apiClient.getClient().get("api/v1/bykc/profile")

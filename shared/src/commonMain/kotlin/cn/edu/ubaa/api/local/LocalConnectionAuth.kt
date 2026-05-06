@@ -346,11 +346,11 @@ internal suspend fun resolveLocalBusinessAuthenticationFailure(
     clearLocalConnectionSession()
     localUnauthenticatedApiException()
   } else {
-      ApiCallException(
-          message = userFacingMessageForCode(fallbackCode, fallbackStatus),
-          status = fallbackStatus,
-          code = fallbackCode,
-      )
+    ApiCallException(
+        message = userFacingMessageForCode(fallbackCode, fallbackStatus),
+        status = fallbackStatus,
+        code = fallbackCode,
+    )
   }
 }
 

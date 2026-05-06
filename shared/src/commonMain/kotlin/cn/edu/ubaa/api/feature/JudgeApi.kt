@@ -2,10 +2,10 @@ package cn.edu.ubaa.api.feature
 
 import cn.edu.ubaa.api.ConnectionMode
 import cn.edu.ubaa.api.ConnectionRuntime
-import cn.edu.ubaa.api.local.LocalJudgeHistoricalCourseStore
 import cn.edu.ubaa.api.auth.ApiClientProvider
 import cn.edu.ubaa.api.auth.safeApiCall
 import cn.edu.ubaa.api.core.ApiClient
+import cn.edu.ubaa.api.local.LocalJudgeHistoricalCourseStore
 import cn.edu.ubaa.api.local.resolveJudgeCourseSkipUserKey
 import cn.edu.ubaa.model.dto.JudgeAssignmentDetailDto
 import cn.edu.ubaa.model.dto.JudgeAssignmentDetailKeyDto
@@ -84,12 +84,12 @@ internal class RelayJudgeApiBackend(private val apiClient: ApiClient = ApiClient
         else LocalJudgeHistoricalCourseStore.get(mode, resolvedUserKey)
     val result =
         safeApiCall<JudgeAssignmentsResponse> {
-            apiClient.getClient().get("api/v1/judge/assignments") {
-                if (includeExpired) {
-                    parameter("includeExpired", true)
-                }
-                skippedCourseIds.forEach { courseId -> parameter("skipCourseId", courseId) }
+          apiClient.getClient().get("api/v1/judge/assignments") {
+            if (includeExpired) {
+              parameter("includeExpired", true)
             }
+            skippedCourseIds.forEach { courseId -> parameter("skipCourseId", courseId) }
+          }
         }
     result.getOrNull()?.historicalCutoffCourseIds?.let { courseIds ->
       LocalJudgeHistoricalCourseStore.add(mode, resolvedUserKey, courseIds)
@@ -102,7 +102,7 @@ internal class RelayJudgeApiBackend(private val apiClient: ApiClient = ApiClient
       assignmentId: String,
   ): Result<JudgeAssignmentDetailDto> {
     return safeApiCall {
-        apiClient.getClient().get("api/v1/judge/courses/$courseId/assignments/$assignmentId")
+      apiClient.getClient().get("api/v1/judge/courses/$courseId/assignments/$assignmentId")
     }
   }
 
@@ -114,10 +114,10 @@ internal class RelayJudgeApiBackend(private val apiClient: ApiClient = ApiClient
       return Result.success(JudgeAssignmentDetailsResponse(emptyList()))
     }
     return safeApiCall {
-        apiClient.getClient().post("api/v1/judge/assignment-details") {
-            contentType(ContentType.Application.Json)
-            setBody(JudgeAssignmentDetailsRequest(distinctKeys))
-        }
+      apiClient.getClient().post("api/v1/judge/assignment-details") {
+        contentType(ContentType.Application.Json)
+        setBody(JudgeAssignmentDetailsRequest(distinctKeys))
+      }
     }
   }
 }

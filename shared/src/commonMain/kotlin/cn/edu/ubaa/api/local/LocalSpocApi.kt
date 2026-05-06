@@ -30,10 +30,7 @@ internal class LocalSpocApiBackend : SpocApiBackend {
 
   private suspend fun LocalSpocClient.getAssignmentsResponse(): SpocAssignmentsResponse {
     val term = getCurrentTerm()
-    val termCode = term.mrxq ?: throw ApiCallException(
-        "无法获取 SPOC 当前学期代码",
-        code = "spoc_error"
-    )
+    val termCode = term.mrxq ?: throw ApiCallException("无法获取 SPOC 当前学期代码", code = "spoc_error")
     val courseMap =
         runCatching { getCourses(termCode).associateBy { it.kcid } }.getOrElse { emptyMap() }
     val rawAssignments = getAllAssignments(termCode)

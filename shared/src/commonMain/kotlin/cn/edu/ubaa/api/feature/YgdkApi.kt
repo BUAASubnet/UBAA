@@ -57,10 +57,10 @@ internal class RelayYgdkApiBackend(private val apiClient: ApiClient = ApiClientP
 
   override suspend fun getRecords(page: Int, size: Int): Result<YgdkRecordsPageResponse> {
     return safeApiCall {
-        apiClient.getClient().get("api/v1/ygdk/records") {
-            parameter("page", page)
-            parameter("size", size)
-        }
+      apiClient.getClient().get("api/v1/ygdk/records") {
+        parameter("page", page)
+        parameter("size", size)
+      }
     }
   }
 
@@ -68,33 +68,32 @@ internal class RelayYgdkApiBackend(private val apiClient: ApiClient = ApiClientP
       request: YgdkClockinSubmitRequest
   ): Result<YgdkClockinSubmitResponse> {
     return safeApiCall {
-        apiClient.getClient().post("api/v1/ygdk/records") {
-            setBody(
-                MultiPartFormDataContent(
-                    formData {
-                        request.itemId?.let { append("itemId", it.toString()) }
-                        request.startTime?.takeIf { it.isNotBlank() }
-                            ?.let { append("startTime", it) }
-                        request.endTime?.takeIf { it.isNotBlank() }?.let { append("endTime", it) }
-                        request.place?.takeIf { it.isNotBlank() }?.let { append("place", it) }
-                        request.shareToSquare?.let { append("shareToSquare", it.toString()) }
-                        request.photo?.let { photo ->
-                            append(
-                                "photo",
-                                photo.bytes,
-                                Headers.build {
-                                    append(
-                                        HttpHeaders.ContentDisposition,
-                                        "form-data; name=\"photo\"; filename=\"${photo.fileName}\"",
-                                    )
-                                    append(HttpHeaders.ContentType, photo.mimeType)
-                                },
-                            )
-                        }
-                    }
-                )
+      apiClient.getClient().post("api/v1/ygdk/records") {
+        setBody(
+            MultiPartFormDataContent(
+                formData {
+                  request.itemId?.let { append("itemId", it.toString()) }
+                  request.startTime?.takeIf { it.isNotBlank() }?.let { append("startTime", it) }
+                  request.endTime?.takeIf { it.isNotBlank() }?.let { append("endTime", it) }
+                  request.place?.takeIf { it.isNotBlank() }?.let { append("place", it) }
+                  request.shareToSquare?.let { append("shareToSquare", it.toString()) }
+                  request.photo?.let { photo ->
+                    append(
+                        "photo",
+                        photo.bytes,
+                        Headers.build {
+                          append(
+                              HttpHeaders.ContentDisposition,
+                              "form-data; name=\"photo\"; filename=\"${photo.fileName}\"",
+                          )
+                          append(HttpHeaders.ContentType, photo.mimeType)
+                        },
+                    )
+                  }
+                }
             )
-        }
+        )
+      }
     }
   }
 }

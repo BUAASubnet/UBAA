@@ -365,10 +365,7 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
           )
         }
     val payload = unwrapYgdkResponse(response.bodyAsText()).jsonObject
-    return payload.string("file_name") ?: throw ApiCallException(
-        "阳光打卡图片上传失败",
-        code = "ygdk_error"
-    )
+    return payload.string("file_name") ?: throw ApiCallException("阳光打卡图片上传失败", code = "ygdk_error")
   }
 
   private suspend fun clockin(
@@ -701,8 +698,7 @@ private fun JsonObject.string(name: String): String? =
 private fun extractRecordImages(source: JsonObject): List<String> {
   source["images_fmt"]?.let { formatted ->
     when (formatted) {
-      is JsonArray ->
-          return formatted.mapNotNull { it.jsonPrimitive.contentOrNull }
+      is JsonArray -> return formatted.mapNotNull { it.jsonPrimitive.contentOrNull }
       is JsonPrimitive ->
           formatted.contentOrNull
               ?.takeIf { it.isNotBlank() }

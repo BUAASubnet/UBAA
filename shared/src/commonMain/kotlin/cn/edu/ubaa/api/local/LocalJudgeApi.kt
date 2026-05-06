@@ -325,11 +325,7 @@ private class LocalJudgeClient(
       throw LocalJudgeAuthenticationException("希冀登录状态异常，请重新登录后重试")
     }
     if (activatedResponse.status != HttpStatusCode.OK) {
-      throw ApiCallException(
-          "希冀服务暂时不可用，请稍后重试",
-          activatedResponse.status,
-          "judge_error"
-      )
+      throw ApiCallException("希冀服务暂时不可用，请稍后重试", activatedResponse.status, "judge_error")
     }
     judgeSessionActivated = true
   }

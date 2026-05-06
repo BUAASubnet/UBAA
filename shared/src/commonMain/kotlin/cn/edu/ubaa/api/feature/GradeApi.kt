@@ -30,7 +30,7 @@ internal class RelayGradeApiBackend(private val apiClient: ApiClient = ApiClient
     GradeApiBackend {
   override suspend fun getGrades(termCode: String): Result<GradeData> {
     return safeApiCall {
-        apiClient.getClient().get("api/v1/grade/list") { parameter("termCode", termCode) }
+      apiClient.getClient().get("api/v1/grade/list") { parameter("termCode", termCode) }
     }
   }
 }

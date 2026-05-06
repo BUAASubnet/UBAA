@@ -1,6 +1,5 @@
 package cn.edu.ubaa.api.plantform
 
-import cn.edu.ubaa.api.plantform.LocalCgyyImageData
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.convert
 import kotlinx.cinterop.usePinned

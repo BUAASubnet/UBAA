@@ -230,11 +230,11 @@ internal class LocalCgyyApiBackend(
             if (error.code == "unauthenticated") {
               resolveLocalBusinessAuthenticationFailure("cgyy_error")
             } else {
-                ApiCallException(
-                    message = userFacingMessageForCode(error.code, error.status),
-                    status = error.status,
-                    code = error.code,
-                )
+              ApiCallException(
+                  message = userFacingMessageForCode(error.code, error.status),
+                  status = error.status,
+                  code = error.code,
+              )
             }
         is ApiCallException -> error
         else -> error.toUserFacingApiException(defaultMessage)
@@ -847,9 +847,7 @@ private class LocalCgyyClient(
                   put("venueId", JsonPrimitive(venueId))
                   put(
                       "siteName",
-                      JsonPrimitive(
-                          site["siteName"]?.jsonPrimitive?.contentOrNull.orEmpty()
-                      ),
+                      JsonPrimitive(site["siteName"]?.jsonPrimitive?.contentOrNull.orEmpty()),
                   )
                   put("venueName", JsonPrimitive(venueName))
                   put("campusName", JsonPrimitive(campusName))

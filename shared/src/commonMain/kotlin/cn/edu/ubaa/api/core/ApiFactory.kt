@@ -1,14 +1,31 @@
 package cn.edu.ubaa.api.core
 
+import cn.edu.ubaa.api.ConnectionMode
+import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.auth.AuthServiceBackend
+import cn.edu.ubaa.api.auth.RelayAuthServiceBackend
+import cn.edu.ubaa.api.auth.RelayUserServiceBackend
+import cn.edu.ubaa.api.auth.UserServiceBackend
 import cn.edu.ubaa.api.feature.BykcApiBackend
 import cn.edu.ubaa.api.feature.CgyyApiBackend
 import cn.edu.ubaa.api.feature.ClassroomApiBackend
-import cn.edu.ubaa.api.ConnectionMode
-import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.feature.EvaluationServiceBackend
 import cn.edu.ubaa.api.feature.GradeApiBackend
 import cn.edu.ubaa.api.feature.JudgeApiBackend
+import cn.edu.ubaa.api.feature.RelayBykcApiBackend
+import cn.edu.ubaa.api.feature.RelayCgyyApiBackend
+import cn.edu.ubaa.api.feature.RelayClassroomApiBackend
+import cn.edu.ubaa.api.feature.RelayEvaluationServiceBackend
+import cn.edu.ubaa.api.feature.RelayGradeApiBackend
+import cn.edu.ubaa.api.feature.RelayJudgeApiBackend
+import cn.edu.ubaa.api.feature.RelayScheduleApiBackend
+import cn.edu.ubaa.api.feature.RelaySigninApiBackend
+import cn.edu.ubaa.api.feature.RelaySpocApiBackend
+import cn.edu.ubaa.api.feature.RelayYgdkApiBackend
+import cn.edu.ubaa.api.feature.ScheduleApiBackend
+import cn.edu.ubaa.api.feature.SigninApiBackend
+import cn.edu.ubaa.api.feature.SpocApiBackend
+import cn.edu.ubaa.api.feature.YgdkApiBackend
 import cn.edu.ubaa.api.local.LocalAuthServiceBackend
 import cn.edu.ubaa.api.local.LocalBykcApiBackend
 import cn.edu.ubaa.api.local.LocalCgyyApiBackend
@@ -21,23 +38,6 @@ import cn.edu.ubaa.api.local.LocalSigninApiBackend
 import cn.edu.ubaa.api.local.LocalSpocApiBackend
 import cn.edu.ubaa.api.local.LocalUserServiceBackend
 import cn.edu.ubaa.api.local.LocalYgdkApiBackend
-import cn.edu.ubaa.api.auth.RelayAuthServiceBackend
-import cn.edu.ubaa.api.feature.RelayBykcApiBackend
-import cn.edu.ubaa.api.feature.RelayCgyyApiBackend
-import cn.edu.ubaa.api.feature.RelayClassroomApiBackend
-import cn.edu.ubaa.api.feature.RelayEvaluationServiceBackend
-import cn.edu.ubaa.api.feature.RelayGradeApiBackend
-import cn.edu.ubaa.api.feature.RelayJudgeApiBackend
-import cn.edu.ubaa.api.feature.RelayScheduleApiBackend
-import cn.edu.ubaa.api.feature.RelaySigninApiBackend
-import cn.edu.ubaa.api.feature.RelaySpocApiBackend
-import cn.edu.ubaa.api.auth.RelayUserServiceBackend
-import cn.edu.ubaa.api.feature.RelayYgdkApiBackend
-import cn.edu.ubaa.api.feature.ScheduleApiBackend
-import cn.edu.ubaa.api.feature.SigninApiBackend
-import cn.edu.ubaa.api.feature.SpocApiBackend
-import cn.edu.ubaa.api.auth.UserServiceBackend
-import cn.edu.ubaa.api.feature.YgdkApiBackend
 
 interface ApiFactory {
   fun authService(): AuthServiceBackend
