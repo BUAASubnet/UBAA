@@ -1,6 +1,6 @@
 package cn.edu.ubaa.ui
 
-import cn.edu.ubaa.api.SpocApi
+import cn.edu.ubaa.api.feature.SpocApi
 import cn.edu.ubaa.model.dto.SpocAssignmentDetailDto
 import cn.edu.ubaa.model.dto.SpocAssignmentSummaryDto
 import cn.edu.ubaa.model.dto.SpocAssignmentsResponse

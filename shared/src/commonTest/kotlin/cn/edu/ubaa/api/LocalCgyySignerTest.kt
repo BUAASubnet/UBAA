@@ -1,5 +1,6 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.local.LocalCgyySigner
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

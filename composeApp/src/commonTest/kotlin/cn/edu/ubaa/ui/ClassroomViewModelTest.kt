@@ -1,6 +1,6 @@
 package cn.edu.ubaa.ui
 
-import cn.edu.ubaa.api.ClassroomApi
+import cn.edu.ubaa.api.feature.ClassroomApi
 import cn.edu.ubaa.model.dto.ClassroomData
 import cn.edu.ubaa.model.dto.ClassroomInfo
 import cn.edu.ubaa.model.dto.ClassroomQueryResponse

@@ -1,5 +1,7 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.storage.BykcCourseFilterStore
+import cn.edu.ubaa.api.storage.StoredBykcCourseFilters
 import com.russhwolf.settings.MapSettings
 import kotlin.test.AfterTest
 import kotlin.test.Test

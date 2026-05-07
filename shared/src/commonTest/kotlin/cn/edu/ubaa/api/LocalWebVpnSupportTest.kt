@@ -1,5 +1,7 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.local.LocalWebVpnSupport
+import cn.edu.ubaa.api.local.localUpstreamUrl
 import com.russhwolf.settings.MapSettings
 import kotlin.test.BeforeTest
 import kotlin.test.Test

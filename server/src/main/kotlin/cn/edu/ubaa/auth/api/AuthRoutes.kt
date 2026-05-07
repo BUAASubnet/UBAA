@@ -1,6 +1,6 @@
 package cn.edu.ubaa.auth
 
-import cn.edu.ubaa.api.SessionStatusResponse
+import cn.edu.ubaa.api.auth.SessionStatusResponse
 import cn.edu.ubaa.auth.JwtAuth.getUserSession
 import cn.edu.ubaa.metrics.LoginConnectionMode
 import cn.edu.ubaa.metrics.LoginMetricsSink
@@ -16,7 +16,6 @@ import cn.edu.ubaa.model.dto.TokenRefreshRequest
 import cn.edu.ubaa.utils.UpstreamTimeoutException
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*

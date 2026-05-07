@@ -2,7 +2,7 @@ package cn.edu.ubaa.ui.screens.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.ScheduleApi
+import cn.edu.ubaa.api.feature.ScheduleApi
 import cn.edu.ubaa.model.dto.*
 import cn.edu.ubaa.repository.GlobalTermRepository
 import cn.edu.ubaa.repository.TermRepository

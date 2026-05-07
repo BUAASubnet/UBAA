@@ -2,7 +2,7 @@ package cn.edu.ubaa.ui.screens.exam
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.ScheduleApi
+import cn.edu.ubaa.api.feature.ScheduleApi
 import cn.edu.ubaa.model.dto.ExamArrangementData
 import cn.edu.ubaa.model.dto.Term
 import cn.edu.ubaa.repository.GlobalTermRepository

@@ -7,15 +7,17 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.supervisorScope
 
 internal data class HomeBootstrapActions(
-    val loadTodaySchedule: (Boolean) -> Unit,
-    val loadSignin: (Boolean) -> Unit,
-    val loadSpoc: (Boolean) -> Unit,
-    val loadBykc: (Boolean) -> Unit,
-    val loadCgyy: (Boolean) -> Unit,
+    val loadTodaySchedule: suspend (Boolean) -> Unit,
+    val loadSignin: suspend (Boolean) -> Unit,
+    val loadSpoc: suspend (Boolean) -> Unit,
+    val loadJudge: suspend (Boolean) -> Unit,
+    val loadBykc: suspend (Boolean) -> Unit,
+    val loadCgyy: suspend (Boolean) -> Unit,
 )
 
 internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
@@ -35,12 +37,17 @@ internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
     val newJob =
         scope.launch(start = CoroutineStart.LAZY) {
           try {
-            actions.loadTodaySchedule(forceRefresh)
-            actions.loadSignin(forceRefresh)
-            actions.loadSpoc(forceRefresh)
-            actions.loadBykc(forceRefresh)
-            actions.loadCgyy(forceRefresh)
-            yield()
+            supervisorScope {
+              listOf(
+                      launch { actions.loadTodaySchedule(forceRefresh) },
+                      launch { actions.loadSignin(forceRefresh) },
+                      launch { actions.loadSpoc(forceRefresh) },
+                      launch { actions.loadJudge(forceRefresh) },
+                      launch { actions.loadBykc(forceRefresh) },
+                      launch { actions.loadCgyy(forceRefresh) },
+                  )
+                  .joinAll()
+            }
           } finally {
             if (job === coroutineContext[Job]) {
               job = null

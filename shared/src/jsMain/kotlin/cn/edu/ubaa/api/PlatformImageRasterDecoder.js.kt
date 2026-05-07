@@ -1,4 +1,4 @@
-package cn.edu.ubaa.api
+package cn.edu.ubaa.api.plantform
 
 internal actual object PlatformImageRasterDecoder {
   actual fun decode(input: ByteArray): LocalCgyyImageData =

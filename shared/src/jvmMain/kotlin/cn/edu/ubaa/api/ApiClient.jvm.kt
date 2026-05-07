@@ -1,4 +1,4 @@
-package cn.edu.ubaa.api
+package cn.edu.ubaa.api.core
 
 import io.ktor.client.engine.*
 import io.ktor.client.engine.cio.*

@@ -1,6 +1,6 @@
 package cn.edu.ubaa.ui.screens.bykc
 
-import cn.edu.ubaa.api.StoredBykcCourseFilters
+import cn.edu.ubaa.api.storage.StoredBykcCourseFilters
 import cn.edu.ubaa.model.dto.BykcCourseDto
 import cn.edu.ubaa.model.dto.BykcCourseStatus
 import cn.edu.ubaa.model.dto.BykcCourseSubCategory

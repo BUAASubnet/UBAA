@@ -2,7 +2,7 @@ package cn.edu.ubaa.ui.screens.ygdk
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.YgdkApi
+import cn.edu.ubaa.api.feature.YgdkApi
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
 import cn.edu.ubaa.model.dto.YgdkOverviewResponse
 import cn.edu.ubaa.model.dto.YgdkRecordDto

@@ -16,10 +16,11 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import cn.edu.ubaa.api.AppVersionCheckResponse
 import cn.edu.ubaa.api.ConnectionMode
 import cn.edu.ubaa.api.ConnectionRuntime
-import cn.edu.ubaa.api.UpdateService
+import cn.edu.ubaa.api.auth.AppVersionCheckResponse
+import cn.edu.ubaa.api.auth.UpdateService
+import cn.edu.ubaa.ui.common.components.ReleaseNotesText
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
 import cn.edu.ubaa.ui.screens.auth.ConnectionModeSelectionScreen
@@ -116,7 +117,7 @@ fun App() {
           title = { Text("发现新版本") },
           text = {
             Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-              Text(updateMessage)
+              ReleaseNotesText(updateMessage)
             }
           },
           confirmButton = {
@@ -165,11 +166,18 @@ fun App() {
       else -> {
         LoginScreen(
             loginFormState = loginForm,
+            currentConnectionMode = selectedConnectionMode ?: ConnectionMode.SERVER_RELAY,
+            availableConnectionModes = availableConnectionModes,
             onUsernameChange = { authViewModel.updateUsername(it) },
             onPasswordChange = { authViewModel.updatePassword(it) },
             onCaptchaChange = { authViewModel.updateCaptcha(it) },
             onRememberPasswordChange = { authViewModel.updateRememberPassword(it) },
             onAutoLoginChange = { authViewModel.updateAutoLogin(it) },
+            onConnectionModeSelected = { mode ->
+              selectedConnectionMode = mode
+              authViewModel.switchConnectionMode(mode)
+              appScope.launch { updateInfo = updateService.checkUpdate() }
+            },
             onLoginClick = { authViewModel.login() },
             onRefreshCaptcha = { authViewModel.refreshCaptcha() },
             isLoading = uiState.isLoading,

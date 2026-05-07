@@ -1,5 +1,15 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.auth.ApiClientProvider
+import cn.edu.ubaa.api.core.ApiFactory
+import cn.edu.ubaa.api.core.DefaultApiFactory
+import cn.edu.ubaa.api.local.LocalAuthSessionStore
+import cn.edu.ubaa.api.local.LocalCookieStore
+import cn.edu.ubaa.api.local.LocalJudgeApiCache
+import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
+import cn.edu.ubaa.api.storage.AuthTokensStore
+import cn.edu.ubaa.api.storage.ClientIdStore
+import cn.edu.ubaa.api.storage.CredentialStore
 import cn.edu.ubaa.repository.GlobalTermRepository
 import cn.edu.ubaa.supportsLocalConnectionModes
 import com.russhwolf.settings.Settings
@@ -106,6 +116,7 @@ object ConnectionRuntime {
     CredentialStore.setAutoLogin(false)
     ApiClientProvider.reset()
     LocalUpstreamClientProvider.reset()
+    LocalJudgeApiCache.clearAll()
     GlobalTermRepository.instance.clear()
   }
 

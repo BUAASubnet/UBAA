@@ -1,5 +1,7 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.local.LocalAuthSession
+import cn.edu.ubaa.api.local.LocalAuthSessionStore
 import cn.edu.ubaa.model.dto.UserData
 import com.russhwolf.settings.MapSettings
 import kotlin.test.BeforeTest

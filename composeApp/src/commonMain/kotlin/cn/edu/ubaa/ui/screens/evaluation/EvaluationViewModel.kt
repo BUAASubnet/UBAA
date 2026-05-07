@@ -2,7 +2,7 @@ package cn.edu.ubaa.ui.screens.evaluation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.EvaluationService
+import cn.edu.ubaa.api.feature.EvaluationService
 import cn.edu.ubaa.model.evaluation.EvaluationCourse
 import cn.edu.ubaa.model.evaluation.EvaluationProgress
 import cn.edu.ubaa.model.evaluation.EvaluationResult

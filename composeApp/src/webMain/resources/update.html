@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UBAA 更新下载</title>
+    <link rel="icon" href="./favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="./favicon-32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="./favicon-16.png" sizes="16x16">
+    <meta name="theme-color" content="#1976d2">
+    <style>
+        :root {
+            color-scheme: light;
+            --brand: #1976d2;
+            --brand-strong: #0f5fb2;
+            --text: #172033;
+            --muted: #586174;
+            --line: #d9e0ea;
+            --surface: #ffffff;
+            --page: #f5f7fb;
+            --success: #168052;
+            --success-strong: #0f6a43;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            font-family: "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", "WenQuanYi Micro Hei", system-ui, sans-serif;
+            color: var(--text);
+            background: var(--page);
+        }
+
+        body {
+            padding: 32px 16px 40px;
+        }
+
+        .page {
+            width: min(100%, 860px);
+            margin: 0 auto;
+        }
+
+        .header {
+            padding: 8px 0 24px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            margin: 0 0 10px;
+            color: var(--brand);
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(26px, 5vw, 38px);
+            line-height: 1.2;
+            letter-spacing: 0;
+        }
+
+        .intro {
+            margin: 12px 0 0;
+            max-width: 680px;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.75;
+        }
+
+        .survey {
+            margin-top: 24px;
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--surface);
+        }
+
+        .survey-title {
+            margin: 0 0 16px;
+            font-size: 20px;
+            line-height: 1.4;
+        }
+
+        .survey-embed {
+            width: 100%;
+            min-height: 1280px;
+            overflow-x: auto;
+        }
+
+        .survey-embed iframe {
+            display: block;
+            width: 100% !important;
+            min-height: 1280px !important;
+            border: 0;
+        }
+
+        .download {
+            margin-top: 18px;
+            padding-top: 20px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .download-note {
+            margin: 0;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .download-button {
+            display: inline-flex;
+            min-height: 46px;
+            padding: 0 22px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: var(--success);
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .download-button:hover,
+        .download-button:focus-visible {
+            background: var(--success-strong);
+        }
+
+        .download-button:focus-visible {
+            outline: 3px solid rgba(22, 128, 82, 0.25);
+            outline-offset: 2px;
+        }
+
+        .footer {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 20px 12px 32px;
+            }
+
+            .survey {
+                padding: 14px;
+            }
+
+            .download {
+                align-items: stretch;
+            }
+
+            .download-button {
+                width: 100%;
+            }
+
+            .survey-embed,
+            .survey-embed iframe {
+                min-height: 1180px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <header class="header">
+            <p class="brand">UBAA</p>
+            <h1>更新前请先填写问卷</h1>
+            <p class="intro">你的反馈会帮助我们确认新版本的使用情况。提交问卷后，请在页面底部点击按钮下载最新版本。</p>
+        </header>
+
+        <section class="survey" aria-labelledby="survey-title">
+            <h2 class="survey-title" id="survey-title">更新问卷</h2>
+            <div class="survey-embed">
+                <script type="text/javascript" src="https://v.wjx.cn/handler/jqemed.ashx?activity=QsqQU1r&width=750&source=iframe"></script>
+            </div>
+            <script>
+                (() => {
+                    const desktopMinHeight = 1280;
+                    const mobileMinHeight = 1180;
+                    const getMinHeight = () => window.matchMedia('(max-width: 640px)').matches ? mobileMinHeight : desktopMinHeight;
+
+                    const resizeSurveyFrame = (height) => {
+                        const frame = document.querySelector('.survey-embed iframe');
+                        if (!frame) return;
+
+                        const minHeight = getMinHeight();
+                        const requestedHeight = Number.parseInt(height, 10);
+                        const nextHeight = Math.max(Number.isFinite(requestedHeight) ? requestedHeight : 0, minHeight);
+                        frame.style.minHeight = `${minHeight}px`;
+                        frame.style.height = `${nextHeight}px`;
+                    };
+
+                    const observer = new MutationObserver(() => resizeSurveyFrame());
+                    observer.observe(document.querySelector('.survey-embed'), { childList: true, subtree: true });
+
+                    const previousHeightChanged = window.wjxHeightChanged;
+                    window.wjxHeightChanged = (height) => {
+                        if (typeof previousHeightChanged === 'function') {
+                            previousHeightChanged(height);
+                        }
+                        resizeSurveyFrame(height);
+                    };
+
+                    window.addEventListener('load', () => resizeSurveyFrame());
+                    window.addEventListener('resize', () => resizeSurveyFrame());
+                })();
+            </script>
+
+            <div class="download">
+                <p class="download-note">问卷填写完成后，即可前往北航云盘下载更新包。</p>
+                <a class="download-button" href="https://bhpan.buaa.edu.cn/link/AA61B7EDC6F2BC4AF5B040FAF0563AD160" target="_blank" rel="noopener noreferrer">下载最新版本</a>
+            </div>
+        </section>
+
+        <p class="footer">如果问卷加载失败，请刷新页面后重试。</p>
+    </main>
+</body>
+
+</html>

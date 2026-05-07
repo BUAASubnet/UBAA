@@ -1,6 +1,10 @@
 package cn.edu.ubaa.api
 
 import cn.edu.ubaa.BuildKonfig
+import cn.edu.ubaa.api.auth.AppUpdateStatus
+import cn.edu.ubaa.api.auth.AppVersionCheckResponse
+import cn.edu.ubaa.api.auth.UpdateService
+import cn.edu.ubaa.api.core.ApiClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -11,7 +15,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class UpdateServiceTest {

@@ -1,5 +1,7 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.local.DefaultLocalCgyyCaptchaSolver
+import cn.edu.ubaa.api.plantform.LocalCgyyImageData
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

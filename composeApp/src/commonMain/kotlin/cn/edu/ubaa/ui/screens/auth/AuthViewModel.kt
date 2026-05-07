@@ -2,14 +2,14 @@ package cn.edu.ubaa.ui.screens.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.ApiCallException
-import cn.edu.ubaa.api.AuthService
-import cn.edu.ubaa.api.AuthTokensStore
-import cn.edu.ubaa.api.CaptchaRequiredClientException
 import cn.edu.ubaa.api.ConnectionMode
 import cn.edu.ubaa.api.ConnectionRuntime
-import cn.edu.ubaa.api.CredentialStore
-import cn.edu.ubaa.api.UserService
+import cn.edu.ubaa.api.auth.ApiCallException
+import cn.edu.ubaa.api.auth.AuthService
+import cn.edu.ubaa.api.auth.CaptchaRequiredClientException
+import cn.edu.ubaa.api.auth.UserService
+import cn.edu.ubaa.api.storage.AuthTokensStore
+import cn.edu.ubaa.api.storage.CredentialStore
 import cn.edu.ubaa.model.dto.CaptchaInfo
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo

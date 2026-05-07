@@ -2,9 +2,9 @@ package cn.edu.ubaa.ui.screens.cgyy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.CgyyApi
-import cn.edu.ubaa.api.CgyyReservationFormStore
-import cn.edu.ubaa.api.StoredCgyyReservationForm
+import cn.edu.ubaa.api.feature.CgyyApi
+import cn.edu.ubaa.api.storage.CgyyReservationFormStore
+import cn.edu.ubaa.api.storage.StoredCgyyReservationForm
 import cn.edu.ubaa.model.dto.CgyyDayInfoResponse
 import cn.edu.ubaa.model.dto.CgyyLockCodeResponse
 import cn.edu.ubaa.model.dto.CgyyOrdersPageResponse

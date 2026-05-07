@@ -2,7 +2,7 @@ package cn.edu.ubaa.ui.screens.bykc
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.BykcApi
+import cn.edu.ubaa.api.feature.BykcApi
 import cn.edu.ubaa.model.dto.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

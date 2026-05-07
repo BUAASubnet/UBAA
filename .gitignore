@@ -89,6 +89,7 @@ server/data/session_store.db
 _bmad
 _bmad-output
 .gemini
+.serena/
 .github/agents
 docs
 .codex
@@ -99,3 +100,5 @@ REDIS_MIGRATION.md
 AGENTS.md
 todo.md
 .worktrees/
+.playwright-cli/
+output/

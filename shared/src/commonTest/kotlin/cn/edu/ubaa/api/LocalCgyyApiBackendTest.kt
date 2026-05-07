@@ -1,5 +1,17 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.auth.ApiCallException
+import cn.edu.ubaa.api.core.DefaultApiFactory
+import cn.edu.ubaa.api.feature.CgyyApi
+import cn.edu.ubaa.api.local.LocalAuthSession
+import cn.edu.ubaa.api.local.LocalAuthSessionStore
+import cn.edu.ubaa.api.local.LocalCgyyApiBackend
+import cn.edu.ubaa.api.local.LocalCgyyCaptchaChallenge
+import cn.edu.ubaa.api.local.LocalCgyyCaptchaSolver
+import cn.edu.ubaa.api.local.LocalCgyySolvedCaptcha
+import cn.edu.ubaa.api.local.LocalCookieStore
+import cn.edu.ubaa.api.local.LocalScheduleApiBackend
+import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
 import cn.edu.ubaa.model.dto.CgyyReservationSelectionDto
 import cn.edu.ubaa.model.dto.CgyyReservationSubmitRequest
 import cn.edu.ubaa.model.dto.UserData
@@ -242,6 +254,50 @@ class LocalCgyyApiBackendTest {
 
     assertEquals(1, manageLoginCalls)
     assertEquals(1, apiLoginCalls)
+  }
+
+  @Test
+  fun `cgyy purpose types fall back to static definitions when direct endpoint fails`() = runTest {
+    val engine = MockEngine { request ->
+      when {
+        request.url.encodedPath == "/venue-zhjs-server/sso/manageLogin" ->
+            respond(
+                content = ByteReadChannel.Empty,
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(
+                        HttpHeaders.SetCookie,
+                        "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
+                    ),
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/login" ->
+            respondJson(
+                """
+                {
+                  "code":200,
+                  "message":"OK",
+                  "data":{
+                    "token":{
+                      "access_token":"access-fallback"
+                    }
+                  }
+                }
+                """
+                    .trimIndent()
+            )
+        request.url.encodedPath == "/venue-zhjs-server/api/codes" ->
+            respondJson("""{"code":500,"message":"codes unavailable","data":null}""")
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
+    useMockUpstream(engine)
+    val api = CgyyApi(LocalCgyyApiBackend())
+
+    val purposeTypes = api.getPurposeTypes()
+
+    assertTrue(purposeTypes.isSuccess, purposeTypes.exceptionOrNull()?.message.orEmpty())
+    assertEquals(10, purposeTypes.getOrNull()?.size)
+    assertEquals("学术研讨类（竞赛、答辩、展示等小组讨论）", purposeTypes.getOrNull()?.get(2)?.name)
   }
 
   @Test

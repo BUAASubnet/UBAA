@@ -1,5 +1,36 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.auth.AuthService
+import cn.edu.ubaa.api.auth.AuthServiceBackend
+import cn.edu.ubaa.api.auth.UserServiceBackend
+import cn.edu.ubaa.api.core.ApiFactory
+import cn.edu.ubaa.api.core.DefaultApiFactory
+import cn.edu.ubaa.api.core.RelayApiFactory
+import cn.edu.ubaa.api.feature.BykcApiBackend
+import cn.edu.ubaa.api.feature.CgyyApiBackend
+import cn.edu.ubaa.api.feature.ClassroomApiBackend
+import cn.edu.ubaa.api.feature.EvaluationService
+import cn.edu.ubaa.api.feature.EvaluationServiceBackend
+import cn.edu.ubaa.api.feature.GradeApi
+import cn.edu.ubaa.api.feature.GradeApiBackend
+import cn.edu.ubaa.api.feature.JudgeApiBackend
+import cn.edu.ubaa.api.feature.ScheduleApi
+import cn.edu.ubaa.api.feature.ScheduleApiBackend
+import cn.edu.ubaa.api.feature.SigninApiBackend
+import cn.edu.ubaa.api.feature.SpocApiBackend
+import cn.edu.ubaa.api.feature.YgdkApiBackend
+import cn.edu.ubaa.api.local.LocalAuthServiceBackend
+import cn.edu.ubaa.api.local.LocalBykcApiBackend
+import cn.edu.ubaa.api.local.LocalCgyyApiBackend
+import cn.edu.ubaa.api.local.LocalClassroomApiBackend
+import cn.edu.ubaa.api.local.LocalEvaluationServiceBackend
+import cn.edu.ubaa.api.local.LocalGradeApiBackend
+import cn.edu.ubaa.api.local.LocalJudgeApiBackend
+import cn.edu.ubaa.api.local.LocalScheduleApiBackend
+import cn.edu.ubaa.api.local.LocalSigninApiBackend
+import cn.edu.ubaa.api.local.LocalSpocApiBackend
+import cn.edu.ubaa.api.local.LocalUserServiceBackend
+import cn.edu.ubaa.api.local.LocalYgdkApiBackend
 import cn.edu.ubaa.model.dto.CaptchaInfo
 import cn.edu.ubaa.model.dto.LoginPreloadResponse
 import cn.edu.ubaa.model.evaluation.EvaluationCoursesResponse
@@ -83,6 +114,21 @@ class ApiFactoryDispatchTest {
   }
 
   @Test
+  fun `grade api default constructor delegates to connection runtime api factory`() = runTest {
+    val backend = FakeGradeApiBackend()
+    ConnectionRuntime.apiFactoryProvider = {
+      FakeApiFactory(
+          gradeBackend = backend,
+      )
+    }
+
+    val result = GradeApi().getGrades("2025-2026-1")
+
+    assertTrue(result.isSuccess)
+    assertEquals(1, backend.getGradesCalls)
+  }
+
+  @Test
   fun `schedule api created before mode selection resolves backend lazily from current mode`() =
       runTest {
         val relayBackend = FakeScheduleApiBackend()
@@ -135,11 +181,13 @@ class ApiFactoryDispatchTest {
     assertTrue(DefaultApiFactory.scheduleApi() is LocalScheduleApiBackend)
     assertTrue(DefaultApiFactory.signinApi() is LocalSigninApiBackend)
     assertTrue(DefaultApiFactory.spocApi() is LocalSpocApiBackend)
+    assertTrue(DefaultApiFactory.judgeApi() is LocalJudgeApiBackend)
     assertTrue(DefaultApiFactory.bykcApi() is LocalBykcApiBackend)
     assertTrue(DefaultApiFactory.cgyyApi() is LocalCgyyApiBackend)
     assertTrue(DefaultApiFactory.ygdkApi() is LocalYgdkApiBackend)
     assertTrue(DefaultApiFactory.classroomApi() is LocalClassroomApiBackend)
     assertTrue(DefaultApiFactory.evaluationService() is LocalEvaluationServiceBackend)
+    assertTrue(DefaultApiFactory.gradeApi() is LocalGradeApiBackend)
   }
 }
 
@@ -149,11 +197,13 @@ private class FakeApiFactory(
     private val scheduleBackend: ScheduleApiBackend = FakeScheduleApiBackend(),
     private val signinBackend: SigninApiBackend = FakeSigninApiBackend(),
     private val spocBackend: SpocApiBackend = FakeSpocApiBackend(),
+    private val judgeBackend: JudgeApiBackend = FakeJudgeApiBackend(),
     private val bykcBackend: BykcApiBackend = FakeBykcApiBackend(),
     private val cgyyBackend: CgyyApiBackend = FakeCgyyApiBackend(),
     private val ygdkBackend: YgdkApiBackend = FakeYgdkApiBackend(),
     private val classroomBackend: ClassroomApiBackend = FakeClassroomApiBackend(),
     private val evaluationBackend: EvaluationServiceBackend = FakeEvaluationServiceBackend(),
+    private val gradeBackend: GradeApiBackend = FakeGradeApiBackend(),
 ) : ApiFactory {
   override fun authService(): AuthServiceBackend = authBackend
 
@@ -165,6 +215,8 @@ private class FakeApiFactory(
 
   override fun spocApi(): SpocApiBackend = spocBackend
 
+  override fun judgeApi(): JudgeApiBackend = judgeBackend
+
   override fun bykcApi(): BykcApiBackend = bykcBackend
 
   override fun cgyyApi(): CgyyApiBackend = cgyyBackend
@@ -174,6 +226,8 @@ private class FakeApiFactory(
   override fun classroomApi(): ClassroomApiBackend = classroomBackend
 
   override fun evaluationService(): EvaluationServiceBackend = evaluationBackend
+
+  override fun gradeApi(): GradeApiBackend = gradeBackend
 }
 
 private class FakeAuthServiceBackend : AuthServiceBackend {
@@ -230,6 +284,16 @@ private class FakeScheduleApiBackend : ScheduleApiBackend {
   override suspend fun getExamArrangement(termCode: String) = error("unused")
 }
 
+private class FakeGradeApiBackend : GradeApiBackend {
+  var getGradesCalls = 0
+    private set
+
+  override suspend fun getGrades(termCode: String): Result<cn.edu.ubaa.model.dto.GradeData> {
+    getGradesCalls++
+    return Result.success(cn.edu.ubaa.model.dto.GradeData(termCode = termCode))
+  }
+}
+
 private class FakeSigninApiBackend : SigninApiBackend {
   override suspend fun getTodayClasses() = error("unused")
 
@@ -240,6 +304,16 @@ private class FakeSpocApiBackend : SpocApiBackend {
   override suspend fun getAssignments() = error("unused")
 
   override suspend fun getAssignmentDetail(assignmentId: String) = error("unused")
+}
+
+private class FakeJudgeApiBackend : JudgeApiBackend {
+  override suspend fun getAssignments(includeExpired: Boolean, userKey: String?) = error("unused")
+
+  override suspend fun getAssignmentDetail(courseId: String, assignmentId: String) = error("unused")
+
+  override suspend fun getAssignmentDetails(
+      keys: List<cn.edu.ubaa.model.dto.JudgeAssignmentDetailKeyDto>
+  ) = error("unused")
 }
 
 private class FakeBykcApiBackend : BykcApiBackend {

@@ -1,6 +1,6 @@
 package cn.edu.ubaa.repository
 
-import cn.edu.ubaa.api.ScheduleApi
+import cn.edu.ubaa.api.feature.ScheduleApi
 import cn.edu.ubaa.model.dto.Term
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

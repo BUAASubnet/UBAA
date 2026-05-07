@@ -1,4 +1,4 @@
-package cn.edu.ubaa.api
+package cn.edu.ubaa.api.plantform
 
 internal actual object PlatformAesCfbNoPadding {
   actual fun encrypt(input: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =

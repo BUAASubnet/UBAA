@@ -127,6 +127,7 @@ class ApplicationMetricsTest {
         cn.edu.ubaa.bykc.GlobalBykcService.instance,
         cn.edu.ubaa.cgyy.GlobalCgyyService.instance,
         cn.edu.ubaa.spoc.GlobalSpocService.instance,
+        cn.edu.ubaa.judge.GlobalJudgeService.instance,
         cn.edu.ubaa.ygdk.GlobalYgdkService.instance,
         RedisReadinessProbe(),
     )
@@ -136,6 +137,7 @@ class ApplicationMetricsTest {
         cn.edu.ubaa.bykc.GlobalBykcService.instance,
         cn.edu.ubaa.cgyy.GlobalCgyyService.instance,
         cn.edu.ubaa.spoc.GlobalSpocService.instance,
+        cn.edu.ubaa.judge.GlobalJudgeService.instance,
         cn.edu.ubaa.ygdk.GlobalYgdkService.instance,
         RedisReadinessProbe(),
     )
@@ -148,6 +150,7 @@ class ApplicationMetricsTest {
             "ubaa.bykc.cache",
             "ubaa.cgyy.cache",
             "ubaa.spoc.cache",
+            "ubaa.judge.cache",
             "ubaa.ygdk.cache",
             "ubaa.ygdk.context.cache",
             "ubaa.redis.ready",

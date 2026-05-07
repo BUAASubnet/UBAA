@@ -1,6 +1,6 @@
 package cn.edu.ubaa.ui
 
-import cn.edu.ubaa.api.YgdkApi
+import cn.edu.ubaa.api.feature.YgdkApi
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitResponse
 import cn.edu.ubaa.model.dto.YgdkItemDto

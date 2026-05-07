@@ -1,4 +1,4 @@
-package cn.edu.ubaa.api
+package cn.edu.ubaa.api.plantform
 
 internal actual object PlatformRsaPkcs1Encrypt {
   actual fun encrypt(input: ByteArray, publicKeyDer: ByteArray): ByteArray =

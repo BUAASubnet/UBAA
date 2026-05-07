@@ -2,7 +2,7 @@ package cn.edu.ubaa.ui.screens.signin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cn.edu.ubaa.api.SigninApi
+import cn.edu.ubaa.api.feature.SigninApi
 import cn.edu.ubaa.model.dto.SigninClassDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

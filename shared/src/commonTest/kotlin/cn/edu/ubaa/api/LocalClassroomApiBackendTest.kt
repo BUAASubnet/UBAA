@@ -1,5 +1,12 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.auth.ApiCallException
+import cn.edu.ubaa.api.core.DefaultApiFactory
+import cn.edu.ubaa.api.feature.ClassroomApi
+import cn.edu.ubaa.api.local.LocalAuthSession
+import cn.edu.ubaa.api.local.LocalAuthSessionStore
+import cn.edu.ubaa.api.local.LocalCookieStore
+import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
 import cn.edu.ubaa.model.dto.ClassroomQueryResponse
 import cn.edu.ubaa.model.dto.UserData
 import com.russhwolf.settings.MapSettings
@@ -19,7 +26,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class LocalClassroomApiBackendTest {

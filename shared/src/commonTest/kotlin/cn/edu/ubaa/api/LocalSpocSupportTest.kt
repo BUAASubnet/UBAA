@@ -1,5 +1,8 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.local.LocalSpocCasLoginContent
+import cn.edu.ubaa.api.local.LocalSpocCrypto
+import cn.edu.ubaa.api.local.LocalSpocParsers
 import cn.edu.ubaa.model.dto.SpocSubmissionStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals

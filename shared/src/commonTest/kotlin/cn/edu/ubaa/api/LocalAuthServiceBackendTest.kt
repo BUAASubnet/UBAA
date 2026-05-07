@@ -1,5 +1,12 @@
 package cn.edu.ubaa.api
 
+import cn.edu.ubaa.api.auth.CaptchaRequiredClientException
+import cn.edu.ubaa.api.auth.LoginStatsReporter
+import cn.edu.ubaa.api.local.LocalAuthServiceBackend
+import cn.edu.ubaa.api.local.LocalAuthSession
+import cn.edu.ubaa.api.local.LocalAuthSessionStore
+import cn.edu.ubaa.api.local.LocalCookieStore
+import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
 import cn.edu.ubaa.model.dto.LoginStatsConnectionMode
 import cn.edu.ubaa.model.dto.LoginStatsReportRequest
 import cn.edu.ubaa.model.dto.LoginStatsSuccessMode

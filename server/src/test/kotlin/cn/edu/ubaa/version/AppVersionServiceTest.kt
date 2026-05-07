@@ -1,6 +1,6 @@
 package cn.edu.ubaa.version
 
-import cn.edu.ubaa.api.AppUpdateStatus
+import cn.edu.ubaa.api.auth.AppUpdateStatus
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond

@@ -1,7 +1,7 @@
 package cn.edu.ubaa
 
-import cn.edu.ubaa.api.AppUpdateStatus
-import cn.edu.ubaa.api.AppVersionCheckResponse
+import cn.edu.ubaa.api.auth.AppUpdateStatus
+import cn.edu.ubaa.api.auth.AppVersionCheckResponse
 import cn.edu.ubaa.version.AppVersionRuntimeConfig
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -9,7 +9,6 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlin.test.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 class ApplicationTest {

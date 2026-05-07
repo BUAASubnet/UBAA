@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
@@ -31,9 +33,11 @@ data class FeatureItem(
 fun RegularFeaturesScreen(
     onScheduleClick: () -> Unit,
     onExamClick: () -> Unit,
+    onGradeClick: () -> Unit,
     onBykcClick: () -> Unit,
     onClassroomClick: () -> Unit,
     onSpocClick: () -> Unit,
+    onJudgeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val features =
@@ -49,6 +53,12 @@ fun RegularFeaturesScreen(
               title = "考试查询",
               description = "查看考试安排，支持学期切换",
               icon = Icons.AutoMirrored.Filled.Assignment,
+          ),
+          FeatureItem(
+              id = "grade",
+              title = "成绩查询",
+              description = "查看课程成绩、学分和绩点",
+              icon = Icons.Default.Grade,
           ),
           FeatureItem(
               id = "bykc",
@@ -67,6 +77,12 @@ fun RegularFeaturesScreen(
               title = "SPOC作业",
               description = "查看当前学期作业与提交状态",
               icon = Icons.Default.AssignmentTurnedIn,
+          ),
+          FeatureItem(
+              id = "judge",
+              title = "希冀作业",
+              description = "聚合希冀平台作业与提交进度",
+              icon = Icons.Default.Code,
           ),
       )
 
@@ -90,9 +106,11 @@ fun RegularFeaturesScreen(
               when (feature.id) {
                 "schedule" -> onScheduleClick()
                 "exam" -> onExamClick()
+                "grade" -> onGradeClick()
                 "bykc" -> onBykcClick()
                 "classroom" -> onClassroomClick()
                 "spoc" -> onSpocClick()
+                "judge" -> onJudgeClick()
               }
             },
         )
