@@ -103,3 +103,4 @@ todo.md
 .playwright-cli/
 output/
 .playwright-mcp/
+server/announcement.json
