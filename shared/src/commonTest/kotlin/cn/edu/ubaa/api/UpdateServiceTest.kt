@@ -80,6 +80,15 @@ class UpdateServiceTest {
   }
 
   @Test
+  fun returnsNullWhenVersionRequestFailsWithNonExceptionThrowable() = runTest {
+    val mockEngine = MockEngine { throw Error("fetch failed") }
+
+    val updateInfo = UpdateService(ApiClient(mockEngine)).checkUpdate("1.4.0")
+
+    assertNull(updateInfo)
+  }
+
+  @Test
   fun reusesCurrentApiClientProviderAfterPreviousClientIsClosed() = runTest {
     val firstEngine = MockEngine {
       respond(

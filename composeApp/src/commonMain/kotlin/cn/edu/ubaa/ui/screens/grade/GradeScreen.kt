@@ -324,7 +324,8 @@ private fun weightedValue(total: Double, credits: Double): Double? =
     if (credits > 0.0) kotlin.math.round((total / credits) * 100.0) / 100.0 else null
 
 private fun String.toGradePoint(): Double? {
-  return when (this) {
+  val normalizedScore = normalizedLevelScore()
+  return when (normalizedScore) {
     "优" -> 4.0
     "良" -> 3.5
     "中" -> 2.8
@@ -333,7 +334,7 @@ private fun String.toGradePoint(): Double? {
     "通过",
     "不通过" -> null
     else -> {
-      val numericScore = toDoubleOrNull() ?: return null
+      val numericScore = normalizedScore.toDoubleOrNull() ?: return null
       if (numericScore < 60.0) 0.0
       else 4.0 - (3.0 * (100.0 - numericScore) * (100.0 - numericScore) / 1600.0)
     }
@@ -341,7 +342,7 @@ private fun String.toGradePoint(): Double? {
 }
 
 private fun String.toWeightedAverageScore(): Double? {
-  return when (this) {
+  return when (normalizedLevelScore()) {
     "优" -> 95.0
     "良" -> 85.0
     "中" -> 75.0
@@ -352,3 +353,11 @@ private fun String.toWeightedAverageScore(): Double? {
     else -> toDoubleOrNull()
   }
 }
+
+private fun String.normalizedLevelScore(): String =
+    when (this) {
+      "优秀" -> "优"
+      "良好" -> "良"
+      "中等" -> "中"
+      else -> this
+    }

@@ -63,6 +63,25 @@ class GradeScreenLogicTest {
   }
 
   @Test
+  fun `grade statistics convert long level scores`() {
+    val statistics =
+        calculateGradeStatistics(
+            listOf(
+                grade(score = "优秀", credit = 1.0),
+                grade(score = "良好", credit = 1.0),
+                grade(score = "中等", credit = 1.0),
+                grade(score = "及格", credit = 1.0),
+                grade(score = "不及格", credit = 1.0),
+            )
+        )
+
+    assertEquals(5, statistics.courseCount)
+    assertEquals(5.0, statistics.totalCredits)
+    assertEquals(2.4, statistics.gpa)
+    assertEquals(63.0, statistics.weightedAverage)
+  }
+
+  @Test
   fun `grade statistics return empty averages when no course participates`() {
     val statistics =
         calculateGradeStatistics(

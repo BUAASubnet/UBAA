@@ -18,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.api.ConnectionMode
 import cn.edu.ubaa.api.ConnectionRuntime
+import cn.edu.ubaa.api.auth.AnnouncementService
+import cn.edu.ubaa.api.auth.AppAnnouncement
 import cn.edu.ubaa.api.auth.AppVersionCheckResponse
 import cn.edu.ubaa.api.auth.UpdateService
+import cn.edu.ubaa.api.storage.AnnouncementReadStore
 import cn.edu.ubaa.ui.common.components.ReleaseNotesText
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
@@ -59,12 +62,22 @@ fun App() {
 
     // 更新检测逻辑
     val updateService = remember { UpdateService() }
+    val announcementService = remember { AnnouncementService() }
     var updateInfo by remember { mutableStateOf<AppVersionCheckResponse?>(null) }
+    var announcementInfo by remember { mutableStateOf<AppAnnouncement?>(null) }
     val uriHandler = LocalUriHandler.current
+
+    suspend fun checkStartupPrompts() {
+      updateInfo = updateService.checkUpdate()
+      announcementInfo =
+          announcementService.checkAnnouncement()?.takeUnless {
+            AnnouncementReadStore.isRead(it.id)
+          }
+    }
 
     suspend fun bootstrapForMode(mode: ConnectionMode) {
       selectedConnectionMode = mode
-      updateInfo = updateService.checkUpdate()
+      checkStartupPrompts()
       authViewModel.initializeApp()
     }
 
@@ -134,6 +147,33 @@ fun App() {
       )
     }
 
+    if (shouldShowAnnouncementDialog(updateInfo, announcementInfo)) {
+      val announcement = announcementInfo!!
+      AlertDialog(
+          onDismissRequest = {},
+          title = { Text(announcement.title) },
+          text = {
+            Box(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+              Text(announcement.content)
+            }
+          },
+          confirmButton = {
+            TextButton(
+                onClick = {
+                  confirmAnnouncement(
+                      announcement = announcement,
+                      openUri = uriHandler::openUri,
+                      markRead = AnnouncementReadStore::markRead,
+                  )
+                  announcementInfo = null
+                }
+            ) {
+              Text(announcement.confirmText?.takeIf { it.isNotBlank() } ?: "我知道了")
+            }
+          },
+      )
+    }
+
     // 视图切换状态机
     when {
       !modeResolved -> SplashScreen(modifier = Modifier.fillMaxSize())
@@ -157,7 +197,7 @@ fun App() {
             onConnectionModeSelected = { mode ->
               selectedConnectionMode = mode
               authViewModel.switchConnectionMode(mode)
-              appScope.launch { updateInfo = updateService.checkUpdate() }
+              appScope.launch { checkStartupPrompts() }
             },
             onLogoutClick = { authViewModel.logout() },
             modifier = Modifier.fillMaxSize(),
@@ -176,7 +216,7 @@ fun App() {
             onConnectionModeSelected = { mode ->
               selectedConnectionMode = mode
               authViewModel.switchConnectionMode(mode)
-              appScope.launch { updateInfo = updateService.checkUpdate() }
+              appScope.launch { checkStartupPrompts() }
             },
             onLoginClick = { authViewModel.login() },
             onRefreshCaptcha = { authViewModel.refreshCaptcha() },
@@ -198,4 +238,18 @@ fun App() {
       }
     }
   }
+}
+
+internal fun shouldShowAnnouncementDialog(
+    updateInfo: AppVersionCheckResponse?,
+    announcement: AppAnnouncement?,
+): Boolean = updateInfo == null && announcement != null
+
+internal fun confirmAnnouncement(
+    announcement: AppAnnouncement,
+    openUri: (String) -> Unit,
+    markRead: (String) -> Unit,
+) {
+  markRead(announcement.id)
+  announcement.linkUrl?.takeIf { it.isNotBlank() }?.let(openUri)
 }

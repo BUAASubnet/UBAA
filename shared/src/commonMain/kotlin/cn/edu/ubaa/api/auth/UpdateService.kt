@@ -5,6 +5,7 @@ import cn.edu.ubaa.api.core.ApiClient
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -43,7 +44,8 @@ class UpdateService(private val apiClientProvider: () -> ApiClient = { ApiClient
       response.body<AppVersionCheckResponse>().takeIf {
         it.status == AppUpdateStatus.UPDATE_AVAILABLE
       }
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
+      if (e is CancellationException) throw e
       null
     }
   }

@@ -71,6 +71,15 @@ class ApplicationTest {
     assertTrue(payload.downloadUrl.isNotBlank())
   }
 
+  @Test
+  fun announcementEndpointIsAnonymous() = testApplication {
+    application { module() }
+
+    val response = client.get("/api/v1/app/announcement")
+
+    assertTrue(response.status == HttpStatusCode.OK || response.status == HttpStatusCode.NoContent)
+  }
+
   @Serializable
   private data class LegacyAppVersionCheckResponse(
       val serverVersion: String,

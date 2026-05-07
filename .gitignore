@@ -102,3 +102,5 @@ todo.md
 .worktrees/
 .playwright-cli/
 output/
+.playwright-mcp/
+server/announcement.json
