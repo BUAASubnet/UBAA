@@ -704,11 +704,13 @@ private object LocalJudgeHtmlParsers {
         .findAll(html)
         .mapNotNull { match ->
           val href =
-              listOf(match.groupValues[1], match.groupValues[3], match.groupValues[5])
-                  .firstOrNull { it.isNotBlank() } ?: return@mapNotNull null
+              listOf(match.groupValues[1], match.groupValues[3], match.groupValues[5]).firstOrNull {
+                it.isNotBlank()
+              } ?: return@mapNotNull null
           val assignmentId =
-              listOf(match.groupValues[2], match.groupValues[4], match.groupValues[6])
-                  .firstOrNull { it.isNotBlank() } ?: return@mapNotNull null
+              listOf(match.groupValues[2], match.groupValues[4], match.groupValues[6]).firstOrNull {
+                it.isNotBlank()
+              } ?: return@mapNotNull null
           if (href.contains("problemContent") || href.contains("judgeDetails")) {
             return@mapNotNull null
           }
