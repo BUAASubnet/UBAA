@@ -305,4 +305,14 @@ class AuthServiceTest {
     assertEquals("stale-access-token", AuthTokensStore.get()?.accessToken)
     assertEquals("stale-refresh-token", AuthTokensStore.get()?.refreshToken)
   }
+
+  @Test
+  fun shouldReturnFailureWhenStatusRequestFailsWithNonExceptionThrowable() = runTest {
+    val mockEngine = MockEngine { throw Error("fetch failed") }
+
+    val result = AuthService(ApiClient(mockEngine)).getAuthStatus()
+
+    assertTrue(result.isFailure)
+    assertEquals("网络异常，请检查连接后重试", result.exceptionOrNull()?.message)
+  }
 }

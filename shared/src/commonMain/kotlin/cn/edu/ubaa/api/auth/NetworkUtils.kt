@@ -164,7 +164,7 @@ suspend inline fun <reified T> safeApiCall(call: () -> HttpResponse): Result<T> 
       }
       else -> Result.failure(response.toApiCallException())
     }
-  } catch (e: Exception) {
+  } catch (e: Throwable) {
     Result.failure(e.toUserFacingApiException())
   }
 }

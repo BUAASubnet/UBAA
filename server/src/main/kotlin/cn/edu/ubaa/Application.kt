@@ -1,5 +1,7 @@
 package cn.edu.ubaa
 
+import cn.edu.ubaa.announcement.AnnouncementService
+import cn.edu.ubaa.announcement.appAnnouncementRouting
 import cn.edu.ubaa.auth.AuthConfig
 import cn.edu.ubaa.auth.GlobalAcademicPortalWarmupCoordinator
 import cn.edu.ubaa.auth.GlobalDistributedLockManager
@@ -107,6 +109,7 @@ internal fun Application.module(
     metricsRegistry: PrometheusMeterRegistry,
     loginMetricsRecorder: LoginMetricsRecorder,
     appVersionService: AppVersionService = GlobalAppVersionService.instance,
+    announcementService: AnnouncementService = AnnouncementService(),
 ) {
   log.info("Initializing Application module...")
   AuthConfig.validateDistributedLockBudgets()
@@ -251,6 +254,7 @@ internal fun Application.module(
     healthRouting(readinessProbe)
 
     appVersionRouting(appVersionService)
+    appAnnouncementRouting(announcementService)
     authRouting(loginMetricsRecorder)
 
     authenticate(JwtAuth.JWT_AUTH) {

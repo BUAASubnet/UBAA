@@ -166,7 +166,7 @@ internal class RelayAuthServiceBackend(
         }
         else -> Result.failure(response.toApiCallException())
       }
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       Result.failure(e.toUserFacingApiException("登录状态加载失败，请稍后重试"))
     }
   }
@@ -204,7 +204,7 @@ internal class RelayAuthServiceBackend(
         }
         else -> Result.failure(response.toApiCallException())
       }
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       Result.failure(e.toUserFacingApiException("登录失败，请稍后重试"))
     }
   }
@@ -223,7 +223,7 @@ internal class RelayAuthServiceBackend(
 
       clearStoredSession()
       Result.success(Unit)
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       clearStoredSession()
       Result.failure(e.toUserFacingApiException("注销时出现异常，本地登录状态已清除"))
     }
