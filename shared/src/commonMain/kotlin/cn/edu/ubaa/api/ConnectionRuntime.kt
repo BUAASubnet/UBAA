@@ -115,6 +115,7 @@ object ConnectionRuntime {
     LocalCookieStore.clearAllScopes()
     CredentialStore.setAutoLogin(false)
     ApiClientProvider.reset()
+    DefaultApiFactory.clearCachedBackends()
     LocalUpstreamClientProvider.reset()
     LocalJudgeApiCache.clearAll()
     GlobalTermRepository.instance.clear()

@@ -33,6 +33,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -51,10 +53,16 @@ import kotlinx.serialization.json.jsonPrimitive
 
 internal class LocalYgdkApiBackend : YgdkApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
+  private val sessionMutex = Mutex()
+  private val sessionCache = mutableMapOf<String, LocalYgdkSession>()
+
+  internal fun clearCache() {
+    sessionCache.clear()
+  }
 
   override suspend fun getOverview(): Result<YgdkOverviewResponse> =
       runLocalYgdkCall("阳光打卡概览加载失败，请稍后重试") { studentId ->
-        val session = createLocalYgdkSession(studentId)
+        val session = currentSession(studentId)
         val classify = resolveSportsClassify(fetchClassifyList(session))
         val items = fetchItemList(session, classify.classifyId)
         val defaultItem = resolveDefaultItem(items)
@@ -81,7 +89,7 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
           )
         }
 
-        val session = createLocalYgdkSession(studentId)
+        val session = currentSession(studentId)
         val classify = resolveSportsClassify(fetchClassifyList(session))
         val items = fetchItemList(session, classify.classifyId)
         val itemMap = items.associateBy { it.itemId }
@@ -100,7 +108,7 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
       request: YgdkClockinSubmitRequest
   ): Result<YgdkClockinSubmitResponse> =
       runLocalYgdkCall("阳光打卡提交失败，请稍后重试") { studentId ->
-        val session = createLocalYgdkSession(studentId)
+        val session = currentSession(studentId)
         val classify = resolveSportsClassify(fetchClassifyList(session))
         val items = fetchItemList(session, classify.classifyId)
         val selectedItem =
@@ -149,10 +157,21 @@ internal class LocalYgdkApiBackend : YgdkApiBackend {
     return try {
       Result.success(block(studentId))
     } catch (e: LocalYgdkAuthenticationException) {
+      sessionMutex.withLock { sessionCache.remove(studentId) }
       Result.failure(resolveLocalBusinessAuthenticationFailure("ygdk_error"))
     } catch (e: Exception) {
       Result.failure(e.toUserFacingApiException(defaultMessage))
     }
+  }
+
+  private suspend fun currentSession(studentId: String): LocalYgdkSession {
+    sessionMutex
+        .withLock { sessionCache[studentId] }
+        ?.let {
+          return it
+        }
+    val created = createLocalYgdkSession(studentId)
+    return sessionMutex.withLock { sessionCache.getOrPut(studentId) { created } }
   }
 
   private suspend fun createLocalYgdkSession(studentId: String): LocalYgdkSession {

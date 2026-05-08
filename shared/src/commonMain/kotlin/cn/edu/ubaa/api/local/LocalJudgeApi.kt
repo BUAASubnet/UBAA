@@ -44,6 +44,13 @@ internal class LocalJudgeApiBackend(
       Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     }
 ) : JudgeApiBackend {
+  private val clientMutex = Mutex()
+  private val clientCache = mutableMapOf<LocalJudgeCacheScope, LocalJudgeClient>()
+
+  internal fun clearCache() {
+    clientCache.clear()
+  }
+
   override suspend fun getAssignments(
       includeExpired: Boolean,
       userKey: String?,
@@ -216,15 +223,18 @@ internal class LocalJudgeApiBackend(
       val mode =
           ConnectionRuntime.currentMode()?.takeIf { it != ConnectionMode.SERVER_RELAY }
               ?: ConnectionMode.DIRECT
-      Result.success(
-          LocalJudgeClient(cacheScope = LocalJudgeCacheScope(mode, session.username)).block(session)
-      )
+      Result.success(currentClient(LocalJudgeCacheScope(mode, session.username)).block(session))
     } catch (e: LocalJudgeAuthenticationException) {
       Result.failure(resolveLocalBusinessAuthenticationFailure("judge_auth_failed"))
     } catch (e: Exception) {
       Result.failure(e.toUserFacingApiException(defaultMessage))
     }
   }
+
+  private suspend fun currentClient(cacheScope: LocalJudgeCacheScope): LocalJudgeClient =
+      clientMutex.withLock {
+        clientCache.getOrPut(cacheScope) { LocalJudgeClient(cacheScope = cacheScope) }
+      }
 
   private fun JudgeAssignmentDetailDto.startedBeforeSixMonthCutoff(): Boolean {
     val startAt = parseLocalJudgeDateTime(startTime) ?: return false

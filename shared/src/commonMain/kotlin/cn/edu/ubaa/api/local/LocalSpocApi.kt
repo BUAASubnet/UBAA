@@ -19,9 +19,18 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Url
 import io.ktor.http.contentType
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 internal class LocalSpocApiBackend : SpocApiBackend {
+  private val clientMutex = Mutex()
+  private val clientCache = mutableMapOf<String, LocalSpocClient>()
+
+  internal fun clearCache() {
+    clientCache.clear()
+  }
+
   override suspend fun getAssignments(): Result<SpocAssignmentsResponse> =
       runLocalSpocCall("SPOC 作业列表加载失败，请稍后重试") { getAssignmentsResponse() }
 
@@ -104,12 +113,13 @@ internal class LocalSpocApiBackend : SpocApiBackend {
       defaultMessage: String,
       block: suspend LocalSpocClient.() -> T,
   ): Result<T> {
-    if (LocalAuthSessionStore.get() == null) {
-      return Result.failure(localUnauthenticatedApiException())
-    }
+    val session =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val username = session.user.schoolid.ifBlank { session.username }
+    if (username.isBlank()) return Result.failure(localUnauthenticatedApiException())
 
     return try {
-      val client = LocalSpocClient()
+      val client = currentClient(username)
       Result.success(client.block())
     } catch (e: LocalSpocAuthenticationException) {
       Result.failure(resolveLocalBusinessAuthenticationFailure("spoc_error"))
@@ -117,11 +127,15 @@ internal class LocalSpocApiBackend : SpocApiBackend {
       Result.failure(e.toUserFacingApiException(defaultMessage))
     }
   }
+
+  private suspend fun currentClient(username: String): LocalSpocClient =
+      clientMutex.withLock { clientCache.getOrPut(username) { LocalSpocClient() } }
 }
 
 private class LocalSpocClient {
   private val json = Json { ignoreUnknownKeys = true }
   private val requestJson = Json { encodeDefaults = true }
+  private val loginMutex = Mutex()
 
   private var token: String? = null
   private var roleCode: String? = null
@@ -210,14 +224,21 @@ private class LocalSpocClient {
   private suspend fun ensureLogin(forceRefresh: Boolean = false) {
     if (!forceRefresh && !token.isNullOrBlank() && !roleCode.isNullOrBlank()) return
 
-    val tokens = fetchLoginTokens()
-    val casLogin = performCasLogin(tokens.token)
-    val resolvedRoleCode =
-        LocalSpocParsers.resolveRoleCode(casLogin)
-            ?: throw LocalSpocAuthenticationException("SPOC 登录成功但未获取到角色信息")
+    loginMutex.withLock {
+      if (!forceRefresh && !token.isNullOrBlank() && !roleCode.isNullOrBlank()) return@withLock
+      if (forceRefresh) {
+        token = null
+        roleCode = null
+      }
+      val tokens = fetchLoginTokens()
+      val casLogin = performCasLogin(tokens.token)
+      val resolvedRoleCode =
+          LocalSpocParsers.resolveRoleCode(casLogin)
+              ?: throw LocalSpocAuthenticationException("SPOC 登录成功但未获取到角色信息")
 
-    token = tokens.token
-    roleCode = resolvedRoleCode
+      token = tokens.token
+      roleCode = resolvedRoleCode
+    }
   }
 
   private suspend fun fetchLoginTokens(): LocalSpocLoginTokens {

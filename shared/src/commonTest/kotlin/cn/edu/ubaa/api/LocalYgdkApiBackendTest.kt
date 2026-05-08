@@ -245,6 +245,59 @@ class LocalYgdkApiBackendTest {
     assertEquals(6, result.getOrNull()?.summary?.termCount)
   }
 
+  @Test
+  fun `ygdk api reuses business session across repeated direct calls`() = runTest {
+    var oauthRequests = 0
+    var businessLoginRequests = 0
+    val engine = MockEngine { request ->
+      when {
+        request.url.host == "app.buaa.edu.cn" &&
+            request.url.encodedPath == "/uc/api/oauth/index" -> {
+          oauthRequests++
+          respond(
+              content = ByteReadChannel.Empty,
+              status = HttpStatusCode.Found,
+              headers =
+                  headersOf(
+                      HttpHeaders.Location,
+                      "https://ygdk.buaa.edu.cn/#/home?code=oauth-code",
+                  ),
+          )
+        }
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/User/campusAppLogin" -> {
+          businessLoginRequests++
+          respondJson("""{"code":1,"result":{"uid":1001,"token":"token-1"}}""")
+        }
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Classify/getList" ->
+            respondJson(
+                """{"code":1,"result":{"list":[{"classify_id":3,"name":"阳光体育","term_num":16}]}}"""
+            )
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Item/getList" ->
+            respondJson("""{"code":1,"result":{"list":[{"item_id":1,"name":"跑步","sort":1}]}}""")
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Clockin/getCount" ->
+            respondJson("""{"code":1,"result":{"term_good_count_show":5,"term_num":16}}""")
+        request.url.host == "ygdk.buaa.edu.cn" &&
+            request.url.encodedPath == "/api/Front/Clockin/Term/get" ->
+            respondJson("""{"code":1,"result":{"term_id":20261,"name":"2026春"}}""")
+        else -> error("Unexpected url: ${request.url}")
+      }
+    }
+    useMockUpstream(engine)
+
+    val api = YgdkApi()
+    val first = api.getOverview()
+    val second = api.getOverview()
+
+    assertTrue(first.isSuccess, first.exceptionOrNull()?.message.orEmpty())
+    assertTrue(second.isSuccess, second.exceptionOrNull()?.message.orEmpty())
+    assertEquals(1, oauthRequests)
+    assertEquals(1, businessLoginRequests)
+  }
+
   private fun useMockUpstream(engine: MockEngine) {
     LocalUpstreamClientProvider.clientFactory = { followRedirects ->
       HttpClient(engine) {

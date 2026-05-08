@@ -14,6 +14,8 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import kotlin.time.Clock
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -25,11 +27,17 @@ import kotlinx.serialization.json.jsonPrimitive
 
 internal class LocalSigninApiBackend : SigninApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
+  private val sessionMutex = Mutex()
+  private val sessionCache = mutableMapOf<String, LocalSigninSession>()
+
+  internal fun clearCache() {
+    sessionCache.clear()
+  }
 
   override suspend fun getTodayClasses(): Result<SigninStatusResponse> {
     val authSession =
         LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
-    val signinSession = runCatching { login(authSession.studentId()) }.getOrNull()
+    val signinSession = runCatching { currentSession(authSession.studentId()) }.getOrNull()
     if (signinSession == null) {
       return Result.success(SigninStatusResponse(code = 200, message = "获取成功"))
     }
@@ -59,7 +67,7 @@ internal class LocalSigninApiBackend : SigninApiBackend {
   override suspend fun performSignin(courseId: String): Result<SigninActionResponse> {
     val authSession =
         LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
-    val signinSession = runCatching { login(authSession.studentId()) }.getOrNull()
+    val signinSession = runCatching { currentSession(authSession.studentId()) }.getOrNull()
     if (signinSession == null) {
       return Result.success(SigninActionResponse(code = 400, success = false, message = "登录失败"))
     }
@@ -104,6 +112,16 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     } catch (_: Exception) {
       Result.success(SigninActionResponse(code = 400, success = false, message = "签到失败，请稍后重试"))
     }
+  }
+
+  private suspend fun currentSession(studentId: String): LocalSigninSession? {
+    sessionMutex
+        .withLock { sessionCache[studentId] }
+        ?.let {
+          return it
+        }
+    val created = login(studentId) ?: return null
+    return sessionMutex.withLock { sessionCache.getOrPut(studentId) { created } }
   }
 
   private suspend fun login(studentId: String): LocalSigninSession? {

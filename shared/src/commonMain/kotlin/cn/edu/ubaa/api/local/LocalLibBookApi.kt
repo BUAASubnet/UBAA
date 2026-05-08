@@ -47,6 +47,10 @@ internal class LocalLibBookApiBackend : LibBookApiBackend {
   private val clientMutex = Mutex()
   private val clientCache = mutableMapOf<String, LocalLibBookClient>()
 
+  internal fun clearCache() {
+    clientCache.clear()
+  }
+
   override suspend fun getLibraries(day: String): Result<List<LibBookLibraryDto>> =
       execute("图书馆楼馆列表加载失败，请稍后重试") { client -> client.getLibraries(day).map(::mapLibrary) }
 

@@ -235,6 +235,53 @@ class LocalSpocApiBackendTest {
   }
 
   @Test
+  fun `spoc api reuses business login across repeated direct calls`() = runTest {
+    var casRequests = 0
+    var casLoginRequests = 0
+    val engine = MockEngine { request ->
+      when (request.url.encodedPath) {
+        "/spocnewht/cas" -> {
+          casRequests++
+          respond(
+              content = ByteReadChannel.Empty,
+              status = HttpStatusCode.Found,
+              headers =
+                  headersOf(
+                      HttpHeaders.Location,
+                      "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token&refreshToken=test-refresh",
+                  ),
+          )
+        }
+        "/spocnewht/sys/casLogin" -> {
+          casLoginRequests++
+          respondJson("""{"code":200,"content":{"jsdm":"01"}}""")
+        }
+        "/spocnewht/inco/ht/queryOne" ->
+            respondJson("""{"code":200,"content":{"dqxq":"2026年春季学期","mrxq":"2025-20262"}}""")
+        "/spocnewht/jxkj/queryKclb" ->
+            respondJson(
+                """{"code":200,"content":[{"kcid":"course-1","kcmc":"操作系统","skjs":"牛虹婷"}]}"""
+            )
+        "/spocnewht/inco/ht/queryListByPage" ->
+            respondJson(
+                """{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","tjzt":"未做","zyjzsj":"2026-03-31T15:59:59.000+00:00","zymc":"练习题作业1","zykssj":"2026-03-24T08:00:00.000+00:00","sskcid":"course-1","kcmc":"操作系统","mf":"满分:0"}]}}"""
+            )
+        else -> error("Unexpected request: ${request.method.value} ${request.url}")
+      }
+    }
+    useMockUpstream(engine)
+
+    val api = SpocApi()
+    val first = api.getAssignments()
+    val second = api.getAssignments()
+
+    assertTrue(first.isSuccess, first.exceptionOrNull()?.message.orEmpty())
+    assertTrue(second.isSuccess, second.exceptionOrNull()?.message.orEmpty())
+    assertEquals(1, casRequests)
+    assertEquals(1, casLoginRequests)
+  }
+
+  @Test
   fun `spoc api uses direct upstream backend to fetch assignment detail`() = runTest {
     val engine = MockEngine { request ->
       when (request.url.encodedPath) {

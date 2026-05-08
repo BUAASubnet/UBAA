@@ -17,6 +17,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import kotlin.random.Random
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -35,11 +37,17 @@ import kotlinx.serialization.json.putJsonArray
 
 internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
   private val json = Json { ignoreUnknownKeys = true }
+  private val activationMutex = Mutex()
+  private var evaluationSessionActivated = false
   private val emptyResponse =
       EvaluationCoursesResponse(
           courses = emptyList(),
           progress = EvaluationProgress(0, 0, 0),
       )
+
+  internal fun clearCache() {
+    evaluationSessionActivated = false
+  }
 
   override suspend fun getAllEvaluations(): Result<EvaluationCoursesResponse> =
       runLocalEvaluationCall("评教列表加载失败，请稍后重试") {
@@ -125,6 +133,7 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
         }
       }
     } catch (e: LocalEvaluationAuthenticationException) {
+      clearCache()
       val failure = resolveLocalBusinessAuthenticationFailure("evaluation_error")
       courses.map { course ->
         EvaluationResult(
@@ -159,19 +168,26 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
   }
 
   private suspend fun activateEvaluationSession(): Boolean {
-    return try {
-      val response =
-          LocalUpstreamClientProvider.shared()
-              .get(localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/cas"))
-      val body = response.bodyAsText()
-      if (isLocalEvaluationSessionExpired(response, body)) {
-        throw LocalEvaluationAuthenticationException()
+    if (evaluationSessionActivated) return true
+    return activationMutex.withLock {
+      if (evaluationSessionActivated) return@withLock true
+      try {
+        val response =
+            LocalUpstreamClientProvider.shared()
+                .get(localUpstreamUrl("https://spoc.buaa.edu.cn/pjxt/cas"))
+        val body = response.bodyAsText()
+        if (isLocalEvaluationSessionExpired(response, body)) {
+          evaluationSessionActivated = false
+          throw LocalEvaluationAuthenticationException()
+        }
+        val activated = response.status.value in 200..299
+        evaluationSessionActivated = activated
+        activated
+      } catch (e: LocalEvaluationAuthenticationException) {
+        throw e
+      } catch (_: Exception) {
+        false
       }
-      response.status.value in 200..299
-    } catch (e: LocalEvaluationAuthenticationException) {
-      throw e
-    } catch (_: Exception) {
-      false
     }
   }
 
@@ -456,6 +472,7 @@ internal class LocalEvaluationServiceBackend : EvaluationServiceBackend {
     return try {
       Result.success(block())
     } catch (e: LocalEvaluationAuthenticationException) {
+      clearCache()
       Result.failure(resolveLocalBusinessAuthenticationFailure("evaluation_error"))
     } catch (e: Exception) {
       Result.failure(e.toUserFacingApiException(defaultMessage))

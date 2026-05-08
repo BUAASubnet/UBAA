@@ -11,10 +11,18 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 internal class LocalClassroomApiBackend : ClassroomApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
+  private val syncMutex = Mutex()
+  private var sessionSynced = false
+
+  internal fun clearCache() {
+    sessionSynced = false
+  }
 
   override suspend fun queryClassrooms(xqid: Int, date: String): Result<ClassroomQueryResponse> {
     if (LocalAuthSessionStore.get() == null) {
@@ -44,11 +52,20 @@ internal class LocalClassroomApiBackend : ClassroomApiBackend {
   }
 
   private suspend fun syncLocalClassroomSession() {
-    try {
-      LocalUpstreamClientProvider.shared().get(classroomSyncUrl()) {
-        header(HttpHeaders.UserAgent, LOCAL_CLASSROOM_USER_AGENT)
-      }
-    } catch (_: Exception) {}
+    if (sessionSynced) return
+    syncMutex.withLock {
+      if (sessionSynced) return@withLock
+      runCatching {
+            LocalUpstreamClientProvider.shared().get(classroomSyncUrl()) {
+              header(HttpHeaders.UserAgent, LOCAL_CLASSROOM_USER_AGENT)
+            }
+          }
+          .onSuccess { response ->
+            if (response.status.value in 200..399) {
+              sessionSynced = true
+            }
+          }
+    }
   }
 
   private suspend fun parseClassroomResponse(
@@ -56,6 +73,7 @@ internal class LocalClassroomApiBackend : ClassroomApiBackend {
   ): Result<ClassroomQueryResponse> {
     val body = response.bodyAsText()
     if (isLocalClassroomSessionExpired(response, body)) {
+      sessionSynced = false
       return Result.failure(resolveLocalBusinessAuthenticationFailure("classroom_query_failed"))
     }
     if (response.status != HttpStatusCode.OK) {

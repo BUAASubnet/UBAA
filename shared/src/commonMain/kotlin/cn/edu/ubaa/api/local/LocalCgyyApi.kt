@@ -52,6 +52,10 @@ internal class LocalCgyyApiBackend(
   private val clientMutex = Mutex()
   private val clientCache = mutableMapOf<String, LocalCgyyClient>()
 
+  internal fun clearCache() {
+    clientCache.clear()
+  }
+
   override suspend fun getVenueSites(): Result<List<CgyyVenueSiteDto>> =
       execute("研讨室场地列表加载失败，请稍后重试") { _, client ->
         client.getVenueSites().map { mapVenueSite(it.jsonObject) }

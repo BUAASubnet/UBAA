@@ -53,6 +53,10 @@ internal class LocalBykcApiBackend(
   private val clientCache = mutableMapOf<String, LocalBykcClient>()
   private val json = Json { ignoreUnknownKeys = true }
 
+  internal fun clearCache() {
+    clientCache.clear()
+  }
+
   override suspend fun getProfile(): Result<BykcUserProfileDto> =
       execute("博雅资料加载失败，请稍后重试") { _, client ->
         client.login()

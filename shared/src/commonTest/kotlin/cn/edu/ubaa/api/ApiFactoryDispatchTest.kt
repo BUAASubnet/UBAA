@@ -41,6 +41,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
@@ -191,6 +192,54 @@ class ApiFactoryDispatchTest {
     assertTrue(DefaultApiFactory.evaluationService() is LocalEvaluationServiceBackend)
     assertTrue(DefaultApiFactory.gradeApi() is LocalGradeApiBackend)
     assertTrue(DefaultApiFactory.libBookApi() is LocalLibBookApiBackend)
+  }
+
+  @Test
+  fun `default api factory reuses local backends within selected mode`() {
+    ConnectionModeStore.save(ConnectionMode.DIRECT)
+    ConnectionRuntime.resolveSelectedMode()
+    val directBackends =
+        listOf(
+            DefaultApiFactory.authService() to DefaultApiFactory.authService(),
+            DefaultApiFactory.userService() to DefaultApiFactory.userService(),
+            DefaultApiFactory.scheduleApi() to DefaultApiFactory.scheduleApi(),
+            DefaultApiFactory.signinApi() to DefaultApiFactory.signinApi(),
+            DefaultApiFactory.spocApi() to DefaultApiFactory.spocApi(),
+            DefaultApiFactory.judgeApi() to DefaultApiFactory.judgeApi(),
+            DefaultApiFactory.bykcApi() to DefaultApiFactory.bykcApi(),
+            DefaultApiFactory.cgyyApi() to DefaultApiFactory.cgyyApi(),
+            DefaultApiFactory.ygdkApi() to DefaultApiFactory.ygdkApi(),
+            DefaultApiFactory.classroomApi() to DefaultApiFactory.classroomApi(),
+            DefaultApiFactory.evaluationService() to DefaultApiFactory.evaluationService(),
+            DefaultApiFactory.gradeApi() to DefaultApiFactory.gradeApi(),
+            DefaultApiFactory.libBookApi() to DefaultApiFactory.libBookApi(),
+        )
+
+    directBackends.forEach { (first, second) -> assertSame(first, second) }
+
+    ConnectionModeStore.save(ConnectionMode.WEBVPN)
+    ConnectionRuntime.resolveSelectedMode()
+    val webVpnBackends =
+        listOf(
+            DefaultApiFactory.authService() to DefaultApiFactory.authService(),
+            DefaultApiFactory.userService() to DefaultApiFactory.userService(),
+            DefaultApiFactory.scheduleApi() to DefaultApiFactory.scheduleApi(),
+            DefaultApiFactory.signinApi() to DefaultApiFactory.signinApi(),
+            DefaultApiFactory.spocApi() to DefaultApiFactory.spocApi(),
+            DefaultApiFactory.judgeApi() to DefaultApiFactory.judgeApi(),
+            DefaultApiFactory.bykcApi() to DefaultApiFactory.bykcApi(),
+            DefaultApiFactory.cgyyApi() to DefaultApiFactory.cgyyApi(),
+            DefaultApiFactory.ygdkApi() to DefaultApiFactory.ygdkApi(),
+            DefaultApiFactory.classroomApi() to DefaultApiFactory.classroomApi(),
+            DefaultApiFactory.evaluationService() to DefaultApiFactory.evaluationService(),
+            DefaultApiFactory.gradeApi() to DefaultApiFactory.gradeApi(),
+            DefaultApiFactory.libBookApi() to DefaultApiFactory.libBookApi(),
+        )
+
+    webVpnBackends.forEach { (first, second) -> assertSame(first, second) }
+    directBackends.zip(webVpnBackends).forEach { (direct, webVpn) ->
+      assertTrue(direct.first !== webVpn.first)
+    }
   }
 }
 
