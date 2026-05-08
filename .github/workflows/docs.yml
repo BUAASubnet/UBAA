@@ -72,6 +72,7 @@ jobs:
           set -euo pipefail
           remote_path="${DOCS_DEPLOY_PATH%/}"
           rsync -az --delete \
+            --exclude='.user.ini' \
             -e "ssh -i ~/.ssh/id_docs -o IdentitiesOnly=yes -p $DOCS_SSH_PORT" \
             docs/.vitepress/dist/ \
             "$DOCS_SSH_USER@$DOCS_SSH_HOST:$remote_path/"
