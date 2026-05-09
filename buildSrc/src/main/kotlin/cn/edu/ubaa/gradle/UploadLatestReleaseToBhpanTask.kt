@@ -184,7 +184,9 @@ abstract class UploadLatestReleaseToBhpanTask : DefaultTask() {
     val githubClient = GithubReleaseClient(http)
     val release = githubClient.fetchLatestRelease(repository.get())
     if (release.assets.isEmpty()) {
-      throw GradleException("Latest release ${release.tagName} does not contain any $RELEASE_PREFIX assets")
+      throw GradleException(
+          "Latest release ${release.tagName} does not contain any $RELEASE_PREFIX assets"
+      )
     }
 
     val artifactDirectory = temporaryDir.toPath().resolve("release-assets")
@@ -265,16 +267,15 @@ private class BhpanClient(
         http.sendText(requestBuilder(authUrl).GET().build(), followRedirects = false)
     val signInUrl = redirectLocation(signInResponse, "OAuth2 sign-in redirect")
     val loginChallenge =
-        Regex("""[?&]login_challenge=([^&]+)""")
-            .find(signInUrl)
-            ?.groupValues
-            ?.get(1)
+        Regex("""[?&]login_challenge=([^&]+)""").find(signInUrl)?.groupValues?.get(1)
             ?: throw GradleException("No login_challenge in redirect chain")
     http.addCookie(URI.create(BHPAN_URL), "login_challenge", loginChallenge, secure = true)
 
     val callbackResponse =
         http.sendDiscarding(
-            requestBuilder("$SSO_URL/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin")
+            requestBuilder(
+                    "$SSO_URL/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin"
+                )
                 .GET()
                 .build(),
         )
@@ -299,12 +300,13 @@ private class BhpanClient(
             apiJson(
                 method = "POST",
                 endpoint = "/api/efast/v1/file/delete",
-                body =
-                    buildJsonObject { put("docid", JsonPrimitive(file.docId)) }.toString(),
+                body = buildJsonObject { put("docid", JsonPrimitive(file.docId)) }.toString(),
             )
           }
           .onFailure { error ->
-            logger.warn("  Warning: failed to delete ${file.name}, continuing... (${error.message})")
+            logger.warn(
+                "  Warning: failed to delete ${file.name}, continuing... (${error.message})"
+            )
           }
     }
     logger.lifecycle("Old file cleanup completed.")
@@ -312,12 +314,14 @@ private class BhpanClient(
 
   fun uploadAll(artifactDirectory: Path) {
     val files =
-        Files.list(artifactDirectory)
-            .use { paths ->
-              paths.filter { Files.isRegularFile(it) && it.fileName.toString().startsWith(RELEASE_PREFIX) }
-                  .sorted()
-                  .toList()
-            }
+        Files.list(artifactDirectory).use { paths ->
+          paths
+              .filter {
+                Files.isRegularFile(it) && it.fileName.toString().startsWith(RELEASE_PREFIX)
+              }
+              .sorted()
+              .toList()
+        }
     if (files.isEmpty()) {
       throw GradleException("No $RELEASE_PREFIX artifacts found in $artifactDirectory")
     }
@@ -380,7 +384,9 @@ private class BhpanClient(
         Thread.sleep(5_000)
       }
     }
-    throw GradleException("Failed to upload $fileName after 3 attempts${lastFailure?.let { ": $it" } ?: ""}")
+    throw GradleException(
+        "Failed to upload $fileName after 3 attempts${lastFailure?.let { ": $it" } ?: ""}"
+    )
   }
 
   private fun uploadBigFile(file: Path, fileName: String, fileSize: Long) {
@@ -426,38 +432,37 @@ private class BhpanClient(
             .jsonObject
 
     val authRequests = partResponse.requireObject("authrequests")
-    val partInfo =
-        buildJsonObject {
-          authRequests.keys.sortedBy(String::toInt).forEach { partKey ->
-            val authRequest = authRequests.requireArray(partKey)
-            val partNumber = partKey.toInt()
-            val partBytes = readPart(file, partNumber = partNumber, partSize = UploadPlan.partSize)
-            val uploadResponse =
-                http.sendDiscarding(
-                    requestBuilder(authRequest.url())
-                        .timeout(Duration.ofMinutes(10))
-                        .header("Content-Length", partBytes.size.toString())
-                        .applyHeaders(authRequest.headerPairs())
-                        .PUT(HttpRequest.BodyPublishers.ofByteArray(partBytes))
-                        .build(),
-                )
-            ensureSuccess(uploadResponse, "Upload multipart part $partNumber for $fileName")
-            val etag =
-                uploadResponse.headers().firstValue("ETag").orElseGet {
-                  uploadResponse.headers().firstValue("etag").orElse("")
-                }
-            if (etag.isBlank()) {
-              throw GradleException("Missing ETag for $fileName part $partNumber")
-            }
-            put(
-                partKey,
-                buildJsonArray {
-                  add(JsonPrimitive(etag.trim().trim('"')))
-                  add(JsonPrimitive(partBytes.size))
-                },
+    val partInfo = buildJsonObject {
+      authRequests.keys.sortedBy(String::toInt).forEach { partKey ->
+        val authRequest = authRequests.requireArray(partKey)
+        val partNumber = partKey.toInt()
+        val partBytes = readPart(file, partNumber = partNumber, partSize = UploadPlan.partSize)
+        val uploadResponse =
+            http.sendDiscarding(
+                requestBuilder(authRequest.url())
+                    .timeout(Duration.ofMinutes(10))
+                    .header("Content-Length", partBytes.size.toString())
+                    .applyHeaders(authRequest.headerPairs())
+                    .PUT(HttpRequest.BodyPublishers.ofByteArray(partBytes))
+                    .build(),
             )
-          }
+        ensureSuccess(uploadResponse, "Upload multipart part $partNumber for $fileName")
+        val etag =
+            uploadResponse.headers().firstValue("ETag").orElseGet {
+              uploadResponse.headers().firstValue("etag").orElse("")
+            }
+        if (etag.isBlank()) {
+          throw GradleException("Missing ETag for $fileName part $partNumber")
         }
+        put(
+            partKey,
+            buildJsonArray {
+              add(JsonPrimitive(etag.trim().trim('"')))
+              add(JsonPrimitive(partBytes.size))
+            },
+        )
+      }
+    }
 
     val completionPayload =
         buildJsonObject {
@@ -603,27 +608,30 @@ private class ManagedHttpSession {
       request: HttpRequest,
       followRedirects: Boolean = true,
   ): HttpResponse<String> =
-      client(followRedirects).send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+      client(followRedirects)
+          .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
 
   fun sendDiscarding(
       request: HttpRequest,
       followRedirects: Boolean = true,
-  ): HttpResponse<Void> = client(followRedirects).send(request, HttpResponse.BodyHandlers.discarding())
+  ): HttpResponse<Void> =
+      client(followRedirects).send(request, HttpResponse.BodyHandlers.discarding())
 
   fun downloadToFile(
       request: HttpRequest,
       target: Path,
       followRedirects: Boolean = true,
   ): HttpResponse<Path> =
-      client(followRedirects).send(
-          request,
-          HttpResponse.BodyHandlers.ofFile(
-              target,
-              StandardOpenOption.CREATE,
-              StandardOpenOption.TRUNCATE_EXISTING,
-              StandardOpenOption.WRITE,
-          ),
-      )
+      client(followRedirects)
+          .send(
+              request,
+              HttpResponse.BodyHandlers.ofFile(
+                  target,
+                  StandardOpenOption.CREATE,
+                  StandardOpenOption.TRUNCATE_EXISTING,
+                  StandardOpenOption.WRITE,
+              ),
+          )
 
   fun cookieValue(name: String): String? =
       cookieManager.cookieStore.cookies.firstOrNull { it.name == name }?.value
@@ -676,15 +684,14 @@ private fun formBody(parameters: Map<String, String>): HttpRequest.BodyPublisher
 
 private fun String.urlEncode(): String = URLEncoder.encode(this, StandardCharsets.UTF_8)
 
-private fun HttpRequest.Builder.applyHeaders(headers: Map<String, String>): HttpRequest.Builder = apply {
-  headers.forEach { (name, value) -> header(name, value) }
-}
+private fun HttpRequest.Builder.applyHeaders(headers: Map<String, String>): HttpRequest.Builder =
+    apply {
+      headers.forEach { (name, value) -> header(name, value) }
+    }
 
 private fun recreateDirectory(path: Path) {
   if (Files.exists(path)) {
-    Files.walk(path)
-        .sorted(Comparator.reverseOrder())
-        .forEach(Files::deleteIfExists)
+    Files.walk(path).sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
   }
   Files.createDirectories(path)
 }
@@ -716,8 +723,7 @@ private fun JsonObject.requireObject(name: String): JsonObject =
     this[name]?.jsonObject ?: throw GradleException("Missing required JSON object field: $name")
 
 private fun JsonArray.url(): String =
-    getOrNull(1)?.jsonPrimitive?.contentOrNull
-        ?: throw GradleException("Missing auth request URL")
+    getOrNull(1)?.jsonPrimitive?.contentOrNull ?: throw GradleException("Missing auth request URL")
 
 private fun JsonArray.headerPairs(): Map<String, String> =
     drop(2).associate { headerElement ->
