@@ -1,0 +1,84 @@
+name: Test BHpan Upload
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-upload:
+    name: Test BHpan Upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create test artifacts
+        run: |
+          mkdir -p artifacts
+          echo "BHpan upload test at $(date -u)" > artifacts/UBAA-Test.txt
+
+      - name: Upload to BUAA Cloud Disk
+        env:
+          BHPAN_SSO_USERNAME: ${{ secrets.BHPAN_SSO_USERNAME }}
+          BHPAN_SSO_PASSWORD: ${{ secrets.BHPAN_SSO_PASSWORD }}
+          BHPAN_SHARED_FOLDER_DOCID: ${{ secrets.BHPAN_SHARED_FOLDER_DOCID }}
+        run: bash .github/scripts/bhpan-upload.sh artifacts/
+
+      - name: Verify upload via listing
+        env:
+          BHPAN_SSO_USERNAME: ${{ secrets.BHPAN_SSO_USERNAME }}
+          BHPAN_SSO_PASSWORD: ${{ secrets.BHPAN_SSO_PASSWORD }}
+          BHPAN_SHARED_FOLDER_DOCID: ${{ secrets.BHPAN_SHARED_FOLDER_DOCID }}
+        run: |
+          bash -c '
+          set -euo pipefail
+          SSO_URL="https://sso.buaa.edu.cn"
+          BHPAN_URL="https://bhpan.buaa.edu.cn"
+          COOKIE_JAR="$(mktemp)"
+          trap "rm -f $COOKIE_JAR" EXIT
+
+          get_token() {
+            grep "client.oauth2_token" "$COOKIE_JAR" 2>/dev/null | awk "{print \$NF}" | tr -d "\r"
+          }
+
+          # SSO Login
+          login_page=$(curl -sS --connect-timeout 30 -c "$COOKIE_JAR" -b "$COOKIE_JAR" "${SSO_URL}/login")
+          execution=$(echo "$login_page" | sed -n "s/.*name=\"execution\" value=\"\([^\"]*\)\".*/\1/p" | head -1)
+          curl -sS --connect-timeout 30 --max-time 60 -c "$COOKIE_JAR" -b "$COOKIE_JAR" -L -o /dev/null \
+            -X POST "${SSO_URL}/login" \
+            --data-urlencode "username=${BHPAN_SSO_USERNAME}" \
+            --data-urlencode "password=${BHPAN_SSO_PASSWORD}" \
+            --data-urlencode "submit=LOGIN" \
+            --data-urlencode "type=username_password" \
+            --data-urlencode "execution=${execution}" \
+            --data-urlencode "_eventId=submit"
+
+          # bhpan OAuth2
+          auth_url=$(curl -sS --connect-timeout 30 -c "$COOKIE_JAR" -b "$COOKIE_JAR" -o /dev/null -w "%{redirect_url}" \
+            "${BHPAN_URL}/anyshare/oauth2/login?redirect=%2Fanyshare%2Fzh-cn%2Fportal")
+          signin_url=$(curl -sS --connect-timeout 30 -c "$COOKIE_JAR" -b "$COOKIE_JAR" -o /dev/null -w "%{redirect_url}" "$auth_url")
+          login_challenge=$(echo "$signin_url" | sed -n "s/.*login_challenge=\([^&]*\).*/\1/p")
+          echo "#HttpOnly_bhpan.buaa.edu.cn	FALSE	/	TRUE	0	login_challenge	${login_challenge}" >> "$COOKIE_JAR"
+          callback_url=$(curl -sS --connect-timeout 30 --max-time 60 -c "$COOKIE_JAR" -b "$COOKIE_JAR" -L -o /dev/null -w "%{url_effective}" \
+            "${SSO_URL}/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin")
+
+          # List folder
+          token=$(get_token)
+          echo "=== Listing shared folder ==="
+          result=$(curl -sSf --connect-timeout 30 --max-time 60 \
+            -c "$COOKIE_JAR" -b "$COOKIE_JAR" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${token}" \
+            -d "{\"by\":\"name\",\"docid\":\"${BHPAN_SHARED_FOLDER_DOCID}\",\"sort\":\"asc\"}" \
+            "${BHPAN_URL}/api/efast/v1/dir/list")
+
+          echo "$result" | jq .
+          ubaa_count=$(echo "$result" | jq -r "[.files[] | select(.name | startswith(\"UBAA-\"))] | length")
+          echo "Found ${ubaa_count} UBAA-* file(s) in shared folder."
+          if [[ "$ubaa_count" -gt 0 ]]; then
+            echo "Upload verification PASSED"
+          else
+            echo "::error::Upload verification FAILED - no UBAA-* files found"
+            exit 1
+          fi
+          '

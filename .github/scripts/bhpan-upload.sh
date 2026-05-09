@@ -20,7 +20,7 @@ api_call() {
   shift 2
   local token
   token=$(get_token)
-  curl -sS --connect-timeout 30 --max-time 60 \
+  curl -sSf --connect-timeout 30 --max-time 60 \
     -c "$COOKIE_JAR" -b "$COOKIE_JAR" \
     -X "$method" \
     -H "Content-Type: application/json" \
@@ -210,16 +210,36 @@ upload_file() {
     header_flags+=(-H "$hdr")
   done
 
-  curl -sS --connect-timeout 30 --max-time 600 \
-    -X PUT \
-    "${header_flags[@]}" \
-    -T "$filepath" \
-    -o /dev/null \
-    "$put_url"
+  local max_retries=3
+  local attempt=1
+  while true; do
+    if curl -sS --connect-timeout 30 --max-time 600 \
+      -X PUT \
+      "${header_flags[@]}" \
+      -T "$filepath" \
+      -o /dev/null \
+      "$put_url"; then
+      break
+    fi
+    if [[ $attempt -ge $max_retries ]]; then
+      echo "::error::Failed to upload ${filename} after ${max_retries} attempts"
+      return 1
+    fi
+    echo "  Retry ${attempt}/${max_retries} for ${filename}..."
+    attempt=$((attempt + 1))
+    sleep 5
+  done
 
   # Step 3: End upload
-  api_call POST "/api/efast/v1/file/osendupload" \
-    -d "{\"docid\":\"${docid}\",\"rev\":\"${rev}\"}" > /dev/null
+  local end_response
+  end_response=$(api_call POST "/api/efast/v1/file/osendupload" \
+    -d "{\"docid\":\"${docid}\",\"rev\":\"${rev}\"}")
+
+  if [[ -z "$end_response" ]] || echo "$end_response" | jq -e '.error' > /dev/null 2>&1; then
+    echo "::error::osendupload failed for ${filename}"
+    echo "  Response: ${end_response}"
+    return 1
+  fi
 
   echo "  Uploaded: ${filename}"
 }
