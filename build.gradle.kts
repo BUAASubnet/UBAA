@@ -1,3 +1,5 @@
+import cn.edu.ubaa.gradle.UploadLatestReleaseToBhpanTask
+
 plugins {
   // 定义所有子项目通用的插件，并设置 apply false
   // 这样做是为了避免插件在每个子项目的类加载器中被多次加载，从而优化构建性能。
@@ -41,4 +43,9 @@ spotless {
     targetExclude("**/build/**", "tmp/**")
     ktfmt()
   }
+}
+
+tasks.register<UploadLatestReleaseToBhpanTask>("uploadLatestReleaseToBhpan") {
+  repository.convention("BUAASubnet/UBAA")
+  localPropertiesFile.convention(layout.projectDirectory.file("local.properties"))
 }
