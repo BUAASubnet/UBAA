@@ -43,17 +43,18 @@ enum class ThemeMode {
   DARK,
 }
 
-private val colorThemeTypes = listOf(
-  0xFF6750A4L to "默认",
-  0xFF009688L to "青色",
-  0xFF2196F3L to "蓝色",
-  0xFF3F51B5L to "靛蓝色",
-  0xFF7E57C2L to "紫罗兰色",
-  0xFFE91E63L to "粉红色",
-  0xFFFFEB3BL to "黄色",
-  0xFFFF9800L to "橙色",
-  0xFFFF5722L to "深橙色",
-)
+private val colorThemeTypes =
+    listOf(
+        0xFF6750A4L to "默认",
+        0xFF009688L to "青色",
+        0xFF2196F3L to "蓝色",
+        0xFF3F51B5L to "靛蓝色",
+        0xFF7E57C2L to "紫罗兰色",
+        0xFFE91E63L to "粉红色",
+        0xFFFFEB3BL to "黄色",
+        0xFFFF9800L to "橙色",
+        0xFFFF5722L to "深橙色",
+    )
 
 @Composable
 fun ThemeSettingsScreen(
@@ -76,7 +77,9 @@ fun ThemeSettingsScreen(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Text(text = "深色模式", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(12.dp))
@@ -88,10 +91,10 @@ fun ThemeSettingsScreen(
                 ThemeMode.DARK -> "深色"
               }
           Row(
-              modifier = Modifier
-                  .fillMaxWidth()
-                  .clickable { onThemeModeSelected(mode) }
-                  .padding(vertical = 10.dp),
+              modifier =
+                  Modifier.fillMaxWidth()
+                      .clickable { onThemeModeSelected(mode) }
+                      .padding(vertical = 10.dp),
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.SpaceBetween,
           ) {
@@ -110,26 +113,24 @@ fun ThemeSettingsScreen(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Text(text = "配色方案", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(12.dp))
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
           colorThemeTypes.forEach { (colorValue, label) ->
             val color = Color(colorValue)
             val selected = colorValue == selectedColorValue
             Box(
-                modifier = Modifier
-                    .alpha(if (useDynamicColor) 0.5f else 1f)
-                    .clickable(enabled = !useDynamicColor) {
-                      onColorSelected(colorValue)
-                    }
-                    .padding(vertical = 4.dp),
+                modifier =
+                    Modifier.alpha(if (useDynamicColor) 0.5f else 1f)
+                        .clickable(enabled = !useDynamicColor) { onColorSelected(colorValue) }
+                        .padding(vertical = 4.dp),
             ) {
               Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 ThemeSchemePreview(seedColor = color, selected = selected)
@@ -154,7 +155,9 @@ fun ThemeSettingsScreen(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
       Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -180,7 +183,9 @@ fun ThemeSettingsScreen(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
       Row(
           modifier = Modifier.fillMaxWidth().padding(16.dp),
           verticalAlignment = Alignment.CenterVertically,
@@ -209,8 +214,7 @@ private fun ThemeSchemePreview(seedColor: Color, selected: Boolean) {
   val cardShape = RoundedCornerShape(12.dp)
   Box(
       modifier =
-          Modifier
-              .size(88.dp)
+          Modifier.size(88.dp)
               .clip(cardShape)
               .background(Color(0xFFF1F1F1))
               .border(
@@ -221,32 +225,23 @@ private fun ThemeSchemePreview(seedColor: Color, selected: Boolean) {
               .padding(10.dp),
   ) {
     Box(
-        modifier =
-            Modifier
-                .align(Alignment.Center)
-                .size(62.dp)
-                .clip(CircleShape),
+        modifier = Modifier.align(Alignment.Center).size(62.dp).clip(CircleShape),
     ) {
       Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(blend(seedColor, Color.White, 0.70f)),
+                Modifier.fillMaxWidth().weight(1f).background(blend(seedColor, Color.White, 0.70f)),
         )
         Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
           Box(
               modifier =
-                  Modifier
-                      .weight(1f)
+                  Modifier.weight(1f)
                       .fillMaxSize()
                       .background(blend(seedColor, Color.Black, 0.36f)),
           )
           Box(
               modifier =
-                  Modifier
-                      .weight(1f)
+                  Modifier.weight(1f)
                       .fillMaxSize()
                       .background(blend(seedColor, Color.White, 0.36f)),
           )
@@ -256,8 +251,7 @@ private fun ThemeSchemePreview(seedColor: Color, selected: Boolean) {
     if (selected) {
       Box(
           modifier =
-              Modifier
-                  .align(Alignment.TopEnd)
+              Modifier.align(Alignment.TopEnd)
                   .size(28.dp)
                   .background(MaterialTheme.colorScheme.primary, CircleShape),
           contentAlignment = Alignment.Center,
