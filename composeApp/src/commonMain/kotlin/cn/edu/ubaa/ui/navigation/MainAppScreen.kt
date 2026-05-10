@@ -54,7 +54,18 @@ import cn.edu.ubaa.ui.screens.libbook.LibBookBookingsScreen
 import cn.edu.ubaa.ui.screens.libbook.LibBookHomeScreen
 import cn.edu.ubaa.ui.screens.libbook.LibBookReserveScreen
 import cn.edu.ubaa.ui.screens.libbook.LibBookViewModel
-import cn.edu.ubaa.ui.screens.menu.*
+import cn.edu.ubaa.ui.screens.menu.AboutScreen
+import cn.edu.ubaa.ui.screens.menu.AdvancedFeaturesScreen
+import cn.edu.ubaa.ui.screens.menu.HomeScreen
+import cn.edu.ubaa.ui.screens.menu.HomeTodoAction
+import cn.edu.ubaa.ui.screens.menu.HomeTodoItem
+import cn.edu.ubaa.ui.screens.menu.HomeTodoSource
+import cn.edu.ubaa.ui.screens.menu.MyScreen
+import cn.edu.ubaa.ui.screens.menu.RegularFeaturesScreen
+import cn.edu.ubaa.ui.screens.menu.SettingsScreen
+import cn.edu.ubaa.ui.screens.menu.ThemeMode
+import cn.edu.ubaa.ui.screens.menu.ThemeSettingsScreen
+import cn.edu.ubaa.ui.screens.menu.buildHomeTodoItems
 import cn.edu.ubaa.ui.screens.schedule.CourseDetailScreen
 import cn.edu.ubaa.ui.screens.schedule.ScheduleScreen
 import cn.edu.ubaa.ui.screens.schedule.ScheduleViewModel
@@ -81,6 +92,7 @@ enum class AppScreen {
   ADVANCED,
   MY,
   SETTINGS,
+  THEME_SETTINGS,
   ABOUT,
   SCHEDULE,
   EXAM,
@@ -126,6 +138,14 @@ fun MainAppScreen(
     availableConnectionModes: List<ConnectionMode>,
     onEnsureUserInfo: () -> Unit,
     onConnectionModeSelected: (ConnectionMode) -> Unit,
+    themeMode: ThemeMode,
+    onThemeModeSelected: (ThemeMode) -> Unit,
+    themeColorValue: Long,
+    onColorSelected: (Long) -> Unit,
+    useDynamicColor: Boolean,
+    onToggleDynamicColor: (Boolean) -> Unit,
+    oledEnhance: Boolean,
+    onToggleOledEnhance: (Boolean) -> Unit,
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -553,6 +573,7 @@ fun MainAppScreen(
         AppScreen.ADVANCED -> "高级功能"
         AppScreen.MY -> "我的"
         AppScreen.SETTINGS -> "设置"
+        AppScreen.THEME_SETTINGS -> "外观设置"
         AppScreen.ABOUT -> "关于"
         AppScreen.SCHEDULE -> "课程表"
         AppScreen.EXAM -> "考试查询"
@@ -702,6 +723,17 @@ fun MainAppScreen(
                   currentMode = connectionMode,
                   availableModes = availableConnectionModes,
                   onModeSelected = onConnectionModeSelected,
+              )
+          AppScreen.THEME_SETTINGS ->
+              ThemeSettingsScreen(
+                  themeMode = themeMode,
+                  selectedColorValue = themeColorValue,
+                  onColorSelected = onColorSelected,
+                  useDynamicColor = useDynamicColor,
+                  onToggleDynamicColor = onToggleDynamicColor,
+                  oledEnhance = oledEnhance,
+                  onThemeModeSelected = onThemeModeSelected,
+                  onToggleOledEnhance = onToggleOledEnhance,
               )
           AppScreen.ABOUT -> AboutScreen()
           AppScreen.SCHEDULE ->
@@ -992,6 +1024,10 @@ fun MainAppScreen(
             onSettingsClick = {
               showSidebar = false
               navigateTo(AppScreen.SETTINGS)
+            },
+            onAppearanceClick = {
+              showSidebar = false
+              navigateTo(AppScreen.THEME_SETTINGS)
             },
             onAboutClick = {
               showSidebar = false
