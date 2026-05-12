@@ -15,16 +15,16 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun HarmonySmokeApp() {
-    MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(text = "UBAA HarmonyOS Smoke", fontSize = 22.sp)
-                Text(text = "ovCompose ArkUI bridge is loaded.", modifier = Modifier.padding(top = 12.dp))
-            }
-        }
+  MaterialTheme {
+    Surface(modifier = Modifier.fillMaxSize()) {
+      Column(
+          modifier = Modifier.fillMaxSize().padding(24.dp),
+          verticalArrangement = Arrangement.Center,
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        Text(text = "UBAA HarmonyOS Smoke", fontSize = 22.sp)
+        Text(text = "ovCompose ArkUI bridge is loaded.", modifier = Modifier.padding(top = 12.dp))
+      }
     }
+  }
 }
