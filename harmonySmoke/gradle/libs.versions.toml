@@ -1,0 +1,22 @@
+[versions]
+agp = "8.5.2"
+android-compileSdk = "35"
+android-minSdk = "24"
+android-targetSdk = "35"
+androidx-activityCompose = "1.10.1"
+compose-multiplatform = "1.6.1-KBA-007"
+kotlin = "2.0.21-KBA-005"
+kotlinx-coroutines = "1.8.0-KBA-001"
+atomicFu = "0.23.2-KBA-001"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+compose-multiplatform-export = { module = "org.jetbrains.compose.export:export", version.ref = "compose-multiplatform" }
+atomicFu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicFu" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

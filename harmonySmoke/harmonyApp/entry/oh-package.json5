@@ -1,0 +1,13 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "UBAA HarmonyOS ovCompose smoke entry.",
+  "main": "",
+  "author": "UBAA",
+  "license": "",
+  "dependencies": {
+    "libentry.so": "file:./src/main/cpp/types/libentry",
+    "compose": "file:./libs/compose.har",
+    "skikobridge": "file:./libs/skikobridge.har"
+  }
+}

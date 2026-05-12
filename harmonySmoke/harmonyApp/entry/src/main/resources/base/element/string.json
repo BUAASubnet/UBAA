@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "UBAA HarmonyOS smoke module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "UBAA HarmonyOS smoke entry ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "UBAA Harmony Smoke"
+    }
+  ]
+}
