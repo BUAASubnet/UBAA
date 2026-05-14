@@ -11,8 +11,8 @@ import kotlinx.cinterop.usePinned
 import platform.CoreFoundation.CFDataCreate
 import platform.CoreFoundation.CFDataGetBytePtr
 import platform.CoreFoundation.CFDataGetLength
-import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFDictionaryCreateMutable
+import platform.CoreFoundation.CFDictionaryRef
 import platform.CoreFoundation.CFDictionarySetValue
 import platform.CoreFoundation.CFErrorRefVar
 import platform.CoreFoundation.kCFAllocatorDefault
@@ -20,7 +20,6 @@ import platform.Security.SecKeyCreateEncryptedData
 import platform.Security.SecKeyCreateWithData
 import platform.Security.kSecAttrKeyClass
 import platform.Security.kSecAttrKeyClassPublic
-import platform.Security.kSecAttrKeySizeInBits
 import platform.Security.kSecAttrKeyType
 import platform.Security.kSecAttrKeyTypeRSA
 import platform.Security.kSecKeyAlgorithmRSAEncryptionPKCS1
