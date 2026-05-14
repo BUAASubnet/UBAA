@@ -126,7 +126,7 @@ class ScheduleViewModelTest {
             termRepository = TermRepository(ScheduleApi { termsBackend }),
         )
 
-    viewModel.loadWeeks(browsingTerm)
+    viewModel.selectTerm(browsingTerm)
     advanceUntilIdle()
 
     assertFalse(viewModel.hasCurrentWeekLoaded())
@@ -139,6 +139,48 @@ class ScheduleViewModelTest {
     assertTrue(viewModel.hasCurrentWeekLoaded())
     assertEquals(2, scheduleBackend.weekCalls)
     assertEquals(11, viewModel.uiState.value.currentWeek?.serialNumber)
+  }
+
+  @Test
+  fun `current week bootstrap realigns selected week and clears stale schedule`() = runTest {
+    setMainDispatcher(testScheduler)
+    val browsingTerm =
+        sampleTerm(itemCode = "2024-2025-1", itemName = "2024-2025学年第一学期", selected = false)
+    val currentTerm = sampleTerm()
+    val scheduleBackend =
+        FakeScheduleApiBackend(
+            weekResults =
+                mutableListOf(
+                    Result.success(
+                        listOf(sampleWeek(term = browsingTerm.itemCode, serialNumber = 3))
+                    ),
+                    Result.success(
+                        listOf(sampleWeek(term = currentTerm.itemCode, serialNumber = 11))
+                    ),
+                )
+        )
+    val termsBackend =
+        FakeScheduleApiBackend(termResults = mutableListOf(Result.success(listOf(currentTerm))))
+    val viewModel =
+        ScheduleViewModel(
+            scheduleApi = ScheduleApi { scheduleBackend },
+            termRepository = TermRepository(ScheduleApi { termsBackend }),
+        )
+
+    viewModel.selectTerm(browsingTerm)
+    advanceUntilIdle()
+
+    assertEquals(browsingTerm.itemCode, viewModel.uiState.value.selectedTerm?.itemCode)
+    assertEquals(3, viewModel.uiState.value.selectedWeek?.serialNumber)
+    assertEquals(browsingTerm.itemCode, viewModel.uiState.value.weeklySchedule?.code)
+
+    viewModel.ensureCurrentWeekLoaded()
+    advanceUntilIdle()
+
+    assertEquals(currentTerm.itemCode, viewModel.uiState.value.selectedTerm?.itemCode)
+    assertEquals(11, viewModel.uiState.value.selectedWeek?.serialNumber)
+    assertEquals(11, viewModel.uiState.value.currentWeek?.serialNumber)
+    assertEquals(null, viewModel.uiState.value.weeklySchedule)
   }
 
   private fun setMainDispatcher(testScheduler: TestCoroutineScheduler) {

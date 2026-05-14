@@ -70,11 +70,18 @@ class ScheduleViewModel(
       termRepository.getTerms(forceRefresh).onSuccess { terms ->
         val selectedTerm = terms.find { it.selected } ?: terms.firstOrNull()
         if (selectedTerm == null) return@onSuccess
-        _uiState.value = _uiState.value.copy(terms = terms, selectedTerm = selectedTerm)
         scheduleApi.getWeeks(selectedTerm.itemCode).onSuccess { weeks ->
           val currentWeek = weeks.find { it.curWeek } ?: weeks.firstOrNull()
           currentWeekLoadedOnce = currentWeek != null
-          _uiState.value = _uiState.value.copy(weeks = weeks, currentWeek = currentWeek)
+          _uiState.value =
+              _uiState.value.copy(
+                  terms = terms,
+                  selectedTerm = selectedTerm,
+                  weeks = weeks,
+                  currentWeek = currentWeek,
+                  selectedWeek = currentWeek,
+                  weeklySchedule = null,
+              )
         }
       }
     }
