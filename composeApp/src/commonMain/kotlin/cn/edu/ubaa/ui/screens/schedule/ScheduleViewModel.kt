@@ -73,15 +73,7 @@ class ScheduleViewModel(
         scheduleApi.getWeeks(selectedTerm.itemCode).onSuccess { weeks ->
           val currentWeek = weeks.find { it.curWeek } ?: weeks.firstOrNull()
           currentWeekLoadedOnce = currentWeek != null
-          _uiState.value =
-              _uiState.value.copy(
-                  terms = terms,
-                  selectedTerm = selectedTerm,
-                  weeks = weeks,
-                  currentWeek = currentWeek,
-                  selectedWeek = currentWeek,
-                  weeklySchedule = null,
-              )
+          _uiState.value = _uiState.value.copy(currentWeek = currentWeek)
         }
       }
     }
@@ -121,15 +113,14 @@ class ScheduleViewModel(
       scheduleApi
           .getWeeks(term.itemCode)
           .onSuccess { weeks ->
-            val currentWeek = weeks.find { it.curWeek } ?: weeks.firstOrNull()
+            val selectedWeek = weeks.find { it.curWeek } ?: weeks.firstOrNull()
             _uiState.value =
                 _uiState.value.copy(
                     isLoading = false,
                     weeks = weeks,
-                    currentWeek = currentWeek,
-                    selectedWeek = currentWeek,
+                    selectedWeek = selectedWeek,
                 )
-            currentWeek?.let { loadWeeklySchedule(term, it) }
+            selectedWeek?.let { loadWeeklySchedule(term, it) }
           }
           .onFailure {
             _uiState.value = _uiState.value.copy(isLoading = false, error = it.message ?: "加载周信息失败")

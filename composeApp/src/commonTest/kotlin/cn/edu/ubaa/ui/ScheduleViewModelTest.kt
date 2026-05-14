@@ -131,7 +131,7 @@ class ScheduleViewModelTest {
 
     assertFalse(viewModel.hasCurrentWeekLoaded())
     assertEquals(1, scheduleBackend.weekCalls)
-    assertEquals(3, viewModel.uiState.value.currentWeek?.serialNumber)
+    assertEquals(null, viewModel.uiState.value.currentWeek)
 
     viewModel.ensureCurrentWeekLoaded()
     advanceUntilIdle()
@@ -142,7 +142,7 @@ class ScheduleViewModelTest {
   }
 
   @Test
-  fun `current week bootstrap realigns selected week and clears stale schedule`() = runTest {
+  fun `current week bootstrap preserves schedule selection and loaded schedule`() = runTest {
     setMainDispatcher(testScheduler)
     val browsingTerm =
         sampleTerm(itemCode = "2024-2025-1", itemName = "2024-2025学年第一学期", selected = false)
@@ -177,10 +177,10 @@ class ScheduleViewModelTest {
     viewModel.ensureCurrentWeekLoaded()
     advanceUntilIdle()
 
-    assertEquals(currentTerm.itemCode, viewModel.uiState.value.selectedTerm?.itemCode)
-    assertEquals(11, viewModel.uiState.value.selectedWeek?.serialNumber)
+    assertEquals(browsingTerm.itemCode, viewModel.uiState.value.selectedTerm?.itemCode)
+    assertEquals(3, viewModel.uiState.value.selectedWeek?.serialNumber)
     assertEquals(11, viewModel.uiState.value.currentWeek?.serialNumber)
-    assertEquals(null, viewModel.uiState.value.weeklySchedule)
+    assertEquals(browsingTerm.itemCode, viewModel.uiState.value.weeklySchedule?.code)
   }
 
   private fun setMainDispatcher(testScheduler: TestCoroutineScheduler) {
