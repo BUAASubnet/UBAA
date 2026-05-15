@@ -11,14 +11,15 @@ import kotlinx.cinterop.usePinned
 import platform.CoreFoundation.CFDataCreate
 import platform.CoreFoundation.CFDataGetBytePtr
 import platform.CoreFoundation.CFDataGetLength
+import platform.CoreFoundation.CFDictionaryCreateMutable
 import platform.CoreFoundation.CFDictionaryRef
+import platform.CoreFoundation.CFDictionarySetValue
 import platform.CoreFoundation.CFErrorRefVar
 import platform.CoreFoundation.kCFAllocatorDefault
 import platform.Security.SecKeyCreateEncryptedData
 import platform.Security.SecKeyCreateWithData
 import platform.Security.kSecAttrKeyClass
 import platform.Security.kSecAttrKeyClassPublic
-import platform.Security.kSecAttrKeySizeInBits
 import platform.Security.kSecAttrKeyType
 import platform.Security.kSecAttrKeyTypeRSA
 import platform.Security.kSecKeyAlgorithmRSAEncryptionPKCS1
@@ -26,16 +27,9 @@ import platform.posix.memcpy
 
 internal actual object PlatformRsaPkcs1Encrypt {
   actual fun encrypt(input: ByteArray, publicKeyDer: ByteArray): ByteArray = memScoped {
-    val attributes =
-        mapOf<Any?, Any?>(
-            kSecAttrKeyType to kSecAttrKeyTypeRSA,
-            kSecAttrKeyClass to kSecAttrKeyClassPublic,
-            kSecAttrKeySizeInBits to 1024L,
-        )
-            as CFDictionaryRef
     val error = alloc<CFErrorRefVar>()
     val publicKey =
-        SecKeyCreateWithData(publicKeyDer.toCfData(), attributes, error.ptr)
+        SecKeyCreateWithData(publicKeyDer.toCfData(), keyAttributes(), error.ptr)
             ?: error("RSA public key initialization failed")
     val encrypted =
         SecKeyCreateEncryptedData(
@@ -45,6 +39,15 @@ internal actual object PlatformRsaPkcs1Encrypt {
             error.ptr,
         ) ?: error("RSA encryption failed")
     encrypted.toByteArray()
+  }
+
+  private fun keyAttributes(): CFDictionaryRef {
+    val attributes =
+        CFDictionaryCreateMutable(kCFAllocatorDefault, 0, null, null)
+            ?: error("RSA key attributes allocation failed")
+    CFDictionarySetValue(attributes, kSecAttrKeyType, kSecAttrKeyTypeRSA)
+    CFDictionarySetValue(attributes, kSecAttrKeyClass, kSecAttrKeyClassPublic)
+    return attributes
   }
 
   private fun ByteArray.toCfData() = usePinned { pinned ->
