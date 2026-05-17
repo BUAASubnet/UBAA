@@ -3,6 +3,7 @@ package cn.edu.ubaa.ui.screens.ygdk
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.edu.ubaa.api.feature.YgdkApi
+import cn.edu.ubaa.api.storage.YgdkReminderStore
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
 import cn.edu.ubaa.model.dto.YgdkOverviewResponse
 import cn.edu.ubaa.model.dto.YgdkRecordDto
@@ -36,22 +37,34 @@ data class YgdkUiState(
     val loadError: String? = null,
     val submitMessage: String? = null,
     val form: YgdkFormState = YgdkFormState(),
+    val homeReminderEnabled: Boolean = true,
 )
 
 class YgdkViewModel(
     private val ygdkApi: YgdkApi = YgdkApi(),
+    private val userKey: String = "",
 ) : ViewModel() {
   private var loadedOnce = false
+  private var overviewLoadedOnce = false
+  private val reminderUserKey = userKey.ifBlank { "default" }
   private val _uiState = MutableStateFlow(YgdkUiState())
   val uiState: StateFlow<YgdkUiState> = _uiState.asStateFlow()
+
+  init {
+    _uiState.value =
+        _uiState.value.copy(
+            homeReminderEnabled = YgdkReminderStore.isEnabled(reminderUserKey),
+        )
+  }
 
   fun ensureLoaded(forceRefresh: Boolean = false) {
     if (!forceRefresh && loadedOnce) return
     refreshAll()
   }
 
-  fun refreshAll() {
+  fun refreshAll(onComplete: (() -> Unit)? = null) {
     loadedOnce = true
+    overviewLoadedOnce = true
     viewModelScope.launch {
       val current = _uiState.value
       _uiState.value = current.copy(isLoading = true, loadError = null)
@@ -71,8 +84,57 @@ class YgdkViewModel(
               hasMore = nextHasMore,
               loadError = error,
           )
+      onComplete?.invoke()
     }
   }
+
+  fun ensureOverviewLoaded(forceRefresh: Boolean = false) {
+    if (!forceRefresh && overviewLoadedOnce) return
+    refreshOverviewOnly()
+  }
+
+  internal fun hasOverviewLoaded(): Boolean = overviewLoadedOnce
+
+  fun refreshOverviewOnly() {
+    overviewLoadedOnce = true
+    viewModelScope.launch {
+      val current = _uiState.value
+      _uiState.value = current.copy(isLoading = true, loadError = null)
+      ygdkApi
+          .getOverview()
+          .onSuccess { overview ->
+            _uiState.value =
+                _uiState.value.copy(
+                    isLoading = false,
+                    overview = overview,
+                    loadError = null,
+                )
+          }
+          .onFailure {
+            _uiState.value =
+                _uiState.value.copy(isLoading = false, loadError = it.message ?: "加载阳光打卡失败")
+          }
+    }
+  }
+
+  fun setHomeReminderEnabled(enabled: Boolean) {
+    YgdkReminderStore.setEnabled(reminderUserKey, enabled)
+    _uiState.value = _uiState.value.copy(homeReminderEnabled = enabled)
+  }
+
+  fun markHomeReminderWeekDone(weekKey: String) {
+    YgdkReminderStore.markWeekDone(reminderUserKey, weekKey)
+  }
+
+  fun markHomeReminderTermDone(termKey: String) {
+    YgdkReminderStore.markTermDone(reminderUserKey, termKey)
+  }
+
+  fun isHomeReminderWeekDone(weekKey: String): Boolean =
+      YgdkReminderStore.isWeekDone(reminderUserKey, weekKey)
+
+  fun isHomeReminderTermDone(termKey: String): Boolean =
+      YgdkReminderStore.isTermDone(reminderUserKey, termKey)
 
   fun loadMoreRecords() {
     val current = _uiState.value
@@ -162,24 +224,26 @@ class YgdkViewModel(
               )
           )
       result
-          .onSuccess {
+          .onSuccess { response ->
             _uiState.value =
                 _uiState.value.copy(
                     isSubmitting = false,
-                    submitMessage = it.message,
+                    submitMessage = response.message,
                     form = YgdkFormState(),
                     overview =
                         _uiState.value.overview?.let { overview ->
-                          it.summary?.let { summary -> overview.copy(summary = summary) }
+                          response.summary?.let { summary -> overview.copy(summary = summary) }
                               ?: overview
                         },
                 )
-            refreshAll()
-            onSuccess?.invoke()
+            refreshAll(onComplete = onSuccess)
           }
-          .onFailure {
+          .onFailure { error ->
             _uiState.value =
-                _uiState.value.copy(isSubmitting = false, submitMessage = it.message ?: "打卡失败")
+                _uiState.value.copy(
+                    isSubmitting = false,
+                    submitMessage = error.message ?: "打卡失败",
+                )
           }
     }
   }

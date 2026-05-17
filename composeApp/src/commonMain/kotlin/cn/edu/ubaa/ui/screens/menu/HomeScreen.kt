@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Code
@@ -485,6 +486,7 @@ private fun sourceContainerColor(source: HomeTodoSource): Color =
       HomeTodoSource.JUDGE -> MaterialTheme.colorScheme.primaryContainer
       HomeTodoSource.CGYY -> MaterialTheme.colorScheme.secondaryContainer
       HomeTodoSource.SIGNIN -> MaterialTheme.colorScheme.errorContainer
+      HomeTodoSource.YGDK -> MaterialTheme.colorScheme.tertiaryContainer
     }
 
 @Composable
@@ -495,6 +497,7 @@ private fun sourceContentColor(source: HomeTodoSource): Color =
       HomeTodoSource.JUDGE -> MaterialTheme.colorScheme.onPrimaryContainer
       HomeTodoSource.CGYY -> MaterialTheme.colorScheme.onSecondaryContainer
       HomeTodoSource.SIGNIN -> MaterialTheme.colorScheme.onErrorContainer
+      HomeTodoSource.YGDK -> MaterialTheme.colorScheme.onTertiaryContainer
     }
 
 private fun sourceIcon(source: HomeTodoSource): ImageVector =
@@ -504,4 +507,5 @@ private fun sourceIcon(source: HomeTodoSource): ImageVector =
       HomeTodoSource.JUDGE -> Icons.Default.Code
       HomeTodoSource.CGYY -> Icons.Default.MeetingRoom
       HomeTodoSource.SIGNIN -> Icons.Default.CheckCircle
+      HomeTodoSource.YGDK -> Icons.AutoMirrored.Filled.DirectionsRun
     }

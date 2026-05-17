@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +49,7 @@ fun YgdkHomeScreen(
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     onAddClick: () -> Unit,
+    onHomeReminderEnabledChange: (Boolean) -> Unit,
     onMessageConsumed: () -> Unit,
 ) {
   val snackbarHostState = remember { SnackbarHostState() }
@@ -96,6 +98,12 @@ fun YgdkHomeScreen(
               )
             }
             item {
+              YgdkHomeReminderCard(
+                  enabled = uiState.homeReminderEnabled,
+                  onEnabledChange = onHomeReminderEnabledChange,
+              )
+            }
+            item {
               Row(
                   modifier = Modifier.fillMaxWidth(),
                   horizontalArrangement = Arrangement.SpaceBetween,
@@ -128,6 +136,31 @@ fun YgdkHomeScreen(
               }
             }
           }
+    }
+  }
+}
+
+@Composable
+private fun YgdkHomeReminderCard(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+  Card(
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+      modifier = Modifier.fillMaxWidth(),
+  ) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(
+          text = "首页提醒",
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Medium,
+          modifier = Modifier.weight(1f),
+      )
+      Switch(checked = enabled, onCheckedChange = onEnabledChange)
     }
   }
 }

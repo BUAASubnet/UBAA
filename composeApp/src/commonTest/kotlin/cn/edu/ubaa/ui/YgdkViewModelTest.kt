@@ -1,6 +1,7 @@
 package cn.edu.ubaa.ui
 
 import cn.edu.ubaa.api.feature.YgdkApi
+import cn.edu.ubaa.api.storage.YgdkReminderStore
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitRequest
 import cn.edu.ubaa.model.dto.YgdkClockinSubmitResponse
 import cn.edu.ubaa.model.dto.YgdkItemDto
@@ -32,6 +33,8 @@ class YgdkViewModelTest {
   @AfterTest
   fun tearDown() {
     Dispatchers.resetMain()
+    YgdkReminderStore.clear("ygdk-viewmodel-test-user")
+    YgdkReminderStore.clear("ygdk-viewmodel-test-other")
   }
 
   @Test
@@ -193,6 +196,84 @@ class YgdkViewModelTest {
   }
 
   @Test
+  fun `submitClockin success updates overview before navigation callback`() = runTest {
+    setMainDispatcher(testScheduler)
+    val api =
+        FakeYgdkApi(
+            overviewResults =
+                mutableListOf(
+                    Result.success(sampleOverview(termCount = 15, weekCount = 3)),
+                    Result.success(sampleOverview(termCount = 16, weekCount = 4)),
+                ),
+            recordsResults =
+                mutableMapOf(
+                    1 to
+                        mutableListOf(
+                            Result.success(sampleRecordsPage(recordId = 1, hasMore = false)),
+                            Result.success(sampleRecordsPage(recordId = 2, hasMore = false)),
+                        )
+                ),
+            submitResult =
+                Result.success(
+                    YgdkClockinSubmitResponse(
+                        success = true,
+                        message = "打卡成功",
+                        recordId = 1001,
+                        summary =
+                            YgdkTermSummaryDto(
+                                termCount = 16,
+                                termTarget = 16,
+                                weekCount = 4,
+                                weekTarget = 4,
+                            ),
+                    )
+                ),
+        )
+    val viewModel = YgdkViewModel(api)
+    viewModel.ensureLoaded()
+    advanceUntilIdle()
+
+    var callbackTermCount: Int? = null
+    var callbackWeekCount: Int? = null
+    viewModel.submitClockin {
+      callbackTermCount = viewModel.uiState.value.overview?.summary?.termCount
+      callbackWeekCount = viewModel.uiState.value.overview?.summary?.weekCount
+    }
+    advanceUntilIdle()
+
+    assertEquals(16, callbackTermCount)
+    assertEquals(4, callbackWeekCount)
+    assertEquals(16, viewModel.uiState.value.overview?.summary?.termCount)
+    assertEquals(4, viewModel.uiState.value.overview?.summary?.weekCount)
+  }
+
+  @Test
+  fun `home reminder preference defaults enabled and can be toggled per user`() = runTest {
+    YgdkReminderStore.clear("ygdk-viewmodel-test-user")
+    YgdkReminderStore.clear("ygdk-viewmodel-test-other")
+    val api =
+        FakeYgdkApi(
+            overviewResults = mutableListOf(Result.success(sampleOverview())),
+            recordsResults =
+                mutableMapOf(
+                    1 to mutableListOf(Result.success(sampleRecordsPage(hasMore = false)))
+                ),
+        )
+
+    val first = YgdkViewModel(api, userKey = "ygdk-viewmodel-test-user")
+    val other = YgdkViewModel(api, userKey = "ygdk-viewmodel-test-other")
+
+    assertTrue(first.uiState.value.homeReminderEnabled)
+    first.setHomeReminderEnabled(false)
+
+    assertFalse(first.uiState.value.homeReminderEnabled)
+    assertTrue(other.uiState.value.homeReminderEnabled)
+    assertFalse(
+        YgdkViewModel(api, userKey = "ygdk-viewmodel-test-user").uiState.value.homeReminderEnabled
+    )
+  }
+
+  @Test
   fun `clearPhoto removes selected image from form`() = runTest {
     setMainDispatcher(testScheduler)
     val api =
@@ -238,9 +319,12 @@ class YgdkViewModelTest {
     Dispatchers.setMain(StandardTestDispatcher(testScheduler))
   }
 
-  private fun sampleOverview(termCount: Int = 5): YgdkOverviewResponse {
+  private fun sampleOverview(
+      termCount: Int = 5,
+      weekCount: Int? = null,
+  ): YgdkOverviewResponse {
     return YgdkOverviewResponse(
-        summary = YgdkTermSummaryDto(termCount = termCount, termTarget = 16),
+        summary = YgdkTermSummaryDto(termCount = termCount, termTarget = 16, weekCount = weekCount),
         classifyId = 3,
         classifyName = "阳光体育",
         defaultItemId = 1,

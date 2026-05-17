@@ -18,6 +18,7 @@ internal data class HomeBootstrapActions(
     val loadJudge: suspend (Boolean) -> Unit,
     val loadBykc: suspend (Boolean) -> Unit,
     val loadCgyy: suspend (Boolean) -> Unit,
+    val loadYgdk: suspend (Boolean) -> Unit,
 )
 
 internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
@@ -45,6 +46,7 @@ internal class HomeBootstrapCoordinator(private val scope: CoroutineScope) {
                       launch { actions.loadJudge(forceRefresh) },
                       launch { actions.loadBykc(forceRefresh) },
                       launch { actions.loadCgyy(forceRefresh) },
+                      launch { actions.loadYgdk(forceRefresh) },
                   )
                   .joinAll()
             }

@@ -7,12 +7,17 @@ import cn.edu.ubaa.model.dto.JudgeSubmissionStatus
 import cn.edu.ubaa.model.dto.SigninClassDto
 import cn.edu.ubaa.model.dto.SpocAssignmentSummaryDto
 import cn.edu.ubaa.model.dto.SpocSubmissionStatus
+import cn.edu.ubaa.model.dto.Week
+import cn.edu.ubaa.model.dto.YgdkOverviewResponse
+import cn.edu.ubaa.model.dto.YgdkTermSummaryDto
 import cn.edu.ubaa.ui.screens.menu.HomeTodoAction
+import cn.edu.ubaa.ui.screens.menu.HomeTodoSource
 import cn.edu.ubaa.ui.screens.menu.buildHomeTodoItems
 import cn.edu.ubaa.ui.screens.menu.parseHomeDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -248,6 +253,94 @@ class HomeTodoTest {
   }
 
   @Test
+  fun `ygdk todo item appears during final reminder weeks when counts are below targets`() {
+    val items =
+        buildHomeTodoItems(
+            bykcCourses = emptyList(),
+            spocAssignments = emptyList(),
+            judgeAssignments = emptyList(),
+            cgyyOrders = emptyList(),
+            signinClasses = emptyList(),
+            ygdkOverview = ygdkOverview(weekCount = 3, termCount = 15),
+            currentWeek = week(serialNumber = 11),
+            now = NOW,
+            timeZone = TimeZone.UTC,
+        )
+
+    val item = assertNotNull(items.singleOrNull())
+    assertEquals("ygdk:2025-2026-2:11", item.id)
+    assertEquals(HomeTodoSource.YGDK, item.source)
+    assertEquals("本周阳光打卡未达标", item.title)
+    assertEquals("本周已打卡 3 / 4 次", item.subtitle)
+    assertEquals("待打卡", item.statusLabel)
+    assertEquals("截止 3月29日 23:59", item.timeLabel)
+    assertEquals(LocalDateTime.parse("2026-03-29T23:59:59"), item.sortTime)
+    assertIs<HomeTodoAction.OpenYgdkHome>(item.action)
+  }
+
+  @Test
+  fun `ygdk todo item hides outside final reminder weeks`() {
+    val items =
+        ygdkTodoItems(
+            overview = ygdkOverview(weekCount = 3, termCount = 15),
+            currentWeek = week(serialNumber = 10),
+        )
+
+    assertEquals(emptyList(), items.map { it.id })
+  }
+
+  @Test
+  fun `ygdk todo item hides after weekly or term target is reached`() {
+    assertEquals(
+        emptyList(),
+        ygdkTodoItems(
+                overview = ygdkOverview(weekCount = 4, termCount = 15),
+                currentWeek = week(serialNumber = 12),
+            )
+            .map { it.id },
+    )
+    assertEquals(
+        emptyList(),
+        ygdkTodoItems(
+                overview = ygdkOverview(weekCount = 3, termCount = 16),
+                currentWeek = week(serialNumber = 12),
+            )
+            .map { it.id },
+    )
+  }
+
+  @Test
+  fun `ygdk todo item hides when reminder is disabled or locally completed`() {
+    assertEquals(
+        emptyList(),
+        ygdkTodoItems(
+                overview = ygdkOverview(weekCount = 3, termCount = 15),
+                currentWeek = week(serialNumber = 13),
+                ygdkReminderEnabled = false,
+            )
+            .map { it.id },
+    )
+    assertEquals(
+        emptyList(),
+        ygdkTodoItems(
+                overview = ygdkOverview(weekCount = 3, termCount = 15),
+                currentWeek = week(serialNumber = 13),
+                ygdkWeekDone = true,
+            )
+            .map { it.id },
+    )
+    assertEquals(
+        emptyList(),
+        ygdkTodoItems(
+                overview = ygdkOverview(weekCount = 3, termCount = 15),
+                currentWeek = week(serialNumber = 13),
+                ygdkTermDone = true,
+            )
+            .map { it.id },
+    )
+  }
+
+  @Test
   fun `parseHomeDateTime supports full datetime and time only`() {
     assertEquals(
         LocalDateTime.parse("2026-03-24T14:30:00"),
@@ -262,5 +355,47 @@ class HomeTodoTest {
 
   companion object {
     private val NOW = LocalDateTime.parse("2026-03-24T12:00:00")
+
+    private fun ygdkTodoItems(
+        overview: YgdkOverviewResponse?,
+        currentWeek: Week?,
+        ygdkReminderEnabled: Boolean = true,
+        ygdkWeekDone: Boolean = false,
+        ygdkTermDone: Boolean = false,
+    ) =
+        buildHomeTodoItems(
+            bykcCourses = emptyList(),
+            spocAssignments = emptyList(),
+            judgeAssignments = emptyList(),
+            cgyyOrders = emptyList(),
+            signinClasses = emptyList(),
+            ygdkOverview = overview,
+            currentWeek = currentWeek,
+            ygdkReminderEnabled = ygdkReminderEnabled,
+            ygdkWeekDone = ygdkWeekDone,
+            ygdkTermDone = ygdkTermDone,
+            now = NOW,
+            timeZone = TimeZone.UTC,
+        )
+
+    private fun ygdkOverview(
+        weekCount: Int?,
+        termCount: Int,
+    ) =
+        YgdkOverviewResponse(
+            summary = YgdkTermSummaryDto(termCount = termCount, weekCount = weekCount),
+            classifyId = 3,
+            classifyName = "阳光体育",
+        )
+
+    private fun week(serialNumber: Int) =
+        Week(
+            startDate = "2026-06-15",
+            endDate = "2026-06-21",
+            term = "2025-2026-2",
+            curWeek = true,
+            serialNumber = serialNumber,
+            name = "第${serialNumber}周",
+        )
   }
 }

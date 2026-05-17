@@ -229,12 +229,24 @@ fun MainAppScreen(
   val bykcDetailState by bykcViewModel.courseDetailState.collectAsState()
   val bykcChosenState by bykcViewModel.chosenCoursesState.collectAsState()
   val ygdkViewModel: YgdkViewModel? =
-      if (currentScreen in ygdkScreens) {
-        viewModel(key = "ygdk-${userData.schoolid}") { YgdkViewModel() }
+      if (currentScreen == AppScreen.HOME || currentScreen in ygdkScreens) {
+        viewModel(key = "ygdk-${userData.schoolid}") { YgdkViewModel(userKey = userData.schoolid) }
       } else {
         null
       }
   val ygdkUiState = ygdkViewModel?.uiState?.collectAsState()?.value ?: YgdkUiState()
+  val currentWeek = scheduleUiState.currentWeek
+  val ygdkWeekReminderKey = currentWeek?.let { "${it.term}:${it.serialNumber}" }
+  val ygdkTermReminderKey = currentWeek?.term ?: scheduleUiState.selectedTerm?.itemCode
+  val ygdkWeekDone = ygdkWeekReminderKey?.let { ygdkViewModel?.isHomeReminderWeekDone(it) } ?: false
+  val ygdkTermDone = ygdkTermReminderKey?.let { ygdkViewModel?.isHomeReminderTermDone(it) } ?: false
+  val isYgdkReminderWeek = currentWeek?.serialNumber?.let { it in 11..14 } == true
+  val shouldLoadYgdkHomeOverview =
+      ygdkViewModel != null &&
+          ygdkUiState.homeReminderEnabled &&
+          isYgdkReminderWeek &&
+          !ygdkWeekDone &&
+          !ygdkTermDone
 
   var selectedCourse by remember { mutableStateOf<CourseClass?>(null) }
   var selectedBykcCourseId by remember { mutableStateOf<Long?>(null) }
@@ -261,6 +273,11 @@ fun MainAppScreen(
           judgeUiState.assignmentsResponse,
           cgyyUiState.orders.content,
           signinUiState.classes,
+          ygdkUiState.overview,
+          currentWeek,
+          ygdkUiState.homeReminderEnabled,
+          ygdkWeekDone,
+          ygdkTermDone,
           homeNow,
       ) {
         buildHomeTodoItems(
@@ -269,6 +286,11 @@ fun MainAppScreen(
             judgeAssignments = judgeUiState.assignmentsResponse?.assignments.orEmpty(),
             cgyyOrders = cgyyUiState.orders.content,
             signinClasses = signinUiState.classes,
+            ygdkOverview = ygdkUiState.overview,
+            currentWeek = currentWeek,
+            ygdkReminderEnabled = ygdkUiState.homeReminderEnabled,
+            ygdkWeekDone = ygdkWeekDone,
+            ygdkTermDone = ygdkTermDone,
             now = homeNow,
         )
       }
@@ -278,6 +300,7 @@ fun MainAppScreen(
     if (judgeUiState.isLoading || judgeUiState.isRefreshing) add(HomeTodoSource.JUDGE)
     if (cgyyUiState.isOrdersLoading) add(HomeTodoSource.CGYY)
     if (signinUiState.isLoading) add(HomeTodoSource.SIGNIN)
+    if (shouldLoadYgdkHomeOverview && ygdkUiState.isLoading) add(HomeTodoSource.YGDK)
   }
   val homeTodoLoading = homeTodoLoadingSources.isNotEmpty()
   val homeContentLoading = todayScheduleState.isLoading || homeTodoLoading
@@ -290,6 +313,7 @@ fun MainAppScreen(
     if (judgeUiState.error != null) add(HomeTodoSource.JUDGE)
     if (cgyyUiState.ordersError != null) add(HomeTodoSource.CGYY)
     if (signinUiState.error != null) add(HomeTodoSource.SIGNIN)
+    if (shouldLoadYgdkHomeOverview && ygdkUiState.loadError != null) add(HomeTodoSource.YGDK)
   }
 
   fun startHomeBootstrap(forceRefresh: Boolean = false) {
@@ -300,7 +324,9 @@ fun MainAppScreen(
             !spocViewModel.hasAssignmentsLoaded() ||
             !judgeViewModel.hasAssignmentsLoaded() ||
             !bykcViewModel.hasChosenCoursesLoaded() ||
-            cgyyViewModel?.hasOrdersLoaded() != true
+            cgyyViewModel?.hasOrdersLoaded() != true ||
+            !scheduleViewModel.hasCurrentWeekLoaded() ||
+            (shouldLoadYgdkHomeOverview && ygdkViewModel.hasOverviewLoaded() != true)
     homeBootstrapCoordinator.restart(
         HomeBootstrapActions(
             loadTodaySchedule = { force ->
@@ -311,6 +337,12 @@ fun MainAppScreen(
             loadJudge = { force -> judgeViewModel.ensureAssignmentsLoaded(forceRefresh = force) },
             loadBykc = { force -> bykcViewModel.ensureChosenCoursesLoaded(forceRefresh = force) },
             loadCgyy = { force -> cgyyViewModel?.ensureOrdersLoaded(forceRefresh = force) },
+            loadYgdk = { force ->
+              scheduleViewModel.ensureCurrentWeekLoaded(forceRefresh = force)
+              if (shouldLoadYgdkHomeOverview) {
+                ygdkViewModel.ensureOverviewLoaded(forceRefresh = force)
+              }
+            },
         ),
         forceRefresh = forceRefresh,
         showLoading = showLoading,
@@ -458,6 +490,34 @@ fun MainAppScreen(
         navigateTo(AppScreen.CGYY_ORDERS)
       }
       is HomeTodoAction.SigninCourse -> signinViewModel.performSignin(action.courseId)
+      HomeTodoAction.OpenYgdkHome -> navigateTo(AppScreen.YGDK_HOME)
+    }
+  }
+
+  LaunchedEffect(
+      ygdkUiState.overview,
+      ygdkWeekReminderKey,
+      ygdkTermReminderKey,
+      ygdkUiState.homeReminderEnabled,
+  ) {
+    if (!ygdkUiState.homeReminderEnabled) return@LaunchedEffect
+    val viewModel = ygdkViewModel ?: return@LaunchedEffect
+    val summary = ygdkUiState.overview?.summary ?: return@LaunchedEffect
+    ygdkWeekReminderKey?.let { key ->
+      if ((summary.weekCount ?: 0) >= 4) {
+        viewModel.markHomeReminderWeekDone(key)
+      }
+    }
+    ygdkTermReminderKey?.let { key ->
+      if (summary.termCount >= 16) {
+        viewModel.markHomeReminderTermDone(key)
+      }
+    }
+  }
+
+  LaunchedEffect(currentScreen, currentWeek, shouldLoadYgdkHomeOverview) {
+    if (currentScreen == AppScreen.HOME && shouldLoadYgdkHomeOverview) {
+      ygdkViewModel.ensureOverviewLoaded()
     }
   }
 
@@ -839,6 +899,7 @@ fun MainAppScreen(
                     onRefresh = { it.refreshAll() },
                     onLoadMore = { it.loadMoreRecords() },
                     onAddClick = { navigateTo(AppScreen.YGDK_FORM) },
+                    onHomeReminderEnabledChange = { enabled -> it.setHomeReminderEnabled(enabled) },
                     onMessageConsumed = { it.clearSubmitMessage() },
                 )
               }
