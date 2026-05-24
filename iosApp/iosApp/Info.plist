@@ -8,6 +8,13 @@
 	<dict>
 		<key>NSExceptionDomains</key>
 		<dict>
+			<key>iclass.buaa.edu.cn</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
 			<key>judge.buaa.edu.cn</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
