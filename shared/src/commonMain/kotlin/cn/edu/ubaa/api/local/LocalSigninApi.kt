@@ -8,12 +8,10 @@ import cn.edu.ubaa.api.resolveSigninRedirectUrl
 import cn.edu.ubaa.model.dto.SigninActionResponse
 import cn.edu.ubaa.model.dto.SigninClassDto
 import cn.edu.ubaa.model.dto.SigninStatusResponse
-import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -34,6 +32,7 @@ internal class LocalSigninApiBackend : SigninApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
   private val sessionMutex = Mutex()
   private val sessionCache = mutableMapOf<String, LocalSigninSession>()
+  private var loginLastError: String? = null
 
   internal fun clearCache() {
     sessionCache.clear()
@@ -74,7 +73,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
         LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val signinSession = runCatching { currentSession(authSession.studentId()) }.getOrNull()
     if (signinSession == null) {
-      return Result.success(SigninActionResponse(code = 400, success = false, message = "登录失败"))
+      val error = loginLastError ?: "iclass 登录失败"
+      loginLastError = null
+      return Result.success(SigninActionResponse(code = 400, success = false, message = error))
     }
 
     return try {
@@ -95,12 +96,16 @@ internal class LocalSigninApiBackend : SigninApiBackend {
       }
 
       val response =
-          LocalUpstreamClientProvider.shared().post(
-              localUpstreamUrl("http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action")
+          LocalUpstreamClientProvider.shared().submitForm(
+              url =
+                  localUpstreamUrl(
+                      "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action"
+                  ),
+              formParameters = Parameters.build { append("id", signinSession.userId) },
           ) {
+            header("sessionId", signinSession.sessionId)
             parameter("courseSchedId", courseId)
             parameter("timestamp", timestamp)
-            setBody(FormDataContent(Parameters.build { append("id", signinSession.userId) }))
           }
       val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
       val success =
@@ -147,6 +152,8 @@ internal class LocalSigninApiBackend : SigninApiBackend {
 
     val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
     if (payload["STATUS"]?.jsonPrimitive?.intOrNull != 0) {
+      loginLastError =
+          payload["ERRMSG"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "登录失败"
       return null
     }
 
@@ -223,6 +230,7 @@ internal fun sanitizeLocalSigninMessage(success: Boolean, rawMessage: String?): 
     "不是上课时间" in message -> "当前不是上课时间，无法签到"
     "已结束" in message -> "本次签到已结束"
     "范围" in message -> "当前不在可签到范围内"
+    "用户不存在" in message -> "签到账号不存在，请联系管理员"
     "课程" in message && "不存在" in message -> "未找到对应课程，请刷新后重试"
     else -> "签到失败，请稍后重试"
   }

@@ -39,6 +39,7 @@ class SigninClient(
 
   private var userId: String? = null
   private var sessionId: String? = null
+  private var lastLoginError: String? = null
   private val loginMutex = Mutex()
 
   private suspend fun ensureSession(): SessionManager.UserSession {
@@ -75,6 +76,8 @@ class SigninClient(
           val body = response.bodyAsText()
           val jsonResponse = json.parseToJsonElement(body).jsonObject
           if (jsonResponse["STATUS"]?.jsonPrimitive?.intOrNull != 0) {
+            lastLoginError =
+                jsonResponse["ERRMSG"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "登录失败"
             markUnauthenticated()
             return@observeUpstreamRequest false
           }
@@ -158,7 +161,12 @@ class SigninClient(
 
   /** 提交签到请求。 */
   suspend fun signIn(courseId: String): Pair<Boolean, String> {
-    if (userId == null || sessionId == null) if (!login()) return false to "登录失败"
+    if (userId == null || sessionId == null)
+        if (!login()) {
+          val error = lastLoginError ?: "iclass 登录失败"
+          lastLoginError = null
+          return false to error
+        }
     return try {
       val serverTimestamp =
           AppObservability.observeUpstreamRequest("iclass", "get_timestamp") {
@@ -176,12 +184,16 @@ class SigninClient(
 
       AppObservability.observeUpstreamRequest("iclass", "sign_in") {
         val response =
-            client.post(
-                VpnCipher.toVpnUrl("http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action")
+            client.submitForm(
+                url =
+                    VpnCipher.toVpnUrl(
+                        "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action"
+                    ),
+                formParameters = Parameters.build { append("id", userId!!) },
             ) {
+              header("sessionId", sessionId)
               parameter("courseSchedId", courseId)
               parameter("timestamp", serverTimestamp)
-              setBody(FormDataContent(Parameters.build { append("id", userId!!) }))
             }
         val jsonResponse = json.parseToJsonElement(response.bodyAsText()).jsonObject
         val success =
@@ -210,6 +222,7 @@ class SigninClient(
       "不是上课时间" in message -> "当前不是上课时间，无法签到"
       "已结束" in message -> "本次签到已结束"
       "范围" in message -> "当前不在可签到范围内"
+      "用户不存在" in message -> "签到账号不存在，请联系管理员"
       "课程" in message && "不存在" in message -> "未找到对应课程，请刷新后重试"
       else -> "签到失败，请稍后重试"
     }
@@ -219,6 +232,7 @@ class SigninClient(
     client.close()
     userId = null
     sessionId = null
+    lastLoginError = null
   }
 }
 
