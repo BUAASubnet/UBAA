@@ -23,6 +23,20 @@ class BhpanUploadSupportTest {
   }
 
   @Test
+  fun `loads bhpan password from passwd alias`() {
+    val properties =
+        Properties().apply {
+          setProperty("BHPAN_USER", "user1")
+          setProperty("BHPAN_PASSWD", "pass1")
+          setProperty("BHPAN_DOC_ID", "gns://doc/1")
+        }
+
+    val credentials = BhpanCredentials.fromProperties(properties)
+
+    assertEquals("pass1", credentials.password)
+  }
+
+  @Test
   fun `loads bhpan credentials from legacy fallback keys`() {
     val properties =
         Properties().apply {
@@ -105,6 +119,28 @@ class BhpanUploadSupportTest {
   }
 
   @Test
+  fun `counts directory listing items for read only verification`() {
+    val listingJson =
+        """
+        {
+          "dirs": [
+            { "docid": "dir-a", "name": "Archive" }
+          ],
+          "files": [
+            { "docid": "doc-a", "name": "UBAA-Android-v1.7.2.apk" },
+            { "docid": "doc-b", "name": "notes.txt" }
+          ]
+        }
+        """
+            .trimIndent()
+
+    val summary = BhpanDirectoryParser.summary(listingJson)
+
+    assertEquals(1, summary.dirCount)
+    assertEquals(2, summary.fileCount)
+  }
+
+  @Test
   fun `uses multipart upload only for files larger than small upload threshold`() {
     assertEquals(false, UploadPlan.requiresMultipart(100L * 1024 * 1024))
     assertEquals(true, UploadPlan.requiresMultipart(100L * 1024 * 1024 + 1))
@@ -136,5 +172,45 @@ class BhpanUploadSupportTest {
         """{"authrequest":["POST","https://upload.example.com/complete","x-test: 1"]}""",
         parts.json.trim(),
     )
+  }
+
+  @Test
+  fun `resolves relative bhpan oauth redirect locations against origin`() {
+    val redirect =
+        resolveRedirectUrl(
+            baseUrl = "https://bhpan.buaa.edu.cn",
+            location = "/oauth2/auth?client_id=test&response_type=code",
+        )
+
+    assertEquals(
+        "https://bhpan.buaa.edu.cn/oauth2/auth?client_id=test&response_type=code",
+        redirect,
+    )
+  }
+
+  @Test
+  fun `detects manual oauth redirect next url for 303 responses`() {
+    val redirect =
+        nextRedirectUrl(
+            baseUrl = "https://bhpan.buaa.edu.cn/oauth2/consent",
+            statusCode = 303,
+            location = "/oauth2/auth?consent_verifier=test",
+            context = "OAuth2 consent redirect",
+        )
+
+    assertEquals("https://bhpan.buaa.edu.cn/oauth2/auth?consent_verifier=test", redirect)
+  }
+
+  @Test
+  fun `does not continue manual redirect chain for success responses`() {
+    val redirect =
+        nextRedirectUrl(
+            baseUrl = "https://bhpan.buaa.edu.cn/anyshare/oauth2/login/callback",
+            statusCode = 200,
+            location = null,
+            context = "OAuth2 callback",
+        )
+
+    assertEquals(null, redirect)
   }
 }

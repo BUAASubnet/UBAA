@@ -60,7 +60,7 @@ data class BhpanCredentials(
                   "Missing BHPAN username in local.properties (expected BHPAN_USER)",
               )
       val password =
-          read("BHPAN_PASSWORD", "BHPAN_SSO_PASSWORD", "testpasswd")
+          read("BHPAN_PASSWORD", "BHPAN_PASSWD", "BHPAN_SSO_PASSWORD", "testpasswd")
               ?: throw IllegalArgumentException(
                   "Missing BHPAN password in local.properties (expected BHPAN_PASSWORD)",
               )
@@ -88,6 +88,11 @@ data class GithubLatestRelease(
 data class BhpanRemoteFile(
     val docId: String,
     val name: String,
+)
+
+data class BhpanDirectorySummary(
+    val dirCount: Int,
+    val fileCount: Int,
 )
 
 data class MultipartCompletionParts(
@@ -128,6 +133,14 @@ object GithubLatestReleaseParser {
 
 object BhpanDirectoryParser {
   fun releaseDocIds(listingJson: String): List<String> = releaseFiles(listingJson).map { it.docId }
+
+  fun summary(listingJson: String): BhpanDirectorySummary {
+    val root = JSON.parseToJsonElement(listingJson).jsonObject
+    return BhpanDirectorySummary(
+        dirCount = root["dirs"]?.jsonArray?.size ?: 0,
+        fileCount = root["files"]?.jsonArray?.size ?: 0,
+    )
+  }
 
   fun releaseFiles(listingJson: String): List<BhpanRemoteFile> {
     val root = JSON.parseToJsonElement(listingJson).jsonObject
@@ -210,6 +223,31 @@ abstract class UploadLatestReleaseToBhpanTask : DefaultTask() {
   }
 }
 
+abstract class VerifyBhpanReadOnlyTask : DefaultTask() {
+  @get:InputFile abstract val localPropertiesFile: RegularFileProperty
+
+  init {
+    group = "verification"
+    description = "Authenticates with BUAA Cloud Disk and lists the configured folder without changing files."
+    outputs.upToDateWhen { false }
+  }
+
+  @TaskAction
+  fun verifyBhpanReadOnly() {
+    val propertiesPath = localPropertiesFile.get().asFile.toPath()
+    val credentials = BhpanCredentials.fromProperties(loadProperties(propertiesPath))
+    val http = ManagedHttpSession()
+    val bhpanClient = BhpanClient(http = http, credentials = credentials, logger = logger)
+    logger.lifecycle("=== BUAA Cloud Disk Read-only Verification ===")
+    bhpanClient.ssoLogin()
+    bhpanClient.authenticate()
+    val summary = BhpanDirectoryParser.summary(bhpanClient.listDirectory(credentials.docId))
+    logger.lifecycle(
+        "Read-only directory listing completed: ${summary.dirCount} dir(s), ${summary.fileCount} file(s)."
+    )
+  }
+}
+
 private class GithubReleaseClient(private val http: ManagedHttpSession) {
   fun fetchLatestRelease(repository: String): GithubLatestRelease {
     val request =
@@ -254,34 +292,34 @@ private class BhpanClient(
 
   fun authenticate() {
     logger.lifecycle("Authenticating with BUAA Cloud Disk...")
-    val authResponse =
-        http.sendText(
-            requestBuilder("$BHPAN_URL/anyshare/oauth2/login?redirect=%2Fanyshare%2Fzh-cn%2Fportal")
-                .GET()
-                .build(),
-            followRedirects = false,
-        )
-    val authUrl = redirectLocation(authResponse, "OAuth2 login redirect")
+    val initialUrl =
+        followRedirectsManually(
+            startUrl = "$BHPAN_URL/anyshare/oauth2/login?redirect=%2Fanyshare%2Fzh-cn%2Fportal",
+            context = "OAuth2 login",
+        ) { uri -> uri.path == "/oauth2/signin" || uri.path == "/anyshare/oauth2/login/callback" }
 
-    val signInResponse =
-        http.sendText(requestBuilder(authUrl).GET().build(), followRedirects = false)
-    val signInUrl = redirectLocation(signInResponse, "OAuth2 sign-in redirect")
-    val loginChallenge =
-        Regex("""[?&]login_challenge=([^&]+)""").find(signInUrl)?.groupValues?.get(1)
-            ?: throw GradleException("No login_challenge in redirect chain")
-    http.addCookie(URI.create(BHPAN_URL), "login_challenge", loginChallenge, secure = true)
+    if (initialUrl.path == "/oauth2/signin") {
+      val loginChallenge =
+          Regex("""[?&]login_challenge=([^&]+)""").find(initialUrl.toString())?.groupValues?.get(1)
+              ?: throw GradleException("No login_challenge in redirect chain")
+      http.addCookie(URI.create(BHPAN_URL), "login_challenge", loginChallenge, secure = true)
 
-    val callbackResponse =
-        http.sendDiscarding(
-            requestBuilder(
-                    "$SSO_URL/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin"
-                )
-                .GET()
-                .build(),
-        )
-    val callbackUrl = callbackResponse.uri().toString()
-    if (!callbackUrl.contains("/login/callback")) {
-      throw GradleException("OAuth2 redirect did not land on callback. Got: $callbackUrl")
+      val callbackUrl =
+          followRedirectsManually(
+              startUrl =
+                  "$SSO_URL/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin",
+              context = "OAuth2 SSO callback",
+          ) { uri -> uri.path == "/anyshare/oauth2/login/callback" }
+      if (callbackUrl.path != "/anyshare/oauth2/login/callback") {
+        throw GradleException("OAuth2 redirect did not land on callback. Got: $callbackUrl")
+      }
+    } else if (initialUrl.path == "/anyshare/oauth2/login/callback") {
+      followRedirectsManually(
+          startUrl = "$BHPAN_URL/anyshare/oauth2/login/refreshToken",
+          context = "OAuth2 refresh token",
+      ) { uri -> uri.path == "/anyshare/oauth2/login/refreshToken" }
+    } else {
+      throw GradleException("OAuth2 redirect did not land on callback. Got: $initialUrl")
     }
     if (http.cookieValue("client.oauth2_token").isNullOrBlank()) {
       throw GradleException("Failed to obtain OAuth2 token from bhpan")
@@ -526,7 +564,7 @@ private class BhpanClient(
     throw GradleException("Uploaded file is not visible in the target directory: $fileName")
   }
 
-  private fun listDirectory(docId: String): String =
+  fun listDirectory(docId: String): String =
       apiJson(
           method = "POST",
           endpoint = "/api/efast/v1/dir/list",
@@ -581,11 +619,43 @@ private class BhpanClient(
     if (response.statusCode() !in 300..399) {
       throw GradleException("$context failed: expected redirect, got HTTP ${response.statusCode()}")
     }
-    return response.headers().firstValue("Location").orElseGet {
-      response.headers().firstValue("location").orElseThrow {
-        GradleException("$context failed: missing Location header")
+    val location =
+        response.headers().firstValue("Location").orElseGet {
+          response.headers().firstValue("location").orElseThrow {
+            GradleException("$context failed: missing Location header")
+          }
+        }
+    return resolveRedirectUrl(baseUrl = response.uri().toString(), location = location)
+  }
+
+  private fun followRedirectsManually(
+      startUrl: String,
+      context: String,
+      stopAt: (URI) -> Boolean,
+  ): URI {
+    var currentUrl = startUrl
+    repeat(20) {
+      val response =
+          http.sendDiscarding(
+              requestBuilder(currentUrl).GET().build(),
+              followRedirects = false,
+          )
+      val responseUri = response.uri()
+      if (stopAt(responseUri)) {
+        return responseUri
       }
+      currentUrl =
+          nextRedirectUrl(
+              baseUrl = responseUri.toString(),
+              statusCode = response.statusCode(),
+              location =
+                  response.headers().firstValue("Location").orElseGet {
+                    response.headers().firstValue("location").orElse(null)
+                  },
+              context = context,
+          ) ?: return responseUri
     }
+    throw GradleException("$context failed: too many redirects. Last URL: $currentUrl")
   }
 }
 
@@ -661,6 +731,23 @@ private fun requestBuilder(url: String): HttpRequest.Builder =
     HttpRequest.newBuilder(URI.create(url))
         .timeout(Duration.ofSeconds(60))
         .header("User-Agent", "UBAA-Gradle-BHPAN-Uploader")
+
+internal fun resolveRedirectUrl(baseUrl: String, location: String): String =
+    URI.create(baseUrl).resolve(location).toString()
+
+internal fun nextRedirectUrl(
+    baseUrl: String,
+    statusCode: Int,
+    location: String?,
+    context: String,
+): String? {
+  if (statusCode !in 300..399) {
+    return null
+  }
+  val redirectLocation =
+      location ?: throw GradleException("$context failed: missing Location header")
+  return resolveRedirectUrl(baseUrl = baseUrl, location = redirectLocation)
+}
 
 private fun extractExecutionToken(pageBody: String): String =
     extractExecutionTokenOrNull(pageBody)

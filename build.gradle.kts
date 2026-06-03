@@ -1,4 +1,5 @@
 import cn.edu.ubaa.gradle.UploadLatestReleaseToBhpanTask
+import cn.edu.ubaa.gradle.VerifyBhpanReadOnlyTask
 
 plugins {
   // 定义所有子项目通用的插件，并设置 apply false
@@ -47,5 +48,9 @@ spotless {
 
 tasks.register<UploadLatestReleaseToBhpanTask>("uploadLatestReleaseToBhpan") {
   repository.convention("BUAASubnet/UBAA")
+  localPropertiesFile.convention(layout.projectDirectory.file("local.properties"))
+}
+
+tasks.register<VerifyBhpanReadOnlyTask>("verifyBhpanReadOnly") {
   localPropertiesFile.convention(layout.projectDirectory.file("local.properties"))
 }
