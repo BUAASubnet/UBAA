@@ -42,6 +42,21 @@ class SigninClient(
   private var lastLoginError: String? = null
   private val loginMutex = Mutex()
 
+  /** 兼容 iclass 返回的 STATUS/stuSignStatus 等字段可能为字符串或整数的情况。 */
+  private fun jsonStringValue(element: JsonElement?, key: String): String? {
+    val obj = element?.jsonObject ?: return null
+    val prim = obj[key]?.jsonPrimitive ?: return null
+    prim.contentOrNull?.let { return it }
+    prim.intOrNull?.let { return it.toString() }
+    prim.longOrNull?.let { return it.toString() }
+    return null
+  }
+
+  private fun isStatusSuccess(jsonResponse: JsonObject): Boolean {
+    val status = jsonStringValue(jsonResponse, "STATUS")
+    return status == "0" || status == "200" || status == "success"
+  }
+
   private suspend fun ensureSession(): SessionManager.UserSession {
     return sessionManager.requireSession(studentId)
   }
@@ -75,9 +90,9 @@ class SigninClient(
           }
           val body = response.bodyAsText()
           val jsonResponse = json.parseToJsonElement(body).jsonObject
-          if (jsonResponse["STATUS"]?.jsonPrimitive?.intOrNull != 0) {
+          if (!isStatusSuccess(jsonResponse)) {
             lastLoginError =
-                jsonResponse["ERRMSG"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "登录失败"
+                jsonStringValue(jsonResponse, "ERRMSG")?.takeIf { it.isNotBlank() } ?: "登录失败"
             markUnauthenticated()
             return@observeUpstreamRequest false
           }
@@ -96,11 +111,13 @@ class SigninClient(
   private suspend fun resolveLoginName(): String? {
     val noRedirectClient = ensureSession().client.config { followRedirects = false }
     try {
-      var currentUrl = VpnCipher.toVpnUrl(SIGNIN_MY_CENTER_URL)
+      // 参考 UBAANext：保持原始 URL 不变，仅在发请求时做 VPN 包装
+      var rawUrl = SIGNIN_MY_CENTER_URL
+      extractSigninLoginNameFromUrl(rawUrl)?.let { return it }
       repeat(SIGNIN_LOGIN_REDIRECT_LIMIT) {
         val response =
             AppObservability.observeUpstreamRequest("iclass", "sso_jump_my_center") {
-              noRedirectClient.get(currentUrl)
+              noRedirectClient.get(VpnCipher.toVpnUrl(rawUrl))
             }
         val finalUrl = VpnCipher.fromVpnUrl(response.call.request.url.toString())
         extractSigninLoginNameFromUrl(finalUrl)?.let {
@@ -116,7 +133,8 @@ class SigninClient(
         if (response.status.value !in 300..399 || location.isNullOrBlank()) {
           return null
         }
-        currentUrl = VpnCipher.toVpnUrl(resolveSigninRedirectUrl(finalUrl, location) ?: return null)
+        rawUrl = resolveSigninRedirectUrl(finalUrl, location) ?: return null
+        extractSigninLoginNameFromUrl(rawUrl)?.let { loginName -> return loginName }
       }
       return null
     } finally {
@@ -126,6 +144,10 @@ class SigninClient(
 
   /** 获取指定日期的课程排课及签到状态。 */
   suspend fun getClasses(dateStr: String): List<SigninClassDto> {
+    return getClasses(dateStr, allowRetry = true)
+  }
+
+  private suspend fun getClasses(dateStr: String, allowRetry: Boolean): List<SigninClassDto> {
     if (userId == null || sessionId == null) if (!login()) return emptyList()
     return try {
       AppObservability.observeUpstreamRequest("iclass", "get_today") {
@@ -140,9 +162,15 @@ class SigninClient(
               parameter("dateStr", dateStr)
             }
         val body = response.bodyAsText()
-        val result =
-            json.parseToJsonElement(body).jsonObject["result"]?.jsonArray
-                ?: return@observeUpstreamRequest emptyList()
+        val jsonResponse = json.parseToJsonElement(body).jsonObject
+        if (jsonResponse.containsKey("STATUS") && !isStatusSuccess(jsonResponse)) {
+          if (allowRetry) {
+            markUnauthenticated()
+            if (login()) return@observeUpstreamRequest getClasses(dateStr, allowRetry = false)
+          }
+          return@observeUpstreamRequest emptyList()
+        }
+        val result = jsonResponse["result"]?.jsonArray ?: return@observeUpstreamRequest emptyList()
         result.map {
           val obj = it.jsonObject
           SigninClassDto(
@@ -150,7 +178,7 @@ class SigninClient(
               courseName = obj["courseName"]?.jsonPrimitive?.content ?: "",
               classBeginTime = obj["classBeginTime"]?.jsonPrimitive?.content ?: "",
               classEndTime = obj["classEndTime"]?.jsonPrimitive?.content ?: "",
-              signStatus = obj["signStatus"]?.jsonPrimitive?.intOrNull ?: 0,
+              signStatus = jsonStringValue(obj, "signStatus")?.toIntOrNull() ?: 0,
           )
         }
       }
@@ -161,6 +189,10 @@ class SigninClient(
 
   /** 提交签到请求。 */
   suspend fun signIn(courseId: String): Pair<Boolean, String> {
+    return signIn(courseId, allowRetry = true)
+  }
+
+  private suspend fun signIn(courseId: String, allowRetry: Boolean): Pair<Boolean, String> {
     if (userId == null || sessionId == null)
         if (!login()) {
           val error = lastLoginError ?: "iclass 登录失败"
@@ -197,16 +229,17 @@ class SigninClient(
             }
         val jsonResponse = json.parseToJsonElement(response.bodyAsText()).jsonObject
         val success =
-            jsonResponse["STATUS"]?.jsonPrimitive?.intOrNull == 0 &&
-                jsonResponse["result"]
-                    ?.jsonObject
-                    ?.get("stuSignStatus")
-                    ?.jsonPrimitive
-                    ?.intOrNull == 1
+            isStatusSuccess(jsonResponse) &&
+                jsonStringValue(jsonResponse["result"]?.jsonObject, "stuSignStatus") == "1"
+        val rawMessage = jsonStringValue(jsonResponse, "ERRMSG")
         if (!success) {
+          if (allowRetry && rawMessage?.contains("登录") == true) {
+            markUnauthenticated()
+            if (login()) return@observeUpstreamRequest signIn(courseId, allowRetry = false)
+          }
           markError()
         }
-        success to sanitizeSignInMessage(success, jsonResponse["ERRMSG"]?.jsonPrimitive?.content)
+        success to sanitizeSignInMessage(success, rawMessage)
       }
     } catch (e: Exception) {
       false to "签到失败，请稍后重试"

@@ -23,10 +23,13 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 internal class LocalSigninApiBackend : SigninApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
@@ -38,7 +41,26 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     sessionCache.clear()
   }
 
+  /** 兼容 iclass 返回的 STATUS/stuSignStatus 等字段可能为字符串或整数的情况。 */
+  private fun jsonStringValue(element: JsonElement?, key: String): String? {
+    val obj = element?.jsonObject ?: return null
+    val prim = obj[key]?.jsonPrimitive ?: return null
+    prim.contentOrNull?.let { return it }
+    prim.intOrNull?.let { return it.toString() }
+    prim.longOrNull?.let { return it.toString() }
+    return null
+  }
+
+  private fun isStatusSuccess(jsonResponse: JsonObject): Boolean {
+    val status = jsonStringValue(jsonResponse, "STATUS")
+    return status == "0" || status == "200" || status == "success"
+  }
+
   override suspend fun getTodayClasses(): Result<SigninStatusResponse> {
+    return getTodayClasses(allowRetry = true)
+  }
+
+  private suspend fun getTodayClasses(allowRetry: Boolean): Result<SigninStatusResponse> {
     val authSession =
         LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val signinSession = runCatching { currentSession(authSession.studentId()) }.getOrNull()
@@ -61,6 +83,14 @@ internal class LocalSigninApiBackend : SigninApiBackend {
         return Result.success(SigninStatusResponse(code = 200, message = "获取成功"))
       }
       val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
+      if (payload.containsKey("STATUS") && !isStatusSuccess(payload)) {
+        if (allowRetry) {
+          invalidateSession(authSession.studentId())
+          val refreshed = runCatching { currentSession(authSession.studentId()) }.getOrNull()
+          if (refreshed != null) return getTodayClasses(allowRetry = false)
+        }
+        return Result.success(SigninStatusResponse(code = 200, message = "获取成功"))
+      }
       val classes = payload["result"]?.jsonArray?.map(::mapSigninClass).orEmpty()
       Result.success(SigninStatusResponse(code = 200, message = "获取成功", data = classes))
     } catch (_: Exception) {
@@ -69,6 +99,13 @@ internal class LocalSigninApiBackend : SigninApiBackend {
   }
 
   override suspend fun performSignin(courseId: String): Result<SigninActionResponse> {
+    return performSignin(courseId, allowRetry = true)
+  }
+
+  private suspend fun performSignin(
+      courseId: String,
+      allowRetry: Boolean,
+  ): Result<SigninActionResponse> {
     val authSession =
         LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
     val signinSession = runCatching { currentSession(authSession.studentId()) }.getOrNull()
@@ -109,14 +146,21 @@ internal class LocalSigninApiBackend : SigninApiBackend {
           }
       val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
       val success =
-          payload["STATUS"]?.jsonPrimitive?.intOrNull == 0 &&
-              payload["result"]?.jsonObject?.get("stuSignStatus")?.jsonPrimitive?.intOrNull == 1
+          isStatusSuccess(payload) &&
+              jsonStringValue(payload["result"]?.jsonObject, "stuSignStatus") == "1"
+      val rawMessage = jsonStringValue(payload, "ERRMSG")
+      if (!success) {
+        if (allowRetry && rawMessage?.contains("登录") == true) {
+          invalidateSession(authSession.studentId())
+          val refreshed = runCatching { currentSession(authSession.studentId()) }.getOrNull()
+          if (refreshed != null) return performSignin(courseId, allowRetry = false)
+        }
+      }
       Result.success(
           SigninActionResponse(
               code = if (success) 200 else 400,
               success = success,
-              message =
-                  sanitizeLocalSigninMessage(success, payload["ERRMSG"]?.jsonPrimitive?.content),
+              message = sanitizeLocalSigninMessage(success, rawMessage),
           )
       )
     } catch (_: Exception) {
@@ -132,6 +176,10 @@ internal class LocalSigninApiBackend : SigninApiBackend {
         }
     val created = login(studentId) ?: return null
     return sessionMutex.withLock { sessionCache.getOrPut(studentId) { created } }
+  }
+
+  private fun invalidateSession(studentId: String) {
+    sessionCache.remove(studentId)
   }
 
   private suspend fun login(studentId: String): LocalSigninSession? {
@@ -151,9 +199,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     }
 
     val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
-    if (payload["STATUS"]?.jsonPrimitive?.intOrNull != 0) {
+    if (!isStatusSuccess(payload)) {
       loginLastError =
-          payload["ERRMSG"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "登录失败"
+          jsonStringValue(payload, "ERRMSG")?.takeIf { it.isNotBlank() } ?: "登录失败"
       return null
     }
 
@@ -167,9 +215,11 @@ internal class LocalSigninApiBackend : SigninApiBackend {
   private suspend fun resolveLoginName(): String? {
     val client = LocalUpstreamClientProvider.newNoRedirectClient()
     return try {
-      var currentUrl = localUpstreamUrl(SIGNIN_MY_CENTER_URL)
+      // 参考 UBAANext：保持原始 URL 不变，仅在发请求时做 VPN 包装
+      var rawUrl = SIGNIN_MY_CENTER_URL
+      extractSigninLoginNameFromUrl(rawUrl)?.let { return it }
       repeat(SIGNIN_LOGIN_REDIRECT_LIMIT) {
-        val response = client.get(currentUrl)
+        val response = client.get(localUpstreamUrl(rawUrl))
         val finalUrl = LocalWebVpnSupport.fromWebVpnUrl(response.call.request.url.toString())
         extractSigninLoginNameFromUrl(finalUrl)?.let {
           return it
@@ -185,7 +235,8 @@ internal class LocalSigninApiBackend : SigninApiBackend {
         if (response.status.value !in 300..399 || location.isNullOrBlank()) {
           return null
         }
-        currentUrl = localUpstreamUrl(resolveSigninRedirectUrl(finalUrl, location) ?: return null)
+        rawUrl = resolveSigninRedirectUrl(finalUrl, location) ?: return null
+        extractSigninLoginNameFromUrl(rawUrl)?.let { loginName -> return loginName }
       }
       null
     } finally {
@@ -206,8 +257,16 @@ private fun mapSigninClass(element: JsonElement): SigninClassDto {
       courseName = payload["courseName"]?.jsonPrimitive?.content ?: "",
       classBeginTime = payload["classBeginTime"]?.jsonPrimitive?.content ?: "",
       classEndTime = payload["classEndTime"]?.jsonPrimitive?.content ?: "",
-      signStatus = payload["signStatus"]?.jsonPrimitive?.intOrNull ?: 0,
+      signStatus = flexibleIntValue(payload, "signStatus"),
   )
+}
+
+/** 兼容字段可能为字符串或整数的情况，统一返回 Int。 */
+private fun flexibleIntValue(obj: JsonObject, key: String): Int {
+  val prim = obj[key]?.jsonPrimitive ?: return 0
+  prim.intOrNull?.let { return it }
+  prim.contentOrNull?.toIntOrNull()?.let { return it }
+  return 0
 }
 
 private fun LocalAuthSession.studentId(): String = user.schoolid.ifBlank { username }
