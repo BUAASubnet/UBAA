@@ -12,12 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.edu.ubaa.api.ConnectionMode
 import cn.edu.ubaa.api.ConnectionRuntime
@@ -95,19 +95,18 @@ fun App() {
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner, uiState.isLoggedIn) {
       var wasInBackground = false
-      val observer =
-          LifecycleEventObserver { _, event ->
-            when (event) {
-              Lifecycle.Event.ON_STOP -> wasInBackground = true
-              Lifecycle.Event.ON_RESUME -> {
-                if (wasInBackground) {
-                  wasInBackground = false
-                  if (uiState.isLoggedIn) authViewModel.validateSession()
-                }
-              }
-              else -> {}
+      val observer = LifecycleEventObserver { _, event ->
+        when (event) {
+          Lifecycle.Event.ON_STOP -> wasInBackground = true
+          Lifecycle.Event.ON_RESUME -> {
+            if (wasInBackground) {
+              wasInBackground = false
+              if (uiState.isLoggedIn) authViewModel.validateSession()
             }
           }
+          else -> {}
+        }
+      }
       lifecycleOwner.lifecycle.addObserver(observer)
       try {
         awaitCancellation()

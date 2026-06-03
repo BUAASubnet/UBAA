@@ -276,10 +276,7 @@ class AuthViewModel(
     }
   }
 
-  /**
-   * 前台恢复时验证当前会话是否仍然有效。
-   * 如果会话过期或网络暂时不可用，根据错误类型决定保留还是清除会话。
-   */
+  /** 前台恢复时验证当前会话是否仍然有效。 如果会话过期或网络暂时不可用，根据错误类型决定保留还是清除会话。 */
   fun validateSession() {
     if (!_uiState.value.isLoggedIn) return
     viewModelScope.launch {
