@@ -46,9 +46,15 @@ class SigninClient(
   private fun jsonStringValue(element: JsonElement?, key: String): String? {
     val obj = element?.jsonObject ?: return null
     val prim = obj[key]?.jsonPrimitive ?: return null
-    prim.contentOrNull?.let { return it }
-    prim.intOrNull?.let { return it.toString() }
-    prim.longOrNull?.let { return it.toString() }
+    prim.contentOrNull?.let {
+      return it
+    }
+    prim.intOrNull?.let {
+      return it.toString()
+    }
+    prim.longOrNull?.let {
+      return it.toString()
+    }
     return null
   }
 
@@ -113,7 +119,9 @@ class SigninClient(
     try {
       // 参考 UBAANext：保持原始 URL 不变，仅在发请求时做 VPN 包装
       var rawUrl = SIGNIN_MY_CENTER_URL
-      extractSigninLoginNameFromUrl(rawUrl)?.let { return it }
+      extractSigninLoginNameFromUrl(rawUrl)?.let {
+        return it
+      }
       repeat(SIGNIN_LOGIN_REDIRECT_LIMIT) {
         val response =
             AppObservability.observeUpstreamRequest("iclass", "sso_jump_my_center") {
@@ -134,7 +142,9 @@ class SigninClient(
           return null
         }
         rawUrl = resolveSigninRedirectUrl(finalUrl, location) ?: return null
-        extractSigninLoginNameFromUrl(rawUrl)?.let { loginName -> return loginName }
+        extractSigninLoginNameFromUrl(rawUrl)?.let { loginName ->
+          return loginName
+        }
       }
       return null
     } finally {

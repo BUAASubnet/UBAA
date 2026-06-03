@@ -228,7 +228,8 @@ abstract class VerifyBhpanReadOnlyTask : DefaultTask() {
 
   init {
     group = "verification"
-    description = "Authenticates with BUAA Cloud Disk and lists the configured folder without changing files."
+    description =
+        "Authenticates with BUAA Cloud Disk and lists the configured folder without changing files."
     outputs.upToDateWhen { false }
   }
 
@@ -296,7 +297,9 @@ private class BhpanClient(
         followRedirectsManually(
             startUrl = "$BHPAN_URL/anyshare/oauth2/login?redirect=%2Fanyshare%2Fzh-cn%2Fportal",
             context = "OAuth2 login",
-        ) { uri -> uri.path == "/oauth2/signin" || uri.path == "/anyshare/oauth2/login/callback" }
+        ) { uri ->
+          uri.path == "/oauth2/signin" || uri.path == "/anyshare/oauth2/login/callback"
+        }
 
     if (initialUrl.path == "/oauth2/signin") {
       val loginChallenge =
@@ -306,10 +309,11 @@ private class BhpanClient(
 
       val callbackUrl =
           followRedirectsManually(
-              startUrl =
-                  "$SSO_URL/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin",
+              startUrl = "$SSO_URL/login?service=https%3A%2F%2Fbhpan.buaa.edu.cn%2Foauth2%2Fsignin",
               context = "OAuth2 SSO callback",
-          ) { uri -> uri.path == "/anyshare/oauth2/login/callback" }
+          ) { uri ->
+            uri.path == "/anyshare/oauth2/login/callback"
+          }
       if (callbackUrl.path != "/anyshare/oauth2/login/callback") {
         throw GradleException("OAuth2 redirect did not land on callback. Got: $callbackUrl")
       }
@@ -317,7 +321,9 @@ private class BhpanClient(
       followRedirectsManually(
           startUrl = "$BHPAN_URL/anyshare/oauth2/login/refreshToken",
           context = "OAuth2 refresh token",
-      ) { uri -> uri.path == "/anyshare/oauth2/login/refreshToken" }
+      ) { uri ->
+        uri.path == "/anyshare/oauth2/login/refreshToken"
+      }
     } else {
       throw GradleException("OAuth2 redirect did not land on callback. Got: $initialUrl")
     }

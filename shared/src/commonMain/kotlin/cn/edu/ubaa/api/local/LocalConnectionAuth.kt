@@ -681,18 +681,24 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       if (loginPageResponse.status.value in 300..399) {
         // 已有直连会话，跟随重定向激活即可
         followRedirectsAndCheckError(loginPageResponse, directClient)
-        directClient.get("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
+        directClient.get(
+            "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+        )
         return
       }
       if (loginPageResponse.status != HttpStatusCode.OK) return
 
       val loginPageHtml = loginPageResponse.bodyAsText()
-      val execution = LocalCasParser.extractExecution(loginPageHtml).takeIf { it.isNotBlank() } ?: return
+      val execution =
+          LocalCasParser.extractExecution(loginPageHtml).takeIf { it.isNotBlank() } ?: return
       val request = LoginRequest(username = username, password = password, execution = execution)
       val parameters = LocalCasParser.buildCasLoginParameters(loginPageHtml, request)
-      val submitResponse = directClient.post(directLoginUrl) { setBody(FormDataContent(parameters)) }
+      val submitResponse =
+          directClient.post(directLoginUrl) { setBody(FormDataContent(parameters)) }
       followRedirectsAndCheckError(submitResponse, directClient)
-      directClient.get("https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin")
+      directClient.get(
+          "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+      )
     } catch (_: Exception) {
       // 直连 SSO 会话建立失败不影响主登录流程
     } finally {

@@ -4,8 +4,8 @@ import cn.edu.ubaa.api.core.DefaultApiFactory
 import cn.edu.ubaa.api.feature.CgyyApi
 import cn.edu.ubaa.api.local.LocalAuthServiceBackend
 import cn.edu.ubaa.api.local.LocalAuthSessionStore
-import cn.edu.ubaa.api.local.LocalCookieStore
 import cn.edu.ubaa.api.local.LocalCgyySigner
+import cn.edu.ubaa.api.local.LocalCookieStore
 import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
 import cn.edu.ubaa.api.local.LocalWebVpnSupport
 import cn.edu.ubaa.api.local.localCgyyUpstreamUrl
@@ -132,19 +132,19 @@ class LocalCgyyRealIntegrationTest {
     )
 
     val storage = LocalCookieStore.storage(ConnectionMode.DIRECT)
-    val storedCookies = storage.get(Url(localCgyyUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs-server/")))
+    val storedCookies =
+        storage.get(Url(localCgyyUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs-server/")))
     println("REAL_WEBVPN_CGYY storedCookies=${storedCookies.map { it.name }}")
     val ssoToken =
-        setCookieHeaders
-            .firstNotNullOfOrNull { header ->
-              header
-                  .substringBefore(';')
-                  .split('=', limit = 2)
-                  .takeIf { it.size == 2 && it[0].trim() == "sso_buaa_zhjs_token" }
-                  ?.get(1)
-                  ?.trim()
-                  ?.takeIf { it.isNotBlank() }
-            }
+        setCookieHeaders.firstNotNullOfOrNull { header ->
+          header
+              .substringBefore(';')
+              .split('=', limit = 2)
+              .takeIf { it.size == 2 && it[0].trim() == "sso_buaa_zhjs_token" }
+              ?.get(1)
+              ?.trim()
+              ?.takeIf { it.isNotBlank() }
+        }
             ?: storedCookies.firstOrNull { it.name == "sso_buaa_zhjs_token" }?.value
             ?: storedCookies.firstOrNull { it.name == "refresh" }?.value
     println("REAL_WEBVPN_CGYY ssoTokenPresent=${!ssoToken.isNullOrBlank()}")
@@ -154,20 +154,21 @@ class LocalCgyyRealIntegrationTest {
     val timestamp = Clock.System.now().toEpochMilliseconds()
     val sign = signer.sign("/api/login", emptyMap(), timestamp)
     val loginResponse =
-        LocalUpstreamClientProvider.shared()
-            .request(localCgyyUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs-server/api/login")) {
-              method = HttpMethod.Post
-              header(HttpHeaders.Accept, "application/json, text/plain, */*")
-              header(
-                  HttpHeaders.Referrer,
-                  localCgyyUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation"),
-              )
-              header("app-key", signer.appKey)
-              header("timestamp", timestamp.toString())
-              header("sign", sign)
-              header("Sso-Token", ssoToken)
-              setBody(FormDataContent(Parameters.Empty))
-            }
+        LocalUpstreamClientProvider.shared().request(
+            localCgyyUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs-server/api/login")
+        ) {
+          method = HttpMethod.Post
+          header(HttpHeaders.Accept, "application/json, text/plain, */*")
+          header(
+              HttpHeaders.Referrer,
+              localCgyyUpstreamUrl("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation"),
+          )
+          header("app-key", signer.appKey)
+          header("timestamp", timestamp.toString())
+          header("sign", sign)
+          header("Sso-Token", ssoToken)
+          setBody(FormDataContent(Parameters.Empty))
+        }
     val loginBody = loginResponse.bodyAsText()
     println(
         "REAL_WEBVPN_CGYY apiLogin status=${loginResponse.status.value} finalHost=${loginResponse.call.request.url.host} contentType=${loginResponse.headers[HttpHeaders.ContentType].orEmpty()} bodyPrefix=${loginBody.take(160).replace(Regex("\\s+"), " ")}"

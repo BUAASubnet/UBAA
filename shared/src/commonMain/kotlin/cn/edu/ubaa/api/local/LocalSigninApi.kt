@@ -45,9 +45,15 @@ internal class LocalSigninApiBackend : SigninApiBackend {
   private fun jsonStringValue(element: JsonElement?, key: String): String? {
     val obj = element?.jsonObject ?: return null
     val prim = obj[key]?.jsonPrimitive ?: return null
-    prim.contentOrNull?.let { return it }
-    prim.intOrNull?.let { return it.toString() }
-    prim.longOrNull?.let { return it.toString() }
+    prim.contentOrNull?.let {
+      return it
+    }
+    prim.intOrNull?.let {
+      return it.toString()
+    }
+    prim.longOrNull?.let {
+      return it.toString()
+    }
     return null
   }
 
@@ -200,8 +206,7 @@ internal class LocalSigninApiBackend : SigninApiBackend {
 
     val payload = json.parseToJsonElement(response.bodyAsText()).jsonObject
     if (!isStatusSuccess(payload)) {
-      loginLastError =
-          jsonStringValue(payload, "ERRMSG")?.takeIf { it.isNotBlank() } ?: "登录失败"
+      loginLastError = jsonStringValue(payload, "ERRMSG")?.takeIf { it.isNotBlank() } ?: "登录失败"
       return null
     }
 
@@ -217,7 +222,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     return try {
       // 参考 UBAANext：保持原始 URL 不变，仅在发请求时做 VPN 包装
       var rawUrl = SIGNIN_MY_CENTER_URL
-      extractSigninLoginNameFromUrl(rawUrl)?.let { return it }
+      extractSigninLoginNameFromUrl(rawUrl)?.let {
+        return it
+      }
       repeat(SIGNIN_LOGIN_REDIRECT_LIMIT) {
         val response = client.get(localUpstreamUrl(rawUrl))
         val finalUrl = LocalWebVpnSupport.fromWebVpnUrl(response.call.request.url.toString())
@@ -236,7 +243,9 @@ internal class LocalSigninApiBackend : SigninApiBackend {
           return null
         }
         rawUrl = resolveSigninRedirectUrl(finalUrl, location) ?: return null
-        extractSigninLoginNameFromUrl(rawUrl)?.let { loginName -> return loginName }
+        extractSigninLoginNameFromUrl(rawUrl)?.let { loginName ->
+          return loginName
+        }
       }
       null
     } finally {
@@ -264,8 +273,12 @@ private fun mapSigninClass(element: JsonElement): SigninClassDto {
 /** 兼容字段可能为字符串或整数的情况，统一返回 Int。 */
 private fun flexibleIntValue(obj: JsonObject, key: String): Int {
   val prim = obj[key]?.jsonPrimitive ?: return 0
-  prim.intOrNull?.let { return it }
-  prim.contentOrNull?.toIntOrNull()?.let { return it }
+  prim.intOrNull?.let {
+    return it
+  }
+  prim.contentOrNull?.toIntOrNull()?.let {
+    return it
+  }
   return 0
 }
 

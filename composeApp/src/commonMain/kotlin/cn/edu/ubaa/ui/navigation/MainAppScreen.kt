@@ -561,7 +561,9 @@ fun MainAppScreen(
       AppScreen.BYKC_COURSES -> {
         bykcViewModel.ensureProfileLoaded(forceRefresh = true)
         bykcViewModel.ensureCoursesLoaded(
-            includeExpired = bykcCourseFilters.requiresAllCourses(), forceRefresh = true)
+            includeExpired = bykcCourseFilters.requiresAllCourses(),
+            forceRefresh = true,
+        )
       }
       AppScreen.BYKC_CHOSEN -> bykcViewModel.ensureChosenCoursesLoaded(forceRefresh = true)
       AppScreen.BYKC_STATISTICS -> bykcViewModel.ensureStatisticsLoaded(forceRefresh = true)

@@ -49,8 +49,12 @@ fun resolveSigninRedirectUrl(currentUrl: String, location: String): String? {
 
   // WebVPN 网关返回的相对路径（如 /https-8346/encryptedHost/path），
   // 需要拼接为完整 WebVPN URL（https://d.buaa.edu.cn/https-8346/...）
-  if (target.startsWith("/https-") || target.startsWith("/http-") || target.startsWith("/wss-") ||
-      target.startsWith("/ws-")) {
+  if (
+      target.startsWith("/https-") ||
+          target.startsWith("/http-") ||
+          target.startsWith("/wss-") ||
+          target.startsWith("/ws-")
+  ) {
     return "https://d.buaa.edu.cn$target"
   }
 

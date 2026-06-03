@@ -99,8 +99,7 @@ class YgdkViewModel(
   fun resetLoadedState() {
     loadedOnce = false
     overviewLoadedOnce = false
-    _uiState.value =
-        YgdkUiState(homeReminderEnabled = YgdkReminderStore.isEnabled(reminderUserKey))
+    _uiState.value = YgdkUiState(homeReminderEnabled = YgdkReminderStore.isEnabled(reminderUserKey))
   }
 
   fun refreshOverviewOnly() {

@@ -1,7 +1,6 @@
 package cn.edu.ubaa.api.local
 
 import cn.edu.ubaa.api.ConnectionMode
-import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.auth.ApiCallException
 import cn.edu.ubaa.api.auth.toUserFacingApiException
 import cn.edu.ubaa.api.auth.userFacingMessageForCode
