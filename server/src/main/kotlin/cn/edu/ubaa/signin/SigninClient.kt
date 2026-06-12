@@ -213,11 +213,7 @@ class SigninClient(
       val serverTimestamp =
           AppObservability.observeUpstreamRequest("iclass", "get_timestamp") {
             client
-                .get(
-                    VpnCipher.toVpnUrl(
-                        "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
-                    )
-                )
+                .get(signinCheckinUrl("app/common/get_timestamp.action"))
                 .body<JsonObject>()
                 .get("timestamp")
                 ?.jsonPrimitive
@@ -227,10 +223,7 @@ class SigninClient(
       AppObservability.observeUpstreamRequest("iclass", "sign_in") {
         val response =
             client.submitForm(
-                url =
-                    VpnCipher.toVpnUrl(
-                        "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action"
-                    ),
+                url = signinCheckinUrl("eschool/app/course/stu_scan_sign.action"),
                 formParameters = Parameters.build { append("id", userId!!) },
             ) {
               header("sessionId", sessionId)
@@ -269,6 +262,16 @@ class SigninClient(
       "课程" in message && "不存在" in message -> "未找到对应课程，请刷新后重试"
       else -> "签到失败，请稍后重试"
     }
+  }
+
+  private fun signinCheckinUrl(path: String): String {
+    val base =
+        if (VpnCipher.isEnabled) {
+          "https://iclass.buaa.edu.cn:8347"
+        } else {
+          "http://iclass.buaa.edu.cn:8081"
+        }
+    return VpnCipher.toVpnUrl("$base/$path")
   }
 
   fun close() {

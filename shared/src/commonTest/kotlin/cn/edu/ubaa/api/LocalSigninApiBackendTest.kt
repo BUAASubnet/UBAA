@@ -6,6 +6,7 @@ import cn.edu.ubaa.api.local.LocalAuthSession
 import cn.edu.ubaa.api.local.LocalAuthSessionStore
 import cn.edu.ubaa.api.local.LocalCookieStore
 import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
+import cn.edu.ubaa.api.local.LocalWebVpnSupport
 import cn.edu.ubaa.model.dto.UserData
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
@@ -256,7 +257,7 @@ class LocalSigninApiBackendTest {
                     headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         request.url.toString() ==
-            "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
+            "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
             respond(
                 content =
                     ByteReadChannel(
@@ -329,7 +330,7 @@ class LocalSigninApiBackendTest {
                     headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         request.url.toString() ==
-            "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
+            "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
             respond(
                 content =
                     ByteReadChannel(
@@ -445,7 +446,7 @@ class LocalSigninApiBackendTest {
                     headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         request.url.toString() ==
-            "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
+            "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
             respond(
                 content =
                     ByteReadChannel(
@@ -511,7 +512,9 @@ class LocalSigninApiBackendTest {
             )
         request.url
             .toString()
-            .startsWith("http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action") -> {
+            .startsWith(
+                "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action"
+            ) -> {
           signinRequests++
           if (signinRequests == 1) {
             // First attempt: session expired
@@ -545,6 +548,91 @@ class LocalSigninApiBackendTest {
     assertEquals(true, result.getOrNull()?.success, "should succeed after retry")
     assertEquals("签到成功", result.getOrNull()?.message)
     assertEquals(2, signinRequests, "should have retried once")
+  }
+
+  @Test
+  fun `webvpn signin uses iclass 8347 endpoint for timestamp and submit`() = runTest {
+    ConnectionModeStore.save(ConnectionMode.WEBVPN)
+    ConnectionRuntime.resolveSelectedMode()
+    LocalAuthSessionStore.save(
+        LocalAuthSession(
+            username = "22373333",
+            user = UserData(name = "Test User", schoolid = "22373333"),
+            authenticatedAt = "2026-04-20T08:00:00Z",
+            lastActivity = "2026-04-20T08:30:00Z",
+        )
+    )
+    val loginName = "Rjc1QkJDMUMxNzVENkY0NkZCNzFDMEM5RjYwNzg4RDg="
+    val observedUpstreamUrls = mutableListOf<String>()
+    val engine = MockEngine { request ->
+      val upstreamUrl = LocalWebVpnSupport.fromWebVpnUrl(request.url.toString())
+      observedUpstreamUrls += upstreamUrl
+      when {
+        upstreamUrl == "https://iclass.buaa.edu.cn:8346/?type=jumpMyCenter" ||
+            upstreamUrl == "https://iclass.buaa.edu.cn:8346?type=jumpMyCenter" ->
+            respond(
+                content = ByteReadChannel(""),
+                status = HttpStatusCode.Found,
+                headers =
+                    headersOf(
+                        HttpHeaders.Location,
+                        "https://iclass.buaa.edu.cn:8346/?loginName=$loginName&type=jumpMyCenter#/MyCenter",
+                    ),
+            )
+        upstreamUrl.startsWith("https://iclass.buaa.edu.cn:8347/app/user/login.action") -> {
+          assertEquals(loginName, request.url.parameters["phone"])
+          respond(
+              content =
+                  ByteReadChannel(
+                      """{"STATUS":"0","result":{"id":"user-1","sessionId":"session-1"}}"""
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+          )
+        }
+        upstreamUrl == "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action" ->
+            respond(
+                content = ByteReadChannel("""{"timestamp":"1713600000"}"""),
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        upstreamUrl ==
+            "https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
+            respond(
+                content =
+                    ByteReadChannel(
+                        """{"STATUS":"0","ERRMSG":"签到成功","result":{"stuSignStatus":"1"}}"""
+                    ),
+                status = HttpStatusCode.OK,
+                headers =
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        else -> error("Unexpected url: ${request.url} upstream=$upstreamUrl")
+      }
+    }
+    useMockUpstream(engine)
+
+    val result = SigninApi().performSignin("course-1")
+
+    assertTrue(result.isSuccess, result.exceptionOrNull()?.message.orEmpty())
+    assertEquals(
+        true,
+        result.getOrNull()?.success,
+        "response=${result.getOrNull()} observed=$observedUpstreamUrls",
+    )
+    assertTrue(
+        observedUpstreamUrls.any {
+          it == "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action"
+        },
+        "timestamp should use iclass 8347 in webvpn mode",
+    )
+    assertTrue(
+        observedUpstreamUrls.any {
+          it.startsWith("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")
+        },
+        "signin submit should use iclass 8347 eschool endpoint in webvpn mode",
+    )
   }
 
   private fun useMockUpstream(engine: MockEngine) {

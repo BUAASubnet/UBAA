@@ -1,5 +1,7 @@
 package cn.edu.ubaa.api.local
 
+import cn.edu.ubaa.api.ConnectionMode
+import cn.edu.ubaa.api.ConnectionRuntime
 import cn.edu.ubaa.api.SIGNIN_LOGIN_REDIRECT_LIMIT
 import cn.edu.ubaa.api.SIGNIN_MY_CENTER_URL
 import cn.edu.ubaa.api.extractSigninLoginNameFromUrl
@@ -124,9 +126,7 @@ internal class LocalSigninApiBackend : SigninApiBackend {
     return try {
       val timestamp =
           LocalUpstreamClientProvider.shared()
-              .get(
-                  localUpstreamUrl("http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action")
-              )
+              .get(localSigninCheckinUrl("app/common/get_timestamp.action"))
               .bodyAsText()
               .let(json::parseToJsonElement)
               .jsonObject["timestamp"]
@@ -140,10 +140,7 @@ internal class LocalSigninApiBackend : SigninApiBackend {
 
       val response =
           LocalUpstreamClientProvider.shared().submitForm(
-              url =
-                  localUpstreamUrl(
-                      "http://iclass.buaa.edu.cn:8081/app/course/stu_scan_sign.action"
-                  ),
+              url = localSigninCheckinUrl("eschool/app/course/stu_scan_sign.action"),
               formParameters = Parameters.build { append("id", signinSession.userId) },
           ) {
             header("sessionId", signinSession.sessionId)
@@ -258,6 +255,15 @@ private data class LocalSigninSession(
     val userId: String,
     val sessionId: String,
 )
+
+private fun localSigninCheckinUrl(path: String): String {
+  val base =
+      when (ConnectionRuntime.currentMode()) {
+        ConnectionMode.WEBVPN -> "https://iclass.buaa.edu.cn:8347"
+        else -> "http://iclass.buaa.edu.cn:8081"
+      }
+  return localUpstreamUrl("$base/$path")
+}
 
 private fun mapSigninClass(element: JsonElement): SigninClassDto {
   val payload = element.jsonObject
