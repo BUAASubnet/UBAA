@@ -482,7 +482,7 @@ class LocalCgyyApiBackendTest {
   }
 
   @Test
-  fun `cgyy api uses webvpn wrapped urls when current mode is webvpn`() = runTest {
+  fun `cgyy api keeps direct urls when current mode is webvpn`() = runTest {
     ConnectionModeStore.save(ConnectionMode.WEBVPN)
     ConnectionRuntime.resolveSelectedMode()
     LocalAuthSessionStore.save(
@@ -497,8 +497,8 @@ class LocalCgyyApiBackendTest {
     val engine = MockEngine { request ->
       requestedUrls += request.url.toString()
       when {
-        request.url.host == "d.buaa.edu.cn" &&
-            request.url.encodedPath.endsWith("/sso/manageLogin") ->
+        request.url.host == "cgyy.buaa.edu.cn" &&
+            request.url.encodedPath == "/venue-zhjs-server/sso/manageLogin" ->
             respond(
                 content = ByteReadChannel.Empty,
                 status = HttpStatusCode.OK,
@@ -508,7 +508,8 @@ class LocalCgyyApiBackendTest {
                         "sso_buaa_zhjs_token=sso-token; Path=/; HttpOnly",
                     ),
             )
-        request.url.host == "d.buaa.edu.cn" && request.url.encodedPath.endsWith("/api/login") ->
+        request.url.host == "cgyy.buaa.edu.cn" &&
+            request.url.encodedPath == "/venue-zhjs-server/api/login" ->
             respondJson(
                 """
                 {
@@ -523,8 +524,8 @@ class LocalCgyyApiBackendTest {
                 """
                     .trimIndent()
             )
-        request.url.host == "d.buaa.edu.cn" &&
-            request.url.encodedPath.endsWith("/api/front/website/venues") ->
+        request.url.host == "cgyy.buaa.edu.cn" &&
+            request.url.encodedPath == "/venue-zhjs-server/api/front/website/venues" ->
             respondJson(
                 """
                 {
@@ -559,7 +560,7 @@ class LocalCgyyApiBackendTest {
 
     assertTrue(result.isSuccess, result.exceptionOrNull()?.message.orEmpty())
     assertEquals(202, result.getOrNull()?.singleOrNull()?.id)
-    assertTrue(requestedUrls.all { it.startsWith("https://d.buaa.edu.cn/") })
+    assertTrue(requestedUrls.all { it.startsWith("https://cgyy.buaa.edu.cn/") })
   }
 
   @Test
@@ -666,6 +667,13 @@ class LocalCgyyApiBackendTest {
                       ?: ConnectionMode.DIRECT
               )
         }
+      }
+    }
+    LocalUpstreamClientProvider.isolatedClientFactory = { followRedirects, cookieStorage ->
+      HttpClient(engine) {
+        this.followRedirects = followRedirects
+        install(ContentNegotiation) { json(this@LocalCgyyApiBackendTest.json) }
+        install(HttpCookies) { storage = cookieStorage }
       }
     }
   }
