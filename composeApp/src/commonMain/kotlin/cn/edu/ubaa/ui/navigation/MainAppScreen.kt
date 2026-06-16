@@ -44,6 +44,7 @@ import cn.edu.ubaa.ui.screens.exam.ExamScreen
 import cn.edu.ubaa.ui.screens.exam.ExamUiState
 import cn.edu.ubaa.ui.screens.exam.ExamViewModel
 import cn.edu.ubaa.ui.screens.grade.GradeScreen
+import cn.edu.ubaa.ui.screens.grade.GradeScoreWatchViewModel
 import cn.edu.ubaa.ui.screens.grade.GradeUiState
 import cn.edu.ubaa.ui.screens.grade.GradeViewModel
 import cn.edu.ubaa.ui.screens.judge.JudgeAssignmentDetailScreen
@@ -188,6 +189,11 @@ fun MainAppScreen(
         null
       }
   val gradeUiState = gradeViewModel?.uiState?.collectAsState()?.value ?: GradeUiState()
+  val gradeScoreWatchViewModel: GradeScoreWatchViewModel =
+      viewModel(key = "grade-score-watch-${userData.schoolid}") {
+        GradeScoreWatchViewModel(userKey = userData.schoolid)
+      }
+  val gradeScoreWatchUiState by gradeScoreWatchViewModel.uiState.collectAsState()
 
   val signinViewModel: SigninViewModel =
       viewModel(key = "signin-${userData.schoolid}") { SigninViewModel() }
@@ -303,7 +309,8 @@ fun MainAppScreen(
     if (shouldLoadYgdkHomeOverview && ygdkUiState.isLoading) add(HomeTodoSource.YGDK)
   }
   val homeTodoLoading = homeTodoLoadingSources.isNotEmpty()
-  val homeContentLoading = todayScheduleState.isLoading || homeTodoLoading
+  val homeContentLoading =
+      todayScheduleState.isLoading || homeTodoLoading || gradeScoreWatchUiState.isLoading
   val homeIsRefreshing =
       homeManualRefreshPending &&
           (homeManualRefreshStarted || homeBootstrapRunning || homeContentLoading)
@@ -326,7 +333,8 @@ fun MainAppScreen(
             !bykcViewModel.hasChosenCoursesLoaded() ||
             cgyyViewModel?.hasOrdersLoaded() != true ||
             !scheduleViewModel.hasCurrentWeekLoaded() ||
-            (shouldLoadYgdkHomeOverview && ygdkViewModel.hasOverviewLoaded() != true)
+            (shouldLoadYgdkHomeOverview && ygdkViewModel.hasOverviewLoaded() != true) ||
+            !gradeScoreWatchViewModel.hasChecked()
     homeBootstrapCoordinator.restart(
         HomeBootstrapActions(
             loadTodaySchedule = { force ->
@@ -342,6 +350,9 @@ fun MainAppScreen(
               if (shouldLoadYgdkHomeOverview) {
                 ygdkViewModel.ensureOverviewLoaded(forceRefresh = force)
               }
+            },
+            checkGradeScores = { force ->
+              gradeScoreWatchViewModel.checkForUpdates(forceRefresh = force)
             },
         ),
         forceRefresh = forceRefresh,
@@ -494,6 +505,11 @@ fun MainAppScreen(
     }
   }
 
+  fun openScoresFromHomeNotice() {
+    gradeScoreWatchViewModel.consumeNotice()
+    navigateTo(AppScreen.GRADE)
+  }
+
   LaunchedEffect(
       ygdkUiState.overview,
       ygdkWeekReminderKey,
@@ -550,6 +566,7 @@ fun MainAppScreen(
     ygdkViewModel?.resetLoadedState()
     examViewModel?.resetLoadedState()
     gradeViewModel?.resetLoadedState()
+    gradeScoreWatchViewModel.resetLoadedState()
     evaluationViewModel?.resetLoadedState()
     libBookViewModel?.resetLoadedState()
     // 刷新当前页面数据
@@ -783,8 +800,11 @@ fun MainAppScreen(
                   todoFailedSources = homeTodoFailedSources,
                   signingTodoId =
                       signinUiState.signingInCourseId?.let { courseId -> "signin:$courseId" },
+                  scoreUpdateNotice = gradeScoreWatchUiState.notice,
                   onRetrySchedule = { scheduleViewModel.loadTodaySchedule() },
                   onRefresh = { refreshHomeData() },
+                  onOpenScoresClick = { openScoresFromHomeNotice() },
+                  onDismissScoreNotice = { gradeScoreWatchViewModel.consumeNotice() },
                   onTodoClick = { todoItem -> handleHomeTodoClick(todoItem) },
                   onSigninTodoClick = { courseId -> signinViewModel.performSignin(courseId) },
               )

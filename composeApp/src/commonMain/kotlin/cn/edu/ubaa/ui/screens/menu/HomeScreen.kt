@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cn.edu.ubaa.model.dto.TodayClass
+import cn.edu.ubaa.ui.screens.grade.GradeScoreUpdateNotice
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.datetime.TimeZone
@@ -61,8 +62,11 @@ internal fun HomeScreen(
     todoLoadingSources: List<HomeTodoSource>,
     todoFailedSources: List<HomeTodoSource>,
     signingTodoId: String?,
+    scoreUpdateNotice: GradeScoreUpdateNotice?,
     onRetrySchedule: () -> Unit,
     onRefresh: () -> Unit,
+    onOpenScoresClick: () -> Unit,
+    onDismissScoreNotice: () -> Unit,
     onTodoClick: (HomeTodoItem) -> Unit,
     onSigninTodoClick: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -100,6 +104,16 @@ internal fun HomeScreen(
               text = "${today.month.ordinal + 1}月${today.day}日",
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+      }
+
+      if (scoreUpdateNotice != null) {
+        item {
+          HomeScoreUpdateBanner(
+              notice = scoreUpdateNotice,
+              onOpenScoresClick = onOpenScoresClick,
+              onDismiss = onDismissScoreNotice,
           )
         }
       }
@@ -464,6 +478,47 @@ private fun HomeInfoBanner(message: String) {
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
     )
+  }
+}
+
+@Composable
+private fun HomeScoreUpdateBanner(
+    notice: GradeScoreUpdateNotice,
+    onOpenScoresClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+  val title =
+      if (notice.changedCount == 1) {
+        "${notice.changedScores.first().courseName} 成绩已更新"
+      } else {
+        "${notice.termName} 有 ${notice.changedCount} 门成绩更新"
+      }
+  Surface(
+      modifier = Modifier.fillMaxWidth(),
+      color = MaterialTheme.colorScheme.primaryContainer,
+      contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+      shape = MaterialTheme.shapes.medium,
+  ) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "前往成绩查询查看最新分数",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+      }
+      TextButton(onClick = onOpenScoresClick) { Text("查看") }
+      TextButton(onClick = onDismiss) { Text("忽略") }
+    }
   }
 }
 
