@@ -61,16 +61,14 @@ internal constructor(
       _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
       val terms =
-          termsSource
-              .getTerms(forceRefresh)
-              .getOrElse { exception ->
-                _uiState.value =
-                    _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message ?: "检查成绩更新失败",
-                    )
-                return@launch
-              }
+          termsSource.getTerms(forceRefresh).getOrElse { exception ->
+            _uiState.value =
+                _uiState.value.copy(
+                    isLoading = false,
+                    error = exception.message ?: "检查成绩更新失败",
+                )
+            return@launch
+          }
 
       val currentTerm = terms.currentTermOrNull()
       if (currentTerm == null) {
@@ -79,16 +77,14 @@ internal constructor(
       }
 
       val gradeData =
-          gradeSource
-              .getGrades(currentTerm.itemCode)
-              .getOrElse { exception ->
-                _uiState.value =
-                    _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message ?: "检查成绩更新失败",
-                    )
-                return@launch
-              }
+          gradeSource.getGrades(currentTerm.itemCode).getOrElse { exception ->
+            _uiState.value =
+                _uiState.value.copy(
+                    isLoading = false,
+                    error = exception.message ?: "检查成绩更新失败",
+                )
+            return@launch
+          }
 
       val latestCache = gradeData.toScoreCache(currentTerm)
       if (latestCache.scores.isEmpty()) {

@@ -43,8 +43,8 @@ import cn.edu.ubaa.ui.screens.evaluation.EvaluationViewModel
 import cn.edu.ubaa.ui.screens.exam.ExamScreen
 import cn.edu.ubaa.ui.screens.exam.ExamUiState
 import cn.edu.ubaa.ui.screens.exam.ExamViewModel
-import cn.edu.ubaa.ui.screens.grade.GradeScreen
 import cn.edu.ubaa.ui.screens.grade.GradeScoreWatchViewModel
+import cn.edu.ubaa.ui.screens.grade.GradeScreen
 import cn.edu.ubaa.ui.screens.grade.GradeUiState
 import cn.edu.ubaa.ui.screens.grade.GradeViewModel
 import cn.edu.ubaa.ui.screens.judge.JudgeAssignmentDetailScreen
