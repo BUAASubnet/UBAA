@@ -34,6 +34,7 @@ class HomeBootstrapCoordinatorTest {
             "bykc:start:false@0",
             "cgyy:start:false@0",
             "ygdk:start:false@0",
+            "grade:start:false@0",
         ),
         events,
     )
@@ -51,6 +52,7 @@ class HomeBootstrapCoordinatorTest {
             "bykc:start:false@0",
             "cgyy:start:false@0",
             "ygdk:start:false@0",
+            "grade:start:false@0",
             "schedule:end:false@100",
             "signin:end:false@100",
             "spoc:end:false@100",
@@ -58,6 +60,7 @@ class HomeBootstrapCoordinatorTest {
             "bykc:end:false@100",
             "cgyy:end:false@100",
             "ygdk:end:false@100",
+            "grade:end:false@100",
         ),
         events,
     )
@@ -82,6 +85,7 @@ class HomeBootstrapCoordinatorTest {
             "bykc:true@0",
             "cgyy:true@0",
             "ygdk:true@0",
+            "grade:true@0",
         ),
         events,
     )
@@ -118,6 +122,7 @@ class HomeBootstrapCoordinatorTest {
             loadBykc = {},
             loadCgyy = {},
             loadYgdk = {},
+            checkGradeScores = {},
         )
 
     coordinator.restart(actions)
@@ -140,6 +145,7 @@ class HomeBootstrapCoordinatorTest {
         loadBykc = { force -> events += "bykc:$force@${currentTime()}" },
         loadCgyy = { force -> events += "cgyy:$force@${currentTime()}" },
         loadYgdk = { force -> events += "ygdk:$force@${currentTime()}" },
+        checkGradeScores = { force -> events += "grade:$force@${currentTime()}" },
     )
   }
 
@@ -161,6 +167,7 @@ class HomeBootstrapCoordinatorTest {
         loadBykc = { force -> record("bykc", force) },
         loadCgyy = { force -> record("cgyy", force) },
         loadYgdk = { force -> record("ygdk", force) },
+        checkGradeScores = { force -> record("grade", force) },
     )
   }
 }
