@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -44,6 +45,7 @@ fun Sidebar(
     onLogoutClick: () -> Unit,
     onMyClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAppearanceClick: () -> Unit,
     onAboutClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -114,6 +116,10 @@ fun Sidebar(
       Spacer(modifier = Modifier.height(8.dp))
 
       SidebarMenuItem(icon = Icons.Default.Settings, title = "设置", onClick = onSettingsClick)
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      SidebarMenuItem(icon = Icons.Default.Brush, title = "外观设置", onClick = onAppearanceClick)
 
       Spacer(modifier = Modifier.height(8.dp))
 

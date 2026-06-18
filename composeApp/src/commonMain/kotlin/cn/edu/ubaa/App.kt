@@ -1,6 +1,7 @@
 package cn.edu.ubaa
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
@@ -11,7 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,11 +29,14 @@ import cn.edu.ubaa.api.auth.AppAnnouncement
 import cn.edu.ubaa.api.auth.AppVersionCheckResponse
 import cn.edu.ubaa.api.auth.UpdateService
 import cn.edu.ubaa.api.storage.AnnouncementReadStore
+import cn.edu.ubaa.api.storage.StoredThemePreferences
+import cn.edu.ubaa.api.storage.ThemePreferenceStore
 import cn.edu.ubaa.ui.common.components.ReleaseNotesText
 import cn.edu.ubaa.ui.navigation.MainAppScreen
 import cn.edu.ubaa.ui.screens.auth.AuthViewModel
 import cn.edu.ubaa.ui.screens.auth.ConnectionModeSelectionScreen
 import cn.edu.ubaa.ui.screens.auth.LoginScreen
+import cn.edu.ubaa.ui.screens.menu.ThemeMode
 import cn.edu.ubaa.ui.screens.splash.SplashScreen
 import cn.edu.ubaa.ui.theme.PreloadFonts
 import cn.edu.ubaa.ui.theme.UBAATheme
@@ -52,7 +58,39 @@ fun App() {
   // 预加载应用所需的中文字体
   PreloadFonts()
 
-  UBAATheme {
+  val systemDarkTheme = isSystemInDarkTheme()
+  val storedThemePreferences = remember { ThemePreferenceStore.get() }
+  var themeMode by rememberSaveable {
+    mutableStateOf(ThemeMode.fromStorageKey(storedThemePreferences.themeMode))
+  }
+  var themeColorValue by rememberSaveable { mutableStateOf(storedThemePreferences.seedColorValue) }
+  var useDynamicColor by rememberSaveable { mutableStateOf(storedThemePreferences.useDynamicColor) }
+  var oledEnhance by rememberSaveable { mutableStateOf(storedThemePreferences.oledEnhance) }
+  val themeColor = Color(themeColorValue)
+  val darkTheme =
+      when (themeMode) {
+        ThemeMode.SYSTEM -> systemDarkTheme
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+      }
+
+  LaunchedEffect(themeMode, themeColorValue, useDynamicColor, oledEnhance) {
+    ThemePreferenceStore.save(
+        StoredThemePreferences(
+            themeMode = themeMode.storageKey,
+            seedColorValue = themeColorValue,
+            useDynamicColor = useDynamicColor,
+            oledEnhance = oledEnhance,
+        )
+    )
+  }
+
+  UBAATheme(
+      darkTheme = darkTheme,
+      seedColor = themeColor,
+      dynamicColor = useDynamicColor,
+      oledEnhance = oledEnhance,
+  ) {
     val authViewModel: AuthViewModel = viewModel { AuthViewModel() }
     val uiState by authViewModel.uiState.collectAsState()
     val loginForm by authViewModel.loginForm.collectAsState()
@@ -227,6 +265,14 @@ fun App() {
               authViewModel.switchConnectionMode(mode)
               appScope.launch { checkStartupPrompts() }
             },
+            themeMode = themeMode,
+            onThemeModeSelected = { themeMode = it },
+            themeColorValue = themeColorValue,
+            onColorSelected = { themeColorValue = it },
+            useDynamicColor = useDynamicColor,
+            onToggleDynamicColor = { useDynamicColor = it },
+            oledEnhance = oledEnhance,
+            onToggleOledEnhance = { oledEnhance = it },
             onLogoutClick = { authViewModel.logout() },
             modifier = Modifier.fillMaxSize(),
         )
