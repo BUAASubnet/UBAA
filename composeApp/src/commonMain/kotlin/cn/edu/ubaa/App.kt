@@ -34,6 +34,7 @@ import cn.edu.ubaa.ui.screens.auth.LoginScreen
 import cn.edu.ubaa.ui.screens.splash.SplashScreen
 import cn.edu.ubaa.ui.theme.PreloadFonts
 import cn.edu.ubaa.ui.theme.UBAATheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -81,8 +82,11 @@ fun App() {
 
     suspend fun bootstrapForMode(mode: ConnectionMode) {
       selectedConnectionMode = mode
-      checkStartupPrompts()
-      authViewModel.initializeApp()
+      launchStartupTasks(
+          scope = appScope,
+          initializeAuthentication = authViewModel::initializeApp,
+          checkStartupPrompts = ::checkStartupPrompts,
+      )
     }
 
     LaunchedEffect(Unit) {
@@ -266,6 +270,15 @@ fun App() {
       }
     }
   }
+}
+
+internal fun launchStartupTasks(
+    scope: CoroutineScope,
+    initializeAuthentication: () -> Unit,
+    checkStartupPrompts: suspend () -> Unit,
+) {
+  scope.launch { initializeAuthentication() }
+  scope.launch { checkStartupPrompts() }
 }
 
 internal fun shouldShowAnnouncementDialog(

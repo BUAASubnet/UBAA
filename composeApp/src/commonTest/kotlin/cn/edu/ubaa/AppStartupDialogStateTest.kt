@@ -7,8 +7,36 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppStartupDialogStateTest {
+  @Test
+  fun authenticationInitializationDoesNotWaitForStartupPrompts() = runTest {
+    val promptsCanFinish = CompletableDeferred<Unit>()
+    var authenticationInitialized = false
+    var promptsFinished = false
+
+    launchStartupTasks(
+        scope = this,
+        initializeAuthentication = { authenticationInitialized = true },
+        checkStartupPrompts = {
+          promptsCanFinish.await()
+          promptsFinished = true
+        },
+    )
+
+    runCurrent()
+
+    assertTrue(authenticationInitialized)
+    assertFalse(promptsFinished)
+
+    promptsCanFinish.complete(Unit)
+  }
+
   @Test
   fun announcementDialogWaitsUntilUpdateDialogIsClosed() {
     val announcement =
