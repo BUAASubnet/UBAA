@@ -422,6 +422,10 @@ async fn existing_sso_cookie_activates_and_validates_user_center_without_passwor
 async fn html_and_non_json_status_responses_clear_persisted_session() {
     for body in [
         "<!DOCTYPE html><html>统一身份认证</html>",
+        "<!doctype html><HTML><body>signed out</body></HTML>",
+        "<!DoCtYpE hTmL><html><body>signed out</body></html>",
+        "<HTML><body>signed out</body></HTML>",
+        "<HtMl><body>signed out</body></HtMl>",
         "temporarily not json",
     ] {
         let status = "https://uc.buaa.edu.cn/api/uc/status";
@@ -444,17 +448,25 @@ async fn html_and_non_json_status_responses_clear_persisted_session() {
 #[tokio::test]
 async fn html_userinfo_response_clears_session_and_logout_always_clears_local_state() {
     let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
-    let transport = MockTransport::new([ExpectedRequest::new(
-        HttpMethod::Get,
-        userinfo,
-        response(200, userinfo, "<!DOCTYPE html><html>统一身份认证</html>"),
-    )]);
-    let store = persisted_store();
-    let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
-    let error = client.get_user_info().await.unwrap_err();
-    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
-    assert!(store.snapshot().unwrap().is_none());
+    for body in [
+        "<!DOCTYPE html><html>统一身份认证</html>",
+        "<!doctype html><HTML><body>signed out</body></HTML>",
+        "<!DoCtYpE hTmL><html><body>signed out</body></html>",
+        "<HTML><body>signed out</body></HTML>",
+        "<HtMl><body>signed out</body></HtMl>",
+    ] {
+        let transport = MockTransport::new([ExpectedRequest::new(
+            HttpMethod::Get,
+            userinfo,
+            response(200, userinfo, body),
+        )]);
+        let store = persisted_store();
+        let mut client =
+            UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+        let error = client.get_user_info().await.unwrap_err();
+        assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+        assert!(store.snapshot().unwrap().is_none());
+    }
 
     let logout_store = persisted_store();
     let mut logout_client = UbaaClient::with_transport(

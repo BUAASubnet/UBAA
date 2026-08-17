@@ -11,9 +11,15 @@ pub(crate) fn looks_unauthenticated(status: u16, final_url: &str, body: &str) ->
         return true;
     }
     let trimmed = body.trim_start();
-    trimmed.starts_with("<!DOCTYPE html")
-        || trimmed.starts_with("<html")
+    starts_with_ignore_ascii_case(trimmed, "<!DOCTYPE html")
+        || starts_with_ignore_ascii_case(trimmed, "<html")
         || body.contains("input name=\"execution\"")
         || body.contains("input name='execution'")
         || body.contains("统一身份认证")
+}
+
+fn starts_with_ignore_ascii_case(value: &str, prefix: &str) -> bool {
+    value
+        .get(..prefix.len())
+        .is_some_and(|candidate| candidate.eq_ignore_ascii_case(prefix))
 }

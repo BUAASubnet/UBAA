@@ -42,13 +42,14 @@ impl ErrorCode {
     pub const fn exit_code(self) -> ExitCode {
         match self {
             Self::InvalidInput => ExitCode::InvalidInput,
-            Self::AuthenticationRequired | Self::InvalidCredentials | Self::PermissionDenied => {
-                ExitCode::Authentication
-            }
+            Self::AuthenticationRequired
+            | Self::InvalidCredentials
+            | Self::PasswordRiskConfirmationFailed
+            | Self::PermissionDenied => ExitCode::Authentication,
             Self::CaptchaRequired => ExitCode::CaptchaRequired,
             Self::NetworkError | Self::Timeout | Self::UpstreamUnavailable => ExitCode::Network,
             Self::UpstreamChanged | Self::ParseError => ExitCode::Upstream,
-            Self::PasswordRiskConfirmationFailed | Self::InternalError => ExitCode::Internal,
+            Self::InternalError => ExitCode::Internal,
         }
     }
 }

@@ -189,6 +189,10 @@ fn stable_error_codes_have_expected_exit_codes() {
         (ErrorCode::InvalidInput, ExitCode::InvalidInput),
         (ErrorCode::AuthenticationRequired, ExitCode::Authentication),
         (ErrorCode::InvalidCredentials, ExitCode::Authentication),
+        (
+            ErrorCode::PasswordRiskConfirmationFailed,
+            ExitCode::Authentication,
+        ),
         (ErrorCode::CaptchaRequired, ExitCode::CaptchaRequired),
         (ErrorCode::NetworkError, ExitCode::Network),
         (ErrorCode::Timeout, ExitCode::Network),
