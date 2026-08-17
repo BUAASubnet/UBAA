@@ -15,7 +15,7 @@ Updated: 2026-08-17
 |---|---|---|
 | 0. Repository foundation | Complete | `chore: establish ubaa2 repository foundation` |
 | 1. Contracts and test support | Complete | `feat: define core auth contracts and test fixtures` |
-| 2. Connection and session runtime | Not implemented | Pending |
+| 2. Connection and session runtime | Complete | `feat: add connection and session runtime` |
 | 3. SSO and User Center | Not implemented | Pending |
 | 4. CLI host | Not implemented | Pending |
 | 5. Live Direct/WebVPN verification | Not run | Pending |
@@ -23,10 +23,10 @@ Updated: 2026-08-17
 
 ## Capability status
 
-The repository foundation and phase 1 contracts/test support are complete and their focused gates pass. Authentication, Direct/WebVPN runtime behavior, captcha handling, risk continuation, persisted sessions, User Center profile retrieval, CLI commands, and live evidence are not yet implemented.
+The repository foundation, public contracts/test support, and Direct/WebVPN connection, Cookie and session runtime are complete and fixture-tested. SSO requests, captcha handling, risk continuation, User Center profile retrieval, CLI commands, and live evidence are not yet implemented.
 
 Flutter, MCP, server relay, Ktor/JWT/Redis, schedule, exams, grades, sign-in, SPOC, Judge, evaluation, classrooms, reservations, and all other business modules remain outside this contract.
 
 ## Next slice
 
-Phase 2 derives WebVPN URL, redirect, Cookie, and persistence behavior from `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt`, `LocalConnectionAuth.kt`, `LocalCookieStoreTest.kt`, and `examples/buaa-api/src/store/cookies.rs`.
+Phase 3 derives the SSO state machine and User Center behavior from `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt`, `ubaa_old/server/src/main/kotlin/cn/edu/ubaa/auth/upstream/CasParser.kt`, their auth tests, and `examples/buaa-api/src/api/sso/auth.rs` plus `src/api/user/auth.rs`.
