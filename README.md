@@ -4,7 +4,7 @@ UBAA 2 is a Rust core plus host applications for Beijing University of Aeronauti
 
 ## Current state
 
-The Rust Core and CLI authentication path are implemented and fixture-tested. Authentication behavior is not complete until both live modes pass the gates recorded in `docs/migration/status.md`.
+The Rust Core and CLI authentication path are implemented, deterministic-tested, and verified against both live Direct and WebVPN modes. The current redacted evidence and remaining platform audit item are recorded in `docs/migration/status.md`.
 
 ## Setup
 

@@ -19,11 +19,24 @@ Updated: 2026-08-17
 | 3. SSO and User Center | Complete | `90fb1ef` |
 | 4. CLI host | Complete; fixture and binary-tested | `a27fdf0` |
 | 5. Live Direct/WebVPN verification | Complete; real verification passed | `ed085f2` |
-| 6. Continuous-development readiness | Complete; docs, CI, baseline and sensitive gates added | `docs: make ubaa2 ready for continuous development` |
+| 6. Continuous-development readiness | Complete; docs, CI, baseline and sensitive gates added | `a81c3d6` |
+
+## Review remediation
+
+The post-goal review was resolved in independently auditable commits:
+
+| Area | Commit |
+|---|---|
+| Sensitive runtime and CLI diagnostics | `048c4fd`, `016b6a9` |
+| Authentication classification and exit semantics | `cdc150a` |
+| Concrete facade, private runtime, and workflow ownership | `deb5d9d`, `ee8a3d5` |
+| Bounded HTTP responses and hardened session persistence | `b2f2bfd` |
+| Captcha-capable live verifier and binary logout process coverage | `4452a16` |
+| Serialized schema checks and macOS/Windows Rust CI | `6921562` |
 
 ## Capability status
 
-The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and fixture-tested. CLI tests cover human/JSON redaction, stable exits, captcha JSON and same-process human input behavior, saved-mode reuse, secure temporary captcha cleanup, command help, and missing-session binary paths.
+The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and deterministic-tested. Coverage includes sensitive `Debug` boundaries, case-insensitive invalidation, response/session limits, symlink and concurrent-save safety, actual serialized JSON envelopes, synthetic captcha fallback, saved-session binary logout, and macOS/Windows Rust CI. The Windows owner-only ACL audit for custom configuration directories remains explicit rather than silently claimed complete.
 
 On 2026-08-17, both required live commands passed with independent temporary sessions. Direct returned exit 0, parsed a User Center profile, and passed `auth status`; the redacted proof was name prefix `李` and school ID suffix `04`. WebVPN returned the same required success signals and independently passed `auth status`; its proof used the same redacted values. No complete profile field, password, Cookie, captcha, or raw response was retained.
 

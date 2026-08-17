@@ -1,6 +1,6 @@
 # Connection and Session Contract
 
-Status: implemented and fixture-tested in phase 2; live verification remains pending.
+Status: implemented and deterministic-tested; live Direct/WebVPN authentication passed on 2026-08-17.
 
 ## Evidence map
 
@@ -19,6 +19,8 @@ Status: implemented and fixture-tested in phase 2; live verification remains pen
 
 ## Persistence
 
-Each client stores one `SessionSnapshot` in `<config-dir>/session.json`: connection mode, filtered cookies, authentication timestamp and last-activity timestamp. It does not persist username or password. On Unix the directory is mode 0700 and the file is mode 0600; other platforms use the platform filesystem access model and require a platform-specific permission audit before release.
+Each client stores one `SessionSnapshot` in `<config-dir>/session.json`: connection mode, filtered cookies, authentication timestamp and last-activity timestamp. It does not persist username or password. Access is serialized by a sidecar file lock; writes use unique exclusively-created same-directory temporary files, synchronize before replacement, and reject symlink/non-regular targets. Session reads are capped at 1 MiB. On Unix the directory is mode 0700 and the session/lock files are mode 0600. Windows uses inherited directory ACLs; owner-only ACL enforcement for custom configuration directories remains a release audit item.
+
+The raw HTTP transport keeps TLS verification and manual redirects, and caps fully buffered authentication/User Center bodies at 8 MiB. Both limits are internal safety budgets rather than inferred upstream protocol facts. Fixed authentication endpoints are HTTPS. Redirects preserve the frozen client's compatibility with `http` and `https` only after host-policy validation; Secure cookies are never sent over HTTP.
 
 Cookie values are sensitive runtime state even though they are required in the session file. They are never returned from public formatting, errors or logs. Logout and explicit invalidation remove the file.
