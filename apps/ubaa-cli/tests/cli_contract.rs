@@ -5,6 +5,7 @@ use clap::Parser;
 use ubaa_cli::{Cli, CliBackend, run_with_backend};
 use ubaa_core::domain::{AuthStatus, ConnectionMode, LoginChallenge, LoginInput, UserProfile};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use ubaa_core::output::JsonEnvelope;
 
 #[derive(Default)]
 struct FakeBackend {
@@ -237,30 +238,34 @@ fn login_can_reuse_a_saved_connection_mode() {
 }
 
 #[test]
-fn schema_accepts_success_and_captcha_failure_envelopes() {
+fn serialized_envelopes_match_the_cli_json_schema() {
     let schema: serde_json::Value =
         serde_json::from_str(include_str!("../../../docs/contracts/cli-json.schema.json")).unwrap();
     let validator = jsonschema::validator_for(&schema).unwrap();
-    let success = serde_json::json!({
-        "schemaVersion": 1,
-        "ok": true,
-        "data": {"schoolId": "TEST-0001"},
-        "meta": {"connectionMode": "direct"}
-    });
-    let failure = serde_json::json!({
-        "schemaVersion": 1,
-        "ok": false,
-        "error": {
-            "code": "captcha_required",
-            "kind": "authentication",
-            "message": "captcha required",
-            "retryable": true,
-            "challenge": {"id": "fixture", "execution": "e-cap"}
-        },
-        "meta": {"connectionMode": "webvpn"}
-    });
+    let success = JsonEnvelope::success(profile(), ConnectionMode::Direct);
+    let failure: JsonEnvelope<serde_json::Value> = JsonEnvelope::failure(
+        UbaaError::new(
+            ErrorCode::CaptchaRequired,
+            ErrorKind::Authentication,
+            true,
+            "captcha required",
+        )
+        .with_challenge(LoginChallenge {
+            id: "fixture".into(),
+            execution: "e-cap".into(),
+            image_data_url: None,
+        }),
+        Some(ConnectionMode::WebVpn),
+    );
+    let success_bytes = serde_json::to_vec(&success).unwrap();
+    let failure_bytes = serde_json::to_vec(&failure).unwrap();
+    let success: serde_json::Value = serde_json::from_slice(&success_bytes).unwrap();
+    let failure: serde_json::Value = serde_json::from_slice(&failure_bytes).unwrap();
+
     assert!(validator.is_valid(&success));
     assert!(validator.is_valid(&failure));
+    assert_eq!(success["data"]["schoolId"], "TEST-0001");
+    assert_eq!(failure["error"]["code"], "captcha_required");
 }
 
 #[test]
