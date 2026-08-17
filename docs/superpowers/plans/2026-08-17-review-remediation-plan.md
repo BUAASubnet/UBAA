@@ -125,9 +125,9 @@
 **Files:**
 - Verify: repository-wide
 
-- [ ] Run `just refs`.
-- [ ] Run `just check-sensitive`.
-- [ ] Run `just check`.
-- [ ] Run `cargo test --locked --workspace --all-targets` and the CLI binary tests explicitly.
-- [ ] Run `just verify-live mode=direct` and `just verify-live mode=webvpn`; if captcha is requested, exercise the documented human fallback without recording the answer or image.
-- [ ] Confirm `git status --short --branch`, staged-content inspection, and the migration report match the final repository state.
+- [x] Run `just refs`.
+- [x] Run `just check-sensitive`.
+- [x] Run `just check`.
+- [x] Run `cargo test --locked --workspace --all-targets` and the CLI binary tests explicitly.
+- [x] Run `just verify-live mode=direct` and `just verify-live mode=webvpn`; if captcha is requested, exercise the documented human fallback without recording the answer or image.
+- [x] Confirm `git status --short --branch`, staged-content inspection, and the migration report match the final repository state.

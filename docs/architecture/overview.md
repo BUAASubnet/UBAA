@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The current product boundary is a platform-independent Rust Core plus a Rust CLI host. The concrete `UbaaClient` facade owns a private authentication workflow and private runtime. `UbaaClient::open` atomically selects an explicit or persisted mode without exposing the session store to hosts. The runtime owns one connection mode, transport port, Cookie jar, persistence port, session timestamps, and a compare-exchange revision. Direct and WebVPN URL strategy is applied before every upstream request; the raw transport never follows redirects or owns a global Cookie store.
+The current product boundary is a platform-independent Rust Core plus a Rust CLI host. The concrete `UbaaClient` facade owns a private authentication workflow and private runtime. `UbaaClient::open` selects an explicit or persisted mode from one atomically loaded snapshot/revision pair without exposing the session store to hosts. The runtime owns one connection mode, transport port, Cookie jar, persistence port, session timestamps, and a compare-exchange revision. Direct and WebVPN URL strategy is applied before every upstream request; the raw transport never follows redirects or owns a global Cookie store.
 
 ```text
 CLI / future bindings
