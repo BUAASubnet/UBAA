@@ -36,15 +36,15 @@ impl AuthHostPolicy {
     }
 }
 
-/// Check whether an absolute authentication URL uses a verified host.
+/// Check whether an absolute authentication URL uses an allowed scheme and verified host.
 #[must_use]
 pub fn is_allowed_auth_host(url: &str) -> bool {
     Url::parse(url)
         .ok()
         .and_then(|parsed| {
-            parsed
-                .host_str()
-                .map(|host| AuthHostPolicy::default().allows(host))
+            parsed.host_str().map(|host| {
+                is_allowed_auth_scheme(&parsed) && AuthHostPolicy::default().allows(host)
+            })
         })
         .unwrap_or(false)
 }
@@ -161,6 +161,14 @@ pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode)
     let resolved = current
         .join(&absolute)
         .map_err(|_| protocol_error("invalid redirect Location"))?;
+    if !is_allowed_auth_scheme(&resolved) {
+        return Err(UbaaError::new(
+            ErrorCode::PermissionDenied,
+            ErrorKind::Authentication,
+            false,
+            "redirect scheme is not allowed",
+        ));
+    }
     if resolved.host_str() != Some(WEBVPN_HOST)
         && !resolved
             .host_str()
@@ -185,6 +193,10 @@ pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode)
         ));
     }
     Ok(resolved.to_string())
+}
+
+fn is_allowed_auth_scheme(url: &Url) -> bool {
+    matches!(url.scheme(), "http" | "https")
 }
 
 fn encrypt_host(host: &str) -> String {

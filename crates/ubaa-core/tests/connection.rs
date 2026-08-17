@@ -2,6 +2,7 @@ use ubaa_core::connection::{
     AuthHostPolicy, from_webvpn_url, is_allowed_auth_host, resolve_redirect, to_webvpn_url,
 };
 use ubaa_core::domain::ConnectionMode;
+use ubaa_core::error::ErrorCode;
 
 #[test]
 fn webvpn_round_trip_preserves_path_query_and_fragment() {
@@ -57,6 +58,8 @@ fn auth_host_policy_accepts_only_verified_sso_uc_and_gateway_hosts() {
     assert!(policy.allows("d.buaa.edu.cn"));
     assert!(!policy.allows("evil.example.invalid"));
     assert!(is_allowed_auth_host("https://sso.buaa.edu.cn/login"));
+    assert!(is_allowed_auth_host("http://sso.buaa.edu.cn/login"));
+    assert!(!is_allowed_auth_host("ftp://sso.buaa.edu.cn/login"));
     assert!(!is_allowed_auth_host("https://evil.example.invalid/login"));
 }
 
@@ -122,4 +125,19 @@ fn redirects_to_unverified_hosts_are_rejected_in_both_modes() {
         )
         .is_err()
     );
+}
+
+#[test]
+fn redirects_reject_non_http_schemes_even_on_verified_hosts() {
+    for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let error = resolve_redirect(
+            "https://sso.buaa.edu.cn/login",
+            "ftp://sso.buaa.edu.cn/session",
+            mode,
+        )
+        .expect_err("authentication redirects must remain HTTP or HTTPS");
+
+        assert_eq!(error.code, ErrorCode::PermissionDenied);
+        assert_eq!(error.message, "redirect scheme is not allowed");
+    }
 }
