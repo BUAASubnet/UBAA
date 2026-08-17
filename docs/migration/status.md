@@ -29,14 +29,17 @@ The post-goal review was resolved in independently auditable commits:
 |---|---|
 | Sensitive runtime and CLI diagnostics | `048c4fd`, `016b6a9` |
 | Authentication classification and exit semantics | `cdc150a` |
-| Concrete facade, private runtime, and workflow ownership | `deb5d9d`, `ee8a3d5` |
-| Bounded HTTP responses and hardened session persistence | `b2f2bfd` |
-| Captcha-capable live verifier and binary logout process coverage | `4452a16`, `10ca988` |
-| Serialized schema checks and macOS/Windows Rust CI | `6921562` |
+| HTTP(S)-only authentication redirects and JSON argument envelopes | `c6a7f6a`, `c04914d` |
+| Concrete facade, private runtime/upstream, and workflow ownership | `deb5d9d`, `ee8a3d5`, `63db7d3` |
+| Bounded HTTP responses, no-follow session access, and revision CAS | `b2f2bfd`, `01ef2b8`, `bd11829` |
+| Captcha-capable verifier, terminal lifecycle, and binary logout coverage | `4452a16`, `10ca988`, `ec5be94`, `a892e47` |
+| Serialized schema checks, cross-platform CI, and locked resolution | `6921562`, `9e4b8e5` |
 
 ## Capability status
 
-The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and deterministic-tested. Coverage includes sensitive `Debug` boundaries, case-insensitive invalidation, response/session limits, symlink and concurrent-save safety, actual serialized JSON envelopes, synthetic captcha fallback, saved-session binary logout, and macOS/Windows Rust CI. The Windows owner-only ACL audit for custom configuration directories remains explicit rather than silently claimed complete.
+The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and deterministic-tested. Coverage includes sensitive `Debug` boundaries, case-insensitive invalidation, HTTP(S)-only redirects, response/session limits, no-follow file access, revision-based stale-writer rejection, actual serialized JSON envelopes, JSON argument failures, facade-only host access, synthetic captcha terminal/signal lifecycle, saved-session binary logout, locked dependency resolution, and macOS/Windows Rust CI.
+
+Two boundaries remain explicit. Windows owner-only ACL enforcement for custom configuration directories requires a release audit. Local revision CAS prevents a stale long-lived client from replacing or deleting a newer session file, but the frozen implementation performs best-effort remote SSO logout before local cleanup and provides no evidence for concurrent remote-session semantics. The CLI opens the latest revision for each command; future long-lived hosts must serialize logout for a shared account until live or frozen evidence supports a stronger contract.
 
 On 2026-08-17, both required live commands passed with independent temporary sessions. Direct returned exit 0, parsed a User Center profile, and passed `auth status`; the redacted proof was name prefix `李` and school ID suffix `04`. WebVPN returned the same required success signals and independently passed `auth status`; its proof used the same redacted values. No complete profile field, password, Cookie, captcha, or raw response was retained.
 

@@ -119,11 +119,11 @@ impl UbaaClient {
         user::get_user_info(&mut self.runtime, &mut clear_workflow).await
     }
 
-    /// Best-effort remote logout followed by unconditional local session cleanup.
+    /// Best-effort remote logout followed by unconditional cleanup of this client's memory.
     ///
     /// # Errors
     ///
-    /// Returns only a local persistence error; remote logout failures are intentionally ignored.
+    /// Returns a persistence/revision error; remote logout failures are intentionally ignored.
     pub async fn logout(&mut self) -> Result<()> {
         self.auth.logout(&mut self.runtime).await
     }
