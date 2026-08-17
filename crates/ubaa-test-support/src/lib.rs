@@ -1,6 +1,7 @@
 //! Sanitized fixtures and deterministic HTTP support shared by workspace crates.
 
 use std::collections::VecDeque;
+use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -48,11 +49,22 @@ pub fn assert_fixture_is_sanitized(fixture: &str) -> std::result::Result<(), Str
 }
 
 /// One expected request and its deterministic response.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ExpectedRequest {
     method: HttpMethod,
     url: String,
     response: HttpResponse,
+}
+
+impl fmt::Debug for ExpectedRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ExpectedRequest")
+            .field("method", &self.method)
+            .field("url", &"[REDACTED]")
+            .field("response_status", &self.response.status)
+            .finish()
+    }
 }
 
 impl ExpectedRequest {
@@ -67,15 +79,36 @@ impl ExpectedRequest {
 }
 
 /// FIFO transport that validates method and URL without logging request bodies.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MockTransport {
     state: Arc<MockState>,
 }
 
-#[derive(Debug)]
 struct MockState {
     expected: Mutex<VecDeque<ExpectedRequest>>,
     requests: Mutex<Vec<HttpRequest>>,
+}
+
+impl fmt::Debug for MockTransport {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let expected_count = self
+            .state
+            .expected
+            .try_lock()
+            .ok()
+            .map(|expected| expected.len());
+        let request_count = self
+            .state
+            .requests
+            .try_lock()
+            .ok()
+            .map(|requests| requests.len());
+        formatter
+            .debug_struct("MockTransport")
+            .field("expected_count", &expected_count)
+            .field("request_count", &request_count)
+            .finish()
+    }
 }
 
 impl MockTransport {
@@ -139,10 +172,7 @@ impl HttpTransport for MockTransport {
             .ok_or_else(|| mock_error("unexpected request: no scripted response remains"))?;
 
         if request.method != expected.method || request.url != expected.url {
-            return Err(mock_error(format!(
-                "unexpected request method/url: {:?} {}",
-                request.method, request.url
-            )));
+            return Err(mock_error("unexpected request method/url mismatch"));
         }
         Ok(expected.response)
     }

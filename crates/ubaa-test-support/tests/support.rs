@@ -28,3 +28,57 @@ async fn mock_transport_records_and_validates_scripted_requests() {
     assert_eq!(response.body, b"fixture");
     transport.assert_exhausted().expect("all requests consumed");
 }
+
+#[test]
+fn expected_request_debug_redacts_scripted_url() {
+    let secret = "expected-request-debug-token";
+    let url = format!("https://example.invalid/test?token={secret}");
+    let expected = ExpectedRequest::new(
+        HttpMethod::Get,
+        &url,
+        HttpResponse::new(200, &url, Vec::new()),
+    );
+
+    let debug = format!("{expected:?}");
+
+    assert!(!debug.contains(secret), "debug output leaked URL token");
+}
+
+#[test]
+fn mock_transport_debug_redacts_scripted_url() {
+    let secret = "mock-transport-debug-token";
+    let url = format!("https://example.invalid/test?token={secret}");
+    let transport = MockTransport::new([ExpectedRequest::new(
+        HttpMethod::Get,
+        &url,
+        HttpResponse::new(200, &url, Vec::new()),
+    )]);
+
+    let debug = format!("{transport:?}");
+
+    assert!(!debug.contains(secret), "debug output leaked URL token");
+}
+
+#[tokio::test]
+async fn request_mismatch_error_redacts_url_from_display_and_serializable_message() {
+    let secret = "request-mismatch-token";
+    let expected_url = "https://example.invalid/expected";
+    let actual_url = format!("https://example.invalid/actual?token={secret}");
+    let transport = MockTransport::new([ExpectedRequest::new(
+        HttpMethod::Get,
+        expected_url,
+        HttpResponse::new(200, expected_url, Vec::new()),
+    )]);
+
+    let error = transport
+        .execute(HttpRequest::get(actual_url))
+        .await
+        .expect_err("mismatched URL must fail");
+    let display = error.to_string();
+
+    assert!(!display.contains(secret), "display leaked URL token");
+    assert_eq!(
+        error.message, "unexpected request method/url mismatch",
+        "the serialized message must be a fixed safe summary"
+    );
+}
