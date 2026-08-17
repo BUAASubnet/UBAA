@@ -6,7 +6,13 @@ use std::fmt;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::error::Result;
+use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+
+/// Conservative limit for fully-buffered authentication and User Center responses.
+///
+/// This is an implementation safety budget, not an upstream protocol size claim. Larger
+/// business payloads require a separate streaming port instead of raising this limit globally.
+const MAX_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
 
 /// HTTP method supported by the authentication protocol.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -161,7 +167,7 @@ impl HttpTransport for ReqwestTransport {
         if !request.body.is_empty() {
             builder = builder.body(request.body);
         }
-        let response = builder
+        let mut response = builder
             .send()
             .await
             .map_err(|error| transport_error(&error))?;
@@ -176,11 +182,7 @@ impl HttpTransport for ReqwestTransport {
                     .push(value.to_string());
             }
         }
-        let body = response
-            .bytes()
-            .await
-            .map_err(|error| transport_error(&error))?
-            .to_vec();
+        let body = collect_response_body(&mut response).await?;
         Ok(HttpResponse {
             status,
             final_url,
@@ -188,6 +190,46 @@ impl HttpTransport for ReqwestTransport {
             body,
         })
     }
+}
+
+async fn collect_response_body(response: &mut reqwest::Response) -> Result<Vec<u8>> {
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_RESPONSE_BODY_BYTES as u64)
+    {
+        return Err(response_too_large());
+    }
+
+    let mut body = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| transport_error(&error))?
+    {
+        append_bounded(&mut body, &chunk, MAX_RESPONSE_BODY_BYTES)?;
+    }
+    Ok(body)
+}
+
+fn append_bounded(body: &mut Vec<u8>, chunk: &[u8], limit: usize) -> Result<()> {
+    let new_len = body
+        .len()
+        .checked_add(chunk.len())
+        .ok_or_else(response_too_large)?;
+    if new_len > limit {
+        return Err(response_too_large());
+    }
+    body.extend_from_slice(chunk);
+    Ok(())
+}
+
+fn response_too_large() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        "upstream response body exceeds the allowed size",
+    )
 }
 
 fn transport_error(error: &reqwest::Error) -> crate::error::UbaaError {
@@ -213,4 +255,34 @@ fn redacted_header_names(headers: &BTreeMap<String, String>) -> Vec<&str> {
 
 fn redacted_header_names_vec(headers: &BTreeMap<String, Vec<String>>) -> Vec<&str> {
     headers.keys().map(String::as_str).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::append_bounded;
+
+    #[test]
+    fn bounded_append_accepts_exact_limit_and_rejects_without_copying() {
+        let mut body = vec![1, 2];
+        append_bounded(&mut body, &[3, 4], 4).expect("exact limit is valid");
+        assert_eq!(body, [1, 2, 3, 4]);
+
+        let before = body.clone();
+        let error = append_bounded(&mut body, &[5], 4).expect_err("one byte over limit fails");
+        assert_eq!(
+            error.message,
+            "upstream response body exceeds the allowed size"
+        );
+        assert_eq!(body, before, "rejected chunk must not be appended");
+    }
+
+    #[test]
+    fn bounded_append_rejects_length_overflow() {
+        let mut body = Vec::new();
+        let error = append_bounded(&mut body, &[0; 4], 3).expect_err("over-limit chunk fails");
+        assert_eq!(
+            error.message,
+            "upstream response body exceeds the allowed size"
+        );
+    }
 }

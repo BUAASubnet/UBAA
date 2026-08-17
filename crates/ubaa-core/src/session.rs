@@ -1,8 +1,10 @@
 //! Cookie jar and restricted on-disk session persistence.
 
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -11,6 +13,10 @@ use url::Url;
 use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpResponse;
+
+const MAX_SESSION_FILE_BYTES: usize = 1024 * 1024;
+const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
+static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
 /// Cookie attributes retained for safe request filtering and persistence.
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -214,9 +220,19 @@ pub trait SessionStore: Send + Sync {
 }
 
 /// File-backed session store using `<config-dir>/session.json`.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct FileSessionStore {
     path: PathBuf,
+    process_lock: Arc<Mutex<()>>,
+}
+
+impl std::fmt::Debug for FileSessionStore {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("FileSessionStore")
+            .field("path", &"[REDACTED]")
+            .finish()
+    }
 }
 
 impl FileSessionStore {
@@ -229,10 +245,14 @@ impl FileSessionStore {
         let config_dir = config_dir.as_ref();
         fs::create_dir_all(config_dir)
             .map_err(|_| session_error("could not create config directory"))?;
+        validate_directory(config_dir)?;
         restrict_directory(config_dir)?;
-        Ok(Self {
+        let store = Self {
             path: config_dir.join("session.json"),
-        })
+            process_lock: Arc::new(Mutex::new(())),
+        };
+        drop(store.open_lock_file()?);
+        Ok(store)
     }
 
     /// Return the exact session path for diagnostics and tests.
@@ -244,12 +264,29 @@ impl FileSessionStore {
 
 impl SessionStore for FileSessionStore {
     fn load(&self) -> Result<Option<SessionSnapshot>> {
-        if !self.path.exists() {
+        let _lock = self.acquire_lock()?;
+        if !validate_regular_file(&self.path, "session path is not a regular file")? {
             return Ok(None);
         }
-        let body =
-            fs::read_to_string(&self.path).map_err(|_| session_error("could not read session"))?;
-        serde_json::from_str(&body)
+        let file = OpenOptions::new()
+            .read(true)
+            .open(&self.path)
+            .map_err(|_| session_error("could not read session"))?;
+        if !file
+            .metadata()
+            .map_err(|_| session_error("could not inspect session"))?
+            .is_file()
+        {
+            return Err(session_error("session path is not a regular file"));
+        }
+        let mut body = Vec::new();
+        file.take(MAX_SESSION_FILE_BYTES as u64 + 1)
+            .read_to_end(&mut body)
+            .map_err(|_| session_error("could not read session"))?;
+        if body.len() > MAX_SESSION_FILE_BYTES {
+            return Err(session_error("session file exceeds the allowed size"));
+        }
+        serde_json::from_slice(&body)
             .map(Some)
             .map_err(|_| session_error("session format is invalid"))
     }
@@ -257,35 +294,186 @@ impl SessionStore for FileSessionStore {
     fn save(&self, snapshot: &SessionSnapshot) -> Result<()> {
         let body = serde_json::to_vec_pretty(snapshot)
             .map_err(|_| session_error("could not encode session"))?;
-        let temporary = self.path.with_extension("json.tmp");
-        let mut options = OpenOptions::new();
-        options.write(true).create(true).truncate(true);
-        restrict_file_creation(&mut options);
-        let file = options
-            .open(&temporary)
-            .map_err(|_| session_error("could not open session"))?;
-        let mut writer = std::io::BufWriter::new(file);
-        writer
-            .write_all(&body)
+        if body.len() > MAX_SESSION_FILE_BYTES {
+            return Err(session_error("encoded session exceeds the allowed size"));
+        }
+
+        let _lock = self.acquire_lock()?;
+        validate_regular_file(&self.path, "session path is not a regular file")?;
+        let parent = self
+            .path
+            .parent()
+            .ok_or_else(|| session_error("session path has no parent directory"))?;
+        let (temporary, mut file) = create_temporary_file(parent)?;
+        let mut cleanup = TemporaryFile::new(temporary);
+        restrict_open_file(&file, "could not restrict session file")?;
+        file.write_all(&body)
             .map_err(|_| session_error("could not write session"))?;
-        writer
-            .flush()
+        file.flush()
             .map_err(|_| session_error("could not flush session"))?;
-        drop(writer);
-        restrict_file(&temporary)?;
-        fs::rename(&temporary, &self.path)
+        file.sync_all()
+            .map_err(|_| session_error("could not sync session"))?;
+        drop(file);
+
+        validate_regular_file(&self.path, "session path is not a regular file")?;
+        fs::rename(cleanup.path(), &self.path)
             .map_err(|_| session_error("could not replace session"))?;
-        restrict_file(&self.path)?;
+        cleanup.persisted();
+        sync_directory(parent)?;
         Ok(())
     }
 
     fn clear(&self) -> Result<()> {
+        let _lock = self.acquire_lock()?;
+        if !validate_regular_file(&self.path, "session path is not a regular file")? {
+            return Ok(());
+        }
         match fs::remove_file(&self.path) {
-            Ok(()) => Ok(()),
+            Ok(()) => {
+                if let Some(parent) = self.path.parent() {
+                    sync_directory(parent)?;
+                }
+                Ok(())
+            }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
             Err(_) => Err(session_error("could not clear session")),
         }
     }
+}
+
+impl FileSessionStore {
+    fn lock_path(&self) -> PathBuf {
+        self.path.with_file_name(".session.lock")
+    }
+
+    fn open_lock_file(&self) -> Result<File> {
+        let path = self.lock_path();
+        validate_regular_file(&path, "session lock path is not a regular file")?;
+        let mut options = OpenOptions::new();
+        options.read(true).write(true).create(true);
+        restrict_file_creation(&mut options);
+        let file = options
+            .open(path)
+            .map_err(|_| session_error("could not open session lock"))?;
+        if !file
+            .metadata()
+            .map_err(|_| session_error("could not inspect session lock"))?
+            .is_file()
+        {
+            return Err(session_error("session lock path is not a regular file"));
+        }
+        restrict_open_file(&file, "could not restrict session lock")?;
+        Ok(file)
+    }
+
+    fn acquire_lock(&self) -> Result<SessionFileLock<'_>> {
+        let process_guard = self
+            .process_lock
+            .lock()
+            .map_err(|_| session_error("session process lock is unavailable"))?;
+        let parent = self
+            .path
+            .parent()
+            .ok_or_else(|| session_error("session path has no parent directory"))?;
+        validate_directory(parent)?;
+        let file = self.open_lock_file()?;
+        file.lock()
+            .map_err(|_| session_error("could not lock session"))?;
+        Ok(SessionFileLock {
+            _process_guard: process_guard,
+            file,
+        })
+    }
+}
+
+struct SessionFileLock<'a> {
+    _process_guard: MutexGuard<'a, ()>,
+    file: File,
+}
+
+impl Drop for SessionFileLock<'_> {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
+    }
+}
+
+struct TemporaryFile {
+    path: PathBuf,
+    remove_on_drop: bool,
+}
+
+impl TemporaryFile {
+    fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            remove_on_drop: true,
+        }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    fn persisted(&mut self) {
+        self.remove_on_drop = false;
+    }
+}
+
+impl Drop for TemporaryFile {
+    fn drop(&mut self) {
+        if self.remove_on_drop {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+}
+
+fn create_temporary_file(parent: &Path) -> Result<(PathBuf, File)> {
+    for _ in 0..MAX_TEMP_FILE_ATTEMPTS {
+        let sequence = NEXT_TEMP_FILE.fetch_add(1, Ordering::Relaxed);
+        let path = parent.join(format!(
+            ".session.json.{}.{sequence}.tmp",
+            std::process::id()
+        ));
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        restrict_file_creation(&mut options);
+        match options.open(&path) {
+            Ok(file) => return Ok((path, file)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(_) => return Err(session_error("could not create temporary session file")),
+        }
+    }
+    Err(session_error("could not allocate temporary session file"))
+}
+
+fn validate_directory(path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|_| session_error("could not inspect config directory"))?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(session_error("config path is not a directory"));
+    }
+    Ok(())
+}
+
+fn validate_regular_file(path: &Path, message: &'static str) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_file() => {
+            Err(session_error(message))
+        }
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(_) => Err(session_error("could not inspect session file")),
+    }
+}
+
+fn sync_directory(path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        File::open(path)
+            .and_then(|directory| directory.sync_all())
+            .map_err(|_| session_error("could not sync config directory"))?;
+    }
+    Ok(())
 }
 
 fn parse_cookie(raw: &str, url: &Url, created_at: i64) -> Result<Option<StoredCookie>> {
@@ -418,7 +606,8 @@ fn restrict_directory(path: &Path) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        File::open(path)
+            .and_then(|directory| directory.set_permissions(fs::Permissions::from_mode(0o700)))
             .map_err(|_| session_error("could not restrict config directory"))?;
     }
     Ok(())
@@ -432,12 +621,14 @@ fn restrict_file_creation(options: &mut OpenOptions) {
     }
 }
 
-fn restrict_file(path: &Path) -> Result<()> {
+fn restrict_open_file(file: &File, message: &'static str) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(0o600))
-            .map_err(|_| session_error("could not restrict session file"))?;
+        file.set_permissions(fs::Permissions::from_mode(0o600))
+            .map_err(|_| session_error(message))?;
     }
+    #[cfg(not(unix))]
+    let _ = (file, message);
     Ok(())
 }

@@ -1,4 +1,8 @@
-use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use std::io::{Read, Write};
+use std::net::TcpListener;
+
+use ubaa_core::error::{ErrorCode, ErrorKind};
+use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport, ReqwestTransport};
 use ubaa_test_support::{
     ExpectedRequest, MockTransport, assert_fixture_is_sanitized, auth_fixture,
 };
@@ -81,4 +85,50 @@ async fn request_mismatch_error_redacts_url_from_display_and_serializable_messag
         error.message, "unexpected request method/url mismatch",
         "the serialized message must be a fixed safe summary"
     );
+}
+
+#[tokio::test]
+async fn reqwest_transport_rejects_oversized_chunked_response() {
+    const LIMIT: usize = 8 * 1024 * 1024;
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut request = [0_u8; 4096];
+        let _ = stream.read(&mut request);
+        stream
+            .write_all(
+                b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n",
+            )
+            .unwrap();
+        let chunk = vec![b'x'; 64 * 1024];
+        let mut remaining = LIMIT + 1;
+        while remaining > 0 {
+            let length = remaining.min(chunk.len());
+            if write!(stream, "{length:X}\r\n")
+                .and_then(|()| stream.write_all(&chunk[..length]))
+                .and_then(|()| stream.write_all(b"\r\n"))
+                .is_err()
+            {
+                return;
+            }
+            remaining -= length;
+        }
+        let _ = stream.write_all(b"0\r\n\r\n");
+    });
+    let transport = ReqwestTransport::new().unwrap();
+
+    let error = transport
+        .execute(HttpRequest::get(format!("http://{address}/oversized")))
+        .await
+        .expect_err("an oversized streamed response must be rejected");
+
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert_eq!(error.kind, ErrorKind::Upstream);
+    assert!(!error.retryable);
+    assert_eq!(
+        error.message,
+        "upstream response body exceeds the allowed size"
+    );
+    server.join().unwrap();
 }
