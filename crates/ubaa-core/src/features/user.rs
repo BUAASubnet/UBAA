@@ -1,6 +1,81 @@
 //! User Center response classification shared by status and profile operations.
 
 use crate::connection::from_webvpn_url;
+use crate::domain::{AuthStatus, UserProfile};
+use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::ports::{HttpRequest, HttpResponse};
+use crate::runtime::ClientRuntime;
+use crate::upstream::{UC_STATUS_URL, UC_USERINFO_URL, parse_user_info};
+
+pub(crate) async fn auth_status(
+    runtime: &mut ClientRuntime,
+    clear_workflow: &mut (dyn FnMut() + Send),
+) -> Result<AuthStatus> {
+    if !runtime.has_local_session() {
+        return Err(authentication_required());
+    }
+    validate_status(runtime, clear_workflow).await
+}
+
+pub(crate) async fn get_user_info(
+    runtime: &mut ClientRuntime,
+    clear_workflow: &mut (dyn FnMut() + Send),
+) -> Result<UserProfile> {
+    let response = runtime
+        .request(HttpRequest::get(runtime.url(UC_USERINFO_URL)?))
+        .await?;
+    let body = body_text(&response);
+    if looks_unauthenticated(response.status, &response.final_url, &body) {
+        clear_local(runtime, clear_workflow)?;
+        return Err(authentication_required());
+    }
+    if response.status >= 500 {
+        return Err(status_error(response.status, "User Center is unavailable"));
+    }
+    if response.status != 200 {
+        return Err(status_error(
+            response.status,
+            "User Center profile request failed",
+        ));
+    }
+    parse_user_info(&body)
+}
+
+pub(crate) async fn validate_status(
+    runtime: &mut ClientRuntime,
+    clear_workflow: &mut (dyn FnMut() + Send),
+) -> Result<AuthStatus> {
+    let response = runtime
+        .request(HttpRequest::get(runtime.url(UC_STATUS_URL)?))
+        .await?;
+    let body = body_text(&response);
+    if response.status >= 500 {
+        return Err(status_error(
+            response.status,
+            "authentication service is unavailable",
+        ));
+    }
+    if looks_unauthenticated(response.status, &response.final_url, &body)
+        || !body.trim_start().starts_with('{')
+    {
+        clear_local(runtime, clear_workflow)?;
+        return Err(authentication_required());
+    }
+    if response.status != 200 {
+        clear_local(runtime, clear_workflow)?;
+        return Err(authentication_required());
+    }
+    let Ok(user) = parse_user_info(&body) else {
+        clear_local(runtime, clear_workflow)?;
+        return Err(authentication_required());
+    };
+    let (authenticated_at, last_activity) = runtime.refresh_authentication()?;
+    Ok(AuthStatus {
+        user,
+        authenticated_at,
+        last_activity,
+    })
+}
 
 pub(crate) fn looks_unauthenticated(status: u16, final_url: &str, body: &str) -> bool {
     if status == 401 {
@@ -22,4 +97,42 @@ fn starts_with_ignore_ascii_case(value: &str, prefix: &str) -> bool {
     value
         .get(..prefix.len())
         .is_some_and(|candidate| candidate.eq_ignore_ascii_case(prefix))
+}
+
+fn body_text(response: &HttpResponse) -> String {
+    String::from_utf8_lossy(&response.body).into_owned()
+}
+
+fn clear_local(
+    runtime: &mut ClientRuntime,
+    clear_workflow: &mut (dyn FnMut() + Send),
+) -> Result<()> {
+    runtime.clear_with(clear_workflow)
+}
+
+fn authentication_required() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::AuthenticationRequired,
+        ErrorKind::Authentication,
+        false,
+        "authentication is required",
+    )
+}
+
+fn status_error(status: u16, message: impl Into<String>) -> UbaaError {
+    if status >= 500 {
+        UbaaError::new(
+            ErrorCode::UpstreamUnavailable,
+            ErrorKind::Upstream,
+            true,
+            message,
+        )
+    } else {
+        UbaaError::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            false,
+            message,
+        )
+    }
 }

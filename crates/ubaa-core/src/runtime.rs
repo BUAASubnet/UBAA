@@ -85,10 +85,11 @@ impl ClientRuntime {
         Ok((authenticated_at, now))
     }
 
-    pub(crate) fn clear(&mut self) -> Result<()> {
+    pub(crate) fn clear_with(&mut self, clear_workflow: impl FnOnce()) -> Result<()> {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
+        clear_workflow();
         self.store.clear()
     }
 
