@@ -2269,6 +2269,7 @@ dependencies = [
  "async-trait",
  "base64",
  "httpdate",
+ "libc",
  "regex",
  "reqwest",
  "scraper",

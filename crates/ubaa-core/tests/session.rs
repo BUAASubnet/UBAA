@@ -51,6 +51,30 @@ fn file_session_store_round_trips_mode_cookies_and_timestamps_without_passwords(
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[cfg(unix)]
+#[test]
+fn loading_an_existing_session_restores_owner_only_permissions() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = test_root("load-permissions");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store.save(&snapshot(1)).unwrap();
+    std::fs::set_permissions(store.path(), std::fs::Permissions::from_mode(0o644)).unwrap();
+
+    store.load().unwrap().expect("session remains readable");
+
+    assert_eq!(
+        std::fs::metadata(store.path())
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn session_store_rejects_non_regular_session_targets() {
     let root = test_root("non-regular-target");

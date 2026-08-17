@@ -20,5 +20,8 @@ serde_json = "1.0.149"
 tokio = { version = "1.49.0", features = ["time"] }
 url = "2.5.7"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.189"
+
 [lints]
 workspace = true

@@ -265,20 +265,10 @@ impl FileSessionStore {
 impl SessionStore for FileSessionStore {
     fn load(&self) -> Result<Option<SessionSnapshot>> {
         let _lock = self.acquire_lock()?;
-        if !validate_regular_file(&self.path, "session path is not a regular file")? {
+        let Some(file) = open_existing_session_file(&self.path)? else {
             return Ok(None);
-        }
-        let file = OpenOptions::new()
-            .read(true)
-            .open(&self.path)
-            .map_err(|_| session_error("could not read session"))?;
-        if !file
-            .metadata()
-            .map_err(|_| session_error("could not inspect session"))?
-            .is_file()
-        {
-            return Err(session_error("session path is not a regular file"));
-        }
+        };
+        restrict_open_file(&file, "could not restrict session file")?;
         let mut body = Vec::new();
         file.take(MAX_SESSION_FILE_BYTES as u64 + 1)
             .read_to_end(&mut body)
@@ -348,20 +338,19 @@ impl FileSessionStore {
 
     fn open_lock_file(&self) -> Result<File> {
         let path = self.lock_path();
-        validate_regular_file(&path, "session lock path is not a regular file")?;
         let mut options = OpenOptions::new();
         options.read(true).write(true).create(true);
         restrict_file_creation(&mut options);
-        let file = options
-            .open(path)
-            .map_err(|_| session_error("could not open session lock"))?;
-        if !file
-            .metadata()
-            .map_err(|_| session_error("could not inspect session lock"))?
-            .is_file()
-        {
-            return Err(session_error("session lock path is not a regular file"));
-        }
+        prevent_symlink_following(&mut options);
+        let Ok(file) = options.open(&path) else {
+            validate_regular_file(&path, "session lock path is not a regular file")?;
+            return Err(session_error("could not open session lock"));
+        };
+        validate_open_regular_file(
+            &file,
+            "session lock path is not a regular file",
+            "could not inspect session lock",
+        )?;
         restrict_open_file(&file, "could not restrict session lock")?;
         Ok(file)
     }
@@ -464,6 +453,58 @@ fn validate_regular_file(path: &Path, message: &'static str) -> Result<bool> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(_) => Err(session_error("could not inspect session file")),
     }
+}
+
+fn open_existing_session_file(path: &Path) -> Result<Option<File>> {
+    let mut options = OpenOptions::new();
+    options.read(true);
+    prevent_symlink_following(&mut options);
+    match options.open(path) {
+        Ok(file) => {
+            validate_open_regular_file(
+                &file,
+                "session path is not a regular file",
+                "could not inspect session",
+            )?;
+            Ok(Some(file))
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(_) => {
+            validate_regular_file(path, "session path is not a regular file")?;
+            Err(session_error("could not read session"))
+        }
+    }
+}
+
+fn validate_open_regular_file(
+    file: &File,
+    type_message: &'static str,
+    inspect_message: &'static str,
+) -> Result<()> {
+    let metadata = file
+        .metadata()
+        .map_err(|_| session_error(inspect_message))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(session_error(type_message));
+    }
+    Ok(())
+}
+
+fn prevent_symlink_following(options: &mut OpenOptions) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        // Rust 1.95 std uses this Win32 flag when opening a link without following it.
+        const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+        options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
+    }
+    #[cfg(not(any(unix, windows)))]
+    let _ = options;
 }
 
 fn sync_directory(path: &Path) -> Result<()> {
