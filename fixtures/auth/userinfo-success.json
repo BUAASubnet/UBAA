@@ -1,0 +1,13 @@
+{
+  "code": 0,
+  "data": {
+    "idCardType": "TEST_TYPE",
+    "idCardTypeName": "Synthetic document",
+    "phone": "PHONE-REDACTED",
+    "schoolid": "TEST-0001",
+    "name": "Fixture User",
+    "idCardNumber": "TEST-ID-0001",
+    "email": "fixture@example.invalid",
+    "username": "fixture-user"
+  }
+}

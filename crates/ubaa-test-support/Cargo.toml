@@ -8,6 +8,12 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+[dependencies]
+async-trait = "0.1.89"
+ubaa-core = { path = "../ubaa-core" }
+
+[dev-dependencies]
+tokio = { version = "1.49.0", features = ["macros", "rt"] }
+
 [lints]
 workspace = true
-
