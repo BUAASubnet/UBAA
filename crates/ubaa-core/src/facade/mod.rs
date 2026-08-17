@@ -30,12 +30,18 @@ impl UbaaClient {
         config_dir: impl AsRef<Path>,
     ) -> Result<Option<Self>> {
         let store = FileSessionStore::new(config_dir)?;
-        let snapshot = store.load()?;
-        let Some(mode) = mode.or_else(|| snapshot.as_ref().map(|snapshot| snapshot.mode)) else {
+        let persisted = store.load_versioned()?;
+        let Some(mode) = mode.or_else(|| persisted.snapshot.as_ref().map(|snapshot| snapshot.mode))
+        else {
             return Ok(None);
         };
         Ok(Some(Self {
-            runtime: ClientRuntime::from_snapshot(mode, ReqwestTransport::new()?, store, snapshot)?,
+            runtime: ClientRuntime::from_versioned(
+                mode,
+                ReqwestTransport::new()?,
+                store,
+                persisted,
+            )?,
             auth: AuthWorkflow::default(),
         }))
     }

@@ -69,7 +69,7 @@ pub(crate) async fn validate_status(
         clear_local(runtime, clear_workflow)?;
         return Err(authentication_required());
     };
-    let (authenticated_at, last_activity) = runtime.refresh_authentication()?;
+    let (authenticated_at, last_activity) = runtime.refresh_authentication(clear_workflow)?;
     Ok(AuthStatus {
         user,
         authenticated_at,

@@ -1,10 +1,12 @@
 use std::io::{Read, Write};
 use std::net::TcpListener;
 
+use ubaa_core::domain::ConnectionMode;
 use ubaa_core::error::{ErrorCode, ErrorKind};
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport, ReqwestTransport};
+use ubaa_core::session::{SessionMutation, SessionSnapshot, SessionStore, StoredCookie};
 use ubaa_test_support::{
-    ExpectedRequest, MockTransport, assert_fixture_is_sanitized, auth_fixture,
+    ExpectedRequest, MemorySessionStore, MockTransport, assert_fixture_is_sanitized, auth_fixture,
 };
 
 #[test]
@@ -13,6 +15,50 @@ fn auth_fixtures_are_synthetic_and_sanitized() {
         let fixture = auth_fixture(name).expect("known fixture exists");
         assert_fixture_is_sanitized(fixture).expect("fixture contains no forbidden material");
     }
+}
+
+#[test]
+fn memory_session_store_compare_exchange_rejects_stale_and_concurrent_mutations() {
+    let store = MemorySessionStore::new();
+    let original = memory_snapshot(0);
+    store.save(&original).unwrap();
+    let stale = store.load_versioned().unwrap();
+    store.clear().unwrap();
+
+    assert_eq!(
+        store
+            .compare_exchange(stale.revision, Some(&memory_snapshot(1)))
+            .unwrap(),
+        SessionMutation::Conflict
+    );
+    assert!(store.load().unwrap().is_none());
+
+    store.save(&original).unwrap();
+    let revision = store.load_versioned().unwrap().revision;
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let handles = (1..=2)
+        .map(|index| {
+            let store = store.clone();
+            let barrier = std::sync::Arc::clone(&barrier);
+            std::thread::spawn(move || {
+                let candidate = memory_snapshot(index);
+                barrier.wait();
+                let mutation = store.compare_exchange(revision, Some(&candidate)).unwrap();
+                (candidate, mutation)
+            })
+        })
+        .collect::<Vec<_>>();
+    let results = handles
+        .into_iter()
+        .map(|handle| handle.join().unwrap())
+        .collect::<Vec<_>>();
+    let winners = results
+        .iter()
+        .filter(|(_, mutation)| matches!(mutation, SessionMutation::Applied { .. }))
+        .collect::<Vec<_>>();
+
+    assert_eq!(winners.len(), 1);
+    assert_eq!(store.load().unwrap(), Some(winners[0].0.clone()));
 }
 
 #[tokio::test]
@@ -131,4 +177,16 @@ async fn reqwest_transport_rejects_oversized_chunked_response() {
         "upstream response body exceeds the allowed size"
     );
     server.join().unwrap();
+}
+
+fn memory_snapshot(index: i64) -> SessionSnapshot {
+    SessionSnapshot {
+        mode: ConnectionMode::Direct,
+        cookies: vec![StoredCookie::fixture(
+            format!("SESSION-{index}"),
+            format!("fixture-cookie-{index}"),
+        )],
+        authenticated_at: 1_000 + index,
+        last_activity: 2_000 + index,
+    }
 }

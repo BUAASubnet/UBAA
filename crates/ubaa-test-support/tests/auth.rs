@@ -6,7 +6,9 @@ use ubaa_core::domain::{ConnectionMode, LoginInput, SecretValue};
 use ubaa_core::error::ErrorCode;
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
+use ubaa_core::session::{
+    SessionMutation, SessionSnapshot, SessionStore, StoredCookie, VersionedSession,
+};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
 
 fn response(status: u16, url: &str, body: impl Into<Vec<u8>>) -> HttpResponse {
@@ -118,6 +120,38 @@ fn public_client_facade_is_concrete_and_accepts_injected_ports() {
     let _client = accepts_concrete_client(client);
 }
 
+#[test]
+fn mode_mismatch_does_not_clear_a_session_replaced_after_loading() {
+    let inner = MemorySessionStore::new();
+    inner
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::WebVpn,
+            cookies: vec![StoredCookie::fixture("OLD", "old-fixture-cookie")],
+            authenticated_at: 1,
+            last_activity: 1,
+        })
+        .unwrap();
+    let newer = SessionSnapshot {
+        mode: ConnectionMode::Direct,
+        cookies: vec![StoredCookie::fixture("NEW", "new-fixture-cookie")],
+        authenticated_at: 2,
+        last_activity: 2,
+    };
+    let store = ReplaceAfterLoadStore {
+        inner: inner.clone(),
+        replacement: newer.clone(),
+    };
+
+    let result = UbaaClient::with_transport(ConnectionMode::Direct, MockTransport::new([]), store);
+    let Err(error) = result else {
+        panic!("a stale mode-mismatch clear unexpectedly succeeded");
+    };
+
+    assert_eq!(error.code, ErrorCode::InternalError);
+    assert!(error.retryable);
+    assert_eq!(inner.snapshot().unwrap(), Some(newer));
+}
+
 #[tokio::test]
 async fn direct_login_follows_cas_and_returns_userinfo_profile() {
     let (transport, store) = basic_direct_transport();
@@ -205,6 +239,60 @@ async fn prepare_login_keeps_execution_and_captcha_for_same_client_retry() {
     assert!(body.contains("captcha=abcd"));
     assert!(body.contains("captchaResponse=abcd"));
     assert!(body.contains("execution=e-cap"));
+    observer.assert_exhausted().unwrap();
+}
+
+#[tokio::test]
+async fn persistence_conflict_clears_pending_login_workflow_state() {
+    let login = "https://sso.buaa.edu.cn/login";
+    let captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let landing = "https://uc.buaa.edu.cn/landing";
+    let activate =
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let page = r#"<form id="fm1"><input type="hidden" name="execution" value="e-cap"><input name="username"><input name="password"></form><script>config.captcha = { type: 'image', id: 'captcha-fixture' }</script>"#;
+    let transport = MockTransport::new([
+        ExpectedRequest::new(HttpMethod::Get, login, response(200, login, page)),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![1, 2, 3]),
+        ),
+        ExpectedRequest::new(HttpMethod::Post, login, redirect(login, landing)),
+        ExpectedRequest::new(HttpMethod::Get, landing, response(200, landing, Vec::new())),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            activate,
+            response(200, activate, Vec::new()),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            status,
+            response(
+                200,
+                status,
+                r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
+            ),
+        ),
+        ExpectedRequest::new(HttpMethod::Get, login, response(503, login, Vec::new())),
+    ]);
+    let observer = transport.clone();
+    let store = MemorySessionStore::new();
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+
+    client
+        .prepare_login()
+        .await
+        .unwrap()
+        .expect("captcha challenge");
+    store.clear().unwrap();
+    let conflict = client.login(login_input(Some("abcd"))).await.unwrap_err();
+    assert_eq!(conflict.code, ErrorCode::InternalError);
+    assert!(conflict.retryable);
+
+    let next = client.login(login_input(None)).await.unwrap_err();
+    assert_eq!(next.code, ErrorCode::UpstreamUnavailable);
     observer.assert_exhausted().unwrap();
 }
 
@@ -393,6 +481,60 @@ async fn invalid_status_clears_session_but_server_error_keeps_it() {
 }
 
 #[tokio::test]
+async fn stale_client_cannot_recreate_a_session_cleared_by_another_process() {
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let transport = MockTransport::new([ExpectedRequest::new(
+        HttpMethod::Get,
+        status,
+        response(
+            200,
+            status,
+            r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
+        ),
+    )]);
+    let observer = transport.clone();
+    let store = persisted_store();
+    let mut stale_client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+    store.clear().unwrap();
+
+    let error = stale_client.auth_status().await.unwrap_err();
+
+    assert_eq!(error.code, ErrorCode::InternalError);
+    assert!(error.retryable);
+    assert_eq!(error.message, "local session changed in another process");
+    assert!(!error.message.contains("fixture-cookie"));
+    assert!(store.snapshot().unwrap().is_none());
+    let next = stale_client.auth_status().await.unwrap_err();
+    assert_eq!(next.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(observer.requests().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn stale_logout_cannot_clear_a_newer_persisted_session() {
+    let store = persisted_store();
+    let mut stale_client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        MockTransport::new([]),
+        store.clone(),
+    )
+    .unwrap();
+    let newer = SessionSnapshot {
+        mode: ConnectionMode::Direct,
+        cookies: vec![StoredCookie::fixture("NEWER", "newer-fixture-cookie")],
+        authenticated_at: 2,
+        last_activity: 2,
+    };
+    store.save(&newer).unwrap();
+
+    let error = stale_client.logout().await.unwrap_err();
+
+    assert_eq!(error.code, ErrorCode::InternalError);
+    assert!(error.retryable);
+    assert_eq!(store.snapshot().unwrap(), Some(newer));
+}
+
+#[tokio::test]
 async fn existing_sso_cookie_activates_and_validates_user_center_without_password_submission() {
     let login = "https://sso.buaa.edu.cn/login";
     let activate =
@@ -520,6 +662,27 @@ fn persisted_store() -> MemorySessionStore {
 }
 
 struct TimeoutTransport;
+
+struct ReplaceAfterLoadStore {
+    inner: MemorySessionStore,
+    replacement: SessionSnapshot,
+}
+
+impl SessionStore for ReplaceAfterLoadStore {
+    fn load_versioned(&self) -> ubaa_core::error::Result<VersionedSession> {
+        let loaded = self.inner.load_versioned()?;
+        self.inner.save(&self.replacement)?;
+        Ok(loaded)
+    }
+
+    fn compare_exchange(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&SessionSnapshot>,
+    ) -> ubaa_core::error::Result<SessionMutation> {
+        self.inner.compare_exchange(expected_revision, replacement)
+    }
+}
 
 #[async_trait]
 impl HttpTransport for TimeoutTransport {

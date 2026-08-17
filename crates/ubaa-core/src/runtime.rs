@@ -6,7 +6,7 @@ use crate::connection::to_webvpn_url;
 use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
-use crate::session::{CookieJar, SessionSnapshot, SessionStore};
+use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, VersionedSession};
 
 pub(crate) struct ClientRuntime {
     mode: ConnectionMode,
@@ -15,6 +15,7 @@ pub(crate) struct ClientRuntime {
     jar: CookieJar,
     authenticated_at: Option<i64>,
     last_activity: Option<i64>,
+    session_revision: u64,
 }
 
 impl ClientRuntime {
@@ -23,15 +24,15 @@ impl ClientRuntime {
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
     {
-        let snapshot = store.load()?;
-        Self::from_snapshot(mode, transport, store, snapshot)
+        let persisted = store.load_versioned()?;
+        Self::from_versioned(mode, transport, store, persisted)
     }
 
-    pub(crate) fn from_snapshot<T, S>(
+    pub(crate) fn from_versioned<T, S>(
         mode: ConnectionMode,
         transport: T,
         store: S,
-        snapshot: Option<SessionSnapshot>,
+        persisted: VersionedSession,
     ) -> Result<Self>
     where
         T: HttpTransport + 'static,
@@ -40,13 +41,17 @@ impl ClientRuntime {
         let mut jar = CookieJar::default();
         let mut authenticated_at = None;
         let mut last_activity = None;
-        if let Some(snapshot) = snapshot {
+        let mut session_revision = persisted.revision;
+        if let Some(snapshot) = persisted.snapshot {
             if snapshot.mode == mode {
                 jar.replace(snapshot.cookies);
                 authenticated_at = Some(snapshot.authenticated_at);
                 last_activity = Some(snapshot.last_activity);
             } else {
-                store.clear()?;
+                session_revision = match store.compare_exchange(session_revision, None)? {
+                    SessionMutation::Applied { revision } => revision,
+                    SessionMutation::Conflict => return Err(session_conflict()),
+                };
             }
         }
         Ok(Self {
@@ -56,6 +61,7 @@ impl ClientRuntime {
             jar,
             authenticated_at,
             last_activity,
+            session_revision,
         })
     }
 
@@ -90,30 +96,52 @@ impl ClientRuntime {
         Ok(response)
     }
 
-    pub(crate) fn refresh_authentication(&mut self) -> Result<(i64, i64)> {
+    pub(crate) fn refresh_authentication(
+        &mut self,
+        clear_workflow: &mut (dyn FnMut() + Send),
+    ) -> Result<(i64, i64)> {
         let now = now_seconds()?;
         let authenticated_at = self.authenticated_at.unwrap_or(now);
         self.authenticated_at = Some(authenticated_at);
         self.last_activity = Some(now);
-        self.persist()?;
-        Ok((authenticated_at, now))
+        let snapshot = SessionSnapshot {
+            mode: self.mode,
+            cookies: self.jar.cookies().to_vec(),
+            authenticated_at,
+            last_activity: now,
+        };
+        match self
+            .store
+            .compare_exchange(self.session_revision, Some(&snapshot))?
+        {
+            SessionMutation::Applied { revision } => {
+                self.session_revision = revision;
+                Ok((authenticated_at, now))
+            }
+            SessionMutation::Conflict => {
+                self.clear_memory();
+                clear_workflow();
+                Err(session_conflict())
+            }
+        }
     }
 
     pub(crate) fn clear_with(&mut self, clear_workflow: impl FnOnce()) -> Result<()> {
+        self.clear_memory();
+        clear_workflow();
+        match self.store.compare_exchange(self.session_revision, None)? {
+            SessionMutation::Applied { revision } => {
+                self.session_revision = revision;
+                Ok(())
+            }
+            SessionMutation::Conflict => Err(session_conflict()),
+        }
+    }
+
+    fn clear_memory(&mut self) {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
-        clear_workflow();
-        self.store.clear()
-    }
-
-    fn persist(&self) -> Result<()> {
-        self.store.save(&SessionSnapshot {
-            mode: self.mode,
-            cookies: self.jar.cookies().to_vec(),
-            authenticated_at: self.authenticated_at.unwrap_or_default(),
-            last_activity: self.last_activity.unwrap_or_default(),
-        })
     }
 }
 
@@ -129,4 +157,13 @@ fn now_seconds() -> Result<i64> {
                 "system clock is before Unix epoch",
             )
         })
+}
+
+fn session_conflict() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::InternalError,
+        ErrorKind::Internal,
+        true,
+        "local session changed in another process",
+    )
 }

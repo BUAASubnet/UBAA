@@ -3,7 +3,8 @@ use std::sync::{Arc, Barrier};
 
 use ubaa_core::domain::ConnectionMode;
 use ubaa_core::session::{
-    FileSessionStore, SessionSnapshot, SessionStore, SessionValidation, StoredCookie,
+    FileSessionStore, SessionMutation, SessionSnapshot, SessionStore, SessionValidation,
+    StoredCookie,
 };
 
 #[test]
@@ -32,12 +33,24 @@ fn file_session_store_round_trips_mode_cookies_and_timestamps_without_passwords(
     let raw = std::fs::read_to_string(store.path()).unwrap();
     assert!(!raw.contains("password"));
     assert!(!raw.contains("username"));
+    assert_eq!(
+        std::fs::read_to_string(root.join(".session.lock")).unwrap(),
+        "0000000000000001\n"
+    );
 
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         assert_eq!(
             std::fs::metadata(store.path())
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+        assert_eq!(
+            std::fs::metadata(root.join(".session.lock"))
                 .unwrap()
                 .permissions()
                 .mode()
@@ -136,6 +149,65 @@ fn concurrent_saves_use_unique_temporary_files_and_leave_one_complete_snapshot()
         leftovers.is_empty(),
         "temporary files remain: {leftovers:?}"
     );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn stale_revision_cannot_recreate_or_clear_a_replaced_session() {
+    let root = test_root("stale-revision");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    let original = snapshot(0);
+    store.save(&original).unwrap();
+    let stale = store.load_versioned().unwrap();
+
+    store.clear().unwrap();
+    let stale_save = store
+        .compare_exchange(stale.revision, Some(&snapshot(1)))
+        .unwrap();
+    assert_eq!(stale_save, SessionMutation::Conflict);
+    assert!(store.load().unwrap().is_none());
+
+    store.save(&original).unwrap();
+    let stale_clear = store.compare_exchange(stale.revision, None).unwrap();
+    assert_eq!(stale_clear, SessionMutation::Conflict);
+    assert_eq!(store.load().unwrap(), Some(original));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn concurrent_compare_exchange_applies_exactly_one_file_session_mutation() {
+    let root = test_root("concurrent-cas");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store.save(&snapshot(0)).unwrap();
+    let revision = store.load_versioned().unwrap().revision;
+    let barrier = Arc::new(Barrier::new(2));
+
+    let handles = (1..=2)
+        .map(|index| {
+            let root = root.clone();
+            let barrier = Arc::clone(&barrier);
+            std::thread::spawn(move || {
+                let store = FileSessionStore::new(&root).unwrap();
+                let candidate = snapshot(index);
+                barrier.wait();
+                let mutation = store.compare_exchange(revision, Some(&candidate)).unwrap();
+                (candidate, mutation)
+            })
+        })
+        .collect::<Vec<_>>();
+    let results = handles
+        .into_iter()
+        .map(|handle| handle.join().unwrap())
+        .collect::<Vec<_>>();
+
+    let winners = results
+        .iter()
+        .filter(|(_, mutation)| matches!(mutation, SessionMutation::Applied { .. }))
+        .collect::<Vec<_>>();
+    assert_eq!(winners.len(), 1);
+    assert_eq!(store.load().unwrap(), Some(winners[0].0.clone()));
     let _ = std::fs::remove_dir_all(root);
 }
 

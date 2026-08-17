@@ -6,7 +6,7 @@ use ubaa_core::domain::{
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, UbaaError};
 use ubaa_core::output::JsonEnvelope;
 use ubaa_core::ports::{HttpRequest, HttpResponse};
-use ubaa_core::session::{SessionSnapshot, StoredCookie};
+use ubaa_core::session::{SessionSnapshot, StoredCookie, VersionedSession};
 
 #[test]
 fn user_info_response_maps_legacy_camel_case_fields() {
@@ -92,6 +92,10 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
         authenticated_at: 111,
         last_activity: 222,
     };
+    let versioned = VersionedSession {
+        snapshot: Some(snapshot.clone()),
+        revision: 7,
+    };
     let error = UbaaError::new(
         ErrorCode::InvalidInput,
         ErrorKind::Input,
@@ -117,7 +121,8 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
 
     let formatted = format!(
         "{request:?} {response:?} {login_input:?} {challenge:?} {profile:?} {response_wrapper:?} \
-         {status:?} {cookie:?} {snapshot:?} {error:?} {failure_envelope:?} {success_envelope:?}"
+         {status:?} {cookie:?} {snapshot:?} {versioned:?} {error:?} {failure_envelope:?} \
+         {success_envelope:?}"
     );
 
     assert_debug_redacts(

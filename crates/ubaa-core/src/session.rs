@@ -1,7 +1,7 @@
 //! Cookie jar and restricted on-disk session persistence.
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -16,6 +16,7 @@ use crate::ports::HttpResponse;
 
 const MAX_SESSION_FILE_BYTES: usize = 1024 * 1024;
 const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
+const REVISION_FILE_BYTES: usize = 17;
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
 /// Cookie attributes retained for safe request filtering and persistence.
@@ -197,26 +198,88 @@ impl SessionValidation {
     }
 }
 
+/// One atomically loaded persisted snapshot and its mutation revision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VersionedSession {
+    /// Persisted session, if present.
+    pub snapshot: Option<SessionSnapshot>,
+    /// Monotonic local revision used to reject stale writers.
+    pub revision: u64,
+}
+
+/// Result of a compare-exchange session mutation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SessionMutation {
+    /// The mutation was applied and produced this revision.
+    Applied {
+        /// New monotonic local revision.
+        revision: u64,
+    },
+    /// Another process changed the session after the caller loaded it.
+    Conflict,
+}
+
 /// Persistence port for one client-owned session.
 pub trait SessionStore: Send + Sync {
+    /// Atomically load a session snapshot and its current revision.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe persistence or parsing error.
+    fn load_versioned(&self) -> Result<VersionedSession>;
+    /// Atomically replace the session only when `expected_revision` is still current.
+    ///
+    /// `replacement=None` clears the persisted session. Applied mutations always advance the
+    /// revision, including clears, so deleting and recreating equal JSON cannot fool stale writers.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe persistence or serialization error.
+    fn compare_exchange(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&SessionSnapshot>,
+    ) -> Result<SessionMutation>;
     /// Load a session snapshot, if present.
     ///
     /// # Errors
     ///
     /// Returns a safe persistence or parsing error.
-    fn load(&self) -> Result<Option<SessionSnapshot>>;
+    fn load(&self) -> Result<Option<SessionSnapshot>> {
+        self.load_versioned().map(|state| state.snapshot)
+    }
     /// Replace the persisted snapshot.
     ///
     /// # Errors
     ///
     /// Returns a safe persistence or serialization error.
-    fn save(&self, snapshot: &SessionSnapshot) -> Result<()>;
+    fn save(&self, snapshot: &SessionSnapshot) -> Result<()> {
+        loop {
+            let current = self.load_versioned()?;
+            if matches!(
+                self.compare_exchange(current.revision, Some(snapshot))?,
+                SessionMutation::Applied { .. }
+            ) {
+                return Ok(());
+            }
+        }
+    }
     /// Remove local session state.
     ///
     /// # Errors
     ///
     /// Returns a safe persistence error when the state cannot be removed.
-    fn clear(&self) -> Result<()>;
+    fn clear(&self) -> Result<()> {
+        loop {
+            let current = self.load_versioned()?;
+            if matches!(
+                self.compare_exchange(current.revision, None)?,
+                SessionMutation::Applied { .. }
+            ) {
+                return Ok(());
+            }
+        }
+    }
 }
 
 /// File-backed session store using `<config-dir>/session.json`.
@@ -263,8 +326,39 @@ impl FileSessionStore {
 }
 
 impl SessionStore for FileSessionStore {
-    fn load(&self) -> Result<Option<SessionSnapshot>> {
-        let _lock = self.acquire_lock()?;
+    fn load_versioned(&self) -> Result<VersionedSession> {
+        let mut lock = self.acquire_lock()?;
+        Ok(VersionedSession {
+            revision: read_revision(&mut lock.file)?,
+            snapshot: self.load_unlocked()?,
+        })
+    }
+
+    fn compare_exchange(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&SessionSnapshot>,
+    ) -> Result<SessionMutation> {
+        let body = replacement.map(encode_snapshot).transpose()?;
+        let mut lock = self.acquire_lock()?;
+        let current_revision = read_revision(&mut lock.file)?;
+        if current_revision != expected_revision {
+            return Ok(SessionMutation::Conflict);
+        }
+        let revision = current_revision
+            .checked_add(1)
+            .ok_or_else(|| session_error("session revision is exhausted"))?;
+        write_revision(&mut lock.file, revision)?;
+        match body {
+            Some(body) => self.save_unlocked(&body)?,
+            None => self.clear_unlocked()?,
+        }
+        Ok(SessionMutation::Applied { revision })
+    }
+}
+
+impl FileSessionStore {
+    fn load_unlocked(&self) -> Result<Option<SessionSnapshot>> {
         let Some(file) = open_existing_session_file(&self.path)? else {
             return Ok(None);
         };
@@ -281,14 +375,7 @@ impl SessionStore for FileSessionStore {
             .map_err(|_| session_error("session format is invalid"))
     }
 
-    fn save(&self, snapshot: &SessionSnapshot) -> Result<()> {
-        let body = serde_json::to_vec_pretty(snapshot)
-            .map_err(|_| session_error("could not encode session"))?;
-        if body.len() > MAX_SESSION_FILE_BYTES {
-            return Err(session_error("encoded session exceeds the allowed size"));
-        }
-
-        let _lock = self.acquire_lock()?;
+    fn save_unlocked(&self, body: &[u8]) -> Result<()> {
         validate_regular_file(&self.path, "session path is not a regular file")?;
         let parent = self
             .path
@@ -297,7 +384,7 @@ impl SessionStore for FileSessionStore {
         let (temporary, mut file) = create_temporary_file(parent)?;
         let mut cleanup = TemporaryFile::new(temporary);
         restrict_open_file(&file, "could not restrict session file")?;
-        file.write_all(&body)
+        file.write_all(body)
             .map_err(|_| session_error("could not write session"))?;
         file.flush()
             .map_err(|_| session_error("could not flush session"))?;
@@ -309,12 +396,10 @@ impl SessionStore for FileSessionStore {
         fs::rename(cleanup.path(), &self.path)
             .map_err(|_| session_error("could not replace session"))?;
         cleanup.persisted();
-        sync_directory(parent)?;
-        Ok(())
+        sync_directory(parent)
     }
 
-    fn clear(&self) -> Result<()> {
-        let _lock = self.acquire_lock()?;
+    fn clear_unlocked(&self) -> Result<()> {
         if !validate_regular_file(&self.path, "session path is not a regular file")? {
             return Ok(());
         }
@@ -329,9 +414,7 @@ impl SessionStore for FileSessionStore {
             Err(_) => Err(session_error("could not clear session")),
         }
     }
-}
 
-impl FileSessionStore {
     fn lock_path(&self) -> PathBuf {
         self.path.with_file_name(".session.lock")
     }
@@ -433,6 +516,43 @@ fn create_temporary_file(parent: &Path) -> Result<(PathBuf, File)> {
         }
     }
     Err(session_error("could not allocate temporary session file"))
+}
+
+fn encode_snapshot(snapshot: &SessionSnapshot) -> Result<Vec<u8>> {
+    let body = serde_json::to_vec_pretty(snapshot)
+        .map_err(|_| session_error("could not encode session"))?;
+    if body.len() > MAX_SESSION_FILE_BYTES {
+        return Err(session_error("encoded session exceeds the allowed size"));
+    }
+    Ok(body)
+}
+
+fn read_revision(file: &mut File) -> Result<u64> {
+    file.seek(SeekFrom::Start(0))
+        .map_err(|_| session_error("could not read session revision"))?;
+    let mut body = Vec::new();
+    file.take(REVISION_FILE_BYTES as u64 + 1)
+        .read_to_end(&mut body)
+        .map_err(|_| session_error("could not read session revision"))?;
+    if body.is_empty() {
+        return Ok(0);
+    }
+    if body.len() != REVISION_FILE_BYTES || body.last() != Some(&b'\n') {
+        return Err(session_error("session revision format is invalid"));
+    }
+    let digits = std::str::from_utf8(&body[..REVISION_FILE_BYTES - 1])
+        .map_err(|_| session_error("session revision format is invalid"))?;
+    u64::from_str_radix(digits, 16).map_err(|_| session_error("session revision format is invalid"))
+}
+
+fn write_revision(file: &mut File, revision: u64) -> Result<()> {
+    let body = format!("{revision:016x}\n");
+    file.seek(SeekFrom::Start(0))
+        .and_then(|_| file.write_all(body.as_bytes()))
+        .and_then(|()| file.set_len(REVISION_FILE_BYTES as u64))
+        .and_then(|()| file.flush())
+        .and_then(|()| file.sync_all())
+        .map_err(|_| session_error("could not sync session revision"))
 }
 
 fn validate_directory(path: &Path) -> Result<()> {

@@ -181,7 +181,13 @@ impl HttpTransport for MockTransport {
 /// In-memory session store used by deterministic Core integration tests.
 #[derive(Clone, Debug, Default)]
 pub struct MemorySessionStore {
-    state: Arc<Mutex<Option<ubaa_core::session::SessionSnapshot>>>,
+    state: Arc<Mutex<MemorySessionState>>,
+}
+
+#[derive(Debug, Default)]
+struct MemorySessionState {
+    snapshot: Option<ubaa_core::session::SessionSnapshot>,
+    revision: u64,
 }
 
 impl MemorySessionStore {
@@ -201,30 +207,43 @@ impl MemorySessionStore {
     ) -> std::result::Result<Option<ubaa_core::session::SessionSnapshot>, String> {
         self.state
             .lock()
-            .map(|snapshot| snapshot.clone())
+            .map(|state| state.snapshot.clone())
             .map_err(|_| "memory store lock poisoned".into())
     }
 }
 
 impl ubaa_core::session::SessionStore for MemorySessionStore {
-    fn load(&self) -> Result<Option<ubaa_core::session::SessionSnapshot>> {
-        self.snapshot().map_err(mock_error)
+    fn load_versioned(&self) -> Result<ubaa_core::session::VersionedSession> {
+        let state = self
+            .state
+            .lock()
+            .map_err(|_| mock_error("memory store lock poisoned"))?;
+        Ok(ubaa_core::session::VersionedSession {
+            snapshot: state.snapshot.clone(),
+            revision: state.revision,
+        })
     }
 
-    fn save(&self, snapshot: &ubaa_core::session::SessionSnapshot) -> Result<()> {
-        self.state
+    fn compare_exchange(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&ubaa_core::session::SessionSnapshot>,
+    ) -> Result<ubaa_core::session::SessionMutation> {
+        let mut state = self
+            .state
             .lock()
-            .map_err(|_| mock_error("memory store lock poisoned"))?
-            .replace(snapshot.clone());
-        Ok(())
-    }
-
-    fn clear(&self) -> Result<()> {
-        self.state
-            .lock()
-            .map_err(|_| mock_error("memory store lock poisoned"))?
-            .take();
-        Ok(())
+            .map_err(|_| mock_error("memory store lock poisoned"))?;
+        if state.revision != expected_revision {
+            return Ok(ubaa_core::session::SessionMutation::Conflict);
+        }
+        state.revision = state
+            .revision
+            .checked_add(1)
+            .ok_or_else(|| mock_error("memory session revision is exhausted"))?;
+        state.snapshot = replacement.cloned();
+        Ok(ubaa_core::session::SessionMutation::Applied {
+            revision: state.revision,
+        })
     }
 }
 
