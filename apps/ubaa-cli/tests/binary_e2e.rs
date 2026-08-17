@@ -7,6 +7,43 @@ use ubaa_core::domain::ConnectionMode;
 use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
 
 #[test]
+fn repository_cargo_gates_lock_dependency_resolution() {
+    let justfile = include_str!("../../../Justfile");
+    let sources = [
+        ("Justfile", justfile),
+        (
+            "GitHub Actions workflow",
+            include_str!("../../../.github/workflows/ci.yml"),
+        ),
+        (
+            "live verifier",
+            include_str!("../../../scripts/verify-live.sh"),
+        ),
+    ];
+
+    assert!(
+        justfile.contains("cargo metadata --locked --no-deps --format-version 1"),
+        "Justfile must validate Cargo.lock before running deterministic gates"
+    );
+
+    for (source_name, source) in sources {
+        for line in source.lines().map(str::trim) {
+            let Some(cargo_index) = line.find("cargo ") else {
+                continue;
+            };
+            let cargo_command = &line[cargo_index..];
+            if cargo_command.starts_with("cargo fmt ") {
+                continue;
+            }
+            assert!(
+                cargo_command.contains("--locked"),
+                "{source_name} has an unlocked Cargo command: {cargo_command}"
+            );
+        }
+    }
+}
+
+#[test]
 fn binary_host_does_not_reach_through_the_facade_for_session_state() {
     let main_source = include_str!("../src/main.rs");
 

@@ -10,15 +10,16 @@ fmt:
     cargo fmt --all -- --check
 
 test:
-    cargo test --workspace
+    cargo test --locked --workspace
 
 check:
+    cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
-    cargo clippy --workspace --all-targets --all-features -- -D warnings
-    cargo test --workspace
+    cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+    cargo test --locked --workspace
     ./scripts/test-verify-live.sh
-    cargo build --workspace
-    cargo doc --workspace --no-deps
+    cargo build --locked --workspace
+    cargo doc --locked --workspace --no-deps
     git diff --check
 
 check-sensitive:

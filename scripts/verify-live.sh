@@ -244,7 +244,7 @@ main() {
   human_tty_state=
   human_tty_configured=no
   install_cleanup_traps
-  if ! cargo build --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-cli >"$build_log" 2>&1; then
+  if ! cargo build --locked --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-cli >"$build_log" 2>&1; then
     echo "mode=$mode outcome=failed stage=build error=build_failed" >&2
     exit 1
   fi
