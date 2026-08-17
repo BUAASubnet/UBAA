@@ -1,0 +1,13 @@
+[package]
+name = "ubaa-test-support"
+description = "Shared, sanitized test support for UBAA workspace crates"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+

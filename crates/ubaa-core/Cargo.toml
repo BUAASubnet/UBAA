@@ -1,0 +1,12 @@
+[package]
+name = "ubaa-core"
+description = "Platform-independent UBAA authentication and campus-service core"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+

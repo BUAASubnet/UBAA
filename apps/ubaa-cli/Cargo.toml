@@ -1,0 +1,16 @@
+[package]
+name = "ubaa-cli"
+description = "Command-line host for UBAA Core"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "ubaa"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+

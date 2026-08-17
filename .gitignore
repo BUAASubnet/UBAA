@@ -1,0 +1,26 @@
+# Local credentials and environment
+.env.*
+!.env.example
+
+# Frozen local references (managed by scripts/ensure-references.sh)
+/ubaa_old/
+/examples/
+
+# Rust output
+/target/
+
+# Runtime state and live verification artifacts
+session.json
+*.session.json
+/.ubaa/
+/live-artifacts/
+/artifacts/live/
+*.captcha
+*.captcha.*
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
