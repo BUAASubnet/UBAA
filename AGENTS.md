@@ -31,5 +31,4 @@
 
 ## Completion gate
 
-Run `just check`, CLI end-to-end tests, `just verify-live mode=direct`, and `just verify-live mode=webvpn`. Fixture or mock success does not establish live protocol success.
-
+Run `just refs`, `just check-sensitive`, `just check`, CLI end-to-end tests, `just verify-live mode=direct`, and `just verify-live mode=webvpn`. Fixture or mock success does not establish live protocol success. CI runs the deterministic gates only and never receives live credentials.

@@ -16,10 +16,6 @@ jobs:
         with:
           components: clippy,rustfmt
       - uses: taiki-e/install-action@just
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --workspace
-      - run: cargo build --workspace
-      - run: cargo doc --workspace --no-deps
-      - run: git diff --check
-
+      - run: just refs
+      - run: just check-sensitive
+      - run: just check

@@ -20,6 +20,8 @@ check:
     cargo doc --workspace --no-deps
     git diff --check
 
+check-sensitive:
+    ./scripts/check-sensitive.sh
+
 verify-live mode:
     ./scripts/verify-live.sh "{{mode}}"
-

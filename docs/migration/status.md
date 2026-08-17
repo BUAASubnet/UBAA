@@ -18,8 +18,8 @@ Updated: 2026-08-17
 | 2. Connection and session runtime | Complete | `ff99b57` |
 | 3. SSO and User Center | Complete | `90fb1ef` |
 | 4. CLI host | Complete; fixture and binary-tested | `a27fdf0` |
-| 5. Live Direct/WebVPN verification | Complete; real verification passed | `test: verify live direct and webvpn authentication` |
-| 6. Continuous-development readiness | Not implemented | Pending |
+| 5. Live Direct/WebVPN verification | Complete; real verification passed | `ed085f2` |
+| 6. Continuous-development readiness | Complete; docs, CI, baseline and sensitive gates added | `docs: make ubaa2 ready for continuous development` |
 
 ## Capability status
 
@@ -31,4 +31,6 @@ Flutter, MCP, server relay, Ktor/JWT/Redis, schedule, exams, grades, sign-in, SP
 
 ## Next slice
 
-Phase 6 completes the development/CI documentation, adds deterministic sensitive-data and reference-baseline gates, and reruns the full `just check` plus both live commands before the final report.
+The recommended next contract is schedule/exam read support. Begin with the frozen interfaces and implementation in `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt` and `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalScheduleApi.kt`, map only the fields evidenced by `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Schedule.kt` and `Exam.kt`, and port the behavioral cases from `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalScheduleApiBackendTest.kt` before adding a facade or CLI command.
+
+The old WebVPN login's CGYY-only Direct SSO side session remains intentionally unimplemented. Reassess it only when a CGYY-backed feature is in scope, using `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt` and `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalAuthServiceBackendTest.kt` as the starting evidence.

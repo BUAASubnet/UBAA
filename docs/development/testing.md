@@ -1,0 +1,16 @@
+# Testing Strategy
+
+Tests are deliberately separated by evidence level:
+
+| Layer | Location | What it proves |
+|---|---|---|
+| Unit/contract | `crates/ubaa-core/tests/` | DTOs, errors, URL conversion, cookies, persistence, and stable JSON shape |
+| Sanitized fixture | `fixtures/`, `crates/ubaa-test-support/` | Parser behavior and request scripts using synthetic values only |
+| Mock integration | `crates/ubaa-test-support/tests/auth.rs` | Direct/WebVPN state-machine sequencing, captcha, risk continuation, status invalidation, and logout without a network |
+| CLI contract | `apps/ubaa-cli/tests/cli_contract.rs` | Human/JSON rendering, redaction, captcha exit 4, schema validation, and stable exits |
+| CLI binary | `apps/ubaa-cli/tests/binary_e2e.rs` | Help surface and missing-session process behavior |
+| Real integration | `scripts/verify-live.sh` | Actual Direct and WebVPN SSO, User Center parsing, and persisted-session `auth status` |
+
+Run deterministic tests with `cargo test --workspace` or `just check`. The real verifier is never part of CI: run each mode explicitly with `just verify-live mode=direct` and `just verify-live mode=webvpn` only when `.env.local` is present. A fixture or mock pass does not establish live protocol success.
+
+Every new behavior starts with a failing focused test. Keep fixtures synthetic, assert that sensitive values are absent from output, and add a migration or contract note when an upstream fact changes.
