@@ -73,6 +73,26 @@ fn binary_json_login_without_mode_or_session_exits_two_before_network() {
 }
 
 #[test]
+fn binary_json_argument_errors_use_a_safe_parseable_envelope() {
+    let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+        .arg("--json")
+        .arg("auth")
+        .arg("login")
+        .arg("--mode")
+        .arg("MODE-SENTINEL")
+        .output()
+        .unwrap();
+
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(value["ok"], false);
+    assert_eq!(value["error"]["code"], "invalid_input");
+    assert_eq!(value["error"]["retryable"], false);
+    assert!(output.stderr.is_empty());
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("MODE-SENTINEL"));
+}
+
+#[test]
 fn binary_json_logout_without_session_has_no_invented_connection_mode() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-logout-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);

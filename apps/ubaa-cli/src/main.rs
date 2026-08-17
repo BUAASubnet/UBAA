@@ -6,12 +6,41 @@ use directories::ProjectDirs;
 use ubaa_cli::{
     Cli, authentication_required, render_empty_logout, render_startup_error, run_with_backend,
 };
+use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::session::{FileSessionStore, SessionStore};
 
 #[tokio::main]
 async fn main() {
-    let cli = Cli::parse();
+    let json_requested = std::env::args_os().any(|argument| argument == "--json");
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) if error.exit_code() == 0 => {
+            let _ = error.print();
+            return;
+        }
+        Err(_error) if json_requested => {
+            let mut stdout = io::stdout().lock();
+            let mut stderr = io::stderr().lock();
+            let code = render_startup_error(
+                true,
+                UbaaError::new(
+                    ErrorCode::InvalidInput,
+                    ErrorKind::Input,
+                    false,
+                    "command-line arguments are invalid",
+                ),
+                &mut stdout,
+                &mut stderr,
+            );
+            std::process::exit(code);
+        }
+        Err(error) => {
+            let code = error.exit_code();
+            let _ = error.print();
+            std::process::exit(code);
+        }
+    };
     let code = run(cli).await;
     std::process::exit(code);
 }
@@ -23,9 +52,9 @@ async fn run(cli: Cli) -> i32 {
     let Some(config_dir) = cli.config_dir.clone().or_else(default_config_dir) else {
         return render_startup_error(
             json_mode,
-            ubaa_core::error::UbaaError::new(
-                ubaa_core::error::ErrorCode::InternalError,
-                ubaa_core::error::ErrorKind::Internal,
+            UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
                 false,
                 "could not determine the configuration directory",
             ),
