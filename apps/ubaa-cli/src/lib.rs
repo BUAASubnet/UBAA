@@ -15,8 +15,6 @@ use ubaa_core::domain::{
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::output::{JSON_SCHEMA_VERSION, JsonEnvelope, JsonMeta};
-use ubaa_core::ports::HttpTransport;
-use ubaa_core::session::SessionStore;
 
 /// UBAA command-line interface.
 #[derive(Debug, Parser)]
@@ -198,11 +196,7 @@ pub trait CliBackend {
 }
 
 #[async_trait]
-impl<T, S> CliBackend for UbaaClient<T, S>
-where
-    T: HttpTransport + Send,
-    S: SessionStore + Send,
-{
+impl CliBackend for UbaaClient {
     fn mode(&self) -> ConnectionMode {
         self.mode()
     }

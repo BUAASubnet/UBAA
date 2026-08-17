@@ -1,18 +1,18 @@
 //! Stable facade consumed by CLI and future bindings.
 
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::Engine as _;
 use url::Url;
 
 use crate::auth::LoginState;
-use crate::connection::{resolve_redirect, to_webvpn_url};
+use crate::connection::resolve_redirect;
 use crate::domain::{AuthStatus, ConnectionMode, LoginChallenge, LoginInput, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user::looks_unauthenticated;
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport, ReqwestTransport};
-use crate::session::{CookieJar, FileSessionStore, SessionSnapshot, SessionStore};
+use crate::runtime::ClientRuntime;
+use crate::session::{FileSessionStore, SessionStore};
 use crate::upstream::{
     SSO_CAPTCHA_URL, SSO_LOGIN_URL, SSO_LOGOUT_URL, UC_ACTIVATE_URL, UC_STATUS_URL,
     UC_USERINFO_URL, build_captcha_form, build_login_form, detect_captcha, encode_form,
@@ -22,17 +22,12 @@ use crate::upstream::{
 const MAX_REDIRECTS: usize = 10;
 
 /// One independent Direct or `WebVPN` session and login state machine.
-pub struct UbaaClient<T: HttpTransport, S: SessionStore> {
-    mode: ConnectionMode,
-    transport: T,
-    store: S,
-    jar: CookieJar,
-    authenticated_at: Option<i64>,
-    last_activity: Option<i64>,
+pub struct UbaaClient {
+    runtime: ClientRuntime,
     login_state: LoginState,
 }
 
-impl UbaaClient<ReqwestTransport, FileSessionStore> {
+impl UbaaClient {
     /// Construct a production client rooted at a host-selected configuration directory.
     ///
     /// # Errors
@@ -45,34 +40,19 @@ impl UbaaClient<ReqwestTransport, FileSessionStore> {
             FileSessionStore::new(config_dir)?,
         )
     }
-}
 
-impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
     /// Construct a client with injected transport and persistence ports.
     ///
     /// # Errors
     ///
     /// Returns a safe persistence error when an existing session cannot be loaded.
-    pub fn with_transport(mode: ConnectionMode, transport: T, store: S) -> Result<Self> {
-        let mut jar = CookieJar::default();
-        let mut authenticated_at = None;
-        let mut last_activity = None;
-        if let Some(snapshot) = store.load()? {
-            if snapshot.mode == mode {
-                jar.replace(snapshot.cookies);
-                authenticated_at = Some(snapshot.authenticated_at);
-                last_activity = Some(snapshot.last_activity);
-            } else {
-                store.clear()?;
-            }
-        }
+    pub fn with_transport<T, S>(mode: ConnectionMode, transport: T, store: S) -> Result<Self>
+    where
+        T: HttpTransport + 'static,
+        S: SessionStore + 'static,
+    {
         Ok(Self {
-            mode,
-            transport,
-            store,
-            jar,
-            authenticated_at,
-            last_activity,
+            runtime: ClientRuntime::new(mode, transport, store)?,
             login_state: LoginState::default(),
         })
     }
@@ -80,7 +60,7 @@ impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
     /// Return this client's fixed connection mode.
     #[must_use]
     pub const fn mode(&self) -> ConnectionMode {
-        self.mode
+        self.runtime.mode()
     }
 
     /// Load the current SSO page and retain its execution/Cookie challenge in this client.
@@ -129,7 +109,7 @@ impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
         }
         if self.login_state.page().is_none() {
             let challenge = self.prepare_login().await?;
-            if challenge.is_none() && self.authenticated_at.is_some() {
+            if challenge.is_none() && self.runtime.authenticated_at().is_some() {
                 return self.get_user_info().await;
             }
         }
@@ -181,7 +161,7 @@ impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
     ///
     /// Returns authentication-required for explicit invalidation while preserving state on timeout/5xx.
     pub async fn auth_status(&mut self) -> Result<AuthStatus> {
-        if self.jar.cookies().is_empty() && self.authenticated_at.is_none() {
+        if !self.runtime.has_local_session() {
             return Err(authentication_required());
         }
         self.validate_status().await
@@ -250,15 +230,11 @@ impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
             self.clear_local()?;
             return Err(authentication_required());
         };
-        let now = now_seconds()?;
-        let authenticated_at = self.authenticated_at.unwrap_or(now);
-        self.authenticated_at = Some(authenticated_at);
-        self.last_activity = Some(now);
-        self.persist()?;
+        let (authenticated_at, last_activity) = self.runtime.refresh_authentication()?;
         Ok(AuthStatus {
             user,
             authenticated_at,
-            last_activity: now,
+            last_activity,
         })
     }
 
@@ -290,7 +266,7 @@ impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
                 redirects += 1;
                 let location = header_first(&response, "location")
                     .ok_or_else(|| upstream_changed("SSO redirect has no Location"))?;
-                let next = resolve_redirect(&response.final_url, location, self.mode)?;
+                let next = resolve_redirect(&response.final_url, location, self.mode())?;
                 response = self.request(HttpRequest::get(next)).await?;
             }
             let body = body_text(&response);
@@ -355,46 +331,23 @@ impl<T: HttpTransport, S: SessionStore> UbaaClient<T, S> {
             }
             let location = header_first(&response, "location")
                 .ok_or_else(|| upstream_changed("activation redirect has no Location"))?;
-            let next = resolve_redirect(&response.final_url, location, self.mode)?;
+            let next = resolve_redirect(&response.final_url, location, self.mode())?;
             response = self.request(HttpRequest::get(next)).await?;
         }
         Err(upstream_changed("activation redirect limit exceeded"))
     }
 
-    async fn request(&mut self, mut request: HttpRequest) -> Result<HttpResponse> {
-        let now = SystemTime::now();
-        let cookie = self.jar.cookie_header(&request.url, now)?;
-        if !cookie.is_empty() {
-            request.headers.insert("Cookie".into(), cookie);
-        }
-        let request_url = request.url.clone();
-        let response = self.transport.execute(request).await?;
-        self.jar.store_response(&response, &request_url, now)?;
-        Ok(response)
+    async fn request(&mut self, request: HttpRequest) -> Result<HttpResponse> {
+        self.runtime.request(request).await
     }
 
     fn url(&self, direct: &str) -> Result<String> {
-        match self.mode {
-            ConnectionMode::Direct => Ok(direct.into()),
-            ConnectionMode::WebVpn => to_webvpn_url(direct),
-        }
-    }
-
-    fn persist(&self) -> Result<()> {
-        self.store.save(&SessionSnapshot {
-            mode: self.mode,
-            cookies: self.jar.cookies().to_vec(),
-            authenticated_at: self.authenticated_at.unwrap_or_default(),
-            last_activity: self.last_activity.unwrap_or_default(),
-        })
+        self.runtime.url(direct)
     }
 
     fn clear_local(&mut self) -> Result<()> {
-        self.jar = CookieJar::default();
-        self.authenticated_at = None;
-        self.last_activity = None;
         self.login_state.clear();
-        self.store.clear()
+        self.runtime.clear()
     }
 }
 
@@ -419,20 +372,6 @@ fn strip_query(url: &str) -> Result<String> {
     let mut parsed = Url::parse(url).map_err(|_| upstream_changed("invalid password-risk URL"))?;
     parsed.set_query(None);
     Ok(parsed.to_string())
-}
-
-fn now_seconds() -> Result<i64> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| i64::try_from(duration.as_secs()).unwrap_or(i64::MAX))
-        .map_err(|_| {
-            UbaaError::new(
-                ErrorCode::InternalError,
-                ErrorKind::Internal,
-                false,
-                "system clock is before Unix epoch",
-            )
-        })
 }
 
 fn authentication_required() -> UbaaError {

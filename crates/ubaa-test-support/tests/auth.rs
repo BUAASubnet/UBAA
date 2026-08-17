@@ -102,6 +102,22 @@ fn basic_direct_transport() -> (MockTransport, MemorySessionStore) {
     (transport, MemorySessionStore::new())
 }
 
+#[test]
+fn public_client_facade_is_concrete_and_accepts_injected_ports() {
+    fn accepts_concrete_client(client: UbaaClient) -> UbaaClient {
+        client
+    }
+
+    let client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        MockTransport::new([]),
+        MemorySessionStore::new(),
+    )
+    .unwrap();
+
+    let _client = accepts_concrete_client(client);
+}
+
 #[tokio::test]
 async fn direct_login_follows_cas_and_returns_userinfo_profile() {
     let (transport, store) = basic_direct_transport();
