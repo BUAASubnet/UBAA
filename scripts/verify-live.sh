@@ -71,8 +71,7 @@ run_human_login() {
   human_tty_configured=no
   if [[ -c "$tty_path" ]]; then
     human_tty_path=$tty_path
-    if ! human_tty_state=$(stty -g <"$tty_path" 2>/dev/null) || \
-      ! stty -echo <"$tty_path" 2>/dev/null; then
+    if ! human_tty_state=$(stty -g <"$tty_path" 2>/dev/null); then
       rm -f -- "$human_input_fifo"
       human_input_fifo=
       human_tty_path=
@@ -81,6 +80,13 @@ run_human_login() {
       return 1
     fi
     human_tty_configured=yes
+    if ! stty -echo <"$tty_path" 2>/dev/null; then
+      restore_human_tty
+      rm -f -- "$human_input_fifo"
+      human_input_fifo=
+      CLI_CODE=7
+      return 1
+    fi
   fi
 
   "$binary" --config-dir "$config_dir" auth login --mode "$mode" \

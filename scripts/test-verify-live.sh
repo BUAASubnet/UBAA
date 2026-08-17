@@ -26,6 +26,18 @@ exit 0
 EOF
 chmod 700 "$fake_bin/cargo"
 
+real_stty=$(command -v stty)
+cat >"$fake_bin/stty" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+"$REAL_STTY" "$@"
+if [[ " $* " == *" -echo " && -f "$FAKE_STATE_DIR/interrupt-after-echo" ]]; then
+  kill -TERM "$PPID"
+fi
+EOF
+chmod 700 "$fake_bin/stty"
+
 cat >"$project_root/target/debug/ubaa" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -80,6 +92,7 @@ EOF
 chmod 700 "$project_root/target/debug/ubaa"
 
 export FAKE_STATE_DIR="$fake_state"
+export REAL_STTY="$real_stty"
 export PATH="$fake_bin:$PATH"
 export VERIFY_LIVE_COPY="$project_root/scripts/verify-live.sh"
 
@@ -143,6 +156,33 @@ if [[ "$output" == *"fixture-captcha"* ]]; then
 fi
 if [[ "$output" != *"terminal-state-restored"* ]]; then
   echo "verifier did not restore the terminal state" >&2
+  exit 1
+fi
+
+: >"$fake_state/interrupt-after-echo"
+set +e
+case "$(uname -s)" in
+  Darwin)
+    interrupted_output=$(script -q -e /dev/null /bin/bash -c \
+      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" interrupted-terminal-state-restored; exit "$code"' \
+      </dev/null 2>&1)
+    interrupted_code=$?
+    ;;
+  Linux)
+    interrupted_output=$(script -q -e -c \
+      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" interrupted-terminal-state-restored; exit "$code"' \
+      /dev/null </dev/null 2>&1)
+    interrupted_code=$?
+    ;;
+esac
+set -e
+rm -f "$fake_state/interrupt-after-echo"
+if [[ "$interrupted_code" -ne 143 ]]; then
+  printf 'interrupted terminal test exited with %s instead of 143\n' "$interrupted_code" >&2
+  exit 1
+fi
+if [[ "$interrupted_output" != *"interrupted-terminal-state-restored"* ]]; then
+  echo "signal after disabling echo left the terminal altered" >&2
   exit 1
 fi
 
