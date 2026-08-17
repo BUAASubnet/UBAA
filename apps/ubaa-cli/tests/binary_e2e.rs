@@ -7,10 +7,24 @@ use ubaa_core::domain::ConnectionMode;
 use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
 
 #[test]
+fn repository_gate_include_uses_tracked_justfile_case() {
+    let source = include_str!("binary_e2e.rs");
+    let include = source
+        .lines()
+        .find(|line| line.trim_start().starts_with("let justfile = include_str!"))
+        .expect("repository gate must embed the tracked justfile");
+
+    assert_eq!(
+        include.trim(),
+        r#"let justfile = include_str!("../../../justfile");"#
+    );
+}
+
+#[test]
 fn repository_cargo_gates_lock_dependency_resolution() {
-    let justfile = include_str!("../../../Justfile");
+    let justfile = include_str!("../../../justfile");
     let sources = [
-        ("Justfile", justfile),
+        ("justfile", justfile),
         (
             "GitHub Actions workflow",
             include_str!("../../../.github/workflows/ci.yml"),
@@ -23,7 +37,7 @@ fn repository_cargo_gates_lock_dependency_resolution() {
 
     assert!(
         justfile.contains("cargo metadata --locked --no-deps --format-version 1"),
-        "Justfile must validate Cargo.lock before running deterministic gates"
+        "justfile must validate Cargo.lock before running deterministic gates"
     );
 
     for (source_name, source) in sources {
