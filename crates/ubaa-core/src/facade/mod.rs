@@ -17,6 +17,29 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    /// Open a production client using an explicit or persisted connection mode.
+    ///
+    /// Returns `None` when neither a mode nor a persisted session exists, allowing a host to
+    /// render command-specific missing-session behavior without inspecting persistence internals.
+    ///
+    /// # Errors
+    ///
+    /// Returns a safe transport or persistence error.
+    pub fn open(
+        mode: Option<ConnectionMode>,
+        config_dir: impl AsRef<Path>,
+    ) -> Result<Option<Self>> {
+        let store = FileSessionStore::new(config_dir)?;
+        let snapshot = store.load()?;
+        let Some(mode) = mode.or_else(|| snapshot.as_ref().map(|snapshot| snapshot.mode)) else {
+            return Ok(None);
+        };
+        Ok(Some(Self {
+            runtime: ClientRuntime::from_snapshot(mode, ReqwestTransport::new()?, store, snapshot)?,
+            auth: AuthWorkflow::default(),
+        }))
+    }
+
     /// Construct a production client rooted at a host-selected configuration directory.
     ///
     /// # Errors

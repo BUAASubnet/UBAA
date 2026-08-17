@@ -23,10 +23,24 @@ impl ClientRuntime {
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
     {
+        let snapshot = store.load()?;
+        Self::from_snapshot(mode, transport, store, snapshot)
+    }
+
+    pub(crate) fn from_snapshot<T, S>(
+        mode: ConnectionMode,
+        transport: T,
+        store: S,
+        snapshot: Option<SessionSnapshot>,
+    ) -> Result<Self>
+    where
+        T: HttpTransport + 'static,
+        S: SessionStore + 'static,
+    {
         let mut jar = CookieJar::default();
         let mut authenticated_at = None;
         let mut last_activity = None;
-        if let Some(snapshot) = store.load()? {
+        if let Some(snapshot) = snapshot {
             if snapshot.mode == mode {
                 jar.replace(snapshot.cookies);
                 authenticated_at = Some(snapshot.authenticated_at);

@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
-use ubaa_core::domain::{LoginInput, SecretValue};
-use ubaa_core::upstream::{
+use crate::domain::{LoginInput, SecretValue};
+
+use super::{
     build_captcha_form, build_login_form, detect_captcha, extract_execution, find_login_error,
     is_password_risk_page, parse_user_info,
 };
-use ubaa_test_support::auth_fixture;
 
 #[test]
 fn cas_parser_preserves_hidden_and_checked_fields_and_filters_buttons() {
@@ -86,7 +86,10 @@ fn parser_extracts_safe_login_errors_and_userinfo_wrapper() {
             .as_deref(),
         Some("Fixture credentials rejected")
     );
-    let profile = parse_user_info(auth_fixture("userinfo-success.json").unwrap()).unwrap();
+    let profile = parse_user_info(include_str!(
+        "../../../../fixtures/auth/userinfo-success.json"
+    ))
+    .unwrap();
     assert_eq!(profile.school_id.as_deref(), Some("TEST-0001"));
     let partial = parse_user_info(r#"{"code":0,"data":{"name":"Only Fixture Field"}}"#).unwrap();
     assert_eq!(partial.name.as_deref(), Some("Only Fixture Field"));

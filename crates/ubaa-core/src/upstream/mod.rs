@@ -231,3 +231,6 @@ fn upstream_changed(message: impl Into<String>) -> UbaaError {
         message,
     )
 }
+
+#[cfg(test)]
+mod tests;

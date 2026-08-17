@@ -8,7 +8,6 @@ use ubaa_cli::{
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::UbaaClient;
-use ubaa_core::session::{FileSessionStore, SessionStore};
 
 #[tokio::main]
 async fn main() {
@@ -62,19 +61,13 @@ async fn run(cli: Cli) -> i32 {
             &mut stderr,
         );
     };
-    let store = match FileSessionStore::new(&config_dir) {
-        Ok(store) => store,
+    let client = match UbaaClient::open(cli.login_mode(), &config_dir) {
+        Ok(client) => client,
         Err(error) => {
             return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
         }
     };
-    let snapshot = match store.load() {
-        Ok(snapshot) => snapshot,
-        Err(error) => {
-            return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-        }
-    };
-    if snapshot.is_none() && cli.requires_session() {
+    if client.is_none() && cli.requires_session() {
         return render_startup_error(
             json_mode,
             authentication_required(),
@@ -82,20 +75,19 @@ async fn run(cli: Cli) -> i32 {
             &mut stderr,
         );
     }
-    if snapshot.is_none() && cli.is_logout() {
+    if client.is_none() && cli.is_logout() {
         return render_empty_logout(json_mode, &mut stdout);
     }
-    let mode = match cli.resolve_mode(snapshot.as_ref().map(|session| session.mode)) {
-        Ok(mode) => mode,
-        Err(error) => {
-            return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-        }
-    };
-    let mut backend = match UbaaClient::new(mode, &config_dir) {
-        Ok(client) => client,
-        Err(error) => {
-            return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-        }
+    let Some(mut backend) = client else {
+        let error = cli.resolve_mode(None).err().unwrap_or_else(|| {
+            UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "client mode could not be resolved",
+            )
+        });
+        return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
     };
     let stdin = io::stdin();
     let mut input = BufReader::new(stdin.lock());

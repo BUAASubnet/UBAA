@@ -7,6 +7,15 @@ use ubaa_core::domain::ConnectionMode;
 use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
 
 #[test]
+fn binary_host_does_not_reach_through_the_facade_for_session_state() {
+    let main_source = include_str!("../src/main.rs");
+
+    assert!(!main_source.contains("ubaa_core::session"));
+    assert!(!main_source.contains("FileSessionStore"));
+    assert!(!main_source.contains("SessionStore"));
+}
+
+#[test]
 fn binary_help_lists_required_commands_without_password_option() {
     let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
         .arg("auth")
