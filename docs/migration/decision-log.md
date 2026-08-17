@@ -30,4 +30,4 @@ Both `LocalConnectionAuth.kt::logout` and the remote-backed `AuthApi.kt::logout`
 
 ## 2026-08-17: Require locked dependency resolution in deterministic gates
 
-`just check`, macOS/Windows CI, and the live verifier use `--locked` for every Cargo command that resolves dependencies. `just check` first runs `cargo metadata --locked --no-deps --format-version 1`; a cross-platform binary test scans the repository commands so later edits cannot silently remove the lock contract. `cargo fmt` is exempt because it does not resolve the dependency graph.
+`just check`, macOS/Windows CI, the live verifier, and documented user commands use `--locked` for every Cargo command that resolves dependencies. `just check` first runs `cargo metadata --locked --no-deps --format-version 1`; a cross-platform binary test uses the Git index to scan tracked Markdown, `justfile`, workflow, and shell command sources so later edits cannot silently remove the lock contract. `cargo fmt` is exempt because it does not resolve the dependency graph.

@@ -17,8 +17,8 @@ Never attach raw output, session files, cookies, captcha images, or complete pro
 
 | Mode | Status | Evidence |
 |---|---|---|
-| Direct | Real verification passed on 2026-08-17 | Exit 0; profile parsed; `auth status` passed in 77 ms; name prefix `李`; school ID suffix `04` |
-| WebVPN | Real verification passed on 2026-08-17 | Exit 0; profile parsed; `auth status` passed in 190 ms; name prefix `李`; school ID suffix `04` |
+| Direct | Reverified at behavior HEAD `4388b58` on 2026-08-17 | Exit 0; profile parsed; `auth status` passed; name prefix `李`; school ID suffix `04` |
+| WebVPN | Reverified at behavior HEAD `4388b58` on 2026-08-17 | Exit 0; profile parsed; `auth status` passed; name prefix `李`; school ID suffix `04` |
 
 If the initial JSON login returns exit code 4, the verifier automatically starts one fresh human login in the same controlling terminal. The password still comes from `.env.local` through a mode-0600 private FIFO. If the fresh preparation still requires captcha, the CLI prints the path of a mode-0600 temporary image while the verifier forwards one non-empty answer from `/dev/tty` into the same CLI stdin; if it no longer requires captcha, the verifier detects the completed CLI instead of waiting for unused input. Human profile output is suppressed and the image is deleted when the command ends.
 
