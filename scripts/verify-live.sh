@@ -47,34 +47,55 @@ redacted_failure() {
     "$mode" "$stage" "$CLI_CODE" "$code"
 }
 
-feed_human_input() {
-  local tty_path=$1
-  local captcha_answer
-  printf '%s\n' "$password"
-  while IFS= read -r captcha_answer; do
-    printf '%s\n' "$captcha_answer"
-    if [[ -n "$captcha_answer" ]]; then
-      unset captcha_answer
-      return 0
-    fi
-  done <"$tty_path"
-  unset captcha_answer
-}
-
 run_human_login() {
   local tty_path=$1
   local started ended
-  local pipeline_codes
+  local input_fifo binary_pid captcha_answer read_code
   started=$(date +%s)
-  set +e
-  set +o pipefail
-  feed_human_input "$tty_path" |
-    "$binary" --config-dir "$config_dir" auth login --mode "$mode" \
-      --username "$username" --password-stdin >/dev/null
-  pipeline_codes=("${PIPESTATUS[@]}")
-  set -o pipefail
-  set -e
-  CLI_CODE=${pipeline_codes[1]:-7}
+  input_fifo="$config_dir/.human-input.$$"
+  if ! mkfifo -m 600 "$input_fifo"; then
+    CLI_CODE=7
+    return 1
+  fi
+
+  "$binary" --config-dir "$config_dir" auth login --mode "$mode" \
+    --username "$username" --password-stdin <"$input_fifo" >/dev/null &
+  binary_pid=$!
+  if ! exec 9>"$input_fifo"; then
+    kill "$binary_pid" 2>/dev/null || true
+    wait "$binary_pid" 2>/dev/null || true
+    rm -f -- "$input_fifo"
+    CLI_CODE=7
+    return 1
+  fi
+
+  if printf '%s\n' "$password" >&9; then
+    while kill -0 "$binary_pid" 2>/dev/null; do
+      captcha_answer=
+      if IFS= read -r -t 1 captcha_answer <"$tty_path"; then
+        if ! printf '%s\n' "$captcha_answer" >&9; then
+          break
+        fi
+        if [[ -n "$captcha_answer" ]]; then
+          break
+        fi
+      else
+        read_code=$?
+        if [[ "$read_code" -eq 1 ]]; then
+          break
+        fi
+      fi
+    done
+  fi
+  unset captcha_answer
+  exec 9>&-
+
+  if wait "$binary_pid"; then
+    CLI_CODE=0
+  else
+    CLI_CODE=$?
+  fi
+  rm -f -- "$input_fifo"
   ended=$(date +%s)
   CLI_ELAPSED_MS=$(( (ended - started) * 1000 ))
   [[ "$CLI_CODE" -eq 0 ]]

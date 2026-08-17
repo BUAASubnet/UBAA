@@ -40,6 +40,12 @@ fi
 
 if [[ "$arguments" == *" auth login "* ]]; then
   IFS= read -r supplied_password
+  if [[ -f "$FAKE_STATE_DIR/human-login-needs-no-captcha" ]]; then
+    printf 'password=%q\n' "$supplied_password" >"$FAKE_STATE_DIR/human-input"
+    [[ "$supplied_password" == "fixture-password" ]]
+    : >"$FAKE_STATE_DIR/human-login-used"
+    exit 0
+  fi
   IFS= read -r supplied_captcha
   supplied_captcha=${supplied_captcha%$'\r'}
   printf 'password=%q\ncaptcha=%q\n' "$supplied_password" "$supplied_captcha" >"$FAKE_STATE_DIR/human-input"
@@ -108,6 +114,47 @@ if [[ "$output" == *"fixture-password"* ]]; then
   echo "password leaked through verifier output" >&2
   exit 1
 fi
+
+no_captcha_tty="$test_root/no-captcha-tty"
+no_captcha_config="$test_root/no-captcha-config"
+mkfifo "$no_captcha_tty"
+mkdir -p "$no_captcha_config"
+: >"$fake_state/human-login-needs-no-captcha"
+rm -f "$fake_state/no-captcha-completed"
+(
+  sleep 3
+  printf '%s\n' unused
+) >"$no_captcha_tty" &
+delayed_tty_writer=$!
+(
+  source "$repo_root/scripts/verify-live.sh"
+  binary="$project_root/target/debug/ubaa"
+  config_dir="$no_captcha_config"
+  mode=direct
+  username=fixture-user
+  password=fixture-password
+  CLI_CODE=0
+  CLI_ELAPSED_MS=0
+  run_human_login "$no_captcha_tty"
+  : >"$fake_state/no-captcha-completed"
+) &
+no_captcha_login=$!
+
+for _ in {1..30}; do
+  if [[ -f "$fake_state/no-captcha-completed" ]]; then
+    break
+  fi
+  sleep 0.05
+done
+if [[ ! -f "$fake_state/no-captcha-completed" ]]; then
+  wait "$no_captcha_login" || true
+  wait "$delayed_tty_writer" || true
+  echo "human login waited for captcha after the client exited" >&2
+  exit 1
+fi
+kill "$delayed_tty_writer" 2>/dev/null || true
+wait "$delayed_tty_writer" 2>/dev/null || true
+wait "$no_captcha_login"
 
 noninteractive_output=$(
   source "$repo_root/scripts/verify-live.sh"
