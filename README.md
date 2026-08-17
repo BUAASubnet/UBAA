@@ -10,25 +10,25 @@ The Rust Core and CLI authentication path are implemented, deterministic-tested,
 
 ```bash
 just refs
-cargo build --workspace
-cargo install --path apps/ubaa-cli
+cargo build --locked --workspace
+cargo install --locked --path apps/ubaa-cli
 ```
 
-Run the CLI during development with `cargo run -p ubaa-cli -- --help`.
+Run the CLI during development with `cargo run --locked -p ubaa-cli -- --help`.
 
 ```bash
 # Interactive password entry; no password is accepted as an argument.
-cargo run -p ubaa-cli -- auth login --mode direct --username YOUR_USERNAME
-cargo run -p ubaa-cli -- auth login --mode webvpn --username YOUR_USERNAME
+cargo run --locked -p ubaa-cli -- auth login --mode direct --username YOUR_USERNAME
+cargo run --locked -p ubaa-cli -- auth login --mode webvpn --username YOUR_USERNAME
 
 # Reuse and validate the persisted session.
-cargo run -p ubaa-cli -- auth status
-cargo run -p ubaa-cli -- user show
-cargo run -p ubaa-cli -- auth logout
+cargo run --locked -p ubaa-cli -- auth status
+cargo run --locked -p ubaa-cli -- user show
+cargo run --locked -p ubaa-cli -- auth logout
 
 # Automation reads one password line from stdin and emits one JSON envelope.
 printf '%s\n' "$UBAA_TEST_PASSWORD" |
-  cargo run -p ubaa-cli -- --json auth login --mode direct \
+  cargo run --locked -p ubaa-cli -- --json auth login --mode direct \
     --username "$UBAA_TEST_USERNAME" --password-stdin
 ```
 

@@ -363,7 +363,7 @@ JSON envelope 固定为：
 - `.env.example` 只包含 `UBAA_TEST_USERNAME=` 和 `UBAA_TEST_PASSWORD=` 两个空变量名。
 - `git add -A` 不会把任何嵌套参考仓库或 `.env.local` 纳入暂存区。
 - `just refs` 检查并固定两个参考提交。
-- `cargo metadata --locked`、`cargo fmt --all -- --check`、`cargo test --workspace`、`git diff --check` 可运行。
+- `cargo metadata --locked`、`cargo fmt --all -- --check`、`cargo test --locked --workspace`、`git diff --check` 可运行。
 
 提交：`chore: establish ubaa2 repository foundation`
 
@@ -461,10 +461,10 @@ just verify-live mode=webvpn
 
 ```bash
 cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace
-cargo build --workspace
-cargo doc --workspace --no-deps
+cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+cargo test --locked --workspace
+cargo build --locked --workspace
+cargo doc --locked --workspace --no-deps
 git diff --check
 ```
 

@@ -23,24 +23,31 @@ fn repository_gate_include_uses_tracked_justfile_case() {
 #[test]
 fn repository_cargo_gates_lock_dependency_resolution() {
     let justfile = include_str!("../../../justfile");
-    let sources = [
-        ("justfile", justfile),
-        (
-            "GitHub Actions workflow",
-            include_str!("../../../.github/workflows/ci.yml"),
-        ),
-        (
-            "live verifier",
-            include_str!("../../../scripts/verify-live.sh"),
-        ),
-    ];
+    let repository_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let tracked = Command::new("git")
+        .current_dir(&repository_root)
+        .args([
+            "ls-files",
+            "-z",
+            "--",
+            "justfile",
+            "*.md",
+            ".github/workflows/*",
+            "scripts/*.sh",
+        ])
+        .output()
+        .expect("git must enumerate tracked command sources");
+    assert!(tracked.status.success());
+    let tracked = String::from_utf8(tracked.stdout).expect("tracked paths must be UTF-8");
 
     assert!(
         justfile.contains("cargo metadata --locked --no-deps --format-version 1"),
         "justfile must validate Cargo.lock before running deterministic gates"
     );
 
-    for (source_name, source) in sources {
+    for source_name in tracked.split('\0').filter(|path| !path.is_empty()) {
+        let source = std::fs::read_to_string(repository_root.join(source_name))
+            .unwrap_or_else(|_| panic!("could not read tracked command source {source_name}"));
         for line in source.lines().map(str::trim) {
             let Some(cargo_index) = line.find("cargo ") else {
                 continue;
