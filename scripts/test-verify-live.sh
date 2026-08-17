@@ -40,12 +40,21 @@ fi
 
 if [[ "$arguments" == *" auth login "* ]]; then
   IFS= read -r supplied_password
+  if [[ -f "$FAKE_STATE_DIR/human-login-blocks" ]]; then
+    printf '%s\n' "$$" >"$FAKE_STATE_DIR/human-child-pid"
+    trap '' HUP
+    trap ': >"$FAKE_STATE_DIR/human-child-stopped"' INT TERM
+    while :; do
+      sleep 1
+    done
+  fi
   if [[ -f "$FAKE_STATE_DIR/human-login-needs-no-captcha" ]]; then
     printf 'password=%q\n' "$supplied_password" >"$FAKE_STATE_DIR/human-input"
     [[ "$supplied_password" == "fixture-password" ]]
     : >"$FAKE_STATE_DIR/human-login-used"
     exit 0
   fi
+  : >"$FAKE_STATE_DIR/human-awaiting-captcha"
   IFS= read -r supplied_captcha
   supplied_captcha=${supplied_captcha%$'\r'}
   printf 'password=%q\ncaptcha=%q\n' "$supplied_password" "$supplied_captcha" >"$FAKE_STATE_DIR/human-input"
@@ -74,14 +83,28 @@ export FAKE_STATE_DIR="$fake_state"
 export PATH="$fake_bin:$PATH"
 export VERIFY_LIVE_COPY="$project_root/scripts/verify-live.sh"
 
+send_fixture_captcha() {
+  for _ in {1..100}; do
+    if [[ -f "$fake_state/human-awaiting-captcha" ]]; then
+      break
+    fi
+    sleep 0.05
+  done
+  sleep 0.1
+  printf '%s\n' 'fixture-captcha'
+}
+
 set +e
 case "$(uname -s)" in
   Darwin)
-    output=$({ sleep 1; printf '%s\n' 'fixture-captcha'; } | script -q -e /dev/null /bin/bash -c 'stty -echo; exec "$VERIFY_LIVE_COPY" direct' 2>&1)
+    output=$(send_fixture_captcha | script -q -e /dev/null /bin/bash -c \
+      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" terminal-state-restored; exit "$code"' 2>&1)
     code=$?
     ;;
   Linux)
-    output=$({ sleep 1; printf '%s\n' 'fixture-captcha'; } | script -q -e -c 'stty -echo; exec "$VERIFY_LIVE_COPY" direct' /dev/null 2>&1)
+    output=$(send_fixture_captcha | script -q -e -c \
+      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" terminal-state-restored; exit "$code"' \
+      /dev/null 2>&1)
     code=$?
     ;;
   *)
@@ -112,6 +135,14 @@ if [[ "$output" == *"RAW-PROFILE-MUST-BE-SUPPRESSED"* ]]; then
 fi
 if [[ "$output" == *"fixture-password"* ]]; then
   echo "password leaked through verifier output" >&2
+  exit 1
+fi
+if [[ "$output" == *"fixture-captcha"* ]]; then
+  echo "captcha answer leaked through terminal echo" >&2
+  exit 1
+fi
+if [[ "$output" != *"terminal-state-restored"* ]]; then
+  echo "verifier did not restore the terminal state" >&2
   exit 1
 fi
 
@@ -155,6 +186,70 @@ fi
 kill "$delayed_tty_writer" 2>/dev/null || true
 wait "$delayed_tty_writer" 2>/dev/null || true
 wait "$no_captcha_login"
+
+signal_output="$test_root/signal-output"
+signal_config="$test_root/signal-config"
+mkdir -p "$signal_config"
+: >"$fake_state/human-login-blocks"
+rm -f "$fake_state/human-child-pid" "$fake_state/human-child-stopped"
+(
+  source "$repo_root/scripts/verify-live.sh"
+  config_dir="$signal_config"
+  human_input_fifo=
+  human_binary_pid=
+  human_input_open=no
+  install_cleanup_traps
+  "$project_root/target/debug/ubaa" --config-dir "$config_dir" auth login \
+    --mode direct --username fixture-user --password-stdin \
+    <<<"fixture-password" >/dev/null &
+  human_binary_pid=$!
+  wait "$human_binary_pid"
+) >"$signal_output" 2>&1 &
+signal_job=$!
+
+for _ in {1..100}; do
+  if [[ -s "$fake_state/human-child-pid" ]]; then
+    break
+  fi
+  sleep 0.05
+done
+if [[ ! -s "$fake_state/human-child-pid" ]]; then
+  kill "$signal_job" 2>/dev/null || true
+  wait "$signal_job" 2>/dev/null || true
+  cat "$signal_output" >&2 || true
+  echo "signal cleanup test did not reach the blocking human login" >&2
+  exit 1
+fi
+
+human_child_pid=$(cat "$fake_state/human-child-pid")
+kill -TERM "$signal_job"
+for _ in {1..100}; do
+  if ! kill -0 "$human_child_pid" 2>/dev/null; then
+    break
+  fi
+  sleep 0.05
+done
+if kill -0 "$human_child_pid" 2>/dev/null; then
+  kill -KILL "$human_child_pid" 2>/dev/null || true
+  kill -KILL "$signal_job" 2>/dev/null || true
+  wait "$signal_job" 2>/dev/null || true
+  cat "$signal_output" >&2 || true
+  echo "terminating the verifier left the human login child running" >&2
+  exit 1
+fi
+if [[ ! -f "$fake_state/human-child-stopped" ]]; then
+  echo "human login child did not run its termination handler" >&2
+  exit 1
+fi
+set +e
+wait "$signal_job"
+signal_code=$?
+set -e
+if [[ "$signal_code" -ne 143 ]]; then
+  printf 'signal cleanup exited with %s instead of 143\n' "$signal_code" >&2
+  cat "$signal_output" >&2 || true
+  exit 1
+fi
 
 noninteractive_output=$(
   source "$repo_root/scripts/verify-live.sh"

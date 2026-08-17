@@ -47,32 +47,57 @@ redacted_failure() {
     "$mode" "$stage" "$CLI_CODE" "$code"
 }
 
+restore_human_tty() {
+  if [[ ${human_tty_configured:-no} == yes ]]; then
+    stty "$human_tty_state" <"$human_tty_path" 2>/dev/null || true
+    human_tty_configured=no
+    human_tty_path=
+    human_tty_state=
+  fi
+}
+
 run_human_login() {
   local tty_path=$1
   local started ended
-  local input_fifo binary_pid captcha_answer read_code
+  local captcha_answer read_code
   started=$(date +%s)
-  input_fifo="$config_dir/.human-input.$$"
-  if ! mkfifo -m 600 "$input_fifo"; then
+  human_input_fifo="$config_dir/.human-input.$$"
+  if ! mkfifo -m 600 "$human_input_fifo"; then
     CLI_CODE=7
     return 1
+  fi
+  human_tty_path=
+  human_tty_state=
+  human_tty_configured=no
+  if [[ -c "$tty_path" ]]; then
+    human_tty_path=$tty_path
+    if ! human_tty_state=$(stty -g <"$tty_path" 2>/dev/null) || \
+      ! stty -echo <"$tty_path" 2>/dev/null; then
+      rm -f -- "$human_input_fifo"
+      human_input_fifo=
+      human_tty_path=
+      human_tty_state=
+      CLI_CODE=7
+      return 1
+    fi
+    human_tty_configured=yes
   fi
 
   "$binary" --config-dir "$config_dir" auth login --mode "$mode" \
-    --username "$username" --password-stdin <"$input_fifo" >/dev/null &
-  binary_pid=$!
-  if ! exec 9>"$input_fifo"; then
-    kill "$binary_pid" 2>/dev/null || true
-    wait "$binary_pid" 2>/dev/null || true
-    rm -f -- "$input_fifo"
+    --username "$username" --password-stdin <"$human_input_fifo" >/dev/null &
+  human_binary_pid=$!
+  if ! exec 9>"$human_input_fifo"; then
+    cleanup_human_login
     CLI_CODE=7
     return 1
   fi
+  human_input_open=yes
 
   if printf '%s\n' "$password" >&9; then
-    while kill -0 "$binary_pid" 2>/dev/null; do
+    while kill -0 "$human_binary_pid" 2>/dev/null; do
       captcha_answer=
-      if IFS= read -r -t 1 captcha_answer <"$tty_path"; then
+      if IFS= read -r -s -t 1 captcha_answer <"$tty_path"; then
+        printf '\n' >"$tty_path"
         if ! printf '%s\n' "$captcha_answer" >&9; then
           break
         fi
@@ -89,16 +114,47 @@ run_human_login() {
   fi
   unset captcha_answer
   exec 9>&-
+  human_input_open=no
+  restore_human_tty
 
-  if wait "$binary_pid"; then
+  if wait "$human_binary_pid"; then
     CLI_CODE=0
   else
     CLI_CODE=$?
   fi
-  rm -f -- "$input_fifo"
+  human_binary_pid=
+  rm -f -- "$human_input_fifo"
+  human_input_fifo=
   ended=$(date +%s)
   CLI_ELAPSED_MS=$(( (ended - started) * 1000 ))
   [[ "$CLI_CODE" -eq 0 ]]
+}
+
+cleanup_human_login() {
+  local attempt
+  if [[ ${human_input_open:-no} == yes ]]; then
+    exec 9>&- 2>/dev/null || true
+    human_input_open=no
+  fi
+  restore_human_tty
+  if [[ -n ${human_binary_pid:-} ]]; then
+    kill -TERM "$human_binary_pid" 2>/dev/null || true
+    for attempt in {1..20}; do
+      if ! kill -0 "$human_binary_pid" 2>/dev/null; then
+        break
+      fi
+      sleep 0.05
+    done
+    if kill -0 "$human_binary_pid" 2>/dev/null; then
+      kill -KILL "$human_binary_pid" 2>/dev/null || true
+    fi
+    wait "$human_binary_pid" 2>/dev/null || true
+    human_binary_pid=
+  fi
+  if [[ -n ${human_input_fifo:-} ]]; then
+    rm -f -- "$human_input_fifo"
+    human_input_fifo=
+  fi
 }
 
 tty_available() {
@@ -130,6 +186,7 @@ login_with_captcha_fallback() {
 }
 
 cleanup() {
+  cleanup_human_login
   if [[ -n ${build_log:-} ]]; then
     rm -f -- "$build_log"
   fi
@@ -137,6 +194,13 @@ cleanup() {
     rm -rf -- "$config_dir"
   fi
   unset password username
+}
+
+install_cleanup_traps() {
+  trap cleanup EXIT
+  trap 'exit 129' HUP
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 }
 
 main() {
@@ -173,7 +237,13 @@ main() {
 
   build_log=$(mktemp)
   config_dir=
-  trap cleanup EXIT
+  human_input_fifo=
+  human_binary_pid=
+  human_input_open=no
+  human_tty_path=
+  human_tty_state=
+  human_tty_configured=no
+  install_cleanup_traps
   if ! cargo build --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-cli >"$build_log" 2>&1; then
     echo "mode=$mode outcome=failed stage=build error=build_failed" >&2
     exit 1
