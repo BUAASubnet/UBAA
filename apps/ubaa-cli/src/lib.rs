@@ -14,7 +14,7 @@ use ubaa_core::domain::{
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::UbaaClient;
-use ubaa_core::output::JsonEnvelope;
+use ubaa_core::output::{JSON_SCHEMA_VERSION, JsonEnvelope, JsonMeta};
 use ubaa_core::ports::HttpTransport;
 use ubaa_core::session::SessionStore;
 
@@ -85,9 +85,9 @@ pub enum UserCommand {
 /// Login arguments.
 #[derive(Debug, Args)]
 pub struct LoginArgs {
-    /// Network route used for every request in this session.
+    /// Network route used for every request; reuses a saved mode when omitted.
     #[arg(long, value_enum)]
-    pub mode: CliConnectionMode,
+    pub mode: Option<CliConnectionMode>,
 
     /// SSO username. Human mode prompts when omitted.
     #[arg(long)]
@@ -127,9 +127,20 @@ impl Cli {
         match &self.command {
             Command::Auth(AuthArgs {
                 command: AuthCommand::Login(arguments),
-            }) => Some(arguments.mode.into()),
+            }) => arguments.mode.map(Into::into),
             _ => None,
         }
+    }
+
+    /// Resolve an explicit login mode or a mode loaded from persisted session state.
+    ///
+    /// # Errors
+    ///
+    /// Returns invalid input when login has neither an explicit nor saved mode.
+    pub fn resolve_mode(&self, saved_mode: Option<ConnectionMode>) -> Result<ConnectionMode> {
+        self.login_mode().or(saved_mode).ok_or_else(|| {
+            invalid_input("--mode is required when no saved session mode is available")
+        })
     }
 
     /// Whether this command requires an existing session before constructing a client.
@@ -349,7 +360,15 @@ pub fn render_empty_logout<O: Write>(json_mode: bool, stdout: &mut O) -> i32 {
     let rendered = if json_mode {
         write_json(
             stdout,
-            &JsonEnvelope::success(json!({ "loggedOut": true }), ConnectionMode::Direct),
+            &JsonEnvelope {
+                schema_version: JSON_SCHEMA_VERSION,
+                ok: true,
+                data: Some(json!({ "loggedOut": true })),
+                error: None,
+                meta: JsonMeta {
+                    connection_mode: None,
+                },
+            },
         )
     } else {
         writeln!(stdout, "Signed out.")
@@ -444,11 +463,25 @@ fn prompt_line<R: BufRead, E: Write>(
     stderr: &mut E,
     prompt: &str,
 ) -> Result<String> {
-    write!(stderr, "{prompt}").map_err(|_| internal_error("could not write prompt"))?;
-    stderr
-        .flush()
-        .map_err(|_| internal_error("could not flush prompt"))?;
-    read_secret_line(input, "required input is missing")
+    loop {
+        write!(stderr, "{prompt}").map_err(|_| internal_error("could not write prompt"))?;
+        stderr
+            .flush()
+            .map_err(|_| internal_error("could not flush prompt"))?;
+        let mut value = String::new();
+        let read = input
+            .read_line(&mut value)
+            .map_err(|_| invalid_input("required input could not be read"))?;
+        if read == 0 {
+            return Err(invalid_input("required input is missing"));
+        }
+        let value = value.trim_end_matches(['\r', '\n']).to_string();
+        if !value.is_empty() {
+            return Ok(value);
+        }
+        writeln!(stderr, "A value is required.")
+            .map_err(|_| internal_error("could not write prompt"))?;
+    }
 }
 
 fn read_secret_line<R: BufRead>(input: &mut R, missing_message: &str) -> Result<String> {

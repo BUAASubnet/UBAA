@@ -6,7 +6,6 @@ use directories::ProjectDirs;
 use ubaa_cli::{
     Cli, authentication_required, render_empty_logout, render_startup_error, run_with_backend,
 };
-use ubaa_core::domain::ConnectionMode;
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::session::{FileSessionStore, SessionStore};
 
@@ -57,10 +56,12 @@ async fn run(cli: Cli) -> i32 {
     if snapshot.is_none() && cli.is_logout() {
         return render_empty_logout(json_mode, &mut stdout);
     }
-    let mode = cli
-        .login_mode()
-        .or_else(|| snapshot.as_ref().map(|session| session.mode))
-        .unwrap_or(ConnectionMode::Direct);
+    let mode = match cli.resolve_mode(snapshot.as_ref().map(|session| session.mode)) {
+        Ok(mode) => mode,
+        Err(error) => {
+            return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+        }
+    };
     let mut backend = match UbaaClient::new(mode, &config_dir) {
         Ok(client) => client,
         Err(error) => {

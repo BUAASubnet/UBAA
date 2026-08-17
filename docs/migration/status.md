@@ -23,7 +23,7 @@ Updated: 2026-08-17
 
 ## Capability status
 
-The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and fixture-tested. CLI tests cover human/JSON redaction, stable exits, captcha JSON behavior, secure temporary captcha cleanup, command help, and the missing-session binary path.
+The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and fixture-tested. CLI tests cover human/JSON redaction, stable exits, captcha JSON and same-process human input behavior, saved-mode reuse, secure temporary captcha cleanup, command help, and missing-session binary paths.
 
 On 2026-08-17, both required live commands passed with independent temporary sessions. Direct returned exit 0, parsed a User Center profile, and passed `auth status`; the redacted proof was name prefix `李` and school ID suffix `04`. WebVPN returned the same required success signals and independently passed `auth status`; its proof used the same redacted values. No complete profile field, password, Cookie, captcha, or raw response was retained.
 

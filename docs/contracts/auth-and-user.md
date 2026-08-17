@@ -12,7 +12,7 @@ The WebVPN login does not establish the old CGYY-only direct SSO side session. C
 
 ## CLI host
 
-The `ubaa` binary exposes `auth login`, `auth status`, `auth logout`, and `user show`. Login requires an explicit Direct or WebVPN mode. Human mode can prompt for the username, uses hidden password entry unless `--password-stdin` is selected, and writes a captcha image to a mode-0600 temporary file that is deleted after input. JSON mode never performs hidden interaction; a missing captcha returns `captcha_required` with no image data and exit code 4.
+The `ubaa` binary exposes `auth login`, `auth status`, `auth logout`, and `user show`. Login uses an explicit Direct or WebVPN mode, or reuses the mode from an existing persisted session; when neither exists it returns `invalid_input` before a network request. Human mode can prompt for the username, uses hidden password entry unless `--password-stdin` is selected, and writes a captcha image to a mode-0600 temporary file that is deleted after non-empty input is collected in the same process. JSON mode never performs hidden interaction; a missing captcha returns `captcha_required` with no image data and exit code 4.
 
 `--json` writes exactly one versioned envelope to stdout for command success or failure. Phone and identity-document values are masked before human or JSON rendering. `--config-dir` selects the directory containing `session.json`; otherwise the platform user configuration directory is used. Commands that require authentication reject a missing local session before making a network request, while `auth status` still validates an existing session against User Center before reporting success.
 

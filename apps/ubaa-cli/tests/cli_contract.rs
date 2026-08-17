@@ -136,6 +136,44 @@ async fn json_captcha_returns_exit_four_without_image_or_login_submission() {
 }
 
 #[tokio::test]
+async fn human_captcha_stays_in_process_until_non_empty_input() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "auth",
+        "login",
+        "--mode",
+        "direct",
+        "--username",
+        "fixture-user",
+        "--password-stdin",
+    ])
+    .unwrap();
+    let mut backend = FakeBackend {
+        challenge: Some(LoginChallenge {
+            id: "captcha-fixture".into(),
+            execution: "e-cap".into(),
+            image_data_url: Some("data:image/jpeg;base64,RklYVFVSRS1JTUFHRQ==".into()),
+        }),
+        login_calls: 0,
+    };
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_backend(
+        cli,
+        &mut backend,
+        &mut Cursor::new(b"fixture-password\n\ncaptcha-fixture-answer\n"),
+        &mut stdout,
+        &mut stderr,
+    )
+    .await;
+
+    assert_eq!(code, 0);
+    assert_eq!(backend.login_calls, 1);
+    assert!(String::from_utf8(stderr).unwrap().contains("Captcha: "));
+}
+
+#[tokio::test]
 async fn human_user_output_masks_phone_and_identity_number() {
     let cli = Cli::try_parse_from(["ubaa", "user", "show"]).unwrap();
     let mut backend = FakeBackend::default();
@@ -176,6 +214,26 @@ fn clap_has_no_plaintext_password_option() {
             .to_string()
             .contains("unexpected argument '--password'")
     );
+}
+
+#[test]
+fn login_can_reuse_a_saved_connection_mode() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "auth",
+        "login",
+        "--username",
+        "fixture-user",
+        "--password-stdin",
+    ])
+    .unwrap();
+    assert_eq!(
+        cli.resolve_mode(Some(ConnectionMode::WebVpn)).unwrap(),
+        ConnectionMode::WebVpn
+    );
+
+    let error = cli.resolve_mode(None).unwrap_err();
+    assert_eq!(error.code, ErrorCode::InvalidInput);
 }
 
 #[test]

@@ -34,6 +34,8 @@ printf '%s\n' "$UBAA_TEST_PASSWORD" |
 
 The default session location is the operating system's per-user configuration directory. Use `--config-dir <path>` for isolated tests. The output contract is documented in `docs/contracts/auth-and-user.md` and `docs/contracts/cli-json.schema.json`.
 
+After a session has been saved, a later `auth login` may omit `--mode` to reuse that session's Direct or WebVPN strategy. A first login must specify the mode explicitly.
+
 ## Verification
 
 ```bash
