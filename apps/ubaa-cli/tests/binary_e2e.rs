@@ -1,5 +1,10 @@
 use std::io::Write as _;
+use std::net::TcpListener;
 use std::process::Command;
+use std::time::{Duration, Instant};
+
+use ubaa_core::domain::ConnectionMode;
+use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
 
 #[test]
 fn binary_help_lists_required_commands_without_password_option() {
@@ -83,5 +88,71 @@ fn binary_json_logout_without_session_has_no_invented_connection_mode() {
     assert!(output.status.success());
     assert!(value["meta"].get("connectionMode").is_none());
     assert!(output.stderr.is_empty());
+    let _ = std::fs::remove_dir_all(config);
+}
+
+#[test]
+fn binary_json_logout_clears_a_saved_session_when_remote_logout_fails() {
+    let config =
+        std::env::temp_dir().join(format!("ubaa-cli-saved-logout-e2e-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&config);
+    let store = FileSessionStore::new(&config).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+
+    let proxy = TcpListener::bind("127.0.0.1:0").unwrap();
+    proxy.set_nonblocking(true).unwrap();
+    let proxy_address = proxy.local_addr().unwrap();
+    let proxy_thread = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            match proxy.accept() {
+                Ok((connection, _)) => {
+                    drop(connection);
+                    return true;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    if Instant::now() >= deadline {
+                        return false;
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Err(_) => return false,
+            }
+        }
+    });
+    let proxy_url = format!("http://{proxy_address}");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+        .arg("--json")
+        .arg("--config-dir")
+        .arg(&config)
+        .arg("auth")
+        .arg("logout")
+        .env("HTTPS_PROXY", &proxy_url)
+        .env("https_proxy", &proxy_url)
+        .env("ALL_PROXY", &proxy_url)
+        .env("all_proxy", &proxy_url)
+        .env_remove("NO_PROXY")
+        .env_remove("no_proxy")
+        .output()
+        .unwrap();
+
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(output.status.success());
+    assert_eq!(value["data"]["loggedOut"], true);
+    assert_eq!(value["meta"]["connectionMode"], "direct");
+    assert!(output.stderr.is_empty());
+    assert!(
+        proxy_thread.join().unwrap(),
+        "logout request did not use the deterministic local proxy"
+    );
+    assert!(store.load().unwrap().is_none());
     let _ = std::fs::remove_dir_all(config);
 }

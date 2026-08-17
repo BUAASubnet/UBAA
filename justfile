@@ -16,6 +16,7 @@ check:
     cargo fmt --all -- --check
     cargo clippy --workspace --all-targets --all-features -- -D warnings
     cargo test --workspace
+    ./scripts/test-verify-live.sh
     cargo build --workspace
     cargo doc --workspace --no-deps
     git diff --check
