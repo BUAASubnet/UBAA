@@ -18,4 +18,4 @@ Authentication/User Center response bodies are capped at 8 MiB and persisted ses
 
 ## 2026-08-17: Preserve JSON captcha non-interactivity
 
-JSON login still returns `captcha_required` with exit 4 before credential submission and without image data. The local live verifier handles that result by starting a fresh human CLI in the same controlling terminal, feeding only the environment password through stdin, reading the captcha answer from `/dev/tty`, suppressing human profile stdout, and resuming redacted JSON checks. No cross-process challenge persistence was invented.
+JSON login still returns `captcha_required` with exit 4 before credential submission and without image data. The local live verifier handles that result by starting a fresh human CLI in the same controlling terminal, feeding only the environment password through a private FIFO, polling `/dev/tty` only while that CLI is alive, suppressing human profile stdout, and resuming redacted JSON checks. This also handles the evidenced case where the fresh preparation no longer requires captcha. No cross-process challenge persistence was invented.

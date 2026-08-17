@@ -31,7 +31,7 @@ The post-goal review was resolved in independently auditable commits:
 | Authentication classification and exit semantics | `cdc150a` |
 | Concrete facade, private runtime, and workflow ownership | `deb5d9d`, `ee8a3d5` |
 | Bounded HTTP responses and hardened session persistence | `b2f2bfd` |
-| Captcha-capable live verifier and binary logout process coverage | `4452a16` |
+| Captcha-capable live verifier and binary logout process coverage | `4452a16`, `10ca988` |
 | Serialized schema checks and macOS/Windows Rust CI | `6921562` |
 
 ## Capability status
