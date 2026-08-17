@@ -14,4 +14,4 @@ CLI / future bindings
  connection + ports (HTTP, persistence)
 ```
 
-Phase 3 is the first usable authentication loop. The CLI, JSON schema validation, and live Direct/WebVPN evidence are separate gates. Flutter, MCP, server relay, and business APIs are not implemented.
+Phase 4 provides the CLI host, JSON schema validation, interactive captcha lifecycle, redacted presentation, and platform-owned session location. Live Direct/WebVPN evidence remains a separate phase 5 gate. Flutter, MCP, server relay, and business APIs are not implemented.

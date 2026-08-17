@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BUAASubnet/UBAA/docs/contracts/cli-json.schema.json",
+  "title": "UBAA CLI JSON envelope",
+  "type": "object",
+  "required": ["schemaVersion", "ok", "meta"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "ok": { "type": "boolean" },
+    "data": { "type": "object" },
+    "error": {
+      "type": "object",
+      "required": ["code", "kind", "message", "retryable"],
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_input",
+            "authentication_required",
+            "invalid_credentials",
+            "captcha_required",
+            "password_risk_confirmation_failed",
+            "permission_denied",
+            "network_error",
+            "timeout",
+            "upstream_unavailable",
+            "upstream_changed",
+            "parse_error",
+            "internal_error"
+          ]
+        },
+        "kind": {
+          "enum": ["input", "authentication", "network", "upstream", "parse", "internal"]
+        },
+        "message": { "type": "string" },
+        "retryable": { "type": "boolean" },
+        "challenge": {
+          "type": "object",
+          "required": ["id", "execution"],
+          "properties": {
+            "id": { "type": "string" },
+            "execution": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "connectionMode": { "enum": ["direct", "webvpn"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
+      "then": { "required": ["data"], "not": { "required": ["error"] } },
+      "else": { "required": ["error"], "not": { "required": ["data"] } }
+    }
+  ],
+  "additionalProperties": false
+}

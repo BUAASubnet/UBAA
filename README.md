@@ -4,16 +4,35 @@ UBAA 2 is a Rust core plus host applications for Beijing University of Aeronauti
 
 ## Current state
 
-Repository foundation is being established. Authentication behavior is not complete until both live modes pass the gates recorded in `docs/migration/status.md`.
+The Rust Core and CLI authentication path are implemented and fixture-tested. Authentication behavior is not complete until both live modes pass the gates recorded in `docs/migration/status.md`.
 
 ## Setup
 
 ```bash
 just refs
 cargo build --workspace
+cargo install --path apps/ubaa-cli
 ```
 
-Run the CLI during development with `cargo run -p ubaa-cli -- --help`. The final authentication commands and output contract are documented in `docs/contracts/auth-and-user.md`.
+Run the CLI during development with `cargo run -p ubaa-cli -- --help`.
+
+```bash
+# Interactive password entry; no password is accepted as an argument.
+cargo run -p ubaa-cli -- auth login --mode direct --username YOUR_USERNAME
+cargo run -p ubaa-cli -- auth login --mode webvpn --username YOUR_USERNAME
+
+# Reuse and validate the persisted session.
+cargo run -p ubaa-cli -- auth status
+cargo run -p ubaa-cli -- user show
+cargo run -p ubaa-cli -- auth logout
+
+# Automation reads one password line from stdin and emits one JSON envelope.
+printf '%s\n' "$UBAA_TEST_PASSWORD" |
+  cargo run -p ubaa-cli -- --json auth login --mode direct \
+    --username "$UBAA_TEST_USERNAME" --password-stdin
+```
+
+The default session location is the operating system's per-user configuration directory. Use `--config-dir <path>` for isolated tests. The output contract is documented in `docs/contracts/auth-and-user.md` and `docs/contracts/cli-json.schema.json`.
 
 ## Verification
 
@@ -27,5 +46,4 @@ Live verification requires an ignored `.env.local` containing `UBAA_TEST_USERNAM
 
 ## Scope
 
-This repository currently targets authentication, session management, and User Center profile retrieval. Flutter, MCP, server relay, schedule, exams, grades, and all other campus services are not migrated.
-
+This repository currently targets authentication, session management, and User Center profile retrieval. Human and JSON output mask phone and identity-document numbers. Flutter, MCP, server relay, schedule, exams, grades, and all other campus services are not migrated.

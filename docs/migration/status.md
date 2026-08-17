@@ -17,16 +17,16 @@ Updated: 2026-08-17
 | 1. Contracts and test support | Complete | `feat: define core auth contracts and test fixtures` |
 | 2. Connection and session runtime | Complete | `feat: add connection and session runtime` |
 | 3. SSO and User Center | Complete | `feat: implement direct and webvpn sso authentication` |
-| 4. CLI host | Not implemented | Pending |
+| 4. CLI host | Complete; fixture and binary-tested | `feat: add ubaa authentication cli` |
 | 5. Live Direct/WebVPN verification | Not run | Pending |
 | 6. Continuous-development readiness | Not implemented | Pending |
 
 ## Capability status
 
-The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, and logout are complete and fixture-tested. The CLI host and live evidence remain pending.
+The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and fixture-tested. CLI tests cover human/JSON redaction, stable exits, captcha JSON behavior, secure temporary captcha cleanup, command help, and the missing-session binary path. Live Direct and WebVPN evidence remains pending.
 
 Flutter, MCP, server relay, Ktor/JWT/Redis, schedule, exams, grades, sign-in, SPOC, Judge, evaluation, classrooms, reservations, and all other business modules remain outside this contract.
 
 ## Next slice
 
-Phase 4 builds the CLI over `ubaa-core/src/facade`, with JSON/exit behavior fixed by `goal.md` sections 6 and 7. It must not expose `upstream` or password values.
+Phase 5 adds a local-only live verifier, then proves both Direct and WebVPN login, User Center parsing, and persisted-session validation using ignored credentials without retaining sensitive output.
