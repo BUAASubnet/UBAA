@@ -273,3 +273,28 @@ fn error_fixture_uses_stable_code_and_exit_mapping() {
     );
     assert_eq!(error.code.exit_code() as i32, 3);
 }
+
+#[test]
+fn cli_debug_formatting_redacts_sensitive_login_arguments() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "auth",
+        "login",
+        "--mode",
+        "direct",
+        "--username",
+        "USERNAME-SENTINEL",
+        "--password-stdin",
+        "--captcha",
+        "CAPTCHA-SENTINEL",
+    ])
+    .unwrap();
+
+    let formatted = format!("{cli:?}");
+    for sentinel in ["USERNAME-SENTINEL", "CAPTCHA-SENTINEL"] {
+        assert!(
+            !formatted.contains(sentinel),
+            "leaked {sentinel} in {formatted}"
+        );
+    }
+}

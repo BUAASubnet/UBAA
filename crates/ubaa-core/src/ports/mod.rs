@@ -1,6 +1,7 @@
 //! Injectable host ports used by protocol and session code.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -18,7 +19,7 @@ pub enum HttpMethod {
 }
 
 /// Auditable transport request with no automatic redirects.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct HttpRequest {
     /// Request method.
     pub method: HttpMethod,
@@ -28,6 +29,18 @@ pub struct HttpRequest {
     pub headers: BTreeMap<String, String>,
     /// Optional request body.
     pub body: Vec<u8>,
+}
+
+impl fmt::Debug for HttpRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HttpRequest")
+            .field("method", &self.method)
+            .field("url", &"[REDACTED]")
+            .field("headers", &redacted_header_names(&self.headers))
+            .field("body_len", &self.body.len())
+            .finish()
+    }
 }
 
 impl HttpRequest {
@@ -60,7 +73,7 @@ impl HttpRequest {
 }
 
 /// Raw response returned before redirect and Cookie processing.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct HttpResponse {
     /// HTTP status code.
     pub status: u16,
@@ -70,6 +83,18 @@ pub struct HttpResponse {
     pub headers: BTreeMap<String, Vec<String>>,
     /// Uninterpreted response body.
     pub body: Vec<u8>,
+}
+
+impl fmt::Debug for HttpResponse {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("HttpResponse")
+            .field("status", &self.status)
+            .field("final_url", &"[REDACTED]")
+            .field("headers", &redacted_header_names_vec(&self.headers))
+            .field("body_len", &self.body.len())
+            .finish()
+    }
 }
 
 impl HttpResponse {
@@ -180,4 +205,12 @@ fn transport_error(error: &reqwest::Error) -> crate::error::UbaaError {
         true,
         "upstream network request failed",
     )
+}
+
+fn redacted_header_names(headers: &BTreeMap<String, String>) -> Vec<&str> {
+    headers.keys().map(String::as_str).collect()
+}
+
+fn redacted_header_names_vec(headers: &BTreeMap<String, Vec<String>>) -> Vec<&str> {
+    headers.keys().map(String::as_str).collect()
 }

@@ -83,7 +83,7 @@ pub enum UserCommand {
 }
 
 /// Login arguments.
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub struct LoginArgs {
     /// Network route used for every request; reuses a saved mode when omitted.
     #[arg(long, value_enum)]
@@ -100,6 +100,18 @@ pub struct LoginArgs {
     /// Captcha answer for a currently required challenge.
     #[arg(long)]
     pub captcha: Option<String>,
+}
+
+impl std::fmt::Debug for LoginArgs {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("LoginArgs")
+            .field("mode", &self.mode)
+            .field("username", &self.username.as_ref().map(|_| "[REDACTED]"))
+            .field("password_stdin", &self.password_stdin)
+            .field("captcha", &self.captcha.as_ref().map(|_| "[REDACTED]"))
+            .finish()
+    }
 }
 
 /// CLI spelling of a connection mode.

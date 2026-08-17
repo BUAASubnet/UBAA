@@ -92,7 +92,7 @@ pub enum ExitCode {
 }
 
 /// Safe error payload returned by the core.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UbaaError {
     /// Stable machine code.
     pub code: ErrorCode,
@@ -105,6 +105,19 @@ pub struct UbaaError {
     /// Ephemeral captcha challenge, only for `captcha_required`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub challenge: Option<LoginChallenge>,
+}
+
+impl fmt::Debug for UbaaError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("UbaaError")
+            .field("code", &self.code)
+            .field("kind", &self.kind)
+            .field("retryable", &self.retryable)
+            .field("message", &"[REDACTED]")
+            .field("challenge", &self.challenge.as_ref().map(|_| "[REDACTED]"))
+            .finish()
+    }
 }
 
 impl UbaaError {

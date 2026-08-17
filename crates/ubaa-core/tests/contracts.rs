@@ -1,9 +1,12 @@
 use serde_json::{Value, json};
 use ubaa_core::domain::{
-    ConnectionMode, LoginChallenge, SecretValue, UserInfoResponse, UserProfile,
+    AuthStatus, ConnectionMode, LoginChallenge, LoginInput, SecretValue, UserInfoResponse,
+    UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, UbaaError};
 use ubaa_core::output::JsonEnvelope;
+use ubaa_core::ports::{HttpRequest, HttpResponse};
+use ubaa_core::session::{SessionSnapshot, StoredCookie};
 
 #[test]
 fn user_info_response_maps_legacy_camel_case_fields() {
@@ -53,6 +56,131 @@ fn secret_value_never_serializes_or_formats_plaintext() {
     assert_eq!(format!("{secret:?}"), "SecretValue([REDACTED])");
     assert_eq!(serde_json::to_string(&secret).unwrap(), "\"[REDACTED]\"");
     assert_eq!(secret.expose_secret(), "do-not-leak");
+}
+
+#[test]
+fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
+    let request = HttpRequest::post(
+        "https://example.invalid/login?token=REQUEST-SENTINEL",
+        b"body-REQUEST-SENTINEL".to_vec(),
+    )
+    .with_header("Cookie", "SESSION=REQUEST-SENTINEL");
+    let response = HttpResponse {
+        status: 200,
+        final_url: "https://example.invalid/response?token=RESPONSE-SENTINEL".into(),
+        headers: std::collections::BTreeMap::from([(
+            "Set-Cookie".into(),
+            vec!["SESSION=RESPONSE-SENTINEL".into()],
+        )]),
+        body: b"body-RESPONSE-SENTINEL".to_vec(),
+    };
+    let login_input = LoginInput {
+        username: "USERNAME-SENTINEL".into(),
+        password: SecretValue::new("PASSWORD-SENTINEL"),
+        captcha: Some("CAPTCHA-SENTINEL".into()),
+    };
+    let challenge = LoginChallenge {
+        id: "CHALLENGE-SENTINEL".into(),
+        execution: "EXECUTION-SENTINEL".into(),
+        image_data_url: Some("data:image/jpeg;base64,CHALLENGE-SENTINEL".into()),
+    };
+    let profile = sensitive_profile();
+    let cookie = sensitive_cookie();
+    let snapshot = SessionSnapshot {
+        mode: ConnectionMode::Direct,
+        cookies: vec![cookie.clone()],
+        authenticated_at: 111,
+        last_activity: 222,
+    };
+    let error = UbaaError::new(
+        ErrorCode::InvalidInput,
+        ErrorKind::Input,
+        false,
+        "ERROR-MESSAGE-SENTINEL",
+    )
+    .with_challenge(challenge.clone());
+    let response_wrapper = UserInfoResponse {
+        code: 0,
+        data: Some(profile.clone()),
+    };
+    let status = AuthStatus {
+        user: profile.clone(),
+        authenticated_at: 333,
+        last_activity: 444,
+    };
+    let failure_envelope: JsonEnvelope<Value> =
+        JsonEnvelope::failure(error.clone(), Some(ConnectionMode::WebVpn));
+    let success_envelope = JsonEnvelope::success(
+        json!({"secret": "ENVELOPE-DATA-SENTINEL"}),
+        ConnectionMode::Direct,
+    );
+
+    let formatted = format!(
+        "{request:?} {response:?} {login_input:?} {challenge:?} {profile:?} {response_wrapper:?} \
+         {status:?} {cookie:?} {snapshot:?} {error:?} {failure_envelope:?} {success_envelope:?}"
+    );
+
+    assert_debug_redacts(
+        &formatted,
+        &[
+            "REQUEST-SENTINEL",
+            "RESPONSE-SENTINEL",
+            "USERNAME-SENTINEL",
+            "PASSWORD-SENTINEL",
+            "CAPTCHA-SENTINEL",
+            "CHALLENGE-SENTINEL",
+            "EXECUTION-SENTINEL",
+            "ID-TYPE-SENTINEL",
+            "ID-TYPE-NAME-SENTINEL",
+            "NAME-SENTINEL",
+            "SCHOOL-SENTINEL",
+            "PHONE-SENTINEL",
+            "ID-SENTINEL",
+            "EMAIL-SENTINEL",
+            "COOKIE-SENTINEL",
+            "COOKIE-VALUE-SENTINEL",
+            "DOMAIN-SENTINEL",
+            "PATH-SENTINEL",
+            "ERROR-MESSAGE-SENTINEL",
+            "ENVELOPE-DATA-SENTINEL",
+        ],
+    );
+}
+
+fn sensitive_profile() -> UserProfile {
+    UserProfile {
+        id_card_type: Some("ID-TYPE-SENTINEL".into()),
+        id_card_type_name: Some("ID-TYPE-NAME-SENTINEL".into()),
+        phone: Some("PHONE-SENTINEL".into()),
+        school_id: Some("SCHOOL-SENTINEL".into()),
+        name: Some("NAME-SENTINEL".into()),
+        id_card_number: Some("ID-SENTINEL".into()),
+        email: Some("EMAIL-SENTINEL".into()),
+        username: Some("USERNAME-SENTINEL".into()),
+    }
+}
+
+fn sensitive_cookie() -> StoredCookie {
+    StoredCookie {
+        name: "COOKIE-SENTINEL".into(),
+        value: "COOKIE-VALUE-SENTINEL".into(),
+        domain: "DOMAIN-SENTINEL.invalid".into(),
+        host_only: true,
+        path: "/PATH-SENTINEL".into(),
+        secure: true,
+        expires_at: Some(123),
+        created_at: 456,
+        max_age: Some(789),
+    }
+}
+
+fn assert_debug_redacts(formatted: &str, sentinels: &[&str]) {
+    for sentinel in sentinels {
+        assert!(
+            !formatted.contains(sentinel),
+            "leaked {sentinel} in {formatted}"
+        );
+    }
 }
 
 #[test]

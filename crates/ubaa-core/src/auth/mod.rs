@@ -3,11 +3,22 @@
 use crate::domain::LoginChallenge;
 
 /// Pending login page and challenge scoped to one client instance.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub(crate) struct LoginState {
     page: Option<String>,
     execution: Option<String>,
     challenge: Option<LoginChallenge>,
+}
+
+impl std::fmt::Debug for LoginState {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("LoginState")
+            .field("page", &self.page.as_ref().map(|_| "[REDACTED]"))
+            .field("execution", &self.execution.as_ref().map(|_| "[REDACTED]"))
+            .field("challenge", &self.challenge.as_ref().map(|_| "[REDACTED]"))
+            .finish()
+    }
 }
 
 impl LoginState {
@@ -36,5 +47,37 @@ impl LoginState {
 
     pub(crate) fn clear(&mut self) {
         *self = Self::default();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_formatting_redacts_pending_login_state() {
+        let mut state = LoginState::default();
+        state.remember(
+            "<html>PAGE-SENTINEL</html>".into(),
+            "EXECUTION-SENTINEL".into(),
+            Some(LoginChallenge {
+                id: "CHALLENGE-SENTINEL".into(),
+                execution: "EXECUTION-SENTINEL".into(),
+                image_data_url: Some("data:image/jpeg;base64,IMAGE-SENTINEL".into()),
+            }),
+        );
+
+        let formatted = format!("{state:?}");
+        for sentinel in [
+            "PAGE-SENTINEL",
+            "EXECUTION-SENTINEL",
+            "CHALLENGE-SENTINEL",
+            "IMAGE-SENTINEL",
+        ] {
+            assert!(
+                !formatted.contains(sentinel),
+                "leaked {sentinel} in {formatted}"
+            );
+        }
     }
 }

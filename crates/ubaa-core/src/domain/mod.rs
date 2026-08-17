@@ -53,7 +53,7 @@ impl Serialize for SecretValue {
 }
 
 /// Credentials and optional captcha answer for one login submission.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginInput {
     /// SSO account name.
@@ -64,8 +64,19 @@ pub struct LoginInput {
     pub captcha: Option<String>,
 }
 
+impl fmt::Debug for LoginInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("LoginInput")
+            .field("username", &"[REDACTED]")
+            .field("password", &self.password)
+            .field("captcha", &redacted_option(self.captcha.as_deref()))
+            .finish()
+    }
+}
+
 /// Captcha state tied to the current in-memory login flow.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginChallenge {
     /// Upstream captcha identifier.
@@ -77,8 +88,22 @@ pub struct LoginChallenge {
     pub image_data_url: Option<String>,
 }
 
+impl fmt::Debug for LoginChallenge {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("LoginChallenge")
+            .field("id", &"[REDACTED]")
+            .field("execution", &"[REDACTED]")
+            .field(
+                "image_data_url",
+                &redacted_option(self.image_data_url.as_deref()),
+            )
+            .finish()
+    }
+}
+
 /// User Center profile mapped from the legacy `UserInfo` DTO.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProfile {
     /// Identity-document type code.
@@ -100,8 +125,33 @@ pub struct UserProfile {
     pub username: Option<String>,
 }
 
+impl fmt::Debug for UserProfile {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("UserProfile")
+            .field(
+                "id_card_type",
+                &redacted_option(self.id_card_type.as_deref()),
+            )
+            .field(
+                "id_card_type_name",
+                &redacted_option(self.id_card_type_name.as_deref()),
+            )
+            .field("phone", &redacted_option(self.phone.as_deref()))
+            .field("school_id", &redacted_option(self.school_id.as_deref()))
+            .field("name", &redacted_option(self.name.as_deref()))
+            .field(
+                "id_card_number",
+                &redacted_option(self.id_card_number.as_deref()),
+            )
+            .field("email", &redacted_option(self.email.as_deref()))
+            .field("username", &redacted_option(self.username.as_deref()))
+            .finish()
+    }
+}
+
 /// User Center JSON wrapper used by both status and profile endpoints.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UserInfoResponse {
     /// Upstream result code; zero denotes success in the frozen implementation.
     pub code: i64,
@@ -110,7 +160,7 @@ pub struct UserInfoResponse {
 }
 
 /// Validated authentication state returned to hosts.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthStatus {
     /// User Center identity summary.
@@ -119,4 +169,29 @@ pub struct AuthStatus {
     pub authenticated_at: i64,
     /// Unix timestamp of the latest successful status check.
     pub last_activity: i64,
+}
+
+impl fmt::Debug for UserInfoResponse {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("UserInfoResponse")
+            .field("code", &self.code)
+            .field("data_present", &self.data.is_some())
+            .finish()
+    }
+}
+
+impl fmt::Debug for AuthStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AuthStatus")
+            .field("user", &self.user)
+            .field("authenticated_at", &self.authenticated_at)
+            .field("last_activity", &self.last_activity)
+            .finish()
+    }
+}
+
+fn redacted_option(value: Option<&str>) -> Option<&'static str> {
+    value.map(|_| "[REDACTED]")
 }

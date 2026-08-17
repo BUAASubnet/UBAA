@@ -13,7 +13,7 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpResponse;
 
 /// Cookie attributes retained for safe request filtering and persistence.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct StoredCookie {
     /// Cookie name.
     pub name: String,
@@ -33,6 +33,23 @@ pub struct StoredCookie {
     pub created_at: i64,
     /// Max-Age in seconds when supplied.
     pub max_age: Option<i64>,
+}
+
+impl std::fmt::Debug for StoredCookie {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("StoredCookie")
+            .field("name", &"[REDACTED]")
+            .field("value", &"[REDACTED]")
+            .field("domain", &"[REDACTED]")
+            .field("host_only", &self.host_only)
+            .field("path", &"[REDACTED]")
+            .field("secure", &self.secure)
+            .field("expires_at", &self.expires_at)
+            .field("created_at", &self.created_at)
+            .field("max_age", &self.max_age)
+            .finish()
+    }
 }
 
 impl StoredCookie {
@@ -129,7 +146,7 @@ impl CookieJar {
 }
 
 /// Snapshot persisted across CLI processes.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SessionSnapshot {
     /// Connection strategy used by this session.
     pub mode: ConnectionMode,
@@ -139,6 +156,18 @@ pub struct SessionSnapshot {
     pub authenticated_at: i64,
     /// Unix timestamp of the last successful validation.
     pub last_activity: i64,
+}
+
+impl std::fmt::Debug for SessionSnapshot {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SessionSnapshot")
+            .field("mode", &self.mode)
+            .field("cookie_count", &self.cookies.len())
+            .field("authenticated_at", &self.authenticated_at)
+            .field("last_activity", &self.last_activity)
+            .finish()
+    }
 }
 
 /// Result of validating a persisted session.
