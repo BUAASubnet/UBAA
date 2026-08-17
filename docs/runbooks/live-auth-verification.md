@@ -17,7 +17,7 @@ Never attach raw output, session files, cookies, captcha images, or complete pro
 
 | Mode | Status | Evidence |
 |---|---|---|
-| Direct | Real verification passed on 2026-08-17 | Exit 0; profile parsed; `auth status` passed in 111 ms; name prefix `李`; school ID suffix `04` |
-| WebVPN | Real verification passed on 2026-08-17 | Exit 0; profile parsed; `auth status` passed in 201 ms; name prefix `李`; school ID suffix `04` |
+| Direct | Real verification passed on 2026-08-17 | Exit 0; profile parsed; `auth status` passed in 77 ms; name prefix `李`; school ID suffix `04` |
+| WebVPN | Real verification passed on 2026-08-17 | Exit 0; profile parsed; `auth status` passed in 190 ms; name prefix `李`; school ID suffix `04` |
 
 Exit code 4 means the upstream requires a captcha. JSON mode deliberately stops before credential submission; rerun in human mode in a terminal to provide the image answer without recording it.
