@@ -1,7 +1,7 @@
 //! Sanitized fixtures and deterministic HTTP support shared by workspace crates.
 
 use std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -67,16 +67,25 @@ impl ExpectedRequest {
 }
 
 /// FIFO transport that validates method and URL without logging request bodies.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MockTransport {
+    state: Arc<MockState>,
+}
+
+#[derive(Debug)]
+struct MockState {
     expected: Mutex<VecDeque<ExpectedRequest>>,
+    requests: Mutex<Vec<HttpRequest>>,
 }
 
 impl MockTransport {
     /// Construct a transport from scripted expectations.
     pub fn new(expectations: impl IntoIterator<Item = ExpectedRequest>) -> Self {
         Self {
-            expected: Mutex::new(expectations.into_iter().collect()),
+            state: Arc::new(MockState {
+                expected: Mutex::new(expectations.into_iter().collect()),
+                requests: Mutex::new(Vec::new()),
+            }),
         }
     }
 
@@ -87,6 +96,7 @@ impl MockTransport {
     /// Returns a message when the mock is poisoned or scripted requests remain.
     pub fn assert_exhausted(&self) -> std::result::Result<(), String> {
         let remaining = self
+            .state
             .expected
             .lock()
             .map_err(|_| "mock lock poisoned")?
@@ -97,12 +107,31 @@ impl MockTransport {
             Err(format!("{remaining} scripted requests remain"))
         }
     }
+
+    /// Return a copy of requests for assertions; callers must not print bodies.
+    ///
+    /// # Errors
+    ///
+    /// Returns a message when the mock lock is poisoned.
+    pub fn requests(&self) -> std::result::Result<Vec<HttpRequest>, String> {
+        self.state
+            .requests
+            .lock()
+            .map(|requests| requests.clone())
+            .map_err(|_| "mock lock poisoned".into())
+    }
 }
 
 #[async_trait]
 impl HttpTransport for MockTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        self.state
+            .requests
+            .lock()
+            .map_err(|_| mock_error("mock lock poisoned"))?
+            .push(request.clone());
         let expected = self
+            .state
             .expected
             .lock()
             .map_err(|_| mock_error("mock lock poisoned"))?
@@ -116,6 +145,56 @@ impl HttpTransport for MockTransport {
             )));
         }
         Ok(expected.response)
+    }
+}
+
+/// In-memory session store used by deterministic Core integration tests.
+#[derive(Clone, Debug, Default)]
+pub struct MemorySessionStore {
+    state: Arc<Mutex<Option<ubaa_core::session::SessionSnapshot>>>,
+}
+
+impl MemorySessionStore {
+    /// Construct an empty store.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Return a copy for assertions.
+    ///
+    /// # Errors
+    ///
+    /// Returns a message when the store lock is poisoned.
+    pub fn snapshot(
+        &self,
+    ) -> std::result::Result<Option<ubaa_core::session::SessionSnapshot>, String> {
+        self.state
+            .lock()
+            .map(|snapshot| snapshot.clone())
+            .map_err(|_| "memory store lock poisoned".into())
+    }
+}
+
+impl ubaa_core::session::SessionStore for MemorySessionStore {
+    fn load(&self) -> Result<Option<ubaa_core::session::SessionSnapshot>> {
+        self.snapshot().map_err(mock_error)
+    }
+
+    fn save(&self, snapshot: &ubaa_core::session::SessionSnapshot) -> Result<()> {
+        self.state
+            .lock()
+            .map_err(|_| mock_error("memory store lock poisoned"))?
+            .replace(snapshot.clone());
+        Ok(())
+    }
+
+    fn clear(&self) -> Result<()> {
+        self.state
+            .lock()
+            .map_err(|_| mock_error("memory store lock poisoned"))?
+            .take();
+        Ok(())
     }
 }
 

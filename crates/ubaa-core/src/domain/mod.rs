@@ -108,3 +108,15 @@ pub struct UserInfoResponse {
     /// Optional profile payload.
     pub data: Option<UserProfile>,
 }
+
+/// Validated authentication state returned to hosts.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthStatus {
+    /// User Center identity summary.
+    pub user: UserProfile,
+    /// Unix timestamp when the current session was authenticated.
+    pub authenticated_at: i64,
+    /// Unix timestamp of the latest successful status check.
+    pub last_activity: i64,
+}

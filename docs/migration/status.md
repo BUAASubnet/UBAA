@@ -16,17 +16,17 @@ Updated: 2026-08-17
 | 0. Repository foundation | Complete | `chore: establish ubaa2 repository foundation` |
 | 1. Contracts and test support | Complete | `feat: define core auth contracts and test fixtures` |
 | 2. Connection and session runtime | Complete | `feat: add connection and session runtime` |
-| 3. SSO and User Center | Not implemented | Pending |
+| 3. SSO and User Center | Complete | `feat: implement direct and webvpn sso authentication` |
 | 4. CLI host | Not implemented | Pending |
 | 5. Live Direct/WebVPN verification | Not run | Pending |
 | 6. Continuous-development readiness | Not implemented | Pending |
 
 ## Capability status
 
-The repository foundation, public contracts/test support, and Direct/WebVPN connection, Cookie and session runtime are complete and fixture-tested. SSO requests, captcha handling, risk continuation, User Center profile retrieval, CLI commands, and live evidence are not yet implemented.
+The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, and logout are complete and fixture-tested. The CLI host and live evidence remain pending.
 
 Flutter, MCP, server relay, Ktor/JWT/Redis, schedule, exams, grades, sign-in, SPOC, Judge, evaluation, classrooms, reservations, and all other business modules remain outside this contract.
 
 ## Next slice
 
-Phase 3 derives the SSO state machine and User Center behavior from `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt`, `ubaa_old/server/src/main/kotlin/cn/edu/ubaa/auth/upstream/CasParser.kt`, their auth tests, and `examples/buaa-api/src/api/sso/auth.rs` plus `src/api/user/auth.rs`.
+Phase 4 builds the CLI over `ubaa-core/src/facade`, with JSON/exit behavior fixed by `goal.md` sections 6 and 7. It must not expose `upstream` or password values.
