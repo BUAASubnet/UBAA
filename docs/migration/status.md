@@ -28,7 +28,7 @@ Updated: 2026-08-18
 | 9d Judge | Implemented, parser/Mock-tested | Course selection, detail reads, six-month cutoff, route/session-scoped caches and bounded query constant are implemented. Real auto request fails with `upstream_unavailable`. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2; aggregate login/status expose safe route states. |
 | 11 live matrix | Blocked by live business evidence | Required commands were run; failures are recorded in the feature table. |
-| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009` contain the route/session, readonly, and verifier/docs rounds; live feature hard gates are still failed/unverified. |
+| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009`, and `35a3571` contain the route/session, readonly, verifier/docs, and SPOC detail-metadata rounds; live feature hard gates are still failed/unverified. |
 
 ## Live Authentication
 
