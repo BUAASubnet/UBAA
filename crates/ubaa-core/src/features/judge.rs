@@ -9,8 +9,11 @@ use crate::domain::{
     JudgeAssignmentDetail, JudgeAssignmentSummary, JudgeProblem, JudgeSubmissionStatus,
 };
 use std::collections::{HashMap, HashSet};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
 
 /// Judge service login URL from the frozen implementation.
 pub const LOGIN_URL: &str =
@@ -195,37 +198,54 @@ pub(crate) async fn get_assignments(
             .cloned()
             .unwrap_or_default()
     };
-    let cutoff = six_month_cutoff();
-    let mut result = Vec::with_capacity(ASSIGNMENT_QUERY_CONCURRENCY);
-    for course in courses
+    let courses = courses
         .into_iter()
         .filter(|course| !skipped.contains(&course.course_id))
-    {
-        let assignments = get_course_assignments_cached(runtime, scope, &course).await?;
-        let mut historical = false;
-        for assignment in assignments {
-            let detail = get_detail_cached(runtime, scope, &assignment).await?;
-            if detail
-                .start_time
-                .as_deref()
-                .is_some_and(|start| start < cutoff.as_str())
-            {
-                historical = true;
-                if !include_expired {
-                    break;
-                }
+        .collect::<Vec<_>>();
+    let cutoff = six_month_cutoff();
+    let limiter = Arc::new(Semaphore::new(ASSIGNMENT_QUERY_CONCURRENCY));
+    let mut workers = JoinSet::new();
+    for (index, course) in courses.into_iter().enumerate() {
+        let mut worker = runtime.fork_for_readonly();
+        let cutoff = cutoff.clone();
+        let limiter = Arc::clone(&limiter);
+        workers.spawn(async move {
+            let permit = limiter.acquire_owned().await.map_err(|_| worker_error())?;
+            let result =
+                summarize_course(&mut worker, scope, course, include_expired, &cutoff).await;
+            drop(permit);
+            result.map(|summary| (index, summary))
+        });
+    }
+
+    let mut summaries = Vec::new();
+    while let Some(joined) = workers.join_next().await {
+        match joined {
+            Ok(Ok((index, summary))) => summaries.push((index, summary)),
+            Ok(Err(error)) => {
+                workers.abort_all();
+                return Err(error);
             }
-            result.push(to_summary(&detail));
+            Err(_) => {
+                workers.abort_all();
+                return Err(worker_error());
+            }
         }
-        if historical {
+    }
+
+    summaries.sort_by_key(|(index, _)| *index);
+    let mut result = Vec::new();
+    for (_, summary) in summaries {
+        if summary.historical {
             cache()
                 .lock()
                 .expect("Judge cache mutex")
                 .historical_courses
                 .entry(scope)
                 .or_default()
-                .insert(course.course_id);
+                .insert(summary.course_id.clone());
         }
+        result.extend(summary.summaries);
     }
     result.sort_by(|left, right| {
         left.due_time
@@ -274,7 +294,7 @@ pub(crate) async fn get_assignment_details(
     if keys.is_empty() {
         return Ok(Vec::new());
     }
-    let mut result = Vec::with_capacity(keys.len());
+    let mut normalized = Vec::with_capacity(keys.len());
     let mut seen = HashSet::new();
     for key in keys {
         if key.course_id.trim().is_empty()
@@ -283,9 +303,91 @@ pub(crate) async fn get_assignment_details(
         {
             continue;
         }
-        result.push(get_assignment_detail(runtime, &key.course_id, &key.assignment_id).await?);
+        normalized.push(key.clone());
     }
+    if normalized.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let scope = cache_scope(runtime);
+    get_courses_cached(runtime, scope).await?;
+    let limiter = Arc::new(Semaphore::new(ASSIGNMENT_QUERY_CONCURRENCY));
+    let mut workers = JoinSet::new();
+    for (index, key) in normalized.into_iter().enumerate() {
+        let mut worker = runtime.fork_for_readonly();
+        let limiter = Arc::clone(&limiter);
+        workers.spawn(async move {
+            let permit = limiter.acquire_owned().await.map_err(|_| worker_error())?;
+            let result =
+                get_assignment_detail(&mut worker, &key.course_id, &key.assignment_id).await;
+            drop(permit);
+            result.map(|detail| (index, detail))
+        });
+    }
+
+    let mut ordered = Vec::new();
+    while let Some(joined) = workers.join_next().await {
+        match joined {
+            Ok(Ok((index, detail))) => ordered.push((index, detail)),
+            Ok(Err(error)) => {
+                workers.abort_all();
+                return Err(error);
+            }
+            Err(_) => {
+                workers.abort_all();
+                return Err(worker_error());
+            }
+        }
+    }
+    ordered.sort_by_key(|(index, _)| *index);
+    let result = ordered.into_iter().map(|(_, detail)| detail).collect();
     Ok(result)
+}
+
+struct CourseSummary {
+    course_id: String,
+    summaries: Vec<JudgeAssignmentSummary>,
+    historical: bool,
+}
+
+async fn summarize_course(
+    runtime: &mut crate::runtime::ClientRuntime,
+    scope: CacheScope,
+    course: Course,
+    include_expired: bool,
+    cutoff: &str,
+) -> crate::error::Result<CourseSummary> {
+    let assignments = get_course_assignments_cached(runtime, scope, &course).await?;
+    let mut summaries = Vec::new();
+    let mut historical = false;
+    for assignment in assignments {
+        let detail = get_detail_cached(runtime, scope, &assignment).await?;
+        if detail
+            .start_time
+            .as_deref()
+            .is_some_and(|start| start < cutoff)
+        {
+            historical = true;
+            if !include_expired {
+                break;
+            }
+        }
+        summaries.push(to_summary(&detail));
+    }
+    Ok(CourseSummary {
+        course_id: course.course_id,
+        summaries,
+        historical,
+    })
+}
+
+fn worker_error() -> crate::error::UbaaError {
+    crate::error::UbaaError::new(
+        crate::error::ErrorCode::InternalError,
+        crate::error::ErrorKind::Internal,
+        true,
+        "Judge read worker failed",
+    )
 }
 
 fn cache() -> &'static Mutex<JudgeCache> {

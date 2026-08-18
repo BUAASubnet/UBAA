@@ -1,9 +1,12 @@
 use std::collections::{BTreeMap, VecDeque};
+use std::fmt::Write as _;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::Result;
+use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey};
+use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
@@ -279,4 +282,133 @@ async fn judge_selects_courses_before_reading_assignment_details() {
     assert_eq!(result.data[0].course_name, "Algorithms");
     assert_eq!(result.data[0].submission_status_text, "未提交");
     assert_eq!(result.data[0].total_problems, 2);
+}
+
+#[derive(Clone)]
+struct JudgeConcurrencyTransport {
+    inflight: Arc<AtomicUsize>,
+    max_inflight: Arc<AtomicUsize>,
+}
+
+impl JudgeConcurrencyTransport {
+    fn new() -> Self {
+        Self {
+            inflight: Arc::new(AtomicUsize::new(0)),
+            max_inflight: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    fn max_inflight(&self) -> usize {
+        self.max_inflight.load(Ordering::SeqCst)
+    }
+}
+
+#[async_trait]
+impl HttpTransport for JudgeConcurrencyTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        let current = self.inflight.fetch_add(1, Ordering::SeqCst) + 1;
+        self.max_inflight.fetch_max(current, Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        let result = if request.url
+            == "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F"
+        {
+            Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"))
+        } else if request.url == "https://judge.buaa.edu.cn/" {
+            Ok(response(200, &request.url, "judge home"))
+        } else if request.url == "https://judge.buaa.edu.cn/courselist.jsp?courseID=0" {
+            let mut courses = String::new();
+            for id in 1..=8 {
+                let _ = write!(
+                    courses,
+                    r#"<a href="courselist.jsp?courseID={id}">Course {id}</a>"#
+                );
+            }
+            Ok(response(200, &request.url, &courses))
+        } else if request
+            .url
+            .starts_with("https://judge.buaa.edu.cn/courselist.jsp?courseID=")
+        {
+            Ok(response(200, &request.url, "selected"))
+        } else if request.url == "https://judge.buaa.edu.cn/assignment/index.jsp" {
+            Ok(response(
+                200,
+                &request.url,
+                r#"<a href="assignment/index.jsp?assignID=1">Lab</a>"#,
+            ))
+        } else if request.url == "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=1" {
+            Ok(response(
+                200,
+                &request.url,
+                "作业满分:100 共 2 道 作业时间: 2026-08-01 08:00:00 至 2026-08-31 23:00:00 未提交",
+            ))
+        } else {
+            Err(UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "unexpected Judge concurrency request",
+            ))
+        };
+        self.inflight.fetch_sub(1, Ordering::SeqCst);
+        result
+    }
+}
+
+#[tokio::test]
+async fn judge_limits_course_queries_to_four_workers() {
+    let transport = JudgeConcurrencyTransport::new();
+    let observed = transport.clone();
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-concurrency-fixture"),
+    )
+    .expect("client");
+
+    let result = client.judge_assignments(false).await.expect("Judge list");
+    assert_eq!(result.data.len(), 8);
+    assert!(
+        observed.max_inflight() >= 2,
+        "Judge course queries must run concurrently"
+    );
+    assert!(
+        observed.max_inflight() <= 4,
+        "Judge course query concurrency must stay bounded at four"
+    );
+}
+
+#[tokio::test]
+async fn judge_batch_details_preserve_input_order_with_four_workers() {
+    let transport = JudgeConcurrencyTransport::new();
+    let observed = transport.clone();
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-batch-concurrency-fixture"),
+    )
+    .expect("client");
+    let keys = (1..=8)
+        .map(|course_id| JudgeAssignmentKey {
+            course_id: course_id.to_string(),
+            assignment_id: "1".into(),
+        })
+        .collect::<Vec<_>>();
+
+    let result = client
+        .judge_assignment_details(&keys)
+        .await
+        .expect("Judge details");
+    assert_eq!(result.data.len(), keys.len());
+    for (detail, key) in result.data.iter().zip(&keys) {
+        assert_eq!(detail.course_id, key.course_id);
+        assert_eq!(detail.assignment_id, key.assignment_id);
+    }
+    assert!(
+        observed.max_inflight() >= 2,
+        "Judge detail queries must run concurrently"
+    );
+    assert!(
+        observed.max_inflight() <= 4,
+        "Judge detail query concurrency must stay bounded at four"
+    );
 }

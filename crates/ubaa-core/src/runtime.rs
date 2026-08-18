@@ -1,6 +1,7 @@
 //! Private runtime state shared by facade workflows.
 
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::connection::to_webvpn_url;
@@ -11,8 +12,8 @@ use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, 
 
 pub(crate) struct ClientRuntime {
     mode: ConnectionMode,
-    transport: Box<dyn HttpTransport>,
-    store: Box<dyn SessionStore>,
+    transport: Arc<dyn HttpTransport>,
+    store: Arc<dyn SessionStore>,
     jar: CookieJar,
     authenticated_at: Option<i64>,
     last_activity: Option<i64>,
@@ -25,20 +26,18 @@ impl ClientRuntime {
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
     {
+        let transport: Arc<dyn HttpTransport> = Arc::new(transport);
+        let store: Arc<dyn SessionStore> = Arc::new(store);
         let persisted = store.load_versioned()?;
         Self::from_versioned(mode, transport, store, persisted)
     }
 
-    pub(crate) fn from_versioned<T, S>(
+    fn from_versioned(
         mode: ConnectionMode,
-        transport: T,
-        store: S,
+        transport: Arc<dyn HttpTransport>,
+        store: Arc<dyn SessionStore>,
         persisted: VersionedSession,
-    ) -> Result<Self>
-    where
-        T: HttpTransport + 'static,
-        S: SessionStore + 'static,
-    {
+    ) -> Result<Self> {
         let mut jar = CookieJar::default();
         let mut authenticated_at = None;
         let mut last_activity = None;
@@ -57,8 +56,8 @@ impl ClientRuntime {
         }
         Ok(Self {
             mode,
-            transport: Box::new(transport),
-            store: Box::new(store),
+            transport,
+            store,
             jar,
             authenticated_at,
             last_activity,
@@ -68,6 +67,23 @@ impl ClientRuntime {
 
     pub(crate) const fn mode(&self) -> ConnectionMode {
         self.mode
+    }
+
+    /// Fork a route-locked runtime for a read-only worker.
+    ///
+    /// The worker receives a copy of the current Cookie jar and shares only the immutable
+    /// transport/store handles. It never persists authentication state; this mirrors the frozen
+    /// Judge implementation's isolated read workers while keeping each worker on one route.
+    pub(crate) fn fork_for_readonly(&self) -> Self {
+        Self {
+            mode: self.mode,
+            transport: Arc::clone(&self.transport),
+            store: Arc::clone(&self.store),
+            jar: self.jar.clone(),
+            authenticated_at: self.authenticated_at,
+            last_activity: self.last_activity,
+            session_revision: self.session_revision,
+        }
     }
 
     pub(crate) fn authenticated_at(&self) -> Option<i64> {

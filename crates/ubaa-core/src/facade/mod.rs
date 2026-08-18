@@ -355,14 +355,8 @@ impl UbaaClient {
             return Ok(None);
         };
         let route_store = RouteSessionStore::new(store, mode);
-        let persisted = route_store.load_versioned()?;
         Ok(Some(Self {
-            runtime: ClientRuntime::from_versioned(
-                mode,
-                ReqwestTransport::new()?,
-                route_store,
-                persisted,
-            )?,
+            runtime: ClientRuntime::new(mode, ReqwestTransport::new()?, route_store)?,
             auth: AuthWorkflow::default(),
         }))
     }
