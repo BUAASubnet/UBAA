@@ -150,7 +150,44 @@ async fn spoc_detail_reads_submission_without_writing() {
     let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token";
     let detail_url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid?id=a1";
     let submission_url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo?kczyid=a1";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
     let transport = SpocTransport::new([
+        (cas.into(), redirect(token_url)),
+        (token_url.into(), response(200, token_url, "token landing")),
+        (
+            "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin".into(),
+            response(
+                200,
+                "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin",
+                r#"{"code":200,"content":{"jsdm":"01"}}"#,
+            ),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses_url.into(),
+            response(
+                200,
+                courses_url,
+                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher"}]}"#,
+            ),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","tjzt":"未做","zymc":"Practice","sskcid":"course-1","kcmc":"Systems","mf":"满分:0"}]}}"#,
+            ),
+        ),
         (cas.into(), redirect(token_url)),
         (token_url.into(), response(200, token_url, "token landing")),
         (
@@ -182,6 +219,8 @@ async fn spoc_detail_reads_submission_without_writing() {
         .expect("client");
 
     let result = client.spoc_assignment("a1").await.expect("SPOC detail");
+    assert_eq!(result.data.course_name, "Systems");
+    assert_eq!(result.data.teacher_name.as_deref(), Some("Teacher"));
     assert_eq!(result.data.submission_status_text, "已提交");
     assert_eq!(result.data.content_plain_text.as_deref(), Some("Read only"));
     assert_eq!(

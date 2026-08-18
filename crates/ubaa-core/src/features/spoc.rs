@@ -289,6 +289,19 @@ pub(crate) async fn get_assignment_detail(
             "assignment id is required",
         ));
     }
+    let assignments = get_assignments(runtime).await?;
+    let base = assignments
+        .assignments
+        .into_iter()
+        .find(|assignment| assignment.assignment_id == assignment_id)
+        .ok_or_else(|| {
+            crate::error::UbaaError::new(
+                crate::error::ErrorCode::UpstreamChanged,
+                crate::error::ErrorKind::Upstream,
+                false,
+                "SPOC assignment was not found",
+            )
+        })?;
     let (token, role) = login(runtime).await?;
     let mut url = url::Url::parse(&runtime.url(ASSIGNMENT_DETAIL_URL)?).map_err(|_| {
         crate::error::UbaaError::new(
@@ -313,14 +326,17 @@ pub(crate) async fn get_assignment_detail(
     super::check_response(&response, "spoc")?;
     let raw: DetailRaw = parse_envelope(&super::body(&response))?;
     let submission = fetch_submission(runtime, assignment_id, &token, &role).await?;
-    let summary = summary(
-        raw.id.clone(),
-        raw.sskcid.unwrap_or_default(),
-        String::new(),
-        raw.zymc.clone(),
+    let mut summary = summary(
+        base.assignment_id.clone(),
+        raw.sskcid.unwrap_or_else(|| base.course_id.clone()),
+        base.course_name.clone(),
+        non_empty_or(raw.zymc.clone(), base.title.clone()),
         submission.as_ref().and_then(|value| value.tjzt.as_deref()),
         raw.zyfs.as_deref(),
     );
+    summary.teacher_name = base.teacher_name;
+    summary.start_time = normalize_datetime(raw.zykssj.as_deref()).or(base.start_time);
+    summary.due_time = normalize_datetime(raw.zyjzsj.as_deref()).or(base.due_time);
     let mut detail = detail(&summary, raw.zynr);
     detail.start_time = normalize_datetime(raw.zykssj.as_deref());
     detail.due_time = normalize_datetime(raw.zyjzsj.as_deref());
@@ -502,6 +518,14 @@ fn normalize_datetime(raw: Option<&str>) -> Option<String> {
     (date.len() == 10 && time.len() >= 8).then(|| format!("{date} {}", &time[..8]))
 }
 
+fn non_empty_or(value: String, fallback: String) -> String {
+    if value.trim().is_empty() {
+        fallback
+    } else {
+        value
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct CurrentTerm {
     #[serde(default)]
@@ -520,7 +544,6 @@ struct CourseRaw {
 
 #[derive(Debug, Deserialize)]
 struct DetailRaw {
-    id: String,
     zymc: String,
     #[serde(default)]
     zynr: Option<String>,
