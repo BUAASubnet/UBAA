@@ -1,77 +1,106 @@
 # Migration Status
 
-Updated: 2026-08-17
+Updated: 2026-08-18
+
+## Conclusion
+
+阶段 7-12 的代码、确定性测试和文档骨架已经落地，但本合同不能标记为完成：六类业务要求至少一条真实可用路线且 `auto` 验收通过，目前空闲教室和 SPOC 的 `auto` 达到真实成功，课表、考试、成绩和 Judge 仍有真实失败或未证实路线。没有用 fixture、Mock 或认证成功替代业务验收。
 
 ## Baseline
 
-- New repository branch: `ubaa2`; no pre-existing commit at phase 0 start.
-- UBAA v1 reference: `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`.
-- `buaa-api` reference: `efb7976bf513f38364b88aeb83d704586cff9b2a`.
-- Both reference worktrees were clean and matched their expected origins.
+- Branch: `ubaa2`.
+- Frozen `ubaa_old/` HEAD: `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`.
+- Frozen `examples/buaa-api/` HEAD: `efb7976bf513f38364b88aeb83d704586cff9b2a`.
+- `just refs` verifies both clean reference worktrees and fixed HEADs.
+- `.env.local` was checked for the two required variable names and non-empty values; values were never printed, logged, staged, or persisted.
+- The user-edited `goal.md` remains outside implementation commits.
 
-## Phase status
+## Phase Status
 
-| Phase | Status | Commit |
+| Phase | Status | Evidence or remaining gate |
 |---|---|---|
-| 0. Repository foundation | Complete | `dbc3acb` |
-| 1. Contracts and test support | Complete | `f9640b0` |
-| 2. Connection and session runtime | Complete | `ff99b57` |
-| 3. SSO and User Center | Complete | `90fb1ef` |
-| 4. CLI host | Complete; fixture and binary-tested | `a27fdf0` |
-| 5. Live Direct/WebVPN verification | Complete; real verification passed | `ed085f2` |
-| 6. Continuous-development readiness | Complete; docs, CI, baseline and sensitive gates added | `a81c3d6` |
+| 0-6 baseline | Preserved | Existing commits and reference checks remain intact. |
+| 7 route policy | Implemented and deterministic-tested | Three DNS states, 60-second cache, strict TOML v1 config, six matrix rows, hidden CLI override. Live feature rows remain unverified below. |
+| 8 dual sessions | Implemented and deterministic-tested | Schema-v2 two-slot persistence, legacy migration, per-route auth/challenge state, partial login, aggregate status, logout of both routes, revision CAS. |
+| 9a schedule/exam/grades | Implemented and parser/Mock-tested | Real auto requests stop at the undergraduate portal probe with `authentication_required`. |
+| 9b classroom | Implemented, parser/Mock-tested and real-verified via auto | Real auto query succeeded with 158 parsed classrooms for the 2026-08-18 default date. |
+| 9c SPOC | Implemented, parser/Mock-tested, real empty result | CAS token/role, AES-CBC, pagination, detail/submission read and HTML text mapping pass deterministic tests. Auto list succeeds with `result_count=0`; no detail was available to exercise live. |
+| 9d Judge | Implemented, parser/Mock-tested | Course selection, detail reads, six-month cutoff, route/session-scoped caches and bounded query constant are implemented. Real auto request fails with `upstream_unavailable`. |
+| 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2; aggregate login/status expose safe route states. |
+| 11 live matrix | Blocked by live business evidence | Required commands were run; failures are recorded in the feature table. |
+| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Docs and runbook updated; independent implementation commits remain, and live feature hard gates are still failed/unverified. |
 
-## Review remediation
+## Live Authentication
 
-The post-goal review was resolved in independently auditable commits:
-
-| Area | Commit |
+| Command | Result |
 |---|---|
-| Sensitive runtime and CLI diagnostics | `048c4fd`, `016b6a9` |
-| Authentication classification and exit semantics | `cdc150a` |
-| HTTP(S)-only authentication redirects and JSON argument envelopes | `c6a7f6a`, `c04914d` |
-| Concrete facade, private runtime/upstream, and workflow ownership | `deb5d9d`, `ee8a3d5`, `63db7d3` |
-| Bounded HTTP responses, no-follow session access, and revision CAS | `b2f2bfd`, `01ef2b8`, `bd11829` |
-| Captcha-capable verifier, terminal lifecycle, and binary logout coverage | `4452a16`, `10ca988`, `ec5be94`, `a892e47` |
-| Serialized schema checks, cross-platform CI, and locked resolution | `6921562`, `9e4b8e5`, `9cc06f6`, `4388b58` |
+| `just verify-live feature=auth route=direct` | Exit 0; `auth_status`, parsed user present; summary exposed only name prefix `李` and school-id suffix `04`. |
+| `just verify-live feature=auth route=webvpn` | Exit 0; `auth_status`, parsed user present; summary exposed only name prefix `李` and school-id suffix `04`. |
 
-## Final verification evidence
+These prove only the two authentication routes. They do not prove any business endpoint.
 
-The final behavior and test verification target was repository HEAD `4388b58876218f92adf0aa984726386a00bde803`. This status synchronization follows that target as a documentation-only commit. Immediately before the report edit, `git status --short --branch` printed only `## ubaa2` with no changed paths.
+## Read-Only Live Matrix
 
-| Command | Actual output summary |
-|---|---|
-| `just refs` | Exit 0; `ubaa_old` verified at `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`; `examples/buaa-api` verified at `efb7976bf513f38364b88aeb83d704586cff9b2a` |
-| `just check-sensitive` | Exit 0; 70 tracked repository files passed the sensitive-data scan |
-| `just check` | Exit 0; locked metadata, rustfmt, Clippy with warnings denied, 79 Rust tests, one compile-fail doctest, the synthetic live-verifier contract, workspace build, Rustdoc, and diff check passed |
-| `cargo test --locked --workspace --all-targets` | Exit 0; 79 passed, 0 failed |
-| `cargo test --locked -p ubaa-cli --test binary_e2e` | Exit 0; 9 passed, 0 failed, including tracked-path case and repository command-lock contracts |
-| `just verify-live mode=direct` | Exit 0; reached `auth_status`, parsed a user, name prefix `李`, school ID suffix `04` |
-| `just verify-live mode=webvpn` | Exit 0; reached `auth_status`, parsed a user, name prefix `李`, school ID suffix `04` |
+| Feature | Implemented state | Direct | WebVPN | Auto result | Failure or rerun condition |
+|---|---|---|---|---|---|
+| Schedule (terms/weeks/current/today) | Core facade, DTOs, portal probe, parsers, CLI and adaptive verifier implemented | Unverified | Unverified | `authentication_required` at `schedule_terms` (exit 3) | Account must have a valid undergraduate portal session/capability; rerun `just verify-live feature=schedule route=auto`. |
+| Exam arrangement | Facade/parser/CLI implemented; term is selected from schedule response | Unverified | Unverified | `authentication_required` at shared `schedule_terms` (exit 3) | Same undergraduate portal requirement; rerun `just verify-live feature=exam route=auto`. |
+| Grades | Strict `yyyy-yyyy-semester` parser, activation GET, `xq/year` POST, DTO/CLI implemented | Unverified | Unverified | `authentication_required` at shared `schedule_terms` (exit 3) | Provide a supported term and score-portal account; rerun `just verify-live feature=grades route=auto`. |
+| Empty classroom | CAS sync, route-locked headers/query, empty-map parser and CLI implemented | Unverified | Unverified | Success, `result_count=158`, exit 0, date `2026-08-18` | Auto is verified for the current network/default campus and date; explicit Direct/WebVPN remain unverified. |
+| SPOC assignments/details | CAS token/role, encrypted paginated list, detail, submission status and HTML text implemented | Unverified | Unverified | Success, `result_count=0`, exit 0 | Empty list is a valid real result. A non-empty account should rerun the same command to exercise one detail request; direct/WebVPN remain unverified. |
+| Judge assignments/details | SSO activation, course selection, HTML parsers, cutoff/cache and detail/batch facade implemented | Unverified | Unverified | `upstream_unavailable` at `judge` (exit 5) | Requires an available Judge upstream and course access; rerun `just verify-live feature=judge route=auto`. |
 
-| Evidence layer | Status | Evidence summary |
-|---|---|---|
-| Unit and contract | Passed | `ubaa-core` unit/contract/connection/cookie/facade/session suites: 36 passed |
-| Sanitized fixture and parser | Passed | Synthetic fixture sentinel checks and CAS/User Center parser cases passed; no live body became a fixture |
-| Mock integration | Passed | Authentication workflow: 16 passed; test-support transport/session contracts: 7 passed |
-| CLI | Passed | CLI unit: 2 passed; JSON/human contract: 9 passed; real-process binary E2E: 9 passed |
-| Live Direct | Passed | Fresh local login, User Center profile parse, and persisted `auth status` passed |
-| Live WebVPN | Passed | Fresh local login, User Center profile parse, and persisted `auth status` passed |
+Required aggregate command `just verify-live feature=all route=auto` exited 3 with the same per-feature summaries and final `one_or_more_features_failed`.
 
-The final live runs did not request captcha. The captcha/FIFO/terminal/signal paths passed the deterministic shell contract instead. `.env.local` remained ignored and untracked, and no password, Cookie, raw response, captcha, or complete profile field was recorded.
+The individual required command summaries were:
 
-## Capability status
+```text
+schedule auto: exit 3 authentication_required at schedule_terms
+exam auto: exit 3 authentication_required at schedule_terms
+grades auto: exit 3 authentication_required at schedule_terms
+classroom auto: exit 0 result_count=158 date=2026-08-18
+spoc auto: exit 0 result_count=0
+judge auto: exit 5 upstream_unavailable
+```
 
-The repository foundation, public contracts/test support, Direct/WebVPN connection, Cookie/session runtime, SSO state machine, captcha handling, risk continuation, User Center status/profile parsing, logout, and CLI host are complete and deterministic-tested. Coverage includes sensitive `Debug` boundaries, case-insensitive invalidation, HTTP(S)-only redirects, response/session limits, no-follow file access, revision-based stale-writer rejection, actual serialized JSON envelopes, JSON argument failures, facade-only host access, synthetic captcha terminal/signal lifecycle, saved-session binary logout, locked dependency resolution, and macOS/Windows Rust CI.
+Direct and WebVPN columns stay `unverified` unless an explicit route command produces a successful business response. The matrix never treats authentication success, an empty fixture, or a Mock response as business-route evidence.
 
-Two boundaries remain explicit. Windows owner-only ACL enforcement for custom configuration directories requires a release audit. Local revision CAS prevents a stale long-lived client from replacing or deleting a newer session file, but the frozen implementation performs best-effort remote SSO logout before local cleanup and provides no evidence for concurrent remote-session semantics. The CLI loads the snapshot and current revision together when each command opens its client; future long-lived hosts must serialize logout for a shared account until live or frozen evidence supports a stronger contract.
+## Deterministic Gates
 
-On 2026-08-17, both required live commands passed against the final behavior target with independent temporary sessions. The redacted evidence is recorded above; no complete profile field, password, Cookie, captcha, or raw response was retained.
+The latest focused runs passed:
 
-Flutter, MCP, server relay, Ktor/JWT/Redis, schedule, exams, grades, sign-in, SPOC, Judge, evaluation, classrooms, reservations, and all other business modules remain outside this contract.
+- `cargo test --locked --workspace`, including 93 tests after the SPOC/Judge Mock additions.
+- `cargo clippy --locked --workspace --all-targets -- -D warnings`.
+- `cargo test --locked -p ubaa-cli --test binary_e2e` (9 passed).
+- `cargo test --locked -p ubaa-test-support --test readonly` (3 passed).
+- `./scripts/test-verify-live.sh`.
 
-## Next slice
+The final required gate sequence passed on 2026-08-18:
 
-The recommended next contract is schedule/exam read support. Begin with the frozen interfaces and implementation in `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt` and `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalScheduleApi.kt`, map only the fields evidenced by `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Schedule.kt` and `Exam.kt`, and port the behavioral cases from `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalScheduleApiBackendTest.kt` before adding a facade or CLI command.
+```bash
+just refs
+just check-sensitive
+just check
+```
 
-The old WebVPN login's CGYY-only Direct SSO side session remains intentionally unimplemented. Reassess it only when a CGYY-backed feature is in scope, using `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt` and `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalAuthServiceBackendTest.kt` as the starting evidence.
+`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 84 repository files; `just check` exit 0 covered locked metadata, format, Clippy, 93 workspace tests, synthetic verifier, build, Rustdoc and diff checks.
+
+CI remains deterministic-only: it does not read `.env.local` or contact live accounts. Sensitive scans must continue to reject passwords, Cookies, tokens, captcha images, raw bodies, and complete personal data.
+
+## Remaining Gaps
+
+- The live hard gate for schedule, exam, grades and Judge is not passed; this is an external protocol/account/network blocker, not a fixture gap.
+- Direct and WebVPN business routes are unverified for all six features; classroom and SPOC have real `auto` success.
+- `auto` route diagnostics are available inside Core but are not yet included in every human/JSON feature metadata field.
+- Judge query execution is serialized by the route-owned runtime; the old concurrency limit is retained as a four-query bound constant, but no parallel transport pool is exposed because Cookie mutation must remain route-locked.
+- No write operations were migrated: submission/upload, answers, reservations, attendance, grading changes, or other side effects remain out of scope.
+- Windows owner-only directory ACL enforcement remains a release-audit item from the phase 0-6 baseline.
+
+## Rerun Handoff
+
+1. Re-run `just refs`, `just check-sensitive`, and `just check` from a clean implementation tree.
+2. With a user known to have undergraduate portal access, rerun schedule, exam and grades auto commands first; record only exit/code/count summaries here.
+3. Re-run classroom on explicit Direct/WebVPN routes if those route columns are needed; retain only count/date summaries.
+4. Re-run SPOC with an account that has an assignment to exercise the detail path, then test explicit Direct/WebVPN routes.
+5. Re-run Judge after confirming upstream availability and course access; do not infer success from an empty fixture.
+6. Only after every feature has at least one successful real route and auto evidence should phase 11/12 be marked complete.

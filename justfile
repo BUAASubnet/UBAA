@@ -25,5 +25,5 @@ check:
 check-sensitive:
     ./scripts/check-sensitive.sh
 
-verify-live mode:
-    ./scripts/verify-live.sh "{{mode}}"
+verify-live *args:
+    ./scripts/verify-live.sh {{args}}

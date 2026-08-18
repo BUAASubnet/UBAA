@@ -41,10 +41,12 @@ run_json() {
 
 redacted_failure() {
   local stage=$1
+  local route_value=${route:-$mode}
+  local feature_value=${feature:-auth}
   local code=unknown
   code=$(jq -r '.error.code // "invalid_output"' <<<"$CLI_OUTPUT" 2>/dev/null || true)
-  printf 'mode=%s outcome=failed stage=%s exit_code=%s error=%s\n' \
-    "$mode" "$stage" "$CLI_CODE" "$code"
+  printf 'mode=%s route=%s feature=%s outcome=failed stage=%s exit_code=%s error=%s\n' \
+    "$mode" "$route_value" "$feature_value" "$stage" "$CLI_CODE" "$code"
 }
 
 restore_human_tty() {
@@ -89,8 +91,13 @@ run_human_login() {
     fi
   fi
 
-  "$binary" --config-dir "$config_dir" auth login --mode "$mode" \
-    --username "$username" --password-stdin <"$human_input_fifo" >/dev/null &
+  if [[ "${route:-$mode}" == auto ]]; then
+    "$binary" --config-dir "$config_dir" auth login --username "$username" \
+      --password-stdin <"$human_input_fifo" >/dev/null &
+  else
+    "$binary" --config-dir "$config_dir" auth login --mode "$mode" \
+      --username "$username" --password-stdin <"$human_input_fifo" >/dev/null &
+  fi
   human_binary_pid=$!
   if ! exec 9>"$human_input_fifo"; then
     cleanup_human_login
@@ -170,8 +177,14 @@ tty_available() {
 
 login_with_captcha_fallback() {
   local tty_path=$1
+  local route_value=${route:-$mode}
+  local feature_value=${feature:-auth}
   LOGIN_USED_HUMAN=no
-  run_json password auth login --mode "$mode" --username "$username" --password-stdin
+  if [[ "${route:-$mode}" == auto ]]; then
+    run_json password auth login --username "$username" --password-stdin
+  else
+    run_json password auth login --mode "$mode" --username "$username" --password-stdin
+  fi
   if [[ "$CLI_CODE" -eq 0 ]]; then
     return 0
   fi
@@ -180,12 +193,12 @@ login_with_captcha_fallback() {
     return "$CLI_CODE"
   fi
   if ! tty_available "$tty_path"; then
-    printf 'mode=%s outcome=failed stage=login exit_code=4 error=captcha_required_noninteractive\n' "$mode"
+    printf 'mode=%s route=%s feature=%s outcome=failed stage=login exit_code=4 error=captcha_required_noninteractive\n' "$mode" "$route_value" "$feature_value"
     return 4
   fi
   if ! run_human_login "$tty_path"; then
-    printf 'mode=%s outcome=failed stage=login_human exit_code=%s error=human_login_failed\n' \
-      "$mode" "$CLI_CODE"
+    printf 'mode=%s route=%s feature=%s outcome=failed stage=login_human exit_code=%s error=human_login_failed\n' \
+      "$mode" "$route_value" "$feature_value" "$CLI_CODE"
     return "$CLI_CODE"
   fi
   LOGIN_USED_HUMAN=yes
@@ -211,16 +224,40 @@ install_cleanup_traps() {
 
 main() {
   repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-  mode=${1:-}
-  mode=${mode#mode=}
+  feature=auth
+  route=auto
+  mode=
+  for argument in "$@"; do
+    case "$argument" in
+      feature=*) feature=${argument#feature=} ;;
+      route=*) route=${argument#route=} ;;
+      mode=*) mode=${argument#mode=} ;;
+      direct|webvpn) mode=$argument; route=$argument ;;
+      '') ;;
+      *)
+        echo "usage: $0 [direct|webvpn] [feature=auth|all|schedule|exam|grades|classroom|spoc|judge] [route=auto|direct|webvpn]" >&2
+        exit 2
+        ;;
+    esac
+  done
+  if [[ -n "$mode" && "$route" == auto ]]; then
+    route=$mode
+  fi
+  if [[ -z "$mode" ]]; then
+    mode=$route
+  fi
 
-  case "$mode" in
-    direct|webvpn) ;;
-    *)
-      echo "usage: $0 direct|webvpn" >&2
-      exit 2
-      ;;
+  case "$feature" in
+    auth|all|schedule|exam|grades|classroom|spoc|judge) ;;
+    *) echo "unsupported feature: $feature" >&2; exit 2 ;;
   esac
+  case "$route" in
+    direct|webvpn|auto) ;;
+    *) echo "unsupported route: $route" >&2; exit 2 ;;
+  esac
+  if [[ "$route" == auto ]]; then
+    mode=auto
+  fi
 
   if ! command -v jq >/dev/null 2>&1; then
     echo "live verification requires jq" >&2
@@ -260,6 +297,8 @@ main() {
   binary="$repo_root/target/debug/ubaa"
   config_dir=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-live.XXXXXX")
   chmod 700 "$config_dir"
+  printf 'schema_version = 1\n\n[route]\ndefault = "%s"\n' "$route" >"$config_dir/config.toml"
+  chmod 600 "$config_dir/config.toml"
   CLI_OUTPUT=
   CLI_CODE=0
   CLI_ELAPSED_MS=0
@@ -272,16 +311,21 @@ main() {
   fi
   if [[ "$LOGIN_USED_HUMAN" != yes ]]; then
     if ! jq -e '.ok == true and (.data | type == "object")' >/dev/null 2>&1 <<<"$CLI_OUTPUT"; then
-      printf 'mode=%s outcome=failed stage=login exit_code=0 error=invalid_json\n' "$mode"
+    printf 'mode=%s route=%s feature=%s outcome=failed stage=login exit_code=0 error=invalid_json\n' "$mode" "$route" "$feature"
       exit 1
     fi
 
-    name_present=$(jq -r 'if (.data.name // "") != "" then "yes" else "no" end' <<<"$CLI_OUTPUT")
-    school_id_present=$(jq -r 'if (.data.schoolId // "") != "" then "yes" else "no" end' <<<"$CLI_OUTPUT")
+    name_present=$(jq -r 'if (.data.name // .data.profile.name // "") != "" then "yes" else "no" end' <<<"$CLI_OUTPUT")
+    school_id_present=$(jq -r 'if (.data.schoolId // .data.profile.schoolId // "") != "" then "yes" else "no" end' <<<"$CLI_OUTPUT")
     if [[ "$name_present" != yes || "$school_id_present" != yes ]]; then
-      printf 'mode=%s outcome=failed stage=login exit_code=0 error=missing_user_fields\n' "$mode"
+      printf 'mode=%s route=%s feature=%s outcome=failed stage=login exit_code=0 error=missing_user_fields\n' "$mode" "$route" "$feature"
       exit 1
     fi
+  fi
+
+  if [[ "$feature" != auth ]]; then
+    run_readonly_feature
+    exit "$CLI_CODE"
   fi
 
   run_json none user show
@@ -290,7 +334,7 @@ main() {
     exit "$CLI_CODE"
   fi
   if ! jq -e '.ok == true and (.data | type == "object")' >/dev/null 2>&1 <<<"$CLI_OUTPUT"; then
-    printf 'mode=%s outcome=failed stage=user_show exit_code=0 error=invalid_json\n' "$mode"
+    printf 'mode=%s route=%s feature=%s outcome=failed stage=user_show exit_code=0 error=invalid_json\n' "$mode" "$route" "$feature"
     exit 1
   fi
 
@@ -299,16 +343,104 @@ main() {
     redacted_failure auth_status
     exit "$CLI_CODE"
   fi
-  if ! jq -e '.ok == true and (.data.user.name // "") != "" and (.data.user.schoolId // "") != ""' \
+  if ! jq -e '.ok == true and ((.data.user.name // .data.profile.name // "") != "") and ((.data.user.schoolId // .data.profile.schoolId // "") != "")' \
     >/dev/null 2>&1 <<<"$CLI_OUTPUT"; then
-    printf 'mode=%s outcome=failed stage=auth_status exit_code=0 error=missing_status_fields\n' "$mode"
+    printf 'mode=%s route=%s feature=%s outcome=failed stage=auth_status exit_code=0 error=missing_status_fields\n' "$mode" "$route" "$feature"
     exit 1
   fi
 
-  name_prefix=$(jq -r '.data.user.name | strings | .[0:1]' <<<"$CLI_OUTPUT")
-  school_suffix=$(jq -r '.data.user.schoolId | strings | .[-2:]' <<<"$CLI_OUTPUT")
-  printf 'mode=%s outcome=success stage=auth_status exit_code=0 elapsed_ms=%s parsed_user=yes name_prefix=%s school_id_suffix=%s\n' \
-    "$mode" "$CLI_ELAPSED_MS" "$name_prefix" "$school_suffix"
+  name_prefix=$(jq -r '(.data.user.name // .data.profile.name) | strings | .[0:1]' <<<"$CLI_OUTPUT")
+  school_suffix=$(jq -r '(.data.user.schoolId // .data.profile.schoolId) | strings | .[-2:]' <<<"$CLI_OUTPUT")
+  printf 'mode=%s outcome=success stage=auth_status exit_code=0 route=%s feature=%s elapsed_ms=%s parsed_user=yes name_prefix=%s school_id_suffix=%s\n' \
+    "$mode" "$route" "$feature" "$CLI_ELAPSED_MS" "$name_prefix" "$school_suffix"
+}
+
+run_readonly_feature() {
+  local term week date campus count original_feature subfeature
+  if [[ "$feature" == all ]]; then
+    original_feature=$feature
+    local first_failure=0
+    for subfeature in schedule exam grades classroom spoc judge; do
+      feature=$subfeature
+      if ! run_readonly_feature; then
+        if [[ "$first_failure" -eq 0 ]]; then
+          first_failure=${CLI_CODE:-1}
+        fi
+      fi
+    done
+    feature=$original_feature
+    if [[ "$first_failure" -ne 0 ]]; then
+      CLI_CODE=$first_failure
+      printf 'mode=%s route=%s feature=all outcome=failed stage=all exit_code=%s error=one_or_more_features_failed\n' "$mode" "$route" "$CLI_CODE"
+      return "$CLI_CODE"
+    fi
+    CLI_CODE=0
+    printf 'mode=%s route=%s feature=all outcome=success stage=all exit_code=0\n' "$mode" "$route"
+    return 0
+  fi
+  case "$feature" in
+    schedule)
+      run_json none schedule terms
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure schedule_terms; return "$CLI_CODE"; fi
+      term=$(jq -r '([.data[] | select(.selected == true)] | if length == 1 then .[0].itemCode else empty end) // .data[0].itemCode // empty' <<<"$CLI_OUTPUT")
+      [[ -n "$term" ]] || { printf 'mode=%s route=%s feature=%s outcome=failed stage=schedule_terms exit_code=1 error=empty_terms\n' "$mode" "$route" "$feature"; return 1; }
+      run_json none schedule weeks --term "$term"
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure schedule_weeks; return "$CLI_CODE"; fi
+      week=$(jq -r '([.data[] | select(.curWeek == true)] | if length == 1 then .[0].serialNumber else empty end) // .data[0].serialNumber // empty' <<<"$CLI_OUTPUT")
+      [[ "$week" =~ ^[1-9][0-9]*$ ]] || { printf 'mode=%s route=%s feature=%s outcome=failed stage=schedule_weeks exit_code=1 error=empty_weeks\n' "$mode" "$route" "$feature"; return 1; }
+      run_json none schedule current --term "$term" --week "$week"
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure schedule_current; return "$CLI_CODE"; fi
+      run_json none schedule today
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure schedule_today; return "$CLI_CODE"; fi
+      printf 'mode=%s route=%s feature=%s outcome=success stage=schedule exit_code=0 term_present=yes week=%s\n' "$mode" "$route" "$feature" "$week"
+      ;;
+    exam|grades)
+      run_json none schedule terms
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure schedule_terms; return "$CLI_CODE"; fi
+      term=$(jq -r '([.data[] | select(.selected == true)] | if length == 1 then .[0].itemCode else empty end) // .data[0].itemCode // empty' <<<"$CLI_OUTPUT")
+      [[ -n "$term" ]] || { printf 'mode=%s route=%s feature=%s outcome=failed stage=schedule_terms exit_code=1 error=empty_terms\n' "$mode" "$route" "$feature"; return 1; }
+      if [[ "$feature" == exam ]]; then
+        run_json none exam list --term "$term"
+      else
+        run_json none grades list --term "$term"
+      fi
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure "$feature"; return "$CLI_CODE"; fi
+      printf 'mode=%s route=%s feature=%s outcome=success stage=%s exit_code=0 term_present=yes\n' "$mode" "$route" "$feature" "$feature"
+      ;;
+    classroom)
+      date=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
+      campus=${UBAA_VERIFY_CAMPUS_ID:-1}
+      run_json none classroom search --campus "$campus" --date "$date"
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure classroom; return "$CLI_CODE"; fi
+      count=$(jq -r '[.data.floors[]?[]?] | length' <<<"$CLI_OUTPUT" 2>/dev/null || printf '0')
+      printf 'mode=%s route=%s feature=%s outcome=success stage=classroom exit_code=0 result_count=%s date=%s\n' "$mode" "$route" "$feature" "$count" "$date"
+      ;;
+    spoc)
+      run_json none spoc assignments
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure spoc; return "$CLI_CODE"; fi
+      count=$(jq -r '.data.assignments | length' <<<"$CLI_OUTPUT" 2>/dev/null || printf '0')
+      if [[ "$count" -gt 0 ]]; then
+        local assignment_id
+        assignment_id=$(jq -r '.data.assignments[0].assignmentId // empty' <<<"$CLI_OUTPUT")
+        run_json none spoc assignment show --id "$assignment_id"
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure spoc_detail; return "$CLI_CODE"; fi
+      fi
+      printf 'mode=%s route=%s feature=%s outcome=success stage=spoc exit_code=0 result_count=%s\n' "$mode" "$route" "$feature" "$count"
+      ;;
+    judge)
+      run_json none judge assignments
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure judge; return "$CLI_CODE"; fi
+      count=$(jq -r '.data | length' <<<"$CLI_OUTPUT" 2>/dev/null || printf '0')
+      if [[ "$count" -gt 0 ]]; then
+        local course_id assignment_id
+        course_id=$(jq -r '.data[0].courseId // empty' <<<"$CLI_OUTPUT")
+        assignment_id=$(jq -r '.data[0].assignmentId // empty' <<<"$CLI_OUTPUT")
+        run_json none judge assignment show --course-id "$course_id" --id "$assignment_id"
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure judge_detail; return "$CLI_CODE"; fi
+      fi
+      printf 'mode=%s route=%s feature=%s outcome=success stage=judge exit_code=0 result_count=%s\n' "$mode" "$route" "$feature" "$count"
+      ;;
+  esac
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

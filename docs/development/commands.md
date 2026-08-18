@@ -10,9 +10,11 @@ just check-sensitive                                        # scan tracked paths
 cargo test --locked -p ubaa-cli --all-targets               # CLI unit, contract, and binary tests
 just verify-live mode=direct                                 # real Direct login; local credentials only
 just verify-live mode=webvpn                                 # real WebVPN login; local credentials only
+just verify-live feature=auth route=direct                   # route-matrix authentication evidence
+just verify-live feature=all route=auto                       # all six read-only features via auto
 ```
 
-`just verify-live` accepts the exact `mode=direct` and `mode=webvpn` forms shown above. It requires `jq` and `.env.local` with non-empty `UBAA_TEST_USERNAME` and `UBAA_TEST_PASSWORD`; the file is ignored and its values are never printed or passed as command-line arguments. If JSON login reports a captcha, an interactive `/dev/tty` is also required for the automatic human fallback.
+`just verify-live` accepts the phase-5 `mode=direct|webvpn` forms and the phase-11 `feature=<name> route=<auto|direct|webvpn>` forms. It requires `jq` and `.env.local` with non-empty `UBAA_TEST_USERNAME` and `UBAA_TEST_PASSWORD`; the file is ignored and its values are never printed or passed as command-line arguments. If login reports a captcha, an interactive `/dev/tty` is also required for the automatic human fallback.
 
 CI runs `just refs`, `scripts/check-sensitive.sh`, and `just check`. CI never runs live authentication and therefore never needs `.env.local`.
 
