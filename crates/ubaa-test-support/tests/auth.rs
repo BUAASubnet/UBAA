@@ -2,12 +2,13 @@ use std::collections::BTreeMap;
 
 use async_trait::async_trait;
 use ubaa_core::connection::{from_webvpn_url, to_webvpn_url};
-use ubaa_core::domain::{ConnectionMode, LoginInput, SecretValue};
+use ubaa_core::domain::{ConnectionMode, DualLoginInput, LoginInput, LoginReadiness, SecretValue};
 use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::UbaaClient;
+use ubaa_core::facade::{DualUbaaClient, UbaaClient};
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{
-    SessionMutation, SessionSnapshot, SessionStore, StoredCookie, VersionedSession,
+    FileSessionStore, SessionMutation, SessionSnapshot, SessionStore, StoredCookie,
+    VersionedSession,
 };
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
 
@@ -176,6 +177,46 @@ async fn direct_login_follows_cas_and_returns_userinfo_profile() {
             .contains("PRELOGIN=fixture")
     );
     observer.assert_exhausted().unwrap();
+}
+
+#[tokio::test]
+async fn dual_login_keeps_direct_slot_when_webvpn_route_fails() {
+    let (direct_transport, _unused_memory_store) = basic_direct_transport();
+    let root = std::env::temp_dir().join(format!("ubaa-dual-login-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let file_store = FileSessionStore::new(&root).unwrap();
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        MockTransport::new([]),
+        file_store.clone(),
+    )
+    .unwrap();
+
+    let outcome = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: Vec::new(),
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(outcome.readiness, LoginReadiness::Partial);
+    assert_eq!(outcome.routes.len(), 2);
+    assert_eq!(outcome.routes[0].route, ConnectionMode::Direct);
+    assert_eq!(
+        outcome.routes[0].state,
+        ubaa_core::domain::RouteLoginState::Ready
+    );
+    assert_eq!(outcome.routes[1].route, ConnectionMode::WebVpn);
+    assert_eq!(
+        outcome.routes[1].state,
+        ubaa_core::domain::RouteLoginState::Failed
+    );
+    let dual = file_store.load_dual().unwrap().unwrap();
+    assert!(dual.direct.is_some());
+    assert!(dual.webvpn.is_none());
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[tokio::test]

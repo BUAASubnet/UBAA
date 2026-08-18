@@ -1,5 +1,6 @@
 //! Private runtime state shared by facade workflows.
 
+use std::hash::{Hash, Hasher};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::connection::to_webvpn_url;
@@ -75,6 +76,26 @@ impl ClientRuntime {
 
     pub(crate) fn has_local_session(&self) -> bool {
         !self.jar.cookies().is_empty() || self.authenticated_at.is_some()
+    }
+
+    /// Return a non-reversible process-local scope key for route feature caches.
+    pub(crate) fn cache_scope_key(&self) -> u64 {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        self.mode.hash(&mut hasher);
+        for cookie in self.jar.cookies() {
+            cookie.name.hash(&mut hasher);
+            cookie.value.hash(&mut hasher);
+            cookie.domain.hash(&mut hasher);
+            cookie.path.hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+
+    /// Refresh this route's revision before a sequential aggregate operation mutates another
+    /// slot in the same dual session file. The actual mutation still uses compare-exchange.
+    pub(crate) fn refresh_revision(&mut self) -> Result<()> {
+        self.session_revision = self.store.load_versioned()?.revision;
+        Ok(())
     }
 
     pub(crate) fn url(&self, direct: &str) -> Result<String> {

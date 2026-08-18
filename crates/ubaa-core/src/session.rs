@@ -1,4 +1,5 @@
 //! Cookie jar and restricted on-disk session persistence.
+#![allow(clippy::missing_errors_doc, clippy::needless_continue)]
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -165,6 +166,105 @@ pub struct SessionSnapshot {
     pub last_activity: i64,
 }
 
+/// One persisted route slot in the schema-v2 session file.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteSessionSnapshot {
+    /// Filtered upstream Cookies scoped to this route.
+    pub cookies: Vec<StoredCookie>,
+    /// Unix timestamp when authentication succeeded.
+    pub authenticated_at: i64,
+    /// Unix timestamp of the last successful validation.
+    pub last_activity: i64,
+}
+
+impl RouteSessionSnapshot {
+    /// Convert an existing legacy snapshot without changing or copying its Cookies.
+    #[must_use]
+    pub fn from_legacy(snapshot: &SessionSnapshot) -> Self {
+        Self {
+            cookies: snapshot.cookies.clone(),
+            authenticated_at: snapshot.authenticated_at,
+            last_activity: snapshot.last_activity,
+        }
+    }
+
+    /// Convert this slot to the legacy route-scoped runtime value.
+    #[must_use]
+    pub fn into_legacy(self, mode: ConnectionMode) -> SessionSnapshot {
+        SessionSnapshot {
+            mode,
+            cookies: self.cookies,
+            authenticated_at: self.authenticated_at,
+            last_activity: self.last_activity,
+        }
+    }
+}
+
+/// Direct and `WebVPN` slots persisted atomically in schema version 2.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DualSessionSnapshot {
+    /// Schema discriminator.
+    pub schema_version: u32,
+    /// Route-scoped sessions.
+    pub sessions: RouteSessions,
+}
+
+/// Dual snapshot plus the revision used for compare-and-exchange.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VersionedDualSession {
+    /// Current schema-v2 snapshot, if present.
+    pub snapshot: Option<DualSessionSnapshot>,
+    /// Monotonic revision under the same lock as the snapshot.
+    pub revision: u64,
+}
+
+/// Route slots inside a schema-v2 session file.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct RouteSessions {
+    /// Direct route session.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direct: Option<RouteSessionSnapshot>,
+    /// `WebVPN` route session.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webvpn: Option<RouteSessionSnapshot>,
+}
+
+impl DualSessionSnapshot {
+    /// Construct a schema-v2 snapshot.
+    #[must_use]
+    pub const fn new(
+        direct: Option<RouteSessionSnapshot>,
+        webvpn: Option<RouteSessionSnapshot>,
+    ) -> Self {
+        Self {
+            schema_version: 2,
+            sessions: RouteSessions { direct, webvpn },
+        }
+    }
+
+    /// Direct route slot.
+    #[must_use]
+    pub fn direct(&self) -> Option<&RouteSessionSnapshot> {
+        self.sessions.direct.as_ref()
+    }
+
+    /// `WebVPN` route slot.
+    #[must_use]
+    pub fn webvpn(&self) -> Option<&RouteSessionSnapshot> {
+        self.sessions.webvpn.as_ref()
+    }
+}
+
+impl std::ops::Deref for DualSessionSnapshot {
+    type Target = RouteSessions;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sessions
+    }
+}
+
 impl std::fmt::Debug for SessionSnapshot {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
@@ -216,6 +316,15 @@ pub enum SessionMutation {
         revision: u64,
     },
     /// Another process changed the session after the caller loaded it.
+    Conflict,
+}
+
+/// Result of a schema-v2 dual-session compare-exchange.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DualSessionMutation {
+    /// Mutation applied and revision advanced.
+    Applied { revision: u64 },
+    /// Another process changed either route slot.
     Conflict,
 }
 
@@ -289,6 +398,80 @@ pub struct FileSessionStore {
     process_lock: Arc<Mutex<()>>,
 }
 
+/// A route-scoped view over the schema-v2 dual session file.
+///
+/// The view implements the legacy `SessionStore` port so existing runtime code can remain
+/// route-local while reads and compare-exchanges are still performed against the shared dual
+/// file and its single revision lock.
+#[derive(Clone)]
+pub struct RouteSessionStore {
+    inner: FileSessionStore,
+    mode: ConnectionMode,
+}
+
+impl std::fmt::Debug for RouteSessionStore {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RouteSessionStore")
+            .field("mode", &self.mode)
+            .field("inner", &self.inner)
+            .finish()
+    }
+}
+
+impl RouteSessionStore {
+    /// Construct a route-scoped store over an existing dual-file store.
+    #[must_use]
+    pub const fn new(inner: FileSessionStore, mode: ConnectionMode) -> Self {
+        Self { inner, mode }
+    }
+}
+
+impl SessionStore for RouteSessionStore {
+    fn load_versioned(&self) -> Result<VersionedSession> {
+        let current = self.inner.load_dual_versioned()?;
+        let snapshot = current.snapshot.and_then(|dual| match self.mode {
+            ConnectionMode::Direct => dual.sessions.direct,
+            ConnectionMode::WebVpn => dual.sessions.webvpn,
+        });
+        Ok(VersionedSession {
+            revision: current.revision,
+            snapshot: snapshot.map(|slot| slot.into_legacy(self.mode)),
+        })
+    }
+
+    fn compare_exchange(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&SessionSnapshot>,
+    ) -> Result<SessionMutation> {
+        let current = self.inner.load_dual_versioned()?;
+        if current.revision != expected_revision {
+            return Ok(SessionMutation::Conflict);
+        }
+        let mut dual = current
+            .snapshot
+            .unwrap_or_else(|| DualSessionSnapshot::new(None, None));
+        let slot = replacement.map(RouteSessionSnapshot::from_legacy);
+        match self.mode {
+            ConnectionMode::Direct => dual.sessions.direct = slot,
+            ConnectionMode::WebVpn => dual.sessions.webvpn = slot,
+        }
+        let replacement = if dual.sessions.direct.is_none() && dual.sessions.webvpn.is_none() {
+            None
+        } else {
+            Some(&dual)
+        };
+        match self
+            .inner
+            .compare_exchange_dual(expected_revision, replacement)?
+        {
+            DualSessionMutation::Applied { revision } => Ok(SessionMutation::Applied { revision }),
+            DualSessionMutation::Conflict => Ok(SessionMutation::Conflict),
+        }
+    }
+}
+
 impl std::fmt::Debug for FileSessionStore {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
@@ -322,6 +505,81 @@ impl FileSessionStore {
     #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// Load schema v2 or migrate one legacy single-route snapshot under the session lock.
+    pub fn load_dual(&self) -> Result<Option<DualSessionSnapshot>> {
+        let mut lock = self.acquire_lock()?;
+        let revision = read_revision(&mut lock.file)?;
+        let Some(body) = self.read_body_unlocked()? else {
+            return Ok(None);
+        };
+        if let Ok(snapshot) = serde_json::from_slice::<DualSessionSnapshot>(&body) {
+            if snapshot.schema_version != 2 {
+                return Err(session_error("session format is invalid"));
+            }
+            return Ok(Some(snapshot));
+        }
+        let legacy: SessionSnapshot = serde_json::from_slice(&body)
+            .map_err(|_| session_error("session format is invalid"))?;
+        let slot = RouteSessionSnapshot::from_legacy(&legacy);
+        let migrated = match legacy.mode {
+            ConnectionMode::Direct => DualSessionSnapshot::new(Some(slot), None),
+            ConnectionMode::WebVpn => DualSessionSnapshot::new(None, Some(slot)),
+        };
+        let next = revision
+            .checked_add(1)
+            .ok_or_else(|| session_error("session revision is exhausted"))?;
+        write_revision(&mut lock.file, next)?;
+        self.save_unlocked(&encode_dual_snapshot(&migrated)?)?;
+        Ok(Some(migrated))
+    }
+
+    /// Load the dual snapshot and its synchronized revision.
+    pub fn load_dual_versioned(&self) -> Result<VersionedDualSession> {
+        let snapshot = self.load_dual()?;
+        let mut lock = self.acquire_lock()?;
+        Ok(VersionedDualSession {
+            snapshot,
+            revision: read_revision(&mut lock.file)?,
+        })
+    }
+
+    /// Persist a complete schema-v2 dual snapshot atomically.
+    pub fn save_dual(&self, snapshot: &DualSessionSnapshot) -> Result<DualSessionSnapshot> {
+        loop {
+            let current = self.load_dual_versioned()?;
+            match self.compare_exchange_dual(current.revision, Some(snapshot))? {
+                DualSessionMutation::Applied { .. } => return Ok(snapshot.clone()),
+                DualSessionMutation::Conflict => continue,
+            }
+        }
+    }
+
+    /// Compare-exchange a schema-v2 snapshot while holding the same OS lock as its revision.
+    pub fn compare_exchange_dual(
+        &self,
+        expected_revision: u64,
+        replacement: Option<&DualSessionSnapshot>,
+    ) -> Result<DualSessionMutation> {
+        if replacement.is_some_and(|snapshot| snapshot.schema_version != 2) {
+            return Err(session_error("session format is invalid"));
+        }
+        let body = replacement.map(encode_dual_snapshot).transpose()?;
+        let mut lock = self.acquire_lock()?;
+        let current_revision = read_revision(&mut lock.file)?;
+        if current_revision != expected_revision {
+            return Ok(DualSessionMutation::Conflict);
+        }
+        let revision = current_revision
+            .checked_add(1)
+            .ok_or_else(|| session_error("session revision is exhausted"))?;
+        write_revision(&mut lock.file, revision)?;
+        match body {
+            Some(body) => self.save_unlocked(&body)?,
+            None => self.clear_unlocked()?,
+        }
+        Ok(DualSessionMutation::Applied { revision })
     }
 }
 
@@ -358,7 +616,7 @@ impl SessionStore for FileSessionStore {
 }
 
 impl FileSessionStore {
-    fn load_unlocked(&self) -> Result<Option<SessionSnapshot>> {
+    fn read_body_unlocked(&self) -> Result<Option<Vec<u8>>> {
         let Some(file) = open_existing_session_file(&self.path)? else {
             return Ok(None);
         };
@@ -370,6 +628,13 @@ impl FileSessionStore {
         if body.len() > MAX_SESSION_FILE_BYTES {
             return Err(session_error("session file exceeds the allowed size"));
         }
+        Ok(Some(body))
+    }
+
+    fn load_unlocked(&self) -> Result<Option<SessionSnapshot>> {
+        let Some(body) = self.read_body_unlocked()? else {
+            return Ok(None);
+        };
         serde_json::from_slice(&body)
             .map(Some)
             .map_err(|_| session_error("session format is invalid"))
@@ -519,6 +784,15 @@ fn create_temporary_file(parent: &Path) -> Result<(PathBuf, File)> {
 }
 
 fn encode_snapshot(snapshot: &SessionSnapshot) -> Result<Vec<u8>> {
+    let body = serde_json::to_vec_pretty(snapshot)
+        .map_err(|_| session_error("could not encode session"))?;
+    if body.len() > MAX_SESSION_FILE_BYTES {
+        return Err(session_error("encoded session exceeds the allowed size"));
+    }
+    Ok(body)
+}
+
+fn encode_dual_snapshot(snapshot: &DualSessionSnapshot) -> Result<Vec<u8>> {
     let body = serde_json::to_vec_pretty(snapshot)
         .map_err(|_| session_error("could not encode session"))?;
     if body.len() > MAX_SESSION_FILE_BYTES {

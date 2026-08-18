@@ -3,8 +3,8 @@ use std::sync::{Arc, Barrier};
 
 use ubaa_core::domain::ConnectionMode;
 use ubaa_core::session::{
-    FileSessionStore, SessionMutation, SessionSnapshot, SessionStore, SessionValidation,
-    StoredCookie,
+    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, RouteSessionStore,
+    SessionMutation, SessionSnapshot, SessionStore, SessionValidation, StoredCookie,
 };
 
 #[test]
@@ -297,4 +297,81 @@ fn test_root(label: &str) -> std::path::PathBuf {
         std::process::id(),
         NEXT_TEST_ROOT.fetch_add(1, Ordering::Relaxed)
     ))
+}
+
+#[test]
+fn dual_session_store_round_trips_route_slots_without_copying_cookies() {
+    let root = test_root("dual-roundtrip");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    let snapshot = DualSessionSnapshot::new(
+        Some(RouteSessionSnapshot::from_legacy(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: vec![StoredCookie::fixture("D", "direct-cookie")],
+            authenticated_at: 10,
+            last_activity: 11,
+        })),
+        None,
+    );
+    let loaded = store.save_dual(&snapshot).unwrap();
+    assert_eq!(loaded.direct.as_ref().unwrap().cookies.len(), 1);
+    assert!(loaded.webvpn.is_none());
+    let body = std::fs::read_to_string(root.join("session.json")).unwrap();
+    assert!(body.contains("\"schemaVersion\": 2"));
+    assert!(!body.contains("webvpn-cookie"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn legacy_single_session_migrates_only_to_its_mode_slot() {
+    let root = test_root("dual-migrate");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    std::fs::write(
+        root.join("session.json"),
+        serde_json::to_vec(&SessionSnapshot {
+            mode: ConnectionMode::WebVpn,
+            cookies: vec![StoredCookie::fixture("W", "webvpn-cookie")],
+            authenticated_at: 20,
+            last_activity: 21,
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    let loaded = store.load_dual().unwrap().unwrap();
+    assert!(loaded.direct.is_none());
+    assert_eq!(loaded.webvpn().unwrap().cookies[0].name, "W");
+    let body = std::fs::read_to_string(root.join("session.json")).unwrap();
+    assert!(body.contains("\"schemaVersion\": 2"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn route_scoped_stores_preserve_the_other_slot_and_share_one_cas_revision() {
+    let root = test_root("route-adapter");
+    let _ = std::fs::remove_dir_all(&root);
+    let file = FileSessionStore::new(&root).unwrap();
+    let direct = RouteSessionStore::new(file.clone(), ConnectionMode::Direct);
+    let webvpn = RouteSessionStore::new(file.clone(), ConnectionMode::WebVpn);
+
+    let direct_snapshot = snapshot(2);
+    direct.save(&direct_snapshot).unwrap();
+    let stale_direct = direct.load_versioned().unwrap();
+    assert!(webvpn.load().unwrap().is_none());
+
+    let webvpn_snapshot = snapshot(3);
+    webvpn.save(&webvpn_snapshot).unwrap();
+    assert_eq!(direct.load().unwrap(), Some(direct_snapshot.clone()));
+    assert_eq!(webvpn.load().unwrap(), Some(webvpn_snapshot.clone()));
+
+    assert_eq!(
+        direct
+            .compare_exchange(stale_direct.revision, None)
+            .unwrap(),
+        SessionMutation::Conflict
+    );
+    direct.clear().unwrap();
+    assert!(direct.load().unwrap().is_none());
+    assert_eq!(webvpn.load().unwrap(), Some(webvpn_snapshot));
+    let _ = std::fs::remove_dir_all(root);
 }

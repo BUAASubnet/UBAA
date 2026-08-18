@@ -5,13 +5,446 @@ use std::fmt;
 use serde::{Deserialize, Serialize, Serializer};
 
 /// Network path used for all requests owned by a client.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConnectionMode {
     /// Reach upstream services directly.
     Direct,
     /// Route upstream services through the BUAA `WebVPN` gateway.
     WebVpn,
+}
+
+/// User-selectable route policy. `Auto` is resolved internally and never requires
+/// a host to choose a concrete connection mode.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RoutePolicy {
+    /// Resolve from the current campus DNS signal and feature matrix.
+    #[default]
+    Auto,
+    /// Use the direct upstream route.
+    Direct,
+    /// Use the BUAA `WebVPN` gateway route.
+    WebVpn,
+}
+
+/// Read-only feature names registered in the route matrix.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReadonlyFeature {
+    /// Schedule and teaching-week operations.
+    Schedule,
+    /// Exam arrangements.
+    Exam,
+    /// Grade list operations.
+    Grades,
+    /// Empty classroom search.
+    Classroom,
+    /// SPOC assignment queries.
+    Spoc,
+    /// Judge assignment queries.
+    Judge,
+}
+
+impl ReadonlyFeature {
+    /// Stable configuration key.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Schedule => "schedule",
+            Self::Exam => "exam",
+            Self::Grades => "grades",
+            Self::Classroom => "classroom",
+            Self::Spoc => "spoc",
+            Self::Judge => "judge",
+        }
+    }
+}
+
+/// A verified academic term entry.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Term {
+    /// Upstream term code such as `2025-2026-1`.
+    pub item_code: String,
+    /// Human-readable term name.
+    pub item_name: String,
+    /// Whether the portal selected this term.
+    pub selected: bool,
+    /// Upstream ordering index.
+    pub item_index: i32,
+}
+
+/// One teaching week.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Week {
+    /// Week start date.
+    pub start_date: String,
+    /// Week end date.
+    pub end_date: String,
+    /// Owning term code.
+    pub term: String,
+    /// Whether this is the current week.
+    pub cur_week: bool,
+    /// Numeric week serial.
+    pub serial_number: i32,
+    /// Display name.
+    pub name: String,
+}
+
+/// One scheduled class.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CourseClass {
+    /// Course code.
+    pub course_code: String,
+    /// Course display name.
+    pub course_name: String,
+    /// Optional course serial number.
+    pub course_serial_no: Option<String>,
+    /// Credit as represented by the portal.
+    pub credit: Option<String>,
+    /// Start time.
+    pub begin_time: Option<String>,
+    /// End time.
+    pub end_time: Option<String>,
+    /// First class section.
+    pub begin_section: Option<i32>,
+    /// Last class section.
+    pub end_section: Option<i32>,
+    /// Classroom.
+    pub place_name: Option<String>,
+    /// Weeks and teacher description.
+    pub weeks_and_teachers: Option<String>,
+    /// Teaching target.
+    pub teaching_target: Option<String>,
+    /// Display color.
+    pub color: Option<String>,
+    /// Day of week 1-7.
+    pub day_of_week: Option<i32>,
+}
+
+/// Week schedule wrapper.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WeeklySchedule {
+    /// Arranged classes.
+    pub arranged_list: Vec<CourseClass>,
+    /// Term code returned by the portal.
+    pub code: String,
+    /// Term display name.
+    pub name: String,
+}
+
+/// One today's class summary.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TodayClass {
+    /// Business/course name.
+    pub biz_name: String,
+    /// Classroom.
+    pub place: Option<String>,
+    /// Display time.
+    pub time: Option<String>,
+    /// Short course name.
+    pub short_name: Option<String>,
+}
+
+/// Exam arrangement.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExamArrangement {
+    /// Arranged examinations.
+    pub arranged: Vec<Exam>,
+    /// Unarranged examinations when supplied by the upstream.
+    pub not_arranged: Vec<Exam>,
+}
+
+/// One exam entry.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Exam {
+    /// Course name.
+    pub course_name: String,
+    /// Course number.
+    pub course_no: Option<String>,
+    /// Display time description.
+    pub exam_time_description: Option<String>,
+    /// Examination date.
+    pub exam_date: Option<String>,
+    /// Start time.
+    pub start_time: Option<String>,
+    /// End time.
+    pub end_time: Option<String>,
+    /// Examination location.
+    pub exam_place: Option<String>,
+    /// Seat number.
+    pub exam_seat_no: Option<String>,
+    /// Week number.
+    pub week: Option<i32>,
+    /// Upstream status.
+    pub exam_status: Option<i32>,
+    /// Exam type.
+    pub exam_type: Option<String>,
+    /// Upstream task ID.
+    pub task_id: Option<String>,
+}
+
+/// One course grade.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Grade {
+    /// Course name.
+    pub course_name: Option<String>,
+    /// Course code.
+    pub course_code: Option<String>,
+    /// Credit value.
+    pub credit: Option<f64>,
+    /// Score as displayed by the upstream.
+    pub score: Option<String>,
+    /// Grade point.
+    pub grade_point: Option<String>,
+    /// Course category/type.
+    pub course_type: Option<String>,
+    /// Score recognition type.
+    pub score_type: Option<String>,
+    /// Term code.
+    pub term_code: Option<String>,
+}
+
+/// Grades for one requested term.
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GradeData {
+    /// Requested term code.
+    pub term_code: String,
+    /// Parsed grades.
+    pub grades: Vec<Grade>,
+}
+
+/// Empty classroom query response.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClassroomQuery {
+    /// Upstream result code.
+    pub code: i32,
+    /// Upstream message.
+    pub message: String,
+    /// Grouped classrooms by floor/building.
+    pub floors: std::collections::BTreeMap<String, Vec<ClassroomInfo>>,
+}
+
+/// One available classroom.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClassroomInfo {
+    /// Classroom ID.
+    pub id: String,
+    /// Floor/building ID.
+    pub floor_id: String,
+    /// Classroom name.
+    pub name: String,
+    /// Available class sections.
+    pub available_sections: String,
+}
+
+/// SPOC submission status.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SpocSubmissionStatus {
+    /// Submitted.
+    Submitted,
+    /// Not submitted.
+    Unsubmitted,
+    /// Unknown upstream status.
+    #[default]
+    Unknown,
+}
+
+/// SPOC assignment summary.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpocAssignmentSummary {
+    /// Assignment ID.
+    pub assignment_id: String,
+    /// Course ID.
+    pub course_id: String,
+    /// Course name.
+    pub course_name: String,
+    /// Teacher name.
+    pub teacher_name: Option<String>,
+    /// Assignment title.
+    pub title: String,
+    /// Start time.
+    pub start_time: Option<String>,
+    /// Due time.
+    pub due_time: Option<String>,
+    /// Score.
+    pub score: Option<String>,
+    /// Submission status.
+    pub submission_status: SpocSubmissionStatus,
+    /// Safe status text.
+    pub submission_status_text: String,
+}
+
+/// SPOC assignment list.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpocAssignments {
+    /// Current term code.
+    pub term_code: String,
+    /// Current term name.
+    pub term_name: Option<String>,
+    /// Assignments.
+    pub assignments: Vec<SpocAssignmentSummary>,
+}
+
+/// SPOC assignment detail.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpocAssignmentDetail {
+    /// Assignment ID.
+    pub assignment_id: String,
+    /// Course ID.
+    pub course_id: String,
+    /// Course name.
+    pub course_name: String,
+    /// Teacher name.
+    pub teacher_name: Option<String>,
+    /// Assignment title.
+    pub title: String,
+    /// Start time.
+    pub start_time: Option<String>,
+    /// Due time.
+    pub due_time: Option<String>,
+    /// Score.
+    pub score: Option<String>,
+    /// Submission status.
+    pub submission_status: SpocSubmissionStatus,
+    /// Safe status text.
+    pub submission_status_text: String,
+    /// Plain text description.
+    pub content_plain_text: Option<String>,
+    /// HTML description retained as DTO data, never logged.
+    pub content_html: Option<String>,
+    /// Submission time.
+    pub submitted_at: Option<String>,
+}
+
+/// Judge submission status.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum JudgeSubmissionStatus {
+    /// Fully submitted.
+    Submitted,
+    /// Partially submitted.
+    Partial,
+    /// Not submitted.
+    Unsubmitted,
+    /// Unknown state.
+    #[default]
+    Unknown,
+}
+
+/// Judge assignment summary.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JudgeAssignmentSummary {
+    /// Course ID.
+    pub course_id: String,
+    /// Course name.
+    pub course_name: String,
+    /// Assignment ID.
+    pub assignment_id: String,
+    /// Assignment title.
+    pub title: String,
+    /// Start time.
+    pub start_time: Option<String>,
+    /// Due time.
+    pub due_time: Option<String>,
+    /// Maximum score.
+    pub max_score: Option<String>,
+    /// User score.
+    pub my_score: Option<String>,
+    /// Number of problems.
+    pub total_problems: i32,
+    /// Number submitted.
+    pub submitted_count: i32,
+    /// Submission state.
+    pub submission_status: JudgeSubmissionStatus,
+    /// Safe status text.
+    pub submission_status_text: String,
+}
+
+/// Judge assignment detail key.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JudgeAssignmentKey {
+    /// Course ID.
+    pub course_id: String,
+    /// Assignment ID.
+    pub assignment_id: String,
+}
+
+/// Judge problem detail.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JudgeProblem {
+    /// Problem name.
+    pub name: String,
+    /// Earned score.
+    pub score: Option<String>,
+    /// Maximum score.
+    pub max_score: Option<String>,
+    /// Submission state.
+    pub status: JudgeSubmissionStatus,
+    /// Safe status text.
+    pub status_text: String,
+}
+
+/// Judge assignment detail.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JudgeAssignmentDetail {
+    /// Course ID.
+    pub course_id: String,
+    /// Course name.
+    pub course_name: String,
+    /// Assignment ID.
+    pub assignment_id: String,
+    /// Assignment title.
+    pub title: String,
+    /// Start time.
+    pub start_time: Option<String>,
+    /// Due time.
+    pub due_time: Option<String>,
+    /// Maximum score.
+    pub max_score: Option<String>,
+    /// User score.
+    pub my_score: Option<String>,
+    /// Number of problems.
+    pub total_problems: i32,
+    /// Number submitted.
+    pub submitted_count: i32,
+    /// Submission state.
+    pub submission_status: JudgeSubmissionStatus,
+    /// Safe status text.
+    pub submission_status_text: String,
+    /// Parsed problem list.
+    pub problems: Vec<JudgeProblem>,
+    /// Plain text HTML content.
+    pub content_plain_text: Option<String>,
+}
+
+/// Result of a read-only operation with the concrete route used internally.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeatureResult<T> {
+    /// Parsed, stable DTO.
+    pub data: T,
+    /// Concrete route used for this request.
+    pub resolved_route: ConnectionMode,
 }
 
 /// A value that redacts its contents in all ordinary formatting and serialization.
@@ -86,6 +519,151 @@ pub struct LoginChallenge {
     /// Ephemeral image data for interactive hosts; never persisted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image_data_url: Option<String>,
+}
+
+/// A captcha answer bound to one route-scoped challenge identifier.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptchaAnswer {
+    /// Challenge identifier returned by the same route's login preparation.
+    pub challenge_id: String,
+    /// User-provided captcha text.
+    pub value: SecretValue,
+}
+
+impl fmt::Debug for CaptchaAnswer {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CaptchaAnswer")
+            .field("challenge_id", &"[REDACTED]")
+            .field("value", &self.value)
+            .finish()
+    }
+}
+
+/// Login readiness across the two independent route sessions.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LoginReadiness {
+    /// Both routes are ready.
+    AllReady,
+    /// Exactly one route is ready.
+    Partial,
+    /// Neither route is ready.
+    NoneReady,
+}
+
+/// Safe state for one route during an aggregate login.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RouteLoginState {
+    /// The route has an authenticated session.
+    Ready,
+    /// The route needs a captcha answer.
+    CaptchaRequired,
+    /// The route failed without exposing protocol details.
+    Failed,
+}
+
+/// Public, non-sensitive error projection for aggregate authentication.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafeError {
+    /// Stable machine error code.
+    pub code: String,
+    /// Stable error category.
+    pub kind: String,
+    /// Whether retrying may succeed.
+    pub retryable: bool,
+    /// Safe human-facing message.
+    pub message: String,
+}
+
+/// Result for one route in an aggregate login operation.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteLoginResult {
+    /// Concrete route attempted.
+    pub route: ConnectionMode,
+    /// Safe route state.
+    pub state: RouteLoginState,
+    /// Sanitized failure, when the route was not ready.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<SafeError>,
+}
+
+/// Aggregate login result with fixed Direct, `WebVPN` route ordering.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginOutcome {
+    /// Aggregate readiness.
+    pub readiness: LoginReadiness,
+    /// Exactly two route entries, Direct then `WebVPN`.
+    pub routes: Vec<RouteLoginResult>,
+    /// Profile from any successfully authenticated route.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile: Option<UserProfile>,
+}
+
+/// Ephemeral route-scoped captcha information returned to an interactive host.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteLoginChallenge {
+    /// Route whose in-memory workflow owns this challenge.
+    pub route: ConnectionMode,
+    /// Stable identifier required when submitting an answer.
+    pub challenge_id: String,
+    /// Ephemeral image for interactive hosts; JSON hosts must expose only its availability.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_data_url: Option<String>,
+}
+
+impl fmt::Debug for RouteLoginChallenge {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RouteLoginChallenge")
+            .field("route", &self.route)
+            .field("challenge_id", &"[REDACTED]")
+            .field(
+                "image_data_url",
+                &redacted_option(self.image_data_url.as_deref()),
+            )
+            .finish()
+    }
+}
+
+/// Result of preparing both route login pages without exposing CAS execution values.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DualLoginPreparation {
+    /// Fixed Direct, `WebVPN` state ordering.
+    pub routes: Vec<RouteLoginResult>,
+    /// Only routes that currently require captcha input.
+    pub challenges: Vec<RouteLoginChallenge>,
+}
+
+/// Credentials and route-bound captcha answers for aggregate login.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DualLoginInput {
+    /// SSO account name shared by both route attempts.
+    pub username: String,
+    /// Password held only in memory for this operation.
+    pub password: SecretValue,
+    /// Answers keyed by the challenge ID returned by preparation.
+    #[serde(default)]
+    pub captcha_answers: Vec<CaptchaAnswer>,
+}
+
+impl fmt::Debug for DualLoginInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DualLoginInput")
+            .field("username", &"[REDACTED]")
+            .field("password", &self.password)
+            .field("captcha_answers", &self.captcha_answers.len())
+            .finish()
+    }
 }
 
 impl fmt::Debug for LoginChallenge {

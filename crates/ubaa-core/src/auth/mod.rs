@@ -73,6 +73,14 @@ pub(crate) struct AuthWorkflow {
 }
 
 impl AuthWorkflow {
+    pub(crate) fn is_prepared(&self) -> bool {
+        self.state.page().is_some()
+    }
+
+    pub(crate) fn pending_challenge(&self) -> Option<&LoginChallenge> {
+        self.state.challenge()
+    }
+
     pub(crate) async fn prepare_login(
         &mut self,
         runtime: &mut ClientRuntime,
@@ -161,6 +169,10 @@ impl AuthWorkflow {
     }
 
     pub(crate) async fn logout(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
+        if !runtime.has_local_session() {
+            self.state.clear();
+            return Ok(());
+        }
         if let Ok(url) = runtime.url(SSO_LOGOUT_URL) {
             let _ = runtime.request(HttpRequest::get(url)).await;
         }

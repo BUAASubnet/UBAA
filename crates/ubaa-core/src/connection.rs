@@ -1,16 +1,178 @@
 //! Direct/WebVPN URL policy and auditable redirect resolution.
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::map_unwrap_or,
+    clippy::duration_suboptimal_units
+)]
 
 use std::fmt::Write as _;
+use std::net::ToSocketAddrs;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use aes::Aes128;
 use aes::cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
 use url::Url;
 
-use crate::domain::ConnectionMode;
+use crate::config::{FeatureRouteConfig, RouteConfig};
+use crate::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 const WEBVPN_HOST: &str = "d.buaa.edu.cn";
 const WEBVPN_KEY: &[u8; 16] = b"wrdvpnisthebest!";
+
+/// Three-state result of resolving `gw.buaa.edu.cn`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NetworkState {
+    /// DNS returned at least one address.
+    Campus,
+    /// Authoritative DNS absence (NXDOMAIN/NODATA).
+    OffCampus,
+    /// Timeout or other resolver failure.
+    Unknown,
+}
+
+/// Injectable gateway DNS probe used by route resolution.
+pub trait DnsProbe {
+    /// Resolve the gateway within the supplied budget.
+    fn resolve_gateway(&self, timeout: std::time::Duration) -> NetworkState;
+}
+
+/// DNS probe that resolves the gateway without embedding campus address ranges.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SystemDnsProbe;
+
+impl DnsProbe for SystemDnsProbe {
+    fn resolve_gateway(&self, timeout: Duration) -> NetworkState {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let state = ("gw.buaa.edu.cn", 443).to_socket_addrs().map_or(
+                NetworkState::Unknown,
+                |mut addresses| {
+                    if addresses.next().is_some() {
+                        NetworkState::Campus
+                    } else {
+                        NetworkState::OffCampus
+                    }
+                },
+            );
+            let _ = sender.send(state);
+        });
+        receiver
+            .recv_timeout(timeout)
+            .unwrap_or(NetworkState::Unknown)
+    }
+}
+
+/// Process-local DNS result cache with the contract's sixty-second default TTL.
+pub struct CachingDnsProbe<P> {
+    inner: P,
+    ttl: Duration,
+    cached: Arc<Mutex<Option<(Instant, NetworkState)>>>,
+}
+
+impl<P> CachingDnsProbe<P> {
+    /// Construct a cache with a caller-selected TTL; production uses sixty seconds.
+    #[must_use]
+    pub fn new(inner: P, ttl: Duration) -> Self {
+        Self {
+            inner,
+            ttl,
+            cached: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Construct a cache with the contract's sixty-second TTL.
+    #[must_use]
+    pub fn with_default_ttl(inner: P) -> Self {
+        Self::new(inner, Duration::from_secs(60))
+    }
+}
+
+impl<P: DnsProbe> DnsProbe for CachingDnsProbe<P> {
+    fn resolve_gateway(&self, timeout: Duration) -> NetworkState {
+        let now = Instant::now();
+        if let Some((at, state)) = *self.cached.lock().expect("DNS cache mutex")
+            && now.duration_since(at) < self.ttl
+        {
+            return state;
+        }
+        let state = self.inner.resolve_gateway(timeout);
+        *self.cached.lock().expect("DNS cache mutex") = Some((now, state));
+        state
+    }
+}
+
+/// Route decision metadata safe to expose in diagnostics and JSON.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RouteDiagnostic {
+    /// DNS state observed for this decision.
+    pub network: NetworkState,
+    /// Initial route selected by policy and matrix.
+    pub initial_route: ConnectionMode,
+    /// Final route after any preflight fallback.
+    pub mode: ConnectionMode,
+    /// Whether another ready route replaced the initial route.
+    pub used_fallback: bool,
+}
+
+impl RouteDiagnostic {
+    /// Construct a no-fallback diagnostic.
+    #[must_use]
+    pub const fn new(network: NetworkState, mode: ConnectionMode) -> Self {
+        Self {
+            network,
+            initial_route: mode,
+            mode,
+            used_fallback: false,
+        }
+    }
+}
+
+/// Resolved route plus safe diagnostics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RouteResolution {
+    /// Concrete connection route selected for the operation.
+    pub mode: ConnectionMode,
+    /// User policy after configuration fallback.
+    pub policy: RoutePolicy,
+    /// Safe decision metadata.
+    pub diagnostic: RouteDiagnostic,
+}
+
+/// Resolve one feature's user policy using the current DNS state.
+pub fn resolve_feature_route<P: DnsProbe>(
+    feature: ReadonlyFeature,
+    requested: RoutePolicy,
+    config: &RouteConfig,
+    probe: &P,
+) -> crate::error::Result<RouteResolution> {
+    let policy = if requested == RoutePolicy::Auto {
+        config.feature(feature)
+    } else {
+        requested
+    };
+    let network = if policy == RoutePolicy::Auto {
+        probe.resolve_gateway(std::time::Duration::from_millis(500))
+    } else {
+        NetworkState::Unknown
+    };
+    let row = FeatureRouteConfig::for_feature(feature);
+    let mode = match policy {
+        RoutePolicy::Direct => ConnectionMode::Direct,
+        RoutePolicy::WebVpn => ConnectionMode::WebVpn,
+        RoutePolicy::Auto => match network {
+            NetworkState::Campus => ConnectionMode::Direct,
+            NetworkState::OffCampus => ConnectionMode::WebVpn,
+            NetworkState::Unknown => row.unknown_default,
+        },
+    };
+    Ok(RouteResolution {
+        mode,
+        policy,
+        diagnostic: RouteDiagnostic::new(network, mode),
+    })
+}
 
 /// Hosts observed in the frozen SSO/User Center authentication flow.
 #[derive(Clone, Debug)]
