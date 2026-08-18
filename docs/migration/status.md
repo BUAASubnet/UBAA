@@ -43,12 +43,12 @@ These prove only the two authentication routes. They do not prove any business e
 
 | Feature | Implemented state | Direct | WebVPN | Auto result | Failure or rerun condition |
 |---|---|---|---|---|---|
-| Schedule (terms/weeks/current/today) | Core facade, DTOs, portal probe, parsers, CLI and adaptive verifier implemented | Unverified | Unverified | `authentication_required` at `schedule_terms` (exit 3) | Account must have a valid undergraduate portal session/capability; rerun `just verify-live feature=schedule route=auto`. |
-| Exam arrangement | Facade/parser/CLI implemented; term is selected from schedule response | Unverified | Unverified | `authentication_required` at shared `schedule_terms` (exit 3) | Same undergraduate portal requirement; rerun `just verify-live feature=exam route=auto`. |
-| Grades | Strict `yyyy-yyyy-semester` parser, activation GET, `xq/year` POST, DTO/CLI implemented | Unverified | Unverified | `authentication_required` at shared `schedule_terms` (exit 3) | Provide a supported term and score-portal account; rerun `just verify-live feature=grades route=auto`. |
+| Schedule (terms/weeks/current/today) | Core facade, DTOs, portal probe, parsers, CLI and adaptive verifier implemented | Failed: `authentication_required` at `schedule_terms` (exit 3) | Failed: `authentication_required` at `schedule_terms` (exit 3) | `authentication_required` at `schedule_terms` (exit 3) | Account must have a valid undergraduate portal session/capability; rerun Direct/WebVPN/auto schedule commands. |
+| Exam arrangement | Facade/parser/CLI implemented; term is selected from schedule response | Failed: shared `schedule_terms` `authentication_required` (exit 3) | Failed: shared `schedule_terms` `authentication_required` (exit 3) | `authentication_required` at shared `schedule_terms` (exit 3) | Same undergraduate portal requirement; rerun Direct/WebVPN/auto exam commands. |
+| Grades | Strict `yyyy-yyyy-semester` parser, activation GET, `xq/year` POST, DTO/CLI implemented | Failed: shared `schedule_terms` `authentication_required` (exit 3) | Failed: shared `schedule_terms` `authentication_required` (exit 3) | `authentication_required` at shared `schedule_terms` (exit 3) | Provide a supported term and score-portal account; rerun Direct/WebVPN/auto grades commands. |
 | Empty classroom | CAS sync, route-locked headers/query, empty-map parser and CLI implemented | Success, 158 results, exit 0, date `2026-08-18` | Success, 158 results, exit 0, date `2026-08-18` | Success, `result_count=158`, exit 0, date `2026-08-18` | Direct, WebVPN and auto are verified for the current campus/date; rerun with a different campus/date when needed. |
 | SPOC assignments/details | CAS token/role, encrypted paginated list, detail, submission status and HTML text implemented | Success, empty list, exit 0 | Success, empty list, exit 0 | Success, `result_count=0`, exit 0 | Empty lists are valid real results on all three routes. A non-empty account should rerun to exercise one detail request. |
-| Judge assignments/details | SSO activation, course selection, HTML parsers, cutoff/cache and detail/batch facade implemented | Unverified | Unverified | `upstream_unavailable` at `judge` (exit 5) | Requires an available Judge upstream and course access; rerun `just verify-live feature=judge route=auto`. |
+| Judge assignments/details | SSO activation, course selection, HTML parsers, cutoff/cache and detail/batch facade implemented | `upstream_unavailable` (exit 5) | `upstream_changed` (exit 6) | `upstream_unavailable` at `judge` (exit 5) | Requires Judge TLS/upstream availability and course access; rerun Direct/WebVPN/auto Judge commands. |
 
 Required aggregate command `just verify-live feature=all route=auto` exited 3 with the same per-feature summaries and final `one_or_more_features_failed`.
 
@@ -61,6 +61,16 @@ grades auto: exit 3 authentication_required at schedule_terms
 classroom auto: exit 0 result_count=158 date=2026-08-18
 spoc auto: exit 0 result_count=0
 judge auto: exit 5 upstream_unavailable
+```
+
+Additional explicit-route failure checks:
+
+```text
+schedule direct/webvpn: exit 3 authentication_required at schedule_terms
+exam direct/webvpn: exit 3 authentication_required at schedule_terms
+grades direct/webvpn: exit 3 authentication_required at schedule_terms
+judge direct: exit 5 upstream_unavailable
+judge webvpn: exit 6 upstream_changed
 ```
 
 Additional explicit-route business checks:
@@ -99,7 +109,7 @@ CI remains deterministic-only: it does not read `.env.local` or contact live acc
 ## Remaining Gaps
 
 - The live hard gate for schedule, exam, grades and Judge is not passed; this is an external protocol/account/network blocker, not a fixture gap.
-- Direct and WebVPN business routes remain unverified for schedule, exam, grades and Judge; classroom and SPOC have real success on both explicit routes and `auto`.
+- Direct and WebVPN business routes have failed evidence for schedule, exam, grades and Judge; classroom and SPOC have real success on both explicit routes and `auto`.
 - `auto` route diagnostics are available inside Core but are not yet included in every human/JSON feature metadata field.
 - Judge query execution is serialized by the route-owned runtime; the old concurrency limit is retained as a four-query bound constant, but no parallel transport pool is exposed because Cookie mutation must remain route-locked.
 - No write operations were migrated: submission/upload, answers, reservations, attendance, grading changes, or other side effects remain out of scope.
@@ -108,8 +118,8 @@ CI remains deterministic-only: it does not read `.env.local` or contact live acc
 ## Rerun Handoff
 
 1. Re-run `just refs`, `just check-sensitive`, and `just check` from a clean implementation tree.
-2. With a user known to have undergraduate portal access, rerun schedule, exam and grades auto commands first; record only exit/code/count summaries here.
+2. With a user known to have undergraduate portal access, rerun schedule, exam and grades Direct/WebVPN/auto commands first; record only exit/code/count summaries here.
 3. Re-run classroom on a requested campus/date if the existing 158-result Direct/WebVPN/auto evidence is stale.
 4. Re-run SPOC with an account that has an assignment to exercise the detail path; the current Direct/WebVPN/auto runs are valid empty-list evidence.
-5. Re-run Judge after confirming upstream availability and course access; do not infer success from an empty fixture.
+5. Re-run Judge Direct/WebVPN/auto after confirming Judge TLS/upstream availability and course access; do not infer success from an empty fixture.
 6. Only after every feature has at least one successful real route and auto evidence should phase 11/12 be marked complete.
