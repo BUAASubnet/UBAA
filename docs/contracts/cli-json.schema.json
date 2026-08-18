@@ -2,63 +2,126 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/BUAASubnet/UBAA/docs/contracts/cli-json.schema.json",
   "title": "UBAA CLI JSON envelope",
-  "type": "object",
-  "required": ["schemaVersion", "ok", "meta"],
-  "properties": {
-    "schemaVersion": { "const": 1 },
-    "ok": { "type": "boolean" },
-    "data": { "type": "object" },
-    "error": {
+  "oneOf": [
+    {
       "type": "object",
-      "required": ["code", "kind", "message", "retryable"],
+      "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "code": {
-          "enum": [
-            "invalid_input",
-            "authentication_required",
-            "invalid_credentials",
-            "captcha_required",
-            "password_risk_confirmation_failed",
-            "permission_denied",
-            "network_error",
-            "timeout",
-            "upstream_unavailable",
-            "upstream_changed",
-            "parse_error",
-            "internal_error"
-          ]
-        },
-        "kind": {
-          "enum": ["input", "authentication", "network", "upstream", "parse", "internal"]
-        },
-        "message": { "type": "string" },
-        "retryable": { "type": "boolean" },
-        "challenge": {
+        "schemaVersion": { "const": 1 },
+        "ok": { "type": "boolean" },
+        "data": { "type": "object" },
+        "error": { "$ref": "#/$defs/legacyError" },
+        "meta": {
           "type": "object",
-          "required": ["id", "execution"],
+          "properties": { "connectionMode": { "enum": ["direct", "webvpn"] } },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [{
+        "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
+        "then": { "required": ["data"], "not": { "required": ["error"] } },
+        "else": { "required": ["error"], "not": { "required": ["data"] } }
+      }],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schemaVersion", "ok", "meta"],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "ok": { "type": "boolean" },
+        "data": {},
+        "error": { "$ref": "#/$defs/readonlyError" },
+        "meta": {
+          "type": "object",
+          "required": ["routePolicy", "resolvedRoute", "feature"],
           "properties": {
-            "id": { "type": "string" },
-            "execution": { "type": "string" }
+            "routePolicy": { "enum": ["auto", "direct", "webvpn"] },
+            "resolvedRoute": { "enum": ["direct", "webvpn"] },
+            "feature": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [{
+        "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
+        "then": { "required": ["data"], "not": { "required": ["error"] } },
+        "else": { "required": ["error"], "not": { "required": ["data"] } }
+      }],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["schemaVersion", "ok", "data", "meta"],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "ok": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["readiness", "routes", "challenges"],
+          "properties": {
+            "readiness": { "enum": ["all_ready", "partial", "none_ready"] },
+            "routes": { "type": "array" },
+            "profile": { "type": ["object", "null"] },
+            "challenges": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/publicChallenge" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "error": { "$ref": "#/$defs/safeError" },
+        "meta": {
+          "type": "object",
+          "required": ["routePolicy", "resolvedRoutes", "feature"],
+          "properties": {
+            "routePolicy": { "enum": ["auto", "direct", "webvpn"] },
+            "resolvedRoutes": {
+              "type": "array",
+              "items": { "enum": ["direct", "webvpn"] },
+              "uniqueItems": true
+            },
+            "feature": { "const": "auth" }
           },
           "additionalProperties": false
         }
       },
       "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "codes": { "enum": ["invalid_input", "authentication_required", "invalid_credentials", "captcha_required", "password_risk_confirmation_failed", "permission_denied", "network_error", "timeout", "upstream_unavailable", "upstream_changed", "parse_error", "internal_error"] },
+    "kinds": { "enum": ["input", "authentication", "network", "upstream", "parse", "internal"] },
+    "legacyError": {
+      "type": "object", "required": ["code", "kind", "message", "retryable"],
+      "properties": { "code": { "$ref": "#/$defs/codes" }, "kind": { "$ref": "#/$defs/kinds" }, "message": { "type": "string" }, "retryable": { "type": "boolean" }, "challenge": { "type": "object", "required": ["id", "execution"], "properties": { "id": { "type": "string" }, "execution": { "type": "string" } }, "additionalProperties": false } },
+      "additionalProperties": false
     },
-    "meta": {
+    "readonlyError": {
+      "type": "object", "required": ["code", "kind", "message", "retryable"],
+      "properties": { "code": { "$ref": "#/$defs/codes" }, "kind": { "$ref": "#/$defs/kinds" }, "message": { "type": "string" }, "retryable": { "type": "boolean" }, "challenge": { "type": "object", "required": ["route", "challengeId", "imageAvailable"], "properties": { "route": { "enum": ["direct", "webvpn"] }, "challengeId": { "type": "string" }, "imageAvailable": { "type": "boolean" } }, "additionalProperties": false } },
+      "additionalProperties": false
+    },
+    "safeError": {
       "type": "object",
+      "required": ["code", "kind", "message", "retryable"],
       "properties": {
-        "connectionMode": { "enum": ["direct", "webvpn"] }
+        "code": { "$ref": "#/$defs/codes" },
+        "kind": { "$ref": "#/$defs/kinds" },
+        "message": { "type": "string" },
+        "retryable": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "publicChallenge": {
+      "type": "object",
+      "required": ["route", "challengeId", "imageAvailable"],
+      "properties": {
+        "route": { "enum": ["direct", "webvpn"] },
+        "challengeId": { "type": "string" },
+        "imageAvailable": { "type": "boolean" }
       },
       "additionalProperties": false
     }
-  },
-  "allOf": [
-    {
-      "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
-      "then": { "required": ["data"], "not": { "required": ["error"] } },
-      "else": { "required": ["error"], "not": { "required": ["data"] } }
-    }
-  ],
-  "additionalProperties": false
+  }
 }

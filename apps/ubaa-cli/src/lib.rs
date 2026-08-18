@@ -8,13 +8,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use async_trait::async_trait;
 use base64::Engine as _;
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use serde::Serialize;
 use serde_json::{Value, json};
 use ubaa_core::domain::{
-    AuthStatus, ConnectionMode, LoginChallenge, LoginInput, SecretValue, UserProfile,
+    AuthStatus, CaptchaAnswer, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement,
+    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    LoginChallenge, LoginInput, LoginReadiness, RouteLoginState, SafeError, SecretValue,
+    SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile, Week, WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
-use ubaa_core::facade::UbaaClient;
-use ubaa_core::output::{JSON_SCHEMA_VERSION, JsonEnvelope, JsonMeta};
+use ubaa_core::facade::{DualUbaaClient, UbaaClient};
+use ubaa_core::output::{
+    AggregateJsonEnvelope, AggregateJsonMeta, JSON_SCHEMA_VERSION, JsonEnvelope, JsonMeta,
+    ReadonlyJsonEnvelope, ReadonlyJsonMeta,
+};
 
 /// UBAA command-line interface.
 #[derive(Debug, Parser)]
@@ -44,6 +51,18 @@ pub enum Command {
     Auth(AuthArgs),
     /// Query the authenticated User Center profile.
     User(UserArgs),
+    /// Schedule and exam read-only operations.
+    Schedule(ScheduleArgs),
+    /// Exam read-only operations.
+    Exam(ExamArgs),
+    /// Grades read-only operations.
+    Grades(GradesArgs),
+    /// Empty classroom read-only operations.
+    Classroom(ClassroomArgs),
+    /// SPOC read-only operations.
+    Spoc(SpocArgs),
+    /// Judge read-only operations.
+    Judge(JudgeArgs),
 }
 
 /// Authentication command group.
@@ -84,7 +103,7 @@ pub enum UserCommand {
 #[derive(Args)]
 pub struct LoginArgs {
     /// Network route used for every request; reuses a saved mode when omitted.
-    #[arg(long, value_enum)]
+    #[arg(long, value_enum, hide = true)]
     pub mode: Option<CliConnectionMode>,
 
     /// SSO username. Human mode prompts when omitted.
@@ -98,6 +117,161 @@ pub struct LoginArgs {
     /// Captcha answer for a currently required challenge.
     #[arg(long)]
     pub captcha: Option<String>,
+}
+
+/// Schedule operations.
+#[derive(Debug, Args)]
+pub struct ScheduleArgs {
+    /// Schedule operation.
+    #[command(subcommand)]
+    pub command: ScheduleCommand,
+}
+
+/// Schedule subcommands.
+#[derive(Debug, Subcommand)]
+pub enum ScheduleCommand {
+    /// List terms.
+    Terms,
+    /// List teaching weeks.
+    Weeks {
+        #[arg(long)]
+        term: String,
+    },
+    /// Read one week.
+    Current {
+        #[arg(long)]
+        term: String,
+        #[arg(long)]
+        week: i32,
+    },
+    /// Read today's classes.
+    Today,
+}
+
+/// Exam operations.
+#[derive(Debug, Args)]
+pub struct ExamArgs {
+    /// Exam operation.
+    #[command(subcommand)]
+    pub command: ExamCommand,
+}
+
+/// Exam subcommands.
+#[derive(Debug, Subcommand)]
+pub enum ExamCommand {
+    /// List a term's exams.
+    List {
+        #[arg(long)]
+        term: String,
+    },
+}
+
+/// Grade operations.
+#[derive(Debug, Args)]
+pub struct GradesArgs {
+    /// Grade operation.
+    #[command(subcommand)]
+    pub command: GradesCommand,
+}
+
+/// Grade subcommands.
+#[derive(Debug, Subcommand)]
+pub enum GradesCommand {
+    /// List a term's grades.
+    List {
+        #[arg(long)]
+        term: String,
+    },
+}
+
+/// Classroom operations.
+#[derive(Debug, Args)]
+pub struct ClassroomArgs {
+    /// Classroom operation.
+    #[command(subcommand)]
+    pub command: ClassroomCommand,
+}
+
+/// Classroom subcommands.
+#[derive(Debug, Subcommand)]
+pub enum ClassroomCommand {
+    /// Search free classrooms.
+    Search {
+        #[arg(long)]
+        campus: i32,
+        #[arg(long)]
+        date: String,
+    },
+}
+
+/// SPOC operations.
+#[derive(Debug, Args)]
+pub struct SpocArgs {
+    /// SPOC operation.
+    #[command(subcommand)]
+    pub command: SpocCommand,
+}
+
+/// SPOC subcommands.
+#[derive(Debug, Subcommand)]
+pub enum SpocCommand {
+    /// List assignments.
+    Assignments,
+    /// Show one assignment.
+    Assignment {
+        #[command(subcommand)]
+        command: SpocAssignmentCommand,
+    },
+}
+
+/// SPOC assignment subcommands.
+#[derive(Debug, Subcommand)]
+pub enum SpocAssignmentCommand {
+    /// Show assignment detail.
+    Show {
+        #[arg(long)]
+        id: String,
+    },
+}
+
+/// Judge operations.
+#[derive(Debug, Args)]
+pub struct JudgeArgs {
+    /// Judge operation.
+    #[command(subcommand)]
+    pub command: JudgeCommand,
+}
+
+/// Judge subcommands.
+#[derive(Debug, Subcommand)]
+pub enum JudgeCommand {
+    /// List assignments.
+    Assignments {
+        #[arg(long)]
+        include_expired: bool,
+    },
+    /// Assignment operations.
+    Assignment {
+        #[command(subcommand)]
+        command: JudgeAssignmentCommand,
+    },
+}
+
+/// Judge assignment subcommands.
+#[derive(Debug, Subcommand)]
+pub enum JudgeAssignmentCommand {
+    /// Show one detail.
+    Show {
+        #[arg(long)]
+        course_id: String,
+        #[arg(long)]
+        id: String,
+    },
+    /// Show multiple details.
+    Details {
+        #[arg(long = "key")]
+        keys: Vec<String>,
+    },
 }
 
 impl std::fmt::Debug for LoginArgs {
@@ -131,6 +305,17 @@ impl From<CliConnectionMode> for ConnectionMode {
 }
 
 impl Cli {
+    /// Whether this is an authentication login command.
+    #[must_use]
+    pub const fn is_login(&self) -> bool {
+        matches!(
+            self.command,
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Login(_)
+            })
+        )
+    }
+
     /// Return the explicit login mode, when this is an authentication login command.
     #[must_use]
     pub fn login_mode(&self) -> Option<ConnectionMode> {
@@ -162,7 +347,12 @@ impl Cli {
                 command: AuthCommand::Status
             }) | Command::User(UserArgs {
                 command: UserCommand::Show
-            })
+            }) | Command::Schedule(_)
+                | Command::Exam(_)
+                | Command::Grades(_)
+                | Command::Classroom(_)
+                | Command::Spoc(_)
+                | Command::Judge(_)
         )
     }
 
@@ -173,6 +363,17 @@ impl Cli {
             self.command,
             Command::Auth(AuthArgs {
                 command: AuthCommand::Logout
+            })
+        )
+    }
+
+    /// Whether this is an ordinary aggregate authentication status command.
+    #[must_use]
+    pub const fn is_auth_status(&self) -> bool {
+        matches!(
+            self.command,
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Status
             })
         )
     }
@@ -193,6 +394,417 @@ pub trait CliBackend {
     async fn get_user_info(&mut self) -> Result<UserProfile>;
     /// Sign out and clear local state.
     async fn logout(&mut self) -> Result<()>;
+
+    /// Read terms.
+    async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        Err(internal_error("schedule is unavailable"))
+    }
+    /// Read weeks.
+    async fn schedule_weeks(&mut self, _term: &str) -> Result<FeatureResult<Vec<Week>>> {
+        Err(internal_error("schedule is unavailable"))
+    }
+    /// Read one week.
+    async fn schedule_week(
+        &mut self,
+        _term: &str,
+        _week: i32,
+    ) -> Result<FeatureResult<WeeklySchedule>> {
+        Err(internal_error("schedule is unavailable"))
+    }
+    /// Read today.
+    async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
+        Err(internal_error("schedule is unavailable"))
+    }
+    /// Read exams.
+    async fn exam_arrangement(&mut self, _term: &str) -> Result<FeatureResult<ExamArrangement>> {
+        Err(internal_error("exam is unavailable"))
+    }
+    /// Read grades.
+    async fn grades(&mut self, _term: &str) -> Result<FeatureResult<GradeData>> {
+        Err(internal_error("grades are unavailable"))
+    }
+    /// Search classrooms.
+    async fn classroom_search(
+        &mut self,
+        _campus: i32,
+        _date: &str,
+    ) -> Result<FeatureResult<ClassroomQuery>> {
+        Err(internal_error("classroom is unavailable"))
+    }
+    /// Read SPOC assignments.
+    async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
+        Err(internal_error("SPOC is unavailable"))
+    }
+    /// Read SPOC detail.
+    async fn spoc_assignment(&mut self, _id: &str) -> Result<FeatureResult<SpocAssignmentDetail>> {
+        Err(internal_error("SPOC is unavailable"))
+    }
+    /// Read Judge assignments.
+    async fn judge_assignments(
+        &mut self,
+        _include_expired: bool,
+    ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
+        Err(internal_error("Judge is unavailable"))
+    }
+    /// Read Judge detail.
+    async fn judge_assignment(
+        &mut self,
+        _course_id: &str,
+        _id: &str,
+    ) -> Result<FeatureResult<JudgeAssignmentDetail>> {
+        Err(internal_error("Judge is unavailable"))
+    }
+    /// Read Judge details in batch.
+    async fn judge_assignment_details(
+        &mut self,
+        _keys: &[JudgeAssignmentKey],
+    ) -> Result<FeatureResult<Vec<JudgeAssignmentDetail>>> {
+        Err(internal_error("Judge is unavailable"))
+    }
+}
+
+/// Execute the ordinary aggregate login path against the dual-route facade.
+pub async fn run_dual_login<R, O, E>(
+    cli: Cli,
+    backend: &mut DualUbaaClient,
+    input: &mut R,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32
+where
+    R: BufRead,
+    O: Write,
+    E: Write,
+{
+    let json_mode = cli.json;
+    let Command::Auth(AuthArgs {
+        command: AuthCommand::Login(arguments),
+    }) = cli.command
+    else {
+        return render_aggregate_input_error(
+            json_mode,
+            invalid_input("aggregate login requires auth login"),
+            stdout,
+            stderr,
+        );
+    };
+    let (username, password) = match read_dual_credentials(json_mode, &arguments, input, stderr) {
+        Ok(credentials) => credentials,
+        Err(error) => {
+            return render_aggregate_input_error(json_mode, error, stdout, stderr);
+        }
+    };
+    let preparation = backend.prepare_login().await;
+    let answers =
+        match collect_dual_captcha_answers(json_mode, arguments.captcha, &preparation, stderr) {
+            Ok(answers) => answers,
+            Err(error) => {
+                return render_aggregate_input_error(json_mode, error, stdout, stderr);
+            }
+        };
+    let mut outcome = match backend
+        .login(DualLoginInput {
+            username,
+            password: SecretValue::new(password),
+            captcha_answers: answers,
+        })
+        .await
+    {
+        Ok(outcome) => outcome,
+        Err(error) => {
+            return render_aggregate_input_error(json_mode, error, stdout, stderr);
+        }
+    };
+    outcome.profile = outcome.profile.map(redacted_profile);
+    render_dual_outcome(json_mode, &outcome, &preparation, stdout, stderr)
+}
+
+/// Execute the ordinary aggregate authentication status path.
+pub async fn run_dual_status<O, E>(
+    cli: Cli,
+    backend: &mut DualUbaaClient,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32
+where
+    O: Write,
+    E: Write,
+{
+    let mut outcome = match backend.auth_status().await {
+        Ok(outcome) => outcome,
+        Err(error) => return render_aggregate_input_error(cli.json, error, stdout, stderr),
+    };
+    outcome.profile = outcome.profile.map(redacted_profile);
+    render_dual_outcome(
+        cli.json,
+        &outcome,
+        &ubaa_core::domain::DualLoginPreparation {
+            routes: Vec::new(),
+            challenges: Vec::new(),
+        },
+        stdout,
+        stderr,
+    )
+}
+
+/// Execute logout for both route slots while retaining the v1 logout response shape.
+pub async fn run_dual_logout<O, E>(
+    cli: Cli,
+    backend: &mut DualUbaaClient,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32
+where
+    O: Write,
+    E: Write,
+{
+    let result = backend.logout().await;
+    match result {
+        Ok(()) => {
+            let mode = (backend.active_routes().len() == 1).then(|| backend.active_routes()[0]);
+            if cli.json {
+                let envelope = JsonEnvelope::success(
+                    json!({ "loggedOut": true }),
+                    mode.unwrap_or(ConnectionMode::Direct),
+                );
+                // A missing session must not invent a route in the public metadata.
+                let value = serde_json::to_value(envelope).unwrap_or_else(|_| json!({}));
+                let mut value = value;
+                if mode.is_none() {
+                    value["meta"] = json!({});
+                }
+                if write_json(stdout, &value).is_err() {
+                    return ExitCode::Internal as i32;
+                }
+            } else if writeln!(stdout, "Signed out.").is_err() {
+                return ExitCode::Internal as i32;
+            }
+            ExitCode::Success as i32
+        }
+        Err(error) => render_startup_error(cli.json, error, stdout, stderr),
+    }
+}
+
+fn read_dual_credentials<R: BufRead, E: Write>(
+    json_mode: bool,
+    arguments: &LoginArgs,
+    input: &mut R,
+    stderr: &mut E,
+) -> Result<(String, String)> {
+    let username = match arguments.username.as_deref() {
+        Some(username) if !username.trim().is_empty() => username.to_owned(),
+        Some(_) => return Err(invalid_input("username must not be empty")),
+        None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
+        None => prompt_line(input, stderr, "Username: ")?,
+    };
+    let password = if arguments.password_stdin {
+        read_secret_line(input, "password is missing on standard input")?
+    } else if json_mode {
+        return Err(invalid_input("--password-stdin is required in JSON mode"));
+    } else {
+        rpassword::prompt_password("Password: ")
+            .map_err(|_| internal_error("could not read password securely"))?
+    };
+    Ok((username, password))
+}
+
+fn collect_dual_captcha_answers<E: Write>(
+    json_mode: bool,
+    compatibility_captcha: Option<String>,
+    preparation: &ubaa_core::domain::DualLoginPreparation,
+    stderr: &mut E,
+) -> Result<Vec<CaptchaAnswer>> {
+    let mut compatibility_captcha = compatibility_captcha;
+    let mut answers = Vec::new();
+    for challenge in &preparation.challenges {
+        let answer = if let Some(answer) = compatibility_captcha.take() {
+            Some(answer)
+        } else if json_mode {
+            None
+        } else if let Some(data_url) = challenge.image_data_url.as_deref() {
+            let image = CaptchaImage::create_data_url(data_url)?;
+            writeln!(
+                stderr,
+                "Captcha image ({:?}): {}",
+                challenge.route,
+                image.path().display()
+            )
+            .map_err(|_| internal_error("could not display captcha path"))?;
+            let answer =
+                rpassword::prompt_password(format!("Captcha ({:?}): ", challenge.route)).ok();
+            drop(image);
+            answer
+        } else {
+            rpassword::prompt_password(format!("Captcha ({:?}): ", challenge.route)).ok()
+        };
+        if let Some(answer) = answer.filter(|answer| !answer.trim().is_empty()) {
+            answers.push(CaptchaAnswer {
+                challenge_id: challenge.challenge_id.clone(),
+                value: SecretValue::new(answer),
+            });
+        }
+    }
+    Ok(answers)
+}
+
+fn render_dual_outcome<O: Write, E: Write>(
+    json_mode: bool,
+    outcome: &ubaa_core::domain::LoginOutcome,
+    preparation: &ubaa_core::domain::DualLoginPreparation,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let resolved_routes = outcome
+        .routes
+        .iter()
+        .filter(|route| route.state == RouteLoginState::Ready)
+        .map(|route| route.route)
+        .collect::<Vec<_>>();
+    let has_captcha = outcome
+        .routes
+        .iter()
+        .any(|route| route.state == RouteLoginState::CaptchaRequired);
+    let error = aggregate_error(outcome, has_captcha);
+    let exit_code = aggregate_exit_code(outcome, has_captcha, error.as_ref());
+    if json_mode {
+        let challenges = preparation
+            .challenges
+            .iter()
+            .filter(|challenge| {
+                outcome.routes.iter().any(|route| {
+                    route.route == challenge.route
+                        && route.state == RouteLoginState::CaptchaRequired
+                })
+            })
+            .map(|challenge| {
+                json!({
+                    "route": challenge.route,
+                    "challengeId": challenge.challenge_id,
+                    "imageAvailable": challenge.image_data_url.is_some()
+                })
+            })
+            .collect::<Vec<_>>();
+        let envelope = AggregateJsonEnvelope {
+            schema_version: ubaa_core::output::READONLY_JSON_SCHEMA_VERSION,
+            ok: exit_code == 0,
+            data: json!({
+                "readiness": outcome.readiness,
+                "routes": outcome.routes,
+                "profile": outcome.profile,
+                "challenges": challenges
+            }),
+            error,
+            meta: AggregateJsonMeta {
+                route_policy: ubaa_core::domain::RoutePolicy::Auto,
+                resolved_routes,
+                feature: "auth".into(),
+            },
+        };
+        if write_json(stdout, &envelope).is_err() {
+            return ExitCode::Internal as i32;
+        }
+    } else {
+        for route in &outcome.routes {
+            let _ = writeln!(stdout, "{:?}: {:?}", route.route, route.state);
+        }
+        if outcome
+            .profile
+            .as_ref()
+            .is_some_and(|profile| write_profile(stdout, profile).is_err())
+        {
+            return ExitCode::Internal as i32;
+        }
+        if let Some(error) = error {
+            let _ = writeln!(stderr, "Error: {}", error.message);
+        }
+    }
+    exit_code
+}
+
+fn aggregate_error(
+    outcome: &ubaa_core::domain::LoginOutcome,
+    has_captcha: bool,
+) -> Option<SafeError> {
+    if has_captcha {
+        Some(SafeError {
+            code: "captcha_required".into(),
+            kind: "authentication".into(),
+            retryable: true,
+            message: "captcha input is required for one or more routes".into(),
+        })
+    } else if outcome.readiness == LoginReadiness::NoneReady {
+        outcome.routes.iter().find_map(|route| route.error.clone())
+    } else {
+        None
+    }
+}
+
+fn aggregate_exit_code(
+    outcome: &ubaa_core::domain::LoginOutcome,
+    has_captcha: bool,
+    error: Option<&SafeError>,
+) -> i32 {
+    if has_captcha {
+        ExitCode::CaptchaRequired as i32
+    } else if outcome.readiness == LoginReadiness::NoneReady {
+        error.map_or(ExitCode::Internal as i32, safe_error_exit_code)
+    } else {
+        ExitCode::Success as i32
+    }
+}
+
+fn safe_error_exit_code(error: &SafeError) -> i32 {
+    match error.code.as_str() {
+        "invalid_input" => ExitCode::InvalidInput as i32,
+        "authentication_required"
+        | "invalid_credentials"
+        | "password_risk_confirmation_failed"
+        | "permission_denied" => ExitCode::Authentication as i32,
+        "captcha_required" => ExitCode::CaptchaRequired as i32,
+        "network_error" | "timeout" | "upstream_unavailable" => ExitCode::Network as i32,
+        "upstream_changed" | "parse_error" => ExitCode::Upstream as i32,
+        _ => ExitCode::Internal as i32,
+    }
+}
+
+fn render_aggregate_input_error<O: Write, E: Write>(
+    json_mode: bool,
+    error: UbaaError,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let safe = SafeError {
+        code: serde_json::to_value(error.code)
+            .ok()
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_else(|| "internal_error".into()),
+        kind: serde_json::to_value(error.kind)
+            .ok()
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_else(|| "internal".into()),
+        retryable: error.retryable,
+        message: error.message,
+    };
+    let code = safe_error_exit_code(&safe);
+    if json_mode {
+        let envelope = AggregateJsonEnvelope {
+            schema_version: ubaa_core::output::READONLY_JSON_SCHEMA_VERSION,
+            ok: false,
+            data: json!({ "readiness": "none_ready", "routes": [], "challenges": [] }),
+            error: Some(safe),
+            meta: AggregateJsonMeta {
+                route_policy: ubaa_core::domain::RoutePolicy::Auto,
+                resolved_routes: Vec::new(),
+                feature: "auth".into(),
+            },
+        };
+        if write_json(stdout, &envelope).is_err() {
+            return ExitCode::Internal as i32;
+        }
+    } else if writeln!(stderr, "Error: {}", safe.message).is_err() {
+        return ExitCode::Internal as i32;
+    }
+    code
 }
 
 #[async_trait]
@@ -220,6 +832,61 @@ impl CliBackend for UbaaClient {
     async fn logout(&mut self) -> Result<()> {
         self.logout().await
     }
+
+    async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        self.schedule_terms().await
+    }
+    async fn schedule_weeks(&mut self, term: &str) -> Result<FeatureResult<Vec<Week>>> {
+        self.schedule_weeks(term).await
+    }
+    async fn schedule_week(
+        &mut self,
+        term: &str,
+        week: i32,
+    ) -> Result<FeatureResult<WeeklySchedule>> {
+        self.schedule_week(term, week).await
+    }
+    async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
+        self.schedule_today().await
+    }
+    async fn exam_arrangement(&mut self, term: &str) -> Result<FeatureResult<ExamArrangement>> {
+        self.exam_arrangement(term).await
+    }
+    async fn grades(&mut self, term: &str) -> Result<FeatureResult<GradeData>> {
+        self.grades(term).await
+    }
+    async fn classroom_search(
+        &mut self,
+        campus: i32,
+        date: &str,
+    ) -> Result<FeatureResult<ClassroomQuery>> {
+        self.classroom_search(campus, date).await
+    }
+    async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
+        self.spoc_assignments().await
+    }
+    async fn spoc_assignment(&mut self, id: &str) -> Result<FeatureResult<SpocAssignmentDetail>> {
+        self.spoc_assignment(id).await
+    }
+    async fn judge_assignments(
+        &mut self,
+        include_expired: bool,
+    ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
+        self.judge_assignments(include_expired).await
+    }
+    async fn judge_assignment(
+        &mut self,
+        course_id: &str,
+        id: &str,
+    ) -> Result<FeatureResult<JudgeAssignmentDetail>> {
+        self.judge_assignment(course_id, id).await
+    }
+    async fn judge_assignment_details(
+        &mut self,
+        keys: &[JudgeAssignmentKey],
+    ) -> Result<FeatureResult<Vec<JudgeAssignmentDetail>>> {
+        self.judge_assignment_details(keys).await
+    }
 }
 
 /// Execute a parsed command against an injected backend.
@@ -237,6 +904,7 @@ where
     E: Write,
 {
     let mode = backend.mode();
+    let readonly_feature = readonly_command_feature(&cli.command);
     let result = match cli.command {
         Command::Auth(AuthArgs {
             command: AuthCommand::Login(arguments),
@@ -259,9 +927,27 @@ where
             .get_user_info()
             .await
             .map(|profile| CommandOutput::Profile(redacted_profile(profile))),
+        Command::Schedule(arguments) => run_schedule(arguments, backend).await,
+        Command::Exam(arguments) => run_exam(arguments, backend).await,
+        Command::Grades(arguments) => run_grades(arguments, backend).await,
+        Command::Classroom(arguments) => run_classroom(arguments, backend).await,
+        Command::Spoc(arguments) => run_spoc(arguments, backend).await,
+        Command::Judge(arguments) => run_judge(arguments, backend).await,
     };
 
-    render_result(cli.json, mode, result, stdout, stderr)
+    render_result(cli.json, mode, readonly_feature, result, stdout, stderr)
+}
+
+fn readonly_command_feature(command: &Command) -> Option<&'static str> {
+    match command {
+        Command::Schedule(_) => Some("schedule"),
+        Command::Exam(_) => Some("exam"),
+        Command::Grades(_) => Some("grades"),
+        Command::Classroom(_) => Some("classroom"),
+        Command::Spoc(_) => Some("spoc"),
+        Command::Judge(_) => Some("judge"),
+        _ => None,
+    }
 }
 
 async fn run_login<B, R, E>(
@@ -318,28 +1004,192 @@ where
         .map(|profile| CommandOutput::Profile(redacted_profile(profile)))
 }
 
+async fn run_schedule<B: CliBackend + Send>(
+    arguments: ScheduleArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        ScheduleCommand::Terms => backend
+            .schedule_terms()
+            .await
+            .map(|result| readonly(result, "schedule")),
+        ScheduleCommand::Weeks { term } => backend
+            .schedule_weeks(&term)
+            .await
+            .map(|result| readonly(result, "schedule")),
+        ScheduleCommand::Current { term, week } => backend
+            .schedule_week(&term, week)
+            .await
+            .map(|result| readonly(result, "schedule")),
+        ScheduleCommand::Today => backend
+            .schedule_today()
+            .await
+            .map(|result| readonly(result, "schedule")),
+    }
+}
+
+async fn run_exam<B: CliBackend + Send>(
+    arguments: ExamArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        ExamCommand::List { term } => backend
+            .exam_arrangement(&term)
+            .await
+            .map(|result| readonly(result, "exam")),
+    }
+}
+
+async fn run_grades<B: CliBackend + Send>(
+    arguments: GradesArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        GradesCommand::List { term } => backend
+            .grades(&term)
+            .await
+            .map(|result| readonly(result, "grades")),
+    }
+}
+
+async fn run_classroom<B: CliBackend + Send>(
+    arguments: ClassroomArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        ClassroomCommand::Search { campus, date } => backend
+            .classroom_search(campus, &date)
+            .await
+            .map(|result| readonly(result, "classroom")),
+    }
+}
+
+async fn run_spoc<B: CliBackend + Send>(
+    arguments: SpocArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        SpocCommand::Assignments => backend
+            .spoc_assignments()
+            .await
+            .map(|result| readonly(result, "spoc")),
+        SpocCommand::Assignment {
+            command: SpocAssignmentCommand::Show { id },
+        } => backend
+            .spoc_assignment(&id)
+            .await
+            .map(|result| readonly(result, "spoc")),
+    }
+}
+
+async fn run_judge<B: CliBackend + Send>(
+    arguments: JudgeArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        JudgeCommand::Assignments { include_expired } => backend
+            .judge_assignments(include_expired)
+            .await
+            .map(|result| readonly(result, "judge")),
+        JudgeCommand::Assignment {
+            command: JudgeAssignmentCommand::Show { course_id, id },
+        } => backend
+            .judge_assignment(&course_id, &id)
+            .await
+            .map(|result| readonly(result, "judge")),
+        JudgeCommand::Assignment {
+            command: JudgeAssignmentCommand::Details { keys },
+        } => {
+            let parsed = keys
+                .into_iter()
+                .map(|key| {
+                    let (course_id, assignment_id) = key.split_once(':').ok_or_else(|| {
+                        invalid_input("judge detail key must use course-id:assignment-id")
+                    })?;
+                    if course_id.is_empty() || assignment_id.is_empty() {
+                        return Err(invalid_input(
+                            "judge detail key must use course-id:assignment-id",
+                        ));
+                    }
+                    Ok(JudgeAssignmentKey {
+                        course_id: course_id.into(),
+                        assignment_id: assignment_id.into(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+            backend
+                .judge_assignment_details(&parsed)
+                .await
+                .map(|result| readonly(result, "judge"))
+        }
+    }
+}
+
+fn readonly<T: Serialize>(result: FeatureResult<T>, feature: &'static str) -> CommandOutput {
+    CommandOutput::Readonly {
+        data: serde_json::to_value(result.data).unwrap_or_else(|_| json!({})),
+        route: result.resolved_route,
+        feature,
+    }
+}
+
 enum CommandOutput {
     Profile(UserProfile),
     Status(AuthStatus),
     Logout(Value),
+    Readonly {
+        data: Value,
+        route: ConnectionMode,
+        feature: &'static str,
+    },
 }
 
 fn render_result<O: Write, E: Write>(
     json_mode: bool,
     mode: ConnectionMode,
+    readonly_feature: Option<&'static str>,
     result: Result<CommandOutput>,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
     match result {
+        Ok(CommandOutput::Readonly {
+            data,
+            route,
+            feature,
+        }) => {
+            if json_mode {
+                let meta = ReadonlyJsonMeta {
+                    route_policy: ubaa_core::domain::RoutePolicy::Auto,
+                    resolved_route: route,
+                    feature: feature.into(),
+                };
+                if write_json(stdout, &ReadonlyJsonEnvelope::success(data, meta)).is_err() {
+                    return ExitCode::Internal as i32;
+                }
+            } else if writeln!(stdout, "{feature} ({route:?}): {data}").is_err() {
+                return ExitCode::Internal as i32;
+            }
+            ExitCode::Success as i32
+        }
         Ok(output) => {
             if json_mode {
                 let value = match output {
                     CommandOutput::Profile(profile) => json!(profile),
                     CommandOutput::Status(status) => json!(status),
                     CommandOutput::Logout(value) => value,
+                    CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
                 };
                 if write_json(stdout, &JsonEnvelope::success(value, mode)).is_err() {
+                    return ExitCode::Internal as i32;
+                }
+            } else if let CommandOutput::Readonly {
+                data,
+                route,
+                feature,
+            } = output
+            {
+                if writeln!(stdout, "{feature} ({route:?}): {data}").is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else if render_human(output, stdout).is_err() {
@@ -347,8 +1197,38 @@ fn render_result<O: Write, E: Write>(
             }
             ExitCode::Success as i32
         }
-        Err(error) => render_error(json_mode, Some(mode), error, stdout, stderr),
+        Err(error) => match readonly_feature {
+            Some(feature) => render_readonly_error(json_mode, mode, feature, error, stdout, stderr),
+            None => render_error(json_mode, Some(mode), error, stdout, stderr),
+        },
     }
+}
+
+fn render_readonly_error<O: Write, E: Write>(
+    json_mode: bool,
+    mode: ConnectionMode,
+    feature: &'static str,
+    mut error: UbaaError,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    if !json_mode {
+        return render_error(false, Some(mode), error, stdout, stderr);
+    }
+    // A feature request never exposes an authentication execution token or image. If an
+    // upstream unexpectedly returns a captcha-shaped error, keep the stable v2 error schema
+    // by dropping the ephemeral challenge rather than serializing its internal fields.
+    let exit_code = error.code.exit_code() as i32;
+    error.challenge = None;
+    let meta = ReadonlyJsonMeta {
+        route_policy: ubaa_core::domain::RoutePolicy::Auto,
+        resolved_route: mode,
+        feature: feature.into(),
+    };
+    if write_json(stdout, &ReadonlyJsonEnvelope::<Value>::failure(error, meta)).is_err() {
+        return ExitCode::Internal as i32;
+    }
+    exit_code
 }
 
 /// Render an error before a backend exists, preserving JSON stdout discipline.
@@ -416,6 +1296,7 @@ fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> std::io::Res
             write_profile(stdout, &status.user)
         }
         CommandOutput::Logout(_) => writeln!(stdout, "Signed out."),
+        CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
     }
 }
 
@@ -524,6 +1405,10 @@ impl CaptchaImage {
             .image_data_url
             .as_deref()
             .ok_or_else(|| internal_error("captcha image data is unavailable"))?;
+        Self::create_data_url(data_url)
+    }
+
+    fn create_data_url(data_url: &str) -> Result<Self> {
         let (_, encoded) = data_url
             .split_once(',')
             .ok_or_else(|| internal_error("captcha image data is invalid"))?;

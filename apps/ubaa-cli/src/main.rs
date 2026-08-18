@@ -4,10 +4,14 @@ use std::path::PathBuf;
 use clap::Parser;
 use directories::ProjectDirs;
 use ubaa_cli::{
-    Cli, authentication_required, render_empty_logout, render_startup_error, run_with_backend,
+    Cli, authentication_required, render_empty_logout, render_startup_error, run_dual_login,
+    run_dual_logout, run_dual_status, run_with_backend,
 };
+use ubaa_core::config::RouteConfig;
+use ubaa_core::connection::{SystemDnsProbe, resolve_feature_route};
+use ubaa_core::domain::ReadonlyFeature;
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::facade::UbaaClient;
+use ubaa_core::facade::{DualUbaaClient, UbaaClient};
 
 #[tokio::main]
 async fn main() {
@@ -61,7 +65,54 @@ async fn run(cli: Cli) -> i32 {
             &mut stderr,
         );
     };
-    let client = match UbaaClient::open(cli.login_mode(), &config_dir) {
+    let has_route_config = config_dir.join("config.toml").is_file();
+    if cli.is_login() && cli.login_mode().is_none() && (!json_mode || has_route_config) {
+        let mut client = match DualUbaaClient::open(&config_dir) {
+            Ok(client) => client,
+            Err(error) => {
+                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+            }
+        };
+        let stdin = io::stdin();
+        let mut input = BufReader::new(stdin.lock());
+        return run_dual_login(cli, &mut client, &mut input, &mut stdout, &mut stderr).await;
+    }
+    if cli.is_auth_status() && cli.login_mode().is_none() {
+        let mut client = match DualUbaaClient::open(&config_dir) {
+            Ok(client) => client,
+            Err(error) => {
+                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+            }
+        };
+        return run_dual_status(cli, &mut client, &mut stdout, &mut stderr).await;
+    }
+    if cli.is_logout() && cli.login_mode().is_none() {
+        let mut client = match DualUbaaClient::open(&config_dir) {
+            Ok(client) => client,
+            Err(error) => {
+                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+            }
+        };
+        return run_dual_logout(cli, &mut client, &mut stdout, &mut stderr).await;
+    }
+
+    let selected_mode = if let Some(feature) = route_feature(&cli) {
+        let config = match RouteConfig::load(&config_dir) {
+            Ok(config) => config,
+            Err(error) => {
+                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+            }
+        };
+        match resolve_feature_route(feature, config.feature(feature), &config, &SystemDnsProbe) {
+            Ok(route) => Some(route.mode),
+            Err(error) => {
+                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+            }
+        }
+    } else {
+        cli.login_mode()
+    };
+    let client = match UbaaClient::open(selected_mode, &config_dir) {
         Ok(client) => client,
         Err(error) => {
             return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
@@ -92,6 +143,30 @@ async fn run(cli: Cli) -> i32 {
     let stdin = io::stdin();
     let mut input = BufReader::new(stdin.lock());
     run_with_backend(cli, &mut backend, &mut input, &mut stdout, &mut stderr).await
+}
+
+fn command_feature(cli: &Cli) -> Option<ReadonlyFeature> {
+    match &cli.command {
+        ubaa_cli::Command::Schedule(_) => Some(ReadonlyFeature::Schedule),
+        ubaa_cli::Command::Exam(_) => Some(ReadonlyFeature::Exam),
+        ubaa_cli::Command::Grades(_) => Some(ReadonlyFeature::Grades),
+        ubaa_cli::Command::Classroom(_) => Some(ReadonlyFeature::Classroom),
+        ubaa_cli::Command::Spoc(_) => Some(ReadonlyFeature::Spoc),
+        ubaa_cli::Command::Judge(_) => Some(ReadonlyFeature::Judge),
+        _ => None,
+    }
+}
+
+fn route_feature(cli: &Cli) -> Option<ReadonlyFeature> {
+    command_feature(cli).or_else(|| {
+        matches!(
+            &cli.command,
+            ubaa_cli::Command::User(ubaa_cli::UserArgs {
+                command: ubaa_cli::UserCommand::Show
+            })
+        )
+        .then_some(ReadonlyFeature::Schedule)
+    })
 }
 
 fn default_config_dir() -> Option<PathBuf> {

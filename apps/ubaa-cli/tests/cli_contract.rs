@@ -1,11 +1,14 @@
 use std::io::Cursor;
 
 use async_trait::async_trait;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use ubaa_cli::{Cli, CliBackend, run_with_backend};
-use ubaa_core::domain::{AuthStatus, ConnectionMode, LoginChallenge, LoginInput, UserProfile};
+use ubaa_core::domain::{
+    AuthStatus, ConnectionMode, FeatureResult, LoginChallenge, LoginInput, RoutePolicy, Term,
+    UserProfile,
+};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::output::JsonEnvelope;
+use ubaa_core::output::{AggregateJsonEnvelope, AggregateJsonMeta, JsonEnvelope};
 
 #[derive(Default)]
 struct FakeBackend {
@@ -42,6 +45,15 @@ impl CliBackend for FakeBackend {
 
     async fn logout(&mut self) -> Result<()> {
         Ok(())
+    }
+
+    async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        Err(UbaaError::new(
+            ErrorCode::AuthenticationRequired,
+            ErrorKind::Authentication,
+            false,
+            "fixture schedule authentication required",
+        ))
     }
 }
 
@@ -198,6 +210,31 @@ async fn human_user_output_masks_phone_and_identity_number() {
     assert!(!output.contains("TEST-ID-0001"));
 }
 
+#[tokio::test]
+async fn readonly_errors_use_schema_v2_meta() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
+    let mut backend = FakeBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_backend(
+        cli,
+        &mut backend,
+        &mut Cursor::new(Vec::<u8>::new()),
+        &mut stdout,
+        &mut stderr,
+    )
+    .await;
+
+    assert_eq!(code, 3);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], false);
+    assert_eq!(value["meta"]["feature"], "schedule");
+    assert_eq!(value["error"]["code"], "authentication_required");
+    assert!(stderr.is_empty());
+}
+
 #[test]
 fn clap_has_no_plaintext_password_option() {
     let error = Cli::try_parse_from([
@@ -215,6 +252,18 @@ fn clap_has_no_plaintext_password_option() {
             .to_string()
             .contains("unexpected argument '--password'")
     );
+}
+
+#[test]
+fn ordinary_help_hides_route_override_and_lists_readonly_groups() {
+    let help = Cli::command().render_long_help().to_string();
+    assert!(!help.contains("--mode"));
+    for command in ["schedule", "exam", "grades", "classroom", "spoc", "judge"] {
+        assert!(
+            help.contains(command),
+            "missing {command} from top-level help"
+        );
+    }
 }
 
 #[test]
@@ -261,9 +310,30 @@ fn serialized_envelopes_match_the_cli_json_schema() {
     let failure_bytes = serde_json::to_vec(&failure).unwrap();
     let success: serde_json::Value = serde_json::from_slice(&success_bytes).unwrap();
     let failure: serde_json::Value = serde_json::from_slice(&failure_bytes).unwrap();
+    let aggregate = serde_json::to_value(AggregateJsonEnvelope {
+        schema_version: 2,
+        ok: true,
+        data: serde_json::json!({
+            "readiness": "partial",
+            "routes": [
+                { "route": "direct", "state": "ready" },
+                { "route": "webvpn", "state": "failed" }
+            ],
+            "profile": null,
+            "challenges": []
+        }),
+        error: None,
+        meta: AggregateJsonMeta {
+            route_policy: RoutePolicy::Auto,
+            resolved_routes: vec![ConnectionMode::Direct],
+            feature: "auth".into(),
+        },
+    })
+    .unwrap();
 
     assert!(validator.is_valid(&success));
     assert!(validator.is_valid(&failure));
+    assert!(validator.is_valid(&aggregate));
     assert_eq!(success["data"]["schoolId"], "TEST-0001");
     assert_eq!(failure["error"]["code"], "captcha_required");
 }
