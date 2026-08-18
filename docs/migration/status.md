@@ -20,11 +20,11 @@ Updated: 2026-08-18
 | Phase | Status | Evidence or remaining gate |
 |---|---|---|
 | 0-6 baseline | Preserved | Existing commits and reference checks remain intact. |
-| 7 route policy | Implemented and deterministic-tested | Three DNS states, 60-second cache, strict TOML v1 config, six matrix rows, hidden CLI override. Live feature rows remain unverified below. |
+| 7 route policy | Implemented and deterministic-tested | Three DNS states, 60-second cache, strict TOML v1 config, six matrix rows, hidden CLI override. Remaining live gaps are recorded below. |
 | 8 dual sessions | Implemented and deterministic-tested | Schema-v2 two-slot persistence, legacy migration, per-route auth/challenge state, partial login, aggregate status, logout of both routes, revision CAS. |
 | 9a schedule/exam/grades | Implemented and parser/Mock-tested | Real auto requests stop at the undergraduate portal probe with `authentication_required`. |
-| 9b classroom | Implemented, parser/Mock-tested and real-verified via auto | Real auto query succeeded with 158 parsed classrooms for the 2026-08-18 default date. |
-| 9c SPOC | Implemented, parser/Mock-tested, real empty result | CAS token/role, AES-CBC, pagination, detail/submission read and HTML text mapping pass deterministic tests. Auto list succeeds with `result_count=0`; no detail was available to exercise live. |
+| 9b classroom | Implemented, parser/Mock-tested and real-verified on Direct/WebVPN/auto | All three routes succeeded with 158 parsed classrooms for the 2026-08-18 default date. |
+| 9c SPOC | Implemented, parser/Mock-tested, real empty result on Direct/WebVPN/auto | CAS token/role, AES-CBC, pagination, detail/submission read and HTML text mapping pass deterministic tests. All three routes returned a valid empty list; no detail was available to exercise live. |
 | 9d Judge | Implemented, parser/Mock-tested | Course selection, detail reads, six-month cutoff, route/session-scoped caches and bounded query constant are implemented. Real auto request fails with `upstream_unavailable`. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2; aggregate login/status expose safe route states. |
 | 11 live matrix | Blocked by live business evidence | Required commands were run; failures are recorded in the feature table. |
@@ -61,6 +61,15 @@ grades auto: exit 3 authentication_required at schedule_terms
 classroom auto: exit 0 result_count=158 date=2026-08-18
 spoc auto: exit 0 result_count=0
 judge auto: exit 5 upstream_unavailable
+```
+
+Additional explicit-route business checks:
+
+```text
+classroom direct: exit 0 result_count=158 date=2026-08-18
+classroom webvpn: exit 0 result_count=158 date=2026-08-18
+spoc direct: exit 0 result_count=0
+spoc webvpn: exit 0 result_count=0
 ```
 
 Direct and WebVPN columns stay `unverified` unless an explicit route command produces a successful business response. The matrix never treats authentication success, an empty fixture, or a Mock response as business-route evidence. Classroom and SPOC explicit-route summaries above are from real verifier runs.
