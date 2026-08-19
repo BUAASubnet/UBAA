@@ -29,7 +29,7 @@ Unknown fields, feature names, versions other than `1`, and route values outside
 
 `SystemDnsProbe` resolves `gw.buaa.edu.cn` with a 500 ms bound. At least one resolved address is `Campus`, an authoritative no-record result is `OffCampus`, and timeout or other resolver failure is `Unknown`. The current-process cache is 60 seconds and is injectable in tests. No IP range is hard-coded and no credential is read by the probe.
 
-`Campus` resolves `auto` to Direct; `OffCampus` resolves it to WebVPN. `Unknown` uses the feature row's `unknown_default` (currently Direct for all six read-only features) and remains visible in `RouteDiagnostic`. Explicit routes do not fallback.
+`Campus` resolves `auto` to Direct; `OffCampus` resolves it to WebVPN. `Unknown` uses the feature row's `unknown_default` and remains visible in `RouteDiagnostic`. The live-verified Judge matrix currently has an explicit `auto` route override to WebVPN for all three DNS states because its Direct business endpoint is unavailable while WebVPN succeeds. Explicit routes do not fallback.
 
 The initial matrix sets both ready-route and network-error fallback to false for every operation. This is deliberate: a feature may be retried on the other route only after its frozen implementation and live evidence establish that the operation is idempotent and safe to replay.
 
