@@ -28,7 +28,7 @@ Updated: 2026-08-19
 | 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds | Business-page redirects now use the route-locked redirect helper; workers filter Judge-scoped cookies and independently activate before course selection; detail/batch reads remain bounded at four workers. Explicit WebVPN produced a real successful list/detail response; auto still needs a stable full detail run. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
 | 11 live matrix | Partially improved; still blocked by live business evidence | Judge WebVPN has a real success after the redirect/session fix; schedule/exam/grades remain account-blocked and Judge auto has repeated timeout/upstream-change attempts. |
-| 12 handoff/gates | Deterministic gates pending final rerun; live handoff blocked | Commit `a177960` contains the Judge redirect/session isolation, route-matrix and verifier-sample fixes; final sensitive and workspace gates must be rerun after the docs commit, and live feature hard gates are still failed. |
+| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Earlier independent rounds through `22b8d6f`, followed by `a177960` (Judge redirect/session isolation, route matrix and verifier sample) and `880b002` (live evidence/status docs), are independently committed; live feature hard gates are still failed. |
 
 ## Live Authentication
 
@@ -96,7 +96,7 @@ The latest focused runs passed:
 - `cargo test --locked -p ubaa-test-support --test support` (8 passed).
 - `./scripts/test-verify-live.sh`.
 
-The final required gate sequence passed on 2026-08-19:
+The final required gate sequence passed on 2026-08-19 after the Judge fix and evidence-documentation commits:
 
 ```bash
 just refs
@@ -104,7 +104,7 @@ just check-sensitive
 just check
 ```
 
-`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 99 repository files; the next final `just check` must cover locked metadata, format, Clippy, 114 workspace tests, synthetic verifier, build, Rustdoc and diff checks after this round is committed.
+`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 99 repository files; `just check` exit 0 covered locked metadata, format, Clippy, 114 workspace tests, synthetic verifier, build, Rustdoc and diff checks.
 
 CI remains deterministic-only: it does not read `.env.local` or contact live accounts. Sensitive scans must continue to reject passwords, Cookies, tokens, captcha images, raw bodies, and complete personal data.
 
