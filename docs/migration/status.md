@@ -23,7 +23,7 @@ Updated: 2026-08-19
 | 7 route policy | Implemented and deterministic-tested | Three DNS states, 60-second cache, strict TOML v1 config, six matrix rows, hidden CLI override. Remaining live gaps are recorded below. |
 | 8 dual sessions | Implemented and deterministic-tested | Schema-v2 two-slot persistence, legacy migration, per-route auth/challenge state, partial login, aggregate status, logout of both routes, revision CAS. |
 | 9a schedule/exam/grades | Implemented with sanitized fixture and facade Mock coverage | Every schedule/exam read, schedule/exam route-specific Referer, grades activation GET and `xq/year` POST are asserted. Real auto requests still stop at the undergraduate portal probe with `authentication_required`. |
-| 9b classroom | Implemented with sanitized fixture and facade Mock coverage; real-verified on Direct/WebVPN/auto | The CAS sync, query URL and required headers are asserted. All three live routes succeeded with 158 parsed classrooms for the 2026-08-18 default date. |
+| 9b classroom | Implemented with sanitized fixture and facade Mock coverage; real-verified on Direct/WebVPN/auto | The CAS sync, query URL and required headers are asserted. All three live routes succeeded with 158 parsed classrooms for the 2026-08-19 default date. |
 | 9c SPOC | Implemented with sanitized fixture/Mock coverage; real empty result on Direct/WebVPN/auto | CAS token/role, known AES-CBC vector, one business-auth refresh, pagination, Asia/Shanghai time mapping, detail/submission read and HTML/status mapping pass deterministic tests. All three routes returned a valid empty list; no detail was available to exercise live. |
 | 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds | Course selection, one business-page reactivation, detail reads, WebVPN batch gateway routing, six-month cutoff/skip and include-expired recovery, empty batch, stable not-found errors, route/session-scoped caches and actual four-worker course/detail query bounds are implemented. Real routes remain blocked by Judge upstream errors. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
@@ -46,7 +46,7 @@ These prove only the two authentication routes. They do not prove any business e
 | Schedule (terms/weeks/current/today) | Core facade, DTOs, portal probe, parsers, CLI and adaptive verifier implemented | Failed: `authentication_required` at `schedule_terms` (exit 3) | Failed: `authentication_required` at `schedule_terms` (exit 3) | `authentication_required` at `schedule_terms` (exit 3) | Account must have a valid undergraduate portal session/capability; rerun Direct/WebVPN/auto schedule commands. |
 | Exam arrangement | Facade/parser/CLI implemented; term is selected from schedule response | Failed: shared `schedule_terms` `authentication_required` (exit 3) | Failed: shared `schedule_terms` `authentication_required` (exit 3) | `authentication_required` at shared `schedule_terms` (exit 3) | Same undergraduate portal requirement; rerun Direct/WebVPN/auto exam commands. |
 | Grades | Strict `yyyy-yyyy-semester` parser, activation GET, `xq/year` POST, DTO/CLI implemented | Failed: shared `schedule_terms` `authentication_required` (exit 3) | Failed: shared `schedule_terms` `authentication_required` (exit 3) | `authentication_required` at shared `schedule_terms` (exit 3) | Provide a supported term and score-portal account; rerun Direct/WebVPN/auto grades commands. |
-| Empty classroom | CAS sync, route-locked headers/query, empty-map parser and CLI implemented | Success, 158 results, exit 0, date `2026-08-18` | Success, 158 results, exit 0, date `2026-08-18` | Success, `result_count=158`, exit 0, date `2026-08-18` | Direct, WebVPN and auto are verified for the current campus/date; rerun with a different campus/date when needed. |
+| Empty classroom | CAS sync, route-locked headers/query, empty-map parser and CLI implemented | Success, 158 results, exit 0, date `2026-08-19` | Success, 158 results, exit 0, date `2026-08-19` | Success, `result_count=158`, exit 0, date `2026-08-19` | Direct, WebVPN and auto are verified for the current campus/date; rerun with a different campus/date when needed. |
 | SPOC assignments/details | CAS token/role, encrypted paginated list, detail, submission status and HTML text implemented | Success, empty list, exit 0 | Success, empty list, exit 0 | Success, `result_count=0`, exit 0 | Empty lists are valid real results on all three routes. A non-empty account should rerun to exercise one detail request. |
 | Judge assignments/details | SSO activation, course selection, HTML parsers, cutoff/cache and detail/batch facade implemented | `upstream_unavailable` (exit 5) | `upstream_changed` (exit 6) | `upstream_unavailable` at `judge` (exit 5) | Requires Judge TLS/upstream availability and course access; rerun Direct/WebVPN/auto Judge commands. |
 
@@ -58,7 +58,7 @@ The individual required command summaries were:
 schedule auto: exit 3 authentication_required at schedule_terms
 exam auto: exit 3 authentication_required at schedule_terms
 grades auto: exit 3 authentication_required at schedule_terms
-classroom auto: exit 0 result_count=158 date=2026-08-18
+classroom auto: exit 0 result_count=158 date=2026-08-19
 spoc auto: exit 0 result_count=0
 judge auto: exit 5 upstream_unavailable
 ```
@@ -76,8 +76,8 @@ judge webvpn: exit 6 upstream_changed
 Additional explicit-route business checks:
 
 ```text
-classroom direct: exit 0 result_count=158 date=2026-08-18
-classroom webvpn: exit 0 result_count=158 date=2026-08-18
+classroom direct: exit 0 result_count=158 date=2026-08-19
+classroom webvpn: exit 0 result_count=158 date=2026-08-19
 spoc direct: exit 0 result_count=0
 spoc webvpn: exit 0 result_count=0
 ```

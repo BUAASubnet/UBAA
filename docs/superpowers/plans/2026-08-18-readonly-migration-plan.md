@@ -8,6 +8,10 @@
 
 **Tech Stack:** Rust 2024, Tokio, Reqwest, Serde, TOML, scraper/regex, Clap, existing injectable HTTP/session ports, deterministic fixtures and shell live verifier.
 
+Execution note: Tasks 1-5 and the deterministic portions of Task 6 are implemented in
+independent commits. The live matrix was rerun on 2026-08-19; classroom and SPOC passed,
+while schedule/exam/grades and Judge remain hard-gated by live upstream/account failures.
+
 ---
 
 ### Task 1: Confirm frozen evidence and route-policy contract
