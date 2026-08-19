@@ -1,6 +1,6 @@
 # Migration Status
 
-Updated: 2026-08-18
+Updated: 2026-08-19
 
 ## Conclusion
 
@@ -26,7 +26,7 @@ Updated: 2026-08-18
 | 9b classroom | Implemented, parser/Mock-tested and real-verified on Direct/WebVPN/auto | All three routes succeeded with 158 parsed classrooms for the 2026-08-18 default date. |
 | 9c SPOC | Implemented, parser/Mock-tested, real empty result on Direct/WebVPN/auto | CAS token/role, AES-CBC, pagination, detail/submission read and HTML text mapping pass deterministic tests. All three routes returned a valid empty list; no detail was available to exercise live. |
 | 9d Judge | Implemented, parser/Mock-tested and four-worker bounded | Course selection, detail reads, six-month cutoff, route/session-scoped caches and actual four-worker course/detail query bounds are implemented. Real routes remain blocked by Judge upstream errors. |
-| 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2; aggregate login/status expose safe route states. |
+| 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
 | 11 live matrix | Blocked by live business evidence | Required commands were run; failures are recorded in the feature table. |
 | 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009`, `35a3571`, and `014bf24` contain the route/session, readonly, verifier/docs, SPOC detail-metadata, and bounded Judge worker rounds; live feature hard gates are still failed. |
 
@@ -88,13 +88,13 @@ Direct and WebVPN columns stay `unverified` unless an explicit route command pro
 
 The latest focused runs passed:
 
-- `cargo test --locked --workspace`, including 98 tests after the SPOC/Judge Mock and bounded-worker additions.
+- `cargo test --locked --workspace`, including 100 tests after the SPOC/Judge Mock, bounded-worker and route-diagnostic additions.
 - `cargo clippy --locked --workspace --all-targets -- -D warnings`.
-- `cargo test --locked -p ubaa-cli --test binary_e2e` (9 passed).
-- `cargo test --locked -p ubaa-test-support --test readonly` (3 passed).
+- `cargo test --locked -p ubaa-cli --test binary_e2e` (10 passed).
+- `cargo test --locked -p ubaa-test-support --test readonly` (5 passed).
 - `./scripts/test-verify-live.sh`.
 
-The final required gate sequence passed on 2026-08-18:
+The final required gate sequence passed on 2026-08-19:
 
 ```bash
 just refs
@@ -102,7 +102,7 @@ just check-sensitive
 just check
 ```
 
-`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 84 repository files; `just check` exit 0 covered locked metadata, format, Clippy, 98 workspace tests, synthetic verifier, build, Rustdoc and diff checks.
+`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 86 repository files; `just check` exit 0 covered locked metadata, format, Clippy, 100 workspace tests, synthetic verifier, build, Rustdoc and diff checks.
 
 CI remains deterministic-only: it does not read `.env.local` or contact live accounts. Sensitive scans must continue to reject passwords, Cookies, tokens, captcha images, raw bodies, and complete personal data.
 
@@ -110,7 +110,7 @@ CI remains deterministic-only: it does not read `.env.local` or contact live acc
 
 - The live hard gate for schedule, exam, grades and Judge is not passed; this is an external protocol/account/network blocker, not a fixture gap.
 - Direct and WebVPN business routes have failed evidence for schedule, exam, grades and Judge; classroom and SPOC have real success on both explicit routes and `auto`.
-- `auto` route diagnostics are available inside Core but are not yet included in every human/JSON feature metadata field.
+- Schema-v2 JSON carries effective policy, DNS state, initial/final route and fallback diagnostics; human output continues to show the concrete route without exposing internal protocol details.
 - Judge list and batch-detail queries now use route-locked read-only workers with an actual four-request semaphore; each worker copies the route Cookie jar and never persists authentication state.
 - No write operations were migrated: submission/upload, answers, reservations, attendance, grading changes, or other side effects remain out of scope.
 - Windows owner-only directory ACL enforcement remains a release-audit item from the phase 0-6 baseline.

@@ -34,10 +34,13 @@
         "error": { "$ref": "#/$defs/readonlyError" },
         "meta": {
           "type": "object",
-          "required": ["routePolicy", "resolvedRoute", "feature"],
+          "required": ["routePolicy", "networkState", "initialRoute", "resolvedRoute", "usedFallback", "feature"],
           "properties": {
             "routePolicy": { "enum": ["auto", "direct", "webvpn"] },
+            "networkState": { "enum": ["campus", "off_campus", "unknown"] },
+            "initialRoute": { "enum": ["direct", "webvpn"] },
             "resolvedRoute": { "enum": ["direct", "webvpn"] },
+            "usedFallback": { "type": "boolean" },
             "feature": { "type": "string" }
           },
           "additionalProperties": false

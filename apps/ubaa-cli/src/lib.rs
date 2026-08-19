@@ -10,11 +10,13 @@ use base64::Engine as _;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::Serialize;
 use serde_json::{Value, json};
+use ubaa_core::connection::{NetworkState, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, CaptchaAnswer, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement,
     FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    LoginChallenge, LoginInput, LoginReadiness, RouteLoginState, SafeError, SecretValue,
-    SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    LoginChallenge, LoginInput, LoginReadiness, RouteLoginState, RoutePolicy, SafeError,
+    SecretValue, SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile, Week,
+    WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{DualUbaaClient, UbaaClient};
@@ -42,6 +44,56 @@ pub struct Cli {
     /// Command to run.
     #[command(subcommand)]
     pub command: Command,
+}
+
+/// Safe route decision context supplied by the host after configuration and DNS resolution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadonlyRouteContext {
+    /// Effective feature route policy.
+    pub policy: RoutePolicy,
+    /// DNS state used for the decision, or unknown when no probe ran.
+    pub network: NetworkState,
+    /// Route selected before fallback.
+    pub initial_route: ConnectionMode,
+    /// Route selected after fallback.
+    pub resolved_route: ConnectionMode,
+    /// Whether a ready-route fallback occurred.
+    pub used_fallback: bool,
+}
+
+impl ReadonlyRouteContext {
+    fn compatibility(mode: ConnectionMode) -> Self {
+        Self {
+            policy: RoutePolicy::Auto,
+            network: NetworkState::Unknown,
+            initial_route: mode,
+            resolved_route: mode,
+            used_fallback: false,
+        }
+    }
+
+    fn meta(self, feature: &'static str, resolved_route: ConnectionMode) -> ReadonlyJsonMeta {
+        ReadonlyJsonMeta {
+            route_policy: self.policy,
+            network_state: self.network,
+            initial_route: self.initial_route,
+            resolved_route,
+            used_fallback: self.used_fallback,
+            feature: feature.into(),
+        }
+    }
+}
+
+impl From<RouteResolution> for ReadonlyRouteContext {
+    fn from(resolution: RouteResolution) -> Self {
+        Self {
+            policy: resolution.policy,
+            network: resolution.diagnostic.network,
+            initial_route: resolution.diagnostic.initial_route,
+            resolved_route: resolution.mode,
+            used_fallback: resolution.diagnostic.used_fallback,
+        }
+    }
 }
 
 /// Top-level command groups.
@@ -904,6 +956,33 @@ where
     E: Write,
 {
     let mode = backend.mode();
+    run_with_backend_with_route(
+        cli,
+        backend,
+        ReadonlyRouteContext::compatibility(mode),
+        input,
+        stdout,
+        stderr,
+    )
+    .await
+}
+
+/// Execute a parsed command with the host's verified read-only route decision.
+pub async fn run_with_backend_with_route<B, R, O, E>(
+    cli: Cli,
+    backend: &mut B,
+    route_context: ReadonlyRouteContext,
+    input: &mut R,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32
+where
+    B: CliBackend + Send,
+    R: BufRead,
+    O: Write,
+    E: Write,
+{
+    let mode = backend.mode();
     let readonly_feature = readonly_command_feature(&cli.command);
     let result = match cli.command {
         Command::Auth(AuthArgs {
@@ -935,7 +1014,15 @@ where
         Command::Judge(arguments) => run_judge(arguments, backend).await,
     };
 
-    render_result(cli.json, mode, readonly_feature, result, stdout, stderr)
+    render_result(
+        cli.json,
+        mode,
+        readonly_feature,
+        route_context,
+        result,
+        stdout,
+        stderr,
+    )
 }
 
 fn readonly_command_feature(command: &Command) -> Option<&'static str> {
@@ -1148,6 +1235,7 @@ fn render_result<O: Write, E: Write>(
     json_mode: bool,
     mode: ConnectionMode,
     readonly_feature: Option<&'static str>,
+    route_context: ReadonlyRouteContext,
     result: Result<CommandOutput>,
     stdout: &mut O,
     stderr: &mut E,
@@ -1159,11 +1247,7 @@ fn render_result<O: Write, E: Write>(
             feature,
         }) => {
             if json_mode {
-                let meta = ReadonlyJsonMeta {
-                    route_policy: ubaa_core::domain::RoutePolicy::Auto,
-                    resolved_route: route,
-                    feature: feature.into(),
-                };
+                let meta = route_context.meta(feature, route);
                 if write_json(stdout, &ReadonlyJsonEnvelope::success(data, meta)).is_err() {
                     return ExitCode::Internal as i32;
                 }
@@ -1198,7 +1282,15 @@ fn render_result<O: Write, E: Write>(
             ExitCode::Success as i32
         }
         Err(error) => match readonly_feature {
-            Some(feature) => render_readonly_error(json_mode, mode, feature, error, stdout, stderr),
+            Some(feature) => render_readonly_error(
+                json_mode,
+                mode,
+                feature,
+                route_context,
+                error,
+                stdout,
+                stderr,
+            ),
             None => render_error(json_mode, Some(mode), error, stdout, stderr),
         },
     }
@@ -1208,6 +1300,7 @@ fn render_readonly_error<O: Write, E: Write>(
     json_mode: bool,
     mode: ConnectionMode,
     feature: &'static str,
+    route_context: ReadonlyRouteContext,
     mut error: UbaaError,
     stdout: &mut O,
     stderr: &mut E,
@@ -1220,15 +1313,31 @@ fn render_readonly_error<O: Write, E: Write>(
     // by dropping the ephemeral challenge rather than serializing its internal fields.
     let exit_code = error.code.exit_code() as i32;
     error.challenge = None;
-    let meta = ReadonlyJsonMeta {
-        route_policy: ubaa_core::domain::RoutePolicy::Auto,
-        resolved_route: mode,
-        feature: feature.into(),
-    };
+    let meta = route_context.meta(feature, route_context.resolved_route);
     if write_json(stdout, &ReadonlyJsonEnvelope::<Value>::failure(error, meta)).is_err() {
         return ExitCode::Internal as i32;
     }
     exit_code
+}
+
+/// Render a safe post-resolution read-only failure before a backend is available.
+pub fn render_readonly_startup_error<O: Write, E: Write>(
+    json_mode: bool,
+    feature: &'static str,
+    route_context: ReadonlyRouteContext,
+    error: UbaaError,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    render_readonly_error(
+        json_mode,
+        route_context.resolved_route,
+        feature,
+        route_context,
+        error,
+        stdout,
+        stderr,
+    )
 }
 
 /// Render an error before a backend exists, preserving JSON stdout discipline.

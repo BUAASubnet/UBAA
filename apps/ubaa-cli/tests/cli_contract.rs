@@ -2,18 +2,24 @@ use std::io::Cursor;
 
 use async_trait::async_trait;
 use clap::{CommandFactory, Parser};
-use ubaa_cli::{Cli, CliBackend, run_with_backend};
+use ubaa_cli::{
+    Cli, CliBackend, ReadonlyRouteContext, run_with_backend, run_with_backend_with_route,
+};
+use ubaa_core::connection::NetworkState;
 use ubaa_core::domain::{
     AuthStatus, ConnectionMode, FeatureResult, LoginChallenge, LoginInput, RoutePolicy, Term,
     UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::output::{AggregateJsonEnvelope, AggregateJsonMeta, JsonEnvelope};
+use ubaa_core::output::{
+    AggregateJsonEnvelope, AggregateJsonMeta, JsonEnvelope, ReadonlyJsonEnvelope, ReadonlyJsonMeta,
+};
 
 #[derive(Default)]
 struct FakeBackend {
     challenge: Option<LoginChallenge>,
     login_calls: usize,
+    schedule_success: bool,
 }
 
 #[async_trait]
@@ -48,6 +54,12 @@ impl CliBackend for FakeBackend {
     }
 
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        if self.schedule_success {
+            return Ok(FeatureResult {
+                data: Vec::new(),
+                resolved_route: ConnectionMode::Direct,
+            });
+        }
         Err(UbaaError::new(
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,
@@ -128,6 +140,7 @@ async fn json_captcha_returns_exit_four_without_image_or_login_submission() {
             image_data_url: Some("data:image/jpeg;base64,DO-NOT-PRINT".into()),
         }),
         login_calls: 0,
+        schedule_success: false,
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -168,6 +181,7 @@ async fn human_captcha_stays_in_process_until_non_empty_input() {
             image_data_url: Some("data:image/jpeg;base64,RklYVFVSRS1JTUFHRQ==".into()),
         }),
         login_calls: 0,
+        schedule_success: false,
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -211,15 +225,16 @@ async fn human_user_output_masks_phone_and_identity_number() {
 }
 
 #[tokio::test]
-async fn readonly_errors_use_schema_v2_meta() {
+async fn readonly_route_errors_use_schema_v2_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeBackend::default();
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let code = run_with_backend(
+    let code = run_with_backend_with_route(
         cli,
         &mut backend,
+        explicit_direct_route_context(),
         &mut Cursor::new(Vec::<u8>::new()),
         &mut stdout,
         &mut stderr,
@@ -231,8 +246,56 @@ async fn readonly_errors_use_schema_v2_meta() {
     assert_eq!(value["schemaVersion"], 2);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"]["feature"], "schedule");
+    assert_eq!(value["meta"]["routePolicy"], "direct");
+    assert_eq!(value["meta"]["networkState"], "unknown");
+    assert_eq!(value["meta"]["initialRoute"], "direct");
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert_eq!(value["meta"]["usedFallback"], false);
     assert_eq!(value["error"]["code"], "authentication_required");
     assert!(stderr.is_empty());
+}
+
+#[tokio::test]
+async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
+    let mut backend = FakeBackend {
+        schedule_success: true,
+        ..FakeBackend::default()
+    };
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_backend_with_route(
+        cli,
+        &mut backend,
+        explicit_direct_route_context(),
+        &mut Cursor::new(Vec::<u8>::new()),
+        &mut stdout,
+        &mut stderr,
+    )
+    .await;
+
+    assert_eq!(code, 0);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["meta"]["feature"], "schedule");
+    assert_eq!(value["meta"]["routePolicy"], "direct");
+    assert_eq!(value["meta"]["networkState"], "unknown");
+    assert_eq!(value["meta"]["initialRoute"], "direct");
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert_eq!(value["meta"]["usedFallback"], false);
+    assert!(stderr.is_empty());
+}
+
+fn explicit_direct_route_context() -> ReadonlyRouteContext {
+    ReadonlyRouteContext {
+        policy: RoutePolicy::Direct,
+        network: NetworkState::Unknown,
+        initial_route: ConnectionMode::Direct,
+        resolved_route: ConnectionMode::Direct,
+        used_fallback: false,
+    }
 }
 
 #[test]
@@ -330,10 +393,29 @@ fn serialized_envelopes_match_the_cli_json_schema() {
         },
     })
     .unwrap();
+    let readonly = serde_json::to_value(ReadonlyJsonEnvelope::success(
+        serde_json::json!([]),
+        ReadonlyJsonMeta {
+            route_policy: RoutePolicy::Direct,
+            network_state: NetworkState::Unknown,
+            initial_route: ConnectionMode::Direct,
+            resolved_route: ConnectionMode::Direct,
+            used_fallback: false,
+            feature: "schedule".into(),
+        },
+    ))
+    .unwrap();
+    let mut readonly_missing_network = readonly.clone();
+    readonly_missing_network["meta"]
+        .as_object_mut()
+        .unwrap()
+        .remove("networkState");
 
     assert!(validator.is_valid(&success));
     assert!(validator.is_valid(&failure));
     assert!(validator.is_valid(&aggregate));
+    assert!(validator.is_valid(&readonly));
+    assert!(!validator.is_valid(&readonly_missing_network));
     assert_eq!(success["data"]["schoolId"], "TEST-0001");
     assert_eq!(failure["error"]["code"], "captcha_required");
 }

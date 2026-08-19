@@ -2,6 +2,7 @@
 
 use serde::Serialize;
 
+use crate::connection::NetworkState;
 use crate::domain::ConnectionMode;
 use crate::error::UbaaError;
 
@@ -26,8 +27,14 @@ pub struct JsonMeta {
 pub struct ReadonlyJsonMeta {
     /// User-selected route policy.
     pub route_policy: crate::domain::RoutePolicy,
+    /// DNS state used by automatic route resolution, or unknown when not probed.
+    pub network_state: NetworkState,
+    /// Route selected before any permitted ready-route fallback.
+    pub initial_route: crate::domain::ConnectionMode,
     /// Concrete route resolved for this request.
     pub resolved_route: crate::domain::ConnectionMode,
+    /// Whether a permitted ready route replaced the initial route.
+    pub used_fallback: bool,
     /// Stable feature name.
     pub feature: String,
 }

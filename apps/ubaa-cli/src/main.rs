@@ -1,15 +1,16 @@
 use std::io::{self, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use directories::ProjectDirs;
 use ubaa_cli::{
-    Cli, authentication_required, render_empty_logout, render_startup_error, run_dual_login,
-    run_dual_logout, run_dual_status, run_with_backend,
+    Cli, ReadonlyRouteContext, authentication_required, render_empty_logout,
+    render_readonly_startup_error, render_startup_error, run_dual_login, run_dual_logout,
+    run_dual_status, run_with_backend, run_with_backend_with_route,
 };
 use ubaa_core::config::RouteConfig;
 use ubaa_core::connection::{SystemDnsProbe, resolve_feature_route};
-use ubaa_core::domain::ReadonlyFeature;
+use ubaa_core::domain::{ConnectionMode, ReadonlyFeature};
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::{DualUbaaClient, UbaaClient};
 
@@ -96,31 +97,22 @@ async fn run(cli: Cli) -> i32 {
         return run_dual_logout(cli, &mut client, &mut stdout, &mut stderr).await;
     }
 
-    let selected_mode = if let Some(feature) = route_feature(&cli) {
-        let config = match RouteConfig::load(&config_dir) {
-            Ok(config) => config,
-            Err(error) => {
-                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-            }
-        };
-        match resolve_feature_route(feature, config.feature(feature), &config, &SystemDnsProbe) {
-            Ok(route) => Some(route.mode),
-            Err(error) => {
-                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-            }
-        }
-    } else {
-        cli.login_mode()
-    };
-    let client = match UbaaClient::open(selected_mode, &config_dir) {
-        Ok(client) => client,
+    let (selected_mode, route_context) = match resolve_cli_route(&cli, &config_dir) {
+        Ok(resolution) => resolution,
         Err(error) => {
             return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
         }
     };
+    let client = match UbaaClient::open(selected_mode, &config_dir) {
+        Ok(client) => client,
+        Err(error) => {
+            return render_resolved_error(&cli, route_context, error, &mut stdout, &mut stderr);
+        }
+    };
     if client.is_none() && cli.requires_session() {
-        return render_startup_error(
-            json_mode,
+        return render_resolved_error(
+            &cli,
+            route_context,
             authentication_required(),
             &mut stdout,
             &mut stderr,
@@ -142,7 +134,56 @@ async fn run(cli: Cli) -> i32 {
     };
     let stdin = io::stdin();
     let mut input = BufReader::new(stdin.lock());
-    run_with_backend(cli, &mut backend, &mut input, &mut stdout, &mut stderr).await
+    if let Some(route_context) = route_context {
+        run_with_backend_with_route(
+            cli,
+            &mut backend,
+            route_context,
+            &mut input,
+            &mut stdout,
+            &mut stderr,
+        )
+        .await
+    } else {
+        run_with_backend(cli, &mut backend, &mut input, &mut stdout, &mut stderr).await
+    }
+}
+
+fn resolve_cli_route(
+    cli: &Cli,
+    config_dir: &Path,
+) -> Result<(Option<ConnectionMode>, Option<ReadonlyRouteContext>), UbaaError> {
+    let Some(feature) = route_feature(cli) else {
+        return Ok((cli.login_mode(), None));
+    };
+    let config = RouteConfig::load(config_dir)?;
+    let resolution =
+        resolve_feature_route(feature, config.feature(feature), &config, &SystemDnsProbe)?;
+    Ok((
+        Some(resolution.mode),
+        Some(ReadonlyRouteContext::from(resolution)),
+    ))
+}
+
+fn render_resolved_error(
+    cli: &Cli,
+    route_context: Option<ReadonlyRouteContext>,
+    error: UbaaError,
+    stdout: &mut impl io::Write,
+    stderr: &mut impl io::Write,
+) -> i32 {
+    if let (Some(feature), Some(route_context)) = (command_feature(cli), route_context) {
+        render_readonly_startup_error(
+            cli.json,
+            feature.as_str(),
+            route_context,
+            error,
+            stdout,
+            stderr,
+        )
+    } else {
+        render_startup_error(cli.json, error, stdout, stderr)
+    }
 }
 
 fn command_feature(cli: &Cli) -> Option<ReadonlyFeature> {

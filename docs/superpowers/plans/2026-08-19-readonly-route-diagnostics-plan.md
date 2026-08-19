@@ -29,7 +29,7 @@
 - Modify: `crates/ubaa-core/src/output.rs`
 - Modify: `apps/ubaa-cli/src/lib.rs`
 
-- [ ] **Step 1: Write failing success and business-error tests**
+- [x] **Step 1: Write failing success and business-error tests**
 
 Add a `ReadonlyRouteContext` fixture with explicit Direct policy and assert both envelopes contain:
 
@@ -41,7 +41,7 @@ assert_eq!(value["meta"]["resolvedRoute"], "direct");
 assert_eq!(value["meta"]["usedFallback"], false);
 ```
 
-- [ ] **Step 2: Run the focused tests and observe RED**
+- [x] **Step 2: Run the focused tests and observe RED**
 
 Run:
 
@@ -51,7 +51,7 @@ cargo test --locked -p ubaa-cli --test cli_contract readonly_route -- --nocaptur
 
 Expected: compilation failure because `ReadonlyRouteContext` and the route-aware runner do not exist, or assertion failure because metadata is missing/fixed to `auto`.
 
-- [ ] **Step 3: Implement the minimal route context and renderer plumbing**
+- [x] **Step 3: Implement the minimal route context and renderer plumbing**
 
 Use these stable shapes:
 
@@ -76,7 +76,7 @@ pub struct ReadonlyJsonMeta {
 
 Add `run_with_backend_with_route` for production and explicit tests. Preserve `run_with_backend` as a compatibility wrapper that creates an Auto/Unknown/no-fallback context for injected tests.
 
-- [ ] **Step 4: Run the focused tests and observe GREEN**
+- [x] **Step 4: Run the focused tests and observe GREEN**
 
 Run:
 
@@ -93,7 +93,7 @@ Expected: all matching tests pass.
 - Modify: `apps/ubaa-cli/src/lib.rs`
 - Modify: `apps/ubaa-cli/src/main.rs`
 
-- [ ] **Step 1: Write the failing binary test**
+- [x] **Step 1: Write the failing binary test**
 
 Create a temporary config with an explicit Direct route, run `ubaa --json ... schedule terms` without a session, and assert:
 
@@ -104,7 +104,7 @@ assert_eq!(value["meta"]["routePolicy"], "direct");
 assert_eq!(value["meta"]["networkState"], "unknown");
 ```
 
-- [ ] **Step 2: Run the binary test and observe RED**
+- [x] **Step 2: Run the binary test and observe RED**
 
 Run:
 
@@ -114,7 +114,7 @@ cargo test --locked -p ubaa-cli --test binary_e2e binary_json_readonly_without_s
 
 Expected: failure because the current host emits schema version 1 with no read-only metadata.
 
-- [ ] **Step 3: Implement post-resolution startup rendering**
+- [x] **Step 3: Implement post-resolution startup rendering**
 
 Retain the `RouteResolution` returned in `main.rs`, convert it to `ReadonlyRouteContext`, and use:
 
@@ -131,7 +131,7 @@ render_readonly_startup_error(
 
 Pass the same context to `run_with_backend_with_route` for normal success/business-error paths.
 
-- [ ] **Step 4: Run binary and CLI contract tests and observe GREEN**
+- [x] **Step 4: Run binary and CLI contract tests and observe GREEN**
 
 Run:
 
@@ -150,11 +150,11 @@ Expected: both commands pass.
 - Modify: `docs/contracts/route-policy.md`
 - Modify: `docs/migration/status.md`
 
-- [ ] **Step 1: Add a failing schema positive/negative test**
+- [x] **Step 1: Add a failing schema positive/negative test**
 
 Serialize a valid read-only envelope, assert it validates, remove `networkState`, and assert the modified value is rejected.
 
-- [ ] **Step 2: Run the schema test and observe RED**
+- [x] **Step 2: Run the schema test and observe RED**
 
 Run:
 
@@ -164,11 +164,11 @@ cargo test --locked -p ubaa-cli --test cli_contract serialized_envelopes_match_t
 
 Expected: failure because the checked-in schema neither requires nor defines all diagnostic fields.
 
-- [ ] **Step 3: Update schema and contract docs**
+- [x] **Step 3: Update schema and contract docs**
 
 Require `routePolicy`, `networkState`, `initialRoute`, `resolvedRoute`, `usedFallback`, and `feature`. Constrain network state to `campus|off_campus|unknown`, routes to `direct|webvpn`, and fallback to boolean. Record that explicit policies report `unknown` because DNS was not queried.
 
-- [ ] **Step 4: Run focused and repository gates**
+- [x] **Step 4: Run focused and repository gates**
 
 Run:
 
@@ -182,7 +182,7 @@ just check
 
 Expected: all commands exit 0.
 
-- [ ] **Step 5: Inspect and commit**
+- [x] **Step 5: Inspect and commit**
 
 Run:
 

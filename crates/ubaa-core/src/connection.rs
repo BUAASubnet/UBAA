@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use aes::Aes128;
 use aes::cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
+use serde::Serialize;
 use url::Url;
 
 use crate::config::{FeatureRouteConfig, RouteConfig};
@@ -22,7 +23,8 @@ const WEBVPN_HOST: &str = "d.buaa.edu.cn";
 const WEBVPN_KEY: &[u8; 16] = b"wrdvpnisthebest!";
 
 /// Three-state result of resolving `gw.buaa.edu.cn`.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum NetworkState {
     /// DNS returned at least one address.
     Campus,

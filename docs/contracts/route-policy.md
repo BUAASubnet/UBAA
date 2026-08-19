@@ -33,6 +33,13 @@ Unknown fields, feature names, versions other than `1`, and route values outside
 
 The initial matrix sets both ready-route and network-error fallback to false for every operation. This is deliberate: a feature may be retried on the other route only after its frozen implementation and live evidence establish that the operation is idempotent and safe to replay.
 
+Schema-v2 read-only CLI successes and post-resolution errors expose the same safe diagnostic
+metadata: `routePolicy`, `networkState`, `initialRoute`, `resolvedRoute`, `usedFallback`, and
+`feature`. Explicit Direct/WebVPN policies do not run the DNS probe, so their `networkState` is
+`unknown`; this means "not probed or indeterminate", not off-campus. The host passes the immutable
+`RouteResolution` into rendering, while the facade remains responsible only for business DTOs and
+the concrete route it used.
+
 ## Session slots
 
 `session.json` schema version 2 stores independent `direct` and `webvpn` slots under one file lock and revision CAS. `RouteSessionStore` gives each runtime a route-local view while preserving the shared revision. A legacy single snapshot migrates only to its recorded `mode` slot; Cookies are never copied to the other slot. Challenge/execution state remains in memory.

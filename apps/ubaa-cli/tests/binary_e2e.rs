@@ -108,6 +108,40 @@ fn binary_json_status_without_session_exits_three_with_parseable_error() {
 }
 
 #[test]
+fn binary_json_readonly_without_session_uses_schema_v2_route_diagnostics() {
+    let config = std::env::temp_dir().join(format!("ubaa-cli-readonly-e2e-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&config);
+    std::fs::create_dir_all(&config).unwrap();
+    std::fs::write(
+        config.join("config.toml"),
+        "schema_version = 1\n\n[route]\ndefault = \"direct\"\n",
+    )
+    .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+        .arg("--json")
+        .arg("--config-dir")
+        .arg(&config)
+        .arg("schedule")
+        .arg("terms")
+        .output()
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["error"]["code"], "authentication_required");
+    assert_eq!(value["meta"]["feature"], "schedule");
+    assert_eq!(value["meta"]["routePolicy"], "direct");
+    assert_eq!(value["meta"]["networkState"], "unknown");
+    assert_eq!(value["meta"]["initialRoute"], "direct");
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert_eq!(value["meta"]["usedFallback"], false);
+    assert!(output.stderr.is_empty());
+    let _ = std::fs::remove_dir_all(config);
+}
+
+#[test]
 fn binary_json_login_without_mode_or_session_exits_two_before_network() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-mode-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);
