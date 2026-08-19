@@ -32,3 +32,16 @@
 ## Completion gate
 
 Run `just refs`, `just check-sensitive`, `just check`, CLI end-to-end tests, `just verify-live mode=direct`, and `just verify-live mode=webvpn`. Fixture or mock success does not establish live protocol success. CI runs the deterministic gates only and never receives live credentials.
+
+## Mandatory source-parity gate
+
+Every authentication or read-only feature change must be behaviorally compared against both frozen sources before production code is changed:
+
+- `ubaa_old/` at the commit in `docs/migration/references.md`, including its API interface, DTO, local implementation, and tests;
+- `examples/buaa-api/` at the pinned commit, including the nearest equivalent API module, request/redirect code, data model, crypto, cookie/credential store, and error handling.
+
+The comparison must be recorded in `docs/migration/source-parity.md` or a linked decision record. It must cover, separately for each operation: business CAS/bootstrap URL and service parameter, redirect and final-URL rules, Cookie/session scope, HTTP method and exact parameters, headers and body encoding, encryption/signature constants, DTO and parser fields/types, caching/concurrency, and error/exit semantics. “Authentication succeeded” or “the endpoint looks similar” is not evidence for any omitted column.
+
+If one reference does not implement the same upstream protocol, record that fact and do not borrow its URL, fields, encryption, or errors by analogy. If sources conflict, stop the implementation at that boundary, capture the concrete files/commits and live observation in `docs/migration/decision-log.md`, then choose only the behavior supported by live evidence or the applicable frozen local implementation. Never fill an unproven field or parameter from memory.
+
+The required TDD loop for parity gaps is: add a sanitized fixture/Mock request or parser test that fails for the missing behavior, run it and retain the failure evidence, implement the smallest reference-backed change, rerun the focused test, then run `just check-sensitive` and `just check` before the phase commit. Do not stage `ubaa_old/`, `examples/`, `.env.local`, raw responses, cookies, tokens, captcha data, or personal data while recording the comparison.

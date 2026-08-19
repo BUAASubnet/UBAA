@@ -35,3 +35,19 @@ Both `LocalConnectionAuth.kt::logout` and the remote-backed `AuthApi.kt::logout`
 ## 2026-08-19: Route Judge auto to the live-verified WebVPN path
 
 The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. Live verification then showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0. The route matrix therefore gives Judge an evidence-backed `auto` override to WebVPN for Campus, OffCampus, and Unknown DNS states. This is a deterministic feature exception, not a fallback replay; explicit Direct remains available only as a diagnostic override and is still recorded as unavailable. Later WebVPN/auto attempts also returned upstream timeouts or changed responses, so the matrix records those rerun conditions rather than treating them as success.
+
+## 2026-08-19: Require AAS service activation before schedule reads
+
+The frozen local schedule implementation probes `byxt.buaa.edu.cn/.../currentUser.do` and classifies an SSO page as authentication-required. The pinned `examples/buaa-api/src/api/aas/core.rs` proves that the same AAS protocol has a service-specific CAS bootstrap URL ending in `.../homeapp/index.do?contextPath=/jwapp` and requires the final URL to start with that AAS landing page. Live `.env.local` verification initially returned an SSO-shaped response for the probe, so terms/weeks could not begin even though generic SSO and User Center authentication succeeded. Core now performs the proven AAS activation only after that probe condition, verifies the route-local final URL, then probes again. Direct and WebVPN schedule terms/weeks/current/today subsequently passed; no generic SSO bypass or cross-route cookie replay was added.
+
+## 2026-08-19: Preserve form content type for schedule/grade POSTs
+
+The old local implementations use Ktor `FormDataContent` for the weekly schedule and grade query forms. The Rust helper serialized the same fields but omitted `Content-Type: application/x-www-form-urlencoded`. A TDD request-contract test observed the missing header, and the minimal fix was applied in the shared form helper. The first real schedule-current response had only safe structural error keys (`code`, `logId`, `msg`), and after the header fix the full schedule auto/Direct/WebVPN verifier passed. The pinned AAS example uses a POST query payload rather than this local form helper; it is not used to override the local endpoint's observed form contract.
+
+## 2026-08-19: Do not merge non-equivalent example protocols
+
+The pinned `buaa-api` App module exposes a mini-program exam page and no local `buaascore` grades operation; its Class module exposes iClass course/check-in endpoints and no free-classroom query; its tree has no Judge module. The frozen local implementation has separate grades, free-classroom, and Judge protocols. These are documented as non-equivalent in `docs/migration/source-parity.md`; their URLs, headers, DTOs, encryption, or errors must not be borrowed by analogy. This is a deliberate evidence boundary, not an implementation omission.
+
+## 2026-08-19: Choose a stable Judge detail sample in the live verifier
+
+The verifier contract requires one real Judge detail when the list is non-empty; it does not require the last list item. Three required/diagnostic auto attempts selected `.data[-1]` and returned `Judge assignment was not found` at the separate detail CLI process, while an evidence probe selecting `.data[0]` completed list plus detail with exit 0. The list and detail are separate processes and the upstream list can change between them, so the verifier now selects the first returned item and has a shell regression test. This changes only verifier sampling, not Core Judge lookup or its old-reference semantics; stale-ID results remain nonzero rather than being hidden.

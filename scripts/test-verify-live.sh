@@ -154,6 +154,10 @@ if [[ "$output" == *"fixture-captcha"* ]]; then
   echo "captcha answer leaked through terminal echo" >&2
   exit 1
 fi
+if [[ "$output" == *"name_prefix="* || "$output" == *"school_id_suffix="* ]]; then
+  echo "partial personal profile fields leaked through verifier output" >&2
+  exit 1
+fi
 if [[ "$output" != *"terminal-state-restored"* ]]; then
   echo "verifier did not restore the terminal state" >&2
   exit 1
@@ -330,9 +334,9 @@ judge_output=$(
     if [[ "$*" == "judge assignments" ]]; then
       CLI_CODE=0
       CLI_OUTPUT='{"ok":true,"data":[{"courseId":"course-old","assignmentId":"assignment-old"},{"courseId":"course-new","assignmentId":"assignment-new"}]}'
-    elif [[ "$*" == "judge assignment show --course-id course-new --id assignment-new" ]]; then
+    elif [[ "$*" == "judge assignment show --course-id course-old --id assignment-old" ]]; then
       CLI_CODE=0
-      CLI_OUTPUT='{"ok":true,"data":{"assignmentId":"assignment-new"}}'
+      CLI_OUTPUT='{"ok":true,"data":{"assignmentId":"assignment-old"}}'
       printf '%s\n' "$*" >"$judge_sample_call"
     else
       CLI_CODE=6
@@ -344,6 +348,6 @@ judge_output=$(
 judge_code=$?
 set -e
 if [[ "$judge_code" -ne 0 || ! -s "$judge_sample_call" ]]; then
-  printf 'Judge verifier did not select the newest assignment sample\n%s\n' "$judge_output" >&2
+  printf 'Judge verifier did not select the first stable assignment sample\n%s\n' "$judge_output" >&2
   exit 1
 fi

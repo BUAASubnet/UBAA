@@ -20,4 +20,6 @@ The verifier builds with `--locked`, uses stdin for the password, and creates a 
 
 Output is a redacted one-line summary containing feature, policy/route, stage, stable error code, timing, and counts or presence flags. A real empty list/map is success with count zero. `unsupported_portal`, an undergraduate-incompatible account, a captcha without a controlling terminal, and upstream network/protocol failures are nonzero outcomes and must be recorded in `docs/migration/status.md` with the exact command and rerun condition. A fixture or mock result cannot be copied into this matrix as live evidence.
 
+For Judge, a non-empty list triggers exactly one detail read in the verifier. The sample is the first item returned by that same list response. This is deliberate: the list and detail commands run in separate CLI processes, so selecting a later ID can race a changing upstream list and produce a false `not found`; the verifier must not retry with an invented ID or suppress that error. The Core still applies the frozen route/session/cache semantics, and Judge Direct remains a separate evidence row from WebVPN/auto.
+
 The historical compatibility form `just verify-live mode=direct|webvpn` remains available for the phase 5 authentication shell contract.

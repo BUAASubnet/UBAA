@@ -2,7 +2,7 @@
 
 Status: local-only verifier implemented; Direct and WebVPN both verified on 2026-08-17.
 
-Live verification loads only the two required variable names from the ignored `.env.local`, builds with locked dependencies, passes the password through standard input, uses a mode-0700 temporary configuration directory, logs in, fetches the User Center profile, and validates `auth status`. It records only mode, outcome, duration, error code, and the first character/last two characters of the parsed name and school ID. The script keeps command output in memory and removes its temporary directory on exit; it never retains raw responses, Cookie headers, captcha images, or complete profile fields.
+Live verification loads only the two required variable names from the ignored `.env.local`, builds with locked dependencies, passes the password through standard input, uses a mode-0700 temporary configuration directory, logs in, fetches the User Center profile, and validates `auth status`. It records only mode, outcome, duration, error code, and whether the required profile fields were parsed. The script keeps command output in memory and removes its temporary directory on exit; it never retains raw responses, Cookie headers, captcha images, or profile fields.
 
 Run each mode explicitly:
 
@@ -17,8 +17,8 @@ Never attach raw output, session files, cookies, captcha images, or complete pro
 
 | Mode | Status | Evidence |
 |---|---|---|
-| Direct | Reverified at behavior HEAD `4388b58` on 2026-08-17 | Exit 0; profile parsed; `auth status` passed; name prefix `李`; school ID suffix `04` |
-| WebVPN | Reverified at behavior HEAD `4388b58` on 2026-08-17 | Exit 0; profile parsed; `auth status` passed; name prefix `李`; school ID suffix `04` |
+| Direct | Reverified at behavior HEAD `4388b58` on 2026-08-17 | Exit 0; required profile fields parsed; `auth status` passed |
+| WebVPN | Reverified at behavior HEAD `4388b58` on 2026-08-17 | Exit 0; required profile fields parsed; `auth status` passed |
 
 If the initial JSON login returns exit code 4, the verifier automatically starts one fresh human login in the same controlling terminal. The password still comes from `.env.local` through a mode-0600 private FIFO. If the fresh preparation still requires captcha, the CLI prints the path of a mode-0600 temporary image while the verifier forwards one non-empty answer from `/dev/tty` into the same CLI stdin; if it no longer requires captcha, the verifier detects the completed CLI instead of waiting for unused input. Human profile output is suppressed and the image is deleted when the command ends.
 

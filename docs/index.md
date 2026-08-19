@@ -10,6 +10,7 @@
 - Reference baselines: `migration/references.md`
 - Current migration status: `migration/status.md`
 - Read-only evidence matrix: `migration/readonly-feature-matrix.md`
+- Frozen-source behavior parity audit: `migration/source-parity.md`
 - Live verification: `runbooks/live-auth-verification.md`
 - Live read-only verification: `runbooks/live-readonly-verification.md`
 

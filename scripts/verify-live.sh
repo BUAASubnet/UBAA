@@ -349,10 +349,8 @@ main() {
     exit 1
   fi
 
-  name_prefix=$(jq -r '(.data.user.name // .data.profile.name) | strings | .[0:1]' <<<"$CLI_OUTPUT")
-  school_suffix=$(jq -r '(.data.user.schoolId // .data.profile.schoolId) | strings | .[-2:]' <<<"$CLI_OUTPUT")
-  printf 'mode=%s outcome=success stage=auth_status exit_code=0 route=%s feature=%s elapsed_ms=%s parsed_user=yes name_prefix=%s school_id_suffix=%s\n' \
-    "$mode" "$route" "$feature" "$CLI_ELAPSED_MS" "$name_prefix" "$school_suffix"
+  printf 'mode=%s outcome=success stage=auth_status exit_code=0 route=%s feature=%s elapsed_ms=%s parsed_user=yes\n' \
+    "$mode" "$route" "$feature" "$CLI_ELAPSED_MS"
 }
 
 run_readonly_feature() {
@@ -433,8 +431,11 @@ run_readonly_feature() {
       count=$(jq -r '.data | length' <<<"$CLI_OUTPUT" 2>/dev/null || printf '0')
       if [[ "$count" -gt 0 ]]; then
         local course_id assignment_id
-        course_id=$(jq -r '.data[-1].courseId // empty' <<<"$CLI_OUTPUT")
-        assignment_id=$(jq -r '.data[-1].assignmentId // empty' <<<"$CLI_OUTPUT")
+        # The first returned assignment is the verifier's single detail sample.
+        # A later list can change while the separate detail CLI process starts;
+        # choosing the first response item avoids inventing a stale-ID contract.
+        course_id=$(jq -r '.data[0].courseId // empty' <<<"$CLI_OUTPUT")
+        assignment_id=$(jq -r '.data[0].assignmentId // empty' <<<"$CLI_OUTPUT")
         run_json none judge assignment show --course-id "$course_id" --id "$assignment_id"
         if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure judge_detail; return "$CLI_CODE"; fi
       fi
