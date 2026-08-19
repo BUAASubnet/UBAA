@@ -433,8 +433,8 @@ run_readonly_feature() {
       count=$(jq -r '.data | length' <<<"$CLI_OUTPUT" 2>/dev/null || printf '0')
       if [[ "$count" -gt 0 ]]; then
         local course_id assignment_id
-        course_id=$(jq -r '.data[0].courseId // empty' <<<"$CLI_OUTPUT")
-        assignment_id=$(jq -r '.data[0].assignmentId // empty' <<<"$CLI_OUTPUT")
+        course_id=$(jq -r '.data[-1].courseId // empty' <<<"$CLI_OUTPUT")
+        assignment_id=$(jq -r '.data[-1].assignmentId // empty' <<<"$CLI_OUTPUT")
         run_json none judge assignment show --course-id "$course_id" --id "$assignment_id"
         if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure judge_detail; return "$CLI_CODE"; fi
       fi

@@ -163,11 +163,11 @@ pub fn resolve_feature_route<P: DnsProbe>(
     let mode = match policy {
         RoutePolicy::Direct => ConnectionMode::Direct,
         RoutePolicy::WebVpn => ConnectionMode::WebVpn,
-        RoutePolicy::Auto => match network {
+        RoutePolicy::Auto => row.auto_route_override.unwrap_or(match network {
             NetworkState::Campus => ConnectionMode::Direct,
             NetworkState::OffCampus => ConnectionMode::WebVpn,
             NetworkState::Unknown => row.unknown_default,
-        },
+        }),
     };
     Ok(RouteResolution {
         mode,

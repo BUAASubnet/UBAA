@@ -52,6 +52,37 @@ fn auto_route_maps_three_dns_states_and_exposes_diagnostic() {
 }
 
 #[test]
+fn judge_auto_uses_the_live_verified_webvpn_route_in_all_dns_states() {
+    let config = RouteConfig::default();
+    for network in [
+        NetworkState::Campus,
+        NetworkState::OffCampus,
+        NetworkState::Unknown,
+    ] {
+        let resolved = resolve_feature_route(
+            ReadonlyFeature::Judge,
+            RoutePolicy::Auto,
+            &config,
+            &ProbeResult(network),
+        )
+        .expect("Judge auto route");
+
+        assert_eq!(resolved.policy, RoutePolicy::Auto);
+        assert_eq!(resolved.mode, ConnectionMode::WebVpn);
+        assert_eq!(resolved.diagnostic.network, network);
+    }
+
+    let explicit_direct = resolve_feature_route(
+        ReadonlyFeature::Judge,
+        RoutePolicy::Direct,
+        &config,
+        &ProbeResult(NetworkState::OffCampus),
+    )
+    .expect("explicit Judge direct route");
+    assert_eq!(explicit_direct.mode, ConnectionMode::Direct);
+}
+
+#[test]
 fn config_defaults_to_auto_and_rejects_unknown_features_or_values() {
     let config = RouteConfig::parse("").expect("missing config uses defaults");
     assert_eq!(config.default, RoutePolicy::Auto);
@@ -81,9 +112,13 @@ schedule = "direct"
 #[test]
 fn feature_route_config_has_explicit_unknown_default_and_fallback_flags() {
     let row = FeatureRouteConfig::for_feature(ReadonlyFeature::Classroom);
+    assert_eq!(row.auto_route_override, None);
     assert_eq!(row.unknown_default, ConnectionMode::Direct);
     assert!(!row.allow_ready_route_fallback);
     assert!(!row.allow_network_fallback);
+
+    let judge = FeatureRouteConfig::for_feature(ReadonlyFeature::Judge);
+    assert_eq!(judge.auto_route_override, Some(ConnectionMode::WebVpn));
 }
 
 #[test]

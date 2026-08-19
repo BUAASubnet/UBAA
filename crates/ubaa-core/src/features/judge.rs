@@ -206,7 +206,7 @@ pub(crate) async fn get_assignments(
     let limiter = Arc::new(Semaphore::new(ASSIGNMENT_QUERY_CONCURRENCY));
     let mut workers = JoinSet::new();
     for (index, course) in courses.into_iter().enumerate() {
-        let mut worker = runtime.fork_for_readonly();
+        let mut worker = fork_judge_worker(runtime);
         let cutoff = cutoff.clone();
         let limiter = Arc::clone(&limiter);
         workers.spawn(async move {
@@ -310,16 +310,30 @@ pub(crate) async fn get_assignment_details(
     }
 
     let scope = cache_scope(runtime);
-    get_courses_cached(runtime, scope).await?;
+    let courses = get_courses_cached(runtime, scope).await?;
     let limiter = Arc::new(Semaphore::new(ASSIGNMENT_QUERY_CONCURRENCY));
     let mut workers = JoinSet::new();
     for (index, key) in normalized.into_iter().enumerate() {
-        let mut worker = runtime.fork_for_readonly();
+        let course = courses
+            .iter()
+            .find(|course| course.course_id == key.course_id)
+            .cloned()
+            .ok_or_else(not_found)?;
+        let mut worker = fork_judge_worker(runtime);
         let limiter = Arc::clone(&limiter);
         workers.spawn(async move {
             let permit = limiter.acquire_owned().await.map_err(|_| worker_error())?;
-            let result =
-                get_assignment_detail(&mut worker, &key.course_id, &key.assignment_id).await;
+            let result = async {
+                activate(&mut worker).await?;
+                let assignments =
+                    get_course_assignments_cached(&mut worker, scope, &course).await?;
+                let assignment = assignments
+                    .into_iter()
+                    .find(|assignment| assignment.assignment_id == key.assignment_id)
+                    .ok_or_else(not_found)?;
+                get_detail_cached(&mut worker, scope, &assignment).await
+            }
+            .await;
             drop(permit);
             result.map(|detail| (index, detail))
         });
@@ -357,6 +371,7 @@ async fn summarize_course(
     include_expired: bool,
     cutoff: &str,
 ) -> crate::error::Result<CourseSummary> {
+    activate(runtime).await?;
     let assignments = get_course_assignments_cached(runtime, scope, &course).await?;
     let mut summaries = Vec::new();
     let mut historical = false;
@@ -396,6 +411,42 @@ fn cache() -> &'static Mutex<JudgeCache> {
 
 fn cache_scope(runtime: &crate::runtime::ClientRuntime) -> CacheScope {
     (runtime.mode(), runtime.cache_scope_key())
+}
+
+fn fork_judge_worker(runtime: &crate::runtime::ClientRuntime) -> crate::runtime::ClientRuntime {
+    let mode = runtime.mode();
+    runtime.fork_for_readonly_with_cookie_filter(|cookie| !is_judge_scoped_cookie(cookie, mode))
+}
+
+fn is_judge_scoped_cookie(
+    cookie: &crate::session::StoredCookie,
+    mode: crate::domain::ConnectionMode,
+) -> bool {
+    match mode {
+        crate::domain::ConnectionMode::Direct => {
+            let domain = cookie.domain.trim_start_matches('.');
+            domain.eq_ignore_ascii_case("judge.buaa.edu.cn")
+                || domain.to_ascii_lowercase().ends_with(".judge.buaa.edu.cn")
+        }
+        crate::domain::ConnectionMode::WebVpn => {
+            cookie.domain.eq_ignore_ascii_case("d.buaa.edu.cn")
+                && webvpn_cookie_path_targets_judge(&cookie.path)
+        }
+    }
+}
+
+fn webvpn_cookie_path_targets_judge(path: &str) -> bool {
+    let normalized_path = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    };
+    let gateway_url = format!("https://d.buaa.edu.cn{normalized_path}");
+    crate::connection::from_webvpn_url(&gateway_url)
+        .ok()
+        .and_then(|url| url::Url::parse(&url).ok())
+        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|host| host == "judge.buaa.edu.cn" || host.ends_with(".judge.buaa.edu.cn"))
 }
 
 async fn activate(runtime: &mut crate::runtime::ClientRuntime) -> crate::error::Result<()> {
@@ -544,7 +595,8 @@ async fn get_html(
     runtime: &mut crate::runtime::ClientRuntime,
     url: String,
 ) -> crate::error::Result<crate::ports::HttpResponse> {
-    let response = super::get_with_headers(runtime, url.clone(), judge_headers()).await?;
+    let response =
+        super::get_with_redirects(runtime, url.clone(), judge_headers(), "judge").await?;
     match super::check_response(&response, "judge") {
         Ok(()) => Ok(response),
         Err(error) if error.code == crate::error::ErrorCode::AuthenticationRequired => {

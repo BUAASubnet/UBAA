@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::fmt::Write as _;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -677,6 +677,8 @@ async fn judge_selects_courses_before_reading_assignment_details() {
                 readonly_fixture("judge-courses.html").unwrap(),
             ),
         ),
+        (login_url.into(), redirect_from(login_url, judge_home)),
+        (judge_home.into(), response(200, judge_home, "judge home")),
         (select_url.into(), response(200, select_url, "selected")),
         (
             assignments_url.into(),
@@ -739,6 +741,8 @@ async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
                 readonly_fixture("judge-courses.html").unwrap(),
             ),
         ),
+        (login_url.into(), redirect_from(login_url, judge_home)),
+        (judge_home.into(), response(200, judge_home, "judge home")),
         (select_url.into(), response(200, select_url, "selected")),
         (
             assignments_url.into(),
@@ -772,6 +776,52 @@ async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
 
     assert_eq!(result.data.len(), 1);
     assert_eq!(result.data[0].assignment_id, "101");
+}
+
+#[tokio::test]
+async fn judge_follows_business_redirects_before_parsing() {
+    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let judge_home = "https://judge.buaa.edu.cn/";
+    let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
+    let courses_redirect_target = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0&from=home";
+    let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
+    let assignments_url = "https://judge.buaa.edu.cn/assignment/index.jsp";
+    let transport = SpocTransport::new([
+        (login_url.into(), redirect_from(login_url, judge_home)),
+        (judge_home.into(), response(200, judge_home, "judge home")),
+        (
+            courses_url.into(),
+            redirect_from(courses_url, courses_redirect_target),
+        ),
+        (
+            courses_redirect_target.into(),
+            response(
+                200,
+                courses_redirect_target,
+                readonly_fixture("judge-courses.html").unwrap(),
+            ),
+        ),
+        (login_url.into(), redirect_from(login_url, judge_home)),
+        (judge_home.into(), response(200, judge_home, "judge home")),
+        (select_url.into(), response(200, select_url, "selected")),
+        (
+            assignments_url.into(),
+            response(200, assignments_url, "no assignments"),
+        ),
+    ]);
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-business-redirect-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .judge_assignments(false)
+        .await
+        .expect("Judge business redirect must be followed");
+
+    assert!(result.data.is_empty());
 }
 
 #[tokio::test]
@@ -834,6 +884,12 @@ async fn judge_historical_courses_are_skipped_by_default_but_includable() {
         ),
         expected_get(judge_home, "judge home"),
         expected_get(courses_url, readonly_fixture("judge-courses.html").unwrap()),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login_url,
+            redirect_from(login_url, judge_home),
+        ),
+        expected_get(judge_home, "judge home"),
         expected_get(select_url, "selected"),
         expected_get(
             assignments_url,
@@ -844,6 +900,12 @@ async fn judge_historical_courses_are_skipped_by_default_but_includable() {
             detail_url,
             "作业时间: 2020-01-01 08:00:00 至 2020-01-31 23:00:00 未提交",
         ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login_url,
+            redirect_from(login_url, judge_home),
+        ),
+        expected_get(judge_home, "judge home"),
     ]);
     let mut client = UbaaClient::with_transport(
         ConnectionMode::Direct,
@@ -871,6 +933,8 @@ async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
         ubaa_core::features::judge::LOGIN_URL.to_string(),
         "https://judge.buaa.edu.cn/".into(),
         "https://judge.buaa.edu.cn/courselist.jsp?courseID=0".into(),
+        ubaa_core::features::judge::LOGIN_URL.to_string(),
+        "https://judge.buaa.edu.cn/".into(),
         "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
         "https://judge.buaa.edu.cn/assignment/index.jsp".into(),
         "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
@@ -884,13 +948,15 @@ async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
         ExpectedRequest::new(HttpMethod::Get, &urls[0], redirect_from(&urls[0], &urls[1])),
         expected_get(&urls[1], "judge home"),
         expected_get(&urls[2], readonly_fixture("judge-courses.html").unwrap()),
-        expected_get(&urls[3], "selected"),
+        ExpectedRequest::new(HttpMethod::Get, &urls[3], redirect_from(&urls[3], &urls[4])),
+        expected_get(&urls[4], "judge home"),
+        expected_get(&urls[5], "selected"),
         expected_get(
-            &urls[4],
+            &urls[6],
             readonly_fixture("judge-assignments.html").unwrap(),
         ),
-        expected_get(&urls[5], "selected"),
-        expected_get(&urls[6], readonly_fixture("judge-detail.html").unwrap()),
+        expected_get(&urls[7], "selected"),
+        expected_get(&urls[8], readonly_fixture("judge-detail.html").unwrap()),
     ]);
     let observed = transport.clone();
     let mut client = UbaaClient::with_transport(
@@ -913,6 +979,192 @@ async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
     for request in observed.requests().unwrap() {
         assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
     }
+}
+
+#[derive(Clone)]
+struct IsolatedJudgeSessionTransport {
+    mode: ConnectionMode,
+    activations: Arc<AtomicUsize>,
+    selected_courses: Arc<Mutex<HashMap<String, String>>>,
+}
+
+impl IsolatedJudgeSessionTransport {
+    fn new(mode: ConnectionMode) -> Self {
+        Self {
+            mode,
+            activations: Arc::new(AtomicUsize::new(0)),
+            selected_courses: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn session_cookie(request: &HttpRequest) -> Option<String> {
+        request
+            .headers
+            .get("Cookie")
+            .and_then(|header| {
+                header
+                    .split(';')
+                    .map(str::trim)
+                    .find_map(|cookie| cookie.strip_prefix("JUDGE="))
+            })
+            .map(str::to_owned)
+    }
+
+    fn direct_url(&self, url: &str) -> String {
+        match self.mode {
+            ConnectionMode::Direct => url.into(),
+            ConnectionMode::WebVpn => ubaa_core::connection::from_webvpn_url(url).unwrap(),
+        }
+    }
+
+    fn routed_url(&self, url: &str) -> String {
+        match self.mode {
+            ConnectionMode::Direct => url.into(),
+            ConnectionMode::WebVpn => ubaa_core::connection::to_webvpn_url(url).unwrap(),
+        }
+    }
+}
+
+#[async_trait]
+impl HttpTransport for IsolatedJudgeSessionTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        let login_url = ubaa_core::features::judge::LOGIN_URL;
+        let judge_home = "https://judge.buaa.edu.cn/";
+        let direct_url = self.direct_url(&request.url);
+        if direct_url == login_url {
+            return Ok(redirect_from(&request.url, &self.routed_url(judge_home)));
+        }
+        if direct_url == judge_home {
+            if Self::session_cookie(&request).is_some() {
+                return Ok(response(200, &request.url, "existing judge home"));
+            }
+            let id = self.activations.fetch_add(1, Ordering::SeqCst) + 1;
+            let mut response = response(200, &request.url, "new judge home");
+            let (domain, path) = match self.mode {
+                ConnectionMode::Direct => ("judge.buaa.edu.cn", "/".into()),
+                ConnectionMode::WebVpn => {
+                    let routed = self.routed_url(judge_home);
+                    let path = routed
+                        .strip_prefix("https://d.buaa.edu.cn")
+                        .expect("gateway route")
+                        .to_string();
+                    ("d.buaa.edu.cn", path)
+                }
+            };
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec![format!(
+                    "JUDGE=session-{id}; Domain={domain}; Path={path}; Secure"
+                )],
+            );
+            return Ok(response);
+        }
+        if direct_url == "https://judge.buaa.edu.cn/courselist.jsp?courseID=0" {
+            return Ok(response(
+                200,
+                &request.url,
+                r#"<a href="courselist.jsp?courseID=1">Course 1</a><a href="courselist.jsp?courseID=2">Course 2</a>"#,
+            ));
+        }
+        if let Some(course_id) =
+            direct_url.strip_prefix("https://judge.buaa.edu.cn/courselist.jsp?courseID=")
+        {
+            let session = Self::session_cookie(&request).ok_or_else(|| {
+                UbaaError::new(
+                    ErrorCode::InternalError,
+                    ErrorKind::Internal,
+                    false,
+                    "Judge worker has no isolated service session",
+                )
+            })?;
+            if session == "session-1" {
+                return Err(UbaaError::new(
+                    ErrorCode::InternalError,
+                    ErrorKind::Internal,
+                    false,
+                    "Judge worker reused its parent service session",
+                ));
+            }
+            self.selected_courses
+                .lock()
+                .expect("selected course lock")
+                .insert(session, course_id.into());
+            return Ok(response(200, &request.url, "selected"));
+        }
+        if direct_url == "https://judge.buaa.edu.cn/assignment/index.jsp" {
+            let session = Self::session_cookie(&request).expect("worker Judge session");
+            let course_id = self
+                .selected_courses
+                .lock()
+                .expect("selected course lock")
+                .get(&session)
+                .cloned()
+                .expect("selected course");
+            return Ok(response(
+                200,
+                &request.url,
+                &format!(
+                    r#"<a href="assignment/index.jsp?assignID={course_id}">Lab {course_id}</a>"#
+                ),
+            ));
+        }
+        if direct_url.starts_with("https://judge.buaa.edu.cn/assignment/index.jsp?assignID=") {
+            return Ok(response(
+                200,
+                &request.url,
+                "作业满分:100 共 1 道 作业时间: 2026-08-01 08:00:00 至 2026-08-31 23:00:00 未提交",
+            ));
+        }
+        Err(UbaaError::new(
+            ErrorCode::InternalError,
+            ErrorKind::Internal,
+            false,
+            "unexpected isolated Judge request",
+        ))
+    }
+}
+
+#[tokio::test]
+async fn judge_workers_activate_isolated_service_sessions_before_course_selection() {
+    let transport = IsolatedJudgeSessionTransport::new(ConnectionMode::Direct);
+    let observed = transport.clone();
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-isolated-worker-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .judge_assignments(false)
+        .await
+        .expect("isolated Judge workers");
+
+    assert_eq!(result.data.len(), 2);
+    assert_eq!(observed.activations.load(Ordering::SeqCst), 3);
+}
+
+#[tokio::test]
+async fn judge_webvpn_workers_drop_parent_gateway_service_cookies() {
+    let transport = IsolatedJudgeSessionTransport::new(ConnectionMode::WebVpn);
+    let observed = transport.clone();
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::WebVpn,
+        transport,
+        session_store_for(
+            ConnectionMode::WebVpn,
+            "judge-webvpn-isolated-worker-fixture",
+        ),
+    )
+    .unwrap();
+
+    let result = client
+        .judge_assignments(false)
+        .await
+        .expect("isolated Judge WebVPN workers");
+
+    assert_eq!(result.data.len(), 2);
+    assert_eq!(observed.activations.load(Ordering::SeqCst), 3);
 }
 
 #[derive(Clone)]

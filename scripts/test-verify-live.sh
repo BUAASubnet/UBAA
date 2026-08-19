@@ -313,3 +313,37 @@ if [[ "$noninteractive_output" != *"error=captcha_required_noninteractive"* ]]; 
   echo "non-interactive captcha branch did not return its actionable summary" >&2
   exit 1
 fi
+
+judge_sample_call="$test_root/judge-sample-call"
+set +e
+judge_output=$(
+  source "$repo_root/scripts/verify-live.sh"
+  mode=auto
+  route=auto
+  feature=judge
+  CLI_CODE=0
+  CLI_OUTPUT=
+  run_json() {
+    local stdin_value=$1
+    shift
+    [[ "$stdin_value" == none ]]
+    if [[ "$*" == "judge assignments" ]]; then
+      CLI_CODE=0
+      CLI_OUTPUT='{"ok":true,"data":[{"courseId":"course-old","assignmentId":"assignment-old"},{"courseId":"course-new","assignmentId":"assignment-new"}]}'
+    elif [[ "$*" == "judge assignment show --course-id course-new --id assignment-new" ]]; then
+      CLI_CODE=0
+      CLI_OUTPUT='{"ok":true,"data":{"assignmentId":"assignment-new"}}'
+      printf '%s\n' "$*" >"$judge_sample_call"
+    else
+      CLI_CODE=6
+      CLI_OUTPUT='{"ok":false,"error":{"code":"upstream_changed"}}'
+    fi
+  }
+  run_readonly_feature
+)
+judge_code=$?
+set -e
+if [[ "$judge_code" -ne 0 || ! -s "$judge_sample_call" ]]; then
+  printf 'Judge verifier did not select the newest assignment sample\n%s\n' "$judge_output" >&2
+  exit 1
+fi

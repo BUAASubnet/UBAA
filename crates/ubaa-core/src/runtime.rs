@@ -69,17 +69,29 @@ impl ClientRuntime {
         self.mode
     }
 
-    /// Fork a route-locked runtime for a read-only worker.
+    /// Fork a route-locked read-only runtime while dropping feature-scoped service Cookies.
     ///
-    /// The worker receives a copy of the current Cookie jar and shares only the immutable
-    /// transport/store handles. It never persists authentication state; this mirrors the frozen
-    /// Judge implementation's isolated read workers while keeping each worker on one route.
-    pub(crate) fn fork_for_readonly(&self) -> Self {
+    /// The worker shares immutable transport/store handles but never persists authentication
+    /// state. Callers filter service Cookies that would otherwise couple concurrent upstream
+    /// selection state.
+    pub(crate) fn fork_for_readonly_with_cookie_filter(
+        &self,
+        mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,
+    ) -> Self {
+        let mut jar = CookieJar::default();
+        jar.replace(
+            self.jar
+                .cookies()
+                .iter()
+                .filter(|cookie| retain(cookie))
+                .cloned()
+                .collect(),
+        );
         Self {
             mode: self.mode,
             transport: Arc::clone(&self.transport),
             store: Arc::clone(&self.store),
-            jar: self.jar.clone(),
+            jar,
             authenticated_at: self.authenticated_at,
             last_activity: self.last_activity,
             session_revision: self.session_revision,
