@@ -51,6 +51,7 @@ pub fn to_plain_text(html: &str) -> Option<String> {
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
+        .replace("&#x27;", "'")
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
@@ -61,10 +62,15 @@ pub fn to_plain_text(html: &str) -> Option<String> {
 #[must_use]
 pub fn normalize_score(raw: Option<&str>) -> Option<String> {
     let raw = raw?.trim();
-    regex::Regex::new(r"-?\d+(?:\.\d+)?")
-        .expect("static score regex")
-        .find(raw)
-        .map(|value| value.as_str().to_string())
+    if raw.is_empty() {
+        return None;
+    }
+    Some(
+        regex::Regex::new(r"-?\d+(?:\.\d+)?")
+            .expect("static score regex")
+            .find(raw)
+            .map_or_else(|| raw.to_string(), |value| value.as_str().to_string()),
+    )
 }
 
 /// Response envelope used by deterministic fixtures.
@@ -130,7 +136,10 @@ pub fn summary(
         submission_status_text: match status {
             SpocSubmissionStatus::Submitted => "已提交".into(),
             SpocSubmissionStatus::Unsubmitted => "未提交".into(),
-            SpocSubmissionStatus::Unknown => "未知状态".into(),
+            SpocSubmissionStatus::Unknown => raw_status
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map_or_else(|| "未知状态".into(), |value| format!("未知状态({value})")),
         },
     }
 }
@@ -160,6 +169,20 @@ pub(crate) async fn get_assignments(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignments> {
     let (token, role) = login(runtime).await?;
+    match get_assignments_authenticated(runtime, &token, &role).await {
+        Err(error) if is_authentication_error(&error) => {
+            let (token, role) = login(runtime).await?;
+            get_assignments_authenticated(runtime, &token, &role).await
+        }
+        result => result,
+    }
+}
+
+async fn get_assignments_authenticated(
+    runtime: &mut crate::runtime::ClientRuntime,
+    token: &str,
+    role: &str,
+) -> crate::error::Result<crate::domain::SpocAssignments> {
     let term_url = runtime.url(CURRENT_TERM_URL)?;
     let term_body = serde_json::json!({ "param": CURRENT_TERM_PARAM })
         .to_string()
@@ -171,7 +194,7 @@ pub(crate) async fn get_assignments(
         &[
             ("X-Requested-With", "XMLHttpRequest"),
             ("Token", &format!("Inco-{token}")),
-            ("RoleCode", &role),
+            ("RoleCode", role),
         ],
     )
     .await?;
@@ -203,7 +226,7 @@ pub(crate) async fn get_assignments(
         &[
             ("X-Requested-With", "XMLHttpRequest"),
             ("Token", &format!("Inco-{token}")),
-            ("RoleCode", &role),
+            ("RoleCode", role),
         ],
     )
     .await?;
@@ -234,7 +257,7 @@ pub(crate) async fn get_assignments(
                 &[
                     ("X-Requested-With", "XMLHttpRequest"),
                     ("Token", &token_header),
-                    ("RoleCode", &role),
+                    ("RoleCode", role),
                 ],
             )
             .await?;
@@ -303,6 +326,22 @@ pub(crate) async fn get_assignment_detail(
             )
         })?;
     let (token, role) = login(runtime).await?;
+    match get_assignment_detail_authenticated(runtime, assignment_id, &base, &token, &role).await {
+        Err(error) if is_authentication_error(&error) => {
+            let (token, role) = login(runtime).await?;
+            get_assignment_detail_authenticated(runtime, assignment_id, &base, &token, &role).await
+        }
+        result => result,
+    }
+}
+
+async fn get_assignment_detail_authenticated(
+    runtime: &mut crate::runtime::ClientRuntime,
+    assignment_id: &str,
+    base: &crate::domain::SpocAssignmentSummary,
+    token: &str,
+    role: &str,
+) -> crate::error::Result<crate::domain::SpocAssignmentDetail> {
     let mut url = url::Url::parse(&runtime.url(ASSIGNMENT_DETAIL_URL)?).map_err(|_| {
         crate::error::UbaaError::new(
             crate::error::ErrorCode::UpstreamChanged,
@@ -319,13 +358,13 @@ pub(crate) async fn get_assignment_detail(
         &[
             ("X-Requested-With", "XMLHttpRequest"),
             ("Token", &token_header),
-            ("RoleCode", &role),
+            ("RoleCode", role),
         ],
     )
     .await?;
     super::check_response(&response, "spoc")?;
     let raw: DetailRaw = parse_envelope(&super::body(&response))?;
-    let submission = fetch_submission(runtime, assignment_id, &token, &role).await?;
+    let submission = fetch_submission(runtime, assignment_id, token, role).await?;
     let mut summary = summary(
         base.assignment_id.clone(),
         raw.sskcid.unwrap_or_else(|| base.course_id.clone()),
@@ -334,9 +373,10 @@ pub(crate) async fn get_assignment_detail(
         submission.as_ref().and_then(|value| value.tjzt.as_deref()),
         raw.zyfs.as_deref(),
     );
-    summary.teacher_name = base.teacher_name;
-    summary.start_time = normalize_datetime(raw.zykssj.as_deref()).or(base.start_time);
-    summary.due_time = normalize_datetime(raw.zyjzsj.as_deref()).or(base.due_time);
+    summary.teacher_name.clone_from(&base.teacher_name);
+    summary.start_time =
+        normalize_datetime(raw.zykssj.as_deref()).or_else(|| base.start_time.clone());
+    summary.due_time = normalize_datetime(raw.zyjzsj.as_deref()).or_else(|| base.due_time.clone());
     let mut detail = detail(&summary, raw.zynr);
     detail.start_time = normalize_datetime(raw.zykssj.as_deref());
     detail.due_time = normalize_datetime(raw.zyjzsj.as_deref());
@@ -478,6 +518,10 @@ fn spoc_auth_error() -> crate::error::UbaaError {
     )
 }
 
+fn is_authentication_error(error: &crate::error::UbaaError) -> bool {
+    error.code == crate::error::ErrorCode::AuthenticationRequired
+}
+
 fn parse_optional_envelope<T: for<'de> Deserialize<'de>>(
     body: &str,
 ) -> crate::error::Result<Option<T>> {
@@ -505,17 +549,124 @@ fn normalize_datetime(raw: Option<&str>) -> Option<String> {
     if raw.is_empty() {
         return None;
     }
-    let (date, time) = raw.split_once('T').or_else(|| raw.split_once(' '))?;
-    let time = time
+    if let Some(converted) = normalize_offset_datetime(raw) {
+        return Some(converted);
+    }
+    let normalized = raw.replace('T', " ");
+    let normalized = normalized
         .split_once('.')
-        .map_or(time, |(value, _)| value)
-        .trim_end_matches('Z');
-    let time = time
-        .split_once('+')
-        .map_or(time, |(value, _)| value)
-        .split_once('-')
-        .map_or(time, |(value, _)| value);
-    (date.len() == 10 && time.len() >= 8).then(|| format!("{date} {}", &time[..8]))
+        .map_or(normalized.as_str(), |(value, _)| value);
+    normalized.get(..19).map(str::to_string)
+}
+
+fn normalize_offset_datetime(raw: &str) -> Option<String> {
+    let bytes = raw.as_bytes();
+    if bytes.len() < 20 || bytes.get(10) != Some(&b'T') {
+        return None;
+    }
+    let year = parse_digits(bytes.get(0..4)?)?;
+    let month = parse_digits(bytes.get(5..7)?)?;
+    let day = parse_digits(bytes.get(8..10)?)?;
+    let hour = parse_digits(bytes.get(11..13)?)?;
+    let minute = parse_digits(bytes.get(14..16)?)?;
+    let second = parse_digits(bytes.get(17..19)?)?;
+    if bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || bytes.get(13) != Some(&b':')
+        || bytes.get(16) != Some(&b':')
+        || month == 0
+        || month > 12
+        || day == 0
+        || day > days_in_month(year, month)
+        || hour > 23
+        || minute > 59
+        || second > 59
+    {
+        return None;
+    }
+    let suffix = &raw[19..];
+    let offset_seconds = if suffix.ends_with('Z') {
+        0
+    } else {
+        let position = suffix
+            .char_indices()
+            .rev()
+            .find(|(_, character)| matches!(character, '+' | '-'))?
+            .0;
+        let zone = &suffix[position..];
+        let zone_bytes = zone.as_bytes();
+        if zone_bytes.len() != 6 || zone_bytes[3] != b':' {
+            return None;
+        }
+        let zone_hours = parse_digits(&zone_bytes[1..3])?;
+        let zone_minutes = parse_digits(&zone_bytes[4..6])?;
+        if zone_hours > 23 || zone_minutes > 59 {
+            return None;
+        }
+        let seconds = i64::from(zone_hours * 3600 + zone_minutes * 60);
+        if zone_bytes[0] == b'-' {
+            -seconds
+        } else if zone_bytes[0] == b'+' {
+            seconds
+        } else {
+            return None;
+        }
+    };
+    let utc_seconds = days_from_civil(year, month, day) * 86_400
+        + i64::from(hour * 3600 + minute * 60 + second)
+        - offset_seconds;
+    let shanghai_seconds = utc_seconds + 8 * 60 * 60;
+    let days = shanghai_seconds.div_euclid(86_400);
+    let time = shanghai_seconds.rem_euclid(86_400);
+    let (year, month, day) = civil_from_days(days);
+    let hour = time / 3600;
+    let minute = time % 3600 / 60;
+    let second = time % 60;
+    Some(format!(
+        "{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}:{second:02}"
+    ))
+}
+
+fn parse_digits(bytes: &[u8]) -> Option<u32> {
+    bytes.iter().try_fold(0_u32, |value, byte| {
+        byte.is_ascii_digit()
+            .then(|| value * 10 + u32::from(*byte - b'0'))
+    })
+}
+
+fn days_in_month(year: u32, month: u32) -> u32 {
+    match month {
+        2 if year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400)) => {
+            29
+        }
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    }
+}
+
+fn days_from_civil(year: u32, month: u32, day: u32) -> i64 {
+    let year = i64::from(year) - i64::from(month <= 2);
+    let era = year.div_euclid(400);
+    let year_of_era = year - era * 400;
+    let month = i64::from(month);
+    let day_of_year = (153 * (month + if month > 2 { -3 } else { 9 }) + 2) / 5 + i64::from(day) - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    era * 146_097 + day_of_era - 719_468
+}
+
+fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
+    let z = days_since_epoch + 719_468;
+    let era = z.div_euclid(146_097);
+    let day_of_era = z - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_prime = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+    let month = month_prime + if month_prime < 10 { 3 } else { -9 };
+    (year + i64::from(month <= 2), month, day)
 }
 
 fn non_empty_or(value: String, fallback: String) -> String {
@@ -569,4 +720,35 @@ struct SubmissionRaw {
 #[allow(dead_code)]
 fn _value_type_marker(value: Value) -> Value {
     value
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{encrypt_param, normalize_datetime, normalize_score, summary};
+
+    #[test]
+    fn frozen_crypto_and_mapping_vectors_are_preserved() {
+        let plain = r#"{"pageSize":15,"pageNum":1,"sqlid":"1713252980496efac7d5d9985e81693116d3e8a52ebf2b","xnxq":"2025-20262","kcid":"","yzwz":""}"#;
+        let encrypted = "hkJ9jAFVEMFUgJEjbOLv4eRZqXHIsmF+WbYaG1ipT1L1N+BbxRXtBj6Gcjri4Mo+y6q22/FkNm/isiC2+B+/hNejBx2cQJfNp9zoxorVJBa86sID0ROtPQ/2V07JCmVC3qsgIWBokL7EYyiPfilw+0ryJ6e61jRnLn90sQFosew=";
+
+        assert_eq!(encrypt_param(plain), encrypted);
+        assert_eq!(
+            normalize_datetime(Some("2026-03-31T15:59:59.000+00:00")).as_deref(),
+            Some("2026-03-31 23:59:59")
+        );
+        assert_eq!(
+            normalize_datetime(Some("2026-03-24 16:00:00")).as_deref(),
+            Some("2026-03-24 16:00:00")
+        );
+        assert_eq!(normalize_score(Some("Pass")).as_deref(), Some("Pass"));
+        let unknown = summary(
+            "assignment-1".into(),
+            "course-1".into(),
+            "Fixture Course".into(),
+            "Fixture Assignment".into(),
+            Some("9"),
+            None,
+        );
+        assert_eq!(unknown.submission_status_text, "未知状态(9)");
+    }
 }

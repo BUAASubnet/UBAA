@@ -509,8 +509,68 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
     );
     assert_eq!(
         result.data.assignments[1].due_time.as_deref(),
-        Some("2026-03-31 15:59:59")
+        Some("2026-03-31 23:59:59")
     );
+}
+
+#[tokio::test]
+async fn spoc_business_authentication_failure_refreshes_login_once() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=expired-token";
+    let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(first_token_url)),
+        (
+            first_token_url.into(),
+            response(200, first_token_url, "token landing"),
+        ),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(200, "https://sso.buaa.edu.cn/login?service=fixture", ""),
+        ),
+        (cas.into(), redirect(fresh_token_url)),
+        (
+            fresh_token_url.into(),
+            response(200, fresh_token_url, "token landing"),
+        ),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses_url.into(),
+            response(200, courses_url, r#"{"code":200,"content":[]}"#),
+        ),
+    ]);
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-refresh-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .spoc_assignments()
+        .await
+        .expect("one business authentication refresh must succeed");
+
+    assert!(result.data.assignments.is_empty());
+    assert_eq!(result.data.term_code, "2025-20262");
 }
 
 #[tokio::test]
@@ -594,7 +654,7 @@ async fn spoc_detail_reads_submission_without_writing() {
     assert_eq!(result.data.content_plain_text.as_deref(), Some("Read only"));
     assert_eq!(
         result.data.submitted_at.as_deref(),
-        Some("2026-03-30 10:00:00")
+        Some("2026-03-30 18:00:00")
     );
 }
 
