@@ -31,3 +31,7 @@ Both `LocalConnectionAuth.kt::logout` and the remote-backed `AuthApi.kt::logout`
 ## 2026-08-17: Require locked dependency resolution in deterministic gates
 
 `just check`, macOS/Windows CI, the live verifier, and documented user commands use `--locked` for every Cargo command that resolves dependencies. `just check` first runs `cargo metadata --locked --no-deps --format-version 1`; a cross-platform binary test uses the Git index to scan tracked Markdown, `justfile`, workflow, and shell command sources so later edits cannot silently remove the lock contract. `cargo fmt` is exempt because it does not resolve the dependency graph.
+
+## 2026-08-19: Route Judge auto to the live-verified WebVPN path
+
+The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. Live verification then showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0. The route matrix therefore gives Judge an evidence-backed `auto` override to WebVPN for Campus, OffCampus, and Unknown DNS states. This is a deterministic feature exception, not a fallback replay; explicit Direct remains available only as a diagnostic override and is still recorded as unavailable. Later WebVPN/auto attempts also returned upstream timeouts or changed responses, so the matrix records those rerun conditions rather than treating them as success.
