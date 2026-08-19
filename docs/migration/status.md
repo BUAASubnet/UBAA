@@ -28,7 +28,7 @@ Updated: 2026-08-19
 | 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds | Course selection, one business-page reactivation, detail reads, WebVPN batch gateway routing, six-month cutoff/skip and include-expired recovery, empty batch, stable not-found errors, route/session-scoped caches and actual four-worker course/detail query bounds are implemented. Real routes remain blocked by Judge upstream errors. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
 | 11 live matrix | Blocked by live business evidence | Required commands were run; failures are recorded in the feature table. |
-| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009`, `35a3571`, `014bf24`, `8425d2c`, `a5f76bf`, `ef99b57`, and `034fcde` contain the route/session, readonly, verifier/docs, SPOC detail-metadata, bounded Judge worker, route-diagnostic, fixture/Mock, route/error-contract, and SPOC-semantics rounds; live feature hard gates are still failed. |
+| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009`, `35a3571`, `014bf24`, `8425d2c`, `a5f76bf`, `ef99b57`, `034fcde`, `84f841d`, and `22b8d6f` contain the route/session, readonly, verifier/docs, SPOC detail-metadata, bounded Judge worker, route-diagnostic, fixture/Mock, route/error-contract, SPOC-semantics, Judge recovery, and final matrix-documentation rounds; live feature hard gates are still failed. |
 
 ## Live Authentication
 
