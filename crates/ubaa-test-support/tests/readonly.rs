@@ -8,9 +8,9 @@ use async_trait::async_trait;
 use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::facade::UbaaClient;
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
-use ubaa_test_support::MemorySessionStore;
+use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, readonly_fixture};
 
 #[derive(Clone)]
 struct SpocTransport {
@@ -68,16 +68,223 @@ fn session_store() -> MemorySessionStore {
 }
 
 fn session_store_with(cookie_value: &str) -> MemorySessionStore {
+    session_store_for(ConnectionMode::Direct, cookie_value)
+}
+
+fn session_store_for(mode: ConnectionMode, cookie_value: &str) -> MemorySessionStore {
     let store = MemorySessionStore::new();
     store
         .save(&SessionSnapshot {
-            mode: ConnectionMode::Direct,
+            mode,
             cookies: vec![StoredCookie::fixture("SID", cookie_value)],
             authenticated_at: 1,
             last_activity: 2,
         })
         .expect("seed session");
     store
+}
+
+#[tokio::test]
+async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
+    let current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
+    let terms_url = ubaa_core::features::schedule::TERMS_URL;
+    let weeks_url = format!(
+        "{}?termCode=2025-2026-1",
+        ubaa_core::features::schedule::WEEKS_URL
+    );
+    let weekly_schedule_url = ubaa_core::features::schedule::WEEK_URL;
+    let today_url = format!(
+        "{}?rq={}&lxdm=student",
+        ubaa_core::features::schedule::TODAY_URL,
+        shanghai_date()
+    );
+    let exam_url = format!(
+        "{}?termCode=2025-2026-1",
+        ubaa_core::features::schedule::EXAM_URL
+    );
+    let transport = MockTransport::new([
+        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(terms_url, readonly_fixture("schedule-terms.json").unwrap()),
+        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(&weeks_url, readonly_fixture("schedule-weeks.json").unwrap()),
+        expected_get(current_user, r#"{"user":"ok"}"#),
+        ExpectedRequest::new(
+            HttpMethod::Post,
+            weekly_schedule_url,
+            response(
+                200,
+                weekly_schedule_url,
+                readonly_fixture("schedule-week.json").unwrap(),
+            ),
+        ),
+        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(&today_url, readonly_fixture("schedule-today.json").unwrap()),
+        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(&exam_url, readonly_fixture("exam.json").unwrap()),
+    ]);
+    let observed = transport.clone();
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+
+    assert_eq!(client.schedule_terms().await.unwrap().data.len(), 1);
+    assert_eq!(
+        client
+            .schedule_weeks("2025-2026-1")
+            .await
+            .unwrap()
+            .data
+            .len(),
+        1
+    );
+    assert_eq!(
+        client
+            .schedule_week("2025-2026-1", 1)
+            .await
+            .unwrap()
+            .data
+            .arranged_list
+            .len(),
+        1
+    );
+    assert_eq!(client.schedule_today().await.unwrap().data.len(), 1);
+    assert_eq!(
+        client
+            .exam_arrangement("2025-2026-1")
+            .await
+            .unwrap()
+            .data
+            .arranged
+            .len(),
+        1
+    );
+
+    observed.assert_exhausted().unwrap();
+    let requests = observed.requests().unwrap();
+    for index in [1, 3, 5, 7] {
+        assert_eq!(
+            requests[index].headers.get("Referer").map(String::as_str),
+            Some("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html")
+        );
+        assert_eq!(
+            requests[index]
+                .headers
+                .get("X-Requested-With")
+                .map(String::as_str),
+            Some("XMLHttpRequest")
+        );
+    }
+    assert_eq!(
+        requests[9].headers.get("Referer").map(String::as_str),
+        Some("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html")
+    );
+    assert_eq!(
+        String::from_utf8(requests[5].body.clone()).unwrap(),
+        "termCode=2025-2026-1&type=week&week=1"
+    );
+}
+
+#[tokio::test]
+async fn grades_use_verified_activation_form_and_sanitized_fixture() {
+    let url = ubaa_core::features::grades::GRADES_URL;
+    let transport = MockTransport::new([
+        expected_get(url, readonly_fixture("grades-page.html").unwrap()),
+        ExpectedRequest::new(
+            HttpMethod::Post,
+            url,
+            response(200, url, readonly_fixture("grades.json").unwrap()),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+
+    let result = client.grades("2025-2026-1").await.unwrap();
+
+    assert_eq!(result.data.grades.len(), 1);
+    assert_eq!(
+        result.data.grades[0].course_name.as_deref(),
+        Some("Fixture Course")
+    );
+    assert_eq!(result.data.grades[0].score.as_deref(), Some("95"));
+    observed.assert_exhausted().unwrap();
+    let requests = observed.requests().unwrap();
+    assert_eq!(requests[0].method, HttpMethod::Get);
+    assert_eq!(requests[1].method, HttpMethod::Post);
+    assert_eq!(
+        String::from_utf8(requests[1].body.clone()).unwrap(),
+        "xq=1&year=2025-2026"
+    );
+    assert_eq!(
+        requests[1]
+            .headers
+            .get("X-Requested-With")
+            .map(String::as_str),
+        Some("XMLHttpRequest")
+    );
+    assert_eq!(
+        requests[1].headers.get("Referer").map(String::as_str),
+        Some(url)
+    );
+}
+
+#[tokio::test]
+async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
+    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
+    let query_url = format!(
+        "{}?xqid=1&floorid=&date=2026-04-20",
+        ubaa_core::features::classroom::CLASSROOM_URL
+    );
+    let transport = MockTransport::new([
+        expected_get(sync_url, ""),
+        expected_get(&query_url, readonly_fixture("classroom.json").unwrap()),
+    ]);
+    let observed = transport.clone();
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+
+    let result = client.classroom_search(1, "2026-04-20").await.unwrap();
+
+    assert_eq!(result.data.floors["Main"][0].name, "Fixture Room");
+    observed.assert_exhausted().unwrap();
+    let requests = observed.requests().unwrap();
+    assert_eq!(
+        requests[0].headers.get("User-Agent").map(String::as_str),
+        Some("Mozilla/5.0")
+    );
+    assert_eq!(
+        requests[1]
+            .headers
+            .get("X-Requested-With")
+            .map(String::as_str),
+        Some("XMLHttpRequest")
+    );
+    assert_eq!(
+        requests[1].headers.get("Referer").map(String::as_str),
+        Some("https://app.buaa.edu.cn/site/classRoomQuery/index")
+    );
+}
+
+fn expected_get(url: &str, body: &str) -> ExpectedRequest {
+    ExpectedRequest::new(HttpMethod::Get, url, response(200, url, body))
+}
+
+fn shanghai_date() -> String {
+    let seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        + 8 * 60 * 60;
+    let z = i64::try_from(seconds / 86_400).unwrap() + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    year += i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
 }
 
 #[tokio::test]
@@ -116,7 +323,7 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
             response(
                 200,
                 "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage",
-                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":2,"hasNextPage":true,"list":[{"zyid":"a1","tjzt":"未做","zyjzsj":"2026-03-31T15:59:59.000+00:00","zymc":"Practice","zykssj":"2026-03-24T08:00:00.000+00:00","sskcid":"course-1","kcmc":"Systems","mf":"满分:0"}]}}"#,
+                readonly_fixture("spoc-page.json").unwrap(),
             ),
         ),
         (
@@ -206,7 +413,7 @@ async fn spoc_detail_reads_submission_without_writing() {
             response(
                 200,
                 detail_url,
-                r#"{"code":200,"content":{"id":"a1","zymc":"Practice","zynr":"<p>Read only</p>","zyfs":"满分:100","zykssj":"2026-03-24T08:00:00.000+00:00","zyjzsj":"2026-03-31T15:59:59.000+00:00","sskcid":"course-1"}}"#,
+                readonly_fixture("spoc-detail.json").unwrap(),
             ),
         ),
         (
@@ -248,7 +455,7 @@ async fn judge_selects_courses_before_reading_assignment_details() {
             response(
                 200,
                 courses_url,
-                r#"<a href="courselist.jsp?courseID=1">Algorithms</a>"#,
+                readonly_fixture("judge-courses.html").unwrap(),
             ),
         ),
         (select_url.into(), response(200, select_url, "selected")),
@@ -257,7 +464,7 @@ async fn judge_selects_courses_before_reading_assignment_details() {
             response(
                 200,
                 assignments_url,
-                r#"<a href="assignment/index.jsp?assignID=101">Lab</a>"#,
+                readonly_fixture("judge-assignments.html").unwrap(),
             ),
         ),
         (select_url.into(), response(200, select_url, "selected")),
@@ -266,7 +473,7 @@ async fn judge_selects_courses_before_reading_assignment_details() {
             response(
                 200,
                 detail_url,
-                "作业满分:100 共 2 道 作业时间: 2026-08-01 08:00:00 至 2026-08-31 23:00:00 未提交",
+                readonly_fixture("judge-detail.html").unwrap(),
             ),
         ),
     ]);
@@ -282,6 +489,58 @@ async fn judge_selects_courses_before_reading_assignment_details() {
     assert_eq!(result.data[0].course_name, "Algorithms");
     assert_eq!(result.data[0].submission_status_text, "未提交");
     assert_eq!(result.data[0].total_problems, 2);
+}
+
+#[tokio::test]
+async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
+    use ubaa_core::connection::to_webvpn_url;
+
+    let direct_urls = [
+        ubaa_core::features::judge::LOGIN_URL.to_string(),
+        "https://judge.buaa.edu.cn/".into(),
+        "https://judge.buaa.edu.cn/courselist.jsp?courseID=0".into(),
+        "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
+        "https://judge.buaa.edu.cn/assignment/index.jsp".into(),
+        "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
+        "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101".into(),
+    ];
+    let urls = direct_urls
+        .iter()
+        .map(|url| to_webvpn_url(url).unwrap())
+        .collect::<Vec<_>>();
+    let transport = MockTransport::new([
+        ExpectedRequest::new(HttpMethod::Get, &urls[0], redirect_from(&urls[0], &urls[1])),
+        expected_get(&urls[1], "judge home"),
+        expected_get(&urls[2], readonly_fixture("judge-courses.html").unwrap()),
+        expected_get(&urls[3], "selected"),
+        expected_get(
+            &urls[4],
+            readonly_fixture("judge-assignments.html").unwrap(),
+        ),
+        expected_get(&urls[5], "selected"),
+        expected_get(&urls[6], readonly_fixture("judge-detail.html").unwrap()),
+    ]);
+    let observed = transport.clone();
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::WebVpn,
+        transport,
+        session_store_for(ConnectionMode::WebVpn, "judge-webvpn-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .judge_assignment_details(&[JudgeAssignmentKey {
+            course_id: "1".into(),
+            assignment_id: "101".into(),
+        }])
+        .await
+        .unwrap();
+
+    assert_eq!(result.data[0].assignment_id, "101");
+    observed.assert_exhausted().unwrap();
+    for request in observed.requests().unwrap() {
+        assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
+    }
 }
 
 #[derive(Clone)]

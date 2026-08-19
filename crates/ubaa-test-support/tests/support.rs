@@ -7,12 +7,35 @@ use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport, Req
 use ubaa_core::session::{SessionMutation, SessionSnapshot, SessionStore, StoredCookie};
 use ubaa_test_support::{
     ExpectedRequest, MemorySessionStore, MockTransport, assert_fixture_is_sanitized, auth_fixture,
+    readonly_fixture,
 };
 
 #[test]
 fn auth_fixtures_are_synthetic_and_sanitized() {
     for name in ["login-page.html", "userinfo-success.json"] {
         let fixture = auth_fixture(name).expect("known fixture exists");
+        assert_fixture_is_sanitized(fixture).expect("fixture contains no forbidden material");
+    }
+}
+
+#[test]
+fn readonly_fixtures_are_synthetic_and_sanitized() {
+    for name in [
+        "schedule-terms.json",
+        "schedule-weeks.json",
+        "schedule-week.json",
+        "schedule-today.json",
+        "exam.json",
+        "grades-page.html",
+        "grades.json",
+        "classroom.json",
+        "spoc-page.json",
+        "spoc-detail.json",
+        "judge-courses.html",
+        "judge-assignments.html",
+        "judge-detail.html",
+    ] {
+        let fixture = readonly_fixture(name).expect("known fixture exists");
         assert_fixture_is_sanitized(fixture).expect("fixture contains no forbidden material");
     }
 }

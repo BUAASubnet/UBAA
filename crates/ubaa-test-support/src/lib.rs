@@ -20,6 +20,39 @@ pub fn auth_fixture(name: &str) -> Option<&'static str> {
     }
 }
 
+/// Return one known, compile-time sanitized read-only business fixture.
+#[must_use]
+pub fn readonly_fixture(name: &str) -> Option<&'static str> {
+    match name {
+        "schedule-terms.json" => Some(include_str!(
+            "../../../fixtures/readonly/schedule-terms.json"
+        )),
+        "schedule-weeks.json" => Some(include_str!(
+            "../../../fixtures/readonly/schedule-weeks.json"
+        )),
+        "schedule-week.json" => Some(include_str!(
+            "../../../fixtures/readonly/schedule-week.json"
+        )),
+        "schedule-today.json" => Some(include_str!(
+            "../../../fixtures/readonly/schedule-today.json"
+        )),
+        "exam.json" => Some(include_str!("../../../fixtures/readonly/exam.json")),
+        "grades-page.html" => Some(include_str!("../../../fixtures/readonly/grades-page.html")),
+        "grades.json" => Some(include_str!("../../../fixtures/readonly/grades.json")),
+        "classroom.json" => Some(include_str!("../../../fixtures/readonly/classroom.json")),
+        "spoc-page.json" => Some(include_str!("../../../fixtures/readonly/spoc-page.json")),
+        "spoc-detail.json" => Some(include_str!("../../../fixtures/readonly/spoc-detail.json")),
+        "judge-courses.html" => Some(include_str!(
+            "../../../fixtures/readonly/judge-courses.html"
+        )),
+        "judge-assignments.html" => Some(include_str!(
+            "../../../fixtures/readonly/judge-assignments.html"
+        )),
+        "judge-detail.html" => Some(include_str!("../../../fixtures/readonly/judge-detail.html")),
+        _ => None,
+    }
+}
+
 /// Reject common credential/header markers and plausible long numeric identifiers.
 ///
 /// # Errors

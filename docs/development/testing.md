@@ -6,7 +6,7 @@ Tests are deliberately separated by evidence level:
 |---|---|---|
 | Unit/contract | `crates/ubaa-core/tests/` | DTOs, errors, URL conversion, cookies, no-follow/revisioned persistence, and stable JSON shape |
 | Sanitized fixture | `fixtures/`, `crates/ubaa-test-support/` | Parser behavior and request scripts using synthetic values only |
-| Mock integration | `crates/ubaa-test-support/tests/auth.rs` | Direct/WebVPN sequencing, captcha/risk continuation, invalidation, revision conflicts, and logout without a network |
+| Mock integration | `crates/ubaa-test-support/tests/auth.rs`, `readonly.rs` | Authentication sequencing plus exact read-only request URLs, forms, headers, pagination and Direct/WebVPN route locking without a network |
 | CLI contract | `apps/ubaa-cli/tests/cli_contract.rs` | Human/JSON rendering, redaction, captcha exit 4, serialized-envelope schema validation, and stable exits |
 | CLI binary | `apps/ubaa-cli/tests/binary_e2e.rs` | Help/JSON-argument surface, facade-only host access, locked Cargo gates, missing sessions, and saved-session logout through the real host |
 | Shell contract | `scripts/test-verify-live.sh` | Captcha fallback, no-captcha completion, non-interactive failure, terminal echo/restore, signal child cleanup, and profile suppression |

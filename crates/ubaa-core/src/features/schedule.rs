@@ -26,6 +26,8 @@ pub const EXAM_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/
 /// Portal capability probe used by the frozen implementation before each undergraduate read.
 pub const CURRENT_USER_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do";
+const SCHEDULE_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html";
+const EXAM_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html";
 
 #[derive(Debug, Deserialize)]
 struct ListResponse<T> {
@@ -89,12 +91,14 @@ pub fn parse_exam(body: &str) -> Result<ExamArrangement> {
 pub(crate) async fn get_terms(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<Term>> {
     ensure_undergraduate_portal(runtime).await?;
     let url = runtime.url(TERMS_URL)?;
+    let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::get_with_redirects(
         runtime,
         url,
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
+            ("Referer", &referer),
         ],
         "schedule",
     )
@@ -111,12 +115,14 @@ pub(crate) async fn get_weeks(
     ensure_undergraduate_portal(runtime).await?;
     let mut url = url::Url::parse(&runtime.url(WEEKS_URL)?).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("termCode", term);
+    let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::get_with_redirects(
         runtime,
         url.to_string(),
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
+            ("Referer", &referer),
         ],
         "schedule",
     )
@@ -133,6 +139,7 @@ pub(crate) async fn get_week(
 ) -> Result<WeeklySchedule> {
     ensure_undergraduate_portal(runtime).await?;
     let url = runtime.url(WEEK_URL)?;
+    let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::post_form(
         runtime,
         url,
@@ -144,6 +151,7 @@ pub(crate) async fn get_week(
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
+            ("Referer", &referer),
         ],
     )
     .await?;
@@ -160,12 +168,14 @@ pub(crate) async fn get_today(
     url.query_pairs_mut()
         .append_pair("rq", &shanghai_date())
         .append_pair("lxdm", "student");
+    let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::get_with_redirects(
         runtime,
         url.to_string(),
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
+            ("Referer", &referer),
         ],
         "schedule",
     )
@@ -182,10 +192,15 @@ pub(crate) async fn get_exam(
     ensure_undergraduate_portal(runtime).await?;
     let mut url = url::Url::parse(&runtime.url(EXAM_URL)?).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("termCode", term);
+    let referer = runtime.url(EXAM_REFERER_URL)?;
     let response = super::get_with_redirects(
         runtime,
         url.to_string(),
-        &[("Accept", "*/*"), ("X-Requested-With", "XMLHttpRequest")],
+        &[
+            ("Accept", "*/*"),
+            ("X-Requested-With", "XMLHttpRequest"),
+            ("Referer", &referer),
+        ],
         "exam",
     )
     .await?;
