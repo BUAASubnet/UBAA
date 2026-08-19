@@ -264,6 +264,165 @@ async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
     );
 }
 
+#[tokio::test]
+async fn readonly_sso_final_url_is_classified_as_authentication_required() {
+    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
+    let query_url = format!(
+        "{}?xqid=1&floorid=&date=2026-04-20",
+        ubaa_core::features::classroom::CLASSROOM_URL
+    );
+    let transport = MockTransport::new([
+        expected_get(sync_url, ""),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &query_url,
+            HttpResponse::new(
+                200,
+                "https://sso.buaa.edu.cn/login?service=fixture",
+                Vec::new(),
+            ),
+        ),
+    ]);
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+
+    let error = client
+        .classroom_search(1, "2026-04-20")
+        .await
+        .expect_err("SSO final URL must not be parsed as a business response");
+
+    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+}
+
+#[tokio::test]
+async fn readonly_input_validation_rejects_blank_terms_and_invalid_dates_before_network() {
+    let transport = MockTransport::new([]);
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+
+    let term_error = client
+        .schedule_weeks("  ")
+        .await
+        .expect_err("blank term must be rejected locally");
+    assert_eq!(term_error.code, ErrorCode::InvalidInput);
+
+    let date_error = client
+        .classroom_search(1, "2026-ab-31")
+        .await
+        .expect_err("non-numeric date must be rejected locally");
+    assert_eq!(date_error.code, ErrorCode::InvalidInput);
+
+    let impossible_date = client
+        .classroom_search(1, "2026-02-30")
+        .await
+        .expect_err("impossible calendar date must be rejected locally");
+    assert_eq!(impossible_date.code, ErrorCode::InvalidInput);
+}
+
+#[tokio::test]
+async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
+    use ubaa_core::connection::to_webvpn_url;
+
+    let current_user = to_webvpn_url(ubaa_core::features::schedule::CURRENT_USER_URL).unwrap();
+    let terms = to_webvpn_url(ubaa_core::features::schedule::TERMS_URL).unwrap();
+    let schedule_referer =
+        to_webvpn_url("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html").unwrap();
+    let schedule_transport = MockTransport::new([
+        expected_get(&current_user, r#"{"user":"ok"}"#),
+        expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
+    ]);
+    let schedule_observed = schedule_transport.clone();
+    let mut schedule_client = UbaaClient::with_transport(
+        ConnectionMode::WebVpn,
+        schedule_transport,
+        session_store_for(ConnectionMode::WebVpn, "webvpn-schedule-fixture"),
+    )
+    .unwrap();
+    schedule_client.schedule_terms().await.unwrap();
+    schedule_observed.assert_exhausted().unwrap();
+    for request in schedule_observed.requests().unwrap() {
+        assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
+    }
+    assert_eq!(
+        schedule_observed.requests().unwrap()[0]
+            .headers
+            .get("Referer")
+            .map(String::as_str),
+        Some(schedule_referer.as_str())
+    );
+    assert_eq!(
+        schedule_observed.requests().unwrap()[1]
+            .headers
+            .get("Referer")
+            .map(String::as_str),
+        Some(schedule_referer.as_str())
+    );
+
+    let sync = to_webvpn_url(ubaa_core::features::classroom::CLASSROOM_SYNC_URL).unwrap();
+    let direct_query = format!(
+        "{}?xqid=1&floorid=&date=2026-04-20",
+        ubaa_core::features::classroom::CLASSROOM_URL
+    );
+    let query = to_webvpn_url(&direct_query).unwrap();
+    let classroom_referer =
+        to_webvpn_url("https://app.buaa.edu.cn/site/classRoomQuery/index").unwrap();
+    let classroom_transport = MockTransport::new([
+        expected_get(&sync, ""),
+        expected_get(&query, readonly_fixture("classroom.json").unwrap()),
+    ]);
+    let classroom_observed = classroom_transport.clone();
+    let mut classroom_client = UbaaClient::with_transport(
+        ConnectionMode::WebVpn,
+        classroom_transport,
+        session_store_for(ConnectionMode::WebVpn, "webvpn-classroom-fixture"),
+    )
+    .unwrap();
+    classroom_client
+        .classroom_search(1, "2026-04-20")
+        .await
+        .unwrap();
+    classroom_observed.assert_exhausted().unwrap();
+    for request in classroom_observed.requests().unwrap() {
+        assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
+    }
+    assert_eq!(
+        classroom_observed.requests().unwrap()[1]
+            .headers
+            .get("Referer")
+            .map(String::as_str),
+        Some(classroom_referer.as_str())
+    );
+
+    let grades_url = to_webvpn_url(ubaa_core::features::grades::GRADES_URL).unwrap();
+    let grades_transport = MockTransport::new([
+        expected_get(&grades_url, readonly_fixture("grades-page.html").unwrap()),
+        ExpectedRequest::new(
+            HttpMethod::Post,
+            &grades_url,
+            response(200, &grades_url, readonly_fixture("grades.json").unwrap()),
+        ),
+    ]);
+    let grades_observed = grades_transport.clone();
+    let mut grades_client = UbaaClient::with_transport(
+        ConnectionMode::WebVpn,
+        grades_transport,
+        session_store_for(ConnectionMode::WebVpn, "webvpn-grades-fixture"),
+    )
+    .unwrap();
+    grades_client.grades("2025-2026-1").await.unwrap();
+    grades_observed.assert_exhausted().unwrap();
+    for request in grades_observed.requests().unwrap() {
+        assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
+    }
+    assert_eq!(
+        grades_observed.requests().unwrap()[1]
+            .headers
+            .get("Referer")
+            .map(String::as_str),
+        Some(grades_url.as_str())
+    );
+}
+
 fn expected_get(url: &str, body: &str) -> ExpectedRequest {
     ExpectedRequest::new(HttpMethod::Get, url, response(200, url, body))
 }

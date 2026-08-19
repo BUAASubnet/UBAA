@@ -88,10 +88,7 @@ pub(crate) async fn search(
     campus_id: i32,
     date: &str,
 ) -> Result<ClassroomQuery> {
-    if date.len() != 10
-        || date.as_bytes().get(4) != Some(&b'-')
-        || date.as_bytes().get(7) != Some(&b'-')
-    {
+    if !valid_iso_date(date) {
         return Err(UbaaError::new(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
@@ -99,15 +96,19 @@ pub(crate) async fn search(
             "date must use yyyy-mm-dd",
         ));
     }
+    let sync_url = runtime.url(CLASSROOM_SYNC_URL)?;
     let sync = super::get_with_redirects(
         runtime,
-        runtime.url(CLASSROOM_SYNC_URL)?,
+        sync_url,
         &[("User-Agent", "Mozilla/5.0")],
         "classroom",
     )
     .await?;
-    super::check_response(&sync, "classroom")?;
-    let mut url = url::Url::parse(&runtime.url(CLASSROOM_URL)?).map_err(|_| {
+    // The sync endpoint itself is the verified SSO entry URL; its SSO host is expected.
+    super::check_response_allow_sso(&sync, "classroom")?;
+    let query_url = runtime.url(CLASSROOM_URL)?;
+    let referer = runtime.url("https://app.buaa.edu.cn/site/classRoomQuery/index")?;
+    let mut url = url::Url::parse(&query_url).map_err(|_| {
         UbaaError::new(
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
@@ -126,14 +127,41 @@ pub(crate) async fn search(
             ("User-Agent", "Mozilla/5.0"),
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
-            (
-                "Referer",
-                "https://app.buaa.edu.cn/site/classRoomQuery/index",
-            ),
+            ("Referer", &referer),
         ],
         "classroom",
     )
     .await?;
     super::check_response(&response, "classroom")?;
     parse_response(&super::body(&response))
+}
+
+fn valid_iso_date(date: &str) -> bool {
+    let bytes = date.as_bytes();
+    if bytes.len() != 10
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || !bytes[..4].iter().all(u8::is_ascii_digit)
+        || !bytes[5..7].iter().all(u8::is_ascii_digit)
+        || !bytes[8..].iter().all(u8::is_ascii_digit)
+    {
+        return false;
+    }
+    let year = u32::from(bytes[0] - b'0') * 1000
+        + u32::from(bytes[1] - b'0') * 100
+        + u32::from(bytes[2] - b'0') * 10
+        + u32::from(bytes[3] - b'0');
+    let month = u32::from(bytes[5] - b'0') * 10 + u32::from(bytes[6] - b'0');
+    let day = u32::from(bytes[8] - b'0') * 10 + u32::from(bytes[9] - b'0');
+    if !(1..=12).contains(&month) || day == 0 {
+        return false;
+    }
+    let leap = year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
+    let days_in_month = match month {
+        2 if leap => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    day <= days_in_month
 }

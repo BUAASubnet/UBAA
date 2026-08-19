@@ -112,6 +112,14 @@ pub(crate) async fn get_weeks(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<Vec<Week>> {
+    if term.trim().is_empty() {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "term is required",
+        ));
+    }
     ensure_undergraduate_portal(runtime).await?;
     let mut url = url::Url::parse(&runtime.url(WEEKS_URL)?).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("termCode", term);
@@ -209,16 +217,15 @@ pub(crate) async fn get_exam(
 }
 
 async fn ensure_undergraduate_portal(runtime: &mut crate::runtime::ClientRuntime) -> Result<()> {
+    let current_user_url = runtime.url(CURRENT_USER_URL)?;
+    let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::get_with_redirects(
         runtime,
-        runtime.url(CURRENT_USER_URL)?,
+        current_user_url,
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
-            (
-                "Referer",
-                "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html",
-            ),
+            ("Referer", &referer),
         ],
         "schedule",
     )

@@ -104,9 +104,10 @@ pub(crate) async fn get_grades(
     term_code: &str,
 ) -> Result<GradeData> {
     let term = parse_term_code(term_code)?;
+    let page_url = runtime.url(GRADES_URL)?;
     let page = super::get_with_redirects(
         runtime,
-        runtime.url(GRADES_URL)?,
+        page_url,
         &[(
             "Accept",
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -115,14 +116,16 @@ pub(crate) async fn get_grades(
     )
     .await?;
     super::check_response(&page, "grades")?;
+    let query_url = runtime.url(GRADES_URL)?;
+    let referer = query_url.clone();
     let response = super::post_form(
         runtime,
-        runtime.url(GRADES_URL)?,
+        query_url,
         &[("xq", term.semester.to_string()), ("year", term.year)],
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
-            ("Referer", GRADES_URL),
+            ("Referer", &referer),
         ],
     )
     .await?;

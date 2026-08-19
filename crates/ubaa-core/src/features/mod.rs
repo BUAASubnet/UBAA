@@ -147,8 +147,28 @@ pub(crate) fn body(response: &HttpResponse) -> String {
 }
 
 pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<()> {
+    check_response_inner(response, feature, true)
+}
+
+/// Check a response whose configured endpoint is itself the SSO entry page.
+pub(crate) fn check_response_allow_sso(response: &HttpResponse, feature: &str) -> Result<()> {
+    check_response_inner(response, feature, false)
+}
+
+fn check_response_inner(
+    response: &HttpResponse,
+    feature: &str,
+    reject_sso_final_url: bool,
+) -> Result<()> {
     let text = body(response);
+    let direct_final_url = crate::connection::from_webvpn_url(&response.final_url)
+        .unwrap_or_else(|_| response.final_url.clone());
+    let sso_final_url = url::Url::parse(&direct_final_url)
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|host| host == "sso.buaa.edu.cn");
     if response.status == 401
+        || (sso_final_url && reject_sso_final_url)
         || text.contains("input name=\"execution\"")
         || text.contains("统一身份认证")
     {
