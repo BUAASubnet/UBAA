@@ -181,6 +181,98 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
         String::from_utf8(requests[5].body.clone()).unwrap(),
         "termCode=2025-2026-1&type=week&week=1"
     );
+    assert_eq!(
+        requests[5].headers.get("Content-Type").map(String::as_str),
+        Some("application/x-www-form-urlencoded")
+    );
+}
+
+#[tokio::test]
+async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
+    let current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
+    let terms = ubaa_core::features::schedule::TERMS_URL;
+    let aas_login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
+    let aas_verify = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
+    let transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            current_user,
+            response(
+                200,
+                "https://sso.buaa.edu.cn/login?service=fixture",
+                r#"<form><input name="execution" value="e1s1"></form>"#,
+            ),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            aas_login,
+            redirect_from(aas_login, aas_verify),
+        ),
+        expected_get(aas_verify, "AAS ready"),
+        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(terms, readonly_fixture("schedule-terms.json").unwrap()),
+    ]);
+    let observed = transport.clone();
+    let mut client =
+        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+
+    let result = client.schedule_terms().await.expect("AAS recovery");
+
+    assert_eq!(result.data.len(), 1);
+    observed.assert_exhausted().unwrap();
+}
+
+#[tokio::test]
+async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
+    use ubaa_core::connection::to_webvpn_url;
+
+    let direct_current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
+    let direct_terms = ubaa_core::features::schedule::TERMS_URL;
+    let direct_aas_login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
+    let direct_aas_verify =
+        "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
+    let current_user = to_webvpn_url(direct_current_user).unwrap();
+    let terms = to_webvpn_url(direct_terms).unwrap();
+    let aas_login = to_webvpn_url(direct_aas_login).unwrap();
+    let aas_verify = to_webvpn_url(direct_aas_verify).unwrap();
+    let transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &current_user,
+            response(
+                200,
+                &to_webvpn_url("https://sso.buaa.edu.cn/login?service=fixture").unwrap(),
+                r#"<form><input name="execution" value="e1s1"></form>"#,
+            ),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &aas_login,
+            redirect_from(&aas_login, direct_aas_verify),
+        ),
+        expected_get(&aas_verify, "AAS ready"),
+        expected_get(&current_user, r#"{"user":"ok"}"#),
+        expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
+    ]);
+    let observed = transport.clone();
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::WebVpn,
+        transport,
+        session_store_for(ConnectionMode::WebVpn, "webvpn-aas-recovery-fixture"),
+    )
+    .unwrap();
+
+    let result = client.schedule_terms().await.expect("WebVPN AAS recovery");
+
+    assert_eq!(result.data.len(), 1);
+    observed.assert_exhausted().unwrap();
+    assert!(
+        observed
+            .requests()
+            .unwrap()
+            .iter()
+            .all(|request| request.url.starts_with("https://d.buaa.edu.cn/"))
+    );
 }
 
 #[tokio::test]

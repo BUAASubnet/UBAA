@@ -26,6 +26,11 @@ pub const EXAM_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/
 /// Portal capability probe used by the frozen implementation before each undergraduate read.
 pub const CURRENT_USER_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do";
+/// AAS-specific CAS activation endpoint from the pinned `buaa-api` reference.
+pub const AAS_LOGIN_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
+/// Expected AAS landing page after successful CAS activation.
+pub const AAS_VERIFY_URL: &str =
+    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
 const SCHEDULE_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html";
 const EXAM_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html";
 
@@ -217,11 +222,21 @@ pub(crate) async fn get_exam(
 }
 
 async fn ensure_undergraduate_portal(runtime: &mut crate::runtime::ClientRuntime) -> Result<()> {
-    let current_user_url = runtime.url(CURRENT_USER_URL)?;
+    let mut response = probe_undergraduate_portal(runtime).await?;
+    if undergraduate_portal_requires_sso(&response) {
+        activate_undergraduate_portal(runtime).await?;
+        response = probe_undergraduate_portal(runtime).await?;
+    }
+    classify_undergraduate_portal(&response)
+}
+
+async fn probe_undergraduate_portal(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<crate::ports::HttpResponse> {
     let referer = runtime.url(SCHEDULE_REFERER_URL)?;
-    let response = super::get_with_redirects(
+    super::get_with_redirects(
         runtime,
-        current_user_url,
+        runtime.url(CURRENT_USER_URL)?,
         &[
             ("Accept", "application/json, text/javascript, */*; q=0.01"),
             ("X-Requested-With", "XMLHttpRequest"),
@@ -229,13 +244,36 @@ async fn ensure_undergraduate_portal(runtime: &mut crate::runtime::ClientRuntime
         ],
         "schedule",
     )
-    .await?;
-    let text = super::body(&response);
-    if response.status == 401
+    .await
+}
+
+async fn activate_undergraduate_portal(runtime: &mut crate::runtime::ClientRuntime) -> Result<()> {
+    let response =
+        super::get_with_redirects(runtime, runtime.url(AAS_LOGIN_URL)?, &[], "schedule").await?;
+    super::check_response(&response, "schedule")?;
+    let final_url = crate::connection::from_webvpn_url(&response.final_url)
+        .unwrap_or_else(|_| response.final_url.clone());
+    if !final_url.starts_with(AAS_VERIFY_URL) {
+        return Err(UbaaError::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            false,
+            "undergraduate portal activation reached an unexpected page",
+        ));
+    }
+    Ok(())
+}
+
+fn undergraduate_portal_requires_sso(response: &crate::ports::HttpResponse) -> bool {
+    let text = super::body(response);
+    response.status == 401
         || response.final_url.contains("sso.buaa.edu.cn")
         || text.contains("input name=\"execution\"")
         || text.contains("统一身份认证")
-    {
+}
+
+fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Result<()> {
+    if undergraduate_portal_requires_sso(response) {
         return Err(UbaaError::new(
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,

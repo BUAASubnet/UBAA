@@ -119,6 +119,10 @@ pub(crate) async fn post_form(
         .finish()
         .into_bytes();
     let mut request = HttpRequest::post(url, body);
+    request.headers.insert(
+        "Content-Type".into(),
+        "application/x-www-form-urlencoded".into(),
+    );
     for (name, value) in headers {
         request.headers.insert((*name).into(), (*value).into());
     }
