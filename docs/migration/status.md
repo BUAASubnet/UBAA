@@ -27,7 +27,7 @@ Updated: 2026-08-19
 | 9c SPOC | Implemented with sanitized fixture/Mock coverage; real empty result on Direct/WebVPN/auto | CAS token/role, known AES-CBC vector, one business-auth refresh, pagination, Asia/Shanghai time mapping, detail/submission read and HTML/status mapping pass deterministic tests. All three routes returned a valid empty list; no detail was available to exercise live. |
 | 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds; real-verified on WebVPN/auto | Business-page redirects use the route-locked redirect helper; workers filter Judge-scoped cookies and independently activate before course selection; detail/batch reads remain bounded at four workers. Explicit WebVPN and auto both produced real successful list/detail responses. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
-| 11 live matrix | Partially improved; still blocked by live business evidence | Judge WebVPN and auto have real successes after the redirect/session fix; schedule/exam/grades remain account-blocked. |
+| 11 live matrix | Partially improved; still blocked by live business evidence | Judge WebVPN and standalone auto have real successes after the redirect/session fix; schedule/exam/grades remain account-blocked, and the required aggregate command still encounters intermittent Judge timeout/`upstream_changed` failures. |
 | 12 handoff/gates | Deterministic gates passed; live handoff blocked | Earlier independent rounds through `22b8d6f`, followed by `a177960` (Judge redirect/session isolation, route matrix and verifier sample), `880b002` (live evidence/status docs), and `7584811` (route decision record), are independently committed; live feature hard gates are still failed. |
 
 ## Live Authentication
@@ -50,7 +50,7 @@ These prove only the two authentication routes. They do not prove any business e
 | SPOC assignments/details | CAS token/role, encrypted paginated list, detail, submission status and HTML text implemented | Success, empty list, exit 0 | Success, empty list, exit 0 | Success, `result_count=0`, exit 0 | Empty lists are valid real results on all three routes. A non-empty account should rerun to exercise one detail request. |
 | Judge assignments/details | SSO activation, route-locked redirects, isolated workers, HTML parsers, cutoff/cache and detail/batch facade implemented | `upstream_unavailable` (exit 5) | Success: exit 0, `result_count=17` on 2026-08-19; repeated upstream timeouts also observed | Repeated success: latest formal run exit 0, `result_count=17`; earlier successful runs returned `65` standalone and `161` in aggregate. All resolved to WebVPN and completed one latest-assignment detail | WebVPN and auto are verified. Direct remains unavailable; live counts are response-dependent and an intervening aggregate attempt returned `upstream_changed` at detail. |
 
-The latest aggregate `just verify-live feature=all route=auto` run completed Judge list/detail with `result_count=161`, then exited 3 because schedule, exam and grades returned `authentication_required`; classroom and SPOC also succeeded. An immediately preceding aggregate run reached Judge detail but returned `upstream_changed`, demonstrating the live list/detail volatility without changing the verified WebVPN route.
+The latest required aggregate `just verify-live feature=all route=auto` run exited 3: schedule, exam and grades returned `authentication_required`; classroom returned 158 results; SPOC returned a valid empty list; Judge reached detail and returned `upstream_changed`. The immediately preceding formal aggregate run failed at the Judge list with `timeout`. A diagnostic invocation of the same verifier flow did complete Judge list/detail with `result_count=161`, but it does not replace the failed required command. These attempts demonstrate live list/detail volatility without changing the independently verified WebVPN route.
 
 The individual required command summaries were:
 
@@ -112,7 +112,7 @@ CI remains deterministic-only: it does not read `.env.local` or contact live acc
 
 ## Remaining Gaps
 
-- The live hard gate for schedule, exam and grades is not passed because of account capability failures. This is not a fixture gap.
+- The live hard gate for schedule, exam and grades is not passed because of account capability failures. The required aggregate `all/auto` command also remains failed because its latest Judge attempts returned `timeout` or `upstream_changed`. These are not fixture gaps.
 - Judge explicit WebVPN and auto now have real list/detail successes; Direct remains unavailable. Classroom and SPOC have real success on both explicit routes and `auto`.
 - Schema-v2 JSON carries effective policy, DNS state, initial/final route and fallback diagnostics; human output continues to show the concrete route without exposing internal protocol details.
 - Judge list and batch-detail queries now use route-locked read-only workers with an actual four-request semaphore; each worker filters Judge-scoped Cookies, independently activates the route, and never persists authentication state.
@@ -126,4 +126,5 @@ CI remains deterministic-only: it does not read `.env.local` or contact live acc
 3. Re-run classroom on a requested campus/date if the existing 158-result Direct/WebVPN/auto evidence is stale.
 4. Re-run SPOC with an account that has an assignment to exercise the detail path; the current Direct/WebVPN/auto runs are valid empty-list evidence.
 5. Re-run Judge WebVPN/auto when refreshing evidence; record both list and a current latest-assignment detail, and do not infer success from an empty fixture or a stale first list item.
-6. Only after schedule, exam and grades obtain a successful real route and auto evidence should phase 11/12 be marked complete.
+6. Re-run `just verify-live feature=all route=auto` after the Judge upstream is stable; the standalone Judge success does not satisfy this aggregate gate.
+7. Only after schedule, exam and grades obtain a successful real route and auto evidence, and the aggregate command passes, should phase 11/12 be marked complete.
