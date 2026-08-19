@@ -711,6 +711,159 @@ async fn judge_selects_courses_before_reading_assignment_details() {
 }
 
 #[tokio::test]
+async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
+    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let judge_home = "https://judge.buaa.edu.cn/";
+    let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
+    let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
+    let assignments_url = "https://judge.buaa.edu.cn/assignment/index.jsp";
+    let detail_url = "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101";
+    let transport = SpocTransport::new([
+        (login_url.into(), redirect_from(login_url, judge_home)),
+        (judge_home.into(), response(200, judge_home, "judge home")),
+        (
+            courses_url.into(),
+            response(
+                200,
+                courses_url,
+                r#"<form><input name="execution" value="fixture"></form>统一身份认证"#,
+            ),
+        ),
+        (login_url.into(), redirect_from(login_url, judge_home)),
+        (judge_home.into(), response(200, judge_home, "judge home")),
+        (
+            courses_url.into(),
+            response(
+                200,
+                courses_url,
+                readonly_fixture("judge-courses.html").unwrap(),
+            ),
+        ),
+        (select_url.into(), response(200, select_url, "selected")),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                readonly_fixture("judge-assignments.html").unwrap(),
+            ),
+        ),
+        (select_url.into(), response(200, select_url, "selected")),
+        (
+            detail_url.into(),
+            response(
+                200,
+                detail_url,
+                readonly_fixture("judge-detail.html").unwrap(),
+            ),
+        ),
+    ]);
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-reactivation-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .judge_assignments(false)
+        .await
+        .expect("one Judge reactivation must succeed");
+
+    assert_eq!(result.data.len(), 1);
+    assert_eq!(result.data[0].assignment_id, "101");
+}
+
+#[tokio::test]
+async fn judge_empty_batch_and_missing_course_have_stable_semantics() {
+    let transport = MockTransport::new([]);
+    let mut empty_client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport.clone(),
+        session_store_with("judge-empty-batch-fixture"),
+    )
+    .unwrap();
+
+    let empty = empty_client.judge_assignment_details(&[]).await.unwrap();
+
+    assert!(empty.data.is_empty());
+    transport.assert_exhausted().unwrap();
+    assert!(transport.requests().unwrap().is_empty());
+
+    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let judge_home = "https://judge.buaa.edu.cn/";
+    let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
+    let transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login_url,
+            redirect_from(login_url, judge_home),
+        ),
+        expected_get(judge_home, "judge home"),
+        expected_get(courses_url, readonly_fixture("judge-courses.html").unwrap()),
+    ]);
+    let mut missing_client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport.clone(),
+        session_store_with("judge-missing-course-fixture"),
+    )
+    .unwrap();
+
+    let error = missing_client
+        .judge_assignment("missing", "101")
+        .await
+        .expect_err("unknown Judge course must fail safely");
+
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    transport.assert_exhausted().unwrap();
+}
+
+#[tokio::test]
+async fn judge_historical_courses_are_skipped_by_default_but_includable() {
+    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let judge_home = "https://judge.buaa.edu.cn/";
+    let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
+    let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
+    let assignments_url = "https://judge.buaa.edu.cn/assignment/index.jsp";
+    let detail_url = "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101";
+    let transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login_url,
+            redirect_from(login_url, judge_home),
+        ),
+        expected_get(judge_home, "judge home"),
+        expected_get(courses_url, readonly_fixture("judge-courses.html").unwrap()),
+        expected_get(select_url, "selected"),
+        expected_get(
+            assignments_url,
+            readonly_fixture("judge-assignments.html").unwrap(),
+        ),
+        expected_get(select_url, "selected"),
+        expected_get(
+            detail_url,
+            "作业时间: 2020-01-01 08:00:00 至 2020-01-31 23:00:00 未提交",
+        ),
+    ]);
+    let mut client = UbaaClient::with_transport(
+        ConnectionMode::Direct,
+        transport.clone(),
+        session_store_with("judge-historical-fixture"),
+    )
+    .unwrap();
+
+    let first = client.judge_assignments(false).await.unwrap();
+    let skipped = client.judge_assignments(false).await.unwrap();
+    let included = client.judge_assignments(true).await.unwrap();
+
+    assert!(first.data.is_empty());
+    assert!(skipped.data.is_empty());
+    assert_eq!(included.data.len(), 1);
+    assert_eq!(included.data[0].assignment_id, "101");
+    transport.assert_exhausted().unwrap();
+}
+
+#[tokio::test]
 async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
     use ubaa_core::connection::to_webvpn_url;
 

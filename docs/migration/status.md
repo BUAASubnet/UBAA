@@ -25,10 +25,10 @@ Updated: 2026-08-19
 | 9a schedule/exam/grades | Implemented with sanitized fixture and facade Mock coverage | Every schedule/exam read, schedule/exam route-specific Referer, grades activation GET and `xq/year` POST are asserted. Real auto requests still stop at the undergraduate portal probe with `authentication_required`. |
 | 9b classroom | Implemented with sanitized fixture and facade Mock coverage; real-verified on Direct/WebVPN/auto | The CAS sync, query URL and required headers are asserted. All three live routes succeeded with 158 parsed classrooms for the 2026-08-18 default date. |
 | 9c SPOC | Implemented with sanitized fixture/Mock coverage; real empty result on Direct/WebVPN/auto | CAS token/role, known AES-CBC vector, one business-auth refresh, pagination, Asia/Shanghai time mapping, detail/submission read and HTML/status mapping pass deterministic tests. All three routes returned a valid empty list; no detail was available to exercise live. |
-| 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds | Course selection, detail reads, WebVPN batch gateway routing, six-month cutoff, route/session-scoped caches and actual four-worker course/detail query bounds are implemented. Real routes remain blocked by Judge upstream errors. |
+| 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds | Course selection, one business-page reactivation, detail reads, WebVPN batch gateway routing, six-month cutoff/skip and include-expired recovery, empty batch, stable not-found errors, route/session-scoped caches and actual four-worker course/detail query bounds are implemented. Real routes remain blocked by Judge upstream errors. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
 | 11 live matrix | Blocked by live business evidence | Required commands were run; failures are recorded in the feature table. |
-| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009`, `35a3571`, `014bf24`, and `8425d2c` contain the route/session, readonly, verifier/docs, SPOC detail-metadata, bounded Judge worker, and route-diagnostic rounds; live feature hard gates are still failed. |
+| 12 handoff/gates | Deterministic gates passed; live handoff blocked | Independent commits `4c4e4f6`, `b4df5cb`, `ad81009`, `35a3571`, `014bf24`, `8425d2c`, `a5f76bf`, `ef99b57`, and `034fcde` contain the route/session, readonly, verifier/docs, SPOC detail-metadata, bounded Judge worker, route-diagnostic, fixture/Mock, route/error-contract, and SPOC-semantics rounds; live feature hard gates are still failed. |
 
 ## Live Authentication
 
@@ -88,10 +88,10 @@ Direct and WebVPN columns stay `unverified` unless an explicit route command pro
 
 The latest focused runs passed:
 
-- `cargo test --locked --workspace`, including 102 tests after the complete read-only fixture/Mock and route-diagnostic additions.
+- `cargo test --locked --workspace`, including 110 tests after the complete read-only fixture/Mock, route/error-contract, SPOC semantics and Judge boundary additions.
 - `cargo clippy --locked --workspace --all-targets -- -D warnings`.
 - `cargo test --locked -p ubaa-cli --test binary_e2e` (10 passed).
-- `cargo test --locked -p ubaa-test-support --test readonly` (9 passed).
+- `cargo test --locked -p ubaa-test-support --test readonly` (16 passed).
 - `cargo test --locked -p ubaa-test-support --test support` (8 passed).
 - `./scripts/test-verify-live.sh`.
 
@@ -103,7 +103,7 @@ just check-sensitive
 just check
 ```
 
-`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 99 repository files; `just check` exit 0 covered locked metadata, format, Clippy, 102 workspace tests, synthetic verifier, build, Rustdoc and diff checks.
+`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 99 repository files; `just check` exit 0 covered locked metadata, format, Clippy, 110 workspace tests, synthetic verifier, build, Rustdoc and diff checks.
 
 CI remains deterministic-only: it does not read `.env.local` or contact live accounts. Sensitive scans must continue to reject passwords, Cookies, tokens, captcha images, raw bodies, and complete personal data.
 

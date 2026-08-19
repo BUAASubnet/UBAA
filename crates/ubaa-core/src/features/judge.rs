@@ -423,9 +423,7 @@ async fn get_courses_cached(
     let mut url =
         url::Url::parse(&format!("{BASE_URL}/courselist.jsp")).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("courseID", "0");
-    let response =
-        super::get_with_headers(runtime, runtime.url(url.as_str())?, judge_headers()).await?;
-    super::check_response(&response, "judge")?;
+    let response = get_html(runtime, runtime.url(url.as_str())?).await?;
     let courses = parse_courses(&super::body(&response));
     if !courses.is_empty() {
         cache().lock().expect("Judge cache mutex").courses.insert(
@@ -460,13 +458,9 @@ async fn get_course_assignments_cached(
     select_url
         .query_pairs_mut()
         .append_pair("courseID", &course.course_id);
-    let selected =
-        super::get_with_headers(runtime, runtime.url(select_url.as_str())?, judge_headers())
-            .await?;
-    super::check_response(&selected, "judge")?;
+    get_html(runtime, runtime.url(select_url.as_str())?).await?;
     let index_url = runtime.url(&format!("{BASE_URL}/assignment/index.jsp"))?;
-    let response = super::get_with_headers(runtime, index_url, judge_headers()).await?;
-    super::check_response(&response, "judge")?;
+    let response = get_html(runtime, index_url).await?;
     let assignments = parse_assignments(&super::body(&response), course);
     let mut cache = cache().lock().expect("Judge cache mutex");
     if assignments.is_empty() {
@@ -508,19 +502,13 @@ async fn get_detail_cached(
     select_url
         .query_pairs_mut()
         .append_pair("courseID", &assignment.course_id);
-    let selected =
-        super::get_with_headers(runtime, runtime.url(select_url.as_str())?, judge_headers())
-            .await?;
-    super::check_response(&selected, "judge")?;
+    get_html(runtime, runtime.url(select_url.as_str())?).await?;
     let mut detail_url =
         url::Url::parse(&format!("{BASE_URL}/assignment/index.jsp")).map_err(|_| invalid_url())?;
     detail_url
         .query_pairs_mut()
         .append_pair("assignID", &assignment.assignment_id);
-    let response =
-        super::get_with_headers(runtime, runtime.url(detail_url.as_str())?, judge_headers())
-            .await?;
-    super::check_response(&response, "judge")?;
+    let response = get_html(runtime, runtime.url(detail_url.as_str())?).await?;
     let detail = parse_detail(
         &super::body(&response),
         &assignment.course_id,
@@ -550,6 +538,23 @@ fn judge_headers() -> &'static [(&'static str, &'static str)] {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
         ),
     ]
+}
+
+async fn get_html(
+    runtime: &mut crate::runtime::ClientRuntime,
+    url: String,
+) -> crate::error::Result<crate::ports::HttpResponse> {
+    let response = super::get_with_headers(runtime, url.clone(), judge_headers()).await?;
+    match super::check_response(&response, "judge") {
+        Ok(()) => Ok(response),
+        Err(error) if error.code == crate::error::ErrorCode::AuthenticationRequired => {
+            activate(runtime).await?;
+            let response = super::get_with_headers(runtime, url, judge_headers()).await?;
+            super::check_response(&response, "judge")?;
+            Ok(response)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 fn six_month_cutoff() -> String {
