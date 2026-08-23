@@ -24,6 +24,7 @@ pub(crate) struct LoginState {
     page: Option<String>,
     execution: Option<String>,
     challenge: Option<LoginChallenge>,
+    authenticated_ready: bool,
 }
 
 impl std::fmt::Debug for LoginState {
@@ -33,6 +34,7 @@ impl std::fmt::Debug for LoginState {
             .field("page", &self.page.as_ref().map(|_| "[REDACTED]"))
             .field("execution", &self.execution.as_ref().map(|_| "[REDACTED]"))
             .field("challenge", &self.challenge.as_ref().map(|_| "[REDACTED]"))
+            .field("authenticated_ready", &self.authenticated_ready)
             .finish()
     }
 }
@@ -47,6 +49,12 @@ impl LoginState {
         self.page = Some(page);
         self.execution = Some(execution);
         self.challenge = challenge;
+        self.authenticated_ready = false;
+    }
+
+    pub(crate) fn remember_authenticated(&mut self) {
+        self.clear();
+        self.authenticated_ready = true;
     }
 
     pub(crate) fn page(&self) -> Option<&str> {
@@ -59,6 +67,10 @@ impl LoginState {
 
     pub(crate) fn challenge(&self) -> Option<&LoginChallenge> {
         self.challenge.as_ref()
+    }
+
+    pub(crate) const fn authenticated_ready(&self) -> bool {
+        self.authenticated_ready
     }
 
     pub(crate) fn clear(&mut self) {
@@ -74,7 +86,7 @@ pub(crate) struct AuthWorkflow {
 
 impl AuthWorkflow {
     pub(crate) fn is_prepared(&self) -> bool {
-        self.state.page().is_some()
+        self.state.page().is_some() || self.state.authenticated_ready()
     }
 
     pub(crate) fn pending_challenge(&self) -> Option<&LoginChallenge> {
@@ -85,13 +97,14 @@ impl AuthWorkflow {
         &mut self,
         runtime: &mut ClientRuntime,
     ) -> Result<Option<LoginChallenge>> {
+        self.state.clear();
         let response = runtime
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
             .await?;
         if is_redirect(response.status) {
             activate_user_center(runtime).await?;
             self.validate_status(runtime).await?;
-            self.state.clear();
+            self.state.remember_authenticated();
             return Ok(None);
         }
         if response.status != 200 {
@@ -121,10 +134,17 @@ impl AuthWorkflow {
                 "username and password are required",
             ));
         }
+        if self.state.authenticated_ready() {
+            let profile = self.get_user_info(runtime).await?;
+            self.state.clear();
+            return Ok(profile);
+        }
         if self.state.page().is_none() {
-            let challenge = self.prepare_login(runtime).await?;
-            if challenge.is_none() && runtime.authenticated_at().is_some() {
-                return self.get_user_info(runtime).await;
+            self.prepare_login(runtime).await?;
+            if self.state.authenticated_ready() {
+                let profile = self.get_user_info(runtime).await?;
+                self.state.clear();
+                return Ok(profile);
             }
         }
         let page = self

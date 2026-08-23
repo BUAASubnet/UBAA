@@ -98,10 +98,6 @@ impl ClientRuntime {
         }
     }
 
-    pub(crate) fn authenticated_at(&self) -> Option<i64> {
-        self.authenticated_at
-    }
-
     pub(crate) fn has_local_session(&self) -> bool {
         self.authenticated_at.is_some()
     }

@@ -280,8 +280,8 @@ Reject empty IDs/values, duplicates, unknown IDs, old generations, and IDs not p
 Run:
 
 ```bash
-cargo test --locked -p ubaa-test-support --test auth captcha
-cargo test --locked -p ubaa-cli --test cli_contract captcha
+cargo test --locked -p ubaa-test-support --test auth
+cargo test --locked -p ubaa-cli --test cli_contract
 just check-sensitive
 just check
 ```

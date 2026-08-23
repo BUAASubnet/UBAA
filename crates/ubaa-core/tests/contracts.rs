@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use ubaa_core::domain::{
-    AuthStatus, ConnectionMode, LoginChallenge, LoginInput, SecretValue, UserInfoResponse,
-    UserProfile,
+    AuthStatus, ConnectionMode, LoginChallenge, LoginInput, RouteLoginChallenge, SecretValue,
+    UserInfoResponse, UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, UbaaError};
 use ubaa_core::output::JsonEnvelope;
@@ -212,7 +212,7 @@ fn stable_error_codes_have_expected_exit_codes() {
 }
 
 #[test]
-fn error_json_envelope_is_stable_and_carries_captcha_challenge() {
+fn error_json_envelope_never_serializes_private_captcha_state() {
     let challenge = LoginChallenge {
         id: "captcha-fixture".into(),
         execution: "e1s1-fixture".into(),
@@ -234,8 +234,26 @@ fn error_json_envelope_is_stable_and_carries_captcha_challenge() {
     assert_eq!(value["error"]["code"], "captcha_required");
     assert_eq!(value["error"]["kind"], "authentication");
     assert_eq!(value["error"]["retryable"], true);
-    assert_eq!(value["error"]["challenge"]["id"], "captcha-fixture");
+    assert!(value["error"].get("challenge").is_none());
     assert_eq!(value["meta"]["connectionMode"], "webvpn");
+}
+
+#[test]
+fn aggregate_challenge_serialization_uses_the_safe_public_projection() {
+    let challenge = RouteLoginChallenge {
+        route: ConnectionMode::Direct,
+        challenge_id: "opaque-fixture".into(),
+        image_available: true,
+        image_data_url: Some("data:image/jpeg;base64,PRIVATE-IMAGE".into()),
+    };
+
+    let value = serde_json::to_value(challenge).unwrap();
+
+    assert_eq!(value["route"], "direct");
+    assert_eq!(value["challengeId"], "opaque-fixture");
+    assert_eq!(value["imageAvailable"], true);
+    assert!(value.get("imageDataUrl").is_none());
+    assert!(!value.to_string().contains("PRIVATE-IMAGE"));
 }
 
 #[test]

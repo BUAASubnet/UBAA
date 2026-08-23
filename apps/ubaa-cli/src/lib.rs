@@ -568,7 +568,7 @@ where
         }
     };
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(json_mode, &outcome, &preparation, stdout, stderr)
+    render_dual_outcome(json_mode, &outcome, stdout, stderr)
 }
 
 /// Execute the ordinary aggregate authentication status path.
@@ -587,16 +587,7 @@ where
         Err(error) => return render_aggregate_input_error(cli.json, error, stdout, stderr),
     };
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(
-        cli.json,
-        &outcome,
-        &ubaa_core::domain::DualLoginPreparation {
-            routes: Vec::new(),
-            challenges: Vec::new(),
-        },
-        stdout,
-        stderr,
-    )
+    render_dual_outcome(cli.json, &outcome, stdout, stderr)
 }
 
 /// Execute logout for both route slots while retaining the v1 logout response shape.
@@ -703,7 +694,6 @@ fn collect_dual_captcha_answers<E: Write>(
 fn render_dual_outcome<O: Write, E: Write>(
     json_mode: bool,
     outcome: &ubaa_core::domain::LoginOutcome,
-    preparation: &ubaa_core::domain::DualLoginPreparation,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
@@ -720,7 +710,7 @@ fn render_dual_outcome<O: Write, E: Write>(
     let error = aggregate_error(outcome, has_captcha);
     let exit_code = aggregate_exit_code(outcome, has_captcha, error.as_ref());
     if json_mode {
-        let challenges = preparation
+        let challenges = outcome
             .challenges
             .iter()
             .filter(|challenge| {
@@ -733,7 +723,7 @@ fn render_dual_outcome<O: Write, E: Write>(
                 json!({
                     "route": challenge.route,
                     "challengeId": challenge.challenge_id,
-                    "imageAvailable": challenge.image_data_url.is_some()
+                    "imageAvailable": challenge.image_available
                 })
             })
             .collect::<Vec<_>>();

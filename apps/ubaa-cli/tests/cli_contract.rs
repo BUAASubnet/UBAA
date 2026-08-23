@@ -3,17 +3,22 @@ use std::io::Cursor;
 use async_trait::async_trait;
 use clap::{CommandFactory, Parser};
 use ubaa_cli::{
-    Cli, CliBackend, ReadonlyRouteContext, run_with_backend, run_with_backend_with_route,
+    Cli, CliBackend, ReadonlyRouteContext, run_dual_login, run_with_backend,
+    run_with_backend_with_route,
 };
-use ubaa_core::connection::NetworkState;
+use ubaa_core::connection::{NetworkState, to_webvpn_url};
 use ubaa_core::domain::{
     AuthStatus, ConnectionMode, FeatureResult, LoginChallenge, LoginInput, RoutePolicy, Term,
     UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use ubaa_core::facade::DualUbaaClient;
 use ubaa_core::output::{
     AggregateJsonEnvelope, AggregateJsonMeta, JsonEnvelope, ReadonlyJsonEnvelope, ReadonlyJsonMeta,
 };
+use ubaa_core::ports::{HttpMethod, HttpResponse};
+use ubaa_core::session::FileSessionStore;
+use ubaa_test_support::{ExpectedRequest, MockTransport};
 
 #[derive(Default)]
 struct FakeBackend {
@@ -157,8 +162,107 @@ async fn json_captcha_returns_exit_four_without_image_or_login_submission() {
     assert_eq!(code, 4);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(value["error"]["code"], "captcha_required");
-    assert!(value["error"]["challenge"].get("imageDataUrl").is_none());
+    assert!(value["error"].get("challenge").is_none());
+    let serialized = String::from_utf8_lossy(&stdout);
+    assert!(!serialized.contains("captcha-fixture"));
+    assert!(!serialized.contains("e-cap"));
+    assert!(!serialized.contains("DO-NOT-PRINT"));
     assert_eq!(backend.login_calls, 0);
+}
+
+#[tokio::test]
+async fn aggregate_json_captcha_exposes_only_actionable_safe_challenges() {
+    let direct_login = "https://sso.buaa.edu.cn/login";
+    let direct_captcha = "https://sso.buaa.edu.cn/captcha?captchaId=shared-upstream-id";
+    let webvpn_login = to_webvpn_url(direct_login).unwrap();
+    let webvpn_captcha = to_webvpn_url(direct_captcha).unwrap();
+    let page = |execution: &str| {
+        format!(
+            r#"<form id="fm1"><input name="execution" value="{execution}"></form><script>config.captcha = {{ type: 'image', id: 'shared-upstream-id' }}</script>"#
+        )
+    };
+    let direct = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_login,
+            HttpResponse::new(200, direct_login, page("direct-execution").into_bytes()),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_captcha,
+            HttpResponse::new(200, direct_captcha, b"DIRECT-PRIVATE-IMAGE".to_vec()),
+        ),
+    ]);
+    let webvpn = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_login,
+            HttpResponse::new(200, &webvpn_login, page("webvpn-execution").into_bytes()),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_captcha,
+            HttpResponse::new(200, &webvpn_captcha, b"WEBVPN-PRIVATE-IMAGE".to_vec()),
+        ),
+    ]);
+    let direct_observer = direct.clone();
+    let webvpn_observer = webvpn.clone();
+    let root =
+        std::env::temp_dir().join(format!("ubaa-cli-aggregate-captcha-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut backend =
+        DualUbaaClient::with_transports(direct, webvpn, FileSessionStore::new(&root).unwrap())
+            .unwrap();
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "--config-dir",
+        root.to_str().unwrap(),
+        "auth",
+        "login",
+        "--username",
+        "fixture-user",
+        "--password-stdin",
+    ])
+    .unwrap();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_dual_login(
+        cli,
+        &mut backend,
+        &mut Cursor::new(b"fixture-password\n"),
+        &mut stdout,
+        &mut stderr,
+    )
+    .await;
+
+    assert_eq!(code, 4);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    let challenges = value["data"]["challenges"].as_array().unwrap();
+    assert_eq!(challenges.len(), 2);
+    assert_ne!(challenges[0]["challengeId"], challenges[1]["challengeId"]);
+    assert!(challenges.iter().all(|challenge| {
+        challenge["imageAvailable"] == true
+            && challenge.get("imageDataUrl").is_none()
+            && challenge.get("execution").is_none()
+    }));
+    let serialized = String::from_utf8(stdout).unwrap();
+    for private in [
+        "shared-upstream-id",
+        "direct-execution",
+        "webvpn-execution",
+        "PRIVATE-IMAGE",
+        "fixture-password",
+    ] {
+        assert!(!serialized.contains(private));
+    }
+    assert_eq!(direct_observer.requests().unwrap().len(), 2);
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 2);
+    direct_observer.assert_exhausted().unwrap();
+    webvpn_observer.assert_exhausted().unwrap();
+    assert!(stderr.is_empty());
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[tokio::test]

@@ -486,8 +486,7 @@ impl Serialize for SecretValue {
 }
 
 /// Credentials and optional captcha answer for one login submission.
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
 pub struct LoginInput {
     /// SSO account name.
     pub username: String,
@@ -509,7 +508,7 @@ impl fmt::Debug for LoginInput {
 }
 
 /// Captcha state tied to the current in-memory login flow.
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginChallenge {
     /// Upstream captcha identifier.
@@ -603,6 +602,9 @@ pub struct LoginOutcome {
     /// Profile from any successfully authenticated route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub profile: Option<UserProfile>,
+    /// Captcha challenges still actionable after this operation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub challenges: Vec<RouteLoginChallenge>,
 }
 
 /// Ephemeral route-scoped captcha information returned to an interactive host.
@@ -613,8 +615,10 @@ pub struct RouteLoginChallenge {
     pub route: ConnectionMode,
     /// Opaque, route-bound identifier valid only for the current preparation generation.
     pub challenge_id: String,
+    /// Whether an ephemeral image is available to an interactive in-process host.
+    pub image_available: bool,
     /// Ephemeral image for interactive hosts; JSON hosts must expose only its availability.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing, default)]
     pub image_data_url: Option<String>,
 }
 
@@ -624,6 +628,7 @@ impl fmt::Debug for RouteLoginChallenge {
             .debug_struct("RouteLoginChallenge")
             .field("route", &self.route)
             .field("challenge_id", &"[REDACTED]")
+            .field("image_available", &self.image_available)
             .field(
                 "image_data_url",
                 &redacted_option(self.image_data_url.as_deref()),

@@ -104,7 +104,7 @@ pub struct UbaaError {
     /// Human-readable message that contains no sensitive body or header data.
     pub message: String,
     /// Ephemeral captcha challenge, only for `captcha_required`.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing, default)]
     pub challenge: Option<LoginChallenge>,
 }
 

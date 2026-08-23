@@ -437,6 +437,390 @@ async fn dual_login_challenges_are_opaque_and_route_bound() {
 }
 
 #[tokio::test]
+async fn login_without_explicit_prepare_returns_actionable_captcha_challenges() {
+    let (direct_transport, webvpn_transport) = dual_captcha_transports(1, 0);
+    let direct_observer = direct_transport.clone();
+    let webvpn_observer = webvpn_transport.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-dual-captcha-login-prepare-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+
+    let outcome = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: Vec::new(),
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(outcome.readiness, LoginReadiness::NoneReady);
+    assert_eq!(outcome.challenges.len(), 2);
+    assert_ne!(
+        outcome.challenges[0].challenge_id,
+        outcome.challenges[1].challenge_id
+    );
+    assert!(outcome.challenges.iter().all(|challenge| {
+        challenge.image_available && challenge.challenge_id != "captcha-fixture"
+    }));
+    assert_eq!(direct_observer.requests().unwrap().len(), 2);
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 2);
+    direct_observer.assert_exhausted().unwrap();
+    webvpn_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn invalidated_password_login_reprepares_before_exposing_a_new_captcha() {
+    let login = "https://sso.buaa.edu.cn/login";
+    let landing = "https://uc.buaa.edu.cn/landing";
+    let activate =
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(HttpMethod::Get, login, response(200, login, login_page())),
+        ExpectedRequest::new(HttpMethod::Post, login, redirect(login, landing)),
+        ExpectedRequest::new(HttpMethod::Get, landing, response(200, landing, Vec::new())),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            activate,
+            response(200, activate, Vec::new()),
+        ),
+        ExpectedRequest::new(HttpMethod::Get, status, response(401, status, Vec::new())),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login,
+            response(200, login, captcha_page("e-after-invalidation")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![1, 2, 3]),
+        ),
+    ]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_transport = MockTransport::new([]);
+    let webvpn_observer = webvpn_transport.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-dual-captcha-login-invalidation-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+
+    let preparation = client.prepare_login().await;
+    assert_eq!(preparation.routes[0].state, RouteLoginState::Ready);
+    assert_eq!(preparation.routes[1].state, RouteLoginState::Failed);
+    let first = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: Vec::new(),
+        })
+        .await
+        .unwrap();
+    assert_eq!(first.routes[0].state, RouteLoginState::Failed);
+    assert_eq!(
+        first.routes[0]
+            .error
+            .as_ref()
+            .map(|error| error.code.as_str()),
+        Some("authentication_required")
+    );
+    assert!(first.challenges.is_empty());
+
+    let second = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: Vec::new(),
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(second.routes[0].state, RouteLoginState::CaptchaRequired);
+    assert_eq!(second.challenges.len(), 1);
+    assert_eq!(second.challenges[0].route, ConnectionMode::Direct);
+    assert!(second.challenges[0].image_available);
+    assert_ne!(second.challenges[0].challenge_id, "captcha-fixture");
+    let direct_requests = direct_observer.requests().unwrap();
+    assert_eq!(direct_requests.len(), 7);
+    assert_eq!(
+        direct_requests
+            .iter()
+            .filter(|request| request.method == HttpMethod::Post)
+            .count(),
+        1
+    );
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 1);
+    direct_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn prepared_existing_session_is_consumed_without_reentering_sso() {
+    let login = "https://sso.buaa.edu.cn/login";
+    let landing = "https://uc.buaa.edu.cn/landing";
+    let activate =
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let fixture = auth_fixture("userinfo-success.json").unwrap();
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(HttpMethod::Get, login, redirect(login, landing)),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            activate,
+            response(200, activate, Vec::new()),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            status,
+            response(
+                200,
+                status,
+                r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
+            ),
+        ),
+        ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, fixture)),
+    ]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_transport = MockTransport::new([]);
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-dual-existing-session-prepare-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+
+    let preparation = client.prepare_login().await;
+    assert_eq!(preparation.routes[0].state, RouteLoginState::Ready);
+    assert_eq!(preparation.routes[1].state, RouteLoginState::Failed);
+    let outcome = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: Vec::new(),
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(outcome.readiness, LoginReadiness::Partial);
+    assert_eq!(outcome.routes[0].state, RouteLoginState::Ready);
+    assert_eq!(
+        outcome
+            .profile
+            .as_ref()
+            .and_then(|user| user.name.as_deref()),
+        Some("Fixture User")
+    );
+    assert!(outcome.challenges.is_empty());
+    let direct_requests = direct_observer.requests().unwrap();
+    assert_eq!(direct_requests.len(), 4);
+    assert_eq!(
+        direct_requests
+            .iter()
+            .filter(|request| request.url == login)
+            .count(),
+        1
+    );
+    assert!(
+        direct_requests
+            .iter()
+            .all(|request| request.method == HttpMethod::Get)
+    );
+    direct_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn failed_reprepare_does_not_revive_the_previous_captcha_generation() {
+    let direct_login = "https://sso.buaa.edu.cn/login";
+    let direct_captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let webvpn_login = to_webvpn_url(direct_login).unwrap();
+    let webvpn_captcha = to_webvpn_url(direct_captcha).unwrap();
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_login,
+            response(200, direct_login, captcha_page("e-direct-old")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_captcha,
+            response(200, direct_captcha, vec![1, 2, 3]),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_login,
+            response(503, direct_login, Vec::new()),
+        ),
+    ]);
+    let webvpn_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_login,
+            response(200, &webvpn_login, captcha_page("e-webvpn-old")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_captcha,
+            response(200, &webvpn_captcha, vec![4, 5, 6]),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_login,
+            response(503, &webvpn_login, Vec::new()),
+        ),
+    ]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_observer = webvpn_transport.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-dual-captcha-failed-reprepare-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+
+    let first = client.prepare_login().await;
+    let old_id = first.challenges[0].challenge_id.clone();
+    let second = client.prepare_login().await;
+    assert!(second.challenges.is_empty());
+    assert!(
+        second
+            .routes
+            .iter()
+            .all(|route| route.state == RouteLoginState::Failed)
+    );
+    let error = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: vec![CaptchaAnswer {
+                challenge_id: old_id,
+                value: SecretValue::new("abcd"),
+            }],
+        })
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code, ErrorCode::InvalidInput);
+    assert_eq!(direct_observer.requests().unwrap().len(), 3);
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 3);
+    direct_observer.assert_exhausted().unwrap();
+    webvpn_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn authentication_invalidation_expires_the_route_captcha_binding_before_post() {
+    let direct_login = "https://sso.buaa.edu.cn/login";
+    let direct_captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let direct_status = "https://uc.buaa.edu.cn/api/uc/status";
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_login,
+            response(200, direct_login, captcha_page("e-old")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_captcha,
+            response(200, direct_captcha, vec![1, 2, 3]),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_status,
+            response(401, direct_status, Vec::new()),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_login,
+            response(200, direct_login, captcha_page("e-new")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            direct_captcha,
+            response(200, direct_captcha, vec![4, 5, 6]),
+        ),
+    ]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_transport = MockTransport::new([]);
+    let webvpn_observer = webvpn_transport.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-dual-captcha-auth-clear-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot::from_legacy(&SessionSnapshot {
+                mode: ConnectionMode::Direct,
+                cookies: vec![StoredCookie::fixture("SESSION", "fixture-cookie")],
+                authenticated_at: 1,
+                last_activity: 1,
+            })),
+            None,
+        ))
+        .unwrap();
+    let mut client =
+        DualUbaaClient::with_transports(direct_transport, webvpn_transport, store).unwrap();
+
+    let preparation = client.prepare_login().await;
+    let old_id = preparation.challenges[0].challenge_id.clone();
+    let status = client.auth_status().await.unwrap();
+    assert_eq!(status.routes[0].state, RouteLoginState::Failed);
+    let error = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: vec![CaptchaAnswer {
+                challenge_id: old_id,
+                value: SecretValue::new("abcd"),
+            }],
+        })
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code, ErrorCode::InvalidInput);
+    let direct_requests = direct_observer.requests().unwrap();
+    assert_eq!(direct_requests.len(), 5);
+    assert!(
+        direct_requests
+            .iter()
+            .all(|request| request.method == HttpMethod::Get)
+    );
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 1);
+    direct_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
 async fn captcha_id_survives_a_sibling_route_prepare_failure() {
     let direct_login = "https://sso.buaa.edu.cn/login";
     let direct_captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
@@ -458,18 +842,11 @@ async fn captcha_id_survives_a_sibling_route_prepare_failure() {
             response(401, direct_login, "invalid captcha"),
         ),
     ]);
-    let webvpn_transport = MockTransport::new([
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &webvpn_login,
-            response(503, &webvpn_login, Vec::new()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &webvpn_login,
-            response(503, &webvpn_login, Vec::new()),
-        ),
-    ]);
+    let webvpn_transport = MockTransport::new([ExpectedRequest::new(
+        HttpMethod::Get,
+        &webvpn_login,
+        response(503, &webvpn_login, Vec::new()),
+    )]);
     let direct_observer = direct_transport.clone();
     let webvpn_observer = webvpn_transport.clone();
     let root = std::env::temp_dir().join(format!(
@@ -503,7 +880,7 @@ async fn captcha_id_survives_a_sibling_route_prepare_failure() {
     assert_eq!(outcome.routes[0].state, RouteLoginState::Failed);
     assert_eq!(outcome.routes[1].state, RouteLoginState::Failed);
     assert_eq!(direct_observer.requests().unwrap().len(), 3);
-    assert_eq!(webvpn_observer.requests().unwrap().len(), 2);
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 1);
     direct_observer.assert_exhausted().unwrap();
     webvpn_observer.assert_exhausted().unwrap();
     let _ = std::fs::remove_dir_all(root);
@@ -567,6 +944,132 @@ async fn dual_login_rejects_unknown_and_duplicate_captcha_answers_before_post() 
 }
 
 #[tokio::test]
+async fn dual_login_rejects_empty_captcha_fields_before_post() {
+    let (direct_transport, webvpn_transport) = dual_captcha_transports(1, 0);
+    let direct_observer = direct_transport.clone();
+    let webvpn_observer = webvpn_transport.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-dual-captcha-empty-fields-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+    let preparation = client.prepare_login().await;
+    let id = preparation.challenges[0].challenge_id.clone();
+
+    for answer in [
+        CaptchaAnswer {
+            challenge_id: "  ".into(),
+            value: SecretValue::new("abcd"),
+        },
+        CaptchaAnswer {
+            challenge_id: id.clone(),
+            value: SecretValue::new("  "),
+        },
+    ] {
+        let error = client
+            .login(DualLoginInput {
+                username: "fixture-user".into(),
+                password: SecretValue::new("fixture-password"),
+                captcha_answers: vec![answer],
+            })
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+    }
+
+    assert_eq!(direct_observer.requests().unwrap().len(), 2);
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 2);
+    direct_observer.assert_exhausted().unwrap();
+    webvpn_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn consumed_captcha_id_is_rejected_before_a_second_post() {
+    let login = "https://sso.buaa.edu.cn/login";
+    let captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let webvpn_login = to_webvpn_url(login).unwrap();
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login,
+            response(200, login, captcha_page("e-first")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![1, 2, 3]),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Post,
+            login,
+            response(401, login, "invalid captcha"),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login,
+            response(200, login, captcha_page("e-second")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![4, 5, 6]),
+        ),
+    ]);
+    let webvpn_transport = MockTransport::new([ExpectedRequest::new(
+        HttpMethod::Get,
+        &webvpn_login,
+        response(503, &webvpn_login, Vec::new()),
+    )]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_observer = webvpn_transport.clone();
+    let root =
+        std::env::temp_dir().join(format!("ubaa-dual-captcha-consumed-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+    let preparation = client.prepare_login().await;
+    let id = preparation.challenges[0].challenge_id.clone();
+    let input = || DualLoginInput {
+        username: "fixture-user".into(),
+        password: SecretValue::new("fixture-password"),
+        captcha_answers: vec![CaptchaAnswer {
+            challenge_id: id.clone(),
+            value: SecretValue::new("abcd"),
+        }],
+    };
+
+    let first = client.login(input()).await.unwrap();
+    assert_eq!(first.routes[0].state, RouteLoginState::Failed);
+    let second = client.login(input()).await.unwrap_err();
+
+    assert_eq!(second.code, ErrorCode::InvalidInput);
+    let requests = direct_observer.requests().unwrap();
+    assert_eq!(requests.len(), 5);
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| request.method == HttpMethod::Post)
+            .count(),
+        1
+    );
+    assert_eq!(webvpn_observer.requests().unwrap().len(), 1);
+    direct_observer.assert_exhausted().unwrap();
+    webvpn_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
 async fn stale_captcha_generation_is_rejected_before_post() {
     let (direct_transport, webvpn_transport) = dual_captcha_transports(2, 0);
     let direct_observer = direct_transport.clone();
@@ -603,6 +1106,105 @@ async fn stale_captcha_generation_is_rejected_before_post() {
     assert_eq!(webvpn_observer.requests().unwrap().len(), 4);
     direct_observer.assert_exhausted().unwrap();
     webvpn_observer.assert_exhausted().unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn logout_expires_captcha_ids_before_any_later_credential_post() {
+    let login = "https://sso.buaa.edu.cn/login";
+    let captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let logout = "https://sso.buaa.edu.cn/logout";
+    let webvpn_login = to_webvpn_url(login).unwrap();
+    let webvpn_captcha = to_webvpn_url(captcha).unwrap();
+    let webvpn_logout = to_webvpn_url(logout).unwrap();
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login,
+            response(200, login, captcha_page("e-direct-old")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![1, 2, 3]),
+        ),
+        ExpectedRequest::new(HttpMethod::Get, logout, response(200, logout, Vec::new())),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login,
+            response(200, login, captcha_page("e-direct-new")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![4, 5, 6]),
+        ),
+    ]);
+    let webvpn_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_login,
+            response(200, &webvpn_login, captcha_page("e-webvpn-old")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_captcha,
+            response(200, &webvpn_captcha, vec![7, 8, 9]),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_logout,
+            response(200, &webvpn_logout, Vec::new()),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_login,
+            response(200, &webvpn_login, captcha_page("e-webvpn-new")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_captcha,
+            response(200, &webvpn_captcha, vec![10, 11, 12]),
+        ),
+    ]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_observer = webvpn_transport.clone();
+    let root =
+        std::env::temp_dir().join(format!("ubaa-dual-captcha-logout-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut client = DualUbaaClient::with_transports(
+        direct_transport,
+        webvpn_transport,
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+    let preparation = client.prepare_login().await;
+    let old_id = preparation.challenges[0].challenge_id.clone();
+
+    client.logout().await.unwrap();
+    let error = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: vec![CaptchaAnswer {
+                challenge_id: old_id,
+                value: SecretValue::new("abcd"),
+            }],
+        })
+        .await
+        .unwrap_err();
+
+    assert_eq!(error.code, ErrorCode::InvalidInput);
+    for observer in [&direct_observer, &webvpn_observer] {
+        assert!(
+            observer
+                .requests()
+                .unwrap()
+                .iter()
+                .all(|request| request.method == HttpMethod::Get)
+        );
+        observer.assert_exhausted().unwrap();
+    }
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -826,6 +1428,84 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
     assert_eq!(repeated_logout.code, ErrorCode::InternalError);
     assert_eq!(direct_observer.requests().unwrap().len(), 1);
     assert!(webvpn_observer.requests().unwrap().is_empty());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn terminal_logout_conflict_expires_prepared_captcha_ids() {
+    let login = "https://sso.buaa.edu.cn/login";
+    let captcha = "https://sso.buaa.edu.cn/captcha?captchaId=captcha-fixture";
+    let logout = "https://sso.buaa.edu.cn/logout";
+    let webvpn_login = to_webvpn_url(login).unwrap();
+    let webvpn_captcha = to_webvpn_url(captcha).unwrap();
+    let webvpn_logout = to_webvpn_url(logout).unwrap();
+    let direct_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login,
+            response(200, login, captcha_page("e-direct")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            captcha,
+            response(200, captcha, vec![1, 2, 3]),
+        ),
+        ExpectedRequest::new(HttpMethod::Get, logout, response(200, logout, Vec::new())),
+    ]);
+    let webvpn_transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_login,
+            response(200, &webvpn_login, captcha_page("e-webvpn")),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_captcha,
+            response(200, &webvpn_captcha, vec![4, 5, 6]),
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            &webvpn_logout,
+            response(200, &webvpn_logout, Vec::new()),
+        ),
+    ]);
+    let direct_observer = direct_transport.clone();
+    let webvpn_observer = webvpn_transport.clone();
+    let root =
+        std::env::temp_dir().join(format!("ubaa-dual-captcha-conflict-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    let mut client =
+        DualUbaaClient::with_transports(direct_transport, webvpn_transport, store.clone()).unwrap();
+    let preparation = client.prepare_login().await;
+    let old_id = preparation.challenges[0].challenge_id.clone();
+    store.save_dual(&dual_snapshot("external")).unwrap();
+
+    let conflict = client.logout().await.unwrap_err();
+    assert_eq!(conflict.code, ErrorCode::InternalError);
+    let repeated = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha_answers: vec![CaptchaAnswer {
+                challenge_id: old_id,
+                value: SecretValue::new("abcd"),
+            }],
+        })
+        .await
+        .unwrap_err();
+
+    assert_eq!(repeated.code, ErrorCode::InternalError);
+    for observer in [&direct_observer, &webvpn_observer] {
+        let requests = observer.requests().unwrap();
+        assert_eq!(requests.len(), 3);
+        assert!(
+            requests
+                .iter()
+                .all(|request| request.method == HttpMethod::Get)
+        );
+        observer.assert_exhausted().unwrap();
+    }
     let _ = std::fs::remove_dir_all(root);
 }
 

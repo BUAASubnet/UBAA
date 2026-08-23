@@ -2307,6 +2307,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "ubaa-core",
+ "ubaa-test-support",
 ]
 
 [[package]]
