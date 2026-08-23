@@ -31,7 +31,7 @@ CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍
 | 9b classroom | Request/state parity gaps open | Restore exact long UA, no-redirect query, strict required `d/list`, and once-per-route synchronized state cleared with session. |
 | 9c SPOC | False-empty and detail gaps open | Use global encrypted `queryListByPage` with empty `kcid` even when course metadata is empty; submission is optional; retain summary fallback; remove public raw HTML. |
 | 9d Judge | Parser/cache gaps open | Filter internal links, port full problem/score/status parser, move caches to route/client state, clear them with the session. |
-| 10 CLI/JSON | Route ownership complete; schema gaps open | Ordinary commands use the aggregate Core facade and fresh JSON login reaches it; schema-v1 compatibility paths and aggregate route constraints remain Task 5 work. |
+| 10 CLI/JSON | Route/config ownership complete; schema gaps open | Ordinary commands use the aggregate Core facade, fresh JSON login reaches it, and config persistence rejects unsafe targets with atomic unique-temp writes; schema-v1 compatibility paths and aggregate route constraints remain Task 5 work. |
 | 11 live matrix | Must be rerun | Existing evidence predates the corrected request/parser contracts and cannot close SPOC/Judge semantics. |
 | 12 handoff/gates | Not ready | Run focused RED/GREEN evidence, sensitive/full gates and the complete post-fix live matrix before changing this status. |
 
@@ -115,7 +115,7 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - Production automatic selection now uses the accepted TCP reachability implementation and Core-facade ownership; live Direct/WebVPN/auto evidence must be rerun after the remaining feature repairs.
 - Route/generation-bound aggregate captcha IDs and zero-request user preflight are deterministically covered; real captcha remains conditional on live upstream behavior.
-- Config writes must match the documented symlink, regular-file and unique-temp safety behavior.
+- Config persistence now has deterministic symlink, regular-file, unique-temp, permission and concurrent-write coverage; real routing configuration behavior remains part of the later live matrix.
 - Classroom must be compared against the exact frozen UA/redirect/DTO/state contract.
 - SPOC empty-list evidence is invalid until the encrypted global request has `kcid=""`; a non-empty account is still needed to live-check optional submission/detail fallback.
 - Judge detail semantics and cache lifecycle are unverified; the 65/17 route difference is unresolved.

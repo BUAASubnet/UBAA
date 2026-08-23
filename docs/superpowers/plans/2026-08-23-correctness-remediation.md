@@ -407,7 +407,7 @@ On Unix, prove load/save reject a symlinked `config.toml` without changing its t
 
 Add JSON Schema negatives for v1, aggregate one/three route items, reversed route order, duplicate routes, simultaneous `resolvedRoute`/`resolvedRoutes`, execution/challenge image fields, and legacy `connectionMode`. Add positives for every command family.
 
-- [ ] **Step 2: Reuse the session store's safe file pattern**
+- [x] **Step 2: Reuse the session store's safe file pattern**
 
 Implement no-follow regular-file validation, unique exclusive temp creation, owner-only mode, write+flush, and atomic rename in `config.rs`. Keep TOML schema version 1 because it is the on-disk config version, not CLI JSON.
 

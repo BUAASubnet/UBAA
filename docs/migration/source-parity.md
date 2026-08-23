@@ -98,6 +98,11 @@ reachability or any business endpoint result.
 |---|---|---|---|---|---|---|---|---|
 | **old:** host UI chooses `ConnectionMode`; no equivalent UBAA 2 CLI/config. **example:** library context only, no CLI/config/schema. **decision:** N/A to upstream URLs; aggregate Core facade owns ordinary routing. | **old/example:** no equivalent CLI redirect contract. **decision:** hosts receive only facade results. | **old:** mode-scoped settings but switching clears sessions. **example:** caller-managed `cookies.json`/`cred.json`. **decision:** Core loads strict `config.toml` format version `1` and dual `session.json`; CLI never reads storage internals. | **old/example:** no equivalent commands. **decision:** CLI parses documented commands/arguments, invokes facade methods without `ConnectionMode`, and renders; hidden mode is diagnostic/test-only. | **old/example:** no envelope. **decision:** one JSON value on stdout, diagnostics only on stderr, no sensitive values/raw upstream data. | **old/example:** N/A. | **old/example:** no equivalent schema. **decision:** CLI output is schema version 2 only; config/session on-disk versions remain independent. Aggregate route arrays are exactly Direct then WebVPN and single-route envelopes cannot carry aggregate fields. | **old:** global mode/runtime. **example:** caller-owned context. **decision:** config/probe cache/routing/session/feature state are facade-owned; CLI has no routing cache. Config writes reject symlinks/non-regular files and use unique atomic temp files. | **old/example:** no equivalent exit taxonomy. **decision:** stable exits 0/2/3/4/5/6/7; a fresh config directory must support JSON login; missing local user/feature session fails before network. |
 
+Config persistence evidence on 2026-08-24: Unix tests prove load and save reject a
+symlinked `config.toml` without reading or changing its target. Eight concurrent saves publish one
+complete parseable configuration using unique exclusive temporary files, leave no temporary file,
+and retain directory/file modes `0700`/`0600`. This is local filesystem evidence only.
+
 ## Unchanged schedule/exam evidence
 
 `LocalScheduleApi.kt` probes `currentUser.do`; `Schedule.kt` and
