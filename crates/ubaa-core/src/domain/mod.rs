@@ -525,7 +525,7 @@ pub struct LoginChallenge {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CaptchaAnswer {
-    /// Challenge identifier returned by the same route's login preparation.
+    /// Opaque, one-use identifier returned by the current aggregate login preparation.
     pub challenge_id: String,
     /// User-provided captcha text.
     pub value: SecretValue,
@@ -611,7 +611,7 @@ pub struct LoginOutcome {
 pub struct RouteLoginChallenge {
     /// Route whose in-memory workflow owns this challenge.
     pub route: ConnectionMode,
-    /// Stable identifier required when submitting an answer.
+    /// Opaque, route-bound identifier valid only for the current preparation generation.
     pub challenge_id: String,
     /// Ephemeral image for interactive hosts; JSON hosts must expose only its availability.
     #[serde(skip_serializing_if = "Option::is_none")]

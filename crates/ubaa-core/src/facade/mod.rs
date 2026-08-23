@@ -1,21 +1,138 @@
 //! Stable facade consumed by CLI and future bindings.
 #![allow(clippy::missing_errors_doc, clippy::similar_names)]
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::auth::AuthWorkflow;
 use crate::domain::{
-    AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
-    ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
-    JudgeAssignmentSummary, LoginChallenge, LoginInput, LoginOutcome, LoginReadiness,
-    RouteLoginChallenge, RouteLoginResult, RouteLoginState, SafeError, SpocAssignmentDetail,
-    SpocAssignments, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    AuthStatus, CaptchaAnswer, ClassroomQuery, ConnectionMode, DualLoginInput,
+    DualLoginPreparation, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentKey, JudgeAssignmentSummary, LoginChallenge, LoginInput, LoginOutcome,
+    LoginReadiness, RouteLoginChallenge, RouteLoginResult, RouteLoginState, SafeError,
+    SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile, Week, WeeklySchedule,
 };
 use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
+
+static NEXT_PUBLIC_CAPTCHA_ID: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone)]
+struct CaptchaBinding {
+    route: ConnectionMode,
+    generation: u64,
+    upstream_id: String,
+}
+
+struct CaptchaAnswerBinding {
+    route: ConnectionMode,
+    upstream_id: String,
+    value: String,
+}
+
+struct PreparedLoginRoute {
+    route: ConnectionMode,
+    challenge: Result<Option<LoginChallenge>>,
+}
+
+#[derive(Default)]
+struct CaptchaRegistry {
+    generation: u64,
+    bindings: BTreeMap<String, CaptchaBinding>,
+}
+
+impl CaptchaRegistry {
+    fn begin_generation(&mut self) {
+        self.generation = self.generation.saturating_add(1).max(1);
+        self.bindings.clear();
+    }
+
+    fn ensure_generation(&mut self) {
+        if self.generation == 0 {
+            self.begin_generation();
+        }
+    }
+
+    fn issue(&mut self, route: ConnectionMode, upstream_id: &str) -> String {
+        self.ensure_generation();
+        let nonce = NEXT_PUBLIC_CAPTCHA_ID.fetch_add(1, Ordering::Relaxed);
+        let public_id = format!("c{nonce:016x}");
+        self.bindings.insert(
+            public_id.clone(),
+            CaptchaBinding {
+                route,
+                generation: self.generation,
+                upstream_id: upstream_id.to_owned(),
+            },
+        );
+        public_id
+    }
+
+    fn issue_if_missing(&mut self, route: ConnectionMode, upstream_id: &str) -> String {
+        self.ensure_generation();
+        if let Some((public_id, _)) = self.bindings.iter().find(|(_, binding)| {
+            binding.route == route
+                && binding.generation == self.generation
+                && binding.upstream_id == upstream_id
+        }) {
+            return public_id.clone();
+        }
+        self.issue(route, upstream_id)
+    }
+
+    fn validate_and_consume(
+        &mut self,
+        answers: &[CaptchaAnswer],
+    ) -> Result<Vec<CaptchaAnswerBinding>> {
+        self.ensure_generation();
+        let mut seen_ids = BTreeSet::new();
+        let mut seen_routes = Vec::with_capacity(answers.len());
+        let mut validated = Vec::with_capacity(answers.len());
+        for answer in answers {
+            let public_id = answer.challenge_id.trim();
+            let value = answer.value.expose_secret().trim();
+            if public_id.is_empty() || value.is_empty() {
+                return Err(captcha_invalid("captcha answer id and value are required"));
+            }
+            if !seen_ids.insert(public_id.to_owned()) {
+                return Err(captcha_invalid("captcha answer is duplicated"));
+            }
+            let Some(binding) = self.bindings.get(public_id) else {
+                return Err(captcha_invalid("captcha answer is unknown or expired"));
+            };
+            if binding.generation != self.generation {
+                return Err(captcha_invalid(
+                    "captcha answer is from an expired generation",
+                ));
+            }
+            if seen_routes.contains(&binding.route) {
+                return Err(captcha_invalid("one route has multiple captcha answers"));
+            }
+            seen_routes.push(binding.route);
+            validated.push(CaptchaAnswerBinding {
+                route: binding.route,
+                upstream_id: binding.upstream_id.clone(),
+                value: value.to_owned(),
+            });
+        }
+        for answer in answers {
+            self.bindings.remove(answer.challenge_id.trim());
+        }
+        Ok(validated)
+    }
+
+    fn clear_route(&mut self, route: ConnectionMode) {
+        self.bindings.retain(|_, binding| binding.route != route);
+    }
+
+    fn clear(&mut self) {
+        self.bindings.clear();
+    }
+}
 
 /// One independent Direct or `WebVPN` session and login state machine.
 pub struct UbaaClient {
@@ -34,6 +151,7 @@ pub struct DualUbaaClient {
     direct_auth: AuthWorkflow,
     webvpn_auth: AuthWorkflow,
     sessions: DualSessionCoordinator,
+    captcha: CaptchaRegistry,
 }
 
 impl DualUbaaClient {
@@ -73,6 +191,7 @@ impl DualUbaaClient {
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions,
+            captcha: CaptchaRegistry::default(),
         })
     }
 
@@ -87,27 +206,18 @@ impl DualUbaaClient {
         if let Err(error) = self.clear_on_session_conflict() {
             return failed_preparation(&error);
         }
+        self.captcha.begin_generation();
         let mut routes = Vec::with_capacity(2);
         let mut challenges = Vec::with_capacity(2);
-        for (route, runtime, auth) in [
-            (
-                ConnectionMode::Direct,
-                &mut self.direct_runtime,
-                &mut self.direct_auth,
-            ),
-            (
-                ConnectionMode::WebVpn,
-                &mut self.webvpn_runtime,
-                &mut self.webvpn_auth,
-            ),
-        ] {
-            routes.push(match auth.prepare_login(runtime).await {
+        for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            routes.push(match self.prepare_route(route, true).await {
                 Ok(challenge) => {
-                    if let Some(challenge) = challenge {
+                    if let Some(challenge) = challenge.as_ref() {
+                        let public_id = self.captcha.issue_if_missing(route, &challenge.id);
                         challenges.push(RouteLoginChallenge {
                             route,
-                            challenge_id: challenge.id,
-                            image_data_url: challenge.image_data_url,
+                            challenge_id: public_id,
+                            image_data_url: challenge.image_data_url.clone(),
                         });
                         RouteLoginResult {
                             route,
@@ -122,11 +232,14 @@ impl DualUbaaClient {
                         }
                     }
                 }
-                Err(error) => RouteLoginResult {
-                    route,
-                    state: RouteLoginState::Failed,
-                    error: Some(safe_error(&error)),
-                },
+                Err(error) => {
+                    self.captcha.clear_route(route);
+                    RouteLoginResult {
+                        route,
+                        state: RouteLoginState::Failed,
+                        error: Some(safe_error(&error)),
+                    }
+                }
             });
             if self.sessions.is_conflicted() {
                 break;
@@ -141,79 +254,23 @@ impl DualUbaaClient {
     /// Submit credentials independently to Direct and `WebVPN`, preserving partial success.
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
         self.clear_on_session_conflict()?;
+        if self.captcha.generation == 0 {
+            self.captcha.begin_generation();
+        } else {
+            self.captcha.ensure_generation();
+        }
+        let prepared = self.prepare_routes_for_login().await?;
+        let answers = self.captcha.validate_and_consume(&input.captcha_answers)?;
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
-        let answers = input.captcha_answers;
-        for (route, runtime, auth) in [
-            (
-                ConnectionMode::Direct,
-                &mut self.direct_runtime,
-                &mut self.direct_auth,
-            ),
-            (
-                ConnectionMode::WebVpn,
-                &mut self.webvpn_runtime,
-                &mut self.webvpn_auth,
-            ),
-        ] {
-            let challenge = if auth.is_prepared() {
-                auth.pending_challenge().cloned()
-            } else {
-                match auth.prepare_login(runtime).await {
-                    Ok(challenge) => challenge,
-                    Err(error) => {
-                        routes.push(RouteLoginResult {
-                            route,
-                            state: RouteLoginState::Failed,
-                            error: Some(safe_error(&error)),
-                        });
-                        if self.sessions.is_conflicted() {
-                            break;
-                        }
-                        continue;
-                    }
-                }
-            };
-            let captcha = challenge.as_ref().and_then(|current| {
-                answers
-                    .iter()
-                    .find(|answer| answer.challenge_id == current.id)
-                    .map(|answer| answer.value.expose_secret().to_owned())
-            });
-            match auth
-                .login(
-                    runtime,
-                    LoginInput {
-                        username: input.username.clone(),
-                        password: input.password.clone(),
-                        captcha,
-                    },
-                )
-                .await
-            {
-                Ok(current) => {
-                    if profile.is_none() {
-                        profile = Some(current);
-                    }
-                    routes.push(RouteLoginResult {
-                        route,
-                        state: RouteLoginState::Ready,
-                        error: None,
-                    });
-                }
-                Err(error) if error.code == crate::error::ErrorCode::CaptchaRequired => {
-                    routes.push(RouteLoginResult {
-                        route,
-                        state: RouteLoginState::CaptchaRequired,
-                        error: Some(safe_error(&error)),
-                    });
-                }
-                Err(error) => routes.push(RouteLoginResult {
-                    route,
-                    state: RouteLoginState::Failed,
-                    error: Some(safe_error(&error)),
-                }),
+        for prepared_route in prepared {
+            let (route_result, current) = self
+                .submit_prepared_route(prepared_route, &input, &answers)
+                .await?;
+            if profile.is_none() {
+                profile = current;
             }
+            routes.push(route_result);
             if self.sessions.is_conflicted() {
                 break;
             }
@@ -248,6 +305,7 @@ impl DualUbaaClient {
         self.webvpn_runtime.clear_memory();
         self.direct_auth.clear();
         self.webvpn_auth.clear();
+        self.captcha.clear();
         let revisions = self.sessions.clear_both()?;
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);
@@ -314,6 +372,145 @@ impl DualUbaaClient {
         self.webvpn_runtime.clear_memory();
         self.direct_auth.clear();
         self.webvpn_auth.clear();
+        self.captcha.clear();
+    }
+
+    async fn prepare_route(
+        &mut self,
+        route: ConnectionMode,
+        force: bool,
+    ) -> Result<Option<LoginChallenge>> {
+        match route {
+            ConnectionMode::Direct if !force && self.direct_auth.is_prepared() => {
+                Ok(self.direct_auth.pending_challenge().cloned())
+            }
+            ConnectionMode::Direct => {
+                self.direct_auth
+                    .prepare_login(&mut self.direct_runtime)
+                    .await
+            }
+            ConnectionMode::WebVpn if !force && self.webvpn_auth.is_prepared() => {
+                Ok(self.webvpn_auth.pending_challenge().cloned())
+            }
+            ConnectionMode::WebVpn => {
+                self.webvpn_auth
+                    .prepare_login(&mut self.webvpn_runtime)
+                    .await
+            }
+        }
+    }
+
+    async fn prepare_routes_for_login(&mut self) -> Result<Vec<PreparedLoginRoute>> {
+        let mut prepared = Vec::with_capacity(2);
+        for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            let challenge = self.prepare_route(route, false).await;
+            match &challenge {
+                Ok(Some(challenge)) => {
+                    self.captcha.issue_if_missing(route, &challenge.id);
+                }
+                Ok(None) | Err(_) => self.captcha.clear_route(route),
+            }
+            prepared.push(PreparedLoginRoute { route, challenge });
+            if self.sessions.is_conflicted() {
+                break;
+            }
+        }
+        self.clear_on_session_conflict()?;
+        Ok(prepared)
+    }
+
+    async fn submit_prepared_route(
+        &mut self,
+        prepared: PreparedLoginRoute,
+        input: &DualLoginInput,
+        answers: &[CaptchaAnswerBinding],
+    ) -> Result<(RouteLoginResult, Option<UserProfile>)> {
+        let route = prepared.route;
+        let challenge = match prepared.challenge {
+            Ok(challenge) => challenge,
+            Err(error) => return Ok((failed_route(route, &error), None)),
+        };
+        let answer = answers.iter().find(|answer| answer.route == route);
+        let (captcha, supplied_answer) = match (challenge.as_ref(), answer) {
+            (Some(current), Some(answer)) if current.id == answer.upstream_id => {
+                (Some(answer.value.clone()), true)
+            }
+            (Some(_), Some(_)) => return Err(captcha_invalid("captcha challenge is stale")),
+            (None, Some(_)) => {
+                return Err(captcha_invalid("captcha answer has no current challenge"));
+            }
+            (Some(_) | None, None) => (None, false),
+        };
+        let login = self
+            .login_route(
+                route,
+                LoginInput {
+                    username: input.username.clone(),
+                    password: input.password.clone(),
+                    captcha,
+                },
+            )
+            .await;
+        Ok(self.finish_route_login(route, login, supplied_answer))
+    }
+
+    fn finish_route_login(
+        &mut self,
+        route: ConnectionMode,
+        login: Result<UserProfile>,
+        supplied_answer: bool,
+    ) -> (RouteLoginResult, Option<UserProfile>) {
+        match login {
+            Ok(profile) => {
+                self.captcha.clear_route(route);
+                (ready_route(route), Some(profile))
+            }
+            Err(error) => {
+                if supplied_answer {
+                    self.clear_auth_route(route);
+                    self.captcha.clear_route(route);
+                }
+                let state = if error.code == crate::error::ErrorCode::CaptchaRequired {
+                    RouteLoginState::CaptchaRequired
+                } else {
+                    RouteLoginState::Failed
+                };
+                (
+                    RouteLoginResult {
+                        route,
+                        state,
+                        error: Some(safe_error(&error)),
+                    },
+                    None,
+                )
+            }
+        }
+    }
+
+    async fn login_route(
+        &mut self,
+        route: ConnectionMode,
+        input: LoginInput,
+    ) -> Result<UserProfile> {
+        match route {
+            ConnectionMode::Direct => {
+                self.direct_auth
+                    .login(&mut self.direct_runtime, input)
+                    .await
+            }
+            ConnectionMode::WebVpn => {
+                self.webvpn_auth
+                    .login(&mut self.webvpn_runtime, input)
+                    .await
+            }
+        }
+    }
+
+    fn clear_auth_route(&mut self, route: ConnectionMode) {
+        match route {
+            ConnectionMode::Direct => self.direct_auth.clear(),
+            ConnectionMode::WebVpn => self.webvpn_auth.clear(),
+        }
     }
 
     fn clear_on_session_conflict(&mut self) -> Result<()> {
@@ -339,6 +536,31 @@ fn failed_preparation(error: &UbaaError) -> DualLoginPreparation {
             .collect(),
         challenges: Vec::new(),
     }
+}
+
+fn ready_route(route: ConnectionMode) -> RouteLoginResult {
+    RouteLoginResult {
+        route,
+        state: RouteLoginState::Ready,
+        error: None,
+    }
+}
+
+fn failed_route(route: ConnectionMode, error: &UbaaError) -> RouteLoginResult {
+    RouteLoginResult {
+        route,
+        state: RouteLoginState::Failed,
+        error: Some(safe_error(error)),
+    }
+}
+
+fn captcha_invalid(message: impl Into<String>) -> UbaaError {
+    UbaaError::new(
+        crate::error::ErrorCode::InvalidInput,
+        crate::error::ErrorKind::Input,
+        false,
+        message,
+    )
 }
 
 fn safe_error(error: &UbaaError) -> SafeError {

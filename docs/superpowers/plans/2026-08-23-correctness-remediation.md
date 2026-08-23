@@ -240,7 +240,7 @@ git commit -m "fix: make dual session mutations atomic"
 - Test: `apps/ubaa-cli/tests/cli_contract.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add RED tests for colliding and stale upstream IDs**
+- [x] **Step 1: Add RED tests for colliding and stale upstream IDs**
 
 Use identical `captchaId=captcha-fixture` pages on both routes and assert:
 
@@ -256,7 +256,7 @@ Also prepare twice and prove the first generation's public ID is rejected before
 
 Run the new tests and retain the expected current cross-route reuse/silent-ignore failures.
 
-- [ ] **Step 2: Add opaque per-prepare mappings**
+- [x] **Step 2: Add opaque per-prepare mappings**
 
 Keep raw IDs in `AuthWorkflow`; expose only facade-generated IDs:
 
@@ -271,11 +271,11 @@ struct PublicChallenge {
 
 Generate IDs from random process-local bytes or a monotonically unique nonce encoded without embedding execution/upstream ID. Clear mappings on each prepare, successful consume, auth clear, relogin, and logout.
 
-- [ ] **Step 3: Validate every answer before route processing**
+- [x] **Step 3: Validate every answer before route processing**
 
 Reject empty IDs/values, duplicates, unknown IDs, old generations, and IDs not present in the current preparation. Convert only the matched route's answer to the private `LoginInput.captcha`; do not send any POST until validation succeeds.
 
-- [ ] **Step 4: Re-run auth and CLI captcha contracts**
+- [x] **Step 4: Re-run auth and CLI captcha contracts**
 
 Run:
 

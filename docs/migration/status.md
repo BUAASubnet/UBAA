@@ -25,7 +25,8 @@ CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍
 |---|---|---|
 | 0-6 baseline | Preserved | Re-run deterministic and live authentication gates after aggregate-facade changes. |
 | 7 route policy | Non-conforming implementation | Replace resolver behavior with `gw.buaa.edu.cn:80` TCP reachability under one 500ms total budget; ordinary failure is OffCampus, internal failure is Unknown; cache 60s in Core facade. |
-| 8 dual sessions | Deterministic remediation complete | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout and whole-facade conflict invalidation are covered; rerun live authentication after facade routing lands. |
+| 8 dual sessions | Deterministic remediation complete | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; rerun live authentication after facade routing lands. |
+| 8a aggregate captcha | Deterministic remediation complete | Opaque route/generation-bound IDs, full pre-submit validation, one-use consumption, colliding upstream IDs and partial-prepare retry are covered; rerun live captcha only if the upstream requests it. |
 | 9a schedule/exam/grades | No new defect established by this audit | Preserve existing frozen-source evidence and rerun after facade integration. |
 | 9b classroom | Request/state parity gaps open | Restore exact long UA, no-redirect query, strict required `d/list`, and once-per-route synchronized state cleared with session. |
 | 9c SPOC | False-empty and detail gaps open | Use global encrypted `queryListByPage` with empty `kcid` even when course metadata is empty; submission is optional; retain summary fallback; remove public raw HTML. |
@@ -113,7 +114,7 @@ CI remains deterministic-only and never reads `.env.local`.
 ## Open Defects And Evidence Gaps
 
 - Production automatic selection still needs the accepted TCP reachability implementation and Core-facade ownership.
-- Route/generation-bound captcha IDs remain required; zero-request user preflight is now covered.
+- Route/generation-bound aggregate captcha IDs and zero-request user preflight are deterministically covered; real captcha remains conditional on live upstream behavior.
 - Config writes must match the documented symlink, regular-file and unique-temp safety behavior.
 - Classroom must be compared against the exact frozen UA/redirect/DTO/state contract.
 - SPOC empty-list evidence is invalid until the encrypted global request has `kcid=""`; a non-empty account is still needed to live-check optional submission/detail fallback.

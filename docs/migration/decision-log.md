@@ -84,6 +84,12 @@ Receiving SSO prepare-page Cookies does not establish a local authenticated sess
 
 All ordinary commands, hidden diagnostics, argument failures, authentication results and read-only results emit only schema version 2. The unshipped schema-v1 CLI branch is removed rather than maintained as compatibility surface. This does not change `config.toml` on-disk format version `1` or the versioned `session.json` migration reader; those are independent disk formats.
 
+## 2026-08-23: Bind aggregate captcha answers before credential submission
+
+The frozen implementation keeps each captcha ID with one mode-scoped login state; the pinned example does not implement captcha. UBAA 2 therefore keeps raw upstream captcha IDs and CAS execution values inside each route's `AuthWorkflow`, while the aggregate facade exposes process-local opaque IDs bound to one route and preparation generation. Identical upstream IDs on Direct and WebVPN produce distinct public IDs.
+
+Every supplied answer is checked as a complete set before either route sends a credential POST. Empty values, duplicate public IDs, multiple answers for one route, unknown IDs and previous-generation IDs return `invalid_input`. Valid answers are consumed once. A missing answer preserves that route's pending challenge, and a sibling preparation failure does not invalidate a challenge already returned in the same generation. Deterministic transports prove these rejection paths make no credential POST; no raw ID, execution value, answer or captcha image is persisted.
+
 ## 2026-08-23: Reopen SPOC and Judge live conclusions
 
 Frozen `LocalSpocApi.kt` treats course metadata as optional and always calls the encrypted global `queryListByPage` operation with `kcid=""`. Pinned `buaa-api` instead calls per-course `queryXsZyList`, so its list/auth flow is non-equivalent; only matching AES constants, token facts and the detail endpoint may supplement the old source. The prior three-route empty result is unverified until the corrected global empty-`kcid` request is observed. It cannot be called a valid empty list merely because the command exited 0.
