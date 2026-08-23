@@ -52,13 +52,14 @@ fn auto_route_maps_three_dns_states_and_exposes_diagnostic() {
 }
 
 #[test]
-fn judge_auto_uses_the_live_verified_webvpn_route_in_all_dns_states() {
+fn judge_auto_follows_the_common_dns_route_contract_after_direct_revalidation() {
     let config = RouteConfig::default();
-    for network in [
-        NetworkState::Campus,
-        NetworkState::OffCampus,
-        NetworkState::Unknown,
-    ] {
+    let cases = [
+        (NetworkState::Campus, ConnectionMode::Direct),
+        (NetworkState::OffCampus, ConnectionMode::WebVpn),
+        (NetworkState::Unknown, ConnectionMode::Direct),
+    ];
+    for (network, expected_mode) in cases {
         let resolved = resolve_feature_route(
             ReadonlyFeature::Judge,
             RoutePolicy::Auto,
@@ -68,7 +69,7 @@ fn judge_auto_uses_the_live_verified_webvpn_route_in_all_dns_states() {
         .expect("Judge auto route");
 
         assert_eq!(resolved.policy, RoutePolicy::Auto);
-        assert_eq!(resolved.mode, ConnectionMode::WebVpn);
+        assert_eq!(resolved.mode, expected_mode);
         assert_eq!(resolved.diagnostic.network, network);
     }
 
@@ -118,7 +119,7 @@ fn feature_route_config_has_explicit_unknown_default_and_fallback_flags() {
     assert!(!row.allow_network_fallback);
 
     let judge = FeatureRouteConfig::for_feature(ReadonlyFeature::Judge);
-    assert_eq!(judge.auto_route_override, Some(ConnectionMode::WebVpn));
+    assert_eq!(judge.auto_route_override, None);
 }
 
 #[test]

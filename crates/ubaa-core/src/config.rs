@@ -184,12 +184,9 @@ pub struct FeatureRouteConfig {
 impl FeatureRouteConfig {
     /// Return the evidence-backed initial row for a read-only feature.
     #[must_use]
-    pub const fn for_feature(feature: ReadonlyFeature) -> Self {
+    pub const fn for_feature(_feature: ReadonlyFeature) -> Self {
         Self {
-            auto_route_override: match feature {
-                ReadonlyFeature::Judge => Some(crate::domain::ConnectionMode::WebVpn),
-                _ => None,
-            },
+            auto_route_override: None,
             unknown_default: crate::domain::ConnectionMode::Direct,
             allow_ready_route_fallback: false,
             allow_network_fallback: false,
