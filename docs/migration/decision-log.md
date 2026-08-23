@@ -108,3 +108,27 @@ Preparing a new generation clears the old workflow before network access, and au
 Frozen `LocalSpocApi.kt` treats course metadata as optional and always calls the encrypted global `queryListByPage` operation with `kcid=""`. Pinned `buaa-api` instead calls per-course `queryXsZyList`, so its list/auth flow is non-equivalent; only matching AES constants, token facts and the detail endpoint may supplement the old source. The prior three-route empty result is unverified until the corrected global empty-`kcid` request is observed. It cannot be called a valid empty list merely because the command exited 0.
 
 Pinned `buaa-api` has no Judge module. Frozen `LocalJudgeApi.kt` filters `problemContent`/`judgeDetails` assignment links and parses nested problem tables, scores, `PARTIAL` state and fallback counts. The current historical exit-0 detail checks did not assert all those semantics. Direct reported 65 items while WebVPN reported 17; the difference is unresolved and must be investigated after parser/cache parity without persisting IDs, titles or raw bodies. Neither route is permanently preferred from this observation.
+
+## 2026-08-24: Keep Judge cutoff and batch behavior deterministic
+
+The frozen local Judge API returns `historicalCutoffCourseIds`, groups batch work by course and
+subtracts six months while retaining the current local time of day. UBAA 2 keeps cutoff course IDs
+inside route-owned state rather than exposing them in the current summary-list DTO, and restores
+normalized batch results to the caller's original key order. The cutoff retains the current
+Shanghai time of day and clamps the day to the target month's final valid day (for example,
+August 31 becomes February 28 or 29). These are explicit host-contract choices: internalizing the
+cutoff IDs and restoring input order differ from the old public DTO/group traversal, while the
+time-of-day rule preserves the applicable frozen comparison boundary.
+
+## 2026-08-24: Resolve SPOC crypto and public-content source conflicts
+
+The frozen local implementation and pinned example use the same AES-128-CBC key and IV, but they
+do not agree for plaintext whose byte length is already a multiple of 16. `LocalSpocCrypto` adds
+no zero block in that case; the example AES helper always appends a full zero block. UBAA 2 follows
+the applicable frozen local implementation and covers aligned and unaligned plaintext with fixed
+vectors. The example corroborates constants and CBC operation only.
+
+The old detail DTO publicly exposes both raw HTML and derived plain text. UBAA 2 intentionally
+keeps raw upstream HTML internal and exposes only normalized plain text. This is a security and
+host-contract divergence, not a claim of exact DTO parity; detail/submission fields, fallback
+rules, and status semantics continue to follow the frozen local implementation.

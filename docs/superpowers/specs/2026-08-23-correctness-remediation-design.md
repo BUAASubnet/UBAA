@@ -148,8 +148,9 @@ is optional, and score/time/status fall back to the list summary exactly as the
 old implementation does. Raw HTML is converted internally to plain text and is
 removed from public DTOs and JSON.
 
-Judge list parsing accepts only `problemContent` and `judgeDetails` assignment
-links. Detail parsing ports the frozen DOM semantics for nested tables, two- and
+Judge list parsing accepts numeric `assignID` links except internal
+`problemContent` and `judgeDetails` links, then deduplicates by assignment ID.
+Detail parsing ports the frozen DOM semantics for nested tables, two- and
 four-cell rows, per-problem status and score, partial completion, explicit and
 derived totals, `HH:MM` time, entities, and script exclusion. Batch lookup groups
 keys by course, fetches each course list once, limits concurrency by course, and
