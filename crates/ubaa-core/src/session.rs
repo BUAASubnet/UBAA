@@ -597,13 +597,15 @@ impl SessionStore for CoordinatedRouteSessionStore {
             .state
             .lock()
             .map_err(|_| session_error("dual session coordinator is unavailable"))?;
+        // A coordinator conflict is terminal for this client. Do not return a second
+        // `Conflict` that callers might interpret as permission to retry or touch the file.
+        if state.conflicted {
+            return Err(dual_session_conflict());
+        }
         let route_revision = match self.mode {
             ConnectionMode::Direct => state.direct_revision,
             ConnectionMode::WebVpn => state.webvpn_revision,
         };
-        if state.conflicted {
-            return Ok(SessionMutation::Conflict);
-        }
         if expected_revision != route_revision {
             state.snapshot = DualSessionSnapshot::new(None, None);
             state.conflicted = true;
@@ -1340,13 +1342,20 @@ mod coordinator_tests {
             SessionMutation::Conflict
         );
         assert!(coordinator.is_conflicted());
+        let persisted = std::fs::read(file_store.path()).unwrap();
+        std::fs::write(root.join(".session.lock"), b"invalid\n").unwrap();
         let error = direct.load_versioned().unwrap_err();
         assert_eq!(error.message, "local session changed in another process");
+        let error = direct
+            .compare_exchange(loaded.revision, None)
+            .expect_err("a terminal coordinator must reject later CAS calls");
+        assert_eq!(error.message, "local session changed in another process");
+        assert_eq!(std::fs::read(file_store.path()).unwrap(), persisted);
+        let persisted: DualSessionSnapshot = serde_json::from_slice(&persisted).unwrap();
         assert_eq!(
-            file_store
-                .load_dual()
-                .unwrap()
-                .and_then(|dual| dual.sessions.direct)
+            persisted
+                .sessions
+                .direct
                 .map(|slot| slot.into_legacy(ConnectionMode::Direct)),
             Some(snapshot)
         );
