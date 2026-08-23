@@ -3,6 +3,7 @@
 use std::fs::OpenOptions;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
@@ -10,19 +11,19 @@ use base64::Engine as _;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::Serialize;
 use serde_json::{Value, json};
-use ubaa_core::connection::{NetworkState, RouteResolution};
+use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, CaptchaAnswer, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement,
     FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    LoginChallenge, LoginInput, LoginReadiness, RouteLoginState, RoutePolicy, SafeError,
-    SecretValue, SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile, Week,
-    WeeklySchedule,
+    LoginChallenge, LoginInput, LoginReadiness, RouteLoginChallenge, RouteLoginState, RoutePolicy,
+    SafeError, SecretValue, SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile,
+    Week, WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
 use ubaa_core::output::{
-    AggregateJsonEnvelope, AggregateJsonMeta, JSON_SCHEMA_VERSION, JsonEnvelope, JsonMeta,
-    ReadonlyJsonEnvelope, ReadonlyJsonMeta,
+    AggregateJsonEnvelope, CliFeature, CliJsonError, ResolvedRoutedJsonMeta, RoutedJsonEnvelope,
+    UnresolvedRoutedJsonMeta,
 };
 
 /// UBAA command-line interface.
@@ -62,9 +63,12 @@ pub struct ReadonlyRouteContext {
 }
 
 impl ReadonlyRouteContext {
-    fn compatibility(mode: ConnectionMode) -> Self {
+    fn explicit(mode: ConnectionMode) -> Self {
         Self {
-            policy: RoutePolicy::Auto,
+            policy: match mode {
+                ConnectionMode::Direct => RoutePolicy::Direct,
+                ConnectionMode::WebVpn => RoutePolicy::WebVpn,
+            },
             network: NetworkState::Unknown,
             initial_route: mode,
             resolved_route: mode,
@@ -72,14 +76,20 @@ impl ReadonlyRouteContext {
         }
     }
 
-    fn meta(self, feature: &'static str, resolved_route: ConnectionMode) -> ReadonlyJsonMeta {
-        ReadonlyJsonMeta {
-            route_policy: self.policy,
-            network_state: self.network,
-            initial_route: self.initial_route,
-            resolved_route,
-            used_fallback: self.used_fallback,
-            feature: feature.into(),
+    fn meta(self, feature: CliFeature, resolved_route: ConnectionMode) -> ResolvedRoutedJsonMeta {
+        ResolvedRoutedJsonMeta::from_resolution(feature, self.resolution(resolved_route))
+    }
+
+    fn resolution(self, resolved_route: ConnectionMode) -> RouteResolution {
+        RouteResolution {
+            mode: resolved_route,
+            policy: self.policy,
+            diagnostic: RouteDiagnostic {
+                network: self.network,
+                initial_route: self.initial_route,
+                mode: resolved_route,
+                used_fallback: self.used_fallback,
+            },
         }
     }
 }
@@ -379,17 +389,6 @@ impl Cli {
         }
     }
 
-    /// Resolve an explicit login mode or a mode loaded from persisted session state.
-    ///
-    /// # Errors
-    ///
-    /// Returns invalid input when login has neither an explicit nor saved mode.
-    pub fn resolve_mode(&self, saved_mode: Option<ConnectionMode>) -> Result<ConnectionMode> {
-        self.login_mode().or(saved_mode).ok_or_else(|| {
-            invalid_input("--mode is required when no saved session mode is available")
-        })
-    }
-
     /// Whether this command requires an existing session before constructing a client.
     #[must_use]
     pub const fn requires_session(&self) -> bool {
@@ -428,6 +427,12 @@ impl Cli {
                 command: AuthCommand::Status
             })
         )
+    }
+
+    /// Return the stable JSON feature associated with this command.
+    #[must_use]
+    pub const fn feature(&self) -> CliFeature {
+        command_feature(&self.command)
     }
 }
 
@@ -603,6 +608,7 @@ where
     E: Write,
 {
     let json_mode = cli.json;
+    let route_policy = backend.default_route_policy();
     let Command::Auth(AuthArgs {
         command: AuthCommand::Login(arguments),
     }) = cli.command
@@ -642,7 +648,7 @@ where
         }
     };
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(json_mode, &outcome, stdout, stderr)
+    render_dual_outcome(json_mode, outcome, route_policy, stdout, stderr)
 }
 
 /// Execute the ordinary aggregate authentication status path.
@@ -656,15 +662,16 @@ where
     O: Write,
     E: Write,
 {
+    let route_policy = backend.default_route_policy();
     let mut outcome = match backend.auth_status().await {
         Ok(outcome) => outcome,
         Err(error) => return render_aggregate_input_error(cli.json, error, stdout, stderr),
     };
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(cli.json, &outcome, stdout, stderr)
+    render_dual_outcome(cli.json, outcome, route_policy, stdout, stderr)
 }
 
-/// Execute logout for both route slots while retaining the v1 logout response shape.
+/// Execute logout for both route slots with fixed aggregate route metadata.
 pub async fn run_dual_logout<O, E>(
     cli: Cli,
     backend: &mut UbaaClient,
@@ -675,23 +682,13 @@ where
     O: Write,
     E: Write,
 {
-    let active_routes = backend.active_routes();
+    let route_policy = backend.default_route_policy();
     let result = backend.logout().await;
     match result {
         Ok(()) => {
-            let mode = (active_routes.len() == 1).then(|| active_routes[0]);
             if cli.json {
-                let envelope = JsonEnvelope::success(
-                    json!({ "loggedOut": true }),
-                    mode.unwrap_or(ConnectionMode::Direct),
-                );
-                // A missing session must not invent a route in the public metadata.
-                let value = serde_json::to_value(envelope).unwrap_or_else(|_| json!({}));
-                let mut value = value;
-                if mode.is_none() {
-                    value["meta"] = json!({});
-                }
-                if write_json(stdout, &value).is_err() {
+                let envelope = AggregateJsonEnvelope::logout_success(route_policy);
+                if write_json(stdout, &envelope).is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else if writeln!(stdout, "Signed out.").is_err() {
@@ -699,7 +696,7 @@ where
             }
             ExitCode::Success as i32
         }
-        Err(error) => render_startup_error(cli.json, error, stdout, stderr),
+        Err(error) => render_startup_error(cli.json, CliFeature::Auth, error, stdout, stderr),
     }
 }
 
@@ -767,55 +764,27 @@ fn collect_dual_captcha_answers<E: Write>(
 
 fn render_dual_outcome<O: Write, E: Write>(
     json_mode: bool,
-    outcome: &ubaa_core::domain::LoginOutcome,
+    outcome: ubaa_core::domain::LoginOutcome,
+    route_policy: RoutePolicy,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    let resolved_routes = outcome
-        .routes
-        .iter()
-        .filter(|route| route.state == RouteLoginState::Ready)
-        .map(|route| route.route)
-        .collect::<Vec<_>>();
     let has_captcha = outcome
         .routes
         .iter()
         .any(|route| route.state == RouteLoginState::CaptchaRequired);
-    let error = aggregate_error(outcome, has_captcha);
-    let exit_code = aggregate_exit_code(outcome, has_captcha, error.as_ref());
+    let error = aggregate_error(&outcome, has_captcha);
+    let exit_code = aggregate_exit_code(&outcome, has_captcha, error.as_ref());
     if json_mode {
-        let challenges = outcome
-            .challenges
-            .iter()
-            .filter(|challenge| {
-                outcome.routes.iter().any(|route| {
-                    route.route == challenge.route
-                        && route.state == RouteLoginState::CaptchaRequired
-                })
-            })
-            .map(|challenge| {
-                json!({
-                    "route": challenge.route,
-                    "challengeId": challenge.challenge_id,
-                    "imageAvailable": challenge.image_available
-                })
-            })
-            .collect::<Vec<_>>();
-        let envelope = AggregateJsonEnvelope {
-            schema_version: ubaa_core::output::READONLY_JSON_SCHEMA_VERSION,
-            ok: exit_code == 0,
-            data: json!({
-                "readiness": outcome.readiness,
-                "routes": outcome.routes,
-                "profile": outcome.profile,
-                "challenges": challenges
-            }),
-            error,
-            meta: AggregateJsonMeta {
-                route_policy: ubaa_core::domain::RoutePolicy::Auto,
-                resolved_routes,
-                feature: "auth".into(),
-            },
+        let envelope = match error {
+            Some(error) => AggregateJsonEnvelope::auth_failure(outcome, error, route_policy),
+            None => AggregateJsonEnvelope::auth_success(outcome, route_policy),
+        };
+        let envelope = match envelope {
+            Ok(envelope) => envelope,
+            Err(error) => {
+                return render_startup_error(true, CliFeature::Auth, error, stdout, stderr);
+            }
         };
         if write_json(stdout, &envelope).is_err() {
             return ExitCode::Internal as i32;
@@ -850,7 +819,18 @@ fn aggregate_error(
             message: "captcha input is required for one or more routes".into(),
         })
     } else if outcome.readiness == LoginReadiness::NoneReady {
-        outcome.routes.iter().find_map(|route| route.error.clone())
+        Some(
+            outcome
+                .routes
+                .iter()
+                .find_map(|route| route.error.clone())
+                .unwrap_or_else(|| SafeError {
+                    code: "internal_error".into(),
+                    kind: "internal".into(),
+                    retryable: false,
+                    message: "no authentication route became ready".into(),
+                }),
+        )
     } else {
         None
     }
@@ -890,38 +870,7 @@ fn render_aggregate_input_error<O: Write, E: Write>(
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    let safe = SafeError {
-        code: serde_json::to_value(error.code)
-            .ok()
-            .and_then(|value| value.as_str().map(str::to_owned))
-            .unwrap_or_else(|| "internal_error".into()),
-        kind: serde_json::to_value(error.kind)
-            .ok()
-            .and_then(|value| value.as_str().map(str::to_owned))
-            .unwrap_or_else(|| "internal".into()),
-        retryable: error.retryable,
-        message: error.message,
-    };
-    let code = safe_error_exit_code(&safe);
-    if json_mode {
-        let envelope = AggregateJsonEnvelope {
-            schema_version: ubaa_core::output::READONLY_JSON_SCHEMA_VERSION,
-            ok: false,
-            data: json!({ "readiness": "none_ready", "routes": [], "challenges": [] }),
-            error: Some(safe),
-            meta: AggregateJsonMeta {
-                route_policy: ubaa_core::domain::RoutePolicy::Auto,
-                resolved_routes: Vec::new(),
-                feature: "auth".into(),
-            },
-        };
-        if write_json(stdout, &envelope).is_err() {
-            return ExitCode::Internal as i32;
-        }
-    } else if writeln!(stderr, "Error: {}", safe.message).is_err() {
-        return ExitCode::Internal as i32;
-    }
-    code
+    render_startup_error(json_mode, CliFeature::Auth, error, stdout, stderr)
 }
 
 #[async_trait]
@@ -1088,21 +1037,31 @@ where
         Command::User(UserArgs {
             command: UserCommand::Show,
         }) => (
-            "user",
+            CliFeature::User,
             routed_map(backend.get_user_info().await, |profile| {
                 CommandOutput::Profile(redacted_profile(profile))
             }),
         ),
-        Command::Schedule(arguments) => ("schedule", run_routed_schedule(arguments, backend).await),
-        Command::Exam(arguments) => ("exam", run_routed_exam(arguments, backend).await),
-        Command::Grades(arguments) => ("grades", run_routed_grades(arguments, backend).await),
-        Command::Classroom(arguments) => {
-            ("classroom", run_routed_classroom(arguments, backend).await)
-        }
-        Command::Spoc(arguments) => ("spoc", run_routed_spoc(arguments, backend).await),
-        Command::Judge(arguments) => ("judge", run_routed_judge(arguments, backend).await),
+        Command::Schedule(arguments) => (
+            CliFeature::Schedule,
+            run_routed_schedule(arguments, backend).await,
+        ),
+        Command::Exam(arguments) => (CliFeature::Exam, run_routed_exam(arguments, backend).await),
+        Command::Grades(arguments) => (
+            CliFeature::Grades,
+            run_routed_grades(arguments, backend).await,
+        ),
+        Command::Classroom(arguments) => (
+            CliFeature::Classroom,
+            run_routed_classroom(arguments, backend).await,
+        ),
+        Command::Spoc(arguments) => (CliFeature::Spoc, run_routed_spoc(arguments, backend).await),
+        Command::Judge(arguments) => (
+            CliFeature::Judge,
+            run_routed_judge(arguments, backend).await,
+        ),
         Command::Auth(_) => (
-            "auth",
+            CliFeature::Auth,
             Err(RoutedError {
                 error: invalid_input("ordinary routed execution does not accept auth commands"),
                 resolution: None,
@@ -1118,14 +1077,19 @@ async fn run_routed_schedule<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
-        ScheduleCommand::Terms => routed_readonly(backend.schedule_terms().await, "schedule"),
+        ScheduleCommand::Terms => {
+            routed_readonly(backend.schedule_terms().await, CliFeature::Schedule)
+        }
         ScheduleCommand::Weeks { term } => {
-            routed_readonly(backend.schedule_weeks(&term).await, "schedule")
+            routed_readonly(backend.schedule_weeks(&term).await, CliFeature::Schedule)
         }
-        ScheduleCommand::Current { term, week } => {
-            routed_readonly(backend.schedule_week(&term, week).await, "schedule")
+        ScheduleCommand::Current { term, week } => routed_readonly(
+            backend.schedule_week(&term, week).await,
+            CliFeature::Schedule,
+        ),
+        ScheduleCommand::Today => {
+            routed_readonly(backend.schedule_today().await, CliFeature::Schedule)
         }
-        ScheduleCommand::Today => routed_readonly(backend.schedule_today().await, "schedule"),
     }
 }
 
@@ -1135,7 +1099,7 @@ async fn run_routed_exam<B: RoutedCliBackend + Send>(
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
         ExamCommand::List { term } => {
-            routed_readonly(backend.exam_arrangement(&term).await, "exam")
+            routed_readonly(backend.exam_arrangement(&term).await, CliFeature::Exam)
         }
     }
 }
@@ -1145,7 +1109,9 @@ async fn run_routed_grades<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
-        GradesCommand::List { term } => routed_readonly(backend.grades(&term).await, "grades"),
+        GradesCommand::List { term } => {
+            routed_readonly(backend.grades(&term).await, CliFeature::Grades)
+        }
     }
 }
 
@@ -1154,9 +1120,10 @@ async fn run_routed_classroom<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
-        ClassroomCommand::Search { campus, date } => {
-            routed_readonly(backend.classroom_search(campus, &date).await, "classroom")
-        }
+        ClassroomCommand::Search { campus, date } => routed_readonly(
+            backend.classroom_search(campus, &date).await,
+            CliFeature::Classroom,
+        ),
     }
 }
 
@@ -1165,10 +1132,12 @@ async fn run_routed_spoc<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
-        SpocCommand::Assignments => routed_readonly(backend.spoc_assignments().await, "spoc"),
+        SpocCommand::Assignments => {
+            routed_readonly(backend.spoc_assignments().await, CliFeature::Spoc)
+        }
         SpocCommand::Assignment {
             command: SpocAssignmentCommand::Show { id },
-        } => routed_readonly(backend.spoc_assignment(&id).await, "spoc"),
+        } => routed_readonly(backend.spoc_assignment(&id).await, CliFeature::Spoc),
     }
 }
 
@@ -1177,12 +1146,16 @@ async fn run_routed_judge<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
-        JudgeCommand::Assignments { include_expired } => {
-            routed_readonly(backend.judge_assignments(include_expired).await, "judge")
-        }
+        JudgeCommand::Assignments { include_expired } => routed_readonly(
+            backend.judge_assignments(include_expired).await,
+            CliFeature::Judge,
+        ),
         JudgeCommand::Assignment {
             command: JudgeAssignmentCommand::Show { course_id, id },
-        } => routed_readonly(backend.judge_assignment(&course_id, &id).await, "judge"),
+        } => routed_readonly(
+            backend.judge_assignment(&course_id, &id).await,
+            CliFeature::Judge,
+        ),
         JudgeCommand::Assignment {
             command: JudgeAssignmentCommand::Details { keys },
         } => {
@@ -1207,7 +1180,10 @@ async fn run_routed_judge<B: RoutedCliBackend + Send>(
                     error,
                     resolution: None,
                 })?;
-            routed_readonly(backend.judge_assignment_details(&parsed).await, "judge")
+            routed_readonly(
+                backend.judge_assignment_details(&parsed).await,
+                CliFeature::Judge,
+            )
         }
     }
 }
@@ -1224,21 +1200,27 @@ fn routed_map<T>(
 
 fn routed_readonly<T: Serialize>(
     result: RoutedResult<T>,
-    feature: &'static str,
+    feature: CliFeature,
 ) -> RoutedResult<CommandOutput> {
-    result.map(|Routed { data, resolution }| Routed {
-        data: CommandOutput::Readonly {
-            data: serde_json::to_value(data).unwrap_or_else(|_| json!({})),
-            route: resolution.mode,
-            feature,
-        },
-        resolution,
+    result.and_then(|Routed { data, resolution }| {
+        let data = serde_json::to_value(data).map_err(|_| RoutedError {
+            error: internal_error("could not serialize command output"),
+            resolution: Some(resolution),
+        })?;
+        Ok(Routed {
+            data: CommandOutput::Readonly {
+                data,
+                route: resolution.mode,
+                feature,
+            },
+            resolution,
+        })
     })
 }
 
 fn render_routed_result<O: Write, E: Write>(
     json_mode: bool,
-    feature: &'static str,
+    feature: CliFeature,
     result: RoutedResult<CommandOutput>,
     stdout: &mut O,
     stderr: &mut E,
@@ -1246,14 +1228,16 @@ fn render_routed_result<O: Write, E: Write>(
     match result {
         Ok(Routed { data, resolution }) => {
             if json_mode {
-                let value = match data {
-                    CommandOutput::Profile(profile) => json!(profile),
-                    CommandOutput::Status(status) => json!(status),
-                    CommandOutput::Logout(value) => value,
-                    CommandOutput::Readonly { data, .. } => data,
+                let value = match command_output_value(data) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        return render_resolved_error(
+                            true, feature, resolution, error, stdout, stderr,
+                        );
+                    }
                 };
-                let meta = ReadonlyRouteContext::from(resolution).meta(feature, resolution.mode);
-                if write_json(stdout, &ReadonlyJsonEnvelope::success(value, meta)).is_err() {
+                let meta = ResolvedRoutedJsonMeta::from_resolution(feature, resolution);
+                if write_json(stdout, &RoutedJsonEnvelope::success(value, meta)).is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else {
@@ -1263,7 +1247,7 @@ fn render_routed_result<O: Write, E: Write>(
                         route,
                         feature,
                     } => {
-                        if writeln!(stdout, "{feature} ({route:?}): {data}").is_err() {
+                        if writeln!(stdout, "{} ({route:?}): {data}", feature.as_str()).is_err() {
                             return ExitCode::Internal as i32;
                         }
                     }
@@ -1277,24 +1261,13 @@ fn render_routed_result<O: Write, E: Write>(
             ExitCode::Success as i32
         }
         Err(RoutedError {
-            mut error,
+            error,
             resolution: Some(resolution),
-        }) => {
-            error.challenge = None;
-            render_readonly_error(
-                json_mode,
-                resolution.mode,
-                feature,
-                ReadonlyRouteContext::from(resolution),
-                error,
-                stdout,
-                stderr,
-            )
-        }
+        }) => render_resolved_error(json_mode, feature, resolution, error, stdout, stderr),
         Err(RoutedError {
             error,
             resolution: None,
-        }) => render_startup_error(json_mode, error, stdout, stderr),
+        }) => render_startup_error(json_mode, feature, error, stdout, stderr),
     }
 }
 
@@ -1323,7 +1296,7 @@ where
     run_with_backend_with_route(
         cli,
         backend,
-        ReadonlyRouteContext::compatibility(mode),
+        ReadonlyRouteContext::explicit(mode),
         input,
         stdout,
         stderr,
@@ -1347,7 +1320,7 @@ where
     E: Write,
 {
     let mode = backend.mode();
-    let readonly_feature = readonly_command_feature(&cli.command);
+    let feature = command_feature(&cli.command);
     let result = match cli.command {
         Command::Auth(AuthArgs {
             command: AuthCommand::Login(arguments),
@@ -1381,7 +1354,7 @@ where
     render_result(
         cli.json,
         mode,
-        readonly_feature,
+        feature,
         route_context,
         result,
         stdout,
@@ -1389,15 +1362,16 @@ where
     )
 }
 
-fn readonly_command_feature(command: &Command) -> Option<&'static str> {
+const fn command_feature(command: &Command) -> CliFeature {
     match command {
-        Command::Schedule(_) => Some("schedule"),
-        Command::Exam(_) => Some("exam"),
-        Command::Grades(_) => Some("grades"),
-        Command::Classroom(_) => Some("classroom"),
-        Command::Spoc(_) => Some("spoc"),
-        Command::Judge(_) => Some("judge"),
-        _ => None,
+        Command::Auth(_) => CliFeature::Auth,
+        Command::User(_) => CliFeature::User,
+        Command::Schedule(_) => CliFeature::Schedule,
+        Command::Exam(_) => CliFeature::Exam,
+        Command::Grades(_) => CliFeature::Grades,
+        Command::Classroom(_) => CliFeature::Classroom,
+        Command::Spoc(_) => CliFeature::Spoc,
+        Command::Judge(_) => CliFeature::Judge,
     }
 }
 
@@ -1431,8 +1405,7 @@ where
     let challenge = backend.prepare_login().await?;
     let captcha = match (challenge, arguments.captcha) {
         (Some(_), Some(answer)) if !answer.trim().is_empty() => Some(answer),
-        (Some(mut challenge), _) if json_mode => {
-            challenge.image_data_url = None;
+        (Some(challenge), _) if json_mode => {
             return Err(UbaaError::new(
                 ErrorCode::CaptchaRequired,
                 ErrorKind::Authentication,
@@ -1463,19 +1436,19 @@ async fn run_schedule<B: CliBackend + Send>(
         ScheduleCommand::Terms => backend
             .schedule_terms()
             .await
-            .map(|result| readonly(result, "schedule")),
+            .and_then(|result| readonly(result, CliFeature::Schedule)),
         ScheduleCommand::Weeks { term } => backend
             .schedule_weeks(&term)
             .await
-            .map(|result| readonly(result, "schedule")),
+            .and_then(|result| readonly(result, CliFeature::Schedule)),
         ScheduleCommand::Current { term, week } => backend
             .schedule_week(&term, week)
             .await
-            .map(|result| readonly(result, "schedule")),
+            .and_then(|result| readonly(result, CliFeature::Schedule)),
         ScheduleCommand::Today => backend
             .schedule_today()
             .await
-            .map(|result| readonly(result, "schedule")),
+            .and_then(|result| readonly(result, CliFeature::Schedule)),
     }
 }
 
@@ -1487,7 +1460,7 @@ async fn run_exam<B: CliBackend + Send>(
         ExamCommand::List { term } => backend
             .exam_arrangement(&term)
             .await
-            .map(|result| readonly(result, "exam")),
+            .and_then(|result| readonly(result, CliFeature::Exam)),
     }
 }
 
@@ -1499,7 +1472,7 @@ async fn run_grades<B: CliBackend + Send>(
         GradesCommand::List { term } => backend
             .grades(&term)
             .await
-            .map(|result| readonly(result, "grades")),
+            .and_then(|result| readonly(result, CliFeature::Grades)),
     }
 }
 
@@ -1511,7 +1484,7 @@ async fn run_classroom<B: CliBackend + Send>(
         ClassroomCommand::Search { campus, date } => backend
             .classroom_search(campus, &date)
             .await
-            .map(|result| readonly(result, "classroom")),
+            .and_then(|result| readonly(result, CliFeature::Classroom)),
     }
 }
 
@@ -1523,13 +1496,13 @@ async fn run_spoc<B: CliBackend + Send>(
         SpocCommand::Assignments => backend
             .spoc_assignments()
             .await
-            .map(|result| readonly(result, "spoc")),
+            .and_then(|result| readonly(result, CliFeature::Spoc)),
         SpocCommand::Assignment {
             command: SpocAssignmentCommand::Show { id },
         } => backend
             .spoc_assignment(&id)
             .await
-            .map(|result| readonly(result, "spoc")),
+            .and_then(|result| readonly(result, CliFeature::Spoc)),
     }
 }
 
@@ -1541,13 +1514,13 @@ async fn run_judge<B: CliBackend + Send>(
         JudgeCommand::Assignments { include_expired } => backend
             .judge_assignments(include_expired)
             .await
-            .map(|result| readonly(result, "judge")),
+            .and_then(|result| readonly(result, CliFeature::Judge)),
         JudgeCommand::Assignment {
             command: JudgeAssignmentCommand::Show { course_id, id },
         } => backend
             .judge_assignment(&course_id, &id)
             .await
-            .map(|result| readonly(result, "judge")),
+            .and_then(|result| readonly(result, CliFeature::Judge)),
         JudgeCommand::Assignment {
             command: JudgeAssignmentCommand::Details { keys },
         } => {
@@ -1571,17 +1544,19 @@ async fn run_judge<B: CliBackend + Send>(
             backend
                 .judge_assignment_details(&parsed)
                 .await
-                .map(|result| readonly(result, "judge"))
+                .and_then(|result| readonly(result, CliFeature::Judge))
         }
     }
 }
 
-fn readonly<T: Serialize>(result: FeatureResult<T>, feature: &'static str) -> CommandOutput {
-    CommandOutput::Readonly {
-        data: serde_json::to_value(result.data).unwrap_or_else(|_| json!({})),
+fn readonly<T: Serialize>(result: FeatureResult<T>, feature: CliFeature) -> Result<CommandOutput> {
+    let data = serde_json::to_value(result.data)
+        .map_err(|_| internal_error("could not serialize command output"))?;
+    Ok(CommandOutput::Readonly {
+        data,
         route: result.resolved_route,
         feature,
-    }
+    })
 }
 
 enum CommandOutput {
@@ -1591,44 +1566,41 @@ enum CommandOutput {
     Readonly {
         data: Value,
         route: ConnectionMode,
-        feature: &'static str,
+        feature: CliFeature,
     },
 }
 
 fn render_result<O: Write, E: Write>(
     json_mode: bool,
     mode: ConnectionMode,
-    readonly_feature: Option<&'static str>,
+    feature: CliFeature,
     route_context: ReadonlyRouteContext,
     result: Result<CommandOutput>,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
     match result {
-        Ok(CommandOutput::Readonly {
-            data,
-            route,
-            feature,
-        }) => {
-            if json_mode {
-                let meta = route_context.meta(feature, route);
-                if write_json(stdout, &ReadonlyJsonEnvelope::success(data, meta)).is_err() {
-                    return ExitCode::Internal as i32;
-                }
-            } else if writeln!(stdout, "{feature} ({route:?}): {data}").is_err() {
-                return ExitCode::Internal as i32;
-            }
-            ExitCode::Success as i32
-        }
         Ok(output) => {
+            let resolved_route = match &output {
+                CommandOutput::Readonly { route, .. } => *route,
+                _ => mode,
+            };
             if json_mode {
-                let value = match output {
-                    CommandOutput::Profile(profile) => json!(profile),
-                    CommandOutput::Status(status) => json!(status),
-                    CommandOutput::Logout(value) => value,
-                    CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
+                let value = match command_output_value(output) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        return render_resolved_error(
+                            true,
+                            feature,
+                            route_context.resolution(resolved_route),
+                            error,
+                            stdout,
+                            stderr,
+                        );
+                    }
                 };
-                if write_json(stdout, &JsonEnvelope::success(value, mode)).is_err() {
+                let meta = route_context.meta(feature, resolved_route);
+                if write_json(stdout, &RoutedJsonEnvelope::success(value, meta)).is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else if let CommandOutput::Readonly {
@@ -1637,7 +1609,7 @@ fn render_result<O: Write, E: Write>(
                 feature,
             } = output
             {
-                if writeln!(stdout, "{feature} ({route:?}): {data}").is_err() {
+                if writeln!(stdout, "{} ({route:?}): {data}", feature.as_str()).is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else if render_human(output, stdout).is_err() {
@@ -1645,113 +1617,89 @@ fn render_result<O: Write, E: Write>(
             }
             ExitCode::Success as i32
         }
-        Err(error) => match readonly_feature {
-            Some(feature) => render_readonly_error(
-                json_mode,
-                mode,
-                feature,
-                route_context,
-                error,
-                stdout,
-                stderr,
-            ),
-            None => render_error(json_mode, Some(mode), error, stdout, stderr),
-        },
+        Err(error) => render_resolved_error(
+            json_mode,
+            feature,
+            route_context.resolution(mode),
+            error,
+            stdout,
+            stderr,
+        ),
     }
 }
 
-fn render_readonly_error<O: Write, E: Write>(
+fn command_output_value(output: CommandOutput) -> Result<Value> {
+    match output {
+        CommandOutput::Profile(profile) => serde_json::to_value(profile),
+        CommandOutput::Status(status) => serde_json::to_value(status),
+        CommandOutput::Logout(value) | CommandOutput::Readonly { data: value, .. } => Ok(value),
+    }
+    .map_err(|_| internal_error("could not serialize command output"))
+}
+
+fn render_resolved_error<O: Write, E: Write>(
     json_mode: bool,
-    mode: ConnectionMode,
-    feature: &'static str,
-    route_context: ReadonlyRouteContext,
-    mut error: UbaaError,
+    feature: CliFeature,
+    resolution: RouteResolution,
+    error: UbaaError,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    if !json_mode {
-        return render_error(false, Some(mode), error, stdout, stderr);
-    }
-    // A feature request never exposes an authentication execution token or image. If an
-    // upstream unexpectedly returns a captcha-shaped error, keep the stable v2 error schema
-    // by dropping the ephemeral challenge rather than serializing its internal fields.
     let exit_code = error.code.exit_code() as i32;
-    error.challenge = None;
-    let meta = route_context.meta(feature, route_context.resolved_route);
-    if write_json(stdout, &ReadonlyJsonEnvelope::<Value>::failure(error, meta)).is_err() {
+    if json_mode {
+        let error = project_cli_error(error, feature, resolution.mode);
+        let meta = ResolvedRoutedJsonMeta::from_resolution(feature, resolution);
+        let envelope = RoutedJsonEnvelope::<Value>::resolved_failure(error, meta);
+        if write_json(stdout, &envelope).is_err() {
+            return ExitCode::Internal as i32;
+        }
+    } else if writeln!(stderr, "Error: {error}").is_err() {
         return ExitCode::Internal as i32;
     }
     exit_code
 }
 
-/// Render a safe post-resolution read-only failure before a backend is available.
-pub fn render_readonly_startup_error<O: Write, E: Write>(
-    json_mode: bool,
-    feature: &'static str,
-    route_context: ReadonlyRouteContext,
-    error: UbaaError,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32 {
-    render_readonly_error(
-        json_mode,
-        route_context.resolved_route,
-        feature,
-        route_context,
-        error,
-        stdout,
-        stderr,
-    )
+fn project_cli_error(
+    mut error: UbaaError,
+    feature: CliFeature,
+    route: ConnectionMode,
+) -> CliJsonError {
+    let challenge = (feature == CliFeature::Auth)
+        .then(|| error.challenge.take())
+        .flatten();
+    let projected = CliJsonError::from_core(error);
+    match challenge {
+        Some(challenge) => projected.with_route_challenge(&RouteLoginChallenge {
+            route,
+            challenge_id: next_process_local_challenge_id(),
+            image_available: challenge.image_data_url.is_some(),
+            image_data_url: None,
+        }),
+        None => projected,
+    }
+}
+
+fn next_process_local_challenge_id() -> String {
+    static NEXT_CHALLENGE_ID: AtomicU64 = AtomicU64::new(1);
+    let sequence = NEXT_CHALLENGE_ID.fetch_add(1, Ordering::Relaxed);
+    format!("cli-{sequence:016x}")
 }
 
 /// Render an error before a backend exists, preserving JSON stdout discipline.
 pub fn render_startup_error<O: Write, E: Write>(
     json_mode: bool,
+    feature: CliFeature,
     error: UbaaError,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    render_error(json_mode, None, error, stdout, stderr)
-}
-
-/// Render a successful no-op logout when no persisted session exists.
-pub fn render_empty_logout<O: Write>(json_mode: bool, stdout: &mut O) -> i32 {
-    let rendered = if json_mode {
-        write_json(
-            stdout,
-            &JsonEnvelope {
-                schema_version: JSON_SCHEMA_VERSION,
-                ok: true,
-                data: Some(json!({ "loggedOut": true })),
-                error: None,
-                meta: JsonMeta {
-                    connection_mode: None,
-                },
-            },
-        )
-    } else {
-        writeln!(stdout, "Signed out.")
-    };
-    if rendered.is_ok() {
-        ExitCode::Success as i32
-    } else {
-        ExitCode::Internal as i32
-    }
-}
-
-fn render_error<O: Write, E: Write>(
-    json_mode: bool,
-    mode: Option<ConnectionMode>,
-    mut error: UbaaError,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32 {
-    if let Some(challenge) = error.challenge.as_mut() {
-        challenge.image_data_url = None;
-    }
     let exit_code = error.code.exit_code() as i32;
     if json_mode {
-        if write_json(stdout, &JsonEnvelope::<Value>::failure(error, mode)).is_err() {
+        let envelope = RoutedJsonEnvelope::<Value>::unresolved_failure(
+            CliJsonError::from_core(error),
+            UnresolvedRoutedJsonMeta::new(feature),
+        );
+        if write_json(stdout, &envelope).is_err() {
             return ExitCode::Internal as i32;
         }
     } else if writeln!(stderr, "Error: {error}").is_err() {

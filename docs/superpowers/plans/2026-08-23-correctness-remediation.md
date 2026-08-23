@@ -401,7 +401,7 @@ Commit as `refactor: centralize route resolution in core facade`.
 - Test: `apps/ubaa-cli/tests/binary_e2e.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add RED filesystem and schema tests**
+- [x] **Step 1: Add RED filesystem and schema tests**
 
 On Unix, prove load/save reject a symlinked `config.toml` without changing its target. Add eight concurrent saves while a directory occupies `.config.toml.tmp`, then assert one complete valid config and no unique-temp leftovers.
 
@@ -411,7 +411,7 @@ Add JSON Schema negatives for v1, aggregate one/three route items, reversed rout
 
 Implement no-follow regular-file validation, unique exclusive temp creation, owner-only mode, write+flush, and atomic rename in `config.rs`. Keep TOML schema version 1 because it is the on-disk config version, not CLI JSON.
 
-- [ ] **Step 3: Delete the v1 output type**
+- [x] **Step 3: Delete the v1 output type**
 
 Remove `JsonMeta`, `JsonEnvelope`, and `JSON_SCHEMA_VERSION`. Use a single `CLI_JSON_SCHEMA_VERSION: u32 = 2` and two constrained envelope variants:
 
@@ -424,11 +424,11 @@ pub enum CliEnvelope<T> {
 
 Ensure aggregate route arrays are constructed internally as `[Direct, WebVpn]`, not arbitrary `Vec`s. Captcha errors expose only `route`, `challengeId`, and `imageAvailable`.
 
-- [ ] **Step 4: Replace every renderer and regression expectation**
+- [x] **Step 4: Replace every renderer and regression expectation**
 
 Fresh JSON login, auth status, logout (including no session), user show, all read-only successes/failures, argument errors, and hidden diagnostic mode must serialize version 2. No code path emits execution, image data, v1 meta, or an unvalidated envelope.
 
-- [ ] **Step 5: Run schema and binary gates, then commit**
+- [x] **Step 5: Run schema and binary gates, then commit**
 
 Run:
 

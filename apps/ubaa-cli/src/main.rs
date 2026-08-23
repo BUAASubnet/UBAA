@@ -9,6 +9,7 @@ use ubaa_cli::{
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::{RouteClient, UbaaClient};
+use ubaa_core::output::CliFeature;
 
 #[tokio::main]
 async fn main() {
@@ -24,6 +25,7 @@ async fn main() {
             let mut stderr = io::stderr().lock();
             let code = render_startup_error(
                 true,
+                CliFeature::Cli,
                 UbaaError::new(
                     ErrorCode::InvalidInput,
                     ErrorKind::Input,
@@ -47,11 +49,13 @@ async fn main() {
 
 async fn run(cli: Cli) -> i32 {
     let json_mode = cli.json;
+    let feature = cli.feature();
     let mut stdout = io::stdout().lock();
     let mut stderr = io::stderr().lock();
     let Some(config_dir) = cli.config_dir.clone().or_else(default_config_dir) else {
         return render_startup_error(
             json_mode,
+            feature,
             UbaaError::new(
                 ErrorCode::InternalError,
                 ErrorKind::Internal,
@@ -66,12 +70,13 @@ async fn run(cli: Cli) -> i32 {
         let client = match RouteClient::open(cli.login_mode(), &config_dir) {
             Ok(client) => client,
             Err(error) => {
-                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+                return render_startup_error(json_mode, feature, error, &mut stdout, &mut stderr);
             }
         };
         let Some(mut client) = client else {
             return render_startup_error(
                 json_mode,
+                feature,
                 UbaaError::new(
                     ErrorCode::InternalError,
                     ErrorKind::Internal,
@@ -90,7 +95,7 @@ async fn run(cli: Cli) -> i32 {
     let mut client = match UbaaClient::open(&config_dir) {
         Ok(client) => client,
         Err(error) => {
-            return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
+            return render_startup_error(json_mode, feature, error, &mut stdout, &mut stderr);
         }
     };
 

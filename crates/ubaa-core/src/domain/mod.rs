@@ -598,7 +598,7 @@ pub struct LoginOutcome {
     /// Aggregate readiness.
     pub readiness: LoginReadiness,
     /// Exactly two route entries, Direct then `WebVPN`.
-    pub routes: Vec<RouteLoginResult>,
+    pub routes: [RouteLoginResult; 2],
     /// Profile from any successfully authenticated route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub profile: Option<UserProfile>,
@@ -642,7 +642,7 @@ impl fmt::Debug for RouteLoginChallenge {
 #[serde(rename_all = "camelCase")]
 pub struct DualLoginPreparation {
     /// Fixed Direct, `WebVPN` state ordering.
-    pub routes: Vec<RouteLoginResult>,
+    pub routes: [RouteLoginResult; 2],
     /// Only routes that currently require captcha input.
     pub challenges: Vec<RouteLoginChallenge>,
 }

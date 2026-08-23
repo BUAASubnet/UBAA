@@ -350,6 +350,12 @@ impl UbaaClient {
         self.sessions.active_routes()
     }
 
+    /// Return the configured policy used by aggregate authentication operations.
+    #[must_use]
+    pub const fn default_route_policy(&self) -> RoutePolicy {
+        self.config.default
+    }
+
     /// Prepare both routes in fixed Direct, `WebVPN` order and return safe route states.
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
         if let Err(error) = self.clear_on_session_conflict() {
@@ -400,7 +406,10 @@ impl UbaaClient {
         if let Err(error) = self.clear_on_session_conflict() {
             return failed_preparation(&error);
         }
-        DualLoginPreparation { routes, challenges }
+        DualLoginPreparation {
+            routes: fixed_route_results(routes),
+            challenges,
+        }
     }
 
     /// Submit credentials independently to Direct and `WebVPN`, preserving partial success.
@@ -449,7 +458,7 @@ impl UbaaClient {
         });
         Ok(LoginOutcome {
             readiness,
-            routes,
+            routes: fixed_route_results(routes),
             profile,
             challenges,
         })
@@ -513,7 +522,7 @@ impl UbaaClient {
                 1 => LoginReadiness::Partial,
                 _ => LoginReadiness::NoneReady,
             },
-            routes,
+            routes: fixed_route_results(routes),
             profile,
             challenges: Vec::new(),
         })
@@ -1062,16 +1071,19 @@ impl UbaaClient {
 fn failed_preparation(error: &UbaaError) -> DualLoginPreparation {
     let error = safe_error(error);
     DualLoginPreparation {
-        routes: [ConnectionMode::Direct, ConnectionMode::WebVpn]
-            .into_iter()
-            .map(|route| RouteLoginResult {
-                route,
-                state: RouteLoginState::Failed,
-                error: Some(error.clone()),
-            })
-            .collect(),
+        routes: [ConnectionMode::Direct, ConnectionMode::WebVpn].map(|route| RouteLoginResult {
+            route,
+            state: RouteLoginState::Failed,
+            error: Some(error.clone()),
+        }),
         challenges: Vec::new(),
     }
+}
+
+fn fixed_route_results(routes: Vec<RouteLoginResult>) -> [RouteLoginResult; 2] {
+    routes
+        .try_into()
+        .expect("completed aggregate operations always produce Direct and WebVPN results")
 }
 
 fn ready_route(route: ConnectionMode) -> RouteLoginResult {

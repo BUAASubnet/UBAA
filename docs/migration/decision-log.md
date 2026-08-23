@@ -84,6 +84,17 @@ Receiving SSO prepare-page Cookies does not establish a local authenticated sess
 
 All ordinary commands, hidden diagnostics, argument failures, authentication results and read-only results emit only schema version 2. The unshipped schema-v1 CLI branch is removed rather than maintained as compatibility surface. This does not change `config.toml` on-disk format version `1` or the versioned `session.json` migration reader; those are independent disk formats.
 
+## 2026-08-24: Represent pre-resolution CLI failures without inventing a route
+
+Neither frozen source defines a CLI JSON envelope. The UBAA 2 contract requires schema version 2
+for argument and startup errors, but those failures can occur before configuration is loaded or a
+route is resolved. Such failures use the routed schema-v2 envelope with an unresolved metadata form
+containing only the stable command feature. They never fabricate `routePolicy`, `networkState`,
+`initialRoute`, `resolvedRoute`, `usedFallback`, or aggregate route results. Once Core returns a
+`RouteResolution`, the complete six-field resolved metadata is mandatory. Aggregate authentication
+envelopes are emitted only after an actual two-route outcome exists and always carry Direct then
+WebVPN in fixed order.
+
 ## 2026-08-23: Bind aggregate captcha answers before credential submission
 
 The frozen implementation keeps each captcha ID with one mode-scoped login state; the pinned example does not implement captcha. UBAA 2 therefore keeps raw upstream captcha IDs and CAS execution values inside each route's `AuthWorkflow`, while the aggregate facade exposes process-local opaque IDs bound to one route and preparation generation. Identical upstream IDs on Direct and WebVPN produce distinct public IDs.

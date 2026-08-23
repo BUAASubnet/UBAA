@@ -6,6 +6,16 @@ use std::time::{Duration, Instant};
 use ubaa_core::domain::ConnectionMode;
 use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
 
+fn assert_cli_schema(value: &serde_json::Value) {
+    let schema: serde_json::Value =
+        serde_json::from_str(include_str!("../../../docs/contracts/cli-json.schema.json")).unwrap();
+    let validator = jsonschema::validator_for(&schema).unwrap();
+    assert!(
+        validator.is_valid(value),
+        "binary output did not match the CLI schema: {value}"
+    );
+}
+
 #[test]
 fn repository_gate_include_uses_tracked_justfile_case() {
     let source = include_str!("binary_e2e.rs");
@@ -120,6 +130,7 @@ fn binary_json_status_without_session_exits_three_with_parseable_error() {
         .output()
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_cli_schema(&value);
     assert_eq!(output.status.code(), Some(3));
     assert_eq!(value["ok"], false);
     assert_eq!(value["error"]["code"], "authentication_required");
@@ -147,6 +158,7 @@ fn binary_json_readonly_without_session_uses_schema_v2_route_diagnostics() {
         .output()
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_cli_schema(&value);
 
     assert_eq!(output.status.code(), Some(3));
     assert_eq!(value["schemaVersion"], 2);
@@ -214,6 +226,7 @@ fn binary_json_login_without_mode_or_config_enters_aggregate_facade() {
         .unwrap();
     let output = child.wait_with_output().unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_cli_schema(&value);
     assert_eq!(value["schemaVersion"], 2);
     assert_eq!(value["meta"]["feature"], "auth");
     assert_ne!(value["error"]["code"], "invalid_input");
@@ -234,7 +247,11 @@ fn binary_json_argument_errors_use_a_safe_parseable_envelope() {
         .unwrap();
 
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_cli_schema(&value);
     assert_eq!(output.status.code(), Some(2));
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["meta"]["feature"], "cli");
+    assert!(value["meta"].get("resolvedRoute").is_none());
     assert_eq!(value["ok"], false);
     assert_eq!(value["error"]["code"], "invalid_input");
     assert_eq!(value["error"]["retryable"], false);
@@ -243,7 +260,7 @@ fn binary_json_argument_errors_use_a_safe_parseable_envelope() {
 }
 
 #[test]
-fn binary_json_logout_without_session_has_no_invented_connection_mode() {
+fn binary_json_logout_without_session_uses_fixed_aggregate_routes() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-logout-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);
     let proxy = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -283,7 +300,21 @@ fn binary_json_logout_without_session_has_no_invented_connection_mode() {
         .output()
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_cli_schema(&value);
     assert!(output.status.success());
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["meta"]["routePolicy"], "auto");
+    assert_eq!(
+        value["meta"]["resolvedRoutes"],
+        serde_json::json!(["direct", "webvpn"])
+    );
+    assert_eq!(
+        value["data"]["routes"],
+        serde_json::json!([
+            { "route": "direct", "state": "logged_out" },
+            { "route": "webvpn", "state": "logged_out" }
+        ])
+    );
     assert!(value["meta"].get("connectionMode").is_none());
     assert!(output.stderr.is_empty());
     assert_eq!(proxy_thread.join().unwrap(), 2);
@@ -344,9 +375,15 @@ fn binary_json_logout_clears_a_saved_session_when_remote_logout_fails() {
         .unwrap();
 
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_cli_schema(&value);
     assert!(output.status.success());
     assert_eq!(value["data"]["loggedOut"], true);
-    assert_eq!(value["meta"]["connectionMode"], "direct");
+    assert_eq!(value["meta"]["routePolicy"], "auto");
+    assert_eq!(
+        value["meta"]["resolvedRoutes"],
+        serde_json::json!(["direct", "webvpn"])
+    );
+    assert!(value["meta"].get("connectionMode").is_none());
     assert!(output.stderr.is_empty());
     assert!(
         proxy_thread.join().unwrap(),
