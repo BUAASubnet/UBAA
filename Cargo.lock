@@ -2333,7 +2333,10 @@ dependencies = [
 name = "ubaa-test-support"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "async-trait",
+ "base64",
+ "serde_json",
  "tokio",
  "ubaa-core",
 ]

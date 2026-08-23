@@ -4,12 +4,19 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use aes::Aes128;
+use aes::cipher::{BlockDecrypt, KeyInit, generic_array::GenericArray};
 use async_trait::async_trait;
+use base64::Engine as _;
+use ubaa_core::config::RouteConfig;
 use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::RouteClient;
+use ubaa_core::facade::{RouteClient, UbaaClient};
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
+use ubaa_core::session::{
+    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionSnapshot, SessionStore,
+    StoredCookie,
+};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, readonly_fixture};
 
 const FROZEN_CLASSROOM_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 16; 24031PN0DC Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.180 Mobile Safari/537.36 XWEB/1380275 MMWEBSDK/20230806 MMWEBID/4102 wxworklocal/3.2.200 wwlocal/3.2.200 wxwork/4.0.0 appname/wxworklocal-customized wxworklocal-device-code/195ef5586d7d3c2808fcbea32d77c0d4 MicroMessenger/7.0.1 appScheme/wxworklocalcustomized Language/zh_CN ColorScheme/Light WXWorklocalClientType/Android Brand/xiaomi";
@@ -83,6 +90,35 @@ fn redirect_from(current: &str, location: &str) -> HttpResponse {
         headers,
         body: Vec::new(),
     }
+}
+
+fn decrypt_spoc_page_request(request: &HttpRequest) -> String {
+    let body: serde_json::Value = serde_json::from_slice(&request.body).expect("page request JSON");
+    let encoded = body["param"].as_str().expect("encrypted page param");
+    let mut encrypted = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .expect("base64 page param");
+    assert_eq!(
+        encrypted.len() % 16,
+        0,
+        "AES-CBC input must be block aligned"
+    );
+    let cipher = Aes128::new_from_slice(b"inco12345678ocni").expect("static AES key");
+    let mut previous = *b"ocni12345678inco";
+    for chunk in encrypted.chunks_exact_mut(16) {
+        let ciphertext = <[u8; 16]>::try_from(&*chunk).expect("AES block");
+        let mut block = GenericArray::clone_from_slice(chunk);
+        cipher.decrypt_block(&mut block);
+        for (byte, prior) in block.iter_mut().zip(previous) {
+            *byte ^= prior;
+        }
+        chunk.copy_from_slice(&block);
+        previous = ciphertext;
+    }
+    while encrypted.last() == Some(&0) {
+        encrypted.pop();
+    }
+    String::from_utf8(encrypted).expect("UTF-8 page plaintext")
 }
 
 fn session_store() -> MemorySessionStore {
@@ -897,6 +933,20 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
         String::from_utf8(requests[1].body.clone()).unwrap(),
         r#"{"token":"test-token"}"#
     );
+    let page_requests = requests
+        .iter()
+        .filter(|request| {
+            request.url == "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage"
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        decrypt_spoc_page_request(page_requests[0]),
+        r#"{"pageSize":15,"pageNum":1,"sqlid":"1713252980496efac7d5d9985e81693116d3e8a52ebf2b","xnxq":"2025-20262","kcid":"","yzwz":""}"#
+    );
+    assert_eq!(
+        decrypt_spoc_page_request(page_requests[1]),
+        r#"{"pageSize":15,"pageNum":2,"sqlid":"1713252980496efac7d5d9985e81693116d3e8a52ebf2b","xnxq":"2025-20262","kcid":"","yzwz":""}"#
+    );
 }
 
 #[tokio::test]
@@ -1529,12 +1579,14 @@ async fn spoc_page_auth_refresh_retries_only_the_failed_business_call() {
 }
 
 #[tokio::test]
-async fn spoc_second_business_authentication_failure_stops_after_one_refresh() {
+async fn spoc_second_business_authentication_failure_preserves_a_valid_primary_session() {
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=expired-token";
     let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
     let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let status_url = "https://uc.buaa.edu.cn/api/uc/status";
+    let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
     let transport = SpocTransport::new([
         (cas.into(), redirect(first_token_url)),
         (
@@ -1562,21 +1614,21 @@ async fn spoc_second_business_authentication_failure_stops_after_one_refresh() {
                 r#"{"code":401,"msg":"token expired","content":null}"#,
             ),
         ),
+        (status_url.into(), response(200, status_url, profile)),
     ]);
     let observed = transport.clone();
-    let mut client = RouteClient::with_transport(
-        ConnectionMode::Direct,
-        transport,
-        session_store_with("spoc-double-auth-fixture"),
-    )
-    .unwrap();
+    let store = session_store_with("spoc-double-auth-valid-fixture");
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
 
     let error = client
         .spoc_assignments()
         .await
-        .expect_err("a second recognized auth error must be returned unchanged");
+        .expect_err("exhausted SPOC auth must remain a business failure when UC is valid");
 
-    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+    assert!(error.retryable);
+    assert!(store.snapshot().unwrap().is_some());
     observed.assert_exhausted();
     assert_eq!(
         observed
@@ -1586,6 +1638,280 @@ async fn spoc_second_business_authentication_failure_stops_after_one_refresh() {
             .count(),
         2
     );
+}
+
+#[tokio::test]
+async fn spoc_second_business_authentication_failure_clears_an_invalid_primary_session() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let transport = SpocTransport::new([
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=expired"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=fresh"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (status.into(), response(401, status, "")),
+    ]);
+    let observed = transport.clone();
+    let store = session_store_with("spoc-double-auth-invalid-fixture");
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+
+    let error = client
+        .spoc_assignments()
+        .await
+        .expect_err("UC rejected the primary session");
+
+    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+    assert!(store.snapshot().unwrap().is_none());
+    observed.assert_exhausted();
+}
+
+#[tokio::test]
+async fn spoc_invalid_primary_session_clears_only_the_selected_route_slot() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let direct = SpocTransport::new([
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=expired"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=fresh"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (status.into(), response(401, status, "")),
+    ]);
+    let observed = direct.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-spoc-selected-route-invalidation-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    let slot = |mode, label| {
+        RouteSessionSnapshot::from_legacy(&SessionSnapshot {
+            mode,
+            cookies: vec![StoredCookie::fixture("SID", label)],
+            authenticated_at: 1,
+            last_activity: 2,
+        })
+    };
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(slot(ConnectionMode::Direct, "direct-fixture")),
+            Some(slot(ConnectionMode::WebVpn, "webvpn-fixture")),
+        ))
+        .unwrap();
+    let config = RouteConfig::parse("[route]\ndefault = 'direct'\n").unwrap();
+    let mut client = UbaaClient::with_routing(
+        direct,
+        SpocTransport::new([]),
+        store.clone(),
+        config,
+        ubaa_core::connection::SystemGatewayProbe,
+    )
+    .unwrap();
+
+    let error = client
+        .spoc_assignments()
+        .await
+        .expect_err("UC rejected Direct");
+
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+    let persisted = store.load_dual().unwrap().expect("remaining WebVPN slot");
+    assert!(persisted.direct().is_none());
+    assert!(persisted.webvpn().is_some());
+    observed.assert_exhausted();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn spoc_second_business_authentication_failure_preserves_session_when_uc_is_unavailable() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let transport = SpocTransport::new([
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=expired"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=fresh"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (status.into(), response(503, status, "")),
+    ]);
+    let observed = transport.clone();
+    let store = session_store_with("spoc-double-auth-unavailable-fixture");
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+
+    let error = client
+        .spoc_assignments()
+        .await
+        .expect_err("UC availability is inconclusive");
+
+    assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+    assert!(error.retryable);
+    assert!(store.snapshot().unwrap().is_some());
+    observed.assert_exhausted();
+}
+
+#[tokio::test]
+async fn spoc_malformed_json_with_token_text_is_not_retried_as_authentication() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let transport = SpocTransport::new([
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=fixture"),
+        ),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(200, term, r#"{"code":200,"content":"token""#),
+        ),
+    ]);
+    let observed = transport.clone();
+    let store = session_store_with("spoc-malformed-token-fixture");
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+
+    let error = client
+        .spoc_assignments()
+        .await
+        .expect_err("malformed JSON must be a parse error");
+
+    assert_eq!(error.code, ErrorCode::ParseError);
+    assert!(store.snapshot().unwrap().is_some());
+    observed.assert_exhausted();
+    assert_eq!(
+        observed.requests().len(),
+        3,
+        "parse failures must not trigger SPOC relogin"
+    );
+}
+
+#[tokio::test]
+async fn spoc_cas_login_auth_shapes_validate_the_primary_session_before_classification() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
+    let cases = [
+        redirect_from(login, "https://sso.buaa.edu.cn/login?service=fixture"),
+        response(200, login, r#"{"code":200,"content":null}"#),
+        response(200, login, r#"{"code":200,"content":{}}"#),
+    ];
+
+    for (index, cas_login_response) in cases.into_iter().enumerate() {
+        let transport = SpocTransport::new([
+            (
+                cas.into(),
+                redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=fixture"),
+            ),
+            (login.into(), cas_login_response),
+            (status.into(), response(200, status, profile)),
+        ]);
+        let observed = transport.clone();
+        let store = session_store_with(&format!("spoc-cas-shape-{index}"));
+        let mut client =
+            RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+
+        let error = client
+            .spoc_assignments()
+            .await
+            .expect_err("SPOC CAS login shape must fail");
+
+        assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+        assert!(store.snapshot().unwrap().is_some());
+        observed.assert_exhausted();
+    }
 }
 
 #[tokio::test]

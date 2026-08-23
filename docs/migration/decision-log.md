@@ -178,3 +178,30 @@ would replay an evidenced permission denial such as code 403. The active remedia
 explicitly forbids retrying permission errors, so UBAA 2 recognizes only the evidenced login,
 token, `未认证`, and `未登录` markers and returns a permission envelope unchanged as an upstream
 error. No field, URL, or retry beyond those boundaries is inferred.
+
+## 2026-08-24: Preserve primary sessions after exhausted SPOC authentication
+
+Frozen `LocalSpocApiBackend.runLocalSpocCall` sends a terminal business-authentication failure to
+`resolveLocalBusinessAuthenticationFailure`. That helper validates the User Center session and
+clears it only when UC explicitly returns Invalid; Valid, transient, and inconclusive validation
+preserve the primary session and become a SPOC business error. UBAA 2 applies this arbitration only
+after required current-term, global-page, or detail operations exhaust one credential refresh.
+Optional course metadata and submission enrichment retain their surrounding frozen `runCatching`
+behavior. Deterministic dual-slot tests prove an invalid Direct result clears Direct only, while a
+valid or 5xx UC result retains the selected session and returns retryable `upstream_unavailable`
+instead of `authentication_required`.
+
+The no-follow transport exposes a raw SSO `Location` from `/sys/casLogin`; null `content` and a
+content object without `jsdm`, `rolecode`, or `jsdmList` also fail to establish a credential. All
+three are treated as SPOC authentication failures and enter the same primary-session arbitration.
+The frozen JSON decode fallback scans malformed raw bodies and can retry solely because arbitrary
+text contains `token`. That conflicts with the active contract that parse/unknown failures are not
+authentication evidence, so UBAA 2 returns `parse_error` without a second login for malformed JSON.
+Valid parsed envelopes with evidenced authentication markers retain the bounded one-refresh rule.
+
+The frozen page DTO defaults absent `total/pageNum/pageSize/pages` to `0/1/15/1`, while present
+values must be integers; assignment `xnxq` and detail `sskcid` are optional strings, and detail
+`zymc` is a required string. UBAA 2 now preserves those exact presence rules and rejects wrong
+types. Its transport test captures both encrypted page POSTs, decrypts their actual `param` values
+only inside the test process, and asserts the complete ordered page-one and page-two plaintext. No
+live token, Cookie, raw response, assignment identity, or decrypted request is persisted.

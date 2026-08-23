@@ -157,10 +157,11 @@ pub fn detail(summary: &SpocAssignmentSummary, html: Option<&str>) -> SpocAssign
 pub(crate) async fn get_assignments(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignments> {
-    let term = with_spoc_auth_retry(runtime, |runtime, credential| {
+    let term_result = with_spoc_auth_retry(runtime, |runtime, credential| {
         Box::pin(fetch_current_term(runtime, credential))
     })
-    .await?;
+    .await;
+    let term = resolve_required_spoc_result(runtime, term_result).await?;
     let term_code = term.mrxq.unwrap_or_default();
     if term_code.is_empty() {
         return Err(crate::error::UbaaError::new(
@@ -197,7 +198,7 @@ pub(crate) async fn get_assignments(
     let mut page_num = 1;
     loop {
         let page_term_code = term_code.clone();
-        let page = with_spoc_auth_retry(runtime, move |runtime, credential| {
+        let page_result = with_spoc_auth_retry(runtime, move |runtime, credential| {
             Box::pin(fetch_assignment_page(
                 runtime,
                 page_term_code.clone(),
@@ -205,7 +206,8 @@ pub(crate) async fn get_assignments(
                 credential,
             ))
         })
-        .await?;
+        .await;
+        let page = resolve_required_spoc_result(runtime, page_result).await?;
         let page_empty = page.list.is_empty();
         for item in page.list {
             let course = item.sskcid.as_ref().and_then(|id| courses.get(id));
@@ -348,14 +350,15 @@ pub(crate) async fn get_assignment_detail(
             )
         })?;
     let detail_id = assignment_id.to_owned();
-    let raw = with_spoc_auth_retry(runtime, move |runtime, credential| {
+    let detail_result = with_spoc_auth_retry(runtime, move |runtime, credential| {
         Box::pin(fetch_assignment_detail(
             runtime,
             detail_id.clone(),
             credential,
         ))
     })
-    .await?;
+    .await;
+    let raw = resolve_required_spoc_result(runtime, detail_result).await?;
     if raw.id != assignment_id {
         return Err(detail_id_mismatch());
     }
@@ -464,12 +467,30 @@ impl<'a> AssignmentPageRequest<'a> {
 
 #[derive(Debug, Deserialize)]
 struct AssignmentPage {
+    // Retained so serde validates the frozen wire type even though hosts do not expose pagination.
+    #[allow(dead_code)]
     #[serde(default)]
+    total: u32,
+    #[allow(dead_code)]
+    #[serde(rename = "pageNum", default = "default_page_num")]
+    page_num: u32,
+    #[allow(dead_code)]
+    #[serde(rename = "pageSize", default = "default_page_size")]
+    page_size: u32,
+    #[serde(default = "default_page_num")]
     pages: u32,
     #[serde(rename = "hasNextPage", default)]
     has_next_page: bool,
     #[serde(default)]
     list: Vec<AssignmentRaw>,
+}
+
+const fn default_page_num() -> u32 {
+    1
+}
+
+const fn default_page_size() -> u32 {
+    15
 }
 
 #[derive(Debug, Deserialize)]
@@ -478,6 +499,10 @@ struct AssignmentRaw {
     zymc: String,
     #[serde(default)]
     sskcid: Option<String>,
+    // Retained for strict frozen-wire parsing; the enclosing response already supplies term_code.
+    #[allow(dead_code)]
+    #[serde(default)]
+    xnxq: Option<String>,
     #[serde(default)]
     tjzt: Option<String>,
     #[serde(default)]
@@ -519,8 +544,9 @@ async fn login(
         ],
     )
     .await?;
-    super::check_response(&cas, "spoc")?;
-    let content: Value = parse_envelope(&super::body(&cas))?;
+    check_business_response(&cas)?;
+    let content: Value =
+        parse_optional_envelope(&super::body(&cas))?.ok_or_else(spoc_auth_error)?;
     let role = resolve_role_code(&content).ok_or_else(spoc_auth_error)?;
     Ok(SpocCredential { token, role })
 }
@@ -570,6 +596,28 @@ where
             operation(runtime, &credential).await
         }
         result => result,
+    }
+}
+
+async fn resolve_required_spoc_result<T>(
+    runtime: &mut crate::runtime::ClientRuntime,
+    result: crate::error::Result<T>,
+) -> crate::error::Result<T> {
+    match result {
+        Err(error) if is_authentication_error(&error) => {
+            resolve_spoc_business_authentication_failure(runtime).await
+        }
+        result => result,
+    }
+}
+
+async fn resolve_spoc_business_authentication_failure<T>(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> crate::error::Result<T> {
+    let mut preserve_primary_workflow = || {};
+    match crate::features::user::validate_status(runtime, &mut preserve_primary_workflow).await {
+        Err(error) if is_authentication_error(&error) => Err(error),
+        Ok(_) | Err(_) => Err(spoc_business_authentication_error()),
     }
 }
 
@@ -675,6 +723,15 @@ fn spoc_auth_error() -> crate::error::UbaaError {
     )
 }
 
+fn spoc_business_authentication_error() -> crate::error::UbaaError {
+    crate::error::UbaaError::new(
+        crate::error::ErrorCode::UpstreamUnavailable,
+        crate::error::ErrorKind::Upstream,
+        true,
+        "SPOC business authentication failed without explicit primary-session invalidation",
+    )
+}
+
 fn is_authentication_error(error: &crate::error::UbaaError) -> bool {
     error.code == crate::error::ErrorCode::AuthenticationRequired
 }
@@ -720,16 +777,12 @@ fn parse_envelope_json<T: for<'de> Deserialize<'de>>(
     body: &str,
 ) -> crate::error::Result<Envelope<T>> {
     serde_json::from_str(body).map_err(|_| {
-        if looks_like_authentication_failure(body) {
-            spoc_auth_error()
-        } else {
-            crate::error::UbaaError::new(
-                crate::error::ErrorCode::ParseError,
-                crate::error::ErrorKind::Parse,
-                false,
-                "SPOC response is not valid JSON",
-            )
-        }
+        crate::error::UbaaError::new(
+            crate::error::ErrorCode::ParseError,
+            crate::error::ErrorKind::Parse,
+            false,
+            "SPOC response is not valid JSON",
+        )
     })
 }
 
@@ -955,6 +1008,9 @@ struct CourseRaw {
 #[derive(Debug, Deserialize)]
 struct DetailRaw {
     id: String,
+    // Required on the wire, while the authoritative list summary remains the public identity.
+    #[allow(dead_code)]
+    zymc: String,
     #[serde(default)]
     zynr: Option<String>,
     #[serde(default)]
@@ -963,6 +1019,9 @@ struct DetailRaw {
     zykssj: Option<String>,
     #[serde(default)]
     zyjzsj: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    sskcid: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1034,8 +1093,9 @@ mod tests {
     use serde_json::Value;
 
     use super::{
-        AssignmentPageRequest, DetailRaw, encrypt_param, extract_login_token, merge_detail,
-        normalize_datetime, normalize_score, parse_envelope, resolve_role_code, summary,
+        AssignmentPage, AssignmentPageRequest, DetailRaw, encrypt_param, extract_login_token,
+        merge_detail, normalize_datetime, normalize_score, parse_envelope, resolve_role_code,
+        summary,
     };
 
     #[test]
@@ -1074,6 +1134,54 @@ mod tests {
             .expect_err("the frozen implementation accepts only code 200");
 
         assert_eq!(error.code, crate::error::ErrorCode::UpstreamChanged);
+    }
+
+    #[test]
+    fn malformed_json_is_never_classified_from_token_text() {
+        let error = parse_envelope::<Value>(r#"{"code":200,"content":"token""#)
+            .expect_err("malformed JSON must remain a parser failure");
+
+        assert_eq!(error.code, crate::error::ErrorCode::ParseError);
+    }
+
+    #[test]
+    fn assignment_page_strictly_types_frozen_metadata_and_assignment_term() {
+        for body in [
+            r#"{"code":200,"content":{"total":"0","pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            r#"{"code":200,"content":{"total":0,"pageNum":"1","pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            r#"{"code":200,"content":{"total":0,"pageNum":1,"pageSize":"15","pages":1,"hasNextPage":false,"list":[]}}"#,
+            r#"{"code":200,"content":{"total":1,"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","zymc":"Fixture","xnxq":7}]}}"#,
+        ] {
+            let error = parse_envelope::<AssignmentPage>(body)
+                .expect_err("mistyped frozen page fields must not be ignored");
+            assert_eq!(error.code, crate::error::ErrorCode::ParseError);
+        }
+    }
+
+    #[test]
+    fn assignment_page_uses_the_complete_frozen_defaults() {
+        let page = parse_envelope::<AssignmentPage>(r#"{"code":200,"content":{}}"#)
+            .expect("the frozen page DTO supplies defaults for every pagination field");
+
+        assert_eq!(page.total, 0);
+        assert_eq!(page.page_num, 1);
+        assert_eq!(page.page_size, 15);
+        assert_eq!(page.pages, 1);
+        assert!(!page.has_next_page);
+        assert!(page.list.is_empty());
+    }
+
+    #[test]
+    fn detail_requires_title_and_strict_optional_course_id() {
+        for body in [
+            r#"{"code":200,"content":{"id":"a1"}}"#,
+            r#"{"code":200,"content":{"id":"a1","zymc":7}}"#,
+            r#"{"code":200,"content":{"id":"a1","zymc":"Fixture","sskcid":7}}"#,
+        ] {
+            let error = parse_envelope::<DetailRaw>(body)
+                .expect_err("frozen detail identity fields must be strictly typed");
+            assert_eq!(error.code, crate::error::ErrorCode::ParseError);
+        }
     }
 
     #[test]
@@ -1208,10 +1316,12 @@ mod tests {
         base.due_time = Some("2026-03-31 23:59:59".into());
         let raw = DetailRaw {
             id: "assignment-1".into(),
+            zymc: "Fixture Assignment".into(),
             zynr: Some("<p>Fixture</p>".into()),
             zyfs: None,
             zykssj: None,
             zyjzsj: None,
+            sskcid: Some("course-1".into()),
         };
         let empty_submission = super::SubmissionRaw {
             tjzt: None,
@@ -1246,10 +1356,12 @@ mod tests {
         );
         let raw = DetailRaw {
             id: "assignment-1".into(),
+            zymc: "Fixture Assignment".into(),
             zynr: None,
             zyfs: Some("  ".into()),
             zykssj: None,
             zyjzsj: None,
+            sskcid: Some("course-1".into()),
         };
         base.score = Some("80".into());
 
@@ -1270,10 +1382,12 @@ mod tests {
         );
         let raw = DetailRaw {
             id: "assignment-1".into(),
+            zymc: "Detail title".into(),
             zynr: None,
             zyfs: None,
             zykssj: None,
             zyjzsj: None,
+            sskcid: Some("detail-course".into()),
         };
 
         let detail = merge_detail("assignment-1", &base, &raw, None).unwrap();
