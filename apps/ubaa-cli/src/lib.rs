@@ -19,7 +19,7 @@ use ubaa_core::domain::{
     WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
-use ubaa_core::facade::{DualUbaaClient, UbaaClient};
+use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
 use ubaa_core::output::{
     AggregateJsonEnvelope, AggregateJsonMeta, JSON_SCHEMA_VERSION, JsonEnvelope, JsonMeta,
     ReadonlyJsonEnvelope, ReadonlyJsonMeta,
@@ -515,10 +515,84 @@ pub trait CliBackend {
     }
 }
 
+/// Aggregate Core facade needed by ordinary user and read-only commands.
+///
+/// Every completed route decision is returned by Core with the operation result. The CLI only
+/// renders that decision and never selects or repairs a route itself.
+#[async_trait]
+pub trait RoutedCliBackend {
+    /// Fetch User Center profile data through Core routing.
+    async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
+        Err(routed_unavailable("user profile is unavailable"))
+    }
+    /// Read terms through Core routing.
+    async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        Err(routed_unavailable("schedule is unavailable"))
+    }
+    /// Read weeks through Core routing.
+    async fn schedule_weeks(&mut self, _term: &str) -> RoutedResult<Vec<Week>> {
+        Err(routed_unavailable("schedule is unavailable"))
+    }
+    /// Read one week through Core routing.
+    async fn schedule_week(&mut self, _term: &str, _week: i32) -> RoutedResult<WeeklySchedule> {
+        Err(routed_unavailable("schedule is unavailable"))
+    }
+    /// Read today's classes through Core routing.
+    async fn schedule_today(&mut self) -> RoutedResult<Vec<TodayClass>> {
+        Err(routed_unavailable("schedule is unavailable"))
+    }
+    /// Read exams through Core routing.
+    async fn exam_arrangement(&mut self, _term: &str) -> RoutedResult<ExamArrangement> {
+        Err(routed_unavailable("exam is unavailable"))
+    }
+    /// Read grades through Core routing.
+    async fn grades(&mut self, _term: &str) -> RoutedResult<GradeData> {
+        Err(routed_unavailable("grades are unavailable"))
+    }
+    /// Search classrooms through Core routing.
+    async fn classroom_search(
+        &mut self,
+        _campus: i32,
+        _date: &str,
+    ) -> RoutedResult<ClassroomQuery> {
+        Err(routed_unavailable("classroom is unavailable"))
+    }
+    /// Read SPOC assignments through Core routing.
+    async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
+        Err(routed_unavailable("SPOC is unavailable"))
+    }
+    /// Read one SPOC assignment through Core routing.
+    async fn spoc_assignment(&mut self, _id: &str) -> RoutedResult<SpocAssignmentDetail> {
+        Err(routed_unavailable("SPOC is unavailable"))
+    }
+    /// Read Judge assignments through Core routing.
+    async fn judge_assignments(
+        &mut self,
+        _include_expired: bool,
+    ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
+        Err(routed_unavailable("Judge is unavailable"))
+    }
+    /// Read one Judge assignment through Core routing.
+    async fn judge_assignment(
+        &mut self,
+        _course_id: &str,
+        _id: &str,
+    ) -> RoutedResult<JudgeAssignmentDetail> {
+        Err(routed_unavailable("Judge is unavailable"))
+    }
+    /// Read Judge assignment details through one Core route decision.
+    async fn judge_assignment_details(
+        &mut self,
+        _keys: &[JudgeAssignmentKey],
+    ) -> RoutedResult<Vec<JudgeAssignmentDetail>> {
+        Err(routed_unavailable("Judge is unavailable"))
+    }
+}
+
 /// Execute the ordinary aggregate login path against the dual-route facade.
 pub async fn run_dual_login<R, O, E>(
     cli: Cli,
-    backend: &mut DualUbaaClient,
+    backend: &mut UbaaClient,
     input: &mut R,
     stdout: &mut O,
     stderr: &mut E,
@@ -574,7 +648,7 @@ where
 /// Execute the ordinary aggregate authentication status path.
 pub async fn run_dual_status<O, E>(
     cli: Cli,
-    backend: &mut DualUbaaClient,
+    backend: &mut UbaaClient,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32
@@ -593,7 +667,7 @@ where
 /// Execute logout for both route slots while retaining the v1 logout response shape.
 pub async fn run_dual_logout<O, E>(
     cli: Cli,
-    backend: &mut DualUbaaClient,
+    backend: &mut UbaaClient,
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32
@@ -851,7 +925,7 @@ fn render_aggregate_input_error<O: Write, E: Write>(
 }
 
 #[async_trait]
-impl CliBackend for UbaaClient {
+impl CliBackend for RouteClient {
     fn mode(&self) -> ConnectionMode {
         self.mode()
     }
@@ -929,6 +1003,305 @@ impl CliBackend for UbaaClient {
         keys: &[JudgeAssignmentKey],
     ) -> Result<FeatureResult<Vec<JudgeAssignmentDetail>>> {
         self.judge_assignment_details(keys).await
+    }
+}
+
+#[async_trait]
+impl RoutedCliBackend for UbaaClient {
+    async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
+        UbaaClient::get_user_info(self).await
+    }
+
+    async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        UbaaClient::schedule_terms(self).await
+    }
+
+    async fn schedule_weeks(&mut self, term: &str) -> RoutedResult<Vec<Week>> {
+        UbaaClient::schedule_weeks(self, term).await
+    }
+
+    async fn schedule_week(&mut self, term: &str, week: i32) -> RoutedResult<WeeklySchedule> {
+        UbaaClient::schedule_week(self, term, week).await
+    }
+
+    async fn schedule_today(&mut self) -> RoutedResult<Vec<TodayClass>> {
+        UbaaClient::schedule_today(self).await
+    }
+
+    async fn exam_arrangement(&mut self, term: &str) -> RoutedResult<ExamArrangement> {
+        UbaaClient::exam_arrangement(self, term).await
+    }
+
+    async fn grades(&mut self, term: &str) -> RoutedResult<GradeData> {
+        UbaaClient::grades(self, term).await
+    }
+
+    async fn classroom_search(&mut self, campus: i32, date: &str) -> RoutedResult<ClassroomQuery> {
+        UbaaClient::classroom_search(self, campus, date).await
+    }
+
+    async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
+        UbaaClient::spoc_assignments(self).await
+    }
+
+    async fn spoc_assignment(&mut self, id: &str) -> RoutedResult<SpocAssignmentDetail> {
+        UbaaClient::spoc_assignment(self, id).await
+    }
+
+    async fn judge_assignments(
+        &mut self,
+        include_expired: bool,
+    ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
+        UbaaClient::judge_assignments(self, include_expired).await
+    }
+
+    async fn judge_assignment(
+        &mut self,
+        course_id: &str,
+        id: &str,
+    ) -> RoutedResult<JudgeAssignmentDetail> {
+        UbaaClient::judge_assignment(self, course_id, id).await
+    }
+
+    async fn judge_assignment_details(
+        &mut self,
+        keys: &[JudgeAssignmentKey],
+    ) -> RoutedResult<Vec<JudgeAssignmentDetail>> {
+        UbaaClient::judge_assignment_details(self, keys).await
+    }
+}
+
+/// Execute an ordinary user or read-only command against Core-owned route resolution.
+pub async fn run_with_routed_backend<B, O, E>(
+    cli: Cli,
+    backend: &mut B,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32
+where
+    B: RoutedCliBackend + Send,
+    O: Write,
+    E: Write,
+{
+    let json_mode = cli.json;
+    let (feature, result) = match cli.command {
+        Command::User(UserArgs {
+            command: UserCommand::Show,
+        }) => (
+            "user",
+            routed_map(backend.get_user_info().await, |profile| {
+                CommandOutput::Profile(redacted_profile(profile))
+            }),
+        ),
+        Command::Schedule(arguments) => ("schedule", run_routed_schedule(arguments, backend).await),
+        Command::Exam(arguments) => ("exam", run_routed_exam(arguments, backend).await),
+        Command::Grades(arguments) => ("grades", run_routed_grades(arguments, backend).await),
+        Command::Classroom(arguments) => {
+            ("classroom", run_routed_classroom(arguments, backend).await)
+        }
+        Command::Spoc(arguments) => ("spoc", run_routed_spoc(arguments, backend).await),
+        Command::Judge(arguments) => ("judge", run_routed_judge(arguments, backend).await),
+        Command::Auth(_) => (
+            "auth",
+            Err(RoutedError {
+                error: invalid_input("ordinary routed execution does not accept auth commands"),
+                resolution: None,
+            }),
+        ),
+    };
+
+    render_routed_result(json_mode, feature, result, stdout, stderr)
+}
+
+async fn run_routed_schedule<B: RoutedCliBackend + Send>(
+    arguments: ScheduleArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        ScheduleCommand::Terms => routed_readonly(backend.schedule_terms().await, "schedule"),
+        ScheduleCommand::Weeks { term } => {
+            routed_readonly(backend.schedule_weeks(&term).await, "schedule")
+        }
+        ScheduleCommand::Current { term, week } => {
+            routed_readonly(backend.schedule_week(&term, week).await, "schedule")
+        }
+        ScheduleCommand::Today => routed_readonly(backend.schedule_today().await, "schedule"),
+    }
+}
+
+async fn run_routed_exam<B: RoutedCliBackend + Send>(
+    arguments: ExamArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        ExamCommand::List { term } => {
+            routed_readonly(backend.exam_arrangement(&term).await, "exam")
+        }
+    }
+}
+
+async fn run_routed_grades<B: RoutedCliBackend + Send>(
+    arguments: GradesArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        GradesCommand::List { term } => routed_readonly(backend.grades(&term).await, "grades"),
+    }
+}
+
+async fn run_routed_classroom<B: RoutedCliBackend + Send>(
+    arguments: ClassroomArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        ClassroomCommand::Search { campus, date } => {
+            routed_readonly(backend.classroom_search(campus, &date).await, "classroom")
+        }
+    }
+}
+
+async fn run_routed_spoc<B: RoutedCliBackend + Send>(
+    arguments: SpocArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        SpocCommand::Assignments => routed_readonly(backend.spoc_assignments().await, "spoc"),
+        SpocCommand::Assignment {
+            command: SpocAssignmentCommand::Show { id },
+        } => routed_readonly(backend.spoc_assignment(&id).await, "spoc"),
+    }
+}
+
+async fn run_routed_judge<B: RoutedCliBackend + Send>(
+    arguments: JudgeArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        JudgeCommand::Assignments { include_expired } => {
+            routed_readonly(backend.judge_assignments(include_expired).await, "judge")
+        }
+        JudgeCommand::Assignment {
+            command: JudgeAssignmentCommand::Show { course_id, id },
+        } => routed_readonly(backend.judge_assignment(&course_id, &id).await, "judge"),
+        JudgeCommand::Assignment {
+            command: JudgeAssignmentCommand::Details { keys },
+        } => {
+            let parsed = keys
+                .into_iter()
+                .map(|key| {
+                    let (course_id, assignment_id) = key.split_once(':').ok_or_else(|| {
+                        invalid_input("judge detail key must use course-id:assignment-id")
+                    })?;
+                    if course_id.is_empty() || assignment_id.is_empty() {
+                        return Err(invalid_input(
+                            "judge detail key must use course-id:assignment-id",
+                        ));
+                    }
+                    Ok(JudgeAssignmentKey {
+                        course_id: course_id.into(),
+                        assignment_id: assignment_id.into(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()
+                .map_err(|error| RoutedError {
+                    error,
+                    resolution: None,
+                })?;
+            routed_readonly(backend.judge_assignment_details(&parsed).await, "judge")
+        }
+    }
+}
+
+fn routed_map<T>(
+    result: RoutedResult<T>,
+    map: impl FnOnce(T) -> CommandOutput,
+) -> RoutedResult<CommandOutput> {
+    result.map(|Routed { data, resolution }| Routed {
+        data: map(data),
+        resolution,
+    })
+}
+
+fn routed_readonly<T: Serialize>(
+    result: RoutedResult<T>,
+    feature: &'static str,
+) -> RoutedResult<CommandOutput> {
+    result.map(|Routed { data, resolution }| Routed {
+        data: CommandOutput::Readonly {
+            data: serde_json::to_value(data).unwrap_or_else(|_| json!({})),
+            route: resolution.mode,
+            feature,
+        },
+        resolution,
+    })
+}
+
+fn render_routed_result<O: Write, E: Write>(
+    json_mode: bool,
+    feature: &'static str,
+    result: RoutedResult<CommandOutput>,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    match result {
+        Ok(Routed { data, resolution }) => {
+            if json_mode {
+                let value = match data {
+                    CommandOutput::Profile(profile) => json!(profile),
+                    CommandOutput::Status(status) => json!(status),
+                    CommandOutput::Logout(value) => value,
+                    CommandOutput::Readonly { data, .. } => data,
+                };
+                let meta = ReadonlyRouteContext::from(resolution).meta(feature, resolution.mode);
+                if write_json(stdout, &ReadonlyJsonEnvelope::success(value, meta)).is_err() {
+                    return ExitCode::Internal as i32;
+                }
+            } else {
+                match data {
+                    CommandOutput::Readonly {
+                        data,
+                        route,
+                        feature,
+                    } => {
+                        if writeln!(stdout, "{feature} ({route:?}): {data}").is_err() {
+                            return ExitCode::Internal as i32;
+                        }
+                    }
+                    output => {
+                        if render_human(output, stdout).is_err() {
+                            return ExitCode::Internal as i32;
+                        }
+                    }
+                }
+            }
+            ExitCode::Success as i32
+        }
+        Err(RoutedError {
+            mut error,
+            resolution: Some(resolution),
+        }) => {
+            error.challenge = None;
+            render_readonly_error(
+                json_mode,
+                resolution.mode,
+                feature,
+                ReadonlyRouteContext::from(resolution),
+                error,
+                stdout,
+                stderr,
+            )
+        }
+        Err(RoutedError {
+            error,
+            resolution: None,
+        }) => render_startup_error(json_mode, error, stdout, stderr),
+    }
+}
+
+fn routed_unavailable(message: impl Into<String>) -> RoutedError {
+    RoutedError {
+        error: internal_error(message),
+        resolution: None,
     }
 }
 

@@ -19,6 +19,13 @@ operation before production code changes.
 |---|---|---|---|---|---|---|---|---|
 | **old:** N/A; no campus probe exists. **example:** `utils/net.rs` targets `gw.buaa.edu.cn:80`. **decision:** use exactly that host and port, not an IP range. | **old/example:** N/A; this is not HTTP. **decision:** no redirects or final URL. | **old/example:** no Cookie or credential. **decision:** process-local probe state only. | **example:** `ToSocketAddrs`, then `TcpStream::connect_timeout` until one succeeds. **decision:** one 500ms total deadline includes resolution and all address attempts. | **old/example:** no headers or body. **decision:** send TCP connect only, no HTTP/TLS payload. | **old/example:** N/A. **decision:** no encryption/signature. | **example:** Boolean campus result. **decision:** `Campus` on any success; ordinary resolution/no-address/connect/timeout is `OffCampus`; only internal/injected probe failure is `Unknown`. | **example:** no cache and 500ms per address. **decision:** the product contract narrows this to one total budget and adds a process-local 60s cache with injectable clock/probe. | **example:** all ordinary failures return false. **decision:** `OffCampus -> WebVPN`; `Unknown -> operation unknown_default`; probe does not itself emit a CLI failure. |
 
+Deterministic implementation evidence on 2026-08-24: `route_policy` covers the fixed 500ms
+budget, all three states, explicit-policy zero probing, cache expiry and concurrent miss
+single-flight behavior; `facade` covers facade-owned caching, default-versus-feature policy,
+successful diagnostics and zero-request missing-session errors. The CLI binary boundary test
+forbids config/probe/resolver ownership in `main.rs`. These tests do not establish live campus
+reachability or any business endpoint result.
+
 ## Dual load/save/logout
 
 | bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |

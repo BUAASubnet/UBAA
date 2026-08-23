@@ -1,6 +1,6 @@
 # Migration Status
 
-Updated: 2026-08-23
+Updated: 2026-08-24
 
 ## Conclusion
 
@@ -24,14 +24,14 @@ CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍
 | Phase | Current status | Required closure |
 |---|---|---|
 | 0-6 baseline | Preserved | Re-run deterministic and live authentication gates after aggregate-facade changes. |
-| 7 route policy | Non-conforming implementation | Replace resolver behavior with `gw.buaa.edu.cn:80` TCP reachability under one 500ms total budget; ordinary failure is OffCampus, internal failure is Unknown; cache 60s in Core facade. |
+| 7 route policy | Deterministic remediation complete | TCP target/total budget/failure classes, explicit-policy probe bypass, 60-second single-flight cache and Core-owned operation resolution are covered; rerun the real route matrix after feature repairs. |
 | 8 dual sessions | Deterministic remediation complete | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; rerun live authentication after facade routing lands. |
 | 8a aggregate captcha | Deterministic remediation complete | Opaque route/generation-bound IDs, raw ID/execution pre-submit validation, one-use consumption, safe serialization, existing-session consumption without hidden SSO re-entry, auth-clear invalidation, post-submit re-prepare, colliding upstream IDs and partial-prepare behavior are covered; rerun live captcha only if the upstream requests it. |
 | 9a schedule/exam/grades | No new defect established by this audit | Preserve existing frozen-source evidence and rerun after facade integration. |
 | 9b classroom | Request/state parity gaps open | Restore exact long UA, no-redirect query, strict required `d/list`, and once-per-route synchronized state cleared with session. |
 | 9c SPOC | False-empty and detail gaps open | Use global encrypted `queryListByPage` with empty `kcid` even when course metadata is empty; submission is optional; retain summary fallback; remove public raw HTML. |
 | 9d Judge | Parser/cache gaps open | Filter internal links, port full problem/score/status parser, move caches to route/client state, clear them with the session. |
-| 10 CLI/JSON | Contract gaps open | Aggregate Core facade owns selection; first JSON login works without pre-existing config; all output is schema v2 only; route arrays/order/cardinality are strict. |
+| 10 CLI/JSON | Route ownership complete; schema gaps open | Ordinary commands use the aggregate Core facade and fresh JSON login reaches it; schema-v1 compatibility paths and aggregate route constraints remain Task 5 work. |
 | 11 live matrix | Must be rerun | Existing evidence predates the corrected request/parser contracts and cannot close SPOC/Judge semantics. |
 | 12 handoff/gates | Not ready | Run focused RED/GREEN evidence, sensitive/full gates and the complete post-fix live matrix before changing this status. |
 
@@ -113,7 +113,7 @@ CI remains deterministic-only and never reads `.env.local`.
 
 ## Open Defects And Evidence Gaps
 
-- Production automatic selection still needs the accepted TCP reachability implementation and Core-facade ownership.
+- Production automatic selection now uses the accepted TCP reachability implementation and Core-facade ownership; live Direct/WebVPN/auto evidence must be rerun after the remaining feature repairs.
 - Route/generation-bound aggregate captcha IDs and zero-request user preflight are deterministically covered; real captcha remains conditional on live upstream behavior.
 - Config writes must match the documented symlink, regular-file and unique-temp safety behavior.
 - Classroom must be compared against the exact frozen UA/redirect/DTO/state contract.

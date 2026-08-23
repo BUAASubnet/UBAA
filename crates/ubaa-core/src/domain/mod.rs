@@ -19,7 +19,7 @@ pub enum ConnectionMode {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RoutePolicy {
-    /// Resolve from the current campus DNS signal and feature matrix.
+    /// Resolve from the current campus gateway reachability signal and feature matrix.
     #[default]
     Auto,
     /// Use the direct upstream route.

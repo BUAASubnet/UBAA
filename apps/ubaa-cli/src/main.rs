@@ -1,18 +1,14 @@
 use std::io::{self, BufReader};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::Parser;
 use directories::ProjectDirs;
 use ubaa_cli::{
-    Cli, ReadonlyRouteContext, authentication_required, render_empty_logout,
-    render_readonly_startup_error, render_startup_error, run_dual_login, run_dual_logout,
-    run_dual_status, run_with_backend, run_with_backend_with_route,
+    Cli, render_startup_error, run_dual_login, run_dual_logout, run_dual_status, run_with_backend,
+    run_with_routed_backend,
 };
-use ubaa_core::config::RouteConfig;
-use ubaa_core::connection::{SystemDnsProbe, resolve_feature_route};
-use ubaa_core::domain::{ConnectionMode, ReadonlyFeature};
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::facade::{DualUbaaClient, UbaaClient};
+use ubaa_core::facade::{RouteClient, UbaaClient};
 
 #[tokio::main]
 async fn main() {
@@ -66,148 +62,49 @@ async fn run(cli: Cli) -> i32 {
             &mut stderr,
         );
     };
-    let has_route_config = config_dir.join("config.toml").is_file();
-    if cli.is_login() && cli.login_mode().is_none() && (!json_mode || has_route_config) {
-        let mut client = match DualUbaaClient::open(&config_dir) {
+    if cli.is_login() && cli.login_mode().is_some() {
+        let client = match RouteClient::open(cli.login_mode(), &config_dir) {
             Ok(client) => client,
             Err(error) => {
                 return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
             }
+        };
+        let Some(mut client) = client else {
+            return render_startup_error(
+                json_mode,
+                UbaaError::new(
+                    ErrorCode::InternalError,
+                    ErrorKind::Internal,
+                    false,
+                    "diagnostic route could not be opened",
+                ),
+                &mut stdout,
+                &mut stderr,
+            );
         };
         let stdin = io::stdin();
         let mut input = BufReader::new(stdin.lock());
-        return run_dual_login(cli, &mut client, &mut input, &mut stdout, &mut stderr).await;
-    }
-    if cli.is_auth_status() && cli.login_mode().is_none() {
-        let mut client = match DualUbaaClient::open(&config_dir) {
-            Ok(client) => client,
-            Err(error) => {
-                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-            }
-        };
-        return run_dual_status(cli, &mut client, &mut stdout, &mut stderr).await;
-    }
-    if cli.is_logout() && cli.login_mode().is_none() {
-        let mut client = match DualUbaaClient::open(&config_dir) {
-            Ok(client) => client,
-            Err(error) => {
-                return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-            }
-        };
-        return run_dual_logout(cli, &mut client, &mut stdout, &mut stderr).await;
+        return run_with_backend(cli, &mut client, &mut input, &mut stdout, &mut stderr).await;
     }
 
-    let (selected_mode, route_context) = match resolve_cli_route(&cli, &config_dir) {
-        Ok(resolution) => resolution,
+    let mut client = match UbaaClient::open(&config_dir) {
+        Ok(client) => client,
         Err(error) => {
             return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
         }
     };
-    let client = match UbaaClient::open(selected_mode, &config_dir) {
-        Ok(client) => client,
-        Err(error) => {
-            return render_resolved_error(&cli, route_context, error, &mut stdout, &mut stderr);
-        }
-    };
-    if client.is_none() && cli.requires_session() {
-        return render_resolved_error(
-            &cli,
-            route_context,
-            authentication_required(),
-            &mut stdout,
-            &mut stderr,
-        );
-    }
-    if client.is_none() && cli.is_logout() {
-        return render_empty_logout(json_mode, &mut stdout);
-    }
-    let Some(mut backend) = client else {
-        let error = cli.resolve_mode(None).err().unwrap_or_else(|| {
-            UbaaError::new(
-                ErrorCode::InternalError,
-                ErrorKind::Internal,
-                false,
-                "client mode could not be resolved",
-            )
-        });
-        return render_startup_error(json_mode, error, &mut stdout, &mut stderr);
-    };
-    let stdin = io::stdin();
-    let mut input = BufReader::new(stdin.lock());
-    if let Some(route_context) = route_context {
-        run_with_backend_with_route(
-            cli,
-            &mut backend,
-            route_context,
-            &mut input,
-            &mut stdout,
-            &mut stderr,
-        )
-        .await
+
+    if cli.is_login() {
+        let stdin = io::stdin();
+        let mut input = BufReader::new(stdin.lock());
+        run_dual_login(cli, &mut client, &mut input, &mut stdout, &mut stderr).await
+    } else if cli.is_auth_status() {
+        run_dual_status(cli, &mut client, &mut stdout, &mut stderr).await
+    } else if cli.is_logout() {
+        run_dual_logout(cli, &mut client, &mut stdout, &mut stderr).await
     } else {
-        run_with_backend(cli, &mut backend, &mut input, &mut stdout, &mut stderr).await
+        run_with_routed_backend(cli, &mut client, &mut stdout, &mut stderr).await
     }
-}
-
-fn resolve_cli_route(
-    cli: &Cli,
-    config_dir: &Path,
-) -> Result<(Option<ConnectionMode>, Option<ReadonlyRouteContext>), UbaaError> {
-    let Some(feature) = route_feature(cli) else {
-        return Ok((cli.login_mode(), None));
-    };
-    let config = RouteConfig::load(config_dir)?;
-    let resolution =
-        resolve_feature_route(feature, config.feature(feature), &config, &SystemDnsProbe)?;
-    Ok((
-        Some(resolution.mode),
-        Some(ReadonlyRouteContext::from(resolution)),
-    ))
-}
-
-fn render_resolved_error(
-    cli: &Cli,
-    route_context: Option<ReadonlyRouteContext>,
-    error: UbaaError,
-    stdout: &mut impl io::Write,
-    stderr: &mut impl io::Write,
-) -> i32 {
-    if let (Some(feature), Some(route_context)) = (command_feature(cli), route_context) {
-        render_readonly_startup_error(
-            cli.json,
-            feature.as_str(),
-            route_context,
-            error,
-            stdout,
-            stderr,
-        )
-    } else {
-        render_startup_error(cli.json, error, stdout, stderr)
-    }
-}
-
-fn command_feature(cli: &Cli) -> Option<ReadonlyFeature> {
-    match &cli.command {
-        ubaa_cli::Command::Schedule(_) => Some(ReadonlyFeature::Schedule),
-        ubaa_cli::Command::Exam(_) => Some(ReadonlyFeature::Exam),
-        ubaa_cli::Command::Grades(_) => Some(ReadonlyFeature::Grades),
-        ubaa_cli::Command::Classroom(_) => Some(ReadonlyFeature::Classroom),
-        ubaa_cli::Command::Spoc(_) => Some(ReadonlyFeature::Spoc),
-        ubaa_cli::Command::Judge(_) => Some(ReadonlyFeature::Judge),
-        _ => None,
-    }
-}
-
-fn route_feature(cli: &Cli) -> Option<ReadonlyFeature> {
-    command_feature(cli).or_else(|| {
-        matches!(
-            &cli.command,
-            ubaa_cli::Command::User(ubaa_cli::UserArgs {
-                command: ubaa_cli::UserCommand::Show
-            })
-        )
-        .then_some(ReadonlyFeature::Schedule)
-    })
 }
 
 fn default_config_dir() -> Option<PathBuf> {

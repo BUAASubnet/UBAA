@@ -7,7 +7,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::UbaaClient;
+use ubaa_core::facade::RouteClient;
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, readonly_fixture};
@@ -124,7 +124,7 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
     ]);
     let observed = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     assert_eq!(client.schedule_terms().await.unwrap().data.len(), 1);
     assert_eq!(
@@ -214,7 +214,7 @@ async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
     ]);
     let observed = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     let result = client.schedule_terms().await.expect("AAS recovery");
 
@@ -255,7 +255,7 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
         expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
     ]);
     let observed = transport.clone();
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
         transport,
         session_store_for(ConnectionMode::WebVpn, "webvpn-aas-recovery-fixture"),
@@ -288,7 +288,7 @@ async fn grades_use_verified_activation_form_and_sanitized_fixture() {
     ]);
     let observed = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     let result = client.grades("2025-2026-1").await.unwrap();
 
@@ -332,7 +332,7 @@ async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
     ]);
     let observed = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     let result = client.classroom_search(1, "2026-04-20").await.unwrap();
 
@@ -376,7 +376,7 @@ async fn readonly_sso_final_url_is_classified_as_authentication_required() {
         ),
     ]);
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     let error = client
         .classroom_search(1, "2026-04-20")
@@ -390,7 +390,7 @@ async fn readonly_sso_final_url_is_classified_as_authentication_required() {
 async fn readonly_input_validation_rejects_blank_terms_and_invalid_dates_before_network() {
     let transport = MockTransport::new([]);
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     let term_error = client
         .schedule_weeks("  ")
@@ -424,7 +424,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
     ]);
     let schedule_observed = schedule_transport.clone();
-    let mut schedule_client = UbaaClient::with_transport(
+    let mut schedule_client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
         schedule_transport,
         session_store_for(ConnectionMode::WebVpn, "webvpn-schedule-fixture"),
@@ -463,7 +463,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         expected_get(&query, readonly_fixture("classroom.json").unwrap()),
     ]);
     let classroom_observed = classroom_transport.clone();
-    let mut classroom_client = UbaaClient::with_transport(
+    let mut classroom_client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
         classroom_transport,
         session_store_for(ConnectionMode::WebVpn, "webvpn-classroom-fixture"),
@@ -495,7 +495,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         ),
     ]);
     let grades_observed = grades_transport.clone();
-    let mut grades_client = UbaaClient::with_transport(
+    let mut grades_client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
         grades_transport,
         session_store_for(ConnectionMode::WebVpn, "webvpn-grades-fixture"),
@@ -586,8 +586,9 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
             ),
         ),
     ]);
-    let mut client = UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store())
-        .expect("client");
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store())
+            .expect("client");
 
     let result = client.spoc_assignments().await.expect("SPOC list");
     assert_eq!(result.data.term_code, "2025-20262");
@@ -649,7 +650,7 @@ async fn spoc_business_authentication_failure_refreshes_login_once() {
             response(200, courses_url, r#"{"code":200,"content":[]}"#),
         ),
     ]);
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("spoc-refresh-fixture"),
@@ -736,8 +737,9 @@ async fn spoc_detail_reads_submission_without_writing() {
             ),
         ),
     ]);
-    let mut client = UbaaClient::with_transport(ConnectionMode::Direct, transport, session_store())
-        .expect("client");
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, session_store())
+            .expect("client");
 
     let result = client.spoc_assignment("a1").await.expect("SPOC detail");
     assert_eq!(result.data.course_name, "Systems");
@@ -790,7 +792,7 @@ async fn judge_selects_courses_before_reading_assignment_details() {
             ),
         ),
     ]);
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("judge-fixture"),
@@ -854,7 +856,7 @@ async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
             ),
         ),
     ]);
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("judge-reactivation-fixture"),
@@ -901,7 +903,7 @@ async fn judge_follows_business_redirects_before_parsing() {
             response(200, assignments_url, "no assignments"),
         ),
     ]);
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("judge-business-redirect-fixture"),
@@ -919,7 +921,7 @@ async fn judge_follows_business_redirects_before_parsing() {
 #[tokio::test]
 async fn judge_empty_batch_and_missing_course_have_stable_semantics() {
     let transport = MockTransport::new([]);
-    let mut empty_client = UbaaClient::with_transport(
+    let mut empty_client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport.clone(),
         session_store_with("judge-empty-batch-fixture"),
@@ -944,7 +946,7 @@ async fn judge_empty_batch_and_missing_course_have_stable_semantics() {
         expected_get(judge_home, "judge home"),
         expected_get(courses_url, readonly_fixture("judge-courses.html").unwrap()),
     ]);
-    let mut missing_client = UbaaClient::with_transport(
+    let mut missing_client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport.clone(),
         session_store_with("judge-missing-course-fixture"),
@@ -999,7 +1001,7 @@ async fn judge_historical_courses_are_skipped_by_default_but_includable() {
         ),
         expected_get(judge_home, "judge home"),
     ]);
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport.clone(),
         session_store_with("judge-historical-fixture"),
@@ -1051,7 +1053,7 @@ async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
         expected_get(&urls[8], readonly_fixture("judge-detail.html").unwrap()),
     ]);
     let observed = transport.clone();
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
         transport,
         session_store_for(ConnectionMode::WebVpn, "judge-webvpn-fixture"),
@@ -1220,7 +1222,7 @@ impl HttpTransport for IsolatedJudgeSessionTransport {
 async fn judge_workers_activate_isolated_service_sessions_before_course_selection() {
     let transport = IsolatedJudgeSessionTransport::new(ConnectionMode::Direct);
     let observed = transport.clone();
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("judge-isolated-worker-fixture"),
@@ -1240,7 +1242,7 @@ async fn judge_workers_activate_isolated_service_sessions_before_course_selectio
 async fn judge_webvpn_workers_drop_parent_gateway_service_cookies() {
     let transport = IsolatedJudgeSessionTransport::new(ConnectionMode::WebVpn);
     let observed = transport.clone();
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::WebVpn,
         transport,
         session_store_for(
@@ -1333,7 +1335,7 @@ impl HttpTransport for JudgeConcurrencyTransport {
 async fn judge_limits_course_queries_to_four_workers() {
     let transport = JudgeConcurrencyTransport::new();
     let observed = transport.clone();
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("judge-concurrency-fixture"),
@@ -1356,7 +1358,7 @@ async fn judge_limits_course_queries_to_four_workers() {
 async fn judge_batch_details_preserve_input_order_with_four_workers() {
     let transport = JudgeConcurrencyTransport::new();
     let observed = transport.clone();
-    let mut client = UbaaClient::with_transport(
+    let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
         transport,
         session_store_with("judge-batch-concurrency-fixture"),

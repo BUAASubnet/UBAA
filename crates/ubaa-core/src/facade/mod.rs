@@ -4,16 +4,23 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use crate::auth::AuthWorkflow;
+use crate::config::{FeatureRouteConfig, RouteConfig};
+use crate::connection::{
+    CachingGatewayProbe, GatewayProbe, NetworkState, RouteDiagnostic, RouteResolution,
+    SystemGatewayProbe,
+};
 use crate::domain::{
     AuthStatus, CaptchaAnswer, ClassroomQuery, ConnectionMode, DualLoginInput,
     DualLoginPreparation, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
     JudgeAssignmentKey, JudgeAssignmentSummary, LoginChallenge, LoginInput, LoginOutcome,
-    LoginReadiness, RouteLoginChallenge, RouteLoginResult, RouteLoginState, SafeError,
-    SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    LoginReadiness, ReadonlyFeature, RouteLoginChallenge, RouteLoginResult, RouteLoginState,
+    RoutePolicy, SafeError, SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile,
+    Week, WeeklySchedule,
 };
-use crate::error::{Result, UbaaError};
+use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
@@ -202,18 +209,17 @@ impl CaptchaRegistry {
     }
 }
 
-/// One independent Direct or `WebVPN` session and login state machine.
-pub struct UbaaClient {
+/// One route-locked client used only by diagnostics, tests, and live verification.
+pub struct RouteClient {
     runtime: ClientRuntime,
     auth: AuthWorkflow,
     sessions: Option<DualSessionCoordinator>,
 }
 
-/// A host-facing aggregate client that owns independent Direct and `WebVPN` workflows.
-///
-/// The existing [`UbaaClient`] remains the route-locked diagnostic client used by compatibility
-/// callers. New hosts can use this type when one login operation must attempt both routes.
-pub struct DualUbaaClient {
+/// A host-facing aggregate client that owns routing and independent route workflows.
+pub struct UbaaClient {
+    config: RouteConfig,
+    probe: Box<dyn GatewayProbe>,
     direct_runtime: ClientRuntime,
     webvpn_runtime: ClientRuntime,
     direct_auth: AuthWorkflow,
@@ -222,17 +228,68 @@ pub struct DualUbaaClient {
     captcha: CaptchaRegistry,
 }
 
-impl DualUbaaClient {
+/// Successful ordinary operation plus the route decision made by Core.
+#[derive(Clone, Debug)]
+pub struct Routed<T> {
+    /// Stable operation result.
+    pub data: T,
+    /// Immutable routing metadata for this operation.
+    pub resolution: RouteResolution,
+}
+
+/// Ordinary operation failure, with routing metadata when resolution completed.
+#[derive(Clone, Debug)]
+pub struct RoutedError {
+    /// Stable Core error.
+    pub error: UbaaError,
+    /// Route decision, absent only for failures that precede route resolution.
+    pub resolution: Option<RouteResolution>,
+}
+
+/// Result returned by ordinary routed facade operations.
+pub type RoutedResult<T> = std::result::Result<Routed<T>, RoutedError>;
+
+impl RoutedError {
+    /// Return routing metadata when Core reached a route decision.
+    #[must_use]
+    pub const fn resolution(&self) -> Option<&RouteResolution> {
+        self.resolution.as_ref()
+    }
+}
+
+impl std::fmt::Display for RoutedError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.error.fmt(formatter)
+    }
+}
+
+impl std::error::Error for RoutedError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.error)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Operation {
+    User,
+    Feature(ReadonlyFeature),
+}
+
+impl UbaaClient {
     /// Open production Direct and `WebVPN` runtimes over one dual-slot session file.
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self> {
-        Self::with_transports(
+        let config_dir = config_dir.as_ref();
+        let config = RouteConfig::load(config_dir)?;
+        Self::with_routing(
             ReqwestTransport::new()?,
             ReqwestTransport::new()?,
             FileSessionStore::new(config_dir)?,
+            config,
+            SystemGatewayProbe,
         )
     }
 
-    /// Construct a dual client with independent injectable transports.
+    /// Construct an aggregate client with injectable transports and default routing.
     pub fn with_transports<TDirect, TWebVpn>(
         direct_transport: TDirect,
         webvpn_transport: TWebVpn,
@@ -242,10 +299,34 @@ impl DualUbaaClient {
         TDirect: HttpTransport + 'static,
         TWebVpn: HttpTransport + 'static,
     {
+        Self::with_routing(
+            direct_transport,
+            webvpn_transport,
+            store,
+            RouteConfig::default(),
+            SystemGatewayProbe,
+        )
+    }
+
+    /// Construct an aggregate client with injectable transports and routing inputs.
+    pub fn with_routing<TDirect, TWebVpn, P>(
+        direct_transport: TDirect,
+        webvpn_transport: TWebVpn,
+        store: FileSessionStore,
+        config: RouteConfig,
+        probe: P,
+    ) -> Result<Self>
+    where
+        TDirect: HttpTransport + 'static,
+        TWebVpn: HttpTransport + 'static,
+        P: GatewayProbe + 'static,
+    {
         let sessions = DualSessionCoordinator::new(store)?;
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
+            config,
+            probe: Box::new(CachingGatewayProbe::with_default_ttl(probe)),
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
                 direct_transport,
@@ -436,6 +517,355 @@ impl DualUbaaClient {
             profile,
             challenges: Vec::new(),
         })
+    }
+
+    /// Fetch the User Center profile through the default route policy.
+    pub async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
+        let resolution = self.resolve_operation(Operation::User)?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                let auth = &mut self.direct_auth;
+                let captcha = &mut self.captcha;
+                let mut clear_workflow = || {
+                    auth.clear();
+                    captcha.clear_route(ConnectionMode::Direct);
+                };
+                user::get_user_info(&mut self.direct_runtime, &mut clear_workflow).await
+            }
+            ConnectionMode::WebVpn => {
+                let auth = &mut self.webvpn_auth;
+                let captcha = &mut self.captcha;
+                let mut clear_workflow = || {
+                    auth.clear();
+                    captcha.clear_route(ConnectionMode::WebVpn);
+                };
+                user::get_user_info(&mut self.webvpn_runtime, &mut clear_workflow).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read the available academic terms through the Schedule route policy.
+    pub async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::schedule::get_terms(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::schedule::get_terms(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read teaching weeks for a term through the Schedule route policy.
+    pub async fn schedule_weeks(&mut self, term: &str) -> RoutedResult<Vec<Week>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::schedule::get_weeks(&mut self.direct_runtime, term).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::schedule::get_weeks(&mut self.webvpn_runtime, term).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read one numbered week's schedule through the Schedule route policy.
+    pub async fn schedule_week(&mut self, term: &str, week: i32) -> RoutedResult<WeeklySchedule> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
+        if term.trim().is_empty() || week <= 0 {
+            return Err(routed_error(
+                invalid_input("term and positive week are required"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::schedule::get_week(&mut self.direct_runtime, term, week).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::schedule::get_week(&mut self.webvpn_runtime, term, week).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read today's schedule through the Schedule route policy.
+    pub async fn schedule_today(&mut self) -> RoutedResult<Vec<TodayClass>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::schedule::get_today(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::schedule::get_today(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read one term's exam arrangement through the Exam route policy.
+    pub async fn exam_arrangement(&mut self, term: &str) -> RoutedResult<ExamArrangement> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Exam))?;
+        if term.trim().is_empty() {
+            return Err(routed_error(invalid_input("term is required"), resolution));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::schedule::get_exam(&mut self.direct_runtime, term).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::schedule::get_exam(&mut self.webvpn_runtime, term).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read one term's grades through the Grades route policy.
+    pub async fn grades(&mut self, term: &str) -> RoutedResult<GradeData> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Grades))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::grades::get_grades(&mut self.direct_runtime, term).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::grades::get_grades(&mut self.webvpn_runtime, term).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Search available classrooms through the Classroom route policy.
+    pub async fn classroom_search(
+        &mut self,
+        campus_id: i32,
+        date: &str,
+    ) -> RoutedResult<ClassroomQuery> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Classroom))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::classroom::search(&mut self.direct_runtime, campus_id, date).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::classroom::search(&mut self.webvpn_runtime, campus_id, date).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read the current SPOC assignment list through the SPOC route policy.
+    pub async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::spoc::get_assignments(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::spoc::get_assignments(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read one SPOC assignment detail through the SPOC route policy.
+    pub async fn spoc_assignment(
+        &mut self,
+        assignment_id: &str,
+    ) -> RoutedResult<SpocAssignmentDetail> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::spoc::get_assignment_detail(
+                    &mut self.direct_runtime,
+                    assignment_id,
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::spoc::get_assignment_detail(
+                    &mut self.webvpn_runtime,
+                    assignment_id,
+                )
+                .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read Judge assignments through the Judge route policy.
+    pub async fn judge_assignments(
+        &mut self,
+        include_expired: bool,
+    ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::judge::get_assignments(&mut self.direct_runtime, include_expired)
+                    .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::judge::get_assignments(&mut self.webvpn_runtime, include_expired)
+                    .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read one Judge assignment detail through the Judge route policy.
+    pub async fn judge_assignment(
+        &mut self,
+        course_id: &str,
+        assignment_id: &str,
+    ) -> RoutedResult<JudgeAssignmentDetail> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::judge::get_assignment_detail(
+                    &mut self.direct_runtime,
+                    course_id,
+                    assignment_id,
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::judge::get_assignment_detail(
+                    &mut self.webvpn_runtime,
+                    course_id,
+                    assignment_id,
+                )
+                .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// Read multiple Judge details through one Judge route policy decision.
+    pub async fn judge_assignment_details(
+        &mut self,
+        keys: &[JudgeAssignmentKey],
+    ) -> RoutedResult<Vec<JudgeAssignmentDetail>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::judge::get_assignment_details(&mut self.direct_runtime, keys).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::judge::get_assignment_details(&mut self.webvpn_runtime, keys).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    fn resolve_operation(
+        &mut self,
+        operation: Operation,
+    ) -> std::result::Result<RouteResolution, RoutedError> {
+        self.clear_on_session_conflict()
+            .map_err(|error| RoutedError {
+                error,
+                resolution: None,
+            })?;
+        let (policy, row) = match operation {
+            Operation::User => (
+                self.config.default,
+                FeatureRouteConfig {
+                    auto_route_override: None,
+                    unknown_default: ConnectionMode::Direct,
+                    allow_ready_route_fallback: false,
+                    allow_network_fallback: false,
+                },
+            ),
+            Operation::Feature(feature) => (
+                self.config.feature(feature),
+                FeatureRouteConfig::for_feature(feature),
+            ),
+        };
+        let network = if policy == RoutePolicy::Auto {
+            self.probe.probe(Duration::from_millis(500))
+        } else {
+            NetworkState::Unknown
+        };
+        let initial_route = match policy {
+            RoutePolicy::Direct => ConnectionMode::Direct,
+            RoutePolicy::WebVpn => ConnectionMode::WebVpn,
+            RoutePolicy::Auto => row.auto_route_override.unwrap_or(match network {
+                NetworkState::Campus => ConnectionMode::Direct,
+                NetworkState::OffCampus => ConnectionMode::WebVpn,
+                NetworkState::Unknown => row.unknown_default,
+            }),
+        };
+        let mut resolution = RouteResolution {
+            mode: initial_route,
+            policy,
+            diagnostic: RouteDiagnostic::new(network, initial_route),
+        };
+        if !self.route_is_ready(initial_route)
+            && policy == RoutePolicy::Auto
+            && row.allow_ready_route_fallback
+        {
+            let alternate = alternate_route(initial_route);
+            if self.route_is_ready(alternate) {
+                resolution.mode = alternate;
+                resolution.diagnostic.mode = alternate;
+                resolution.diagnostic.used_fallback = true;
+            }
+        }
+        if !self.route_is_ready(resolution.mode) {
+            return Err(routed_error(authentication_required(), resolution));
+        }
+        Ok(resolution)
+    }
+
+    fn route_is_ready(&self, route: ConnectionMode) -> bool {
+        match route {
+            ConnectionMode::Direct => self.direct_runtime.has_local_session(),
+            ConnectionMode::WebVpn => self.webvpn_runtime.has_local_session(),
+        }
+    }
+
+    fn finish_routed<T>(
+        &mut self,
+        resolution: RouteResolution,
+        result: Result<T>,
+    ) -> RoutedResult<T> {
+        if result
+            .as_ref()
+            .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
+            && self.route_is_ready(resolution.mode)
+            && let Err(error) = self.clear_invalidated_route(resolution.mode)
+        {
+            return Err(routed_error(error, resolution));
+        }
+        if let Err(error) = self.clear_on_session_conflict() {
+            return Err(routed_error(error, resolution));
+        }
+        result
+            .map(|data| Routed { data, resolution })
+            .map_err(|error| routed_error(error, resolution))
+    }
+
+    fn clear_invalidated_route(&mut self, route: ConnectionMode) -> Result<()> {
+        match route {
+            ConnectionMode::Direct => {
+                let auth = &mut self.direct_auth;
+                let captcha = &mut self.captcha;
+                self.direct_runtime.clear_with(|| {
+                    auth.clear();
+                    captcha.clear_route(route);
+                })
+            }
+            ConnectionMode::WebVpn => {
+                let auth = &mut self.webvpn_auth;
+                let captcha = &mut self.captcha;
+                self.webvpn_runtime.clear_with(|| {
+                    auth.clear();
+                    captcha.clear_route(route);
+                })
+            }
+        }
     }
 
     fn clear_all_memory(&mut self) {
@@ -669,6 +1099,33 @@ fn captcha_invalid(message: impl Into<String>) -> UbaaError {
     )
 }
 
+fn authentication_required() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::AuthenticationRequired,
+        ErrorKind::Authentication,
+        false,
+        "authentication is required",
+    )
+}
+
+fn invalid_input(message: impl Into<String>) -> UbaaError {
+    UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
+}
+
+fn routed_error(error: UbaaError, resolution: RouteResolution) -> RoutedError {
+    RoutedError {
+        error,
+        resolution: Some(resolution),
+    }
+}
+
+const fn alternate_route(route: ConnectionMode) -> ConnectionMode {
+    match route {
+        ConnectionMode::Direct => ConnectionMode::WebVpn,
+        ConnectionMode::WebVpn => ConnectionMode::Direct,
+    }
+}
+
 fn safe_error(error: &UbaaError) -> SafeError {
     let code = serde_json::to_string(&error.code)
         .unwrap_or_else(|_| "\"internal_error\"".into())
@@ -686,8 +1143,8 @@ fn safe_error(error: &UbaaError) -> SafeError {
     }
 }
 
-impl UbaaClient {
-    /// Open a production client using an explicit or persisted connection mode.
+impl RouteClient {
+    /// Open a diagnostic client using an explicit or persisted connection mode.
     ///
     /// Returns `None` when neither a mode nor a persisted session exists, allowing a host to
     /// render command-specific missing-session behavior without inspecting persistence internals.

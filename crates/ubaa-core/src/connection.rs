@@ -6,8 +6,8 @@
 )]
 
 use std::fmt::Write as _;
-use std::net::ToSocketAddrs;
-use std::sync::{Arc, Mutex};
+use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use aes::Aes128;
@@ -21,86 +21,141 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 const WEBVPN_HOST: &str = "d.buaa.edu.cn";
 const WEBVPN_KEY: &[u8; 16] = b"wrdvpnisthebest!";
+const GATEWAY_HOST: &str = "gw.buaa.edu.cn";
+const GATEWAY_PORT: u16 = 80;
+const DEFAULT_GATEWAY_CACHE_TTL: Duration = Duration::from_secs(60);
 
-/// Three-state result of resolving `gw.buaa.edu.cn`.
+/// Three-state result of probing the BUAA campus gateway.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NetworkState {
-    /// DNS returned at least one address.
+    /// At least one resolved gateway address accepted a TCP connection.
     Campus,
-    /// Authoritative DNS absence (NXDOMAIN/NODATA).
+    /// Resolution, address discovery, connection, or the total budget failed.
     OffCampus,
-    /// Timeout or other resolver failure.
+    /// The probe itself failed internally or a diagnostic probe injected this state.
     Unknown,
 }
 
-/// Injectable gateway DNS probe used by route resolution.
-pub trait DnsProbe {
-    /// Resolve the gateway within the supplied budget.
-    fn resolve_gateway(&self, timeout: std::time::Duration) -> NetworkState;
+/// Injectable gateway reachability probe used by route resolution.
+pub trait GatewayProbe: Send + Sync {
+    /// Probe gateway TCP reachability within one total budget.
+    fn probe(&self, budget: Duration) -> NetworkState;
 }
 
-/// DNS probe that resolves the gateway without embedding campus address ranges.
+/// TCP probe for `gw.buaa.edu.cn:80` without embedded campus address ranges.
 #[derive(Clone, Copy, Debug, Default)]
-pub struct SystemDnsProbe;
+pub struct SystemGatewayProbe;
 
-impl DnsProbe for SystemDnsProbe {
-    fn resolve_gateway(&self, timeout: Duration) -> NetworkState {
-        let (sender, receiver) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let state = ("gw.buaa.edu.cn", 443).to_socket_addrs().map_or(
-                NetworkState::Unknown,
-                |mut addresses| {
-                    if addresses.next().is_some() {
-                        NetworkState::Campus
-                    } else {
-                        NetworkState::OffCampus
-                    }
-                },
-            );
-            let _ = sender.send(state);
-        });
-        receiver
-            .recv_timeout(timeout)
-            .unwrap_or(NetworkState::Unknown)
+impl GatewayProbe for SystemGatewayProbe {
+    fn probe(&self, budget: Duration) -> NetworkState {
+        run_gateway_probe_worker(budget, |deadline| {
+            probe_gateway_until(
+                deadline,
+                |host, port| (host, port).to_socket_addrs().map(Iterator::collect),
+                |address, remaining| TcpStream::connect_timeout(&address, remaining).is_ok(),
+                Instant::now,
+            )
+        })
     }
 }
 
-/// Process-local DNS result cache with the contract's sixty-second default TTL.
-pub struct CachingDnsProbe<P> {
-    inner: P,
-    ttl: Duration,
-    cached: Arc<Mutex<Option<(Instant, NetworkState)>>>,
+fn run_gateway_probe_worker<Worker>(budget: Duration, worker: Worker) -> NetworkState
+where
+    Worker: FnOnce(Instant) -> NetworkState + Send + 'static,
+{
+    if budget.is_zero() {
+        return NetworkState::OffCampus;
+    }
+    let Some(deadline) = Instant::now().checked_add(budget) else {
+        return NetworkState::Unknown;
+    };
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    let spawned = std::thread::Builder::new()
+        .name("ubaa-gateway-probe".to_string())
+        .spawn(move || {
+            let state = worker(deadline);
+            let _ = sender.send(state);
+        });
+    if spawned.is_err() {
+        return NetworkState::Unknown;
+    }
+
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return NetworkState::OffCampus;
+    }
+    match receiver.recv_timeout(remaining) {
+        Ok(state) => state,
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => NetworkState::OffCampus,
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => NetworkState::Unknown,
+    }
 }
 
-impl<P> CachingDnsProbe<P> {
+fn probe_gateway_until<Resolve, Connect, Clock>(
+    deadline: Instant,
+    resolve: Resolve,
+    mut connect: Connect,
+    mut now: Clock,
+) -> NetworkState
+where
+    Resolve: FnOnce(&str, u16) -> std::io::Result<Vec<SocketAddr>>,
+    Connect: FnMut(SocketAddr, Duration) -> bool,
+    Clock: FnMut() -> Instant,
+{
+    let Ok(addresses) = resolve(GATEWAY_HOST, GATEWAY_PORT) else {
+        return NetworkState::OffCampus;
+    };
+    for address in addresses {
+        let remaining = deadline.saturating_duration_since(now());
+        if remaining.is_zero() {
+            return NetworkState::OffCampus;
+        }
+        if connect(address, remaining) {
+            return NetworkState::Campus;
+        }
+    }
+    NetworkState::OffCampus
+}
+
+/// Process-local gateway result cache with a sixty-second production TTL.
+pub struct CachingGatewayProbe<P> {
+    inner: P,
+    ttl: Duration,
+    cached: Mutex<Option<(Instant, NetworkState)>>,
+}
+
+impl<P> CachingGatewayProbe<P> {
     /// Construct a cache with a caller-selected TTL; production uses sixty seconds.
     #[must_use]
     pub fn new(inner: P, ttl: Duration) -> Self {
         Self {
             inner,
             ttl,
-            cached: Arc::new(Mutex::new(None)),
+            cached: Mutex::new(None),
         }
     }
 
     /// Construct a cache with the contract's sixty-second TTL.
     #[must_use]
     pub fn with_default_ttl(inner: P) -> Self {
-        Self::new(inner, Duration::from_secs(60))
+        Self::new(inner, DEFAULT_GATEWAY_CACHE_TTL)
     }
 }
 
-impl<P: DnsProbe> DnsProbe for CachingDnsProbe<P> {
-    fn resolve_gateway(&self, timeout: Duration) -> NetworkState {
+impl<P: GatewayProbe> GatewayProbe for CachingGatewayProbe<P> {
+    fn probe(&self, budget: Duration) -> NetworkState {
         let now = Instant::now();
-        if let Some((at, state)) = *self.cached.lock().expect("DNS cache mutex")
-            && now.duration_since(at) < self.ttl
+        let Ok(mut cached) = self.cached.lock() else {
+            return NetworkState::Unknown;
+        };
+        if let Some((at, state)) = *cached
+            && now.saturating_duration_since(at) < self.ttl
         {
             return state;
         }
-        let state = self.inner.resolve_gateway(timeout);
-        *self.cached.lock().expect("DNS cache mutex") = Some((now, state));
+        let state = self.inner.probe(budget);
+        *cached = Some((Instant::now(), state));
         state
     }
 }
@@ -108,7 +163,7 @@ impl<P: DnsProbe> DnsProbe for CachingDnsProbe<P> {
 /// Route decision metadata safe to expose in diagnostics and JSON.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RouteDiagnostic {
-    /// DNS state observed for this decision.
+    /// Gateway reachability state observed for this decision.
     pub network: NetworkState,
     /// Initial route selected by policy and matrix.
     pub initial_route: ConnectionMode,
@@ -142,8 +197,8 @@ pub struct RouteResolution {
     pub diagnostic: RouteDiagnostic,
 }
 
-/// Resolve one feature's user policy using the current DNS state.
-pub fn resolve_feature_route<P: DnsProbe>(
+/// Resolve one feature's user policy using the current gateway state.
+pub fn resolve_feature_route<P: GatewayProbe + ?Sized>(
     feature: ReadonlyFeature,
     requested: RoutePolicy,
     config: &RouteConfig,
@@ -155,7 +210,7 @@ pub fn resolve_feature_route<P: DnsProbe>(
         requested
     };
     let network = if policy == RoutePolicy::Auto {
-        probe.resolve_gateway(std::time::Duration::from_millis(500))
+        probe.probe(Duration::from_millis(500))
     } else {
         NetworkState::Unknown
     };
@@ -446,4 +501,130 @@ fn protocol_error(message: impl Into<String>) -> UbaaError {
         false,
         message,
     )
+}
+
+#[cfg(test)]
+mod gateway_probe_tests {
+    use std::collections::VecDeque;
+    use std::io;
+    use std::net::{Ipv4Addr, SocketAddr};
+    use std::time::{Duration, Instant};
+
+    use super::{
+        DEFAULT_GATEWAY_CACHE_TTL, GATEWAY_HOST, GATEWAY_PORT, NetworkState, probe_gateway_until,
+        run_gateway_probe_worker,
+    };
+
+    fn test_address(port: u16) -> SocketAddr {
+        SocketAddr::from((Ipv4Addr::LOCALHOST, port))
+    }
+
+    #[test]
+    fn gateway_probe_uses_the_fixed_target_and_one_deadline_for_all_addresses() {
+        let first = test_address(10001);
+        let second = test_address(10002);
+        let started = Instant::now();
+        let deadline = started + Duration::from_millis(500);
+        let mut times = VecDeque::from([
+            started + Duration::from_millis(100),
+            started + Duration::from_millis(450),
+        ]);
+        let mut attempts = Vec::new();
+
+        let state = probe_gateway_until(
+            deadline,
+            |host, port| {
+                assert_eq!(host, GATEWAY_HOST);
+                assert_eq!(port, GATEWAY_PORT);
+                Ok(vec![first, second])
+            },
+            |address, remaining| {
+                attempts.push((address, remaining));
+                address == second
+            },
+            || times.pop_front().expect("one clock value per address"),
+        );
+
+        assert_eq!(state, NetworkState::Campus);
+        assert_eq!(
+            attempts,
+            vec![
+                (first, Duration::from_millis(400)),
+                (second, Duration::from_millis(50)),
+            ]
+        );
+    }
+
+    #[test]
+    fn gateway_resolution_failure_is_off_campus() {
+        let state = probe_gateway_until(
+            Instant::now() + Duration::from_millis(500),
+            |_, _| Err(io::Error::other("synthetic resolution failure")),
+            |_, _| -> bool { panic!("connection must not be attempted") },
+            Instant::now,
+        );
+
+        assert_eq!(state, NetworkState::OffCampus);
+    }
+
+    #[test]
+    fn gateway_resolution_with_no_addresses_is_off_campus() {
+        let state = probe_gateway_until(
+            Instant::now() + Duration::from_millis(500),
+            |_, _| Ok(Vec::<SocketAddr>::new()),
+            |_, _| -> bool { panic!("connection must not be attempted") },
+            Instant::now,
+        );
+
+        assert_eq!(state, NetworkState::OffCampus);
+    }
+
+    #[test]
+    fn expired_total_budget_skips_remaining_addresses() {
+        let address = test_address(10001);
+        let deadline = Instant::now();
+        let state = probe_gateway_until(
+            deadline,
+            |_, _| Ok(vec![address]),
+            |_, _| -> bool { panic!("connection must not exceed the shared deadline") },
+            || deadline,
+        );
+
+        assert_eq!(state, NetworkState::OffCampus);
+    }
+
+    #[test]
+    fn failed_connections_to_every_address_are_off_campus() {
+        let first = test_address(10001);
+        let second = test_address(10002);
+        let started = Instant::now();
+        let mut attempts = Vec::new();
+        let state = probe_gateway_until(
+            started + Duration::from_millis(500),
+            |_, _| Ok(vec![first, second]),
+            |address, _| {
+                attempts.push(address);
+                false
+            },
+            || started,
+        );
+
+        assert_eq!(state, NetworkState::OffCampus);
+        assert_eq!(attempts, vec![first, second]);
+    }
+
+    #[test]
+    fn caller_timeout_is_off_campus_even_when_worker_finishes_later() {
+        let state = run_gateway_probe_worker(Duration::from_millis(5), |_| {
+            std::thread::sleep(Duration::from_millis(50));
+            NetworkState::Campus
+        });
+
+        assert_eq!(state, NetworkState::OffCampus);
+    }
+
+    #[test]
+    fn production_gateway_cache_ttl_is_sixty_seconds() {
+        assert_eq!(DEFAULT_GATEWAY_CACHE_TTL, Duration::from_secs(60));
+    }
 }

@@ -3,16 +3,16 @@ use std::io::Cursor;
 use async_trait::async_trait;
 use clap::{CommandFactory, Parser};
 use ubaa_cli::{
-    Cli, CliBackend, ReadonlyRouteContext, run_dual_login, run_with_backend,
-    run_with_backend_with_route,
+    Cli, CliBackend, ReadonlyRouteContext, RoutedCliBackend, run_dual_login, run_with_backend,
+    run_with_backend_with_route, run_with_routed_backend,
 };
-use ubaa_core::connection::{NetworkState, to_webvpn_url};
+use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution, to_webvpn_url};
 use ubaa_core::domain::{
     AuthStatus, ConnectionMode, FeatureResult, LoginChallenge, LoginInput, RoutePolicy, Term,
     UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::DualUbaaClient;
+use ubaa_core::facade::{Routed, RoutedError, RoutedResult, UbaaClient};
 use ubaa_core::output::{
     AggregateJsonEnvelope, AggregateJsonMeta, JsonEnvelope, ReadonlyJsonEnvelope, ReadonlyJsonMeta,
 };
@@ -25,6 +25,49 @@ struct FakeBackend {
     challenge: Option<LoginChallenge>,
     login_calls: usize,
     schedule_success: bool,
+}
+
+#[derive(Default)]
+struct FakeRoutedBackend {
+    fail_schedule: bool,
+}
+
+#[async_trait]
+impl RoutedCliBackend for FakeRoutedBackend {
+    async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
+        Ok(Routed {
+            data: profile(),
+            resolution: route_resolution(
+                RoutePolicy::WebVpn,
+                NetworkState::Unknown,
+                ConnectionMode::WebVpn,
+            ),
+        })
+    }
+
+    async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        let resolution = route_resolution(
+            RoutePolicy::Direct,
+            NetworkState::Unknown,
+            ConnectionMode::Direct,
+        );
+        if self.fail_schedule {
+            Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::AuthenticationRequired,
+                    ErrorKind::Authentication,
+                    false,
+                    "fixture schedule authentication required",
+                ),
+                resolution: Some(resolution),
+            })
+        } else {
+            Ok(Routed {
+                data: Vec::new(),
+                resolution,
+            })
+        }
+    }
 }
 
 #[async_trait]
@@ -82,6 +125,18 @@ fn profile() -> UserProfile {
         phone: Some("PHONE-FIXTURE-VALUE".into()),
         id_card_number: Some("TEST-ID-0001".into()),
         ..UserProfile::default()
+    }
+}
+
+fn route_resolution(
+    policy: RoutePolicy,
+    network: NetworkState,
+    route: ConnectionMode,
+) -> RouteResolution {
+    RouteResolution {
+        mode: route,
+        policy,
+        diagnostic: RouteDiagnostic::new(network, route),
     }
 }
 
@@ -211,8 +266,7 @@ async fn aggregate_json_captcha_exposes_only_actionable_safe_challenges() {
         std::env::temp_dir().join(format!("ubaa-cli-aggregate-captcha-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let mut backend =
-        DualUbaaClient::with_transports(direct, webvpn, FileSessionStore::new(&root).unwrap())
-            .unwrap();
+        UbaaClient::with_transports(direct, webvpn, FileSessionStore::new(&root).unwrap()).unwrap();
     let cli = Cli::try_parse_from([
         "ubaa",
         "--json",
@@ -389,6 +443,52 @@ async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
     assert_eq!(value["meta"]["initialRoute"], "direct");
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(value["meta"]["usedFallback"], false);
+    assert!(stderr.is_empty());
+}
+
+#[tokio::test]
+async fn routed_user_success_preserves_core_default_route_diagnostics() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "user", "show"]).unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 0);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["meta"]["feature"], "user");
+    assert_eq!(value["meta"]["routePolicy"], "webvpn");
+    assert_eq!(value["meta"]["initialRoute"], "webvpn");
+    assert_eq!(value["meta"]["resolvedRoute"], "webvpn");
+    assert_ne!(value["data"]["phone"], "PHONE-FIXTURE-VALUE");
+    assert!(stderr.is_empty());
+}
+
+#[tokio::test]
+async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
+    let mut backend = FakeRoutedBackend {
+        fail_schedule: true,
+    };
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 3);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], false);
+    assert_eq!(value["meta"]["feature"], "schedule");
+    assert_eq!(value["meta"]["routePolicy"], "direct");
+    assert_eq!(value["meta"]["networkState"], "unknown");
+    assert_eq!(value["meta"]["initialRoute"], "direct");
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert_eq!(value["meta"]["usedFallback"], false);
+    assert_eq!(value["error"]["code"], "authentication_required");
     assert!(stderr.is_empty());
 }
 

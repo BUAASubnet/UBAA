@@ -7,7 +7,7 @@ use ubaa_core::domain::{
     SecretValue,
 };
 use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::{DualUbaaClient, UbaaClient};
+use ubaa_core::facade::{RouteClient, UbaaClient};
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{
     DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionMutation, SessionSnapshot,
@@ -213,11 +213,11 @@ fn dual_captcha_transports(prepares: usize, direct_posts: usize) -> (MockTranspo
 
 #[test]
 fn public_client_facade_is_concrete_and_accepts_injected_ports() {
-    fn accepts_concrete_client(client: UbaaClient) -> UbaaClient {
+    fn accepts_concrete_client(client: RouteClient) -> RouteClient {
         client
     }
 
-    let client = UbaaClient::with_transport(
+    let client = RouteClient::with_transport(
         ConnectionMode::Direct,
         MockTransport::new([]),
         MemorySessionStore::new(),
@@ -249,7 +249,7 @@ fn mode_mismatch_does_not_clear_a_session_replaced_after_loading() {
         replacement: newer.clone(),
     };
 
-    let result = UbaaClient::with_transport(ConnectionMode::Direct, MockTransport::new([]), store);
+    let result = RouteClient::with_transport(ConnectionMode::Direct, MockTransport::new([]), store);
     let Err(error) = result else {
         panic!("a stale mode-mismatch clear unexpectedly succeeded");
     };
@@ -263,7 +263,7 @@ fn mode_mismatch_does_not_clear_a_session_replaced_after_loading() {
 async fn direct_login_follows_cas_and_returns_userinfo_profile() {
     let (transport, store) = basic_direct_transport();
     let observer = transport.clone();
-    let mut client = UbaaClient::with_transport(ConnectionMode::Direct, transport, store).unwrap();
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, transport, store).unwrap();
 
     let profile = client.login(login_input(None)).await.unwrap();
 
@@ -291,12 +291,9 @@ async fn dual_login_keeps_direct_slot_when_webvpn_route_fails() {
     let root = std::env::temp_dir().join(format!("ubaa-dual-login-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let file_store = FileSessionStore::new(&root).unwrap();
-    let mut client = DualUbaaClient::with_transports(
-        direct_transport,
-        MockTransport::new([]),
-        file_store.clone(),
-    )
-    .unwrap();
+    let mut client =
+        UbaaClient::with_transports(direct_transport, MockTransport::new([]), file_store.clone())
+            .unwrap();
 
     let outcome = client
         .login(DualLoginInput {
@@ -334,7 +331,7 @@ async fn dual_login_persists_both_routes_without_a_false_sibling_conflict() {
     ));
     let _ = std::fs::remove_dir_all(&root);
     let file_store = FileSessionStore::new(&root).unwrap();
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         basic_webvpn_transport(),
         file_store.clone(),
@@ -395,7 +392,7 @@ async fn dual_login_challenges_are_opaque_and_route_bound() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -446,7 +443,7 @@ async fn login_without_explicit_prepare_returns_actionable_captcha_challenges() 
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -515,7 +512,7 @@ async fn invalidated_password_login_reprepares_before_exposing_a_new_captcha() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -605,7 +602,7 @@ async fn prepared_existing_session_is_consumed_without_reentering_sso() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -699,7 +696,7 @@ async fn failed_reprepare_does_not_revive_the_previous_captcha_generation() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -789,7 +786,7 @@ async fn authentication_invalidation_expires_the_route_captcha_binding_before_po
         ))
         .unwrap();
     let mut client =
-        DualUbaaClient::with_transports(direct_transport, webvpn_transport, store).unwrap();
+        UbaaClient::with_transports(direct_transport, webvpn_transport, store).unwrap();
 
     let preparation = client.prepare_login().await;
     let old_id = preparation.challenges[0].challenge_id.clone();
@@ -854,7 +851,7 @@ async fn captcha_id_survives_a_sibling_route_prepare_failure() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -896,7 +893,7 @@ async fn dual_login_rejects_unknown_and_duplicate_captcha_answers_before_post() 
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -953,7 +950,7 @@ async fn dual_login_rejects_empty_captcha_fields_before_post() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -1032,7 +1029,7 @@ async fn consumed_captcha_id_is_rejected_before_a_second_post() {
     let root =
         std::env::temp_dir().join(format!("ubaa-dual-captcha-consumed-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -1079,7 +1076,7 @@ async fn stale_captcha_generation_is_rejected_before_post() {
         std::process::id()
     ));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -1172,7 +1169,7 @@ async fn logout_expires_captcha_ids_before_any_later_credential_post() {
     let root =
         std::env::temp_dir().join(format!("ubaa-dual-captcha-logout-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         direct_transport,
         webvpn_transport,
         FileSessionStore::new(&root).unwrap(),
@@ -1213,7 +1210,7 @@ async fn user_info_without_local_session_makes_zero_requests() {
     let transport = MockTransport::new([]);
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
             .unwrap();
 
     let error = client.get_user_info().await.unwrap_err();
@@ -1235,7 +1232,7 @@ async fn prepared_login_cookies_do_not_authorize_user_requests() {
     )]);
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
             .unwrap();
 
     assert!(client.prepare_login().await.unwrap().is_none());
@@ -1253,7 +1250,7 @@ async fn persistence_error_after_status_clears_uncommitted_authentication() {
     let (transport, _unused_store) = basic_direct_transport();
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, FailingMutationStore)
+        RouteClient::with_transport(ConnectionMode::Direct, transport, FailingMutationStore)
             .unwrap();
 
     let persistence_error = client.login(login_input(None)).await.unwrap_err();
@@ -1270,7 +1267,7 @@ async fn stale_aggregate_logout_preserves_both_newer_slots() {
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
     store.save_dual(&dual_snapshot("initial")).unwrap();
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         MockTransport::new([]),
         MockTransport::new([]),
         store.clone(),
@@ -1295,7 +1292,7 @@ async fn aggregate_logout_opened_empty_rejects_a_later_external_session() {
     ));
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         MockTransport::new([]),
         MockTransport::new([]),
         store.clone(),
@@ -1334,8 +1331,7 @@ async fn aggregate_logout_without_slots_attempts_both_remote_routes() {
     )]);
     let webvpn_observer = webvpn.clone();
     let mut client =
-        DualUbaaClient::with_transports(direct, webvpn, FileSessionStore::new(&root).unwrap())
-            .unwrap();
+        UbaaClient::with_transports(direct, webvpn, FileSessionStore::new(&root).unwrap()).unwrap();
 
     client.logout().await.unwrap();
 
@@ -1356,7 +1352,7 @@ async fn successful_aggregate_logout_advances_revision_once() {
     let store = FileSessionStore::new(&root).unwrap();
     store.save_dual(&dual_snapshot("initial")).unwrap();
     let initial_revision = store.load_dual_versioned().unwrap().revision;
-    let mut client = DualUbaaClient::with_transports(
+    let mut client = UbaaClient::with_transports(
         MockTransport::new([]),
         MockTransport::new([]),
         store.clone(),
@@ -1392,7 +1388,7 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
     let webvpn_transport = MockTransport::new([]);
     let webvpn_observer = webvpn_transport.clone();
     let mut client =
-        DualUbaaClient::with_transports(direct_transport, webvpn_transport, store.clone()).unwrap();
+        UbaaClient::with_transports(direct_transport, webvpn_transport, store.clone()).unwrap();
     let newer = dual_snapshot("newer");
     store.save_dual(&newer).unwrap();
 
@@ -1476,7 +1472,7 @@ async fn terminal_logout_conflict_expires_prepared_captcha_ids() {
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
     let mut client =
-        DualUbaaClient::with_transports(direct_transport, webvpn_transport, store.clone()).unwrap();
+        UbaaClient::with_transports(direct_transport, webvpn_transport, store.clone()).unwrap();
     let preparation = client.prepare_login().await;
     let old_id = preparation.challenges[0].challenge_id.clone();
     store.save_dual(&dual_snapshot("external")).unwrap();
@@ -1565,7 +1561,7 @@ async fn prepare_login_keeps_execution_and_captcha_for_same_client_retry() {
     ]);
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
             .unwrap();
 
     let challenge = client
@@ -1628,7 +1624,7 @@ async fn persistence_conflict_clears_pending_login_workflow_state() {
     let observer = transport.clone();
     let store = MemorySessionStore::new();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
 
     client
         .prepare_login()
@@ -1660,7 +1656,7 @@ async fn captcha_challenge_without_answer_never_submits_credentials() {
     ]);
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
             .unwrap();
 
     let error = client.login(login_input(None)).await.unwrap_err();
@@ -1704,7 +1700,7 @@ async fn password_risk_page_is_continued_once_with_new_execution() {
     ]);
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
             .unwrap();
 
     client.login(login_input(None)).await.unwrap();
@@ -1726,7 +1722,7 @@ async fn repeated_password_risk_page_fails_after_one_continuation() {
         ExpectedRequest::new(HttpMethod::Post, login, response(200, login, warning)),
     ]);
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
             .unwrap();
 
     let error = client.login(login_input(None)).await.unwrap_err();
@@ -1778,7 +1774,7 @@ async fn webvpn_login_uses_gateway_for_every_auth_request() {
     ]);
     let observer = transport.clone();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::WebVpn, transport, MemorySessionStore::new())
+        RouteClient::with_transport(ConnectionMode::WebVpn, transport, MemorySessionStore::new())
             .unwrap();
 
     client.login(login_input(None)).await.unwrap();
@@ -1802,7 +1798,7 @@ async fn invalid_status_clears_session_but_server_error_keeps_it() {
         response(401, status, Vec::new()),
     )]);
     let invalid_store = persisted_store();
-    let mut invalid_client = UbaaClient::with_transport(
+    let mut invalid_client = RouteClient::with_transport(
         ConnectionMode::Direct,
         invalid_transport,
         invalid_store.clone(),
@@ -1818,7 +1814,7 @@ async fn invalid_status_clears_session_but_server_error_keeps_it() {
         response(503, status, Vec::new()),
     )]);
     let server_store = persisted_store();
-    let mut server_client = UbaaClient::with_transport(
+    let mut server_client = RouteClient::with_transport(
         ConnectionMode::Direct,
         server_transport,
         server_store.clone(),
@@ -1844,7 +1840,7 @@ async fn stale_client_cannot_recreate_a_session_cleared_by_another_process() {
     let observer = transport.clone();
     let store = persisted_store();
     let mut stale_client =
-        UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
     store.clear().unwrap();
 
     let error = stale_client.auth_status().await.unwrap_err();
@@ -1862,7 +1858,7 @@ async fn stale_client_cannot_recreate_a_session_cleared_by_another_process() {
 #[tokio::test]
 async fn stale_logout_cannot_clear_a_newer_persisted_session() {
     let store = persisted_store();
-    let mut stale_client = UbaaClient::with_transport(
+    let mut stale_client = RouteClient::with_transport(
         ConnectionMode::Direct,
         MockTransport::new([]),
         store.clone(),
@@ -1912,7 +1908,7 @@ async fn existing_sso_cookie_activates_and_validates_user_center_without_passwor
     ]);
     let observer = transport.clone();
     let store = persisted_store();
-    let mut client = UbaaClient::with_transport(ConnectionMode::Direct, transport, store).unwrap();
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, transport, store).unwrap();
 
     assert!(client.prepare_login().await.unwrap().is_none());
     assert!(
@@ -1943,7 +1939,7 @@ async fn html_and_non_json_status_responses_clear_persisted_session() {
         )]);
         let store = persisted_store();
         let mut client =
-            UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+            RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
 
         let error = client.auth_status().await.unwrap_err();
 
@@ -1969,14 +1965,14 @@ async fn html_userinfo_response_clears_session_and_logout_always_clears_local_st
         )]);
         let store = persisted_store();
         let mut client =
-            UbaaClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+            RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
         let error = client.get_user_info().await.unwrap_err();
         assert_eq!(error.code, ErrorCode::AuthenticationRequired);
         assert!(store.snapshot().unwrap().is_none());
     }
 
     let logout_store = persisted_store();
-    let mut logout_client = UbaaClient::with_transport(
+    let mut logout_client = RouteClient::with_transport(
         ConnectionMode::Direct,
         MockTransport::new([]),
         logout_store.clone(),
@@ -1990,7 +1986,7 @@ async fn html_userinfo_response_clears_session_and_logout_always_clears_local_st
 async fn timeout_error_is_preserved_without_clearing_persisted_session() {
     let store = persisted_store();
     let mut client =
-        UbaaClient::with_transport(ConnectionMode::Direct, TimeoutTransport, store.clone())
+        RouteClient::with_transport(ConnectionMode::Direct, TimeoutTransport, store.clone())
             .unwrap();
     let error = client.auth_status().await.unwrap_err();
     assert_eq!(error.code, ErrorCode::Timeout);

@@ -302,7 +302,7 @@ Commit the focused files as `fix: isolate captcha challenges by route`.
 - Test: `apps/ubaa-cli/tests/binary_e2e.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add RED policy and facade tests**
+- [x] **Step 1: Add RED policy and facade tests**
 
 Rename the test vocabulary from DNS to gateway reachability and cover:
 
@@ -322,7 +322,7 @@ assert_eq!(schedule_result.meta.route_policy, config.feature(ReadonlyFeature::Sc
 
 Add a binary test showing fresh `--json auth login` opens the aggregate facade even when `config.toml` does not exist; it may fail on network, but must not emit the previous startup invalid-input/v1 path.
 
-- [ ] **Step 2: Implement the bounded TCP probe**
+- [x] **Step 2: Implement the bounded TCP probe**
 
 Replace `DnsProbe/SystemDnsProbe/CachingDnsProbe` with:
 
@@ -337,7 +337,7 @@ pub struct CachingGatewayProbe<P> { inner: P, ttl: Duration, cached: Mutex<Optio
 
 The system implementation starts one worker for blocking resolution/connection, shares an `Instant` deadline, connects to `gw.buaa.edu.cn:80`, passes only remaining time to each attempt, returns OffCampus for ordinary network failure, and lets the caller stop waiting at 500 ms. Do not log addresses or spawn unbounded workers per call.
 
-- [ ] **Step 3: Promote the aggregate client to the public facade**
+- [x] **Step 3: Promote the aggregate client to the public facade**
 
 Make `UbaaClient` own `RouteConfig`, cached probe, both private route clients, and the shared session coordinator. Add one internal resolver:
 
@@ -366,11 +366,11 @@ pub async fn judge_assignment_details(&mut self, keys: &[JudgeAssignmentKey]) ->
 
 `Operation::User` uses `config.default`; feature operations use `config.feature(feature)`. Keep `ConnectionMode` out of normal host method parameters. A hidden diagnostic constructor fixes one mode and bypasses probing for live tests.
 
-- [ ] **Step 4: Remove route logic from CLI**
+- [x] **Step 4: Remove route logic from CLI**
 
 Delete CLI imports and functions for `RouteConfig`, probe types, `resolve_feature_route`, `route_feature`, and concrete `ConnectionMode` selection. Always open the aggregate facade for ordinary auth/user/read commands and render the diagnostic returned by Core.
 
-- [ ] **Step 5: Verify facade ownership**
+- [x] **Step 5: Verify facade ownership**
 
 Run:
 

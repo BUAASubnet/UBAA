@@ -1,22 +1,24 @@
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use ubaa_core::config::{FeatureRouteConfig, RouteConfig};
 use ubaa_core::connection::{
-    CachingDnsProbe, DnsProbe, NetworkState, RouteDiagnostic, resolve_feature_route,
+    CachingGatewayProbe, GatewayProbe, NetworkState, RouteDiagnostic, resolve_feature_route,
 };
 use ubaa_core::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
 
 #[derive(Clone)]
 struct ProbeResult(NetworkState);
 
-impl DnsProbe for ProbeResult {
-    fn resolve_gateway(&self, _timeout: Duration) -> NetworkState {
+impl GatewayProbe for ProbeResult {
+    fn probe(&self, _budget: Duration) -> NetworkState {
         self.0
     }
 }
 
 #[test]
-fn auto_route_maps_three_dns_states_and_exposes_diagnostic() {
+fn auto_route_maps_three_gateway_states_and_exposes_diagnostic() {
     let config = RouteConfig::default();
     let campus = resolve_feature_route(
         ReadonlyFeature::Schedule,
@@ -52,7 +54,42 @@ fn auto_route_maps_three_dns_states_and_exposes_diagnostic() {
 }
 
 #[test]
-fn judge_auto_follows_the_common_dns_route_contract_after_direct_revalidation() {
+fn auto_route_gives_the_gateway_probe_one_500ms_total_budget() {
+    struct BudgetProbe(Arc<std::sync::Mutex<Option<Duration>>>);
+
+    impl GatewayProbe for BudgetProbe {
+        fn probe(&self, budget: Duration) -> NetworkState {
+            *self.0.lock().expect("budget observation") = Some(budget);
+            NetworkState::OffCampus
+        }
+    }
+
+    let observed = Arc::new(std::sync::Mutex::new(None));
+    resolve_feature_route(
+        ReadonlyFeature::Schedule,
+        RoutePolicy::Auto,
+        &RouteConfig::default(),
+        &BudgetProbe(observed.clone()),
+    )
+    .expect("auto route");
+
+    assert_eq!(
+        *observed.lock().expect("budget observation"),
+        Some(Duration::from_millis(500))
+    );
+}
+
+#[test]
+fn judge_auto_follows_the_common_gateway_route_contract_after_direct_revalidation() {
+    struct CountingProbe(Arc<AtomicUsize>);
+
+    impl GatewayProbe for CountingProbe {
+        fn probe(&self, _budget: Duration) -> NetworkState {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            NetworkState::OffCampus
+        }
+    }
+
     let config = RouteConfig::default();
     let cases = [
         (NetworkState::Campus, ConnectionMode::Direct),
@@ -73,14 +110,16 @@ fn judge_auto_follows_the_common_dns_route_contract_after_direct_revalidation() 
         assert_eq!(resolved.diagnostic.network, network);
     }
 
+    let calls = Arc::new(AtomicUsize::new(0));
     let explicit_direct = resolve_feature_route(
         ReadonlyFeature::Judge,
         RoutePolicy::Direct,
         &config,
-        &ProbeResult(NetworkState::OffCampus),
+        &CountingProbe(calls.clone()),
     )
     .expect("explicit Judge direct route");
     assert_eq!(explicit_direct.mode, ConnectionMode::Direct);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
 }
 
 #[test]
@@ -123,39 +162,79 @@ fn feature_route_config_has_explicit_unknown_default_and_fallback_flags() {
 }
 
 #[test]
-fn dns_probe_cache_expires_and_reprobes() {
-    use std::sync::{Arc, Mutex};
-
+fn gateway_probe_cache_expires_and_reprobes() {
     #[derive(Clone)]
     struct CountingProbe {
-        calls: Arc<Mutex<usize>>,
+        calls: Arc<AtomicUsize>,
     }
-    impl DnsProbe for CountingProbe {
-        fn resolve_gateway(&self, _timeout: Duration) -> NetworkState {
-            *self.calls.lock().expect("counter") += 1;
+    impl GatewayProbe for CountingProbe {
+        fn probe(&self, _budget: Duration) -> NetworkState {
+            self.calls.fetch_add(1, Ordering::SeqCst);
             NetworkState::Campus
         }
     }
 
-    let calls = Arc::new(Mutex::new(0));
-    let probe = CachingDnsProbe::new(
+    let calls = Arc::new(AtomicUsize::new(0));
+    let probe = CachingGatewayProbe::new(
         CountingProbe {
             calls: calls.clone(),
         },
-        Duration::from_millis(1),
+        Duration::from_millis(20),
     );
     assert_eq!(
-        probe.resolve_gateway(Duration::from_millis(500)),
+        probe.probe(Duration::from_millis(500)),
         NetworkState::Campus
     );
     assert_eq!(
-        probe.resolve_gateway(Duration::from_millis(500)),
+        probe.probe(Duration::from_millis(500)),
         NetworkState::Campus
     );
-    std::thread::sleep(Duration::from_millis(3));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    std::thread::sleep(Duration::from_millis(50));
     assert_eq!(
-        probe.resolve_gateway(Duration::from_millis(500)),
+        probe.probe(Duration::from_millis(500)),
         NetworkState::Campus
     );
-    assert_eq!(*calls.lock().expect("counter"), 2);
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn concurrent_gateway_cache_misses_share_one_probe() {
+    #[derive(Clone)]
+    struct SlowCountingProbe(Arc<AtomicUsize>);
+
+    impl GatewayProbe for SlowCountingProbe {
+        fn probe(&self, _budget: Duration) -> NetworkState {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            std::thread::sleep(Duration::from_millis(20));
+            NetworkState::OffCampus
+        }
+    }
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let probe = Arc::new(CachingGatewayProbe::new(
+        SlowCountingProbe(calls.clone()),
+        Duration::from_secs(1),
+    ));
+    let start = Arc::new(std::sync::Barrier::new(3));
+    let workers = (0..2)
+        .map(|_| {
+            let probe = probe.clone();
+            let start = start.clone();
+            std::thread::spawn(move || {
+                start.wait();
+                probe.probe(Duration::from_millis(500))
+            })
+        })
+        .collect::<Vec<_>>();
+    start.wait();
+
+    for worker in workers {
+        assert_eq!(
+            worker.join().expect("probe worker"),
+            NetworkState::OffCampus
+        );
+    }
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
 }

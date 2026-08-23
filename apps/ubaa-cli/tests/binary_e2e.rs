@@ -74,6 +74,26 @@ fn binary_host_does_not_reach_through_the_facade_for_session_state() {
 }
 
 #[test]
+fn binary_host_does_not_own_route_resolution() {
+    let main_source = include_str!("../src/main.rs");
+
+    for forbidden in [
+        "RouteConfig",
+        "GatewayProbe",
+        "SystemGatewayProbe",
+        "resolve_feature_route",
+        "ReadonlyRouteContext",
+        "route_feature",
+        "ConnectionMode",
+    ] {
+        assert!(
+            !main_source.contains(forbidden),
+            "process host still owns route detail {forbidden}"
+        );
+    }
+}
+
+#[test]
 fn binary_help_lists_required_commands_without_password_option() {
     let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
         .arg("auth")
@@ -142,9 +162,30 @@ fn binary_json_readonly_without_session_uses_schema_v2_route_diagnostics() {
 }
 
 #[test]
-fn binary_json_login_without_mode_or_session_exits_two_before_network() {
+fn binary_json_login_without_mode_or_config_enters_aggregate_facade() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-mode-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);
+    let proxy = TcpListener::bind("127.0.0.1:0").unwrap();
+    proxy.set_nonblocking(true).unwrap();
+    let proxy_address = proxy.local_addr().unwrap();
+    let proxy_thread = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut accepted = 0;
+        while accepted < 2 && Instant::now() < deadline {
+            match proxy.accept() {
+                Ok((connection, _)) => {
+                    drop(connection);
+                    accepted += 1;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Err(_) => break,
+            }
+        }
+        accepted
+    });
+    let proxy_url = format!("http://{proxy_address}");
     let mut child = Command::new(env!("CARGO_BIN_EXE_ubaa"))
         .arg("--json")
         .arg("--config-dir")
@@ -157,6 +198,12 @@ fn binary_json_login_without_mode_or_session_exits_two_before_network() {
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
+        .env("HTTPS_PROXY", &proxy_url)
+        .env("https_proxy", &proxy_url)
+        .env("ALL_PROXY", &proxy_url)
+        .env("all_proxy", &proxy_url)
+        .env_remove("NO_PROXY")
+        .env_remove("no_proxy")
         .spawn()
         .unwrap();
     child
@@ -167,9 +214,11 @@ fn binary_json_login_without_mode_or_session_exits_two_before_network() {
         .unwrap();
     let output = child.wait_with_output().unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(output.status.code(), Some(2));
-    assert_eq!(value["error"]["code"], "invalid_input");
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["meta"]["feature"], "auth");
+    assert_ne!(value["error"]["code"], "invalid_input");
     assert!(output.stderr.is_empty());
+    assert!(proxy_thread.join().unwrap() > 0);
     let _ = std::fs::remove_dir_all(config);
 }
 
