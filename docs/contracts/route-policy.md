@@ -1,6 +1,6 @@
 # Route Policy Contract
 
-Status: implemented with deterministic DNS/config/session coverage; live feature evidence is recorded in `docs/migration/readonly-feature-matrix.md`.
+Status: target contract accepted; the existing resolver/CLI-owned implementation is under remediation and is not completion evidence.
 
 `RoutePolicy` is the host-facing choice (`auto`, `direct`, or `webvpn`). `ConnectionMode` is the internal resolved route. Ordinary CLI help does not expose `--mode`; the hidden override is retained only for deterministic tests, live verification, and diagnostics.
 
@@ -25,23 +25,26 @@ judge = "auto"
 
 Unknown fields, feature names, versions other than `1`, and route values outside the three registered values are rejected as `invalid_input`. A missing file uses `auto`.
 
-## DNS resolution
+## Gateway reachability
 
-`SystemDnsProbe` resolves `gw.buaa.edu.cn` with a 500 ms bound. At least one resolved address is `Campus`, an authoritative no-record result is `OffCampus`, and timeout or other resolver failure is `Unknown`. The current-process cache is 60 seconds and is injectable in tests. No IP range is hard-coded and no credential is read by the probe.
+The injectable production probe tests TCP connectivity to `gw.buaa.edu.cn:80`. One 500 ms deadline covers hostname resolution and every resolved-address connection attempt; the implementation must pass only the remaining budget to each attempt. Any successful connection is `Campus`. Resolution failure, no addresses, refused/unreachable connections, and ordinary timeout are `OffCampus`. Only an internal probe failure, including a deliberately injected diagnostic failure, is `Unknown`.
 
-`Campus` resolves `auto` to Direct; `OffCampus` resolves it to WebVPN. `Unknown` uses the feature row's `unknown_default` and remains visible in `RouteDiagnostic`. All six feature rows currently use this common mapping with `unknown_default=Direct`; fresh campus live evidence now proves Judge on Direct as well as WebVPN, so no feature-specific auto override remains. Explicit routes do not fallback.
+The result is cached process-locally for 60 seconds and the cache is injectable in tests. The probe sends no HTTP or TLS request, reads no credential, and hard-codes neither an address nor an IP range. This target/port/duration comes from `examples/buaa-api/src/utils/net.rs`; the single total budget and `Unknown` boundary are UBAA 2 product constraints.
+
+`Campus` resolves `auto` to Direct; `OffCampus` resolves it to WebVPN. `Unknown` uses the feature row's `unknown_default` and remains visible in `RouteDiagnostic`. All six feature rows use this common mapping with `unknown_default=Direct`; historical Judge commands reached both routes, so no feature-specific auto override is justified, but their count/detail semantic difference remains unresolved. Explicit routes do not fallback.
 
 The initial matrix sets both ready-route and network-error fallback to false for every operation. This is deliberate: a feature may be retried on the other route only after its frozen implementation and live evidence establish that the operation is idempotent and safe to replay.
 
 Schema-v2 read-only CLI successes and post-resolution errors expose the same safe diagnostic
 metadata: `routePolicy`, `networkState`, `initialRoute`, `resolvedRoute`, `usedFallback`, and
-`feature`. Explicit Direct/WebVPN policies do not run the DNS probe, so their `networkState` is
+`feature`. Explicit Direct/WebVPN policies do not run the gateway probe, so their `networkState` is
 `unknown`; this means "not probed or indeterminate", not off-campus. The host passes the immutable
-`RouteResolution` into rendering, while the facade remains responsible only for business DTOs and
-the concrete route it used.
+diagnostic returned by the facade into rendering. The Core facade owns config loading, probe caching,
+route resolution, readiness preflight and business execution; a host cannot reconstruct or override
+ordinary route selection. The hidden explicit mode remains a separate diagnostic/test entry point.
 
 ## Session slots
 
-`session.json` schema version 2 stores independent `direct` and `webvpn` slots under one file lock and revision CAS. `RouteSessionStore` gives each runtime a route-local view while preserving the shared revision. A legacy single snapshot migrates only to its recorded `mode` slot; Cookies are never copied to the other slot. Challenge/execution state remains in memory.
+`session.json` schema version 2 stores independent `direct` and `webvpn` slots under one file lock and revision CAS. One aggregate coordinator owns the complete snapshot and revision while private runtimes receive route-local state. A legacy single snapshot migrates only to its recorded `mode` slot; Cookies are never copied to the other slot. Challenge/execution state remains in memory.
 
-`DualUbaaClient` prepares and submits Direct then WebVPN with independent `AuthWorkflow` and Cookie/runtime state. A failed second route produces a `partial` `LoginOutcome` and leaves the first slot intact. Aggregate JSON exposes only route state, stable error fields, challenge ID, and image availability.
+The ordinary `UbaaClient` aggregate facade prepares and submits Direct then WebVPN with independent private `AuthWorkflow` and Cookie/runtime state. A failed second route produces a `partial` `LoginOutcome` and leaves the first slot intact. Aggregate JSON exposes only route state, stable error fields, challenge ID, and image availability.

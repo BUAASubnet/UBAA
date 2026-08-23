@@ -34,7 +34,7 @@ Both `LocalConnectionAuth.kt::logout` and the remote-backed `AuthApi.kt::logout`
 
 ## 2026-08-19: Historical Judge auto WebVPN route (superseded 2026-08-23)
 
-The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. At that time live verification showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0, so the route matrix temporarily forced `auto` to WebVPN for all DNS states. This was a deterministic feature exception, not a fallback replay. Later WebVPN/auto attempts also returned upstream timeouts or changed responses; those observations remain historical rerun conditions. Fresh campus evidence and the superseding 2026-08-23 decision below removed the stale override.
+The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. At that time live verification showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0, so the route matrix temporarily forced `auto` to WebVPN for all network states. This was a deterministic feature exception, not a fallback replay. Later WebVPN/auto attempts also returned upstream timeouts or changed responses; those observations remain historical rerun conditions. Fresh campus evidence and the superseding 2026-08-23 decision below removed the stale override.
 
 ## 2026-08-19: Require AAS service activation before schedule reads
 
@@ -54,4 +54,26 @@ The verifier contract requires one real Judge detail when the list is non-empty;
 
 ## 2026-08-23: Revalidate Judge Direct in the campus network
 
-The previous Judge `auto -> WebVPN` override was introduced after an explicit Direct attempt returned `upstream_unavailable`. With the test account on the campus network, fresh live checks now prove Judge list/detail success on Direct (exit 0, 65 assignments) and WebVPN (exit 0, 17 assignments), while the other five features also pass on both explicit routes. This is new route evidence, not a fixture assumption. The old implementation supports route-local Judge requests and does not require WebVPN, so the stale feature override is removed; Judge `auto` now follows the common DNS contract: Campus -> Direct, OffCampus -> WebVPN, Unknown -> the matrix default Direct. The earlier WebVPN-only successes remain historical evidence and no cross-route replay is introduced.
+The previous Judge `auto -> WebVPN` override was introduced after an explicit Direct attempt returned `upstream_unavailable`. With the test account on the campus network, later live checks returned exit 0 on Direct (reported 65 assignments) and WebVPN (reported 17 assignments), while the other five features also returned exit 0 on both explicit routes. The old implementation supports route-local Judge requests and does not require WebVPN, so the stale feature override was removed. This decision did not explain the 65/17 difference and did not prove the old detail parser semantics; the remediation decision below therefore reclassifies these values as historical observations rather than completed parity evidence.
+
+## 2026-08-23: Use a bounded TCP gateway probe
+
+The accepted product signal is a TCP connection attempt to `gw.buaa.edu.cn:80`, following the concrete target, port and 500ms duration in pinned `examples/buaa-api/src/utils/net.rs`. The entire operation, including hostname resolution and all resolved-address attempts, has one 500ms budget. Any successful connection is `Campus`; ordinary resolution failure, no addresses, refusal, unreachable network or deadline exhaustion is `OffCampus`. Only an internal probe implementation failure or deliberately injected diagnostic failure is `Unknown`. Results are process-local and cached for 60 seconds. The probe sends no HTTP/TLS request, reads no credential and hard-codes no IP address/range.
+
+This supersedes the earlier resolver-only authority. The total-budget and `Unknown` boundary are explicit UBAA 2 product constraints because the example applies 500ms per address and returns only Boolean; they are not presented as frozen upstream behavior.
+
+## 2026-08-23: Move ordinary route selection into the aggregate Core facade
+
+The earlier host-owned diagnostic design is superseded. The ordinary `UbaaClient` facade owns strict config loading, the cached gateway probe, route resolution/readiness checks, two private route runtimes, the shared dual-session coordinator and route-owned feature state. CLI and future hosts only parse input, call facade methods and render the facade's safe diagnostics. Explicit `ConnectionMode` remains available only through a clearly separate diagnostic/test path.
+
+One coordinator owns the loaded dual snapshot and revision. It never adopts a revision written by another process in order to retry a mutation. Aggregate logout performs both best-effort remote calls, clears this process, and attempts one dual compare-exchange; a conflict preserves the complete newer persisted snapshot.
+
+## 2026-08-23: Make CLI schema v2 the only output contract
+
+All ordinary commands, hidden diagnostics, argument failures, authentication results and read-only results emit only schema version 2. The unshipped schema-v1 CLI branch is removed rather than maintained as compatibility surface. This does not change `config.toml` on-disk format version `1` or the versioned `session.json` migration reader; those are independent disk formats.
+
+## 2026-08-23: Reopen SPOC and Judge live conclusions
+
+Frozen `LocalSpocApi.kt` treats course metadata as optional and always calls the encrypted global `queryListByPage` operation with `kcid=""`. Pinned `buaa-api` instead calls per-course `queryXsZyList`, so its list/auth flow is non-equivalent; only matching AES constants, token facts and the detail endpoint may supplement the old source. The prior three-route empty result is unverified until the corrected global empty-`kcid` request is observed. It cannot be called a valid empty list merely because the command exited 0.
+
+Pinned `buaa-api` has no Judge module. Frozen `LocalJudgeApi.kt` filters `problemContent`/`judgeDetails` assignment links and parses nested problem tables, scores, `PARTIAL` state and fallback counts. The current historical exit-0 detail checks did not assert all those semantics. Direct reported 65 items while WebVPN reported 17; the difference is unresolved and must be investigated after parser/cache parity without persisting IDs, titles or raw bodies. Neither route is permanently preferred from this observation.

@@ -4,143 +4,130 @@ Updated: 2026-08-23
 
 ## Conclusion
 
-阶段 7-12 的代码、确定性测试、双源对标文档和真实矩阵已落地；在 2026-08-23 校园网环境的最新重跑中，认证 Direct/WebVPN、六类单项 `auto`、聚合 `all/auto`，以及六类功能的显式 Direct/WebVPN 均 exit 0。SPOC 在三条路线均为真实空列表；没有用 fixture、Mock 或认证成功替代业务验收。此前 Judge 的不可用/上游变化只作为历史失败与重跑条件保留。
+阶段 7-12 曾被标记完成，但 2026-08-23 的冻结源逐操作复核发现路由、双槽位
+CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍有实质缺口。
+当前结论是“修复中，未完成”。下列历史 exit-0 命令只证明当时的请求/解析路径
+没有返回错误；在对应请求合同和语义断言修复并重新运行之前，不得把它们当成
+当前完成证据。
 
 ## Baseline
 
 - Branch: `ubaa2`.
 - Frozen `ubaa_old/` HEAD: `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`.
 - Frozen `examples/buaa-api/` HEAD: `efb7976bf513f38364b88aeb83d704586cff9b2a`.
-- `just refs` verifies both clean reference worktrees and fixed HEADs.
-- `.env.local` was checked for the two required variable names and non-empty values; values were never printed, logged, staged, or persisted.
-- The user-edited `goal.md` remains outside implementation commits.
+- `just refs` on 2026-08-23 verifies both clean reference worktrees and fixed HEADs.
+- `.env.local` remains a read-only sensitive input; no value is printed, logged, staged or persisted.
+- The previously uncommitted `goal.md` expansion is now part of this remediation contract phase.
 
-## Phase Status
+## Remediation Status
 
-| Phase | Status | Evidence or remaining gate |
+| Phase | Current status | Required closure |
 |---|---|---|
-| 0-6 baseline | Preserved | Existing commits and reference checks remain intact. |
-| 7 route policy | Implemented and deterministic-tested | Three DNS states, 60-second cache, strict TOML v1 config, six matrix rows, hidden CLI override, and common Campus -> Direct / OffCampus -> WebVPN / Unknown -> Direct mapping. Fresh Judge Direct evidence removed the former temporary auto override. |
-| 8 dual sessions | Implemented and deterministic-tested | Schema-v2 two-slot persistence, legacy migration, per-route auth/challenge state, partial login, aggregate status, logout of both routes, revision CAS. |
-| 9a schedule/exam/grades | Implemented with sanitized fixture and facade Mock coverage; real-verified on Direct/WebVPN/auto | AAS service activation, schedule/exam Referer, weekly form encoding, grades activation GET and `xq/year` POST are asserted. Current required auto runs and explicit Direct/WebVPN exam/grades runs succeeded. |
-| 9b classroom | Implemented with sanitized fixture and facade Mock coverage; real-verified on Direct/WebVPN/auto | The CAS sync, query URL and required headers are asserted. All three live routes succeeded with 158 parsed classrooms for the 2026-08-23 default date. |
-| 9c SPOC | Implemented with sanitized fixture/Mock coverage; real empty result on Direct/WebVPN/auto | CAS token/role, known AES-CBC vector, one business-auth refresh, pagination, Asia/Shanghai time mapping, detail/submission read and HTML/status mapping pass deterministic tests. All three routes returned a valid empty list; no detail was available to exercise live. |
-| 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds; real-verified on Direct/WebVPN/auto | Business-page redirects use the route-locked redirect helper; workers filter Judge-scoped cookies and independently activate before course selection; detail/batch reads remain bounded at four workers. Campus Direct, WebVPN, and campus `auto` list/detail checks passed on 2026-08-23. |
-| 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
-| 11 live matrix | Passed on 2026-08-23 campus rerun | Auth Direct/WebVPN; schedule/exam/grades/classroom/SPOC/Judge auto; aggregate `all/auto`; and all six features on explicit Direct/WebVPN have exit-0 evidence. |
-| 12 handoff/gates | Ready; final deterministic gates passed | Code fixes `bc45882` and the Judge route correction, verifier fix, source-parity audit, current status/matrix, and decision records are present. Post-commit `just refs`, `just check-sensitive`, and `just check` all exited 0. |
+| 0-6 baseline | Preserved | Re-run deterministic and live authentication gates after aggregate-facade changes. |
+| 7 route policy | Non-conforming implementation | Replace resolver behavior with `gw.buaa.edu.cn:80` TCP reachability under one 500ms total budget; ordinary failure is OffCampus, internal failure is Unknown; cache 60s in Core facade. |
+| 8 dual sessions | Concurrency defect open | Load dual snapshot/revision in one lock epoch; one shared coordinator; aggregate logout uses one CAS and cannot adopt/delete newer slots. |
+| 9a schedule/exam/grades | No new defect established by this audit | Preserve existing frozen-source evidence and rerun after facade integration. |
+| 9b classroom | Request/state parity gaps open | Restore exact long UA, no-redirect query, strict required `d/list`, and once-per-route synchronized state cleared with session. |
+| 9c SPOC | False-empty and detail gaps open | Use global encrypted `queryListByPage` with empty `kcid` even when course metadata is empty; submission is optional; retain summary fallback; remove public raw HTML. |
+| 9d Judge | Parser/cache gaps open | Filter internal links, port full problem/score/status parser, move caches to route/client state, clear them with the session. |
+| 10 CLI/JSON | Contract gaps open | Aggregate Core facade owns selection; first JSON login works without pre-existing config; all output is schema v2 only; route arrays/order/cardinality are strict. |
+| 11 live matrix | Must be rerun | Existing evidence predates the corrected request/parser contracts and cannot close SPOC/Judge semantics. |
+| 12 handoff/gates | Not ready | Run focused RED/GREEN evidence, sensitive/full gates and the complete post-fix live matrix before changing this status. |
 
-## Live Authentication
+## Historical Live Authentication
 
-| Command | Result |
+These commands exited 0 on 2026-08-23 and established only that both
+authentication routes worked at that time. They do not prove atomic logout,
+captcha generation binding, Core-owned selection or any business endpoint.
+
+| Command | Historical result |
 |---|---|
-| `just verify-live feature=auth route=direct` | Exit 0; `auth_status` parsed user present; no personal fields persisted in this report. |
-| `just verify-live feature=auth route=webvpn` | Exit 0; `auth_status` parsed user present; no personal fields persisted in this report. |
+| `just verify-live feature=auth route=direct` | Exit 0; `auth_status` parsed a user. |
+| `just verify-live feature=auth route=webvpn` | Exit 0; `auth_status` parsed a user. |
 
-These prove only the two authentication routes. They do not prove any business endpoint.
+## Historical Read-Only Commands And Limitations
 
-## Read-Only Live Matrix
+| Feature | Direct historical result | WebVPN historical result | Auto historical result | Current interpretation |
+|---|---|---|---|---|
+| Schedule (terms/weeks/current/today) | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Retained as historical evidence; rerun after facade routing changes. |
+| Exam arrangement | Exit 0 | Exit 0 | Exit 0 | Retained as historical evidence; rerun with a term returned by schedule. |
+| Grades | Exit 0 | Exit 0 | Exit 0 | Retained as historical evidence; rerun with strict old term semantics. |
+| Empty classroom | Exit 0; reported 158 for campus 1/date 2026-08-23 | Exit 0; reported 158 | Exit 0; reported 158 | The result predates exact UA/no-redirect/strict-DTO remediation; rerun is required. |
+| SPOC assignments/detail | Exit 0; reported empty | Exit 0; reported empty | Exit 0; reported empty | **Unverified until the global empty-`kcid` query is observed.** The current implementation can return a false empty result when course metadata is empty. No live detail ran. |
+| Judge list/detail | Exit 0; reported 65 plus one detail | Exit 0; reported 17 plus one detail | Exit 0; reported 65 plus one detail | Counts are historical observations only. Detail score/problem/status semantics are unverified, and the Direct 65/WebVPN 17 difference is unresolved. |
 
-| Feature | Implemented state | Direct | WebVPN | Auto result | Failure or rerun condition |
-|---|---|---|---|---|---|
-| Schedule (terms/weeks/current/today) | Core facade, DTOs, AAS portal activation, parsers, CLI and adaptive verifier implemented | Success: exit 0; terms, weeks, current and today parsed | Success: exit 0; terms, weeks, current and today parsed | Success: exit 0; terms, weeks, current and today parsed | Re-run when refreshing term/week evidence; the prior failure was the missing AAS activation/form header and is fixed in `bc45882`. |
-| Exam arrangement | Facade/parser/CLI implemented; term is selected from schedule response | Success: exit 0 | Success: exit 0 | Success: exit 0 | Re-run with the same verifier prerequisites; no unsupported-account state observed. |
-| Grades | Strict `yyyy-yyyy-semester` parser, activation GET, form `xq/year` POST, DTO/CLI implemented | Success: exit 0 | Success: exit 0 | Success: exit 0 | Re-run with the returned term; no unsupported-account state observed. |
-| Empty classroom | CAS sync, route-locked headers/query, empty-map parser and CLI implemented | Success, 158 results, exit 0, date `2026-08-23` | Success, 158 results, exit 0, date `2026-08-23` | Success, `result_count=158`, exit 0, date `2026-08-23` | Direct, WebVPN and auto are verified for campus `1` and the current Asia/Shanghai date; rerun with a different campus/date when needed. |
-| SPOC assignments/details | CAS token/role, encrypted paginated list, detail, submission status and HTML text implemented | Success, empty list, exit 0 | Success, empty list, exit 0 | Success, `result_count=0`, exit 0 | Empty lists are valid real results on all three routes. A non-empty account should rerun to exercise one detail request. |
-| Judge assignments/details | SSO activation, route-locked redirects, isolated workers, HTML parsers, cutoff/cache and detail/batch facade implemented | 2026-08-23 exit 0, 65 assignments plus one detail | 2026-08-23 exit 0, 17 assignments plus one detail | 2026-08-23 exit 0, 65 assignments plus one detail; campus auto resolved to Direct | Historical Direct `upstream_unavailable` and detail `upstream_changed` are retained as failed commands; rerun if upstream list volatility recurs and record the stage. |
-
-The latest required aggregate `just verify-live feature=all route=auto` run on 2026-08-23 exited 0: schedule, exam, grades, classroom, SPOC and Judge each succeeded, and Judge completed one detail. The aggregate used the campus auto route, which now follows Direct for all six features. Earlier attempts failed at Judge list/detail with `timeout` or `upstream_changed`; those failures remain historical rerun evidence, not current route status.
-
-The individual required command summaries were:
+The following individual command summaries are retained as historical command
+evidence, not current acceptance:
 
 ```text
-schedule auto: exit 0 terms/weeks/current/today parsed
-exam auto: exit 0 term selected and exam response parsed
-grades auto: exit 0 term selected and score response parsed
-classroom auto: exit 0 result_count=158 date=2026-08-23
-spoc auto: exit 0 result_count=0
-judge auto: exit 0 result_count=65; campus auto resolved to direct and completed one detail
+feature=schedule route=auto: exit 0; terms/weeks/current/today parsed
+feature=exam route=auto: exit 0; term selected and response parsed
+feature=grades route=auto: exit 0; term selected and response parsed
+feature=classroom route=auto: exit 0; result_count=158 date=2026-08-23
+feature=spoc route=auto: exit 0; reported result_count=0; INVALID AS EMPTY-SEMANTICS PROOF
+feature=judge route=auto: exit 0; reported result_count=65 plus one detail; DETAIL SEMANTICS UNVERIFIED
 ```
 
-Additional explicit-route failure checks:
+Additional explicit-route commands historically exited 0:
 
 ```text
-schedule direct/webvpn: exit 0 terms/weeks/current/today parsed on both routes
-exam direct/webvpn: exit 0 on both routes
-grades direct/webvpn: exit 0 on both routes
-judge direct: exit 0 result_count=65 with list and detail (2026-08-23)
-judge webvpn: exit 0 result_count=17 with list and detail (2026-08-23); intermittent timeout/upstream_changed attempts remain historical
+schedule direct/webvpn: terms/weeks/current/today parsed on both
+exam direct/webvpn: parsed on both
+grades direct/webvpn: parsed on both
+classroom direct/webvpn: reported result_count=158 on both
+spoc direct/webvpn: reported result_count=0 on both; global empty-kcid request not established
+judge direct: reported result_count=65 plus one detail
+judge webvpn: reported result_count=17 plus one detail
 ```
 
-Additional explicit-route business checks:
+The historical aggregate
+`just verify-live feature=all route=auto` also exited 0 after reporting each
+feature successful. It is not a current hard-gate pass because SPOC could have
+short-circuited before the authoritative global query, Judge detail assertions
+did not cover the old parser semantics, and automatic selection used the
+superseded resolver/CLI-owned implementation.
 
-```text
-classroom direct: exit 0 result_count=158 date=2026-08-23
-classroom webvpn: exit 0 result_count=158 date=2026-08-23
-spoc direct: exit 0 result_count=0
-spoc webvpn: exit 0 result_count=0
-judge direct: exit 0 result_count=65 with list and detail in one verifier run
-judge webvpn: exit 0 result_count=17 with list and detail in one verifier run
-judge auto: exit 0 result_count=65 with list and detail; campus resolved route Direct
-judge auto in latest aggregate: exit 0, list plus one detail parsed; campus resolved route Direct
-```
+Historical failed Judge attempts remain relevant: explicit Direct previously
+returned `upstream_unavailable`; later WebVPN/auto attempts returned `timeout`
+or `upstream_changed`; stale sampled IDs returned not found. These observations
+show upstream volatility but select neither a permanent route nor a parser
+contract. The 65/17 count divergence must be investigated using safe in-memory
+IDs/counts after the parser/cache fixes; it must not be normalized or hidden.
 
-The matrix never treats authentication success, an empty fixture, or a Mock response as business-route evidence. Each explicit success above comes from a real verifier business response. The real SPOC empty list is valid empty-result evidence, and Judge now has current Direct, WebVPN, and campus auto list/detail evidence.
+## Historical Deterministic Gates
 
-## Deterministic Gates
+Before this audit, the following passed:
 
-The latest focused runs passed:
-
-- `cargo test --locked --workspace` (all workspace tests passed, including the 21-test read-only suite and verifier regression).
+- `cargo test --locked --workspace`.
 - `cargo clippy --locked --workspace --all-targets -- -D warnings`.
 - `cargo test --locked -p ubaa-cli --test binary_e2e` (10 passed).
 - `cargo test --locked -p ubaa-test-support --test readonly` (19 passed).
 - `cargo test --locked -p ubaa-test-support --test support` (8 passed).
 - `./scripts/test-verify-live.sh`.
+- `just refs`, `just check-sensitive`, and `just check`.
 
-The final required deterministic gate sequence passed on 2026-08-23 after the AAS/form, Judge route, verifier and documentation changes:
+Those passes describe the pre-remediation implementation. They do not validate
+the newly corrected contract and must be rerun after every production phase.
+CI remains deterministic-only and never reads `.env.local`.
 
-```bash
-just refs
-just check-sensitive
-just check
-```
+## Open Defects And Evidence Gaps
 
-`just refs` exit 0 verified both frozen HEADs; `just check-sensitive` exit 0 scanned 100 repository files; `just check` exit 0 covered locked metadata, format, Clippy, all workspace tests, the synthetic verifier, build, Rustdoc and diff checks.
-
-The required live command sequence was run again on 2026-08-23 after moving Judge back to the common auto route. Auth Direct and WebVPN exited 0. The prior aggregate attempts exposed Judge sampling volatility, so the verifier was covered by a failing shell test, fixed to choose the first returned assignment, and the current aggregate and each individual feature command now pass. The current required results are:
-
-```text
-feature=auth route=direct: exit 0
-feature=auth route=webvpn: exit 0
-feature=all route=auto: exit 0; schedule/exam/grades/classroom/spoc/judge all succeeded; campus auto resolved to Direct
-feature=schedule route=auto: exit 0
-feature=exam route=auto: exit 0
-feature=grades route=auto: exit 0
-feature=classroom route=auto: exit 0
-feature=spoc route=auto: exit 0; real empty list
-feature=judge route=auto: exit 0; result_count=65, list plus one detail; campus auto resolved to Direct
-```
-
-Additional explicit-route evidence after the AAS and Judge route fixes: schedule, exam, grades, classroom, SPOC, and Judge each exited 0 on both Direct and WebVPN on 2026-08-23. SPOC returned a valid empty list on each route. Judge Direct and WebVPN each completed one detail; `auto` follows Direct in the current campus DNS state.
-
-CI remains deterministic-only: it does not read `.env.local` or contact live accounts. Sensitive scans must continue to reject passwords, Cookies, tokens, captcha images, raw bodies, and complete personal data.
-
-## Remaining Gaps
-
-- The required aggregate `all/auto` hard gate passed on the latest 2026-08-23 run. All six features have current real list/detail or valid empty-result evidence on Direct, WebVPN, and campus `auto`.
-- Schema-v2 JSON carries effective policy, DNS state, initial/final route and fallback diagnostics; human output continues to show the concrete route without exposing internal protocol details.
-- Judge list and batch-detail queries now use route-locked read-only workers with an actual four-request semaphore; each worker filters Judge-scoped Cookies, independently activates the route, and never persists authentication state.
-- No write operations were migrated: submission/upload, answers, reservations, attendance, grading changes, or other side effects remain out of scope.
-- Windows owner-only directory ACL enforcement remains a release-audit item from the phase 0-6 baseline.
+- Production automatic selection still needs the accepted TCP reachability implementation and Core-facade ownership.
+- Dual logout/session mutation still needs one shared snapshot/revision coordinator and stale-writer tests.
+- Route/generation-bound captcha IDs and zero-request user preflight remain required.
+- Config writes must match the documented symlink, regular-file and unique-temp safety behavior.
+- Classroom must be compared against the exact frozen UA/redirect/DTO/state contract.
+- SPOC empty-list evidence is invalid until the encrypted global request has `kcid=""`; a non-empty account is still needed to live-check optional submission/detail fallback.
+- Judge detail semantics and cache lifecycle are unverified; the 65/17 route difference is unresolved.
+- All CLI envelope branches, including argument errors and hidden diagnostics, must become schema v2 only.
+- No write operation is migrated: submission/upload, answers, reservations, attendance, grading changes and other side effects remain out of scope.
+- Windows owner-only directory ACL enforcement remains a release-audit item from the baseline.
 
 ## Rerun Handoff
 
-1. Re-run `just refs`, `just check-sensitive`, and `just check` from a clean implementation tree.
-2. Re-run schedule, exam and grades Direct/WebVPN/auto commands when refreshing evidence; record only exit/code/count summaries here.
-3. Re-run classroom on a requested campus/date if the existing 158-result Direct/WebVPN/auto evidence is stale.
-4. Re-run SPOC with an account that has an assignment to exercise the detail path; the current Direct/WebVPN/auto runs are valid empty-list evidence.
-5. Re-run Judge WebVPN/auto when refreshing evidence; record both list and one current detail, and do not infer success from an empty fixture or a stale ID.
-6. Re-run `just verify-live feature=all route=auto` when refreshing the complete matrix; the latest required run passed on 2026-08-23.
-7. If Judge detail again returns `upstream_changed` or `timeout`, record the exact failed stage and rerun only with a newly returned list item; never reuse a stale assignment ID or fall back across routes.
+1. Complete each focused RED/GREEN remediation phase and run `just check-sensitive` plus `just check` before its commit.
+2. Run `just refs`, `just check-sensitive`, `just check`, CLI binary E2E and verifier regression from the final clean tree.
+3. Run authentication on Direct/WebVPN, then all six explicit routes and each `auto` feature with the facade-owned TCP probe.
+4. For SPOC, assert the live list actually reached the global empty-`kcid` operation; if non-empty, read one detail and treat submission failure as optional.
+5. For Judge, assert safe parser semantics (problem/status/score presence rules), compare route counts without persisting IDs/titles, and record the unresolved cause if 65/17 or another difference remains.
+6. Only after the corrected aggregate `all/auto` and every required gate pass may this document return to “complete”.
