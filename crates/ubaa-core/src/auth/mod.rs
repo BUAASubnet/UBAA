@@ -169,14 +169,14 @@ impl AuthWorkflow {
     }
 
     pub(crate) async fn logout(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
-        if !runtime.has_local_session() {
-            self.state.clear();
-            return Ok(());
-        }
+        self.remote_logout(runtime).await;
+        runtime.clear_with(|| self.state.clear())
+    }
+
+    pub(crate) async fn remote_logout(&mut self, runtime: &mut ClientRuntime) {
         if let Ok(url) = runtime.url(SSO_LOGOUT_URL) {
             let _ = runtime.request(HttpRequest::get(url)).await;
         }
-        runtime.clear_with(|| self.state.clear())
     }
 
     pub(crate) fn clear(&mut self) {

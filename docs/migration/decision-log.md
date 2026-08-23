@@ -68,6 +68,18 @@ The earlier host-owned diagnostic design is superseded. The ordinary `UbaaClient
 
 One coordinator owns the loaded dual snapshot and revision. It never adopts a revision written by another process in order to retry a mutation. Aggregate logout performs both best-effort remote calls, clears this process, and attempts one dual compare-exchange; a conflict preserves the complete newer persisted snapshot.
 
+## 2026-08-23: Preserve route CAS semantics inside the dual coordinator
+
+The two route runtimes share one file revision but retain independent route-local logical revisions. A route adapter rejects an outdated logical revision before building a candidate, so two same-route writers that loaded the same state cannot both succeed. A valid sibling-route mutation may advance the file revision without making the other route's logical revision stale; the coordinator then merges that route's replacement into its client-owned full snapshot and performs one file CAS. Aggregate logout advances both route-local revisions and the file revision through one full-snapshot clear, including when this client originally loaded no slots.
+
+An external file CAS conflict is terminal for that coordinator instance. It clears the coordinator snapshot and both route runtimes/auth workflows, stops any not-yet-started sibling request, preserves the complete external snapshot, and returns the stable retryable conflict. Later calls on that instance keep returning the conflict without network I/O; recovery requires opening a new facade. This prevents a stale process from silently adopting the external revision or continuing with sibling Cookies after one route has lost ownership.
+
+A file CAS error is treated as equally terminal because the crash-safe store intentionally advances and synchronizes its revision before replacing or deleting `session.json`. An error may therefore mean that revision ownership was lost even when the body operation did not complete. The coordinator clears its client-owned snapshot and the facade clears all in-memory Cookies/workflows before returning; it never assumes that an `Err` happened before the revision write. A Unix permission fault-injection test covers this post-revision/body-write failure boundary.
+
+Remote logout remains an unconditional best-effort request on each owned route, matching both frozen logout implementations and the aggregate contract. An absent local slot suppresses Cookie attachment but does not suppress the Direct or WebVPN logout attempt. Deterministic CLI tests route these requests through a local rejecting proxy, so the repository gate never depends on the real upstream.
+
+Receiving SSO prepare-page Cookies does not establish a local authenticated session. Only an `authenticated_at` value restored from a persisted route slot or produced after successful User Center status validation authorizes user/business preflight. This keeps `prepare_login` state usable for credential submission while ensuring status, profile and all read-only features make zero requests between prepare and completed login. Any persistence-port error while committing that validated state clears the runtime Cookie jar, timestamps and pending workflow before the error escapes, including for injected non-file stores.
+
 ## 2026-08-23: Make CLI schema v2 the only output contract
 
 All ordinary commands, hidden diagnostics, argument failures, authentication results and read-only results emit only schema version 2. The unshipped schema-v1 CLI branch is removed rather than maintained as compatibility surface. This does not change `config.toml` on-disk format version `1` or the versioned `session.json` migration reader; those are independent disk formats.

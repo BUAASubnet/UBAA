@@ -197,18 +197,47 @@ fn binary_json_argument_errors_use_a_safe_parseable_envelope() {
 fn binary_json_logout_without_session_has_no_invented_connection_mode() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-logout-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);
-    let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+    let proxy = TcpListener::bind("127.0.0.1:0").unwrap();
+    proxy.set_nonblocking(true).unwrap();
+    let proxy_address = proxy.local_addr().unwrap();
+    let proxy_thread = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut accepted = 0;
+        while accepted < 2 && Instant::now() < deadline {
+            match proxy.accept() {
+                Ok((connection, _)) => {
+                    drop(connection);
+                    accepted += 1;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+                Err(_) => break,
+            }
+        }
+        accepted
+    });
+    let proxy_url = format!("http://{proxy_address}");
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ubaa"));
+    let output = command
         .arg("--json")
         .arg("--config-dir")
         .arg(&config)
         .arg("auth")
         .arg("logout")
+        .env("HTTPS_PROXY", &proxy_url)
+        .env("https_proxy", &proxy_url)
+        .env("ALL_PROXY", &proxy_url)
+        .env("all_proxy", &proxy_url)
+        .env_remove("NO_PROXY")
+        .env_remove("no_proxy")
         .output()
         .unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert!(output.status.success());
     assert!(value["meta"].get("connectionMode").is_none());
     assert!(output.stderr.is_empty());
+    assert_eq!(proxy_thread.join().unwrap(), 2);
     let _ = std::fs::remove_dir_all(config);
 }
 

@@ -103,7 +103,7 @@ impl ClientRuntime {
     }
 
     pub(crate) fn has_local_session(&self) -> bool {
-        !self.jar.cookies().is_empty() || self.authenticated_at.is_some()
+        self.authenticated_at.is_some()
     }
 
     /// Return a non-reversible process-local scope key for route feature caches.
@@ -117,13 +117,6 @@ impl ClientRuntime {
             cookie.path.hash(&mut hasher);
         }
         hasher.finish()
-    }
-
-    /// Refresh this route's revision before a sequential aggregate operation mutates another
-    /// slot in the same dual session file. The actual mutation still uses compare-exchange.
-    pub(crate) fn refresh_revision(&mut self) -> Result<()> {
-        self.session_revision = self.store.load_versioned()?.revision;
-        Ok(())
     }
 
     pub(crate) fn url(&self, direct: &str) -> Result<String> {
@@ -159,10 +152,18 @@ impl ClientRuntime {
             authenticated_at,
             last_activity: now,
         };
-        match self
+        let mutation = match self
             .store
-            .compare_exchange(self.session_revision, Some(&snapshot))?
+            .compare_exchange(self.session_revision, Some(&snapshot))
         {
+            Ok(mutation) => mutation,
+            Err(error) => {
+                self.clear_memory();
+                clear_workflow();
+                return Err(error);
+            }
+        };
+        match mutation {
             SessionMutation::Applied { revision } => {
                 self.session_revision = revision;
                 Ok((authenticated_at, now))
@@ -187,10 +188,14 @@ impl ClientRuntime {
         }
     }
 
-    fn clear_memory(&mut self) {
+    pub(crate) fn clear_memory(&mut self) {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
+    }
+
+    pub(crate) fn set_session_revision(&mut self, revision: u64) {
+        self.session_revision = revision;
     }
 }
 

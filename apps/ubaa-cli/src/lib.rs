@@ -610,10 +610,11 @@ where
     O: Write,
     E: Write,
 {
+    let active_routes = backend.active_routes();
     let result = backend.logout().await;
     match result {
         Ok(()) => {
-            let mode = (backend.active_routes().len() == 1).then(|| backend.active_routes()[0]);
+            let mode = (active_routes.len() == 1).then(|| active_routes[0]);
             if cli.json {
                 let envelope = JsonEnvelope::success(
                     json!({ "loggedOut": true }),

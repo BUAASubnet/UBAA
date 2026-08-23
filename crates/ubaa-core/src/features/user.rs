@@ -21,6 +21,9 @@ pub(crate) async fn get_user_info(
     runtime: &mut ClientRuntime,
     clear_workflow: &mut (dyn FnMut() + Send),
 ) -> Result<UserProfile> {
+    if !runtime.has_local_session() {
+        return Err(authentication_required());
+    }
     let response = runtime
         .request(HttpRequest::get(runtime.url(UC_USERINFO_URL)?))
         .await?;

@@ -15,12 +15,13 @@ use crate::error::{Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
-use crate::session::{FileSessionStore, RouteSessionStore, SessionStore};
+use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 
 /// One independent Direct or `WebVPN` session and login state machine.
 pub struct UbaaClient {
     runtime: ClientRuntime,
     auth: AuthWorkflow,
+    sessions: Option<DualSessionCoordinator>,
 }
 
 /// A host-facing aggregate client that owns independent Direct and `WebVPN` workflows.
@@ -32,7 +33,7 @@ pub struct DualUbaaClient {
     webvpn_runtime: ClientRuntime,
     direct_auth: AuthWorkflow,
     webvpn_auth: AuthWorkflow,
-    active_routes: Vec<ConnectionMode>,
+    sessions: DualSessionCoordinator,
 }
 
 impl DualUbaaClient {
@@ -55,20 +56,9 @@ impl DualUbaaClient {
         TDirect: HttpTransport + 'static,
         TWebVpn: HttpTransport + 'static,
     {
-        let active_routes = store
-            .load_dual()?
-            .map(|snapshot| {
-                [
-                    (ConnectionMode::Direct, snapshot.sessions.direct.is_some()),
-                    (ConnectionMode::WebVpn, snapshot.sessions.webvpn.is_some()),
-                ]
-                .into_iter()
-                .filter_map(|(mode, active)| active.then_some(mode))
-                .collect()
-            })
-            .unwrap_or_default();
-        let direct_store = RouteSessionStore::new(store.clone(), ConnectionMode::Direct);
-        let webvpn_store = RouteSessionStore::new(store, ConnectionMode::WebVpn);
+        let sessions = DualSessionCoordinator::new(store)?;
+        let direct_store = sessions.route_store(ConnectionMode::Direct);
+        let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
@@ -82,18 +72,21 @@ impl DualUbaaClient {
             )?,
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
-            active_routes,
+            sessions,
         })
     }
 
-    /// Return the route slots that were populated when this client opened.
+    /// Return the route slots currently owned by this client.
     #[must_use]
-    pub fn active_routes(&self) -> &[ConnectionMode] {
-        &self.active_routes
+    pub fn active_routes(&self) -> Vec<ConnectionMode> {
+        self.sessions.active_routes()
     }
 
     /// Prepare both routes in fixed Direct, `WebVPN` order and return safe route states.
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
+        if let Err(error) = self.clear_on_session_conflict() {
+            return failed_preparation(&error);
+        }
         let mut routes = Vec::with_capacity(2);
         let mut challenges = Vec::with_capacity(2);
         for (route, runtime, auth) in [
@@ -135,12 +128,19 @@ impl DualUbaaClient {
                     error: Some(safe_error(&error)),
                 },
             });
+            if self.sessions.is_conflicted() {
+                break;
+            }
+        }
+        if let Err(error) = self.clear_on_session_conflict() {
+            return failed_preparation(&error);
         }
         DualLoginPreparation { routes, challenges }
     }
 
     /// Submit credentials independently to Direct and `WebVPN`, preserving partial success.
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
+        self.clear_on_session_conflict()?;
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         let answers = input.captcha_answers;
@@ -156,14 +156,6 @@ impl DualUbaaClient {
                 &mut self.webvpn_auth,
             ),
         ] {
-            if let Err(error) = runtime.refresh_revision() {
-                routes.push(RouteLoginResult {
-                    route,
-                    state: RouteLoginState::Failed,
-                    error: Some(safe_error(&error)),
-                });
-                continue;
-            }
             let challenge = if auth.is_prepared() {
                 auth.pending_challenge().cloned()
             } else {
@@ -175,6 +167,9 @@ impl DualUbaaClient {
                             state: RouteLoginState::Failed,
                             error: Some(safe_error(&error)),
                         });
+                        if self.sessions.is_conflicted() {
+                            break;
+                        }
                         continue;
                     }
                 }
@@ -219,7 +214,11 @@ impl DualUbaaClient {
                     error: Some(safe_error(&error)),
                 }),
             }
+            if self.sessions.is_conflicted() {
+                break;
+            }
         }
+        self.clear_on_session_conflict()?;
         let ready = routes
             .iter()
             .filter(|route| route.state == RouteLoginState::Ready)
@@ -238,20 +237,26 @@ impl DualUbaaClient {
 
     /// Clear both route workflows and both persisted slots.
     pub async fn logout(&mut self) -> Result<()> {
-        let direct = self.direct_auth.logout(&mut self.direct_runtime).await;
-        let _ = self.webvpn_runtime.refresh_revision();
-        let webvpn = self.webvpn_auth.logout(&mut self.webvpn_runtime).await;
-        match direct {
-            Err(error) => {
-                let _ = webvpn;
-                Err(error)
-            }
-            Ok(()) => webvpn,
-        }
+        self.clear_on_session_conflict()?;
+        self.direct_auth
+            .remote_logout(&mut self.direct_runtime)
+            .await;
+        self.webvpn_auth
+            .remote_logout(&mut self.webvpn_runtime)
+            .await;
+        self.direct_runtime.clear_memory();
+        self.webvpn_runtime.clear_memory();
+        self.direct_auth.clear();
+        self.webvpn_auth.clear();
+        let revisions = self.sessions.clear_both()?;
+        self.direct_runtime.set_session_revision(revisions.direct);
+        self.webvpn_runtime.set_session_revision(revisions.webvpn);
+        Ok(())
     }
 
     /// Validate both persisted route sessions and preserve partial success.
     pub async fn auth_status(&mut self) -> Result<LoginOutcome> {
+        self.clear_on_session_conflict()?;
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         for (route, runtime, auth) in [
@@ -266,14 +271,6 @@ impl DualUbaaClient {
                 &mut self.webvpn_auth,
             ),
         ] {
-            if let Err(error) = runtime.refresh_revision() {
-                routes.push(RouteLoginResult {
-                    route,
-                    state: RouteLoginState::Failed,
-                    error: Some(safe_error(&error)),
-                });
-                continue;
-            }
             let mut clear_workflow = || auth.clear();
             match user::auth_status(runtime, &mut clear_workflow).await {
                 Ok(status) => {
@@ -292,7 +289,11 @@ impl DualUbaaClient {
                     error: Some(safe_error(&error)),
                 }),
             }
+            if self.sessions.is_conflicted() {
+                break;
+            }
         }
+        self.clear_on_session_conflict()?;
         let ready = routes
             .iter()
             .filter(|route| route.state == RouteLoginState::Ready)
@@ -306,6 +307,37 @@ impl DualUbaaClient {
             routes,
             profile,
         })
+    }
+
+    fn clear_all_memory(&mut self) {
+        self.direct_runtime.clear_memory();
+        self.webvpn_runtime.clear_memory();
+        self.direct_auth.clear();
+        self.webvpn_auth.clear();
+    }
+
+    fn clear_on_session_conflict(&mut self) -> Result<()> {
+        if self.sessions.is_conflicted() {
+            self.clear_all_memory();
+            Err(DualSessionCoordinator::conflict_error())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+fn failed_preparation(error: &UbaaError) -> DualLoginPreparation {
+    let error = safe_error(error);
+    DualLoginPreparation {
+        routes: [ConnectionMode::Direct, ConnectionMode::WebVpn]
+            .into_iter()
+            .map(|route| RouteLoginResult {
+                route,
+                state: RouteLoginState::Failed,
+                error: Some(error.clone()),
+            })
+            .collect(),
+        challenges: Vec::new(),
     }
 }
 
@@ -340,24 +372,15 @@ impl UbaaClient {
         config_dir: impl AsRef<Path>,
     ) -> Result<Option<Self>> {
         let store = FileSessionStore::new(config_dir)?;
-        let dual = store.load_dual()?;
-        let Some(mode) = mode.or_else(|| {
-            dual.as_ref().and_then(|snapshot| {
-                if snapshot.sessions.direct.is_some() {
-                    Some(ConnectionMode::Direct)
-                } else if snapshot.sessions.webvpn.is_some() {
-                    Some(ConnectionMode::WebVpn)
-                } else {
-                    None
-                }
-            })
-        }) else {
+        let sessions = DualSessionCoordinator::new(store)?;
+        let Some(mode) = mode.or_else(|| sessions.active_routes().into_iter().next()) else {
             return Ok(None);
         };
-        let route_store = RouteSessionStore::new(store, mode);
+        let route_store = sessions.route_store(mode);
         Ok(Some(Self {
             runtime: ClientRuntime::new(mode, ReqwestTransport::new()?, route_store)?,
             auth: AuthWorkflow::default(),
+            sessions: Some(sessions),
         }))
     }
 
@@ -368,10 +391,12 @@ impl UbaaClient {
     /// Returns a safe transport or persistence error.
     pub fn new(mode: ConnectionMode, config_dir: impl AsRef<Path>) -> Result<Self> {
         let store = FileSessionStore::new(config_dir)?;
-        let route_store = RouteSessionStore::new(store, mode);
+        let sessions = DualSessionCoordinator::new(store)?;
+        let route_store = sessions.route_store(mode);
         Ok(Self {
             runtime: ClientRuntime::new(mode, ReqwestTransport::new()?, route_store)?,
             auth: AuthWorkflow::default(),
+            sessions: Some(sessions),
         })
     }
 
@@ -388,6 +413,7 @@ impl UbaaClient {
         Ok(Self {
             runtime: ClientRuntime::new(mode, transport, store)?,
             auth: AuthWorkflow::default(),
+            sessions: None,
         })
     }
 
@@ -403,7 +429,9 @@ impl UbaaClient {
     ///
     /// Returns a safe network, authentication, or upstream protocol error.
     pub async fn prepare_login(&mut self) -> Result<Option<LoginChallenge>> {
-        self.auth.prepare_login(&mut self.runtime).await
+        self.guard_session_ownership()?;
+        let result = self.auth.prepare_login(&mut self.runtime).await;
+        self.finish_session_operation(result)
     }
 
     /// Submit one credential/captcha form, activate User Center, and return its parsed profile.
@@ -412,7 +440,9 @@ impl UbaaClient {
     ///
     /// Returns a stable input, captcha, authentication, network, or upstream error.
     pub async fn login(&mut self, input: LoginInput) -> Result<UserProfile> {
-        self.auth.login(&mut self.runtime, input).await
+        self.guard_session_ownership()?;
+        let result = self.auth.login(&mut self.runtime, input).await;
+        self.finish_session_operation(result)
     }
 
     /// Validate the current User Center session and refresh last activity.
@@ -421,8 +451,10 @@ impl UbaaClient {
     ///
     /// Returns authentication-required for explicit invalidation while preserving state on timeout/5xx.
     pub async fn auth_status(&mut self) -> Result<AuthStatus> {
+        self.guard_session_ownership()?;
         let mut clear_workflow = || self.auth.clear();
-        user::auth_status(&mut self.runtime, &mut clear_workflow).await
+        let result = user::auth_status(&mut self.runtime, &mut clear_workflow).await;
+        self.finish_session_operation(result)
     }
 
     /// Fetch and parse the latest User Center profile.
@@ -431,8 +463,10 @@ impl UbaaClient {
     ///
     /// Returns a stable authentication, network, availability, or parsing error.
     pub async fn get_user_info(&mut self) -> Result<UserProfile> {
+        self.guard_session_ownership()?;
         let mut clear_workflow = || self.auth.clear();
-        user::get_user_info(&mut self.runtime, &mut clear_workflow).await
+        let result = user::get_user_info(&mut self.runtime, &mut clear_workflow).await;
+        self.finish_session_operation(result)
     }
 
     /// Best-effort remote logout followed by unconditional cleanup of this client's memory.
@@ -441,17 +475,21 @@ impl UbaaClient {
     ///
     /// Returns a persistence/revision error; remote logout failures are intentionally ignored.
     pub async fn logout(&mut self) -> Result<()> {
-        self.auth.logout(&mut self.runtime).await
+        self.guard_session_ownership()?;
+        let result = self.auth.logout(&mut self.runtime).await;
+        self.finish_session_operation(result)
     }
 
     /// Read the available academic terms.
     pub async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        self.guard_session_ownership()?;
         let data = crate::features::schedule::get_terms(&mut self.runtime).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read teaching weeks for a term.
     pub async fn schedule_weeks(&mut self, term: &str) -> Result<FeatureResult<Vec<Week>>> {
+        self.guard_session_ownership()?;
         let data = crate::features::schedule::get_weeks(&mut self.runtime, term).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
@@ -462,6 +500,7 @@ impl UbaaClient {
         term: &str,
         week: i32,
     ) -> Result<FeatureResult<WeeklySchedule>> {
+        self.guard_session_ownership()?;
         if term.trim().is_empty() || week <= 0 {
             return Err(crate::error::UbaaError::new(
                 crate::error::ErrorCode::InvalidInput,
@@ -476,12 +515,14 @@ impl UbaaClient {
 
     /// Read today's schedule.
     pub async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
+        self.guard_session_ownership()?;
         let data = crate::features::schedule::get_today(&mut self.runtime).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read one term's exam arrangement.
     pub async fn exam_arrangement(&mut self, term: &str) -> Result<FeatureResult<ExamArrangement>> {
+        self.guard_session_ownership()?;
         if term.trim().is_empty() {
             return Err(crate::error::UbaaError::new(
                 crate::error::ErrorCode::InvalidInput,
@@ -496,6 +537,7 @@ impl UbaaClient {
 
     /// Read one term's grades.
     pub async fn grades(&mut self, term: &str) -> Result<FeatureResult<GradeData>> {
+        self.guard_session_ownership()?;
         let data = crate::features::grades::get_grades(&mut self.runtime, term).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
@@ -506,12 +548,14 @@ impl UbaaClient {
         campus_id: i32,
         date: &str,
     ) -> Result<FeatureResult<ClassroomQuery>> {
+        self.guard_session_ownership()?;
         let data = crate::features::classroom::search(&mut self.runtime, campus_id, date).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read the current SPOC assignment list.
     pub async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
+        self.guard_session_ownership()?;
         let data = crate::features::spoc::get_assignments(&mut self.runtime).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
@@ -521,6 +565,7 @@ impl UbaaClient {
         &mut self,
         assignment_id: &str,
     ) -> Result<FeatureResult<SpocAssignmentDetail>> {
+        self.guard_session_ownership()?;
         let data =
             crate::features::spoc::get_assignment_detail(&mut self.runtime, assignment_id).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -531,6 +576,7 @@ impl UbaaClient {
         &mut self,
         include_expired: bool,
     ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
+        self.guard_session_ownership()?;
         let data =
             crate::features::judge::get_assignments(&mut self.runtime, include_expired).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -542,6 +588,7 @@ impl UbaaClient {
         course_id: &str,
         assignment_id: &str,
     ) -> Result<FeatureResult<JudgeAssignmentDetail>> {
+        self.guard_session_ownership()?;
         let data = crate::features::judge::get_assignment_detail(
             &mut self.runtime,
             course_id,
@@ -556,7 +603,27 @@ impl UbaaClient {
         &mut self,
         keys: &[JudgeAssignmentKey],
     ) -> Result<FeatureResult<Vec<JudgeAssignmentDetail>>> {
+        self.guard_session_ownership()?;
         let data = crate::features::judge::get_assignment_details(&mut self.runtime, keys).await?;
         Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    fn guard_session_ownership(&mut self) -> Result<()> {
+        if self
+            .sessions
+            .as_ref()
+            .is_some_and(DualSessionCoordinator::is_conflicted)
+        {
+            self.runtime.clear_memory();
+            self.auth.clear();
+            Err(DualSessionCoordinator::conflict_error())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+        self.guard_session_ownership()?;
+        result
     }
 }

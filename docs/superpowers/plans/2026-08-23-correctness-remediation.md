@@ -40,7 +40,7 @@
 - Modify: `docs/contracts/readonly-features.md`
 - Modify: `docs/migration/decision-log.md`
 
-- [ ] **Step 1: Re-run immutable-reference and worktree checks**
+- [x] **Step 1: Re-run immutable-reference and worktree checks**
 
 Run:
 
@@ -51,7 +51,7 @@ just refs
 
 Expected: branch `ubaa2`; only known in-scope changes are present; both pinned reference commits verify.
 
-- [ ] **Step 2: Replace the obsolete product decisions in `goal.md`**
+- [x] **Step 2: Replace the obsolete product decisions in `goal.md`**
 
 Use one consistent contract:
 
@@ -67,7 +67,7 @@ CLI JSON = schema version 2 only
 
 Remove the DNS/NXDOMAIN authority language, `DNS` fallback wording, schema-v1 output allowance, and any claim that the CLI owns route resolution. Preserve session/config on-disk migration versions.
 
-- [ ] **Step 3: Expand source parity before production edits**
+- [x] **Step 3: Expand source parity before production edits**
 
 Create separate operation sections for `gateway probe`, `dual load/save/logout`, `prepare/login captcha`, `user show`, `Classroom sync`, `Classroom query`, `SPOC auth`, `SPOC list`, `SPOC detail`, `Judge list`, `Judge detail`, `Judge batch/cache`, and `CLI/config`. Each section must contain these exact columns:
 
@@ -79,11 +79,11 @@ DTO/parser fields | caching/concurrency | error/exit semantics
 
 For Classroom and Judge, record `examples/buaa-api = N/A/non-equivalent`. For SPOC, record that its list/auth protocols are non-equivalent and cite only matching crypto/token/detail facts. Remove the existing assertion that both SPOC references share endpoints, headers, and pagination.
 
-- [ ] **Step 4: Mark invalid live conclusions as unverified**
+- [x] **Step 4: Mark invalid live conclusions as unverified**
 
 In `status.md`, replace “valid empty SPOC list” with “unverified until the global empty-`kcid` query is observed”. Mark Judge detail semantics and the Direct 65/WebVPN 17 difference unresolved. Do not delete historical command evidence; label its limitation.
 
-- [ ] **Step 5: Validate and commit the contract phase**
+- [x] **Step 5: Validate and commit the contract phase**
 
 Run:
 
@@ -115,7 +115,7 @@ git commit -m "docs: correct remediation contracts and parity"
 - Test: `crates/ubaa-test-support/tests/readonly.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add RED tests for atomicity and zero-request preflight**
+- [x] **Step 1: Add RED tests for atomicity and zero-request preflight**
 
 Add these exact tests and assertions:
 
@@ -140,14 +140,14 @@ user_info_without_local_session_makes_zero_requests
 Run:
 
 ```bash
-cargo test -p ubaa-core --test session dual_versioned_load -- --exact
-cargo test -p ubaa-test-support --test auth stale_aggregate_logout -- --exact
-cargo test -p ubaa-test-support --test readonly user_info_without_local_session -- --exact
+cargo test --locked -p ubaa-core --test session dual_versioned_load_never_pairs_a_snapshot_with_a_later_revision -- --exact
+cargo test --locked -p ubaa-test-support --test auth stale_aggregate_logout_preserves_both_newer_slots -- --exact
+cargo test --locked -p ubaa-test-support --test auth user_info_without_local_session_makes_zero_requests -- --exact
 ```
 
 Expected: failures demonstrate split-lock load, revision adoption/two-CAS logout, and user HTTP before preflight.
 
-- [ ] **Step 2: Load dual state under one lock**
+- [x] **Step 2: Load dual state under one lock**
 
 Refactor `FileSessionStore` so the body migration/parse and lock revision are read in one critical section:
 
@@ -162,35 +162,39 @@ pub fn load_dual_versioned(&self) -> Result<VersionedDualSession> {
 
 The migration helper must update and return the resulting revision in the same call rather than re-locking.
 
-- [ ] **Step 3: Introduce one shared coordinator**
+- [x] **Step 3: Introduce one shared coordinator**
 
-Add a private coordinator with the only mutable persisted snapshot/revision:
+Add a private coordinator with the only mutable persisted snapshot/file revision and route-local logical CAS revisions:
 
 ```rust
 pub(crate) struct DualSessionCoordinator {
-    store: FileSessionStore,
-    snapshot: DualSessionSnapshot,
-    revision: u64,
+    state: Arc<Mutex<DualSessionState>>,
 }
 
-impl DualSessionCoordinator {
-    pub(crate) fn replace_route(&mut self, mode: ConnectionMode, slot: Option<RouteSessionSnapshot>) -> Result<()>;
-    pub(crate) fn clear_both(&mut self) -> Result<()>;
-    pub(crate) fn slot(&self, mode: ConnectionMode) -> Option<&RouteSessionSnapshot>;
+struct DualSessionState {
+    store: FileSessionStore,
+    snapshot: DualSessionSnapshot,
+    file_revision: u64,
+    direct_revision: u64,
+    webvpn_revision: u64,
+    conflicted: bool,
 }
 ```
 
-Each method constructs one full candidate and calls
-`compare_exchange_dual(self.revision, Some(&candidate))` or
-`compare_exchange_dual(self.revision, None)`. Update `revision` and `snapshot`
-only on `Applied`; return the stable conflict error on `Conflict`. Delete
-`ClientRuntime::refresh_revision` and any reload-after-conflict path.
+Each route adapter first compares the caller's route-local logical revision, then constructs one
+full candidate and calls `compare_exchange_dual(file_revision, Some(&candidate))`. This preserves
+the `SessionStore` stale-writer contract while allowing a legitimate sibling route mutation to
+advance the shared file revision. Aggregate clear calls `compare_exchange_dual(file_revision,
+None)` even when the loaded snapshot was empty. Update revisions and snapshot only on `Applied`.
+On an external `Conflict`, clear the complete current-facade memory, stop sibling I/O, mark the
+coordinator terminally conflicted and require reopening it; never reload/adopt the external
+revision. Delete `ClientRuntime::refresh_revision` and any reload-after-conflict path.
 
-- [ ] **Step 4: Split remote logout from persistent cleanup**
+- [x] **Step 4: Split remote logout from persistent cleanup**
 
 Make `AuthWorkflow` expose a best-effort remote step and a local clear step. Aggregate logout calls both remote steps, clears both route memories, then calls `coordinator.clear_both()` exactly once. Single-route diagnostic logout updates only its slot through the same coordinator.
 
-- [ ] **Step 5: Put session preflight before user HTTP**
+- [x] **Step 5: Put session preflight before user HTTP**
 
 At the beginning of both user queries:
 
@@ -202,14 +206,14 @@ if !runtime.has_local_session() {
 
 Do this before URL construction or `runtime.request`.
 
-- [ ] **Step 6: Run focused and full gates, then commit**
+- [x] **Step 6: Run focused and full gates, then commit**
 
 Run:
 
 ```bash
-cargo test -p ubaa-core --test session
-cargo test -p ubaa-test-support --test auth
-cargo test -p ubaa-test-support --test readonly user_info
+cargo test --locked -p ubaa-core --test session
+cargo test --locked -p ubaa-test-support --test auth
+cargo test --locked -p ubaa-test-support --test auth user_info_without_local_session_makes_zero_requests -- --exact
 just check-sensitive
 just check
 ```
@@ -276,8 +280,8 @@ Reject empty IDs/values, duplicates, unknown IDs, old generations, and IDs not p
 Run:
 
 ```bash
-cargo test -p ubaa-test-support --test auth captcha
-cargo test -p ubaa-cli --test cli_contract captcha
+cargo test --locked -p ubaa-test-support --test auth captcha
+cargo test --locked -p ubaa-cli --test cli_contract captcha
 just check-sensitive
 just check
 ```
@@ -372,9 +376,9 @@ Run:
 
 ```bash
 rg -n 'RouteConfig|GatewayProbe|resolve_feature_route|SystemGatewayProbe|ConnectionMode' apps/ubaa-cli/src/main.rs
-cargo test -p ubaa-core --test route_policy
-cargo test -p ubaa-core --test facade
-cargo test -p ubaa-cli --test binary_e2e
+cargo test --locked -p ubaa-core --test route_policy
+cargo test --locked -p ubaa-core --test facade
+cargo test --locked -p ubaa-cli --test binary_e2e
 just check-sensitive
 just check
 ```
@@ -429,9 +433,9 @@ Fresh JSON login, auth status, logout (including no session), user show, all rea
 Run:
 
 ```bash
-cargo test -p ubaa-core --test contracts
-cargo test -p ubaa-cli --test cli_contract
-cargo test -p ubaa-cli --test binary_e2e
+cargo test --locked -p ubaa-core --test contracts
+cargo test --locked -p ubaa-cli --test cli_contract
+cargo test --locked -p ubaa-cli --test binary_e2e
 rg -n 'schemaVersion.*1|JSON_SCHEMA_VERSION|JsonEnvelope|connectionMode|execution' crates apps docs/contracts
 just check-sensitive
 just check
@@ -479,8 +483,8 @@ Use the exact UA from `LocalClassroomApi.kt`. Guard synchronization with the rou
 Run:
 
 ```bash
-cargo test -p ubaa-core --test readonly_parsers classroom
-cargo test -p ubaa-test-support --test readonly classroom
+cargo test --locked -p ubaa-core --test readonly_parsers classroom
+cargo test --locked -p ubaa-test-support --test readonly classroom
 just check-sensitive
 just check
 ```
@@ -528,9 +532,9 @@ Require detail; attempt submission as optional enrichment. Derive status from su
 Run:
 
 ```bash
-cargo test -p ubaa-core --test readonly_parsers spoc
-cargo test -p ubaa-test-support --test readonly spoc
-cargo test -p ubaa-cli --test cli_contract spoc
+cargo test --locked -p ubaa-core --test readonly_parsers spoc
+cargo test --locked -p ubaa-test-support --test readonly spoc
+cargo test --locked -p ubaa-cli --test cli_contract spoc
 just check-sensitive
 just check
 ```
@@ -577,8 +581,8 @@ Move cutoff calculation to a pure function taking `(year, month, day)` for tests
 Run:
 
 ```bash
-cargo test -p ubaa-core --test readonly_parsers judge
-cargo test -p ubaa-test-support --test readonly judge
+cargo test --locked -p ubaa-core --test readonly_parsers judge
+cargo test --locked -p ubaa-test-support --test readonly judge
 just check-sensitive
 just check
 ```
