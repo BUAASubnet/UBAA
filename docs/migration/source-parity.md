@@ -56,6 +56,16 @@ reachability or any business endpoint result.
 |---|---|---|---|---|---|---|---|---|
 | **old:** requires classroom sync; GET `https://app.buaa.edu.cn/buaafreeclass/wap/default/search1`. **example:** iClass query is N/A/non-equivalent. **decision:** use old free-classroom endpoint only. | **old:** query uses a no-redirect client; SSO Location/HTML is session expiry. **example:** N/A. **decision:** disable redirects for this request on both routes. | **old:** current route Cookie jar and local auth preflight. **example:** N/A. **decision:** selected route slot and route-owned sync state. | **old:** GET query `xqid=<int>`, `floorid=""`, `date=yyyy-mm-dd`. **example:** N/A. **decision:** preserve exact parameters. | **old:** exact long UA, `Accept: application/json, text/javascript, */*; q=0.01`, route-transformed Referer `https://app.buaa.edu.cn/site/classRoomQuery/index`, `X-Requested-With: XMLHttpRequest`; no body. **example:** N/A. | **old/example:** N/A. | **old:** required `e:int`, `m:string`, `d`, required `d.list: Map<String,List<ClassroomInfo>>`; room requires string `id`, `floorid`, `name`, `kxsds`. **example:** N/A. **decision:** missing `d/list` is parse error, not empty success; genuine empty map remains success. | **old:** no result cache; sync mutex as above. **example:** N/A. **decision:** same. | **old:** missing auth, SSO/401 invalidation, non-200 upstream, parse failure; date validation is host API concern. **decision:** stable `invalid_input`, `authentication_required`, upstream, parse codes; no fallback unless matrix later permits it. |
 
+Deterministic implementation evidence on 2026-08-24: parser tests reject every missing required
+`e/m/d/list` layer and non-string room field while preserving a genuine empty map. Transport tests
+assert the frozen complete mobile `User-Agent`, XHR/Accept headers, route-transformed Referer,
+once-per-client and route-isolated synchronization, best-effort failure followed by retry, and one
+no-follow business request. Raw SSO Location, 401, and login HTML return
+`authentication_required`, clear the selected persisted route and its feature state, and successful
+session replacement forces a later synchronization. A state-level concurrency test proves the
+double-checked async mutex runs one synchronization. The pinned example Classroom API remains
+non-equivalent and supplied no protocol values to this implementation.
+
 ## SPOC auth
 
 | bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |

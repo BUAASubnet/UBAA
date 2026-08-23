@@ -132,3 +132,21 @@ The old detail DTO publicly exposes both raw HTML and derived plain text. UBAA 2
 keeps raw upstream HTML internal and exposes only normalized plain text. This is a security and
 host-contract divergence, not a claim of exact DTO parity; detail/submission fields, fallback
 rules, and status semantics continue to follow the frozen local implementation.
+
+## 2026-08-24: Scope read-only feature state to one route runtime
+
+Frozen `LocalClassroomApiBackend` owns a double-checked synchronization flag and mutex per backend,
+and clears the flag with the selected authentication session. Pinned `buaa-api` exposes an iClass
+API rather than this free-classroom protocol, so it contributes no URL, header, DTO, or state rule.
+UBAA 2 therefore gives every Direct and WebVPN `ClientRuntime` a distinct
+`Arc<RouteFeatureState>`. Read workers forked from that runtime share only that route's state;
+separately constructed runtimes and the sibling route do not share it.
+
+`clear_memory` is the common invalidation boundary for Cookies, authentication timestamps, and all
+feature state. Authentication-required read-only errors in the diagnostic `RouteClient` now clear
+the selected persisted route through the same compare-exchange path used by aggregate routed
+operations. Logout, terminal conflict, explicit invalidation, and every successful login exit also
+reach the same feature-state clearing contract. Classroom synchronization failures remain
+best-effort and retryable, while a successful 200..399 bootstrap is reused only until that route's
+state is cleared. The business query uses the no-redirect transport exactly once and treats a raw
+SSO Location, 401, or evidenced login HTML as selected-route authentication invalidation.

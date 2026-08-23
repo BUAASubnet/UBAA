@@ -7,6 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::connection::to_webvpn_url;
 use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::features::state::RouteFeatureState;
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
 use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, VersionedSession};
 
@@ -18,6 +19,7 @@ pub(crate) struct ClientRuntime {
     authenticated_at: Option<i64>,
     last_activity: Option<i64>,
     session_revision: u64,
+    feature_state: Arc<RouteFeatureState>,
 }
 
 impl ClientRuntime {
@@ -62,6 +64,7 @@ impl ClientRuntime {
             authenticated_at,
             last_activity,
             session_revision,
+            feature_state: Arc::new(RouteFeatureState::default()),
         })
     }
 
@@ -95,7 +98,16 @@ impl ClientRuntime {
             authenticated_at: self.authenticated_at,
             last_activity: self.last_activity,
             session_revision: self.session_revision,
+            feature_state: Arc::clone(&self.feature_state),
         }
+    }
+
+    pub(crate) fn feature_state(&self) -> Arc<RouteFeatureState> {
+        Arc::clone(&self.feature_state)
+    }
+
+    pub(crate) fn clear_feature_state(&self) {
+        self.feature_state.clear();
     }
 
     pub(crate) fn has_local_session(&self) -> bool {
@@ -188,6 +200,7 @@ impl ClientRuntime {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
+        self.feature_state.clear();
     }
 
     pub(crate) fn set_session_revision(&mut self, revision: u64) {

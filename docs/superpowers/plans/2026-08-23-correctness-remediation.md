@@ -454,11 +454,11 @@ Review grep hits; only config/session version 1 and private auth execution code 
 - Test: `crates/ubaa-test-support/tests/readonly.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add RED tests for state ownership and exact Classroom behavior**
+- [x] **Step 1: Add RED tests for state ownership and exact Classroom behavior**
 
 Cover complete mobile WeChat headers (including routed Referer), sequential and concurrent calls synchronizing once, sync failure followed by successful query and later retry, query 302 not followed, SSO HTML clearing sync, missing `m`/`d`/`list` parse failure, and a complete empty map success.
 
-- [ ] **Step 2: Add private route state**
+- [x] **Step 2: Add private route state**
 
 Implement:
 
@@ -474,11 +474,11 @@ impl RouteFeatureState { pub(crate) fn clear(&self); }
 
 `ClientRuntime` owns `Arc<RouteFeatureState>`; read-worker forks clone it only for the same route. `clear_memory`, auth invalidation, successful relogin/session identity replacement, and logout call `state.clear()`.
 
-- [ ] **Step 3: Port the frozen Classroom lifecycle**
+- [x] **Step 3: Port the frozen Classroom lifecycle**
 
 Use the exact UA from `LocalClassroomApi.kt`. Guard synchronization with the route state's async mutex and set `synced=true` only after success. Ignore sync failure for the current query, but leave it false. Send the business query once with redirects disabled by transport/request policy; classify Location to SSO as authentication required. Make the serde envelope fields mandatory.
 
-- [ ] **Step 4: Run focused tests and commit**
+- [x] **Step 4: Run focused tests and commit**
 
 Run:
 

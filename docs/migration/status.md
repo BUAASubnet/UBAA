@@ -28,7 +28,7 @@ CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍
 | 8 dual sessions | Deterministic remediation complete | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; rerun live authentication after facade routing lands. |
 | 8a aggregate captcha | Deterministic remediation complete | Opaque route/generation-bound IDs, raw ID/execution pre-submit validation, one-use consumption, safe serialization, existing-session consumption without hidden SSO re-entry, auth-clear invalidation, post-submit re-prepare, colliding upstream IDs and partial-prepare behavior are covered; rerun live captcha only if the upstream requests it. |
 | 9a schedule/exam/grades | No new defect established by this audit | Preserve existing frozen-source evidence and rerun after facade integration. |
-| 9b classroom | Request/state parity gaps open | Restore exact long UA, no-redirect query, strict required `d/list`, and once-per-route synchronized state cleared with session. |
+| 9b classroom | Deterministic remediation complete | Exact long UA, one no-follow query, strict required `e/m/d/list` and room strings, best-effort once-per-route synchronization, route isolation, and session lifecycle clearing are covered; rerun Direct/WebVPN/auto live queries. |
 | 9c SPOC | False-empty and detail gaps open | Use global encrypted `queryListByPage` with empty `kcid` even when course metadata is empty; submission is optional; retain summary fallback; remove public raw HTML. |
 | 9d Judge | Parser/cache gaps open | Filter internal links, port full problem/score/status parser, move caches to route/client state, clear them with the session. |
 | 10 CLI/JSON | Deterministic remediation complete | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. Rerun live output checks after feature repairs. |
@@ -116,7 +116,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - Production automatic selection now uses the accepted TCP reachability implementation and Core-facade ownership; live Direct/WebVPN/auto evidence must be rerun after the remaining feature repairs.
 - Route/generation-bound aggregate captcha IDs and zero-request user preflight are deterministically covered; real captcha remains conditional on live upstream behavior.
 - Config persistence now has deterministic symlink, regular-file, unique-temp, permission and concurrent-write coverage; real routing configuration behavior remains part of the later live matrix.
-- Classroom must be compared against the exact frozen UA/redirect/DTO/state contract.
+- Classroom now matches the frozen UA/redirect/DTO/state contract in deterministic tests; its historical live result predates the correction and must be rerun on Direct, WebVPN and auto.
 - SPOC empty-list evidence is invalid until the encrypted global request has `kcid=""`; a non-empty account is still needed to live-check optional submission/detail fallback.
 - Judge detail semantics and cache lifecycle are unverified; the 65/17 route difference is unresolved.
 - CLI schema v2 is deterministically covered for routed, unresolved and aggregate output, including safe route-tagged captcha projection; the live verifier fixtures and semantic assertions remain Task 9 work.

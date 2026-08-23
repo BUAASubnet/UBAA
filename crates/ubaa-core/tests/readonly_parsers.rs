@@ -41,6 +41,22 @@ fn classroom_parser_preserves_empty_results_and_spoc_status_mapping() {
 }
 
 #[test]
+fn classroom_parser_requires_the_complete_frozen_envelope_and_room_strings() {
+    for incomplete in [
+        r#"{"m":"ok","d":{"list":{}}}"#,
+        r#"{"e":0,"d":{"list":{}}}"#,
+        r#"{"e":0,"m":"ok"}"#,
+        r#"{"e":0,"m":"ok","d":{}}"#,
+        r#"{"e":0,"m":"ok","d":{"list":{"Main":[{"id":"1","floorid":"101","name":"Room"}]}}}"#,
+        r#"{"e":0,"m":"ok","d":{"list":{"Main":[{"id":1,"floorid":"101","name":"Room","kxsds":"1,2"}]}}}"#,
+    ] {
+        let error = classroom::parse_response(incomplete)
+            .expect_err("missing or non-string frozen fields must not become empty success");
+        assert_eq!(error.code, ubaa_core::error::ErrorCode::ParseError);
+    }
+}
+
+#[test]
 fn judge_parser_handles_multiple_links_and_unsubmitted_details() {
     let courses = judge::parse_courses(r"<a href='courselist.jsp?courseID=12'>Fixture Course</a>");
     assert_eq!(courses.len(), 1);

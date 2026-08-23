@@ -136,15 +136,13 @@ impl AuthWorkflow {
         }
         if self.state.authenticated_ready() {
             let profile = self.get_user_info(runtime).await?;
-            self.state.clear();
-            return Ok(profile);
+            return Ok(self.finish_successful_login(runtime, profile));
         }
         if self.state.page().is_none() {
             self.prepare_login(runtime).await?;
             if self.state.authenticated_ready() {
                 let profile = self.get_user_info(runtime).await?;
-                self.state.clear();
-                return Ok(profile);
+                return Ok(self.finish_successful_login(runtime, profile));
             }
         }
         let page = self
@@ -184,8 +182,17 @@ impl AuthWorkflow {
         activate_user_center(runtime).await?;
         self.validate_status(runtime).await?;
         let profile = self.get_user_info(runtime).await?;
+        Ok(self.finish_successful_login(runtime, profile))
+    }
+
+    fn finish_successful_login(
+        &mut self,
+        runtime: &ClientRuntime,
+        profile: UserProfile,
+    ) -> UserProfile {
+        runtime.clear_feature_state();
         self.state.clear();
-        Ok(profile)
+        profile
     }
 
     pub(crate) async fn logout(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
@@ -205,9 +212,9 @@ impl AuthWorkflow {
 
     async fn validate_status(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
         let mut clear_workflow = || self.state.clear();
-        user::validate_status(runtime, &mut clear_workflow)
-            .await
-            .map(|_| ())
+        user::validate_status(runtime, &mut clear_workflow).await?;
+        runtime.clear_feature_state();
+        Ok(())
     }
 
     async fn get_user_info(&mut self, runtime: &mut ClientRuntime) -> Result<UserProfile> {

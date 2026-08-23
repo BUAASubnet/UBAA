@@ -1280,14 +1280,16 @@ impl RouteClient {
     /// Read the available academic terms.
     pub async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.guard_session_ownership()?;
-        let data = crate::features::schedule::get_terms(&mut self.runtime).await?;
+        let result = crate::features::schedule::get_terms(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read teaching weeks for a term.
     pub async fn schedule_weeks(&mut self, term: &str) -> Result<FeatureResult<Vec<Week>>> {
         self.guard_session_ownership()?;
-        let data = crate::features::schedule::get_weeks(&mut self.runtime, term).await?;
+        let result = crate::features::schedule::get_weeks(&mut self.runtime, term).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1306,14 +1308,16 @@ impl RouteClient {
                 "term and positive week are required",
             ));
         }
-        let data = crate::features::schedule::get_week(&mut self.runtime, term, week).await?;
+        let result = crate::features::schedule::get_week(&mut self.runtime, term, week).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read today's schedule.
     pub async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
         self.guard_session_ownership()?;
-        let data = crate::features::schedule::get_today(&mut self.runtime).await?;
+        let result = crate::features::schedule::get_today(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1328,14 +1332,16 @@ impl RouteClient {
                 "term is required",
             ));
         }
-        let data = crate::features::schedule::get_exam(&mut self.runtime, term).await?;
+        let result = crate::features::schedule::get_exam(&mut self.runtime, term).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read one term's grades.
     pub async fn grades(&mut self, term: &str) -> Result<FeatureResult<GradeData>> {
         self.guard_session_ownership()?;
-        let data = crate::features::grades::get_grades(&mut self.runtime, term).await?;
+        let result = crate::features::grades::get_grades(&mut self.runtime, term).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1346,14 +1352,16 @@ impl RouteClient {
         date: &str,
     ) -> Result<FeatureResult<ClassroomQuery>> {
         self.guard_session_ownership()?;
-        let data = crate::features::classroom::search(&mut self.runtime, campus_id, date).await?;
+        let result = crate::features::classroom::search(&mut self.runtime, campus_id, date).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read the current SPOC assignment list.
     pub async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
         self.guard_session_ownership()?;
-        let data = crate::features::spoc::get_assignments(&mut self.runtime).await?;
+        let result = crate::features::spoc::get_assignments(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1363,8 +1371,9 @@ impl RouteClient {
         assignment_id: &str,
     ) -> Result<FeatureResult<SpocAssignmentDetail>> {
         self.guard_session_ownership()?;
-        let data =
-            crate::features::spoc::get_assignment_detail(&mut self.runtime, assignment_id).await?;
+        let result =
+            crate::features::spoc::get_assignment_detail(&mut self.runtime, assignment_id).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1374,8 +1383,9 @@ impl RouteClient {
         include_expired: bool,
     ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
         self.guard_session_ownership()?;
-        let data =
-            crate::features::judge::get_assignments(&mut self.runtime, include_expired).await?;
+        let result =
+            crate::features::judge::get_assignments(&mut self.runtime, include_expired).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1386,12 +1396,13 @@ impl RouteClient {
         assignment_id: &str,
     ) -> Result<FeatureResult<JudgeAssignmentDetail>> {
         self.guard_session_ownership()?;
-        let data = crate::features::judge::get_assignment_detail(
+        let result = crate::features::judge::get_assignment_detail(
             &mut self.runtime,
             course_id,
             assignment_id,
         )
-        .await?;
+        .await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1401,7 +1412,8 @@ impl RouteClient {
         keys: &[JudgeAssignmentKey],
     ) -> Result<FeatureResult<Vec<JudgeAssignmentDetail>>> {
         self.guard_session_ownership()?;
-        let data = crate::features::judge::get_assignment_details(&mut self.runtime, keys).await?;
+        let result = crate::features::judge::get_assignment_details(&mut self.runtime, keys).await;
+        let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -1422,6 +1434,21 @@ impl RouteClient {
     fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
         self.guard_session_ownership()?;
         result
+    }
+
+    fn finish_readonly_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+        if result
+            .as_ref()
+            .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
+        {
+            if self.runtime.has_local_session() {
+                self.runtime.clear_with(|| self.auth.clear())?;
+            } else {
+                self.runtime.clear_memory();
+                self.auth.clear();
+            }
+        }
+        self.finish_session_operation(result)
     }
 }
 
