@@ -32,9 +32,9 @@ Both `LocalConnectionAuth.kt::logout` and the remote-backed `AuthApi.kt::logout`
 
 `just check`, macOS/Windows CI, the live verifier, and documented user commands use `--locked` for every Cargo command that resolves dependencies. `just check` first runs `cargo metadata --locked --no-deps --format-version 1`; a cross-platform binary test uses the Git index to scan tracked Markdown, `justfile`, workflow, and shell command sources so later edits cannot silently remove the lock contract. `cargo fmt` is exempt because it does not resolve the dependency graph.
 
-## 2026-08-19: Route Judge auto to the live-verified WebVPN path
+## 2026-08-19: Historical Judge auto WebVPN route (superseded 2026-08-23)
 
-The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. Live verification then showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0. The route matrix therefore gives Judge an evidence-backed `auto` override to WebVPN for Campus, OffCampus, and Unknown DNS states. This is a deterministic feature exception, not a fallback replay; explicit Direct remains available only as a diagnostic override and is still recorded as unavailable. Later WebVPN/auto attempts also returned upstream timeouts or changed responses, so the matrix records those rerun conditions rather than treating them as success.
+The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. At that time live verification showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0, so the route matrix temporarily forced `auto` to WebVPN for all DNS states. This was a deterministic feature exception, not a fallback replay. Later WebVPN/auto attempts also returned upstream timeouts or changed responses; those observations remain historical rerun conditions. Fresh campus evidence and the superseding 2026-08-23 decision below removed the stale override.
 
 ## 2026-08-19: Require AAS service activation before schedule reads
 
@@ -51,3 +51,7 @@ The pinned `buaa-api` App module exposes a mini-program exam page and no local `
 ## 2026-08-19: Choose a stable Judge detail sample in the live verifier
 
 The verifier contract requires one real Judge detail when the list is non-empty; it does not require the last list item. Three required/diagnostic auto attempts selected `.data[-1]` and returned `Judge assignment was not found` at the separate detail CLI process, while an evidence probe selecting `.data[0]` completed list plus detail with exit 0. The list and detail are separate processes and the upstream list can change between them, so the verifier now selects the first returned item and has a shell regression test. This changes only verifier sampling, not Core Judge lookup or its old-reference semantics; stale-ID results remain nonzero rather than being hidden.
+
+## 2026-08-23: Revalidate Judge Direct in the campus network
+
+The previous Judge `auto -> WebVPN` override was introduced after an explicit Direct attempt returned `upstream_unavailable`. With the test account on the campus network, fresh live checks now prove Judge list/detail success on Direct (exit 0, 65 assignments) and WebVPN (exit 0, 17 assignments), while the other five features also pass on both explicit routes. This is new route evidence, not a fixture assumption. The old implementation supports route-local Judge requests and does not require WebVPN, so the stale feature override is removed; Judge `auto` now follows the common DNS contract: Campus -> Direct, OffCampus -> WebVPN, Unknown -> the matrix default Direct. The earlier WebVPN-only successes remain historical evidence and no cross-route replay is introduced.

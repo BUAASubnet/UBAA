@@ -1,6 +1,6 @@
 # Source Parity Matrix
 
-Updated: 2026-08-19
+Updated: 2026-08-23
 
 This is a behavior audit, not a list of similar names. Each row must be checked across the full request lifecycle. The frozen local implementation and tests are the primary compatibility source for local read-only APIs; `examples/buaa-api` is supplemental evidence only when it implements the same upstream protocol. Live responses have priority for current behavior and are recorded in `docs/migration/status.md` without storing raw bodies.
 
@@ -77,7 +77,7 @@ An operation is not parity-reviewed until every item is either evidence-backed o
 | Methods/headers/session | Browser GETs, route-local redirects, Judge browser headers; isolated worker Cookie storage and course-selection mutex | Not applicable | Rust follows old Judge URLs/headers, route-locks redirects, isolates worker cookies, and never shares the parent gateway service cookie. |
 | Encryption | None | Not applicable | Not applicable. |
 | DTO/parser | Old HTML link/detail parsing, submission state and assignment DTOs | Not applicable | Rust sanitized HTML fixtures cover multi-line links, details, missing items and status mapping. |
-| Cache/concurrency/cutoff | Per-user/route caches, four-worker bound, six-month historical cutoff, batch order and reactivation tests | Not applicable | Rust keeps these semantics and exposes only read operations. Live WebVPN/auto list/detail evidence exists; Direct remains unavailable. |
+| Cache/concurrency/cutoff | Per-user/route caches, four-worker bound, six-month historical cutoff, batch order and reactivation tests | Not applicable | Rust keeps these semantics and exposes only read operations. Fresh campus Direct and WebVPN list/detail checks both passed; `auto` now follows the common DNS route contract. |
 
 ## Review rule
 
