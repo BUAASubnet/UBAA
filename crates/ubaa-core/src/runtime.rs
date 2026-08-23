@@ -1,6 +1,5 @@
 //! Private runtime state shared by facade workflows.
 
-use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -112,19 +111,6 @@ impl ClientRuntime {
 
     pub(crate) fn has_local_session(&self) -> bool {
         self.authenticated_at.is_some()
-    }
-
-    /// Return a non-reversible process-local scope key for route feature caches.
-    pub(crate) fn cache_scope_key(&self) -> u64 {
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        self.mode.hash(&mut hasher);
-        for cookie in self.jar.cookies() {
-            cookie.name.hash(&mut hasher);
-            cookie.value.hash(&mut hasher);
-            cookie.domain.hash(&mut hasher);
-            cookie.path.hash(&mut hasher);
-        }
-        hasher.finish()
     }
 
     pub(crate) fn url(&self, direct: &str) -> Result<String> {

@@ -1916,8 +1916,9 @@ async fn judge_selects_courses_before_reading_assignment_details() {
     let result = client.judge_assignments(false).await.expect("Judge list");
     assert_eq!(result.data.len(), 1);
     assert_eq!(result.data[0].course_name, "Algorithms");
-    assert_eq!(result.data[0].submission_status_text, "未提交");
-    assert_eq!(result.data[0].total_problems, 2);
+    assert_eq!(result.data[0].submission_status_text, "进行中(2/3)");
+    assert_eq!(result.data[0].my_score.as_deref(), Some("11"));
+    assert_eq!(result.data[0].total_problems, 3);
 }
 
 #[tokio::test]
@@ -2077,6 +2078,33 @@ async fn judge_empty_batch_and_missing_course_have_stable_semantics() {
 }
 
 #[tokio::test]
+async fn judge_empty_batches_require_a_local_session_before_zero_network_short_circuit() {
+    let transport = MockTransport::new([]);
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport.clone(),
+        MemorySessionStore::new(),
+    )
+    .unwrap();
+
+    let empty_error = client
+        .judge_assignment_details(&[])
+        .await
+        .expect_err("an unauthenticated empty batch must fail");
+    assert_eq!(empty_error.code, ErrorCode::AuthenticationRequired);
+
+    let blank_error = client
+        .judge_assignment_details(&[JudgeAssignmentKey {
+            course_id: " ".into(),
+            assignment_id: String::new(),
+        }])
+        .await
+        .expect_err("an unauthenticated all-blank batch must fail");
+    assert_eq!(blank_error.code, ErrorCode::AuthenticationRequired);
+    assert!(transport.requests().unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn judge_historical_courses_are_skipped_by_default_but_includable() {
     let login_url = ubaa_core::features::judge::LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
@@ -2108,12 +2136,6 @@ async fn judge_historical_courses_are_skipped_by_default_but_includable() {
             detail_url,
             "作业时间: 2020-01-01 08:00:00 至 2020-01-31 23:00:00 未提交",
         ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            login_url,
-            redirect_from(login_url, judge_home),
-        ),
-        expected_get(judge_home, "judge home"),
     ]);
     let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
@@ -2353,6 +2375,26 @@ async fn judge_workers_activate_isolated_service_sessions_before_course_selectio
 }
 
 #[tokio::test]
+async fn judge_single_detail_uses_an_isolated_service_session() {
+    let transport = IsolatedJudgeSessionTransport::new(ConnectionMode::Direct);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-single-isolated-worker-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .judge_assignment("1", "1")
+        .await
+        .expect("single Judge detail must use an isolated worker");
+
+    assert_eq!(result.data.assignment_id, "1");
+    assert_eq!(observed.activations.load(Ordering::SeqCst), 2);
+}
+
+#[tokio::test]
 async fn judge_webvpn_workers_drop_parent_gateway_service_cookies() {
     let transport = IsolatedJudgeSessionTransport::new(ConnectionMode::WebVpn);
     let observed = transport.clone();
@@ -2501,5 +2543,382 @@ async fn judge_batch_details_preserve_input_order_with_four_workers() {
     assert!(
         observed.max_inflight() <= 4,
         "Judge detail query concurrency must stay bounded at four"
+    );
+}
+
+#[derive(Clone, Default)]
+struct JudgeGroupedBatchTransport {
+    requests: Arc<Mutex<Vec<String>>>,
+}
+
+impl JudgeGroupedBatchTransport {
+    fn request_count(&self, url: &str) -> usize {
+        self.requests
+            .lock()
+            .expect("Judge grouped request log")
+            .iter()
+            .filter(|request| request.as_str() == url)
+            .count()
+    }
+}
+
+#[async_trait]
+impl HttpTransport for JudgeGroupedBatchTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        self.requests
+            .lock()
+            .expect("Judge grouped request log")
+            .push(request.url.clone());
+        let body = match request.url.as_str() {
+            url if url == ubaa_core::features::judge::LOGIN_URL => {
+                return Ok(redirect_from(url, "https://judge.buaa.edu.cn/"));
+            }
+            "https://judge.buaa.edu.cn/" => "judge ready",
+            "https://judge.buaa.edu.cn/courselist.jsp?courseID=0" => {
+                r#"<a href="courselist.jsp?courseID=1">Course 1</a>"#
+            }
+            "https://judge.buaa.edu.cn/courselist.jsp?courseID=1" => {
+                // Give independent per-key workers time to observe the same missing cache entry.
+                tokio::time::sleep(Duration::from_millis(10)).await;
+                "selected"
+            }
+            "https://judge.buaa.edu.cn/assignment/index.jsp" => {
+                r#"<a href="assignment/index.jsp?assignID=101">First</a>
+                   <a href="assignment/index.jsp?assignID=102">Second</a>"#
+            }
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101" => {
+                "作业满分: 10 共 1 道 作业时间: 2026-08-01 08:00 至 2026-08-31 23:00 未提交"
+            }
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=102" => {
+                "作业满分: 20 共 1 道 作业时间: 2026-08-02 08:00 至 2026-08-31 23:00 未提交"
+            }
+            _ => {
+                return Err(UbaaError::new(
+                    ErrorCode::InternalError,
+                    ErrorKind::Internal,
+                    false,
+                    "unexpected grouped Judge request",
+                ));
+            }
+        };
+        Ok(response(200, &request.url, body))
+    }
+}
+
+#[tokio::test]
+async fn judge_same_course_batch_fetches_one_list_and_preserves_input_order() {
+    let transport = JudgeGroupedBatchTransport::default();
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-grouped-batch-fixture"),
+    )
+    .expect("client");
+    let keys = [
+        JudgeAssignmentKey {
+            course_id: "1".into(),
+            assignment_id: "102".into(),
+        },
+        JudgeAssignmentKey {
+            course_id: "1".into(),
+            assignment_id: "101".into(),
+        },
+    ];
+
+    let result = client
+        .judge_assignment_details(&keys)
+        .await
+        .expect("grouped Judge details");
+
+    assert_eq!(
+        result
+            .data
+            .iter()
+            .map(|detail| detail.assignment_id.as_str())
+            .collect::<Vec<_>>(),
+        ["102", "101"]
+    );
+    assert_eq!(
+        observed.request_count("https://judge.buaa.edu.cn/assignment/index.jsp"),
+        1,
+        "one course worker must fetch and select the assignment list once"
+    );
+}
+
+#[tokio::test]
+async fn judge_batch_filters_blank_and_deduplicates_keys_in_first_seen_order() {
+    let transport = JudgeGroupedBatchTransport::default();
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-normalized-batch-fixture"),
+    )
+    .expect("client");
+    let keys = [
+        JudgeAssignmentKey {
+            course_id: "1".into(),
+            assignment_id: "102".into(),
+        },
+        JudgeAssignmentKey {
+            course_id: " ".into(),
+            assignment_id: "101".into(),
+        },
+        JudgeAssignmentKey {
+            course_id: "1".into(),
+            assignment_id: "102".into(),
+        },
+        JudgeAssignmentKey {
+            course_id: "1".into(),
+            assignment_id: "101".into(),
+        },
+    ];
+
+    let result = client
+        .judge_assignment_details(&keys)
+        .await
+        .expect("normalized Judge details");
+
+    assert_eq!(
+        result
+            .data
+            .iter()
+            .map(|detail| detail.assignment_id.as_str())
+            .collect::<Vec<_>>(),
+        ["102", "101"],
+        "the frozen normalization filters blank keys and keeps the first duplicate only"
+    );
+    assert_eq!(
+        observed.request_count("https://judge.buaa.edu.cn/assignment/index.jsp"),
+        1
+    );
+    assert_eq!(
+        observed.request_count("https://judge.buaa.edu.cn/assignment/index.jsp?assignID=102"),
+        1
+    );
+}
+
+#[tokio::test]
+async fn judge_clients_with_the_same_route_and_cookie_do_not_share_cache() {
+    let first_transport = JudgeGroupedBatchTransport::default();
+    let mut first = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        first_transport,
+        session_store_with("judge-client-isolation-fixture"),
+    )
+    .expect("first client");
+    first
+        .judge_assignment("1", "101")
+        .await
+        .expect("first Judge detail");
+
+    let second_transport = JudgeGroupedBatchTransport::default();
+    let observed_second = second_transport.clone();
+    let mut second = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        second_transport,
+        session_store_with("judge-client-isolation-fixture"),
+    )
+    .expect("second client");
+    second
+        .judge_assignment("1", "101")
+        .await
+        .expect("second Judge detail");
+
+    assert_eq!(
+        observed_second.request_count("https://judge.buaa.edu.cn/courselist.jsp?courseID=0"),
+        1,
+        "a separately constructed client must fetch its own course cache"
+    );
+    assert_eq!(
+        observed_second
+            .request_count("https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101"),
+        1,
+        "a separately constructed client must fetch its own detail cache"
+    );
+}
+
+#[derive(Clone)]
+struct JudgeRetryTransport {
+    course_requests: Arc<AtomicUsize>,
+    activation_requests: Arc<AtomicUsize>,
+    successful_attempt: Option<usize>,
+}
+
+impl JudgeRetryTransport {
+    fn new(successful_attempt: Option<usize>) -> Self {
+        Self {
+            course_requests: Arc::new(AtomicUsize::new(0)),
+            activation_requests: Arc::new(AtomicUsize::new(0)),
+            successful_attempt,
+        }
+    }
+}
+
+#[async_trait]
+impl HttpTransport for JudgeRetryTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url == ubaa_core::features::judge::LOGIN_URL {
+            self.activation_requests.fetch_add(1, Ordering::SeqCst);
+            return Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"));
+        }
+        if request.url == "https://judge.buaa.edu.cn/" {
+            return Ok(response(200, &request.url, "judge ready"));
+        }
+        if request.url == "https://judge.buaa.edu.cn/courselist.jsp?courseID=0" {
+            let attempt = self.course_requests.fetch_add(1, Ordering::SeqCst) + 1;
+            let body = if self
+                .successful_attempt
+                .is_some_and(|successful_attempt| attempt >= successful_attempt)
+            {
+                "<html><body>no courses</body></html>"
+            } else {
+                r#"<form><input name="execution" value="fixture"></form>统一身份认证"#
+            };
+            return Ok(response(200, &request.url, body));
+        }
+        Err(UbaaError::new(
+            ErrorCode::InternalError,
+            ErrorKind::Internal,
+            false,
+            "unexpected Judge retry request",
+        ))
+    }
+}
+
+#[tokio::test]
+async fn judge_business_request_allows_three_reactivations_then_succeeds() {
+    let transport = JudgeRetryTransport::new(Some(4));
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-three-reactivations-fixture"),
+    )
+    .expect("client");
+
+    let result = client
+        .judge_assignments(false)
+        .await
+        .expect("the fourth business attempt must succeed");
+
+    assert!(result.data.is_empty());
+    assert_eq!(observed.course_requests.load(Ordering::SeqCst), 4);
+    assert_eq!(observed.activation_requests.load(Ordering::SeqCst), 4);
+}
+
+#[tokio::test]
+async fn judge_business_request_stops_after_three_failed_reactivations() {
+    let transport = JudgeRetryTransport::new(None);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-reactivation-exhaustion-fixture"),
+    )
+    .expect("client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("the fourth failed business attempt must be terminal");
+
+    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(observed.course_requests.load(Ordering::SeqCst), 4);
+    assert_eq!(observed.activation_requests.load(Ordering::SeqCst), 4);
+}
+
+#[tokio::test]
+async fn successful_primary_login_invalidates_route_owned_judge_caches() {
+    let judge_login = ubaa_core::features::judge::LOGIN_URL;
+    let judge_home = "https://judge.buaa.edu.cn/";
+    let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
+    let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
+    let assignments_url = "https://judge.buaa.edu.cn/assignment/index.jsp";
+    let detail_url = "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101";
+    let primary_login = "https://sso.buaa.edu.cn/login";
+    let activate =
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
+    let courses = r#"<a href="courselist.jsp?courseID=1">Course 1</a>"#;
+    let assignments = r#"<a href="assignment/index.jsp?assignID=101">Assignment</a>"#;
+    let detail = "作业满分: 10 共 1 道 作业时间: 2026-08-01 08:00 至 2026-08-31 23:00 未提交";
+    let one_judge_read = || {
+        [
+            (judge_login.into(), redirect_from(judge_login, judge_home)),
+            (judge_home.into(), response(200, judge_home, "judge ready")),
+            (courses_url.into(), response(200, courses_url, courses)),
+            (judge_login.into(), redirect_from(judge_login, judge_home)),
+            (judge_home.into(), response(200, judge_home, "judge ready")),
+            (select_url.into(), response(200, select_url, "selected")),
+            (
+                assignments_url.into(),
+                response(200, assignments_url, assignments),
+            ),
+            (select_url.into(), response(200, select_url, "selected")),
+            (detail_url.into(), response(200, detail_url, detail)),
+        ]
+    };
+    let transport = SpocTransport::new(
+        one_judge_read()
+            .into_iter()
+            .chain([
+                (
+                    primary_login.into(),
+                    redirect_from(primary_login, "/already-authenticated"),
+                ),
+                (activate.into(), response(200, activate, "")),
+                (status.into(), response(200, status, profile)),
+                (userinfo.into(), response(200, userinfo, profile)),
+            ])
+            .chain(one_judge_read()),
+    );
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-primary-relogin-fixture"),
+    )
+    .expect("client");
+
+    client
+        .judge_assignment("1", "101")
+        .await
+        .expect("first Judge detail");
+    assert!(client.prepare_login().await.unwrap().is_none());
+    client
+        .login(LoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha: None,
+        })
+        .await
+        .expect("primary relogin");
+    client
+        .judge_assignment("1", "101")
+        .await
+        .expect("Judge detail after relogin");
+
+    observed.assert_exhausted();
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == courses_url)
+            .count(),
+        2,
+        "a successful primary relogin must clear Judge list caches"
+    );
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == detail_url)
+            .count(),
+        2,
+        "a successful primary relogin must clear Judge detail caches"
     );
 }

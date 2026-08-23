@@ -1,8 +1,11 @@
 //! Route-owned, process-local state for read-only feature workflows.
 
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
+use std::hash::Hash;
 use std::sync::Mutex as SyncMutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex;
 
@@ -136,25 +139,261 @@ impl std::fmt::Debug for SpocState {
     }
 }
 
-/// Placeholder for route-owned Judge caches added by the Judge migration phase.
-#[derive(Debug, Default)]
+pub(super) const JUDGE_ASSIGNMENT_CACHE_LIMIT: usize = 128;
+pub(super) const JUDGE_DETAIL_CACHE_LIMIT: usize = 1_024;
+pub(super) const JUDGE_HISTORICAL_CACHE_LIMIT: usize = 128;
+
+struct TimedEntry<T> {
+    value: T,
+    cached_at: Instant,
+}
+
+#[derive(Default)]
+struct JudgeCache {
+    courses: Option<TimedEntry<Vec<crate::features::judge::Course>>>,
+    assignments: HashMap<String, TimedEntry<Vec<crate::features::judge::Assignment>>>,
+    details: HashMap<(String, String), TimedEntry<crate::domain::JudgeAssignmentDetail>>,
+    historical_courses: HashMap<String, TimedEntry<()>>,
+}
+
+/// Route/client-owned Judge caches and historical cutoff state.
+#[derive(Default)]
 pub(crate) struct JudgeState {
     invalidations: AtomicU64,
+    cache: SyncMutex<JudgeCache>,
 }
 
 impl JudgeState {
+    pub(crate) fn generation(&self) -> u64 {
+        self.invalidations.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn courses(
+        &self,
+        generation: u64,
+        now: Instant,
+        ttl: Duration,
+    ) -> Option<Vec<crate::features::judge::Course>> {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return None;
+        }
+        if cache
+            .courses
+            .as_ref()
+            .is_some_and(|entry| !is_fresh(entry.cached_at, now, ttl))
+        {
+            cache.courses = None;
+        }
+        cache.courses.as_ref().map(|entry| entry.value.clone())
+    }
+
+    pub(crate) fn store_courses(
+        &self,
+        generation: u64,
+        courses: Vec<crate::features::judge::Course>,
+        now: Instant,
+    ) -> bool {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return false;
+        }
+        cache.courses = (!courses.is_empty()).then_some(TimedEntry {
+            value: courses,
+            cached_at: now,
+        });
+        true
+    }
+
+    pub(crate) fn assignments(
+        &self,
+        generation: u64,
+        course_id: &str,
+        now: Instant,
+        ttl: Duration,
+    ) -> Option<Vec<crate::features::judge::Assignment>> {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return None;
+        }
+        cache
+            .assignments
+            .retain(|_, entry| is_fresh(entry.cached_at, now, ttl));
+        cache
+            .assignments
+            .get(course_id)
+            .map(|entry| entry.value.clone())
+    }
+
+    pub(crate) fn store_assignments(
+        &self,
+        generation: u64,
+        course_id: &str,
+        assignments: Vec<crate::features::judge::Assignment>,
+        now: Instant,
+    ) -> bool {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return false;
+        }
+        if assignments.is_empty() {
+            cache.assignments.remove(course_id);
+            return true;
+        }
+        insert_bounded(
+            &mut cache.assignments,
+            course_id.to_string(),
+            assignments,
+            now,
+            JUDGE_ASSIGNMENT_CACHE_LIMIT,
+        );
+        true
+    }
+
+    pub(crate) fn detail(
+        &self,
+        generation: u64,
+        course_id: &str,
+        assignment_id: &str,
+        now: Instant,
+        ttl: Duration,
+    ) -> Option<crate::domain::JudgeAssignmentDetail> {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return None;
+        }
+        cache
+            .details
+            .retain(|_, entry| is_fresh(entry.cached_at, now, ttl));
+        cache
+            .details
+            .get(&(course_id.to_string(), assignment_id.to_string()))
+            .map(|entry| entry.value.clone())
+    }
+
+    pub(crate) fn store_detail(
+        &self,
+        generation: u64,
+        course_id: &str,
+        assignment_id: &str,
+        detail: crate::domain::JudgeAssignmentDetail,
+        now: Instant,
+    ) -> bool {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return false;
+        }
+        insert_bounded(
+            &mut cache.details,
+            (course_id.to_string(), assignment_id.to_string()),
+            detail,
+            now,
+            JUDGE_DETAIL_CACHE_LIMIT,
+        );
+        true
+    }
+
+    pub(crate) fn historical_courses(&self, generation: u64) -> HashSet<String> {
+        let cache = self.cache();
+        if self.generation() != generation {
+            return HashSet::new();
+        }
+        cache.historical_courses.keys().cloned().collect()
+    }
+
+    pub(crate) fn mark_historical(&self, generation: u64, course_id: &str, now: Instant) -> bool {
+        let mut cache = self.cache();
+        if self.generation() != generation {
+            return false;
+        }
+        insert_bounded(
+            &mut cache.historical_courses,
+            course_id.to_string(),
+            (),
+            now,
+            JUDGE_HISTORICAL_CACHE_LIMIT,
+        );
+        true
+    }
+
     fn clear(&self) {
         self.invalidations.fetch_add(1, Ordering::AcqRel);
+        *self.cache() = JudgeCache::default();
     }
+
+    fn cache(&self) -> std::sync::MutexGuard<'_, JudgeCache> {
+        self.cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    #[cfg(test)]
+    fn cache_counts(&self) -> (usize, usize, usize, usize) {
+        let cache = self.cache();
+        (
+            usize::from(cache.courses.is_some()),
+            cache.assignments.len(),
+            cache.details.len(),
+            cache.historical_courses.len(),
+        )
+    }
+}
+
+impl std::fmt::Debug for JudgeState {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let cache = self.cache();
+        formatter
+            .debug_struct("JudgeState")
+            .field("generation", &self.generation())
+            .field("courses_cached", &cache.courses.is_some())
+            .field("assignment_cache_entries", &cache.assignments.len())
+            .field("detail_cache_entries", &cache.details.len())
+            .field("historical_course_entries", &cache.historical_courses.len())
+            .finish()
+    }
+}
+
+fn is_fresh(cached_at: Instant, now: Instant, ttl: Duration) -> bool {
+    now.saturating_duration_since(cached_at) < ttl
+}
+
+fn insert_bounded<K, V>(
+    map: &mut HashMap<K, TimedEntry<V>>,
+    key: K,
+    value: V,
+    now: Instant,
+    limit: usize,
+) where
+    K: Clone + Eq + Hash,
+{
+    if !map.contains_key(&key)
+        && map.len() >= limit
+        && let Some(oldest) = map
+            .iter()
+            .min_by_key(|(_, entry)| entry.cached_at)
+            .map(|(key, _)| key.clone())
+    {
+        map.remove(&oldest);
+    }
+    map.insert(
+        key,
+        TimedEntry {
+            value,
+            cached_at: now,
+        },
+    );
 }
 
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
-    use super::ClassroomState;
+    use crate::domain::{JudgeAssignmentDetail, JudgeSubmissionStatus};
+    use crate::features::judge::{Assignment, Course};
+
+    use super::{ClassroomState, JudgeState};
 
     #[test]
     fn concurrent_classroom_bootstraps_use_one_double_checked_sync() {
@@ -225,5 +464,156 @@ mod tests {
 
             assert_eq!(calls.load(Ordering::SeqCst), 3);
         });
+    }
+
+    #[test]
+    fn judge_cache_prunes_expired_entries_and_does_not_store_empty_lists() {
+        let state = JudgeState::default();
+        let generation = state.generation();
+        let now = Instant::now();
+        let expired_at = now
+            .checked_sub(Duration::from_secs(301))
+            .expect("test Instant supports a five-minute subtraction");
+        let course = Course {
+            course_id: "1".into(),
+            course_name: "Course".into(),
+        };
+        let assignment = Assignment {
+            assignment_id: "101".into(),
+            course_id: "1".into(),
+            course_name: "Course".into(),
+            title: "Assignment".into(),
+        };
+        let detail = JudgeAssignmentDetail {
+            course_id: "1".into(),
+            course_name: "Course".into(),
+            assignment_id: "101".into(),
+            title: "Assignment".into(),
+            start_time: None,
+            due_time: None,
+            max_score: None,
+            my_score: None,
+            total_problems: 0,
+            submitted_count: 0,
+            submission_status: JudgeSubmissionStatus::Unknown,
+            submission_status_text: "未知状态".into(),
+            problems: Vec::new(),
+            content_plain_text: None,
+        };
+
+        assert!(state.store_courses(generation, vec![course], expired_at));
+        assert!(state.store_assignments(generation, "1", vec![assignment], expired_at));
+        assert!(state.store_detail(generation, "1", "101", detail, expired_at));
+
+        assert!(
+            state
+                .courses(generation, now, Duration::from_mins(5))
+                .is_none()
+        );
+        assert!(
+            state
+                .assignments(generation, "1", now, Duration::from_mins(5))
+                .is_none()
+        );
+        assert!(
+            state
+                .detail(generation, "1", "101", now, Duration::from_mins(2))
+                .is_none()
+        );
+        assert_eq!(state.cache_counts(), (0, 0, 0, 0));
+
+        assert!(state.store_assignments(generation, "1", Vec::new(), now));
+        assert!(
+            state
+                .assignments(generation, "1", now, Duration::from_mins(5))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn judge_cache_is_bounded_and_clear_removes_every_entry() {
+        let state = JudgeState::default();
+        let generation = state.generation();
+        let now = Instant::now();
+        for index in 0..=super::JUDGE_ASSIGNMENT_CACHE_LIMIT {
+            let course_id = index.to_string();
+            assert!(state.store_assignments(
+                generation,
+                &course_id,
+                vec![Assignment {
+                    assignment_id: "1".into(),
+                    course_id: course_id.clone(),
+                    course_name: "Course".into(),
+                    title: "Assignment".into(),
+                }],
+                now,
+            ));
+            assert!(state.mark_historical(generation, &course_id, now));
+        }
+        for index in 0..=super::JUDGE_DETAIL_CACHE_LIMIT {
+            let assignment_id = index.to_string();
+            assert!(state.store_detail(
+                generation,
+                "1",
+                &assignment_id,
+                JudgeAssignmentDetail {
+                    course_id: "1".into(),
+                    course_name: "Course".into(),
+                    assignment_id: assignment_id.clone(),
+                    title: "Assignment".into(),
+                    start_time: None,
+                    due_time: None,
+                    max_score: None,
+                    my_score: None,
+                    total_problems: 0,
+                    submitted_count: 0,
+                    submission_status: JudgeSubmissionStatus::Unknown,
+                    submission_status_text: "未知状态".into(),
+                    problems: Vec::new(),
+                    content_plain_text: None,
+                },
+                now,
+            ));
+        }
+
+        let (_, assignments, details, historical) = state.cache_counts();
+        assert_eq!(assignments, super::JUDGE_ASSIGNMENT_CACHE_LIMIT);
+        assert_eq!(details, super::JUDGE_DETAIL_CACHE_LIMIT);
+        assert!(historical <= super::JUDGE_HISTORICAL_CACHE_LIMIT);
+
+        state.clear();
+        assert_eq!(state.cache_counts(), (0, 0, 0, 0));
+        assert_ne!(state.generation(), generation);
+        assert!(!state.store_assignments(generation, "stale", Vec::new(), now));
+    }
+
+    #[test]
+    fn invalidated_judge_generation_cannot_repopulate_any_cache() {
+        let state = JudgeState::default();
+        let generation = state.generation();
+        let now = Instant::now();
+        state.clear();
+
+        assert!(!state.store_courses(
+            generation,
+            vec![Course {
+                course_id: "1".into(),
+                course_name: "Stale Course".into(),
+            }],
+            now,
+        ));
+        assert!(!state.store_assignments(
+            generation,
+            "1",
+            vec![Assignment {
+                assignment_id: "101".into(),
+                course_id: "1".into(),
+                course_name: "Stale Course".into(),
+                title: "Stale Assignment".into(),
+            }],
+            now,
+        ));
+        assert!(!state.mark_historical(generation, "1", now));
+        assert_eq!(state.cache_counts(), (0, 0, 0, 0));
     }
 }

@@ -57,25 +57,43 @@ fn classroom_parser_requires_the_complete_frozen_envelope_and_room_strings() {
 }
 
 #[test]
-fn judge_parser_handles_multiple_links_and_unsubmitted_details() {
+fn judge_parser_uses_sanitized_complex_dom_fixtures() {
     let courses = judge::parse_courses(r"<a href='courselist.jsp?courseID=12'>Fixture Course</a>");
     assert_eq!(courses.len(), 1);
     let assignments = judge::parse_assignments(
-        r#"<a href="assignment/index.jsp?assignID=7">Fixture Task</a>"#,
+        include_str!("../../../fixtures/readonly/judge-assignments.html"),
         &courses[0],
     );
-    assert_eq!(assignments[0].assignment_id, "7");
-    let detail = judge::parse_detail("<p>作业满分：100</p><p>共 1 道</p><table><tr><td>1</td><td>Question</td><td>100</td><td>未提交</td></tr></table>", "12", "Fixture Course", "7", "Fixture Task").unwrap();
-    assert_eq!(detail.submission_status, JudgeSubmissionStatus::Unsubmitted);
-    assert_eq!(detail.total_problems, 1);
-    let dated = judge::parse_detail(
-        "作业时间：2026-04-20 19:00:00 至 2026-05-03 23:00:00",
+    assert_eq!(assignments.len(), 1);
+    assert_eq!(assignments[0].assignment_id, "101");
+    assert_eq!(assignments[0].title, "Lab & Review");
+
+    let detail = judge::parse_detail(
+        include_str!("../../../fixtures/readonly/judge-detail.html"),
         "12",
         "Fixture Course",
-        "7",
-        "Fixture Task",
+        "101",
+        "Lab & Review",
     )
     .unwrap();
-    assert_eq!(dated.start_time.as_deref(), Some("2026-04-20 19:00:00"));
-    assert_eq!(dated.due_time.as_deref(), Some("2026-05-03 23:00:00"));
+    assert_eq!(detail.start_time.as_deref(), Some("2026-08-01 08:00:00"));
+    assert_eq!(detail.due_time.as_deref(), Some("2026-08-31 23:00:00"));
+    assert_eq!(detail.max_score.as_deref(), Some("30"));
+    assert_eq!(detail.my_score.as_deref(), Some("11"));
+    assert_eq!(detail.total_problems, 3);
+    assert_eq!(detail.submitted_count, 2);
+    assert_eq!(detail.submission_status, JudgeSubmissionStatus::Partial);
+    assert_eq!(detail.submission_status_text, "进行中(2/3)");
+    assert_eq!(detail.problems.len(), 3);
+    assert_eq!(detail.problems[0].name, "程序 & 设计");
+    assert_eq!(detail.problems[0].score.as_deref(), Some("8"));
+    assert_eq!(
+        detail.problems[1].status,
+        JudgeSubmissionStatus::Unsubmitted
+    );
+    assert_eq!(detail.problems[2].name, "第3题");
+    assert_eq!(detail.problems[2].score.as_deref(), Some("3"));
+    let plain = detail.content_plain_text.as_deref().unwrap();
+    assert!(!plain.contains("作业满分：999"));
+    assert!(!plain.contains("总分：999"));
 }
