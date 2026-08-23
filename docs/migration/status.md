@@ -28,7 +28,7 @@ Updated: 2026-08-23
 | 9d Judge | Implemented with sanitized fixture/Mock coverage and four-worker bounds; real-verified on Direct/WebVPN/auto | Business-page redirects use the route-locked redirect helper; workers filter Judge-scoped cookies and independently activate before course selection; detail/batch reads remain bounded at four workers. Campus Direct, WebVPN, and campus `auto` list/detail checks passed on 2026-08-23. |
 | 10 CLI/JSON | Implemented and contract-tested | Ordinary help hides `--mode`; feature success/errors use schema v2 with effective policy, DNS state, initial/final route and fallback diagnostics; aggregate login/status expose safe route states. |
 | 11 live matrix | Passed on 2026-08-23 campus rerun | Auth Direct/WebVPN; schedule/exam/grades/classroom/SPOC/Judge auto; aggregate `all/auto`; and all six features on explicit Direct/WebVPN have exit-0 evidence. |
-| 12 handoff/gates | Ready pending final deterministic gate rerun | Code fixes `bc45882` and the Judge route correction, verifier fix, source-parity audit, current status/matrix, and decision records are present. Final `just refs`, `just check-sensitive`, and `just check` must be rerun after documentation changes. |
+| 12 handoff/gates | Ready; final deterministic gates passed | Code fixes `bc45882` and the Judge route correction, verifier fix, source-parity audit, current status/matrix, and decision records are present. Post-commit `just refs`, `just check-sensitive`, and `just check` all exited 0. |
 
 ## Live Authentication
 
