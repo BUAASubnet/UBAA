@@ -84,6 +84,27 @@ non-equivalent and supplied no protocol values to this implementation.
 |---|---|---|---|---|---|---|---|---|
 | **old:** first resolves summary from the authoritative list; GET `/kczy/queryKczyInfoByid`; optional GET `/kczy/queryXsSubmitKczyInfo`. **example:** matching detail GET exists; submission read is only noted, not implemented. **decision:** old full sequence is authoritative; example corroborates detail endpoint/fields only. | **old/example:** same-host route-transformed GET; SSO HTML is auth failure. **decision:** one route for list/detail/submission. | **old:** route SPOC token/role/Cookies; submission failure is optional. **example:** token only. **decision:** route-owned state, no public raw HTML. | **old:** detail query `id=<assignmentId>`; submission query `kczyid=<assignmentId>`. **example:** matching detail `id`; no implemented submission request. | **old:** XHR, `Token`, `RoleCode`; GET query. **example:** `Token` only. **decision:** preserve old headers. | **old/example:** none for these GETs. | **old:** detail `id,zymc,zynr,zykssj,zyjzsj,zyfs,sskcid`; optional submission `tjzt,tjsj`; detail score/time fall back to list summary; the old public DTO exposes both raw `contentHtml` and derived `contentPlainText`. **example:** corroborates `zynr,xzwjlx,xztjcs`, but has no submission/fallback. **decision:** submission must not be a hard dependency; preserve summary fallback, convert HTML internally, and expose plain text only as an explicit UBAA 2 safety boundary. | **old:** reuses list/auth client; optional submission under same call; one auth refresh. **example:** token expiry only. **decision:** route-owned state and one refresh, no global cache. | **old:** missing summary is not found; submission failure does not fail detail; unknown status remains explicit. **example:** parser errors only. **decision:** stable not-found/auth/parse errors; remove public `contentHtml`. |
 
+Deterministic SPOC implementation evidence on 2026-08-24: the CAS bootstrap follows at most eight
+no-follow, allow-listed redirects, accepts a token only from an HTTPS `spoc.buaa.edu.cn` terminal
+on the exact `/spocnew/cas` path, and requires the terminal representation to match Direct or
+WebVPN routing. It does not request the token landing URL. Primitive and array role forms follow
+the frozen `JsonPrimitive` behavior. Credentials are serialized and cached only inside one route
+state, are redacted from `Debug`, cannot be repopulated after a state-generation invalidation, and
+each individual business call performs at most one authentication refresh before returning the
+second error. A raw business `Location` resolving to SSO triggers that same bounded refresh despite
+the no-follow transport. Course metadata remains optional even after its own retry is exhausted.
+The frozen client's standalone `权限` authentication marker conflicts with the active no-permission-
+retry contract; UBAA 2 records that conflict in the decision log and does not replay code-403
+permission envelopes.
+
+List tests decrypt the request and assert the exact ordered global page fields, empty `kcid` and
+`yzwz`, one pagination sequence for multiple courses, and continued paging when course metadata is
+empty or unavailable. Detail tests require and validate the upstream ID before optional submission
+I/O, preserve summary score/time fallbacks including blank detail values, map an empty submission
+object to explicit unknown state, tolerate unavailable submission enrichment, decode plain text,
+and prove both Core and CLI serialization omit raw HTML. These are deterministic protocol results
+only; current Direct/WebVPN/auto live evidence remains open.
+
 ## Judge list
 
 | bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |

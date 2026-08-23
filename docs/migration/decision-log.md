@@ -150,3 +150,31 @@ reach the same feature-state clearing contract. Classroom synchronization failur
 best-effort and retryable, while a successful 200..399 bootstrap is reused only until that route's
 state is cleared. The business query uses the no-redirect transport exactly once and treats a raw
 SSO Location, 401, or evidenced login HTML as selected-route authentication invalidation.
+
+## 2026-08-24: Bind SPOC retries and tokens to verified operation and route boundaries
+
+Frozen `LocalSpocClient.withAuthenticatedCall` wraps current-term, course, assignment-page, detail,
+and submission requests separately. Therefore an authentication failure on page two refreshes the
+route credential once and repeats page two, rather than restarting the term/course/page-one
+sequence. UBAA 2 follows that boundary with one common retry helper returning the second failure
+unchanged. The outer frozen course lookup uses `runCatching`, so exhausted course authentication is
+still optional metadata and cannot suppress the authoritative global assignment query.
+
+The frozen token parser checks the landing path but not its host. Applying it literally before
+redirect allow-listing would allow a foreign host with the same path to supply a token, while a
+Direct client could consume a WebVPN terminal. UBAA 2 therefore adds a security boundary without
+inventing protocol fields: the decoded terminal must be HTTPS `spoc.buaa.edu.cn`, its path must be
+exactly `/spocnew/cas`, and its raw representation must match the active route. Direct redirect
+resolution rejects gateway URLs; WebVPN decodes, validates, then re-encodes only allow-listed BUAA
+targets. The route state checks its generation while holding the credential lock so a login
+completing across logout, conflict, or session replacement cannot repopulate an invalidated token.
+The credential itself has no token-revealing `Debug` implementation.
+
+The production transport does not follow redirects. A SPOC business response whose raw
+`Location` resolves to `sso.buaa.edu.cn` is therefore an authentication failure even when its
+`final_url` remains the business URL; the one-refresh helper repeats only that failed operation.
+The frozen client also treats the standalone text `权限` as an authentication marker, but that
+would replay an evidenced permission denial such as code 403. The active remediation contract
+explicitly forbids retrying permission errors, so UBAA 2 recognizes only the evidenced login,
+token, `未认证`, and `未登录` markers and returns a permission envelope unchanged as an upstream
+error. No field, URL, or retry beyond those boundaries is inferred.

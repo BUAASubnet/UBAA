@@ -12,7 +12,8 @@ use ubaa_core::connection::{
 };
 use ubaa_core::domain::{
     AuthStatus, ConnectionMode, FeatureResult, LoginChallenge, LoginInput, LoginOutcome,
-    LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, Term, UserProfile,
+    LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
+    SpocAssignmentDetail, Term, UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::facade::{Routed, RoutedError, RoutedResult, UbaaClient};
@@ -581,6 +582,30 @@ fn ordinary_help_hides_route_override_and_lists_readonly_groups() {
             "missing {command} from top-level help"
         );
     }
+}
+
+#[test]
+fn spoc_detail_cli_json_exposes_plain_text_but_never_raw_html() {
+    let detail = SpocAssignmentDetail {
+        assignment_id: "assignment-1".into(),
+        content_plain_text: Some("Fixture content".into()),
+        ..SpocAssignmentDetail::default()
+    };
+    let envelope = RoutedJsonEnvelope::success(
+        detail,
+        ResolvedRoutedJsonMeta::from_resolution(
+            CliFeature::Spoc,
+            route_resolution(
+                RoutePolicy::Direct,
+                NetworkState::Unknown,
+                ConnectionMode::Direct,
+            ),
+        ),
+    );
+    let value = serde_json::to_value(envelope).unwrap();
+
+    assert_eq!(value["data"]["contentPlainText"], "Fixture content");
+    assert!(value["data"].get("contentHtml").is_none());
 }
 
 #[test]

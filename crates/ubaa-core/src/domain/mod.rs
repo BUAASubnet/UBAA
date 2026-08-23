@@ -326,8 +326,6 @@ pub struct SpocAssignmentDetail {
     pub submission_status_text: String,
     /// Plain text description.
     pub content_plain_text: Option<String>,
-    /// HTML description retained as DTO data, never logged.
-    pub content_html: Option<String>,
     /// Submission time.
     pub submitted_at: Option<String>,
 }

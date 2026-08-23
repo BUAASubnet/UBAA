@@ -1,6 +1,7 @@
 //! Route-owned, process-local state for read-only feature workflows.
 
 use std::future::Future;
+use std::sync::Mutex as SyncMutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use tokio::sync::Mutex;
@@ -66,15 +67,72 @@ impl ClassroomState {
     }
 }
 
-/// Route-owned SPOC state, populated by the SPOC migration phase.
-#[derive(Debug, Default)]
+/// Route-owned SPOC credential and serialized login state.
+#[derive(Default)]
 pub(crate) struct SpocState {
     invalidations: AtomicU64,
+    login: Mutex<()>,
+    credential: SyncMutex<Option<crate::features::spoc::SpocCredential>>,
 }
 
 impl SpocState {
+    pub(super) fn credential(&self) -> Option<crate::features::spoc::SpocCredential> {
+        self.credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    pub(super) fn store_credential(
+        &self,
+        generation: u64,
+        credential: crate::features::spoc::SpocCredential,
+    ) -> bool {
+        let mut cached = self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if self.generation() != generation {
+            return false;
+        }
+        *cached = Some(credential);
+        true
+    }
+
+    pub(super) fn clear_credential(&self) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+    }
+
+    pub(super) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.login.lock().await
+    }
+
+    pub(super) fn generation(&self) -> u64 {
+        self.invalidations.load(Ordering::Acquire)
+    }
+
     fn clear(&self) {
         self.invalidations.fetch_add(1, Ordering::AcqRel);
+        // A concurrent holder may still be using the old credential; the generation check
+        // prevents it from repopulating this cache after invalidation.
+        let mut credential = self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *credential = None;
+    }
+}
+
+impl std::fmt::Debug for SpocState {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SpocState")
+            .field("generation", &self.generation())
+            .field("credential", &"[REDACTED]")
+            .finish()
     }
 }
 

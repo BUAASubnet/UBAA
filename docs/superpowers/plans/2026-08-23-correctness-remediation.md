@@ -504,11 +504,11 @@ Commit as `fix: scope feature state and align classroom flow`.
 - Test: `apps/ubaa-cli/tests/cli_contract.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add RED tests for every frozen SPOC gap**
+- [x] **Step 1: Add RED tests for every frozen SPOC gap**
 
-Test that empty or failing course metadata still issues one global page request; multiple courses do not duplicate pagination; decrypted page JSON has exact empty `kcid`/`yzwz`; submission failure preserves summary score/start/due; `{}` submission maps `Unknown`; business auth errors refresh exactly once; a second auth error stops; sequential operations reuse token/role; token comes from matching `/spocnew/cas` Location without GET; wrong path is rejected; primitive and array roles parse; code `0` is rejected absent evidence; detail ID is required; serialized CLI data has no HTML field.
+Test that empty or failing course metadata still issues one global page request; multiple courses do not duplicate pagination; decrypted page JSON has exact empty `kcid`/`yzwz`; submission failure preserves summary score/start/due; `{}` submission maps `Unknown`; business auth envelopes and raw SSO Locations refresh exactly once; a second auth error stops; permission errors are not replayed; sequential operations reuse token/role; token comes from matching `/spocnew/cas` Location without GET; wrong path is rejected; primitive and array roles parse; code `0` is rejected absent evidence; detail ID is required; serialized CLI data has no HTML field.
 
-- [ ] **Step 2: Implement route-owned SPOC credentials**
+- [x] **Step 2: Implement route-owned SPOC credentials**
 
 Store token/role behind one async login mutex. Add:
 
@@ -519,15 +519,15 @@ async fn with_spoc_auth_retry<T>(runtime: &mut ClientRuntime,
 
 Reuse cached credentials; on a specifically recognized business authentication envelope, clear and relogin once, then return the second error unchanged. Never retry parse/permission/unknown errors by analogy.
 
-- [ ] **Step 3: Separate optional enrichment from global pages**
+- [x] **Step 3: Separate optional enrichment from global pages**
 
 Fetch course metadata with recoverable error handling into a lookup map. Independently page the encrypted global assignment endpoint using a serializable request struct whose field order and values match the frozen JSON. Merge optional course fields after parsing; stop only on verified page termination.
 
-- [ ] **Step 4: Make submission optional and remove raw HTML**
+- [x] **Step 4: Make submission optional and remove raw HTML**
 
 Require detail; attempt submission as optional enrichment. Derive status from submission object presence, then fall back score/time to summary. Keep HTML local to the parser, expose only `content_text`, and remove `content_html` from `SpocAssignmentDetail` and every renderer/schema fixture.
 
-- [ ] **Step 5: Run focused and full gates, then commit**
+- [x] **Step 5: Run focused and full gates, then commit**
 
 Run:
 

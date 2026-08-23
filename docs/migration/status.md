@@ -5,7 +5,7 @@ Updated: 2026-08-24
 ## Conclusion
 
 阶段 7-12 曾被标记完成，但 2026-08-23 的冻结源逐操作复核发现路由、双槽位
-CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍有实质缺口。
+Judge 运行时与缓存、live verifier，以及真实 Direct/WebVPN 断言仍有实质缺口。
 当前结论是“修复中，未完成”。下列历史 exit-0 命令只证明当时的请求/解析路径
 没有返回错误；在对应请求合同和语义断言修复并重新运行之前，不得把它们当成
 当前完成证据。
@@ -29,7 +29,7 @@ CAS、验证码绑定、CLI 合同、Classroom、SPOC、Judge 和 live 断言仍
 | 8a aggregate captcha | Deterministic remediation complete | Opaque route/generation-bound IDs, raw ID/execution pre-submit validation, one-use consumption, safe serialization, existing-session consumption without hidden SSO re-entry, auth-clear invalidation, post-submit re-prepare, colliding upstream IDs and partial-prepare behavior are covered; rerun live captcha only if the upstream requests it. |
 | 9a schedule/exam/grades | No new defect established by this audit | Preserve existing frozen-source evidence and rerun after facade integration. |
 | 9b classroom | Deterministic remediation complete | Exact long UA, one no-follow query, strict required `e/m/d/list` and room strings, best-effort once-per-route synchronization, route isolation, and session lifecycle clearing are covered; rerun Direct/WebVPN/auto live queries. |
-| 9c SPOC | False-empty and detail gaps open | Use global encrypted `queryListByPage` with empty `kcid` even when course metadata is empty; submission is optional; retain summary fallback; remove public raw HTML. |
+| 9c SPOC | Deterministic remediation complete | Exact bounded CAS token/role flow, route-owned credentials, raw SSO-Location detection, per-business-call one-refresh retry without permission replay, global encrypted paging with empty `kcid`/`yzwz`, optional course/submission enrichment, summary fallback, and plain-text-only public detail are covered; rerun Direct/WebVPN/auto live queries. |
 | 9d Judge | Parser/cache gaps open | Filter internal links, port full problem/score/status parser, move caches to route/client state, clear them with the session. |
 | 10 CLI/JSON | Deterministic remediation complete | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. Rerun live output checks after feature repairs. |
 | 11 live matrix | Must be rerun | Existing evidence predates the corrected request/parser contracts and cannot close SPOC/Judge semantics. |
@@ -117,7 +117,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - Route/generation-bound aggregate captcha IDs and zero-request user preflight are deterministically covered; real captcha remains conditional on live upstream behavior.
 - Config persistence now has deterministic symlink, regular-file, unique-temp, permission and concurrent-write coverage; real routing configuration behavior remains part of the later live matrix.
 - Classroom now matches the frozen UA/redirect/DTO/state contract in deterministic tests; its historical live result predates the correction and must be rerun on Direct, WebVPN and auto.
-- SPOC empty-list evidence is invalid until the encrypted global request has `kcid=""`; a non-empty account is still needed to live-check optional submission/detail fallback.
+- SPOC now deterministically issues and decrypts the global request with `kcid=""`; historical empty live output predates that fix, so Direct/WebVPN/auto must be rerun, and a non-empty account is still needed to live-check detail/submission semantics.
 - Judge detail semantics and cache lifecycle are unverified; the 65/17 route difference is unresolved.
 - CLI schema v2 is deterministically covered for routed, unresolved and aggregate output, including safe route-tagged captcha projection; the live verifier fixtures and semantic assertions remain Task 9 work.
 - No write operation is migrated: submission/upload, answers, reservations, attendance, grading changes and other side effects remain out of scope.

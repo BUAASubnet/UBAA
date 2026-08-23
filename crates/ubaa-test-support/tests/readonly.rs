@@ -17,13 +17,29 @@ const FROZEN_CLASSROOM_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 16; 24031
 #[derive(Clone)]
 struct SpocTransport {
     responses: Arc<Mutex<VecDeque<(String, HttpResponse)>>>,
+    requests: Arc<Mutex<Vec<HttpRequest>>>,
 }
 
 impl SpocTransport {
     fn new(responses: impl IntoIterator<Item = (String, HttpResponse)>) -> Self {
         Self {
             responses: Arc::new(Mutex::new(responses.into_iter().collect())),
+            requests: Arc::new(Mutex::new(Vec::new())),
         }
+    }
+
+    fn requests(&self) -> Vec<HttpRequest> {
+        self.requests.lock().expect("request log lock").clone()
+    }
+
+    fn assert_exhausted(&self) {
+        assert!(
+            self.responses
+                .lock()
+                .expect("response script lock")
+                .is_empty(),
+            "SPOC response script has unused entries"
+        );
     }
 }
 
@@ -37,6 +53,10 @@ impl HttpTransport for SpocTransport {
             .pop_front()
             .expect("SPOC request script exhausted");
         assert_eq!(request.url, expected_url);
+        self.requests
+            .lock()
+            .expect("request log lock")
+            .push(request);
         Ok(response)
     }
 }
@@ -800,7 +820,6 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
     let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token";
     let transport = SpocTransport::new([
         (cas.into(), redirect(token_url)),
-        (token_url.into(), response(200, token_url, "token landing")),
         (
             "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin".into(),
             response(
@@ -822,7 +841,7 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
             response(
                 200,
                 "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262",
-                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher"}]}"#,
+                r#"{"code":200,"content":[{"kcid":"course-1","kcmc":"Systems","skjs":"Teacher"},{"kcid":"course-2","kcmc":"Networks","skjs":"Another Teacher"}]}"#,
             ),
         ),
         (
@@ -842,6 +861,7 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
             ),
         ),
     ]);
+    let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store())
             .expect("client");
@@ -860,6 +880,388 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
         result.data.assignments[1].due_time.as_deref(),
         Some("2026-03-31 23:59:59")
     );
+    observed.assert_exhausted();
+    let requests = observed.requests();
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| {
+                request.url == "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage"
+            })
+            .count(),
+        2,
+        "global pagination must not repeat for each course"
+    );
+    assert!(!requests[0].headers.contains_key("Accept"));
+    assert_eq!(
+        String::from_utf8(requests[1].body.clone()).unwrap(),
+        r#"{"token":"test-token"}"#
+    );
+}
+
+#[tokio::test]
+async fn spoc_sequential_reads_reuse_one_route_owned_login() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=reused-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let term = r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#;
+    let empty_courses = r#"{"code":200,"content":[]}"#;
+    let empty_page = r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#;
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (term_url.into(), response(200, term_url, term)),
+        (
+            courses_url.into(),
+            response(200, courses_url, empty_courses),
+        ),
+        (
+            assignments_url.into(),
+            response(200, assignments_url, empty_page),
+        ),
+        (term_url.into(), response(200, term_url, term)),
+        (
+            courses_url.into(),
+            response(200, courses_url, empty_courses),
+        ),
+        (
+            assignments_url.into(),
+            response(200, assignments_url, empty_page),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-reuse-fixture"),
+    )
+    .unwrap();
+
+    client.spoc_assignments().await.unwrap();
+    client.spoc_assignments().await.unwrap();
+
+    observed.assert_exhausted();
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == login_url)
+            .count(),
+        1,
+        "one route must reuse its established SPOC token and role"
+    );
+}
+
+#[tokio::test]
+async fn successful_primary_login_invalidates_the_cached_spoc_credential() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let spoc_login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let primary_login = "https://sso.buaa.edu.cn/login";
+    let activate =
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
+    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
+    let term_body = r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#;
+    let empty_courses = r#"{"code":200,"content":[]}"#;
+    let empty_page = r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#;
+    let transport = SpocTransport::new([
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=first-token"),
+        ),
+        (
+            spoc_login.into(),
+            response(200, spoc_login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (term.into(), response(200, term, term_body)),
+        (courses.into(), response(200, courses, empty_courses)),
+        (assignments.into(), response(200, assignments, empty_page)),
+        (
+            primary_login.into(),
+            redirect_from(primary_login, "/already-authenticated"),
+        ),
+        (activate.into(), response(200, activate, "")),
+        (status.into(), response(200, status, profile)),
+        (userinfo.into(), response(200, userinfo, profile)),
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=second-token"),
+        ),
+        (
+            spoc_login.into(),
+            response(200, spoc_login, r#"{"code":200,"content":{"jsdm":"02"}}"#),
+        ),
+        (term.into(), response(200, term, term_body)),
+        (courses.into(), response(200, courses, empty_courses)),
+        (assignments.into(), response(200, assignments, empty_page)),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-primary-relogin-fixture"),
+    )
+    .unwrap();
+
+    client.spoc_assignments().await.unwrap();
+    assert!(client.prepare_login().await.unwrap().is_none());
+    client
+        .login(LoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+            captcha: None,
+        })
+        .await
+        .unwrap();
+    client.spoc_assignments().await.unwrap();
+
+    observed.assert_exhausted();
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == spoc_login)
+            .count(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn spoc_login_follows_the_bounded_direct_cas_chain() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let sso = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fspoc.buaa.edu.cn";
+    let service = "https://spoc.buaa.edu.cn/spocnewht/casLogin?ticket=fixture-ticket";
+    let token = "https://spoc.buaa.edu.cn/spocnew/cas?token=chain-token";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect_from(cas, sso)),
+        (sso.into(), redirect_from(sso, service)),
+        (service.into(), redirect_from(service, token)),
+        (
+            login.into(),
+            response(200, login, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term.into(),
+            response(
+                200,
+                term,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses.into(),
+            response(200, courses, r#"{"code":200,"content":[]}"#),
+        ),
+        (
+            assignments.into(),
+            response(
+                200,
+                assignments,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-chain-fixture"),
+    )
+    .unwrap();
+
+    client.spoc_assignments().await.unwrap();
+
+    observed.assert_exhausted();
+    assert_eq!(observed.requests().len(), 7);
+}
+
+#[tokio::test]
+async fn spoc_webvpn_login_resolves_gateway_relative_redirects_without_double_encoding() {
+    use ubaa_core::connection::to_webvpn_url;
+
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let sso = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fspoc.buaa.edu.cn";
+    let token = "https://spoc.buaa.edu.cn/spocnew/cas?token=webvpn-chain-token";
+    let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let webvpn_cas = to_webvpn_url(cas).unwrap();
+    let webvpn_sso = to_webvpn_url(sso).unwrap();
+    let webvpn_token = to_webvpn_url(token).unwrap();
+    let webvpn_login = to_webvpn_url(login).unwrap();
+    let webvpn_term = to_webvpn_url(term).unwrap();
+    let webvpn_courses = to_webvpn_url(courses).unwrap();
+    let webvpn_assignments = to_webvpn_url(assignments).unwrap();
+    let relative_sso = webvpn_sso
+        .strip_prefix("https://d.buaa.edu.cn")
+        .unwrap()
+        .to_owned();
+    let relative_token = webvpn_token
+        .strip_prefix("https://d.buaa.edu.cn")
+        .unwrap()
+        .to_owned();
+    let transport = SpocTransport::new([
+        (
+            webvpn_cas.clone(),
+            redirect_from(&webvpn_cas, &relative_sso),
+        ),
+        (
+            webvpn_sso.clone(),
+            redirect_from(&webvpn_sso, &relative_token),
+        ),
+        (
+            webvpn_login.clone(),
+            response(
+                200,
+                &webvpn_login,
+                r#"{"code":200,"content":{"jsdm":"01"}}"#,
+            ),
+        ),
+        (
+            webvpn_term.clone(),
+            response(
+                200,
+                &webvpn_term,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            webvpn_courses.clone(),
+            response(200, &webvpn_courses, r#"{"code":200,"content":[]}"#),
+        ),
+        (
+            webvpn_assignments.clone(),
+            response(
+                200,
+                &webvpn_assignments,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::WebVpn,
+        transport,
+        session_store_for(ConnectionMode::WebVpn, "spoc-webvpn-chain-fixture"),
+    )
+    .unwrap();
+
+    client.spoc_assignments().await.unwrap();
+
+    observed.assert_exhausted();
+    assert_eq!(observed.requests()[1].url, webvpn_sso);
+}
+
+#[tokio::test]
+async fn direct_and_webvpn_clients_do_not_share_spoc_credentials() {
+    use ubaa_core::connection::to_webvpn_url;
+
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let term = r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#;
+    let empty_courses = r#"{"code":200,"content":[]}"#;
+    let empty_page = r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#;
+    let first_transport = SpocTransport::new([
+        (
+            cas.into(),
+            redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=first-token"),
+        ),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (term_url.into(), response(200, term_url, term)),
+        (
+            courses_url.into(),
+            response(200, courses_url, empty_courses),
+        ),
+        (
+            assignments_url.into(),
+            response(200, assignments_url, empty_page),
+        ),
+    ]);
+    let webvpn_cas = to_webvpn_url(cas).unwrap();
+    let webvpn_token =
+        to_webvpn_url("https://spoc.buaa.edu.cn/spocnew/cas?token=second-token").unwrap();
+    let webvpn_login = to_webvpn_url(login_url).unwrap();
+    let webvpn_term = to_webvpn_url(term_url).unwrap();
+    let webvpn_courses = to_webvpn_url(courses_url).unwrap();
+    let webvpn_assignments = to_webvpn_url(assignments_url).unwrap();
+    let second_transport = SpocTransport::new([
+        (
+            webvpn_cas.clone(),
+            redirect_from(&webvpn_cas, &webvpn_token),
+        ),
+        (
+            webvpn_login.clone(),
+            response(
+                200,
+                &webvpn_login,
+                r#"{"code":200,"content":{"jsdm":"02"}}"#,
+            ),
+        ),
+        (webvpn_term.clone(), response(200, &webvpn_term, term)),
+        (
+            webvpn_courses.clone(),
+            response(200, &webvpn_courses, empty_courses),
+        ),
+        (
+            webvpn_assignments.clone(),
+            response(200, &webvpn_assignments, empty_page),
+        ),
+    ]);
+    let first_observed = first_transport.clone();
+    let second_observed = second_transport.clone();
+    let mut first = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        first_transport,
+        session_store_with("spoc-first-route-fixture"),
+    )
+    .unwrap();
+    let mut second = RouteClient::with_transport(
+        ConnectionMode::WebVpn,
+        second_transport,
+        session_store_for(ConnectionMode::WebVpn, "spoc-second-route-fixture"),
+    )
+    .unwrap();
+
+    first.spoc_assignments().await.unwrap();
+    second.spoc_assignments().await.unwrap();
+
+    first_observed.assert_exhausted();
+    second_observed.assert_exhausted();
+    assert_eq!(
+        first_observed.requests()[1]
+            .headers
+            .get("Token")
+            .map(String::as_str),
+        Some("Inco-first-token")
+    );
+    assert_eq!(
+        second_observed.requests()[1]
+            .headers
+            .get("Token")
+            .map(String::as_str),
+        Some("Inco-second-token")
+    );
 }
 
 #[tokio::test]
@@ -870,12 +1272,9 @@ async fn spoc_business_authentication_failure_refreshes_login_once() {
     let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
     let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
     let transport = SpocTransport::new([
         (cas.into(), redirect(first_token_url)),
-        (
-            first_token_url.into(),
-            response(200, first_token_url, "token landing"),
-        ),
         (
             login_url.into(),
             response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
@@ -885,10 +1284,6 @@ async fn spoc_business_authentication_failure_refreshes_login_once() {
             response(200, "https://sso.buaa.edu.cn/login?service=fixture", ""),
         ),
         (cas.into(), redirect(fresh_token_url)),
-        (
-            fresh_token_url.into(),
-            response(200, fresh_token_url, "token landing"),
-        ),
         (
             login_url.into(),
             response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
@@ -904,6 +1299,14 @@ async fn spoc_business_authentication_failure_refreshes_login_once() {
         (
             courses_url.into(),
             response(200, courses_url, r#"{"code":200,"content":[]}"#),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            ),
         ),
     ]);
     let mut client = RouteClient::with_transport(
@@ -923,6 +1326,393 @@ async fn spoc_business_authentication_failure_refreshes_login_once() {
 }
 
 #[tokio::test]
+async fn spoc_business_sso_location_refreshes_only_the_failed_call() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=expired-token";
+    let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let sso = "https://sso.buaa.edu.cn/login?service=fixture";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(first_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (term_url.into(), redirect_from(term_url, sso)),
+        (cas.into(), redirect(fresh_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses_url.into(),
+            response(200, courses_url, r#"{"code":200,"content":[]}"#),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-location-refresh-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .spoc_assignments()
+        .await
+        .expect("a raw SSO Location must refresh the route credential once");
+
+    assert!(result.data.assignments.is_empty());
+    observed.assert_exhausted();
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == term_url)
+            .count(),
+        2
+    );
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == courses_url)
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn spoc_permission_failure_is_not_retried_as_authentication() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":403,"msg":"无权限查看该作业","content":null}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-permission-fixture"),
+    )
+    .unwrap();
+
+    let error = client
+        .spoc_assignments()
+        .await
+        .expect_err("permission denial must be returned without replaying the request");
+
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    observed.assert_exhausted();
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == cas)
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn spoc_page_auth_refresh_retries_only_the_failed_business_call() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=expired-token";
+    let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(first_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses_url.into(),
+            response(200, courses_url, r#"{"code":200,"content":[]}"#),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (cas.into(), redirect(fresh_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-page-refresh-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .spoc_assignments()
+        .await
+        .expect("the failed page should be retried after one credential refresh");
+
+    assert!(result.data.assignments.is_empty());
+    observed.assert_exhausted();
+    let requests = observed.requests();
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| request.url == term_url)
+            .count(),
+        1
+    );
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| request.url == courses_url)
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn spoc_second_business_authentication_failure_stops_after_one_refresh() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=expired-token";
+    let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(first_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+        (cas.into(), redirect(fresh_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":401,"msg":"token expired","content":null}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-double-auth-fixture"),
+    )
+    .unwrap();
+
+    let error = client
+        .spoc_assignments()
+        .await
+        .expect_err("a second recognized auth error must be returned unchanged");
+
+    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+    observed.assert_exhausted();
+    assert_eq!(
+        observed
+            .requests()
+            .iter()
+            .filter(|request| request.url == cas)
+            .count(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn spoc_course_metadata_failure_still_reads_the_global_page() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses_url.into(),
+            response(503, courses_url, "temporarily unavailable"),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","zymc":"Practice","sskcid":"course-1","mf":"满分:80"}]}}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-metadata-failure-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .spoc_assignments()
+        .await
+        .expect("metadata is optional enrichment");
+
+    assert_eq!(result.data.assignments.len(), 1);
+    assert_eq!(result.data.assignments[0].assignment_id, "a1");
+    assert_eq!(result.data.assignments[0].course_name, "");
+    observed.assert_exhausted();
+    assert!(
+        observed
+            .requests()
+            .iter()
+            .any(|request| request.url == assignments_url),
+        "the authoritative global page must still be requested"
+    );
+}
+
+#[tokio::test]
+async fn spoc_course_authentication_exhaustion_still_reads_the_global_page() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let first_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=first-token";
+    let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let auth_error = r#"{"code":401,"msg":"token expired","content":null}"#;
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(first_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (courses_url.into(), response(200, courses_url, auth_error)),
+        (cas.into(), redirect(fresh_token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (courses_url.into(), response(200, courses_url, auth_error)),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[]}}"#,
+            ),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-course-auth-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .spoc_assignments()
+        .await
+        .expect("course metadata stays optional after its own auth retry is exhausted");
+
+    assert!(result.data.assignments.is_empty());
+    observed.assert_exhausted();
+    assert!(
+        observed
+            .requests()
+            .iter()
+            .any(|request| request.url == assignments_url)
+    );
+}
+
+#[tokio::test]
 async fn spoc_detail_reads_submission_without_writing() {
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token";
@@ -933,7 +1723,6 @@ async fn spoc_detail_reads_submission_without_writing() {
     let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
     let transport = SpocTransport::new([
         (cas.into(), redirect(token_url)),
-        (token_url.into(), response(200, token_url, "token landing")),
         (
             "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin".into(),
             response(
@@ -966,16 +1755,6 @@ async fn spoc_detail_reads_submission_without_writing() {
                 r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","tjzt":"未做","zymc":"Practice","sskcid":"course-1","kcmc":"Systems","mf":"满分:0"}]}}"#,
             ),
         ),
-        (cas.into(), redirect(token_url)),
-        (token_url.into(), response(200, token_url, "token landing")),
-        (
-            "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin".into(),
-            response(
-                200,
-                "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin",
-                r#"{"code":200,"content":{"jsdm":"01"}}"#,
-            ),
-        ),
         (
             detail_url.into(),
             response(
@@ -1001,11 +1780,90 @@ async fn spoc_detail_reads_submission_without_writing() {
     assert_eq!(result.data.course_name, "Systems");
     assert_eq!(result.data.teacher_name.as_deref(), Some("Teacher"));
     assert_eq!(result.data.submission_status_text, "已提交");
-    assert_eq!(result.data.content_plain_text.as_deref(), Some("Read only"));
+    assert_eq!(
+        result.data.content_plain_text.as_deref(),
+        Some("Read only & safe")
+    );
     assert_eq!(
         result.data.submitted_at.as_deref(),
         Some("2026-03-30 18:00:00")
     );
+}
+
+#[tokio::test]
+async fn spoc_optional_submission_failure_preserves_summary_fallbacks() {
+    let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
+    let token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=test-token";
+    let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
+    let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
+    let courses_url = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
+    let assignments_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
+    let detail_url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid?id=a1";
+    let submission_url = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo?kczyid=a1";
+    let transport = SpocTransport::new([
+        (cas.into(), redirect(token_url)),
+        (
+            login_url.into(),
+            response(200, login_url, r#"{"code":200,"content":{"jsdm":"01"}}"#),
+        ),
+        (
+            term_url.into(),
+            response(
+                200,
+                term_url,
+                r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#,
+            ),
+        ),
+        (
+            courses_url.into(),
+            response(200, courses_url, r#"{"code":200,"content":[]}"#),
+        ),
+        (
+            assignments_url.into(),
+            response(
+                200,
+                assignments_url,
+                r#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":1,"hasNextPage":false,"list":[{"zyid":"a1","tjzt":"未做","zymc":"Summary title","zykssj":"2026-03-01 08:00:00","zyjzsj":"2026-03-31 23:59:59","sskcid":"course-1","mf":"满分:80"}]}}"#,
+            ),
+        ),
+        (
+            detail_url.into(),
+            response(
+                200,
+                detail_url,
+                r#"{"code":200,"content":{"id":"a1","zymc":"","zynr":"<p>Safe</p>","sskcid":"course-1"}}"#,
+            ),
+        ),
+        (
+            submission_url.into(),
+            response(503, submission_url, "temporarily unavailable"),
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("spoc-optional-submission-fixture"),
+    )
+    .unwrap();
+
+    let result = client
+        .spoc_assignment("a1")
+        .await
+        .expect("submission is optional enrichment");
+
+    assert_eq!(result.data.title, "Summary title");
+    assert_eq!(result.data.score.as_deref(), Some("80"));
+    assert_eq!(
+        result.data.start_time.as_deref(),
+        Some("2026-03-01 08:00:00")
+    );
+    assert_eq!(result.data.due_time.as_deref(), Some("2026-03-31 23:59:59"));
+    assert_eq!(
+        result.data.submission_status,
+        ubaa_core::domain::SpocSubmissionStatus::Unsubmitted
+    );
+    observed.assert_exhausted();
 }
 
 #[tokio::test]
