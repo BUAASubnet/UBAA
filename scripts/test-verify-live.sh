@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This harness runs the live verifier against a deterministic local CLI. It
+# sends credentials over stdin and records only CLI argv for leakage checks.
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-verify-live-test.XXXXXX")
-cleanup() {
-  rm -rf "$test_root"
-}
+cleanup() { rm -rf -- "$test_root"; }
 trap cleanup EXIT
 
 project_root="$test_root/project"
@@ -14,7 +14,6 @@ fake_state="$test_root/state"
 mkdir -p "$project_root/scripts" "$project_root/target/debug" "$fake_bin" "$fake_state"
 cp "$repo_root/scripts/verify-live.sh" "$project_root/scripts/verify-live.sh"
 chmod 700 "$project_root/scripts/verify-live.sh"
-
 {
   printf 'UBAA_TEST_%s=%s\n' USERNAME fixture-user
   printf 'UBAA_TEST_%s=%s\n' PASSWORD fixture-password
@@ -26,328 +25,341 @@ exit 0
 EOF
 chmod 700 "$fake_bin/cargo"
 
-real_stty=$(command -v stty)
-cat >"$fake_bin/stty" <<'EOF'
+real_jq=$(command -v jq)
+cat >"$fake_bin/jq" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-
-"$REAL_STTY" "$@"
-if [[ " $* " == *" -echo " && -f "$FAKE_STATE_DIR/interrupt-after-echo" ]]; then
-  kill -TERM "$PPID"
+if [[ -n ${FAKE_JQ_FORBIDDEN_ARG_MARKER:-} ]]; then
+  for argument in "$@"; do
+    [[ "$argument" == *"$FAKE_JQ_FORBIDDEN_ARG_MARKER"* ]] && exit 97
+  done
 fi
+exec "$REAL_JQ" "$@"
 EOF
-chmod 700 "$fake_bin/stty"
+chmod 700 "$fake_bin/jq"
 
 cat >"$project_root/target/debug/ubaa" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
 arguments=" $* "
-if [[ "$arguments" == *" auth login "* && "$arguments" == *" --json "* ]]; then
+state_dir=${FAKE_STATE_DIR:?}
+if [[ "$arguments" == *" auth login "* ]]; then
+  printf '%s\n' "$*" >>"$state_dir/login-argv"
+  IFS= read -r supplied_username
   IFS= read -r supplied_password
-  [[ "$supplied_password" == "fixture-password" ]]
-  printf '%s\n' '{"schemaVersion":1,"ok":false,"error":{"code":"captcha_required","kind":"authentication","message":"captcha input is required","retryable":true,"challenge":{"id":"fixture","execution":"e1"}},"meta":{"connectionMode":"direct"}}'
-  exit 4
+  [[ "$supplied_username" == fixture-user && "$supplied_password" == fixture-password ]]
 fi
 
+profile='{"idCardType":null,"idCardTypeName":null,"phone":null,"schoolId":"TEST-04","name":"Fixture User","idCardNumber":null,"email":null,"username":"fixture-user"}'
 if [[ "$arguments" == *" auth login "* ]]; then
-  IFS= read -r supplied_password
-  if [[ -f "$FAKE_STATE_DIR/human-login-blocks" ]]; then
-    printf '%s\n' "$$" >"$FAKE_STATE_DIR/human-child-pid"
-    trap '' HUP
-    trap ': >"$FAKE_STATE_DIR/human-child-stopped"' INT TERM
-    while :; do
-      sleep 1
-    done
+  if [[ "$arguments" == *" --mode "* ]]; then
+    printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":$profile,\"meta\":{\"routePolicy\":\"direct\",\"networkState\":\"unknown\",\"initialRoute\":\"direct\",\"resolvedRoute\":\"direct\",\"usedFallback\":false,\"feature\":\"auth\"}}"
+  else
+    printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":{\"readiness\":\"all_ready\",\"routes\":[{\"route\":\"direct\",\"state\":\"ready\"},{\"route\":\"webvpn\",\"state\":\"ready\"}],\"profile\":$profile},\"meta\":{\"routePolicy\":\"auto\",\"resolvedRoutes\":[\"direct\",\"webvpn\"],\"feature\":\"auth\"}}"
   fi
-  if [[ -f "$FAKE_STATE_DIR/human-login-needs-no-captcha" ]]; then
-    printf 'password=%q\n' "$supplied_password" >"$FAKE_STATE_DIR/human-input"
-    [[ "$supplied_password" == "fixture-password" ]]
-    : >"$FAKE_STATE_DIR/human-login-used"
-    exit 0
-  fi
-  : >"$FAKE_STATE_DIR/human-awaiting-captcha"
-  IFS= read -r supplied_captcha
-  supplied_captcha=${supplied_captcha%$'\r'}
-  printf 'password=%q\ncaptcha=%q\n' "$supplied_password" "$supplied_captcha" >"$FAKE_STATE_DIR/human-input"
-  [[ "$supplied_password" == "fixture-password" ]]
-  [[ "$supplied_captcha" == "fixture-captcha" ]]
-  : >"$FAKE_STATE_DIR/human-login-used"
-  printf '%s\n' 'RAW-PROFILE-MUST-BE-SUPPRESSED'
   exit 0
 fi
 
 if [[ "$arguments" == *" user show "* ]]; then
-  printf '%s\n' '{"schemaVersion":1,"ok":true,"data":{"name":"Fixture User","schoolId":"TEST-04"},"meta":{"connectionMode":"direct"}}'
+  printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":$profile,\"meta\":{\"routePolicy\":\"direct\",\"networkState\":\"unknown\",\"initialRoute\":\"direct\",\"resolvedRoute\":\"direct\",\"usedFallback\":false,\"feature\":\"user\"}}"
   exit 0
 fi
-
 if [[ "$arguments" == *" auth status "* ]]; then
-  printf '%s\n' '{"schemaVersion":1,"ok":true,"data":{"user":{"name":"Fixture User","schoolId":"TEST-04"},"authenticatedAt":1000,"lastActivity":1001},"meta":{"connectionMode":"direct"}}'
+  printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":{\"readiness\":\"all_ready\",\"routes\":[{\"route\":\"direct\",\"state\":\"ready\"},{\"route\":\"webvpn\",\"state\":\"ready\"}],\"profile\":$profile},\"meta\":{\"routePolicy\":\"direct\",\"resolvedRoutes\":[\"direct\",\"webvpn\"],\"feature\":\"auth\"}}"
   exit 0
 fi
 
+route_policy=direct
+network_state=unknown
+resolved_route=direct
+if [[ "$arguments" != *" --mode direct "* && "$arguments" != *" --mode webvpn "* ]]; then
+  route_policy=auto
+fi
+if [[ "$arguments" == *" --mode webvpn "* ]]; then
+  resolved_route=webvpn
+fi
+meta="\"meta\":{\"routePolicy\":\"$route_policy\",\"networkState\":\"$network_state\",\"initialRoute\":\"$resolved_route\",\"resolvedRoute\":\"$resolved_route\",\"usedFallback\":false"
+if [[ "$arguments" == *" spoc diagnostics "* ]]; then
+  printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":{\"globalPageCount\":1,\"result\":{\"termCode\":\"2025-20262\",\"termName\":\"Spring\",\"assignments\":[]}},$meta,\"feature\":\"spoc\"}}"
+  exit 0
+fi
+if [[ "$arguments" == *" spoc assignment show "* ]]; then
+  printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":{\"assignmentId\":\"assignment-1\",\"courseId\":\"course-1\",\"courseName\":\"Course\",\"teacherName\":null,\"title\":\"Assignment\",\"startTime\":null,\"dueTime\":null,\"score\":null,\"submissionStatus\":\"UNKNOWN\",\"submissionStatusText\":\"未知状态\",\"contentPlainText\":null,\"submittedAt\":null},$meta,\"feature\":\"spoc\"}}"
+  exit 0
+fi
+if [[ "$arguments" == *" judge diagnostics "* ]]; then
+  printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":{\"courseCount\":0,\"rawAnchorCount\":0,\"filteredUniqueCount\":0,\"summaries\":[]},$meta,\"feature\":\"judge\"}}"
+  exit 0
+fi
+if [[ "$arguments" == *" judge assignments "* ]]; then
+  printf '%s\n' "{\"schemaVersion\":2,\"ok\":true,\"data\":[],$meta,\"feature\":\"judge\"}}"
+  exit 0
+fi
 exit 90
 EOF
 chmod 700 "$project_root/target/debug/ubaa"
 
 export FAKE_STATE_DIR="$fake_state"
-export REAL_STTY="$real_stty"
+export REAL_JQ="$real_jq"
 export PATH="$fake_bin:$PATH"
 export VERIFY_LIVE_COPY="$project_root/scripts/verify-live.sh"
+export TRACE_PROJECT_ROOT="$project_root"
 
-send_fixture_captcha() {
-  for _ in {1..100}; do
-    if [[ -f "$fake_state/human-awaiting-captcha" ]]; then
-      break
-    fi
-    sleep 0.05
-  done
-  sleep 0.1
-  printf '%s\n' 'fixture-captcha'
-}
-
-set +e
-case "$(uname -s)" in
-  Darwin)
-    output=$(send_fixture_captcha | script -q -e /dev/null /bin/bash -c \
-      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" terminal-state-restored; exit "$code"' 2>&1)
-    code=$?
-    ;;
-  Linux)
-    output=$(send_fixture_captcha | script -q -e -c \
-      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" terminal-state-restored; exit "$code"' \
-      /dev/null 2>&1)
-    code=$?
-    ;;
-  *)
-    echo "verify-live shell test supports Darwin and Linux" >&2
-    exit 2
-    ;;
-esac
-set -e
-
-if [[ "$code" -ne 0 ]]; then
-  printf 'captcha fallback test failed with exit %s\n%s\n' "$code" "$output" >&2
-  if [[ -f "$fake_state/human-input" ]]; then
-    cat "$fake_state/human-input" >&2
-  fi
-  exit 1
-fi
-if [[ ! -f "$fake_state/human-login-used" ]]; then
-  echo "captcha fallback did not invoke human login" >&2
-  exit 1
-fi
-if [[ "$output" != *"mode=direct outcome=success stage=auth_status"* ]]; then
-  echo "captcha fallback did not reach the redacted success summary" >&2
-  exit 1
-fi
-if [[ "$output" == *"RAW-PROFILE-MUST-BE-SUPPRESSED"* ]]; then
-  echo "human profile stdout was not suppressed" >&2
-  exit 1
-fi
-if [[ "$output" == *"fixture-password"* ]]; then
-  echo "password leaked through verifier output" >&2
-  exit 1
-fi
-if [[ "$output" == *"fixture-captcha"* ]]; then
-  echo "captcha answer leaked through terminal echo" >&2
-  exit 1
-fi
-if [[ "$output" == *"name_prefix="* || "$output" == *"school_id_suffix="* ]]; then
-  echo "partial personal profile fields leaked through verifier output" >&2
-  exit 1
-fi
-if [[ "$output" != *"terminal-state-restored"* ]]; then
-  echo "verifier did not restore the terminal state" >&2
-  exit 1
-fi
-
-: >"$fake_state/interrupt-after-echo"
-set +e
-case "$(uname -s)" in
-  Darwin)
-    interrupted_output=$(script -q -e /dev/null /bin/bash -c \
-      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" interrupted-terminal-state-restored; exit "$code"' \
-      </dev/null 2>&1)
-    interrupted_code=$?
-    ;;
-  Linux)
-    interrupted_output=$(script -q -e -c \
-      'before=$(stty -g); "$VERIFY_LIVE_COPY" direct; code=$?; after=$(stty -g); [[ "$before" == "$after" ]] && printf "%s\n" interrupted-terminal-state-restored; exit "$code"' \
-      /dev/null </dev/null 2>&1)
-    interrupted_code=$?
-    ;;
-esac
-set -e
-rm -f "$fake_state/interrupt-after-echo"
-if [[ "$interrupted_code" -ne 143 ]]; then
-  printf 'interrupted terminal test exited with %s instead of 143\n' "$interrupted_code" >&2
-  exit 1
-fi
-if [[ "$interrupted_output" != *"interrupted-terminal-state-restored"* ]]; then
-  echo "signal after disabling echo left the terminal altered" >&2
-  exit 1
-fi
-
-no_captcha_tty="$test_root/no-captcha-tty"
-no_captcha_config="$test_root/no-captcha-config"
-mkfifo "$no_captcha_tty"
-mkdir -p "$no_captcha_config"
-: >"$fake_state/human-login-needs-no-captcha"
-rm -f "$fake_state/no-captcha-completed"
-(
-  sleep 3
-  printf '%s\n' unused
-) >"$no_captcha_tty" &
-delayed_tty_writer=$!
-(
-  source "$repo_root/scripts/verify-live.sh"
-  binary="$project_root/target/debug/ubaa"
-  config_dir="$no_captcha_config"
-  mode=direct
+xtrace_output=$(bash -x -c '
+  source "$VERIFY_LIVE_COPY"
   username=fixture-user
   password=fixture-password
-  CLI_CODE=0
-  CLI_ELAPSED_MS=0
-  run_human_login "$no_captcha_tty"
-  : >"$fake_state/no-captcha-completed"
-) &
-no_captcha_login=$!
-
-for _ in {1..30}; do
-  if [[ -f "$fake_state/no-captcha-completed" ]]; then
-    break
-  fi
-  sleep 0.05
-done
-if [[ ! -f "$fake_state/no-captcha-completed" ]]; then
-  wait "$no_captcha_login" || true
-  wait "$delayed_tty_writer" || true
-  echo "human login waited for captcha after the client exited" >&2
-  exit 1
-fi
-kill "$delayed_tty_writer" 2>/dev/null || true
-wait "$delayed_tty_writer" 2>/dev/null || true
-wait "$no_captcha_login"
-
-signal_output="$test_root/signal-output"
-signal_config="$test_root/signal-config"
-mkdir -p "$signal_config"
-: >"$fake_state/human-login-blocks"
-rm -f "$fake_state/human-child-pid" "$fake_state/human-child-stopped"
-(
-  source "$repo_root/scripts/verify-live.sh"
-  config_dir="$signal_config"
-  human_input_fifo=
-  human_binary_pid=
-  human_input_open=no
-  install_cleanup_traps
-  "$project_root/target/debug/ubaa" --config-dir "$config_dir" auth login \
-    --mode direct --username fixture-user --password-stdin \
-    <<<"fixture-password" >/dev/null &
-  human_binary_pid=$!
-  wait "$human_binary_pid"
-) >"$signal_output" 2>&1 &
-signal_job=$!
-
-for _ in {1..100}; do
-  if [[ -s "$fake_state/human-child-pid" ]]; then
-    break
-  fi
-  sleep 0.05
-done
-if [[ ! -s "$fake_state/human-child-pid" ]]; then
-  kill "$signal_job" 2>/dev/null || true
-  wait "$signal_job" 2>/dev/null || true
-  cat "$signal_output" >&2 || true
-  echo "signal cleanup test did not reach the blocking human login" >&2
-  exit 1
-fi
-
-human_child_pid=$(cat "$fake_state/human-child-pid")
-kill -TERM "$signal_job"
-for _ in {1..100}; do
-  if ! kill -0 "$human_child_pid" 2>/dev/null; then
-    break
-  fi
-  sleep 0.05
-done
-if kill -0 "$human_child_pid" 2>/dev/null; then
-  kill -KILL "$human_child_pid" 2>/dev/null || true
-  kill -KILL "$signal_job" 2>/dev/null || true
-  wait "$signal_job" 2>/dev/null || true
-  cat "$signal_output" >&2 || true
-  echo "terminating the verifier left the human login child running" >&2
-  exit 1
-fi
-if [[ ! -f "$fake_state/human-child-stopped" ]]; then
-  echo "human login child did not run its termination handler" >&2
-  exit 1
-fi
-set +e
-wait "$signal_job"
-signal_code=$?
-set -e
-if [[ "$signal_code" -ne 143 ]]; then
-  printf 'signal cleanup exited with %s instead of 143\n' "$signal_code" >&2
-  cat "$signal_output" >&2 || true
-  exit 1
-fi
-
-noninteractive_output=$(
-  source "$repo_root/scripts/verify-live.sh"
-  mode=direct
-  username=fixture-user
-  password=fixture-password
-  CLI_CODE=0
-  CLI_OUTPUT=
-  run_json() {
-    CLI_CODE=4
-    CLI_OUTPUT='{"error":{"code":"captcha_required"}}'
-  }
-  if login_with_captcha_fallback "$test_root/missing-tty"; then
+  binary="$TRACE_PROJECT_ROOT/target/debug/ubaa"
+  config_dir="$TRACE_PROJECT_ROOT"
+  run_json credentials auth login --mode direct --username-stdin --password-stdin
+  UBAA_VERIFY_DIGEST_SALT=fixture-trace-salt
+  salted_assignment_digest TRACE-ASSIGNMENT-SENTINEL >/dev/null
+' 2>&1)
+for trace_secret in fixture-user fixture-password fixture-trace-salt TRACE-ASSIGNMENT-SENTINEL; do
+  if [[ "$xtrace_output" == *"$trace_secret"* ]]; then
+    echo "verify-live exposed a private value while inherited xtrace was enabled" >&2
     exit 1
-  else
-    branch_code=$?
   fi
-  [[ "$branch_code" -eq 4 ]]
+done
+if grep -Fq fixture-user "$fake_state/login-argv" \
+  || grep -Fq fixture-password "$fake_state/login-argv" \
+  || grep -Fq fixture-trace-salt "$fake_state/login-argv"; then
+  echo "verify-live passed a private value through the login process argv" >&2
+  exit 1
+fi
+unset xtrace_output trace_secret
+
+for salted_feature in judge all; do
+  set +e
+  missing_salt_output=$(unset UBAA_VERIFY_DIGEST_SALT; "$VERIFY_LIVE_COPY" \
+    feature="$salted_feature" route=direct 2>&1)
+  missing_salt_code=$?
+  set -e
+  if [[ "$missing_salt_code" -ne 2 \
+    || "$missing_salt_output" != *"requires UBAA_VERIFY_DIGEST_SALT"* ]]; then
+    printf '%s verification did not reject a missing digest salt\n%s\n' \
+      "$salted_feature" "$missing_salt_output" >&2
+    exit 1
+  fi
+done
+
+(
+  source "$repo_root/scripts/verify-live.sh"
+  digest_payload='[["course-fixture","assignment-fixture"]]'
+  UBAA_VERIFY_DIGEST_SALT=fixture-salt-a
+  first=$(salted_assignment_digest "$digest_payload")
+  second=$(salted_assignment_digest "$digest_payload")
+  UBAA_VERIFY_DIGEST_SALT=fixture-salt-b
+  third=$(salted_assignment_digest "$digest_payload")
+  [[ -n "$first" && "$first" == "$second" && "$first" != "$third" ]]
 )
-if [[ "$noninteractive_output" != *"error=captcha_required_noninteractive"* ]]; then
-  echo "non-interactive captcha branch did not return its actionable summary" >&2
+
+set +e
+auth_output=$(UBAA_VERIFY_DIGEST_SALT=fixture-salt "$VERIFY_LIVE_COPY" direct 2>&1)
+auth_code=$?
+set -e
+if [[ "$auth_code" -ne 0 \
+  || "$auth_output" != *"mode=direct outcome=success stage=auth_status"* \
+  || "$auth_output" == *"fixture-password"* \
+  || "$auth_output" == *"fixture-user"* ]]; then
+  printf 'explicit auth verification failed or exposed private output\n%s\n' "$auth_output" >&2
   exit 1
 fi
 
-judge_sample_call="$test_root/judge-sample-call"
 set +e
-judge_output=$(
+spoc_output=$(UBAA_VERIFY_DIGEST_SALT=fixture-salt "$VERIFY_LIVE_COPY" feature=spoc route=auto 2>&1)
+spoc_code=$?
+set -e
+if [[ "$spoc_code" -ne 0 \
+  || "$spoc_output" != *"feature=spoc outcome=success"* \
+  || "$spoc_output" != *"global_page_count=1"* \
+  || "$spoc_output" == *"fixture-password"* ]]; then
+  printf 'SPOC verification failed or exposed private output\n%s\n' "$spoc_output" >&2
+  exit 1
+fi
+
+set +e
+judge_output=$(UBAA_VERIFY_DIGEST_SALT=fixture-salt "$VERIFY_LIVE_COPY" feature=judge route=auto 2>&1)
+judge_code=$?
+set -e
+if [[ "$judge_code" -ne 0 \
+  || "$judge_output" != *"feature=judge outcome=success"* \
+  || "$judge_output" != *"digest_comparable=yes"* \
+  || "$judge_output" == *"fixture-password"* ]]; then
+  printf 'Judge verification failed or exposed private output\n%s\n' "$judge_output" >&2
+  exit 1
+fi
+
+set +e
+judge_argv_output=$(
+  export FAKE_JQ_FORBIDDEN_ARG_MARKER=34
   source "$repo_root/scripts/verify-live.sh"
-  mode=auto
-  route=auto
+  mode=direct
+  route=direct
   feature=judge
+  UBAA_VERIFY_DIGEST_SALT=fixture-salt
   CLI_CODE=0
   CLI_OUTPUT=
   run_json() {
     local stdin_value=$1
     shift
     [[ "$stdin_value" == none ]]
-    if [[ "$*" == "judge assignments" ]]; then
-      CLI_CODE=0
-      CLI_OUTPUT='{"ok":true,"data":[{"courseId":"course-old","assignmentId":"assignment-old"},{"courseId":"course-new","assignmentId":"assignment-new"}]}'
-    elif [[ "$*" == "judge assignment show --course-id course-old --id assignment-old" ]]; then
-      CLI_CODE=0
-      CLI_OUTPUT='{"ok":true,"data":{"assignmentId":"assignment-old"}}'
-      printf '%s\n' "$*" >"$judge_sample_call"
+    CLI_CODE=0
+    CLI_ELAPSED_MS=0
+    if [[ "$*" == "judge diagnostics --include-expired" ]]; then
+        CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"courseCount":1,"rawAnchorCount":1,"filteredUniqueCount":1,"summaries":[{"courseId":"12","courseName":"Course","assignmentId":"34","title":"Assignment","startTime":null,"dueTime":null,"maxScore":null,"myScore":null,"totalProblems":0,"submittedCount":0,"submissionStatus":"UNKNOWN","submissionStatusText":"未知状态"}]},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"judge"}}'
+    elif [[ "$*" == "judge assignments" ]]; then
+        CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":[{"courseId":"12","courseName":"Course","assignmentId":"34","title":"Assignment","startTime":null,"dueTime":null,"maxScore":null,"myScore":null,"totalProblems":0,"submittedCount":0,"submissionStatus":"UNKNOWN","submissionStatusText":"未知状态"}],"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"judge"}}'
+    elif [[ "$*" == "judge assignment show --course-id 12 --id 34" ]]; then
+        CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"courseId":"12","courseName":"Course","assignmentId":"34","title":"Assignment","startTime":null,"dueTime":null,"maxScore":null,"myScore":null,"totalProblems":0,"submittedCount":0,"submissionStatus":"UNKNOWN","submissionStatusText":"未知状态","problems":[],"contentPlainText":null},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"judge"}}'
     else
-      CLI_CODE=6
-      CLI_OUTPUT='{"ok":false,"error":{"code":"upstream_changed"}}'
+        CLI_CODE=6
+        CLI_OUTPUT='{"schemaVersion":2,"ok":false,"error":{"code":"upstream_changed","kind":"upstream","message":"fixture","retryable":false}}'
     fi
   }
   run_readonly_feature
 )
-judge_code=$?
+judge_argv_code=$?
 set -e
-if [[ "$judge_code" -ne 0 || ! -s "$judge_sample_call" ]]; then
-  printf 'Judge verifier did not select the first stable assignment sample\n%s\n' "$judge_output" >&2
+if [[ "$judge_argv_code" -ne 0 \
+  || "$judge_argv_output" != *"feature=judge outcome=success"* ]]; then
+  printf 'Judge verifier passed an identifier to jq argv or rejected stdin comparison\n%s\n' \
+    "$judge_argv_output" >&2
   exit 1
 fi
+
+set +e
+spoc_identity_output=$(
+  source "$repo_root/scripts/verify-live.sh"
+  mode=auto
+  route=auto
+  feature=spoc
+  CLI_CODE=0
+  CLI_OUTPUT=
+  run_json() {
+    local stdin_value=$1
+    shift
+    [[ "$stdin_value" == none ]]
+    CLI_CODE=0
+    CLI_ELAPSED_MS=0
+    if [[ "$*" == "spoc diagnostics" ]]; then
+      CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"globalPageCount":1,"result":{"termCode":"2025-20262","termName":"Spring","assignments":[{"assignmentId":"assignment-1","courseId":"course-10","courseName":"Course","teacherName":null,"title":"Assignment","startTime":null,"dueTime":null,"score":null,"submissionStatus":"UNKNOWN","submissionStatusText":"未知状态(9)"}]}},"meta":{"routePolicy":"auto","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+    elif [[ "$*" == "spoc assignment show --id assignment-1" ]]; then
+      CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"assignmentId":"assignment-1","courseId":"course-999","courseName":"Course","teacherName":null,"title":"Assignment","startTime":null,"dueTime":null,"score":null,"submissionStatus":"UNKNOWN","submissionStatusText":"未知状态","contentPlainText":null,"submittedAt":null},"meta":{"routePolicy":"auto","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+    else
+      CLI_CODE=6
+      CLI_OUTPUT='{"schemaVersion":2,"ok":false,"error":{"code":"upstream_changed","kind":"upstream","message":"fixture","retryable":false}}'
+    fi
+  }
+  run_readonly_feature
+)
+spoc_identity_code=$?
+set -e
+if [[ "$spoc_identity_code" -ne 1 \
+  || "$spoc_identity_output" != *"stage=spoc_detail"* \
+  || "$spoc_identity_output" != *"error=invalid_semantics"* ]]; then
+  printf 'SPOC verifier accepted a detail from a different course\n%s\n' \
+    "$spoc_identity_output" >&2
+  exit 1
+fi
+
+set +e
+mixed_route_output=$(
+  source "$repo_root/scripts/verify-live.sh"
+  mode=auto
+  route=auto
+  feature=judge
+  UBAA_VERIFY_DIGEST_SALT=fixture-salt
+  CLI_CODE=0
+  CLI_OUTPUT=
+  run_json() {
+    local stdin_value=$1
+    shift
+    [[ "$stdin_value" == none ]]
+    CLI_CODE=0
+    CLI_ELAPSED_MS=0
+    if [[ "$*" == "judge diagnostics --include-expired" ]]; then
+      CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"courseCount":0,"rawAnchorCount":0,"filteredUniqueCount":0,"summaries":[]},"meta":{"routePolicy":"auto","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"judge"}}'
+    elif [[ "$*" == "judge assignments" ]]; then
+      CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":[],"meta":{"routePolicy":"auto","networkState":"off_campus","initialRoute":"webvpn","resolvedRoute":"webvpn","usedFallback":false,"feature":"judge"}}'
+    else
+      CLI_CODE=6
+      CLI_OUTPUT='{"schemaVersion":2,"ok":false,"error":{"code":"upstream_changed","kind":"upstream","message":"fixture","retryable":false}}'
+    fi
+  }
+  run_readonly_feature
+)
+mixed_route_code=$?
+set -e
+if [[ "$mixed_route_code" -eq 0 ]]; then
+  printf 'Judge verifier accepted mixed auto routes\n%s\n' "$mixed_route_output" >&2
+  exit 1
+fi
+
+(
+  source "$repo_root/scripts/verify-live.sh"
+  mode=direct
+  route=direct
+  feature=spoc
+  assert_rejected() {
+    local label=$1
+    shift
+    if "$@"; then
+      printf 'semantic verifier accepted invalid case: %s\n' "$label" >&2
+      exit 1
+    fi
+  }
+  assert_accepted() {
+    local label=$1
+    shift
+    if ! "$@"; then
+      printf 'semantic verifier rejected valid case: %s\n' "$label" >&2
+      exit 1
+    fi
+  }
+
+  valid_spoc='{"schemaVersion":2,"ok":true,"data":{"globalPageCount":1,"result":{"termCode":"2025-20262","termName":"Spring","assignments":[]}},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+  CLI_OUTPUT="$valid_spoc"
+  assert_accepted valid_routed_output validate_feature_data spoc_diagnostics
+
+  feature=schedule
+  valid_schedule_current='{"schemaVersion":2,"ok":true,"data":{"arrangedList":[],"code":"2025-2026","name":"Spring Term"},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"schedule"}}'
+  CLI_OUTPUT="$valid_schedule_current"
+  assert_accepted schedule_current_shape validate_feature_data schedule_current
+  assert_accepted schedule_current_code_is_independent_of_request validate_schedule_code
+
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"arrangedList":[],"code":"","name":"Spring Term"},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"schedule"}}'
+  assert_rejected empty_schedule_code validate_schedule_code
+
+  CLI_OUTPUT='{"schemaVersion":1,"ok":true,"data":{"termCode":"2025-20262","assignments":[]},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+  assert_rejected schema_v1 validate_feature_data spoc_diagnostics
+
+  CLI_OUTPUT=$'{"schemaVersion":2,"ok":true,"data":{"termCode":"2025-20262","termName":"Spring","assignments":[]},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}\n{"schemaVersion":2,"ok":true,"data":{"termCode":"2025-20262","termName":"Spring","assignments":[]},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+  assert_rejected multiple_json_values validate_feature_data spoc_diagnostics
+
+  mode=auto
+  route=auto
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"termCode":"2025-20262","termName":"Spring","assignments":[]},"meta":{"routePolicy":"auto","networkState":"campus","initialRoute":"webvpn","resolvedRoute":"webvpn","usedFallback":false,"feature":"spoc"}}'
+  assert_rejected contradictory_auto_route validate_feature_data spoc_diagnostics
+
+  mode=direct
+  route=direct
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"termCode":"2025-20262","termName":"Spring","assignments":[],"rawBody":"VERIFY-LIVE-SENSITIVE-SENTINEL"},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+  assert_rejected unsafe_output_key validate_feature_data spoc_diagnostics
+
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"readiness":"all_ready","routes":[{"route":"direct","state":"ready"},{"route":"webvpn","state":"ready"}],"profile":{"idCardType":null,"idCardTypeName":null,"phone":"UNMASKED-PHONE","schoolId":"TEST-04","name":"Fixture User","idCardNumber":"UNMASKED-ID","email":null,"username":"fixture-user"}},"meta":{"routePolicy":"direct","resolvedRoutes":["direct","webvpn"],"feature":"auth"}}'
+  assert_rejected unmasked_aggregate_profile validate_aggregate_auth_success all
+
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"readiness":"partial","routes":[{"route":"direct","state":"ready"},{"route":"webvpn","state":"failed","error":{"code":"upstream_unavailable","kind":"upstream","message":"fixture","retryable":"true"}}],"profile":{"idCardType":null,"idCardTypeName":null,"phone":null,"schoolId":"TEST-04","name":"Fixture User","idCardNumber":null,"email":null,"username":"fixture-user"}},"meta":{"routePolicy":"direct","resolvedRoutes":["direct","webvpn"],"feature":"auth"}}'
+  assert_rejected non_boolean_route_error validate_aggregate_auth_success direct
+
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":{"termCode":"2025-20262","termName":"Spring","assignments":[{"assignmentId":"assignment-1","courseId":"course-1","courseName":"Course","teacherName":null,"title":"Assignment","startTime":null,"dueTime":null,"score":null,"submissionStatus":"SUBMITTED","submissionStatusText":"未提交"}]},"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"spoc"}}'
+  assert_rejected spoc_status_text_mismatch validate_feature_data spoc_diagnostics
+
+  feature=judge
+  CLI_OUTPUT='{"schemaVersion":2,"ok":true,"data":[{"courseId":"12","courseName":"Course","assignmentId":"34","title":"Assignment","startTime":null,"dueTime":null,"maxScore":"PRIVATE","myScore":null,"totalProblems":0,"submittedCount":0,"submissionStatus":"UNKNOWN","submissionStatusText":"未知状态"}],"meta":{"routePolicy":"direct","networkState":"unknown","initialRoute":"direct","resolvedRoute":"direct","usedFallback":false,"feature":"judge"}}'
+  assert_rejected arbitrary_judge_score validate_feature_data judge
+)
+
+echo 'verify-live shell tests passed'

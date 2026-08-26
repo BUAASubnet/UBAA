@@ -17,6 +17,11 @@ their current behavior unless the new facade or verification exposes a concrete
 parity gap. Write operations, UI bindings, MCP, and server relay remain out of
 scope.
 
+The historical captcha-isolation portions of this design are superseded by the
+2026-08-25 decision in `docs/migration/decision-log.md`; the active contract
+rejects interactive verification as `upstream_changed` before image fetch or
+credential POST.
+
 Three implementation shapes were considered:
 
 1. Patch each CLI command and feature in place. This is the smallest diff, but
@@ -104,21 +109,14 @@ Route readiness is computed from the coordinator's current owned state, not a
 construction-time list. Snapshot/revision loads, legacy migration, permissions,
 and all writes remain within the existing session-file locking contract.
 
-## Captcha Isolation
+## Captcha Isolation (superseded; historical only)
 
-Raw upstream captcha identifiers, execution values, cookies, and image bytes
-remain private to each route's authentication workflow. Each `prepare_login`
-call creates a new opaque public challenge identifier mapped internally to one
-route and that route's current challenge generation. Public identifiers for two
-routes are distinct even when upstream identifiers match.
-
-`login` validates the complete answer set before sending any credential POST.
-Unknown, duplicate, expired, already-consumed, or wrong-generation identifiers
-return `invalid_input`. An answer can be consumed only by its mapped route.
-Missing answers leave those routes `captcha_required` while other routes continue
-according to the documented partial-success contract. JSON exposes only route,
-opaque challenge ID, and image availability; human mode may render the image in
-memory but never persists it.
+The challenge/answer-binding design that used to occupy this section is
+historical only. The active authentication contract rejects interactive
+verification before credential POST, exposes no challenge state, and returns
+`upstream_changed`, as recorded on 2026-08-25. Do not implement or revive the
+former identifiers, answer binding, image handling, prompt, or
+`captcha_required` behavior.
 
 ## Route-Scoped Feature State
 

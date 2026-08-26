@@ -9,17 +9,20 @@ use aes::cipher::{BlockDecrypt, KeyInit, generic_array::GenericArray};
 use async_trait::async_trait;
 use base64::Engine as _;
 use ubaa_core::config::RouteConfig;
-use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue};
+use ubaa_core::domain::{
+    ConnectionMode, DualLoginInput, JudgeAssignmentKey, LoginInput, SecretValue,
+};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, UbaaClient};
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{
-    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionSnapshot, SessionStore,
-    StoredCookie,
+    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionMutation, SessionSnapshot,
+    SessionStore, StoredCookie, VersionedSession,
 };
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, readonly_fixture};
 
 const FROZEN_CLASSROOM_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 16; 24031PN0DC Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.180 Mobile Safari/537.36 XWEB/1380275 MMWEBSDK/20230806 MMWEBID/4102 wxworklocal/3.2.200 wwlocal/3.2.200 wxwork/4.0.0 appname/wxworklocal-customized wxworklocal-device-code/195ef5586d7d3c2808fcbea32d77c0d4 MicroMessenger/7.0.1 appScheme/wxworklocalcustomized Language/zh_CN ColorScheme/Light WXWorklocalClientType/Android Brand/xiaomi";
+const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
 
 #[derive(Clone)]
 struct SpocTransport {
@@ -495,12 +498,11 @@ async fn successful_login_replacement_clears_classroom_sync_state() {
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
 
     client.classroom_search(1, "2026-04-20").await.unwrap();
-    assert!(client.prepare_login().await.unwrap().is_none());
+    client.prepare_login().await.unwrap();
     client
         .login(LoginInput {
             username: "fixture-user".into(),
             password: SecretValue::new("fixture-password"),
-            captcha: None,
         })
         .await
         .unwrap();
@@ -902,20 +904,22 @@ async fn spoc_list_follows_cas_and_maps_all_pages() {
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store())
             .expect("client");
 
-    let result = client.spoc_assignments().await.expect("SPOC list");
-    assert_eq!(result.data.term_code, "2025-20262");
-    assert_eq!(result.data.assignments.len(), 2);
-    assert_eq!(result.data.assignments[0].assignment_id, "a2");
-    assert_eq!(result.data.assignments[0].submission_status_text, "已提交");
-    assert_eq!(result.data.assignments[1].course_name, "Systems");
+    let result = client
+        .spoc_assignments_diagnostics()
+        .await
+        .expect("SPOC list diagnostics");
+    assert_eq!(result.data.global_page_count, 2);
+    assert_eq!(result.data.result.term_code, "2025-20262");
+    assert_eq!(result.data.result.assignments.len(), 2);
+    assert_eq!(result.data.result.assignments[0].assignment_id, "a2");
     assert_eq!(
-        result.data.assignments[1].teacher_name.as_deref(),
-        Some("Teacher")
+        result.data.result.assignments[0].submission_status_text,
+        "已提交"
     );
-    assert_eq!(
-        result.data.assignments[1].due_time.as_deref(),
-        Some("2026-03-31 23:59:59")
-    );
+    assert_eq!(result.data.result.assignments[1].course_name, "Systems");
+    let second = &result.data.result.assignments[1];
+    assert_eq!(second.teacher_name.as_deref(), Some("Teacher"));
+    assert_eq!(second.due_time.as_deref(), Some("2026-03-31 23:59:59"));
     observed.assert_exhausted();
     let requests = observed.requests();
     assert_eq!(
@@ -1064,12 +1068,11 @@ async fn successful_primary_login_invalidates_the_cached_spoc_credential() {
     .unwrap();
 
     client.spoc_assignments().await.unwrap();
-    assert!(client.prepare_login().await.unwrap().is_none());
+    client.prepare_login().await.unwrap();
     client
         .login(LoginInput {
             username: "fixture-user".into(),
             password: SecretValue::new("fixture-password"),
-            captcha: None,
         })
         .await
         .unwrap();
@@ -2248,6 +2251,74 @@ async fn judge_selects_courses_before_reading_assignment_details() {
 }
 
 #[tokio::test]
+async fn judge_diagnostics_reuse_the_list_chain_and_report_safe_parser_counts() {
+    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let judge_home = "https://judge.buaa.edu.cn/";
+    let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
+    let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
+    let assignments_url = "https://judge.buaa.edu.cn/assignment/index.jsp";
+    let detail_url = "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101";
+    let assignments = r#"
+        <a href="problemContent.jsp?assignID=101">internal</a>
+        <a href="judgeDetails.jsp?assignID=101">internal result</a>
+        <a href="assignment/index.jsp?assignID=999"><span> </span></a>
+        <a href="assignment/index.jsp?assignID=101">Fixture</a>
+        <a href="assignment/index.jsp?assignID=101">duplicate</a>
+    "#;
+    let transport = MockTransport::new([
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login_url,
+            redirect_from(login_url, judge_home),
+        ),
+        expected_get(judge_home, "judge ready"),
+        expected_get(
+            courses_url,
+            r#"<a href="courselist.jsp?courseID=1">Course 1</a>"#,
+        ),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            login_url,
+            redirect_from(login_url, judge_home),
+        ),
+        expected_get(judge_home, "judge ready"),
+        expected_get(select_url, "selected"),
+        expected_get(assignments_url, assignments),
+        expected_get(select_url, "selected"),
+        expected_get(
+            detail_url,
+            "作业满分: 10 共 1 道 作业时间: 2026-08-01 08:00 至 2026-08-31 23:00 未提交",
+        ),
+    ]);
+    let observed = transport.clone();
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        transport,
+        session_store_with("judge-diagnostic-counts-fixture"),
+    )
+    .unwrap();
+
+    let ordinary = client.judge_assignments(false).await.unwrap();
+    let diagnostic = client.judge_assignments_diagnostics(false).await.unwrap();
+
+    assert_eq!(ordinary.data, diagnostic.data.summaries);
+    assert_eq!(diagnostic.data.course_count, 1);
+    assert_eq!(diagnostic.data.raw_anchor_count, 5);
+    assert_eq!(diagnostic.data.filtered_unique_count, 1);
+    observed.assert_exhausted().unwrap();
+    assert_eq!(
+        observed
+            .requests()
+            .unwrap()
+            .iter()
+            .filter(|request| request.url == assignments_url)
+            .count(),
+        1,
+        "ordinary and diagnostic reads must share one parsed assignment-list cache entry"
+    );
+}
+
+#[tokio::test]
 async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
     let login_url = ubaa_core::features::judge::LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
@@ -3069,14 +3140,25 @@ async fn judge_clients_with_the_same_route_and_cookie_do_not_share_cache() {
 struct JudgeRetryTransport {
     course_requests: Arc<AtomicUsize>,
     activation_requests: Arc<AtomicUsize>,
+    status_requests: Arc<AtomicUsize>,
+    status_response: Option<HttpResponse>,
     successful_attempt: Option<usize>,
 }
 
 impl JudgeRetryTransport {
     fn new(successful_attempt: Option<usize>) -> Self {
+        Self::with_status(successful_attempt, None)
+    }
+
+    fn with_status(
+        successful_attempt: Option<usize>,
+        status_response: Option<HttpResponse>,
+    ) -> Self {
         Self {
             course_requests: Arc::new(AtomicUsize::new(0)),
             activation_requests: Arc::new(AtomicUsize::new(0)),
+            status_requests: Arc::new(AtomicUsize::new(0)),
+            status_response,
             successful_attempt,
         }
     }
@@ -3104,11 +3186,111 @@ impl HttpTransport for JudgeRetryTransport {
             };
             return Ok(response(200, &request.url, body));
         }
+        if request.url == UC_STATUS_URL {
+            self.status_requests.fetch_add(1, Ordering::SeqCst);
+            return self.status_response.clone().ok_or_else(|| {
+                UbaaError::new(
+                    ErrorCode::InternalError,
+                    ErrorKind::Internal,
+                    false,
+                    "unexpected Judge status request",
+                )
+            });
+        }
         Err(UbaaError::new(
             ErrorCode::InternalError,
             ErrorKind::Internal,
             false,
             "unexpected Judge retry request",
+        ))
+    }
+}
+
+#[derive(Clone)]
+struct ConflictOnRefreshStore {
+    inner: MemorySessionStore,
+}
+
+impl SessionStore for ConflictOnRefreshStore {
+    fn load_versioned(&self) -> Result<VersionedSession> {
+        self.inner.load_versioned()
+    }
+
+    fn compare_exchange(
+        &self,
+        _expected_revision: u64,
+        _replacement: Option<&SessionSnapshot>,
+    ) -> Result<SessionMutation> {
+        Ok(SessionMutation::Conflict)
+    }
+}
+
+#[derive(Clone)]
+struct AggregateJudgeInvalidationTransport {
+    mode: ConnectionMode,
+    sso_gets: Arc<AtomicUsize>,
+    sso_posts: Arc<AtomicUsize>,
+}
+
+impl AggregateJudgeInvalidationTransport {
+    fn new(mode: ConnectionMode) -> Self {
+        Self {
+            mode,
+            sso_gets: Arc::new(AtomicUsize::new(0)),
+            sso_posts: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
+#[async_trait]
+impl HttpTransport for AggregateJudgeInvalidationTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        let sso_url = match self.mode {
+            ConnectionMode::Direct => "https://sso.buaa.edu.cn/login".to_string(),
+            ConnectionMode::WebVpn => {
+                ubaa_core::connection::to_webvpn_url("https://sso.buaa.edu.cn/login")
+                    .expect("WebVPN SSO URL")
+            }
+        };
+        if request.url == sso_url {
+            return match request.method {
+                HttpMethod::Get => {
+                    let attempt = self.sso_gets.fetch_add(1, Ordering::SeqCst) + 1;
+                    if self.mode == ConnectionMode::Direct && attempt > 1 {
+                        Ok(response(503, &request.url, ""))
+                    } else {
+                        let page = r#"<form id="fm1" action="/login" method="post"><input type="hidden" name="execution" value="fixture-execution"><input name="username"><input name="password"></form>"#;
+                        Ok(response(200, &request.url, page))
+                    }
+                }
+                HttpMethod::Post => {
+                    self.sso_posts.fetch_add(1, Ordering::SeqCst);
+                    Ok(response(503, &request.url, ""))
+                }
+            };
+        }
+        if self.mode == ConnectionMode::Direct
+            && request.url == ubaa_core::features::judge::LOGIN_URL
+        {
+            return Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"));
+        }
+        if self.mode == ConnectionMode::Direct && request.url == "https://judge.buaa.edu.cn/" {
+            return Ok(response(200, &request.url, "judge ready"));
+        }
+        if self.mode == ConnectionMode::Direct
+            && request.url == "https://judge.buaa.edu.cn/courselist.jsp?courseID=0"
+        {
+            let body = r#"<form><input name="execution" value="fixture"></form>统一身份认证"#;
+            return Ok(response(200, &request.url, body));
+        }
+        if self.mode == ConnectionMode::Direct && request.url == UC_STATUS_URL {
+            return Ok(response(401, UC_STATUS_URL, ""));
+        }
+        Err(UbaaError::new(
+            ErrorCode::InternalError,
+            ErrorKind::Internal,
+            false,
+            "unexpected aggregate Judge invalidation request",
         ))
     }
 }
@@ -3136,7 +3318,7 @@ async fn judge_business_request_allows_three_reactivations_then_succeeds() {
 
 #[tokio::test]
 async fn judge_business_request_stops_after_three_failed_reactivations() {
-    let transport = JudgeRetryTransport::new(None);
+    let transport = JudgeRetryTransport::with_status(None, Some(response(503, UC_STATUS_URL, "")));
     let observed = transport.clone();
     let mut client = RouteClient::with_transport(
         ConnectionMode::Direct,
@@ -3150,9 +3332,237 @@ async fn judge_business_request_stops_after_three_failed_reactivations() {
         .await
         .expect_err("the fourth failed business attempt must be terminal");
 
-    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+    assert!(error.retryable);
     assert_eq!(observed.course_requests.load(Ordering::SeqCst), 4);
     assert_eq!(observed.activation_requests.load(Ordering::SeqCst), 4);
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn judge_authentication_exhaustion_preserves_session_when_uc_is_valid() {
+    let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
+    let status = response(200, UC_STATUS_URL, profile);
+    let transport = JudgeRetryTransport::with_status(None, Some(status));
+    let observed = transport.clone();
+    let store = session_store_with("judge-auth-valid-fixture");
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone())
+        .expect("client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("Judge auth exhaustion must remain a business failure");
+
+    assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+    assert!(error.retryable);
+    assert!(store.snapshot().unwrap().is_some());
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn judge_authentication_exhaustion_preserves_session_when_uc_is_unavailable() {
+    let status = response(503, UC_STATUS_URL, "");
+    let transport = JudgeRetryTransport::with_status(None, Some(status));
+    let observed = transport.clone();
+    let store = session_store_with("judge-auth-unavailable-fixture");
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone())
+        .expect("client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("Judge auth exhaustion must remain inconclusive when UC is unavailable");
+
+    assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+    assert!(error.retryable);
+    assert!(store.snapshot().unwrap().is_some());
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn judge_authentication_exhaustion_preserves_session_when_uc_json_is_malformed() {
+    let status = response(200, UC_STATUS_URL, r#"{"code":0,"data": "#);
+    let transport = JudgeRetryTransport::with_status(None, Some(status));
+    let observed = transport.clone();
+    let store = session_store_with("judge-auth-malformed-json-fixture");
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone())
+        .expect("client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("malformed UC JSON must remain an inconclusive business failure");
+
+    assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+    assert!(error.retryable);
+    assert!(store.snapshot().unwrap().is_some());
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn judge_authentication_exhaustion_preserves_refresh_conflict_as_internal_error() {
+    let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
+    let status = response(200, UC_STATUS_URL, profile);
+    let inner = session_store_with("judge-auth-conflict-fixture");
+    let store = ConflictOnRefreshStore {
+        inner: inner.clone(),
+    };
+    let transport = JudgeRetryTransport::with_status(None, Some(status));
+    let observed = transport.clone();
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, transport, store).expect("client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("a session CAS conflict must escape UC arbitration");
+
+    assert_eq!(error.code, ErrorCode::InternalError);
+    assert_eq!(error.kind, ErrorKind::Internal);
+    assert!(error.retryable);
+    assert!(inner.snapshot().unwrap().is_some());
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn judge_authentication_exhaustion_clears_session_when_uc_rejects_it() {
+    let status = response(401, UC_STATUS_URL, "");
+    let transport = JudgeRetryTransport::with_status(None, Some(status));
+    let observed = transport.clone();
+    let store = session_store_with("judge-auth-invalid-fixture");
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone())
+        .expect("client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("an explicitly invalid UC session must remain an auth failure");
+
+    assert_eq!(error.code, ErrorCode::AuthenticationRequired);
+    assert!(!error.retryable);
+    assert!(store.snapshot().unwrap().is_none());
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn judge_invalid_primary_session_clears_only_the_selected_route_slot() {
+    let status = response(401, UC_STATUS_URL, "");
+    let direct_transport = JudgeRetryTransport::with_status(None, Some(status));
+    let observed = direct_transport.clone();
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-judge-selected-route-invalidation-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).expect("session store");
+    let slot = |mode, label| {
+        RouteSessionSnapshot::from_legacy(&SessionSnapshot {
+            mode,
+            cookies: vec![StoredCookie::fixture("SID", label)],
+            authenticated_at: 1,
+            last_activity: 2,
+        })
+    };
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(slot(ConnectionMode::Direct, "judge-direct-fixture")),
+            Some(slot(ConnectionMode::WebVpn, "judge-webvpn-fixture")),
+        ))
+        .expect("seed dual sessions");
+    let config = RouteConfig::parse("[route]\ndefault = 'direct'\n").expect("route config");
+    let mut client = UbaaClient::with_routing(
+        direct_transport,
+        JudgeRetryTransport::new(Some(4)),
+        store.clone(),
+        config,
+        ubaa_core::connection::SystemGatewayProbe,
+    )
+    .expect("aggregate client");
+
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("UC rejected Direct");
+
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+    let persisted = store
+        .load_dual()
+        .expect("load dual sessions")
+        .expect("dual sessions");
+    assert!(persisted.direct().is_none());
+    assert!(persisted.webvpn().is_some());
+    assert_eq!(observed.status_requests.load(Ordering::SeqCst), 1);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn aggregate_judge_invalidation_clears_the_selected_pending_login_workflow() {
+    let root = std::env::temp_dir().join(format!(
+        "ubaa-judge-workflow-invalidation-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).expect("session store");
+    let slot = |mode, label| {
+        RouteSessionSnapshot::from_legacy(&SessionSnapshot {
+            mode,
+            cookies: vec![StoredCookie::fixture("SID", label)],
+            authenticated_at: 1,
+            last_activity: 2,
+        })
+    };
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(slot(ConnectionMode::Direct, "judge-direct-fixture")),
+            Some(slot(ConnectionMode::WebVpn, "judge-webvpn-fixture")),
+        ))
+        .expect("seed dual sessions");
+    let direct = AggregateJudgeInvalidationTransport::new(ConnectionMode::Direct);
+    let observed_direct = direct.clone();
+    let webvpn = AggregateJudgeInvalidationTransport::new(ConnectionMode::WebVpn);
+    let config = RouteConfig::parse("[route]\ndefault = 'direct'\n").expect("route config");
+    let mut client = UbaaClient::with_routing(
+        direct,
+        webvpn,
+        store,
+        config,
+        ubaa_core::connection::SystemGatewayProbe,
+    )
+    .expect("aggregate client");
+
+    let preparation = client.prepare_login().await;
+    assert!(
+        preparation
+            .routes
+            .iter()
+            .all(|route| { route.state == ubaa_core::domain::RouteLoginState::Ready })
+    );
+    let error = client
+        .judge_assignments(false)
+        .await
+        .expect_err("UC must reject the selected Direct route");
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+
+    let outcome = client
+        .login(DualLoginInput {
+            username: "fixture-user".into(),
+            password: SecretValue::new("fixture-password"),
+        })
+        .await
+        .expect("route failures remain aggregate login data");
+
+    assert_eq!(
+        outcome.routes[0]
+            .error
+            .as_ref()
+            .expect("Direct login failure")
+            .code,
+        "upstream_unavailable"
+    );
+    assert_eq!(observed_direct.sso_gets.load(Ordering::SeqCst), 2);
+    assert_eq!(observed_direct.sso_posts.load(Ordering::SeqCst), 0);
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[tokio::test]
@@ -3214,12 +3624,11 @@ async fn successful_primary_login_invalidates_route_owned_judge_caches() {
         .judge_assignment("1", "101")
         .await
         .expect("first Judge detail");
-    assert!(client.prepare_login().await.unwrap().is_none());
+    client.prepare_login().await.unwrap();
     client
         .login(LoginInput {
             username: "fixture-user".into(),
             password: SecretValue::new("fixture-password"),
-            captcha: None,
         })
         .await
         .expect("primary relogin");

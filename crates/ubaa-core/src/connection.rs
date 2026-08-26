@@ -300,9 +300,11 @@ pub fn to_webvpn_url(url: &str) -> Result<String> {
     let path = parsed.path();
     let query = parsed
         .query()
+        .filter(|query| !query.is_empty())
         .map_or_else(String::new, |query| format!("?{query}"));
     let fragment = parsed
         .fragment()
+        .filter(|fragment| !fragment.is_empty())
         .map_or_else(String::new, |fragment| format!("#{fragment}"));
     Ok(format!(
         "https://{WEBVPN_HOST}/{protocol}/{encrypted_host}{path}{query}{fragment}"
@@ -357,9 +359,11 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
     };
     let query = parsed
         .query()
+        .filter(|query| !query.is_empty())
         .map_or_else(String::new, |query| format!("?{query}"));
     let fragment = parsed
         .fragment()
+        .filter(|fragment| !fragment.is_empty())
         .map_or_else(String::new, |fragment| format!("#{fragment}"));
     Ok(format!("{authority}{path}{query}{fragment}"))
 }

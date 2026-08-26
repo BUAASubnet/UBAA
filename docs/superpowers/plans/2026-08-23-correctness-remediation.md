@@ -1,5 +1,10 @@
 # UBAA 2 Correctness Remediation Implementation Plan
 
+Status note: captcha/challenge tasks in this historical plan are superseded by
+the 2026-08-25 decision in `docs/migration/decision-log.md` and must not be
+reintroduced. The active implementation rejects interactive verification as
+`upstream_changed` before image fetch or credential POST.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Repair every audited routing, session, CLI-contract, Classroom, SPOC, Judge, documentation, and verification defect while preserving reference-derived behavior and sensitive-data boundaries.
@@ -230,63 +235,13 @@ git add crates/ubaa-core/src/session.rs crates/ubaa-core/src/runtime.rs \
 git commit -m "fix: make dual session mutations atomic"
 ```
 
-### Task 3: Bind Captcha Answers To Route And Generation
+### Task 3: Bind Captcha Answers To Route And Generation (superseded; historical only)
 
-**Files:**
-- Modify: `crates/ubaa-core/src/domain/mod.rs`
-- Modify: `crates/ubaa-core/src/facade/mod.rs`
-- Modify: `crates/ubaa-core/src/auth/mod.rs`
-- Test: `crates/ubaa-test-support/tests/auth.rs`
-- Test: `apps/ubaa-cli/tests/cli_contract.rs`
-- Modify: `docs/migration/source-parity.md`
-
-- [x] **Step 1: Add RED tests for colliding and stale upstream IDs**
-
-Use identical `captchaId=captcha-fixture` pages on both routes and assert:
-
-```rust
-assert_ne!(preparation.challenges[0].challenge_id, preparation.challenges[1].challenge_id);
-assert_eq!(client.login(answer_for_direct_only).await?.routes[1].state,
-           RouteLoginState::CaptchaRequired);
-assert_eq!(client.login(unknown_answer).await.unwrap_err().code, ErrorCode::InvalidInput);
-assert_eq!(client.login(duplicate_answer).await.unwrap_err().code, ErrorCode::InvalidInput);
-```
-
-Also prepare twice and prove the first generation's public ID is rejected before any POST.
-
-Run the new tests and retain the expected current cross-route reuse/silent-ignore failures.
-
-- [x] **Step 2: Add opaque per-prepare mappings**
-
-Keep raw IDs in `AuthWorkflow`; expose only facade-generated IDs:
-
-```rust
-struct PublicChallenge {
-    public_id: String,
-    route: ConnectionMode,
-    generation: u64,
-    upstream_id: String,
-}
-```
-
-Generate IDs from random process-local bytes or a monotonically unique nonce encoded without embedding execution/upstream ID. Clear mappings on each prepare, successful consume, auth clear, relogin, and logout.
-
-- [x] **Step 3: Validate every answer before route processing**
-
-Reject empty IDs/values, duplicates, unknown IDs, old generations, and IDs not present in the current preparation. Convert only the matched route's answer to the private `LoginInput.captcha`; do not send any POST until validation succeeds.
-
-- [x] **Step 4: Re-run auth and CLI captcha contracts**
-
-Run:
-
-```bash
-cargo test --locked -p ubaa-test-support --test auth
-cargo test --locked -p ubaa-cli --test cli_contract
-just check-sensitive
-just check
-```
-
-Commit the focused files as `fix: isolate captcha challenges by route`.
+This task is retained as an audit trail only. Its former challenge IDs,
+generation binding, image handling, answer validation, and captcha POSTs are
+superseded by the 2026-08-25 non-interactive decision. The current tree must
+reject an interactive login page as `upstream_changed` before any image fetch
+or credential POST; none of this task's old checklist is active.
 
 ### Task 4: Move Route Resolution Into The Aggregate Core Facade
 
@@ -552,31 +507,31 @@ Commit as `fix: align spoc reads with frozen global protocol`.
 - Test: `crates/ubaa-test-support/tests/readonly.rs`
 - Modify: `docs/migration/source-parity.md`
 
-- [ ] **Step 1: Add sanitized RED fixtures and parser tests**
+- [x] **Step 1: Add sanitized RED fixtures and parser tests**
 
 Fixtures must contain a ghost `assignID` link, valid `problemContent` and `judgeDetails` links, nested/script tables, 4-cell and 2-cell rows, mixed submitted/unsubmitted problems, explicit and derived total scores, HTML entities, and `HH:MM` timestamps. Assert exact `problems`, `my_score`, `total_problems`, and `Partial/Submitted/Unsubmitted` outputs.
 
-- [ ] **Step 2: Add RED service tests**
+- [x] **Step 2: Add RED service tests**
 
 Assert same-course multi-key batch fetches the assignment list once and preserves input order; at most four course workers run; two clients/routes never share cache; logout/relogin/auth invalidation causes refetch; expired entries are removed; Aug 31 cutoff becomes the valid final day of February rather than Feb 31.
 
-- [ ] **Step 3: Port the frozen DOM algorithm**
+- [x] **Step 3: Port the frozen DOM algorithm**
 
 Use `scraper` selectors for anchors, top-level tables/rows/cells, excluding nested tables and script/style text. Filter assignment URLs before dedupe/title selection. Implement small pure helpers for score/status/time extraction and entity-clean text. Derive totals in frozen priority order and set `Partial` when problem states differ.
 
-- [ ] **Step 4: Group batch work by course**
+- [x] **Step 4: Group batch work by course**
 
 Build an indexed request map, run one worker per course under the four-worker semaphore, fetch/select/list once per course, fetch requested details, then restore the original input order and stable per-key errors.
 
-- [ ] **Step 5: Replace the global cache**
+- [x] **Step 5: Replace the global cache**
 
 Delete `JUDGE_CACHE`, `cache_scope_key`, and cookie-hash scoping. Store bounded timestamped maps in `RouteFeatureState.judge`; prune expired entries on access and clear all entries through the route-state lifecycle.
 
-- [ ] **Step 6: Inject and clamp the cutoff date**
+- [x] **Step 6: Inject and clamp the cutoff date**
 
 Move cutoff calculation to a pure function taking `(year, month, day)` for tests. Subtract six months and clamp `day` using the existing calendar helper before formatting.
 
-- [ ] **Step 7: Run focused and full gates, then commit**
+- [x] **Step 7: Run focused and full gates, then commit**
 
 Run:
 
@@ -607,7 +562,7 @@ Commit as `fix: complete judge read semantics and cache lifecycle`.
 - Modify: `README.md`
 - Modify: `AGENTS.md` only if commands or ownership guidance changed
 
-- [ ] **Step 1: Add deterministic verifier RED cases**
+- [x] **Step 1: Add deterministic verifier RED cases**
 
 Extend the fake CLI harness so `test-verify-live.sh` proves the verifier rejects:
 
@@ -620,11 +575,11 @@ route result whose resolved route contradicts explicit/auto expectation
 any output containing execution/cookie/token/raw HTML sentinel
 ```
 
-- [ ] **Step 2: Validate semantics without persisting personal data**
+- [x] **Step 2: Validate semantics without persisting personal data**
 
 Parse JSON in memory. For each feature assert schema v2, correct feature/policy metadata, expected route, and feature-specific structural invariants. For Judge record only course/raw-anchor/filtered-unique/detail-success/cutoff-skip counts and a salted in-memory digest when comparing routes; never write IDs, titles, bodies, or profile fields. For SPOC distinguish a real empty global page from “no request made”.
 
-- [ ] **Step 3: Remove stale docs and make evidence honest**
+- [x] **Step 3: Remove stale docs and make evidence honest**
 
 Update every active document from DNS to TCP reachability, CLI routing to facade routing, v1 to v2, one-snapshot session wording to atomic dual coordinator, and symlink claims to the tested implementation. Mark live results only after running them in this task; retain failed/unverified stages explicitly.
 

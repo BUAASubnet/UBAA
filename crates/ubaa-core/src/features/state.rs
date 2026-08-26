@@ -151,7 +151,7 @@ struct TimedEntry<T> {
 #[derive(Default)]
 struct JudgeCache {
     courses: Option<TimedEntry<Vec<crate::features::judge::Course>>>,
-    assignments: HashMap<String, TimedEntry<Vec<crate::features::judge::Assignment>>>,
+    assignments: HashMap<String, TimedEntry<crate::features::judge::AssignmentList>>,
     details: HashMap<(String, String), TimedEntry<crate::domain::JudgeAssignmentDetail>>,
     historical_courses: HashMap<String, TimedEntry<()>>,
 }
@@ -211,7 +211,7 @@ impl JudgeState {
         course_id: &str,
         now: Instant,
         ttl: Duration,
-    ) -> Option<Vec<crate::features::judge::Assignment>> {
+    ) -> Option<crate::features::judge::AssignmentList> {
         let mut cache = self.cache();
         if self.generation() != generation {
             return None;
@@ -229,14 +229,14 @@ impl JudgeState {
         &self,
         generation: u64,
         course_id: &str,
-        assignments: Vec<crate::features::judge::Assignment>,
+        assignments: crate::features::judge::AssignmentList,
         now: Instant,
     ) -> bool {
         let mut cache = self.cache();
         if self.generation() != generation {
             return false;
         }
-        if assignments.is_empty() {
+        if assignments.assignments.is_empty() {
             cache.assignments.remove(course_id);
             return true;
         }
@@ -391,7 +391,7 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use crate::domain::{JudgeAssignmentDetail, JudgeSubmissionStatus};
-    use crate::features::judge::{Assignment, Course};
+    use crate::features::judge::{Assignment, AssignmentList, Course};
 
     use super::{ClassroomState, JudgeState};
 
@@ -502,7 +502,15 @@ mod tests {
         };
 
         assert!(state.store_courses(generation, vec![course], expired_at));
-        assert!(state.store_assignments(generation, "1", vec![assignment], expired_at));
+        assert!(state.store_assignments(
+            generation,
+            "1",
+            AssignmentList {
+                assignments: vec![assignment],
+                raw_anchor_count: 3,
+            },
+            expired_at,
+        ));
         assert!(state.store_detail(generation, "1", "101", detail, expired_at));
 
         assert!(
@@ -522,7 +530,15 @@ mod tests {
         );
         assert_eq!(state.cache_counts(), (0, 0, 0, 0));
 
-        assert!(state.store_assignments(generation, "1", Vec::new(), now));
+        assert!(state.store_assignments(
+            generation,
+            "1",
+            AssignmentList {
+                assignments: Vec::new(),
+                raw_anchor_count: 2,
+            },
+            now,
+        ));
         assert!(
             state
                 .assignments(generation, "1", now, Duration::from_mins(5))
@@ -540,12 +556,15 @@ mod tests {
             assert!(state.store_assignments(
                 generation,
                 &course_id,
-                vec![Assignment {
-                    assignment_id: "1".into(),
-                    course_id: course_id.clone(),
-                    course_name: "Course".into(),
-                    title: "Assignment".into(),
-                }],
+                AssignmentList {
+                    assignments: vec![Assignment {
+                        assignment_id: "1".into(),
+                        course_id: course_id.clone(),
+                        course_name: "Course".into(),
+                        title: "Assignment".into(),
+                    }],
+                    raw_anchor_count: 1,
+                },
                 now,
             ));
             assert!(state.mark_historical(generation, &course_id, now));
@@ -584,7 +603,15 @@ mod tests {
         state.clear();
         assert_eq!(state.cache_counts(), (0, 0, 0, 0));
         assert_ne!(state.generation(), generation);
-        assert!(!state.store_assignments(generation, "stale", Vec::new(), now));
+        assert!(!state.store_assignments(
+            generation,
+            "stale",
+            AssignmentList {
+                assignments: Vec::new(),
+                raw_anchor_count: 0,
+            },
+            now,
+        ));
     }
 
     #[test]
@@ -605,12 +632,15 @@ mod tests {
         assert!(!state.store_assignments(
             generation,
             "1",
-            vec![Assignment {
-                assignment_id: "101".into(),
-                course_id: "1".into(),
-                course_name: "Stale Course".into(),
-                title: "Stale Assignment".into(),
-            }],
+            AssignmentList {
+                assignments: vec![Assignment {
+                    assignment_id: "101".into(),
+                    course_id: "1".into(),
+                    course_name: "Stale Course".into(),
+                    title: "Stale Assignment".into(),
+                }],
+                raw_anchor_count: 1,
+            },
             now,
         ));
         assert!(!state.mark_historical(generation, "1", now));

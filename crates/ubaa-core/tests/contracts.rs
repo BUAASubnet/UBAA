@@ -1,12 +1,12 @@
 use serde_json::{Value, json};
 use ubaa_core::domain::{
-    AuthStatus, ConnectionMode, DualLoginPreparation, LoginChallenge, LoginInput, LoginOutcome,
-    LoginReadiness, RouteLoginChallenge, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
-    SecretValue, UserInfoResponse, UserProfile,
+    AuthStatus, ConnectionMode, DualLoginPreparation, LoginInput, LoginOutcome, LoginReadiness,
+    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue, UserInfoResponse,
+    UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, UbaaError};
 use ubaa_core::output::{
-    AggregateJsonEnvelope, AggregateLogoutData, CliFeature, CliJsonError, ResolvedRoutedJsonMeta,
+    AggregateJsonEnvelope, AggregateLogoutData, CliFeature, ResolvedRoutedJsonMeta,
     RoutedJsonEnvelope, UnresolvedRoutedJsonMeta,
 };
 use ubaa_core::ports::{HttpRequest, HttpResponse};
@@ -101,12 +101,8 @@ fn aggregate_login_contract_has_exactly_two_ordered_routes() {
         readiness: LoginReadiness::Partial,
         routes: routes.clone(),
         profile: None,
-        challenges: Vec::new(),
     };
-    let preparation = DualLoginPreparation {
-        routes,
-        challenges: Vec::new(),
-    };
+    let preparation = DualLoginPreparation { routes };
 
     assert_eq!(
         serde_json::to_value(outcome).unwrap()["routes"],
@@ -125,8 +121,7 @@ fn aggregate_login_contract_has_exactly_two_ordered_routes() {
 
     let incomplete = json!({
         "readiness": "partial",
-        "routes": [{"route": "direct", "state": "ready"}],
-        "challenges": []
+        "routes": [{"route": "direct", "state": "ready"}]
     });
     assert!(serde_json::from_value::<LoginOutcome>(incomplete).is_err());
 }
@@ -160,12 +155,6 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
     let login_input = LoginInput {
         username: "USERNAME-SENTINEL".into(),
         password: SecretValue::new("PASSWORD-SENTINEL"),
-        captcha: Some("CAPTCHA-SENTINEL".into()),
-    };
-    let challenge = LoginChallenge {
-        id: "CHALLENGE-SENTINEL".into(),
-        execution: "EXECUTION-SENTINEL".into(),
-        image_data_url: Some("data:image/jpeg;base64,CHALLENGE-SENTINEL".into()),
     };
     let profile = sensitive_profile();
     let cookie = sensitive_cookie();
@@ -184,8 +173,7 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
         ErrorKind::Input,
         false,
         "ERROR-MESSAGE-SENTINEL",
-    )
-    .with_challenge(challenge.clone());
+    );
     let response_wrapper = UserInfoResponse {
         code: 0,
         data: Some(profile.clone()),
@@ -204,7 +192,7 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
     );
 
     let formatted = format!(
-        "{request:?} {response:?} {login_input:?} {challenge:?} {profile:?} {response_wrapper:?} \
+        "{request:?} {response:?} {login_input:?} {profile:?} {response_wrapper:?} \
          {status:?} {cookie:?} {snapshot:?} {versioned:?} {error:?} {failure_envelope:?} \
          {success_envelope:?}"
     );
@@ -216,9 +204,6 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
             "RESPONSE-SENTINEL",
             "USERNAME-SENTINEL",
             "PASSWORD-SENTINEL",
-            "CAPTCHA-SENTINEL",
-            "CHALLENGE-SENTINEL",
-            "EXECUTION-SENTINEL",
             "ID-TYPE-SENTINEL",
             "ID-TYPE-NAME-SENTINEL",
             "NAME-SENTINEL",
@@ -282,7 +267,6 @@ fn stable_error_codes_have_expected_exit_codes() {
             ErrorCode::PasswordRiskConfirmationFailed,
             ExitCode::Authentication,
         ),
-        (ErrorCode::CaptchaRequired, ExitCode::CaptchaRequired),
         (ErrorCode::NetworkError, ExitCode::Network),
         (ErrorCode::Timeout, ExitCode::Network),
         (ErrorCode::UpstreamChanged, ExitCode::Upstream),
@@ -293,60 +277,6 @@ fn stable_error_codes_have_expected_exit_codes() {
     for (code, expected) in cases {
         assert_eq!(code.exit_code(), expected);
     }
-}
-
-#[test]
-fn error_json_envelope_never_serializes_private_captcha_state() {
-    let challenge = LoginChallenge {
-        id: "captcha-fixture".into(),
-        execution: "e1s1-fixture".into(),
-        image_data_url: None,
-    };
-    let error = UbaaError::new(
-        ErrorCode::CaptchaRequired,
-        ErrorKind::Authentication,
-        true,
-        "captcha input is required",
-    )
-    .with_challenge(challenge);
-
-    let envelope: RoutedJsonEnvelope<Value> = RoutedJsonEnvelope::resolved_failure(
-        error,
-        ResolvedRoutedJsonMeta::explicit(CliFeature::Auth, ConnectionMode::WebVpn),
-    );
-    let value = serde_json::to_value(envelope).expect("envelope serializes");
-
-    assert_eq!(value["schemaVersion"], 2);
-    assert_eq!(value["ok"], false);
-    assert_eq!(value["error"]["code"], "captcha_required");
-    assert_eq!(value["error"]["kind"], "authentication");
-    assert_eq!(value["error"]["retryable"], true);
-    assert!(value["error"].get("challenge").is_none());
-    assert_eq!(value["meta"]["routePolicy"], "webvpn");
-    assert_eq!(value["meta"]["networkState"], "unknown");
-    assert_eq!(value["meta"]["initialRoute"], "webvpn");
-    assert_eq!(value["meta"]["resolvedRoute"], "webvpn");
-    assert_eq!(value["meta"]["usedFallback"], false);
-    assert_eq!(value["meta"]["feature"], "auth");
-    assert!(value["meta"].get("connectionMode").is_none());
-}
-
-#[test]
-fn aggregate_challenge_serialization_uses_the_safe_public_projection() {
-    let challenge = RouteLoginChallenge {
-        route: ConnectionMode::Direct,
-        challenge_id: "opaque-fixture".into(),
-        image_available: true,
-        image_data_url: Some("data:image/jpeg;base64,PRIVATE-IMAGE".into()),
-    };
-
-    let value = serde_json::to_value(challenge).unwrap();
-
-    assert_eq!(value["route"], "direct");
-    assert_eq!(value["challengeId"], "opaque-fixture");
-    assert_eq!(value["imageAvailable"], true);
-    assert!(value.get("imageDataUrl").is_none());
-    assert!(!value.to_string().contains("PRIVATE-IMAGE"));
 }
 
 #[test]
@@ -396,46 +326,6 @@ fn unresolved_routed_failure_has_only_feature_metadata() {
 }
 
 #[test]
-fn cli_error_exposes_only_route_scoped_public_captcha_state() {
-    let raw = LoginChallenge {
-        id: "RAW-ID-SENTINEL".into(),
-        execution: "RAW-EXECUTION-SENTINEL".into(),
-        image_data_url: Some("data:image/jpeg;base64,RAW-IMAGE-SENTINEL".into()),
-    };
-    let public = RouteLoginChallenge {
-        route: ConnectionMode::WebVpn,
-        challenge_id: "opaque-public-id".into(),
-        image_available: true,
-        image_data_url: Some("data:image/jpeg;base64,PUBLIC-IMAGE-SENTINEL".into()),
-    };
-    let error = UbaaError::new(
-        ErrorCode::CaptchaRequired,
-        ErrorKind::Authentication,
-        true,
-        "captcha input is required",
-    )
-    .with_challenge(raw);
-
-    let value =
-        serde_json::to_value(CliJsonError::from_core(error).with_route_challenge(&public)).unwrap();
-    assert_eq!(
-        value["challenge"],
-        json!({
-            "route": "webvpn",
-            "challengeId": "opaque-public-id",
-            "imageAvailable": true
-        })
-    );
-    let serialized = value.to_string();
-    assert!(!serialized.contains("RAW-ID-SENTINEL"));
-    assert!(!serialized.contains("RAW-EXECUTION-SENTINEL"));
-    assert!(!serialized.contains("RAW-IMAGE-SENTINEL"));
-    assert!(!serialized.contains("PUBLIC-IMAGE-SENTINEL"));
-    assert!(!serialized.contains("execution"));
-    assert!(!serialized.contains("imageDataUrl"));
-}
-
-#[test]
 fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes() {
     let direct = RouteLoginResult {
         route: ConnectionMode::Direct,
@@ -450,8 +340,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
     let valid = LoginOutcome {
         readiness: LoginReadiness::AllReady,
         routes: [direct.clone(), webvpn.clone()],
-        profile: None,
-        challenges: Vec::new(),
+        profile: Some(sensitive_profile()),
     };
     let value = serde_json::to_value(
         AggregateJsonEnvelope::auth_success(valid, RoutePolicy::Auto).unwrap(),
@@ -481,7 +370,6 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
         readiness: LoginReadiness::AllReady,
         routes: [webvpn, direct],
         profile: None,
-        challenges: Vec::new(),
     };
     assert!(AggregateJsonEnvelope::auth_success(reversed, RoutePolicy::Auto).is_err());
 }
@@ -506,7 +394,6 @@ fn aggregate_failure_constructor_keeps_ok_data_error_consistent() {
             failed_route(ConnectionMode::WebVpn),
         ],
         profile: None,
-        challenges: Vec::new(),
     };
     let error = route_error;
     assert!(
@@ -560,7 +447,6 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
             ready_route(ConnectionMode::WebVpn),
         ],
         profile: None,
-        challenges: Vec::new(),
     };
     let impossible_error = SafeError {
         code: "internal_error".into(),
@@ -588,7 +474,6 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
             },
         ],
         profile: None,
-        challenges: Vec::new(),
     };
     let top_error = SafeError {
         code: "internal_error".into(),
@@ -600,6 +485,56 @@ fn aggregate_auth_constructors_reject_inconsistent_route_states() {
         AggregateJsonEnvelope::auth_failure(missing_route_error, top_error, RoutePolicy::Auto)
             .is_err(),
         "failed routes must carry a safe error"
+    );
+}
+
+#[test]
+fn aggregate_auth_constructors_bind_profile_presence_to_route_readiness() {
+    let ready_route = |route| RouteLoginResult {
+        route,
+        state: RouteLoginState::Ready,
+        error: None,
+    };
+    let ready_without_profile = LoginOutcome {
+        readiness: LoginReadiness::AllReady,
+        routes: [
+            ready_route(ConnectionMode::Direct),
+            ready_route(ConnectionMode::WebVpn),
+        ],
+        profile: None,
+    };
+    assert!(
+        AggregateJsonEnvelope::auth_success(ready_without_profile, RoutePolicy::Auto).is_err(),
+        "ready routes must carry the profile returned by authentication"
+    );
+
+    let route_error = SafeError {
+        code: "authentication_required".into(),
+        kind: "authentication".into(),
+        retryable: false,
+        message: "authentication is required".into(),
+    };
+    let failed_route = |route| RouteLoginResult {
+        route,
+        state: RouteLoginState::Failed,
+        error: Some(route_error.clone()),
+    };
+    let none_ready_with_profile = LoginOutcome {
+        readiness: LoginReadiness::NoneReady,
+        routes: [
+            failed_route(ConnectionMode::Direct),
+            failed_route(ConnectionMode::WebVpn),
+        ],
+        profile: Some(sensitive_profile()),
+    };
+    assert!(
+        AggregateJsonEnvelope::auth_failure(
+            none_ready_with_profile,
+            route_error,
+            RoutePolicy::Auto,
+        )
+        .is_err(),
+        "a profile must not be emitted when no route is ready"
     );
 }
 

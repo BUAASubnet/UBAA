@@ -26,7 +26,6 @@
         "invalid_input",
         "authentication_required",
         "invalid_credentials",
-        "captcha_required",
         "password_risk_confirmation_failed",
         "permission_denied",
         "network_error",
@@ -40,15 +39,446 @@
     "errorKind": {
       "enum": ["input", "authentication", "network", "upstream", "parse", "internal"]
     },
-    "publicChallenge": {
+    "nullableString": {
+      "type": ["string", "null"]
+    },
+    "maskedSensitive": {
+      "type": ["string", "null"],
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^(?:\\*{0,4}|..\\*+..)$" }
+      ]
+    },
+    "i32": {
+      "type": "integer",
+      "minimum": -2147483648,
+      "maximum": 2147483647
+    },
+    "nonnegativeI32": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "i64": {
+      "type": "integer",
+      "minimum": -9223372036854775808,
+      "maximum": 9223372036854775807
+    },
+    "jsonSafeUsize": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "userProfile": {
       "type": "object",
-      "required": ["route", "challengeId", "imageAvailable"],
+      "required": ["idCardType", "idCardTypeName", "phone", "schoolId", "name", "idCardNumber", "email", "username"],
       "properties": {
-        "route": { "$ref": "#/$defs/route" },
-        "challengeId": { "type": "string", "minLength": 1 },
-        "imageAvailable": { "type": "boolean" }
+        "idCardType": { "type": ["string", "null"] },
+        "idCardTypeName": { "type": ["string", "null"] },
+        "phone": { "$ref": "#/$defs/maskedSensitive" },
+        "schoolId": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] },
+        "idCardNumber": { "$ref": "#/$defs/maskedSensitive" },
+        "email": { "type": ["string", "null"] },
+        "username": { "type": ["string", "null"] }
       },
       "additionalProperties": false
+    },
+    "authStatus": {
+      "type": "object",
+      "required": ["user", "authenticatedAt", "lastActivity"],
+      "properties": {
+        "user": { "$ref": "#/$defs/userProfile" },
+        "authenticatedAt": { "$ref": "#/$defs/i64" },
+        "lastActivity": { "$ref": "#/$defs/i64" }
+      },
+      "additionalProperties": false
+    },
+    "routedLogoutData": {
+      "type": "object",
+      "required": ["loggedOut"],
+      "properties": {
+        "loggedOut": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "term": {
+      "type": "object",
+      "required": ["itemCode", "itemName", "selected", "itemIndex"],
+      "properties": {
+        "itemCode": { "type": "string" },
+        "itemName": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "itemIndex": { "$ref": "#/$defs/i32" }
+      },
+      "additionalProperties": false
+    },
+    "week": {
+      "type": "object",
+      "required": ["startDate", "endDate", "term", "curWeek", "serialNumber", "name"],
+      "properties": {
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "term": { "type": "string" },
+        "curWeek": { "type": "boolean" },
+        "serialNumber": { "$ref": "#/$defs/i32" },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "courseClass": {
+      "type": "object",
+      "required": ["courseCode", "courseName", "courseSerialNo", "credit", "beginTime", "endTime", "beginSection", "endSection", "placeName", "weeksAndTeachers", "teachingTarget", "color", "dayOfWeek"],
+      "properties": {
+        "courseCode": { "type": "string" },
+        "courseName": { "type": "string" },
+        "courseSerialNo": { "$ref": "#/$defs/nullableString" },
+        "credit": { "$ref": "#/$defs/nullableString" },
+        "beginTime": { "$ref": "#/$defs/nullableString" },
+        "endTime": { "$ref": "#/$defs/nullableString" },
+        "beginSection": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "endSection": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "placeName": { "$ref": "#/$defs/nullableString" },
+        "weeksAndTeachers": { "$ref": "#/$defs/nullableString" },
+        "teachingTarget": { "$ref": "#/$defs/nullableString" },
+        "color": { "$ref": "#/$defs/nullableString" },
+        "dayOfWeek": {
+          "anyOf": [
+            { "type": "integer", "minimum": 1, "maximum": 7 },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "weeklySchedule": {
+      "type": "object",
+      "required": ["arrangedList", "code", "name"],
+      "properties": {
+        "arrangedList": { "type": "array", "items": { "$ref": "#/$defs/courseClass" } },
+        "code": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "todayClass": {
+      "type": "object",
+      "required": ["bizName", "place", "time", "shortName"],
+      "properties": {
+        "bizName": { "type": "string" },
+        "place": { "$ref": "#/$defs/nullableString" },
+        "time": { "$ref": "#/$defs/nullableString" },
+        "shortName": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "exam": {
+      "type": "object",
+      "required": ["courseName", "courseNo", "examTimeDescription", "examDate", "startTime", "endTime", "examPlace", "examSeatNo", "week", "examStatus", "examType", "taskId"],
+      "properties": {
+        "courseName": { "type": "string" },
+        "courseNo": { "$ref": "#/$defs/nullableString" },
+        "examTimeDescription": { "$ref": "#/$defs/nullableString" },
+        "examDate": { "$ref": "#/$defs/nullableString" },
+        "startTime": { "$ref": "#/$defs/nullableString" },
+        "endTime": { "$ref": "#/$defs/nullableString" },
+        "examPlace": { "$ref": "#/$defs/nullableString" },
+        "examSeatNo": { "$ref": "#/$defs/nullableString" },
+        "week": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "examStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "examType": { "$ref": "#/$defs/nullableString" },
+        "taskId": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "examArrangement": {
+      "type": "object",
+      "required": ["arranged", "notArranged"],
+      "properties": {
+        "arranged": { "type": "array", "items": { "$ref": "#/$defs/exam" } },
+        "notArranged": { "type": "array", "items": { "$ref": "#/$defs/exam" } }
+      },
+      "additionalProperties": false
+    },
+    "grade": {
+      "type": "object",
+      "required": ["courseName", "courseCode", "credit", "score", "gradePoint", "courseType", "scoreType", "termCode"],
+      "properties": {
+        "courseName": { "$ref": "#/$defs/nullableString" },
+        "courseCode": { "$ref": "#/$defs/nullableString" },
+        "credit": { "type": ["number", "null"] },
+        "score": { "$ref": "#/$defs/nullableString" },
+        "gradePoint": { "$ref": "#/$defs/nullableString" },
+        "courseType": { "$ref": "#/$defs/nullableString" },
+        "scoreType": { "$ref": "#/$defs/nullableString" },
+        "termCode": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "gradeData": {
+      "type": "object",
+      "required": ["termCode", "grades"],
+      "properties": {
+        "termCode": { "type": "string" },
+        "grades": { "type": "array", "items": { "$ref": "#/$defs/grade" } }
+      },
+      "additionalProperties": false
+    },
+    "classroomInfo": {
+      "type": "object",
+      "required": ["id", "floorId", "name", "availableSections"],
+      "properties": {
+        "id": { "type": "string" },
+        "floorId": { "type": "string" },
+        "name": { "type": "string" },
+        "availableSections": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "classroomQuery": {
+      "type": "object",
+      "required": ["code", "message", "floors"],
+      "properties": {
+        "code": { "$ref": "#/$defs/i32" },
+        "message": { "type": "string" },
+        "floors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/classroomInfo" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "spocStatus": {
+      "enum": ["SUBMITTED", "UNSUBMITTED", "UNKNOWN"]
+    },
+    "spocAssignmentSummary": {
+      "type": "object",
+      "required": ["assignmentId", "courseId", "courseName", "teacherName", "title", "startTime", "dueTime", "score", "submissionStatus", "submissionStatusText"],
+      "properties": {
+        "assignmentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "courseName": { "type": "string" },
+        "teacherName": { "$ref": "#/$defs/nullableString" },
+        "title": { "type": "string" },
+        "startTime": { "$ref": "#/$defs/nullableString" },
+        "dueTime": { "$ref": "#/$defs/nullableString" },
+        "score": { "$ref": "#/$defs/nullableString" },
+        "submissionStatus": { "$ref": "#/$defs/spocStatus" },
+        "submissionStatusText": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "submissionStatus": { "const": "SUBMITTED" } }, "required": ["submissionStatus"] },
+          "then": { "properties": { "submissionStatusText": { "const": "已提交" } } }
+        },
+        {
+          "if": { "properties": { "submissionStatus": { "const": "UNSUBMITTED" } }, "required": ["submissionStatus"] },
+          "then": { "properties": { "submissionStatusText": { "const": "未提交" } } }
+        },
+        {
+          "if": { "properties": { "submissionStatus": { "const": "UNKNOWN" } }, "required": ["submissionStatus"] },
+          "then": {
+            "properties": {
+              "submissionStatusText": {
+                "pattern": "^未知状态\\(.+\\)$",
+                "not": { "enum": ["未知状态(1)", "未知状态(已做)", "未知状态(已提交)", "未知状态(0)", "未知状态(未做)", "未知状态(未提交)"] }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "spocAssignments": {
+      "type": "object",
+      "required": ["termCode", "termName", "assignments"],
+      "properties": {
+        "termCode": { "type": "string" },
+        "termName": { "$ref": "#/$defs/nullableString" },
+        "assignments": { "type": "array", "items": { "$ref": "#/$defs/spocAssignmentSummary" } }
+      },
+      "additionalProperties": false
+    },
+    "spocAssignmentsDiagnostics": {
+      "type": "object",
+      "required": ["globalPageCount", "result"],
+      "properties": {
+        "globalPageCount": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "result": { "$ref": "#/$defs/spocAssignments" }
+      },
+      "additionalProperties": false
+    },
+    "spocAssignmentDetail": {
+      "type": "object",
+      "required": ["assignmentId", "courseId", "courseName", "teacherName", "title", "startTime", "dueTime", "score", "submissionStatus", "submissionStatusText", "contentPlainText", "submittedAt"],
+      "properties": {
+        "assignmentId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "courseName": { "type": "string" },
+        "teacherName": { "$ref": "#/$defs/nullableString" },
+        "title": { "type": "string" },
+        "startTime": { "$ref": "#/$defs/nullableString" },
+        "dueTime": { "$ref": "#/$defs/nullableString" },
+        "score": { "$ref": "#/$defs/nullableString" },
+        "submissionStatus": { "$ref": "#/$defs/spocStatus" },
+        "submissionStatusText": { "type": "string" },
+        "contentPlainText": { "$ref": "#/$defs/nullableString" },
+        "submittedAt": { "$ref": "#/$defs/nullableString" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "submissionStatus": { "const": "SUBMITTED" } }, "required": ["submissionStatus"] },
+          "then": { "properties": { "submissionStatusText": { "const": "已提交" } } }
+        },
+        {
+          "if": { "properties": { "submissionStatus": { "const": "UNSUBMITTED" } }, "required": ["submissionStatus"] },
+          "then": { "properties": { "submissionStatusText": { "const": "未提交" } } }
+        },
+        {
+          "if": { "properties": { "submissionStatus": { "const": "UNKNOWN" } }, "required": ["submissionStatus"] },
+          "then": {
+            "properties": {
+              "submissionStatusText": {
+                "anyOf": [
+                  { "const": "未知状态" },
+                  {
+                    "pattern": "^未知状态\\(.+\\)$",
+                    "not": { "enum": ["未知状态(1)", "未知状态(已做)", "未知状态(已提交)", "未知状态(0)", "未知状态(未做)", "未知状态(未提交)"] }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "judgeStatus": {
+      "enum": ["SUBMITTED", "PARTIAL", "UNSUBMITTED", "UNKNOWN"]
+    },
+    "judgeProblemStatus": {
+      "enum": ["SUBMITTED", "UNSUBMITTED"]
+    },
+    "judgeCourseId": {
+      "type": "string",
+      "pattern": "^\\p{Nd}+$",
+      "not": { "const": "0" }
+    },
+    "judgeAssignmentId": {
+      "type": "string",
+      "pattern": "^\\p{Nd}+$"
+    },
+    "judgeScore": {
+      "anyOf": [
+        { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$" },
+        { "type": "null" }
+      ]
+    },
+    "judgeAssignmentSummary": {
+      "type": "object",
+      "required": ["courseId", "courseName", "assignmentId", "title", "startTime", "dueTime", "maxScore", "myScore", "totalProblems", "submittedCount", "submissionStatus", "submissionStatusText"],
+      "properties": {
+        "courseId": { "$ref": "#/$defs/judgeCourseId" },
+        "courseName": { "type": "string" },
+        "assignmentId": { "$ref": "#/$defs/judgeAssignmentId" },
+        "title": { "type": "string" },
+        "startTime": { "$ref": "#/$defs/nullableString" },
+        "dueTime": { "$ref": "#/$defs/nullableString" },
+        "maxScore": { "$ref": "#/$defs/judgeScore" },
+        "myScore": { "$ref": "#/$defs/judgeScore" },
+        "totalProblems": { "$ref": "#/$defs/nonnegativeI32" },
+        "submittedCount": { "$ref": "#/$defs/nonnegativeI32" },
+        "submissionStatus": { "$ref": "#/$defs/judgeStatus" },
+        "submissionStatusText": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "judgeProblem": {
+      "type": "object",
+      "required": ["name", "score", "maxScore", "status", "statusText"],
+      "properties": {
+        "name": { "type": "string" },
+        "score": { "$ref": "#/$defs/judgeScore" },
+        "maxScore": { "$ref": "#/$defs/judgeScore" },
+        "status": { "$ref": "#/$defs/judgeProblemStatus" },
+        "statusText": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "SUBMITTED" } }, "required": ["status"] },
+          "then": { "properties": { "statusText": { "const": "已提交" } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "UNSUBMITTED" } }, "required": ["status"] },
+          "then": { "properties": { "statusText": { "const": "未提交" } } }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "judgeAssignmentDetail": {
+      "type": "object",
+      "required": ["courseId", "courseName", "assignmentId", "title", "startTime", "dueTime", "maxScore", "myScore", "totalProblems", "submittedCount", "submissionStatus", "submissionStatusText", "problems", "contentPlainText"],
+      "properties": {
+        "courseId": { "$ref": "#/$defs/judgeCourseId" },
+        "courseName": { "type": "string" },
+        "assignmentId": { "$ref": "#/$defs/judgeAssignmentId" },
+        "title": { "type": "string" },
+        "startTime": { "$ref": "#/$defs/nullableString" },
+        "dueTime": { "$ref": "#/$defs/nullableString" },
+        "maxScore": { "$ref": "#/$defs/judgeScore" },
+        "myScore": { "$ref": "#/$defs/judgeScore" },
+        "totalProblems": { "$ref": "#/$defs/nonnegativeI32" },
+        "submittedCount": { "$ref": "#/$defs/nonnegativeI32" },
+        "submissionStatus": { "$ref": "#/$defs/judgeStatus" },
+        "submissionStatusText": { "type": "string" },
+        "problems": { "type": "array", "items": { "$ref": "#/$defs/judgeProblem" } },
+        "contentPlainText": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "judgeAssignmentsDiagnostics": {
+      "type": "object",
+      "required": ["courseCount", "rawAnchorCount", "filteredUniqueCount", "summaries"],
+      "properties": {
+        "courseCount": { "$ref": "#/$defs/jsonSafeUsize" },
+        "rawAnchorCount": { "$ref": "#/$defs/jsonSafeUsize" },
+        "filteredUniqueCount": { "$ref": "#/$defs/jsonSafeUsize" },
+        "summaries": { "type": "array", "items": { "$ref": "#/$defs/judgeAssignmentSummary" } }
+      },
+      "additionalProperties": false
+    },
+    "authRoutedData": {
+      "anyOf": [
+        { "$ref": "#/$defs/userProfile" },
+        { "$ref": "#/$defs/authStatus" },
+        { "$ref": "#/$defs/routedLogoutData" }
+      ]
+    },
+    "scheduleRoutedData": {
+      "anyOf": [
+        { "type": "array", "items": { "$ref": "#/$defs/term" } },
+        { "type": "array", "items": { "$ref": "#/$defs/week" } },
+        { "$ref": "#/$defs/weeklySchedule" },
+        { "type": "array", "items": { "$ref": "#/$defs/todayClass" } }
+      ]
+    },
+    "spocRoutedData": {
+      "anyOf": [
+        { "$ref": "#/$defs/spocAssignments" },
+        { "$ref": "#/$defs/spocAssignmentsDiagnostics" },
+        { "$ref": "#/$defs/spocAssignmentDetail" }
+      ]
+    },
+    "judgeRoutedData": {
+      "anyOf": [
+        { "type": "array", "items": { "$ref": "#/$defs/judgeAssignmentSummary" } },
+        { "$ref": "#/$defs/judgeAssignmentsDiagnostics" },
+        { "$ref": "#/$defs/judgeAssignmentDetail" },
+        { "type": "array", "items": { "$ref": "#/$defs/judgeAssignmentDetail" } }
+      ]
     },
     "error": {
       "type": "object",
@@ -57,8 +487,18 @@
         "code": { "$ref": "#/$defs/errorCode" },
         "kind": { "$ref": "#/$defs/errorKind" },
         "message": { "type": "string" },
-        "retryable": { "type": "boolean" },
-        "challenge": { "$ref": "#/$defs/publicChallenge" }
+        "retryable": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "safeError": {
+      "type": "object",
+      "required": ["code", "kind", "message", "retryable"],
+      "properties": {
+        "code": { "$ref": "#/$defs/errorCode" },
+        "kind": { "$ref": "#/$defs/errorKind" },
+        "message": { "type": "string" },
+        "retryable": { "type": "boolean" }
       },
       "additionalProperties": false
     },
@@ -107,6 +547,92 @@
             "required": ["error"],
             "not": { "required": ["data"] }
           }
+        },
+        {
+          "if": {
+            "properties": { "ok": { "const": true } },
+            "required": ["ok"]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "auth" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/authRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "user" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/userProfile" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "schedule" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/scheduleRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "exam" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/examArrangement" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "grades" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/gradeData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "classroom" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/classroomQuery" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "spoc" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/spocRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "judge" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/judgeRoutedData" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": { "ok": { "const": false } },
+            "required": ["ok"]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "meta": {
+                    "properties": { "feature": { "not": { "const": "auth" } } },
+                    "required": ["feature"]
+                  },
+                  "error": { "$ref": "#/$defs/error" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": {
+                    "properties": { "feature": { "const": "auth" } },
+                    "required": ["feature"]
+                  },
+                  "error": { "$ref": "#/$defs/error" }
+                }
+              }
+            ]
+          }
         }
       ],
       "additionalProperties": false
@@ -127,8 +653,8 @@
       "required": ["route", "state"],
       "properties": {
         "route": { "$ref": "#/$defs/route" },
-        "state": { "enum": ["ready", "captcha_required", "failed"] },
-        "error": { "$ref": "#/$defs/error" }
+        "state": { "enum": ["ready", "failed"] },
+        "error": { "$ref": "#/$defs/safeError" }
       },
       "allOf": [
         {
@@ -143,7 +669,12 @@
             "properties": { "state": { "const": "failed" } },
             "required": ["state"]
           },
-          "then": { "required": ["error"] }
+          "then": {
+            "required": ["error"],
+            "properties": {
+              "error": { "$ref": "#/$defs/safeError" }
+            }
+          }
         }
       ],
       "additionalProperties": false
@@ -176,11 +707,7 @@
       "properties": {
         "readiness": { "enum": ["all_ready", "partial", "none_ready"] },
         "routes": { "$ref": "#/$defs/routePair" },
-        "profile": { "type": ["object", "null"] },
-        "challenges": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/publicChallenge" }
-        }
+        "profile": { "$ref": "#/$defs/userProfile" }
       },
       "allOf": [
         {
@@ -189,6 +716,7 @@
             "required": ["readiness"]
           },
           "then": {
+            "required": ["profile"],
             "properties": {
               "routes": {
                 "prefixItems": [
@@ -205,18 +733,19 @@
             "required": ["readiness"]
           },
           "then": {
+            "required": ["profile"],
             "properties": {
               "routes": {
                 "oneOf": [
                   {
                     "prefixItems": [
                       { "properties": { "state": { "const": "ready" } } },
-                      { "properties": { "state": { "enum": ["captcha_required", "failed"] } } }
+                      { "properties": { "state": { "const": "failed" } } }
                     ]
                   },
                   {
                     "prefixItems": [
-                      { "properties": { "state": { "enum": ["captcha_required", "failed"] } } },
+                      { "properties": { "state": { "const": "failed" } } },
                       { "properties": { "state": { "const": "ready" } } }
                     ]
                   }
@@ -231,11 +760,12 @@
             "required": ["readiness"]
           },
           "then": {
+            "not": { "required": ["profile"] },
             "properties": {
               "routes": {
                 "prefixItems": [
-                  { "properties": { "state": { "enum": ["captcha_required", "failed"] } } },
-                  { "properties": { "state": { "enum": ["captcha_required", "failed"] } } }
+                  { "properties": { "state": { "const": "failed" } } },
+                  { "properties": { "state": { "const": "failed" } } }
                 ]
               }
             }
@@ -284,15 +814,7 @@
             "properties": {
               "data": {
                 "properties": {
-                  "readiness": { "enum": ["all_ready", "partial"] },
-                  "routes": {
-                    "not": {
-                      "contains": {
-                        "properties": { "state": { "const": "captcha_required" } },
-                        "required": ["state"]
-                      }
-                    }
-                  }
+                  "readiness": { "enum": ["all_ready", "partial"] }
                 }
               }
             }
@@ -301,24 +823,11 @@
             "required": ["error"],
             "properties": {
               "data": {
-                "anyOf": [
-                  {
-                    "properties": { "readiness": { "const": "none_ready" } },
-                    "required": ["readiness"]
-                  },
-                  {
-                    "properties": {
-                      "routes": {
-                        "contains": {
-                          "properties": { "state": { "const": "captcha_required" } },
-                          "required": ["state"]
-                        }
-                      }
-                    },
-                    "required": ["routes"]
-                  }
-                ]
-              }
+                "properties": {
+                  "readiness": { "const": "none_ready" }
+                }
+              },
+              "error": { "$ref": "#/$defs/error" }
             }
           }
         }

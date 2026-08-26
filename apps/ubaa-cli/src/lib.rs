@@ -1,23 +1,19 @@
 //! Command-line parsing and presentation for UBAA Core.
 
-use std::fs::OpenOptions;
 use std::io::{BufRead, Write};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::PathBuf;
 
 use async_trait::async_trait;
-use base64::Engine as _;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::Serialize;
 use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
-    AuthStatus, CaptchaAnswer, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement,
-    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    LoginChallenge, LoginInput, LoginReadiness, RouteLoginChallenge, RouteLoginState, RoutePolicy,
-    SafeError, SecretValue, SpocAssignmentDetail, SpocAssignments, Term, TodayClass, UserProfile,
-    Week, WeeklySchedule,
+    AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult,
+    GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, LoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue,
+    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
+    UserProfile, Week, WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
@@ -47,12 +43,12 @@ pub struct Cli {
     pub command: Command,
 }
 
-/// Safe route decision context supplied by the host after configuration and DNS resolution.
+/// Safe route decision context returned by the Core facade after route resolution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadonlyRouteContext {
     /// Effective feature route policy.
     pub policy: RoutePolicy,
-    /// DNS state used for the decision, or unknown when no probe ran.
+    /// Gateway reachability state used for the decision, or unknown when no probe ran.
     pub network: NetworkState,
     /// Route selected before fallback.
     pub initial_route: ConnectionMode,
@@ -172,13 +168,13 @@ pub struct LoginArgs {
     #[arg(long)]
     pub username: Option<String>,
 
+    /// Read one username line from standard input (hidden verifier/automation surface).
+    #[arg(long, hide = true)]
+    pub username_stdin: bool,
+
     /// Read one password line from standard input.
     #[arg(long)]
     pub password_stdin: bool,
-
-    /// Captcha answer for a currently required challenge.
-    #[arg(long)]
-    pub captcha: Option<String>,
 }
 
 /// Schedule operations.
@@ -279,6 +275,9 @@ pub struct SpocArgs {
 pub enum SpocCommand {
     /// List assignments.
     Assignments,
+    /// Emit safe global-page completion evidence for live verification.
+    #[command(hide = true)]
+    Diagnostics,
     /// Show one assignment.
     Assignment {
         #[command(subcommand)]
@@ -312,6 +311,12 @@ pub enum JudgeCommand {
         #[arg(long)]
         include_expired: bool,
     },
+    /// Emit safe list-parser counts for live verification.
+    #[command(hide = true)]
+    Diagnostics {
+        #[arg(long)]
+        include_expired: bool,
+    },
     /// Assignment operations.
     Assignment {
         #[command(subcommand)]
@@ -342,8 +347,8 @@ impl std::fmt::Debug for LoginArgs {
             .debug_struct("LoginArgs")
             .field("mode", &self.mode)
             .field("username", &self.username.as_ref().map(|_| "[REDACTED]"))
+            .field("username_stdin", &self.username_stdin)
             .field("password_stdin", &self.password_stdin)
-            .field("captcha", &self.captcha.as_ref().map(|_| "[REDACTED]"))
             .finish()
     }
 }
@@ -441,8 +446,6 @@ impl Cli {
 pub trait CliBackend {
     /// Fixed connection mode for this backend.
     fn mode(&self) -> ConnectionMode;
-    /// Prepare the SSO form and optional captcha challenge.
-    async fn prepare_login(&mut self) -> Result<Option<LoginChallenge>>;
     /// Submit credentials and return the authenticated profile.
     async fn login(&mut self, input: LoginInput) -> Result<UserProfile>;
     /// Validate the active session.
@@ -492,6 +495,12 @@ pub trait CliBackend {
     async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
         Err(internal_error("SPOC is unavailable"))
     }
+    /// Read safe SPOC global-page diagnostics.
+    async fn spoc_assignments_diagnostics(
+        &mut self,
+    ) -> Result<FeatureResult<SpocAssignmentsDiagnostics>> {
+        Err(internal_error("SPOC diagnostics are unavailable"))
+    }
     /// Read SPOC detail.
     async fn spoc_assignment(&mut self, _id: &str) -> Result<FeatureResult<SpocAssignmentDetail>> {
         Err(internal_error("SPOC is unavailable"))
@@ -502,6 +511,13 @@ pub trait CliBackend {
         _include_expired: bool,
     ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
         Err(internal_error("Judge is unavailable"))
+    }
+    /// Read safe Judge parser diagnostics.
+    async fn judge_assignments_diagnostics(
+        &mut self,
+        _include_expired: bool,
+    ) -> Result<FeatureResult<JudgeAssignmentsDiagnostics>> {
+        Err(internal_error("Judge diagnostics are unavailable"))
     }
     /// Read Judge detail.
     async fn judge_assignment(
@@ -566,6 +582,10 @@ pub trait RoutedCliBackend {
     async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         Err(routed_unavailable("SPOC is unavailable"))
     }
+    /// Read safe SPOC global-page diagnostics through Core routing.
+    async fn spoc_assignments_diagnostics(&mut self) -> RoutedResult<SpocAssignmentsDiagnostics> {
+        Err(routed_unavailable("SPOC diagnostics are unavailable"))
+    }
     /// Read one SPOC assignment through Core routing.
     async fn spoc_assignment(&mut self, _id: &str) -> RoutedResult<SpocAssignmentDetail> {
         Err(routed_unavailable("SPOC is unavailable"))
@@ -576,6 +596,13 @@ pub trait RoutedCliBackend {
         _include_expired: bool,
     ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
         Err(routed_unavailable("Judge is unavailable"))
+    }
+    /// Read safe Judge parser diagnostics through Core routing.
+    async fn judge_assignments_diagnostics(
+        &mut self,
+        _include_expired: bool,
+    ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
+        Err(routed_unavailable("Judge diagnostics are unavailable"))
     }
     /// Read one Judge assignment through Core routing.
     async fn judge_assignment(
@@ -626,19 +653,10 @@ where
             return render_aggregate_input_error(json_mode, error, stdout, stderr);
         }
     };
-    let preparation = backend.prepare_login().await;
-    let answers =
-        match collect_dual_captcha_answers(json_mode, arguments.captcha, &preparation, stderr) {
-            Ok(answers) => answers,
-            Err(error) => {
-                return render_aggregate_input_error(json_mode, error, stdout, stderr);
-            }
-        };
     let mut outcome = match backend
         .login(DualLoginInput {
             username,
             password: SecretValue::new(password),
-            captcha_answers: answers,
         })
         .await
     {
@@ -706,11 +724,24 @@ fn read_dual_credentials<R: BufRead, E: Write>(
     input: &mut R,
     stderr: &mut E,
 ) -> Result<(String, String)> {
-    let username = match arguments.username.as_deref() {
-        Some(username) if !username.trim().is_empty() => username.to_owned(),
-        Some(_) => return Err(invalid_input("username must not be empty")),
-        None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
-        None => prompt_line(input, stderr, "Username: ")?,
+    let username = if arguments.username_stdin {
+        if arguments.username.is_some() {
+            return Err(invalid_input(
+                "--username and --username-stdin are mutually exclusive",
+            ));
+        }
+        let username = read_secret_line(input, "username is missing on standard input")?;
+        if username.trim().is_empty() {
+            return Err(invalid_input("username must not be empty"));
+        }
+        username
+    } else {
+        match arguments.username.as_deref() {
+            Some(username) if !username.trim().is_empty() => username.to_owned(),
+            Some(_) => return Err(invalid_input("username must not be empty")),
+            None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
+            None => prompt_line(input, stderr, "Username: ")?,
+        }
     };
     let password = if arguments.password_stdin {
         read_secret_line(input, "password is missing on standard input")?
@@ -723,45 +754,6 @@ fn read_dual_credentials<R: BufRead, E: Write>(
     Ok((username, password))
 }
 
-fn collect_dual_captcha_answers<E: Write>(
-    json_mode: bool,
-    compatibility_captcha: Option<String>,
-    preparation: &ubaa_core::domain::DualLoginPreparation,
-    stderr: &mut E,
-) -> Result<Vec<CaptchaAnswer>> {
-    let mut compatibility_captcha = compatibility_captcha;
-    let mut answers = Vec::new();
-    for challenge in &preparation.challenges {
-        let answer = if let Some(answer) = compatibility_captcha.take() {
-            Some(answer)
-        } else if json_mode {
-            None
-        } else if let Some(data_url) = challenge.image_data_url.as_deref() {
-            let image = CaptchaImage::create_data_url(data_url)?;
-            writeln!(
-                stderr,
-                "Captcha image ({:?}): {}",
-                challenge.route,
-                image.path().display()
-            )
-            .map_err(|_| internal_error("could not display captcha path"))?;
-            let answer =
-                rpassword::prompt_password(format!("Captcha ({:?}): ", challenge.route)).ok();
-            drop(image);
-            answer
-        } else {
-            rpassword::prompt_password(format!("Captcha ({:?}): ", challenge.route)).ok()
-        };
-        if let Some(answer) = answer.filter(|answer| !answer.trim().is_empty()) {
-            answers.push(CaptchaAnswer {
-                challenge_id: challenge.challenge_id.clone(),
-                value: SecretValue::new(answer),
-            });
-        }
-    }
-    Ok(answers)
-}
-
 fn render_dual_outcome<O: Write, E: Write>(
     json_mode: bool,
     outcome: ubaa_core::domain::LoginOutcome,
@@ -769,12 +761,8 @@ fn render_dual_outcome<O: Write, E: Write>(
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    let has_captcha = outcome
-        .routes
-        .iter()
-        .any(|route| route.state == RouteLoginState::CaptchaRequired);
-    let error = aggregate_error(&outcome, has_captcha);
-    let exit_code = aggregate_exit_code(&outcome, has_captcha, error.as_ref());
+    let error = aggregate_error(&outcome);
+    let exit_code = aggregate_exit_code(&outcome, error.as_ref());
     if json_mode {
         let envelope = match error {
             Some(error) => AggregateJsonEnvelope::auth_failure(outcome, error, route_policy),
@@ -807,18 +795,8 @@ fn render_dual_outcome<O: Write, E: Write>(
     exit_code
 }
 
-fn aggregate_error(
-    outcome: &ubaa_core::domain::LoginOutcome,
-    has_captcha: bool,
-) -> Option<SafeError> {
-    if has_captcha {
-        Some(SafeError {
-            code: "captcha_required".into(),
-            kind: "authentication".into(),
-            retryable: true,
-            message: "captcha input is required for one or more routes".into(),
-        })
-    } else if outcome.readiness == LoginReadiness::NoneReady {
+fn aggregate_error(outcome: &ubaa_core::domain::LoginOutcome) -> Option<SafeError> {
+    if outcome.readiness == LoginReadiness::NoneReady {
         Some(
             outcome
                 .routes
@@ -838,12 +816,9 @@ fn aggregate_error(
 
 fn aggregate_exit_code(
     outcome: &ubaa_core::domain::LoginOutcome,
-    has_captcha: bool,
     error: Option<&SafeError>,
 ) -> i32 {
-    if has_captcha {
-        ExitCode::CaptchaRequired as i32
-    } else if outcome.readiness == LoginReadiness::NoneReady {
+    if outcome.readiness == LoginReadiness::NoneReady {
         error.map_or(ExitCode::Internal as i32, safe_error_exit_code)
     } else {
         ExitCode::Success as i32
@@ -857,7 +832,6 @@ fn safe_error_exit_code(error: &SafeError) -> i32 {
         | "invalid_credentials"
         | "password_risk_confirmation_failed"
         | "permission_denied" => ExitCode::Authentication as i32,
-        "captcha_required" => ExitCode::CaptchaRequired as i32,
         "network_error" | "timeout" | "upstream_unavailable" => ExitCode::Network as i32,
         "upstream_changed" | "parse_error" => ExitCode::Upstream as i32,
         _ => ExitCode::Internal as i32,
@@ -877,10 +851,6 @@ fn render_aggregate_input_error<O: Write, E: Write>(
 impl CliBackend for RouteClient {
     fn mode(&self) -> ConnectionMode {
         self.mode()
-    }
-
-    async fn prepare_login(&mut self) -> Result<Option<LoginChallenge>> {
-        self.prepare_login().await
     }
 
     async fn login(&mut self, input: LoginInput) -> Result<UserProfile> {
@@ -931,6 +901,11 @@ impl CliBackend for RouteClient {
     async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
         self.spoc_assignments().await
     }
+    async fn spoc_assignments_diagnostics(
+        &mut self,
+    ) -> Result<FeatureResult<SpocAssignmentsDiagnostics>> {
+        self.spoc_assignments_diagnostics().await
+    }
     async fn spoc_assignment(&mut self, id: &str) -> Result<FeatureResult<SpocAssignmentDetail>> {
         self.spoc_assignment(id).await
     }
@@ -939,6 +914,12 @@ impl CliBackend for RouteClient {
         include_expired: bool,
     ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
         self.judge_assignments(include_expired).await
+    }
+    async fn judge_assignments_diagnostics(
+        &mut self,
+        include_expired: bool,
+    ) -> Result<FeatureResult<JudgeAssignmentsDiagnostics>> {
+        self.judge_assignments_diagnostics(include_expired).await
     }
     async fn judge_assignment(
         &mut self,
@@ -992,6 +973,9 @@ impl RoutedCliBackend for UbaaClient {
     async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         UbaaClient::spoc_assignments(self).await
     }
+    async fn spoc_assignments_diagnostics(&mut self) -> RoutedResult<SpocAssignmentsDiagnostics> {
+        UbaaClient::spoc_assignments_diagnostics(self).await
+    }
 
     async fn spoc_assignment(&mut self, id: &str) -> RoutedResult<SpocAssignmentDetail> {
         UbaaClient::spoc_assignment(self, id).await
@@ -1002,6 +986,12 @@ impl RoutedCliBackend for UbaaClient {
         include_expired: bool,
     ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
         UbaaClient::judge_assignments(self, include_expired).await
+    }
+    async fn judge_assignments_diagnostics(
+        &mut self,
+        include_expired: bool,
+    ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
+        UbaaClient::judge_assignments_diagnostics(self, include_expired).await
     }
 
     async fn judge_assignment(
@@ -1135,6 +1125,10 @@ async fn run_routed_spoc<B: RoutedCliBackend + Send>(
         SpocCommand::Assignments => {
             routed_readonly(backend.spoc_assignments().await, CliFeature::Spoc)
         }
+        SpocCommand::Diagnostics => routed_readonly(
+            backend.spoc_assignments_diagnostics().await,
+            CliFeature::Spoc,
+        ),
         SpocCommand::Assignment {
             command: SpocAssignmentCommand::Show { id },
         } => routed_readonly(backend.spoc_assignment(&id).await, CliFeature::Spoc),
@@ -1148,6 +1142,10 @@ async fn run_routed_judge<B: RoutedCliBackend + Send>(
     match arguments.command {
         JudgeCommand::Assignments { include_expired } => routed_readonly(
             backend.judge_assignments(include_expired).await,
+            CliFeature::Judge,
+        ),
+        JudgeCommand::Diagnostics { include_expired } => routed_readonly(
+            backend.judge_assignments_diagnostics(include_expired).await,
             CliFeature::Judge,
         ),
         JudgeCommand::Assignment {
@@ -1387,11 +1385,24 @@ where
     R: BufRead,
     E: Write,
 {
-    let username = match arguments.username {
-        Some(username) if !username.trim().is_empty() => username,
-        Some(_) if json_mode => return Err(invalid_input("username must not be empty")),
-        None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
-        _ => prompt_line(input, stderr, "Username: ")?,
+    let username = if arguments.username_stdin {
+        if arguments.username.is_some() {
+            return Err(invalid_input(
+                "--username and --username-stdin are mutually exclusive",
+            ));
+        }
+        let username = read_secret_line(input, "username is missing on standard input")?;
+        if username.trim().is_empty() {
+            return Err(invalid_input("username must not be empty"));
+        }
+        username
+    } else {
+        match arguments.username {
+            Some(username) if !username.trim().is_empty() => username,
+            Some(_) if json_mode => return Err(invalid_input("username must not be empty")),
+            None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
+            _ => prompt_line(input, stderr, "Username: ")?,
+        }
     };
     let password = if arguments.password_stdin {
         read_secret_line(input, "password is missing on standard input")?
@@ -1402,27 +1413,10 @@ where
             .map_err(|_| internal_error("could not read password securely"))?
     };
 
-    let challenge = backend.prepare_login().await?;
-    let captcha = match (challenge, arguments.captcha) {
-        (Some(_), Some(answer)) if !answer.trim().is_empty() => Some(answer),
-        (Some(challenge), _) if json_mode => {
-            return Err(UbaaError::new(
-                ErrorCode::CaptchaRequired,
-                ErrorKind::Authentication,
-                true,
-                "captcha input is required",
-            )
-            .with_challenge(challenge));
-        }
-        (Some(challenge), _) => Some(prompt_captcha(&challenge, input, stderr)?),
-        (None, _) => None,
-    };
-
     backend
         .login(LoginInput {
             username,
             password: SecretValue::new(password),
-            captcha,
         })
         .await
         .map(|profile| CommandOutput::Profile(redacted_profile(profile)))
@@ -1497,6 +1491,10 @@ async fn run_spoc<B: CliBackend + Send>(
             .spoc_assignments()
             .await
             .and_then(|result| readonly(result, CliFeature::Spoc)),
+        SpocCommand::Diagnostics => backend
+            .spoc_assignments_diagnostics()
+            .await
+            .and_then(|result| readonly(result, CliFeature::Spoc)),
         SpocCommand::Assignment {
             command: SpocAssignmentCommand::Show { id },
         } => backend
@@ -1513,6 +1511,10 @@ async fn run_judge<B: CliBackend + Send>(
     match arguments.command {
         JudgeCommand::Assignments { include_expired } => backend
             .judge_assignments(include_expired)
+            .await
+            .and_then(|result| readonly(result, CliFeature::Judge)),
+        JudgeCommand::Diagnostics { include_expired } => backend
+            .judge_assignments_diagnostics(include_expired)
             .await
             .and_then(|result| readonly(result, CliFeature::Judge)),
         JudgeCommand::Assignment {
@@ -1660,29 +1662,11 @@ fn render_resolved_error<O: Write, E: Write>(
 }
 
 fn project_cli_error(
-    mut error: UbaaError,
-    feature: CliFeature,
-    route: ConnectionMode,
+    error: UbaaError,
+    _feature: CliFeature,
+    _route: ConnectionMode,
 ) -> CliJsonError {
-    let challenge = (feature == CliFeature::Auth)
-        .then(|| error.challenge.take())
-        .flatten();
-    let projected = CliJsonError::from_core(error);
-    match challenge {
-        Some(challenge) => projected.with_route_challenge(&RouteLoginChallenge {
-            route,
-            challenge_id: next_process_local_challenge_id(),
-            image_available: challenge.image_data_url.is_some(),
-            image_data_url: None,
-        }),
-        None => projected,
-    }
-}
-
-fn next_process_local_challenge_id() -> String {
-    static NEXT_CHALLENGE_ID: AtomicU64 = AtomicU64::new(1);
-    let sequence = NEXT_CHALLENGE_ID.fetch_add(1, Ordering::Relaxed);
-    format!("cli-{sequence:016x}")
+    CliJsonError::from_core(error)
 }
 
 /// Render an error before a backend exists, preserving JSON stdout discipline.
@@ -1805,69 +1789,6 @@ fn read_secret_line<R: BufRead>(input: &mut R, missing_message: &str) -> Result<
     }
 }
 
-fn prompt_captcha<R: BufRead, E: Write>(
-    challenge: &LoginChallenge,
-    input: &mut R,
-    stderr: &mut E,
-) -> Result<String> {
-    let image = CaptchaImage::create(challenge)?;
-    writeln!(stderr, "Captcha image: {}", image.path().display())
-        .map_err(|_| internal_error("could not display captcha path"))?;
-    prompt_line(input, stderr, "Captcha: ")
-}
-
-struct CaptchaImage {
-    path: PathBuf,
-}
-
-impl CaptchaImage {
-    fn create(challenge: &LoginChallenge) -> Result<Self> {
-        let data_url = challenge
-            .image_data_url
-            .as_deref()
-            .ok_or_else(|| internal_error("captcha image data is unavailable"))?;
-        Self::create_data_url(data_url)
-    }
-
-    fn create_data_url(data_url: &str) -> Result<Self> {
-        let (_, encoded) = data_url
-            .split_once(',')
-            .ok_or_else(|| internal_error("captcha image data is invalid"))?;
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(encoded)
-            .map_err(|_| internal_error("captcha image data is invalid"))?;
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|_| internal_error("system clock is before Unix epoch"))?
-            .as_nanos();
-        let path =
-            std::env::temp_dir().join(format!("ubaa-captcha-{}-{nonce}.jpg", std::process::id()));
-        let mut options = OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        let mut file = options
-            .open(&path)
-            .map_err(|_| internal_error("could not create captcha image"))?;
-        file.write_all(&bytes)
-            .map_err(|_| internal_error("could not write captcha image"))?;
-        Ok(Self { path })
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for CaptchaImage {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
-    }
-}
-
 fn write_json<O: Write, T: serde::Serialize>(stdout: &mut O, value: &T) -> std::io::Result<()> {
     serde_json::to_writer(&mut *stdout, value)?;
     writeln!(stdout)
@@ -1900,28 +1821,6 @@ fn internal_error(message: impl Into<String>) -> UbaaError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn captcha_image_is_restricted_and_removed_on_drop() {
-        let challenge = LoginChallenge {
-            id: "captcha-fixture".into(),
-            execution: "execution-fixture".into(),
-            image_data_url: Some("data:image/jpeg;base64,RklYVFVSRS1JTUFHRQ==".into()),
-        };
-        let image = CaptchaImage::create(&challenge).unwrap();
-        let path = image.path().to_path_buf();
-        assert!(path.exists());
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            assert_eq!(
-                std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
-                0o600
-            );
-        }
-        drop(image);
-        assert!(!path.exists());
-    }
 
     #[test]
     fn sensitive_mask_handles_unicode_without_byte_slicing() {

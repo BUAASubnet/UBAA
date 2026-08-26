@@ -152,6 +152,81 @@ fn routed_success_contains_the_core_default_resolution() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn aggregate_facade_exposes_safe_judge_diagnostics_with_route_resolution() {
+    let root = test_root("judge-diagnostics");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let config = RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap();
+    let requests = Arc::new(AtomicUsize::new(0));
+    let mut client = UbaaClient::with_routing(
+        EmptyJudgeTransport(requests.clone()),
+        CountingTransport(Arc::new(AtomicUsize::new(0))),
+        FileSessionStore::new(&root).unwrap(),
+        config,
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let routed = runtime
+        .block_on(client.judge_assignments_diagnostics(false))
+        .unwrap();
+
+    assert_eq!(routed.data.course_count, 0);
+    assert_eq!(routed.data.raw_anchor_count, 0);
+    assert_eq!(routed.data.filtered_unique_count, 0);
+    assert!(routed.data.summaries.is_empty());
+    assert_eq!(routed.resolution.policy, RoutePolicy::Direct);
+    assert_eq!(routed.resolution.mode, ConnectionMode::Direct);
+    assert_eq!(requests.load(Ordering::SeqCst), 3);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn aggregate_facade_resolves_spoc_diagnostics_before_session_preflight() {
+    let root = test_root("spoc-diagnostics-route");
+    let _ = std::fs::remove_dir_all(&root);
+    let requests = Arc::new(AtomicUsize::new(0));
+    let config =
+        RouteConfig::parse("[route]\ndefault = \"webvpn\"\n[route.features]\nspoc = \"direct\"\n")
+            .unwrap();
+    let mut client = UbaaClient::with_routing(
+        CountingTransport(requests.clone()),
+        CountingTransport(requests.clone()),
+        FileSessionStore::new(&root).unwrap(),
+        config,
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let error = runtime
+        .block_on(client.spoc_assignments_diagnostics())
+        .unwrap_err();
+
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+    let resolution = error.resolution.expect("SPOC route was resolved");
+    assert_eq!(resolution.policy, RoutePolicy::Direct);
+    assert_eq!(resolution.mode, ConnectionMode::Direct);
+    assert_eq!(requests.load(Ordering::SeqCst), 0);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[derive(Clone)]
 struct CountingTransport(Arc<AtomicUsize>);
 
@@ -170,6 +245,30 @@ struct StaticTransport(HttpResponse);
 impl HttpTransport for StaticTransport {
     async fn execute(&self, _request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
         Ok(self.0.clone())
+    }
+}
+
+#[derive(Clone)]
+struct EmptyJudgeTransport(Arc<AtomicUsize>);
+
+#[async_trait]
+impl HttpTransport for EmptyJudgeTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        if request.url == ubaa_core::features::judge::LOGIN_URL {
+            let mut response = HttpResponse::new(302, request.url, Vec::new());
+            response
+                .headers
+                .insert("Location".into(), vec!["https://judge.buaa.edu.cn/".into()]);
+            return Ok(response);
+        }
+        if request.url == "https://judge.buaa.edu.cn/" {
+            return Ok(HttpResponse::new(200, request.url, b"judge ready".to_vec()));
+        }
+        if request.url == "https://judge.buaa.edu.cn/courselist.jsp?courseID=0" {
+            return Ok(HttpResponse::new(200, request.url, b"no courses".to_vec()));
+        }
+        panic!("unexpected Judge facade request")
     }
 }
 

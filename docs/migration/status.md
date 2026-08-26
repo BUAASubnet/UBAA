@@ -1,14 +1,16 @@
 # Migration Status
 
-Updated: 2026-08-24
+Updated: 2026-08-26
 
 ## Conclusion
 
-阶段 7-12 曾被标记完成，但 2026-08-23 的冻结源逐操作复核发现路由、双槽位
-Judge 运行时与缓存、live verifier，以及真实 Direct/WebVPN 断言仍有实质缺口。
-当前结论是“修复中，未完成”。下列历史 exit-0 命令只证明当时的请求/解析路径
-没有返回错误；在对应请求合同和语义断言修复并重新运行之前，不得把它们当成
-当前完成证据。
+阶段 7-12 曾被标记完成，但 2026-08-23 的冻结源逐操作复核发现路由、双槽位、
+SPOC/Judge 语义和 live verifier 仍有实质缺口。本轮已补齐确定性实现、回归测试、
+source-parity 记录和二次审查；截至 2026-08-26，认证、六类只读功能的 Direct/WebVPN
+显式矩阵、`all/auto`、`all/direct` 和最新 `all/webvpn` 均通过。一次较早的
+`all/webvpn` 运行因 Judge 两次上游列表快照漂移触发严格 `judge_cutoff`，即时重跑后
+通过；这些失败和成功均保留在下方，不放宽验证器。因此当前代码门禁结论为“已修复、
+最新完整矩阵通过”，但上游快照波动仍是运行时重试条件。
 
 ## Baseline
 
@@ -23,23 +25,52 @@ Judge 运行时与缓存、live verifier，以及真实 Direct/WebVPN 断言仍�
 
 | Phase | Current status | Required closure |
 |---|---|---|
-| 0-6 baseline | Preserved | Re-run deterministic and live authentication gates after aggregate-facade changes. |
-| 7 route policy | Deterministic remediation complete | TCP target/total budget/failure classes, explicit-policy probe bypass, 60-second single-flight cache and Core-owned operation resolution are covered; rerun the real route matrix after feature repairs. |
-| 8 dual sessions | Deterministic remediation complete | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; rerun live authentication after facade routing lands. |
-| 8a aggregate captcha | Deterministic remediation complete | Opaque route/generation-bound IDs, raw ID/execution pre-submit validation, one-use consumption, safe serialization, existing-session consumption without hidden SSO re-entry, auth-clear invalidation, post-submit re-prepare, colliding upstream IDs and partial-prepare behavior are covered; rerun live captcha only if the upstream requests it. |
-| 9a schedule/exam/grades | No new defect established by this audit | Preserve existing frozen-source evidence and rerun after facade integration. |
-| 9b classroom | Deterministic remediation complete | Exact long UA, one no-follow query, strict required `e/m/d/list` and room strings, best-effort once-per-route synchronization, route isolation, and session lifecycle clearing are covered; rerun Direct/WebVPN/auto live queries. |
-| 9c SPOC | Deterministic remediation complete | Bounded CAS/token/role flow, CAS and business raw SSO-Location detection, one-refresh required-operation arbitration against UC, selected-route-only invalidation, malformed-JSON no-retry, strict frozen DTO types, captured/decrypted page-one and page-two payloads, optional course/submission enrichment, summary fallback, and plain-text-only detail are covered; rerun Direct/WebVPN/auto live queries. |
-| 9d Judge | Parser/cache gaps open | Filter internal links, port full problem/score/status parser, move caches to route/client state, clear them with the session. |
-| 10 CLI/JSON | Deterministic remediation complete | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. Rerun live output checks after feature repairs. |
-| 11 live matrix | Must be rerun | Existing evidence predates the corrected request/parser contracts and cannot close SPOC/Judge semantics. |
-| 12 handoff/gates | Not ready | Run focused RED/GREEN evidence, sensitive/full gates and the complete post-fix live matrix before changing this status. |
+| 0-6 baseline | Preserved; final deterministic gates passed | Frozen references, sensitive-data scan, format, Clippy, workspace tests, build, docs and diff checks pass on the current tree. |
+| 7 route policy | Deterministic remediation complete; live Direct/auto/WebVPN resolution accepted | TCP target/total budget/failure classes, explicit-policy probe bypass, 60-second single-flight cache and Core-owned operation resolution are covered; future WebVPN retries may encounter transient upstream Judge snapshot drift. |
+| 8 dual sessions | Deterministic remediation complete; aggregate login live-checked | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; aggregate Direct/WebVPN login succeeded in the accepted `all` runs. |
+| 8a authentication verification boundary | Deterministic remediation complete | The old challenge registry, image fetch, answer binding and captcha exit contract are removed. A `config.captcha` or other interactive verification marker returns `upstream_changed` before image fetch or credential POST; the sanitized regression proves the one-GET/no-POST boundary. |
+| 9a schedule/exam/grades | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | Schedule display `code` is validated as a non-empty string independent of the requested term, matching the frozen parser and live shape; preserve the source-parity record. |
+| 9b classroom | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | Exact long UA, one no-follow query, strict required `e/m/d/list` and room strings, best-effort once-per-route synchronization, route isolation, and session lifecycle clearing are covered and live-checked. |
+| 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
+| 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
+| 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
+| 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
+| 11 live matrix | Latest complete matrix passed; transient WebVPN Judge snapshot failures retained | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility causes a nonzero result. |
+| 12 handoff/gates | Ready for continued development; worktree remains intentionally uncommitted | `just refs`, `just check-sensitive`, `just check`, CLI E2E, auth Direct/WebVPN, all six explicit routes, `all/auto`, `all/direct`, and the latest `all/webvpn` passed. Commit separation and future live reruns remain release-process work. |
+
+## 2026-08-26 Corrected Live Matrix
+
+Only safe counts, route metadata and stable outcomes are recorded here. No
+assignment IDs, titles, response bodies, cookies, tokens or digest salt are
+stored.
+
+| Run | Result |
+|---|---|
+| `feature=all route=auto` | Exit 0; resolved Direct; all six features passed. Classroom count 158; SPOC global page count 1 with empty assignments; Judge counts course/raw/filtered/current/cutoff `5/88/83/65/18`, detail present. |
+| `feature=all route=direct` | Exit 0; all six features passed. Judge counts `5/88/83/65/18`, detail present. |
+| `feature=schedule`, `exam`, `grades`, `classroom`, `spoc`, `judge` on Direct | Exit 0 for each; Judge counts `5/88/83/65/18`, detail present; SPOC global page count 1 with empty assignments. |
+| `feature=schedule`, `exam`, `grades`, `classroom`, `spoc`, `judge` on WebVPN | Exit 0 for each; Judge standalone counts `5/49/49/17/32`, detail present; SPOC global page count 1 with empty assignments. |
+| `feature=all route=webvpn` first attempt | Exit 1 at strict `judge_cutoff`; schedule/exam/grades/classroom/SPOC passed. The failure is retained as upstream snapshot volatility evidence. |
+| `feature=all route=webvpn` immediate rerun | Exit 0; all six features passed. Judge counts `5/77/57/17/40`, detail present. |
+| final `feature=all route=webvpn` verification attempt | Exit 1 at strict `judge_cutoff`; schedule/exam/grades/classroom/SPOC passed. The failure is retained as upstream snapshot volatility evidence. |
+| final immediate `feature=all route=webvpn` rerun | Exit 0; all six features passed. Judge counts `5/77/57/17/40`, detail present. |
+
+## 2026-08-26 Deterministic Gates
+
+- `just refs`: passed for both frozen commits listed above.
+- `just check-sensitive`: passed; no credentials, cookies, tokens, captcha data or raw live material entered the checked tree.
+- `just check`: passed, including format, Clippy with `-D warnings`, all workspace tests, shell verifier regression, build, docs and diff checks.
+- `cargo test --locked -p ubaa-cli --test binary_e2e`: 11 passed.
+- `bash ./scripts/test-verify-live.sh`: passed.
+
+These repository gates are deterministic and were rerun after the production fixes. The live
+matrix above is separate evidence; it is not replaced by fixture or Mock success.
 
 ## Historical Live Authentication
 
 These commands exited 0 on 2026-08-23 and established only that both
 authentication routes worked at that time. They do not prove atomic logout,
-captcha generation binding, Core-owned selection or any business endpoint.
+the intentionally unsupported interactive-verification boundary, Core-owned selection or any business endpoint.
 
 | Command | Historical result |
 |---|---|
@@ -50,12 +81,12 @@ captcha generation binding, Core-owned selection or any business endpoint.
 
 | Feature | Direct historical result | WebVPN historical result | Auto historical result | Current interpretation |
 |---|---|---|---|---|
-| Schedule (terms/weeks/current/today) | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Retained as historical evidence; rerun after facade routing changes. |
-| Exam arrangement | Exit 0 | Exit 0 | Exit 0 | Retained as historical evidence; rerun with a term returned by schedule. |
-| Grades | Exit 0 | Exit 0 | Exit 0 | Retained as historical evidence; rerun with strict old term semantics. |
+| Schedule (terms/weeks/current/today) | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Pre-fix historical evidence only; current Direct/WebVPN/auto cells remain pending. |
+| Exam arrangement | Exit 0 | Exit 0 | Exit 0 | Pre-fix historical evidence only; rerun with a term returned by schedule. |
+| Grades | Exit 0 | Exit 0 | Exit 0 | Pre-fix historical evidence only; rerun with strict old term semantics. |
 | Empty classroom | Exit 0; reported 158 for campus 1/date 2026-08-23 | Exit 0; reported 158 | Exit 0; reported 158 | The result predates exact UA/no-redirect/strict-DTO remediation; rerun is required. |
-| SPOC assignments/detail | Exit 0; reported empty | Exit 0; reported empty | Exit 0; reported empty | **Unverified until the global empty-`kcid` query is observed.** The current implementation can return a false empty result when course metadata is empty. No live detail ran. |
-| Judge list/detail | Exit 0; reported 65 plus one detail | Exit 0; reported 17 plus one detail | Exit 0; reported 65 plus one detail | Counts are historical observations only. Detail score/problem/status semantics are unverified, and the Direct 65/WebVPN 17 difference is unresolved. |
+| SPOC assignments/detail | Exit 0; reported empty | Exit 0; reported empty | Exit 0; reported empty | **Unverified until the global empty-`kcid` query is observed.** The pre-remediation implementation could return a false empty result when course metadata was empty. No live detail ran. |
+| Judge list/detail | Exit 0; reported 65 plus one detail | Exit 0; reported 17 plus one detail | Exit 0; reported 65 plus one detail | Counts are historical observations only. That sampled detail did not prove score/problem/status semantics, and the Direct 65/WebVPN 17 difference is unresolved. |
 
 The following individual command summaries are retained as historical command
 evidence, not current acceptance:
@@ -86,7 +117,7 @@ The historical aggregate
 feature successful. It is not a current hard-gate pass because SPOC could have
 short-circuited before the authoritative global query, Judge detail assertions
 did not cover the old parser semantics, and automatic selection used the
-superseded resolver/CLI-owned implementation.
+superseded host-owned resolver implementation.
 
 Historical failed Judge attempts remain relevant: explicit Direct previously
 returned `upstream_unavailable`; later WebVPN/auto attempts returned `timeout`
@@ -113,21 +144,21 @@ CI remains deterministic-only and never reads `.env.local`.
 
 ## Open Defects And Evidence Gaps
 
-- Production automatic selection now uses the accepted TCP reachability implementation and Core-facade ownership; live Direct/WebVPN/auto evidence must be rerun after the remaining feature repairs.
-- Route/generation-bound aggregate captcha IDs and zero-request user preflight are deterministically covered; real captcha remains conditional on live upstream behavior.
+- Production automatic selection now uses the accepted TCP reachability implementation and Core-facade ownership; corrected Direct/auto and latest WebVPN aggregate evidence is accepted. A transient WebVPN Judge snapshot failure remains recorded and must be retried strictly if it recurs.
+- Interactive verification is intentionally unsupported: the Core regression proves that `config.captcha` causes `upstream_changed` after the login-page GET with no image request or credential POST. A live occurrence is a hard-gate upstream-change result, not a reason to add a prompt or bypass.
 - Config persistence now has deterministic symlink, regular-file, unique-temp, permission and concurrent-write coverage; real routing configuration behavior remains part of the later live matrix.
-- Classroom now matches the frozen UA/redirect/DTO/state contract in deterministic tests; its historical live result predates the correction and must be rerun on Direct, WebVPN and auto.
-- SPOC transport tests now capture and decrypt both actual global page requests, including `kcid=""`; primary-session arbitration preserves valid/unavailable UC sessions and clears only an explicitly invalid selected slot. Historical empty live output still predates these fixes, so Direct/WebVPN/auto must be rerun, and a non-empty account is still needed to live-check detail/submission semantics.
-- Judge detail semantics and cache lifecycle are unverified; the 65/17 route difference is unresolved.
-- CLI schema v2 is deterministically covered for routed, unresolved and aggregate output, including safe route-tagged captcha projection; the live verifier fixtures and semantic assertions remain Task 9 work.
+- Classroom now matches the frozen UA/redirect/DTO/state contract in deterministic tests and passed the corrected Direct/auto aggregate plus WebVPN explicit runs.
+- SPOC transport tests now capture and decrypt both actual global page requests, including `kcid=""`; corrected live diagnostics observed one authoritative global page on Direct, WebVPN and auto. Non-empty detail/submission semantics remain conditional on upstream data.
+- Judge parser, detail, cutoff, grouped batch and cache lifecycle are deterministically covered. Direct/auto and the latest WebVPN aggregate passed safe semantic checks; multiple WebVPN aggregate attempts failed `judge_cutoff` because upstream list snapshots drifted, and each immediate rerun passed, so the strict check remains unchanged. Route-local count differences remain observations, not normalization rules.
+- Judge terminal business-authentication failures now have a source-backed UC arbitration path under test and live-ready behavior: only explicit UC Invalid clears the selected route; valid or unavailable UC results preserve the primary session and return retryable `upstream_unavailable`.
+- CLI schema v2 and the live verifier's semantic rejection cases are deterministically covered for routed, unresolved, aggregate, SPOC query/detail identity, and Judge list/detail output. Judge cross-request comparison uses stdin rather than argv. Interactive verification fields and error codes are absent from the schema. This establishes verifier behavior only, not a real route result.
 - No write operation is migrated: submission/upload, answers, reservations, attendance, grading changes and other side effects remain out of scope.
 - Windows owner-only directory ACL enforcement remains a release-audit item from the baseline.
 
 ## Rerun Handoff
 
-1. Complete each focused RED/GREEN remediation phase and run `just check-sensitive` plus `just check` before its commit.
-2. Run `just refs`, `just check-sensitive`, `just check`, CLI binary E2E and verifier regression from the final clean tree.
-3. Run authentication on Direct/WebVPN, then all six explicit routes and each `auto` feature with the facade-owned TCP probe.
-4. For SPOC, assert the live list actually reached the global empty-`kcid` operation; if non-empty, read one detail and treat submission failure as optional.
-5. For Judge, assert safe parser semantics (problem/status/score presence rules), compare route counts without persisting IDs/titles, and record the unresolved cause if 65/17 or another difference remains.
-6. Only after the corrected aggregate `all/auto` and every required gate pass may this document return to “complete”.
+1. On future upstream changes, rerun `just refs`, `just check-sensitive`, `just check`, CLI binary E2E and verifier regression from the integrated tree.
+2. Generate one ephemeral `UBAA_VERIFY_DIGEST_SALT`, keep it only in the current shell for comparable Judge digests, and never record its value.
+3. Rerun `feature=auth` on Direct and WebVPN, `feature=all route=auto`, every feature on both explicit routes, and both complete explicit aggregates. Every multi-request feature must retain one resolved route.
+4. For SPOC, require `global_page_count >= 1`; if non-empty, require one detail. For Judge, require course/raw-anchor/filtered/current/cutoff counts and one semantic detail when available.
+5. Record only safe route, timing, count, presence, stable error and salted-digest summaries. If list snapshots drift, retain the strict failure and rerun; never normalize route differences or weaken subset checks.

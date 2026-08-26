@@ -20,9 +20,30 @@ Authentication/User Center response bodies are capped at 8 MiB and persisted ses
 
 The sidecar lock also stores a synchronized monotonic revision. A runtime loads the snapshot and revision atomically, then compare-exchanges every save, invalidation, mode-mismatch clear, and logout clear. The revision is advanced and synchronized before replacing or deleting `session.json`; a crash may cause a conservative conflict but cannot authorize a stale writer. This prevents snapshot-equality ABA and ensures an old process cannot recreate a cleared session or delete a newer one. Windows inherits the selected directory ACL; explicit owner-only ACL enforcement remains a release audit item.
 
-## 2026-08-17: Preserve JSON captcha non-interactivity
+## 2026-08-17: Preserve JSON captcha non-interactivity (superseded)
 
-JSON login still returns `captcha_required` with exit 4 before credential submission and without image data. The local live verifier handles that result by starting a fresh human CLI in the same controlling terminal, feeding only the environment password through a private FIFO, polling `/dev/tty` only while that CLI is alive, suppressing human profile stdout, and resuming redacted JSON checks. It disables terminal echo for the complete captcha interaction, restores the original terminal state on every exit path, closes and removes the FIFO, and terminates/waits the child on HUP/INT/TERM with a bounded KILL fallback. This also handles the evidenced case where the fresh preparation no longer requires captcha. No cross-process challenge persistence was invented.
+This historical design recorded the old JSON `captcha_required` and human-fallback
+workflow. It is superseded by the 2026-08-25 decision below: the current Core, CLI
+and verifier are non-interactive and return `upstream_changed` before any image or
+credential request when an unsupported verification step is detected. The old
+workflow is retained only as frozen-source evidence and is not an acceptance gate.
+
+## 2026-08-25: Remove the unsupported interactive verification branch
+
+The previous JSON challenge and human-fallback design is superseded. The user-facing product now runs client-direct and must remain non-interactive for this authentication boundary. `LoginInput` and `DualLoginInput` contain only username and password; the Core domain, facade, CLI, JSON schema, live verifier and tests expose no challenge, image, captcha answer or captcha-specific exit code. The frozen old implementation still documents and implements a captcha branch, while the pinned example has no equivalent protocol. UBAA2 therefore keeps only the ordinary evidence-backed login form. If the SSO page contains the observed `config.captcha` marker or another interactive verification step, Core returns `upstream_changed` before any image request or credential POST. This is an intentional source-parity difference, not an inferred upstream field; it must be treated as a live hard-gate failure and recorded for future protocol work rather than worked around.
+
+## 2026-08-25: Do not equate weekly schedule display code with the request term
+
+The corrected Direct and WebVPN live verifier reached `schedule current` and
+returned a successful `WeeklySchedule` envelope with an empty `arrangedList`.
+Its `data.code` was a non-empty string but did not equal the selected semester
+term on either route. The frozen `WeeklyScheduleResponse` and
+`WeeklySchedule` only define decoding of `datas` and do not specify an equality
+invariant; the pinned AAS example is non-equivalent for this local DTO. The
+prior verifier assertion was therefore an unsupported semantic restriction,
+not a Core parse failure. It now checks only the evidenced non-empty string
+contract and keeps term selection/request parameters independently validated.
+Empty code remains rejected. No raw live value is recorded.
 
 ## 2026-08-17: Preserve remote-first logout while protecting local revisions
 
@@ -95,13 +116,12 @@ containing only the stable command feature. They never fabricate `routePolicy`, 
 envelopes are emitted only after an actual two-route outcome exists and always carry Direct then
 WebVPN in fixed order.
 
-## 2026-08-23: Bind aggregate captcha answers before credential submission
+## 2026-08-23: Bind aggregate captcha answers before credential submission (superseded)
 
-The frozen implementation keeps each captcha ID with one mode-scoped login state; the pinned example does not implement captcha. UBAA 2 therefore keeps raw upstream captcha IDs and CAS execution values inside each route's `AuthWorkflow`, while the aggregate facade exposes process-local opaque IDs bound to one route and preparation generation. Identical upstream IDs on Direct and WebVPN produce distinct public IDs.
-
-Every supplied answer is checked as a complete set before either route sends a credential POST. Empty values, duplicate public IDs, multiple answers for one route, unknown IDs, previous-generation IDs, and bindings whose raw ID or execution no longer matches the current route state return `invalid_input`. Valid answers are consumed once. A missing answer preserves that route's pending challenge, and a sibling preparation failure does not invalidate a challenge already returned in the same generation. A failed route preparation is retained as that generation's result rather than retried invisibly during submission. When callers invoke aggregate login without a separate prepare call, any newly discovered captcha is returned in `LoginOutcome`.
-
-Preparing a new generation clears the old workflow before network access, and authentication invalidation, supplied-answer failure, successful login, logout, or terminal session conflict clears the applicable mapping. A successful prepare that finds an existing SSO session retains a one-use, in-memory authenticated-ready marker; aggregate login consumes it by reading User Center profile data and cannot enter SSO preparation again behind the already-built public challenge list. A cached no-captcha preparation is reusable only while the corresponding `AuthWorkflow` is still prepared; if post-submit User Center validation clears that workflow, the next aggregate login re-prepares the route and exposes any newly discovered opaque challenge before another credential POST. Public serialization contains only `route`, opaque `challengeId`, and `imageAvailable`; raw IDs, execution values, answers and image data remain in-process and are never serialized or persisted. Deterministic transports cover empty fields, unknown, duplicate, same-route, stale, consumed, post-logout and post-conflict IDs and prove that rejection never adds a credential POST.
+This historical design recorded route-scoped captcha challenge state and answer
+binding from an earlier implementation. It is superseded by the 2026-08-25
+non-interactive authentication decision; no challenge IDs, answers or image data
+exist in the current public or internal login workflow.
 
 ## 2026-08-23: Reopen SPOC and Judge live conclusions
 
@@ -205,3 +225,102 @@ values must be integers; assignment `xnxq` and detail `sskcid` are optional stri
 types. Its transport test captures both encrypted page POSTs, decrypts their actual `param` values
 only inside the test process, and asserts the complete ordered page-one and page-two plaintext. No
 live token, Cookie, raw response, assignment identity, or decrypted request is persisted.
+
+## 2026-08-24: Keep semantic live diagnostics hidden and count-only
+
+Neither frozen source defines a CLI verifier or diagnostic DTO. Ordinary SPOC and Judge results
+cannot by themselves prove that an empty SPOC list reached the authoritative global page or show
+where Judge link filtering changed a route count. UBAA 2 therefore adds hidden test/live-only CLI
+commands backed by facade methods that reuse the ordinary operation, route, cache, parser and error
+path. They add no upstream URL, request, redirect, header, parameter or retry.
+
+SPOC diagnostics return the ordinary result plus the number of successfully parsed authoritative
+global pages. Judge diagnostics return the parsed course count, pre-filter numeric assignment-anchor
+count, post-filter unique count and ordinary summaries. These values are evidence metadata, not a
+stable user feature, and remain schema-v2 routed output.
+
+The verifier rejects any route change between requests in one feature run, unsafe stable errors,
+incomplete, causally inconsistent or unmasked profile fields, fractional or out-of-range Rust
+integer fields, term drift, a SPOC detail that does not preserve both sampled IDs, a SPOC UNKNOWN
+value contradicted by the frozen status mapping, impossible Judge diagnostic/status/score
+relationships, any incomplete or extra business DTO field, or a duplicate Judge
+`(courseId, assignmentId)` key. Interactive verification is not a verifier state: Core rejects
+the login page before any credential POST, and the verifier accepts only the resulting safe
+`upstream_changed` error. Judge IDs remain parser-produced digit strings rather than numbers;
+only the exact course ID `"0"` is excluded. Judge cross-request JSON is supplied to jq through
+stdin so titles and IDs do not enter the process argument vector.
+
+The string gate rejects obvious complete HTML documents and CAS execution forms, but deliberately
+does not infer that arbitrary angle-bracket text is raw markup: an encoded assignment can normalize
+to literal text such as `<html>`. Stable DTO closure forbids every HTML/raw-body field, while Core
+parser fixtures prove HTML-to-plain-text conversion. This division avoids both a false live pass
+claim about fragment provenance and rejection of valid assignment content.
+
+The verifier requires a fresh caller-provided salt for Judge/all, hashes sorted identifiers only in
+memory, and prints only the short digest plus safe counts. The shell contract proves that the same
+salt and payload are stable, a different salt changes the digest, and a missing salt exits before
+login. Known credential/session/request/response key aliases are rejected independently of their
+values, and resolved metadata objects are closed. It never prints or persists identifiers, titles,
+bodies, raw HTML, tokens, Cookies, captcha
+material, profile fields, decrypted SPOC parameters or the salt. The corrected real matrix was
+still pending when this decision was recorded, so the diagnostics do not promote any historical
+route result.
+
+An earlier draft of this record described an aggregate human-captcha child, PTY ownership and
+synthetic captcha-artifact cleanup. That design was superseded by the 2026-08-25 non-interactive
+authentication decision above; it is historical planning text, not an implemented flow or
+acceptance proof. The current verifier never opens `/dev/tty`, starts a human child, fetches an
+image or persists a challenge. The Core classifier rejects the frozen captcha fields, deny-only
+interactive `config.*` markers and any unknown visible verification control before the credential
+POST, and the shell regression proves that only safe summaries are emitted.
+
+## 2026-08-26: Preserve the primary session after Judge business-auth exhaustion
+
+The frozen `LocalJudgeApi` catches a terminal Judge business-authentication failure and delegates
+to `resolveLocalBusinessAuthenticationFailure`. That helper checks the User Center session and
+clears the primary route only when UC explicitly reports Invalid; a valid, unavailable, network,
+or inconclusive UC result preserves the session and returns a business failure. The current Rust
+Judge retry loop returned `authentication_required` directly, so the facade treated every terminal
+Judge failure as route invalidation. This round adds the missing Judge top-level arbitration,
+mirroring the already implemented SPOC boundary, and maps preserved-session failures to the stable
+retryable `upstream_unavailable` code because no Judge-specific public error code exists.
+
+The arbitration is applied once after a list/diagnostics or batch/detail operation exhausts its
+three reactivations; it is not placed inside `get_html`, which would issue a User Center status
+request for every internal course or detail request. Tests cover UC valid, explicit Invalid, and
+unavailable outcomes, including preservation of the sibling route slot. No URL, request
+parameter, Cookie, token, raw response, or live credential is recorded.
+
+UC status JSON that is syntactically malformed after an object prefix is treated as inconclusive:
+the parser error is preserved for direct status callers, while Judge maps it to the same retryable
+business failure and keeps the primary session. A syntactically valid nonzero `code` or missing
+`data`, as well as an explicitly non-JSON or non-2xx invalid response, remains an authentication
+invalidation according to the frozen classifier.
+
+If the UC validation itself cannot commit refreshed authentication because of a persistence or
+CAS conflict, that `internal_error` is propagated unchanged instead of being relabeled as an
+upstream business failure. When the aggregate facade observes that the route was already cleared
+by explicit UC invalidation or conflict handling, it also clears the route's pending AuthWorkflow
+state without issuing a second persistence mutation.
+
+## 2026-08-26: Keep WebVPN root slash and omit empty separators
+
+The frozen `LocalWebVpnSupport` omits blank query and fragment components while decoding and
+encoding, so Rust now filters empty `?` and `#` values as well. Its decoder does not add a root
+slash when the wrapped path has only the protocol and encrypted host. Rust retains an explicit
+root slash because the URL/runtime path representation and root Judge request/final-URL semantics
+use that distinction; Cookie matching itself remains against the gateway URL. The choice is covered
+by sanitized round-trip tests and does not change the gateway, AES, protocol, port, or redirect-host
+contract.
+
+## 2026-08-26: Record the complete live matrix and Judge snapshot volatility
+
+The corrected live matrix passed authentication on Direct and WebVPN, `feature=all route=auto`,
+all six explicit Direct features, all six explicit WebVPN features, and `feature=all route=direct`.
+The first complete `feature=all route=webvpn` attempt passed schedule, exam, grades, classroom and
+SPOC but failed the unchanged Judge `judge_cutoff` subset check. An immediate rerun passed all six
+features with safe Judge counts `5/77/57/17/40`; the standalone WebVPN Judge run in the same
+round passed with `5/49/49/17/32`. The differing snapshots are upstream list volatility, not a
+reason to weaken the verifier or merge identifiers across requests. The failure and rerun are both
+recorded in `docs/migration/status.md`; a later final verification showed the same failure followed
+by another passing immediate rerun. Future reruns must keep the strict cutoff check.

@@ -68,9 +68,13 @@ pub(crate) async fn validate_status(
         clear_local(runtime, clear_workflow)?;
         return Err(authentication_required());
     }
-    let Ok(user) = parse_user_info(&body) else {
-        clear_local(runtime, clear_workflow)?;
-        return Err(authentication_required());
+    let user = match parse_user_info(&body) {
+        Ok(user) => user,
+        Err(error) if error.code == ErrorCode::ParseError => return Err(error),
+        Err(_) => {
+            clear_local(runtime, clear_workflow)?;
+            return Err(authentication_required());
+        }
     };
     let (authenticated_at, last_activity) = runtime.refresh_authentication(clear_workflow)?;
     Ok(AuthStatus {

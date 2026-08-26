@@ -6,8 +6,7 @@ use serde::Serialize;
 
 use crate::connection::{NetworkState, RouteResolution};
 use crate::domain::{
-    ConnectionMode, LoginOutcome, LoginReadiness, RouteLoginChallenge, RouteLoginState,
-    RoutePolicy, SafeError,
+    ConnectionMode, LoginOutcome, LoginReadiness, RouteLoginState, RoutePolicy, SafeError,
 };
 use crate::error::{ErrorCode, ErrorKind, UbaaError};
 
@@ -121,27 +120,7 @@ enum RoutedJsonMeta {
     Unresolved(UnresolvedRoutedJsonMeta),
 }
 
-/// Public captcha projection that excludes upstream execution and image data.
-#[derive(Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PublicCaptchaChallenge {
-    route: ConnectionMode,
-    challenge_id: String,
-    image_available: bool,
-}
-
-impl fmt::Debug for PublicCaptchaChallenge {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("PublicCaptchaChallenge")
-            .field("route", &self.route)
-            .field("challenge_id", &"[REDACTED]")
-            .field("image_available", &self.image_available)
-            .finish()
-    }
-}
-
-/// Safe CLI error payload with an optional route-scoped public captcha handle.
+/// Safe CLI error payload.
 #[derive(Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CliJsonError {
@@ -149,12 +128,10 @@ pub struct CliJsonError {
     kind: String,
     message: String,
     retryable: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    challenge: Option<PublicCaptchaChallenge>,
 }
 
 impl CliJsonError {
-    /// Convert a Core error while discarding any raw upstream captcha state.
+    /// Convert a Core error into the stable host payload.
     #[must_use]
     pub fn from_core(error: UbaaError) -> Self {
         Self {
@@ -162,7 +139,6 @@ impl CliJsonError {
             kind: error_kind_name(error.kind).to_owned(),
             message: error.message,
             retryable: error.retryable,
-            challenge: None,
         }
     }
 
@@ -182,19 +158,7 @@ impl CliJsonError {
             kind: error.kind,
             message: error.message,
             retryable: error.retryable,
-            challenge: None,
         })
-    }
-
-    /// Attach only the already-sanitized, route-scoped captcha projection.
-    #[must_use]
-    pub fn with_route_challenge(mut self, challenge: &RouteLoginChallenge) -> Self {
-        self.challenge = Some(PublicCaptchaChallenge {
-            route: challenge.route,
-            challenge_id: challenge.challenge_id.clone(),
-            image_available: challenge.image_available,
-        });
-        self
     }
 }
 
@@ -212,7 +176,6 @@ impl fmt::Debug for CliJsonError {
             .field("kind", &self.kind)
             .field("message", &"[REDACTED]")
             .field("retryable", &self.retryable)
-            .field("challenge", &self.challenge)
             .finish()
     }
 }
@@ -350,11 +313,7 @@ impl AggregateJsonEnvelope<LoginOutcome> {
         route_policy: RoutePolicy,
     ) -> Result<Self, UbaaError> {
         validate_auth_outcome(&outcome, false)?;
-        let is_captcha = error.code == "captcha_required";
-        let mut error = CliJsonError::try_from_safe(error)?;
-        if is_captcha && let Some(challenge) = outcome.challenges.first() {
-            error = error.with_route_challenge(challenge);
-        }
+        let error = CliJsonError::try_from_safe(error)?;
         Ok(Self {
             schema_version: CLI_JSON_SCHEMA_VERSION,
             ok: false,
@@ -449,9 +408,11 @@ fn validate_auth_outcome(outcome: &LoginOutcome, success: bool) -> Result<(), Ub
         ));
     }
     for route in &outcome.routes {
-        if (route.state == RouteLoginState::Ready && route.error.is_some())
-            || (route.state == RouteLoginState::Failed && route.error.is_none())
-        {
+        let state_matches_error = match route.state {
+            RouteLoginState::Ready => route.error.is_none(),
+            RouteLoginState::Failed => route.error.is_some(),
+        };
+        if !state_matches_error {
             return Err(output_invariant_error(
                 "aggregate authentication route state does not match its error",
             ));
@@ -472,11 +433,12 @@ fn validate_auth_outcome(outcome: &LoginOutcome, success: bool) -> Result<(), Ub
             "aggregate authentication readiness does not match route states",
         ));
     }
-    let requires_failure = ready_count == 0
-        || outcome
-            .routes
-            .iter()
-            .any(|route| route.state == RouteLoginState::CaptchaRequired);
+    if (ready_count > 0) != outcome.profile.is_some() {
+        return Err(output_invariant_error(
+            "aggregate authentication profile presence does not match route readiness",
+        ));
+    }
+    let requires_failure = ready_count == 0;
     if success == requires_failure {
         return Err(output_invariant_error(
             "aggregate authentication ok flag does not match route states",
@@ -499,7 +461,6 @@ const fn error_code_name(code: ErrorCode) -> &'static str {
         ErrorCode::InvalidInput => "invalid_input",
         ErrorCode::AuthenticationRequired => "authentication_required",
         ErrorCode::InvalidCredentials => "invalid_credentials",
-        ErrorCode::CaptchaRequired => "captcha_required",
         ErrorCode::PasswordRiskConfirmationFailed => "password_risk_confirmation_failed",
         ErrorCode::PermissionDenied => "permission_denied",
         ErrorCode::NetworkError => "network_error",
@@ -528,7 +489,6 @@ fn is_error_code(code: &str) -> bool {
         "invalid_input"
             | "authentication_required"
             | "invalid_credentials"
-            | "captcha_required"
             | "password_risk_confirmation_failed"
             | "permission_denied"
             | "network_error"

@@ -2,6 +2,8 @@
 
 Date: 2026-08-19
 
+Status: superseded by `2026-08-23-correctness-remediation-design.md`. This file preserves the historical design record; its CLI-owned DNS resolver is not an active contract.
+
 ## Scope
 
 Complete the route-diagnostic portion of the existing schema-v2 CLI contract. This change does

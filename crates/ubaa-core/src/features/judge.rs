@@ -49,6 +49,18 @@ pub struct Assignment {
     pub title: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AssignmentList {
+    pub(crate) assignments: Vec<Assignment>,
+    pub(crate) raw_anchor_count: usize,
+}
+
+impl AssignmentList {
+    fn filtered_unique_count(&self) -> usize {
+        self.assignments.len()
+    }
+}
+
 /// Extract course links while excluding the synthetic course 0 entry.
 pub fn parse_courses(html: &str) -> Vec<Course> {
     let document = Html::parse_document(html);
@@ -80,24 +92,30 @@ pub fn parse_courses(html: &str) -> Vec<Course> {
 
 /// Extract assignment links from a selected course page.
 pub fn parse_assignments(html: &str, course: &Course) -> Vec<Assignment> {
+    parse_assignment_list(html, course).assignments
+}
+
+fn parse_assignment_list(html: &str, course: &Course) -> AssignmentList {
     let document = Html::parse_document(html);
     let anchors = selector("a[href]");
     let assignment_id =
         regex::Regex::new(r"(?i)assignID=(\d+)").expect("static Judge assignment id regex");
     let mut assignments = Vec::new();
+    let mut raw_anchor_count = 0;
     for anchor in document.select(&anchors) {
         let Some(href) = anchor.attr("href") else {
             continue;
         };
-        if href.contains("problemContent") || href.contains("judgeDetails") {
-            continue;
-        }
         let Some(id) = assignment_id
             .captures(href)
             .and_then(|capture| capture.get(1).map(|value| value.as_str()))
         else {
             continue;
         };
+        raw_anchor_count += 1;
+        if href.contains("problemContent") || href.contains("judgeDetails") {
+            continue;
+        }
         if assignments
             .iter()
             .any(|assignment: &Assignment| assignment.assignment_id == id)
@@ -114,7 +132,10 @@ pub fn parse_assignments(html: &str, course: &Course) -> Vec<Assignment> {
             });
         }
     }
-    assignments
+    AssignmentList {
+        assignments,
+        raw_anchor_count,
+    }
 }
 
 /// Parse the evidence-backed summary fields from an assignment detail page.
@@ -216,9 +237,27 @@ pub(crate) async fn get_assignments(
     runtime: &mut crate::runtime::ClientRuntime,
     include_expired: bool,
 ) -> crate::error::Result<Vec<JudgeAssignmentSummary>> {
+    Ok(get_assignments_diagnostics(runtime, include_expired)
+        .await?
+        .summaries)
+}
+
+pub(crate) async fn get_assignments_diagnostics(
+    runtime: &mut crate::runtime::ClientRuntime,
+    include_expired: bool,
+) -> crate::error::Result<crate::domain::JudgeAssignmentsDiagnostics> {
+    let result = get_assignments_diagnostics_inner(runtime, include_expired).await;
+    resolve_required_judge_result(runtime, result).await
+}
+
+async fn get_assignments_diagnostics_inner(
+    runtime: &mut crate::runtime::ClientRuntime,
+    include_expired: bool,
+) -> crate::error::Result<crate::domain::JudgeAssignmentsDiagnostics> {
     let state = runtime.feature_state();
     let generation = state.judge.generation();
     let courses = get_courses_cached(runtime, &state, generation).await?;
+    let course_count = courses.len();
     let skipped = if include_expired {
         HashSet::new()
     } else {
@@ -271,7 +310,11 @@ pub(crate) async fn get_assignments(
 
     summaries.sort_by_key(|(index, _)| *index);
     let mut result = Vec::new();
+    let mut raw_anchor_count = 0usize;
+    let mut filtered_unique_count = 0usize;
     for (_, summary) in summaries {
+        raw_anchor_count = raw_anchor_count.saturating_add(summary.raw_anchor_count);
+        filtered_unique_count = filtered_unique_count.saturating_add(summary.filtered_unique_count);
         if summary.historical {
             state
                 .judge
@@ -287,7 +330,12 @@ pub(crate) async fn get_assignments(
             .then_with(|| left.course_name.cmp(&right.course_name))
             .then_with(|| left.title.cmp(&right.title))
     });
-    Ok(result)
+    Ok(crate::domain::JudgeAssignmentsDiagnostics {
+        course_count,
+        raw_anchor_count,
+        filtered_unique_count,
+        summaries: result,
+    })
 }
 
 /// Fetch one Judge assignment detail.
@@ -319,6 +367,14 @@ pub(crate) async fn get_assignment_detail(
 
 /// Fetch multiple Judge details, preserving input order and rejecting empty input.
 pub(crate) async fn get_assignment_details(
+    runtime: &mut crate::runtime::ClientRuntime,
+    keys: &[crate::domain::JudgeAssignmentKey],
+) -> crate::error::Result<Vec<JudgeAssignmentDetail>> {
+    let result = get_assignment_details_inner(runtime, keys).await;
+    resolve_required_judge_result(runtime, result).await
+}
+
+async fn get_assignment_details_inner(
     runtime: &mut crate::runtime::ClientRuntime,
     keys: &[crate::domain::JudgeAssignmentKey],
 ) -> crate::error::Result<Vec<JudgeAssignmentDetail>> {
@@ -425,6 +481,7 @@ async fn fetch_course_details(
         get_course_assignments_cached(runtime, state, generation, course, &mut activated)
             .await
             .map_err(|error| (first_index, error))?
+            .assignments
             .into_iter()
             .map(|assignment| (assignment.assignment_id.clone(), assignment))
             .collect::<HashMap<_, _>>();
@@ -444,7 +501,32 @@ async fn fetch_course_details(
 struct CourseSummary {
     course_id: String,
     summaries: Vec<JudgeAssignmentSummary>,
+    raw_anchor_count: usize,
+    filtered_unique_count: usize,
     historical: bool,
+}
+
+async fn resolve_required_judge_result<T>(
+    runtime: &mut crate::runtime::ClientRuntime,
+    result: crate::error::Result<T>,
+) -> crate::error::Result<T> {
+    match result {
+        Err(error) if is_authentication_error(&error) && runtime.has_local_session() => {
+            resolve_judge_business_authentication_failure(runtime).await
+        }
+        result => result,
+    }
+}
+
+async fn resolve_judge_business_authentication_failure<T>(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> crate::error::Result<T> {
+    let mut preserve_primary_workflow = || {};
+    match crate::features::user::validate_status(runtime, &mut preserve_primary_workflow).await {
+        Err(error) if is_authentication_error(&error) => Err(error),
+        Err(error) if error.code == crate::error::ErrorCode::InternalError => Err(error),
+        Ok(_) | Err(_) => Err(judge_business_authentication_error()),
+    }
 }
 
 async fn summarize_course(
@@ -456,11 +538,13 @@ async fn summarize_course(
     cutoff: &str,
 ) -> crate::error::Result<CourseSummary> {
     let mut activated = false;
-    let assignments =
+    let assignment_list =
         get_course_assignments_cached(runtime, state, generation, &course, &mut activated).await?;
+    let raw_anchor_count = assignment_list.raw_anchor_count;
+    let filtered_unique_count = assignment_list.filtered_unique_count();
     let mut summaries = Vec::new();
     let mut historical = false;
-    for assignment in assignments {
+    for assignment in assignment_list.assignments {
         let detail =
             get_detail_cached(runtime, state, generation, &assignment, &mut activated).await?;
         if detail
@@ -478,6 +562,8 @@ async fn summarize_course(
     Ok(CourseSummary {
         course_id: course.course_id,
         summaries,
+        raw_anchor_count,
+        filtered_unique_count,
         historical,
     })
 }
@@ -489,6 +575,19 @@ fn worker_error() -> crate::error::UbaaError {
         true,
         "Judge read worker failed",
     )
+}
+
+fn judge_business_authentication_error() -> crate::error::UbaaError {
+    crate::error::UbaaError::new(
+        crate::error::ErrorCode::UpstreamUnavailable,
+        crate::error::ErrorKind::Upstream,
+        true,
+        "Judge business authentication failed without explicit primary-session invalidation",
+    )
+}
+
+fn is_authentication_error(error: &crate::error::UbaaError) -> bool {
+    error.code == crate::error::ErrorCode::AuthenticationRequired
 }
 
 fn fork_judge_worker(runtime: &crate::runtime::ClientRuntime) -> crate::runtime::ClientRuntime {
@@ -560,7 +659,7 @@ async fn get_course_assignments_cached(
     generation: u64,
     course: &Course,
     activated: &mut bool,
-) -> crate::error::Result<Vec<Assignment>> {
+) -> crate::error::Result<AssignmentList> {
     if let Some(assignments) =
         state
             .judge
@@ -577,7 +676,7 @@ async fn get_course_assignments_cached(
     get_html(runtime, runtime.url(select_url.as_str())?).await?;
     let index_url = runtime.url(&format!("{BASE_URL}/assignment/index.jsp"))?;
     let response = get_html(runtime, index_url).await?;
-    let assignments = parse_assignments(&super::body(&response), course);
+    let assignments = parse_assignment_list(&super::body(&response), course);
     state.judge.store_assignments(
         generation,
         &course.course_id,
@@ -1090,7 +1189,7 @@ mod tests {
 
     #[test]
     fn assignments_filter_internal_links_before_deduplication() {
-        let assignments = parse_assignments(
+        let parsed = parse_assignment_list(
             r#"
             <a href="problemContent.jsp?assignID=7">Internal problem</a>
             <a href="assignment/index.jsp?assignID=7">Fixture &amp; Review</a>
@@ -1102,8 +1201,11 @@ mod tests {
             &fixture_course(),
         );
 
+        assert_eq!(parsed.raw_anchor_count, 5);
+        assert_eq!(parsed.filtered_unique_count(), 3);
         assert_eq!(
-            assignments
+            parsed
+                .assignments
                 .iter()
                 .map(|assignment| (assignment.assignment_id.as_str(), assignment.title.as_str()))
                 .collect::<Vec<_>>(),
@@ -1113,6 +1215,22 @@ mod tests {
                 ("9", "Case insensitive task")
             ]
         );
+    }
+
+    #[test]
+    fn assignments_keep_raw_count_when_every_numeric_anchor_is_filtered() {
+        let parsed = parse_assignment_list(
+            r#"
+            <a href="problemContent.jsp?assignID=7">Internal problem</a>
+            <a href="judgeDetails.jsp?assignID=8">Internal details</a>
+            <a href="assignment/index.jsp?assignID=9"><span> </span></a>
+            "#,
+            &fixture_course(),
+        );
+
+        assert_eq!(parsed.raw_anchor_count, 3);
+        assert_eq!(parsed.filtered_unique_count(), 0);
+        assert!(parsed.assignments.is_empty());
     }
 
     #[test]

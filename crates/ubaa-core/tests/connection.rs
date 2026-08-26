@@ -23,6 +23,32 @@ fn webvpn_round_trip_preserves_custom_port_and_http_scheme() {
 }
 
 #[test]
+fn webvpn_root_path_preserves_an_explicit_trailing_slash() {
+    let wrapped = to_webvpn_url("https://judge.buaa.edu.cn/").expect("URL wraps");
+
+    assert_eq!(
+        from_webvpn_url(&wrapped).expect("URL unwraps"),
+        "https://judge.buaa.edu.cn/"
+    );
+}
+
+#[test]
+fn webvpn_omits_empty_query_and_fragment_like_the_frozen_codec() {
+    let wrapped = to_webvpn_url("https://judge.buaa.edu.cn/path?#").expect("URL wraps");
+
+    assert!(!wrapped.contains('?'));
+    assert!(!wrapped.contains('#'));
+    assert_eq!(
+        from_webvpn_url(&wrapped).expect("URL unwraps"),
+        "https://judge.buaa.edu.cn/path"
+    );
+    assert_eq!(
+        from_webvpn_url(&format!("{wrapped}?#")).expect("URL unwraps"),
+        "https://judge.buaa.edu.cn/path"
+    );
+}
+
+#[test]
 fn webvpn_default_http_and_https_ports_use_plain_protocol_segments() {
     let http = to_webvpn_url("http://sso.buaa.edu.cn:80/login").unwrap();
     let https = to_webvpn_url("https://sso.buaa.edu.cn:443/login").unwrap();

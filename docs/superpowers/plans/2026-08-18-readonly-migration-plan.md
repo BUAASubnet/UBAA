@@ -1,5 +1,7 @@
 # UBAA 2 Readonly Migration Implementation Plan
 
+Status: superseded by `2026-08-23-correctness-remediation.md`. This file is a historical execution record and must not be used as the current live acceptance matrix.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Extend the verified authentication baseline with hidden route policy, isolated Direct/WebVPN sessions, six read-only feature facades and CLI commands, live verification evidence, and handoff documentation required by `goal.md`.

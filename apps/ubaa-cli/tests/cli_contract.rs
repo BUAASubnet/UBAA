@@ -3,35 +3,24 @@ use std::io::Cursor;
 use async_trait::async_trait;
 use clap::{CommandFactory, Parser};
 use ubaa_cli::{
-    Cli, CliBackend, ReadonlyRouteContext, RoutedCliBackend, run_dual_login, run_with_backend,
+    Cli, CliBackend, ReadonlyRouteContext, RoutedCliBackend, run_with_backend,
     run_with_backend_with_route, run_with_routed_backend,
 };
-use ubaa_core::config::RouteConfig;
-use ubaa_core::connection::{
-    GatewayProbe, NetworkState, RouteDiagnostic, RouteResolution, to_webvpn_url,
-};
+use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
-    AuthStatus, ConnectionMode, FeatureResult, LoginChallenge, LoginInput, LoginOutcome,
-    LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
-    SpocAssignmentDetail, Term, UserProfile,
+    AuthStatus, ClassroomInfo, ClassroomQuery, ConnectionMode, CourseClass, Exam, ExamArrangement,
+    FeatureResult, Grade, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, JudgeProblem, LoginInput, LoginOutcome, LoginReadiness,
+    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SpocAssignmentDetail,
+    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
+    UserProfile, Week, WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::{Routed, RoutedError, RoutedResult, UbaaClient};
+use ubaa_core::facade::{Routed, RoutedError, RoutedResult};
 use ubaa_core::output::{
     AggregateJsonEnvelope, CliFeature, ResolvedRoutedJsonMeta, RoutedJsonEnvelope,
     UnresolvedRoutedJsonMeta,
 };
-use ubaa_core::ports::{HttpMethod, HttpResponse};
-use ubaa_core::session::FileSessionStore;
-use ubaa_test_support::{ExpectedRequest, MockTransport};
-
-struct OffCampusProbe;
-
-impl GatewayProbe for OffCampusProbe {
-    fn probe(&self, _budget: std::time::Duration) -> NetworkState {
-        NetworkState::OffCampus
-    }
-}
 
 fn assert_cli_schema(value: &serde_json::Value) {
     let schema: serde_json::Value =
@@ -40,21 +29,8 @@ fn assert_cli_schema(value: &serde_json::Value) {
     assert!(validator.is_valid(value), "invalid CLI envelope: {value}");
 }
 
-fn assert_safe_aggregate_challenges(value: &serde_json::Value) {
-    let challenges = value["data"]["challenges"].as_array().unwrap();
-    assert_eq!(challenges.len(), 2);
-    assert_eq!(value["error"]["challenge"], challenges[0]);
-    assert_ne!(challenges[0]["challengeId"], challenges[1]["challengeId"]);
-    assert!(challenges.iter().all(|challenge| {
-        challenge["imageAvailable"] == true
-            && challenge.get("imageDataUrl").is_none()
-            && challenge.get("execution").is_none()
-    }));
-}
-
 #[derive(Default)]
 struct FakeBackend {
-    challenge: Option<LoginChallenge>,
     login_calls: usize,
     schedule_success: bool,
 }
@@ -100,16 +76,49 @@ impl RoutedCliBackend for FakeRoutedBackend {
             })
         }
     }
+
+    async fn judge_assignments_diagnostics(
+        &mut self,
+        _include_expired: bool,
+    ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
+        Ok(Routed {
+            data: JudgeAssignmentsDiagnostics {
+                course_count: 3,
+                raw_anchor_count: 7,
+                filtered_unique_count: 2,
+                summaries: Vec::new(),
+            },
+            resolution: route_resolution(
+                RoutePolicy::Direct,
+                NetworkState::Unknown,
+                ConnectionMode::Direct,
+            ),
+        })
+    }
+
+    async fn spoc_assignments_diagnostics(&mut self) -> RoutedResult<SpocAssignmentsDiagnostics> {
+        Ok(Routed {
+            data: SpocAssignmentsDiagnostics {
+                global_page_count: 2,
+                result: SpocAssignments {
+                    term_code: "2025-2026-2".into(),
+                    term_name: Some("Spring".into()),
+                    assignments: Vec::new(),
+                },
+            },
+            resolution: route_resolution(
+                RoutePolicy::Direct,
+                NetworkState::Unknown,
+                ConnectionMode::Direct,
+            ),
+        })
+    }
 }
 
 #[async_trait]
 impl CliBackend for FakeBackend {
     fn mode(&self) -> ConnectionMode {
         ConnectionMode::Direct
-    }
-
-    async fn prepare_login(&mut self) -> Result<Option<LoginChallenge>> {
-        Ok(self.challenge.clone())
     }
 
     async fn login(&mut self, _input: LoginInput) -> Result<UserProfile> {
@@ -160,6 +169,14 @@ fn profile() -> UserProfile {
     }
 }
 
+fn masked_profile() -> UserProfile {
+    UserProfile {
+        phone: Some("PH***NE".into()),
+        id_card_number: Some("ID***ER".into()),
+        ..profile()
+    }
+}
+
 fn route_resolution(
     policy: RoutePolicy,
     network: NetworkState,
@@ -183,8 +200,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
         "login",
         "--mode",
         "direct",
-        "--username",
-        "fixture-user",
+        "--username-stdin",
         "--password-stdin",
     ])
     .unwrap();
@@ -195,7 +211,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     let code = run_with_backend(
         cli,
         &mut backend,
-        &mut Cursor::new(b"fixture-password\n"),
+        &mut Cursor::new(b"fixture-user\nfixture-password\n"),
         &mut stdout,
         &mut stderr,
     )
@@ -213,200 +229,6 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     assert_ne!(value["data"]["idCardNumber"], "TEST-ID-0001");
     assert!(!String::from_utf8_lossy(&stdout).contains("fixture-password"));
     assert!(stderr.is_empty());
-}
-
-#[tokio::test]
-async fn json_captcha_returns_exit_four_without_image_or_login_submission() {
-    let cli = Cli::try_parse_from([
-        "ubaa",
-        "--json",
-        "auth",
-        "login",
-        "--mode",
-        "direct",
-        "--username",
-        "fixture-user",
-        "--password-stdin",
-    ])
-    .unwrap();
-    let mut backend = FakeBackend {
-        challenge: Some(LoginChallenge {
-            id: "captcha-fixture".into(),
-            execution: "e-cap".into(),
-            image_data_url: Some("data:image/jpeg;base64,DO-NOT-PRINT".into()),
-        }),
-        login_calls: 0,
-        schedule_success: false,
-    };
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-
-    let code = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(b"fixture-password\n"),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
-
-    assert_eq!(code, 4);
-    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_cli_schema(&value);
-    assert_eq!(value["error"]["code"], "captcha_required");
-    assert_eq!(value["error"]["challenge"]["route"], "direct");
-    assert_eq!(value["error"]["challenge"]["imageAvailable"], true);
-    assert!(
-        value["error"]["challenge"]["challengeId"]
-            .as_str()
-            .unwrap()
-            .starts_with("cli-")
-    );
-    let serialized = String::from_utf8_lossy(&stdout);
-    assert!(!serialized.contains("captcha-fixture"));
-    assert!(!serialized.contains("e-cap"));
-    assert!(!serialized.contains("DO-NOT-PRINT"));
-    assert_eq!(backend.login_calls, 0);
-}
-
-#[tokio::test]
-async fn aggregate_json_captcha_exposes_only_actionable_safe_challenges() {
-    let direct_login = "https://sso.buaa.edu.cn/login";
-    let direct_captcha = "https://sso.buaa.edu.cn/captcha?captchaId=shared-upstream-id";
-    let webvpn_login = to_webvpn_url(direct_login).unwrap();
-    let webvpn_captcha = to_webvpn_url(direct_captcha).unwrap();
-    let page = |execution: &str| {
-        format!(
-            r#"<form id="fm1"><input name="execution" value="{execution}"></form><script>config.captcha = {{ type: 'image', id: 'shared-upstream-id' }}</script>"#
-        )
-    };
-    let direct = MockTransport::new([
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            direct_login,
-            HttpResponse::new(200, direct_login, page("direct-execution").into_bytes()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            direct_captcha,
-            HttpResponse::new(200, direct_captcha, b"DIRECT-PRIVATE-IMAGE".to_vec()),
-        ),
-    ]);
-    let webvpn = MockTransport::new([
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &webvpn_login,
-            HttpResponse::new(200, &webvpn_login, page("webvpn-execution").into_bytes()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &webvpn_captcha,
-            HttpResponse::new(200, &webvpn_captcha, b"WEBVPN-PRIVATE-IMAGE".to_vec()),
-        ),
-    ]);
-    let direct_observer = direct.clone();
-    let webvpn_observer = webvpn.clone();
-    let root =
-        std::env::temp_dir().join(format!("ubaa-cli-aggregate-captcha-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&root);
-    let config =
-        RouteConfig::parse("schema_version = 1\n\n[route]\ndefault = \"direct\"\n").unwrap();
-    let mut backend = UbaaClient::with_routing(
-        direct,
-        webvpn,
-        FileSessionStore::new(&root).unwrap(),
-        config,
-        OffCampusProbe,
-    )
-    .unwrap();
-    let cli = Cli::try_parse_from([
-        "ubaa",
-        "--json",
-        "--config-dir",
-        root.to_str().unwrap(),
-        "auth",
-        "login",
-        "--username",
-        "fixture-user",
-        "--password-stdin",
-    ])
-    .unwrap();
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-
-    let code = run_dual_login(
-        cli,
-        &mut backend,
-        &mut Cursor::new(b"fixture-password\n"),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
-
-    assert_eq!(code, 4);
-    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_cli_schema(&value);
-    assert_eq!(value["meta"]["routePolicy"], "direct");
-    assert_eq!(
-        value["meta"]["resolvedRoutes"],
-        serde_json::json!(["direct", "webvpn"])
-    );
-    assert_safe_aggregate_challenges(&value);
-    let serialized = String::from_utf8(stdout).unwrap();
-    for private in [
-        "shared-upstream-id",
-        "direct-execution",
-        "webvpn-execution",
-        "PRIVATE-IMAGE",
-        "fixture-password",
-    ] {
-        assert!(!serialized.contains(private));
-    }
-    assert_eq!(direct_observer.requests().unwrap().len(), 2);
-    assert_eq!(webvpn_observer.requests().unwrap().len(), 2);
-    direct_observer.assert_exhausted().unwrap();
-    webvpn_observer.assert_exhausted().unwrap();
-    assert!(stderr.is_empty());
-    let _ = std::fs::remove_dir_all(root);
-}
-
-#[tokio::test]
-async fn human_captcha_stays_in_process_until_non_empty_input() {
-    let cli = Cli::try_parse_from([
-        "ubaa",
-        "auth",
-        "login",
-        "--mode",
-        "direct",
-        "--username",
-        "fixture-user",
-        "--password-stdin",
-    ])
-    .unwrap();
-    let mut backend = FakeBackend {
-        challenge: Some(LoginChallenge {
-            id: "captcha-fixture".into(),
-            execution: "e-cap".into(),
-            image_data_url: Some("data:image/jpeg;base64,RklYVFVSRS1JTUFHRQ==".into()),
-        }),
-        login_calls: 0,
-        schedule_success: false,
-    };
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-
-    let code = run_with_backend(
-        cli,
-        &mut backend,
-        &mut Cursor::new(b"fixture-password\n\ncaptcha-fixture-answer\n"),
-        &mut stdout,
-        &mut stderr,
-    )
-    .await;
-
-    assert_eq!(code, 0);
-    assert_eq!(backend.login_calls, 1);
-    assert!(String::from_utf8(stderr).unwrap().contains("Captcha: "));
 }
 
 #[tokio::test]
@@ -519,6 +341,56 @@ async fn routed_user_success_preserves_core_default_route_diagnostics() {
 }
 
 #[tokio::test]
+async fn hidden_judge_diagnostics_exposes_only_safe_counts_and_summaries() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "judge",
+        "diagnostics",
+        "--include-expired",
+    ])
+    .unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 0);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["data"]["courseCount"], 3);
+    assert_eq!(value["data"]["rawAnchorCount"], 7);
+    assert_eq!(value["data"]["filteredUniqueCount"], 2);
+    assert_eq!(value["data"]["summaries"], serde_json::json!([]));
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert!(stderr.is_empty());
+}
+
+#[tokio::test]
+async fn hidden_spoc_diagnostics_proves_global_pages_without_raw_protocol_data() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "spoc", "diagnostics"]).unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 0);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["data"]["globalPageCount"], 2);
+    assert_eq!(value["data"]["result"]["termCode"], "2025-2026-2");
+    assert_eq!(
+        value["data"]["result"]["assignments"],
+        serde_json::json!([])
+    );
+    assert!(value["data"].get("token").is_none());
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert!(stderr.is_empty());
+}
+
+#[tokio::test]
 async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeRoutedBackend {
@@ -574,12 +446,24 @@ fn clap_has_no_plaintext_password_option() {
 
 #[test]
 fn ordinary_help_hides_route_override_and_lists_readonly_groups() {
-    let help = Cli::command().render_long_help().to_string();
+    let mut command = Cli::command();
+    let help = command.render_long_help().to_string();
     assert!(!help.contains("--mode"));
     for command in ["schedule", "exam", "grades", "classroom", "spoc", "judge"] {
         assert!(
             help.contains(command),
             "missing {command} from top-level help"
+        );
+    }
+    for group in ["spoc", "judge"] {
+        let help = command
+            .find_subcommand_mut(group)
+            .expect("read-only group")
+            .render_long_help()
+            .to_string();
+        assert!(
+            !help.contains("diagnostics"),
+            "diagnostic command leaked into ordinary {group} help"
         );
     }
 }
@@ -633,22 +517,17 @@ fn serialized_envelopes_match_the_cli_json_schema() {
         ConnectionMode::Direct,
     );
     let success = RoutedJsonEnvelope::success(
-        profile(),
+        masked_profile(),
         ResolvedRoutedJsonMeta::from_resolution(CliFeature::User, direct_resolution),
     );
     let failure = RoutedJsonEnvelope::<serde_json::Value>::resolved_failure(
         UbaaError::new(
-            ErrorCode::CaptchaRequired,
-            ErrorKind::Authentication,
+            ErrorCode::NetworkError,
+            ErrorKind::Network,
             true,
-            "captcha required",
-        )
-        .with_challenge(LoginChallenge {
-            id: "fixture".into(),
-            execution: "e-cap".into(),
-            image_data_url: None,
-        }),
-        ResolvedRoutedJsonMeta::from_resolution(CliFeature::Auth, direct_resolution),
+            "network unavailable",
+        ),
+        ResolvedRoutedJsonMeta::from_resolution(CliFeature::User, direct_resolution),
     );
     let unresolved = RoutedJsonEnvelope::<serde_json::Value>::unresolved_failure(
         UbaaError::new(
@@ -682,8 +561,7 @@ fn serialized_envelopes_match_the_cli_json_schema() {
                 }),
             },
         ],
-        profile: None,
-        challenges: Vec::new(),
+        profile: Some(masked_profile()),
     };
     let aggregate = serde_json::to_value(
         AggregateJsonEnvelope::auth_success(aggregate_outcome, RoutePolicy::Auto).unwrap(),
@@ -714,33 +592,242 @@ fn serialized_envelopes_match_the_cli_json_schema() {
         &unresolved,
         &aggregate,
     );
+    assert_schema_rejects_invalid_routed_data(&validator, direct_resolution);
 
     let success = serde_json::to_value(success).unwrap();
     let failure = serde_json::to_value(failure).unwrap();
     assert_eq!(success["data"]["schoolId"], "TEST-0001");
-    assert_eq!(failure["error"]["code"], "captcha_required");
-    assert!(failure["error"].get("challenge").is_none());
+    assert_eq!(failure["error"]["code"], "network_error");
 }
 
 fn assert_all_routed_features_validate(
     validator: &jsonschema::Validator,
     resolution: RouteResolution,
 ) {
-    for feature in [
-        CliFeature::Auth,
-        CliFeature::User,
-        CliFeature::Schedule,
-        CliFeature::Exam,
-        CliFeature::Grades,
-        CliFeature::Classroom,
-        CliFeature::Spoc,
-        CliFeature::Judge,
-    ] {
+    for (feature, data) in routed_success_representatives() {
         let envelope = RoutedJsonEnvelope::success(
-            serde_json::json!({}),
+            data,
             ResolvedRoutedJsonMeta::from_resolution(feature, resolution),
         );
-        assert!(validator.is_valid(&serde_json::to_value(envelope).unwrap()));
+        let value = serde_json::to_value(envelope).unwrap();
+        assert!(
+            validator.is_valid(&value),
+            "schema rejected {feature:?} representative: {value}"
+        );
+    }
+}
+
+fn routed_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
+    let mut representatives = routed_primary_success_representatives();
+    representatives.extend(routed_assignment_success_representatives());
+    representatives
+}
+
+fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
+    let profile = masked_profile();
+
+    vec![
+        (CliFeature::Auth, serde_json::to_value(&profile).unwrap()),
+        (
+            CliFeature::Auth,
+            serde_json::to_value(AuthStatus {
+                user: profile.clone(),
+                authenticated_at: 1,
+                last_activity: 2,
+            })
+            .unwrap(),
+        ),
+        (CliFeature::Auth, serde_json::json!({"loggedOut": true})),
+        (CliFeature::User, serde_json::to_value(profile).unwrap()),
+        (
+            CliFeature::Schedule,
+            serde_json::to_value(vec![Term {
+                item_code: "2025-2026-1".into(),
+                item_name: "Term".into(),
+                selected: true,
+                item_index: 1,
+            }])
+            .unwrap(),
+        ),
+        (
+            CliFeature::Schedule,
+            serde_json::to_value(vec![Week {
+                start_date: "2025-09-01".into(),
+                end_date: "2025-09-07".into(),
+                term: "2025-2026-1".into(),
+                cur_week: true,
+                serial_number: 1,
+                name: "Week 1".into(),
+            }])
+            .unwrap(),
+        ),
+        (
+            CliFeature::Schedule,
+            serde_json::to_value(WeeklySchedule {
+                arranged_list: vec![CourseClass::default()],
+                code: "2025-2026-1".into(),
+                name: "Term".into(),
+            })
+            .unwrap(),
+        ),
+        (
+            CliFeature::Schedule,
+            serde_json::to_value(vec![TodayClass::default()]).unwrap(),
+        ),
+        (
+            CliFeature::Exam,
+            serde_json::to_value(ExamArrangement {
+                arranged: vec![Exam::default()],
+                not_arranged: Vec::new(),
+            })
+            .unwrap(),
+        ),
+        (
+            CliFeature::Grades,
+            serde_json::to_value(GradeData {
+                term_code: "2025-2026-1".into(),
+                grades: vec![Grade {
+                    term_code: Some("2025-2026-1".into()),
+                    ..Grade::default()
+                }],
+            })
+            .unwrap(),
+        ),
+        (
+            CliFeature::Grades,
+            serde_json::to_value(GradeData {
+                term_code: "2025-2026-1".into(),
+                grades: vec![Grade::default()],
+            })
+            .unwrap(),
+        ),
+        (
+            CliFeature::Classroom,
+            serde_json::to_value(ClassroomQuery {
+                code: 0,
+                message: "ok".into(),
+                floors: [("1".into(), vec![ClassroomInfo::default()])]
+                    .into_iter()
+                    .collect(),
+            })
+            .unwrap(),
+        ),
+    ]
+}
+
+fn routed_assignment_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
+    let summary = judge_summary();
+    let detail = judge_detail();
+    let spoc_summary = SpocAssignmentSummary {
+        assignment_id: "spoc-assignment".into(),
+        course_id: String::new(),
+        course_name: "Course".into(),
+        teacher_name: None,
+        title: "Assignment".into(),
+        start_time: None,
+        due_time: None,
+        score: None,
+        submission_status: ubaa_core::domain::SpocSubmissionStatus::default(),
+        submission_status_text: "未知状态(9)".into(),
+    };
+    let spoc_assignments = SpocAssignments {
+        term_code: "2025-2026-1".into(),
+        term_name: None,
+        assignments: vec![spoc_summary],
+    };
+
+    vec![
+        (
+            CliFeature::Spoc,
+            serde_json::to_value(&spoc_assignments).unwrap(),
+        ),
+        (
+            CliFeature::Spoc,
+            serde_json::to_value(SpocAssignmentsDiagnostics {
+                global_page_count: 1,
+                result: spoc_assignments,
+            })
+            .unwrap(),
+        ),
+        (
+            CliFeature::Spoc,
+            serde_json::to_value(SpocAssignmentDetail {
+                assignment_id: "spoc-assignment".into(),
+                course_id: String::new(),
+                course_name: "Course".into(),
+                teacher_name: None,
+                title: "Assignment".into(),
+                start_time: None,
+                due_time: None,
+                score: None,
+                submission_status: ubaa_core::domain::SpocSubmissionStatus::Unknown,
+                submission_status_text: "未知状态".into(),
+                content_plain_text: None,
+                submitted_at: None,
+            })
+            .unwrap(),
+        ),
+        (
+            CliFeature::Judge,
+            serde_json::to_value(vec![summary.clone()]).unwrap(),
+        ),
+        (
+            CliFeature::Judge,
+            serde_json::to_value(JudgeAssignmentsDiagnostics {
+                course_count: 1,
+                raw_anchor_count: 1,
+                filtered_unique_count: 1,
+                summaries: vec![summary],
+            })
+            .unwrap(),
+        ),
+        (CliFeature::Judge, serde_json::to_value(&detail).unwrap()),
+        (
+            CliFeature::Judge,
+            serde_json::to_value(vec![detail]).unwrap(),
+        ),
+    ]
+}
+
+fn judge_summary() -> JudgeAssignmentSummary {
+    JudgeAssignmentSummary {
+        course_id: "12".into(),
+        course_name: "Course".into(),
+        assignment_id: "34".into(),
+        title: "Assignment".into(),
+        start_time: None,
+        due_time: None,
+        max_score: Some("10.00".into()),
+        my_score: Some("7.00".into()),
+        total_problems: 1,
+        submitted_count: 1,
+        submission_status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
+        submission_status_text: "已完成 7.00/10.00".into(),
+    }
+}
+
+fn judge_detail() -> JudgeAssignmentDetail {
+    JudgeAssignmentDetail {
+        course_id: "12".into(),
+        course_name: "Course".into(),
+        assignment_id: "34".into(),
+        title: "Assignment".into(),
+        start_time: None,
+        due_time: None,
+        max_score: None,
+        my_score: None,
+        total_problems: 1,
+        submitted_count: 1,
+        submission_status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
+        submission_status_text: "已完成".into(),
+        problems: vec![JudgeProblem {
+            name: "Problem".into(),
+            score: None,
+            max_score: None,
+            status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
+            status_text: "已提交".into(),
+        }],
+        content_plain_text: None,
     }
 }
 
@@ -782,29 +869,11 @@ fn assert_schema_rejects_invalid_envelopes(
     duplicate_routes["data"]["routes"][1]["route"] = serde_json::json!("direct");
     assert!(!validator.is_valid(&duplicate_routes));
 
-    let mut mixed_route_meta = aggregate.clone();
-    mixed_route_meta["meta"]["resolvedRoute"] = serde_json::json!("direct");
-    assert!(!validator.is_valid(&mixed_route_meta));
+    assert_schema_rejects_invalid_aggregate_states(validator, aggregate);
 
     let mut legacy_mode = unresolved.clone();
     legacy_mode["meta"]["connectionMode"] = serde_json::json!("direct");
     assert!(!validator.is_valid(&legacy_mode));
-
-    let mut leaked_challenge = failure.clone();
-    leaked_challenge["error"]["challenge"] = serde_json::json!({
-        "route": "direct",
-        "challengeId": "opaque",
-        "imageAvailable": true,
-        "execution": "forbidden"
-    });
-    assert!(!validator.is_valid(&leaked_challenge));
-    leaked_challenge["error"]["challenge"] = serde_json::json!({
-        "route": "direct",
-        "challengeId": "opaque",
-        "imageAvailable": true,
-        "imageDataUrl": "forbidden"
-    });
-    assert!(!validator.is_valid(&leaked_challenge));
 
     let mut success_with_error = success.clone();
     success_with_error["error"] = failure["error"].clone();
@@ -813,6 +882,199 @@ fn assert_schema_rejects_invalid_envelopes(
     let mut failure_with_data = failure.clone();
     failure_with_data["data"] = serde_json::json!({});
     assert!(!validator.is_valid(&failure_with_data));
+}
+
+fn assert_schema_rejects_invalid_aggregate_states(
+    validator: &jsonschema::Validator,
+    aggregate: &serde_json::Value,
+) {
+    let mut ready_without_profile = aggregate.clone();
+    ready_without_profile["data"]
+        .as_object_mut()
+        .unwrap()
+        .remove("profile");
+    assert!(!validator.is_valid(&ready_without_profile));
+
+    let mut none_ready_with_profile = aggregate.clone();
+    none_ready_with_profile["ok"] = serde_json::json!(false);
+    none_ready_with_profile["error"] = serde_json::json!({
+        "code": "authentication_required",
+        "kind": "authentication",
+        "message": "authentication is required",
+        "retryable": false
+    });
+    none_ready_with_profile["data"]["readiness"] = serde_json::json!("none_ready");
+    for route in none_ready_with_profile["data"]["routes"]
+        .as_array_mut()
+        .unwrap()
+    {
+        route["state"] = serde_json::json!("failed");
+        route["error"] = serde_json::json!({
+            "code": "authentication_required",
+            "kind": "authentication",
+            "message": "authentication is required",
+            "retryable": false
+        });
+    }
+    assert!(!validator.is_valid(&none_ready_with_profile));
+
+    let mut mixed_route_meta = aggregate.clone();
+    mixed_route_meta["meta"]["resolvedRoute"] = serde_json::json!("direct");
+    assert!(!validator.is_valid(&mixed_route_meta));
+}
+
+fn routed_envelope(
+    feature: CliFeature,
+    data: serde_json::Value,
+    resolution: RouteResolution,
+) -> serde_json::Value {
+    serde_json::to_value(RoutedJsonEnvelope::success(
+        data,
+        ResolvedRoutedJsonMeta::from_resolution(feature, resolution),
+    ))
+    .unwrap()
+}
+
+fn assert_schema_rejects_invalid_profile_and_sensitive_data(
+    validator: &jsonschema::Validator,
+    resolution: RouteResolution,
+) {
+    let empty_schedule = routed_envelope(CliFeature::Schedule, serde_json::json!({}), resolution);
+    assert!(!validator.is_valid(&empty_schedule));
+
+    let wrong_user_dto = routed_envelope(
+        CliFeature::User,
+        serde_json::to_value(vec![Term::default()]).unwrap(),
+        resolution,
+    );
+    assert!(!validator.is_valid(&wrong_user_dto));
+
+    let mut unmasked_phone = routed_envelope(
+        CliFeature::User,
+        serde_json::to_value(masked_profile()).unwrap(),
+        resolution,
+    );
+    unmasked_phone["data"]["phone"] = serde_json::json!("UNMASKED-PHONE");
+    assert!(!validator.is_valid(&unmasked_phone));
+
+    let mut unmasked_identity = routed_envelope(
+        CliFeature::User,
+        serde_json::to_value(masked_profile()).unwrap(),
+        resolution,
+    );
+    unmasked_identity["data"]["idCardNumber"] = serde_json::json!("UNMASKED-ID");
+    assert!(!validator.is_valid(&unmasked_identity));
+
+    let mut raw_html = routed_envelope(
+        CliFeature::Judge,
+        serde_json::to_value(JudgeAssignmentsDiagnostics {
+            course_count: 0,
+            raw_anchor_count: 0,
+            filtered_unique_count: 0,
+            summaries: Vec::new(),
+        })
+        .unwrap(),
+        resolution,
+    );
+    raw_html["data"]["rawHtml"] = serde_json::json!("<html>private</html>");
+    assert!(!validator.is_valid(&raw_html));
+
+    let mut cookie = routed_envelope(
+        CliFeature::Spoc,
+        serde_json::to_value(SpocAssignmentsDiagnostics {
+            global_page_count: 1,
+            result: SpocAssignments::default(),
+        })
+        .unwrap(),
+        resolution,
+    );
+    cookie["data"]["cookie"] = serde_json::json!("private");
+    assert!(!validator.is_valid(&cookie));
+
+    let zero_page_count = routed_envelope(
+        CliFeature::Spoc,
+        serde_json::to_value(SpocAssignmentsDiagnostics {
+            global_page_count: 0,
+            result: SpocAssignments::default(),
+        })
+        .unwrap(),
+        resolution,
+    );
+    assert!(!validator.is_valid(&zero_page_count));
+}
+
+fn assert_schema_rejects_invalid_judge_data(
+    validator: &jsonschema::Validator,
+    resolution: RouteResolution,
+) {
+    let mut nonnumeric_judge_id = routed_envelope(
+        CliFeature::Judge,
+        serde_json::to_value(vec![judge_summary()]).unwrap(),
+        resolution,
+    );
+    nonnumeric_judge_id["data"][0]["assignmentId"] = serde_json::json!("not-numeric");
+    assert!(!validator.is_valid(&nonnumeric_judge_id));
+
+    let mut malformed_judge_score = routed_envelope(
+        CliFeature::Judge,
+        serde_json::to_value(vec![judge_summary()]).unwrap(),
+        resolution,
+    );
+    malformed_judge_score["data"][0]["maxScore"] = serde_json::json!("1..2");
+    assert!(!validator.is_valid(&malformed_judge_score));
+
+    let mut impossible_problem_status = routed_envelope(
+        CliFeature::Judge,
+        serde_json::to_value(judge_detail()).unwrap(),
+        resolution,
+    );
+    impossible_problem_status["data"]["problems"][0]["status"] = serde_json::json!("PARTIAL");
+    impossible_problem_status["data"]["problems"][0]["statusText"] = serde_json::json!("部分提交");
+    assert!(!validator.is_valid(&impossible_problem_status));
+
+    let mut malformed_problem_score = routed_envelope(
+        CliFeature::Judge,
+        serde_json::to_value(judge_detail()).unwrap(),
+        resolution,
+    );
+    malformed_problem_score["data"]["problems"][0]["score"] = serde_json::json!(".");
+    assert!(!validator.is_valid(&malformed_problem_score));
+}
+
+fn assert_schema_rejects_invalid_spoc_data(
+    validator: &jsonschema::Validator,
+    resolution: RouteResolution,
+) {
+    let invalid_spoc_unknown = routed_envelope(
+        CliFeature::Spoc,
+        serde_json::json!({
+            "termCode": "2025-2026-1",
+            "termName": null,
+            "assignments": [{
+                "assignmentId": "spoc-assignment",
+                "courseId": "",
+                "courseName": "Course",
+                "teacherName": null,
+                "title": "Assignment",
+                "startTime": null,
+                "dueTime": null,
+                "score": null,
+                "submissionStatus": "UNKNOWN",
+                "submissionStatusText": "未知状态"
+            }]
+        }),
+        resolution,
+    );
+    assert!(!validator.is_valid(&invalid_spoc_unknown));
+}
+
+fn assert_schema_rejects_invalid_routed_data(
+    validator: &jsonschema::Validator,
+    resolution: RouteResolution,
+) {
+    assert_schema_rejects_invalid_profile_and_sensitive_data(validator, resolution);
+    assert_schema_rejects_invalid_judge_data(validator, resolution);
+    assert_schema_rejects_invalid_spoc_data(validator, resolution);
 }
 
 #[test]
@@ -837,16 +1099,13 @@ fn cli_debug_formatting_redacts_sensitive_login_arguments() {
         "--username",
         "USERNAME-SENTINEL",
         "--password-stdin",
-        "--captcha",
-        "CAPTCHA-SENTINEL",
     ])
     .unwrap();
 
     let formatted = format!("{cli:?}");
-    for sentinel in ["USERNAME-SENTINEL", "CAPTCHA-SENTINEL"] {
-        assert!(
-            !formatted.contains(sentinel),
-            "leaked {sentinel} in {formatted}"
-        );
-    }
+    let sentinel = "USERNAME-SENTINEL";
+    assert!(
+        !formatted.contains(sentinel),
+        "leaked {sentinel} in {formatted}"
+    );
 }

@@ -1,6 +1,6 @@
 # Connection and Session Contract
 
-Status: target contract; the aggregate atomic coordinator and stale-writer logout behavior require remediation before this contract is complete. The 2026-08-17 live authentication result is historical protocol evidence only.
+Status: deterministic implementation complete; the aggregate atomic coordinator and stale-writer logout behavior are covered locally, and the corrected 2026-08-26 HEAD passed fresh Direct/WebVPN authentication verification.
 
 ## Evidence map
 
@@ -18,13 +18,15 @@ Status: target contract; the aggregate atomic coordinator and stale-writer logou
 | Cookie filters include host/domain, path, Secure, expiration and replacement | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`, `LocalCookieStoreTest.kt`, `examples/buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
 | Explicit invalidation clears a session; timeout/5xx preserve it | `validateLocalConnectionSession` and `getAuthStatus` | `tests/session.rs` policy test |
 
+Automatic route selection is also Core-owned connection state. The production probe performs only a TCP connect to `gw.buaa.edu.cn:80`; one 500 ms total deadline includes hostname resolution and all address attempts. Its three-state result is single-flight cached inside the facade process for 60 seconds. It sends no HTTP/TLS payload and reads no Cookie or credential. Full policy and error mapping are specified in `docs/contracts/route-policy.md`.
+
 ## Persistence
 
-Each aggregate facade stores one schema-v2 dual snapshot in `<config-dir>/session.json`, with independent Direct and WebVPN slots containing filtered cookies, route, authentication timestamp and last-activity timestamp. It does not persist username, password, CAS execution, captcha state, challenge identifiers, risk pages or business tokens. A legacy single-route snapshot migrates only into its recorded route slot.
+Each aggregate facade stores one schema-v2 dual snapshot in `<config-dir>/session.json`, with independent Direct and WebVPN slots containing filtered cookies, route, authentication timestamp and last-activity timestamp. It does not persist username, password, CAS execution, risk pages, unsupported-interactive-step material or business tokens. A legacy single-route snapshot migrates only into its recorded route slot.
 
 The sidecar `.session.lock` serializes access and stores a fixed-width monotonic revision. Initial dual snapshot and revision are loaded in one critical section. One shared coordinator owns the in-memory dual snapshot and revision; every route replacement and aggregate clear constructs a complete candidate and performs exactly one compare-exchange. A stale process returns a safe retryable conflict and never reloads/adopts an external revision in order to retry. Aggregate logout performs both best-effort remote requests, clears both in-memory runtimes and route feature state, then attempts one dual persisted clear. A conflict preserves both newer persisted slots.
 
-Writes use unique exclusively-created same-directory temporary files and synchronize before replacement. Session, lock, and configuration targets reject symlink/non-regular entries; final session/lock opens use no-follow platform flags. Session reads are capped at 1 MiB. On Unix the directory is mode 0700 and existing or new session/lock files are restricted to mode 0600. Windows uses inherited directory ACLs; owner-only ACL enforcement for custom configuration directories remains a release audit item.
+Writes use unique exclusively-created same-directory temporary files and synchronize before replacement. Session, lock, and configuration targets reject symlink/non-regular entries; final session/lock opens use no-follow platform flags. Unix deterministic tests cover symlink rejection, unique concurrent temporary writes, atomic replacement, and `0700`/`0600` permissions. Session reads are capped at 1 MiB. Windows uses inherited directory ACLs; owner-only ACL enforcement for custom configuration directories remains a release audit item.
 
 The raw HTTP transport keeps TLS verification and manual redirects, and caps fully buffered authentication/User Center bodies at 8 MiB. Both limits are internal safety budgets rather than inferred upstream protocol facts. Fixed authentication endpoints are HTTPS. Redirects preserve the frozen client's compatibility with `http` and `https` only after host-policy validation; Secure cookies are never sent over HTTP.
 

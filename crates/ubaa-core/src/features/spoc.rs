@@ -157,6 +157,13 @@ pub fn detail(summary: &SpocAssignmentSummary, html: Option<&str>) -> SpocAssign
 pub(crate) async fn get_assignments(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignments> {
+    Ok(get_assignments_diagnostics(runtime).await?.result)
+}
+
+/// Fetch the current SPOC list and return safe proof that global pages were parsed.
+pub(crate) async fn get_assignments_diagnostics(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> crate::error::Result<crate::domain::SpocAssignmentsDiagnostics> {
     let term_result = with_spoc_auth_retry(runtime, |runtime, credential| {
         Box::pin(fetch_current_term(runtime, credential))
     })
@@ -196,6 +203,7 @@ pub(crate) async fn get_assignments(
 
     let mut assignments = Vec::new();
     let mut page_num = 1;
+    let mut global_page_count = 0u32;
     loop {
         let page_term_code = term_code.clone();
         let page_result = with_spoc_auth_retry(runtime, move |runtime, credential| {
@@ -208,6 +216,7 @@ pub(crate) async fn get_assignments(
         })
         .await;
         let page = resolve_required_spoc_result(runtime, page_result).await?;
+        global_page_count = global_page_count.saturating_add(1);
         let page_empty = page.list.is_empty();
         for item in page.list {
             let course = item.sskcid.as_ref().and_then(|id| courses.get(id));
@@ -239,10 +248,13 @@ pub(crate) async fn get_assignments(
             .then_with(|| left.course_name.cmp(&right.course_name))
             .then_with(|| left.title.cmp(&right.title))
     });
-    Ok(crate::domain::SpocAssignments {
-        term_code,
-        term_name: term.dqxq,
-        assignments,
+    Ok(crate::domain::SpocAssignmentsDiagnostics {
+        global_page_count,
+        result: crate::domain::SpocAssignments {
+            term_code,
+            term_name: term.dqxq,
+            assignments,
+        },
     })
 }
 

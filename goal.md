@@ -225,7 +225,7 @@ upstream/     北航 SSO、User Center 和各只读业务的请求、响应和�
 - 宿主不得直接调用 `upstream`。
 - Core 不使用隐式全局客户端、全局 Cookie 或全局账号。
 - 每个 `UbaaClient` 拥有独立的 Direct/WebVPN 双路线会话集合；需要多个账号就创建多个 client。
-- Direct 和 WebVPN 的 Cookie、CAS execution、验证码、风险确认、业务 token、缓存和失效状态必须按路线隔离；不得因为两个 URL 指向同一上游主机就跨路线复用。
+- Direct 和 WebVPN 的 Cookie、CAS execution、风险确认、业务 token、缓存和失效状态必须按路线隔离；不得因为两个 URL 指向同一上游主机就跨路线复用。
 - 功能路由策略与实际解析路线分离：`auto` 是用户策略，`direct`/`webvpn` 是解析结果或诊断 override。
 - 绑定层未来只能消费 facade 的稳定 DTO，不暴露 Rust 内部 trait、泛型或上游结构。
 - 网络层默认校验证书；任何不安全 TLS 选项不得成为默认值，本目标中不得为了真实验收开启它。
@@ -253,7 +253,7 @@ Core 必须控制业务正确性，不把重定向、Cookie 或认证失效判�
 - 用户路由策略单独存储在版本化、仅当前用户可读写的配置文件中；默认策略为 `auto`，配置只允许已注册功能名和 `auto|direct|webvpn` 值，不允许任意 URL、主机或请求头。
 - `auto` 的网络信号由可注入探测器提供：对 `gw.buaa.edu.cn:80` 做 TCP 连通性测试；从开始解析主机名到尝试所有已解析地址的总预算固定为 500ms，任一连接成功表示 `Campus`。普通的解析失败、无地址、连接拒绝、不可达或总预算超时都表示 `OffCampus`；只有探测器自身的内部故障或注入的诊断失败表示 `Unknown`。结果只在当前进程缓存 60 秒；缓存到期必须重新探测。不得发 HTTP/TLS 请求、读取凭据、硬编码地址或 IP 段，也不得把 `Unknown` 永久当作外网。此行为以 `examples/buaa-api/src/utils/net.rs` 的目标主机、端口和 500ms TCP 连接为来源；“总预算”和三态错误边界是本合同的产品约束。
 - `auto` 的基础解析必须是 `Campus -> Direct`、`OffCampus -> WebVPN`，以解决外网登录后部分业务无法直连的问题；功能证据矩阵可以声明强制例外（例如旧实现明确要求始终 Direct 的功能）或把某路线记录为未证实。`Unknown` 不得猜测为外网，必须使用该功能的已验证默认路线并在诊断信息中标记探测未知。
-- 登录页准备可以分别执行，但每条路线的 execution、验证码和凭据提交必须锁定在同一路线；不能将同一 `LoginChallenge` 或一次登录 POST 重放到另一条路线。
+- 登录页准备可以分别执行，但每条路线的 execution 和凭据提交必须锁定在同一路线；不能将一次登录 POST 重放到另一条路线。
 - 仅当功能矩阵把该操作标记为业务幂等且允许 fallback 时，才可在网关探测、连接失败、请求超时或 HTTP 502/503/504 后向另一条已就绪路线重放一次。显式 `direct`/`webvpn` 策略、认证提交、token 建立、任何写操作、HTTP 4xx、认证跳转/失效、权限拒绝、2xx 解析失败或未知错误一律不得自动换路；不能只按 HTTP method 推断幂等性。
 - 不记录 `Cookie`、`Set-Cookie`、`Authorization`、密码、完整验证码 data URL 或原始认证 body。
 
@@ -293,18 +293,6 @@ pub struct UbaaClient { /* owns route-scoped Direct/WebVPN sessions */ }
 pub struct LoginInput {
     pub username: String,
     pub password: SecretValue,
-    pub captcha_answers: Vec<CaptchaAnswer>,
-}
-
-pub struct CaptchaAnswer {
-    pub challenge_id: String,
-    pub value: SecretValue,
-}
-
-pub struct LoginChallenge {
-    pub route: ConnectionMode,
-    pub challenge_id: String,
-    pub image_available: bool,
 }
 
 pub struct UserProfile {
@@ -326,7 +314,6 @@ pub enum LoginReadiness {
 
 pub enum RouteLoginState {
     Ready,
-    CaptchaRequired,
     Failed,
 }
 
@@ -350,7 +337,7 @@ pub struct LoginOutcome {
 }
 ```
 
-`SafeError` 表示现有稳定错误的可公开部分；实现可以复用现有 `UbaaError` 或调整名称，但不能扩大暴露面。`LoginOutcome.routes` 必须恰好各含一个 Direct 和 WebVPN 项，顺序固定为 Direct、WebVPN。登录结果必须同时包含成功解析的 `UserProfile`（若任一路线成功）以及两条路线各自的 `ready|captcha_required|failed` 安全状态；失败状态只包含稳定错误码和脱敏消息，不包含密码、execution、Cookie、验证码图片或原始 body。
+`SafeError` 表示现有稳定错误的可公开部分；实现可以复用现有 `UbaaError` 或调整名称，但不能扩大暴露面。`LoginOutcome.routes` 必须恰好各含一个 Direct 和 WebVPN 项，顺序固定为 Direct、WebVPN。登录结果必须同时包含成功解析的 `UserProfile`（若任一路线成功）以及两条路线各自的 `ready|failed` 安全状态；失败状态只包含稳定错误码和脱敏消息，不包含密码、execution、Cookie、交互验证材料或原始 body。
 
 `RoutePolicy` 是用户配置和宿主输入，`ConnectionMode` 是 Core 内部的实际路线；普通 CLI 不得要求用户传入 `ConnectionMode`。普通宿主只向 Core facade 提供配置目录和业务参数；facade 负责加载/校验配置、执行或复用网关探测、解析路线、检查目标槽位并返回安全诊断。CLI 只能解析参数、调用 facade 和渲染结果，不能自行实现选路。配置文件必须使用以下语义（具体序列化格式固定为版本化 TOML，文件名为 `config.toml`）：
 
@@ -387,14 +374,14 @@ judge = "auto"
 }
 ```
 
-槽位可以缺失，时间字段和 Cookie 结构沿用当前合同；`execution`、`LoginChallenge`、密码风险页面和其他登录进行时状态必须只存在于当前进程内存。双槽位的加载、保存、清理和 revision CAS 必须在同一个文件锁合同内完成，旧单槽位迁移不得覆盖新路线会话。
+槽位可以缺失，时间字段和 Cookie 结构沿用当前合同；`execution`、密码风险页面和其他登录进行时状态必须只存在于当前进程内存。双槽位的加载、保存、清理和 revision CAS 必须在同一个文件锁合同内完成，旧单槽位迁移不得覆盖新路线会话。
 
 旧文件迁移规则必须固定：旧格式中的 `mode`、Cookie 和时间元数据只迁移到对应的 `direct` 或 `webvpn` 槽位，另一槽位保持缺失；不得把同一 Cookie 复制到两条路线。旧 `mode` 非法、缺失或结构损坏时，必须返回安全持久化错误或执行可恢复的清理，不能猜测路线。迁移成功后使用新 schema 原子替换文件，并保留现有 revision/CAS、锁、权限和无符号链接约束。
 
 Core 至少提供这些行为：
 
-- `prepare_login() -> Result<Vec<LoginChallenge>>`：按 Direct、WebVPN 的固定顺序为两条路线读取 SSO 登录页，识别已有会话、execution、验证码和提示信息；即使第一条准备失败也继续准备第二条，每条路线独立维护状态。返回列表固定按 Direct、WebVPN 排列，已无需登录的路线不返回 challenge。
-- `login(LoginInput) -> Result<LoginOutcome>`：由宿主调用的登录编排必须在内部按 Direct、WebVPN 固定顺序分别提交普通表单或验证码表单，使用 `captcha_answers` 中按 `challenge_id` 绑定的答案，处理 CAS 重定向和密码风险页面，激活 User Center 会话，验证成功后返回 `LoginOutcome`。内部必须存在路线限定的 login input/state；第二路线失败只形成部分成功状态，不得清除第一条成功路线。`AllReady` 表示两条均就绪，`Partial` 表示恰好一条就绪，`NoneReady` 表示两条均未就绪；只有 `NoneReady` 且不存在待输入验证码时才是普通登录失败。
+- `prepare_login() -> Result<()>`：按当前路线读取 SSO 登录页，识别已有会话、execution 和提示信息。若页面出现冻结实现中的交互式验证码/验证步骤，立即返回 `upstream_changed`；不得下载图片、创建 challenge 或等待用户输入。
+- `login(LoginInput) -> Result<LoginOutcome>`：由宿主调用的登录编排必须在内部按 Direct、WebVPN 固定顺序分别提交普通表单，处理 CAS 重定向和密码风险页面，激活 User Center 会话，验证成功后返回 `LoginOutcome`。内部必须存在路线限定的 login input/state；第二路线失败只形成部分成功状态，不得清除第一条成功路线。`AllReady` 表示两条均就绪，`Partial` 表示恰好一条就绪，`NoneReady` 表示两条均未就绪。
 - `get_user_info()`：由宿主调用的无参数方法按功能策略解析路线，请求 `https://uc.buaa.edu.cn/api/uc/userinfo` 或当前 WebVPN 对应地址，解析 `code/data` 包装，返回 `UserProfile`；内部可以有路线限定实现。
 - `auth_status()`：由宿主调用的无参数聚合方法分别验证两个已存在的路线槽位并返回 Direct/WebVPN 两项状态；缺失槽位报告 `not_authenticated`，有效会话刷新该路线最后活动时间，明确失效时只清理该路线，认证服务 5xx 或超时不得误删任一路线会话。
 - `logout()`：分别尽力访问两条路线的旧实现确认的 SSO logout 地址，然后无条件清理当前 client 的两条内存状态。持久化清理必须按已加载 revision 做同一锁内 CAS；若其他进程已经写入更新会话，必须保留新会话、返回不含快照内容的安全冲突错误，不能重试无条件删除。
@@ -419,7 +406,7 @@ judge_assignment_details(keys)
 
 每次调用都返回解析后的稳定 DTO、实际解析路线和可安全展示的错误；不得将上游 HTML、加密 token、Cookie 或原始响应暴露给宿主。
 
-验证码状态规则固定为：同一个 `UbaaClient` 内，每条路线的 `prepare_login()` 产生的 execution、Cookie 和 `LoginChallenge` 只能供该路线后续 `login()` 使用；`CaptchaAnswer.challenge_id` 必须与待提交路线当前内存中的 challenge 精确匹配，过期或路线不匹配返回 `invalid_input`，不能把一条路线的验证码答案或 challenge 复用于另一条路线。人类 CLI 在同一进程内按 Direct、WebVPN 顺序循环获取验证码并提交，不能把一条路线的验证码答案或 challenge 复用于另一条路线。缺少某路线验证码答案时先标记该路线 `captcha_required`，仍继续处理另一条路线。`--json` 模式不进行隐藏交互，完成两条路线的安全准备和无需验证码的登录后，只要任一路线仍需验证码，就输出包含完整两项路线状态的结构化结果并以退出码 4 结束；已成功路线必须保留。JSON 的 challenge 公开字段白名单仅为 `route`、稳定的 `challengeId` 和 `imageAvailable`；不得输出 execution、Cookie、图片字节、data URL、原始 HTML 或验证码答案。它不得声称两条路线均登录成功，也不得把 challenge、execution、Cookie 或图片写入长期会话文件；下一次进程重新准备新的 challenge。
+交互式验证码功能已从 UBAA2 公共合同中删除。登录页若出现冻结实现中的 `config.captcha` 或其他需要人工交互的验证步骤，Core 返回 `upstream_changed`，两条路线分别记录安全失败；CLI 不提供验证码参数、图片文件、提示、重试或跨进程 challenge 存储。不得发送 `captcha`、`captchaResponse` 或任何未由当前表单证据证明的验证码字段。该行为差异必须记录在 `docs/migration/source-parity.md` 和 `docs/migration/decision-log.md`，并在真实矩阵中把出现验证码视为不支持的上游变化，而不是成功证据。
 
 `SecretValue` 必须在 Debug、Display、Serialize 和错误打印中隐藏内容。成功返回的用户信息必须来自真实解析的 User Center response；不得从用户名推导姓名或学号。
 
@@ -429,7 +416,6 @@ judge_assignment_details(keys)
 invalid_input
 authentication_required
 invalid_credentials
-captcha_required
 password_risk_confirmation_failed
 permission_denied
 network_error
@@ -480,8 +466,7 @@ ubaa judge assignment details --key <course-id>:<assignment-id> [...]
 - `--username <value>` 可选；未提供时交互读取。
 - `--password-stdin` 可选；使用时从 stdin 读取一行密码，不写入命令历史。
 - 未使用 `--password-stdin` 时通过不回显交互读取密码。
-- `--captcha <value>` 仅为兼容现有 CLI 的可选参数，值只应用于本次进程中按固定顺序遇到的第一条待答路线；若第二条路线也需要不同验证码，人类模式继续不回显地提示。参数和答案不得出现在 Debug、日志或输出中。
-- JSON 模式不提示，也不跨进程恢复 challenge；`--captcha` 只可回答本次命令重新准备出的第一条 challenge。返回 `captcha_required` 后不得持久化 execution、Cookie 或图片，下一次命令必须重新准备登录页。无法在单个非交互命令中安全回答两个不同验证码时，保留已成功路线并明确返回两项路线状态和退出码 4。
+- 登录命令不提供验证码选项。检测到交互式验证时按 `upstream_changed` 失败，不提示、不下载图片、不创建临时验证码文件，也不把上游验证字段写入请求或持久化会话。
 
 只读命令参数和行为必须与旧版公开接口对齐：
 
@@ -511,9 +496,9 @@ JSON envelope 固定为：
 }
 ```
 
-单路线的 `user show` 和只读业务成功 envelope 使用上述 `resolvedRoute`。聚合的 `auth login|status|logout` 不伪造单一路线：`meta` 使用 `resolvedRoutes: ["direct", "webvpn"]`，`data.routes` 恰好按 Direct、WebVPN 顺序分别给出状态；此时不得同时出现 `resolvedRoute`。失败使用 `ok: false`，并包含 `error.code`、`error.kind`、`error.message`、`error.retryable`；验证码错误另外包含带路线标识的 `error.challenge`。`meta.routePolicy` 是用户配置策略，解析路线字段是本次请求的诊断结果，均不能被解释为用户必须选择的模式。JSON Schema 存于 `docs/contracts/cli-json.schema.json`，所有普通命令、隐藏诊断命令、成功、失败和参数错误都只允许输出 schema version 2；不得保留或产生 CLI schema v1 envelope。schema version 2 必须用 `oneOf` 或等价约束区分单路线和聚合 envelope，并由正反例测试校验。此规则不改变 `config.toml` 的磁盘格式版本 `1` 或 `session.json` 的磁盘迁移版本。
+单路线的 `user show` 和只读业务成功 envelope 使用上述 `resolvedRoute`。聚合的 `auth login|status|logout` 不伪造单一路线：`meta` 使用 `resolvedRoutes: ["direct", "webvpn"]`，`data.routes` 恰好按 Direct、WebVPN 顺序分别给出状态；此时不得同时出现 `resolvedRoute`。失败使用 `ok: false`，并包含 `error.code`、`error.kind`、`error.message`、`error.retryable`；不包含 challenge、图片或验证码字段。`meta.routePolicy` 是用户配置策略，解析路线字段是本次请求的诊断结果，均不能被解释为用户必须选择的模式。JSON Schema 存于 `docs/contracts/cli-json.schema.json`，所有普通命令、隐藏诊断命令、成功、失败和参数错误都只允许输出 schema version 2；不得保留或产生 CLI schema v1 envelope。schema version 2 必须用 `oneOf` 或等价约束区分单路线和聚合 envelope，并由正反例测试校验。此规则不改变 `config.toml` 的磁盘格式版本 `1` 或 `session.json` 的磁盘迁移版本。
 
-`auth login` 的 CLI 退出语义固定：`AllReady` 返回 0；`Partial` 在没有待答验证码时返回 0，但人类和 JSON 输出必须明显报告未就绪路线；任一路线仍为 `captcha_required` 时返回 4；`NoneReady` 且无验证码时按主要稳定错误返回 3、5、6 或 7。部分成功不是静默成功，已成功槽位在任何返回路径都必须保留。
+`auth login` 的 CLI 退出语义固定：`AllReady` 返回 0；`Partial` 返回 0，但人类和 JSON 输出必须明显报告未就绪路线；`NoneReady` 按主要稳定错误返回 3、5、6 或 7。检测到验证码或其他交互式验证时使用 `upstream_changed` 对应的退出码 6；部分成功不是静默成功，已成功槽位在任何返回路径都必须保留。
 
 退出码固定为：
 
@@ -522,7 +507,6 @@ JSON envelope 固定为：
 | 0 | 成功 |
 | 2 | 参数或输入错误 |
 | 3 | 未认证或凭据失败 |
-| 4 | 需要验证码，等待补充输入 |
 | 5 | 网络、超时或上游暂不可用 |
 | 6 | 上游响应变化或解析失败 |
 | 7 | 内部错误 |
@@ -611,7 +595,7 @@ JSON envelope 固定为：
 - 已有 SSO Cookie 时的状态探测和 User Center 激活。
 - 登录页 execution 读取；hidden input 保留；submit/button/image 字段过滤方式有测试。
 - 普通用户名密码提交。
-- 识别 `config.captcha`，获取图片，返回 `captcha_required`，提交 captcha/captchaResponse。
+- 识别 `config.captcha` 或其他交互式验证页面并返回 `upstream_changed`；不得获取图片、提交 captcha/captchaResponse 或尝试绕过验证。
 - 识别 `continueForm`、`ignoreAndContinue`、密码过期或安全风险页面，并只允许一次继续提交。
 - 绝对、协议相对、根相对和路径相对重定向。
 - Direct 与 WebVPN 的每个认证 URL、重定向和 Cookie 都使用当前连接策略。
@@ -708,7 +692,7 @@ CI 至少覆盖 Rust stable 固定版本下的上述检查、JSON Schema 测试�
 - `auth status` 必须聚合验证两条路线；`user show` 和每个只读功能只验证/使用解析后的目标路线。一条路线 5xx/timeout 不清除另一条路线。
 - `auth logout` 对两条路线分别 best-effort 远端注销，然后无条件清理两槽位、内存状态和路线级缓存。
 - 双槽位保存、清理、迁移和 revision CAS 在同一 OS 锁内原子执行；并发旧进程不能复活或删除另一条路线的新会话。
-- execution、challenge、密码风险页面和密码永远不写入 `session.json` 或 `config.toml`。
+- execution、密码风险页面和密码永远不写入 `session.json` 或 `config.toml`。
 
 提交：`feat: persist isolated direct and webvpn sessions`
 
@@ -781,7 +765,7 @@ CI 至少覆盖 Rust stable 固定版本下的上述检查、JSON Schema 测试�
 - 本合同第 7 节列出的命令、参数校验、默认策略和空结果行为。
 - 人类输出可以显示当前实际路线和“部分路线未就绪”，但不得显示 Cookie、execution、token、原始 HTML 或完整个人信息。
 - JSON stdout 严格为一个 schema version 2 envelope；单路线响应包含 `routePolicy`、`resolvedRoute` 和功能标识，聚合认证响应包含 `routePolicy`、`resolvedRoutes` 和 `feature="auth"`，错误包含稳定 code/kind/retryable。
-- 双路线登录的 `all_ready`、`partial`、`none_ready` 三种状态；JSON 验证码挑战带路线标识，不能把 challenge 持久化。
+- 双路线登录的 `all_ready`、`partial`、`none_ready` 三种状态；检测到交互式验证时返回 `upstream_changed`，不能把验证材料持久化。
 - 移除所有 CLI schema v1 输出分支；普通与隐藏诊断输出一律为 schema version 2，且不得继续把 `connectionMode` 当成用户输入。磁盘配置/会话迁移版本不受此项影响。
 
 提交：`feat: expose readonly feature cli and json contracts`

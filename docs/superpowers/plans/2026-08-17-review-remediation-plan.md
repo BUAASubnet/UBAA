@@ -1,5 +1,11 @@
 # Review Remediation Implementation Plan
 
+Status: superseded for current execution by `2026-08-23-correctness-remediation.md`; retained as a historical baseline record.
+
+Captcha-capable tasks in this historical plan are superseded by the 2026-08-25
+decision in `docs/migration/decision-log.md`; they are not active implementation
+requirements.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Repair the review findings while preserving the live-verified Direct/WebVPN authentication contract and making the repository safer to extend.
@@ -75,21 +81,13 @@
 - [x] Run session and transport tests on the current platform and document the chosen bound/locking dependency in the ADR.
 - [x] Commit as `fix: harden response and session persistence`.
 
-### Task 5: Captcha-aware live verifier and process coverage
+### Task 5: Captcha-aware live verifier and process coverage (superseded; historical only)
 
-**Files:**
-- Modify: `scripts/verify-live.sh`
-- Modify: `docs/runbooks/live-auth-verification.md`
-- Modify: `docs/development/setup.md`, `docs/development/commands.md`
-- Modify: `apps/ubaa-cli/tests/binary_e2e.rs`
-- Test: `apps/ubaa-cli/tests/binary_e2e.rs`
-
-- [x] Add a shell-testable branch for exit code 4 and a binary test for saved-session logout/session cleanup.
-- [x] Run the focused tests and show the current verifier exits immediately on captcha and the binary suite lacks the success-adjacent path.
-- [x] Add `jq`/TTY preflight, human fallback that feeds the environment password through stdin while forwarding captcha input from `/dev/tty`, suppress human profile stdout, and preserve redacted JSON summaries.
-- [x] Add the deterministic binary session test without introducing a production localhost override or changing the fixed upstream URLs.
-- [x] Run CLI unit, contract, and binary tests.
-- [x] Commit as `test: cover captcha verifier and binary session flow`.
+This task is retained for historical traceability only. Its former TTY,
+challenge, image, and captcha-specific exit requirements are no longer valid.
+The current implementation and verifier reject interactive verification as
+`upstream_changed` before image fetch or credential POST; none of the old
+checklist is an active implementation or acceptance requirement.
 
 ### Task 6: Cross-platform CI and contract-driven schema checks
 
@@ -129,5 +127,5 @@
 - [x] Run `just check-sensitive`.
 - [x] Run `just check`.
 - [x] Run `cargo test --locked --workspace --all-targets` and the CLI binary tests explicitly.
-- [x] Run `just verify-live mode=direct` and `just verify-live mode=webvpn`; if captcha is requested, exercise the documented human fallback without recording the answer or image.
+- [x] Run the historical direct/webvpn verifier commands; the former captcha fallback is superseded and any current interactive page must fail safely without a prompt or image request.
 - [x] Confirm `git status --short --branch`, staged-content inspection, and the migration report match the final repository state.

@@ -1,9 +1,7 @@
-use std::collections::BTreeMap;
-
 use crate::domain::{LoginInput, SecretValue};
 
 use super::{
-    build_captcha_form, build_login_form, detect_captcha, extract_execution, find_login_error,
+    build_login_form, extract_execution, find_login_error, has_unsupported_login_step,
     is_password_risk_page, parse_user_info,
 };
 
@@ -26,7 +24,6 @@ fn cas_parser_preserves_hidden_and_checked_fields_and_filters_buttons() {
         &LoginInput {
             username: "fixture-user".into(),
             password: SecretValue::new("fixture-password"),
-            captcha: None,
         },
         "e1s1",
     )
@@ -46,37 +43,80 @@ fn cas_parser_preserves_hidden_and_checked_fields_and_filters_buttons() {
 }
 
 #[test]
-fn captcha_and_risk_pages_follow_frozen_parser_contract() {
-    let captcha = detect_captcha(
+fn unsupported_interactive_login_pages_are_rejected_without_a_form() {
+    assert!(has_unsupported_login_step(
         "<script>config.captcha = { type: 'image', id: 'captcha-fixture' }</script>",
-    )
-    .expect("captcha detected");
-    assert_eq!(captcha.0, "image");
-    assert_eq!(captcha.1, "captcha-fixture");
+    ));
 
     let risk = r#"<form id="continueForm"><input name="execution" value="e-risk"><div>密码过期</div><button value="ignoreAndContinue"></button></form>"#;
     assert_eq!(extract_execution(risk).as_deref(), Some("e-risk"));
     assert!(is_password_risk_page(risk));
+}
 
-    let form = build_captcha_form(
-        &LoginInput {
-            username: "fixture-user".into(),
-            password: SecretValue::new("fixture-password"),
-            captcha: Some("abcd".into()),
-        },
-        "e-cap",
-    );
-    let expected = BTreeMap::from([
-        ("_eventId".into(), "submit".into()),
-        ("captcha".into(), "abcd".into()),
-        ("captchaResponse".into(), "abcd".into()),
-        ("execution".into(), "e-cap".into()),
-        ("password".into(), "fixture-password".into()),
-        ("submit".into(), "登录".into()),
-        ("type".into(), "username_password".into()),
-        ("username".into(), "fixture-user".into()),
-    ]);
-    assert_eq!(form, expected);
+#[test]
+fn unsupported_interactive_login_controls_are_rejected_fail_closed() {
+    let ordinary = r#"
+      <form id="fm1">
+        <input type="hidden" name="execution" value="e1s1">
+        <input type="text" name="username">
+        <input type="password" name="password">
+        <input name="type" value="username_password">
+        <input name="_eventId" value="submit">
+        <input type="checkbox" name="remember" value="yes" checked>
+        <input type="submit" name="submit" value="登录">
+      </form>
+    "#;
+    assert!(!has_unsupported_login_step(ordinary));
+
+    let extra_visible_control = r#"
+      <form id="fm1">
+        <input type="hidden" name="execution" value="e1s1">
+        <input type="text" name="username">
+        <input type="password" name="password">
+        <input type="text" name="verificationCode">
+      </form>
+    "#;
+    assert!(has_unsupported_login_step(extra_visible_control));
+
+    let captcha_field = r#"
+      <form id="fm1">
+        <input type="hidden" name="execution" value="e1s1">
+        <input type="text" name="username">
+        <input type="password" name="password">
+        <input type="hidden" name="captchaResponse" value="">
+      </form>
+    "#;
+    assert!(has_unsupported_login_step(captcha_field));
+
+    let unknown_interactive_marker = r#"
+      <form id="fm1">
+        <input type="hidden" name="execution" value="e1s1">
+        <input type="text" name="username">
+        <input type="password" name="password">
+      </form>
+      <script>config.mfa = { required: true }</script>
+    "#;
+    assert!(has_unsupported_login_step(unknown_interactive_marker));
+
+    let button_control = r#"
+      <form id="fm1">
+        <input type="hidden" name="execution" value="e1s1">
+        <input type="text" name="username">
+        <input type="password" name="password">
+        <button type="button">验证</button>
+      </form>
+    "#;
+    assert!(has_unsupported_login_step(button_control));
+
+    let nameless_visible_input = r#"
+      <form id="fm1">
+        <input type="hidden" name="execution" value="e1s1">
+        <input type="text" name="username">
+        <input type="password" name="password">
+        <input type="text">
+      </form>
+    "#;
+    assert!(has_unsupported_login_step(nameless_visible_input));
 }
 
 #[test]

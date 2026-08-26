@@ -1,5 +1,7 @@
 # Read-Only Route Diagnostics Implementation Plan
 
+Status: superseded by `2026-08-23-correctness-remediation.md`. Do not execute this historical CLI-owned DNS plan against the current architecture.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Emit the effective route policy and complete DNS/route/fallback diagnostics in every post-resolution schema-v2 read-only CLI success and error.

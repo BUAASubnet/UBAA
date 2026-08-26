@@ -1,12 +1,16 @@
 # Review Remediation Design
 
-Status: approved for implementation on 2026-08-17.
+Status: implemented historical baseline; superseded for current execution by `2026-08-23-correctness-remediation-design.md` and `goal.md`.
+
+The historical captcha-capable verifier described below is superseded by the
+2026-08-25 decision in `docs/migration/decision-log.md`; current code must not
+restore challenge, image, prompt, or captcha-specific exit behavior.
 
 ## Scope
 
 This change repairs the findings from the post-`goal.md` review without changing verified BUAA protocol facts. Live upstream evidence remains authoritative, followed by the frozen `ubaa_old/` implementation and tests, then `examples/buaa-api/` at the commits in `docs/migration/references.md`.
 
-The work covers sensitive formatting, captcha-capable live verification, authentication-response classification, Core ownership boundaries, deterministic CLI coverage, session and HTTP hardening, cross-platform CI, error mapping, and documentation consistency. It does not add business APIs or alter the intentionally non-interactive JSON captcha contract.
+The historical work covered sensitive formatting, authentication-response classification, Core ownership boundaries, deterministic CLI coverage, session and HTTP hardening, cross-platform CI, error mapping, and documentation consistency. Its former captcha-capable verifier branch is superseded and is not an active requirement.
 
 ## Security Boundaries
 
@@ -14,11 +18,11 @@ Types containing credentials, captcha material, cookies, raw HTTP data, or compl
 
 HTTP response collection will enforce a conservative authentication-response size limit while retaining the existing timeout and TLS behavior. Session persistence will reject unsafe file types, serialize access, use unique exclusively-created temporary files, flush data before replacement, and preserve current-user permissions where the platform supports them.
 
-## Captcha Verification
+## Captcha Verification (superseded; historical only)
 
-The fixed JSON contract remains unchanged: JSON mode returns `captcha_required`, does not interact, does not emit image data, and does not persist the challenge. This follows `goal.md` and avoids inventing an unevidenced cross-process challenge protocol.
+The requirements in this section belong to the superseded captcha-capable design. They are retained only to explain the frozen baseline; current code must not implement `captcha_required`, challenge/image state, prompts, or a `/dev/tty` fallback. The active contract is the 2026-08-25 non-interactive `upstream_changed` boundary in `goal.md` and `docs/migration/decision-log.md`.
 
-The live verifier will handle exit code 4 by starting a fresh human CLI login in the same terminal. The password will still come from `.env.local` through standard input, while captcha input is forwarded from the controlling terminal to that same CLI process. Human profile stdout will be suppressed; subsequent JSON `user show` and `auth status` calls will produce only the existing redacted verification summary. Non-interactive environments will fail safely with an actionable error.
+Any older implementation notes below this heading are historical and are not acceptance criteria.
 
 ## Core Boundaries
 
@@ -34,7 +38,7 @@ Authentication endpoints remain fixed HTTPS URLs. Redirect resolution will conti
 
 ## Tests And CI
 
-Each behavioral repair starts with a focused failing test. Coverage will include redacted formatting, case-insensitive HTML invalidation, password-risk exit mapping, response-size rejection, session file safety, live-script captcha branching, saved-session binary logout, and validation of actual serialized CLI envelopes against the JSON Schema.
+Each historical behavioral repair started with a focused failing test. The retained baseline coverage includes redacted formatting, case-insensitive HTML invalidation, password-risk exit mapping, response-size rejection, session file safety, saved-session binary logout, and validation of actual serialized CLI envelopes against the JSON Schema. Interactive verification is now covered only by the non-interactive no-POST rejection contract.
 
 CI will retain deterministic reference and sensitive-data gates on Linux and add Rust build/test coverage for macOS and Windows. Live authentication remains local-only. Setup documentation will list `jq` and terminal requirements for the live verifier.
 

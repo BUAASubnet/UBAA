@@ -4,8 +4,6 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::domain::LoginChallenge;
-
 /// Machine-stable error code from the authentication contract.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -16,8 +14,6 @@ pub enum ErrorCode {
     AuthenticationRequired,
     /// SSO rejected the supplied credentials.
     InvalidCredentials,
-    /// SSO requires a captcha answer.
-    CaptchaRequired,
     /// SSO did not accept the one permitted password-risk continuation.
     PasswordRiskConfirmationFailed,
     /// The authenticated account lacks permission.
@@ -46,7 +42,6 @@ impl ErrorCode {
             | Self::InvalidCredentials
             | Self::PasswordRiskConfirmationFailed
             | Self::PermissionDenied => ExitCode::Authentication,
-            Self::CaptchaRequired => ExitCode::CaptchaRequired,
             Self::NetworkError | Self::Timeout | Self::UpstreamUnavailable => ExitCode::Network,
             Self::UpstreamChanged | Self::ParseError => ExitCode::Upstream,
             Self::InternalError => ExitCode::Internal,
@@ -82,8 +77,6 @@ pub enum ExitCode {
     InvalidInput = 2,
     /// Authentication is absent or failed.
     Authentication = 3,
-    /// Captcha input is required.
-    CaptchaRequired = 4,
     /// Network, timeout, or temporary upstream failure.
     Network = 5,
     /// Upstream shape or parsing failure.
@@ -103,9 +96,6 @@ pub struct UbaaError {
     pub retryable: bool,
     /// Human-readable message that contains no sensitive body or header data.
     pub message: String,
-    /// Ephemeral captcha challenge, only for `captcha_required`.
-    #[serde(skip_serializing, default)]
-    pub challenge: Option<LoginChallenge>,
 }
 
 impl fmt::Debug for UbaaError {
@@ -116,7 +106,6 @@ impl fmt::Debug for UbaaError {
             .field("kind", &self.kind)
             .field("retryable", &self.retryable)
             .field("message", &"[REDACTED]")
-            .field("challenge", &self.challenge.as_ref().map(|_| "[REDACTED]"))
             .finish()
     }
 }
@@ -134,15 +123,7 @@ impl UbaaError {
             kind,
             retryable,
             message: message.into(),
-            challenge: None,
         }
-    }
-
-    /// Attach an ephemeral captcha challenge.
-    #[must_use]
-    pub fn with_challenge(mut self, challenge: LoginChallenge) -> Self {
-        self.challenge = Some(challenge);
-        self
     }
 }
 

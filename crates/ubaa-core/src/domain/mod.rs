@@ -300,6 +300,16 @@ pub struct SpocAssignments {
     pub assignments: Vec<SpocAssignmentSummary>,
 }
 
+/// Safe completion evidence for one SPOC global-list operation.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpocAssignmentsDiagnostics {
+    /// Number of authoritative global assignment pages parsed successfully.
+    pub global_page_count: u32,
+    /// The ordinary stable assignment-list result.
+    pub result: SpocAssignments,
+}
+
 /// SPOC assignment detail.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -373,6 +383,20 @@ pub struct JudgeAssignmentSummary {
     pub submission_status: JudgeSubmissionStatus,
     /// Safe status text.
     pub submission_status_text: String,
+}
+
+/// Safe parser diagnostics for one Judge list operation.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JudgeAssignmentsDiagnostics {
+    /// Number of parsed courses before historical-course skipping.
+    pub course_count: usize,
+    /// Numeric assignment anchors seen before filtering and deduplication.
+    pub raw_anchor_count: usize,
+    /// Nonblank unique assignments retained after parser filtering.
+    pub filtered_unique_count: usize,
+    /// The ordinary Judge summaries after applying `include_expired`.
+    pub summaries: Vec<JudgeAssignmentSummary>,
 }
 
 /// Judge assignment detail key.
@@ -483,15 +507,13 @@ impl Serialize for SecretValue {
     }
 }
 
-/// Credentials and optional captcha answer for one login submission.
+/// Credentials for one login submission.
 #[derive(Clone)]
 pub struct LoginInput {
     /// SSO account name.
     pub username: String,
     /// SSO password, always redacted outside the request boundary.
     pub password: SecretValue,
-    /// Captcha text supplied by the user when challenged.
-    pub captcha: Option<String>,
 }
 
 impl fmt::Debug for LoginInput {
@@ -500,40 +522,6 @@ impl fmt::Debug for LoginInput {
             .debug_struct("LoginInput")
             .field("username", &"[REDACTED]")
             .field("password", &self.password)
-            .field("captcha", &redacted_option(self.captcha.as_deref()))
-            .finish()
-    }
-}
-
-/// Captcha state tied to the current in-memory login flow.
-#[derive(Clone, Deserialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginChallenge {
-    /// Upstream captcha identifier.
-    pub id: String,
-    /// CAS execution token associated with the challenge.
-    pub execution: String,
-    /// Ephemeral image data for interactive hosts; never persisted.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub image_data_url: Option<String>,
-}
-
-/// A captcha answer bound to one route-scoped challenge identifier.
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CaptchaAnswer {
-    /// Opaque, one-use identifier returned by the current aggregate login preparation.
-    pub challenge_id: String,
-    /// User-provided captcha text.
-    pub value: SecretValue,
-}
-
-impl fmt::Debug for CaptchaAnswer {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("CaptchaAnswer")
-            .field("challenge_id", &"[REDACTED]")
-            .field("value", &self.value)
             .finish()
     }
 }
@@ -556,8 +544,6 @@ pub enum LoginReadiness {
 pub enum RouteLoginState {
     /// The route has an authenticated session.
     Ready,
-    /// The route needs a captcha answer.
-    CaptchaRequired,
     /// The route failed without exposing protocol details.
     Failed,
 }
@@ -600,52 +586,17 @@ pub struct LoginOutcome {
     /// Profile from any successfully authenticated route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub profile: Option<UserProfile>,
-    /// Captcha challenges still actionable after this operation.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub challenges: Vec<RouteLoginChallenge>,
 }
 
-/// Ephemeral route-scoped captcha information returned to an interactive host.
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RouteLoginChallenge {
-    /// Route whose in-memory workflow owns this challenge.
-    pub route: ConnectionMode,
-    /// Opaque, route-bound identifier valid only for the current preparation generation.
-    pub challenge_id: String,
-    /// Whether an ephemeral image is available to an interactive in-process host.
-    pub image_available: bool,
-    /// Ephemeral image for interactive hosts; JSON hosts must expose only its availability.
-    #[serde(skip_serializing, default)]
-    pub image_data_url: Option<String>,
-}
-
-impl fmt::Debug for RouteLoginChallenge {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("RouteLoginChallenge")
-            .field("route", &self.route)
-            .field("challenge_id", &"[REDACTED]")
-            .field("image_available", &self.image_available)
-            .field(
-                "image_data_url",
-                &redacted_option(self.image_data_url.as_deref()),
-            )
-            .finish()
-    }
-}
-
-/// Result of preparing both route login pages without exposing CAS execution values.
+/// Result of preparing both route login pages.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DualLoginPreparation {
     /// Fixed Direct, `WebVPN` state ordering.
     pub routes: [RouteLoginResult; 2],
-    /// Only routes that currently require captcha input.
-    pub challenges: Vec<RouteLoginChallenge>,
 }
 
-/// Credentials and route-bound captcha answers for aggregate login.
+/// Credentials for aggregate login.
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DualLoginInput {
@@ -653,9 +604,6 @@ pub struct DualLoginInput {
     pub username: String,
     /// Password held only in memory for this operation.
     pub password: SecretValue,
-    /// Answers keyed by the challenge ID returned by preparation.
-    #[serde(default)]
-    pub captcha_answers: Vec<CaptchaAnswer>,
 }
 
 impl fmt::Debug for DualLoginInput {
@@ -664,21 +612,6 @@ impl fmt::Debug for DualLoginInput {
             .debug_struct("DualLoginInput")
             .field("username", &"[REDACTED]")
             .field("password", &self.password)
-            .field("captcha_answers", &self.captcha_answers.len())
-            .finish()
-    }
-}
-
-impl fmt::Debug for LoginChallenge {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("LoginChallenge")
-            .field("id", &"[REDACTED]")
-            .field("execution", &"[REDACTED]")
-            .field(
-                "image_data_url",
-                &redacted_option(self.image_data_url.as_deref()),
-            )
             .finish()
     }
 }

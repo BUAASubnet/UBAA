@@ -2,28 +2,25 @@
 
 use std::collections::BTreeMap;
 
-use base64::Engine as _;
 use url::Url;
 
-use crate::domain::{LoginChallenge, LoginInput, UserProfile};
+use crate::domain::{LoginInput, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 use crate::upstream::{
-    SSO_CAPTCHA_URL, SSO_LOGIN_URL, SSO_LOGOUT_URL, UC_ACTIVATE_URL, build_captcha_form,
-    build_login_form, detect_captcha, encode_form, extract_execution, find_login_error,
-    is_password_risk_page,
+    SSO_LOGIN_URL, SSO_LOGOUT_URL, UC_ACTIVATE_URL, build_login_form, encode_form,
+    extract_execution, find_login_error, has_unsupported_login_step, is_password_risk_page,
 };
 
 const MAX_REDIRECTS: usize = 10;
 
-/// Pending login page and challenge scoped to one client instance.
+/// Pending login page scoped to one client instance.
 #[derive(Clone, Default)]
 pub(crate) struct LoginState {
     page: Option<String>,
     execution: Option<String>,
-    challenge: Option<LoginChallenge>,
     authenticated_ready: bool,
 }
 
@@ -33,22 +30,15 @@ impl std::fmt::Debug for LoginState {
             .debug_struct("LoginState")
             .field("page", &self.page.as_ref().map(|_| "[REDACTED]"))
             .field("execution", &self.execution.as_ref().map(|_| "[REDACTED]"))
-            .field("challenge", &self.challenge.as_ref().map(|_| "[REDACTED]"))
             .field("authenticated_ready", &self.authenticated_ready)
             .finish()
     }
 }
 
 impl LoginState {
-    pub(crate) fn remember(
-        &mut self,
-        page: String,
-        execution: String,
-        challenge: Option<LoginChallenge>,
-    ) {
+    pub(crate) fn remember(&mut self, page: String, execution: String) {
         self.page = Some(page);
         self.execution = Some(execution);
-        self.challenge = challenge;
         self.authenticated_ready = false;
     }
 
@@ -63,10 +53,6 @@ impl LoginState {
 
     pub(crate) fn execution(&self) -> Option<&str> {
         self.execution.as_deref()
-    }
-
-    pub(crate) fn challenge(&self) -> Option<&LoginChallenge> {
-        self.challenge.as_ref()
     }
 
     pub(crate) const fn authenticated_ready(&self) -> bool {
@@ -85,18 +71,7 @@ pub(crate) struct AuthWorkflow {
 }
 
 impl AuthWorkflow {
-    pub(crate) fn is_prepared(&self) -> bool {
-        self.state.page().is_some() || self.state.authenticated_ready()
-    }
-
-    pub(crate) fn pending_challenge(&self) -> Option<&LoginChallenge> {
-        self.state.challenge()
-    }
-
-    pub(crate) async fn prepare_login(
-        &mut self,
-        runtime: &mut ClientRuntime,
-    ) -> Result<Option<LoginChallenge>> {
+    pub(crate) async fn prepare_login(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
         self.state.clear();
         let response = runtime
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
@@ -105,7 +80,7 @@ impl AuthWorkflow {
             activate_user_center(runtime).await?;
             self.validate_status(runtime).await?;
             self.state.remember_authenticated();
-            return Ok(None);
+            return Ok(());
         }
         if response.status != 200 {
             return Err(status_error(response.status, "SSO login page unavailable"));
@@ -113,12 +88,13 @@ impl AuthWorkflow {
         let page = body_text(&response);
         let execution = extract_execution(&page)
             .ok_or_else(|| upstream_changed("SSO login page has no execution token"))?;
-        let challenge = match detect_captcha(&page) {
-            Some((_kind, id)) => Some(fetch_captcha(runtime, id, execution.clone()).await?),
-            None => None,
-        };
-        self.state.remember(page, execution, challenge.clone());
-        Ok(challenge)
+        if has_unsupported_login_step(&page) {
+            return Err(upstream_changed(
+                "SSO login page requires an unsupported interactive verification step",
+            ));
+        }
+        self.state.remember(page, execution);
+        Ok(())
     }
 
     pub(crate) async fn login(
@@ -155,26 +131,7 @@ impl AuthWorkflow {
             .execution()
             .ok_or_else(|| upstream_changed("SSO execution state is unavailable"))?
             .to_string();
-        let captcha_required = self.state.challenge().is_some() || detect_captcha(&page).is_some();
-        if captcha_required && input.captcha.as_deref().is_none_or(str::is_empty) {
-            let challenge = self
-                .state
-                .challenge()
-                .cloned()
-                .ok_or_else(|| upstream_changed("captcha state is unavailable"))?;
-            return Err(UbaaError::new(
-                ErrorCode::CaptchaRequired,
-                ErrorKind::Authentication,
-                true,
-                "captcha input is required",
-            )
-            .with_challenge(challenge));
-        }
-        let form = if captcha_required || input.captcha.is_some() {
-            build_captcha_form(&input, &execution)
-        } else {
-            build_login_form(&page, &input, &execution)?
-        };
+        let form = build_login_form(&page, &input, &execution)?;
         let request = HttpRequest::post(runtime.url(SSO_LOGIN_URL)?, encode_form(&form))
             .with_header("Content-Type", "application/x-www-form-urlencoded");
         let response = runtime.request(request).await?;
@@ -221,27 +178,6 @@ impl AuthWorkflow {
         let mut clear_workflow = || self.state.clear();
         user::get_user_info(runtime, &mut clear_workflow).await
     }
-}
-
-async fn fetch_captcha(
-    runtime: &mut ClientRuntime,
-    id: String,
-    execution: String,
-) -> Result<LoginChallenge> {
-    let url = format!("{}?captchaId={id}", runtime.url(SSO_CAPTCHA_URL)?);
-    let response = runtime.request(HttpRequest::get(url)).await?;
-    if response.status != 200 {
-        return Err(status_error(
-            response.status,
-            "captcha image is unavailable",
-        ));
-    }
-    let encoded = base64::engine::general_purpose::STANDARD.encode(response.body);
-    Ok(LoginChallenge {
-        id,
-        execution,
-        image_data_url: Some(format!("data:image/jpeg;base64,{encoded}")),
-    })
 }
 
 async fn follow_login_response(
@@ -386,20 +322,10 @@ mod tests {
         state.remember(
             "<html>PAGE-SENTINEL</html>".into(),
             "EXECUTION-SENTINEL".into(),
-            Some(LoginChallenge {
-                id: "CHALLENGE-SENTINEL".into(),
-                execution: "EXECUTION-SENTINEL".into(),
-                image_data_url: Some("data:image/jpeg;base64,IMAGE-SENTINEL".into()),
-            }),
         );
 
         let formatted = format!("{state:?}");
-        for sentinel in [
-            "PAGE-SENTINEL",
-            "EXECUTION-SENTINEL",
-            "CHALLENGE-SENTINEL",
-            "IMAGE-SENTINEL",
-        ] {
+        for sentinel in ["PAGE-SENTINEL", "EXECUTION-SENTINEL"] {
             assert!(
                 !formatted.contains(sentinel),
                 "leaked {sentinel} in {formatted}"

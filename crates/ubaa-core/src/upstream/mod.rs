@@ -1,18 +1,13 @@
 //! Verified SSO and User Center URLs, form parsing, and response mapping.
 
-use std::collections::BTreeMap;
-use std::sync::LazyLock;
-
-use regex::Regex;
 use scraper::{Html, Selector};
+use std::collections::BTreeMap;
 
 use crate::domain::{LoginInput, UserInfoResponse, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 /// Frozen SSO login endpoint.
 pub const SSO_LOGIN_URL: &str = "https://sso.buaa.edu.cn/login";
-/// Frozen SSO captcha endpoint.
-pub const SSO_CAPTCHA_URL: &str = "https://sso.buaa.edu.cn/captcha";
 /// Frozen SSO logout endpoint.
 pub const SSO_LOGOUT_URL: &str = "https://sso.buaa.edu.cn/logout";
 /// Frozen User Center activation endpoint.
@@ -23,27 +18,77 @@ pub const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
 /// Frozen User Center profile endpoint.
 pub const UC_USERINFO_URL: &str = "https://uc.buaa.edu.cn/api/uc/userinfo";
 
-static CAPTCHA_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r#"config\.captcha\s*=\s*\{\s*type:\s*['\"]([^'\"]+)['\"],\s*id:\s*['\"]([^'\"]+)['\"]"#,
-    )
-    .expect("verified captcha regex compiles")
-});
-
 /// Extract the current CAS execution token from an HTML form.
 #[must_use]
 pub fn extract_execution(html: &str) -> Option<String> {
     select_first_attr(html, "input[name=execution]", "value").filter(|value| !value.is_empty())
 }
 
-/// Extract the verified `config.captcha` type and identifier.
+/// Identify a login page shape that this client deliberately does not support.
+///
+/// The frozen CAS parser only defines hidden fields, username/password controls,
+/// checkboxes, and submit/button/image controls. A page with the known captcha or
+/// deny-only `config.*` verification markers, an extra visible control, or a
+/// non-input form control is therefore treated as an unsupported interactive step.
+/// This is a closed-world safety boundary: it rejects unknown verification UI
+/// without inventing its fields.
 #[must_use]
-pub fn detect_captcha(html: &str) -> Option<(String, String)> {
-    let captures = CAPTCHA_PATTERN.captures(html)?;
-    Some((
-        captures.get(1)?.as_str().into(),
-        captures.get(2)?.as_str().into(),
-    ))
+pub(crate) fn has_unsupported_login_step(html: &str) -> bool {
+    let lower = html.to_ascii_lowercase();
+    if [
+        "captcha",
+        "mfa",
+        "otp",
+        "verification",
+        "verify",
+        "challenge",
+    ]
+    .iter()
+    .any(|marker| lower.contains(&format!("config.{marker}")))
+    {
+        return true;
+    }
+
+    let document = Html::parse_document(html);
+    let Some(form) = document.select(&selector("form#fm1, form[action]")).next() else {
+        return false;
+    };
+    if form.select(&selector("textarea, select")).next().is_some() {
+        return true;
+    }
+    if form.select(&selector("button")).next().is_some() {
+        return true;
+    }
+
+    form.select(&selector("input")).any(|element| {
+        let value = element.value();
+        let name = value
+            .attr("name")
+            .map(str::trim)
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        let input_type = value
+            .attr("type")
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase();
+        if name.is_empty() {
+            return !matches!(
+                input_type.as_str(),
+                "hidden" | "submit" | "button" | "image"
+            );
+        }
+        if name == "captcha" || name == "captcharesponse" {
+            return true;
+        }
+        if input_type.is_empty() && value.attr("value").is_some_and(|field| !field.is_empty()) {
+            return false;
+        }
+        match input_type.as_str() {
+            "hidden" | "submit" | "button" | "image" | "checkbox" => false,
+            _ => !matches!(name.as_str(), "username" | "password"),
+        }
+    })
 }
 
 /// Build the ordinary CAS form while preserving verified hidden/default inputs.
@@ -63,7 +108,6 @@ pub fn build_login_form(
         .ok_or_else(|| upstream_changed("SSO login form is missing"))?;
     let input_selector = selector("input[name]");
     let mut values = BTreeMap::new();
-    let mut captcha_names = Vec::new();
     for element in form.select(&input_selector) {
         let value = element.value();
         let Some(name) = value
@@ -104,22 +148,10 @@ pub fn build_login_form(
             }
             _ => {}
         }
-        if name == "captcha" || name == "captchaResponse" {
-            captcha_names.push(name.to_string());
-        }
     }
     values.insert("username".into(), input.username.clone());
     values.insert("password".into(), input.password.expose_secret().into());
     values.insert("submit".into(), "登录".into());
-    if let Some(captcha) = input
-        .captcha
-        .as_deref()
-        .filter(|captcha| !captcha.is_empty())
-    {
-        for name in captcha_names {
-            values.insert(name, captcha.into());
-        }
-    }
     values
         .entry("execution".into())
         .or_insert_with(|| execution.into());
@@ -130,22 +162,6 @@ pub fn build_login_form(
         .entry("type".into())
         .or_insert_with(|| "username_password".into());
     Ok(values)
-}
-
-/// Build the fixed captcha form observed in the frozen implementation.
-#[must_use]
-pub fn build_captcha_form(input: &LoginInput, execution: &str) -> BTreeMap<String, String> {
-    let captcha = input.captcha.clone().unwrap_or_default();
-    BTreeMap::from([
-        ("username".into(), input.username.clone()),
-        ("password".into(), input.password.expose_secret().into()),
-        ("captcha".into(), captcha.clone()),
-        ("captchaResponse".into(), captcha),
-        ("execution".into(), execution.into()),
-        ("_eventId".into(), "submit".into()),
-        ("submit".into(), "登录".into()),
-        ("type".into(), "username_password".into()),
-    ])
 }
 
 /// Detect the one password-risk continuation recognized by the frozen clients.
