@@ -1,12 +1,12 @@
-# Read-Only Feature Evidence Matrix
+# 只读功能证据矩阵
 
 Updated: 2026-08-26
 
-This matrix separates source/deterministic evidence from real upstream evidence. Fixtures, Mock transports, parser tests, and verifier-harness tests do not prove current upstream behavior. The 2026-08-23 rows below are pre-remediation history; the current rows record only corrected verifier runs from 2026-08-26.
+本矩阵区分来源/确定性证据与真实上游证据。Fixture、Mock 传输、解析测试和验证器测试不能证明当前上游行为。下方 2026-08-23 行是修复前历史；当前行只记录 2026-08-26 的修正验证运行。
 
-## Current acceptance state
+## 当前验收状态
 
-| Feature / operation | Unknown default | Direct | WebVPN | Auto | Required current evidence |
+| 功能/操作 | 未知默认路线 | Direct | WebVPN | Auto | 当前所需证据 |
 |---|---|---|---|---|---|
 | Schedule terms/weeks/current/today | Direct | Passed (aggregate) | Passed (explicit) | Passed (aggregate; resolved Direct) | All four operations return schema v2 and one consistent resolved route; term/week are selected from live data. |
 | Exam arrangement | Direct | Passed (aggregate) | Passed (explicit) | Passed (aggregate; resolved Direct) | Live schedule term discovery plus arranged/not-arranged parse on the same resolved route. |
@@ -26,7 +26,7 @@ A later final verification attempt showed the same strict failure followed by
 another passing immediate rerun. These failures are retained as upstream list
 volatility evidence, not hidden by weakening the subset/cutoff assertion.
 
-## Historical pre-remediation observations
+## 修复前历史观察
 
 On 2026-08-23, schedule, exam, grades, and classroom commands exited 0 on Direct, WebVPN, and auto; classroom reported 158 items for campus `1` and date `2026-08-23`. SPOC reported empty on all three policies, but the verifier did not prove that the authoritative empty-`kcid` global operation ran. Judge reported 65 assignments on Direct, 17 on WebVPN, and 65 on auto plus one sampled detail, but the old verifier did not prove complete problem/score/status semantics. These values are retained only to guide reruns and investigate route divergence; they do not pass any current cell.
 

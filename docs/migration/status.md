@@ -1,4 +1,4 @@
-# Migration Status
+# 迁移状态
 
 Updated: 2026-08-27
 
@@ -19,7 +19,7 @@ source-parity 记录和二次审查；截至 2026-08-26，认证、六类只读�
 - Frozen `examples/buaa-api/` HEAD: `efb7976bf513f38364b88aeb83d704586cff9b2a`.
 - `just refs` on 2026-08-23 verifies both clean reference worktrees and fixed HEADs.
 - `.env.local` remains a read-only sensitive input; no value is printed, logged, staged or persisted.
-- The previously uncommitted `goal.md` expansion is now part of this remediation contract phase.
+- 先前未提交的 `goal.md` 扩展现已纳入本次合同修复阶段。
 
 ## Remediation Status
 
@@ -31,9 +31,9 @@ Cgyy 场馆预约五项只读查询已完成 DTO、解析器、路线隔离业�
 
 Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/业务令牌请求、路线 facade、CLI `ygdk overview`/`ygdk records` 及 JSON Schema 接线。提交打卡和照片上传仍明确排除；Direct/WebVPN 真实上游验证尚未完成。
 
-| Phase | Current status | Required closure |
+| 阶段 | 当前状态 | 收尾要求 |
 |---|---|---|
-| 0-6 baseline | Preserved; final deterministic gates passed | Frozen references, sensitive-data scan, format, Clippy, workspace tests, build, docs and diff checks pass on the current tree. |
+| 0-6 基线 | 保留；最终确定性门禁通过 | 当前工作树已通过冻结引用、敏感数据扫描、格式、Clippy、工作区测试、构建、文档和差异检查。 |
 | 7 route policy | Deterministic remediation complete; live Direct/auto/WebVPN resolution accepted | TCP target/total budget/failure classes, explicit-policy probe bypass, 60-second single-flight cache and Core-owned operation resolution are covered; future WebVPN retries may encounter transient upstream Judge snapshot drift. |
 | 8 dual sessions | Deterministic remediation complete; aggregate login live-checked | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; aggregate Direct/WebVPN login succeeded in the accepted `all` runs. |
 | 8a authentication verification boundary | Deterministic remediation complete | The old challenge registry, image fetch, answer binding and captcha exit contract are removed. A `config.captcha` or other interactive verification marker returns `upstream_changed` before image fetch or credential POST; the sanitized regression proves the one-GET/no-POST boundary. |
@@ -46,7 +46,7 @@ Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/�
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
 | 11 live matrix | Latest complete matrix passed; transient WebVPN Judge snapshot failures retained | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility causes a nonzero result. |
-| 12 handoff/gates | Ready for continued development; worktree remains intentionally uncommitted | `just refs`, `just check-sensitive`, `just check`, CLI E2E, auth Direct/WebVPN, all six explicit routes, `all/auto`, `all/direct`, and the latest `all/webvpn` passed. Commit separation and future live reruns remain release-process work. |
+| 12 交接/门禁 | 已可继续开发；当前改动按功能分别提交 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、认证 Direct/WebVPN、六类显式路线、`all/auto`、`all/direct` 和最新 `all/webvpn` 均有记录。后续真实重跑仍属于发布流程。 |
 
 ## 2026-08-26 Corrected Live Matrix
 
