@@ -203,3 +203,7 @@ CI remains deterministic-only and never reads `.env.local`.
 3. Rerun `feature=auth` on Direct and WebVPN, `feature=all route=auto`, every feature on both explicit routes, and both complete explicit aggregates. Every multi-request feature must retain one resolved route.
 4. For SPOC, require `global_page_count >= 1`; if non-empty, require one detail. For Judge, require course/raw-anchor/filtered/current/cutoff counts and one semantic detail when available.
 5. Record only safe route, timing, count, presence, stable error and salted-digest summaries. If list snapshots drift, retain the strict failure and rerun; never normalize route differences or weaken subset checks.
+随后依据固定 Class 模块证据修正签到业务登录入口、会话头和查询方法，并将
+`STATUS=2` 识别为合法空课程结果。修正后 `feature=signin route=direct` 与
+`feature=signin route=webvpn` 均通过，返回 0 条课程；签到只读功能的两条真实路线
+验收完成，签到提交仍不在范围内。

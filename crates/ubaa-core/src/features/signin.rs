@@ -9,7 +9,7 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
 const SIGNIN_ENTRY_URL: &str = "https://iclass.buaa.edu.cn:8346/?type=jumpMyCenter";
-const SIGNIN_LOGIN_URL: &str = "https://iclass.buaa.edu.cn:8347/app/user/login.action";
+const SIGNIN_LOGIN_URL: &str = "https://iclass.buaa.edu.cn:8346/eschool/app/user/login_buaa.do";
 const SIGNIN_TODAY_URL: &str =
     "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action";
 const REDIRECT_LIMIT: usize = 8;
@@ -32,8 +32,6 @@ struct LoginResponse {
 #[derive(Deserialize)]
 struct LoginResult {
     id: String,
-    #[serde(rename = "sessionId")]
-    session_id: String,
 }
 
 #[derive(Deserialize)]
@@ -60,6 +58,9 @@ struct Row {
 /// 解析旧版 iClass 今日课程响应，不向调用方暴露上游包装字段。
 pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
     let response: Response = serde_json::from_str(body).map_err(|_| parse_error())?;
+    if empty_result(&response.status) {
+        return Ok(Vec::new());
+    }
     if !success(&response.status) {
         return Err(UbaaError::new(
             ErrorCode::UpstreamChanged,
@@ -88,12 +89,11 @@ async fn get_today_once(
     url.query_pairs_mut()
         .append_pair("id", &credential.user_id)
         .append_pair("dateStr", &shanghai_date());
-    let response = super::get_with_headers(
-        runtime,
-        url.to_string(),
-        &[("sessionId", &credential.session_id)],
-    )
-    .await?;
+    let mut request = HttpRequest::post(url.to_string(), Vec::new());
+    request
+        .headers
+        .insert("Sessionid".into(), credential.session_id.clone());
+    let response = runtime.request(request).await?;
     if response.status != 200 {
         return Err(upstream_error("签到查询服务暂时不可用"));
     }
@@ -147,18 +147,22 @@ async fn login(runtime: &mut crate::runtime::ClientRuntime) -> Result<SigninCred
     if response.status != 200 {
         return Err(upstream_error("无法建立签到业务会话"));
     }
-    let response: LoginResponse = serde_json::from_slice(&response.body)
-        .map_err(|_| upstream_error("签到登录响应格式无效"))?;
+    parse_login_credential(&response.body, &login_name)
+}
+
+fn parse_login_credential(body: &[u8], login_name: &str) -> Result<SigninCredential> {
+    let response: LoginResponse =
+        serde_json::from_slice(body).map_err(|_| upstream_error("签到登录响应格式无效"))?;
     let result = response
         .result
         .filter(|_| success(&response.status))
         .ok_or_else(|| upstream_error("签到业务登录失败"))?;
-    if result.id.trim().is_empty() || result.session_id.trim().is_empty() {
+    if result.id.trim().is_empty() || login_name.trim().is_empty() {
         return Err(upstream_error("签到登录响应缺少会话字段"));
     }
     Ok(SigninCredential {
         user_id: result.id,
-        session_id: result.session_id,
+        session_id: login_name.to_owned(),
     })
 }
 
@@ -253,6 +257,11 @@ fn success(value: &Value) -> bool {
         || matches!(value, Value::String(text) if matches!(text.as_str(), "0" | "200" | "success"))
 }
 
+fn empty_result(value: &Value) -> bool {
+    matches!(value, Value::Number(number) if number.as_i64() == Some(2))
+        || matches!(value, Value::String(text) if text == "2")
+}
+
 fn map_row(row: Row) -> Result<SigninClass> {
     let sign_status = match row.sign_status {
         Value::Number(number) => number.as_i64(),
@@ -277,4 +286,34 @@ fn parse_error() -> UbaaError {
         false,
         "签到响应格式无效",
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SIGNIN_LOGIN_URL, parse_login_credential};
+
+    #[test]
+    fn 签到业务登录使用已验证的新入口() {
+        assert_eq!(
+            SIGNIN_LOGIN_URL,
+            "https://iclass.buaa.edu.cn:8346/eschool/app/user/login_buaa.do"
+        );
+    }
+
+    #[test]
+    fn 新版登录响应仅需用户标识并使用登录名作为会话() {
+        let credential = parse_login_credential(
+            r#"{"STATUS":"0","result":{"id":"用户标识已脱敏"}}"#.as_bytes(),
+            "登录名已脱敏",
+        )
+        .expect("新版登录响应应可解析");
+        assert_eq!(credential.user_id, "用户标识已脱敏");
+        assert_eq!(credential.session_id, "登录名已脱敏");
+    }
+
+    #[test]
+    fn 状态二表示今日没有课程() {
+        let classes = super::parse_today(r#"{"STATUS":"2"}"#).expect("空课程状态应成功");
+        assert!(classes.is_empty());
+    }
 }
