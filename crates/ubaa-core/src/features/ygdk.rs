@@ -266,7 +266,7 @@ pub(crate) async fn get_overview(
         ("limit", "1000".to_owned()),
         ("classify_id", classify_id.to_string()),
     ];
-    let items = post(
+    let items = post_with_query(
         runtime,
         "/api/Front/Clockin/Item/getList",
         &credential,
@@ -309,7 +309,7 @@ pub(crate) async fn get_records(
         ("classify_id", overview.classify_id.to_string()),
         ("user_id", credential.uid.to_string()),
     ];
-    let body = post(
+    let body = post_with_query(
         runtime,
         "/api/Front/Clockin/Clockin/getList",
         &credential,
@@ -386,6 +386,12 @@ fn code_from_url(raw: &str) -> Option<String> {
     url.query_pairs()
         .find(|(k, _)| k == "code")
         .map(|(_, v)| v.into_owned())
+        .or_else(|| {
+            let query = url.fragment()?.split_once('?')?.1;
+            url::form_urlencoded::parse(query.as_bytes())
+                .find(|(key, _)| key == "code")
+                .map(|(_, value)| value.into_owned())
+        })
 }
 
 fn percent_decode(value: &str) -> String {
@@ -400,6 +406,25 @@ async fn post(
     credential: &YgdkCredential,
     params: &[(&str, String)],
 ) -> Result<String> {
+    post_request(runtime, path, credential, params, false).await
+}
+
+async fn post_with_query(
+    runtime: &mut crate::runtime::ClientRuntime,
+    path: &str,
+    credential: &YgdkCredential,
+    params: &[(&str, String)],
+) -> Result<String> {
+    post_request(runtime, path, credential, params, true).await
+}
+
+async fn post_request(
+    runtime: &mut crate::runtime::ClientRuntime,
+    path: &str,
+    credential: &YgdkCredential,
+    params: &[(&str, String)],
+    duplicate_params_in_query: bool,
+) -> Result<String> {
     let mut form: Vec<(&str, String)> = params.iter().map(|(k, v)| (*k, v.clone())).collect();
     form.push(("uid", credential.uid.to_string()));
     form.push(("token", credential.token.clone()));
@@ -407,10 +432,17 @@ async fn post(
         .extend_pairs(form.iter().map(|(k, v)| (*k, v.as_str())))
         .finish()
         .into_bytes();
-    let mut request = HttpRequest::post(runtime.url(&format!("{FRONT_BASE}{path}"))?, body);
+    let mut direct = url::Url::parse(&format!("{FRONT_BASE}{path}"))
+        .map_err(|_| error("阳光打卡请求地址无效"))?;
+    if duplicate_params_in_query {
+        direct
+            .query_pairs_mut()
+            .extend_pairs(params.iter().map(|(key, value)| (*key, value.as_str())));
+    }
+    let mut request = HttpRequest::post(runtime.url(direct.as_str())?, body);
     request.headers.insert(
         "Content-Type".into(),
-        "application/x-www-form-urlencoded".into(),
+        "application/x-www-form-urlencoded; charset=UTF-8".into(),
     );
     request
         .headers
@@ -420,4 +452,17 @@ async fn post(
         return Err(error("阳光打卡服务暂时不可用"));
     }
     Ok(super::body(&response))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::code_from_url;
+
+    #[test]
+    fn 从回调片段查询中提取授权码() {
+        assert_eq!(
+            code_from_url("https://ygdk.buaa.edu.cn/#/home?code=%E5%B7%B2%E8%84%B1%E6%95%8F"),
+            Some("已脱敏".into())
+        );
+    }
 }
