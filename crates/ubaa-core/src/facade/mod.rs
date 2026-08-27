@@ -375,26 +375,14 @@ impl UbaaClient {
     }
 
     /// 查询博雅已选课程。
-    pub async fn bykc_chosen_courses(
-        &mut self,
-        start: &str,
-        end: &str,
-    ) -> RoutedResult<Vec<BykcChosenCourse>> {
+    pub async fn bykc_chosen_courses(&mut self) -> RoutedResult<Vec<BykcChosenCourse>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        if start.trim().is_empty() || end.trim().is_empty() {
-            return Err(routed_error(
-                invalid_input("学期起止日期不能为空"),
-                resolution,
-            ));
-        }
         let result = match resolution.mode {
             ConnectionMode::Direct => {
-                crate::features::bykc::get_chosen_courses(&mut self.direct_runtime, start, end)
-                    .await
+                crate::features::bykc::get_chosen_courses(&mut self.direct_runtime).await
             }
             ConnectionMode::WebVpn => {
-                crate::features::bykc::get_chosen_courses(&mut self.webvpn_runtime, start, end)
-                    .await
+                crate::features::bykc::get_chosen_courses(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1356,16 +1344,9 @@ impl RouteClient {
     }
 
     /// 查询博雅已选课程。
-    pub async fn bykc_chosen_courses(
-        &mut self,
-        start: &str,
-        end: &str,
-    ) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
+    pub async fn bykc_chosen_courses(&mut self) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
         self.guard_session_ownership()?;
-        if start.trim().is_empty() || end.trim().is_empty() {
-            return Err(invalid_input("学期起止日期不能为空"));
-        }
-        let result = crate::features::bykc::get_chosen_courses(&mut self.runtime, start, end).await;
+        let result = crate::features::bykc::get_chosen_courses(&mut self.runtime).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

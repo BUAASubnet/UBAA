@@ -249,9 +249,9 @@ pub(crate) async fn get_course_detail(
 }
 pub(crate) async fn get_chosen_courses(
     runtime: &mut crate::runtime::ClientRuntime,
-    start: &str,
-    end: &str,
 ) -> Result<Vec<BykcChosenCourse>> {
+    let config = request_api(runtime, "getAllConfig", serde_json::json!({})).await?;
+    let (start, end) = resolve_current_semester(&config, Local::now().naive_local())?;
     parse_chosen_courses(&wrap(
         &request_api(
             runtime,
@@ -260,6 +260,45 @@ pub(crate) async fn get_chosen_courses(
         )
         .await?,
     ))
+}
+
+fn resolve_current_semester(config: &Value, now: NaiveDateTime) -> Result<(String, String)> {
+    let semesters = config
+        .get("semester")
+        .and_then(Value::as_array)
+        .filter(|items| !items.is_empty())
+        .ok_or_else(|| error("无法获取当前学期信息"))?;
+    let parse = |value: Option<&Value>| {
+        value.and_then(Value::as_str).and_then(|text| {
+            NaiveDateTime::parse_from_str(text, "%Y-%m-%d %H:%M:%S")
+                .or_else(|_| NaiveDateTime::parse_from_str(text, "%Y-%m-%dT%H:%M:%S"))
+                .ok()
+        })
+    };
+    let fallback = NaiveDateTime::parse_from_str("1970-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S")
+        .expect("固定回退时间必须有效");
+    let selected = semesters
+        .iter()
+        .find(|semester| {
+            let start = parse(semester.get("semesterStartDate"));
+            let end = parse(semester.get("semesterEndDate"));
+            matches!((start, end), (Some(start), Some(end)) if start <= now && now <= end)
+        })
+        .or_else(|| {
+            semesters
+                .iter()
+                .max_by_key(|semester| parse(semester.get("semesterEndDate")).unwrap_or(fallback))
+        })
+        .ok_or_else(|| error("无法获取当前学期信息"))?;
+    let required = |field| {
+        selected
+            .get(field)
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| error("无法获取当前学期信息"))
+    };
+    Ok((required("semesterStartDate")?, required("semesterEndDate")?))
 }
 pub(crate) async fn get_statistics(
     runtime: &mut crate::runtime::ClientRuntime,
@@ -590,5 +629,40 @@ mod tests {
         assert_eq!(filtered.content[0].status, BykcCourseStatus::Available);
         assert_eq!(filtered.total_elements, 3);
         assert_eq!(all.content.len(), 3);
+    }
+
+    #[test]
+    fn 已选课程自动选择当前学期并回退到最新学期() {
+        let config = serde_json::json!({
+            "semester": [
+                {"semesterStartDate": "2025-09-01 00:00:00", "semesterEndDate": "2026-01-31 23:59:59"},
+                {"semesterStartDate": "2026-02-01 00:00:00", "semesterEndDate": "2026-07-31 23:59:59"}
+            ]
+        });
+        let current = NaiveDateTime::parse_from_str("2026-03-01 12:00:00", "%Y-%m-%d %H:%M:%S")
+            .expect("解析固定时间");
+        let after = NaiveDateTime::parse_from_str("2026-08-01 12:00:00", "%Y-%m-%d %H:%M:%S")
+            .expect("解析固定时间");
+
+        assert_eq!(
+            resolve_current_semester(&config, current).expect("选择当前学期"),
+            (
+                "2026-02-01 00:00:00".to_owned(),
+                "2026-07-31 23:59:59".to_owned()
+            )
+        );
+        assert_eq!(
+            resolve_current_semester(&config, after).expect("选择最新学期"),
+            (
+                "2026-02-01 00:00:00".to_owned(),
+                "2026-07-31 23:59:59".to_owned()
+            )
+        );
+        assert_eq!(
+            resolve_current_semester(&serde_json::json!({"semester": []}), current)
+                .expect_err("空学期必须失败")
+                .message,
+            "无法获取当前学期信息"
+        );
     }
 }

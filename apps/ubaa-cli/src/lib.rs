@@ -207,14 +207,7 @@ pub enum BykcCommand {
         id: i64,
     },
     /// 查询已选课程。
-    Chosen {
-        /// 学期开始时间。
-        #[arg(long)]
-        start: String,
-        /// 学期结束时间。
-        #[arg(long)]
-        end: String,
-    },
+    Chosen,
     /// 查询修读统计。
     Statistics,
 }
@@ -715,11 +708,7 @@ pub trait CliBackend {
         Err(internal_error("博雅功能不可用"))
     }
     /// 查询博雅已选课程。
-    async fn bykc_chosen_courses(
-        &mut self,
-        _start: &str,
-        _end: &str,
-    ) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
+    async fn bykc_chosen_courses(&mut self) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
         Err(internal_error("博雅功能不可用"))
     }
     /// 查询博雅修读统计。
@@ -905,11 +894,7 @@ pub trait RoutedCliBackend {
         Err(routed_unavailable("博雅功能不可用"))
     }
     /// 通过 Core 路由查询博雅已选课程。
-    async fn bykc_chosen_courses(
-        &mut self,
-        _start: &str,
-        _end: &str,
-    ) -> RoutedResult<Vec<BykcChosenCourse>> {
+    async fn bykc_chosen_courses(&mut self) -> RoutedResult<Vec<BykcChosenCourse>> {
         Err(routed_unavailable("博雅功能不可用"))
     }
     /// 通过 Core 路由查询博雅修读统计。
@@ -1316,12 +1301,8 @@ impl CliBackend for RouteClient {
     async fn bykc_course_detail(&mut self, id: i64) -> Result<FeatureResult<BykcCourse>> {
         self.bykc_course_detail(id).await
     }
-    async fn bykc_chosen_courses(
-        &mut self,
-        start: &str,
-        end: &str,
-    ) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
-        self.bykc_chosen_courses(start, end).await
+    async fn bykc_chosen_courses(&mut self) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
+        self.bykc_chosen_courses().await
     }
     async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         self.bykc_statistics().await
@@ -1483,12 +1464,8 @@ impl RoutedCliBackend for UbaaClient {
     async fn bykc_course_detail(&mut self, id: i64) -> RoutedResult<BykcCourse> {
         UbaaClient::bykc_course_detail(self, id).await
     }
-    async fn bykc_chosen_courses(
-        &mut self,
-        start: &str,
-        end: &str,
-    ) -> RoutedResult<Vec<BykcChosenCourse>> {
-        UbaaClient::bykc_chosen_courses(self, start, end).await
+    async fn bykc_chosen_courses(&mut self) -> RoutedResult<Vec<BykcChosenCourse>> {
+        UbaaClient::bykc_chosen_courses(self).await
     }
     async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
         UbaaClient::bykc_statistics(self).await
@@ -1824,10 +1801,9 @@ async fn run_routed_bykc<B: RoutedCliBackend + Send>(
         BykcCommand::Course { id } => {
             routed_readonly(backend.bykc_course_detail(id).await, CliFeature::Bykc)
         }
-        BykcCommand::Chosen { start, end } => routed_readonly(
-            backend.bykc_chosen_courses(&start, &end).await,
-            CliFeature::Bykc,
-        ),
+        BykcCommand::Chosen => {
+            routed_readonly(backend.bykc_chosen_courses().await, CliFeature::Bykc)
+        }
         BykcCommand::Statistics => {
             routed_readonly(backend.bykc_statistics().await, CliFeature::Bykc)
         }
@@ -2295,8 +2271,8 @@ async fn run_bykc<B: CliBackend + Send>(
             .bykc_course_detail(id)
             .await
             .and_then(|r| readonly(r, CliFeature::Bykc)),
-        BykcCommand::Chosen { start, end } => backend
-            .bykc_chosen_courses(&start, &end)
+        BykcCommand::Chosen => backend
+            .bykc_chosen_courses()
             .await
             .and_then(|r| readonly(r, CliFeature::Bykc)),
         BykcCommand::Statistics => backend
