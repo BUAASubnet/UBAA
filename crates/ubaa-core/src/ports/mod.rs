@@ -1,4 +1,4 @@
-//! Injectable host ports used by protocol and session code.
+//! 协议和会话代码使用的可注入宿主端口。
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -8,32 +8,32 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
-/// Conservative limit for fully-buffered authentication and User Center responses.
+/// 完整缓冲认证和用户中心响应的保守上限。
 ///
-/// This is an implementation safety budget, not an upstream protocol size claim. Larger
-/// business payloads require a separate streaming port instead of raising this limit globally.
+/// 这是实现安全预算，不是上游协议大小声明。更大的业务载荷应使用独立流式端口，
+/// 不应全局提高此上限。
 const MAX_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
 
-/// HTTP method supported by the authentication protocol.
+/// 认证协议支持的 HTTP 方法。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum HttpMethod {
-    /// Read an upstream resource.
+    /// 读取上游资源。
     Get,
-    /// Submit an upstream form.
+    /// 提交上游表单。
     Post,
 }
 
-/// Auditable transport request with no automatic redirects.
+/// 不自动跟随重定向、可审计的传输请求。
 #[derive(Clone, Eq, PartialEq)]
 pub struct HttpRequest {
-    /// Request method.
+    /// 请求方法。
     pub method: HttpMethod,
-    /// Fully resolved request URL.
+    /// 完整解析后的请求地址。
     pub url: String,
-    /// Request headers. Sensitive headers must never be logged.
+    /// 请求头。敏感请求头绝不能写入日志。
     pub headers: BTreeMap<String, String>,
-    /// Optional request body.
+    /// 可选请求体。
     pub body: Vec<u8>,
 }
 
@@ -50,7 +50,7 @@ impl fmt::Debug for HttpRequest {
 }
 
 impl HttpRequest {
-    /// Construct a GET request.
+    /// 构造 GET 请求。
     pub fn get(url: impl Into<String>) -> Self {
         Self {
             method: HttpMethod::Get,
@@ -60,7 +60,7 @@ impl HttpRequest {
         }
     }
 
-    /// Construct a POST request.
+    /// 构造 POST 请求。
     pub fn post(url: impl Into<String>, body: Vec<u8>) -> Self {
         Self {
             method: HttpMethod::Post,
@@ -70,7 +70,7 @@ impl HttpRequest {
         }
     }
 
-    /// Add or replace one request header.
+    /// 添加或替换一个请求头。
     #[must_use]
     pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.insert(name.into(), value.into());
@@ -78,16 +78,16 @@ impl HttpRequest {
     }
 }
 
-/// Raw response returned before redirect and Cookie processing.
+/// 重定向和 Cookie 处理前返回的原始响应。
 #[derive(Clone, Eq, PartialEq)]
 pub struct HttpResponse {
-    /// HTTP status code.
+    /// HTTP 状态码。
     pub status: u16,
-    /// URL of the request that produced this response.
+    /// 产生该响应的请求地址。
     pub final_url: String,
-    /// Response headers, preserving multiple values such as `Set-Cookie`.
+    /// 响应头，保留 `Set-Cookie` 等多值字段。
     pub headers: BTreeMap<String, Vec<String>>,
-    /// Uninterpreted response body.
+    /// 未解释的响应体。
     pub body: Vec<u8>,
 }
 
@@ -104,7 +104,7 @@ impl fmt::Debug for HttpResponse {
 }
 
 impl HttpResponse {
-    /// Construct a response without headers.
+    /// 构造不含响应头的响应。
     pub fn new(status: u16, final_url: impl Into<String>, body: Vec<u8>) -> Self {
         Self {
             status,
@@ -115,25 +115,25 @@ impl HttpResponse {
     }
 }
 
-/// Replaceable HTTP transport. Redirects and cookies remain core responsibilities.
+/// 可替换的 HTTP 传输。重定向和 Cookie 仍由 Core 负责。
 #[async_trait]
 pub trait HttpTransport: Send + Sync {
-    /// Execute exactly one request and return the raw response.
+    /// 恰好执行一次请求并返回原始响应。
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse>;
 }
 
-/// Production transport with TLS verification and redirects disabled.
+/// 启用 TLS 校验且禁用重定向的生产传输。
 #[derive(Clone, Debug)]
 pub struct ReqwestTransport {
     client: reqwest::Client,
 }
 
 impl ReqwestTransport {
-    /// Construct the production client with the verified browser user agent.
+    /// 使用已验证的浏览器 User-Agent 构造生产客户端。
     ///
     /// # Errors
     ///
-    /// Returns an internal error if the TLS-validating client cannot be built.
+    /// 无法构造执行 TLS 校验的客户端时返回内部错误。
     pub fn new() -> Result<Self> {
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())

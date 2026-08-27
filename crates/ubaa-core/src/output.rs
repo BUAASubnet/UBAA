@@ -1,4 +1,4 @@
-//! Host-neutral JSON envelopes used by the CLI contract.
+//! CLI 合同使用的宿主无关 JSON 信封。
 
 use std::fmt;
 
@@ -10,32 +10,32 @@ use crate::domain::{
 };
 use crate::error::{ErrorCode, ErrorKind, UbaaError};
 
-/// The only supported CLI JSON schema version.
+/// CLI 唯一支持的 JSON 架构版本。
 pub const CLI_JSON_SCHEMA_VERSION: u32 = 2;
 
-/// Closed feature names used by CLI JSON metadata.
+/// CLI JSON 元数据使用的封闭功能名称集合。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CliFeature {
-    /// Argument parsing and process startup.
+    /// 参数解析和进程启动。
     Cli,
-    /// Authentication, status, and logout.
+    /// 认证、状态和登出。
     Auth,
-    /// User profile lookup.
+    /// 用户资料查询。
     User,
-    /// Schedule and teaching-week queries.
+    /// 课表和教学周查询。
     Schedule,
-    /// Exam arrangement queries.
+    /// 考试安排查询。
     Exam,
-    /// Grade queries.
+    /// 成绩查询。
     Grades,
-    /// Empty-classroom queries.
+    /// 空闲教室查询。
     Classroom,
-    /// SPOC assignment queries.
+    /// SPOC 作业查询。
     Spoc,
-    /// Judge assignment queries.
+    /// 希冀作业查询。
     Judge,
-    /// Classroom sign-in queries.
+    /// 课堂签到查询。
     Signin,
     /// 图书馆座位与预约查询。
     LibBook,
@@ -48,7 +48,7 @@ pub enum CliFeature {
 }
 
 impl CliFeature {
-    /// Return the stable JSON spelling.
+    /// 返回稳定的 JSON 拼写。
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -70,7 +70,7 @@ impl CliFeature {
     }
 }
 
-/// Complete route metadata emitted after Core resolved a route.
+/// Core 解析路线后输出的完整路线元数据。
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedRoutedJsonMeta {
@@ -83,7 +83,7 @@ pub struct ResolvedRoutedJsonMeta {
 }
 
 impl ResolvedRoutedJsonMeta {
-    /// Project a Core route decision into stable CLI metadata.
+    /// 将 Core 路线决策投影为稳定 CLI 元数据。
     #[must_use]
     pub const fn from_resolution(feature: CliFeature, resolution: RouteResolution) -> Self {
         Self {
@@ -96,7 +96,7 @@ impl ResolvedRoutedJsonMeta {
         }
     }
 
-    /// Build metadata for an explicit diagnostic route that did not run a probe.
+    /// 为未执行探测的显式诊断路线构造元数据。
     #[must_use]
     pub const fn explicit(feature: CliFeature, mode: ConnectionMode) -> Self {
         Self {
@@ -113,7 +113,7 @@ impl ResolvedRoutedJsonMeta {
     }
 }
 
-/// Minimal metadata for a failure that happened before route resolution.
+/// 路线解析前发生失败时使用的最小元数据。
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnresolvedRoutedJsonMeta {
@@ -121,7 +121,7 @@ pub struct UnresolvedRoutedJsonMeta {
 }
 
 impl UnresolvedRoutedJsonMeta {
-    /// Identify the operation without inventing route diagnostics.
+    /// 标识操作，但不擅自编造路线诊断。
     #[must_use]
     pub const fn new(feature: CliFeature) -> Self {
         Self { feature }
@@ -135,7 +135,7 @@ enum RoutedJsonMeta {
     Unresolved(UnresolvedRoutedJsonMeta),
 }
 
-/// Safe CLI error payload.
+/// 安全的 CLI 错误载荷。
 #[derive(Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CliJsonError {
@@ -146,7 +146,7 @@ pub struct CliJsonError {
 }
 
 impl CliJsonError {
-    /// Convert a Core error into the stable host payload.
+    /// 将 Core 错误转换为稳定的宿主载荷。
     #[must_use]
     pub fn from_core(error: UbaaError) -> Self {
         Self {
@@ -157,11 +157,11 @@ impl CliJsonError {
         }
     }
 
-    /// Convert a validated aggregate error projection.
+    /// 转换经过校验的聚合错误投影。
     ///
     /// # Errors
     ///
-    /// Returns an internal error if the projection contains an unknown code or kind.
+    /// 投影包含未知代码或类别时返回内部错误。
     pub fn try_from_safe(error: SafeError) -> Result<Self, UbaaError> {
         if !is_error_code(&error.code) || !is_error_kind(&error.kind) {
             return Err(output_invariant_error(
