@@ -8,6 +8,7 @@ pub mod signin;
 pub mod spoc;
 pub(crate) mod state;
 pub(crate) mod user;
+pub mod ygdk;
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};

@@ -16,6 +16,7 @@ pub(crate) struct RouteFeatureState {
     pub(crate) signin: SigninState,
     pub(crate) spoc: SpocState,
     pub(crate) judge: JudgeState,
+    pub(crate) ygdk: YgdkState,
 }
 
 impl RouteFeatureState {
@@ -24,6 +25,37 @@ impl RouteFeatureState {
         self.signin.clear();
         self.spoc.clear();
         self.judge.clear();
+        self.ygdk.clear();
+    }
+}
+
+/// 路线内存中的阳光打卡业务会话，不写入磁盘。
+#[derive(Debug, Default)]
+pub(crate) struct YgdkState {
+    credential: SyncMutex<Option<crate::features::ygdk::YgdkCredential>>,
+    login: Mutex<()>,
+}
+impl YgdkState {
+    pub(crate) fn credential(&self) -> Option<crate::features::ygdk::YgdkCredential> {
+        self.credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+    pub(crate) fn set(&self, value: crate::features::ygdk::YgdkCredential) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
+    }
+    pub(crate) fn clear(&self) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+    }
+    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.login.lock().await
     }
 }
 

@@ -22,6 +22,7 @@ pub struct RouteConfig {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct FeaturePolicies {
+    ygdk: Option<RoutePolicy>,
     signin: Option<RoutePolicy>,
     schedule: Option<RoutePolicy>,
     exam: Option<RoutePolicy>,
@@ -52,6 +53,7 @@ struct RawRoute {
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawFeatures {
+    ygdk: Option<RoutePolicy>,
     signin: Option<RoutePolicy>,
     schedule: Option<RoutePolicy>,
     exam: Option<RoutePolicy>,
@@ -89,6 +91,7 @@ impl RouteConfig {
             schema_version: raw.schema_version,
             default: raw.route.default,
             features: FeaturePolicies {
+                ygdk: raw.route.features.ygdk,
                 signin: raw.route.features.signin,
                 schedule: raw.route.features.schedule,
                 exam: raw.route.features.exam,
@@ -198,6 +201,7 @@ impl RouteConfig {
     #[must_use]
     pub fn feature(&self, feature: ReadonlyFeature) -> RoutePolicy {
         match feature {
+            ReadonlyFeature::Ygdk => self.features.ygdk,
             ReadonlyFeature::Signin => self.features.signin,
             ReadonlyFeature::Schedule => self.features.schedule,
             ReadonlyFeature::Exam => self.features.exam,
