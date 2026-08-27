@@ -12,8 +12,9 @@ use crate::connection::{
 };
 use crate::domain::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
-    ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation, ExamArrangement,
-    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery,
+    ConnectionMode, DualLoginInput, DualLoginPreparation, ExamArrangement, FeatureResult,
+    GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
     JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
     LibBookLibrary, LibBookSeat, LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature,
     RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass, SpocAssignmentDetail,
@@ -403,6 +404,91 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::bykc::get_statistics(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆站点。
+    pub async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_sites(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_sites(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆用途类型。
+    pub async fn cgyy_purpose_types(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_purpose_types(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_purpose_types(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆日期可用性。
+    pub async fn cgyy_day_info(&mut self, site_id: i32, date: &str) -> RoutedResult<CgyyDayInfo> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        if site_id <= 0 || date.trim().is_empty() {
+            return Err(routed_error(
+                invalid_input("场馆站点和日期不能为空"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_day_info(&mut self.direct_runtime, site_id, date).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_day_info(&mut self.webvpn_runtime, site_id, date).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询我的场馆订单。
+    pub async fn cgyy_orders(&mut self, page: i32, size: i32) -> RoutedResult<CgyyOrdersPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        if page < 0 || size <= 0 {
+            return Err(routed_error(invalid_input("分页参数无效"), resolution));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_orders(&mut self.direct_runtime, page, size).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_orders(&mut self.webvpn_runtime, page, size).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆订单详情。
+    pub async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        if id <= 0 {
+            return Err(routed_error(
+                invalid_input("订单标识必须为正数"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_order_detail(&mut self.direct_runtime, id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_order_detail(&mut self.webvpn_runtime, id).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1225,6 +1311,14 @@ impl RouteClient {
     pub async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
         self.guard_session_ownership()?;
         let result = crate::features::bykc::get_profile(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询场馆站点。
+    pub async fn cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::cgyy::get_sites(&mut self.runtime).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

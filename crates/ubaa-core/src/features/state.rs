@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
     pub(crate) bykc: BykcState,
+    pub(crate) cgyy: CgyyState,
     pub(crate) libbook: LibBookState,
     pub(crate) classroom: ClassroomState,
     pub(crate) signin: SigninState,
@@ -24,12 +25,47 @@ pub(crate) struct RouteFeatureState {
 impl RouteFeatureState {
     pub(crate) fn clear(&self) {
         self.bykc.clear();
+        self.cgyy.clear();
         self.libbook.clear();
         self.classroom.clear();
         self.signin.clear();
         self.spoc.clear();
         self.judge.clear();
         self.ygdk.clear();
+    }
+}
+
+/// 路线内存中的场馆预约业务令牌，不写入磁盘。
+#[derive(Debug, Default)]
+pub(crate) struct CgyyState {
+    token: SyncMutex<Option<String>>,
+    login: Mutex<()>,
+}
+
+impl CgyyState {
+    pub(crate) fn token(&self) -> Option<String> {
+        self.token
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    pub(crate) fn set(&self, token: String) {
+        *self
+            .token
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(token);
+    }
+
+    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.login.lock().await
+    }
+
+    pub(crate) fn clear(&self) {
+        *self
+            .token
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     }
 }
 

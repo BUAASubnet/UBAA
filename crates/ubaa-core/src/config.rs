@@ -23,6 +23,7 @@ pub struct RouteConfig {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct FeaturePolicies {
     bykc: Option<RoutePolicy>,
+    cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
     ygdk: Option<RoutePolicy>,
     signin: Option<RoutePolicy>,
@@ -56,6 +57,7 @@ struct RawRoute {
 #[serde(deny_unknown_fields)]
 struct RawFeatures {
     bykc: Option<RoutePolicy>,
+    cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
     ygdk: Option<RoutePolicy>,
     signin: Option<RoutePolicy>,
@@ -96,6 +98,7 @@ impl RouteConfig {
             default: raw.route.default,
             features: FeaturePolicies {
                 bykc: raw.route.features.bykc,
+                cgyy: raw.route.features.cgyy,
                 libbook: raw.route.features.libbook,
                 ygdk: raw.route.features.ygdk,
                 signin: raw.route.features.signin,
@@ -152,6 +155,7 @@ impl RouteConfig {
         );
         for feature in [
             ReadonlyFeature::Bykc,
+            ReadonlyFeature::Cgyy,
             ReadonlyFeature::LibBook,
             ReadonlyFeature::Signin,
             ReadonlyFeature::Schedule,
@@ -210,6 +214,7 @@ impl RouteConfig {
     pub fn feature(&self, feature: ReadonlyFeature) -> RoutePolicy {
         match feature {
             ReadonlyFeature::Bykc => self.features.bykc,
+            ReadonlyFeature::Cgyy => self.features.cgyy,
             ReadonlyFeature::LibBook => self.features.libbook,
             ReadonlyFeature::Ygdk => self.features.ygdk,
             ReadonlyFeature::Signin => self.features.signin,

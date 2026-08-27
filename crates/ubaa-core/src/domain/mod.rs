@@ -34,6 +34,8 @@ pub enum RoutePolicy {
 pub enum ReadonlyFeature {
     /// 博雅课程只读查询。
     Bykc,
+    /// 场馆预约只读查询。
+    Cgyy,
     /// 图书馆座位只读查询。
     LibBook,
     /// 阳光打卡只读查询。
@@ -60,6 +62,7 @@ impl ReadonlyFeature {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Bykc => "bykc",
+            Self::Cgyy => "cgyy",
             Self::LibBook => "libbook",
             Self::Ygdk => "ygdk",
             Self::Signin => "signin",

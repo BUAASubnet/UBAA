@@ -93,6 +93,7 @@ fn resolve_feature_redirect(
             | "app.buaa.edu.cn"
             | "spoc.buaa.edu.cn"
             | "judge.buaa.edu.cn"
+            | "cgyy.buaa.edu.cn"
             | "d.buaa.edu.cn"
     ) {
         return Err(feature_redirect_error(feature));

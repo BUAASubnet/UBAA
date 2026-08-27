@@ -13,6 +13,7 @@ aes = "0.8.4"
 base64 = "0.22.1"
 cipher = { version = "0.4.4", features = ["block-padding"] }
 httpdate = "1.0.3"
+md-5 = "0.10.6"
 regex = "1.12.2"
 rand = "0.8.5"
 reqwest = "0.13.1"

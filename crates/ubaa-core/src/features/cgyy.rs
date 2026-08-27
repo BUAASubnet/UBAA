@@ -6,7 +6,216 @@ use crate::domain::{
     CgyyTimeSlot, CgyyVenueSite,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::ports::HttpRequest;
+use md5::{Digest, Md5};
 use serde_json::{Map, Value};
+use std::collections::BTreeMap;
+
+const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
+const LOGIN_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin";
+const PREFIX: &str = "c640ca392cd45fb3a55b00a63a86c618";
+const APP_KEY: &str = "8fceb735082b5a529312040b58ea780b";
+const SSO_COOKIE: &str = "sso_buaa_zhjs_token";
+
+fn timestamp_millis() -> Result<i64> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| error("系统时间无效"))?
+        .as_millis()
+        .try_into()
+        .map_err(|_| error("系统时间无效"))
+}
+
+fn sign(path: &str, params: &BTreeMap<String, String>, timestamp: i64) -> String {
+    let path = if path.starts_with('/') {
+        path.to_owned()
+    } else {
+        format!("/{path}")
+    };
+    let mut payload = format!("{PREFIX}{path}");
+    for (key, value) in params.iter().filter(|(_, value)| !value.is_empty()) {
+        payload.push_str(key);
+        payload.push_str(value);
+    }
+    payload.push_str(&timestamp.to_string());
+    payload.push(' ');
+    payload.push_str(PREFIX);
+    format!("{:x}", Md5::digest(payload.as_bytes()))
+}
+
+fn signed_request(
+    runtime: &crate::runtime::ClientRuntime,
+    method: crate::ports::HttpMethod,
+    path: &str,
+    mut params: BTreeMap<String, String>,
+    token: Option<&str>,
+) -> Result<HttpRequest> {
+    let timestamp = timestamp_millis()?;
+    if method == crate::ports::HttpMethod::Get {
+        params
+            .entry("nocache".into())
+            .or_insert_with(|| timestamp.to_string());
+    }
+    let signature = sign(path, &params, timestamp);
+    let mut direct =
+        url::Url::parse(&format!("{BASE_URL}{path}")).map_err(|_| error("场馆请求地址无效"))?;
+    if method == crate::ports::HttpMethod::Get {
+        direct.query_pairs_mut().extend_pairs(
+            params
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str())),
+        );
+    }
+    let mut request = match method {
+        crate::ports::HttpMethod::Get => HttpRequest::get(runtime.url(direct.as_str())?),
+        crate::ports::HttpMethod::Post => {
+            HttpRequest::post(runtime.url(direct.as_str())?, Vec::new())
+        }
+    };
+    request
+        .headers
+        .insert("Accept".into(), "application/json, text/plain, */*".into());
+    request.headers.insert(
+        "Referer".into(),
+        runtime.url("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation")?,
+    );
+    request.headers.insert("app-key".into(), APP_KEY.into());
+    request
+        .headers
+        .insert("timestamp".into(), timestamp.to_string());
+    request.headers.insert("sign".into(), signature);
+    if method == crate::ports::HttpMethod::Post {
+        request.headers.insert(
+            "Content-Type".into(),
+            "application/x-www-form-urlencoded".into(),
+        );
+    }
+    if let Some(token) = token {
+        request
+            .headers
+            .insert("cgAuthorization".into(), token.into());
+    }
+    Ok(request)
+}
+
+async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<String> {
+    super::require_session(runtime)?;
+    let state = runtime.feature_state();
+    if let Some(token) = state.cgyy.token() {
+        return Ok(token);
+    }
+    let _guard = state.cgyy.login_guard().await;
+    if let Some(token) = state.cgyy.token() {
+        return Ok(token);
+    }
+    let response =
+        super::get_with_redirects(runtime, runtime.url(LOGIN_URL)?, &[], "场馆预约").await?;
+    super::check_response(&response, "场馆预约")?;
+    let sso_token = runtime
+        .cookie_value(SSO_COOKIE)
+        .ok_or_else(|| authentication_error("未获取到场馆预约 SSO 令牌"))?;
+    let mut request = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Post,
+        "/api/login",
+        BTreeMap::new(),
+        None,
+    )?;
+    request.headers.insert("Sso-Token".into(), sso_token);
+    let response = runtime.request(request).await?;
+    super::check_response(&response, "场馆预约")?;
+    let value = data(&super::body(&response))?;
+    let token = value
+        .get("token")
+        .and_then(Value::as_object)
+        .and_then(|token| string(token, "access_token"))
+        .filter(|token| !token.is_empty())
+        .ok_or_else(|| authentication_error("场馆预约登录未返回访问令牌"))?;
+    state.cgyy.set(token.clone());
+    Ok(token)
+}
+
+async fn get(
+    runtime: &mut crate::runtime::ClientRuntime,
+    path: &str,
+    params: BTreeMap<String, String>,
+) -> Result<String> {
+    let token = ensure_login(runtime).await?;
+    let request = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Get,
+        path,
+        params,
+        Some(&token),
+    )?;
+    let response = runtime.request(request).await?;
+    super::check_response(&response, "场馆预约")?;
+    Ok(super::body(&response))
+}
+
+pub(crate) async fn get_sites(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<Vec<CgyyVenueSite>> {
+    let params = [("page", "-1"), ("size", "-1"), ("reservationRoleId", "3")]
+        .into_iter()
+        .map(|(key, value)| (key.into(), value.into()))
+        .collect();
+    parse_sites(&get(runtime, "/api/front/website/venues", params).await?)
+}
+
+pub(crate) async fn get_purpose_types(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<Vec<CgyyPurposeType>> {
+    parse_purpose_types(&get(runtime, "/api/codes", BTreeMap::new()).await?)
+}
+
+pub(crate) async fn get_day_info(
+    runtime: &mut crate::runtime::ClientRuntime,
+    site_id: i32,
+    date: &str,
+) -> Result<CgyyDayInfo> {
+    let params = [
+        ("searchDate".into(), date.into()),
+        ("venueSiteId".into(), site_id.to_string()),
+    ]
+    .into_iter()
+    .collect();
+    parse_day_info(
+        &get(runtime, "/api/reservation/day/info", params).await?,
+        site_id,
+        date,
+    )
+}
+
+pub(crate) async fn get_orders(
+    runtime: &mut crate::runtime::ClientRuntime,
+    page: i32,
+    size: i32,
+) -> Result<CgyyOrdersPage> {
+    let params = [
+        ("page".into(), page.to_string()),
+        ("size".into(), size.to_string()),
+    ]
+    .into_iter()
+    .collect();
+    parse_orders(&get(runtime, "/api/orders/mine", params).await?)
+}
+
+pub(crate) async fn get_order_detail(
+    runtime: &mut crate::runtime::ClientRuntime,
+    id: i32,
+) -> Result<CgyyOrder> {
+    parse_order_detail(&get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?)
+}
+
+fn authentication_error(message: &str) -> UbaaError {
+    UbaaError::new(
+        ErrorCode::AuthenticationRequired,
+        ErrorKind::Authentication,
+        false,
+        message,
+    )
+}
 
 fn error(message: impl Into<String>) -> UbaaError {
     UbaaError::new(
