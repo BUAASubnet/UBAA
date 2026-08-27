@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -269,6 +269,64 @@
         { "$ref": "#/$defs/libBookAreaDetail" },
         { "type": "array", "items": { "$ref": "#/$defs/libBookSeat" } },
         { "$ref": "#/$defs/libBookBookingsPage" }
+      ]
+    },
+    "bykcUserProfile": {
+      "type": "object",
+      "required": ["id", "employeeId", "realName", "studentNo", "collegeName"],
+      "properties": {
+        "id": { "$ref": "#/$defs/i64" },
+        "employeeId": { "$ref": "#/$defs/nullableString" },
+        "realName": { "$ref": "#/$defs/nullableString" },
+        "studentNo": { "$ref": "#/$defs/nullableString" },
+        "collegeName": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "bykcCourse": {
+      "type": "object",
+      "required": ["id", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "courseMaxCount", "courseCurrentCount", "selected"],
+      "properties": {
+        "id": { "$ref": "#/$defs/i64" }, "courseName": { "type": "string" },
+        "coursePosition": { "$ref": "#/$defs/nullableString" }, "courseTeacher": { "$ref": "#/$defs/nullableString" },
+        "courseStartDate": { "$ref": "#/$defs/nullableString" }, "courseEndDate": { "$ref": "#/$defs/nullableString" },
+        "courseMaxCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "courseCurrentCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "selected": { "type": ["boolean", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "bykcCoursePage": {
+      "type": "object", "required": ["content", "totalElements", "totalPages", "size", "number"],
+      "properties": {
+        "content": { "type": "array", "items": { "$ref": "#/$defs/bykcCourse" } },
+        "totalElements": { "$ref": "#/$defs/i32" }, "totalPages": { "$ref": "#/$defs/i32" },
+        "size": { "$ref": "#/$defs/i32" }, "number": { "$ref": "#/$defs/i32" }
+      }, "additionalProperties": false
+    },
+    "bykcChosenCourse": {
+      "type": "object", "required": ["id", "courseId", "courseName", "selectDate", "checkin", "score"],
+      "properties": {
+        "id": { "$ref": "#/$defs/i64" }, "courseId": { "anyOf": [{ "$ref": "#/$defs/i64" }, { "type": "null" }] },
+        "courseName": { "$ref": "#/$defs/nullableString" }, "selectDate": { "$ref": "#/$defs/nullableString" },
+        "checkin": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "score": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }
+      }, "additionalProperties": false
+    },
+    "bykcStatistics": {
+      "type": "object", "required": ["totalValidCount", "categories"],
+      "properties": { "totalValidCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "categories": { "type": "array", "items": { "$ref": "#/$defs/bykcStatistic" } } },
+      "additionalProperties": false
+    },
+    "bykcStatistic": {
+      "type": "object", "required": ["categoryName", "subCategoryName", "requiredCount", "passedCount", "qualified"],
+      "properties": { "categoryName": { "$ref": "#/$defs/nullableString" }, "subCategoryName": { "$ref": "#/$defs/nullableString" }, "requiredCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "passedCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "qualified": { "type": ["boolean", "null"] } },
+      "additionalProperties": false
+    },
+    "bykcRoutedData": {
+      "oneOf": [
+        { "$ref": "#/$defs/bykcUserProfile" }, { "$ref": "#/$defs/bykcCoursePage" },
+        { "$ref": "#/$defs/bykcCourse" }, { "type": "array", "items": { "$ref": "#/$defs/bykcChosenCourse" } },
+        { "$ref": "#/$defs/bykcStatistics" }
       ]
     },
     "ygdkOverview": {
