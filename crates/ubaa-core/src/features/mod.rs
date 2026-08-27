@@ -25,7 +25,7 @@ pub(crate) fn require_session(runtime: &ClientRuntime) -> Result<()> {
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,
             false,
-            "authentication is required",
+            "需要认证",
         ))
     }
 }
@@ -110,7 +110,7 @@ fn feature_redirect_error(feature: &str) -> UbaaError {
         ErrorCode::UpstreamChanged,
         ErrorKind::Upstream,
         false,
-        format!("{feature} redirect is not supported"),
+        format!("{feature} 不支持该重定向"),
     )
 }
 
@@ -174,7 +174,7 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,
             false,
-            format!("{feature} authentication is required"),
+            format!("{feature} 需要认证"),
         ));
     }
     if response.status >= 500 {
@@ -182,7 +182,7 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorCode::UpstreamUnavailable,
             ErrorKind::Upstream,
             true,
-            format!("{feature} upstream is unavailable"),
+            format!("{feature} 上游不可用"),
         ));
     }
     if response.status != 200 {
@@ -190,7 +190,7 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            format!("{feature} request failed"),
+            format!("{feature} 请求失败"),
         ));
     }
     Ok(())

@@ -1146,7 +1146,7 @@ fn authentication_required() -> UbaaError {
         ErrorCode::AuthenticationRequired,
         ErrorKind::Authentication,
         false,
-        "authentication is required",
+        "需要认证",
     )
 }
 
