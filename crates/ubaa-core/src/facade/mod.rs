@@ -16,7 +16,7 @@ use crate::domain::{
     JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LoginInput, LoginOutcome, LoginReadiness,
     ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass,
     SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule,
+    UserProfile, Week, WeeklySchedule, YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
@@ -432,6 +432,34 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::signin::get_today(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询阳光打卡概览。
+    pub async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::ygdk::get_overview(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::ygdk::get_overview(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询阳光打卡历史记录。
+    pub async fn ygdk_records(&mut self, page: i32, size: i32) -> RoutedResult<YgdkRecordsPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::ygdk::get_records(&mut self.direct_runtime, page, size).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::ygdk::get_records(&mut self.webvpn_runtime, page, size).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1070,6 +1098,26 @@ impl RouteClient {
     pub async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         self.guard_session_ownership()?;
         let result = crate::features::signin::get_today(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询阳光打卡概览。
+    pub async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::ygdk::get_overview(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询阳光打卡历史记录。
+    pub async fn ygdk_records(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> Result<FeatureResult<YgdkRecordsPage>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::ygdk::get_records(&mut self.runtime, page, size).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
