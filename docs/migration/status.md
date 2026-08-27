@@ -69,6 +69,9 @@ Bykc 首次结果的 `invalid_semantics` 后经审计确认为验证器误将合
 成功并解析到 1 条课程。该结果不替代 WebVPN 路线验证。
 随后 `feature=auth route=webvpn` 成功，但 `feature=bykc route=webvpn`
 返回 `upstream_changed`，因此 Bykc WebVPN 业务路线仍未验证通过。
+重新建立 Direct 主认证后，`feature=signin route=direct` 与
+`feature=ygdk route=direct` 仍返回 `upstream_changed`，而
+`feature=cgyy route=direct` 成功并解析 4 个站点；这排除了会话残留导致的假失败。
 再次复测 Bykc WebVPN（主认证成功后）仍返回 `upstream_changed`；当前没有冻结
 证据支持新增跳转参数或放宽主机/令牌解析，保持失败关闭并待上游协议确认。
 
