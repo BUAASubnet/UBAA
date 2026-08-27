@@ -195,10 +195,7 @@ async fn reqwest_transport_rejects_oversized_chunked_response() {
     assert_eq!(error.code, ErrorCode::UpstreamChanged);
     assert_eq!(error.kind, ErrorKind::Upstream);
     assert!(!error.retryable);
-    assert_eq!(
-        error.message,
-        "upstream response body exceeds the allowed size"
-    );
+    assert_eq!(error.message, "上游响应体超过允许大小");
     server.join().unwrap();
 }
 
