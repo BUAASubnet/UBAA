@@ -794,31 +794,31 @@ pub trait CliBackend {
     }
     /// 查询 SPOC 作业。
     async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
-        Err(internal_error("SPOC is unavailable"))
+        Err(internal_error("SPOC 功能不可用"))
     }
     /// 查询安全的 SPOC 全局分页诊断。
     async fn spoc_assignments_diagnostics(
         &mut self,
     ) -> Result<FeatureResult<SpocAssignmentsDiagnostics>> {
-        Err(internal_error("SPOC diagnostics are unavailable"))
+        Err(internal_error("SPOC 诊断功能不可用"))
     }
     /// 查询 SPOC 作业详情。
     async fn spoc_assignment(&mut self, _id: &str) -> Result<FeatureResult<SpocAssignmentDetail>> {
-        Err(internal_error("SPOC is unavailable"))
+        Err(internal_error("SPOC 功能不可用"))
     }
     /// 查询希冀作业。
     async fn judge_assignments(
         &mut self,
         _include_expired: bool,
     ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
-        Err(internal_error("Judge is unavailable"))
+        Err(internal_error("希冀功能不可用"))
     }
     /// 查询安全的希冀解析诊断。
     async fn judge_assignments_diagnostics(
         &mut self,
         _include_expired: bool,
     ) -> Result<FeatureResult<JudgeAssignmentsDiagnostics>> {
-        Err(internal_error("Judge diagnostics are unavailable"))
+        Err(internal_error("希冀诊断功能不可用"))
     }
     /// 查询希冀作业详情。
     async fn judge_assignment(
@@ -826,14 +826,14 @@ pub trait CliBackend {
         _course_id: &str,
         _id: &str,
     ) -> Result<FeatureResult<JudgeAssignmentDetail>> {
-        Err(internal_error("Judge is unavailable"))
+        Err(internal_error("希冀功能不可用"))
     }
     /// 批量查询希冀作业详情。
     async fn judge_assignment_details(
         &mut self,
         _keys: &[JudgeAssignmentKey],
     ) -> Result<FeatureResult<Vec<JudgeAssignmentDetail>>> {
-        Err(internal_error("Judge is unavailable"))
+        Err(internal_error("希冀功能不可用"))
     }
 }
 
@@ -970,29 +970,29 @@ pub trait RoutedCliBackend {
     }
     /// 通过 Core 路由查询 SPOC 作业。
     async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
-        Err(routed_unavailable("SPOC is unavailable"))
+        Err(routed_unavailable("SPOC 功能不可用"))
     }
     /// 通过 Core 路由查询安全的 SPOC 全局分页诊断。
     async fn spoc_assignments_diagnostics(&mut self) -> RoutedResult<SpocAssignmentsDiagnostics> {
-        Err(routed_unavailable("SPOC diagnostics are unavailable"))
+        Err(routed_unavailable("SPOC 诊断功能不可用"))
     }
     /// 通过 Core 路由查询一项 SPOC 作业。
     async fn spoc_assignment(&mut self, _id: &str) -> RoutedResult<SpocAssignmentDetail> {
-        Err(routed_unavailable("SPOC is unavailable"))
+        Err(routed_unavailable("SPOC 功能不可用"))
     }
     /// 通过 Core 路由查询希冀作业。
     async fn judge_assignments(
         &mut self,
         _include_expired: bool,
     ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
-        Err(routed_unavailable("Judge is unavailable"))
+        Err(routed_unavailable("希冀功能不可用"))
     }
     /// 通过 Core 路由查询安全的希冀解析诊断。
     async fn judge_assignments_diagnostics(
         &mut self,
         _include_expired: bool,
     ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
-        Err(routed_unavailable("Judge diagnostics are unavailable"))
+        Err(routed_unavailable("希冀诊断功能不可用"))
     }
     /// 通过 Core 路由查询一项希冀作业。
     async fn judge_assignment(
@@ -1000,14 +1000,14 @@ pub trait RoutedCliBackend {
         _course_id: &str,
         _id: &str,
     ) -> RoutedResult<JudgeAssignmentDetail> {
-        Err(routed_unavailable("Judge is unavailable"))
+        Err(routed_unavailable("希冀功能不可用"))
     }
     /// 通过一次 Core 路由决策查询多项希冀作业详情。
     async fn judge_assignment_details(
         &mut self,
         _keys: &[JudgeAssignmentKey],
     ) -> RoutedResult<Vec<JudgeAssignmentDetail>> {
-        Err(routed_unavailable("Judge is unavailable"))
+        Err(routed_unavailable("希冀功能不可用"))
     }
 }
 
@@ -1032,7 +1032,7 @@ where
     else {
         return render_aggregate_input_error(
             json_mode,
-            invalid_input("aggregate login requires auth login"),
+            invalid_input("聚合登录必须先执行 auth login"),
             stdout,
             stderr,
         );
@@ -1099,7 +1099,7 @@ where
                 if write_json(stdout, &envelope).is_err() {
                     return ExitCode::Internal as i32;
                 }
-            } else if writeln!(stdout, "Signed out.").is_err() {
+            } else if writeln!(stdout, "已退出登录。").is_err() {
                 return ExitCode::Internal as i32;
             }
             ExitCode::Success as i32
@@ -1116,30 +1116,27 @@ fn read_dual_credentials<R: BufRead, E: Write>(
 ) -> Result<(String, String)> {
     let username = if arguments.username_stdin {
         if arguments.username.is_some() {
-            return Err(invalid_input(
-                "--username and --username-stdin are mutually exclusive",
-            ));
+            return Err(invalid_input("--username 与 --username-stdin 不能同时使用"));
         }
-        let username = read_secret_line(input, "username is missing on standard input")?;
+        let username = read_secret_line(input, "标准输入中缺少用户名")?;
         if username.trim().is_empty() {
-            return Err(invalid_input("username must not be empty"));
+            return Err(invalid_input("用户名不能为空"));
         }
         username
     } else {
         match arguments.username.as_deref() {
             Some(username) if !username.trim().is_empty() => username.to_owned(),
-            Some(_) => return Err(invalid_input("username must not be empty")),
-            None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
-            None => prompt_line(input, stderr, "Username: ")?,
+            Some(_) => return Err(invalid_input("用户名不能为空")),
+            None if json_mode => return Err(invalid_input("JSON 模式必须提供 --username")),
+            None => prompt_line(input, stderr, "用户名：")?,
         }
     };
     let password = if arguments.password_stdin {
-        read_secret_line(input, "password is missing on standard input")?
+        read_secret_line(input, "标准输入中缺少密码")?
     } else if json_mode {
-        return Err(invalid_input("--password-stdin is required in JSON mode"));
+        return Err(invalid_input("JSON 模式必须提供 --password-stdin"));
     } else {
-        rpassword::prompt_password("Password: ")
-            .map_err(|_| internal_error("could not read password securely"))?
+        rpassword::prompt_password("密码：").map_err(|_| internal_error("无法安全读取密码"))?
     };
     Ok((username, password))
 }
@@ -1179,7 +1176,7 @@ fn render_dual_outcome<O: Write, E: Write>(
             return ExitCode::Internal as i32;
         }
         if let Some(error) = error {
-            let _ = writeln!(stderr, "Error: {}", error.message);
+            let _ = writeln!(stderr, "错误：{}", error.message);
         }
     }
     exit_code
@@ -1196,7 +1193,7 @@ fn aggregate_error(outcome: &ubaa_core::domain::LoginOutcome) -> Option<SafeErro
                     code: "internal_error".into(),
                     kind: "internal".into(),
                     retryable: false,
-                    message: "no authentication route became ready".into(),
+                    message: "没有认证路线成功建立会话".into(),
                 }),
         )
     } else {
@@ -1625,7 +1622,7 @@ where
         Command::Auth(_) => (
             CliFeature::Auth,
             Err(RoutedError {
-                error: invalid_input("ordinary routed execution does not accept auth commands"),
+                error: invalid_input("普通路由执行不接受认证命令"),
                 resolution: None,
             }),
         ),
@@ -1733,11 +1730,11 @@ async fn run_routed_judge<B: RoutedCliBackend + Send>(
                 .into_iter()
                 .map(|key| {
                     let (course_id, assignment_id) = key.split_once(':').ok_or_else(|| {
-                        invalid_input("judge detail key must use course-id:assignment-id")
+                        invalid_input("希冀详情键必须使用 course-id:assignment-id 格式")
                     })?;
                     if course_id.is_empty() || assignment_id.is_empty() {
                         return Err(invalid_input(
-                            "judge detail key must use course-id:assignment-id",
+                            "希冀详情键必须使用 course-id:assignment-id 格式",
                         ));
                     }
                     Ok(JudgeAssignmentKey {
@@ -1855,7 +1852,7 @@ fn routed_readonly<T: Serialize>(
 ) -> RoutedResult<CommandOutput> {
     result.and_then(|Routed { data, resolution }| {
         let data = serde_json::to_value(data).map_err(|_| RoutedError {
-            error: internal_error("could not serialize command output"),
+            error: internal_error("无法序列化命令输出"),
             resolution: Some(resolution),
         })?;
         Ok(Routed {
@@ -2066,30 +2063,27 @@ where
 {
     let username = if arguments.username_stdin {
         if arguments.username.is_some() {
-            return Err(invalid_input(
-                "--username and --username-stdin are mutually exclusive",
-            ));
+            return Err(invalid_input("--username 与 --username-stdin 不能同时使用"));
         }
-        let username = read_secret_line(input, "username is missing on standard input")?;
+        let username = read_secret_line(input, "标准输入中缺少用户名")?;
         if username.trim().is_empty() {
-            return Err(invalid_input("username must not be empty"));
+            return Err(invalid_input("用户名不能为空"));
         }
         username
     } else {
         match arguments.username {
             Some(username) if !username.trim().is_empty() => username,
-            Some(_) if json_mode => return Err(invalid_input("username must not be empty")),
-            None if json_mode => return Err(invalid_input("--username is required in JSON mode")),
-            _ => prompt_line(input, stderr, "Username: ")?,
+            Some(_) if json_mode => return Err(invalid_input("用户名不能为空")),
+            None if json_mode => return Err(invalid_input("JSON 模式必须提供 --username")),
+            _ => prompt_line(input, stderr, "用户名：")?,
         }
     };
     let password = if arguments.password_stdin {
-        read_secret_line(input, "password is missing on standard input")?
+        read_secret_line(input, "标准输入中缺少密码")?
     } else if json_mode {
-        return Err(invalid_input("--password-stdin is required in JSON mode"));
+        return Err(invalid_input("JSON 模式必须提供 --password-stdin"));
     } else {
-        rpassword::prompt_password("Password: ")
-            .map_err(|_| internal_error("could not read password securely"))?
+        rpassword::prompt_password("密码：").map_err(|_| internal_error("无法安全读取密码"))?
     };
 
     backend
@@ -2209,11 +2203,11 @@ async fn run_judge<B: CliBackend + Send>(
                 .into_iter()
                 .map(|key| {
                     let (course_id, assignment_id) = key.split_once(':').ok_or_else(|| {
-                        invalid_input("judge detail key must use course-id:assignment-id")
+                        invalid_input("希冀详情键必须使用 course-id:assignment-id 格式")
                     })?;
                     if course_id.is_empty() || assignment_id.is_empty() {
                         return Err(invalid_input(
-                            "judge detail key must use course-id:assignment-id",
+                            "希冀详情键必须使用 course-id:assignment-id 格式",
                         ));
                     }
                     Ok(JudgeAssignmentKey {
@@ -2324,8 +2318,8 @@ async fn run_cgyy<B: CliBackend + Send>(
 }
 
 fn readonly<T: Serialize>(result: FeatureResult<T>, feature: CliFeature) -> Result<CommandOutput> {
-    let data = serde_json::to_value(result.data)
-        .map_err(|_| internal_error("could not serialize command output"))?;
+    let data =
+        serde_json::to_value(result.data).map_err(|_| internal_error("无法序列化命令输出"))?;
     Ok(CommandOutput::Readonly {
         data,
         route: result.resolved_route,
@@ -2383,7 +2377,7 @@ fn render_result<O: Write, E: Write>(
                 feature,
             } = output
             {
-                if writeln!(stdout, "{} ({route:?}): {data}", feature.as_str()).is_err() {
+                if writeln!(stdout, "{}（{route:?}）：{data}", feature.as_str()).is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else if render_human(output, stdout).is_err() {
@@ -2408,7 +2402,7 @@ fn command_output_value(output: CommandOutput) -> Result<Value> {
         CommandOutput::Status(status) => serde_json::to_value(status),
         CommandOutput::Logout(value) | CommandOutput::Readonly { data: value, .. } => Ok(value),
     }
-    .map_err(|_| internal_error("could not serialize command output"))
+    .map_err(|_| internal_error("无法序列化命令输出"))
 }
 
 fn render_resolved_error<O: Write, E: Write>(
@@ -2427,7 +2421,7 @@ fn render_resolved_error<O: Write, E: Write>(
         if write_json(stdout, &envelope).is_err() {
             return ExitCode::Internal as i32;
         }
-    } else if writeln!(stderr, "Error: {error}").is_err() {
+    } else if writeln!(stderr, "错误：{error}").is_err() {
         return ExitCode::Internal as i32;
     }
     exit_code
@@ -2458,7 +2452,7 @@ pub fn render_startup_error<O: Write, E: Write>(
         if write_json(stdout, &envelope).is_err() {
             return ExitCode::Internal as i32;
         }
-    } else if writeln!(stderr, "Error: {error}").is_err() {
+    } else if writeln!(stderr, "错误：{error}").is_err() {
         return ExitCode::Internal as i32;
     }
     exit_code
@@ -2468,22 +2462,22 @@ fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> std::io::Res
     match output {
         CommandOutput::Profile(profile) => write_profile(stdout, &profile),
         CommandOutput::Status(status) => {
-            writeln!(stdout, "Authenticated: yes")?;
-            writeln!(stdout, "Connection checked: {}", status.last_activity)?;
+            writeln!(stdout, "已认证：是")?;
+            writeln!(stdout, "连接检查时间：{}", status.last_activity)?;
             write_profile(stdout, &status.user)
         }
-        CommandOutput::Logout(_) => writeln!(stdout, "Signed out."),
+        CommandOutput::Logout(_) => writeln!(stdout, "已退出登录。"),
         CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
     }
 }
 
 fn write_profile<O: Write>(stdout: &mut O, profile: &UserProfile) -> std::io::Result<()> {
-    write_optional(stdout, "Name", profile.name.as_deref())?;
-    write_optional(stdout, "School ID", profile.school_id.as_deref())?;
-    write_optional(stdout, "Username", profile.username.as_deref())?;
-    write_optional(stdout, "Phone", profile.phone.as_deref())?;
-    write_optional(stdout, "ID card", profile.id_card_number.as_deref())?;
-    write_optional(stdout, "Email", profile.email.as_deref())
+    write_optional(stdout, "姓名", profile.name.as_deref())?;
+    write_optional(stdout, "学号", profile.school_id.as_deref())?;
+    write_optional(stdout, "用户名", profile.username.as_deref())?;
+    write_optional(stdout, "手机号", profile.phone.as_deref())?;
+    write_optional(stdout, "身份证号", profile.id_card_number.as_deref())?;
+    write_optional(stdout, "邮箱", profile.email.as_deref())
 }
 
 fn write_optional<O: Write>(
@@ -2528,23 +2522,20 @@ fn prompt_line<R: BufRead, E: Write>(
     prompt: &str,
 ) -> Result<String> {
     loop {
-        write!(stderr, "{prompt}").map_err(|_| internal_error("could not write prompt"))?;
-        stderr
-            .flush()
-            .map_err(|_| internal_error("could not flush prompt"))?;
+        write!(stderr, "{prompt}").map_err(|_| internal_error("无法写入提示"))?;
+        stderr.flush().map_err(|_| internal_error("无法刷新提示"))?;
         let mut value = String::new();
         let read = input
             .read_line(&mut value)
-            .map_err(|_| invalid_input("required input could not be read"))?;
+            .map_err(|_| invalid_input("无法读取必填输入"))?;
         if read == 0 {
-            return Err(invalid_input("required input is missing"));
+            return Err(invalid_input("缺少必填输入"));
         }
         let value = value.trim_end_matches(['\r', '\n']).to_string();
         if !value.is_empty() {
             return Ok(value);
         }
-        writeln!(stderr, "A value is required.")
-            .map_err(|_| internal_error("could not write prompt"))?;
+        writeln!(stderr, "必须提供一个值。").map_err(|_| internal_error("无法写入提示"))?;
     }
 }
 
@@ -2577,7 +2568,7 @@ pub fn authentication_required() -> UbaaError {
         ErrorCode::AuthenticationRequired,
         ErrorKind::Authentication,
         false,
-        "authentication is required",
+        "需要先完成认证",
     )
 }
 
