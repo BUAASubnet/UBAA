@@ -140,7 +140,8 @@ pub(crate) async fn ensure_login(
         ) {
             return Err(error("博雅登录跳转到未允许的主机"));
         }
-        current = target.to_string();
+        // 业务跳转必须继续沿用当前路线，WebVPN 模式不能回落到直连地址。
+        current = runtime.url(target.as_str())?;
     }
     Err(error("博雅登录跳转次数超过限制"))
 }
