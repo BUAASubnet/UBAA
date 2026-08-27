@@ -1,4 +1,4 @@
-//! Verified SSO and User Center URLs, form parsing, and response mapping.
+//! 已验证的 SSO 与用户中心地址、表单解析和响应映射。
 
 use scraper::{Html, Selector};
 use std::collections::BTreeMap;
@@ -6,32 +6,30 @@ use std::collections::BTreeMap;
 use crate::domain::{LoginInput, UserInfoResponse, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
-/// Frozen SSO login endpoint.
+/// 冻结的 SSO 登录地址。
 pub const SSO_LOGIN_URL: &str = "https://sso.buaa.edu.cn/login";
-/// Frozen SSO logout endpoint.
+/// 冻结的 SSO 登出地址。
 pub const SSO_LOGOUT_URL: &str = "https://sso.buaa.edu.cn/logout";
-/// Frozen User Center activation endpoint.
+/// 冻结的用户中心激活地址。
 pub const UC_ACTIVATE_URL: &str =
     "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-/// Frozen User Center status endpoint.
+/// 冻结的用户中心状态地址。
 pub const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
-/// Frozen User Center profile endpoint.
+/// 冻结的用户中心资料地址。
 pub const UC_USERINFO_URL: &str = "https://uc.buaa.edu.cn/api/uc/userinfo";
 
-/// Extract the current CAS execution token from an HTML form.
+/// 从 HTML 表单中提取当前 CAS execution 令牌。
 #[must_use]
 pub fn extract_execution(html: &str) -> Option<String> {
     select_first_attr(html, "input[name=execution]", "value").filter(|value| !value.is_empty())
 }
 
-/// Identify a login page shape that this client deliberately does not support.
+/// 判断当前客户端明确不支持的登录页形态。
 ///
-/// The frozen CAS parser only defines hidden fields, username/password controls,
-/// checkboxes, and submit/button/image controls. A page with the known captcha or
-/// deny-only `config.*` verification markers, an extra visible control, or a
-/// non-input form control is therefore treated as an unsupported interactive step.
-/// This is a closed-world safety boundary: it rejects unknown verification UI
-/// without inventing its fields.
+/// 冻结的 CAS 解析器只定义隐藏字段、用户名/密码控件、复选框以及提交/按钮/图片控件。
+/// 因此，包含已知验证码或仅拒绝访问的 `config.*` 校验标记、额外可见控件或非 input
+/// 表单控件的页面，都会被视为不支持的交互步骤。这是一个封闭世界安全边界：拒绝未知的
+/// 校验界面，不擅自猜测其字段。
 #[must_use]
 pub(crate) fn has_unsupported_login_step(html: &str) -> bool {
     let lower = html.to_ascii_lowercase();
@@ -91,11 +89,11 @@ pub(crate) fn has_unsupported_login_step(html: &str) -> bool {
     })
 }
 
-/// Build the ordinary CAS form while preserving verified hidden/default inputs.
+/// 保留已验证的隐藏/默认输入，构造普通 CAS 表单。
 ///
 /// # Errors
 ///
-/// Returns an upstream-changed error when the form cannot be selected.
+/// 当无法选出表单时返回上游已变化错误。
 pub fn build_login_form(
     html: &str,
     input: &LoginInput,
@@ -164,7 +162,7 @@ pub fn build_login_form(
     Ok(values)
 }
 
-/// Detect the one password-risk continuation recognized by the frozen clients.
+/// 判断冻结客户端认可的唯一一种密码风险继续页面。
 #[must_use]
 pub fn is_password_risk_page(html: &str) -> bool {
     extract_execution(html).is_some()
@@ -174,7 +172,7 @@ pub fn is_password_risk_page(html: &str) -> bool {
             || html.contains("密码过期"))
 }
 
-/// Extract a human-safe authentication error from known CAS containers.
+/// 从已知 CAS 容器中提取可安全展示给用户的认证错误。
 #[must_use]
 pub fn find_login_error(html: &str) -> Option<String> {
     let document = Html::parse_document(html);
@@ -196,11 +194,11 @@ pub fn find_login_error(html: &str) -> Option<String> {
     None
 }
 
-/// Parse the User Center `code/data` wrapper.
+/// 解析用户中心的 `code/data` 响应包装。
 ///
 /// # Errors
 ///
-/// Returns a stable parse/upstream error for malformed, nonzero, or missing data.
+/// 对格式错误、非零状态码或缺少数据返回稳定的解析/上游错误。
 pub fn parse_user_info(body: &str) -> Result<UserProfile> {
     let payload: UserInfoResponse = serde_json::from_str(body).map_err(|_| {
         UbaaError::new(
@@ -218,7 +216,7 @@ pub fn parse_user_info(body: &str) -> Result<UserProfile> {
         .ok_or_else(|| upstream_changed("User Center response is missing data"))
 }
 
-/// Encode an ordered form using standard URL form encoding.
+/// 使用标准 URL 表单编码方式编码有序表单。
 #[must_use]
 pub fn encode_form(form: &BTreeMap<String, String>) -> Vec<u8> {
     url::form_urlencoded::Serializer::new(String::new())

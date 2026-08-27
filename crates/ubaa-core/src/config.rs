@@ -1,4 +1,4 @@
-//! Versioned, non-secret route configuration.
+//! 带版本且不含秘密信息的路由配置。
 #![allow(clippy::missing_errors_doc)]
 
 use serde::Deserialize;
@@ -10,12 +10,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::domain::{ReadonlyFeature, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
-/// Parsed route configuration. It contains no account, Cookie, or login state.
+/// 已解析的路由配置，不包含账号、Cookie 或登录状态。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RouteConfig {
-    /// Schema version accepted by this implementation.
+    /// 本实现接受的架构版本。
     pub schema_version: u32,
-    /// Default policy for commands without a feature-specific override.
+    /// 未设置功能专属覆盖项时使用的默认策略。
     pub default: RoutePolicy,
     features: FeaturePolicies,
 }
@@ -84,7 +84,7 @@ impl Default for RouteConfig {
 }
 
 impl RouteConfig {
-    /// Parse versioned TOML, using the contract defaults for missing content.
+    /// 解析带版本的 TOML，缺少内容时使用合同规定的默认值。
     pub fn parse(input: &str) -> Result<Self> {
         if input.trim().is_empty() {
             return Ok(Self::default());
@@ -112,7 +112,7 @@ impl RouteConfig {
         })
     }
 
-    /// Load `config.toml` from a configuration directory; missing files use defaults.
+    /// 从配置目录加载 `config.toml`；文件缺失时使用默认值。
     pub fn load(config_dir: impl AsRef<Path>) -> Result<Self> {
         let dir = config_dir.as_ref();
         if !validate_config_directory(dir, true)? {
@@ -145,7 +145,7 @@ impl RouteConfig {
         Self::parse(&input)
     }
 
-    /// Serialize the stable, non-secret config shape.
+    /// 序列化稳定且不含秘密信息的配置结构。
     #[must_use]
     pub fn to_toml(&self) -> String {
         let mut output = format!(
@@ -173,7 +173,7 @@ impl RouteConfig {
         output
     }
 
-    /// Atomically write the non-secret config file with owner-only permissions where supported.
+    /// 原子写入不含秘密信息的配置文件；在支持的平台上仅授予所有者权限。
     pub fn save(&self, config_dir: impl AsRef<Path>) -> Result<PathBuf> {
         let dir = config_dir.as_ref();
         std::fs::create_dir_all(dir).map_err(|_| invalid_config())?;
@@ -209,7 +209,7 @@ impl RouteConfig {
         Ok(path)
     }
 
-    /// Return the configured policy for a feature, falling back to the default.
+    /// 返回功能的配置策略，未配置时回退到默认策略。
     #[must_use]
     pub fn feature(&self, feature: ReadonlyFeature) -> RoutePolicy {
         match feature {
@@ -356,21 +356,21 @@ fn policy_name(policy: RoutePolicy) -> &'static str {
     }
 }
 
-/// One route-matrix row used by deterministic policy resolution.
+/// 确定性策略解析使用的一行路由矩阵配置。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FeatureRouteConfig {
-    /// Evidence-backed route that overrides gateway detection only for `auto` policy.
+    /// 有证据支持的路线，仅在 `auto` 策略下覆盖网关探测结果。
     pub auto_route_override: Option<crate::domain::ConnectionMode>,
-    /// Fallback route when gateway reachability is unknown.
+    /// 网关可达性未知时使用的回退路线。
     pub unknown_default: crate::domain::ConnectionMode,
-    /// Whether another ready route may be used before sending a request.
+    /// 发送请求前是否可以使用另一条已就绪路线。
     pub allow_ready_route_fallback: bool,
-    /// Whether an allow-listed network error may be replayed on the other route.
+    /// 出现列入允许清单的网络错误时，是否可以在另一条路线重放请求。
     pub allow_network_fallback: bool,
 }
 
 impl FeatureRouteConfig {
-    /// Return the evidence-backed initial row for a read-only feature.
+    /// 返回只读功能有证据支持的初始矩阵行。
     #[must_use]
     pub const fn for_feature(_feature: ReadonlyFeature) -> Self {
         Self {
