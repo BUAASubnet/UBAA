@@ -22,6 +22,7 @@ pub struct RouteConfig {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct FeaturePolicies {
+    signin: Option<RoutePolicy>,
     schedule: Option<RoutePolicy>,
     exam: Option<RoutePolicy>,
     grades: Option<RoutePolicy>,
@@ -51,6 +52,7 @@ struct RawRoute {
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawFeatures {
+    signin: Option<RoutePolicy>,
     schedule: Option<RoutePolicy>,
     exam: Option<RoutePolicy>,
     grades: Option<RoutePolicy>,
@@ -87,6 +89,7 @@ impl RouteConfig {
             schema_version: raw.schema_version,
             default: raw.route.default,
             features: FeaturePolicies {
+                signin: raw.route.features.signin,
                 schedule: raw.route.features.schedule,
                 exam: raw.route.features.exam,
                 grades: raw.route.features.grades,
@@ -139,6 +142,7 @@ impl RouteConfig {
             policy_name(self.default)
         );
         for feature in [
+            ReadonlyFeature::Signin,
             ReadonlyFeature::Schedule,
             ReadonlyFeature::Exam,
             ReadonlyFeature::Grades,
@@ -194,7 +198,7 @@ impl RouteConfig {
     #[must_use]
     pub fn feature(&self, feature: ReadonlyFeature) -> RoutePolicy {
         match feature {
-            ReadonlyFeature::Signin => None,
+            ReadonlyFeature::Signin => self.features.signin,
             ReadonlyFeature::Schedule => self.features.schedule,
             ReadonlyFeature::Exam => self.features.exam,
             ReadonlyFeature::Grades => self.features.grades,

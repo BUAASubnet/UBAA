@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -169,6 +169,18 @@
         "place": { "$ref": "#/$defs/nullableString" },
         "time": { "$ref": "#/$defs/nullableString" },
         "shortName": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "signinClass": {
+      "type": "object",
+      "required": ["courseId", "courseName", "classBeginTime", "classEndTime", "signStatus"],
+      "properties": {
+        "courseId": { "type": "string" },
+        "courseName": { "type": "string" },
+        "classBeginTime": { "type": "string" },
+        "classEndTime": { "type": "string" },
+        "signStatus": { "type": "integer" }
       },
       "additionalProperties": false
     },
@@ -601,6 +613,12 @@
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "judge" } }, "required": ["feature"] },
                   "data": { "$ref": "#/$defs/judgeRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "signin" } }, "required": ["feature"] },
+                  "data": { "type": "array", "items": { "$ref": "#/$defs/signinClass" } }
                 }
               }
             ]

@@ -12,8 +12,8 @@ use ubaa_core::domain::{
     AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult,
     GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
     JudgeAssignmentsDiagnostics, LoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue,
-    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule,
+    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
@@ -121,6 +121,23 @@ pub enum Command {
     Spoc(SpocArgs),
     /// Judge read-only operations.
     Judge(JudgeArgs),
+    /// Classroom sign-in read-only operations.
+    Signin(SigninArgs),
+}
+
+/// Classroom sign-in command group.
+#[derive(Debug, Args)]
+pub struct SigninArgs {
+    /// Sign-in operation.
+    #[command(subcommand)]
+    pub command: SigninCommand,
+}
+
+/// Classroom sign-in operations.
+#[derive(Debug, Subcommand)]
+pub enum SigninCommand {
+    /// List today's classes and their sign-in status.
+    Today,
 }
 
 /// Authentication command group.
@@ -409,6 +426,7 @@ impl Cli {
                 | Command::Classroom(_)
                 | Command::Spoc(_)
                 | Command::Judge(_)
+                | Command::Signin(_)
         )
     }
 
@@ -454,6 +472,11 @@ pub trait CliBackend {
     async fn get_user_info(&mut self) -> Result<UserProfile>;
     /// Sign out and clear local state.
     async fn logout(&mut self) -> Result<()>;
+
+    /// 查询今日签到课程。
+    async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
+        Err(internal_error("签到功能不可用"))
+    }
 
     /// Read terms.
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
@@ -542,6 +565,10 @@ pub trait CliBackend {
 /// renders that decision and never selects or repairs a route itself.
 #[async_trait]
 pub trait RoutedCliBackend {
+    /// 查询今日课堂签到状态。
+    async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
+        Err(routed_unavailable("签到功能不可用"))
+    }
     /// Fetch User Center profile data through Core routing.
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         Err(routed_unavailable("user profile is unavailable"))
@@ -869,6 +896,10 @@ impl CliBackend for RouteClient {
         self.logout().await
     }
 
+    async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
+        self.signin_today().await
+    }
+
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.schedule_terms().await
     }
@@ -938,6 +969,9 @@ impl CliBackend for RouteClient {
 
 #[async_trait]
 impl RoutedCliBackend for UbaaClient {
+    async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
+        UbaaClient::signin_today(self).await
+    }
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         UbaaClient::get_user_info(self).await
     }
@@ -1049,6 +1083,12 @@ where
         Command::Judge(arguments) => (
             CliFeature::Judge,
             run_routed_judge(arguments, backend).await,
+        ),
+        Command::Signin(SigninArgs {
+            command: SigninCommand::Today,
+        }) => (
+            CliFeature::Signin,
+            routed_readonly(backend.signin_today().await, CliFeature::Signin),
         ),
         Command::Auth(_) => (
             CliFeature::Auth,
@@ -1347,6 +1387,12 @@ where
         Command::Classroom(arguments) => run_classroom(arguments, backend).await,
         Command::Spoc(arguments) => run_spoc(arguments, backend).await,
         Command::Judge(arguments) => run_judge(arguments, backend).await,
+        Command::Signin(SigninArgs {
+            command: SigninCommand::Today,
+        }) => backend
+            .signin_today()
+            .await
+            .and_then(|data| readonly(data, CliFeature::Signin)),
     };
 
     render_result(
@@ -1370,6 +1416,7 @@ const fn command_feature(command: &Command) -> CliFeature {
         Command::Classroom(_) => CliFeature::Classroom,
         Command::Spoc(_) => CliFeature::Spoc,
         Command::Judge(_) => CliFeature::Judge,
+        Command::Signin(_) => CliFeature::Signin,
     }
 }
 
