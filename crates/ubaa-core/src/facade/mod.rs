@@ -11,13 +11,14 @@ use crate::connection::{
     SystemGatewayProbe,
 };
 use crate::domain::{
-    AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
-    ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
-    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail,
-    LibBookBookingsPage, LibBookLibrary, LibBookSeat, LoginInput, LoginOutcome, LoginReadiness,
-    ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass,
-    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule, YgdkOverview, YgdkRecordsPage,
+    AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
+    ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation, ExamArrangement,
+    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookLibrary, LibBookSeat, LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature,
+    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass, SpocAssignmentDetail,
+    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
+    WeeklySchedule, YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
@@ -308,6 +309,100 @@ impl UbaaClient {
             ConnectionMode::WebVpn => {
                 let mut clear_workflow = || self.webvpn_auth.clear();
                 user::get_user_info(&mut self.webvpn_runtime, &mut clear_workflow).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅用户资料。
+    pub async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_profile(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_profile(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅课程分页。
+    pub async fn bykc_courses(&mut self, page: i32, size: i32) -> RoutedResult<BykcCoursePage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        if page <= 0 || size <= 0 {
+            return Err(routed_error(
+                invalid_input("页码和每页数量必须为正数"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_courses(&mut self.direct_runtime, page, size).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_courses(&mut self.webvpn_runtime, page, size).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅课程详情。
+    pub async fn bykc_course_detail(&mut self, id: i64) -> RoutedResult<BykcCourse> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        if id <= 0 {
+            return Err(routed_error(
+                invalid_input("课程标识必须为正数"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_course_detail(&mut self.direct_runtime, id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_course_detail(&mut self.webvpn_runtime, id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅已选课程。
+    pub async fn bykc_chosen_courses(
+        &mut self,
+        start: &str,
+        end: &str,
+    ) -> RoutedResult<Vec<BykcChosenCourse>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        if start.trim().is_empty() || end.trim().is_empty() {
+            return Err(routed_error(
+                invalid_input("学期起止日期不能为空"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_chosen_courses(&mut self.direct_runtime, start, end)
+                    .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_chosen_courses(&mut self.webvpn_runtime, start, end)
+                    .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅修读统计。
+    pub async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_statistics(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_statistics(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1124,6 +1219,63 @@ impl RouteClient {
         self.guard_session_ownership()?;
         let result = self.auth.logout(&mut self.runtime).await;
         self.finish_session_operation(result)
+    }
+
+    /// 查询博雅用户资料。
+    pub async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::bykc::get_profile(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询博雅课程分页。
+    pub async fn bykc_courses(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> Result<FeatureResult<BykcCoursePage>> {
+        self.guard_session_ownership()?;
+        if page <= 0 || size <= 0 {
+            return Err(invalid_input("页码和每页数量必须为正数"));
+        }
+        let result = crate::features::bykc::get_courses(&mut self.runtime, page, size).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询博雅课程详情。
+    pub async fn bykc_course_detail(&mut self, id: i64) -> Result<FeatureResult<BykcCourse>> {
+        self.guard_session_ownership()?;
+        if id <= 0 {
+            return Err(invalid_input("课程标识必须为正数"));
+        }
+        let result = crate::features::bykc::get_course_detail(&mut self.runtime, id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询博雅已选课程。
+    pub async fn bykc_chosen_courses(
+        &mut self,
+        start: &str,
+        end: &str,
+    ) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
+        self.guard_session_ownership()?;
+        if start.trim().is_empty() || end.trim().is_empty() {
+            return Err(invalid_input("学期起止日期不能为空"));
+        }
+        let result = crate::features::bykc::get_chosen_courses(&mut self.runtime, start, end).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询博雅修读统计。
+    pub async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::bykc::get_statistics(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
     }
 
     /// Read the available academic terms.
