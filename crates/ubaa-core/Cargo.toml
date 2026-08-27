@@ -11,12 +11,16 @@ version.workspace = true
 async-trait = "0.1.89"
 aes = "0.8.4"
 base64 = "0.22.1"
+cipher = { version = "0.4.4", features = ["block-padding"] }
 httpdate = "1.0.3"
 regex = "1.12.2"
+rand = "0.8.5"
 reqwest = "0.13.1"
+rsa = "0.9.8"
 scraper = "0.27.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+sha1 = "0.10.6"
 tokio = { version = "1.49.0", features = ["rt", "sync", "time"] }
 toml = "1.1.4"
 url = "2.5.7"
