@@ -1,4 +1,4 @@
-//! Route-owned, process-local state for read-only feature workflows.
+//! 只读功能流程使用的路线专属进程内状态。
 
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex;
 
-/// State shared only by runtimes and read workers for one route/client.
+/// 仅由一条路线/一个客户端的运行时和读取工作线程共享的状态。
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
     pub(crate) bykc: BykcState,
@@ -240,11 +240,11 @@ impl std::fmt::Debug for SigninState {
     }
 }
 
-/// Once-per-route Classroom bootstrap state.
+/// 每条路线执行一次的空教室引导状态。
 #[derive(Debug, Default)]
 pub(crate) struct ClassroomState {
     sync: Mutex<()>,
-    // The low bit is the synchronized flag. Higher bits form an invalidation generation.
+    // 低位是同步标志，高位构成失效代数。
     generation_and_synced: AtomicU64,
 }
 
@@ -285,7 +285,7 @@ impl ClassroomState {
     }
 }
 
-/// Route-owned SPOC credential and serialized login state.
+/// 路线专属的 SPOC 凭据和串行化登录状态。
 #[derive(Default)]
 pub(crate) struct SpocState {
     invalidations: AtomicU64,
@@ -334,8 +334,7 @@ impl SpocState {
 
     fn clear(&self) {
         self.invalidations.fetch_add(1, Ordering::AcqRel);
-        // A concurrent holder may still be using the old credential; the generation check
-        // prevents it from repopulating this cache after invalidation.
+        // 并发持有者可能仍在使用旧凭据；代数检查可防止失效后重新填充此缓存。
         let mut credential = self
             .credential
             .lock()
@@ -371,7 +370,7 @@ struct JudgeCache {
     historical_courses: HashMap<String, TimedEntry<()>>,
 }
 
-/// Route/client-owned Judge caches and historical cutoff state.
+/// 路线/客户端拥有的希冀缓存和历史截止状态。
 #[derive(Default)]
 pub(crate) struct JudgeState {
     invalidations: AtomicU64,

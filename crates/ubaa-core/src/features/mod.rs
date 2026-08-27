@@ -1,4 +1,4 @@
-//! Campus feature modules built on authenticated Core sessions.
+//! 构建于 Core 认证会话之上的校园功能模块。
 
 pub mod bykc;
 pub mod cgyy;
@@ -43,7 +43,7 @@ pub(crate) async fn get_with_headers(
     runtime.request(request).await
 }
 
-/// Follow the bounded, host-allow-listed redirects used by local business portal probes.
+/// 跟随本地业务门户探测使用的有界、主机白名单重定向。
 pub(crate) async fn get_with_redirects(
     runtime: &mut ClientRuntime,
     url: String,
