@@ -27,6 +27,11 @@ source-parity 记录和二次审查；截至 2026-08-26，认证、六类只读�
 
 Cgyy 场馆预约五项只读查询已完成 DTO、解析器、路线隔离业务会话、Core Facade、CLI 双执行路径和 JSON Schema；Bykc 五项只读查询同样已完成。当前 CLI 已覆盖合同六类业务以及 Signin、Ygdk、LibBook、Bykc、Cgyy 的全部只读入口。所有真实上游验证仍需按路线矩阵单独执行，不能由 Mock 或编译通过替代。
 
+2026-08-28 的 CLI 命令矩阵审计发现 `cgyy` 已接入普通与聚合执行路径，但遗漏在
+`requires_session()` 的会话预检枚举之外。新增覆盖所有扩展只读子命令的解析与功能映射
+测试后复现该缺口，并将 `cgyy` 纳入会话预检；场馆查询现在与其他只读功能一致，会在
+构造客户端时装载已有双路线会话。
+
 ### 2026-08-27 Ygdk
 
 Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/业务令牌请求、路线 facade、CLI `ygdk overview`/`ygdk records` 及 JSON Schema 接线。提交打卡和照片上传仍明确排除；Direct/WebVPN 真实上游验证尚未完成。

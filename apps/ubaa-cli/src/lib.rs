@@ -601,6 +601,7 @@ impl Cli {
                 | Command::Signin(_)
                 | Command::Libbook(_)
                 | Command::Bykc(_)
+                | Command::Cgyy(_)
                 | Command::Ygdk(_)
         )
     }

@@ -391,23 +391,111 @@ async fn hidden_spoc_diagnostics_proves_global_pages_without_raw_protocol_data()
 }
 
 #[test]
-fn 图书馆只读命令解析并要求已有会话() {
-    let cli = Cli::try_parse_from([
-        "ubaa",
-        "libbook",
-        "seats",
-        "--area-id",
-        "area-1",
-        "--day",
-        "2026-08-27",
-        "--start-time",
-        "08:00",
-        "--end-time",
-        "10:00",
-    ])
-    .unwrap();
-    assert!(cli.requires_session());
-    assert_eq!(cli.feature(), CliFeature::LibBook);
+#[allow(clippy::too_many_lines)]
+fn 扩展只读命令全部要求已有会话并映射正确功能() {
+    let cases = [
+        (vec!["ubaa", "signin", "today"], CliFeature::Signin),
+        (
+            vec!["ubaa", "libbook", "libraries", "--day", "2026-08-27"],
+            CliFeature::LibBook,
+        ),
+        (
+            vec![
+                "ubaa",
+                "libbook",
+                "areas",
+                "--premises-id",
+                "9",
+                "--storey-id",
+                "10",
+                "--day",
+                "2026-08-27",
+            ],
+            CliFeature::LibBook,
+        ),
+        (
+            vec!["ubaa", "libbook", "area-detail", "--area-id", "8"],
+            CliFeature::LibBook,
+        ),
+        (
+            vec![
+                "ubaa",
+                "libbook",
+                "seats",
+                "--area-id",
+                "8",
+                "--day",
+                "2026-08-27",
+                "--start-time",
+                "08:00",
+                "--end-time",
+                "10:00",
+            ],
+            CliFeature::LibBook,
+        ),
+        (
+            vec![
+                "ubaa", "libbook", "bookings", "--page", "1", "--limit", "20",
+            ],
+            CliFeature::LibBook,
+        ),
+        (vec!["ubaa", "ygdk", "overview"], CliFeature::Ygdk),
+        (
+            vec!["ubaa", "ygdk", "records", "--page", "1", "--size", "20"],
+            CliFeature::Ygdk,
+        ),
+        (vec!["ubaa", "bykc", "profile"], CliFeature::Bykc),
+        (
+            vec!["ubaa", "bykc", "courses", "--page", "1", "--size", "20"],
+            CliFeature::Bykc,
+        ),
+        (
+            vec!["ubaa", "bykc", "course", "--id", "1"],
+            CliFeature::Bykc,
+        ),
+        (
+            vec![
+                "ubaa",
+                "bykc",
+                "chosen",
+                "--start",
+                "2026-02-23",
+                "--end",
+                "2026-07-12",
+            ],
+            CliFeature::Bykc,
+        ),
+        (vec!["ubaa", "bykc", "statistics"], CliFeature::Bykc),
+        (vec!["ubaa", "cgyy", "sites"], CliFeature::Cgyy),
+        (vec!["ubaa", "cgyy", "purposes"], CliFeature::Cgyy),
+        (
+            vec![
+                "ubaa",
+                "cgyy",
+                "day",
+                "--site-id",
+                "1",
+                "--date",
+                "2026-08-27",
+            ],
+            CliFeature::Cgyy,
+        ),
+        (
+            vec!["ubaa", "cgyy", "orders", "--page", "0", "--size", "10"],
+            CliFeature::Cgyy,
+        ),
+        (
+            vec!["ubaa", "cgyy", "detail", "--id", "1"],
+            CliFeature::Cgyy,
+        ),
+    ];
+
+    for (arguments, feature) in cases {
+        let cli = Cli::try_parse_from(arguments.clone())
+            .unwrap_or_else(|error| panic!("命令解析失败 {arguments:?}: {error}"));
+        assert!(cli.requires_session(), "命令未要求会话: {arguments:?}");
+        assert_eq!(cli.feature(), feature, "功能映射错误: {arguments:?}");
+    }
 }
 
 #[tokio::test]
