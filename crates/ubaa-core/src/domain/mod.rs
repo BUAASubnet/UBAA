@@ -1,34 +1,33 @@
-//! Stable domain values shared by the core facade and host bindings.
+//! Core facade 与宿主绑定共享的稳定领域值。
 
 use std::fmt;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-/// Network path used for all requests owned by a client.
+/// 客户端所有请求使用的网络路线。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConnectionMode {
     /// Reach upstream services directly.
     Direct,
-    /// Route upstream services through the BUAA `WebVPN` gateway.
+    /// 通过北航 `WebVPN` 网关访问上游服务。
     WebVpn,
 }
 
-/// User-selectable route policy. `Auto` is resolved internally and never requires
-/// a host to choose a concrete connection mode.
+/// 用户可选择的路线策略。`Auto` 在 Core 内部解析，宿主无需选择具体连接模式。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RoutePolicy {
-    /// Resolve from the current campus gateway reachability signal and feature matrix.
+    /// 根据当前校园网关可达性信号和功能矩阵解析。
     #[default]
     Auto,
-    /// Use the direct upstream route.
+    /// 使用上游直连路线。
     Direct,
-    /// Use the BUAA `WebVPN` gateway route.
+    /// 使用北航 `WebVPN` 网关路线。
     WebVpn,
 }
 
-/// Read-only feature names registered in the route matrix.
+/// 注册到路由矩阵中的只读功能名称。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReadonlyFeature {
@@ -40,13 +39,13 @@ pub enum ReadonlyFeature {
     LibBook,
     /// 阳光打卡只读查询。
     Ygdk,
-    /// Classroom sign-in status queries.
+    /// 课堂签到状态查询。
     Signin,
     /// Schedule and teaching-week operations.
     Schedule,
-    /// Exam arrangements.
+    /// 考试安排。
     Exam,
-    /// Grade list operations.
+    /// 成绩列表操作。
     Grades,
     /// Empty classroom search.
     Classroom,
@@ -57,7 +56,7 @@ pub enum ReadonlyFeature {
 }
 
 impl ReadonlyFeature {
-    /// Stable configuration key.
+    /// 稳定的配置键。
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -401,207 +400,207 @@ pub struct CgyyOrdersPage {
     pub number: i32,
 }
 
-/// One iClass classroom sign-in status entry.
+/// 一条 iClass 课堂签到状态。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SigninClass {
-    /// Upstream course schedule identifier.
+    /// 上游课程安排标识。
     pub course_id: String,
-    /// Course display name.
+    /// 课程显示名称。
     pub course_name: String,
-    /// Classroom start time.
+    /// 上课开始时间。
     pub class_begin_time: String,
-    /// Classroom end time.
+    /// 上课结束时间。
     pub class_end_time: String,
-    /// Sign-in state: zero means not signed in and one means signed in.
+    /// 签到状态：零表示未签到，一表示已签到。
     pub sign_status: i32,
 }
 
-/// A verified academic term entry.
+/// 一条已验证的学期信息。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Term {
-    /// Upstream term code such as `2025-2026-1`.
+    /// 上游学期代码，例如 `2025-2026-1`。
     pub item_code: String,
-    /// Human-readable term name.
+    /// 供用户阅读的学期名称。
     pub item_name: String,
-    /// Whether the portal selected this term.
+    /// 门户是否选中了该学期。
     pub selected: bool,
-    /// Upstream ordering index.
+    /// 上游排序索引。
     pub item_index: i32,
 }
 
-/// One teaching week.
+/// 一条教学周信息。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Week {
-    /// Week start date.
+    /// 周起始日期。
     pub start_date: String,
-    /// Week end date.
+    /// 周结束日期。
     pub end_date: String,
-    /// Owning term code.
+    /// 所属学期代码。
     pub term: String,
-    /// Whether this is the current week.
+    /// 是否为当前教学周。
     pub cur_week: bool,
-    /// Numeric week serial.
+    /// 数字形式的周序号。
     pub serial_number: i32,
-    /// Display name.
+    /// 显示名称。
     pub name: String,
 }
 
-/// One scheduled class.
+/// 一节课程安排。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CourseClass {
-    /// Course code.
+    /// 课程代码。
     pub course_code: String,
-    /// Course display name.
+    /// 课程显示名称。
     pub course_name: String,
-    /// Optional course serial number.
+    /// 可选的课程序号。
     pub course_serial_no: Option<String>,
-    /// Credit as represented by the portal.
+    /// 门户表示的学分。
     pub credit: Option<String>,
-    /// Start time.
+    /// 开始时间。
     pub begin_time: Option<String>,
-    /// End time.
+    /// 结束时间。
     pub end_time: Option<String>,
-    /// First class section.
+    /// 起始节次。
     pub begin_section: Option<i32>,
-    /// Last class section.
+    /// 结束节次。
     pub end_section: Option<i32>,
-    /// Classroom.
+    /// 教室。
     pub place_name: Option<String>,
-    /// Weeks and teacher description.
+    /// 周次和教师描述。
     pub weeks_and_teachers: Option<String>,
-    /// Teaching target.
+    /// 授课对象。
     pub teaching_target: Option<String>,
-    /// Display color.
+    /// 显示颜色。
     pub color: Option<String>,
-    /// Day of week 1-7.
+    /// 星期，取值 1-7。
     pub day_of_week: Option<i32>,
 }
 
-/// Week schedule wrapper.
+/// 教学周课表包装。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WeeklySchedule {
-    /// Arranged classes.
+    /// 已安排的课程。
     pub arranged_list: Vec<CourseClass>,
-    /// Term code returned by the portal.
+    /// 门户返回的学期代码。
     pub code: String,
-    /// Term display name.
+    /// 学期显示名称。
     pub name: String,
 }
 
-/// One today's class summary.
+/// 一条今日课程摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TodayClass {
-    /// Business/course name.
+    /// 业务/课程名称。
     pub biz_name: String,
-    /// Classroom.
+    /// 教室。
     pub place: Option<String>,
-    /// Display time.
+    /// 显示时间。
     pub time: Option<String>,
-    /// Short course name.
+    /// 课程简称。
     pub short_name: Option<String>,
 }
 
-/// Exam arrangement.
+/// 考试安排。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExamArrangement {
-    /// Arranged examinations.
+    /// 已安排的考试。
     pub arranged: Vec<Exam>,
-    /// Unarranged examinations when supplied by the upstream.
+    /// 上游提供的未安排考试。
     pub not_arranged: Vec<Exam>,
 }
 
-/// One exam entry.
+/// 一条考试信息。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Exam {
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
-    /// Course number.
+    /// 课程编号。
     pub course_no: Option<String>,
-    /// Display time description.
+    /// 显示时间描述。
     pub exam_time_description: Option<String>,
-    /// Examination date.
+    /// 考试日期。
     pub exam_date: Option<String>,
-    /// Start time.
+    /// 开始时间。
     pub start_time: Option<String>,
-    /// End time.
+    /// 结束时间。
     pub end_time: Option<String>,
-    /// Examination location.
+    /// 考试地点。
     pub exam_place: Option<String>,
-    /// Seat number.
+    /// 座位号。
     pub exam_seat_no: Option<String>,
-    /// Week number.
+    /// 周序号。
     pub week: Option<i32>,
-    /// Upstream status.
+    /// 上游状态。
     pub exam_status: Option<i32>,
-    /// Exam type.
+    /// 考试类型。
     pub exam_type: Option<String>,
-    /// Upstream task ID.
+    /// 上游任务标识。
     pub task_id: Option<String>,
 }
 
-/// One course grade.
+/// 一门课程成绩。
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Grade {
-    /// Course name.
+    /// 课程名称。
     pub course_name: Option<String>,
-    /// Course code.
+    /// 课程代码。
     pub course_code: Option<String>,
-    /// Credit value.
+    /// 学分值。
     pub credit: Option<f64>,
-    /// Score as displayed by the upstream.
+    /// 上游展示的成绩。
     pub score: Option<String>,
-    /// Grade point.
+    /// 绩点。
     pub grade_point: Option<String>,
-    /// Course category/type.
+    /// 课程类别/类型。
     pub course_type: Option<String>,
-    /// Score recognition type.
+    /// 成绩认定类型。
     pub score_type: Option<String>,
-    /// Term code.
+    /// 学期代码。
     pub term_code: Option<String>,
 }
 
-/// Grades for one requested term.
+/// 指定学期的成绩。
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GradeData {
-    /// Requested term code.
+    /// 请求的学期代码。
     pub term_code: String,
-    /// Parsed grades.
+    /// 解析后的成绩。
     pub grades: Vec<Grade>,
 }
 
-/// Empty classroom query response.
+/// 空闲教室查询响应。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClassroomQuery {
-    /// Upstream result code.
+    /// 上游结果代码。
     pub code: i32,
-    /// Upstream message.
+    /// 上游消息。
     pub message: String,
-    /// Grouped classrooms by floor/building.
+    /// 按楼层/楼栋分组的教室。
     pub floors: std::collections::BTreeMap<String, Vec<ClassroomInfo>>,
 }
 
-/// One available classroom.
+/// 一间可用教室。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClassroomInfo {
-    /// Classroom ID.
+    /// 教室标识。
     pub id: String,
-    /// Floor/building ID.
+    /// 楼层/楼栋标识。
     pub floor_id: String,
-    /// Classroom name.
+    /// 教室名称。
     pub name: String,
-    /// Available class sections.
+    /// 可用节次。
     pub available_sections: String,
 }
 
