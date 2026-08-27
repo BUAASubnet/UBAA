@@ -3,6 +3,7 @@
 pub mod classroom;
 pub mod grades;
 pub mod judge;
+pub mod libbook;
 pub mod schedule;
 pub mod signin;
 pub mod spoc;

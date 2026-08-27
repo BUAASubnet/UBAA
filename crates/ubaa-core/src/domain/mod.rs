@@ -133,6 +133,82 @@ pub struct YgdkRecordsPage {
     pub has_more: bool,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookLibrary {
+    pub id: String,
+    pub name: String,
+    pub free_num: i32,
+    pub total_num: i32,
+    pub storeys: Vec<LibBookStorey>,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookStorey {
+    pub id: String,
+    pub name: String,
+    pub free_num: i32,
+    pub total_num: i32,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookArea {
+    pub id: String,
+    pub name: String,
+    pub area_name: String,
+    pub premises_id: String,
+    pub storey_id: String,
+    pub free_num: i32,
+    pub total_num: i32,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookAreaDetail {
+    pub id: String,
+    pub name: String,
+    pub available_dates: Vec<String>,
+    pub time_slots: Vec<LibBookTimeSlot>,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookTimeSlot {
+    pub id: String,
+    pub start: String,
+    pub end: String,
+    pub label: String,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookSeat {
+    pub id: String,
+    pub name: String,
+    pub no: String,
+    pub status: String,
+    pub status_name: String,
+    pub is_available: bool,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookBooking {
+    pub id: String,
+    pub name_merge: String,
+    pub area_name: String,
+    pub seat_no: String,
+    pub day: String,
+    pub begin_time: String,
+    pub end_time: String,
+    pub status: String,
+    pub status_name: String,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookBookingsPage {
+    pub bookings: Vec<LibBookBooking>,
+    pub page: i32,
+    pub limit: i32,
+    pub total: i32,
+}
+
 /// One iClass classroom sign-in status entry.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
