@@ -51,7 +51,7 @@ validate_safe_schema_v2() {
       (ascii_downcase | gsub("[_-]"; "")) as $key
       | ($key | test("execution|cookie|token|authorization|password|secret|credential|sessionid|jwt|bearer|ticket"))
         or ($key | test("html|body|header|url"))
-        or ($key | test("^(raw|source|request|response|session|requesttext|responsetext|requestdata|responsedata|rawrequest|rawresponse|rawpayload|rawdata|content|payload|connectionmode|rolecode)$"));
+        or ($key | test("^(raw|source|request|response|session|requesttext|responsetext|requestdata|responsedata|rawrequest|rawresponse|rawpayload|rawdata|payload|connectionmode|rolecode)$"));
     def safe_error_ok:
       type == "object"
         and ((keys | sort) == (["code", "kind", "message", "retryable"] | sort))
