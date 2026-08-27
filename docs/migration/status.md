@@ -79,6 +79,11 @@ Bykc 首次结果的 `invalid_semantics` 后经审计确认为验证器误将合
 博雅返回 1 条课程、场馆预约返回 4 个站点。SPOC 全局分页证据为 1 页且当前
 作业为空。Signin 与 Ygdk 再次稳定返回 `upstream_changed`，确认其失败并非
 聚合路由或残留会话造成；在取得脱敏上游结构证据前继续失败关闭。
+同轮 WebVPN 显式路线中，认证、课表、考试、成绩、空闲教室、SPOC 和图书馆
+通过；空闲教室仍返回 158 条，SPOC 仍为 1 个全局分页且作业为空，图书馆返回
+2 个馆区。Signin 与 Ygdk 返回 `upstream_changed`，Bykc 返回
+`upstream_changed`，Cgyy 返回 `authentication_required`。这些失败与此前复测
+一致，不能用主认证或其他业务成功替代对应业务路线的协议证据。
 
 | Run | Result |
 |---|---|
