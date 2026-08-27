@@ -1,12 +1,12 @@
 # UBAA 2
 
-UBAA 2 is a Rust core plus host applications for Beijing University of Aeronautics and Astronautics services. This slice provides automatic Direct/WebVPN routing, dual-route authentication, User Center, and six read-only campus features.
+UBAA 2 是面向北京航空航天大学服务的 Rust Core 与宿主应用。本阶段提供自动直连/WebVPN 路由、双路线认证、用户中心以及六类校园只读功能。
 
-## Current state
+## 当前状态
 
-Authentication, Core-owned route policy, the atomic dual-session coordinator, CLI schema v2, and the six read-only implementations are covered by deterministic tests. The corrected 2026-08-26 HEAD passed fresh Direct/WebVPN authentication plus the auto, Direct, and latest WebVPN six-feature live aggregates. Strict WebVPN Judge verification also recorded transient upstream list-snapshot drift before an immediate complete rerun passed. The safe evidence and rerun conditions are tracked in `docs/migration/status.md`; fixture, Mock, or verifier-harness success is not live protocol evidence.
+认证、Core 管理的路由策略、原子双会话协调器、CLI schema v2 及六类只读实现均有确定性测试覆盖。修正后的 2026-08-26 提交已通过 Direct/WebVPN 认证，以及 auto、Direct 和最新 WebVPN 六功能真实聚合验证。严格的 WebVPN 希冀验证曾记录上游列表快照短暂漂移，立即完整重跑后通过。安全证据和重跑条件记录于 `docs/migration/status.md`；fixture、Mock 或验证脚本通过不等于真实协议通过。
 
-## Setup
+## 使用准备
 
 ```bash
 just refs
@@ -46,7 +46,7 @@ cargo run --locked -p ubaa-cli -- classroom search --campus 1 --date 2026-09-01
 cargo run --locked -p ubaa-cli -- judge assignments
 ```
 
-## Verification
+## 验证
 
 ```bash
 just refs
@@ -63,6 +63,6 @@ unset UBAA_VERIFY_DIGEST_SALT
 
 Live verification requires an ignored `.env.local` containing `UBAA_TEST_USERNAME` and `UBAA_TEST_PASSWORD`, plus `UBAA_VERIFY_DIGEST_SALT` for `feature=judge|all`. It never accepts the password as a command-line argument, and the verifier prints only safe route, timing, count, presence, and salted-digest summaries. See the two live runbooks before running the complete matrix.
 
-## Scope
+## 范围
 
-This slice targets authentication, session management, User Center, and read-only schedule, exam, grades, classroom, SPOC, and Judge access. Human and JSON output mask phone and identity-document numbers. Flutter, MCP, server relay, and all write operations remain out of scope.
+本阶段覆盖认证、会话管理、用户中心，以及课表、考试、成绩、空教室、SPOC 和希冀只读访问。人类输出和 JSON 输出都会遮盖手机号及证件号码。Flutter、MCP、服务器中转和所有写操作仍不在范围内。
