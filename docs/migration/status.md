@@ -23,6 +23,10 @@ source-parity 记录和二次审查；截至 2026-08-26，认证、六类只读�
 
 ## Remediation Status
 
+### 2026-08-27 Ygdk
+
+Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/业务令牌请求、路线 facade、CLI `ygdk overview`/`ygdk records` 及 JSON Schema 接线。提交打卡和照片上传仍明确排除；Direct/WebVPN 真实上游验证尚未完成。
+
 | Phase | Current status | Required closure |
 |---|---|---|
 | 0-6 baseline | Preserved; final deterministic gates passed | Frozen references, sensitive-data scan, format, Clippy, workspace tests, build, docs and diff checks pass on the current tree. |
