@@ -264,7 +264,7 @@ impl<T> fmt::Debug for RoutedJsonEnvelope<T> {
     }
 }
 
-/// Aggregate authentication metadata with a fixed Direct, `WebVPN` route pair.
+/// 使用固定 Direct、`WebVPN` 路线对的聚合认证元数据。
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AggregateJsonMeta {
@@ -274,7 +274,7 @@ pub struct AggregateJsonMeta {
 }
 
 impl AggregateJsonMeta {
-    /// Construct authentication metadata without accepting caller-provided routes.
+    /// 构造认证元数据，不接受调用方提供的路线。
     #[must_use]
     pub const fn auth(route_policy: RoutePolicy) -> Self {
         Self {
@@ -285,7 +285,7 @@ impl AggregateJsonMeta {
     }
 }
 
-/// Aggregate JSON envelope whose state can only be created by contract constructors.
+/// 只能通过合同构造函数创建状态的聚合 JSON 信封。
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AggregateJsonEnvelope<T> {
@@ -298,11 +298,11 @@ pub struct AggregateJsonEnvelope<T> {
 }
 
 impl AggregateJsonEnvelope<LoginOutcome> {
-    /// Build a successful aggregate authentication response.
+    /// 构造成功的聚合认证响应。
     ///
     /// # Errors
     ///
-    /// Returns an internal error if the route pair is not Direct then `WebVPN`.
+    /// 当路线对不是 Direct、`WebVPN` 顺序时返回内部错误。
     pub fn auth_success(
         outcome: LoginOutcome,
         route_policy: RoutePolicy,
@@ -317,11 +317,11 @@ impl AggregateJsonEnvelope<LoginOutcome> {
         })
     }
 
-    /// Build a failed aggregate authentication response.
+    /// 构造失败的聚合认证响应。
     ///
     /// # Errors
     ///
-    /// Returns an internal error if the route pair or safe error projection is invalid.
+    /// 当路线对或安全错误投影无效时返回内部错误。
     pub fn auth_failure(
         outcome: LoginOutcome,
         error: SafeError,
@@ -375,7 +375,7 @@ pub struct AggregateLogoutData {
 }
 
 impl AggregateLogoutData {
-    /// Construct the only valid aggregate logout result.
+    /// 构造唯一有效的聚合注销结果。
     #[must_use]
     pub const fn new() -> Self {
         Self {
