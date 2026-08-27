@@ -194,6 +194,7 @@ impl RouteConfig {
     #[must_use]
     pub fn feature(&self, feature: ReadonlyFeature) -> RoutePolicy {
         match feature {
+            ReadonlyFeature::Signin => None,
             ReadonlyFeature::Schedule => self.features.schedule,
             ReadonlyFeature::Exam => self.features.exam,
             ReadonlyFeature::Grades => self.features.grades,

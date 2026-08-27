@@ -4,6 +4,7 @@ pub mod classroom;
 pub mod grades;
 pub mod judge;
 pub mod schedule;
+pub mod signin;
 pub mod spoc;
 pub(crate) mod state;
 pub(crate) mod user;

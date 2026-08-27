@@ -32,6 +32,8 @@ pub enum RoutePolicy {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReadonlyFeature {
+    /// Classroom sign-in status queries.
+    Signin,
     /// Schedule and teaching-week operations.
     Schedule,
     /// Exam arrangements.
@@ -51,6 +53,7 @@ impl ReadonlyFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Signin => "signin",
             Self::Schedule => "schedule",
             Self::Exam => "exam",
             Self::Grades => "grades",
@@ -59,6 +62,22 @@ impl ReadonlyFeature {
             Self::Judge => "judge",
         }
     }
+}
+
+/// One iClass classroom sign-in status entry.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SigninClass {
+    /// Upstream course schedule identifier.
+    pub course_id: String,
+    /// Course display name.
+    pub course_name: String,
+    /// Classroom start time.
+    pub class_begin_time: String,
+    /// Classroom end time.
+    pub class_end_time: String,
+    /// Sign-in state: zero means not signed in and one means signed in.
+    pub sign_status: i32,
 }
 
 /// A verified academic term entry.
