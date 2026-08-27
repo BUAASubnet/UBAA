@@ -468,6 +468,9 @@ fn clap_has_no_plaintext_password_option() {
 fn ordinary_help_hides_route_override_and_lists_readonly_groups() {
     let mut command = Cli::command();
     let help = command.render_long_help().to_string();
+    assert!(help.contains("北航统一认证命令行客户端"));
+    assert!(help.contains("认证并管理持久化会话"));
+    assert!(!help.contains("BUAA unified authentication client"));
     assert!(!help.contains("--mode"));
     for command in ["schedule", "exam", "grades", "classroom", "spoc", "judge"] {
         assert!(

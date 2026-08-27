@@ -1,4 +1,4 @@
-//! Command-line parsing and presentation for UBAA Core.
+//! UBAA Core 的命令行解析与输出展示。
 
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
@@ -25,39 +25,39 @@ use ubaa_core::output::{
     UnresolvedRoutedJsonMeta,
 };
 
-/// UBAA command-line interface.
+/// UBAA 命令行接口。
 #[derive(Debug, Parser)]
-#[command(name = "ubaa", version, about = "BUAA unified authentication client")]
+#[command(name = "ubaa", version, about = "北航统一认证命令行客户端")]
 pub struct Cli {
-    /// Emit one versioned JSON envelope on standard output.
+    /// 在标准输出中生成带版本号的 JSON 信封。
     #[arg(long, global = true)]
     pub json: bool,
 
-    /// Store session state in this directory.
+    /// 将会话状态存储在此目录中。
     #[arg(long, global = true, value_name = "DIR")]
     pub config_dir: Option<PathBuf>,
 
-    /// Disable terminal colors.
+    /// 禁用终端颜色。
     #[arg(long, global = true)]
     pub no_color: bool,
 
-    /// Command to run.
+    /// 要执行的命令。
     #[command(subcommand)]
     pub command: Command,
 }
 
-/// Safe route decision context returned by the Core facade after route resolution.
+/// Core 门面完成路由解析后返回的安全路由决策上下文。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadonlyRouteContext {
-    /// Effective feature route policy.
+    /// 当前功能实际使用的路由策略。
     pub policy: RoutePolicy,
-    /// Gateway reachability state used for the decision, or unknown when no probe ran.
+    /// 决策所用的网关可达状态；未探测时为未知。
     pub network: NetworkState,
-    /// Route selected before fallback.
+    /// 回退前选择的路由。
     pub initial_route: ConnectionMode,
-    /// Route selected after fallback.
+    /// 回退后选择的路由。
     pub resolved_route: ConnectionMode,
-    /// Whether a ready-route fallback occurred.
+    /// 是否发生了就绪路由回退。
     pub used_fallback: bool,
 }
 
@@ -105,26 +105,26 @@ impl From<RouteResolution> for ReadonlyRouteContext {
     }
 }
 
-/// Top-level command groups.
+/// 顶层命令组。
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Authenticate and manage the persisted session.
+    /// 认证并管理持久化会话。
     Auth(AuthArgs),
-    /// Query the authenticated User Center profile.
+    /// 查询已认证的用户中心资料。
     User(UserArgs),
-    /// Schedule and exam read-only operations.
+    /// 课表只读操作。
     Schedule(ScheduleArgs),
-    /// Exam read-only operations.
+    /// 考试只读操作。
     Exam(ExamArgs),
-    /// Grades read-only operations.
+    /// 成绩只读操作。
     Grades(GradesArgs),
-    /// Empty classroom read-only operations.
+    /// 空闲教室只读操作。
     Classroom(ClassroomArgs),
-    /// SPOC read-only operations.
+    /// SPOC 只读操作。
     Spoc(SpocArgs),
-    /// Judge read-only operations.
+    /// 希冀作业只读操作。
     Judge(JudgeArgs),
-    /// Classroom sign-in read-only operations.
+    /// 课堂签到只读操作。
     Signin(SigninArgs),
     /// 图书馆座位只读操作。
     Libbook(LibBookArgs),
@@ -297,152 +297,152 @@ pub enum YgdkCommand {
     },
 }
 
-/// Classroom sign-in command group.
+/// 课堂签到命令组。
 #[derive(Debug, Args)]
 pub struct SigninArgs {
-    /// Sign-in operation.
+    /// 签到查询操作。
     #[command(subcommand)]
     pub command: SigninCommand,
 }
 
-/// Classroom sign-in operations.
+/// 课堂签到只读操作。
 #[derive(Debug, Subcommand)]
 pub enum SigninCommand {
-    /// List today's classes and their sign-in status.
+    /// 列出今日课程及其签到状态。
     Today,
 }
 
-/// Authentication command group.
+/// 认证命令组。
 #[derive(Debug, Args)]
 pub struct AuthArgs {
-    /// Authentication operation.
+    /// 认证操作。
     #[command(subcommand)]
     pub command: AuthCommand,
 }
 
-/// Authentication operations.
+/// 认证操作。
 #[derive(Debug, Subcommand)]
 pub enum AuthCommand {
-    /// Sign in through SSO and persist the resulting session.
+    /// 通过 SSO 登录并持久化会话。
     Login(LoginArgs),
-    /// Validate the persisted session against User Center.
+    /// 通过用户中心验证已持久化的会话。
     Status,
-    /// Sign out remotely when possible and always clear local state.
+    /// 尽可能远程退出，并始终清理本地状态。
     Logout,
 }
 
-/// User Center command group.
+/// 用户中心命令组。
 #[derive(Debug, Args)]
 pub struct UserArgs {
-    /// User Center operation.
+    /// 用户中心操作。
     #[command(subcommand)]
     pub command: UserCommand,
 }
 
-/// User Center operations.
+/// 用户中心操作。
 #[derive(Debug, Subcommand)]
 pub enum UserCommand {
-    /// Show the authenticated User Center profile.
+    /// 显示已认证的用户中心资料。
     Show,
 }
 
-/// Login arguments.
+/// 登录参数。
 #[derive(Args)]
 pub struct LoginArgs {
-    /// Network route used for every request; reuses a saved mode when omitted.
+    /// 每个请求使用的网络路由；省略时复用已保存的模式。
     #[arg(long, value_enum, hide = true)]
     pub mode: Option<CliConnectionMode>,
 
-    /// SSO username. Human mode prompts when omitted.
+    /// SSO 用户名；人类可读模式下省略时会交互询问。
     #[arg(long)]
     pub username: Option<String>,
 
-    /// Read one username line from standard input (hidden verifier/automation surface).
+    /// 从标准输入读取一行用户名（供隐藏的验证与自动化流程使用）。
     #[arg(long, hide = true)]
     pub username_stdin: bool,
 
-    /// Read one password line from standard input.
+    /// 从标准输入读取一行密码。
     #[arg(long)]
     pub password_stdin: bool,
 }
 
-/// Schedule operations.
+/// 课表操作。
 #[derive(Debug, Args)]
 pub struct ScheduleArgs {
-    /// Schedule operation.
+    /// 课表操作。
     #[command(subcommand)]
     pub command: ScheduleCommand,
 }
 
-/// Schedule subcommands.
+/// 课表子命令。
 #[derive(Debug, Subcommand)]
 pub enum ScheduleCommand {
-    /// List terms.
+    /// 列出学期。
     Terms,
-    /// List teaching weeks.
+    /// 列出教学周。
     Weeks {
         #[arg(long)]
         term: String,
     },
-    /// Read one week.
+    /// 查询指定教学周。
     Current {
         #[arg(long)]
         term: String,
         #[arg(long)]
         week: i32,
     },
-    /// Read today's classes.
+    /// 查询今日课程。
     Today,
 }
 
-/// Exam operations.
+/// 考试操作。
 #[derive(Debug, Args)]
 pub struct ExamArgs {
-    /// Exam operation.
+    /// 考试操作。
     #[command(subcommand)]
     pub command: ExamCommand,
 }
 
-/// Exam subcommands.
+/// 考试子命令。
 #[derive(Debug, Subcommand)]
 pub enum ExamCommand {
-    /// List a term's exams.
+    /// 列出指定学期的考试。
     List {
         #[arg(long)]
         term: String,
     },
 }
 
-/// Grade operations.
+/// 成绩操作。
 #[derive(Debug, Args)]
 pub struct GradesArgs {
-    /// Grade operation.
+    /// 成绩操作。
     #[command(subcommand)]
     pub command: GradesCommand,
 }
 
-/// Grade subcommands.
+/// 成绩子命令。
 #[derive(Debug, Subcommand)]
 pub enum GradesCommand {
-    /// List a term's grades.
+    /// 列出指定学期的成绩。
     List {
         #[arg(long)]
         term: String,
     },
 }
 
-/// Classroom operations.
+/// 空闲教室操作。
 #[derive(Debug, Args)]
 pub struct ClassroomArgs {
-    /// Classroom operation.
+    /// 空闲教室操作。
     #[command(subcommand)]
     pub command: ClassroomCommand,
 }
 
-/// Classroom subcommands.
+/// 空闲教室子命令。
 #[derive(Debug, Subcommand)]
 pub enum ClassroomCommand {
-    /// Search free classrooms.
+    /// 查询空闲教室。
     Search {
         #[arg(long)]
         campus: i32,
@@ -451,79 +451,79 @@ pub enum ClassroomCommand {
     },
 }
 
-/// SPOC operations.
+/// SPOC 操作。
 #[derive(Debug, Args)]
 pub struct SpocArgs {
-    /// SPOC operation.
+    /// SPOC 操作。
     #[command(subcommand)]
     pub command: SpocCommand,
 }
 
-/// SPOC subcommands.
+/// SPOC 子命令。
 #[derive(Debug, Subcommand)]
 pub enum SpocCommand {
-    /// List assignments.
+    /// 列出作业。
     Assignments,
-    /// Emit safe global-page completion evidence for live verification.
+    /// 输出用于实时验证的安全全局分页证据。
     #[command(hide = true)]
     Diagnostics,
-    /// Show one assignment.
+    /// 显示一项作业。
     Assignment {
         #[command(subcommand)]
         command: SpocAssignmentCommand,
     },
 }
 
-/// SPOC assignment subcommands.
+/// SPOC 作业子命令。
 #[derive(Debug, Subcommand)]
 pub enum SpocAssignmentCommand {
-    /// Show assignment detail.
+    /// 显示作业详情。
     Show {
         #[arg(long)]
         id: String,
     },
 }
 
-/// Judge operations.
+/// 希冀作业操作。
 #[derive(Debug, Args)]
 pub struct JudgeArgs {
-    /// Judge operation.
+    /// 希冀作业操作。
     #[command(subcommand)]
     pub command: JudgeCommand,
 }
 
-/// Judge subcommands.
+/// 希冀作业子命令。
 #[derive(Debug, Subcommand)]
 pub enum JudgeCommand {
-    /// List assignments.
+    /// 列出作业。
     Assignments {
         #[arg(long)]
         include_expired: bool,
     },
-    /// Emit safe list-parser counts for live verification.
+    /// 输出用于实时验证的安全列表解析计数。
     #[command(hide = true)]
     Diagnostics {
         #[arg(long)]
         include_expired: bool,
     },
-    /// Assignment operations.
+    /// 作业操作。
     Assignment {
         #[command(subcommand)]
         command: JudgeAssignmentCommand,
     },
 }
 
-/// Judge assignment subcommands.
+/// 希冀作业子命令。
 #[derive(Debug, Subcommand)]
 pub enum JudgeAssignmentCommand {
-    /// Show one detail.
+    /// 显示一项详情。
     Show {
         #[arg(long)]
         course_id: String,
         #[arg(long)]
         id: String,
     },
-    /// Show multiple details.
+    /// 显示多项详情。
     Details {
         #[arg(long = "key")]
         keys: Vec<String>,
@@ -542,12 +542,12 @@ impl std::fmt::Debug for LoginArgs {
     }
 }
 
-/// CLI spelling of a connection mode.
+/// CLI 中的连接模式写法。
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum CliConnectionMode {
-    /// Reach BUAA services directly.
+    /// 直接访问北航服务。
     Direct,
-    /// Route BUAA services through `WebVPN`.
+    /// 通过 `WebVPN` 访问北航服务。
     Webvpn,
 }
 
@@ -561,7 +561,7 @@ impl From<CliConnectionMode> for ConnectionMode {
 }
 
 impl Cli {
-    /// Whether this is an authentication login command.
+    /// 当前命令是否为认证登录命令。
     #[must_use]
     pub const fn is_login(&self) -> bool {
         matches!(
@@ -572,7 +572,7 @@ impl Cli {
         )
     }
 
-    /// Return the explicit login mode, when this is an authentication login command.
+    /// 当前命令为认证登录命令时，返回显式登录模式。
     #[must_use]
     pub fn login_mode(&self) -> Option<ConnectionMode> {
         match &self.command {
@@ -583,7 +583,7 @@ impl Cli {
         }
     }
 
-    /// Whether this command requires an existing session before constructing a client.
+    /// 构造客户端前，当前命令是否要求已有会话。
     #[must_use]
     pub const fn requires_session(&self) -> bool {
         matches!(
@@ -605,7 +605,7 @@ impl Cli {
         )
     }
 
-    /// Whether this is a logout command.
+    /// 当前命令是否为退出命令。
     #[must_use]
     pub const fn is_logout(&self) -> bool {
         matches!(
@@ -616,7 +616,7 @@ impl Cli {
         )
     }
 
-    /// Whether this is an ordinary aggregate authentication status command.
+    /// 当前命令是否为普通的聚合认证状态命令。
     #[must_use]
     pub const fn is_auth_status(&self) -> bool {
         matches!(
@@ -627,25 +627,25 @@ impl Cli {
         )
     }
 
-    /// Return the stable JSON feature associated with this command.
+    /// 返回与当前命令关联的稳定 JSON 功能标识。
     #[must_use]
     pub const fn feature(&self) -> CliFeature {
         command_feature(&self.command)
     }
 }
 
-/// Authentication facade needed by command execution.
+/// 命令执行所需的认证门面。
 #[async_trait]
 pub trait CliBackend {
-    /// Fixed connection mode for this backend.
+    /// 当前后端固定使用的连接模式。
     fn mode(&self) -> ConnectionMode;
-    /// Submit credentials and return the authenticated profile.
+    /// 提交凭据并返回已认证的用户资料。
     async fn login(&mut self, input: LoginInput) -> Result<UserProfile>;
-    /// Validate the active session.
+    /// 验证活动会话。
     async fn auth_status(&mut self) -> Result<AuthStatus>;
-    /// Fetch User Center profile data.
+    /// 获取用户中心资料。
     async fn get_user_info(&mut self) -> Result<UserProfile>;
-    /// Sign out and clear local state.
+    /// 退出并清理本地状态。
     async fn logout(&mut self) -> Result<()>;
 
     /// 查询今日签到课程。
@@ -756,15 +756,15 @@ pub trait CliBackend {
         Err(internal_error("阳光打卡不可用"))
     }
 
-    /// Read terms.
+    /// 查询学期。
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         Err(internal_error("schedule is unavailable"))
     }
-    /// Read weeks.
+    /// 查询教学周。
     async fn schedule_weeks(&mut self, _term: &str) -> Result<FeatureResult<Vec<Week>>> {
         Err(internal_error("schedule is unavailable"))
     }
-    /// Read one week.
+    /// 查询指定教学周。
     async fn schedule_week(
         &mut self,
         _term: &str,
@@ -772,19 +772,19 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<WeeklySchedule>> {
         Err(internal_error("schedule is unavailable"))
     }
-    /// Read today.
+    /// 查询今日课程。
     async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
         Err(internal_error("schedule is unavailable"))
     }
-    /// Read exams.
+    /// 查询考试。
     async fn exam_arrangement(&mut self, _term: &str) -> Result<FeatureResult<ExamArrangement>> {
         Err(internal_error("exam is unavailable"))
     }
-    /// Read grades.
+    /// 查询成绩。
     async fn grades(&mut self, _term: &str) -> Result<FeatureResult<GradeData>> {
         Err(internal_error("grades are unavailable"))
     }
-    /// Search classrooms.
+    /// 查询空闲教室。
     async fn classroom_search(
         &mut self,
         _campus: i32,
@@ -792,35 +792,35 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<ClassroomQuery>> {
         Err(internal_error("classroom is unavailable"))
     }
-    /// Read SPOC assignments.
+    /// 查询 SPOC 作业。
     async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
         Err(internal_error("SPOC is unavailable"))
     }
-    /// Read safe SPOC global-page diagnostics.
+    /// 查询安全的 SPOC 全局分页诊断。
     async fn spoc_assignments_diagnostics(
         &mut self,
     ) -> Result<FeatureResult<SpocAssignmentsDiagnostics>> {
         Err(internal_error("SPOC diagnostics are unavailable"))
     }
-    /// Read SPOC detail.
+    /// 查询 SPOC 作业详情。
     async fn spoc_assignment(&mut self, _id: &str) -> Result<FeatureResult<SpocAssignmentDetail>> {
         Err(internal_error("SPOC is unavailable"))
     }
-    /// Read Judge assignments.
+    /// 查询希冀作业。
     async fn judge_assignments(
         &mut self,
         _include_expired: bool,
     ) -> Result<FeatureResult<Vec<JudgeAssignmentSummary>>> {
         Err(internal_error("Judge is unavailable"))
     }
-    /// Read safe Judge parser diagnostics.
+    /// 查询安全的希冀解析诊断。
     async fn judge_assignments_diagnostics(
         &mut self,
         _include_expired: bool,
     ) -> Result<FeatureResult<JudgeAssignmentsDiagnostics>> {
         Err(internal_error("Judge diagnostics are unavailable"))
     }
-    /// Read Judge detail.
+    /// 查询希冀作业详情。
     async fn judge_assignment(
         &mut self,
         _course_id: &str,
@@ -828,7 +828,7 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<JudgeAssignmentDetail>> {
         Err(internal_error("Judge is unavailable"))
     }
-    /// Read Judge details in batch.
+    /// 批量查询希冀作业详情。
     async fn judge_assignment_details(
         &mut self,
         _keys: &[JudgeAssignmentKey],
@@ -837,10 +837,10 @@ pub trait CliBackend {
     }
 }
 
-/// Aggregate Core facade needed by ordinary user and read-only commands.
+/// 普通用户命令和只读命令所需的聚合 Core 门面。
 ///
-/// Every completed route decision is returned by Core with the operation result. The CLI only
-/// renders that decision and never selects or repairs a route itself.
+/// Core 会把每个已完成的路由决策与操作结果一起返回。CLI 仅展示该决策，
+/// 不自行选择或修复路由。
 #[async_trait]
 pub trait RoutedCliBackend {
     /// 查询今日课堂签到状态。
@@ -932,35 +932,35 @@ pub trait RoutedCliBackend {
     async fn ygdk_records(&mut self, _page: i32, _size: i32) -> RoutedResult<YgdkRecordsPage> {
         Err(routed_unavailable("阳光打卡不可用"))
     }
-    /// Fetch User Center profile data through Core routing.
+    /// 通过 Core 路由获取用户中心资料。
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         Err(routed_unavailable("user profile is unavailable"))
     }
-    /// Read terms through Core routing.
+    /// 通过 Core 路由查询学期。
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
         Err(routed_unavailable("schedule is unavailable"))
     }
-    /// Read weeks through Core routing.
+    /// 通过 Core 路由查询教学周。
     async fn schedule_weeks(&mut self, _term: &str) -> RoutedResult<Vec<Week>> {
         Err(routed_unavailable("schedule is unavailable"))
     }
-    /// Read one week through Core routing.
+    /// 通过 Core 路由查询指定教学周。
     async fn schedule_week(&mut self, _term: &str, _week: i32) -> RoutedResult<WeeklySchedule> {
         Err(routed_unavailable("schedule is unavailable"))
     }
-    /// Read today's classes through Core routing.
+    /// 通过 Core 路由查询今日课程。
     async fn schedule_today(&mut self) -> RoutedResult<Vec<TodayClass>> {
         Err(routed_unavailable("schedule is unavailable"))
     }
-    /// Read exams through Core routing.
+    /// 通过 Core 路由查询考试。
     async fn exam_arrangement(&mut self, _term: &str) -> RoutedResult<ExamArrangement> {
         Err(routed_unavailable("exam is unavailable"))
     }
-    /// Read grades through Core routing.
+    /// 通过 Core 路由查询成绩。
     async fn grades(&mut self, _term: &str) -> RoutedResult<GradeData> {
         Err(routed_unavailable("grades are unavailable"))
     }
-    /// Search classrooms through Core routing.
+    /// 通过 Core 路由查询空闲教室。
     async fn classroom_search(
         &mut self,
         _campus: i32,
@@ -968,33 +968,33 @@ pub trait RoutedCliBackend {
     ) -> RoutedResult<ClassroomQuery> {
         Err(routed_unavailable("classroom is unavailable"))
     }
-    /// Read SPOC assignments through Core routing.
+    /// 通过 Core 路由查询 SPOC 作业。
     async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         Err(routed_unavailable("SPOC is unavailable"))
     }
-    /// Read safe SPOC global-page diagnostics through Core routing.
+    /// 通过 Core 路由查询安全的 SPOC 全局分页诊断。
     async fn spoc_assignments_diagnostics(&mut self) -> RoutedResult<SpocAssignmentsDiagnostics> {
         Err(routed_unavailable("SPOC diagnostics are unavailable"))
     }
-    /// Read one SPOC assignment through Core routing.
+    /// 通过 Core 路由查询一项 SPOC 作业。
     async fn spoc_assignment(&mut self, _id: &str) -> RoutedResult<SpocAssignmentDetail> {
         Err(routed_unavailable("SPOC is unavailable"))
     }
-    /// Read Judge assignments through Core routing.
+    /// 通过 Core 路由查询希冀作业。
     async fn judge_assignments(
         &mut self,
         _include_expired: bool,
     ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
         Err(routed_unavailable("Judge is unavailable"))
     }
-    /// Read safe Judge parser diagnostics through Core routing.
+    /// 通过 Core 路由查询安全的希冀解析诊断。
     async fn judge_assignments_diagnostics(
         &mut self,
         _include_expired: bool,
     ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
         Err(routed_unavailable("Judge diagnostics are unavailable"))
     }
-    /// Read one Judge assignment through Core routing.
+    /// 通过 Core 路由查询一项希冀作业。
     async fn judge_assignment(
         &mut self,
         _course_id: &str,
@@ -1002,7 +1002,7 @@ pub trait RoutedCliBackend {
     ) -> RoutedResult<JudgeAssignmentDetail> {
         Err(routed_unavailable("Judge is unavailable"))
     }
-    /// Read Judge assignment details through one Core route decision.
+    /// 通过一次 Core 路由决策查询多项希冀作业详情。
     async fn judge_assignment_details(
         &mut self,
         _keys: &[JudgeAssignmentKey],
@@ -1011,7 +1011,7 @@ pub trait RoutedCliBackend {
     }
 }
 
-/// Execute the ordinary aggregate login path against the dual-route facade.
+/// 通过双路门面执行普通聚合登录流程。
 pub async fn run_dual_login<R, O, E>(
     cli: Cli,
     backend: &mut UbaaClient,
@@ -1059,7 +1059,7 @@ where
     render_dual_outcome(json_mode, outcome, route_policy, stdout, stderr)
 }
 
-/// Execute the ordinary aggregate authentication status path.
+/// 执行普通聚合认证状态流程。
 pub async fn run_dual_status<O, E>(
     cli: Cli,
     backend: &mut UbaaClient,
@@ -1079,7 +1079,7 @@ where
     render_dual_outcome(cli.json, outcome, route_policy, stdout, stderr)
 }
 
-/// Execute logout for both route slots with fixed aggregate route metadata.
+/// 使用固定的聚合路由元数据退出两个路由槽位。
 pub async fn run_dual_logout<O, E>(
     cli: Cli,
     backend: &mut UbaaClient,
@@ -1558,7 +1558,7 @@ impl RoutedCliBackend for UbaaClient {
     }
 }
 
-/// Execute an ordinary user or read-only command against Core-owned route resolution.
+/// 使用 Core 所有的路由解析执行普通用户命令或只读命令。
 pub async fn run_with_routed_backend<B, O, E>(
     cli: Cli,
     backend: &mut B,
@@ -1929,7 +1929,7 @@ fn routed_unavailable(message: impl Into<String>) -> RoutedError {
     }
 }
 
-/// Execute a parsed command against an injected backend.
+/// 使用注入的后端执行已解析命令。
 pub async fn run_with_backend<B, R, O, E>(
     cli: Cli,
     backend: &mut B,
@@ -1955,7 +1955,7 @@ where
     .await
 }
 
-/// Execute a parsed command with the host's verified read-only route decision.
+/// 使用宿主已验证的只读路由决策执行已解析命令。
 pub async fn run_with_backend_with_route<B, R, O, E>(
     cli: Cli,
     backend: &mut B,
@@ -2441,7 +2441,7 @@ fn project_cli_error(
     CliJsonError::from_core(error)
 }
 
-/// Render an error before a backend exists, preserving JSON stdout discipline.
+/// 在后端构造前展示错误，并保持 JSON 标准输出约束。
 pub fn render_startup_error<O: Write, E: Write>(
     json_mode: bool,
     feature: CliFeature,
@@ -2570,7 +2570,7 @@ fn invalid_input(message: impl Into<String>) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
 }
 
-/// Construct the stable missing-session error used by the process entrypoint.
+/// 构造进程入口使用的稳定缺失会话错误。
 #[must_use]
 pub fn authentication_required() -> UbaaError {
     UbaaError::new(
