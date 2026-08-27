@@ -1,4 +1,4 @@
-//! CAS authentication workflow and state for one client instance.
+//! 单个客户端实例的 CAS 认证流程与状态。
 
 use std::collections::BTreeMap;
 
@@ -16,7 +16,7 @@ use crate::upstream::{
 
 const MAX_REDIRECTS: usize = 10;
 
-/// Pending login page scoped to one client instance.
+/// 绑定到单个客户端实例的待处理登录页面。
 #[derive(Clone, Default)]
 pub(crate) struct LoginState {
     page: Option<String>,
@@ -64,7 +64,7 @@ impl LoginState {
     }
 }
 
-/// Authentication workflow owned by the core facade.
+/// Core 门面所有的认证流程。
 #[derive(Default)]
 pub(crate) struct AuthWorkflow {
     state: LoginState,

@@ -1,6 +1,6 @@
-//! Platform-independent core for UBAA clients.
+//! UBAA 客户端的平台无关核心。
 //!
-//! Upstream protocol details are intentionally not part of the host-facing API.
+//! 上游协议细节刻意不属于面向宿主的 API。
 //!
 //! ```compile_fail
 //! use ubaa_core::upstream::SSO_LOGIN_URL;
@@ -19,5 +19,5 @@ mod runtime;
 pub mod session;
 mod upstream;
 
-/// Current core package version.
+/// 当前 Core 包版本。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

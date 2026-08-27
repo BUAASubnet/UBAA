@@ -1,4 +1,4 @@
-//! Private runtime state shared by facade workflows.
+//! 门面工作流共享的私有运行时状态。
 
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -71,11 +71,10 @@ impl ClientRuntime {
         self.mode
     }
 
-    /// Fork a route-locked read-only runtime while dropping feature-scoped service Cookies.
+    /// 派生锁定路由的只读运行时，同时丢弃功能范围的服务 Cookie。
     ///
-    /// The worker shares immutable transport/store handles but never persists authentication
-    /// state. Callers filter service Cookies that would otherwise couple concurrent upstream
-    /// selection state.
+    /// 工作实例共享不可变的传输与存储句柄，但从不持久化认证状态。调用方过滤服务
+    /// Cookie，以免并发上游选择状态相互耦合。
     pub(crate) fn fork_for_readonly_with_cookie_filter(
         &self,
         mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,

@@ -1,39 +1,39 @@
-//! Stable, serializable errors for hosts and bindings.
+//! 供宿主与绑定层使用的稳定、可序列化错误。
 
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-/// Machine-stable error code from the authentication contract.
+/// 认证合同定义的机器稳定错误码。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
-    /// An argument or interactive value is missing or invalid.
+    /// 参数或交互输入缺失或无效。
     InvalidInput,
-    /// No valid persisted authentication exists.
+    /// 不存在有效的持久化认证。
     AuthenticationRequired,
-    /// SSO rejected the supplied credentials.
+    /// SSO 拒绝了提供的凭据。
     InvalidCredentials,
-    /// SSO did not accept the one permitted password-risk continuation.
+    /// SSO 未接受唯一允许的密码风险继续操作。
     PasswordRiskConfirmationFailed,
-    /// The authenticated account lacks permission.
+    /// 已认证账号缺少权限。
     PermissionDenied,
-    /// A network operation failed.
+    /// 网络操作失败。
     NetworkError,
-    /// A bounded network operation timed out.
+    /// 有界网络操作超时。
     Timeout,
-    /// The upstream service is temporarily unavailable.
+    /// 上游服务暂时不可用。
     UpstreamUnavailable,
-    /// The upstream protocol no longer matches the verified contract.
+    /// 上游协议不再符合已验证合同。
     UpstreamChanged,
-    /// A response could not be safely parsed.
+    /// 无法安全解析响应。
     ParseError,
-    /// An internal invariant failed.
+    /// 内部不变量失效。
     InternalError,
 }
 
 impl ErrorCode {
-    /// Stable process exit category for CLI hosts.
+    /// CLI 宿主使用的稳定进程退出类别。
     #[must_use]
     pub const fn exit_code(self) -> ExitCode {
         match self {
@@ -49,52 +49,52 @@ impl ErrorCode {
     }
 }
 
-/// Broad error category suitable for host presentation.
+/// 适合宿主展示的宽泛错误类别。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorKind {
-    /// Invalid caller input.
+    /// 调用方输入无效。
     Input,
-    /// Authentication or authorization failure.
+    /// 认证或授权失败。
     Authentication,
-    /// Network or timeout failure.
+    /// 网络或超时失败。
     Network,
-    /// Upstream availability or protocol failure.
+    /// 上游可用性或协议失败。
     Upstream,
-    /// Response parsing failure.
+    /// 响应解析失败。
     Parse,
-    /// Internal invariant failure.
+    /// 内部不变量失败。
     Internal,
 }
 
-/// CLI exit codes fixed by the public contract.
+/// 公共合同固定的 CLI 退出码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(i32)]
 pub enum ExitCode {
-    /// Successful command.
+    /// 命令成功。
     Success = 0,
-    /// Invalid command argument or input.
+    /// 命令参数或输入无效。
     InvalidInput = 2,
-    /// Authentication is absent or failed.
+    /// 缺少认证或认证失败。
     Authentication = 3,
-    /// Network, timeout, or temporary upstream failure.
+    /// 网络、超时或上游临时失败。
     Network = 5,
-    /// Upstream shape or parsing failure.
+    /// 上游结构或解析失败。
     Upstream = 6,
-    /// Internal failure.
+    /// 内部失败。
     Internal = 7,
 }
 
-/// Safe error payload returned by the core.
+/// Core 返回的安全错误载荷。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UbaaError {
-    /// Stable machine code.
+    /// 稳定机器码。
     pub code: ErrorCode,
-    /// Broad category.
+    /// 宽泛类别。
     pub kind: ErrorKind,
-    /// Whether repeating the non-secret operation may succeed later.
+    /// 稍后重试非敏感操作是否可能成功。
     pub retryable: bool,
-    /// Human-readable message that contains no sensitive body or header data.
+    /// 不包含敏感响应体或请求头数据的人类可读消息。
     pub message: String,
 }
 
@@ -111,7 +111,7 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
-    /// Construct a safe core error.
+    /// 构造安全的 Core 错误。
     pub fn new(
         code: ErrorCode,
         kind: ErrorKind,
@@ -135,5 +135,5 @@ impl fmt::Display for UbaaError {
 
 impl std::error::Error for UbaaError {}
 
-/// Core result alias.
+/// Core 结果别名。
 pub type Result<T> = std::result::Result<T, UbaaError>;
