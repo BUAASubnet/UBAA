@@ -101,7 +101,7 @@ pub fn parse_envelope<T: for<'de> Deserialize<'de>>(body: &str) -> crate::error:
             crate::error::ErrorCode::UpstreamChanged,
             crate::error::ErrorKind::Upstream,
             false,
-            "SPOC response is missing content",
+            "SPOC 响应缺少内容",
         )
     })
 }
@@ -175,7 +175,7 @@ pub(crate) async fn get_assignments_diagnostics(
             crate::error::ErrorCode::UpstreamChanged,
             crate::error::ErrorKind::Upstream,
             false,
-            "SPOC current term is missing",
+            "SPOC 当前学期缺失",
         ));
     }
     let mut courses_url = url::Url::parse(&runtime.url(COURSES_URL)?).map_err(|_| {
@@ -183,7 +183,7 @@ pub(crate) async fn get_assignments_diagnostics(
             crate::error::ErrorCode::UpstreamChanged,
             crate::error::ErrorKind::Upstream,
             false,
-            "SPOC URL is invalid",
+            "SPOC 地址无效",
         )
     })?;
     courses_url
@@ -313,7 +313,7 @@ async fn fetch_assignment_page(
             crate::error::ErrorCode::InternalError,
             crate::error::ErrorKind::Internal,
             false,
-            "could not serialize the verified SPOC page request",
+            "无法序列化已校验的 SPOC 页面请求",
         )
     })?;
     let encrypted = encrypt_param(&plain);
@@ -345,7 +345,7 @@ pub(crate) async fn get_assignment_detail(
             crate::error::ErrorCode::InvalidInput,
             crate::error::ErrorKind::Input,
             false,
-            "assignment id is required",
+            "作业标识不能为空",
         ));
     }
     let assignments = get_assignments(runtime).await?;
@@ -358,7 +358,7 @@ pub(crate) async fn get_assignment_detail(
                 crate::error::ErrorCode::UpstreamChanged,
                 crate::error::ErrorKind::Upstream,
                 false,
-                "SPOC assignment was not found",
+                "未找到 SPOC 作业",
             )
         })?;
     let detail_id = assignment_id.to_owned();
@@ -731,7 +731,7 @@ fn spoc_auth_error() -> crate::error::UbaaError {
         crate::error::ErrorCode::AuthenticationRequired,
         crate::error::ErrorKind::Authentication,
         false,
-        "SPOC authentication is required",
+        "SPOC 功能需要认证",
     )
 }
 
@@ -740,7 +740,7 @@ fn spoc_business_authentication_error() -> crate::error::UbaaError {
         crate::error::ErrorCode::UpstreamUnavailable,
         crate::error::ErrorKind::Upstream,
         true,
-        "SPOC business authentication failed without explicit primary-session invalidation",
+        "SPOC 业务认证失败，但未明确要求使主会话失效",
     )
 }
 

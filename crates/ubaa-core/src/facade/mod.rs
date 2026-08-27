@@ -1,4 +1,4 @@
-//! Stable facade consumed by CLI and future bindings.
+//! CLI 与未来绑定层使用的稳定 facade。
 #![allow(clippy::missing_errors_doc, clippy::similar_names)]
 
 use std::path::Path;
@@ -27,14 +27,14 @@ use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 
-/// One route-locked client used only by diagnostics, tests, and live verification.
+/// 仅供诊断、测试和真实验证使用的单路线客户端。
 pub struct RouteClient {
     runtime: ClientRuntime,
     auth: AuthWorkflow,
     sessions: Option<DualSessionCoordinator>,
 }
 
-/// A host-facing aggregate client that owns routing and independent route workflows.
+/// 面向宿主的聚合客户端，负责路由和相互独立的路线流程。
 pub struct UbaaClient {
     config: RouteConfig,
     probe: Box<dyn GatewayProbe>,
@@ -45,29 +45,29 @@ pub struct UbaaClient {
     sessions: DualSessionCoordinator,
 }
 
-/// Successful ordinary operation plus the route decision made by Core.
+/// 普通操作成功结果及 Core 作出的路线决策。
 #[derive(Clone, Debug)]
 pub struct Routed<T> {
-    /// Stable operation result.
+    /// 稳定的操作结果。
     pub data: T,
-    /// Immutable routing metadata for this operation.
+    /// 本次操作不可变的路由元数据。
     pub resolution: RouteResolution,
 }
 
-/// Ordinary operation failure, with routing metadata when resolution completed.
+/// 普通操作失败；若已完成解析则包含路由元数据。
 #[derive(Clone, Debug)]
 pub struct RoutedError {
-    /// Stable Core error.
+    /// 稳定的 Core 错误。
     pub error: UbaaError,
-    /// Route decision, absent only for failures that precede route resolution.
+    /// 路由决策；仅在路线解析前失败时缺失。
     pub resolution: Option<RouteResolution>,
 }
 
-/// Result returned by ordinary routed facade operations.
+/// 普通路由 facade 操作返回的结果。
 pub type RoutedResult<T> = std::result::Result<Routed<T>, RoutedError>;
 
 impl RoutedError {
-    /// Return routing metadata when Core reached a route decision.
+    /// Core 作出路线决策后返回路由元数据。
     #[must_use]
     pub const fn resolution(&self) -> Option<&RouteResolution> {
         self.resolution.as_ref()
@@ -93,7 +93,7 @@ enum Operation {
 }
 
 impl UbaaClient {
-    /// Open production Direct and `WebVPN` runtimes over one dual-slot session file.
+    /// 基于一个双槽位会话文件打开生产 Direct 和 `WebVPN` 运行时。
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self> {
         let config_dir = config_dir.as_ref();
         let config = RouteConfig::load(config_dir)?;
@@ -106,7 +106,7 @@ impl UbaaClient {
         )
     }
 
-    /// Construct an aggregate client with injectable transports and default routing.
+    /// 使用可注入传输和默认路由构造聚合客户端。
     pub fn with_transports<TDirect, TWebVpn>(
         direct_transport: TDirect,
         webvpn_transport: TWebVpn,
@@ -125,7 +125,7 @@ impl UbaaClient {
         )
     }
 
-    /// Construct an aggregate client with injectable transports and routing inputs.
+    /// 使用可注入传输和路由输入构造聚合客户端。
     pub fn with_routing<TDirect, TWebVpn, P>(
         direct_transport: TDirect,
         webvpn_transport: TWebVpn,
@@ -160,19 +160,19 @@ impl UbaaClient {
         })
     }
 
-    /// Return the route slots currently owned by this client.
+    /// 返回当前客户端拥有的路线槽位。
     #[must_use]
     pub fn active_routes(&self) -> Vec<ConnectionMode> {
         self.sessions.active_routes()
     }
 
-    /// Return the configured policy used by aggregate authentication operations.
+    /// 返回聚合认证操作使用的配置策略。
     #[must_use]
     pub const fn default_route_policy(&self) -> RoutePolicy {
         self.config.default
     }
 
-    /// Prepare both routes in fixed Direct, `WebVPN` order and return safe route states.
+    /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
         if let Err(error) = self.clear_on_session_conflict() {
             return failed_preparation(&error);
@@ -196,7 +196,7 @@ impl UbaaClient {
         }
     }
 
-    /// Submit credentials independently to Direct and `WebVPN`, preserving partial success.
+    /// 分别向 Direct 和 `WebVPN` 提交凭据，并保留部分成功结果。
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
         self.clear_on_session_conflict()?;
         let mut routes = Vec::with_capacity(2);
@@ -237,7 +237,7 @@ impl UbaaClient {
         })
     }
 
-    /// Clear both route workflows and both persisted slots.
+    /// 清理两条路线流程及两个持久化槽位。
     pub async fn logout(&mut self) -> Result<()> {
         self.clear_on_session_conflict()?;
         self.direct_auth
@@ -256,7 +256,7 @@ impl UbaaClient {
         Ok(())
     }
 
-    /// Validate both persisted route sessions and preserve partial success.
+    /// 校验两条持久化路线会话，并保留部分成功结果。
     pub async fn auth_status(&mut self) -> Result<LoginOutcome> {
         self.clear_on_session_conflict()?;
         let mut routes = Vec::with_capacity(2);
@@ -299,7 +299,7 @@ impl UbaaClient {
         })
     }
 
-    /// Fetch the User Center profile through the default route policy.
+    /// 通过默认路线策略获取用户中心资料。
     pub async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         let resolution = self.resolve_operation(Operation::User)?;
         let result = match resolution.mode {
@@ -494,7 +494,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read the available academic terms through the Schedule route policy.
+    /// 通过课表路线策略读取可用学期。
     pub async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
         let result = match resolution.mode {
@@ -508,7 +508,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read teaching weeks for a term through the Schedule route policy.
+    /// 通过课表路线策略读取一个学期的教学周。
     pub async fn schedule_weeks(&mut self, term: &str) -> RoutedResult<Vec<Week>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
         let result = match resolution.mode {
@@ -522,7 +522,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read one numbered week's schedule through the Schedule route policy.
+    /// 通过课表路线策略读取指定周课表。
     pub async fn schedule_week(&mut self, term: &str, week: i32) -> RoutedResult<WeeklySchedule> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
         if term.trim().is_empty() || week <= 0 {
@@ -542,7 +542,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read today's schedule through the Schedule route policy.
+    /// 通过课表路线策略读取今日课表。
     pub async fn schedule_today(&mut self) -> RoutedResult<Vec<TodayClass>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Schedule))?;
         let result = match resolution.mode {
@@ -556,7 +556,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read one term's exam arrangement through the Exam route policy.
+    /// 通过考试路线策略读取一个学期的考试安排。
     pub async fn exam_arrangement(&mut self, term: &str) -> RoutedResult<ExamArrangement> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Exam))?;
         if term.trim().is_empty() {
@@ -573,7 +573,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read one term's grades through the Grades route policy.
+    /// 通过成绩路线策略读取一个学期的成绩。
     pub async fn grades(&mut self, term: &str) -> RoutedResult<GradeData> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Grades))?;
         let result = match resolution.mode {
@@ -587,7 +587,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Search available classrooms through the Classroom route policy.
+    /// 通过空教室路线策略查询可用教室。
     pub async fn classroom_search(
         &mut self,
         campus_id: i32,
@@ -758,7 +758,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read the current SPOC assignment list through the SPOC route policy.
+    /// 通过 SPOC 路线策略读取当前作业列表。
     pub async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
         let result = match resolution.mode {
@@ -772,7 +772,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read the current SPOC list with safe global-page completion evidence.
+    /// 读取当前 SPOC 列表，并返回安全的全局页面完成证据。
     pub async fn spoc_assignments_diagnostics(
         &mut self,
     ) -> RoutedResult<SpocAssignmentsDiagnostics> {
@@ -788,7 +788,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read one SPOC assignment detail through the SPOC route policy.
+    /// 通过 SPOC 路线策略读取一项作业详情。
     pub async fn spoc_assignment(
         &mut self,
         assignment_id: &str,
@@ -813,7 +813,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read Judge assignments through the Judge route policy.
+    /// 通过希冀路线策略读取作业。
     pub async fn judge_assignments(
         &mut self,
         include_expired: bool,
@@ -832,7 +832,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read Judge assignments with safe parser counts through the Judge route policy.
+    /// 通过希冀路线策略读取作业，并返回安全解析计数。
     pub async fn judge_assignments_diagnostics(
         &mut self,
         include_expired: bool,
@@ -857,7 +857,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read one Judge assignment detail through the Judge route policy.
+    /// 通过希冀路线策略读取一项作业详情。
     pub async fn judge_assignment(
         &mut self,
         course_id: &str,
@@ -885,7 +885,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// Read multiple Judge details through one Judge route policy decision.
+    /// 通过一次希冀路线策略决策读取多项作业详情。
     pub async fn judge_assignment_details(
         &mut self,
         keys: &[JudgeAssignmentKey],
@@ -1186,14 +1186,14 @@ fn safe_error(error: &UbaaError) -> SafeError {
 }
 
 impl RouteClient {
-    /// Open a diagnostic client using an explicit or persisted connection mode.
+    /// 使用显式或持久化的连接模式打开诊断客户端。
     ///
-    /// Returns `None` when neither a mode nor a persisted session exists, allowing a host to
-    /// render command-specific missing-session behavior without inspecting persistence internals.
+    /// 当连接模式和持久化会话均不存在时返回 `None`，宿主可据此呈现命令级缺少会话提示，
+    /// 无需读取持久化实现细节。
     ///
     /// # Errors
     ///
-    /// Returns a safe transport or persistence error.
+    /// 返回安全的传输或持久化错误。
     pub fn open(
         mode: Option<ConnectionMode>,
         config_dir: impl AsRef<Path>,
@@ -1211,11 +1211,11 @@ impl RouteClient {
         }))
     }
 
-    /// Construct a production client rooted at a host-selected configuration directory.
+    /// 在宿主选定的配置目录下构造生产客户端。
     ///
     /// # Errors
     ///
-    /// Returns a safe transport or persistence error.
+    /// 返回安全的传输或持久化错误。
     pub fn new(mode: ConnectionMode, config_dir: impl AsRef<Path>) -> Result<Self> {
         let store = FileSessionStore::new(config_dir)?;
         let sessions = DualSessionCoordinator::new(store)?;
@@ -1227,11 +1227,11 @@ impl RouteClient {
         })
     }
 
-    /// Construct a client with injected transport and persistence ports.
+    /// 使用注入的传输和持久化端口构造客户端。
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence error when an existing session cannot be loaded.
+    /// 当无法加载已有会话时返回安全的持久化错误。
     pub fn with_transport<T, S>(mode: ConnectionMode, transport: T, store: S) -> Result<Self>
     where
         T: HttpTransport + 'static,
@@ -1244,39 +1244,39 @@ impl RouteClient {
         })
     }
 
-    /// Return this client's fixed connection mode.
+    /// 返回此客户端固定的连接模式。
     #[must_use]
     pub const fn mode(&self) -> ConnectionMode {
         self.runtime.mode()
     }
 
-    /// Load and validate the current SSO login page in this client.
+    /// 加载并校验当前客户端的 SSO 登录页。
     ///
     /// # Errors
     ///
-    /// Returns a safe network, authentication, or upstream protocol error.
+    /// 返回安全的网络、认证或上游协议错误。
     pub async fn prepare_login(&mut self) -> Result<()> {
         self.guard_session_ownership()?;
         let result = self.auth.prepare_login(&mut self.runtime).await;
         self.finish_session_operation(result)
     }
 
-    /// Submit one credential form, activate User Center, and return its parsed profile.
+    /// 提交一份凭据表单、激活用户中心并返回解析后的资料。
     ///
     /// # Errors
     ///
-    /// Returns a stable input, authentication, network, or upstream error.
+    /// 返回稳定的输入、认证、网络或上游错误。
     pub async fn login(&mut self, input: LoginInput) -> Result<UserProfile> {
         self.guard_session_ownership()?;
         let result = self.auth.login(&mut self.runtime, input).await;
         self.finish_session_operation(result)
     }
 
-    /// Validate the current User Center session and refresh last activity.
+    /// 校验当前用户中心会话并刷新最近活动时间。
     ///
     /// # Errors
     ///
-    /// Returns authentication-required for explicit invalidation while preserving state on timeout/5xx.
+    /// 显式失效时返回需要认证；超时或 5xx 时保留现有状态。
     pub async fn auth_status(&mut self) -> Result<AuthStatus> {
         self.guard_session_ownership()?;
         let mut clear_workflow = || self.auth.clear();
@@ -1284,11 +1284,11 @@ impl RouteClient {
         self.finish_session_operation(result)
     }
 
-    /// Fetch and parse the latest User Center profile.
+    /// 获取并解析最新的用户中心资料。
     ///
     /// # Errors
     ///
-    /// Returns a stable authentication, network, availability, or parsing error.
+    /// 返回稳定的认证、网络、可用性或解析错误。
     pub async fn get_user_info(&mut self) -> Result<UserProfile> {
         self.guard_session_ownership()?;
         let mut clear_workflow = || self.auth.clear();
@@ -1296,11 +1296,11 @@ impl RouteClient {
         self.finish_session_operation(result)
     }
 
-    /// Best-effort remote logout followed by unconditional cleanup of this client's memory.
+    /// 尽力执行远程注销，然后无条件清理客户端内存。
     ///
     /// # Errors
     ///
-    /// Returns a persistence/revision error; remote logout failures are intentionally ignored.
+    /// 返回持久化或修订版本错误；远程注销失败会被有意忽略。
     pub async fn logout(&mut self) -> Result<()> {
         self.guard_session_ownership()?;
         let result = self.auth.logout(&mut self.runtime).await;
@@ -1372,7 +1372,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read the available academic terms.
+    /// 读取可用的学期列表。
     pub async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.guard_session_ownership()?;
         let result = crate::features::schedule::get_terms(&mut self.runtime).await;
@@ -1380,7 +1380,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read teaching weeks for a term.
+    /// 读取指定学期的教学周。
     pub async fn schedule_weeks(&mut self, term: &str) -> Result<FeatureResult<Vec<Week>>> {
         self.guard_session_ownership()?;
         let result = crate::features::schedule::get_weeks(&mut self.runtime, term).await;
@@ -1388,7 +1388,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read one numbered week's schedule.
+    /// 读取指定周次的课表。
     pub async fn schedule_week(
         &mut self,
         term: &str,
@@ -1400,7 +1400,7 @@ impl RouteClient {
                 crate::error::ErrorCode::InvalidInput,
                 crate::error::ErrorKind::Input,
                 false,
-                "term and positive week are required",
+                "学期不能为空且周次必须为正数",
             ));
         }
         let result = crate::features::schedule::get_week(&mut self.runtime, term, week).await;
@@ -1408,7 +1408,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read today's schedule.
+    /// 读取今日课表。
     pub async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
         self.guard_session_ownership()?;
         let result = crate::features::schedule::get_today(&mut self.runtime).await;
@@ -1416,7 +1416,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read one term's exam arrangement.
+    /// 读取指定学期的考试安排。
     pub async fn exam_arrangement(&mut self, term: &str) -> Result<FeatureResult<ExamArrangement>> {
         self.guard_session_ownership()?;
         if term.trim().is_empty() {
@@ -1424,7 +1424,7 @@ impl RouteClient {
                 crate::error::ErrorCode::InvalidInput,
                 crate::error::ErrorKind::Input,
                 false,
-                "term is required",
+                "学期不能为空",
             ));
         }
         let result = crate::features::schedule::get_exam(&mut self.runtime, term).await;
@@ -1432,7 +1432,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read one term's grades.
+    /// 读取指定学期的成绩。
     pub async fn grades(&mut self, term: &str) -> Result<FeatureResult<GradeData>> {
         self.guard_session_ownership()?;
         let result = crate::features::grades::get_grades(&mut self.runtime, term).await;
@@ -1440,7 +1440,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Search available classrooms.
+    /// 查询可用教室。
     pub async fn classroom_search(
         &mut self,
         campus_id: i32,
@@ -1550,7 +1550,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read the current SPOC assignment list.
+    /// 读取当前 SPOC 作业列表。
     pub async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
         self.guard_session_ownership()?;
         let result = crate::features::spoc::get_assignments(&mut self.runtime).await;
@@ -1558,7 +1558,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read the current SPOC list with safe global-page completion evidence.
+    /// 读取当前 SPOC 列表，并返回安全的全局页面完成证据。
     pub async fn spoc_assignments_diagnostics(
         &mut self,
     ) -> Result<FeatureResult<SpocAssignmentsDiagnostics>> {
@@ -1568,7 +1568,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read one SPOC assignment detail.
+    /// 读取一项 SPOC 作业详情。
     pub async fn spoc_assignment(
         &mut self,
         assignment_id: &str,
@@ -1580,7 +1580,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read Judge assignments.
+    /// 读取希冀作业列表。
     pub async fn judge_assignments(
         &mut self,
         include_expired: bool,
@@ -1592,7 +1592,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read Judge assignments with safe parser counts.
+    /// 读取希冀作业列表，并返回安全的解析计数。
     pub async fn judge_assignments_diagnostics(
         &mut self,
         include_expired: bool,
@@ -1605,7 +1605,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read one Judge assignment detail.
+    /// 读取一项希冀作业详情。
     pub async fn judge_assignment(
         &mut self,
         course_id: &str,
@@ -1622,7 +1622,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// Read multiple Judge assignment details.
+    /// 读取多项希冀作业详情。
     pub async fn judge_assignment_details(
         &mut self,
         keys: &[JudgeAssignmentKey],

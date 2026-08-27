@@ -573,7 +573,7 @@ fn worker_error() -> crate::error::UbaaError {
         crate::error::ErrorCode::InternalError,
         crate::error::ErrorKind::Internal,
         true,
-        "Judge read worker failed",
+        "希冀读取任务失败",
     )
 }
 
@@ -582,7 +582,7 @@ fn judge_business_authentication_error() -> crate::error::UbaaError {
         crate::error::ErrorCode::UpstreamUnavailable,
         crate::error::ErrorKind::Upstream,
         true,
-        "Judge business authentication failed without explicit primary-session invalidation",
+        "希冀业务认证失败，但未明确要求使主会话失效",
     )
 }
 
@@ -871,7 +871,7 @@ fn invalid_url() -> crate::error::UbaaError {
         crate::error::ErrorCode::UpstreamChanged,
         crate::error::ErrorKind::Upstream,
         false,
-        "Judge URL is invalid",
+        "希冀地址无效",
     )
 }
 
@@ -880,7 +880,7 @@ fn not_found() -> crate::error::UbaaError {
         crate::error::ErrorCode::UpstreamChanged,
         crate::error::ErrorKind::Upstream,
         false,
-        "Judge assignment was not found",
+        "未找到希冀作业",
     )
 }
 

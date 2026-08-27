@@ -1,4 +1,4 @@
-//! User Center response classification shared by status and profile operations.
+//! 状态和资料操作共用的用户中心响应分类。
 
 use crate::connection::from_webvpn_url;
 use crate::domain::{AuthStatus, UserProfile};
@@ -33,13 +33,10 @@ pub(crate) async fn get_user_info(
         return Err(authentication_required());
     }
     if response.status >= 500 {
-        return Err(status_error(response.status, "User Center is unavailable"));
+        return Err(status_error(response.status, "用户中心不可用"));
     }
     if response.status != 200 {
-        return Err(status_error(
-            response.status,
-            "User Center profile request failed",
-        ));
+        return Err(status_error(response.status, "用户中心资料请求失败"));
     }
     parse_user_info(&body)
 }
@@ -53,10 +50,7 @@ pub(crate) async fn validate_status(
         .await?;
     let body = body_text(&response);
     if response.status >= 500 {
-        return Err(status_error(
-            response.status,
-            "authentication service is unavailable",
-        ));
+        return Err(status_error(response.status, "认证服务不可用"));
     }
     if looks_unauthenticated(response.status, &response.final_url, &body)
         || !body.trim_start().starts_with('{')

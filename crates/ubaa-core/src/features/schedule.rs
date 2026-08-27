@@ -122,7 +122,7 @@ pub(crate) async fn get_weeks(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
             false,
-            "term is required",
+            "学期不能为空",
         ));
     }
     ensure_undergraduate_portal(runtime).await?;
@@ -258,7 +258,7 @@ async fn activate_undergraduate_portal(runtime: &mut crate::runtime::ClientRunti
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "undergraduate portal activation reached an unexpected page",
+            "本科教务门户激活后到达了非预期页面",
         ));
     }
     Ok(())
@@ -278,7 +278,7 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,
             false,
-            "undergraduate portal authentication is required",
+            "本科教务门户需要认证",
         ));
     }
     if response.final_url.contains("/jwapp/sys/byrhmhsy/") {
@@ -286,7 +286,7 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             ErrorCode::PermissionDenied,
             ErrorKind::Authentication,
             false,
-            "the account is not supported by the undergraduate portal",
+            "本科教务门户不支持当前账户",
         ));
     }
     if response.status >= 500 {
@@ -294,7 +294,7 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             ErrorCode::UpstreamUnavailable,
             ErrorKind::Upstream,
             true,
-            "undergraduate portal is unavailable",
+            "本科教务门户不可用",
         ));
     }
     if response.status != 200 {
@@ -302,7 +302,7 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "undergraduate portal probe failed",
+            "本科教务门户探测失败",
         ));
     }
     Ok(())
@@ -313,7 +313,7 @@ fn invalid_url() -> crate::error::UbaaError {
         crate::error::ErrorCode::UpstreamChanged,
         crate::error::ErrorKind::Upstream,
         false,
-        "read-only URL is invalid",
+        "只读地址无效",
     )
 }
 

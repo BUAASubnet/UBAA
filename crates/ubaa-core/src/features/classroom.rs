@@ -46,7 +46,7 @@ pub fn parse_response(body: &str) -> Result<ClassroomQuery> {
             ErrorCode::ParseError,
             ErrorKind::Parse,
             false,
-            "classroom response is not valid JSON",
+            "空教室响应不是有效 JSON",
         )
     })?;
     if response.code != 0 {
@@ -54,7 +54,7 @@ pub fn parse_response(body: &str) -> Result<ClassroomQuery> {
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "classroom response returned a nonzero code",
+            "空教室响应返回非零状态码",
         ));
     }
     Ok(ClassroomQuery {
@@ -93,7 +93,7 @@ pub(crate) async fn search(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
             false,
-            "date must use yyyy-mm-dd",
+            "日期必须使用 yyyy-mm-dd 格式",
         ));
     }
     let feature_state = runtime.feature_state();
@@ -108,7 +108,7 @@ pub(crate) async fn search(
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "classroom URL is invalid",
+            "空教室地址无效",
         )
     })?;
     url.query_pairs_mut()
@@ -200,7 +200,7 @@ fn check_query_status(status: u16) -> Result<()> {
             ErrorCode::UpstreamUnavailable,
             ErrorKind::Upstream,
             true,
-            "classroom upstream is unavailable",
+            "空教室上游不可用",
         ));
     }
     if status != 200 {
@@ -208,7 +208,7 @@ fn check_query_status(status: u16) -> Result<()> {
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "classroom request failed",
+            "空教室请求失败",
         ));
     }
     Ok(())
@@ -219,7 +219,7 @@ fn authentication_required() -> UbaaError {
         ErrorCode::AuthenticationRequired,
         ErrorKind::Authentication,
         false,
-        "classroom authentication is required",
+        "空教室功能需要认证",
     )
 }
 
