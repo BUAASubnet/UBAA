@@ -136,15 +136,84 @@ pub struct BykcCoursePage {
 }
 
 /// 博雅已选课程记录。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BykcChosenCourse {
     pub id: i64,
-    pub course_id: Option<i64>,
-    pub course_name: Option<String>,
+    pub course_id: i64,
+    pub course_name: String,
+    pub course_position: Option<String>,
+    pub course_teacher: Option<String>,
+    pub course_start_date: Option<String>,
+    pub course_end_date: Option<String>,
     pub select_date: Option<String>,
-    pub checkin: Option<i32>,
+    pub course_cancel_end_date: Option<String>,
+    pub category: Option<BykcCourseCategory>,
+    pub sub_category: Option<BykcCourseSubCategory>,
+    pub checkin: i32,
     pub score: Option<i32>,
+    pub pass: Option<i32>,
+    pub can_sign: bool,
+    pub can_sign_out: bool,
+    pub sign_config: Option<BykcSignConfig>,
+    pub course_sign_type: Option<i32>,
+    pub homework: Option<String>,
+    pub homework_attachment_name: Option<String>,
+    pub homework_attachment_path: Option<String>,
+    pub sign_info: Option<String>,
+}
+
+/// 博雅课程一级分类。
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum BykcCourseCategory {
+    /// 博雅课程。
+    #[serde(rename = "博雅课程")]
+    Boya,
+    /// 未识别的一级分类。
+    #[serde(rename = "未知分类")]
+    Unknown,
+}
+
+/// 博雅课程二级分类。
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum BykcCourseSubCategory {
+    /// 德育。
+    #[serde(rename = "德育")]
+    Moral,
+    /// 美育。
+    #[serde(rename = "美育")]
+    Aesthetic,
+    /// 劳动教育。
+    #[serde(rename = "劳动教育")]
+    Labor,
+    /// 安全健康。
+    #[serde(rename = "安全健康")]
+    SafetyHealth,
+    /// 其他方面。
+    #[serde(rename = "其他方面")]
+    Other,
+    /// 未识别的二级分类。
+    #[serde(rename = "未知类型")]
+    Unknown,
+}
+
+/// 博雅签到配置。
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcSignConfig {
+    pub sign_start_date: Option<String>,
+    pub sign_end_date: Option<String>,
+    pub sign_out_start_date: Option<String>,
+    pub sign_out_end_date: Option<String>,
+    pub sign_points: Vec<BykcSignPoint>,
+}
+
+/// 博雅签到地理位置。
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct BykcSignPoint {
+    pub lat: f64,
+    pub lng: f64,
+    pub radius: f64,
 }
 
 /// 博雅统计明细。

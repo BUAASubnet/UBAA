@@ -23,9 +23,12 @@ fn 博雅解析五类只读响应并拒绝失败包装() {
         9
     );
     assert_eq!(
-        parse_chosen_courses(r#"{"status":"0","data":[{"id":1,"courseId":9}]}"#).unwrap()[0]
+        parse_chosen_courses(
+            r#"{"status":"0","data":[{"id":1,"courseInfo":{"id":9,"courseName":"课程"}}]}"#
+        )
+        .unwrap()[0]
             .course_id,
-        Some(9)
+        9
     );
     assert_eq!(
         parse_statistics(r#"{"status":"0","data":{"totalValidCount":2,"categories":[]}}"#)

@@ -4,7 +4,8 @@
 
 use crate::connection::from_webvpn_url;
 use crate::domain::{
-    BykcChosenCourse, BykcCourse, BykcCoursePage, BykcCourseStatus, BykcStatistic, BykcStatistics,
+    BykcChosenCourse, BykcCourse, BykcCourseCategory, BykcCoursePage, BykcCourseStatus,
+    BykcCourseSubCategory, BykcSignConfig, BykcSignPoint, BykcStatistic, BykcStatistics,
     BykcUserProfile,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -493,25 +494,151 @@ pub fn parse_course_detail(body: &str) -> Result<BykcCourse> {
 
 /// 解析已选课程列表。
 pub fn parse_chosen_courses(body: &str) -> Result<Vec<BykcChosenCourse>> {
+    parse_chosen_courses_at(body, Local::now().naive_local())
+}
+
+fn parse_chosen_courses_at(body: &str, now: NaiveDateTime) -> Result<Vec<BykcChosenCourse>> {
     envelope(body)?
         .as_array()
         .ok_or_else(|| error("博雅已选课程结构无效"))?
         .iter()
         .map(|v| {
             let m = v.as_object().ok_or_else(|| error("博雅已选课程字段无效"))?;
+            let course = m.get("courseInfo").and_then(Value::as_object);
+            let sign_config = course
+                .and_then(|course| string(course, "courseSignConfig"))
+                .as_deref()
+                .and_then(parse_sign_config);
+            let checkin = int(m, "checkin").unwrap_or_default();
+            let pass = int(m, "pass");
+            let can_sign = pass != Some(1)
+                && matches!(checkin, 0)
+                && sign_config.as_ref().is_some_and(|config| {
+                    is_within_window(
+                        config.sign_start_date.as_deref(),
+                        config.sign_end_date.as_deref(),
+                        now,
+                    )
+                });
+            let can_sign_out = pass != Some(1)
+                && matches!(checkin, 0 | 5 | 6)
+                && sign_config.as_ref().is_some_and(|config| {
+                    is_within_window(
+                        config.sign_out_start_date.as_deref(),
+                        config.sign_out_end_date.as_deref(),
+                        now,
+                    )
+                });
             Ok(BykcChosenCourse {
                 id: m
                     .get("id")
                     .and_then(Value::as_i64)
                     .ok_or_else(|| error("博雅选课记录缺少标识"))?,
-                course_id: m.get("courseId").and_then(Value::as_i64),
-                course_name: string(m, "courseName"),
+                course_id: course
+                    .and_then(|course| course.get("id"))
+                    .and_then(Value::as_i64)
+                    .unwrap_or_default(),
+                course_name: course
+                    .and_then(|course| string(course, "courseName"))
+                    .unwrap_or_else(|| "未知课程".to_owned()),
+                course_position: course
+                    .and_then(|course| normalized_string(course, "coursePosition")),
+                course_teacher: course
+                    .and_then(|course| normalized_string(course, "courseTeacher")),
+                course_start_date: course.and_then(|course| string(course, "courseStartDate")),
+                course_end_date: course.and_then(|course| string(course, "courseEndDate")),
                 select_date: string(m, "selectDate"),
-                checkin: int(m, "checkin"),
+                course_cancel_end_date: course
+                    .and_then(|course| string(course, "courseCancelEndDate")),
+                category: course
+                    .and_then(|course| nested_kind_name(course, "courseNewKind1"))
+                    .map(parse_category),
+                sub_category: course
+                    .and_then(|course| nested_kind_name(course, "courseNewKind2"))
+                    .map(parse_sub_category),
+                checkin,
                 score: int(m, "score"),
+                pass,
+                can_sign,
+                can_sign_out,
+                sign_config,
+                course_sign_type: course.and_then(|course| int(course, "courseSignType")),
+                homework: normalized_string(m, "homework"),
+                homework_attachment_name: None,
+                homework_attachment_path: None,
+                sign_info: normalized_string(m, "signInfo"),
             })
         })
         .collect()
+}
+
+fn normalized_string(map: &Map<String, Value>, key: &str) -> Option<String> {
+    string(map, key)
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+}
+
+fn nested_kind_name<'a>(map: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
+    map.get(key)
+        .and_then(Value::as_object)
+        .and_then(|kind| kind.get("kindName"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
+fn parse_category(value: &str) -> BykcCourseCategory {
+    match value {
+        "博雅课程" => BykcCourseCategory::Boya,
+        _ => BykcCourseCategory::Unknown,
+    }
+}
+
+fn parse_sub_category(value: &str) -> BykcCourseSubCategory {
+    match value {
+        "德育" => BykcCourseSubCategory::Moral,
+        "美育" => BykcCourseSubCategory::Aesthetic,
+        "劳动教育" => BykcCourseSubCategory::Labor,
+        "安全健康" => BykcCourseSubCategory::SafetyHealth,
+        "其他方面" => BykcCourseSubCategory::Other,
+        _ => BykcCourseSubCategory::Unknown,
+    }
+}
+
+fn parse_sign_config(raw: &str) -> Option<BykcSignConfig> {
+    let map = serde_json::from_str::<Value>(raw).ok()?;
+    let map = map.as_object()?;
+    let sign_points = map
+        .get("signPointList")
+        .and_then(Value::as_array)
+        .map_or(&[][..], Vec::as_slice)
+        .iter()
+        .filter_map(|point| {
+            let point = point.as_object()?;
+            Some(BykcSignPoint {
+                lat: point.get("lat")?.as_f64()?,
+                lng: point.get("lng")?.as_f64()?,
+                radius: point
+                    .get("radius")
+                    .and_then(Value::as_f64)
+                    .unwrap_or_default(),
+            })
+        })
+        .collect();
+    Some(BykcSignConfig {
+        sign_start_date: string(map, "signStartDate"),
+        sign_end_date: string(map, "signEndDate"),
+        sign_out_start_date: string(map, "signOutStartDate"),
+        sign_out_end_date: string(map, "signOutEndDate"),
+        sign_points,
+    })
+}
+
+fn is_within_window(start: Option<&str>, end: Option<&str>, now: NaiveDateTime) -> bool {
+    start
+        .and_then(|start| parse_datetime(Some(start)))
+        .zip(end.and_then(|end| parse_datetime(Some(end))))
+        .is_some_and(|(start, end)| start <= now && now <= end)
 }
 
 /// 解析修读统计。
@@ -664,5 +791,54 @@ mod tests {
                 .message,
             "无法获取当前学期信息"
         );
+    }
+
+    #[test]
+    fn 已选课程展开课程签到和作业字段() {
+        let body = serde_json::json!({
+            "status": "0",
+            "data": [{
+                "id": 9,
+                "selectDate": "2026-02-20 12:00:00",
+                "checkin": 5,
+                "score": 88,
+                "pass": 0,
+                "homework": "提交学习报告",
+                "signInfo": "已签到",
+                "courseInfo": {
+                    "id": 42,
+                    "courseName": "艺术鉴赏",
+                    "coursePosition": "学院路校区",
+                    "courseTeacher": "教师甲",
+                    "courseStartDate": "2026-03-01 08:00:00",
+                    "courseEndDate": "2026-03-01 10:00:00",
+                    "courseCancelEndDate": "2026-02-28 18:00:00",
+                    "courseNewKind1": {"kindName": "博雅课程"},
+                    "courseNewKind2": {"kindName": "美育"},
+                    "courseSignType": 1,
+                    "courseSignConfig": "{\"signStartDate\":\"2026-03-01 07:50:00\",\"signEndDate\":\"2026-03-01 08:10:00\",\"signOutStartDate\":\"2026-03-01 09:50:00\",\"signOutEndDate\":\"2026-03-01 10:10:00\",\"signPointList\":[{\"lat\":39.9,\"lng\":116.3,\"radius\":100.0}]}"
+                }
+            }]
+        }).to_string();
+
+        let record = parse_chosen_courses_at(
+            &body,
+            NaiveDateTime::parse_from_str("2026-03-01 10:00:00", "%Y-%m-%d %H:%M:%S")
+                .expect("解析固定时间"),
+        )
+        .expect("解析已选课程")
+        .remove(0);
+
+        assert_eq!(record.course_id, 42);
+        assert_eq!(record.course_name, "艺术鉴赏");
+        assert_eq!(record.category, Some(BykcCourseCategory::Boya));
+        assert_eq!(record.sub_category, Some(BykcCourseSubCategory::Aesthetic));
+        assert_eq!(record.checkin, 5);
+        assert_eq!(record.pass, Some(0));
+        assert!(!record.can_sign);
+        assert!(record.can_sign_out);
+        assert_eq!(record.sign_config.expect("签到配置").sign_points.len(), 1);
+        assert_eq!(record.homework.as_deref(), Some("提交学习报告"));
+        assert_eq!(record.sign_info.as_deref(), Some("已签到"));
     }
 }
