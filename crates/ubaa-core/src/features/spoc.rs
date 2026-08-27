@@ -388,7 +388,7 @@ async fn fetch_assignment_detail(
             crate::error::ErrorCode::UpstreamChanged,
             crate::error::ErrorKind::Upstream,
             false,
-            "SPOC URL is invalid",
+            "SPOC 地址无效",
         )
     })?;
     url.query_pairs_mut().append_pair("id", &assignment_id);
@@ -430,7 +430,7 @@ async fn fetch_submission(
             crate::error::ErrorCode::UpstreamChanged,
             crate::error::ErrorKind::Upstream,
             false,
-            "SPOC URL is invalid",
+            "SPOC 地址无效",
         )
     })?;
     url.query_pairs_mut().append_pair("kczyid", &assignment_id);
@@ -793,7 +793,7 @@ fn parse_envelope_json<T: for<'de> Deserialize<'de>>(
             crate::error::ErrorCode::ParseError,
             crate::error::ErrorKind::Parse,
             false,
-            "SPOC response is not valid JSON",
+            "SPOC 响应不是有效 JSON",
         )
     })
 }
@@ -813,7 +813,7 @@ fn classify_envelope_error<T>(envelope: &Envelope<T>, body: &str) -> crate::erro
             crate::error::ErrorCode::UpstreamChanged,
             crate::error::ErrorKind::Upstream,
             false,
-            "SPOC response returned an unsuccessful code",
+            "SPOC 响应返回失败状态码",
         )
     }
 }
@@ -876,7 +876,7 @@ fn detail_id_mismatch() -> crate::error::UbaaError {
         crate::error::ErrorCode::UpstreamChanged,
         crate::error::ErrorKind::Upstream,
         false,
-        "SPOC detail id does not match the requested assignment",
+        "SPOC 详情标识与请求的作业不一致",
     )
 }
 

@@ -347,7 +347,7 @@ fn parse_json<T: for<'de> Deserialize<'de>>(body: &str) -> Result<T> {
             ErrorCode::ParseError,
             ErrorKind::Parse,
             false,
-            "read-only response is not valid JSON",
+            "只读响应不是有效 JSON",
         )
     })
 }
