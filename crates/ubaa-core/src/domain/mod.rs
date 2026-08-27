@@ -604,68 +604,68 @@ pub struct ClassroomInfo {
     pub available_sections: String,
 }
 
-/// SPOC submission status.
+/// SPOC 提交状态。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SpocSubmissionStatus {
-    /// Submitted.
+    /// 已提交。
     Submitted,
-    /// Not submitted.
+    /// 未提交。
     Unsubmitted,
-    /// Unknown upstream status.
+    /// 未知的上游状态。
     #[default]
     Unknown,
 }
 
-/// SPOC assignment summary.
+/// SPOC 作业摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpocAssignmentSummary {
-    /// Assignment ID.
+    /// 作业标识。
     pub assignment_id: String,
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
-    /// Teacher name.
+    /// 教师姓名。
     pub teacher_name: Option<String>,
-    /// Assignment title.
+    /// 作业标题。
     pub title: String,
-    /// Start time.
+    /// 开始时间。
     pub start_time: Option<String>,
-    /// Due time.
+    /// 截止时间。
     pub due_time: Option<String>,
-    /// Score.
+    /// 成绩。
     pub score: Option<String>,
-    /// Submission status.
+    /// 提交状态。
     pub submission_status: SpocSubmissionStatus,
-    /// Safe status text.
+    /// 可安全展示的状态文本。
     pub submission_status_text: String,
 }
 
-/// SPOC assignment list.
+/// SPOC 作业列表。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpocAssignments {
-    /// Current term code.
+    /// 当前学期代码。
     pub term_code: String,
-    /// Current term name.
+    /// 当前学期名称。
     pub term_name: Option<String>,
-    /// Assignments.
+    /// 作业列表。
     pub assignments: Vec<SpocAssignmentSummary>,
 }
 
-/// Safe completion evidence for one SPOC global-list operation.
+/// 一次 SPOC 全局列表操作的安全完成证据。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpocAssignmentsDiagnostics {
-    /// Number of authoritative global assignment pages parsed successfully.
+    /// 成功解析的权威全局作业页数量。
     pub global_page_count: u32,
-    /// The ordinary stable assignment-list result.
+    /// 普通稳定作业列表结果。
     pub result: SpocAssignments,
 }
 
-/// SPOC assignment detail.
+/// SPOC 作业详情。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpocAssignmentDetail {
@@ -689,28 +689,28 @@ pub struct SpocAssignmentDetail {
     pub submission_status: SpocSubmissionStatus,
     /// Safe status text.
     pub submission_status_text: String,
-    /// Plain text description.
+    /// 纯文本描述。
     pub content_plain_text: Option<String>,
-    /// Submission time.
+    /// 提交时间。
     pub submitted_at: Option<String>,
 }
 
-/// Judge submission status.
+/// 希冀提交状态。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum JudgeSubmissionStatus {
-    /// Fully submitted.
+    /// 已全部提交。
     Submitted,
-    /// Partially submitted.
+    /// 部分提交。
     Partial,
-    /// Not submitted.
+    /// 未提交。
     Unsubmitted,
-    /// Unknown state.
+    /// 未知状态。
     #[default]
     Unknown,
 }
 
-/// Judge assignment summary.
+/// 希冀作业摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentSummary {
@@ -726,35 +726,35 @@ pub struct JudgeAssignmentSummary {
     pub start_time: Option<String>,
     /// Due time.
     pub due_time: Option<String>,
-    /// Maximum score.
+    /// 最高分。
     pub max_score: Option<String>,
-    /// User score.
+    /// 用户得分。
     pub my_score: Option<String>,
-    /// Number of problems.
+    /// 题目数量。
     pub total_problems: i32,
-    /// Number submitted.
+    /// 已提交数量。
     pub submitted_count: i32,
-    /// Submission state.
+    /// 提交状态。
     pub submission_status: JudgeSubmissionStatus,
-    /// Safe status text.
+    /// 可安全展示的状态文本。
     pub submission_status_text: String,
 }
 
-/// Safe parser diagnostics for one Judge list operation.
+/// 一次希冀列表操作的安全解析诊断。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentsDiagnostics {
-    /// Number of parsed courses before historical-course skipping.
+    /// 跳过历史课程前解析出的课程数量。
     pub course_count: usize,
-    /// Numeric assignment anchors seen before filtering and deduplication.
+    /// 过滤和去重前发现的数字作业锚点数量。
     pub raw_anchor_count: usize,
-    /// Nonblank unique assignments retained after parser filtering.
+    /// 解析器过滤后保留的非空唯一作业数量。
     pub filtered_unique_count: usize,
-    /// The ordinary Judge summaries after applying `include_expired`.
+    /// 应用 `include_expired` 后的普通希冀摘要。
     pub summaries: Vec<JudgeAssignmentSummary>,
 }
 
-/// Judge assignment detail key.
+/// 希冀作业详情键。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentKey {
@@ -764,23 +764,23 @@ pub struct JudgeAssignmentKey {
     pub assignment_id: String,
 }
 
-/// Judge problem detail.
+/// 希冀题目详情。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeProblem {
-    /// Problem name.
+    /// 题目名称。
     pub name: String,
-    /// Earned score.
+    /// 获得分数。
     pub score: Option<String>,
-    /// Maximum score.
+    /// 最高分。
     pub max_score: Option<String>,
-    /// Submission state.
+    /// 提交状态。
     pub status: JudgeSubmissionStatus,
-    /// Safe status text.
+    /// 可安全展示的状态文本。
     pub status_text: String,
 }
 
-/// Judge assignment detail.
+/// 希冀作业详情。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentDetail {
@@ -798,7 +798,7 @@ pub struct JudgeAssignmentDetail {
     pub due_time: Option<String>,
     /// Maximum score.
     pub max_score: Option<String>,
-    /// User score.
+    /// 用户得分。
     pub my_score: Option<String>,
     /// Number of problems.
     pub total_problems: i32,
@@ -808,33 +808,33 @@ pub struct JudgeAssignmentDetail {
     pub submission_status: JudgeSubmissionStatus,
     /// Safe status text.
     pub submission_status_text: String,
-    /// Parsed problem list.
+    /// 解析后的题目列表。
     pub problems: Vec<JudgeProblem>,
-    /// Plain text HTML content.
+    /// HTML 内容转换后的纯文本。
     pub content_plain_text: Option<String>,
 }
 
-/// Result of a read-only operation with the concrete route used internally.
+/// 只读操作结果及 Core 内部实际使用的具体路线。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeatureResult<T> {
-    /// Parsed, stable DTO.
+    /// 解析后的稳定 DTO。
     pub data: T,
-    /// Concrete route used for this request.
+    /// 本次请求使用的具体路线。
     pub resolved_route: ConnectionMode,
 }
 
-/// A value that redacts its contents in all ordinary formatting and serialization.
+/// 在普通格式化和序列化中都会遮盖内容的值。
 #[derive(Clone, Eq, PartialEq)]
 pub struct SecretValue(String);
 
 impl SecretValue {
-    /// Wrap a secret without exposing it through formatting traits.
+    /// 包装秘密值，避免格式化 trait 暴露内容。
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
 
-    /// Explicitly borrow the secret for the narrow scope of an upstream request.
+    /// 仅在上游请求的有限范围内显式借用秘密值。
     #[must_use]
     pub fn expose_secret(&self) -> &str {
         &self.0
@@ -862,12 +862,12 @@ impl Serialize for SecretValue {
     }
 }
 
-/// Credentials for one login submission.
+/// 一次登录提交使用的凭据。
 #[derive(Clone)]
 pub struct LoginInput {
-    /// SSO account name.
+    /// SSO 账号名称。
     pub username: String,
-    /// SSO password, always redacted outside the request boundary.
+    /// SSO 密码，在请求边界之外始终遮盖。
     pub password: SecretValue,
 }
 
@@ -881,83 +881,83 @@ impl fmt::Debug for LoginInput {
     }
 }
 
-/// Login readiness across the two independent route sessions.
+/// 两条独立路线会话的登录就绪状态。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LoginReadiness {
-    /// Both routes are ready.
+    /// 两条路线均已就绪。
     AllReady,
-    /// Exactly one route is ready.
+    /// 恰有一条路线就绪。
     Partial,
-    /// Neither route is ready.
+    /// 两条路线均未就绪。
     NoneReady,
 }
 
-/// Safe state for one route during an aggregate login.
+/// 聚合登录期间单条路线的安全状态。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RouteLoginState {
-    /// The route has an authenticated session.
+    /// 该路线拥有已认证会话。
     Ready,
-    /// The route failed without exposing protocol details.
+    /// 该路线失败，但不暴露协议细节。
     Failed,
 }
 
-/// Public, non-sensitive error projection for aggregate authentication.
+/// 聚合认证公开且不含敏感信息的错误投影。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SafeError {
-    /// Stable machine error code.
+    /// 稳定的机器错误代码。
     pub code: String,
-    /// Stable error category.
+    /// 稳定的错误类别。
     pub kind: String,
-    /// Whether retrying may succeed.
+    /// 重试是否可能成功。
     pub retryable: bool,
-    /// Safe human-facing message.
+    /// 可安全展示给用户的消息。
     pub message: String,
 }
 
-/// Result for one route in an aggregate login operation.
+/// 聚合登录操作中单条路线的结果。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RouteLoginResult {
-    /// Concrete route attempted.
+    /// 实际尝试的路线。
     pub route: ConnectionMode,
-    /// Safe route state.
+    /// 安全的路线状态。
     pub state: RouteLoginState,
-    /// Sanitized failure, when the route was not ready.
+    /// 路线未就绪时的脱敏失败信息。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<SafeError>,
 }
 
-/// Aggregate login result with fixed Direct, `WebVPN` route ordering.
+/// 按固定 Direct、`WebVPN` 顺序排列的聚合登录结果。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginOutcome {
-    /// Aggregate readiness.
+    /// 聚合就绪状态。
     pub readiness: LoginReadiness,
-    /// Exactly two route entries, Direct then `WebVPN`.
+    /// 恰有两条路线记录，顺序为 Direct、`WebVPN`。
     pub routes: [RouteLoginResult; 2],
-    /// Profile from any successfully authenticated route.
+    /// 任一认证成功路线返回的资料。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub profile: Option<UserProfile>,
 }
 
-/// Result of preparing both route login pages.
+/// 准备两条路线登录页的结果。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DualLoginPreparation {
-    /// Fixed Direct, `WebVPN` state ordering.
+    /// 固定 Direct、`WebVPN` 状态顺序。
     pub routes: [RouteLoginResult; 2],
 }
 
-/// Credentials for aggregate login.
+/// 聚合登录凭据。
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DualLoginInput {
-    /// SSO account name shared by both route attempts.
+    /// 两条路线尝试共用的 SSO 账号名称。
     pub username: String,
-    /// Password held only in memory for this operation.
+    /// 仅在本次操作内存中保存的密码。
     pub password: SecretValue,
 }
 
@@ -971,26 +971,26 @@ impl fmt::Debug for DualLoginInput {
     }
 }
 
-/// User Center profile mapped from the legacy `UserInfo` DTO.
+/// 从旧版 `UserInfo` DTO 映射的用户中心资料。
 #[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProfile {
-    /// Identity-document type code.
+    /// 证件类型代码。
     pub id_card_type: Option<String>,
-    /// Human-readable identity-document type.
+    /// 供用户阅读的证件类型。
     pub id_card_type_name: Option<String>,
-    /// Phone value as returned by User Center.
+    /// 用户中心返回的手机号。
     pub phone: Option<String>,
-    /// School identifier. The upstream field is spelled `schoolid`.
+    /// 学校标识。上游字段拼写为 `schoolid`。
     #[serde(alias = "schoolid")]
     pub school_id: Option<String>,
-    /// Display name.
+    /// 显示姓名。
     pub name: Option<String>,
-    /// Identity-document number.
+    /// 证件号码。
     pub id_card_number: Option<String>,
-    /// Email address.
+    /// 电子邮箱地址。
     pub email: Option<String>,
-    /// User Center account name.
+    /// 用户中心账号名称。
     pub username: Option<String>,
 }
 
@@ -1019,24 +1019,24 @@ impl fmt::Debug for UserProfile {
     }
 }
 
-/// User Center JSON wrapper used by both status and profile endpoints.
+/// 状态和资料接口共用的用户中心 JSON 包装。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UserInfoResponse {
-    /// Upstream result code; zero denotes success in the frozen implementation.
+    /// 上游结果代码；冻结实现中零表示成功。
     pub code: i64,
-    /// Optional profile payload.
+    /// 可选的资料载荷。
     pub data: Option<UserProfile>,
 }
 
-/// Validated authentication state returned to hosts.
+/// 返回给宿主的已验证认证状态。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthStatus {
-    /// User Center identity summary.
+    /// 用户中心身份摘要。
     pub user: UserProfile,
-    /// Unix timestamp when the current session was authenticated.
+    /// 当前会话完成认证时的 Unix 时间戳。
     pub authenticated_at: i64,
-    /// Unix timestamp of the latest successful status check.
+    /// 最近一次成功检查状态时的 Unix 时间戳。
     pub last_activity: i64,
 }
 
