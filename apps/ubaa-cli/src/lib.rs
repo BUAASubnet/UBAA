@@ -1461,6 +1461,25 @@ impl RoutedCliBackend for UbaaClient {
     async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
         UbaaClient::cgyy_order_detail(self, id).await
     }
+    async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
+        UbaaClient::bykc_profile(self).await
+    }
+    async fn bykc_courses(&mut self, page: i32, size: i32) -> RoutedResult<BykcCoursePage> {
+        UbaaClient::bykc_courses(self, page, size).await
+    }
+    async fn bykc_course_detail(&mut self, id: i64) -> RoutedResult<BykcCourse> {
+        UbaaClient::bykc_course_detail(self, id).await
+    }
+    async fn bykc_chosen_courses(
+        &mut self,
+        start: &str,
+        end: &str,
+    ) -> RoutedResult<Vec<BykcChosenCourse>> {
+        UbaaClient::bykc_chosen_courses(self, start, end).await
+    }
+    async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
+        UbaaClient::bykc_statistics(self).await
+    }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         UbaaClient::ygdk_overview(self).await
     }
