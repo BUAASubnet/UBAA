@@ -11,7 +11,8 @@ use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult,
     GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookLibrary, LibBookSeat, LoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue,
     SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
     TodayClass, UserProfile, Week, WeeklySchedule, YgdkOverview, YgdkRecordsPage,
 };
@@ -123,8 +124,70 @@ pub enum Command {
     Judge(JudgeArgs),
     /// Classroom sign-in read-only operations.
     Signin(SigninArgs),
+    /// 图书馆座位只读操作。
+    Libbook(LibBookArgs),
     /// 阳光打卡只读操作。
     Ygdk(YgdkArgs),
+}
+
+/// 图书馆座位命令组。
+#[derive(Debug, Args)]
+pub struct LibBookArgs {
+    #[command(subcommand)]
+    pub command: LibBookCommand,
+}
+
+/// 图书馆座位只读操作。
+#[derive(Debug, Subcommand)]
+pub enum LibBookCommand {
+    /// 查询楼馆及楼层列表。
+    Libraries {
+        /// 查询日期，格式为 yyyy-MM-dd。
+        #[arg(long)]
+        day: String,
+    },
+    /// 查询图书馆分区列表。
+    Areas {
+        /// 楼馆编号。
+        #[arg(long)]
+        premises_id: String,
+        /// 楼层编号。
+        #[arg(long)]
+        storey_id: Option<String>,
+        /// 查询日期，格式为 yyyy-MM-dd。
+        #[arg(long)]
+        day: String,
+    },
+    /// 查询分区详情及可用时段。
+    AreaDetail {
+        /// 分区编号。
+        #[arg(long)]
+        area_id: String,
+    },
+    /// 查询指定时段的座位状态。
+    Seats {
+        /// 分区编号。
+        #[arg(long)]
+        area_id: String,
+        /// 查询日期，格式为 yyyy-MM-dd。
+        #[arg(long)]
+        day: String,
+        /// 开始时间，格式为 HH:mm。
+        #[arg(long)]
+        start_time: String,
+        /// 结束时间，格式为 HH:mm。
+        #[arg(long)]
+        end_time: String,
+    },
+    /// 查询当前用户的预约记录。
+    Bookings {
+        /// 页码，从 1 开始。
+        #[arg(long, default_value_t = 1)]
+        page: i32,
+        /// 每页记录数。
+        #[arg(long, default_value_t = 20)]
+        limit: i32,
+    },
 }
 
 /// 阳光打卡命令组。
@@ -450,6 +513,8 @@ impl Cli {
                 | Command::Spoc(_)
                 | Command::Judge(_)
                 | Command::Signin(_)
+                | Command::Libbook(_)
+                | Command::Ygdk(_)
         )
     }
 
@@ -499,6 +564,47 @@ pub trait CliBackend {
     /// 查询今日签到课程。
     async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         Err(internal_error("签到功能不可用"))
+    }
+    /// 查询图书馆楼馆列表。
+    async fn libbook_libraries(
+        &mut self,
+        _day: &str,
+    ) -> Result<FeatureResult<Vec<LibBookLibrary>>> {
+        Err(internal_error("图书馆功能不可用"))
+    }
+    /// 查询图书馆分区列表。
+    async fn libbook_areas(
+        &mut self,
+        _premises_id: &str,
+        _storey_id: Option<&str>,
+        _day: &str,
+    ) -> Result<FeatureResult<Vec<LibBookArea>>> {
+        Err(internal_error("图书馆功能不可用"))
+    }
+    /// 查询图书馆分区详情。
+    async fn libbook_area_detail(
+        &mut self,
+        _area_id: &str,
+    ) -> Result<FeatureResult<LibBookAreaDetail>> {
+        Err(internal_error("图书馆功能不可用"))
+    }
+    /// 查询图书馆座位状态。
+    async fn libbook_seats(
+        &mut self,
+        _area_id: &str,
+        _day: &str,
+        _start_time: &str,
+        _end_time: &str,
+    ) -> Result<FeatureResult<Vec<LibBookSeat>>> {
+        Err(internal_error("图书馆功能不可用"))
+    }
+    /// 查询当前用户的图书馆预约记录。
+    async fn libbook_bookings(
+        &mut self,
+        _page: i32,
+        _limit: i32,
+    ) -> Result<FeatureResult<LibBookBookingsPage>> {
+        Err(internal_error("图书馆功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         Err(internal_error("阳光打卡不可用"))
@@ -601,6 +707,41 @@ pub trait RoutedCliBackend {
     /// 查询今日课堂签到状态。
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         Err(routed_unavailable("签到功能不可用"))
+    }
+    /// 通过 Core 路由查询图书馆楼馆列表。
+    async fn libbook_libraries(&mut self, _day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
+        Err(routed_unavailable("图书馆功能不可用"))
+    }
+    /// 通过 Core 路由查询图书馆分区列表。
+    async fn libbook_areas(
+        &mut self,
+        _premises_id: &str,
+        _storey_id: Option<&str>,
+        _day: &str,
+    ) -> RoutedResult<Vec<LibBookArea>> {
+        Err(routed_unavailable("图书馆功能不可用"))
+    }
+    /// 通过 Core 路由查询图书馆分区详情。
+    async fn libbook_area_detail(&mut self, _area_id: &str) -> RoutedResult<LibBookAreaDetail> {
+        Err(routed_unavailable("图书馆功能不可用"))
+    }
+    /// 通过 Core 路由查询图书馆座位状态。
+    async fn libbook_seats(
+        &mut self,
+        _area_id: &str,
+        _day: &str,
+        _start_time: &str,
+        _end_time: &str,
+    ) -> RoutedResult<Vec<LibBookSeat>> {
+        Err(routed_unavailable("图书馆功能不可用"))
+    }
+    /// 通过 Core 路由查询图书馆预约记录。
+    async fn libbook_bookings(
+        &mut self,
+        _page: i32,
+        _limit: i32,
+    ) -> RoutedResult<LibBookBookingsPage> {
+        Err(routed_unavailable("图书馆功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         Err(routed_unavailable("阳光打卡不可用"))
@@ -938,6 +1079,39 @@ impl CliBackend for RouteClient {
     async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         self.signin_today().await
     }
+    async fn libbook_libraries(&mut self, day: &str) -> Result<FeatureResult<Vec<LibBookLibrary>>> {
+        self.libbook_libraries(day).await
+    }
+    async fn libbook_areas(
+        &mut self,
+        premises_id: &str,
+        storey_id: Option<&str>,
+        day: &str,
+    ) -> Result<FeatureResult<Vec<LibBookArea>>> {
+        self.libbook_areas(premises_id, storey_id, day).await
+    }
+    async fn libbook_area_detail(
+        &mut self,
+        area_id: &str,
+    ) -> Result<FeatureResult<LibBookAreaDetail>> {
+        self.libbook_area_detail(area_id).await
+    }
+    async fn libbook_seats(
+        &mut self,
+        area_id: &str,
+        day: &str,
+        start_time: &str,
+        end_time: &str,
+    ) -> Result<FeatureResult<Vec<LibBookSeat>>> {
+        self.libbook_seats(area_id, day, start_time, end_time).await
+    }
+    async fn libbook_bookings(
+        &mut self,
+        page: i32,
+        limit: i32,
+    ) -> Result<FeatureResult<LibBookBookingsPage>> {
+        self.libbook_bookings(page, limit).await
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         self.ygdk_overview().await
     }
@@ -1020,6 +1194,36 @@ impl CliBackend for RouteClient {
 impl RoutedCliBackend for UbaaClient {
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         UbaaClient::signin_today(self).await
+    }
+    async fn libbook_libraries(&mut self, day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
+        UbaaClient::libbook_libraries(self, day).await
+    }
+    async fn libbook_areas(
+        &mut self,
+        premises_id: &str,
+        storey_id: Option<&str>,
+        day: &str,
+    ) -> RoutedResult<Vec<LibBookArea>> {
+        UbaaClient::libbook_areas(self, premises_id, storey_id, day).await
+    }
+    async fn libbook_area_detail(&mut self, area_id: &str) -> RoutedResult<LibBookAreaDetail> {
+        UbaaClient::libbook_area_detail(self, area_id).await
+    }
+    async fn libbook_seats(
+        &mut self,
+        area_id: &str,
+        day: &str,
+        start_time: &str,
+        end_time: &str,
+    ) -> RoutedResult<Vec<LibBookSeat>> {
+        UbaaClient::libbook_seats(self, area_id, day, start_time, end_time).await
+    }
+    async fn libbook_bookings(
+        &mut self,
+        page: i32,
+        limit: i32,
+    ) -> RoutedResult<LibBookBookingsPage> {
+        UbaaClient::libbook_bookings(self, page, limit).await
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         UbaaClient::ygdk_overview(self).await
@@ -1144,6 +1348,10 @@ where
         }) => (
             CliFeature::Signin,
             routed_readonly(backend.signin_today().await, CliFeature::Signin),
+        ),
+        Command::Libbook(arguments) => (
+            CliFeature::LibBook,
+            run_routed_libbook(arguments, backend).await,
         ),
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Overview,
@@ -1290,6 +1498,46 @@ async fn run_routed_judge<B: RoutedCliBackend + Send>(
                 CliFeature::Judge,
             )
         }
+    }
+}
+
+async fn run_routed_libbook<B: RoutedCliBackend + Send>(
+    arguments: LibBookArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        LibBookCommand::Libraries { day } => {
+            routed_readonly(backend.libbook_libraries(&day).await, CliFeature::LibBook)
+        }
+        LibBookCommand::Areas {
+            premises_id,
+            storey_id,
+            day,
+        } => routed_readonly(
+            backend
+                .libbook_areas(&premises_id, storey_id.as_deref(), &day)
+                .await,
+            CliFeature::LibBook,
+        ),
+        LibBookCommand::AreaDetail { area_id } => routed_readonly(
+            backend.libbook_area_detail(&area_id).await,
+            CliFeature::LibBook,
+        ),
+        LibBookCommand::Seats {
+            area_id,
+            day,
+            start_time,
+            end_time,
+        } => routed_readonly(
+            backend
+                .libbook_seats(&area_id, &day, &start_time, &end_time)
+                .await,
+            CliFeature::LibBook,
+        ),
+        LibBookCommand::Bookings { page, limit } => routed_readonly(
+            backend.libbook_bookings(page, limit).await,
+            CliFeature::LibBook,
+        ),
     }
 }
 
@@ -1460,6 +1708,7 @@ where
             .signin_today()
             .await
             .and_then(|data| readonly(data, CliFeature::Signin)),
+        Command::Libbook(arguments) => run_libbook(arguments, backend).await,
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Overview,
         }) => backend
@@ -1496,6 +1745,7 @@ const fn command_feature(command: &Command) -> CliFeature {
         Command::Spoc(_) => CliFeature::Spoc,
         Command::Judge(_) => CliFeature::Judge,
         Command::Signin(_) => CliFeature::Signin,
+        Command::Libbook(_) => CliFeature::LibBook,
         Command::Ygdk(_) => CliFeature::Ygdk,
     }
 }
@@ -1675,6 +1925,43 @@ async fn run_judge<B: CliBackend + Send>(
                 .await
                 .and_then(|result| readonly(result, CliFeature::Judge))
         }
+    }
+}
+
+async fn run_libbook<B: CliBackend + Send>(
+    arguments: LibBookArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        LibBookCommand::Libraries { day } => backend
+            .libbook_libraries(&day)
+            .await
+            .and_then(|result| readonly(result, CliFeature::LibBook)),
+        LibBookCommand::Areas {
+            premises_id,
+            storey_id,
+            day,
+        } => backend
+            .libbook_areas(&premises_id, storey_id.as_deref(), &day)
+            .await
+            .and_then(|result| readonly(result, CliFeature::LibBook)),
+        LibBookCommand::AreaDetail { area_id } => backend
+            .libbook_area_detail(&area_id)
+            .await
+            .and_then(|result| readonly(result, CliFeature::LibBook)),
+        LibBookCommand::Seats {
+            area_id,
+            day,
+            start_time,
+            end_time,
+        } => backend
+            .libbook_seats(&area_id, &day, &start_time, &end_time)
+            .await
+            .and_then(|result| readonly(result, CliFeature::LibBook)),
+        LibBookCommand::Bookings { page, limit } => backend
+            .libbook_bookings(page, limit)
+            .await
+            .and_then(|result| readonly(result, CliFeature::LibBook)),
     }
 }
 

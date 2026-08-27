@@ -13,6 +13,7 @@ The CLI exposes only the aggregate Core facade methods below. Host code never im
 | SPOC | `spoc assignments`, `spoc assignment show --id` | `spoc_assignments`, `spoc_assignment` | current-term; optional course metadata; global encrypted `queryListByPage` with `kcid=""`; detail and optional submission endpoints; `Spoc.kt` |
 | Judge | `judge assignments`, assignment `show`/`details` | `judge_assignments`, `judge_assignment`, `judge_assignment_details` | SSO service, course/assignment HTML links and detail pages; `Judge.kt` |
 | Signin | `signin today` | `signin_today` | iClass 8346 跳转、8347 业务登录及今日课堂查询；`Signin.kt` |
+| LibBook | `libbook libraries`, `areas`, `area-detail`, `seats`, `bookings` | `libbook_libraries`, `libbook_areas`, `libbook_area_detail`, `libbook_seats`, `libbook_bookings` | 图书馆 CAS 换票、独立 token 及五类座位只读接口；`LibBook.kt` |
 
 Schedule term values and week serials are selected from the upstream response. Grades reject terms that do not match `yyyy-yyyy-semester`. Classroom dates must use `yyyy-mm-dd`; `UBAA_VERIFY_CAMPUS_ID` and `UBAA_VERIFY_DATE` are non-secret live-verifier overrides. Empty lists and empty classroom maps are valid only after the authoritative operation was actually requested and its required wrapper parsed; an unsupported undergraduate portal or missing account capability is a real, nonzero live failure.
 

@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "ygdk"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -183,6 +183,93 @@
         "signStatus": { "type": "integer" }
       },
       "additionalProperties": false
+    },
+    "libBookLibrary": {
+      "type": "object",
+      "required": ["id", "name", "freeNum", "totalNum", "storeys"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "freeNum": { "$ref": "#/$defs/i32" },
+        "totalNum": { "$ref": "#/$defs/i32" },
+        "storeys": { "type": "array", "items": { "$ref": "#/$defs/libBookStorey" } }
+      },
+      "additionalProperties": false
+    },
+    "libBookStorey": {
+      "type": "object",
+      "required": ["id", "name", "freeNum", "totalNum"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" },
+        "freeNum": { "$ref": "#/$defs/i32" }, "totalNum": { "$ref": "#/$defs/i32" }
+      },
+      "additionalProperties": false
+    },
+    "libBookArea": {
+      "type": "object",
+      "required": ["id", "name", "areaName", "premisesId", "storeyId", "freeNum", "totalNum"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" }, "areaName": { "type": "string" },
+        "premisesId": { "type": "string" }, "storeyId": { "type": "string" },
+        "freeNum": { "$ref": "#/$defs/i32" }, "totalNum": { "$ref": "#/$defs/i32" }
+      },
+      "additionalProperties": false
+    },
+    "libBookTimeSlot": {
+      "type": "object",
+      "required": ["id", "start", "end", "label"],
+      "properties": {
+        "id": { "type": "string" }, "start": { "type": "string" },
+        "end": { "type": "string" }, "label": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "libBookAreaDetail": {
+      "type": "object",
+      "required": ["id", "name", "availableDates", "timeSlots"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" },
+        "availableDates": { "type": "array", "items": { "type": "string" } },
+        "timeSlots": { "type": "array", "items": { "$ref": "#/$defs/libBookTimeSlot" } }
+      },
+      "additionalProperties": false
+    },
+    "libBookSeat": {
+      "type": "object",
+      "required": ["id", "name", "no", "status", "statusName", "isAvailable"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" }, "no": { "type": "string" },
+        "status": { "type": "string" }, "statusName": { "type": "string" }, "isAvailable": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "libBookBooking": {
+      "type": "object",
+      "required": ["id", "nameMerge", "areaName", "seatNo", "day", "beginTime", "endTime", "status", "statusName"],
+      "properties": {
+        "id": { "type": "string" }, "nameMerge": { "type": "string" }, "areaName": { "type": "string" },
+        "seatNo": { "type": "string" }, "day": { "type": "string" }, "beginTime": { "type": "string" },
+        "endTime": { "type": "string" }, "status": { "type": "string" }, "statusName": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "libBookBookingsPage": {
+      "type": "object",
+      "required": ["bookings", "page", "limit", "total"],
+      "properties": {
+        "bookings": { "type": "array", "items": { "$ref": "#/$defs/libBookBooking" } },
+        "page": { "$ref": "#/$defs/i32" }, "limit": { "$ref": "#/$defs/i32" }, "total": { "$ref": "#/$defs/i32" }
+      },
+      "additionalProperties": false
+    },
+    "libBookRoutedData": {
+      "oneOf": [
+        { "type": "array", "items": { "$ref": "#/$defs/libBookLibrary" } },
+        { "type": "array", "items": { "$ref": "#/$defs/libBookArea" } },
+        { "$ref": "#/$defs/libBookAreaDetail" },
+        { "type": "array", "items": { "$ref": "#/$defs/libBookSeat" } },
+        { "$ref": "#/$defs/libBookBookingsPage" }
+      ]
     },
     "ygdkOverview": {
       "type": "object",
@@ -651,6 +738,12 @@
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "signin" } }, "required": ["feature"] },
                   "data": { "type": "array", "items": { "$ref": "#/$defs/signinClass" } }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "libbook" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/libBookRoutedData" }
                 }
               },
               {

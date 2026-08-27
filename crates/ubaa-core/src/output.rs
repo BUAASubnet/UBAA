@@ -37,6 +37,8 @@ pub enum CliFeature {
     Judge,
     /// Classroom sign-in queries.
     Signin,
+    /// 图书馆座位与预约查询。
+    LibBook,
     Ygdk,
 }
 
@@ -55,6 +57,7 @@ impl CliFeature {
             Self::Spoc => "spoc",
             Self::Judge => "judge",
             Self::Signin => "signin",
+            Self::LibBook => "libbook",
             Self::Ygdk => "ygdk",
         }
     }
