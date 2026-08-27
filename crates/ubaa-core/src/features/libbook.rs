@@ -7,6 +7,11 @@ use crate::domain::{
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use serde_json::{Map, Value};
 
+#[derive(Clone, Debug)]
+pub(crate) struct LibBookCredential {
+    pub(crate) token: String,
+}
+
 fn err(message: &str) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

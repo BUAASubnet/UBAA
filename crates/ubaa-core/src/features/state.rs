@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 /// State shared only by runtimes and read workers for one route/client.
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
+    pub(crate) libbook: LibBookState,
     pub(crate) classroom: ClassroomState,
     pub(crate) signin: SigninState,
     pub(crate) spoc: SpocState,
@@ -21,11 +22,50 @@ pub(crate) struct RouteFeatureState {
 
 impl RouteFeatureState {
     pub(crate) fn clear(&self) {
+        self.libbook.clear();
         self.classroom.clear();
         self.signin.clear();
         self.spoc.clear();
         self.judge.clear();
         self.ygdk.clear();
+    }
+}
+
+/// 路线内存中的图书馆业务会话，不写入磁盘。
+#[derive(Debug, Default)]
+pub(crate) struct LibBookState {
+    credential: SyncMutex<Option<crate::features::libbook::LibBookCredential>>,
+    login: Mutex<()>,
+}
+
+impl LibBookState {
+    pub(crate) fn credential(&self) -> Option<crate::features::libbook::LibBookCredential> {
+        self.credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    pub(crate) fn set(&self, value: crate::features::libbook::LibBookCredential) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
+    }
+
+    pub(crate) fn clear_credential(&self) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+    }
+
+    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.login.lock().await
+    }
+
+    fn clear(&self) {
+        self.clear_credential();
     }
 }
 

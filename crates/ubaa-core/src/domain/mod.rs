@@ -32,6 +32,8 @@ pub enum RoutePolicy {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReadonlyFeature {
+    /// 图书馆座位只读查询。
+    LibBook,
     /// 阳光打卡只读查询。
     Ygdk,
     /// Classroom sign-in status queries.
@@ -55,6 +57,7 @@ impl ReadonlyFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::LibBook => "libbook",
             Self::Ygdk => "ygdk",
             Self::Signin => "signin",
             Self::Schedule => "schedule",
