@@ -28,7 +28,7 @@ struct Row {
     sign_status: Value,
 }
 
-/// Parse the legacy iClass daily-class response without exposing upstream wrapper fields.
+/// 解析旧版 iClass 今日课程响应，不向调用方暴露上游包装字段。
 pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
     let response: Response = serde_json::from_str(body).map_err(|_| parse_error())?;
     if !success(&response.status) {
@@ -36,7 +36,7 @@ pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "signin response returned a non-success status",
+            "签到响应返回了非成功状态",
         ));
     }
     response.result.into_iter().map(map_row).collect()
@@ -69,6 +69,6 @@ fn parse_error() -> UbaaError {
         ErrorCode::ParseError,
         ErrorKind::Parse,
         false,
-        "signin response is not valid",
+        "签到响应格式无效",
     )
 }
