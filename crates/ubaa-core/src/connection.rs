@@ -1,4 +1,4 @@
-//! Direct/WebVPN URL policy and auditable redirect resolution.
+//! Direct/WebVPN 地址策略与可审计的重定向解析。
 #![allow(
     clippy::missing_errors_doc,
     clippy::map_unwrap_or,
@@ -25,25 +25,25 @@ const GATEWAY_HOST: &str = "gw.buaa.edu.cn";
 const GATEWAY_PORT: u16 = 80;
 const DEFAULT_GATEWAY_CACHE_TTL: Duration = Duration::from_secs(60);
 
-/// Three-state result of probing the BUAA campus gateway.
+/// 探测北航校园网关得到的三态结果。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NetworkState {
-    /// At least one resolved gateway address accepted a TCP connection.
+    /// 至少一个解析出的网关地址接受了 TCP 连接。
     Campus,
-    /// Resolution, address discovery, connection, or the total budget failed.
+    /// 域名解析、地址发现、连接或总预算失败。
     OffCampus,
-    /// The probe itself failed internally or a diagnostic probe injected this state.
+    /// 探测自身发生内部失败，或诊断探测注入了该状态。
     Unknown,
 }
 
 /// Injectable gateway reachability probe used by route resolution.
 pub trait GatewayProbe: Send + Sync {
-    /// Probe gateway TCP reachability within one total budget.
+    /// 在一个总预算内探测网关 TCP 可达性。
     fn probe(&self, budget: Duration) -> NetworkState;
 }
 
-/// TCP probe for `gw.buaa.edu.cn:80` without embedded campus address ranges.
+/// 探测 `gw.buaa.edu.cn:80` 的 TCP 可达性，不内置校园网地址段。
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SystemGatewayProbe;
 
@@ -118,7 +118,7 @@ where
     NetworkState::OffCampus
 }
 
-/// Process-local gateway result cache with a sixty-second production TTL.
+/// 进程内网关结果缓存，生产 TTL 为 60 秒。
 pub struct CachingGatewayProbe<P> {
     inner: P,
     ttl: Duration,
@@ -126,7 +126,7 @@ pub struct CachingGatewayProbe<P> {
 }
 
 impl<P> CachingGatewayProbe<P> {
-    /// Construct a cache with a caller-selected TTL; production uses sixty seconds.
+    /// 使用调用方指定的 TTL 构造缓存；生产环境使用 60 秒。
     #[must_use]
     pub fn new(inner: P, ttl: Duration) -> Self {
         Self {
@@ -136,7 +136,7 @@ impl<P> CachingGatewayProbe<P> {
         }
     }
 
-    /// Construct a cache with the contract's sixty-second TTL.
+    /// 使用合同规定的 60 秒 TTL 构造缓存。
     #[must_use]
     pub fn with_default_ttl(inner: P) -> Self {
         Self::new(inner, DEFAULT_GATEWAY_CACHE_TTL)
@@ -160,21 +160,21 @@ impl<P: GatewayProbe> GatewayProbe for CachingGatewayProbe<P> {
     }
 }
 
-/// Route decision metadata safe to expose in diagnostics and JSON.
+/// 可安全暴露到诊断信息和 JSON 的路线决策元数据。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RouteDiagnostic {
-    /// Gateway reachability state observed for this decision.
+    /// 本次决策观察到的网关可达性状态。
     pub network: NetworkState,
-    /// Initial route selected by policy and matrix.
+    /// 根据策略和矩阵选择的初始路线。
     pub initial_route: ConnectionMode,
-    /// Final route after any preflight fallback.
+    /// 预检查回退后的最终路线。
     pub mode: ConnectionMode,
-    /// Whether another ready route replaced the initial route.
+    /// 是否由另一条就绪路线替代了初始路线。
     pub used_fallback: bool,
 }
 
 impl RouteDiagnostic {
-    /// Construct a no-fallback diagnostic.
+    /// 构造不使用回退的诊断信息。
     #[must_use]
     pub const fn new(network: NetworkState, mode: ConnectionMode) -> Self {
         Self {
@@ -186,18 +186,18 @@ impl RouteDiagnostic {
     }
 }
 
-/// Resolved route plus safe diagnostics.
+/// 已解析路线及安全诊断信息。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RouteResolution {
-    /// Concrete connection route selected for the operation.
+    /// 本次操作选择的具体连接路线。
     pub mode: ConnectionMode,
-    /// User policy after configuration fallback.
+    /// 配置回退后的用户策略。
     pub policy: RoutePolicy,
-    /// Safe decision metadata.
+    /// 安全决策元数据。
     pub diagnostic: RouteDiagnostic,
 }
 
-/// Resolve one feature's user policy using the current gateway state.
+/// 根据当前网关状态解析一个功能的用户策略。
 pub fn resolve_feature_route<P: GatewayProbe + ?Sized>(
     feature: ReadonlyFeature,
     requested: RoutePolicy,
@@ -231,7 +231,7 @@ pub fn resolve_feature_route<P: GatewayProbe + ?Sized>(
     })
 }
 
-/// Hosts observed in the frozen SSO/User Center authentication flow.
+/// 冻结 SSO/用户中心认证流程中观察到的主机。
 #[derive(Clone, Debug)]
 pub struct AuthHostPolicy {
     allowed: &'static [&'static str],
@@ -246,7 +246,7 @@ impl Default for AuthHostPolicy {
 }
 
 impl AuthHostPolicy {
-    /// Check an exact, case-insensitive authentication host.
+    /// 检查不区分大小写的精确认证主机。
     #[must_use]
     pub fn allows(&self, host: &str) -> bool {
         self.allowed
@@ -255,7 +255,7 @@ impl AuthHostPolicy {
     }
 }
 
-/// Check whether an absolute authentication URL uses an allowed scheme and verified host.
+/// 检查绝对认证地址是否使用允许的协议和已验证主机。
 #[must_use]
 pub fn is_allowed_auth_host(url: &str) -> bool {
     Url::parse(url)
@@ -268,11 +268,11 @@ pub fn is_allowed_auth_host(url: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Convert a direct upstream URL to the verified BUAA `WebVPN` format.
+/// 将上游直连地址转换为已验证的北航 `WebVPN` 格式。
 ///
 /// # Errors
 ///
-/// Returns an upstream protocol error when a parsed URL has no usable host.
+/// 解析地址没有可用主机时返回上游协议错误。
 pub fn to_webvpn_url(url: &str) -> Result<String> {
     let Ok(parsed) = Url::parse(url) else {
         return Ok(url.to_string());
@@ -311,11 +311,11 @@ pub fn to_webvpn_url(url: &str) -> Result<String> {
     ))
 }
 
-/// Convert a verified `WebVPN` URL back to its direct upstream form.
+/// 将已验证的 `WebVPN` 地址还原为上游直连形式。
 ///
 /// # Errors
 ///
-/// Returns an upstream protocol error when a valid gateway payload cannot be decoded.
+/// 有效网关载荷无法解码时返回上游协议错误。
 pub fn from_webvpn_url(url: &str) -> Result<String> {
     let Ok(parsed) = Url::parse(url) else {
         return Ok(url.to_string());
@@ -368,11 +368,11 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
     Ok(format!("{authority}{path}{query}{fragment}"))
 }
 
-/// Resolve one manual redirect while applying the current connection strategy.
+/// 应用当前连接策略解析一次手动重定向。
 ///
 /// # Errors
 ///
-/// Returns a permission or upstream protocol error for malformed or unverified redirects.
+/// 重定向格式错误或未验证时返回权限错误或上游协议错误。
 pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode) -> Result<String> {
     let current =
         Url::parse(current_url).map_err(|_| protocol_error("invalid current redirect URL"))?;
