@@ -83,15 +83,13 @@ impl AuthWorkflow {
             return Ok(());
         }
         if response.status != 200 {
-            return Err(status_error(response.status, "SSO login page unavailable"));
+            return Err(status_error(response.status, "SSO 登录页不可用"));
         }
         let page = body_text(&response);
         let execution = extract_execution(&page)
-            .ok_or_else(|| upstream_changed("SSO login page has no execution token"))?;
+            .ok_or_else(|| upstream_changed("SSO 登录页缺少 execution 令牌"))?;
         if has_unsupported_login_step(&page) {
-            return Err(upstream_changed(
-                "SSO login page requires an unsupported interactive verification step",
-            ));
+            return Err(upstream_changed("SSO 登录页要求不支持的交互式验证步骤"));
         }
         self.state.remember(page, execution);
         Ok(())
@@ -107,7 +105,7 @@ impl AuthWorkflow {
                 ErrorCode::InvalidInput,
                 ErrorKind::Input,
                 false,
-                "username and password are required",
+                "用户名和密码不能为空",
             ));
         }
         if self.state.authenticated_ready() {
@@ -124,12 +122,12 @@ impl AuthWorkflow {
         let page = self
             .state
             .page()
-            .ok_or_else(|| upstream_changed("SSO login page state is unavailable"))?
+            .ok_or_else(|| upstream_changed("SSO 登录页状态不可用"))?
             .to_string();
         let execution = self
             .state
             .execution()
-            .ok_or_else(|| upstream_changed("SSO execution state is unavailable"))?
+            .ok_or_else(|| upstream_changed("SSO execution 状态不可用"))?
             .to_string();
         let form = build_login_form(&page, &input, &execution)?;
         let request = HttpRequest::post(runtime.url(SSO_LOGIN_URL)?, encode_form(&form))
@@ -189,11 +187,11 @@ async fn follow_login_response(
     loop {
         while is_redirect(response.status) {
             if redirects >= MAX_REDIRECTS {
-                return Err(upstream_changed("SSO redirect limit exceeded"));
+                return Err(upstream_changed("SSO 重定向次数超过上限"));
             }
             redirects += 1;
             let location = header_first(&response, "location")
-                .ok_or_else(|| upstream_changed("SSO redirect has no Location"))?;
+                .ok_or_else(|| upstream_changed("SSO 重定向缺少 Location"))?;
             let next =
                 crate::connection::resolve_redirect(&response.final_url, location, runtime.mode())?;
             response = runtime.request(HttpRequest::get(next)).await?;
@@ -205,12 +203,12 @@ async fn follow_login_response(
                     ErrorCode::PasswordRiskConfirmationFailed,
                     ErrorKind::Authentication,
                     false,
-                    "password-risk confirmation was not accepted",
+                    "密码风险确认未被接受",
                 ));
             }
             risk_ignored = true;
             let execution = extract_execution(&body)
-                .ok_or_else(|| upstream_changed("password-risk page has no execution token"))?;
+                .ok_or_else(|| upstream_changed("密码风险页面缺少 execution 令牌"))?;
             let form = BTreeMap::from([
                 ("execution".to_string(), execution),
                 ("_eventId".to_string(), "ignoreAndContinue".to_string()),
@@ -225,7 +223,7 @@ async fn follow_login_response(
             continue;
         }
         if response.status >= 500 {
-            return Err(status_error(response.status, "SSO is unavailable"));
+            return Err(status_error(response.status, "SSO 不可用"));
         }
         if response.status == 401
             || find_login_error(&body).is_some()
@@ -235,8 +233,7 @@ async fn follow_login_response(
                 ErrorCode::InvalidCredentials,
                 ErrorKind::Authentication,
                 false,
-                find_login_error(&body)
-                    .unwrap_or_else(|| "username or password was rejected".into()),
+                find_login_error(&body).unwrap_or_else(|| "用户名或密码错误".into()),
             ));
         }
         return Ok(());
@@ -250,21 +247,18 @@ async fn activate_user_center(runtime: &mut ClientRuntime) -> Result<()> {
     for _ in 0..MAX_REDIRECTS {
         if !is_redirect(response.status) {
             return if response.status >= 500 {
-                Err(status_error(
-                    response.status,
-                    "User Center activation failed",
-                ))
+                Err(status_error(response.status, "用户中心激活失败"))
             } else {
                 Ok(())
             };
         }
         let location = header_first(&response, "location")
-            .ok_or_else(|| upstream_changed("activation redirect has no Location"))?;
+            .ok_or_else(|| upstream_changed("激活重定向缺少 Location"))?;
         let next =
             crate::connection::resolve_redirect(&response.final_url, location, runtime.mode())?;
         response = runtime.request(HttpRequest::get(next)).await?;
     }
-    Err(upstream_changed("activation redirect limit exceeded"))
+    Err(upstream_changed("激活重定向次数超过上限"))
 }
 
 fn is_redirect(status: u16) -> bool {
@@ -285,7 +279,7 @@ fn body_text(response: &HttpResponse) -> String {
 }
 
 fn strip_query(url: &str) -> Result<String> {
-    let mut parsed = Url::parse(url).map_err(|_| upstream_changed("invalid password-risk URL"))?;
+    let mut parsed = Url::parse(url).map_err(|_| upstream_changed("密码风险地址无效"))?;
     parsed.set_query(None);
     Ok(parsed.to_string())
 }

@@ -146,7 +146,7 @@ impl ReqwestTransport {
                     crate::error::ErrorCode::InternalError,
                     crate::error::ErrorKind::Internal,
                     false,
-                    "could not build HTTP client",
+                    "无法构造 HTTP 客户端",
                 )
             })?;
         Ok(Self { client })
@@ -228,7 +228,7 @@ fn response_too_large() -> UbaaError {
         ErrorCode::UpstreamChanged,
         ErrorKind::Upstream,
         false,
-        "upstream response body exceeds the allowed size",
+        "上游响应体超过允许大小",
     )
 }
 
@@ -238,14 +238,14 @@ fn transport_error(error: &reqwest::Error) -> crate::error::UbaaError {
             crate::error::ErrorCode::Timeout,
             crate::error::ErrorKind::Network,
             true,
-            "upstream request timed out",
+            "上游请求超时",
         );
     }
     crate::error::UbaaError::new(
         crate::error::ErrorCode::NetworkError,
         crate::error::ErrorKind::Network,
         true,
-        "upstream network request failed",
+        "上游网络请求失败",
     )
 }
 
@@ -269,10 +269,7 @@ mod tests {
 
         let before = body.clone();
         let error = append_bounded(&mut body, &[5], 4).expect_err("one byte over limit fails");
-        assert_eq!(
-            error.message,
-            "upstream response body exceeds the allowed size"
-        );
+        assert_eq!(error.message, "上游响应体超过允许大小");
         assert_eq!(body, before, "rejected chunk must not be appended");
     }
 
@@ -280,9 +277,6 @@ mod tests {
     fn bounded_append_rejects_length_overflow() {
         let mut body = Vec::new();
         let error = append_bounded(&mut body, &[0; 4], 3).expect_err("over-limit chunk fails");
-        assert_eq!(
-            error.message,
-            "upstream response body exceeds the allowed size"
-        );
+        assert_eq!(error.message, "上游响应体超过允许大小");
     }
 }

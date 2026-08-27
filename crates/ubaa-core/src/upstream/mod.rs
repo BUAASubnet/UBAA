@@ -205,15 +205,15 @@ pub fn parse_user_info(body: &str) -> Result<UserProfile> {
             ErrorCode::ParseError,
             ErrorKind::Parse,
             false,
-            "User Center response is not valid JSON",
+            "用户中心响应不是有效 JSON",
         )
     })?;
     if payload.code != 0 {
-        return Err(upstream_changed("User Center returned a nonzero code"));
+        return Err(upstream_changed("用户中心返回非零状态码"));
     }
     payload
         .data
-        .ok_or_else(|| upstream_changed("User Center response is missing data"))
+        .ok_or_else(|| upstream_changed("用户中心响应缺少数据"))
 }
 
 /// 使用标准 URL 表单编码方式编码有序表单。
