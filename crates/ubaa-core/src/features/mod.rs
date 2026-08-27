@@ -1,6 +1,7 @@
 //! Campus feature modules built on authenticated Core sessions.
 
 pub mod bykc;
+pub mod cgyy;
 pub mod classroom;
 pub mod grades;
 pub mod judge;

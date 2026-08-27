@@ -1,0 +1,1 @@
+{"code":200,"data":{"token":"仅用于测试的虚构令牌","reservationDateList":["2026-03-29"],"spaceTimeInfo":[{"id":242,"beginTime":"14:00","endTime":"15:35"}],"reservationDateSpaceInfo":{"2026-03-29":[{"id":6,"spaceName":"示例房间","venueSiteId":4,"242":{"reservationStatus":2,"tradeNo":null,"orderId":null,"takeUp":false}}]}}}
