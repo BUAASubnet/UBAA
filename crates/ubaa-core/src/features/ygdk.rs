@@ -391,8 +391,7 @@ fn code_from_url(raw: &str) -> Option<String> {
 fn percent_decode(value: &str) -> String {
     url::form_urlencoded::parse(value.as_bytes())
         .next()
-        .map(|(_, v)| v.into_owned())
-        .unwrap_or_else(|| value.to_owned())
+        .map_or_else(|| value.to_owned(), |(_, v)| v.into_owned())
 }
 
 async fn post(
@@ -401,10 +400,7 @@ async fn post(
     credential: &YgdkCredential,
     params: &[(&str, String)],
 ) -> Result<String> {
-    let mut form: Vec<(&str, String)> = params
-        .iter()
-        .map(|(k, v)| (k.as_ref(), v.clone()))
-        .collect();
+    let mut form: Vec<(&str, String)> = params.iter().map(|(k, v)| (*k, v.clone())).collect();
     form.push(("uid", credential.uid.to_string()));
     form.push(("token", credential.token.clone()));
     let body = url::form_urlencoded::Serializer::new(String::new())
