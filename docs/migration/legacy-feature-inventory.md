@@ -204,7 +204,7 @@ UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `s
 | 功能 | 旧版查询能力 | 旧版写能力 | 当前 Core/CLI | 建议优先级 |
 |---|---|---|---|---|
 | Signin | 今日课堂/签到状态 | 执行签到 | 已接入 `signin today`（Core facade + CLI）；真实上游待验证 | 中 |
-| Ygdk | 概览、记录分页 | 运动打卡、照片上传 | 缺失 | 中低 |
+| Ygdk | 概览、记录分页 | 运动打卡、照片上传 | 已接入 `ygdk overview`/`ygdk records`（Core facade + CLI）；真实上游待验证 | 中低 |
 | LibBook | 图书馆、区域、座位、我的预约 | 预约、取消 | 缺失 | 低 |
 | Cgyy | 场地、用途、日期可用性、订单、锁码 | 预约、取消、验证码 | 缺失 | 低 |
 | Bykc | 资料、课程、详情、已选、统计 | 选课、退选、签到/签退 | 缺失 | 中低 |
