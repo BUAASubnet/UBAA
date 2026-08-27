@@ -330,7 +330,12 @@ impl UbaaClient {
     }
 
     /// 查询博雅课程分页。
-    pub async fn bykc_courses(&mut self, page: i32, size: i32) -> RoutedResult<BykcCoursePage> {
+    pub async fn bykc_courses(
+        &mut self,
+        page: i32,
+        size: i32,
+        all: bool,
+    ) -> RoutedResult<BykcCoursePage> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
         if page <= 0 || size <= 0 {
             return Err(routed_error(
@@ -340,10 +345,10 @@ impl UbaaClient {
         }
         let result = match resolution.mode {
             ConnectionMode::Direct => {
-                crate::features::bykc::get_courses(&mut self.direct_runtime, page, size).await
+                crate::features::bykc::get_courses(&mut self.direct_runtime, page, size, all).await
             }
             ConnectionMode::WebVpn => {
-                crate::features::bykc::get_courses(&mut self.webvpn_runtime, page, size).await
+                crate::features::bykc::get_courses(&mut self.webvpn_runtime, page, size, all).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1328,12 +1333,13 @@ impl RouteClient {
         &mut self,
         page: i32,
         size: i32,
+        all: bool,
     ) -> Result<FeatureResult<BykcCoursePage>> {
         self.guard_session_ownership()?;
         if page <= 0 || size <= 0 {
             return Err(invalid_input("页码和每页数量必须为正数"));
         }
-        let result = crate::features::bykc::get_courses(&mut self.runtime, page, size).await;
+        let result = crate::features::bykc::get_courses(&mut self.runtime, page, size, all).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

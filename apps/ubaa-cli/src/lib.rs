@@ -196,6 +196,9 @@ pub enum BykcCommand {
         /// 每页数量。
         #[arg(long, default_value_t = 20)]
         size: i32,
+        /// 是否包含已过期和选课结束的课程。
+        #[arg(long)]
+        all: bool,
     },
     /// 查询课程详情。
     Course {
@@ -703,6 +706,7 @@ pub trait CliBackend {
         &mut self,
         _page: i32,
         _size: i32,
+        _all: bool,
     ) -> Result<FeatureResult<BykcCoursePage>> {
         Err(internal_error("博雅功能不可用"))
     }
@@ -888,7 +892,12 @@ pub trait RoutedCliBackend {
         Err(routed_unavailable("博雅功能不可用"))
     }
     /// 通过 Core 路由分页查询博雅课程。
-    async fn bykc_courses(&mut self, _page: i32, _size: i32) -> RoutedResult<BykcCoursePage> {
+    async fn bykc_courses(
+        &mut self,
+        _page: i32,
+        _size: i32,
+        _all: bool,
+    ) -> RoutedResult<BykcCoursePage> {
         Err(routed_unavailable("博雅功能不可用"))
     }
     /// 通过 Core 路由查询博雅课程详情。
@@ -1300,8 +1309,9 @@ impl CliBackend for RouteClient {
         &mut self,
         page: i32,
         size: i32,
+        all: bool,
     ) -> Result<FeatureResult<BykcCoursePage>> {
-        self.bykc_courses(page, size).await
+        self.bykc_courses(page, size, all).await
     }
     async fn bykc_course_detail(&mut self, id: i64) -> Result<FeatureResult<BykcCourse>> {
         self.bykc_course_detail(id).await
@@ -1462,8 +1472,13 @@ impl RoutedCliBackend for UbaaClient {
     async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
         UbaaClient::bykc_profile(self).await
     }
-    async fn bykc_courses(&mut self, page: i32, size: i32) -> RoutedResult<BykcCoursePage> {
-        UbaaClient::bykc_courses(self, page, size).await
+    async fn bykc_courses(
+        &mut self,
+        page: i32,
+        size: i32,
+        all: bool,
+    ) -> RoutedResult<BykcCoursePage> {
+        UbaaClient::bykc_courses(self, page, size, all).await
     }
     async fn bykc_course_detail(&mut self, id: i64) -> RoutedResult<BykcCourse> {
         UbaaClient::bykc_course_detail(self, id).await
@@ -1802,9 +1817,10 @@ async fn run_routed_bykc<B: RoutedCliBackend + Send>(
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
         BykcCommand::Profile => routed_readonly(backend.bykc_profile().await, CliFeature::Bykc),
-        BykcCommand::Courses { page, size } => {
-            routed_readonly(backend.bykc_courses(page, size).await, CliFeature::Bykc)
-        }
+        BykcCommand::Courses { page, size, all } => routed_readonly(
+            backend.bykc_courses(page, size, all).await,
+            CliFeature::Bykc,
+        ),
         BykcCommand::Course { id } => {
             routed_readonly(backend.bykc_course_detail(id).await, CliFeature::Bykc)
         }
@@ -2271,8 +2287,8 @@ async fn run_bykc<B: CliBackend + Send>(
             .bykc_profile()
             .await
             .and_then(|r| readonly(r, CliFeature::Bykc)),
-        BykcCommand::Courses { page, size } => backend
-            .bykc_courses(page, size)
+        BykcCommand::Courses { page, size, all } => backend
+            .bykc_courses(page, size, all)
             .await
             .and_then(|r| readonly(r, CliFeature::Bykc)),
         BykcCommand::Course { id } => backend

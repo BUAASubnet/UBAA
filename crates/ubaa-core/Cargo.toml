@@ -12,6 +12,7 @@ async-trait = "0.1.89"
 aes = "0.8.4"
 base64 = "0.22.1"
 cipher = { version = "0.4.4", features = ["block-padding"] }
+chrono = { version = "0.4.42", default-features = false, features = ["clock"] }
 httpdate = "1.0.3"
 md-5 = "0.10.6"
 regex = "1.12.2"

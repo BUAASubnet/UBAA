@@ -3,8 +3,8 @@ use std::io::Cursor;
 use async_trait::async_trait;
 use clap::{CommandFactory, Parser};
 use ubaa_cli::{
-    Cli, CliBackend, ReadonlyRouteContext, RoutedCliBackend, run_with_backend,
-    run_with_backend_with_route, run_with_routed_backend,
+    BykcCommand, Cli, CliBackend, Command, ReadonlyRouteContext, RoutedCliBackend,
+    run_with_backend, run_with_backend_with_route, run_with_routed_backend,
 };
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
@@ -27,6 +27,17 @@ fn assert_cli_schema(value: &serde_json::Value) {
         serde_json::from_str(include_str!("../../../docs/contracts/cli-json.schema.json")).unwrap();
     let validator = jsonschema::validator_for(&schema).unwrap();
     assert!(validator.is_valid(value), "invalid CLI envelope: {value}");
+}
+
+#[test]
+fn 博雅课程命令可显式包含已结束课程() {
+    let cli = Cli::try_parse_from(["ubaa", "bykc", "courses", "--all"]).unwrap();
+
+    assert!(matches!(
+        cli.command,
+        Command::Bykc(arguments)
+            if matches!(arguments.command, BykcCommand::Courses { all: true, .. })
+    ));
 }
 
 #[derive(Default)]

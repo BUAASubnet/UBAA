@@ -4,11 +4,13 @@
 
 use crate::connection::from_webvpn_url;
 use crate::domain::{
-    BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistic, BykcStatistics, BykcUserProfile,
+    BykcChosenCourse, BykcCourse, BykcCoursePage, BykcCourseStatus, BykcStatistic, BykcStatistics,
+    BykcUserProfile,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
+use chrono::{Local, NaiveDateTime};
 use cipher::{BlockDecryptMut, BlockEncryptMut, KeyInit, block_padding::Pkcs7};
 use rand::Rng;
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8::DecodePublicKey};
@@ -222,15 +224,20 @@ pub(crate) async fn get_courses(
     runtime: &mut crate::runtime::ClientRuntime,
     page: i32,
     size: i32,
+    all: bool,
 ) -> Result<BykcCoursePage> {
-    parse_courses(&wrap(
-        &request_api(
-            runtime,
-            "queryStudentSemesterCourseByPage",
-            serde_json::json!({"pageNumber":page,"pageSize":size}),
-        )
-        .await?,
-    ))
+    parse_courses_at(
+        &wrap(
+            &request_api(
+                runtime,
+                "queryStudentSemesterCourseByPage",
+                serde_json::json!({"pageNumber":page,"pageSize":size}),
+            )
+            .await?,
+        ),
+        all,
+        Local::now().naive_local(),
+    )
 }
 pub(crate) async fn get_course_detail(
     runtime: &mut crate::runtime::ClientRuntime,
@@ -307,8 +314,23 @@ fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
         })
 }
 
-fn course(value: &Value) -> Result<BykcCourse> {
+fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
     let m = value.as_object().ok_or_else(|| error("博雅课程字段无效"))?;
+    let course_start_date = string(m, "courseStartDate");
+    let course_select_start_date = string(m, "courseSelectStartDate");
+    let course_select_end_date = string(m, "courseSelectEndDate");
+    let selected = m.get("selected").and_then(Value::as_bool);
+    let course_max_count = int(m, "courseMaxCount");
+    let course_current_count = int(m, "courseCurrentCount");
+    let status = course_status(
+        course_start_date.as_deref(),
+        course_select_start_date.as_deref(),
+        course_select_end_date.as_deref(),
+        selected,
+        course_current_count,
+        course_max_count,
+        now,
+    );
     Ok(BykcCourse {
         id: m
             .get("id")
@@ -317,12 +339,56 @@ fn course(value: &Value) -> Result<BykcCourse> {
         course_name: string(m, "courseName").ok_or_else(|| error("博雅课程缺少名称"))?,
         course_position: string(m, "coursePosition"),
         course_teacher: string(m, "courseTeacher"),
-        course_start_date: string(m, "courseStartDate"),
+        course_start_date,
         course_end_date: string(m, "courseEndDate"),
-        course_max_count: int(m, "courseMaxCount"),
-        course_current_count: int(m, "courseCurrentCount"),
-        selected: m.get("selected").and_then(Value::as_bool),
+        course_select_start_date,
+        course_select_end_date,
+        course_cancel_end_date: string(m, "courseCancelEndDate"),
+        course_max_count,
+        course_current_count,
+        status,
+        selected,
     })
+}
+
+fn parse_datetime(value: Option<&str>) -> Option<NaiveDateTime> {
+    let value = value?.trim();
+    [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S%.f",
+        "%Y-%m-%dT%H:%M:%S%.f",
+    ]
+    .into_iter()
+    .find_map(|format| NaiveDateTime::parse_from_str(value, format).ok())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn course_status(
+    course_start: Option<&str>,
+    select_start: Option<&str>,
+    select_end: Option<&str>,
+    selected: Option<bool>,
+    current_count: Option<i32>,
+    max_count: Option<i32>,
+    now: NaiveDateTime,
+) -> BykcCourseStatus {
+    if parse_datetime(course_start).is_some_and(|value| now > value) {
+        BykcCourseStatus::Expired
+    } else if selected == Some(true) {
+        BykcCourseStatus::Selected
+    } else if parse_datetime(select_end).is_some_and(|value| now > value) {
+        BykcCourseStatus::Ended
+    } else if current_count
+        .zip(max_count)
+        .is_some_and(|(current, max)| current >= max)
+    {
+        BykcCourseStatus::Full
+    } else if parse_datetime(select_start).is_some_and(|value| now < value) {
+        BykcCourseStatus::Preview
+    } else {
+        BykcCourseStatus::Available
+    }
 }
 
 /// 解析用户资料。
@@ -348,6 +414,10 @@ pub fn parse_profile(body: &str) -> Result<BykcUserProfile> {
 
 /// 解析课程分页。
 pub fn parse_courses(body: &str) -> Result<BykcCoursePage> {
+    parse_courses_at(body, true, Local::now().naive_local())
+}
+
+fn parse_courses_at(body: &str, all: bool, now: NaiveDateTime) -> Result<BykcCoursePage> {
     let m = envelope(body)?
         .as_object()
         .cloned()
@@ -357,8 +427,17 @@ pub fn parse_courses(body: &str) -> Result<BykcCoursePage> {
         .and_then(Value::as_array)
         .ok_or_else(|| error("博雅课程分页缺少列表"))?
         .iter()
-        .map(course)
+        .map(|value| course(value, now))
         .collect::<Result<Vec<_>>>()?;
+    let content = content
+        .into_iter()
+        .filter(|course| {
+            all || !matches!(
+                course.status,
+                BykcCourseStatus::Expired | BykcCourseStatus::Ended
+            )
+        })
+        .collect();
     Ok(BykcCoursePage {
         content,
         total_elements: int(&m, "totalElements").unwrap_or_default(),
@@ -370,7 +449,7 @@ pub fn parse_courses(body: &str) -> Result<BykcCoursePage> {
 
 /// 解析课程详情。
 pub fn parse_course_detail(body: &str) -> Result<BykcCourse> {
-    course(&envelope(body)?)
+    course(&envelope(body)?, Local::now().naive_local())
 }
 
 /// 解析已选课程列表。
@@ -482,5 +561,34 @@ mod tests {
         );
         assert!(!text.contains("secret"));
         assert!(text.contains("已隐藏"));
+    }
+
+    #[test]
+    fn 课程分页默认过滤已过期和选课结束项目() {
+        let body = serde_json::json!({
+            "status": "0",
+            "data": {
+                "content": [
+                    {"id": 1, "courseName": "已开课", "courseStartDate": "2026-01-01 08:00:00"},
+                    {"id": 2, "courseName": "已结束选课", "courseStartDate": "2026-09-01 08:00:00", "courseSelectEndDate": "2026-01-01 08:00:00"},
+                    {"id": 3, "courseName": "可选", "courseStartDate": "2026-09-01 08:00:00", "courseSelectEndDate": "2026-08-01 08:00:00"}
+                ],
+                "totalElements": 3,
+                "totalPages": 1,
+                "size": 20,
+                "number": 1
+            }
+        })
+        .to_string();
+        let now = NaiveDateTime::parse_from_str("2026-07-01 12:00:00", "%Y-%m-%d %H:%M:%S")
+            .expect("解析固定时间");
+
+        let filtered = parse_courses_at(&body, false, now).expect("解析默认课程分页");
+        let all = parse_courses_at(&body, true, now).expect("解析全部课程分页");
+
+        assert_eq!(filtered.content.len(), 1);
+        assert_eq!(filtered.content[0].status, BykcCourseStatus::Available);
+        assert_eq!(filtered.total_elements, 3);
+        assert_eq!(all.content.len(), 3);
     }
 }
