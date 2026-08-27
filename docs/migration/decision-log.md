@@ -324,3 +324,22 @@ round passed with `5/49/49/17/32`. The differing snapshots are upstream list vol
 reason to weaken the verifier or merge identifiers across requests. The failure and rerun are both
 recorded in `docs/migration/status.md`; a later final verification showed the same failure followed
 by another passing immediate rerun. Future reruns must keep the strict cutoff check.
+
+## 2026-08-28：场馆预约的 WebVPN 策略必须保留直连业务域
+
+本轮真实验证中，WebVPN 主认证成功，但场馆预约返回
+`authentication_required`；同一账号的 Direct 场馆查询成功并返回 4 个站点。
+冻结 `LocalWebVpnSupport.localCgyyUpstreamUrl` 明确规定
+`cgyy.buaa.edu.cn` 公网可达，任何连接模式下都使用直连 URL；冻结
+`LocalCgyyApi.ensureBusinessLogin` 进一步固定使用 Direct Cookie 存储和直连客户端
+完成 SSO 跳转，再从场馆域 Cookie 取得 `sso_buaa_zhjs_token`。
+`examples/buaa-api` 没有等价协议，不能提供替代路线。
+
+当前 Rust 实现将场馆登录、业务登录和查询统一交给所选路线的
+`ClientRuntime`。当路线为 WebVPN 时，`runtime.url` 会包装场馆 URL，且 Cookie
+仍属于 WebVPN 路线；这与冻结实现的“主认证路线可为 WebVPN，但场馆业务交换固定
+直连”并不等价。禁止通过放宽认证错误、跨域复制 Cookie 或把缺少令牌解释为空结果
+来规避该差异。后续修复必须先用脱敏 Mock 固定以下合同：WebVPN 主会话保持隔离；
+场馆入口和业务请求使用直连 URL；Direct SSO/场馆 Cookie 仅在场馆业务交换范围内
+使用；最终业务令牌仍按调用客户端隔离且不持久化。该调整需要明确的双运行时 facade
+接口，不能仅在 `features/cgyy.rs` 中替换 URL。
