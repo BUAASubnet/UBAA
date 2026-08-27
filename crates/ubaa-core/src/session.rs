@@ -1,4 +1,4 @@
-//! Cookie jar and restricted on-disk session persistence.
+//! Cookie 容器与受限的磁盘会话持久化。
 #![allow(clippy::missing_errors_doc, clippy::needless_continue)]
 
 use std::fs::{self, File, OpenOptions};
@@ -20,16 +20,16 @@ const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
 const REVISION_FILE_BYTES: usize = 17;
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
-/// Cookie attributes retained for safe request filtering and persistence.
+/// 为安全请求过滤和持久化保留的 Cookie 属性。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct StoredCookie {
-    /// Cookie name.
+    /// Cookie 名称。
     pub name: String,
-    /// Cookie value; this is session material and is never logged.
+    /// Cookie 值；这是会话材料，绝不写入日志。
     pub value: String,
     /// Effective domain.
     pub domain: String,
-    /// Whether the cookie was host-only.
+    /// Cookie 是否仅限当前主机。
     pub host_only: bool,
     /// Effective path.
     pub path: String,
@@ -77,18 +77,18 @@ impl StoredCookie {
     }
 }
 
-/// In-memory Cookie jar with RFC-inspired domain/path/expiry filtering.
+/// 依据 RFC 风格进行域、路径和过期过滤的内存 Cookie 容器。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CookieJar {
     cookies: Vec<StoredCookie>,
 }
 
 impl CookieJar {
-    /// Store all response `Set-Cookie` values for a request URL.
+    /// 为请求地址保存响应中的全部 `Set-Cookie` 值。
     ///
     /// # Errors
     ///
-    /// Returns an internal session error for malformed request URLs, clock values, or cookies.
+    /// 请求地址、时钟值或 Cookie 格式错误时返回内部会话错误。
     pub fn store_response(
         &mut self,
         response: &HttpResponse,
@@ -119,11 +119,11 @@ impl CookieJar {
         Ok(())
     }
 
-    /// Build the filtered Cookie request header for a URL.
+    /// 为地址构造经过过滤的 Cookie 请求头。
     ///
     /// # Errors
     ///
-    /// Returns an internal session error for a malformed URL or clock value.
+    /// 地址或时钟值格式错误时返回内部会话错误。
     pub fn cookie_header(&mut self, request_url: &str, now: SystemTime) -> Result<String> {
         let url = Url::parse(request_url).map_err(|_| session_error("invalid Cookie URL"))?;
         let now_seconds = unix_seconds(now)?;
@@ -143,7 +143,7 @@ impl CookieJar {
         &self.cookies
     }
 
-    /// Replace the jar contents from a persisted session.
+    /// 使用持久化会话替换容器内容。
     pub fn replace(&mut self, cookies: Vec<StoredCookie>) {
         self.cookies = cookies;
     }
@@ -153,7 +153,7 @@ impl CookieJar {
     }
 }
 
-/// Snapshot persisted across CLI processes.
+/// 可跨 CLI 进程持久化的会话快照。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SessionSnapshot {
     /// Connection strategy used by this session.
@@ -162,11 +162,11 @@ pub struct SessionSnapshot {
     pub cookies: Vec<StoredCookie>,
     /// Unix timestamp when authentication succeeded.
     pub authenticated_at: i64,
-    /// Unix timestamp of the last successful validation.
+    /// 最近一次成功校验的 Unix 时间戳。
     pub last_activity: i64,
 }
 
-/// One persisted route slot in the schema-v2 session file.
+/// schema-v2 会话文件中的一个持久化路线槽位。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RouteSessionSnapshot {
@@ -189,7 +189,7 @@ impl RouteSessionSnapshot {
         }
     }
 
-    /// Convert this slot to the legacy route-scoped runtime value.
+    /// 将此槽位转换为旧版路线范围运行时值。
     #[must_use]
     pub fn into_legacy(self, mode: ConnectionMode) -> SessionSnapshot {
         SessionSnapshot {
@@ -205,22 +205,22 @@ impl RouteSessionSnapshot {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DualSessionSnapshot {
-    /// Schema discriminator.
+    /// 架构判别字段。
     pub schema_version: u32,
-    /// Route-scoped sessions.
+    /// 按路线隔离的会话。
     pub sessions: RouteSessions,
 }
 
-/// Dual snapshot plus the revision used for compare-and-exchange.
+/// 双路线快照及用于比较交换的版本号。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VersionedDualSession {
-    /// Current schema-v2 snapshot, if present.
+    /// 当前 schema-v2 快照（如果存在）。
     pub snapshot: Option<DualSessionSnapshot>,
-    /// Monotonic revision under the same lock as the snapshot.
+    /// 与快照使用同一把锁保护的单调版本号。
     pub revision: u64,
 }
 
-/// Route slots inside a schema-v2 session file.
+/// schema-v2 会话文件中的路线槽位。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RouteSessions {
     /// Direct route session.
@@ -277,28 +277,28 @@ impl std::fmt::Debug for SessionSnapshot {
     }
 }
 
-/// Result of validating a persisted session.
+/// 校验持久化会话的结果。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SessionValidation {
-    /// Upstream confirmed a valid session.
+    /// 上游确认会话有效。
     Valid,
-    /// Upstream explicitly rejected or redirected the session.
+    /// 上游明确拒绝会话或将其重定向。
     Invalid,
-    /// Upstream returned a temporary server failure.
+    /// 上游返回临时服务器错误。
     ServerError,
-    /// The request timed out before a conclusion.
+    /// 请求超时，尚未得出结论。
     Timeout,
 }
 
 impl SessionValidation {
-    /// Whether local authentication state must be cleared.
+    /// 是否必须清理本地认证状态。
     #[must_use]
     pub const fn should_clear(self) -> bool {
         matches!(self, Self::Invalid)
     }
 }
 
-/// One atomically loaded persisted snapshot and its mutation revision.
+/// 原子加载的持久化快照及其变更版本号。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VersionedSession {
     /// Persisted session, if present.
@@ -307,22 +307,22 @@ pub struct VersionedSession {
     pub revision: u64,
 }
 
-/// Result of a compare-exchange session mutation.
+/// 会话变更比较交换的结果。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SessionMutation {
-    /// The mutation was applied and produced this revision.
+    /// 变更已应用，并产生此版本号。
     Applied {
         /// New monotonic local revision.
         revision: u64,
     },
-    /// Another process changed the session after the caller loaded it.
+    /// 调用方加载后，另一个进程修改了会话。
     Conflict,
 }
 
-/// Result of a schema-v2 dual-session compare-exchange.
+/// schema-v2 双路线会话比较交换的结果。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DualSessionMutation {
-    /// Mutation applied and revision advanced.
+    /// 变更已应用，版本号已前进。
     Applied { revision: u64 },
     /// Another process changed either route slot.
     Conflict,
@@ -330,26 +330,26 @@ pub enum DualSessionMutation {
 
 /// Persistence port for one client-owned session.
 pub trait SessionStore: Send + Sync {
-    /// Atomically load a session snapshot and its current revision.
+    /// 原子加载会话快照及当前版本号。
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence or parsing error.
+    /// 返回安全的持久化或解析错误。
     fn load_versioned(&self) -> Result<VersionedSession>;
-    /// Atomically replace the session only when `expected_revision` is still current.
+    /// 仅当 `expected_revision` 仍为当前版本时，原子替换会话。
     ///
     /// `replacement=None` clears the persisted session. Applied mutations always advance the
     /// revision, including clears, so deleting and recreating equal JSON cannot fool stale writers.
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence or serialization error.
+    /// 返回安全的持久化或序列化错误。
     fn compare_exchange(
         &self,
         expected_revision: u64,
         replacement: Option<&SessionSnapshot>,
     ) -> Result<SessionMutation>;
-    /// Load a session snapshot, if present.
+    /// 加载会话快照（如果存在）。
     ///
     /// # Errors
     ///
@@ -357,7 +357,7 @@ pub trait SessionStore: Send + Sync {
     fn load(&self) -> Result<Option<SessionSnapshot>> {
         self.load_versioned().map(|state| state.snapshot)
     }
-    /// Replace the persisted snapshot.
+    /// 替换持久化快照。
     ///
     /// # Errors
     ///
@@ -398,7 +398,7 @@ pub struct FileSessionStore {
     process_lock: Arc<Mutex<()>>,
 }
 
-/// A route-scoped view over the schema-v2 dual session file.
+/// schema-v2 双路线会话文件的路线范围视图。
 ///
 /// The view implements the legacy `SessionStore` port so existing runtime code can remain
 /// route-local while reads and compare-exchanges are still performed against the shared dual
@@ -409,7 +409,7 @@ pub struct RouteSessionStore {
     mode: ConnectionMode,
 }
 
-/// One client-owned view of a complete dual-session snapshot and revision.
+/// 一个客户端拥有的完整双路线会话快照及版本号视图。
 ///
 /// Route adapters share this coordinator so a mutation by one route is visible to the other
 /// without reloading and adopting an external process's revision.
@@ -433,7 +433,7 @@ pub(crate) struct DualRouteRevisions {
     pub(crate) webvpn: u64,
 }
 
-/// Route-local `SessionStore` adapter backed by one client-owned dual coordinator.
+/// 由客户端拥有的双路线协调器支持的路线本地 `SessionStore` 适配器。
 #[derive(Clone)]
 pub(crate) struct CoordinatedRouteSessionStore {
     coordinator: DualSessionCoordinator,
@@ -732,18 +732,18 @@ impl FileSessionStore {
         Ok(store)
     }
 
-    /// Return the exact session path for diagnostics and tests.
+    /// 返回用于诊断和测试的准确会话路径。
     #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
     }
 
-    /// Load schema v2 or migrate one legacy single-route snapshot under the session lock.
+    /// 在会话锁下加载 schema v2，或迁移一个旧版单路线快照。
     pub fn load_dual(&self) -> Result<Option<DualSessionSnapshot>> {
         self.load_dual_versioned().map(|current| current.snapshot)
     }
 
-    /// Load the dual snapshot and its synchronized revision.
+    /// 加载双路线快照及其同步版本号。
     pub fn load_dual_versioned(&self) -> Result<VersionedDualSession> {
         let mut lock = self.acquire_lock()?;
         let mut revision = read_revision(&mut lock.file)?;
