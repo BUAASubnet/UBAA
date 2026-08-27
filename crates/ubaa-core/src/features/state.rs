@@ -31,6 +31,7 @@ impl RouteFeatureState {
 
 /// 路线内存中的阳光打卡业务会话，不写入磁盘。
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub(crate) struct YgdkState {
     credential: SyncMutex<Option<crate::features::ygdk::YgdkCredential>>,
     login: Mutex<()>,
