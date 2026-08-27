@@ -1,4 +1,4 @@
-//! Verified grades term parsing and `e/m/d` response mapping.
+//! 已验证的成绩学期解析与 `e/m/d` 响应映射。
 #![allow(clippy::missing_errors_doc)]
 
 use std::collections::BTreeMap;
@@ -9,19 +9,19 @@ use serde_json::Value;
 use crate::domain::{Grade, GradeData};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
-/// Score application page and query endpoint.
+/// 成绩应用页面和查询地址。
 pub const GRADES_URL: &str = "https://app.buaa.edu.cn/buaascore/wap/default/index";
 
-/// Parsed score term components.
+/// 解析后的成绩学期组成部分。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScoreTerm {
-    /// Academic year pair.
+    /// 学年区间。
     pub year: String,
-    /// Semester number.
+    /// 学期编号。
     pub semester: u32,
 }
 
-/// Parse the legacy `yyyy-yyyy-semester` term code.
+/// 解析旧版 `yyyy-yyyy-semester` 学期代码。
 pub fn parse_term_code(term_code: &str) -> Result<ScoreTerm> {
     let trimmed = term_code.trim();
     let mut parts = trimmed.split('-');
@@ -68,7 +68,7 @@ struct ScoreCourse {
     kclx: Option<String>,
 }
 
-/// Parse the score application's verified `e/m/d` response.
+/// 解析成绩应用已验证的 `e/m/d` 响应。
 pub fn parse_scores(term_code: &str, body: &str) -> Result<GradeData> {
     let response: ScoreResponse = serde_json::from_str(body).map_err(|_| parse_error())?;
     if response.code != 0 {
@@ -98,7 +98,7 @@ pub fn parse_scores(term_code: &str, body: &str) -> Result<GradeData> {
     })
 }
 
-/// Fetch and parse one term's grades using the verified activation/query sequence.
+/// 使用已验证的激活/查询流程获取并解析一个学期的成绩。
 pub(crate) async fn get_grades(
     runtime: &mut crate::runtime::ClientRuntime,
     term_code: &str,

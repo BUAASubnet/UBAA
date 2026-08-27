@@ -1,4 +1,4 @@
-//! Evidence-backed undergraduate schedule and exam parsers.
+//! 有证据支持的本科课表和考试解析器。
 #![allow(
     clippy::missing_errors_doc,
     clippy::cast_possible_wrap,
@@ -10,25 +10,25 @@ use serde::Deserialize;
 use crate::domain::{Exam, ExamArrangement, Term, TodayClass, Week, WeeklySchedule};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
-/// Terms endpoint observed in the frozen local implementation.
+/// 冻结本地实现中观察到的学期地址。
 pub const TERMS_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do";
-/// Teaching weeks endpoint.
+/// 教学周地址。
 pub const WEEKS_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do";
-/// Week schedule endpoint.
+/// 周课表地址。
 pub const WEEK_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do";
-/// Today schedule endpoint.
+/// 今日课表地址。
 pub const TODAY_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do";
-/// Exam endpoint.
+/// 考试地址。
 pub const EXAM_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do";
-/// Portal capability probe used by the frozen implementation before each undergraduate read.
+/// 冻结实现每次本科查询前使用的门户能力探测地址。
 pub const CURRENT_USER_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do";
-/// AAS-specific CAS activation endpoint from the pinned `buaa-api` reference.
+/// 固定 `buaa-api` 参考中的 AAS 专用 CAS 激活地址。
 pub const AAS_LOGIN_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
-/// Expected AAS landing page after successful CAS activation.
+/// CAS 激活成功后预期的 AAS 落地页。
 pub const AAS_VERIFY_URL: &str =
     "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
 const SCHEDULE_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html";
@@ -54,35 +54,35 @@ struct ExamResponse {
     datas: Vec<Exam>,
 }
 
-/// Parse the verified term wrapper.
+/// 解析已验证的学期包装。
 pub fn parse_terms(body: &str) -> Result<Vec<Term>> {
     let response: ListResponse<Term> = parse_json(body)?;
     ensure_ok(&response.code, "schedule term response")?;
     Ok(response.datas)
 }
 
-/// Parse the verified week wrapper.
+/// 解析已验证的教学周包装。
 pub fn parse_weeks(body: &str) -> Result<Vec<Week>> {
     let response: ListResponse<Week> = parse_json(body)?;
     ensure_ok(&response.code, "schedule week response")?;
     Ok(response.datas)
 }
 
-/// Parse a week schedule wrapper.
+/// 解析周课表包装。
 pub fn parse_weekly_schedule(body: &str) -> Result<WeeklySchedule> {
     let response: WeeklyResponse = parse_json(body)?;
     ensure_ok(&response.code, "weekly schedule response")?;
     Ok(response.datas)
 }
 
-/// Parse today's schedule wrapper.
+/// 解析今日课表包装。
 pub fn parse_today(body: &str) -> Result<Vec<TodayClass>> {
     let response: ListResponse<TodayClass> = parse_json(body)?;
     ensure_ok(&response.code, "today schedule response")?;
     Ok(response.datas)
 }
 
-/// Parse an exam arrangement wrapper.
+/// 解析考试安排包装。
 pub fn parse_exam(body: &str) -> Result<ExamArrangement> {
     let response: ExamResponse = parse_json(body)?;
     ensure_ok(&response.code, "exam response")?;
@@ -92,7 +92,7 @@ pub fn parse_exam(body: &str) -> Result<ExamArrangement> {
     })
 }
 
-/// Fetch terms through the current authenticated route.
+/// 通过当前认证路线获取学期。
 pub(crate) async fn get_terms(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<Term>> {
     ensure_undergraduate_portal(runtime).await?;
     let url = runtime.url(TERMS_URL)?;
@@ -112,7 +112,7 @@ pub(crate) async fn get_terms(runtime: &mut crate::runtime::ClientRuntime) -> Re
     parse_terms(&super::body(&response))
 }
 
-/// Fetch teaching weeks for one term.
+/// 获取一个学期的教学周。
 pub(crate) async fn get_weeks(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
@@ -144,7 +144,7 @@ pub(crate) async fn get_weeks(
     parse_weeks(&super::body(&response))
 }
 
-/// Fetch one numbered teaching week.
+/// 获取指定编号的教学周。
 pub(crate) async fn get_week(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
@@ -172,7 +172,7 @@ pub(crate) async fn get_week(
     parse_weekly_schedule(&super::body(&response))
 }
 
-/// Fetch today's classes using the Shanghai calendar date.
+/// 使用上海日历日期获取今日课程。
 pub(crate) async fn get_today(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<TodayClass>> {
@@ -197,7 +197,7 @@ pub(crate) async fn get_today(
     parse_today(&super::body(&response))
 }
 
-/// Fetch exams for one term.
+/// 获取一个学期的考试安排。
 pub(crate) async fn get_exam(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
