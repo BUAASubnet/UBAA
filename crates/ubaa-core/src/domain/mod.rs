@@ -32,6 +32,8 @@ pub enum RoutePolicy {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReadonlyFeature {
+    /// 博雅课程只读查询。
+    Bykc,
     /// 图书馆座位只读查询。
     LibBook,
     /// 阳光打卡只读查询。
@@ -57,6 +59,7 @@ impl ReadonlyFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Bykc => "bykc",
             Self::LibBook => "libbook",
             Self::Ygdk => "ygdk",
             Self::Signin => "signin",
@@ -68,6 +71,74 @@ impl ReadonlyFeature {
             Self::Judge => "judge",
         }
     }
+}
+
+/// 博雅用户资料。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcUserProfile {
+    pub id: i64,
+    pub employee_id: Option<String>,
+    pub real_name: Option<String>,
+    pub student_no: Option<String>,
+    pub college_name: Option<String>,
+}
+
+/// 博雅课程列表项。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcCourse {
+    pub id: i64,
+    pub course_name: String,
+    pub course_position: Option<String>,
+    pub course_teacher: Option<String>,
+    pub course_start_date: Option<String>,
+    pub course_end_date: Option<String>,
+    pub course_max_count: Option<i32>,
+    pub course_current_count: Option<i32>,
+    pub selected: Option<bool>,
+}
+
+/// 博雅课程分页结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcCoursePage {
+    pub content: Vec<BykcCourse>,
+    pub total_elements: i32,
+    pub total_pages: i32,
+    pub size: i32,
+    pub number: i32,
+}
+
+/// 博雅已选课程记录。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcChosenCourse {
+    pub id: i64,
+    pub course_id: Option<i64>,
+    pub course_name: Option<String>,
+    pub select_date: Option<String>,
+    pub checkin: Option<i32>,
+    pub score: Option<i32>,
+}
+
+/// 博雅统计明细。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcStatistic {
+    pub category_name: Option<String>,
+    pub sub_category_name: Option<String>,
+    pub required_count: Option<i32>,
+    pub passed_count: Option<i32>,
+    pub qualified: Option<bool>,
+}
+
+/// 博雅统计结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcStatistics {
+    pub total_valid_count: Option<i32>,
+    pub categories: Vec<BykcStatistic>,
 }
 
 /// 阳光打卡项目。
