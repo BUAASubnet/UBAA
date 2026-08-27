@@ -390,6 +390,26 @@ async fn hidden_spoc_diagnostics_proves_global_pages_without_raw_protocol_data()
     assert!(stderr.is_empty());
 }
 
+#[test]
+fn 图书馆只读命令解析并要求已有会话() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "libbook",
+        "seats",
+        "--area-id",
+        "area-1",
+        "--day",
+        "2026-08-27",
+        "--start-time",
+        "08:00",
+        "--end-time",
+        "10:00",
+    ])
+    .unwrap();
+    assert!(cli.requires_session());
+    assert_eq!(cli.feature(), CliFeature::LibBook);
+}
+
 #[tokio::test]
 async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
