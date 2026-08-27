@@ -13,7 +13,7 @@ use ubaa_core::domain::{
     GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
     JudgeAssignmentsDiagnostics, LoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue,
     SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
-    TodayClass, UserProfile, Week, WeeklySchedule,
+    TodayClass, UserProfile, Week, WeeklySchedule, YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
@@ -123,6 +123,29 @@ pub enum Command {
     Judge(JudgeArgs),
     /// Classroom sign-in read-only operations.
     Signin(SigninArgs),
+    /// 阳光打卡只读操作。
+    Ygdk(YgdkArgs),
+}
+
+/// 阳光打卡命令组。
+#[derive(Debug, Args)]
+pub struct YgdkArgs {
+    #[command(subcommand)]
+    pub command: YgdkCommand,
+}
+
+/// 阳光打卡只读操作。
+#[derive(Debug, Subcommand)]
+pub enum YgdkCommand {
+    /// 查询阳光打卡概览。
+    Overview,
+    /// 查询阳光打卡记录。
+    Records {
+        #[arg(long, default_value_t = 1)]
+        page: i32,
+        #[arg(long, default_value_t = 20)]
+        size: i32,
+    },
 }
 
 /// Classroom sign-in command group.
@@ -477,6 +500,16 @@ pub trait CliBackend {
     async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         Err(internal_error("签到功能不可用"))
     }
+    async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
+        Err(internal_error("阳光打卡不可用"))
+    }
+    async fn ygdk_records(
+        &mut self,
+        _page: i32,
+        _size: i32,
+    ) -> Result<FeatureResult<YgdkRecordsPage>> {
+        Err(internal_error("阳光打卡不可用"))
+    }
 
     /// Read terms.
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
@@ -568,6 +601,12 @@ pub trait RoutedCliBackend {
     /// 查询今日课堂签到状态。
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         Err(routed_unavailable("签到功能不可用"))
+    }
+    async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
+        Err(routed_unavailable("阳光打卡不可用"))
+    }
+    async fn ygdk_records(&mut self, _page: i32, _size: i32) -> RoutedResult<YgdkRecordsPage> {
+        Err(routed_unavailable("阳光打卡不可用"))
     }
     /// Fetch User Center profile data through Core routing.
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
@@ -899,6 +938,16 @@ impl CliBackend for RouteClient {
     async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         self.signin_today().await
     }
+    async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
+        self.ygdk_overview().await
+    }
+    async fn ygdk_records(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> Result<FeatureResult<YgdkRecordsPage>> {
+        self.ygdk_records(page, size).await
+    }
 
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.schedule_terms().await
@@ -971,6 +1020,12 @@ impl CliBackend for RouteClient {
 impl RoutedCliBackend for UbaaClient {
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         UbaaClient::signin_today(self).await
+    }
+    async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
+        UbaaClient::ygdk_overview(self).await
+    }
+    async fn ygdk_records(&mut self, page: i32, size: i32) -> RoutedResult<YgdkRecordsPage> {
+        UbaaClient::ygdk_records(self, page, size).await
     }
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         UbaaClient::get_user_info(self).await
@@ -1089,6 +1144,18 @@ where
         }) => (
             CliFeature::Signin,
             routed_readonly(backend.signin_today().await, CliFeature::Signin),
+        ),
+        Command::Ygdk(YgdkArgs {
+            command: YgdkCommand::Overview,
+        }) => (
+            CliFeature::Ygdk,
+            routed_readonly(backend.ygdk_overview().await, CliFeature::Ygdk),
+        ),
+        Command::Ygdk(YgdkArgs {
+            command: YgdkCommand::Records { page, size },
+        }) => (
+            CliFeature::Ygdk,
+            routed_readonly(backend.ygdk_records(page, size).await, CliFeature::Ygdk),
         ),
         Command::Auth(_) => (
             CliFeature::Auth,
@@ -1393,6 +1460,18 @@ where
             .signin_today()
             .await
             .and_then(|data| readonly(data, CliFeature::Signin)),
+        Command::Ygdk(YgdkArgs {
+            command: YgdkCommand::Overview,
+        }) => backend
+            .ygdk_overview()
+            .await
+            .and_then(|data| readonly(data, CliFeature::Ygdk)),
+        Command::Ygdk(YgdkArgs {
+            command: YgdkCommand::Records { page, size },
+        }) => backend
+            .ygdk_records(page, size)
+            .await
+            .and_then(|data| readonly(data, CliFeature::Ygdk)),
     };
 
     render_result(
@@ -1417,6 +1496,7 @@ const fn command_feature(command: &Command) -> CliFeature {
         Command::Spoc(_) => CliFeature::Spoc,
         Command::Judge(_) => CliFeature::Judge,
         Command::Signin(_) => CliFeature::Signin,
+        Command::Ygdk(_) => CliFeature::Ygdk,
     }
 }
 

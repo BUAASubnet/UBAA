@@ -37,6 +37,7 @@ pub enum CliFeature {
     Judge,
     /// Classroom sign-in queries.
     Signin,
+    Ygdk,
 }
 
 impl CliFeature {
@@ -54,6 +55,7 @@ impl CliFeature {
             Self::Spoc => "spoc",
             Self::Judge => "judge",
             Self::Signin => "signin",
+            Self::Ygdk => "ygdk",
         }
     }
 }

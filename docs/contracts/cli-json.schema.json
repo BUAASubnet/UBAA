@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "ygdk"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -183,6 +183,38 @@
         "signStatus": { "type": "integer" }
       },
       "additionalProperties": false
+    },
+    "ygdkOverview": {
+      "type": "object",
+      "required": ["summary", "classifyId", "classifyName", "defaultItemId", "defaultItemName", "items"],
+      "properties": {
+        "summary": { "$ref": "#/$defs/ygdkTermSummary" },
+        "classifyId": { "type": "integer" },
+        "classifyName": { "type": "string" },
+        "defaultItemId": { "type": "integer" },
+        "defaultItemName": { "type": "string" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/ygdkItem" } }
+      },
+      "additionalProperties": false
+    },
+    "ygdkTermSummary": {
+      "type": "object",
+      "required": ["termId", "termName", "termCount", "termTarget", "weekCount", "weekTarget", "monthCount", "monthTarget", "dayCount", "goodCount"],
+      "properties": {
+        "termId": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "termName": { "$ref": "#/$defs/nullableString" }, "termCount": { "type": "integer" }, "termTarget": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "weekCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "weekTarget": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "monthCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "monthTarget": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "dayCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "goodCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }
+      }, "additionalProperties": false
+    },
+    "ygdkItem": {
+      "type": "object", "required": ["itemId", "name", "kind", "sort"],
+      "properties": { "itemId": { "type": "integer" }, "name": { "type": "string" }, "kind": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "sort": { "anyOf": [{ "type": "integer" }, { "type": "null" }] } }, "additionalProperties": false
+    },
+    "ygdkRecord": {
+      "type": "object", "required": ["recordId", "itemId", "itemName", "startTime", "endTime", "place", "images", "isOpen", "state", "createdAt", "createdAtLabel"],
+      "properties": { "recordId": { "type": "integer" }, "itemId": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "itemName": { "$ref": "#/$defs/nullableString" }, "startTime": { "$ref": "#/$defs/nullableString" }, "endTime": { "$ref": "#/$defs/nullableString" }, "place": { "$ref": "#/$defs/nullableString" }, "images": { "type": "array", "items": { "type": "string" } }, "isOpen": { "type": "boolean" }, "state": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "createdAt": { "$ref": "#/$defs/nullableString" }, "createdAtLabel": { "$ref": "#/$defs/nullableString" } }, "additionalProperties": false
+    },
+    "ygdkRecordsPage": {
+      "type": "object", "required": ["content", "total", "page", "size", "hasMore"],
+      "properties": { "content": { "type": "array", "items": { "$ref": "#/$defs/ygdkRecord" } }, "total": { "type": "integer" }, "page": { "type": "integer" }, "size": { "type": "integer" }, "hasMore": { "type": "boolean" } }, "additionalProperties": false
     },
     "exam": {
       "type": "object",
@@ -619,6 +651,12 @@
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "signin" } }, "required": ["feature"] },
                   "data": { "type": "array", "items": { "$ref": "#/$defs/signinClass" } }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "ygdk" } }, "required": ["feature"] },
+                  "data": { "oneOf": [{ "$ref": "#/$defs/ygdkOverview" }, { "$ref": "#/$defs/ygdkRecordsPage" }] }
                 }
               }
             ]
