@@ -1,6 +1,6 @@
 # 只读功能证据矩阵
 
-Updated: 2026-08-26
+更新日期：2026-08-28
 
 本矩阵区分来源/确定性证据与真实上游证据。Fixture、Mock 传输、解析测试和验证器测试不能证明当前上游行为。下方 2026-08-23 行是修复前历史；当前行只记录 2026-08-26 的修正验证运行。
 
@@ -8,26 +8,31 @@ Updated: 2026-08-26
 
 | 功能/操作 | 未知默认路线 | Direct | WebVPN | Auto | 当前所需证据 |
 |---|---|---|---|---|---|
-| Schedule terms/weeks/current/today | Direct | Passed (aggregate) | Passed (explicit) | Passed (aggregate; resolved Direct) | All four operations return schema v2 and one consistent resolved route; term/week are selected from live data. |
-| Exam arrangement | Direct | Passed (aggregate) | Passed (explicit) | Passed (aggregate; resolved Direct) | Live schedule term discovery plus arranged/not-arranged parse on the same resolved route. |
-| Grades list | Direct | Passed (aggregate) | Passed (explicit) | Passed (aggregate; resolved Direct) | Live strict `yyyy-yyyy-semester` term and matching returned `termCode`. |
-| Empty classroom search | Direct | Passed (aggregate) | Passed (explicit) | Passed (aggregate; resolved Direct) | Authoritative strict wrapper/room parse for the chosen campus/date; a real empty map is allowed. |
-| SPOC assignment list/detail | Direct | Passed (aggregate; global page observed) | Passed (explicit; global page observed) | Passed (aggregate; global page observed) | Hidden diagnostic proves at least one authoritative global page; a non-empty list also proves one detail. |
-| Judge list/single detail (batch is deterministic-only) | Direct | Passed (aggregate; 5/88/83/65/18, detail yes) | Passed on latest aggregate; one transient `judge_cutoff` retained (5/77/57/17/40) | Passed (aggregate; 5/88/83/65/18, detail yes) | Safe course/raw-anchor/filtered/current/cutoff counts, one semantic detail when available, and comparable salted digests. |
+| 课表：学期/教学周/周课表/今日课表 | Direct | 聚合验证通过 | 显式验证通过 | 聚合验证通过，解析为 Direct | 四项操作均返回 schema v2 并保持同一路线；学期和周次来自真实数据。 |
+| 考试安排 | Direct | 聚合验证通过 | 显式验证通过 | 聚合验证通过，解析为 Direct | 使用真实课表学期，并在同一路线上解析已安排或未安排结果。 |
+| 成绩列表 | Direct | 聚合验证通过 | 显式验证通过 | 聚合验证通过，解析为 Direct | 使用严格的 `yyyy-yyyy-semester` 学期格式，返回的 `termCode` 与请求一致。 |
+| 空闲教室查询 | Direct | 聚合验证通过 | 显式验证通过 | 聚合验证通过，解析为 Direct | 对所选校区和日期严格解析信封及教室；允许真实空映射。 |
+| SPOC 作业列表/详情 | Direct | 聚合验证通过，已观察全局分页 | 显式验证通过，已观察全局分页 | 聚合验证通过，已观察全局分页 | 隐藏诊断证明至少读取一个权威全局页；列表非空时还必须验证一个详情。 |
+| 希冀列表/单项详情，批量详情仅做确定性验证 | Direct | 聚合验证通过，`5/88/83/65/18`，详情成功 | 最新聚合验证通过；保留一次瞬时 `judge_cutoff` 失败，`5/77/57/17/40` | 聚合验证通过，`5/88/83/65/18`，详情成功 | 记录安全的课程/原始锚点/过滤后/当前/截止数量；有数据时验证一个详情，并生成可比较的加盐摘要。 |
 
-The corrected 2026-08-26 live runs accepted `feature=all` on Direct and on
-`route=auto` (which resolved to Direct). Classroom returned 158 rows, SPOC
-reported one authoritative global page with an empty assignment result, and
-Judge reported the safe counts shown above. Every explicit feature passed on
-both routes, including standalone Judge list/detail checks. The first complete
-WebVPN aggregate attempt failed only at the strict Judge `judge_cutoff` check;
-an immediate rerun passed with a different safe snapshot (`5/77/57/17/40`).
-A later final verification attempt showed the same strict failure followed by
-another passing immediate rerun. These failures are retained as upstream list
-volatility evidence, not hidden by weakening the subset/cutoff assertion.
+修正后的 2026-08-26 真实运行在 Direct 和 `route=auto`（解析为 Direct）上均通过
+`feature=all`。空闲教室返回 158 条，SPOC 观察到一个权威全局分页且作业结果为空，
+希冀返回上表中的安全计数。每项功能在两条显式路线均通过，包括独立的希冀列表和详情
+检查。第一次完整 WebVPN 聚合仅在严格的 `judge_cutoff` 检查失败；立即重跑后使用另一
+安全快照（`5/77/57/17/40`）通过。后续最终验证再次出现相同的严格失败，并在立即重跑
+后通过。这些失败作为上游列表波动证据保留，不通过削弱子集或截止时间断言来隐藏。
 
 ## 修复前历史观察
 
-On 2026-08-23, schedule, exam, grades, and classroom commands exited 0 on Direct, WebVPN, and auto; classroom reported 158 items for campus `1` and date `2026-08-23`. SPOC reported empty on all three policies, but the verifier did not prove that the authoritative empty-`kcid` global operation ran. Judge reported 65 assignments on Direct, 17 on WebVPN, and 65 on auto plus one sampled detail, but the old verifier did not prove complete problem/score/status semantics. These values are retained only to guide reruns and investigate route divergence; they do not pass any current cell.
+2026-08-23 的课表、考试、成绩和空闲教室命令在 Direct、WebVPN 和 auto 上均以零退出；
+空闲教室对校区 `1`、日期 `2026-08-23` 返回 158 条。SPOC 在三种策略下均报告空结果，
+但当时验证器没有证明权威的空 `kcid` 全局操作确实执行。希冀在 Direct 返回 65 条、
+WebVPN 返回 17 条、auto 返回 65 条并抽样一个详情，但旧验证器没有证明完整的问题、
+分数和状态语义。这些值仅用于指导重跑和调查路线差异，不使任何当前验收单元通过。
 
-All six rows disallow ready-route and network-error fallback. Each `auto` row follows the Core facade's TCP result: Campus -> Direct, OffCampus -> WebVPN, and Unknown -> Direct. The verifier requires the same resolved route for every request in one feature run. It never writes raw bodies, Cookies, tokens, captcha images, complete profile fields, assignment identifiers/titles, or credentials; Judge comparison prints only a salted in-memory digest. Direct, auto, and the latest WebVPN aggregate runs are accepted; future reruns may still need to repeat a strict Judge aggregate when upstream snapshots drift.
+六项功能均禁止因路线已就绪或网络错误而回退。每个 `auto` 单元遵循 Core facade 的
+TCP 探测结果：校园网使用 Direct，校外网使用 WebVPN，未知状态使用 Direct。验证器要求
+一次功能运行中的所有请求保持同一解析路线。它从不写入原始响应体、Cookie、令牌、
+验证码图片、完整用户资料、作业标识/标题或凭据；希冀比较只输出进程内加盐摘要。
+Direct、auto 和最近一次 WebVPN 聚合运行均已验收；若未来上游快照在运行中变化，仍可能
+需要严格重跑希冀聚合验证。

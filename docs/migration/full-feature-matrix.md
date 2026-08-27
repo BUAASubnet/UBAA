@@ -7,14 +7,16 @@
 | 功能 | UBAA 2 CLI | 当前状态 |
 |---|---|---|
 | 认证与用户信息 | `auth`, `user show` | 已完成，Direct/WebVPN 双路会话 |
-| 课堂签到查询 | `signin today` | Core、路线隔离业务会话和 CLI 已接入；真实路线待验证 |
+| 课堂签到查询 | `signin today` | Core、路线隔离业务会话和 CLI 已接入；Direct/WebVPN 已验证 |
 | 课表与考试 | `schedule`, `exam` | 已完成，只读 |
 | 成绩 | `grades` | 已完成，只读 |
 | 空闲教室 | `classroom search` | 已完成，只读 |
 | SPOC 作业 | `spoc` | 已完成，只读 |
 | 希冀作业 | `judge` | 已完成，只读 |
-| 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；真实路线待验证 |
-| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；真实路线待验证 |
+| 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；Direct/WebVPN 概览已验证，记录分页仍需独立真实验证 |
+| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；Direct/WebVPN 馆区列表已验证，其余子命令仍需独立真实验证 |
+| 博雅课程只读查询 | `bykc profile`, `bykc courses`, `bykc course`, `bykc chosen`, `bykc statistics` | Core、业务会话和 CLI 已接入；Direct/WebVPN 课程分页已验证，其余子命令仍需独立真实验证 |
+| 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail` | Core、业务会话和 CLI 已接入；Direct 站点列表已验证，WebVPN 及其余子命令仍需独立真实验证 |
 
 ## 尚未迁移
 
@@ -22,12 +24,12 @@
 
 | 旧版接口 | 主要能力 | 迁移前置条件 |
 |---|---|---|
-| `BykcApi` | 博雅课程查询、选课、退选、签到、统计 | 五项只读查询已接入 Core、业务会话和 CLI；选课、退选及签到写操作仍需独立合同 |
-| `CgyyApi` | 场馆查询、预约、订单、取消、门锁码 | 场地、用途、日期、订单和详情五项只读查询已接入；预约、取消、门锁码和验证码仍需独立合同 |
+| `BykcApi` 写操作 | 选课、退选、签到 | 需新的写操作合同；五项只读查询已迁移 |
+| `CgyyApi` 写操作 | 预约、取消、门锁码 | 需新的写操作合同；场地、用途、日期、订单和详情已迁移 |
 | `EvaluationService` | 评教查询与提交 | 需要冻结 DTO/测试、真实接口证据，以及批量提交确认策略 |
-| `LibBookApi` | 图书馆区域、座位、预约、取消 | 只读查询已接入；预约、取消仍需新的写操作合同 |
-| `SigninApi` | 今日签到查询与签到 | 今日查询已接入；签到写操作和真实路线验证仍需独立安排 |
-| `YgdkApi` | 阳光打卡查询、记录、照片打卡 | 概览与记录查询已接入；照片上传、提交和真实路线验证仍需独立安排 |
+| `LibBookApi` 写操作 | 预约、取消 | 需新的写操作合同；五项只读查询已迁移 |
+| `SigninApi` 写操作 | 执行签到 | 需新的写操作合同；今日查询已迁移并完成双路线验证 |
+| `YgdkApi` 写操作 | 照片上传、提交打卡 | 需新的写操作合同；概览与记录查询已迁移 |
 
 ## 实施顺序
 
@@ -51,6 +53,6 @@
 `yyyyMMdd` 格式的 `dateStr`。业务会话按学生标识缓存，并在失效后重试一次。
 
 UBAA 2 已完成响应 DTO/解析器、独立业务会话、路线转换和 facade/CLI 接入，并有脱敏
-fixture 与 Mock 回归测试；真实 Direct/WebVPN 路线仍待验证。`examples/buaa-api` 没有
+fixture 与 Mock 回归测试；真实 Direct/WebVPN 路线均已验证。`examples/buaa-api` 没有
 等价 iClass 协议，不能借用其 URL、字段或错误语义。签到提交操作仍属于写操作，不在
 本轮范围内。
