@@ -211,3 +211,8 @@ CI remains deterministic-only and never reads `.env.local`.
 精确表单编码和业务会话失效重登。最终根因是 token 解码把不含等号的值误解析为空；
 改为按独立 URL 值解码后，`feature=ygdk route=direct` 与
 `feature=ygdk route=webvpn` 均通过并解析到 11 个项目。阳光打卡只读双路线验收完成。
+博雅 WebVPN 登录失败的根因是网关绝对 `Location` 未先还原为业务直连语义，
+因此被未知主机检查拒绝。修正为先反解最终地址和跳转目标、校验 `sso/bykc`
+主机、再按当前路线包装后，`feature=auth route=webvpn` 与
+`feature=bykc route=webvpn` 均通过并解析到 1 条课程；结合此前 Direct 成功结果，
+博雅五项只读功能的双路线入口已验证。

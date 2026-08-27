@@ -2,6 +2,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(dead_code)]
 
+use crate::connection::from_webvpn_url;
 use crate::domain::{
     BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistic, BykcStatistics, BykcUserProfile,
 };
@@ -129,19 +130,16 @@ pub(crate) async fn ensure_login(
             .find(|(k, _)| k.eq_ignore_ascii_case("location"))
             .and_then(|(_, v)| v.first())
             .ok_or_else(|| error("博雅登录跳转缺少目标地址"))?;
-        let base =
-            url::Url::parse(&response.final_url).map_err(|_| error("博雅登录跳转地址无效"))?;
-        let target = base
-            .join(location)
-            .map_err(|_| error("博雅登录跳转地址无效"))?;
+        let target = resolve_login_target(&response.final_url, location)?;
+        let parsed = url::Url::parse(&target).map_err(|_| error("博雅登录跳转地址无效"))?;
         if !matches!(
-            target.host_str().unwrap_or_default(),
+            parsed.host_str().unwrap_or_default(),
             "sso.buaa.edu.cn" | "bykc.buaa.edu.cn"
         ) {
             return Err(error("博雅登录跳转到未允许的主机"));
         }
         // 业务跳转必须继续沿用当前路线，WebVPN 模式不能回落到直连地址。
-        current = runtime.url(target.as_str())?;
+        current = runtime.url(&target)?;
     }
     Err(error("博雅登录跳转次数超过限制"))
 }
@@ -153,6 +151,15 @@ fn token_from_url(raw: &str) -> Option<String> {
         .find(|(k, _)| k == "token")
         .map(|(_, v)| v.into_owned())
         .filter(|v| !v.is_empty())
+}
+
+fn resolve_login_target(final_url: &str, location: &str) -> Result<String> {
+    let direct_final = from_webvpn_url(final_url)?;
+    let direct_location = from_webvpn_url(location)?;
+    let base = url::Url::parse(&direct_final).map_err(|_| error("博雅登录跳转地址无效"))?;
+    base.join(&direct_location)
+        .map(|target| target.to_string())
+        .map_err(|_| error("博雅登录跳转地址无效"))
 }
 
 async fn request_api(
@@ -419,6 +426,30 @@ pub fn parse_statistics(body: &str) -> Result<BykcStatistics> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::connection::to_webvpn_url;
+
+    #[test]
+    fn webvpn_绝对跳转先还原为直连目标() {
+        let final_url = to_webvpn_url(LOGIN_URL).expect("包装博雅登录地址");
+        let target = to_webvpn_url("https://bykc.buaa.edu.cn/cas-login?token=已脱敏")
+            .expect("包装博雅回调地址");
+
+        assert_eq!(
+            resolve_login_target(&final_url, &target).expect("解析 WebVPN 跳转"),
+            "https://bykc.buaa.edu.cn/cas-login?token=%E5%B7%B2%E8%84%B1%E6%95%8F"
+        );
+    }
+
+    #[test]
+    fn webvpn_相对跳转按还原后的业务地址解析() {
+        let final_url = to_webvpn_url(LOGIN_URL).expect("包装博雅登录地址");
+
+        assert_eq!(
+            resolve_login_target(&final_url, "/cas-login?token=已脱敏")
+                .expect("解析 WebVPN 相对跳转"),
+            "https://bykc.buaa.edu.cn/cas-login?token=%E5%B7%B2%E8%84%B1%E6%95%8F"
+        );
+    }
 
     #[test]
     fn 冻结摘要与加密正文向量保持一致() {
