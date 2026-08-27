@@ -7,12 +7,14 @@
 | 功能 | UBAA 2 CLI | 当前状态 |
 |---|---|---|
 | 认证与用户信息 | `auth`, `user show` | 已完成，Direct/WebVPN 双路会话 |
-| 课堂签到查询 | 暂无 CLI（解析基础已完成） | iClass 独立业务会话尚未接入 |
+| 课堂签到查询 | `signin today` | Core、路线隔离业务会话和 CLI 已接入；真实路线待验证 |
 | 课表与考试 | `schedule`, `exam` | 已完成，只读 |
 | 成绩 | `grades` | 已完成，只读 |
 | 空闲教室 | `classroom search` | 已完成，只读 |
 | SPOC 作业 | `spoc` | 已完成，只读 |
 | 希冀作业 | `judge` | 已完成，只读 |
+| 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；真实路线待验证 |
+| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；真实路线待验证 |
 
 ## 尚未迁移
 
@@ -23,7 +25,7 @@
 | `BykcApi` | 博雅课程查询、选课、退选、签到、统计 | 需要冻结 DTO/测试、真实接口证据，以及写操作确认策略 |
 | `CgyyApi` | 研讨室查询、预约、订单、取消、门锁码 | 需要冻结 DTO/测试、真实接口证据，以及预约/取消确认策略 |
 | `EvaluationService` | 评教查询与提交 | 需要冻结 DTO/测试、真实接口证据，以及批量提交确认策略 |
-| `LibBookApi` | 图书馆区域、座位、预约、取消 | 需要冻结 DTO/测试、真实接口证据，以及预约/取消确认策略 |
+| `LibBookApi` | 图书馆区域、座位、预约、取消 | 只读查询已接入；预约、取消仍需新的写操作合同 |
 | `SigninApi` | 今日签到查询与签到 | 需要冻结 DTO/测试、真实接口证据，以及签到确认策略 |
 | `YgdkApi` | 阳光打卡查询、记录、照片打卡 | 需要冻结 DTO/测试、真实接口证据，以及照片和提交确认策略 |
 
@@ -48,7 +50,7 @@
 `app/course/get_stu_course_sched.action`，携带 `sessionId`、`id` 和
 `yyyyMMdd` 格式的 `dateStr`。业务会话按学生标识缓存，并在失效后重试一次。
 
-UBAA 2 已完成响应 DTO/解析器及脱敏 fixture 测试，但尚未实现上述独立业务会话、
-路线转换和 facade/CLI 接入；因此当前状态只能记为“解析基础完成”，不能记为签到
-查询迁移完成。`examples/buaa-api` 没有等价 iClass 协议，不能借用其 URL、字段或
-错误语义。签到提交操作仍属于写操作，不在本轮范围内。
+UBAA 2 已完成响应 DTO/解析器、独立业务会话、路线转换和 facade/CLI 接入，并有脱敏
+fixture 与 Mock 回归测试；真实 Direct/WebVPN 路线仍待验证。`examples/buaa-api` 没有
+等价 iClass 协议，不能借用其 URL、字段或错误语义。签到提交操作仍属于写操作，不在
+本轮范围内。
