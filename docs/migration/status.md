@@ -54,6 +54,15 @@ Only safe counts, route metadata and stable outcomes are recorded here. No
 assignment IDs, titles, response bodies, cookies, tokens or digest salt are
 stored.
 
+## 2026-08-28 扩展只读实时结果
+
+使用临时进程内摘要盐运行 `feature=all route=auto`，未保存盐值或任何敏感
+响应。课表、考试、成绩、空闲教室、SPOC、Judge、图书馆和场馆预约均成功；
+Signin 与 Ygdk 在业务登录页返回 `upstream_changed`；Bykc 在 CLI 聚合路由修复
+后仍返回 `authentication_required`，表示业务 CAS 会话未建立。随后单独运行
+`feature=auth route=direct` 成功，但 `feature=bykc route=auto` 仍未通过语义门禁。
+这些结果只证明本次真实运行的具体功能状态，不把认证成功推导为业务成功。
+
 | Run | Result |
 |---|---|
 | `feature=all route=auto` | Exit 0; resolved Direct; all six features passed. Classroom count 158; SPOC global page count 1 with empty assignments; Judge counts course/raw/filtered/current/cutoff `5/88/83/65/18`, detail present. |
