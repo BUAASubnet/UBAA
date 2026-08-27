@@ -179,7 +179,7 @@ pub struct RouteSessionSnapshot {
 }
 
 impl RouteSessionSnapshot {
-    /// Convert an existing legacy snapshot without changing or copying its Cookies.
+    /// 转换已有旧版快照，不修改或复制其中的 Cookie。
     #[must_use]
     pub fn from_legacy(snapshot: &SessionSnapshot) -> Self {
         Self {
@@ -353,7 +353,7 @@ pub trait SessionStore: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence or parsing error.
+    /// 返回安全的持久化或解析错误。
     fn load(&self) -> Result<Option<SessionSnapshot>> {
         self.load_versioned().map(|state| state.snapshot)
     }
@@ -361,7 +361,7 @@ pub trait SessionStore: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence or serialization error.
+    /// 返回安全的持久化或序列化错误。
     fn save(&self, snapshot: &SessionSnapshot) -> Result<()> {
         loop {
             let current = self.load_versioned()?;
@@ -377,7 +377,7 @@ pub trait SessionStore: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence error when the state cannot be removed.
+    /// 当无法移除状态时返回安全的持久化错误。
     fn clear(&self) -> Result<()> {
         loop {
             let current = self.load_versioned()?;
@@ -451,7 +451,7 @@ impl std::fmt::Debug for RouteSessionStore {
 }
 
 impl RouteSessionStore {
-    /// Construct a route-scoped store over an existing dual-file store.
+    /// 基于已有双文件存储构造路线作用域存储。
     #[must_use]
     pub const fn new(inner: FileSessionStore, mode: ConnectionMode) -> Self {
         Self { inner, mode }
@@ -717,7 +717,7 @@ impl FileSessionStore {
     ///
     /// # Errors
     ///
-    /// Returns a safe persistence error when the directory cannot be created or restricted.
+    /// 当目录无法创建或设置访问限制时返回安全的持久化错误。
     pub fn new(config_dir: impl AsRef<Path>) -> Result<Self> {
         let config_dir = config_dir.as_ref();
         fs::create_dir_all(config_dir)
@@ -786,7 +786,7 @@ impl FileSessionStore {
         }
     }
 
-    /// Compare-exchange a schema-v2 snapshot while holding the same OS lock as its revision.
+    /// 持有与修订版本相同的操作系统锁时，对 schema-v2 快照执行比较交换。
     pub fn compare_exchange_dual(
         &self,
         expected_revision: u64,

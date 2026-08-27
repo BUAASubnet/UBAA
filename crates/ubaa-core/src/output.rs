@@ -209,7 +209,7 @@ pub struct RoutedJsonEnvelope<T> {
 }
 
 impl<T> RoutedJsonEnvelope<T> {
-    /// Build a successful response after route resolution.
+    /// 路线解析后构造成功响应。
     #[must_use]
     pub const fn success(data: T, meta: ResolvedRoutedJsonMeta) -> Self {
         Self {
@@ -223,7 +223,7 @@ impl<T> RoutedJsonEnvelope<T> {
 }
 
 impl RoutedJsonEnvelope<serde_json::Value> {
-    /// Build a failed response after route resolution.
+    /// 路线解析后构造失败响应。
     #[must_use]
     pub fn resolved_failure(error: impl Into<CliJsonError>, meta: ResolvedRoutedJsonMeta) -> Self {
         Self {
@@ -235,7 +235,7 @@ impl RoutedJsonEnvelope<serde_json::Value> {
         }
     }
 
-    /// Build a failed response without inventing route metadata.
+    /// 在不虚构路线元数据的情况下构造失败响应。
     #[must_use]
     pub fn unresolved_failure(
         error: impl Into<CliJsonError>,
@@ -401,7 +401,7 @@ impl Default for AggregateLogoutData {
 }
 
 impl AggregateJsonEnvelope<AggregateLogoutData> {
-    /// Build a successful aggregate logout response for both session slots.
+    /// 为两个会话槽位构造成功的聚合注销响应。
     #[must_use]
     pub const fn logout_success(route_policy: RoutePolicy) -> Self {
         Self {

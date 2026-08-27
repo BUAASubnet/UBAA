@@ -1,4 +1,4 @@
-//! Sanitized fixtures and deterministic HTTP support shared by workspace crates.
+//! 工作区各 crate 共享的脱敏夹具与确定性 HTTP 支持。
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 
-/// Return one known, compile-time authentication fixture.
+/// 返回一个已知的编译期认证夹具。
 #[must_use]
 pub fn auth_fixture(name: &str) -> Option<&'static str> {
     match name {
@@ -20,7 +20,7 @@ pub fn auth_fixture(name: &str) -> Option<&'static str> {
     }
 }
 
-/// Return one known, compile-time sanitized read-only business fixture.
+/// 返回一个已知的编译期脱敏只读业务夹具。
 #[must_use]
 pub fn readonly_fixture(name: &str) -> Option<&'static str> {
     match name {
@@ -57,7 +57,7 @@ pub fn readonly_fixture(name: &str) -> Option<&'static str> {
 ///
 /// # Errors
 ///
-/// Returns a message when the fixture contains a forbidden marker or plausible personal identifier.
+/// 当夹具包含禁止标记或疑似个人标识时返回提示信息。
 pub fn assert_fixture_is_sanitized(fixture: &str) -> std::result::Result<(), String> {
     let lower = fixture.to_ascii_lowercase();
     for marker in [
@@ -101,7 +101,7 @@ impl fmt::Debug for ExpectedRequest {
 }
 
 impl ExpectedRequest {
-    /// Construct a scripted request expectation.
+    /// 构造脚本化请求期望。
     pub fn new(method: HttpMethod, url: impl Into<String>, response: HttpResponse) -> Self {
         Self {
             method,
@@ -111,7 +111,7 @@ impl ExpectedRequest {
     }
 }
 
-/// FIFO transport that validates method and URL without logging request bodies.
+/// 按先进先出顺序校验方法和地址且不记录请求体的传输实现。
 #[derive(Clone)]
 pub struct MockTransport {
     state: Arc<MockState>,
@@ -145,7 +145,7 @@ impl fmt::Debug for MockTransport {
 }
 
 impl MockTransport {
-    /// Construct a transport from scripted expectations.
+    /// 根据脚本化期望构造传输实现。
     pub fn new(expectations: impl IntoIterator<Item = ExpectedRequest>) -> Self {
         Self {
             state: Arc::new(MockState {
@@ -159,7 +159,7 @@ impl MockTransport {
     ///
     /// # Errors
     ///
-    /// Returns a message when the mock is poisoned or scripted requests remain.
+    /// 当模拟传输中毒或仍有未消费的脚本请求时返回提示信息。
     pub fn assert_exhausted(&self) -> std::result::Result<(), String> {
         let remaining = self
             .state
@@ -174,11 +174,11 @@ impl MockTransport {
         }
     }
 
-    /// Return a copy of requests for assertions; callers must not print bodies.
+    /// 返回请求副本供断言使用；调用方不得打印请求体。
     ///
     /// # Errors
     ///
-    /// Returns a message when the mock lock is poisoned.
+    /// 当模拟锁中毒时返回提示信息。
     pub fn requests(&self) -> std::result::Result<Vec<HttpRequest>, String> {
         self.state
             .requests
@@ -224,17 +224,17 @@ struct MemorySessionState {
 }
 
 impl MemorySessionStore {
-    /// Construct an empty store.
+    /// 构造空存储。
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Return a copy for assertions.
+    /// 返回副本供断言使用。
     ///
     /// # Errors
     ///
-    /// Returns a message when the store lock is poisoned.
+    /// 当存储锁中毒时返回提示信息。
     pub fn snapshot(
         &self,
     ) -> std::result::Result<Option<ubaa_core::session::SessionSnapshot>, String> {
