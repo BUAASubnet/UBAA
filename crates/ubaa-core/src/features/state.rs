@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 /// State shared only by runtimes and read workers for one route/client.
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
+    pub(crate) bykc: BykcState,
     pub(crate) libbook: LibBookState,
     pub(crate) classroom: ClassroomState,
     pub(crate) signin: SigninState,
@@ -22,12 +23,49 @@ pub(crate) struct RouteFeatureState {
 
 impl RouteFeatureState {
     pub(crate) fn clear(&self) {
+        self.bykc.clear();
         self.libbook.clear();
         self.classroom.clear();
         self.signin.clear();
         self.spoc.clear();
         self.judge.clear();
         self.ygdk.clear();
+    }
+}
+
+/// 路线内存中的博雅业务会话，不写入主认证会话文件。
+#[allow(dead_code)]
+#[derive(Debug, Default)]
+pub(crate) struct BykcState {
+    credential: SyncMutex<Option<crate::features::bykc::BykcCredential>>,
+    login: Mutex<()>,
+}
+
+#[allow(dead_code)]
+impl BykcState {
+    pub(crate) fn credential(&self) -> Option<crate::features::bykc::BykcCredential> {
+        self.credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    pub(crate) fn set(&self, value: crate::features::bykc::BykcCredential) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
+    }
+
+    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.login.lock().await
+    }
+
+    pub(crate) fn clear(&self) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     }
 }
 
@@ -532,9 +570,24 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use crate::domain::{JudgeAssignmentDetail, JudgeSubmissionStatus};
+    use crate::features::bykc::BykcCredential;
     use crate::features::judge::{Assignment, AssignmentList, Course};
 
-    use super::{ClassroomState, JudgeState};
+    use super::{BykcState, ClassroomState, JudgeState};
+
+    #[test]
+    fn 博雅凭据仅驻留路线状态且调试输出脱敏() {
+        let state = BykcState::default();
+        state.set(BykcCredential {
+            token: "仅用于测试的令牌".to_owned(),
+        });
+        let credential = state.credential().unwrap();
+        assert_eq!(credential.token, "仅用于测试的令牌");
+        assert!(!format!("{credential:?}").contains("仅用于测试的令牌"));
+
+        state.clear();
+        assert!(state.credential().is_none());
+    }
 
     #[test]
     fn concurrent_classroom_bootstraps_use_one_double_checked_sync() {

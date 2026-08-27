@@ -7,6 +7,22 @@ use crate::domain::{
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use serde_json::{Map, Value};
 
+/// 博雅查询所需的路线内业务凭据。
+#[allow(dead_code)]
+#[derive(Clone)]
+pub(crate) struct BykcCredential {
+    pub(crate) token: String,
+}
+
+impl std::fmt::Debug for BykcCredential {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("BykcCredential")
+            .field("token", &"[已隐藏]")
+            .finish()
+    }
+}
+
 fn error(message: &str) -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,
