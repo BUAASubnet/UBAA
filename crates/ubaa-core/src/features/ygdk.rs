@@ -240,6 +240,16 @@ pub fn parse_records(
 pub(crate) async fn get_overview(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<YgdkOverview> {
+    match get_overview_once(runtime).await {
+        Err(error) if error.code == ErrorCode::AuthenticationRequired => {
+            runtime.feature_state().ygdk.clear();
+            get_overview_once(runtime).await
+        }
+        result => result,
+    }
+}
+
+async fn get_overview_once(runtime: &mut crate::runtime::ClientRuntime) -> Result<YgdkOverview> {
     let credential = ensure_login(runtime).await?;
     let classify = post(
         runtime,
@@ -395,7 +405,8 @@ fn code_from_url(raw: &str) -> Option<String> {
 }
 
 fn percent_decode(value: &str) -> String {
-    url::form_urlencoded::parse(value.as_bytes())
+    let encoded = format!("value={value}");
+    url::form_urlencoded::parse(encoded.as_bytes())
         .next()
         .map_or_else(|| value.to_owned(), |(_, v)| v.into_owned())
 }
@@ -456,7 +467,7 @@ async fn post_request(
 
 #[cfg(test)]
 mod tests {
-    use super::code_from_url;
+    use super::{code_from_url, percent_decode};
 
     #[test]
     fn 从回调片段查询中提取授权码() {
@@ -464,5 +475,10 @@ mod tests {
             code_from_url("https://ygdk.buaa.edu.cn/#/home?code=%E5%B7%B2%E8%84%B1%E6%95%8F"),
             Some("已脱敏".into())
         );
+    }
+
+    #[test]
+    fn 解码不含等号的业务令牌值() {
+        assert_eq!(percent_decode("token%2Bvalue%2Ftail"), "token+value/tail");
     }
 }

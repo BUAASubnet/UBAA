@@ -207,3 +207,7 @@ CI remains deterministic-only and never reads `.env.local`.
 `STATUS=2` 识别为合法空课程结果。修正后 `feature=signin route=direct` 与
 `feature=signin route=webvpn` 均通过，返回 0 条课程；签到只读功能的两条真实路线
 验收完成，签到提交仍不在范围内。
+阳光打卡随后按冻结实现补齐 fragment OAuth code、项目/记录 query 与表单双传、
+精确表单编码和业务会话失效重登。最终根因是 token 解码把不含等号的值误解析为空；
+改为按独立 URL 值解码后，`feature=ygdk route=direct` 与
+`feature=ygdk route=webvpn` 均通过并解析到 11 个项目。阳光打卡只读双路线验收完成。
