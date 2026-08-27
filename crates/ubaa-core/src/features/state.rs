@@ -37,12 +37,14 @@ pub(crate) struct YgdkState {
     login: Mutex<()>,
 }
 impl YgdkState {
+    #[allow(dead_code)]
     pub(crate) fn credential(&self) -> Option<crate::features::ygdk::YgdkCredential> {
         self.credential
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone()
     }
+    #[allow(dead_code)]
     pub(crate) fn set(&self, value: crate::features::ygdk::YgdkCredential) {
         *self
             .credential
@@ -55,6 +57,7 @@ impl YgdkState {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     }
+    #[allow(dead_code)]
     pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
         self.login.lock().await
     }

@@ -5,12 +5,10 @@ use crate::domain::{YgdkItem, YgdkOverview, YgdkRecord, YgdkRecordsPage, YgdkTer
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use serde_json::{Map, Value};
 
-const BASE: &str = "https://ygdk.buaa.edu.cn/api/Front/Clockin";
-
 #[derive(Clone, Debug)]
 pub(crate) struct YgdkCredential {
-    uid: i32,
-    token: String,
+    pub(crate) uid: i32,
+    pub(crate) token: String,
 }
 
 fn error(message: &str) -> UbaaError {
