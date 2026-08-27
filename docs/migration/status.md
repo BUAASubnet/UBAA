@@ -1,6 +1,6 @@
 # Migration Status
 
-Updated: 2026-08-26
+Updated: 2026-08-27
 
 ## Conclusion
 
@@ -33,6 +33,7 @@ source-parity 记录和二次审查；截至 2026-08-26，认证、六类只读�
 | 9b classroom | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | Exact long UA, one no-follow query, strict required `e/m/d/list` and room strings, best-effort once-per-route synchronization, route isolation, and session lifecycle clearing are covered and live-checked. |
 | 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
 | 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
+| 9e 签到查询 | Core 解析、独立 iClass 会话、facade 与 CLI 已接入；真实路线待验证 | `signin today` 使用路线隔离的 iClass 业务会话，按旧版固定跳转、登录参数和今日查询参数实现；脱敏解析与确定性接线已覆盖。必须补充 Direct/WebVPN live 验证后才能标记为完整迁移。签到提交仍不在范围内。 |
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
 | 11 live matrix | Latest complete matrix passed; transient WebVPN Judge snapshot failures retained | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility causes a nonzero result. |
