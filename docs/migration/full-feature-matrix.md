@@ -7,6 +7,7 @@
 | 功能 | UBAA 2 CLI | 当前状态 |
 |---|---|---|
 | 认证与用户信息 | `auth`, `user show` | 已完成，Direct/WebVPN 双路会话 |
+| 课堂签到查询 | 暂无 CLI（解析基础已完成） | iClass 独立业务会话尚未接入 |
 | 课表与考试 | `schedule`, `exam` | 已完成，只读 |
 | 成绩 | `grades` | 已完成，只读 |
 | 空闲教室 | `classroom search` | 已完成，只读 |
@@ -37,3 +38,17 @@
 5. 运行聚焦测试、`just check`，更新迁移状态并独立提交。
 
 没有完成真实上游验证的操作只能标记为“确定性测试通过”，不能标记为完整迁移。
+
+## 课堂签到查询 parity
+
+冻结 `SigninApi` 的查询不是普通教务接口复用：先访问
+`https://iclass.buaa.edu.cn:8346/?type=jumpMyCenter`，在最终 URL 或重定向
+`Location` 中提取 `loginName`；随后向 8347 的 `app/user/login.action` 发送固定
+查询参数，取得业务 `id` 与 `sessionId`；最后请求
+`app/course/get_stu_course_sched.action`，携带 `sessionId`、`id` 和
+`yyyyMMdd` 格式的 `dateStr`。业务会话按学生标识缓存，并在失效后重试一次。
+
+UBAA 2 已完成响应 DTO/解析器及脱敏 fixture 测试，但尚未实现上述独立业务会话、
+路线转换和 facade/CLI 接入；因此当前状态只能记为“解析基础完成”，不能记为签到
+查询迁移完成。`examples/buaa-api` 没有等价 iClass 协议，不能借用其 URL、字段或
+错误语义。签到提交操作仍属于写操作，不在本轮范围内。
