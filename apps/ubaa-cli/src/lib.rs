@@ -10,7 +10,8 @@ use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
-    ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
+    CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery,
+    ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
     LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary, LibBookSeat, LoginInput,
     LoginReadiness, RoutePolicy, SafeError, SecretValue, SigninClass, SpocAssignmentDetail,
@@ -131,6 +132,48 @@ pub enum Command {
     Ygdk(YgdkArgs),
     /// 博雅课程只读操作。
     Bykc(BykcArgs),
+    /// 场馆预约只读操作。
+    Cgyy(CgyyArgs),
+}
+
+/// 场馆预约命令组。
+#[derive(Debug, Args)]
+pub struct CgyyArgs {
+    #[command(subcommand)]
+    pub command: CgyyCommand,
+}
+
+/// 场馆预约只读操作。
+#[derive(Debug, Subcommand)]
+pub enum CgyyCommand {
+    /// 查询场馆站点。
+    Sites,
+    /// 查询预约用途。
+    Purposes,
+    /// 查询指定站点日期的时段与空间状态。
+    Day {
+        /// 场馆站点编号。
+        #[arg(long)]
+        site_id: i32,
+        /// 日期，格式为 yyyy-MM-dd。
+        #[arg(long)]
+        date: String,
+    },
+    /// 查询当前用户订单。
+    Orders {
+        /// 页码，从 0 开始。
+        #[arg(long, default_value_t = 0)]
+        page: i32,
+        /// 每页数量。
+        #[arg(long, default_value_t = 10)]
+        size: i32,
+    },
+    /// 查询订单详情。
+    Detail {
+        /// 订单编号。
+        #[arg(long)]
+        id: i32,
+    },
 }
 
 /// 博雅课程命令组。
@@ -678,6 +721,30 @@ pub trait CliBackend {
     async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         Err(internal_error("博雅功能不可用"))
     }
+    /// 查询场馆站点。
+    async fn cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
+    /// 查询预约用途。
+    async fn cgyy_purposes(&mut self) -> Result<FeatureResult<Vec<CgyyPurposeType>>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
+    /// 查询日期预约信息。
+    async fn cgyy_day(&mut self, _site_id: i32, _date: &str) -> Result<FeatureResult<CgyyDayInfo>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
+    /// 查询当前用户订单。
+    async fn cgyy_orders(
+        &mut self,
+        _page: i32,
+        _size: i32,
+    ) -> Result<FeatureResult<CgyyOrdersPage>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
+    /// 查询订单详情。
+    async fn cgyy_order_detail(&mut self, _id: i32) -> Result<FeatureResult<CgyyOrder>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         Err(internal_error("阳光打卡不可用"))
     }
@@ -838,6 +905,26 @@ pub trait RoutedCliBackend {
     /// 通过 Core 路由查询博雅修读统计。
     async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
         Err(routed_unavailable("博雅功能不可用"))
+    }
+    /// 通过 Core 路由查询场馆站点。
+    async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
+        Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    /// 通过 Core 路由查询预约用途。
+    async fn cgyy_purposes(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
+        Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    /// 通过 Core 路由查询日期预约信息。
+    async fn cgyy_day(&mut self, _site_id: i32, _date: &str) -> RoutedResult<CgyyDayInfo> {
+        Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    /// 通过 Core 路由查询当前用户订单。
+    async fn cgyy_orders(&mut self, _page: i32, _size: i32) -> RoutedResult<CgyyOrdersPage> {
+        Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    /// 通过 Core 路由查询订单详情。
+    async fn cgyy_order_detail(&mut self, _id: i32) -> RoutedResult<CgyyOrder> {
+        Err(routed_unavailable("场馆预约功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         Err(routed_unavailable("阳光打卡不可用"))
@@ -1231,6 +1318,21 @@ impl CliBackend for RouteClient {
     async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         self.bykc_statistics().await
     }
+    async fn cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>> {
+        self.cgyy_sites().await
+    }
+    async fn cgyy_purposes(&mut self) -> Result<FeatureResult<Vec<CgyyPurposeType>>> {
+        self.cgyy_purposes().await
+    }
+    async fn cgyy_day(&mut self, site_id: i32, date: &str) -> Result<FeatureResult<CgyyDayInfo>> {
+        self.cgyy_day(site_id, date).await
+    }
+    async fn cgyy_orders(&mut self, page: i32, size: i32) -> Result<FeatureResult<CgyyOrdersPage>> {
+        self.cgyy_orders(page, size).await
+    }
+    async fn cgyy_order_detail(&mut self, id: i32) -> Result<FeatureResult<CgyyOrder>> {
+        self.cgyy_order_detail(id).await
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         self.ygdk_overview().await
     }
@@ -1343,6 +1445,21 @@ impl RoutedCliBackend for UbaaClient {
         limit: i32,
     ) -> RoutedResult<LibBookBookingsPage> {
         UbaaClient::libbook_bookings(self, page, limit).await
+    }
+    async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
+        UbaaClient::cgyy_sites(self).await
+    }
+    async fn cgyy_purposes(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
+        UbaaClient::cgyy_purpose_types(self).await
+    }
+    async fn cgyy_day(&mut self, site_id: i32, date: &str) -> RoutedResult<CgyyDayInfo> {
+        UbaaClient::cgyy_day_info(self, site_id, date).await
+    }
+    async fn cgyy_orders(&mut self, page: i32, size: i32) -> RoutedResult<CgyyOrdersPage> {
+        UbaaClient::cgyy_orders(self, page, size).await
+    }
+    async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
+        UbaaClient::cgyy_order_detail(self, id).await
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         UbaaClient::ygdk_overview(self).await
@@ -1473,6 +1590,7 @@ where
             run_routed_libbook(arguments, backend).await,
         ),
         Command::Bykc(arguments) => (CliFeature::Bykc, run_routed_bykc(arguments, backend).await),
+        Command::Cgyy(arguments) => (CliFeature::Cgyy, run_routed_cgyy(arguments, backend).await),
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Overview,
         }) => (
@@ -1683,6 +1801,25 @@ async fn run_routed_bykc<B: RoutedCliBackend + Send>(
     }
 }
 
+async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
+    arguments: CgyyArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        CgyyCommand::Sites => routed_readonly(backend.cgyy_sites().await, CliFeature::Cgyy),
+        CgyyCommand::Purposes => routed_readonly(backend.cgyy_purposes().await, CliFeature::Cgyy),
+        CgyyCommand::Day { site_id, date } => {
+            routed_readonly(backend.cgyy_day(site_id, &date).await, CliFeature::Cgyy)
+        }
+        CgyyCommand::Orders { page, size } => {
+            routed_readonly(backend.cgyy_orders(page, size).await, CliFeature::Cgyy)
+        }
+        CgyyCommand::Detail { id } => {
+            routed_readonly(backend.cgyy_order_detail(id).await, CliFeature::Cgyy)
+        }
+    }
+}
+
 fn routed_map<T>(
     result: RoutedResult<T>,
     map: impl FnOnce(T) -> CommandOutput,
@@ -1852,6 +1989,7 @@ where
             .and_then(|data| readonly(data, CliFeature::Signin)),
         Command::Libbook(arguments) => run_libbook(arguments, backend).await,
         Command::Bykc(arguments) => run_bykc(arguments, backend).await,
+        Command::Cgyy(arguments) => run_cgyy(arguments, backend).await,
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Overview,
         }) => backend
@@ -1890,6 +2028,7 @@ const fn command_feature(command: &Command) -> CliFeature {
         Command::Signin(_) => CliFeature::Signin,
         Command::Libbook(_) => CliFeature::LibBook,
         Command::Bykc(_) => CliFeature::Bykc,
+        Command::Cgyy(_) => CliFeature::Cgyy,
         Command::Ygdk(_) => CliFeature::Ygdk,
     }
 }
@@ -2134,6 +2273,34 @@ async fn run_bykc<B: CliBackend + Send>(
             .bykc_statistics()
             .await
             .and_then(|r| readonly(r, CliFeature::Bykc)),
+    }
+}
+
+async fn run_cgyy<B: CliBackend + Send>(
+    arguments: CgyyArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        CgyyCommand::Sites => backend
+            .cgyy_sites()
+            .await
+            .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::Purposes => backend
+            .cgyy_purposes()
+            .await
+            .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::Day { site_id, date } => backend
+            .cgyy_day(site_id, &date)
+            .await
+            .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::Orders { page, size } => backend
+            .cgyy_orders(page, size)
+            .await
+            .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::Detail { id } => backend
+            .cgyy_order_detail(id)
+            .await
+            .and_then(|result| readonly(result, CliFeature::Cgyy)),
     }
 }
 

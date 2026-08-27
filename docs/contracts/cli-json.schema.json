@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy"]
     },
     "route": {
       "enum": ["direct", "webvpn"]

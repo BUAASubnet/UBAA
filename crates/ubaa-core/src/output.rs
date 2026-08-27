@@ -43,6 +43,8 @@ pub enum CliFeature {
     Bykc,
     /// 阳光打卡查询。
     Ygdk,
+    /// 场馆预约查询。
+    Cgyy,
 }
 
 impl CliFeature {
@@ -63,6 +65,7 @@ impl CliFeature {
             Self::LibBook => "libbook",
             Self::Bykc => "bykc",
             Self::Ygdk => "ygdk",
+            Self::Cgyy => "cgyy",
         }
     }
 }
