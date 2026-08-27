@@ -13,7 +13,8 @@ use crate::connection::{
 use crate::domain::{
     AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
     ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
-    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LoginInput, LoginOutcome, LoginReadiness,
+    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail,
+    LibBookBookingsPage, LibBookLibrary, LibBookSeat, LoginInput, LoginOutcome, LoginReadiness,
     ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass,
     SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
     UserProfile, Week, WeeklySchedule, YgdkOverview, YgdkRecordsPage,
@@ -432,6 +433,117 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::signin::get_today(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆楼馆列表。
+    pub async fn libbook_libraries(&mut self, day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_libraries(&mut self.direct_runtime, day).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_libraries(&mut self.webvpn_runtime, day).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆分区列表。
+    pub async fn libbook_areas(
+        &mut self,
+        premises_id: &str,
+        storey_id: Option<&str>,
+        day: &str,
+    ) -> RoutedResult<Vec<LibBookArea>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_areas(
+                    &mut self.direct_runtime,
+                    premises_id,
+                    storey_id,
+                    day,
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_areas(
+                    &mut self.webvpn_runtime,
+                    premises_id,
+                    storey_id,
+                    day,
+                )
+                .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆分区详情。
+    pub async fn libbook_area_detail(&mut self, area_id: &str) -> RoutedResult<LibBookAreaDetail> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_area_detail(&mut self.direct_runtime, area_id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_area_detail(&mut self.webvpn_runtime, area_id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆座位列表。
+    pub async fn libbook_seats(
+        &mut self,
+        area_id: &str,
+        day: &str,
+        start_time: &str,
+        end_time: &str,
+    ) -> RoutedResult<Vec<LibBookSeat>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_seats(
+                    &mut self.direct_runtime,
+                    area_id,
+                    day,
+                    start_time,
+                    end_time,
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_seats(
+                    &mut self.webvpn_runtime,
+                    area_id,
+                    day,
+                    start_time,
+                    end_time,
+                )
+                .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询当前用户的图书馆预约记录。
+    pub async fn libbook_bookings(
+        &mut self,
+        page: i32,
+        limit: i32,
+    ) -> RoutedResult<LibBookBookingsPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_bookings(&mut self.direct_runtime, page, limit).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_bookings(&mut self.webvpn_runtime, page, limit).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1098,6 +1210,76 @@ impl RouteClient {
     pub async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         self.guard_session_ownership()?;
         let result = crate::features::signin::get_today(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询图书馆楼馆列表。
+    pub async fn libbook_libraries(
+        &mut self,
+        day: &str,
+    ) -> Result<FeatureResult<Vec<LibBookLibrary>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::libbook::get_libraries(&mut self.runtime, day).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询图书馆分区列表。
+    pub async fn libbook_areas(
+        &mut self,
+        premises_id: &str,
+        storey_id: Option<&str>,
+        day: &str,
+    ) -> Result<FeatureResult<Vec<LibBookArea>>> {
+        self.guard_session_ownership()?;
+        let result =
+            crate::features::libbook::get_areas(&mut self.runtime, premises_id, storey_id, day)
+                .await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询图书馆分区详情。
+    pub async fn libbook_area_detail(
+        &mut self,
+        area_id: &str,
+    ) -> Result<FeatureResult<LibBookAreaDetail>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::libbook::get_area_detail(&mut self.runtime, area_id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询图书馆座位列表。
+    pub async fn libbook_seats(
+        &mut self,
+        area_id: &str,
+        day: &str,
+        start_time: &str,
+        end_time: &str,
+    ) -> Result<FeatureResult<Vec<LibBookSeat>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::libbook::get_seats(
+            &mut self.runtime,
+            area_id,
+            day,
+            start_time,
+            end_time,
+        )
+        .await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询当前用户的图书馆预约记录。
+    pub async fn libbook_bookings(
+        &mut self,
+        page: i32,
+        limit: i32,
+    ) -> Result<FeatureResult<LibBookBookingsPage>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::libbook::get_bookings(&mut self.runtime, page, limit).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
