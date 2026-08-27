@@ -231,6 +231,14 @@ invalid-input/upstream/parse errors.
 
 当前仅完成协议审计，尚未实现 UBAA2 Core/CLI；`examples/buaa-api` 没有等价实现，不能从其模块类比 URL、字段或令牌流程。写入打卡和照片上传明确排除。
 
+## 图书馆座位只读查询
+
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
+|---|---|---|---|---|---|---|---|---|
+| **旧版：**业务基址 `https://booking.lib.buaa.edu.cn/v4/`；**示例：**无等价模块；**决定：**只采用冻结旧版。 | **旧版：**SSO 最多 8 跳，从最终 URL、Location 或 fragment 提取 `cas`；**决定：**手动跟随并限制已知主机。 | **旧版：**独立图书馆 token，不复用教务 Cookie；**决定：**路线内存储，禁止持久化令牌。 | **旧版：**所有查询 POST JSON：`space/pcTopFor`、`space/pick`、`Space/map`、`Space/seat`、`member/seat`，参数含日期、区域、时段和分页；**决定：**保持原始 JSON 字段。 | **旧版：**Authorization、Origin、Referer、固定 UA、`X-Requested-With`；**决定：**不输出 token。 | **旧版：**AES 仅用于预约写操作；**决定：**只读查询不引入加密。 | **旧版：**图书馆、楼层、区域、时段、座位及预约分页 DTO；座位 `status == 1` 表示可用。 | **旧版：**token 按用户缓存，失效后清理并重试一次；**决定：**路线隔离状态。 | **旧版：**业务 code 0/1 成功，其他映射错误；**决定：**区分上游错误、未找到和座位不可用，不伪造空结果。 |
+
+当前仅完成协议审计，尚未实现 UBAA2 LibBook Core/CLI。预约、取消及其 AES 加密明确排除；`examples/buaa-api` 没有等价实现。
+
 ## Review rule
 
 Any change to a URL, service value, redirect, Cookie/session scope, method,
