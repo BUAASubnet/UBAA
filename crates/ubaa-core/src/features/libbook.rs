@@ -65,7 +65,7 @@ fn envelope(body: &str) -> Result<Value> {
         v.as_i64()
             .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
     });
-    if matches!(code, Some(0) | Some(1)) {
+    if matches!(code, Some(0 | 1)) {
         Ok(object
             .get("data")
             .or_else(|| object.get("result"))
@@ -150,11 +150,10 @@ pub fn parse_area_detail(body: &str) -> Result<LibBookAreaDetail> {
         .get("area")
         .and_then(Value::as_object)
         .unwrap_or(object);
-    let dates = object
-        .get("date")
-        .and_then(Value::as_object)
-        .map(|date| array(date, &["list"]))
-        .unwrap_or_else(|| array(object, &["availableDates", "available_dates"]));
+    let dates = object.get("date").and_then(Value::as_object).map_or_else(
+        || array(object, &["availableDates", "available_dates"]),
+        |date| array(date, &["list"]),
+    );
     let available_dates = dates
         .iter()
         .filter_map(|entry| {
@@ -165,11 +164,10 @@ pub fn parse_area_detail(body: &str) -> Result<LibBookAreaDetail> {
         })
         .filter(|date| !date.is_empty())
         .collect();
-    let slots = dates
-        .first()
-        .and_then(Value::as_object)
-        .map(|date| array(date, &["times", "timeSlots"]))
-        .unwrap_or_else(|| array(object, &["timeSlots", "time_slots"]));
+    let slots = dates.first().and_then(Value::as_object).map_or_else(
+        || array(object, &["timeSlots", "time_slots"]),
+        |date| array(date, &["times", "timeSlots"]),
+    );
     let time_slots = slots
         .iter()
         .filter_map(Value::as_object)
@@ -459,6 +457,5 @@ fn is_expired_body(body: &str) -> bool {
     serde_json::from_str::<Value>(body)
         .ok()
         .and_then(|value| value.as_object().cloned())
-        .map(|object| is_expired_message(&text(&object, &["message", "msg"])))
-        .unwrap_or(false)
+        .is_some_and(|object| is_expired_message(&text(&object, &["message", "msg"])))
 }
