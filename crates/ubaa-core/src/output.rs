@@ -39,6 +39,9 @@ pub enum CliFeature {
     Signin,
     /// 图书馆座位与预约查询。
     LibBook,
+    /// 博雅课程查询。
+    Bykc,
+    /// 阳光打卡查询。
     Ygdk,
 }
 
@@ -58,6 +61,7 @@ impl CliFeature {
             Self::Judge => "judge",
             Self::Signin => "signin",
             Self::LibBook => "libbook",
+            Self::Bykc => "bykc",
             Self::Ygdk => "ygdk",
         }
     }

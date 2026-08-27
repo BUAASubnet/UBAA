@@ -9,12 +9,13 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
-    AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult,
-    GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookLibrary, LibBookSeat, LoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue,
-    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
-    TodayClass, UserProfile, Week, WeeklySchedule, YgdkOverview, YgdkRecordsPage,
+    AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
+    ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
+    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
+    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary, LibBookSeat, LoginInput,
+    LoginReadiness, RoutePolicy, SafeError, SecretValue, SigninClass, SpocAssignmentDetail,
+    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
+    WeeklySchedule, YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
@@ -128,6 +129,48 @@ pub enum Command {
     Libbook(LibBookArgs),
     /// 阳光打卡只读操作。
     Ygdk(YgdkArgs),
+    /// 博雅课程只读操作。
+    Bykc(BykcArgs),
+}
+
+/// 博雅课程命令组。
+#[derive(Debug, Args)]
+pub struct BykcArgs {
+    #[command(subcommand)]
+    pub command: BykcCommand,
+}
+
+/// 博雅课程只读操作。
+#[derive(Debug, Subcommand)]
+pub enum BykcCommand {
+    /// 查询用户资料。
+    Profile,
+    /// 查询课程分页。
+    Courses {
+        /// 页码，从 1 开始。
+        #[arg(long, default_value_t = 1)]
+        page: i32,
+        /// 每页数量。
+        #[arg(long, default_value_t = 20)]
+        size: i32,
+    },
+    /// 查询课程详情。
+    Course {
+        /// 课程编号。
+        #[arg(long)]
+        id: i64,
+    },
+    /// 查询已选课程。
+    Chosen {
+        /// 学期开始时间。
+        #[arg(long)]
+        start: String,
+        /// 学期结束时间。
+        #[arg(long)]
+        end: String,
+    },
+    /// 查询修读统计。
+    Statistics,
 }
 
 /// 图书馆座位命令组。
@@ -514,6 +557,7 @@ impl Cli {
                 | Command::Judge(_)
                 | Command::Signin(_)
                 | Command::Libbook(_)
+                | Command::Bykc(_)
                 | Command::Ygdk(_)
         )
     }
@@ -605,6 +649,34 @@ pub trait CliBackend {
         _limit: i32,
     ) -> Result<FeatureResult<LibBookBookingsPage>> {
         Err(internal_error("图书馆功能不可用"))
+    }
+    /// 查询博雅用户资料。
+    async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
+        Err(internal_error("博雅功能不可用"))
+    }
+    /// 分页查询博雅课程。
+    async fn bykc_courses(
+        &mut self,
+        _page: i32,
+        _size: i32,
+    ) -> Result<FeatureResult<BykcCoursePage>> {
+        Err(internal_error("博雅功能不可用"))
+    }
+    /// 查询博雅课程详情。
+    async fn bykc_course_detail(&mut self, _id: i64) -> Result<FeatureResult<BykcCourse>> {
+        Err(internal_error("博雅功能不可用"))
+    }
+    /// 查询博雅已选课程。
+    async fn bykc_chosen_courses(
+        &mut self,
+        _start: &str,
+        _end: &str,
+    ) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
+        Err(internal_error("博雅功能不可用"))
+    }
+    /// 查询博雅修读统计。
+    async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
+        Err(internal_error("博雅功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         Err(internal_error("阳光打卡不可用"))
@@ -742,6 +814,30 @@ pub trait RoutedCliBackend {
         _limit: i32,
     ) -> RoutedResult<LibBookBookingsPage> {
         Err(routed_unavailable("图书馆功能不可用"))
+    }
+    /// 通过 Core 路由查询博雅用户资料。
+    async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
+        Err(routed_unavailable("博雅功能不可用"))
+    }
+    /// 通过 Core 路由分页查询博雅课程。
+    async fn bykc_courses(&mut self, _page: i32, _size: i32) -> RoutedResult<BykcCoursePage> {
+        Err(routed_unavailable("博雅功能不可用"))
+    }
+    /// 通过 Core 路由查询博雅课程详情。
+    async fn bykc_course_detail(&mut self, _id: i64) -> RoutedResult<BykcCourse> {
+        Err(routed_unavailable("博雅功能不可用"))
+    }
+    /// 通过 Core 路由查询博雅已选课程。
+    async fn bykc_chosen_courses(
+        &mut self,
+        _start: &str,
+        _end: &str,
+    ) -> RoutedResult<Vec<BykcChosenCourse>> {
+        Err(routed_unavailable("博雅功能不可用"))
+    }
+    /// 通过 Core 路由查询博雅修读统计。
+    async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
+        Err(routed_unavailable("博雅功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         Err(routed_unavailable("阳光打卡不可用"))
@@ -1112,6 +1208,29 @@ impl CliBackend for RouteClient {
     ) -> Result<FeatureResult<LibBookBookingsPage>> {
         self.libbook_bookings(page, limit).await
     }
+    async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
+        self.bykc_profile().await
+    }
+    async fn bykc_courses(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> Result<FeatureResult<BykcCoursePage>> {
+        self.bykc_courses(page, size).await
+    }
+    async fn bykc_course_detail(&mut self, id: i64) -> Result<FeatureResult<BykcCourse>> {
+        self.bykc_course_detail(id).await
+    }
+    async fn bykc_chosen_courses(
+        &mut self,
+        start: &str,
+        end: &str,
+    ) -> Result<FeatureResult<Vec<BykcChosenCourse>>> {
+        self.bykc_chosen_courses(start, end).await
+    }
+    async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
+        self.bykc_statistics().await
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         self.ygdk_overview().await
     }
@@ -1353,6 +1472,7 @@ where
             CliFeature::LibBook,
             run_routed_libbook(arguments, backend).await,
         ),
+        Command::Bykc(arguments) => (CliFeature::Bykc, run_routed_bykc(arguments, backend).await),
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Overview,
         }) => (
@@ -1541,6 +1661,28 @@ async fn run_routed_libbook<B: RoutedCliBackend + Send>(
     }
 }
 
+async fn run_routed_bykc<B: RoutedCliBackend + Send>(
+    arguments: BykcArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        BykcCommand::Profile => routed_readonly(backend.bykc_profile().await, CliFeature::Bykc),
+        BykcCommand::Courses { page, size } => {
+            routed_readonly(backend.bykc_courses(page, size).await, CliFeature::Bykc)
+        }
+        BykcCommand::Course { id } => {
+            routed_readonly(backend.bykc_course_detail(id).await, CliFeature::Bykc)
+        }
+        BykcCommand::Chosen { start, end } => routed_readonly(
+            backend.bykc_chosen_courses(&start, &end).await,
+            CliFeature::Bykc,
+        ),
+        BykcCommand::Statistics => {
+            routed_readonly(backend.bykc_statistics().await, CliFeature::Bykc)
+        }
+    }
+}
+
 fn routed_map<T>(
     result: RoutedResult<T>,
     map: impl FnOnce(T) -> CommandOutput,
@@ -1709,6 +1851,7 @@ where
             .await
             .and_then(|data| readonly(data, CliFeature::Signin)),
         Command::Libbook(arguments) => run_libbook(arguments, backend).await,
+        Command::Bykc(arguments) => run_bykc(arguments, backend).await,
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Overview,
         }) => backend
@@ -1746,6 +1889,7 @@ const fn command_feature(command: &Command) -> CliFeature {
         Command::Judge(_) => CliFeature::Judge,
         Command::Signin(_) => CliFeature::Signin,
         Command::Libbook(_) => CliFeature::LibBook,
+        Command::Bykc(_) => CliFeature::Bykc,
         Command::Ygdk(_) => CliFeature::Ygdk,
     }
 }
@@ -1962,6 +2106,34 @@ async fn run_libbook<B: CliBackend + Send>(
             .libbook_bookings(page, limit)
             .await
             .and_then(|result| readonly(result, CliFeature::LibBook)),
+    }
+}
+
+async fn run_bykc<B: CliBackend + Send>(
+    arguments: BykcArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        BykcCommand::Profile => backend
+            .bykc_profile()
+            .await
+            .and_then(|r| readonly(r, CliFeature::Bykc)),
+        BykcCommand::Courses { page, size } => backend
+            .bykc_courses(page, size)
+            .await
+            .and_then(|r| readonly(r, CliFeature::Bykc)),
+        BykcCommand::Course { id } => backend
+            .bykc_course_detail(id)
+            .await
+            .and_then(|r| readonly(r, CliFeature::Bykc)),
+        BykcCommand::Chosen { start, end } => backend
+            .bykc_chosen_courses(&start, &end)
+            .await
+            .and_then(|r| readonly(r, CliFeature::Bykc)),
+        BykcCommand::Statistics => backend
+            .bykc_statistics()
+            .await
+            .and_then(|r| readonly(r, CliFeature::Bykc)),
     }
 }
 
