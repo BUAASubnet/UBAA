@@ -62,6 +62,8 @@ Signin 与 Ygdk 在业务登录页返回 `upstream_changed`；Bykc 在 CLI 聚�
 后仍返回 `authentication_required`，表示业务 CAS 会话未建立。随后单独运行
 `feature=auth route=direct` 成功，但 `feature=bykc route=auto` 仍未通过语义门禁。
 这些结果只证明本次真实运行的具体功能状态，不把认证成功推导为业务成功。
+同日 `feature=auth route=webvpn` 认证成功，但 `feature=cgyy route=webvpn`
+返回 `authentication_required`，因此场馆 WebVPN 业务路线仍未验证通过。
 
 | Run | Result |
 |---|---|
