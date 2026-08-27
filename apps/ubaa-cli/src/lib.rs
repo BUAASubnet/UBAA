@@ -758,11 +758,11 @@ pub trait CliBackend {
 
     /// 查询学期。
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
-        Err(internal_error("schedule is unavailable"))
+        Err(internal_error("课表功能不可用"))
     }
     /// 查询教学周。
     async fn schedule_weeks(&mut self, _term: &str) -> Result<FeatureResult<Vec<Week>>> {
-        Err(internal_error("schedule is unavailable"))
+        Err(internal_error("课表功能不可用"))
     }
     /// 查询指定教学周。
     async fn schedule_week(
@@ -770,19 +770,19 @@ pub trait CliBackend {
         _term: &str,
         _week: i32,
     ) -> Result<FeatureResult<WeeklySchedule>> {
-        Err(internal_error("schedule is unavailable"))
+        Err(internal_error("课表功能不可用"))
     }
     /// 查询今日课程。
     async fn schedule_today(&mut self) -> Result<FeatureResult<Vec<TodayClass>>> {
-        Err(internal_error("schedule is unavailable"))
+        Err(internal_error("课表功能不可用"))
     }
     /// 查询考试。
     async fn exam_arrangement(&mut self, _term: &str) -> Result<FeatureResult<ExamArrangement>> {
-        Err(internal_error("exam is unavailable"))
+        Err(internal_error("考试功能不可用"))
     }
     /// 查询成绩。
     async fn grades(&mut self, _term: &str) -> Result<FeatureResult<GradeData>> {
-        Err(internal_error("grades are unavailable"))
+        Err(internal_error("成绩功能不可用"))
     }
     /// 查询空闲教室。
     async fn classroom_search(
@@ -790,7 +790,7 @@ pub trait CliBackend {
         _campus: i32,
         _date: &str,
     ) -> Result<FeatureResult<ClassroomQuery>> {
-        Err(internal_error("classroom is unavailable"))
+        Err(internal_error("空教室功能不可用"))
     }
     /// 查询 SPOC 作业。
     async fn spoc_assignments(&mut self) -> Result<FeatureResult<SpocAssignments>> {
@@ -934,31 +934,31 @@ pub trait RoutedCliBackend {
     }
     /// 通过 Core 路由获取用户中心资料。
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
-        Err(routed_unavailable("user profile is unavailable"))
+        Err(routed_unavailable("用户资料功能不可用"))
     }
     /// 通过 Core 路由查询学期。
     async fn schedule_terms(&mut self) -> RoutedResult<Vec<Term>> {
-        Err(routed_unavailable("schedule is unavailable"))
+        Err(routed_unavailable("课表功能不可用"))
     }
     /// 通过 Core 路由查询教学周。
     async fn schedule_weeks(&mut self, _term: &str) -> RoutedResult<Vec<Week>> {
-        Err(routed_unavailable("schedule is unavailable"))
+        Err(routed_unavailable("课表功能不可用"))
     }
     /// 通过 Core 路由查询指定教学周。
     async fn schedule_week(&mut self, _term: &str, _week: i32) -> RoutedResult<WeeklySchedule> {
-        Err(routed_unavailable("schedule is unavailable"))
+        Err(routed_unavailable("课表功能不可用"))
     }
     /// 通过 Core 路由查询今日课程。
     async fn schedule_today(&mut self) -> RoutedResult<Vec<TodayClass>> {
-        Err(routed_unavailable("schedule is unavailable"))
+        Err(routed_unavailable("课表功能不可用"))
     }
     /// 通过 Core 路由查询考试。
     async fn exam_arrangement(&mut self, _term: &str) -> RoutedResult<ExamArrangement> {
-        Err(routed_unavailable("exam is unavailable"))
+        Err(routed_unavailable("考试功能不可用"))
     }
     /// 通过 Core 路由查询成绩。
     async fn grades(&mut self, _term: &str) -> RoutedResult<GradeData> {
-        Err(routed_unavailable("grades are unavailable"))
+        Err(routed_unavailable("成绩功能不可用"))
     }
     /// 通过 Core 路由查询空闲教室。
     async fn classroom_search(
@@ -966,7 +966,7 @@ pub trait RoutedCliBackend {
         _campus: i32,
         _date: &str,
     ) -> RoutedResult<ClassroomQuery> {
-        Err(routed_unavailable("classroom is unavailable"))
+        Err(routed_unavailable("空教室功能不可用"))
     }
     /// 通过 Core 路由查询 SPOC 作业。
     async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
