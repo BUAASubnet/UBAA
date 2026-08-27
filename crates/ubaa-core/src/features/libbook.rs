@@ -10,9 +10,18 @@ use crate::ports::HttpRequest;
 use serde_json::{Map, Value, json};
 
 /// 图书馆查询所需的路线内业务凭据。
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct LibBookCredential {
     pub(crate) token: String,
+}
+
+impl std::fmt::Debug for LibBookCredential {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("LibBookCredential")
+            .field("token", &"[已隐藏]")
+            .finish()
+    }
 }
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
@@ -441,7 +450,10 @@ fn cas_from_url(raw: &str) -> Option<String> {
         .map(|(_, value)| value.into_owned())
         .or_else(|| {
             url.fragment().and_then(|fragment| {
-                url::form_urlencoded::parse(fragment.as_bytes())
+                let query = fragment
+                    .split_once('?')
+                    .map_or(fragment, |(_, query)| query);
+                url::form_urlencoded::parse(query.as_bytes())
                     .find(|(key, _)| key.eq_ignore_ascii_case("cas"))
                     .map(|(_, value)| value.into_owned())
             })
