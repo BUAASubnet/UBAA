@@ -1,4 +1,4 @@
-//! SPOC read-only parsing helpers and verified endpoint constants.
+//! SPOC 只读解析辅助函数与已验证地址常量。
 #![allow(
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
@@ -16,22 +16,22 @@ use serde_json::Value;
 
 use crate::domain::{SpocAssignmentDetail, SpocAssignmentSummary, SpocSubmissionStatus};
 
-/// Current-term query endpoint.
+/// 当前学期查询地址。
 pub const CURRENT_TERM_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
-/// No-follow CAS token bootstrap endpoint.
+/// 不跟随重定向的 CAS 令牌引导地址。
 pub const CAS_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/cas";
-/// CAS role/token activation endpoint.
+/// CAS 角色/令牌激活地址。
 pub const CAS_LOGIN_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
-/// Course list endpoint.
+/// 课程列表地址。
 pub const COURSES_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb";
-/// Encrypted assignment page endpoint.
+/// 加密作业页面地址。
 pub const ASSIGNMENTS_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
-/// Assignment detail endpoint.
+/// 作业详情地址。
 pub const ASSIGNMENT_DETAIL_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid";
-/// Submission status endpoint used for read-only detail enrichment.
+/// 用于只读详情补充的提交状态地址。
 pub const SUBMISSION_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo";
 
-/// Map verified SPOC status values without inventing a new state.
+/// 映射已验证的 SPOC 状态值，不擅自创造新状态。
 #[must_use]
 pub fn map_submission_status(raw_status: Option<&str>, has_content: bool) -> SpocSubmissionStatus {
     match raw_status.map(str::trim) {
@@ -42,7 +42,7 @@ pub fn map_submission_status(raw_status: Option<&str>, has_content: bool) -> Spo
     }
 }
 
-/// Convert known HTML markup to a safe plain-text description.
+/// 将已知 HTML 标记转换为安全的纯文本描述。
 #[must_use]
 pub fn to_plain_text(html: &str) -> Option<String> {
     let text = regex::Regex::new(r"(?is)<br\s*/?>|<[^>]+>")
@@ -61,7 +61,7 @@ pub fn to_plain_text(html: &str) -> Option<String> {
     (!text.is_empty()).then_some(text)
 }
 
-/// Normalize score text to the first numeric value, as in the frozen parser.
+/// 按冻结解析器规则，将成绩文本规范化为第一个数字值。
 #[must_use]
 pub fn normalize_score(raw: Option<&str>) -> Option<String> {
     let raw = raw?.trim();
@@ -76,21 +76,21 @@ pub fn normalize_score(raw: Option<&str>) -> Option<String> {
     )
 }
 
-/// Response envelope used by deterministic fixtures.
+/// 确定性 fixture 使用的响应包装。
 #[derive(Debug, Deserialize)]
 pub struct Envelope<T> {
-    /// Upstream status code.
+    /// 上游状态代码。
     pub code: i64,
-    /// Optional message.
+    /// 可选消息。
     pub msg: Option<String>,
-    /// Optional English message.
+    /// 可选英文消息。
     #[serde(rename = "msg_en")]
     pub msg_en: Option<String>,
-    /// Payload.
+    /// 载荷。
     pub content: Option<T>,
 }
 
-/// Decode one SPOC envelope without exposing raw body text.
+/// 解码一个 SPOC 包装，不暴露原始响应体文本。
 pub fn parse_envelope<T: for<'de> Deserialize<'de>>(body: &str) -> crate::error::Result<T> {
     let envelope: Envelope<T> = parse_envelope_json(body)?;
     if envelope.code != 200 {
@@ -106,7 +106,7 @@ pub fn parse_envelope<T: for<'de> Deserialize<'de>>(body: &str) -> crate::error:
     })
 }
 
-/// Build a stable summary from observed raw fields.
+/// 根据观察到的原始字段构造稳定摘要。
 #[must_use]
 pub fn summary(
     assignment_id: String,
@@ -134,7 +134,7 @@ pub fn summary(
     }
 }
 
-/// Build detail from a summary and verified HTML content.
+/// 根据摘要和已验证的 HTML 内容构造详情。
 #[must_use]
 pub fn detail(summary: &SpocAssignmentSummary, html: Option<&str>) -> SpocAssignmentDetail {
     SpocAssignmentDetail {
@@ -153,14 +153,14 @@ pub fn detail(summary: &SpocAssignmentSummary, html: Option<&str>) -> SpocAssign
     }
 }
 
-/// Fetch the current SPOC term and assignment list through the authenticated route.
+/// 通过已认证路线获取当前 SPOC 学期和作业列表。
 pub(crate) async fn get_assignments(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignments> {
     Ok(get_assignments_diagnostics(runtime).await?.result)
 }
 
-/// Fetch the current SPOC list and return safe proof that global pages were parsed.
+/// 获取当前 SPOC 列表，并返回全局页面已解析的安全证明。
 pub(crate) async fn get_assignments_diagnostics(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignmentsDiagnostics> {
@@ -335,7 +335,7 @@ async fn fetch_assignment_page(
     parse_envelope(&super::body(&response))
 }
 
-/// Fetch one read-only SPOC assignment detail.
+/// 获取一项只读 SPOC 作业详情。
 pub(crate) async fn get_assignment_detail(
     runtime: &mut crate::runtime::ClientRuntime,
     assignment_id: &str,
@@ -479,7 +479,7 @@ impl<'a> AssignmentPageRequest<'a> {
 
 #[derive(Debug, Deserialize)]
 struct AssignmentPage {
-    // Retained so serde validates the frozen wire type even though hosts do not expose pagination.
+    // 保留此字段，使 serde 校验冻结线协议类型，宿主不对外暴露分页信息。
     #[allow(dead_code)]
     #[serde(default)]
     total: u32,
@@ -511,7 +511,7 @@ struct AssignmentRaw {
     zymc: String,
     #[serde(default)]
     sskcid: Option<String>,
-    // Retained for strict frozen-wire parsing; the enclosing response already supplies term_code.
+    // 为严格解析冻结线协议而保留；外层响应已提供 term_code。
     #[allow(dead_code)]
     #[serde(default)]
     xnxq: Option<String>,
@@ -1020,7 +1020,7 @@ struct CourseRaw {
 #[derive(Debug, Deserialize)]
 struct DetailRaw {
     id: String,
-    // Required on the wire, while the authoritative list summary remains the public identity.
+    // 线协议要求该字段，但权威列表摘要仍是公开身份信息。
     #[allow(dead_code)]
     zymc: String,
     #[serde(default)]
@@ -1094,7 +1094,7 @@ fn non_empty(value: &str) -> Option<String> {
     (!value.trim().is_empty()).then(|| value.to_string())
 }
 
-/// Keep JSON values opaque until the field mapping is proven.
+/// 在字段映射得到证明前保持 JSON 值不透明。
 #[allow(dead_code)]
 fn _value_type_marker(value: Value) -> Value {
     value

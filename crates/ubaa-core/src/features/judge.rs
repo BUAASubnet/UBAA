@@ -1,4 +1,4 @@
-//! Judge (希冀) read-only HTML parsers.
+//! Judge（希冀）只读 HTML 解析器。
 #![allow(
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
@@ -16,10 +16,10 @@ use scraper::{ElementRef, Html, Selector};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-/// Judge service login URL from the frozen implementation.
+/// 冻结实现中的 Judge 服务登录地址。
 pub const LOGIN_URL: &str =
     "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F";
-/// Judge service host.
+/// Judge 服务主机。
 pub const BASE_URL: &str = "https://judge.buaa.edu.cn";
 
 const LIST_TTL: Duration = Duration::from_mins(5);
@@ -27,25 +27,25 @@ const DETAIL_TTL: Duration = Duration::from_mins(2);
 const ASSIGNMENT_QUERY_CONCURRENCY: usize = 4;
 const BUSINESS_REACTIVATION_LIMIT: usize = 3;
 
-/// Parsed course link.
+/// 解析后的课程链接。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Course {
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
 }
 
-/// Parsed assignment link.
+/// 解析后的作业链接。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Assignment {
-    /// Assignment ID.
+    /// 作业标识。
     pub assignment_id: String,
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
-    /// Assignment title.
+    /// 作业标题。
     pub title: String,
 }
 
@@ -61,7 +61,7 @@ impl AssignmentList {
     }
 }
 
-/// Extract course links while excluding the synthetic course 0 entry.
+/// 提取课程链接，并排除虚构的课程 0 条目。
 pub fn parse_courses(html: &str) -> Vec<Course> {
     let document = Html::parse_document(html);
     let anchors = selector("a[href]");
@@ -90,7 +90,7 @@ pub fn parse_courses(html: &str) -> Vec<Course> {
     courses
 }
 
-/// Extract assignment links from a selected course page.
+/// 从选定课程页面提取作业链接。
 pub fn parse_assignments(html: &str, course: &Course) -> Vec<Assignment> {
     parse_assignment_list(html, course).assignments
 }
@@ -138,7 +138,7 @@ fn parse_assignment_list(html: &str, course: &Course) -> AssignmentList {
     }
 }
 
-/// Parse the evidence-backed summary fields from an assignment detail page.
+/// 从有证据支持的作业详情页面解析摘要字段。
 pub fn parse_detail(
     html: &str,
     course_id: &str,
@@ -213,7 +213,7 @@ pub fn parse_detail(
     })
 }
 
-/// Convert one detail to its stable list summary.
+/// 将一项详情转换为稳定列表摘要。
 #[must_use]
 pub fn to_summary(detail: &JudgeAssignmentDetail) -> JudgeAssignmentSummary {
     JudgeAssignmentSummary {
@@ -232,7 +232,7 @@ pub fn to_summary(detail: &JudgeAssignmentDetail) -> JudgeAssignmentSummary {
     }
 }
 
-/// Fetch Judge assignment links for the current authenticated route.
+/// 通过当前认证路线获取 Judge 作业链接。
 pub(crate) async fn get_assignments(
     runtime: &mut crate::runtime::ClientRuntime,
     include_expired: bool,
@@ -338,7 +338,7 @@ async fn get_assignments_diagnostics_inner(
     })
 }
 
-/// Fetch one Judge assignment detail.
+/// 获取一项 Judge 作业详情。
 pub(crate) async fn get_assignment_detail(
     runtime: &mut crate::runtime::ClientRuntime,
     course_id: &str,
@@ -365,7 +365,7 @@ pub(crate) async fn get_assignment_detail(
     .ok_or_else(not_found)
 }
 
-/// Fetch multiple Judge details, preserving input order and rejecting empty input.
+/// 获取多项 Judge 详情，保持输入顺序并拒绝空输入。
 pub(crate) async fn get_assignment_details(
     runtime: &mut crate::runtime::ClientRuntime,
     keys: &[crate::domain::JudgeAssignmentKey],

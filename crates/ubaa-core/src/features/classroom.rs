@@ -1,4 +1,4 @@
-//! Empty classroom response parser and verified request constants.
+//! 空闲教室响应解析器与已验证请求常量。
 #![allow(clippy::missing_errors_doc)]
 
 use std::collections::BTreeMap;
@@ -8,9 +8,9 @@ use serde::Deserialize;
 use crate::domain::{ClassroomInfo, ClassroomQuery};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
-/// Classroom query endpoint.
+/// 空闲教室查询地址。
 pub const CLASSROOM_URL: &str = "https://app.buaa.edu.cn/buaafreeclass/wap/default/search1";
-/// Session synchronization URL observed in the old implementation.
+/// 旧版实现中观察到的会话同步地址。
 pub const CLASSROOM_SYNC_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn%2Fa_buaa%2Fapi%2Fcas%2Findex%3Fredirect%3Dhttps%253A%252F%252Fapp.buaa.edu.cn%252Fsite%252FclassRoomQuery%252Findex%26from%3Dwap%26login_from%3D&noAutoRedirect=1";
 const CLASSROOM_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 16; 24031PN0DC Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.180 Mobile Safari/537.36 XWEB/1380275 MMWEBSDK/20230806 MMWEBID/4102 wxworklocal/3.2.200 wwlocal/3.2.200 wxwork/4.0.0 appname/wxworklocal-customized wxworklocal-device-code/195ef5586d7d3c2808fcbea32d77c0d4 MicroMessenger/7.0.1 appScheme/wxworklocalcustomized Language/zh_CN ColorScheme/Light WXWorklocalClientType/Android Brand/xiaomi";
 
@@ -39,7 +39,7 @@ struct RawClassroom {
     available_sections: String,
 }
 
-/// Parse a classroom `e/m/d` wrapper, including a valid empty list.
+/// 解析教室 `e/m/d` 包装，同时允许合法的空列表。
 pub fn parse_response(body: &str) -> Result<ClassroomQuery> {
     let response: RawResponse = serde_json::from_str(body).map_err(|_| {
         UbaaError::new(
@@ -82,7 +82,7 @@ pub fn parse_response(body: &str) -> Result<ClassroomQuery> {
     })
 }
 
-/// Query free classrooms for a campus and ISO date.
+/// 查询指定校区和 ISO 日期的空闲教室。
 pub(crate) async fn search(
     runtime: &mut crate::runtime::ClientRuntime,
     campus_id: i32,
