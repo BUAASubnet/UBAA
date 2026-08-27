@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
     pub(crate) classroom: ClassroomState,
+    pub(crate) signin: SigninState,
     pub(crate) spoc: SpocState,
     pub(crate) judge: JudgeState,
 }
@@ -20,8 +21,72 @@ pub(crate) struct RouteFeatureState {
 impl RouteFeatureState {
     pub(crate) fn clear(&self) {
         self.classroom.clear();
+        self.signin.clear();
         self.spoc.clear();
         self.judge.clear();
+    }
+}
+
+/// 路线内存中的 iClass 业务会话，不写入主认证会话文件。
+#[allow(dead_code)]
+#[derive(Default)]
+pub(crate) struct SigninState {
+    invalidations: AtomicU64,
+    login: Mutex<()>,
+    credential: SyncMutex<Option<crate::features::signin::SigninCredential>>,
+}
+
+impl SigninState {
+    pub(crate) fn generation(&self) -> u64 {
+        self.invalidations.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn credential(&self) -> Option<crate::features::signin::SigninCredential> {
+        self.credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.login.lock().await
+    }
+
+    pub(crate) fn store_credential(
+        &self,
+        generation: u64,
+        credential: crate::features::signin::SigninCredential,
+    ) -> bool {
+        if self.generation() != generation {
+            return false;
+        }
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(credential);
+        true
+    }
+
+    pub(crate) fn clear_credential(&self) {
+        *self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+    }
+
+    fn clear(&self) {
+        self.invalidations.fetch_add(1, Ordering::AcqRel);
+        self.clear_credential();
+    }
+}
+
+impl std::fmt::Debug for SigninState {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SigninState")
+            .field("generation", &self.generation())
+            .field("credential", &"[已隐藏]")
+            .finish()
     }
 }
 

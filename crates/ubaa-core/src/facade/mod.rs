@@ -14,7 +14,7 @@ use crate::domain::{
     AuthStatus, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
     ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
     JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LoginInput, LoginOutcome, LoginReadiness,
-    ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
+    ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass,
     SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
     UserProfile, Week, WeeklySchedule,
 };
@@ -418,6 +418,20 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::classroom::search(&mut self.webvpn_runtime, campus_id, date).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 通过签到功能路由查询今日课堂签到状态。
+    pub async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::signin::get_today(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::signin::get_today(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1048,6 +1062,14 @@ impl RouteClient {
     ) -> Result<FeatureResult<ClassroomQuery>> {
         self.guard_session_ownership()?;
         let result = crate::features::classroom::search(&mut self.runtime, campus_id, date).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询今日课堂签到状态。
+    pub async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::signin::get_today(&mut self.runtime).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

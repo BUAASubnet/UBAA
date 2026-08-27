@@ -6,6 +6,35 @@ use serde_json::Value;
 
 use crate::domain::SigninClass;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::ports::HttpRequest;
+
+const SIGNIN_ENTRY_URL: &str = "https://iclass.buaa.edu.cn:8346/?type=jumpMyCenter";
+const SIGNIN_LOGIN_URL: &str = "https://iclass.buaa.edu.cn:8347/app/user/login.action";
+const SIGNIN_TODAY_URL: &str =
+    "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action";
+const REDIRECT_LIMIT: usize = 8;
+
+/// iClass 查询所需的路线内业务凭据。
+#[allow(dead_code)]
+#[derive(Clone)]
+pub(crate) struct SigninCredential {
+    pub(crate) user_id: String,
+    pub(crate) session_id: String,
+}
+
+#[derive(Deserialize)]
+struct LoginResponse {
+    #[serde(rename = "STATUS")]
+    status: Value,
+    result: Option<LoginResult>,
+}
+
+#[derive(Deserialize)]
+struct LoginResult {
+    id: String,
+    #[serde(rename = "sessionId")]
+    session_id: String,
+}
 
 #[derive(Deserialize)]
 struct Response {
@@ -40,6 +69,183 @@ pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
         ));
     }
     response.result.into_iter().map(map_row).collect()
+}
+
+/// 使用当前路线查询今日课堂签到状态。
+pub(crate) async fn get_today(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<Vec<SigninClass>> {
+    get_today_once(runtime, true).await
+}
+
+async fn get_today_once(
+    runtime: &mut crate::runtime::ClientRuntime,
+    allow_retry: bool,
+) -> Result<Vec<SigninClass>> {
+    super::require_session(runtime)?;
+    let credential = current_credential(runtime).await?;
+    let mut url = url::Url::parse(&runtime.url(SIGNIN_TODAY_URL)?).map_err(|_| invalid_url())?;
+    url.query_pairs_mut()
+        .append_pair("id", &credential.user_id)
+        .append_pair("dateStr", &shanghai_date());
+    let response = super::get_with_headers(
+        runtime,
+        url.to_string(),
+        &[("sessionId", &credential.session_id)],
+    )
+    .await?;
+    if response.status != 200 {
+        return Err(upstream_error("签到查询服务暂时不可用"));
+    }
+    match parse_today(&super::body(&response)) {
+        Ok(classes) => Ok(classes),
+        Err(error) if allow_retry && error.code == ErrorCode::UpstreamChanged => {
+            runtime.feature_state().signin.clear_credential();
+            Box::pin(get_today_once(runtime, false)).await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+async fn current_credential(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<SigninCredential> {
+    let state = runtime.feature_state();
+    if let Some(credential) = state.signin.credential() {
+        return Ok(credential);
+    }
+    let _guard = state.signin.login_guard().await;
+    if let Some(credential) = state.signin.credential() {
+        return Ok(credential);
+    }
+    let generation = state.signin.generation();
+    let credential = login(runtime).await?;
+    if !state
+        .signin
+        .store_credential(generation, credential.clone())
+    {
+        return Err(UbaaError::new(
+            ErrorCode::InternalError,
+            ErrorKind::Internal,
+            true,
+            "签到业务会话在登录期间已失效",
+        ));
+    }
+    Ok(credential)
+}
+
+async fn login(runtime: &mut crate::runtime::ClientRuntime) -> Result<SigninCredential> {
+    let login_name = resolve_login_name(runtime).await?;
+    let mut url = url::Url::parse(&runtime.url(SIGNIN_LOGIN_URL)?).map_err(|_| invalid_url())?;
+    url.query_pairs_mut()
+        .append_pair("password", "")
+        .append_pair("phone", &login_name)
+        .append_pair("userLevel", "1")
+        .append_pair("verificationType", "2")
+        .append_pair("verificationUrl", "");
+    let response = runtime.request(HttpRequest::get(url.to_string())).await?;
+    if response.status != 200 {
+        return Err(upstream_error("无法建立签到业务会话"));
+    }
+    let response: LoginResponse = serde_json::from_slice(&response.body)
+        .map_err(|_| upstream_error("签到登录响应格式无效"))?;
+    let result = response
+        .result
+        .filter(|_| success(&response.status))
+        .ok_or_else(|| upstream_error("签到业务登录失败"))?;
+    if result.id.trim().is_empty() || result.session_id.trim().is_empty() {
+        return Err(upstream_error("签到登录响应缺少会话字段"));
+    }
+    Ok(SigninCredential {
+        user_id: result.id,
+        session_id: result.session_id,
+    })
+}
+
+async fn resolve_login_name(runtime: &mut crate::runtime::ClientRuntime) -> Result<String> {
+    let mut direct_url = SIGNIN_ENTRY_URL.to_string();
+    for _ in 0..REDIRECT_LIMIT {
+        if let Some(login_name) = login_name_from_url(&direct_url) {
+            return Ok(login_name);
+        }
+        let request_url = runtime.url(&direct_url)?;
+        let response = runtime.request(HttpRequest::get(request_url)).await?;
+        let final_direct = crate::connection::from_webvpn_url(&response.final_url)
+            .unwrap_or_else(|_| response.final_url.clone());
+        if let Some(login_name) = login_name_from_url(&final_direct) {
+            return Ok(login_name);
+        }
+        let location = header(&response, "location")
+            .ok_or_else(|| upstream_error("签到登录跳转缺少目标地址"))?;
+        let location_direct =
+            crate::connection::from_webvpn_url(location).unwrap_or_else(|_| location.to_string());
+        let target = url::Url::parse(&final_direct)
+            .and_then(|base| base.join(&location_direct))
+            .map_err(|_| invalid_url())?;
+        ensure_login_host(&target)?;
+        direct_url = target.to_string();
+    }
+    Err(upstream_error("签到登录跳转次数超过限制"))
+}
+
+fn login_name_from_url(value: &str) -> Option<String> {
+    let url = url::Url::parse(value).ok()?;
+    url.query_pairs()
+        .find(|(key, _)| key.eq_ignore_ascii_case("loginName"))
+        .map(|(_, value)| value.into_owned())
+        .filter(|value| !value.trim().is_empty())
+}
+
+fn ensure_login_host(url: &url::Url) -> Result<()> {
+    if matches!(
+        url.host_str().map(str::to_ascii_lowercase).as_deref(),
+        Some("iclass.buaa.edu.cn" | "sso.buaa.edu.cn")
+    ) {
+        Ok(())
+    } else {
+        Err(upstream_error("签到登录跳转到未允许的主机"))
+    }
+}
+
+fn header<'a>(response: &'a crate::ports::HttpResponse, name: &str) -> Option<&'a str> {
+    response
+        .headers
+        .iter()
+        .find(|(header, _)| header.eq_ignore_ascii_case(name))
+        .and_then(|(_, values)| values.first())
+        .map(String::as_str)
+}
+
+fn shanghai_date() -> String {
+    let seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |value| value.as_secs())
+        + 8 * 60 * 60;
+    let days = i64::try_from(seconds / 86_400).unwrap_or(i64::MAX);
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    let year = year + i64::from(month <= 2);
+    format!("{year:04}{month:02}{day:02}")
+}
+
+fn invalid_url() -> UbaaError {
+    upstream_error("签到服务地址无效")
+}
+
+fn upstream_error(message: &'static str) -> UbaaError {
+    UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        message,
+    )
 }
 
 fn success(value: &Value) -> bool {
