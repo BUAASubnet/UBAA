@@ -653,3 +653,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 证据：冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalEvaluationService.kt` 的 `fetchTasks` 明确发送 `authSession.user.schoolid.ifBlank { authSession.username }`。
 - 原差异：Rust `features/evaluation.rs::get_all` 曾固定发送空 `yhdm`，无法保持同一请求构造。
 - 决策：登录成功后仅在运行时内存记录 `UserProfile.school_id`，缺失时记录 `username`；评教任务请求使用该值，既有无资料会话保持空值。未从 Cookie、实时响应或示例项目猜测身份字段，也未执行真实写操作。
+
+## 2026-08-29 Ygdk 文本原语
+
+- 证据：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 读取 `jsonPrimitive.contentOrNull`，因此数字和布尔原语也会得到文本内容。
+- 原差异：Rust Ygdk `string` 只调用 `Value::as_str`，合法原语字段会被当作缺失。
+- 决策：统一将字符串、数字、布尔映射为文本并保留空文本过滤；未借用非等价示例协议，未执行真实写操作。

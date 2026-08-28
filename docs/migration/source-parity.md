@@ -364,3 +364,5 @@ Cgyy 原语字段补充：冻结 `LocalCgyyApi.string` 使用 `jsonPrimitive.con
 Signin 写响应补充：冻结 `LocalSigninApi` 的 `jsonStringValue`/`int` 对 `STATUS` 与 `stuSignStatus` 同时接受数字和数字字符串；Core `perform_signin` 现通过 `integer_value` 保持该状态解析兼容。
 
 Evaluation 任务身份参数补充：冻结 `LocalEvaluationService.fetchTasks` 将已登录资料的 `schoolid`（为空时回退 `username`）作为 `yhdm`，并固定 `pageNum=1&pageSize=10`。Core 运行时现仅在内存保留登录成功资料中的 `school_id`/`username`，任务请求按同一优先级发送 `yhdm`；既有会话若无资料则保持空值，不从未证实的 Cookie 或响应字段推导身份。
+
+Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使用 `jsonPrimitive.contentOrNull`，记录的 `item_name`、`place`、`create_time_fmt` 等文本字段可由数字或布尔原语映射为文本。Core `string` 现统一支持字符串、数字和布尔原语，空文本仍按旧版回退为空。

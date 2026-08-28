@@ -418,3 +418,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `LocalEvaluationService.fetchTasks`，补齐任务列表 `yhdm` 使用登录资料 `schoolid`、空值回退 `username` 的语义；新增脱敏单元测试并通过。
 - 账号标识仅保存在 Core 运行时内存，不写入会话文件、日志或实时证据；未改变评教写操作禁止策略。
+
+## 2026-08-29 Ygdk 原语文本兼容
+
+- 对照冻结 `JsonPrimitive.contentOrNull`，补齐记录文本字段对数字/布尔原语的文本化；新增脱敏测试覆盖 `item_name` 与 `place` 并通过。
+- 未改变阳光打卡请求、令牌、上传或真实写操作禁止策略。

@@ -41,8 +41,12 @@ fn integer(map: &Map<String, Value>, key: &str) -> Option<i32> {
 }
 fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
     map.get(key)
-        .and_then(Value::as_str)
-        .map(str::to_owned)
+        .and_then(|value| match value {
+            Value::String(value) => Some(value.clone()),
+            Value::Number(value) => Some(value.to_string()),
+            Value::Bool(value) => Some(value.to_string()),
+            _ => None,
+        })
         .filter(|v| !v.trim().is_empty())
 }
 
@@ -699,6 +703,18 @@ mod tests {
         .to_string();
         let page = parse_records(&body, &[], 1, 10).expect("解析记录");
         assert_eq!(page.content[0].images, vec!["https://img/one"]);
+    }
+
+    #[test]
+    fn 记录文本原语按冻结实现转为字符串() {
+        let body = serde_json::json!({
+            "code": 1,
+            "result": {"list": [{"record_id": 1, "item_name": 7, "place": true}]}
+        })
+        .to_string();
+        let page = parse_records(&body, &[], 1, 10).expect("解析记录");
+        assert_eq!(page.content[0].item_name.as_deref(), Some("7"));
+        assert_eq!(page.content[0].place.as_deref(), Some("true"));
     }
 
     #[test]
