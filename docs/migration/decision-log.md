@@ -392,3 +392,26 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - `feature=grades`、`feature=judge`、`feature=evaluation` 单项重跑均成功；Judge 脱敏计数为课程 5、原始锚点 49、过滤后 49、当前 17、截止跳过 32，并取得语义详情。
 - `feature=cgyy` 单项重跑仍为 `authentication_required`（退出码 3）。该失败与此前结果一致，不能由其他场馆或主认证成功替代。
 - 本次复测全部为只读操作，未调用任何提交、取消、预约、签到、上传或选课接口。
+
+## 2026-08-29 逐操作验证器扩展与三路线复测
+
+- 提交 `c35c9ca` 将 `verify-live` 的扩展领域从代表性查询扩展为逐操作链：Ygdk
+  概览/记录，LibBook 楼馆/区域/详情/座位/预约记录，Bykc 资料/课程/详情/已选/统计，
+  Cgyy 站点/用途/日期/订单/详情/锁码，以及 Evaluation 全部/待评教。详情请求只有在
+  上游返回脱敏标识时才继续，空集合不会伪造详情成功；脚本 stub 覆盖调用顺序且不输出
+  原始响应。
+- 提交 `406177b` 将 User 的 `user show` 纳入独立验证和 `all` 聚合，并校验完整脱敏
+  profile 字段集合、类型与掩码规则。
+- Direct 三路线复测命令为
+  `UBAA_VERIFY_DIGEST_SALT=<临时值> just verify-live mode=direct feature=all`：课表、
+  考试、成绩、教室、SPOC、User、Signin、Ygdk、LibBook、Cgyy 站点/用途/日期/订单、
+  Evaluation 成功；Judge 返回 `upstream_unavailable`，Bykc 已选返回 `upstream_changed`，
+  Cgyy 锁码响应未通过当前安全结构校验，聚合退出 5。
+- WebVPN 同命令：课表、考试、成绩、教室、SPOC、Judge、User、Signin、Ygdk、LibBook
+  成功；Bykc 已选返回 `upstream_changed`，Cgyy 与 Evaluation 返回
+  `authentication_required`，聚合退出 6。
+- auto 同命令解析到 Direct：课表、考试、成绩、教室、SPOC、User、Signin、Ygdk、
+  LibBook、Evaluation 成功；Judge 返回 `upstream_unavailable`，Bykc 已选返回
+  `upstream_changed`，Cgyy 在用途查询阶段返回 `upstream_unavailable`，聚合退出 5。
+- 以上运行只执行读操作；未记录凭据、Cookie、令牌、摘要盐、原始响应或个人数据，
+  未调用任何选课、退选、签到、预约、取消、提交或上传接口。整体迁移继续保持未完成。
