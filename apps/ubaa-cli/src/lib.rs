@@ -38,6 +38,9 @@ mod connection_mode;
 pub use connection_mode::CliConnectionMode;
 mod commands;
 pub use commands::{Cli, Command};
+mod execution;
+use execution::command_feature;
+pub use execution::run_with_backend;
 
 /// Core 门面完成路由解析后返回的安全路由决策上下文。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -2446,32 +2449,6 @@ fn routed_unavailable(message: impl Into<String>) -> RoutedError {
     }
 }
 
-/// 使用注入的后端执行已解析命令。
-pub async fn run_with_backend<B, R, O, E>(
-    cli: Cli,
-    backend: &mut B,
-    input: &mut R,
-    stdout: &mut O,
-    stderr: &mut E,
-) -> i32
-where
-    B: CliBackend + Send,
-    R: BufRead,
-    O: Write,
-    E: Write,
-{
-    let mode = backend.mode();
-    run_with_backend_with_route(
-        cli,
-        backend,
-        ReadonlyRouteContext::explicit(mode),
-        input,
-        stdout,
-        stderr,
-    )
-    .await
-}
-
 /// 使用宿主已验证的只读路由决策执行已解析命令。
 #[allow(clippy::too_many_lines)]
 pub async fn run_with_backend_with_route<B, R, O, E>(
@@ -2598,25 +2575,6 @@ where
         stdout,
         stderr,
     )
-}
-
-const fn command_feature(command: &Command) -> CliFeature {
-    match command {
-        Command::Auth(_) => CliFeature::Auth,
-        Command::User(_) => CliFeature::User,
-        Command::Schedule(_) => CliFeature::Schedule,
-        Command::Exam(_) => CliFeature::Exam,
-        Command::Grades(_) => CliFeature::Grades,
-        Command::Classroom(_) => CliFeature::Classroom,
-        Command::Spoc(_) => CliFeature::Spoc,
-        Command::Judge(_) => CliFeature::Judge,
-        Command::Signin(_) => CliFeature::Signin,
-        Command::Libbook(_) => CliFeature::LibBook,
-        Command::Bykc(_) => CliFeature::Bykc,
-        Command::Cgyy(_) => CliFeature::Cgyy,
-        Command::Ygdk(_) => CliFeature::Ygdk,
-        Command::Evaluation(_) => CliFeature::Evaluation,
-    }
 }
 
 async fn run_login<B, R, E>(
