@@ -19,74 +19,13 @@ pub use types::{
     DualSessionMutation, DualSessionSnapshot, RouteSessionSnapshot, RouteSessions, SessionMutation,
     SessionSnapshot, SessionValidation, VersionedDualSession, VersionedSession,
 };
+mod ports;
+pub use ports::SessionStore;
 
 const MAX_SESSION_FILE_BYTES: usize = 1024 * 1024;
 const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
 const REVISION_FILE_BYTES: usize = 17;
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
-
-/// Persistence port for one client-owned session.
-pub trait SessionStore: Send + Sync {
-    /// 原子加载会话快照及当前版本号。
-    ///
-    /// # Errors
-    ///
-    /// 返回安全的持久化或解析错误。
-    fn load_versioned(&self) -> Result<VersionedSession>;
-    /// 仅当 `expected_revision` 仍为当前版本时，原子替换会话。
-    ///
-    /// `replacement=None` clears the persisted session. Applied mutations always advance the
-    /// revision, including clears, so deleting and recreating equal JSON cannot fool stale writers.
-    ///
-    /// # Errors
-    ///
-    /// 返回安全的持久化或序列化错误。
-    fn compare_exchange(
-        &self,
-        expected_revision: u64,
-        replacement: Option<&SessionSnapshot>,
-    ) -> Result<SessionMutation>;
-    /// 加载会话快照（如果存在）。
-    ///
-    /// # Errors
-    ///
-    /// 返回安全的持久化或解析错误。
-    fn load(&self) -> Result<Option<SessionSnapshot>> {
-        self.load_versioned().map(|state| state.snapshot)
-    }
-    /// 替换持久化快照。
-    ///
-    /// # Errors
-    ///
-    /// 返回安全的持久化或序列化错误。
-    fn save(&self, snapshot: &SessionSnapshot) -> Result<()> {
-        loop {
-            let current = self.load_versioned()?;
-            if matches!(
-                self.compare_exchange(current.revision, Some(snapshot))?,
-                SessionMutation::Applied { .. }
-            ) {
-                return Ok(());
-            }
-        }
-    }
-    /// Remove local session state.
-    ///
-    /// # Errors
-    ///
-    /// 当无法移除状态时返回安全的持久化错误。
-    fn clear(&self) -> Result<()> {
-        loop {
-            let current = self.load_versioned()?;
-            if matches!(
-                self.compare_exchange(current.revision, None)?,
-                SessionMutation::Applied { .. }
-            ) {
-                return Ok(());
-            }
-        }
-    }
-}
 
 /// File-backed session store using `<config-dir>/session.json`.
 #[derive(Clone)]
