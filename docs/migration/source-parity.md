@@ -352,3 +352,5 @@ LibBook 分区详情补充：冻结 `mapAreaDetail(areaId, raw)` 在响应区域
 Bykc 签到配置补充：冻结 `LocalBykcApi.parseSignConfig` 使用严格序列化，`signPointList` 中任一点缺少 `lat/lng` 或类型错误都会使整个配置解析失败并返回空；Core `parse_sign_config` 现对列表、点对象及坐标执行同等严格校验，`radius` 仅在字段缺失时回退零值。
 
 Ygdk 记录时间补充：冻结 `LocalYgdkRecordRaw` 将 `startTime/endTime` 读取为 Unix 秒，并由 `timestampToDateTimeText` 按 `Asia/Shanghai` 格式化为 `yyyy-MM-dd HH:mm`；Core `parse_records` 现兼容数值秒时间戳并使用固定东八区格式化，同时保留已存在的字符串兼容路径。
+
+Ygdk 记录图片补充：冻结 `extractRecordImages` 对 `images_fmt` 支持数组和非空单字符串；当字符串不是 JSON 数组时按单个地址保留，空字符串回退为空列表。Core `parse_records` 现保持该优先级和回退语义。

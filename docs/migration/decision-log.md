@@ -615,3 +615,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 
 - 冻结证据：`ubaa_old/.../LocalYgdkApi.kt` 的记录字段 `startTime/endTime` 为 `Long?`，映射时调用 `timestampToDateTimeText`，使用固定 `LOCAL_YGDK_TIME_ZONE`（东八区）输出分钟精度文本。
 - 原 Core 仅读取字符串，数值时间会变为空。新增数值时间脱敏测试先失败，再增加固定东八区转换；未从 `examples/buaa-api` 借用协议。
+
+## 2026-08-29 Ygdk 记录图片字段
+
+- 冻结证据：`LocalYgdkApi.kt` 的 `extractRecordImages` 对 `images_fmt` 的 `JsonPrimitive` 非空内容直接返回单元素列表；只有数组字符串才尝试 JSON 数组解析。
+- 原 Core 将所有字符串当作数组 JSON，合法单地址会变为空列表。新增单字符串脱敏测试先失败，再保留非空字符串作为单地址；未执行真实写操作。

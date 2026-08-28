@@ -381,3 +381,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `LocalYgdkRecordRaw` 与 `timestampToDateTimeText`，补齐记录 Unix 秒时间戳到东八区文本的转换；新增脱敏测试先失败后通过。
 - 未改变请求参数、会话、上传或真实写操作策略。
+
+## 2026-08-29 Ygdk 记录图片字段
+
+- 对照冻结 `extractRecordImages`，补齐 `images_fmt` 非空字符串作为单个地址的兼容解析；新增脱敏测试先失败后通过。
+- 未改变请求参数、会话、上传或真实写操作策略。

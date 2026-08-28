@@ -215,7 +215,12 @@ pub fn parse_records(
                     .map(str::to_owned)
                     .collect(),
                 Some(Value::String(v)) => {
-                    serde_json::from_str::<Vec<String>>(v).unwrap_or_default()
+                    if v.trim().is_empty() {
+                        vec![]
+                    } else {
+                        serde_json::from_str::<Vec<String>>(v)
+                            .unwrap_or_else(|_| vec![v.to_owned()])
+                    }
                 }
                 _ => vec![],
             };
@@ -663,6 +668,17 @@ mod tests {
             page.content[0].start_time.as_deref(),
             Some("2026-03-01 08:00")
         );
+    }
+
+    #[test]
+    fn 记录图片格式化字符串按单个地址保留() {
+        let body = serde_json::json!({
+            "code": 1,
+            "result": {"list": [{"record_id": 1, "images_fmt": "https://img/one"}]}
+        })
+        .to_string();
+        let page = parse_records(&body, &[], 1, 10).expect("解析记录");
+        assert_eq!(page.content[0].images, vec!["https://img/one"]);
     }
 
     #[test]
