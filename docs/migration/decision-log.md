@@ -431,3 +431,10 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 按 TDD 先加入 `courseList` 对象包装 fixture，旧实现失败；随后让解析器从对象读取
   `courseList`，并保留已有数组兼容路径。聚焦测试通过后，三路线单项命令均退出 0，
   返回脱敏课程计数摘要；未记录课程标识、令牌、密文或原始响应。
+
+## 2026-08-29 Bykc 修复后全量实时矩阵
+
+- Direct 全量：User、课表、考试、成绩、教室、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Judge 在 `judge_all` 返回 `upstream_unavailable`，Cgyy 在 `cgyy_day` 返回 `upstream_unavailable`，聚合退出 5。
+- WebVPN 全量：User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 通过；Cgyy 与 Evaluation 在业务阶段返回 `authentication_required`，聚合退出 3。
+- auto 全量解析到 Direct：User、课表、考试、成绩、教室、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Judge 在 `judge_all`、Cgyy 在 `cgyy_purposes` 返回 `upstream_unavailable`，聚合退出 5。
+- 本轮使用临时摘要盐，仅保留退出码、阶段和脱敏计数；没有输出或持久化凭据、Cookie、令牌、原始响应、课程/个人标识，也没有调用真实写操作。失败项继续作为硬门禁，不以 `all` 聚合掩盖。

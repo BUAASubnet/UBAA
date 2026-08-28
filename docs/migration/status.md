@@ -282,3 +282,10 @@ CI remains deterministic-only and never reads `.env.local`.
 - Cgyy 单项复测（2026-08-29）：Direct 站点查询通过（4 个站点），门锁码仍为 `upstream_unavailable`；WebVPN 业务入口稳定返回 `authentication_required`。未跨路线复制 Cookie 或令牌。
 - Cgyy RouteClient 现补齐 `cgyy_cancel_order` 直接 Facade 入口，并以签名路径/订单标识 Mock 覆盖；聚合与直接宿主均要求显式确认，真实取消仍禁止。
 - Signin 写请求已提取冻结表单构造器并增加只含 `id` 字段的确定性断言；真实签到和写请求 live 验收仍永久禁止。
+
+## 2026-08-29 Bykc 修复后全量只读复测
+
+- Direct：User、schedule、exam、grades、classroom、spoc、signin、ygdk、libbook、bykc、Cgyy 站点查询和 evaluation 成功；Judge 为 `upstream_unavailable`，Cgyy 日期查询为 `upstream_unavailable`，聚合退出码 5。
+- WebVPN：User、schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc 成功；Cgyy 与 evaluation 为 `authentication_required`，聚合退出码 3。
+- auto：实际解析到 Direct；User、schedule、exam、grades、classroom、spoc、signin、ygdk、libbook、bykc、Cgyy 站点查询和 evaluation 成功；Judge 为 `upstream_unavailable`，Cgyy 用途查询为 `upstream_unavailable`，聚合退出码 5。
+- 本轮确认 Bykc 已选课程对象包装修复在三路线聚合中生效；所有命令仅执行读操作，未调用任何真实写接口。上述 Judge/Cgyy 失败仍是最终实时验收未满足项。
