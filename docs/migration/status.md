@@ -9,6 +9,9 @@ Updated: 2026-08-29
   不读取或写入真实会话。
 - `baf295f` 校正扩展功能库存，使 Signin、Ygdk、LibBook、Cgyy、Bykc 和 Evaluation
   的 Core/CLI 实现状态与当前代码一致，并明确真实写操作永久禁止。
+- 当前阶段扩展 `verify-live` 的逐操作只读矩阵：Ygdk 记录、LibBook 区域/详情/座位/预约、
+  Bykc 资料/课程详情/已选/统计、Cgyy 用途/日期/订单详情和 Evaluation 待评教均会独立
+  执行；详情请求仅在上游返回脱敏标识时继续，空集合不会伪造详情成功。
 - 本阶段 `just check-sensitive && just check` 全部通过。整体迁移仍未完成：Cgyy
   WebVPN 业务会话返回 `authentication_required`，Direct 门锁码返回
   `upstream_unavailable`，Signin/Ygdk/Evaluation 等逐操作实时矩阵仍有失败项。

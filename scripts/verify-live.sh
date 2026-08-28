@@ -1207,6 +1207,9 @@ run_readonly_feature() {
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure ygdk; return "$CLI_CODE"; fi
       if ! validate_routed_success ygdk || ! jq -e '(.data | type) == "object" and (.data.items | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure ygdk; return 1; fi
       count=$(jq -r '.data.items | length' <<<"$CLI_OUTPUT")
+      run_json none ygdk records --page 1 --size 20
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure ygdk_records; return "$CLI_CODE"; fi
+      if ! validate_routed_success ygdk || ! jq -e '(.data | type) == "object" and (.data.content | type) == "array" and (.data.page | type) == "number" and (.data.size | type) == "number" and (.data.hasMore | type) == "boolean"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure ygdk_records; return 1; fi
       printf 'mode=%s route=%s resolved_route=%s feature=ygdk outcome=success stage=ygdk exit_code=0 elapsed_ms=%s item_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
     libbook)
@@ -1215,13 +1218,53 @@ run_readonly_feature() {
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure libbook; return "$CLI_CODE"; fi
       if ! validate_routed_success libbook || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure libbook; return 1; fi
       count=$(jq -r '.data | length' <<<"$CLI_OUTPUT")
+      local premises_id storey_id area_id
+      premises_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
+      storey_id=$(jq -r '.data[0].storeys[0].id // empty' <<<"$CLI_OUTPUT")
+      if [[ -n "$premises_id" ]]; then
+        if [[ -n "$storey_id" ]]; then
+          run_json none libbook areas --premises-id "$premises_id" --storey-id "$storey_id" --day "$date"
+        else
+          run_json none libbook areas --premises-id "$premises_id" --day "$date"
+        fi
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure libbook_areas; return "$CLI_CODE"; fi
+        if ! validate_routed_success libbook || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure libbook_areas; return 1; fi
+        area_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
+        if [[ -n "$area_id" ]]; then
+          run_json none libbook area-detail --area-id "$area_id"
+          if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure libbook_area_detail; return "$CLI_CODE"; fi
+          if ! validate_routed_success libbook || ! jq -e '(.data | type) == "object" and (.data.id | type) == "string" and (.data.timeSlots | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure libbook_area_detail; return 1; fi
+          run_json none libbook seats --area-id "$area_id" --day "$date" --start-time 00:00 --end-time 23:59
+          if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure libbook_seats; return "$CLI_CODE"; fi
+          if ! validate_routed_success libbook || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure libbook_seats; return 1; fi
+        fi
+      fi
+      run_json none libbook bookings --page 1 --limit 20
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure libbook_bookings; return "$CLI_CODE"; fi
+      if ! validate_routed_success libbook || ! jq -e '(.data | type) == "object" and (.data.bookings | type) == "array" and (.data.page | type) == "number" and (.data.limit | type) == "number" and (.data.total | type) == "number"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure libbook_bookings; return 1; fi
       printf 'mode=%s route=%s resolved_route=%s feature=libbook outcome=success stage=libbook exit_code=0 elapsed_ms=%s library_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
     bykc)
+      run_json none bykc profile
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure bykc_profile; return "$CLI_CODE"; fi
+      if ! validate_routed_success bykc || ! jq -e '(.data | type) == "object"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure bykc_profile; return 1; fi
       run_json none bykc courses --page 1 --size 20
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure bykc; return "$CLI_CODE"; fi
       if ! validate_routed_success bykc || ! jq -e '(.data | type) == "object" and (.data.content | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure bykc; return 1; fi
       count=$(jq -r '.data.content | length' <<<"$CLI_OUTPUT")
+      local bykc_course_id
+      bykc_course_id=$(jq -r '.data.content[0].id // empty' <<<"$CLI_OUTPUT")
+      if [[ -n "$bykc_course_id" ]]; then
+        run_json none bykc course --id "$bykc_course_id"
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure bykc_course; return "$CLI_CODE"; fi
+        if ! validate_routed_success bykc || ! jq -e '(.data | type) == "object"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure bykc_course; return 1; fi
+      fi
+      run_json none bykc chosen
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure bykc_chosen; return "$CLI_CODE"; fi
+      if ! validate_routed_success bykc || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure bykc_chosen; return 1; fi
+      run_json none bykc statistics
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure bykc_statistics; return "$CLI_CODE"; fi
+      if ! validate_routed_success bykc || ! jq -e '(.data | type) == "object"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure bykc_statistics; return 1; fi
       printf 'mode=%s route=%s resolved_route=%s feature=bykc outcome=success stage=bykc exit_code=0 elapsed_ms=%s course_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
     cgyy)
@@ -1230,6 +1273,26 @@ run_readonly_feature() {
       if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy; return 1; fi
       count=$(jq -r '.data | length' <<<"$CLI_OUTPUT")
       printf 'mode=%s route=%s resolved_route=%s feature=cgyy outcome=success stage=cgyy exit_code=0 elapsed_ms=%s site_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
+      run_json none cgyy purposes
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_purposes; return "$CLI_CODE"; fi
+      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_purposes; return 1; fi
+      local cgyy_site_id cgyy_date cgyy_order_id
+      cgyy_site_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
+      cgyy_date=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
+      if [[ -n "$cgyy_site_id" ]]; then
+        run_json none cgyy day --site-id "$cgyy_site_id" --date "$cgyy_date"
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_day; return "$CLI_CODE"; fi
+        if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.timeSlots | type) == "array" and (.data.spaces | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_day; return 1; fi
+      fi
+      run_json none cgyy orders --page 0 --size 20
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_orders; return "$CLI_CODE"; fi
+      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.content | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_orders; return 1; fi
+      cgyy_order_id=$(jq -r '.data.content[0].id // empty' <<<"$CLI_OUTPUT")
+      if [[ -n "$cgyy_order_id" ]]; then
+        run_json none cgyy detail --id "$cgyy_order_id"
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_detail; return "$CLI_CODE"; fi
+        if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.id | type) == "number"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_detail; return 1; fi
+      fi
       run_json none cgyy lock-code
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_lock_code; return "$CLI_CODE"; fi
       if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data | has("rawData"))' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_lock_code; return 1; fi
@@ -1240,6 +1303,9 @@ run_readonly_feature() {
       if ! validate_routed_success evaluation || ! jq -e '(.data | type) == "object" and (.data.courses | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure evaluation; return 1; fi
       local count
       count=$(jq -r '.data.courses | length' <<<"$CLI_OUTPUT")
+      run_json none evaluation pending
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure evaluation_pending; return "$CLI_CODE"; fi
+      if ! validate_routed_success evaluation || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure evaluation_pending; return 1; fi
       printf 'mode=%s route=%s resolved_route=%s feature=evaluation outcome=success stage=evaluation exit_code=0 elapsed_ms=%s course_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
   esac

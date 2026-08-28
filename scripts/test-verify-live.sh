@@ -362,4 +362,65 @@ fi
   assert_rejected arbitrary_judge_score validate_feature_data judge
 )
 
+set +e
+extension_calls_output=$(
+  source "$repo_root/scripts/verify-live.sh"
+  mode=direct
+  route=direct
+  UBAA_VERIFY_DATE=2026-08-29
+  CLI_CODE=0
+  CLI_OUTPUT=
+  FEATURE_RESOLVED_ROUTE=direct
+  validate_routed_success() { return 0; }
+  capture_resolved_route() { FEATURE_RESOLVED_ROUTE=direct; return 0; }
+  validate_feature_data() { return 0; }
+  redacted_failure() { return 91; }
+  semantic_failure() { return 92; }
+  run_json() {
+    local stdin_value=$1
+    shift
+    [[ "$stdin_value" == none ]]
+    local command="$*"
+    printf '%s\n' "$command"
+    CLI_CODE=0
+    CLI_ELAPSED_MS=0
+    if [[ "$command" == "ygdk overview" ]]; then CLI_OUTPUT='{"data":{"items":[]}}'
+    elif [[ "$command" == ygdk\ records* ]]; then CLI_OUTPUT='{"data":{"content":[],"page":1,"size":20,"hasMore":false}}'
+    elif [[ "$command" == libbook\ libraries* ]]; then CLI_OUTPUT='{"data":[]}'
+    elif [[ "$command" == libbook\ bookings* ]]; then CLI_OUTPUT='{"data":{"bookings":[],"page":1,"limit":20,"total":0}}'
+    elif [[ "$command" == "bykc profile" ]]; then CLI_OUTPUT='{"data":{}}'
+    elif [[ "$command" == bykc\ courses* ]]; then CLI_OUTPUT='{"data":{"content":[]}}'
+    elif [[ "$command" == "bykc chosen" ]]; then CLI_OUTPUT='{"data":[]}'
+    elif [[ "$command" == "bykc statistics" ]]; then CLI_OUTPUT='{"data":{}}'
+    elif [[ "$command" == "cgyy sites" ]]; then CLI_OUTPUT='{"data":[]}'
+    elif [[ "$command" == "cgyy purposes" ]]; then CLI_OUTPUT='{"data":[]}'
+    elif [[ "$command" == cgyy\ orders* ]]; then CLI_OUTPUT='{"data":{"content":[]}}'
+    elif [[ "$command" == "cgyy lock-code" ]]; then CLI_OUTPUT='{"data":{"rawData":{}}}'
+    elif [[ "$command" == "evaluation all" ]]; then CLI_OUTPUT='{"data":{"courses":[]}}'
+    elif [[ "$command" == "evaluation pending" ]]; then CLI_OUTPUT='{"data":[]}'
+    else CLI_CODE=93; return 93
+    fi
+  }
+  for feature in ygdk libbook bykc cgyy evaluation; do
+    run_readonly_feature || exit $?
+  done
+)
+extension_calls_code=$?
+set -e
+if [[ "$extension_calls_code" -ne 0 \
+  || "$extension_calls_output" != *"ygdk overview"* \
+  || "$extension_calls_output" != *"ygdk records --page 1 --size 20"* \
+  || "$extension_calls_output" != *"libbook libraries --day 2026-08-29"* \
+  || "$extension_calls_output" != *"libbook bookings --page 1 --limit 20"* \
+  || "$extension_calls_output" != *"bykc profile"* \
+  || "$extension_calls_output" != *"bykc chosen"* \
+  || "$extension_calls_output" != *"bykc statistics"* \
+  || "$extension_calls_output" != *"cgyy purposes"* \
+  || "$extension_calls_output" != *"cgyy orders --page 0 --size 20"* \
+  || "$extension_calls_output" != *"cgyy lock-code"* \
+  || "$extension_calls_output" != *"evaluation pending"* ]]; then
+  printf '扩展只读验证器未逐操作调用，或调用失败\n%s\n' "$extension_calls_output" >&2
+  exit 1
+fi
+
 echo 'verify-live shell tests passed'
