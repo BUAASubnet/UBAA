@@ -1,6 +1,6 @@
 # Source Parity Matrix
 
-Updated: 2026-08-26
+Updated: 2026-08-29
 
 This is an operation-by-operation behavior audit. `old` means frozen
 `ubaa_old/` commit `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`;
@@ -9,6 +9,10 @@ This is an operation-by-operation behavior audit. `old` means frozen
 and the UBAA 2 decision. A source marked non-equivalent supplies no URL, field,
 crypto or error by analogy. Live evidence may supersede a frozen protocol fact
 only when its sanitized observation is recorded in the decision log.
+
+2026-08-29 验证边界：`verify-live` 对 User、Signin、Ygdk、LibBook、Bykc、Cgyy 和
+Evaluation 均按独立 CLI 子操作执行；依赖上游返回标识的详情请求仅在存在脱敏标识时
+继续。真实验证仍严格只读，失败类别按各操作单独保留，不由 `all` 聚合结果覆盖。
 
 The nine columns below are mandatory for every authentication or read-only
 operation before production code changes.
