@@ -311,23 +311,7 @@ pub(crate) async fn submit_reservation(
     runtime: &mut crate::runtime::ClientRuntime,
     request: crate::domain::CgyyReservationSubmitRequest,
 ) -> Result<crate::domain::CgyyReservationResult> {
-    if request.venue_site_id <= 0 || request.reservation_date.trim().is_empty() {
-        return Err(error("场馆站点和预约日期不能为空"));
-    }
-    if request.selections.is_empty()
-        || request
-            .selections
-            .iter()
-            .any(|item| item.space_id <= 0 || item.time_id <= 0)
-    {
-        return Err(error("至少选择一个有效的预约时段"));
-    }
-    if request.captcha_verification.trim().is_empty()
-        || request.captcha_point_json.trim().is_empty()
-        || request.captcha_token.trim().is_empty()
-    {
-        return Err(error("缺少验证码校验结果"));
-    }
+    validate_submit_request(&request)?;
     let day = get_day_info(runtime, request.venue_site_id, &request.reservation_date).await?;
     let token = day
         .reservation_token
@@ -382,22 +366,7 @@ pub(crate) async fn submit_reservation(
     super::check_response(&response, "场馆预约")?;
     data(&super::body(&response))?;
 
-    let captcha_form =
-        build_captcha_check_form(&request.captcha_point_json, &request.captcha_token);
-    let mut captcha_request = signed_request(
-        runtime,
-        crate::ports::HttpMethod::Post,
-        "/api/captcha/check",
-        captcha_form.clone(),
-        Some(&token),
-    )?;
-    captcha_request.body = crate::upstream::encode_form(&captcha_form);
-    let captcha_response = runtime.request(captcha_request).await?;
-    super::check_response(&captcha_response, "场馆预约")?;
-    let captcha_data = data(&super::body(&captcha_response))?;
-    if captcha_data.get("success").and_then(Value::as_bool) != Some(true) {
-        return Err(error("验证码校验失败"));
-    }
+    check_captcha(runtime, &request, &token).await?;
 
     let form = build_submit_form(&request, &token, &order_json);
     let mut submit_request = signed_request(
@@ -424,6 +393,53 @@ pub(crate) async fn submit_reservation(
         message,
         order,
     })
+}
+
+fn validate_submit_request(request: &crate::domain::CgyyReservationSubmitRequest) -> Result<()> {
+    if request.venue_site_id <= 0 || request.reservation_date.trim().is_empty() {
+        return Err(error("场馆站点和预约日期不能为空"));
+    }
+    if request.selections.is_empty()
+        || request
+            .selections
+            .iter()
+            .any(|item| item.space_id <= 0 || item.time_id <= 0)
+    {
+        return Err(error("至少选择一个有效的预约时段"));
+    }
+    if request.captcha_verification.trim().is_empty()
+        || request.captcha_point_json.trim().is_empty()
+        || request.captcha_token.trim().is_empty()
+    {
+        return Err(error("缺少验证码校验结果"));
+    }
+    Ok(())
+}
+
+async fn check_captcha(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: &crate::domain::CgyyReservationSubmitRequest,
+    token: &str,
+) -> Result<()> {
+    let form = build_captcha_check_form(&request.captcha_point_json, &request.captcha_token);
+    let mut http = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Post,
+        "/api/captcha/check",
+        form.clone(),
+        Some(token),
+    )?;
+    http.body = crate::upstream::encode_form(&form);
+    let response = runtime.request(http).await?;
+    super::check_response(&response, "场馆预约")?;
+    if data(&super::body(&response))?
+        .get("success")
+        .and_then(Value::as_bool)
+        != Some(true)
+    {
+        return Err(error("验证码校验失败"));
+    }
+    Ok(())
 }
 
 fn context_request_body(
