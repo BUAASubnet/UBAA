@@ -64,6 +64,96 @@ fn 评教提交通过路线客户端发送冻结_json信封() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn 自动评教按冻结顺序读取题目并提交课程结果() {
+    let root = std::env::temp_dir().join(format!("ubaa-evaluation-auto-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        EvaluationAutoTransport {
+            requests: Arc::clone(&requests),
+        },
+        store,
+    )
+    .unwrap();
+    let course = ubaa_core::domain::EvaluationCourse {
+        rwid: "rw-safe".into(),
+        wjid: "wj-safe".into(),
+        kcdm: "kc-safe".into(),
+        kcmc: "课程".into(),
+        bpmc: "教师".into(),
+        msid: "ms-safe".into(),
+        zdmc: Some("STID".into()),
+        ..Default::default()
+    };
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let result = runtime
+        .block_on(client.evaluation_submit_courses(vec![course]))
+        .unwrap()
+        .data;
+    assert_eq!(result.len(), 1);
+    assert!(result[0].success);
+    let requests = requests.lock().unwrap();
+    let paths: Vec<_> = requests
+        .iter()
+        .map(|request| url::Url::parse(&request.url).unwrap().path().to_owned())
+        .collect();
+    assert_eq!(
+        paths,
+        vec![
+            "/pjxt/cas",
+            "/pjxt/evaluationMethodSix/reviseQuestionnairePattern",
+            "/pjxt/evaluationMethodSix/getQuestionnaireTopic",
+            "/pjxt/evaluationMethodSix/submitSaveEvaluation",
+        ]
+    );
+    let revise: serde_json::Value = serde_json::from_slice(&requests[1].body).unwrap();
+    assert_eq!(revise["rwid"], "rw-safe");
+    let submit: serde_json::Value = serde_json::from_slice(&requests[3].body).unwrap();
+    assert_eq!(submit["pjzt"], "1");
+    assert_eq!(submit["pjjglist"][0]["pjdf"], 93);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[derive(Clone)]
+struct EvaluationAutoTransport {
+    requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+#[async_trait]
+impl HttpTransport for EvaluationAutoTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        let path = url::Url::parse(&request.url)
+            .map_err(|_| test_error("invalid test URL"))?
+            .path()
+            .to_owned();
+        self.requests.lock().unwrap().push(request.clone());
+        let body = match path.as_str() {
+            "/pjxt/cas" => br"{}".to_vec(),
+            "/pjxt/evaluationMethodSix/reviseQuestionnairePattern" =>
+                br#"{"code":200,"result":{}}"#.to_vec(),
+            "/pjxt/evaluationMethodSix/getQuestionnaireTopic" => br#"{"code":200,"result":{"pjmap":{},"pjxtPjjgPjjgckb":[{"pjid":"pj-safe","kcdm":"kc-safe","pjfs":"1"}],"pjxtWjWjbReturnEntity":{"wjzblist":[{"tklist":[{"tmid":"tm-safe","tmlx":"1","tmxxlist":[{"tmxxid":"opt-safe"}]}]}]}}}"#.to_vec(),
+            "/pjxt/evaluationMethodSix/submitSaveEvaluation" =>
+                br#"{"code":200,"message":"ok"}"#.to_vec(),
+            _ => return Err(test_error("unexpected evaluation path")),
+        };
+        Ok(HttpResponse::new(200, request.url, body))
+    }
+}
+
 #[derive(Clone)]
 struct EvaluationWriteTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,

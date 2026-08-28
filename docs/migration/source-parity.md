@@ -326,3 +326,5 @@ Signin 提交请求的表单构造已单独覆盖：冻结 `stu_scan_sign.action
 空 `pjjglist` 现在在会话建立前返回 `invalid_input`；单元测试使用禁止网络的传输验证该边界，确保无效评教提交不会访问上游。
 
 逐请求证据：`crates/ubaa-core/tests/evaluation.rs` 通过 `RouteClient::evaluation_submit` 使用合成会话调用冻结 `submitSaveEvaluation`，断言 JSON 信封中的空 `pjidlist`、`pjzt="1"` 和课程结果字段，以及固定请求头；不记录原始响应或个人数据。
+
+自动链证据：同一测试文件以单门脱敏课程调用 `evaluation_submit_courses`，严格断言 CAS 激活、revise（`rwid/wjid/msid`）、题目 GET 和最终提交四步顺序，并校验最终结果保留 `pjdf=93`。Mock 响应不包含真实课程或人员数据。
