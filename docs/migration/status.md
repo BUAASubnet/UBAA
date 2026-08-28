@@ -249,5 +249,11 @@ CI remains deterministic-only and never reads `.env.local`.
 - Evaluation 自动逐课程写链新增 Mock，覆盖 CAS 激活、`reviseQuestionnairePattern`、题目读取和 `submitSaveEvaluation` 的冻结顺序，并断言课程标识与 `pjdf=93`；真实评教仍永久禁止。
 - Cgyy CLI 已新增 `cgyy submit --request-stdin --confirm-write`，从标准输入读取包含敏感字段的 JSON 请求并在确认前拒绝读取；未执行真实预约。
 - Cgyy RouteClient 现补齐 `cgyy_cancel_order` 直接 Facade 入口，并以签名路径/订单标识 Mock 覆盖；聚合与直接宿主均要求显式确认，真实取消仍禁止。
+
+## 2026-08-29 全量只读复测
+
+- Direct：schedule、exam、grades、classroom、spoc、signin、ygdk、libbook、bykc、evaluation 均通过；Judge 返回 `upstream_unavailable`，Cgyy 返回 `timeout`，聚合退出码为 5。
+- WebVPN：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc 均通过；Cgyy 与 Evaluation 返回 `authentication_required`，聚合退出码为 3。
+- 两次运行均只调用读接口，未执行任何真实写操作；失败项保留，不以聚合成功掩盖。
 - Cgyy RouteClient 现补齐 `cgyy_cancel_order` 直接 Facade 入口，并以签名路径/订单标识 Mock 覆盖；聚合与直接宿主均要求显式确认，真实取消仍禁止。
 - Signin 写请求已提取冻结表单构造器并增加只含 `id` 字段的确定性断言；真实签到和写请求 live 验收仍永久禁止。
