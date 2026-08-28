@@ -29,6 +29,9 @@ use ubaa_core::output::{
     UnresolvedRoutedJsonMeta,
 };
 
+mod render;
+use render::{redacted_profile, redacted_status, safe_lock_code_value, write_profile};
+
 /// UBAA 命令行接口。
 #[derive(Debug, Parser)]
 #[command(name = "ubaa", version, about = "北航统一认证命令行客户端")]
@@ -2448,10 +2451,6 @@ fn routed_readonly<T: Serialize>(
     })
 }
 
-fn safe_lock_code_value(data: &CgyyLockCode) -> Value {
-    json!({"available": !data.raw_data.is_null()})
-}
-
 fn render_routed_result<O: Write, E: Write>(
     json_mode: bool,
     feature: CliFeature,
@@ -3372,51 +3371,6 @@ fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> std::io::Res
     }
 }
 
-fn write_profile<O: Write>(stdout: &mut O, profile: &UserProfile) -> std::io::Result<()> {
-    write_optional(stdout, "姓名", profile.name.as_deref())?;
-    write_optional(stdout, "学号", profile.school_id.as_deref())?;
-    write_optional(stdout, "用户名", profile.username.as_deref())?;
-    write_optional(stdout, "手机号", profile.phone.as_deref())?;
-    write_optional(stdout, "身份证号", profile.id_card_number.as_deref())?;
-    write_optional(stdout, "邮箱", profile.email.as_deref())
-}
-
-fn write_optional<O: Write>(
-    stdout: &mut O,
-    label: &str,
-    value: Option<&str>,
-) -> std::io::Result<()> {
-    if let Some(value) = value {
-        writeln!(stdout, "{label}: {value}")?;
-    }
-    Ok(())
-}
-
-fn redacted_status(mut status: AuthStatus) -> AuthStatus {
-    status.user = redacted_profile(status.user);
-    status
-}
-
-fn redacted_profile(mut profile: UserProfile) -> UserProfile {
-    profile.phone = profile.phone.as_deref().map(mask_sensitive);
-    profile.id_card_number = profile.id_card_number.as_deref().map(mask_sensitive);
-    profile
-}
-
-fn mask_sensitive(value: &str) -> String {
-    let characters: Vec<char> = value.chars().collect();
-    match characters.len() {
-        0 => String::new(),
-        1..=4 => "*".repeat(characters.len()),
-        length => format!(
-            "{}{}{}",
-            characters[..2].iter().collect::<String>(),
-            "*".repeat(length - 4),
-            characters[length - 2..].iter().collect::<String>()
-        ),
-    }
-}
-
 fn prompt_line<R: BufRead, E: Write>(
     input: &mut R,
     stderr: &mut E,
@@ -3535,8 +3489,8 @@ mod tests {
 
     #[test]
     fn sensitive_mask_handles_unicode_without_byte_slicing() {
-        assert_eq!(mask_sensitive("ABCD1234"), "AB****34");
-        assert_eq!(mask_sensitive("北航用户甲乙"), "北航**甲乙");
+        assert_eq!(crate::render::mask_sensitive("ABCD1234"), "AB****34");
+        assert_eq!(crate::render::mask_sensitive("北航用户甲乙"), "北航**甲乙");
     }
 
     #[test]
