@@ -1006,12 +1006,8 @@ pub fn parse_day_info(
         .into_iter()
         .flatten()
         .filter_map(Value::as_object)
-        .map(|space| CgyySpaceAvailability {
-            space_id: int(space, "id").unwrap_or_default(),
-            space_name: string(space, "spaceName").unwrap_or_default(),
-            venue_site_id: int(space, "venueSiteId").unwrap_or(venue_site_id),
-            venue_space_group_id: int(space, "venueSpaceGroupId"),
-            slots: time_slots
+        .map(|space| {
+            let mut slots: Vec<_> = time_slots
                 .iter()
                 .filter_map(|slot| {
                     space
@@ -1019,7 +1015,15 @@ pub fn parse_day_info(
                         .and_then(Value::as_object)
                         .map(|raw| parse_slot(slot.id, raw))
                 })
-                .collect(),
+                .collect();
+            slots.sort_by_key(|slot| slot.time_id);
+            CgyySpaceAvailability {
+                space_id: int(space, "id").unwrap_or_default(),
+                space_name: string(space, "spaceName").unwrap_or_default(),
+                venue_site_id: int(space, "venueSiteId").unwrap_or(venue_site_id),
+                venue_space_group_id: int(space, "venueSpaceGroupId"),
+                slots,
+            }
         })
         .collect();
     spaces.sort_by(|left, right| left.space_name.cmp(&right.space_name));

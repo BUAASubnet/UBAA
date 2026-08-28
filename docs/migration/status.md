@@ -332,3 +332,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `LocalCgyyApi.requestJson`，将 Core Cgyy 信封校验收紧为必须存在且等于 `code=200`；新增缺失码和 `code=0` 的脱敏测试，先失败后通过。
 - 该修复仅影响异常响应的解析语义，不改变实时 URL、重定向、签名或缓存；实时日期/订单硬门禁仍未通过，未执行真实写操作。
+
+## 2026-08-29 Cgyy 日期槽位排序
+
+- 对照冻结日期映射补齐每个空间槽位按 `timeId` 升序输出，逆序脱敏响应测试已通过。
+- 本轮未改变上游协议或执行真实写操作；Cgyy 日期/订单实时硬门禁仍待上游可用证据。

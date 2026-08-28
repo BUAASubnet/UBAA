@@ -63,6 +63,33 @@ fn 状态二的时段不可预约() {
 }
 
 #[test]
+fn 日期空间槽位按时间编号排序() {
+    let body = r#"{
+        "code":200,
+        "data":{
+            "spaceTimeInfo":[
+                {"id":242,"beginTime":"14:00","endTime":"15:35"},
+                {"id":101,"beginTime":"08:00","endTime":"09:35"}
+            ],
+            "reservationDateSpaceInfo":{
+                "2026-03-29":[
+                    {"id":6,"spaceName":"测试房间","101":{"reservationStatus":1},"242":{"reservationStatus":1}}
+                ]
+            }
+        }
+    }"#;
+    let result = parse_day_info(body, 4, "2026-03-29").unwrap();
+    assert_eq!(
+        result.spaces[0]
+            .slots
+            .iter()
+            .map(|slot| slot.time_id)
+            .collect::<Vec<_>>(),
+        vec![101, 242]
+    );
+}
+
+#[test]
 fn 解析订单分页和详情完整字段() {
     let body = include_str!("../../../fixtures/readonly/cgyy-orders.json");
     let page = parse_orders(body).unwrap();

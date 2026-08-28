@@ -565,3 +565,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结 `LocalCgyyApi.requestJson` 在 JSON 解析后明确要求 `code == 200`；缺失代码或其他数值均抛出业务错误。
 - Rust `features/cgyy.rs::data` 原先允许缺失代码及 `code=0`，新增脱敏解析测试先复现错误再收紧为仅接受 `Some(200)`；非 JSON、数组或标量结构仍按原错误分类处理。
 - 未改变 URL、请求、重定向、签名、缓存或实时错误边界；未执行真实写操作。
+
+## 2026-08-29 Cgyy 日期槽位排序
+
+- 冻结 `LocalCgyyApi.mapDayInfo` 会过滤无效槽位并按 `timeId` 升序整理每个空间的槽位；Rust 原实现保留上游顺序。
+- 新增逆序 `spaceTimeInfo` 脱敏测试先失败后通过，当前输出与冻结排序一致；未改变请求协议或实时错误策略。
