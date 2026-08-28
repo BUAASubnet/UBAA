@@ -632,15 +632,39 @@ pub(crate) async fn submit_reservation(
     super::check_response(&response, "场馆预约")?;
     data(&super::body(&response))?;
 
-    prepare_captcha(runtime, &mut request, &token).await?;
+    let external = !request.captcha_verification.trim().is_empty()
+        && !request.captcha_point_json.trim().is_empty()
+        && !request.captcha_token.trim().is_empty();
+    if external {
+        check_captcha(runtime, &request, &token).await?;
+        return submit_order(runtime, &request, &token, &order_json).await;
+    }
+    let mut last_error = None;
+    for _ in 0..3 {
+        match prepare_captcha_once(runtime, &mut request, &token).await {
+            Ok(()) => match submit_order(runtime, &request, &token, &order_json).await {
+                Ok(result) => return Ok(result),
+                Err(error) => last_error = Some(error),
+            },
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| error("验证码处理失败")))
+}
 
-    let form = build_submit_form(&request, &token, &order_json);
+async fn submit_order(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: &crate::domain::CgyyReservationSubmitRequest,
+    token: &str,
+    order_json: &str,
+) -> Result<crate::domain::CgyyReservationResult> {
+    let form = build_submit_form(request, token, order_json);
     let mut submit_request = signed_request(
         runtime,
         crate::ports::HttpMethod::Post,
         "/api/reservation/order/submit",
         form.clone(),
-        Some(&token),
+        Some(token),
     )?;
     submit_request.body = crate::upstream::encode_form(&form);
     let response = runtime.request(submit_request).await?;
@@ -692,27 +716,6 @@ fn validate_submit_request(request: &crate::domain::CgyyReservationSubmitRequest
         return Err(error("缺少验证码校验结果或挑战图片"));
     }
     Ok(())
-}
-
-async fn prepare_captcha(
-    runtime: &mut crate::runtime::ClientRuntime,
-    request: &mut crate::domain::CgyyReservationSubmitRequest,
-    reservation_token: &str,
-) -> Result<()> {
-    if !request.captcha_verification.trim().is_empty()
-        && !request.captcha_point_json.trim().is_empty()
-        && !request.captcha_token.trim().is_empty()
-    {
-        return check_captcha(runtime, request, reservation_token).await;
-    }
-    let mut last_error = None;
-    for _ in 0..3 {
-        match prepare_captcha_once(runtime, request, reservation_token).await {
-            Ok(()) => return Ok(()),
-            Err(error) => last_error = Some(error),
-        }
-    }
-    Err(last_error.unwrap_or_else(|| error("验证码处理失败")))
 }
 
 async fn prepare_captcha_once(
