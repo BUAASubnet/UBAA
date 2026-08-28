@@ -454,3 +454,12 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   `upstream_unavailable`（退出 5），不再返回此前的 `authentication_required`。
 - 该结果证明 transport 分派方向正确，但尚不足以宣告 WebVPN Cgyy 全部读操作通过；
   日期、订单、锁码等后续操作仍需逐项实时证据。
+
+## 2026-08-29 Judge 路线复测更新
+
+- auto（实际解析到 Direct）的 Judge 单项复测通过，返回课程 5、当前任务 65，并完成
+  详情语义校验；摘要仅保留脱敏计数和临时盐摘要。
+- Direct Judge 同轮仍在 `judge_all` 返回 `upstream_unavailable`。这与历史列表快照
+  波动一致，不能用 auto 成功替代 Direct 路线证据；继续保留逐路线硬门禁。
+- WebVPN 全量同轮除 Cgyy 用途查询 `upstream_unavailable` 外，其余已执行只读操作通过，
+  包括 Judge 和 Evaluation。所有运行均未调用真实写接口。
