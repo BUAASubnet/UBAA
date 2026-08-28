@@ -408,3 +408,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `LocalCgyyApi.string`，补齐场馆文本字段从数字/布尔原语转为字符串的行为；新增数字站点字段脱敏测试先失败后通过。
 - 未改变签名、请求、路线、会话或真实写操作策略。
+
+## 2026-08-29 Signin 写响应状态兼容
+
+- 对照冻结 `jsonStringValue`/`int`，补齐签到写响应中数字字符串 `STATUS` 与 `stuSignStatus` 的解析；新增脱敏单元测试通过。
+- 未改变签到登录入口、请求参数或真实写操作禁止策略。

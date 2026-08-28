@@ -117,11 +117,11 @@ pub(crate) async fn perform_signin(
         serde_json::from_slice(&response.body).map_err(|_| upstream_error("签到响应格式无效"))?;
     let status = object
         .get("STATUS")
-        .and_then(Value::as_i64)
+        .and_then(integer_value)
         .unwrap_or_default();
     let signed = object
         .get("stuSignStatus")
-        .and_then(Value::as_i64)
+        .and_then(integer_value)
         .unwrap_or_default()
         == 1;
     Ok(SigninActionResult {
@@ -349,6 +349,12 @@ fn success(value: &Value) -> bool {
         || matches!(value, Value::String(text) if matches!(text.as_str(), "0" | "200" | "success"))
 }
 
+fn integer_value(value: &Value) -> Option<i64> {
+    value
+        .as_i64()
+        .or_else(|| value.as_str().and_then(|text| text.parse().ok()))
+}
+
 fn empty_result(value: &Value) -> bool {
     matches!(value, Value::Number(number) if number.as_i64() == Some(2))
         || matches!(value, Value::String(text) if text == "2")
@@ -382,7 +388,9 @@ fn parse_error() -> UbaaError {
 
 #[cfg(test)]
 mod tests {
-    use super::{SIGNIN_LOGIN_URL, build_signin_form, parse_login_credential, parse_timestamp};
+    use super::{
+        SIGNIN_LOGIN_URL, build_signin_form, integer_value, parse_login_credential, parse_timestamp,
+    };
 
     #[test]
     fn 时间戳读取冻结的_json字段() {
@@ -423,5 +431,11 @@ mod tests {
     fn 状态二表示今日没有课程() {
         let classes = super::parse_today(r#"{"STATUS":"2"}"#).expect("空课程状态应成功");
         assert!(classes.is_empty());
+    }
+
+    #[test]
+    fn 签到写响应的数字字符串状态保持兼容() {
+        assert_eq!(integer_value(&serde_json::json!("200")), Some(200));
+        assert_eq!(integer_value(&serde_json::json!("1")), Some(1));
     }
 }
