@@ -668,6 +668,15 @@ pub struct CgyyReservationSubmitRequest {
     /// 验证码挑战令牌，仅用于当前请求。
     #[serde(skip_serializing)]
     pub captcha_token: String,
+    /// 验证码挑战 AES 密钥，仅用于当前请求。
+    #[serde(skip_serializing)]
+    pub captcha_secret_key: Option<String>,
+    /// 验证码背景图 base64，仅用于当前请求。
+    #[serde(skip_serializing)]
+    pub captcha_original_image_base64: Option<String>,
+    /// 验证码滑块图 base64，仅用于当前请求。
+    #[serde(skip_serializing)]
+    pub captcha_jigsaw_image_base64: Option<String>,
 }
 
 /// 场馆预约提交结果。

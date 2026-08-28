@@ -70,6 +70,163 @@ fn encrypt_captcha_text(plain: &str, secret_key: &str) -> Result<String> {
     Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
 }
 
+/// 复刻冻结旧版的滑块位移匹配算法。输入为去除可选 data URI 前缀后的图片字节。
+#[allow(dead_code)]
+pub(crate) fn solve_captcha_offset(original: &[u8], jigsaw: &[u8]) -> Result<u32> {
+    let background =
+        image::load_from_memory(original).map_err(|_| error("验证码背景图无法解析"))?;
+    let piece = image::load_from_memory(jigsaw).map_err(|_| error("验证码滑块图无法解析"))?;
+    let bg = background.to_rgba8();
+    let fg = piece.to_rgba8();
+    let bg_gray = gray_pixels(&bg);
+    let fg_gray = gray_pixels(&fg);
+    let mask = build_image_mask(&fg);
+    let (min_x, min_y, max_x, max_y) =
+        image_bounds(&mask).ok_or_else(|| error("验证码图片缺少有效掩码"))?;
+    let cropped_gray = crop_gray(&fg_gray, min_x, min_y, max_x, max_y);
+    let cropped_mask = crop_mask(&mask, min_x, min_y, max_x, max_y);
+    let bg_edges = edge_detect(&bg_gray);
+    let piece_edges = edge_detect(&cropped_gray);
+    let bg_h = bg_edges.len();
+    let bg_w = bg_edges.first().map_or(0, Vec::len);
+    let piece_h = piece_edges.len();
+    let piece_w = piece_edges.first().map_or(0, Vec::len);
+    if bg_h < piece_h || bg_w < piece_w {
+        return Err(error("验证码图片尺寸无效"));
+    }
+    let mut best_score = f64::NEG_INFINITY;
+    let mut best_x = 0u32;
+    for y in 0..=(bg_h - piece_h) {
+        for x in 0..=(bg_w - piece_w) {
+            let mut score = 0.0;
+            let mut edge_pixels = 0usize;
+            let mut mask_pixels = 0usize;
+            for py in 0..piece_h {
+                for px in 0..piece_w {
+                    if !cropped_mask[py][px] {
+                        continue;
+                    }
+                    mask_pixels += 1;
+                    let piece_value = piece_edges[py][px];
+                    let bg_value = bg_edges[y + py][x + px];
+                    if piece_value > 0 {
+                        edge_pixels += 1;
+                        score += if bg_value > 0 { 3.0 } else { -1.5 };
+                    } else if bg_value == 0 {
+                        score += 0.15;
+                    }
+                }
+            }
+            if mask_pixels == 0 || edge_pixels == 0 {
+                continue;
+            }
+            score /= f64::from(u32::try_from(edge_pixels).unwrap_or(u32::MAX));
+            score += f64::from(u32::try_from(mask_pixels).unwrap_or(u32::MAX)) * 0.0001;
+            if score > best_score {
+                best_score = score;
+                best_x = u32::try_from(x).unwrap_or(u32::MAX);
+            }
+        }
+    }
+    Ok(best_x)
+}
+
+fn gray_pixels(image: &image::RgbaImage) -> Vec<Vec<i32>> {
+    image
+        .rows()
+        .map(|row| {
+            row.map(|pixel| {
+                (i32::from(pixel[0]) * 30 + i32::from(pixel[1]) * 59 + i32::from(pixel[2]) * 11)
+                    / 100
+            })
+            .collect()
+        })
+        .collect()
+}
+
+fn build_image_mask(image: &image::RgbaImage) -> Vec<Vec<bool>> {
+    image
+        .rows()
+        .map(|row| {
+            row.map(|pixel| {
+                if pixel[3] > 10 {
+                    true
+                } else {
+                    let luminance = (i32::from(pixel[0]) * 30
+                        + i32::from(pixel[1]) * 59
+                        + i32::from(pixel[2]) * 11)
+                        / 100;
+                    luminance < 250
+                }
+            })
+            .collect()
+        })
+        .collect()
+}
+
+fn image_bounds(mask: &[Vec<bool>]) -> Option<(usize, usize, usize, usize)> {
+    let mut bounds: Option<(usize, usize, usize, usize)> = None;
+    for (y, row) in mask.iter().enumerate() {
+        for (x, value) in row.iter().enumerate() {
+            if !value {
+                continue;
+            }
+            bounds = Some(match bounds {
+                Some((min_x, min_y, max_x, max_y)) => {
+                    (min_x.min(x), min_y.min(y), max_x.max(x), max_y.max(y))
+                }
+                None => (x, y, x, y),
+            });
+        }
+    }
+    bounds
+}
+
+fn crop_gray(
+    source: &[Vec<i32>],
+    min_x: usize,
+    min_y: usize,
+    max_x: usize,
+    max_y: usize,
+) -> Vec<Vec<i32>> {
+    (min_y..=max_y)
+        .map(|y| source[y][min_x..=max_x].to_vec())
+        .collect()
+}
+
+fn crop_mask(
+    source: &[Vec<bool>],
+    min_x: usize,
+    min_y: usize,
+    max_x: usize,
+    max_y: usize,
+) -> Vec<Vec<bool>> {
+    (min_y..=max_y)
+        .map(|y| source[y][min_x..=max_x].to_vec())
+        .collect()
+}
+
+fn edge_detect(gray: &[Vec<i32>]) -> Vec<Vec<u8>> {
+    let height = gray.len();
+    let width = gray.first().map_or(0, Vec::len);
+    (0..height)
+        .map(|y| {
+            (0..width)
+                .map(|x| {
+                    let center = gray[y][x];
+                    let right = gray[y][(x + 1).min(width.saturating_sub(1))];
+                    let down = gray[(y + 1).min(height.saturating_sub(1))][x];
+                    if (center - right).abs() + (center - down).abs() > 35 {
+                        255
+                    } else {
+                        0
+                    }
+                })
+                .collect()
+        })
+        .collect()
+}
+
 #[allow(dead_code)]
 fn build_captcha_params(now: i64) -> BTreeMap<String, String> {
     [
@@ -418,7 +575,7 @@ pub fn build_captcha_check_form(point_json: &str, token: &str) -> BTreeMap<Strin
 /// 使用外部验证码校验结果提交场馆预约。
 pub(crate) async fn submit_reservation(
     runtime: &mut crate::runtime::ClientRuntime,
-    request: crate::domain::CgyyReservationSubmitRequest,
+    mut request: crate::domain::CgyyReservationSubmitRequest,
 ) -> Result<crate::domain::CgyyReservationResult> {
     validate_submit_request(&request)?;
     let day = get_day_info(runtime, request.venue_site_id, &request.reservation_date).await?;
@@ -475,7 +632,7 @@ pub(crate) async fn submit_reservation(
     super::check_response(&response, "场馆预约")?;
     data(&super::body(&response))?;
 
-    check_captcha(runtime, &request, &token).await?;
+    prepare_captcha(runtime, &mut request, &token).await?;
 
     let form = build_submit_form(&request, &token, &order_json);
     let mut submit_request = signed_request(
@@ -516,13 +673,92 @@ fn validate_submit_request(request: &crate::domain::CgyyReservationSubmitRequest
     {
         return Err(error("至少选择一个有效的预约时段"));
     }
-    if request.captcha_verification.trim().is_empty()
-        || request.captcha_point_json.trim().is_empty()
-        || request.captcha_token.trim().is_empty()
-    {
-        return Err(error("缺少验证码校验结果"));
+    let external = !request.captcha_verification.trim().is_empty()
+        && !request.captcha_point_json.trim().is_empty()
+        && !request.captcha_token.trim().is_empty();
+    let solver_input = request
+        .captcha_secret_key
+        .as_deref()
+        .is_some_and(|value| !value.is_empty())
+        && request
+            .captcha_original_image_base64
+            .as_deref()
+            .is_some_and(|value| !value.is_empty())
+        && request
+            .captcha_jigsaw_image_base64
+            .as_deref()
+            .is_some_and(|value| !value.is_empty());
+    if !external && !solver_input {
+        return Err(error("缺少验证码校验结果或挑战图片"));
     }
     Ok(())
+}
+
+async fn prepare_captcha(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: &mut crate::domain::CgyyReservationSubmitRequest,
+    reservation_token: &str,
+) -> Result<()> {
+    if !request.captcha_verification.trim().is_empty()
+        && !request.captcha_point_json.trim().is_empty()
+        && !request.captcha_token.trim().is_empty()
+    {
+        return check_captcha(runtime, request, reservation_token).await;
+    }
+    let mut last_error = None;
+    for _ in 0..3 {
+        match prepare_captcha_once(runtime, request, reservation_token).await {
+            Ok(()) => return Ok(()),
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| error("验证码处理失败")))
+}
+
+async fn prepare_captcha_once(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: &mut crate::domain::CgyyReservationSubmitRequest,
+    reservation_token: &str,
+) -> Result<()> {
+    let challenge = if let (Some(secret_key), Some(original), Some(jigsaw)) = (
+        request.captcha_secret_key.as_deref(),
+        request.captcha_original_image_base64.as_deref(),
+        request.captcha_jigsaw_image_base64.as_deref(),
+    ) {
+        CgyyCaptchaChallenge {
+            secret_key: secret_key.to_owned(),
+            token: request.captcha_token.clone(),
+            original_image_base64: original.to_owned(),
+            jigsaw_image_base64: jigsaw.to_owned(),
+        }
+    } else {
+        get_captcha(runtime).await?
+    };
+    if challenge.token.is_empty() {
+        return Err(error("验证码挑战令牌缺失"));
+    }
+    let original = decode_captcha_image(&challenge.original_image_base64)?;
+    let jigsaw = decode_captcha_image(&challenge.jigsaw_image_base64)?;
+    let offset = solve_captcha_offset(&original, &jigsaw)?;
+    let (point_json, verification) =
+        build_captcha_solution(&challenge.secret_key, &challenge.token, offset)?;
+    request.captcha_point_json = point_json;
+    request.captcha_token = challenge.token;
+    request.captcha_verification = verification;
+    check_captcha(runtime, request, reservation_token).await
+}
+
+async fn get_captcha(runtime: &mut crate::runtime::ClientRuntime) -> Result<CgyyCaptchaChallenge> {
+    let now = timestamp_millis()?;
+    let body = get(runtime, "/api/captcha/get", build_captcha_params(now)).await?;
+    parse_captcha_challenge(&body)
+}
+
+fn decode_captcha_image(value: &str) -> Result<Vec<u8>> {
+    let encoded = value.split_once("base64,").map_or(value, |(_, data)| data);
+    base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|_| error("验证码图片编码无效"))
 }
 
 async fn check_captcha(
@@ -924,6 +1160,9 @@ mod tests {
             captcha_verification: "verification".into(),
             captcha_point_json: "[{\"x\":1,\"y\":2}]".into(),
             captcha_token: "captcha-token".into(),
+            captcha_secret_key: None,
+            captcha_original_image_base64: None,
+            captcha_jigsaw_image_base64: None,
         };
         let form = build_submit_form(&request, "token", "[{\"spaceId\":11,\"timeId\":3}]");
         assert_eq!(form.get("venueSiteId").map(String::as_str), Some("7"));
@@ -974,5 +1213,10 @@ mod tests {
             build_captcha_solution("0123456789abcdef", "token", 12).expect("应生成验证码凭据");
         assert_eq!(point, "//vojImUw+QfCP7LYCytFg==");
         assert!(!verification.is_empty());
+    }
+
+    #[test]
+    fn 验证码位移求解拒绝非法图片() {
+        assert!(super::solve_captcha_offset(b"not-an-image", b"not-an-image").is_err());
     }
 }
