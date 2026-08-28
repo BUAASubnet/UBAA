@@ -7,6 +7,7 @@ use crate::domain::{
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
+use chrono::{FixedOffset, TimeZone};
 use serde_json::{Map, Value};
 
 #[derive(Clone, Debug)]
@@ -43,6 +44,17 @@ fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
         .and_then(Value::as_str)
         .map(str::to_owned)
         .filter(|v| !v.trim().is_empty())
+}
+
+fn datetime_text(map: &Map<String, Value>, key: &str) -> Option<String> {
+    if let Some(value) = string(map, key) {
+        return Some(value);
+    }
+    let seconds = map.get(key).and_then(Value::as_i64)?;
+    FixedOffset::east_opt(8 * 60 * 60)?
+        .timestamp_opt(seconds, 0)
+        .single()
+        .map(|value| value.format("%Y-%m-%d %H:%M").to_string())
 }
 fn list(map: &Map<String, Value>, key: &str) -> Vec<Value> {
     map.get(key)
@@ -218,8 +230,8 @@ pub fn parse_records(
                             .map(|v| v.name.clone())
                     })
                 }),
-                start_time: string(o, "start_time"),
-                end_time: string(o, "end_time"),
+                start_time: datetime_text(o, "start_time"),
+                end_time: datetime_text(o, "end_time"),
                 place: string(o, "place"),
                 images,
                 is_open: integer(o, "isopen") == Some(1),
@@ -619,7 +631,7 @@ async fn post_request(
 
 #[cfg(test)]
 mod tests {
-    use super::{YgdkCredential, build_upload_body, code_from_url, percent_decode};
+    use super::{YgdkCredential, build_upload_body, code_from_url, parse_records, percent_decode};
     use crate::domain::{ConnectionMode, YgdkClockinSubmitRequest, YgdkPhotoUpload};
     use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
     use crate::runtime::ClientRuntime;
@@ -637,6 +649,20 @@ mod tests {
     #[test]
     fn 解码不含等号的业务令牌值() {
         assert_eq!(percent_decode("token%2Bvalue%2Ftail"), "token+value/tail");
+    }
+
+    #[test]
+    fn 记录时间戳按冻结东八区格式化() {
+        let body = serde_json::json!({
+            "code": 1,
+            "result": {"list": [{"record_id": 1, "start_time": 1_772_323_200, "end_time": 1_772_326_800}]}
+        })
+        .to_string();
+        let page = parse_records(&body, &[], 1, 10).expect("解析记录");
+        assert_eq!(
+            page.content[0].start_time.as_deref(),
+            Some("2026-03-01 08:00")
+        );
     }
 
     #[test]

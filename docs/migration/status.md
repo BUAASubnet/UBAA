@@ -376,3 +376,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `LocalBykcApi.parseSignConfig`，补齐签到点列表的整体失败语义：任一点坐标缺失或类型错误时返回空配置，而不是静默丢弃坏点。
 - 新增脱敏测试先失败后通过，Bykc focused suite 9/9 通过；未改变请求协议、加密或实时验收策略。
+
+## 2026-08-29 Ygdk 记录时间戳
+
+- 对照冻结 `LocalYgdkRecordRaw` 与 `timestampToDateTimeText`，补齐记录 Unix 秒时间戳到东八区文本的转换；新增脱敏测试先失败后通过。
+- 未改变请求参数、会话、上传或真实写操作策略。

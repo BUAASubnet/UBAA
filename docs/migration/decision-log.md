@@ -610,3 +610,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt` 的 `parseSignConfig` 通过序列化器解析 `LocalBykcSignConfig`；签到点 `lat/lng` 为必填，单点解码异常会使 `runCatching` 返回空配置。
 - 原 Core 使用 `filter_map` 丢弃坏点并保留配置，与冻结错误语义不一致。新增无效坐标脱敏测试先失败，再改为列表与点字段整体严格校验。
 - `examples/buaa-api` 无等价 Bykc 签到配置协议，不参与字段或错误推断；未执行真实写操作。
+
+## 2026-08-29 Ygdk 记录时间戳
+
+- 冻结证据：`ubaa_old/.../LocalYgdkApi.kt` 的记录字段 `startTime/endTime` 为 `Long?`，映射时调用 `timestampToDateTimeText`，使用固定 `LOCAL_YGDK_TIME_ZONE`（东八区）输出分钟精度文本。
+- 原 Core 仅读取字符串，数值时间会变为空。新增数值时间脱敏测试先失败，再增加固定东八区转换；未从 `examples/buaa-api` 借用协议。
