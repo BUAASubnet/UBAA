@@ -1,6 +1,6 @@
 //! UBAA Core 的命令行解析与输出展示。
 
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 
 use async_trait::async_trait;
@@ -11,15 +11,16 @@ use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
-    CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput,
-    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
-    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
-    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginReadiness,
-    RoutePolicy, SafeError, SecretValue, SigninActionResult, SigninClass, SpocAssignmentDetail,
-    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
-    WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
-    YgdkPhotoUpload, YgdkRecordsPage,
+    CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
+    CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput, EvaluationCoursesResponse,
+    ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
+    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail,
+    LibBookBookingsPage, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
+    LibBookReserveResult, LibBookSeat, LoginInput, LoginReadiness, RoutePolicy, SafeError,
+    SecretValue, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkPhotoUpload,
+    YgdkRecordsPage,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
@@ -210,6 +211,15 @@ pub enum CgyyCommand {
         #[arg(long)]
         id: i32,
         /// 明确确认向上游发送有副作用的取消请求。
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
+    /// 提交场馆预约；敏感请求从标准输入读取。
+    Submit {
+        /// 必须显式声明从标准输入读取 JSON 请求。
+        #[arg(long)]
+        request_stdin: bool,
+        /// 明确确认向上游发送有副作用的预约请求。
         #[arg(long = "confirm-write")]
         confirm_write: bool,
     },
@@ -894,6 +904,12 @@ pub trait CliBackend {
     async fn cgyy_cancel_order(&mut self, _id: i32) -> Result<FeatureResult<CgyyActionResult>> {
         Err(internal_error("场馆预约功能不可用"))
     }
+    async fn cgyy_submit_reservation(
+        &mut self,
+        _request: CgyyReservationSubmitRequest,
+    ) -> Result<FeatureResult<CgyyReservationResult>> {
+        Err(internal_error("场馆预约写功能不可用"))
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         Err(internal_error("阳光打卡不可用"))
     }
@@ -1132,6 +1148,12 @@ pub trait RoutedCliBackend {
     /// 通过 Core 路由取消预约订单。
     async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
         Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    async fn cgyy_submit_reservation(
+        &mut self,
+        _request: CgyyReservationSubmitRequest,
+    ) -> RoutedResult<CgyyReservationResult> {
+        Err(routed_unavailable("场馆预约写功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         Err(routed_unavailable("阳光打卡不可用"))
@@ -1582,6 +1604,12 @@ impl CliBackend for RouteClient {
     async fn cgyy_cancel_order(&mut self, id: i32) -> Result<FeatureResult<CgyyActionResult>> {
         self.cgyy_cancel_order(id).await
     }
+    async fn cgyy_submit_reservation(
+        &mut self,
+        request: CgyyReservationSubmitRequest,
+    ) -> Result<FeatureResult<CgyyReservationResult>> {
+        self.cgyy_submit_reservation(request).await
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         self.ygdk_overview().await
     }
@@ -1751,6 +1779,12 @@ impl RoutedCliBackend for UbaaClient {
     }
     async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
         UbaaClient::cgyy_cancel_order(self, id).await
+    }
+    async fn cgyy_submit_reservation(
+        &mut self,
+        request: CgyyReservationSubmitRequest,
+    ) -> RoutedResult<CgyyReservationResult> {
+        UbaaClient::cgyy_submit_reservation(self, request).await
     }
     async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
         UbaaClient::bykc_profile(self).await
@@ -2314,6 +2348,31 @@ async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
                 });
             }
             routed_readonly(backend.cgyy_cancel_order(id).await, CliFeature::Cgyy)
+        }
+        CgyyCommand::Submit {
+            request_stdin,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("预约是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            if !request_stdin {
+                return Err(RoutedError {
+                    error: invalid_input("预约请求含敏感字段，必须显式指定 --request-stdin"),
+                    resolution: None,
+                });
+            }
+            let request = read_cgyy_request_stdin().map_err(|error| RoutedError {
+                error,
+                resolution: None,
+            })?;
+            routed_readonly(
+                backend.cgyy_submit_reservation(request).await,
+                CliFeature::Cgyy,
+            )
         }
     }
 }
@@ -3044,7 +3103,33 @@ async fn run_cgyy<B: CliBackend + Send>(
                 .await
                 .and_then(|result| readonly(result, CliFeature::Cgyy))
         }
+        CgyyCommand::Submit {
+            request_stdin,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input("预约是写操作，必须显式指定 --confirm-write"));
+            }
+            if !request_stdin {
+                return Err(invalid_input(
+                    "预约请求含敏感字段，必须显式指定 --request-stdin",
+                ));
+            }
+            let request = read_cgyy_request_stdin()?;
+            backend
+                .cgyy_submit_reservation(request)
+                .await
+                .and_then(|result| readonly(result, CliFeature::Cgyy))
+        }
     }
+}
+
+fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> {
+    let mut input = String::new();
+    std::io::stdin()
+        .read_to_string(&mut input)
+        .map_err(|_| invalid_input("无法读取场馆预约请求"))?;
+    serde_json::from_str(&input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
 }
 
 fn readonly<T: Serialize>(result: FeatureResult<T>, feature: CliFeature) -> Result<CommandOutput> {

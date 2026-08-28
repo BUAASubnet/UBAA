@@ -114,6 +114,22 @@ async fn 评教提交默认拒绝且不读取后端() {
     assert!(stderr.is_empty());
 }
 
+#[tokio::test]
+async fn 场馆预约默认拒绝且不读取标准输入() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "cgyy", "submit"]).unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 2);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["error"]["code"], "invalid_input");
+    assert!(stderr.is_empty());
+}
+
 #[derive(Default)]
 struct FakeBackend {
     login_calls: usize,
