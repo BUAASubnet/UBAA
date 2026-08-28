@@ -17,11 +17,7 @@ Updated: 2026-08-29
   执行；详情请求仅在上游返回脱敏标识时继续，空集合不会伪造详情成功。
 - User `user show` 已纳入验证器的独立操作和 `all` 聚合，并以完整脱敏 profile 校验
   字段集合、类型和掩码规则；验证器脚本 stub 已覆盖该调用路径。
-- 本轮三路线逐操作复测：Direct 的 Judge 返回 `upstream_unavailable`、Bykc 已选返回
-  `upstream_changed`、Cgyy 锁码结构不满足当前验证语义；WebVPN 的 Bykc 返回
-  `upstream_changed`、Cgyy 与 Evaluation 返回 `authentication_required`；auto 解析到
-  Direct，Judge 返回 `upstream_unavailable`、Bykc 已选返回 `upstream_changed`，Cgyy
-  在用途查询阶段返回 `upstream_unavailable`。这些均为失败证据，不能由其他读操作成功替代。
+- 早期三路线复测中的 Judge/Bykc/Cgyy 失败已分别通过后续修复或重跑收敛；当前保留的实时失败集中在 Cgyy 日期、订单、锁码等上游阶段，按最新逐操作证据记录，不能由其他读操作成功替代。
 - 本阶段 `just check-sensitive && just check` 全部通过。整体迁移仍未完成：Cgyy
   WebVPN 业务会话返回 `authentication_required`，Direct 门锁码返回
   `upstream_unavailable`，Signin/Ygdk/Evaluation 等逐操作实时矩阵仍有失败项。
@@ -30,9 +26,9 @@ Updated: 2026-08-29
 
 冻结源逐操作复核、Core/CLI 确定性门禁和大部分只读实时能力已完成；写操作均有
 协议实现、Mock/向量和 CLI 确认保护，但真实验收永不调用。当前整体仍未达到最终完成：
-Cgyy WebVPN 业务会话持续认证失败，Direct 门锁码上游不可用。验证码图像求解器已迁移
-并有 PNG/JPEG、加密向量、重试和逐请求 Mock 证据；WebVPN Grades/Judge/Evaluation
-的最新单项重跑通过，但聚合矩阵仍必须保留瞬态失败证据并继续复核。
+Cgyy 日期、订单、锁码等操作仍有路线相关的 `upstream_unavailable`、`upstream_changed`
+或安全结构校验失败。验证码图像求解器已迁移并有 PNG/JPEG、加密向量、重试和逐请求
+Mock 证据；Judge 三路线和其他领域的最新逐操作重跑通过。
 
 ## Baseline
 
