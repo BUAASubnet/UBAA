@@ -542,3 +542,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `getPurposeTypes` 在已有主会话后对动态请求和解析使用 `runCatching`，失败即采用静态十项列表。Rust 原实现传播 `/api/codes` 的上游错误，与冻结行为不符。
 - 新增 `crates/ubaa-core/tests/cgyy.rs` Mock：`/api/codes` 返回合成 502 时，单路线 facade 仍返回十项静态用途；测试先观察到 `UpstreamUnavailable` 失败，再实现回退并通过。`RouteClient` 同步补齐用途类型入口。
 - Direct、WebVPN、auto 复测中用途阶段均成功，失败边界后移到日期/订单（及依赖详情）的实时上游错误；未改变 URL、签名、重试或错误映射，也未调用真实写接口。
+
+## 2026-08-29 Cgyy 回退后 Direct 全量复测
+
+- Direct `feature=all` 在用途回退修复后继续完成所有独立操作：非 Cgyy 功能及 Judge 详情语义通过，Cgyy 站点成功（4 个），日期返回 `upstream_changed`，锁码返回 `upstream_unavailable`，聚合退出 6。
+- 该结果确认用途回退减少了一个实时失败点，但日期和锁码仍缺乏新的协议证据；不猜测参数或增加重试，未执行真实写操作。

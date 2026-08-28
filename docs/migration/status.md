@@ -310,3 +310,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 根据冻结 `LocalCgyyApiBackend.getPurposeTypes` 的 `runCatching` 语义，动态 `/api/codes` 请求或解析失败时回退十项静态用途类型；无主会话仍返回认证错误。新增单路线 Mock 测试先失败后通过，并补齐 `RouteClient::cgyy_purpose_types` 入口。
 - 修复后 Direct、WebVPN、auto 的 Cgyy 用途阶段均不再失败；三路线继续执行到日期/订单阶段。Direct 日期/订单为 `upstream_unavailable`；WebVPN 与 auto 日期及依赖详情为 `upstream_unavailable`。未执行真实写操作。
+
+## 2026-08-29 Cgyy 回退后 Direct 全量复测
+
+- Direct 全量：用途阶段通过静态回退，站点查询成功（4 个）；其余非 Cgyy 只读操作及 Judge 详情语义均通过。Cgyy 日期为 `upstream_changed`、锁码为 `upstream_unavailable`，聚合退出码 6。
+- 本轮仍只执行读操作；未改变日期/锁码请求或错误分类，也未执行任何真实写接口。
