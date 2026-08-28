@@ -860,7 +860,14 @@ fn data(body: &str) -> Result<Value> {
 }
 
 fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
-    map.get(key).and_then(Value::as_str).map(str::to_owned)
+    let value = map.get(key)?;
+    value
+        .as_str()
+        .map(str::to_owned)
+        .or_else(|| value.as_i64().map(|number| number.to_string()))
+        .or_else(|| value.as_u64().map(|number| number.to_string()))
+        .or_else(|| value.as_f64().map(|number| number.to_string()))
+        .or_else(|| value.as_bool().map(|boolean| boolean.to_string()))
 }
 
 fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
@@ -1172,7 +1179,7 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 mod tests {
     use super::{
         build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
-        parse_action_result, parse_captcha_challenge, signed_request,
+        parse_action_result, parse_captcha_challenge, parse_sites, signed_request,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
     use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
@@ -1186,6 +1193,15 @@ mod tests {
             .expect("应解析成功");
         assert_eq!(result.message, "取消成功");
         assert!(result.order.is_none());
+    }
+
+    #[test]
+    fn 场馆站点数字原语按冻结实现转为文本() {
+        let body = r#"{"code":200,"data":[{"id":7,"siteName":8,"venueName":9,"campusName":10}]}"#;
+        let sites = parse_sites(body).expect("解析站点");
+        assert_eq!(sites[0].site_name, "8");
+        assert_eq!(sites[0].venue_name, "9");
+        assert_eq!(sites[0].campus_name, "10");
     }
 
     #[test]

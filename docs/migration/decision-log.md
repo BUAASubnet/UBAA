@@ -637,3 +637,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN 记录 Grades `parse_error`、Judge `invalid_semantics`，以及 Cgyy 日期/订单/锁码 `upstream_unavailable`（退出 6）；站点和其他可用功能仍按逐操作结果记录。
 - auto 解析为 Direct，Grades 为 `upstream_changed`，Cgyy 后续业务阶段为 `upstream_unavailable`（退出 6）；Judge 详情通过。
 - 本轮没有新的 URL、参数、重定向或字段证据；按用户约定，对与冻结旧版一致但实时上游不可用的项只记录并继续推进，未执行真实写操作。
+
+## 2026-08-29 Cgyy 原语字段兼容
+
+- 冻结证据：`LocalCgyyApi.kt` 的 `JsonObject.string` 返回 `jsonPrimitive.contentOrNull`，不限定 JSON 字符串类型。
+- 原 Core `string` 仅接受 `as_str`，数字场馆名称等合法原语会清空。新增脱敏站点测试先失败，再统一支持字符串、数字和布尔原语；未执行真实写操作。

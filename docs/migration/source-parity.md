@@ -358,3 +358,5 @@ Ygdk 记录图片补充：冻结 `extractRecordImages` 对 `images_fmt` 支持�
 Ygdk 时间字符串补充：冻结 `JsonObject.long` 先读取 primitive 文本再执行 `toLongOrNull`，因此数字字符串时间戳与数值时间戳相同，均按东八区格式化；Core `datetime_text` 现保留该兼容性，非数字文本仍原样保留。
 
 LibBook 原语字段补充：冻结 `JsonPrimitive.contentOrNull` 将数字和布尔原语按文本映射到馆区、楼层、座位、状态及预约字段；Core `text` 现兼容字符串、整数、浮点和布尔原语，保留字段别名与空值回退。
+
+Cgyy 原语字段补充：冻结 `LocalCgyyApi.string` 使用 `jsonPrimitive.contentOrNull`，场馆、订单和说明类文本字段可由数字或布尔原语转为文本；Core `string` 现保持同等原语文本化，整数 ID 仍由独立 `int` 解析。

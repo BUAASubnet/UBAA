@@ -403,3 +403,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `JsonPrimitive.contentOrNull`，补齐图书馆字段由数字/布尔原语转文本的行为；新增数字座位字段脱敏测试先失败后通过。
 - 未改变请求、加密、会话或真实写操作策略。
+
+## 2026-08-29 Cgyy 原语字段兼容
+
+- 对照冻结 `LocalCgyyApi.string`，补齐场馆文本字段从数字/布尔原语转为字符串的行为；新增数字站点字段脱敏测试先失败后通过。
+- 未改变签名、请求、路线、会话或真实写操作策略。
