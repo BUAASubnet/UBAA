@@ -470,3 +470,11 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   WebVPN 与 auto 成功结果，Judge 三路线证据已齐备。
 - Direct Cgyy 站点查询通过（4 个站点），日期阶段仍返回 `upstream_unavailable`，退出 5。
   该失败不被站点成功掩盖，也未改变冻结请求和错误分类。
+
+## 2026-08-29 Cgyy 验证器逐操作不中断
+
+- 旧验证器在 Cgyy 用途或日期失败时提前返回，无法证明订单、详情和锁码是否被独立
+  尝试。现按操作分别记录脱敏失败，继续执行不依赖失败响应的后续查询；订单详情仅在
+  订单列表提供标识时调用，日期详情仅在站点列表提供标识时调用。
+- `scripts/test-verify-live.sh` 已补齐站点、日期、订单、订单详情和锁码的合成响应与调用
+  顺序断言；真实验证仍不执行写操作，聚合返回首个失败退出码。

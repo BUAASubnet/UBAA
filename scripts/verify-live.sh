@@ -1274,34 +1274,36 @@ run_readonly_feature() {
       printf 'mode=%s route=%s resolved_route=%s feature=bykc outcome=success stage=bykc exit_code=0 elapsed_ms=%s course_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
     cgyy)
+      local cgyy_failed=0 cgyy_first_code=0
       run_json none cgyy sites
-      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy; return "$CLI_CODE"; fi
-      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy; return 1; fi
-      count=$(jq -r '.data | length' <<<"$CLI_OUTPUT")
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy; cgyy_failed=1; cgyy_first_code=$CLI_CODE; count=0
+      elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy; cgyy_failed=1; cgyy_first_code=1; count=0
+      else count=$(jq -r '.data | length' <<<"$CLI_OUTPUT"); fi
       local cgyy_site_id cgyy_date cgyy_order_id
       cgyy_site_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
       printf 'mode=%s route=%s resolved_route=%s feature=cgyy outcome=success stage=cgyy exit_code=0 elapsed_ms=%s site_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       run_json none cgyy purposes
-      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_purposes; return "$CLI_CODE"; fi
-      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_purposes; return 1; fi
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_purposes; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
+      elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_purposes; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
       cgyy_date=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
       if [[ -n "$cgyy_site_id" ]]; then
         run_json none cgyy day --site-id "$cgyy_site_id" --date "$cgyy_date"
-        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_day; return "$CLI_CODE"; fi
-        if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.timeSlots | type) == "array" and (.data.spaces | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_day; return 1; fi
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_day; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
+        elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.timeSlots | type) == "array" and (.data.spaces | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_day; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
       fi
       run_json none cgyy orders --page 0 --size 20
-      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_orders; return "$CLI_CODE"; fi
-      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.content | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_orders; return 1; fi
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_orders; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
+      elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.content | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_orders; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
       cgyy_order_id=$(jq -r '.data.content[0].id // empty' <<<"$CLI_OUTPUT")
       if [[ -n "$cgyy_order_id" ]]; then
         run_json none cgyy detail --id "$cgyy_order_id"
-        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_detail; return "$CLI_CODE"; fi
-        if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.id | type) == "number"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_detail; return 1; fi
+        if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_detail; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
+        elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.id | type) == "number"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_detail; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
       fi
       run_json none cgyy lock-code
-      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_lock_code; return "$CLI_CODE"; fi
-      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data | has("rawData"))' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_lock_code; return 1; fi
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_lock_code; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
+      elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data | has("rawData"))' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_lock_code; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
+      if [[ "$cgyy_failed" -ne 0 ]]; then return "$cgyy_first_code"; fi
       ;;
     evaluation)
       run_json none evaluation all

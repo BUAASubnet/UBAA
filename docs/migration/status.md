@@ -295,3 +295,4 @@ CI remains deterministic-only and never reads `.env.local`.
 - auto Judge 单项复测已通过（课程 5、当前任务 65，详情语义通过）；Direct Judge 同轮仍为 `upstream_unavailable`。Judge 列表存在实时快照波动，继续保留逐路线结果。
 - Direct Judge 随后单项复测通过（课程 5、当前任务 65，详情语义通过）；Judge 的 Direct/WebVPN/auto 成功证据现已齐备。
 - Direct Cgyy 同轮站点查询通过（4 个站点），日期查询仍为 `upstream_unavailable`；Cgyy 是当前唯一未收敛的只读实时领域。
+- `verify-live` 的 Cgyy 分支已改为逐操作继续执行：用途、日期、订单、条件详情和锁码失败会逐项输出脱敏错误，只有依赖标识缺失时才跳过对应详情；末尾返回首个失败码。shell 回归测试已覆盖完整调用顺序。

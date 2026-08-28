@@ -392,9 +392,11 @@ extension_calls_output=$(
     elif [[ "$command" == bykc\ courses* ]]; then CLI_OUTPUT='{"data":{"content":[]}}'
     elif [[ "$command" == "bykc chosen" ]]; then CLI_OUTPUT='{"data":[]}'
     elif [[ "$command" == "bykc statistics" ]]; then CLI_OUTPUT='{"data":{}}'
-    elif [[ "$command" == "cgyy sites" ]]; then CLI_OUTPUT='{"data":[]}'
+    elif [[ "$command" == "cgyy sites" ]]; then CLI_OUTPUT='{"data":[{"id":1}]}'
     elif [[ "$command" == "cgyy purposes" ]]; then CLI_OUTPUT='{"data":[]}'
-    elif [[ "$command" == cgyy\ orders* ]]; then CLI_OUTPUT='{"data":{"content":[]}}'
+    elif [[ "$command" == cgyy\ day* ]]; then CLI_OUTPUT='{"data":{"timeSlots":[],"spaces":[]}}'
+    elif [[ "$command" == cgyy\ orders* ]]; then CLI_OUTPUT='{"data":{"content":[{"id":2}]}}'
+    elif [[ "$command" == "cgyy detail --id 2" ]]; then CLI_OUTPUT='{"data":{"id":2}}'
     elif [[ "$command" == "cgyy lock-code" ]]; then CLI_OUTPUT='{"data":{"rawData":{}}}'
     elif [[ "$command" == "evaluation all" ]]; then CLI_OUTPUT='{"data":{"courses":[]}}'
     elif [[ "$command" == "evaluation pending" ]]; then CLI_OUTPUT='{"data":[]}'
@@ -418,7 +420,9 @@ if [[ "$extension_calls_code" -ne 0 \
   || "$extension_calls_output" != *"bykc chosen"* \
   || "$extension_calls_output" != *"bykc statistics"* \
   || "$extension_calls_output" != *"cgyy purposes"* \
+  || "$extension_calls_output" != *"cgyy day --site-id 1 --date 2026-08-29"* \
   || "$extension_calls_output" != *"cgyy orders --page 0 --size 20"* \
+  || "$extension_calls_output" != *"cgyy detail --id 2"* \
   || "$extension_calls_output" != *"cgyy lock-code"* \
   || "$extension_calls_output" != *"evaluation pending"* ]]; then
   printf '扩展只读验证器未逐操作调用，或调用失败\n%s\n' "$extension_calls_output" >&2
