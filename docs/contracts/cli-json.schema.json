@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -285,17 +285,21 @@
     },
     "bykcCourse": {
       "type": "object",
-      "required": ["id", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "courseMaxCount", "courseCurrentCount", "selected"],
+      "required": ["id", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "courseSelectStartDate", "courseSelectEndDate", "courseCancelEndDate", "courseMaxCount", "courseCurrentCount", "status", "selected"],
       "properties": {
         "id": { "$ref": "#/$defs/i64" }, "courseName": { "type": "string" },
         "coursePosition": { "$ref": "#/$defs/nullableString" }, "courseTeacher": { "$ref": "#/$defs/nullableString" },
         "courseStartDate": { "$ref": "#/$defs/nullableString" }, "courseEndDate": { "$ref": "#/$defs/nullableString" },
+        "courseSelectStartDate": { "$ref": "#/$defs/nullableString" }, "courseSelectEndDate": { "$ref": "#/$defs/nullableString" },
+        "courseCancelEndDate": { "$ref": "#/$defs/nullableString" },
         "courseMaxCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
         "courseCurrentCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "status": { "$ref": "#/$defs/bykcCourseStatus" },
         "selected": { "type": ["boolean", "null"] }
       },
       "additionalProperties": false
     },
+    "bykcCourseStatus": { "enum": ["expired", "selected", "preview", "ended", "full", "available"] },
     "bykcCoursePage": {
       "type": "object", "required": ["content", "totalElements", "totalPages", "size", "number"],
       "properties": {
@@ -305,12 +309,34 @@
       }, "additionalProperties": false
     },
     "bykcChosenCourse": {
-      "type": "object", "required": ["id", "courseId", "courseName", "selectDate", "checkin", "score"],
+      "type": "object", "required": ["id", "courseId", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "selectDate", "courseCancelEndDate", "category", "subCategory", "checkin", "score", "pass", "canSign", "canSignOut", "signConfig", "courseSignType", "homework", "homeworkAttachmentName", "homeworkAttachmentPath", "signInfo"],
       "properties": {
-        "id": { "$ref": "#/$defs/i64" }, "courseId": { "anyOf": [{ "$ref": "#/$defs/i64" }, { "type": "null" }] },
-        "courseName": { "$ref": "#/$defs/nullableString" }, "selectDate": { "$ref": "#/$defs/nullableString" },
-        "checkin": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "score": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }
+        "id": { "$ref": "#/$defs/i64" }, "courseId": { "$ref": "#/$defs/i64" },
+        "courseName": { "type": "string" }, "coursePosition": { "$ref": "#/$defs/nullableString" }, "courseTeacher": { "$ref": "#/$defs/nullableString" },
+        "courseStartDate": { "$ref": "#/$defs/nullableString" }, "courseEndDate": { "$ref": "#/$defs/nullableString" }, "selectDate": { "$ref": "#/$defs/nullableString" },
+        "courseCancelEndDate": { "$ref": "#/$defs/nullableString" }, "category": { "anyOf": [{ "$ref": "#/$defs/bykcCourseCategory" }, { "type": "null" }] },
+        "subCategory": { "anyOf": [{ "$ref": "#/$defs/bykcCourseSubCategory" }, { "type": "null" }] },
+        "checkin": { "$ref": "#/$defs/i32" }, "score": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "pass": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "canSign": { "type": "boolean" }, "canSignOut": { "type": "boolean" },
+        "signConfig": { "anyOf": [{ "$ref": "#/$defs/bykcSignConfig" }, { "type": "null" }] }, "courseSignType": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "homework": { "$ref": "#/$defs/nullableString" }, "homeworkAttachmentName": { "$ref": "#/$defs/nullableString" },
+        "homeworkAttachmentPath": { "$ref": "#/$defs/nullableString" }, "signInfo": { "$ref": "#/$defs/nullableString" }
       }, "additionalProperties": false
+    },
+    "bykcCourseCategory": { "enum": ["博雅课程", "未知分类"] },
+    "bykcCourseSubCategory": { "enum": ["德育", "美育", "劳动教育", "安全健康", "其他方面", "未知类型"] },
+    "bykcSignConfig": {
+      "type": "object", "required": ["signStartDate", "signEndDate", "signOutStartDate", "signOutEndDate", "signPoints"],
+      "properties": {
+        "signStartDate": { "$ref": "#/$defs/nullableString" }, "signEndDate": { "$ref": "#/$defs/nullableString" },
+        "signOutStartDate": { "$ref": "#/$defs/nullableString" }, "signOutEndDate": { "$ref": "#/$defs/nullableString" },
+        "signPoints": { "type": "array", "items": { "$ref": "#/$defs/bykcSignPoint" } }
+      }, "additionalProperties": false
+    },
+    "bykcSignPoint": {
+      "type": "object", "required": ["lat", "lng", "radius"],
+      "properties": { "lat": { "type": "number" }, "lng": { "type": "number" }, "radius": { "type": "number" } },
+      "additionalProperties": false
     },
     "bykcStatistics": {
       "type": "object", "required": ["totalValidCount", "categories"],
@@ -323,10 +349,39 @@
       "additionalProperties": false
     },
     "bykcRoutedData": {
-      "oneOf": [
+      "anyOf": [
         { "$ref": "#/$defs/bykcUserProfile" }, { "$ref": "#/$defs/bykcCoursePage" },
         { "$ref": "#/$defs/bykcCourse" }, { "type": "array", "items": { "$ref": "#/$defs/bykcChosenCourse" } },
         { "$ref": "#/$defs/bykcStatistics" }
+      ]
+    },
+    "evaluationCourse": {
+      "type": "object",
+      "required": ["id", "kcmc", "bpmc", "isEvaluated", "rwid", "wjid", "kcdm", "bpdm", "pjrdm", "pjrmc", "xnxq", "msid", "zdmc", "ypjcs", "xypjcs", "sxz", "rwh", "xn", "xq", "pjlxid", "sfksqbpj", "yxsfktjst"],
+      "properties": {
+        "id": { "type": "string" }, "kcmc": { "type": "string" }, "bpmc": { "type": "string" }, "isEvaluated": { "type": "boolean" },
+        "rwid": { "type": "string" }, "wjid": { "type": "string" }, "kcdm": { "type": "string" }, "bpdm": { "$ref": "#/$defs/nullableString" },
+        "pjrdm": { "$ref": "#/$defs/nullableString" }, "pjrmc": { "$ref": "#/$defs/nullableString" }, "xnxq": { "$ref": "#/$defs/nullableString" },
+        "msid": { "type": "string" }, "zdmc": { "$ref": "#/$defs/nullableString" }, "ypjcs": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "xypjcs": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "sxz": { "$ref": "#/$defs/nullableString" },
+        "rwh": { "$ref": "#/$defs/nullableString" }, "xn": { "$ref": "#/$defs/nullableString" }, "xq": { "$ref": "#/$defs/nullableString" },
+        "pjlxid": { "$ref": "#/$defs/nullableString" }, "sfksqbpj": { "$ref": "#/$defs/nullableString" }, "yxsfktjst": { "$ref": "#/$defs/nullableString" }
+      }, "additionalProperties": false
+    },
+    "evaluationProgress": {
+      "type": "object", "required": ["totalCourses", "evaluatedCourses", "pendingCourses"],
+      "properties": { "totalCourses": { "$ref": "#/$defs/i32" }, "evaluatedCourses": { "$ref": "#/$defs/i32" }, "pendingCourses": { "$ref": "#/$defs/i32" } },
+      "additionalProperties": false
+    },
+    "evaluationCoursesResponse": {
+      "type": "object", "required": ["courses", "progress"],
+      "properties": { "courses": { "type": "array", "items": { "$ref": "#/$defs/evaluationCourse" } }, "progress": { "$ref": "#/$defs/evaluationProgress" } },
+      "additionalProperties": false
+    },
+    "evaluationRoutedData": {
+      "anyOf": [
+        { "$ref": "#/$defs/evaluationCoursesResponse" },
+        { "type": "array", "items": { "$ref": "#/$defs/evaluationCourse" } }
       ]
     },
     "cgyyVenueSite": {
@@ -341,7 +396,9 @@
     "cgyyDayInfo": { "type": "object", "required": ["venueSiteId", "reservationDate", "availableDates", "timeSlots", "spaces", "reservationToken", "reservationTotalNum"], "properties": { "venueSiteId": { "$ref": "#/$defs/i32" }, "reservationDate": { "type": "string" }, "availableDates": { "type": "array", "items": { "type": "string" } }, "timeSlots": { "type": "array", "items": { "$ref": "#/$defs/cgyyTimeSlot" } }, "spaces": { "type": "array", "items": { "$ref": "#/$defs/cgyySpaceAvailability" } }, "reservationToken": { "$ref": "#/$defs/nullableString" }, "reservationTotalNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] } }, "additionalProperties": false },
     "cgyyOrder": { "type": "object", "required": ["id", "tradeNo", "venueSiteId", "reservationDate", "reservationDateDetail", "venueSpaceName", "campusName", "venueName", "siteName", "reservationStartDate", "reservationEndDate", "phone", "orderStatus", "payStatus", "checkStatus", "theme", "purposeType", "purposeTypeName", "joinerNum", "activityContent", "joiners", "checkContent", "handleReason", "remark"], "properties": { "id": { "$ref": "#/$defs/i32" }, "tradeNo": { "$ref": "#/$defs/nullableString" }, "venueSiteId": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "reservationDate": { "$ref": "#/$defs/nullableString" }, "reservationDateDetail": { "$ref": "#/$defs/nullableString" }, "venueSpaceName": { "$ref": "#/$defs/nullableString" }, "campusName": { "$ref": "#/$defs/nullableString" }, "venueName": { "$ref": "#/$defs/nullableString" }, "siteName": { "$ref": "#/$defs/nullableString" }, "reservationStartDate": { "$ref": "#/$defs/nullableString" }, "reservationEndDate": { "$ref": "#/$defs/nullableString" }, "phone": { "$ref": "#/$defs/nullableString" }, "orderStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "payStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "checkStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "theme": { "$ref": "#/$defs/nullableString" }, "purposeType": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "purposeTypeName": { "$ref": "#/$defs/nullableString" }, "joinerNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "activityContent": { "$ref": "#/$defs/nullableString" }, "joiners": { "$ref": "#/$defs/nullableString" }, "checkContent": { "$ref": "#/$defs/nullableString" }, "handleReason": { "$ref": "#/$defs/nullableString" }, "remark": { "$ref": "#/$defs/nullableString" } }, "additionalProperties": false },
     "cgyyOrdersPage": { "type": "object", "required": ["content", "totalElements", "totalPages", "size", "number"], "properties": { "content": { "type": "array", "items": { "$ref": "#/$defs/cgyyOrder" } }, "totalElements": { "$ref": "#/$defs/i32" }, "totalPages": { "$ref": "#/$defs/i32" }, "size": { "$ref": "#/$defs/i32" }, "number": { "$ref": "#/$defs/i32" } }, "additionalProperties": false },
-    "cgyyRoutedData": { "oneOf": [ { "type": "array", "items": { "$ref": "#/$defs/cgyyVenueSite" } }, { "type": "array", "items": { "$ref": "#/$defs/cgyyPurposeType" } }, { "$ref": "#/$defs/cgyyDayInfo" }, { "$ref": "#/$defs/cgyyOrdersPage" }, { "$ref": "#/$defs/cgyyOrder" } ] },
+    "cgyyActionResult": { "type": "object", "required": ["message", "order"], "properties": { "message": { "type": "string" }, "order": { "anyOf": [{ "$ref": "#/$defs/cgyyOrder" }, { "type": "null" }] } }, "additionalProperties": false },
+    "cgyyLockCode": { "type": "object", "required": ["rawData"], "properties": { "rawData": {} }, "additionalProperties": false },
+    "cgyyRoutedData": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/cgyyVenueSite" } }, { "type": "array", "items": { "$ref": "#/$defs/cgyyPurposeType" } }, { "$ref": "#/$defs/cgyyDayInfo" }, { "$ref": "#/$defs/cgyyOrdersPage" }, { "$ref": "#/$defs/cgyyOrder" }, { "$ref": "#/$defs/cgyyActionResult" }, { "$ref": "#/$defs/cgyyLockCode" } ] },
     "ygdkOverview": {
       "type": "object",
       "required": ["summary", "classifyId", "classifyName", "defaultItemId", "defaultItemName", "items"],
@@ -821,6 +878,24 @@
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "ygdk" } }, "required": ["feature"] },
                   "data": { "oneOf": [{ "$ref": "#/$defs/ygdkOverview" }, { "$ref": "#/$defs/ygdkRecordsPage" }] }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "bykc" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/bykcRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "cgyy" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/cgyyRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "evaluation" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/evaluationRoutedData" }
                 }
               }
             ]

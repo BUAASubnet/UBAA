@@ -872,7 +872,7 @@ main() {
       direct|webvpn) mode=$argument; route=$argument ;;
       '') ;;
       *)
-        echo "usage: $0 [direct|webvpn] [feature=auth|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy] [route=auto|direct|webvpn]" >&2
+        echo "usage: $0 [direct|webvpn] [feature=auth|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation] [route=auto|direct|webvpn]" >&2
         exit 2
         ;;
     esac
@@ -885,7 +885,7 @@ main() {
   fi
 
   case "$feature" in
-    auth|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy) ;;
+    auth|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation) ;;
     *) echo "unsupported feature: $feature" >&2; exit 2 ;;
   esac
   case "$route" in
@@ -999,7 +999,7 @@ run_readonly_feature() {
   if [[ "$feature" == all ]]; then
     original_feature=$feature
     local first_failure=0
-    for subfeature in schedule exam grades classroom spoc judge signin ygdk libbook bykc cgyy; do
+    for subfeature in schedule exam grades classroom spoc judge signin ygdk libbook bykc cgyy evaluation; do
       feature=$subfeature
       if run_readonly_feature; then
         :
@@ -1230,6 +1230,17 @@ run_readonly_feature() {
       if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy; return 1; fi
       count=$(jq -r '.data | length' <<<"$CLI_OUTPUT")
       printf 'mode=%s route=%s resolved_route=%s feature=cgyy outcome=success stage=cgyy exit_code=0 elapsed_ms=%s site_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
+      run_json none cgyy lock-code
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_lock_code; return "$CLI_CODE"; fi
+      if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data | has("rawData"))' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_lock_code; return 1; fi
+      ;;
+    evaluation)
+      run_json none evaluation all
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure evaluation; return "$CLI_CODE"; fi
+      if ! validate_routed_success evaluation || ! jq -e '(.data | type) == "object" and (.data.courses | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure evaluation; return 1; fi
+      local count
+      count=$(jq -r '.data.courses | length' <<<"$CLI_OUTPUT")
+      printf 'mode=%s route=%s resolved_route=%s feature=evaluation outcome=success stage=evaluation exit_code=0 elapsed_ms=%s course_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
   esac
 }

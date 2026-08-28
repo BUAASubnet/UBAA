@@ -9,12 +9,14 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
-    AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
-    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite,
-    ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
-    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary, LibBookSeat, LoginInput,
-    LoginReadiness, RoutePolicy, SafeError, SecretValue, SigninClass, SpocAssignmentDetail,
+    AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
+    BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
+    CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput,
+    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
+    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginReadiness,
+    RoutePolicy, SafeError, SecretValue, SigninActionResult, SigninClass, SpocAssignmentDetail,
     SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
     WeeklySchedule, YgdkOverview, YgdkRecordsPage,
 };
@@ -134,6 +136,22 @@ pub enum Command {
     Bykc(BykcArgs),
     /// 场馆预约只读操作。
     Cgyy(CgyyArgs),
+    /// 教学评教只读操作。
+    Evaluation(EvaluationArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct EvaluationArgs {
+    #[command(subcommand)]
+    pub command: EvaluationCommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum EvaluationCommand {
+    /// 查询全部评教课程及进度。
+    All,
+    /// 查询待评教课程。
+    Pending,
 }
 
 /// 场馆预约命令组。
@@ -174,11 +192,16 @@ pub enum CgyyCommand {
         #[arg(long)]
         id: i32,
     },
+    /// 查询当前用户门锁码。
+    LockCode,
     /// 取消预约订单。
     Cancel {
         /// 订单编号。
         #[arg(long)]
         id: i32,
+        /// 明确确认向上游发送有副作用的取消请求。
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
     },
 }
 
@@ -216,6 +239,33 @@ pub enum BykcCommand {
     Chosen,
     /// 查询修读统计。
     Statistics,
+    /// 选课写操作。
+    Select {
+        #[arg(long)]
+        course_id: i64,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
+    /// 退选写操作。
+    Deselect {
+        #[arg(long)]
+        course_id: i64,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
+    /// 签到或签退写操作。
+    Sign {
+        #[arg(long)]
+        course_id: i64,
+        #[arg(long)]
+        sign_type: i32,
+        #[arg(long)]
+        lat: Option<f64>,
+        #[arg(long)]
+        lng: Option<f64>,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
 }
 
 /// 图书馆座位命令组。
@@ -276,6 +326,28 @@ pub enum LibBookCommand {
         #[arg(long, default_value_t = 20)]
         limit: i32,
     },
+    Reserve {
+        #[arg(long)]
+        area_id: String,
+        #[arg(long)]
+        seat_id: String,
+        #[arg(long)]
+        day: String,
+        #[arg(long)]
+        segment: String,
+        #[arg(long, default_value = "")]
+        start_time: String,
+        #[arg(long, default_value = "")]
+        end_time: String,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
+    Cancel {
+        #[arg(long)]
+        booking_id: String,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
 }
 
 /// 阳光打卡命令组。
@@ -312,6 +384,13 @@ pub struct SigninArgs {
 pub enum SigninCommand {
     /// 列出今日课程及其签到状态。
     Today,
+    /// 执行指定课程签到。
+    Perform {
+        #[arg(long)]
+        course_id: String,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
 }
 
 /// 认证命令组。
@@ -605,6 +684,7 @@ impl Cli {
                 | Command::Bykc(_)
                 | Command::Cgyy(_)
                 | Command::Ygdk(_)
+                | Command::Evaluation(_)
         )
     }
 
@@ -655,6 +735,12 @@ pub trait CliBackend {
     async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         Err(internal_error("签到功能不可用"))
     }
+    async fn signin_perform(
+        &mut self,
+        _course_id: &str,
+    ) -> Result<FeatureResult<SigninActionResult>> {
+        Err(internal_error("签到功能不可用"))
+    }
     /// 查询图书馆楼馆列表。
     async fn libbook_libraries(
         &mut self,
@@ -696,6 +782,18 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<LibBookBookingsPage>> {
         Err(internal_error("图书馆功能不可用"))
     }
+    async fn libbook_reserve(
+        &mut self,
+        _request: LibBookReserveRequest,
+    ) -> Result<FeatureResult<LibBookReserveResult>> {
+        Err(internal_error("图书馆写功能不可用"))
+    }
+    async fn libbook_cancel_booking(
+        &mut self,
+        _id: &str,
+    ) -> Result<FeatureResult<LibBookCancelResult>> {
+        Err(internal_error("图书馆写功能不可用"))
+    }
     /// 查询博雅用户资料。
     async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
         Err(internal_error("博雅功能不可用"))
@@ -721,8 +819,29 @@ pub trait CliBackend {
     async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         Err(internal_error("博雅功能不可用"))
     }
+    async fn bykc_select_course(
+        &mut self,
+        _course_id: i64,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        Err(internal_error("博雅写功能不可用"))
+    }
+    async fn bykc_deselect_course(
+        &mut self,
+        _course_id: i64,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        Err(internal_error("博雅写功能不可用"))
+    }
+    async fn bykc_sign_course(
+        &mut self,
+        _request: BykcSignRequest,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        Err(internal_error("博雅写功能不可用"))
+    }
     /// 查询场馆站点。
     async fn cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
+    async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>> {
         Err(internal_error("场馆预约功能不可用"))
     }
     /// 查询预约用途。
@@ -758,6 +877,10 @@ pub trait CliBackend {
         _size: i32,
     ) -> Result<FeatureResult<YgdkRecordsPage>> {
         Err(internal_error("阳光打卡不可用"))
+    }
+    /// 查询全部评教课程。
+    async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
+        Err(internal_error("评教功能不可用"))
     }
 
     /// 查询学期。
@@ -847,8 +970,15 @@ pub trait CliBackend {
 /// 不自行选择或修复路由。
 #[async_trait]
 pub trait RoutedCliBackend {
+    /// 通过 Core 路由查询全部评教课程。
+    async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
+        Err(routed_unavailable("评教功能不可用"))
+    }
     /// 查询今日课堂签到状态。
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
+        Err(routed_unavailable("签到功能不可用"))
+    }
+    async fn signin_perform(&mut self, _course_id: &str) -> RoutedResult<SigninActionResult> {
         Err(routed_unavailable("签到功能不可用"))
     }
     /// 通过 Core 路由查询图书馆楼馆列表。
@@ -886,6 +1016,15 @@ pub trait RoutedCliBackend {
     ) -> RoutedResult<LibBookBookingsPage> {
         Err(routed_unavailable("图书馆功能不可用"))
     }
+    async fn libbook_reserve(
+        &mut self,
+        _request: LibBookReserveRequest,
+    ) -> RoutedResult<LibBookReserveResult> {
+        Err(routed_unavailable("图书馆写功能不可用"))
+    }
+    async fn libbook_cancel_booking(&mut self, _id: &str) -> RoutedResult<LibBookCancelResult> {
+        Err(routed_unavailable("图书馆写功能不可用"))
+    }
     /// 通过 Core 路由查询博雅用户资料。
     async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
         Err(routed_unavailable("博雅功能不可用"))
@@ -911,8 +1050,23 @@ pub trait RoutedCliBackend {
     async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
         Err(routed_unavailable("博雅功能不可用"))
     }
+    async fn bykc_select_course(&mut self, _course_id: i64) -> RoutedResult<BykcActionResult> {
+        Err(routed_unavailable("博雅写功能不可用"))
+    }
+    async fn bykc_deselect_course(&mut self, _course_id: i64) -> RoutedResult<BykcActionResult> {
+        Err(routed_unavailable("博雅写功能不可用"))
+    }
+    async fn bykc_sign_course(
+        &mut self,
+        _request: BykcSignRequest,
+    ) -> RoutedResult<BykcActionResult> {
+        Err(routed_unavailable("博雅写功能不可用"))
+    }
     /// 通过 Core 路由查询场馆站点。
     async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
+        Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
         Err(routed_unavailable("场馆预约功能不可用"))
     }
     /// 通过 Core 路由查询预约用途。
@@ -1268,6 +1422,12 @@ impl CliBackend for RouteClient {
     async fn signin_today(&mut self) -> Result<FeatureResult<Vec<SigninClass>>> {
         self.signin_today().await
     }
+    async fn signin_perform(
+        &mut self,
+        course_id: &str,
+    ) -> Result<FeatureResult<SigninActionResult>> {
+        self.signin_perform(course_id).await
+    }
     async fn libbook_libraries(&mut self, day: &str) -> Result<FeatureResult<Vec<LibBookLibrary>>> {
         self.libbook_libraries(day).await
     }
@@ -1301,6 +1461,18 @@ impl CliBackend for RouteClient {
     ) -> Result<FeatureResult<LibBookBookingsPage>> {
         self.libbook_bookings(page, limit).await
     }
+    async fn libbook_reserve(
+        &mut self,
+        request: LibBookReserveRequest,
+    ) -> Result<FeatureResult<LibBookReserveResult>> {
+        self.libbook_reserve(request).await
+    }
+    async fn libbook_cancel_booking(
+        &mut self,
+        id: &str,
+    ) -> Result<FeatureResult<LibBookCancelResult>> {
+        self.libbook_cancel_booking(id).await
+    }
     async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
         self.bykc_profile().await
     }
@@ -1321,8 +1493,29 @@ impl CliBackend for RouteClient {
     async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         self.bykc_statistics().await
     }
+    async fn bykc_select_course(
+        &mut self,
+        course_id: i64,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        self.bykc_select_course(course_id).await
+    }
+    async fn bykc_deselect_course(
+        &mut self,
+        course_id: i64,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        self.bykc_deselect_course(course_id).await
+    }
+    async fn bykc_sign_course(
+        &mut self,
+        request: BykcSignRequest,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        self.bykc_sign_course(request).await
+    }
     async fn cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>> {
         self.cgyy_sites().await
+    }
+    async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>> {
+        self.cgyy_lock_code().await
     }
     async fn cgyy_purposes(&mut self) -> Result<FeatureResult<Vec<CgyyPurposeType>>> {
         self.cgyy_purposes().await
@@ -1348,6 +1541,9 @@ impl CliBackend for RouteClient {
         size: i32,
     ) -> Result<FeatureResult<YgdkRecordsPage>> {
         self.ygdk_records(page, size).await
+    }
+    async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
+        self.evaluation_all().await
     }
 
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
@@ -1419,8 +1615,14 @@ impl CliBackend for RouteClient {
 
 #[async_trait]
 impl RoutedCliBackend for UbaaClient {
+    async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
+        UbaaClient::evaluation_all(self).await
+    }
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         UbaaClient::signin_today(self).await
+    }
+    async fn signin_perform(&mut self, course_id: &str) -> RoutedResult<SigninActionResult> {
+        UbaaClient::signin_perform(self, course_id).await
     }
     async fn libbook_libraries(&mut self, day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
         UbaaClient::libbook_libraries(self, day).await
@@ -1452,8 +1654,20 @@ impl RoutedCliBackend for UbaaClient {
     ) -> RoutedResult<LibBookBookingsPage> {
         UbaaClient::libbook_bookings(self, page, limit).await
     }
+    async fn libbook_reserve(
+        &mut self,
+        request: LibBookReserveRequest,
+    ) -> RoutedResult<LibBookReserveResult> {
+        UbaaClient::libbook_reserve(self, request).await
+    }
+    async fn libbook_cancel_booking(&mut self, id: &str) -> RoutedResult<LibBookCancelResult> {
+        UbaaClient::libbook_cancel_booking(self, id).await
+    }
     async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
         UbaaClient::cgyy_sites(self).await
+    }
+    async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
+        UbaaClient::cgyy_lock_code(self).await
     }
     async fn cgyy_purposes(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
         UbaaClient::cgyy_purpose_types(self).await
@@ -1489,6 +1703,18 @@ impl RoutedCliBackend for UbaaClient {
     }
     async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
         UbaaClient::bykc_statistics(self).await
+    }
+    async fn bykc_select_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
+        UbaaClient::bykc_select_course(self, course_id).await
+    }
+    async fn bykc_deselect_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
+        UbaaClient::bykc_deselect_course(self, course_id).await
+    }
+    async fn bykc_sign_course(
+        &mut self,
+        request: BykcSignRequest,
+    ) -> RoutedResult<BykcActionResult> {
+        UbaaClient::bykc_sign_course(self, request).await
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         UbaaClient::ygdk_overview(self).await
@@ -1614,6 +1840,26 @@ where
             CliFeature::Signin,
             routed_readonly(backend.signin_today().await, CliFeature::Signin),
         ),
+        Command::Signin(SigninArgs {
+            command:
+                SigninCommand::Perform {
+                    course_id,
+                    confirm_write,
+                },
+        }) => {
+            let result = if confirm_write {
+                backend.signin_perform(&course_id).await
+            } else {
+                Err(RoutedError {
+                    error: invalid_input("签到是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                })
+            };
+            (
+                CliFeature::Signin,
+                routed_readonly(result, CliFeature::Signin),
+            )
+        }
         Command::Libbook(arguments) => (
             CliFeature::LibBook,
             run_routed_libbook(arguments, backend).await,
@@ -1625,6 +1871,10 @@ where
         }) => (
             CliFeature::Ygdk,
             routed_readonly(backend.ygdk_overview().await, CliFeature::Ygdk),
+        ),
+        Command::Evaluation(arguments) => (
+            CliFeature::Evaluation,
+            run_routed_evaluation(arguments, backend).await,
         ),
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Records { page, size },
@@ -1805,6 +2055,50 @@ async fn run_routed_libbook<B: RoutedCliBackend + Send>(
             backend.libbook_bookings(page, limit).await,
             CliFeature::LibBook,
         ),
+        LibBookCommand::Reserve {
+            area_id,
+            seat_id,
+            day,
+            segment,
+            start_time,
+            end_time,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("预约是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            routed_readonly(
+                backend
+                    .libbook_reserve(LibBookReserveRequest {
+                        area_id,
+                        seat_id,
+                        day,
+                        segment,
+                        start_time,
+                        end_time,
+                    })
+                    .await,
+                CliFeature::LibBook,
+            )
+        }
+        LibBookCommand::Cancel {
+            booking_id,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("取消预约是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            routed_readonly(
+                backend.libbook_cancel_booking(&booking_id).await,
+                CliFeature::LibBook,
+            )
+        }
     }
 }
 
@@ -1827,6 +2121,61 @@ async fn run_routed_bykc<B: RoutedCliBackend + Send>(
         BykcCommand::Statistics => {
             routed_readonly(backend.bykc_statistics().await, CliFeature::Bykc)
         }
+        BykcCommand::Select {
+            course_id,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("选课是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            routed_readonly(
+                backend.bykc_select_course(course_id).await,
+                CliFeature::Bykc,
+            )
+        }
+        BykcCommand::Deselect {
+            course_id,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("退选是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            routed_readonly(
+                backend.bykc_deselect_course(course_id).await,
+                CliFeature::Bykc,
+            )
+        }
+        BykcCommand::Sign {
+            course_id,
+            sign_type,
+            lat,
+            lng,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("签到是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            routed_readonly(
+                backend
+                    .bykc_sign_course(BykcSignRequest {
+                        course_id,
+                        sign_type,
+                        lat,
+                        lng,
+                    })
+                    .await,
+                CliFeature::Bykc,
+            )
+        }
     }
 }
 
@@ -1846,7 +2195,14 @@ async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
         CgyyCommand::Detail { id } => {
             routed_readonly(backend.cgyy_order_detail(id).await, CliFeature::Cgyy)
         }
-        CgyyCommand::Cancel { id } => {
+        CgyyCommand::LockCode => routed_readonly(backend.cgyy_lock_code().await, CliFeature::Cgyy),
+        CgyyCommand::Cancel { id, confirm_write } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("取消预约是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
             routed_readonly(backend.cgyy_cancel_order(id).await, CliFeature::Cgyy)
         }
     }
@@ -2019,6 +2375,22 @@ where
             .signin_today()
             .await
             .and_then(|data| readonly(data, CliFeature::Signin)),
+        Command::Signin(SigninArgs {
+            command:
+                SigninCommand::Perform {
+                    course_id,
+                    confirm_write,
+                },
+        }) => {
+            if confirm_write {
+                backend
+                    .signin_perform(&course_id)
+                    .await
+                    .and_then(|data| readonly(data, CliFeature::Signin))
+            } else {
+                Err(invalid_input("签到是写操作，必须显式指定 --confirm-write"))
+            }
+        }
         Command::Libbook(arguments) => run_libbook(arguments, backend).await,
         Command::Bykc(arguments) => run_bykc(arguments, backend).await,
         Command::Cgyy(arguments) => run_cgyy(arguments, backend).await,
@@ -2028,6 +2400,7 @@ where
             .ygdk_overview()
             .await
             .and_then(|data| readonly(data, CliFeature::Ygdk)),
+        Command::Evaluation(arguments) => run_evaluation(arguments, backend).await,
         Command::Ygdk(YgdkArgs {
             command: YgdkCommand::Records { page, size },
         }) => backend
@@ -2062,6 +2435,7 @@ const fn command_feature(command: &Command) -> CliFeature {
         Command::Bykc(_) => CliFeature::Bykc,
         Command::Cgyy(_) => CliFeature::Cgyy,
         Command::Ygdk(_) => CliFeature::Ygdk,
+        Command::Evaluation(_) => CliFeature::Evaluation,
     }
 }
 
@@ -2274,6 +2648,100 @@ async fn run_libbook<B: CliBackend + Send>(
             .libbook_bookings(page, limit)
             .await
             .and_then(|result| readonly(result, CliFeature::LibBook)),
+        LibBookCommand::Reserve {
+            area_id,
+            seat_id,
+            day,
+            segment,
+            start_time,
+            end_time,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input("预约是写操作，必须显式指定 --confirm-write"));
+            }
+            backend
+                .libbook_reserve(LibBookReserveRequest {
+                    area_id,
+                    seat_id,
+                    day,
+                    segment,
+                    start_time,
+                    end_time,
+                })
+                .await
+                .and_then(|result| readonly(result, CliFeature::LibBook))
+        }
+        LibBookCommand::Cancel {
+            booking_id,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input(
+                    "取消预约是写操作，必须显式指定 --confirm-write",
+                ));
+            }
+            backend
+                .libbook_cancel_booking(&booking_id)
+                .await
+                .and_then(|result| readonly(result, CliFeature::LibBook))
+        }
+    }
+}
+
+async fn run_routed_evaluation<B: RoutedCliBackend + Send>(
+    arguments: EvaluationArgs,
+    backend: &mut B,
+) -> RoutedResult<CommandOutput> {
+    match arguments.command {
+        EvaluationCommand::All => {
+            routed_readonly(backend.evaluation_all().await, CliFeature::Evaluation)
+        }
+        EvaluationCommand::Pending => match backend.evaluation_all().await {
+            Ok(value) => {
+                let data = value
+                    .data
+                    .courses
+                    .into_iter()
+                    .filter(|course| !course.is_evaluated)
+                    .collect::<Vec<_>>();
+                Ok(Routed {
+                    data: CommandOutput::Readonly {
+                        data: serde_json::to_value(data).unwrap_or(serde_json::Value::Null),
+                        route: value.resolution.mode,
+                        feature: CliFeature::Evaluation,
+                    },
+                    resolution: value.resolution,
+                })
+            }
+            Err(error) => Err(error),
+        },
+    }
+}
+
+async fn run_evaluation<B: CliBackend + Send>(
+    arguments: EvaluationArgs,
+    backend: &mut B,
+) -> Result<CommandOutput> {
+    match arguments.command {
+        EvaluationCommand::All => backend
+            .evaluation_all()
+            .await
+            .and_then(|result| readonly(result, CliFeature::Evaluation)),
+        EvaluationCommand::Pending => backend.evaluation_all().await.and_then(|result| {
+            let pending: Vec<_> = result
+                .data
+                .courses
+                .into_iter()
+                .filter(|course| !course.is_evaluated)
+                .collect();
+            Ok(CommandOutput::Readonly {
+                data: serde_json::to_value(pending)
+                    .map_err(|_| internal_error("无法序列化评教输出"))?,
+                route: result.resolved_route,
+                feature: CliFeature::Evaluation,
+            })
+        }),
     }
 }
 
@@ -2302,6 +2770,50 @@ async fn run_bykc<B: CliBackend + Send>(
             .bykc_statistics()
             .await
             .and_then(|r| readonly(r, CliFeature::Bykc)),
+        BykcCommand::Select {
+            course_id,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input("选课是写操作，必须显式指定 --confirm-write"));
+            }
+            backend
+                .bykc_select_course(course_id)
+                .await
+                .and_then(|r| readonly(r, CliFeature::Bykc))
+        }
+        BykcCommand::Deselect {
+            course_id,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input("退选是写操作，必须显式指定 --confirm-write"));
+            }
+            backend
+                .bykc_deselect_course(course_id)
+                .await
+                .and_then(|r| readonly(r, CliFeature::Bykc))
+        }
+        BykcCommand::Sign {
+            course_id,
+            sign_type,
+            lat,
+            lng,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input("签到是写操作，必须显式指定 --confirm-write"));
+            }
+            backend
+                .bykc_sign_course(BykcSignRequest {
+                    course_id,
+                    sign_type,
+                    lat,
+                    lng,
+                })
+                .await
+                .and_then(|r| readonly(r, CliFeature::Bykc))
+        }
     }
 }
 
@@ -2330,10 +2842,21 @@ async fn run_cgyy<B: CliBackend + Send>(
             .cgyy_order_detail(id)
             .await
             .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::Cancel { id } => backend
-            .cgyy_cancel_order(id)
+        CgyyCommand::LockCode => backend
+            .cgyy_lock_code()
             .await
             .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::Cancel { id, confirm_write } => {
+            if !confirm_write {
+                return Err(invalid_input(
+                    "取消预约是写操作，必须显式指定 --confirm-write",
+                ));
+            }
+            backend
+                .cgyy_cancel_order(id)
+                .await
+                .and_then(|result| readonly(result, CliFeature::Cgyy))
+        }
     }
 }
 

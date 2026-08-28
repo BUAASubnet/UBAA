@@ -33,6 +33,7 @@ struct FeaturePolicies {
     classroom: Option<RoutePolicy>,
     spoc: Option<RoutePolicy>,
     judge: Option<RoutePolicy>,
+    evaluation: Option<RoutePolicy>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -67,6 +68,7 @@ struct RawFeatures {
     classroom: Option<RoutePolicy>,
     spoc: Option<RoutePolicy>,
     judge: Option<RoutePolicy>,
+    evaluation: Option<RoutePolicy>,
 }
 
 const fn default_schema_version() -> u32 {
@@ -108,6 +110,7 @@ impl RouteConfig {
                 classroom: raw.route.features.classroom,
                 spoc: raw.route.features.spoc,
                 judge: raw.route.features.judge,
+                evaluation: raw.route.features.evaluation,
             },
         })
     }
@@ -164,6 +167,7 @@ impl RouteConfig {
             ReadonlyFeature::Classroom,
             ReadonlyFeature::Spoc,
             ReadonlyFeature::Judge,
+            ReadonlyFeature::Evaluation,
         ] {
             output.push_str(feature.as_str());
             output.push_str(" = \"");
@@ -224,6 +228,7 @@ impl RouteConfig {
             ReadonlyFeature::Classroom => self.features.classroom,
             ReadonlyFeature::Spoc => self.features.spoc,
             ReadonlyFeature::Judge => self.features.judge,
+            ReadonlyFeature::Evaluation => self.features.evaluation,
         }
         .unwrap_or(self.default)
     }

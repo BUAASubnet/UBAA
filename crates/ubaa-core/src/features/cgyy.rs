@@ -2,8 +2,8 @@
 #![allow(clippy::missing_errors_doc)]
 
 use crate::domain::{
-    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyySlotStatus,
-    CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
+    CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType,
+    CgyySlotStatus, CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -206,6 +206,22 @@ pub(crate) async fn get_order_detail(
     id: i32,
 ) -> Result<CgyyOrder> {
     parse_order_detail(&get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?)
+}
+
+/// 查询当前用户可用的门锁码，保留上游结构为不透明 JSON。
+pub(crate) async fn get_lock_code(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<CgyyLockCode> {
+    let value = get(runtime, "/api/orders/lock/code", BTreeMap::new()).await?;
+    parse_lock_code(&value)
+}
+
+/// 解析门锁码响应，仅保留不透明的业务数据。
+pub fn parse_lock_code(body: &str) -> Result<CgyyLockCode> {
+    let root = object(body)?;
+    Ok(CgyyLockCode {
+        raw_data: root.get("data").cloned().unwrap_or(Value::Object(root)),
+    })
 }
 
 /// 取消指定场馆预约订单。

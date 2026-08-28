@@ -8,12 +8,13 @@ use ubaa_cli::{
 };
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
-    AuthStatus, ClassroomInfo, ClassroomQuery, ConnectionMode, CourseClass, Exam, ExamArrangement,
-    FeatureResult, Grade, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, JudgeProblem, LoginInput, LoginOutcome, LoginReadiness,
-    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SpocAssignmentDetail,
-    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule,
+    AuthStatus, BykcChosenCourse, BykcCourse, BykcSignConfig, BykcSignPoint, BykcUserProfile,
+    CgyyActionResult, ClassroomInfo, ClassroomQuery, ConnectionMode, CourseClass, Exam,
+    ExamArrangement, FeatureResult, Grade, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, JudgeProblem, LoginInput, LoginOutcome,
+    LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
+    SpocAssignmentDetail, SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use ubaa_core::facade::{Routed, RoutedError, RoutedResult};
@@ -40,6 +41,55 @@ fn 博雅课程命令可显式包含已结束课程() {
     ));
 }
 
+#[tokio::test]
+async fn 场馆取消默认拒绝且不调用后端() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "cgyy", "cancel", "--id", "42"]).unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 2);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["ok"], false);
+    assert_eq!(value["error"]["code"], "invalid_input");
+    assert_eq!(value["meta"]["feature"], "cgyy");
+    assert!(value["meta"].get("resolvedRoute").is_none());
+    assert_eq!(backend.cgyy_cancel_calls, 0);
+    assert!(stderr.is_empty());
+}
+
+#[tokio::test]
+async fn 场馆取消显式确认后才调用后端() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "cgyy",
+        "cancel",
+        "--id",
+        "42",
+        "--confirm-write",
+    ])
+    .unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 0);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["message"], "fixture cancellation");
+    assert_eq!(value["meta"]["feature"], "cgyy");
+    assert_eq!(value["meta"]["resolvedRoute"], "direct");
+    assert_eq!(backend.cgyy_cancel_calls, 1);
+    assert!(stderr.is_empty());
+}
+
 #[derive(Default)]
 struct FakeBackend {
     login_calls: usize,
@@ -49,10 +99,26 @@ struct FakeBackend {
 #[derive(Default)]
 struct FakeRoutedBackend {
     fail_schedule: bool,
+    cgyy_cancel_calls: usize,
 }
 
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
+        self.cgyy_cancel_calls += 1;
+        Ok(Routed {
+            data: CgyyActionResult {
+                message: "fixture cancellation".into(),
+                order: None,
+            },
+            resolution: route_resolution(
+                RoutePolicy::Direct,
+                NetworkState::Unknown,
+                ConnectionMode::Direct,
+            ),
+        })
+    }
+
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         Ok(Routed {
             data: profile(),
@@ -503,6 +569,7 @@ async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeRoutedBackend {
         fail_schedule: true,
+        cgyy_cancel_calls: 0,
     };
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -734,6 +801,7 @@ fn routed_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
     representatives
 }
 
+#[allow(clippy::too_many_lines)]
 fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
     let profile = masked_profile();
 
@@ -822,6 +890,35 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
                     .collect(),
             })
             .unwrap(),
+        ),
+        (
+            CliFeature::Bykc,
+            serde_json::to_value(BykcUserProfile::default()).unwrap(),
+        ),
+        (
+            CliFeature::Bykc,
+            serde_json::to_value(BykcCourse::default()).unwrap(),
+        ),
+        (
+            CliFeature::Bykc,
+            serde_json::to_value(vec![BykcChosenCourse {
+                sign_config: Some(BykcSignConfig {
+                    sign_points: vec![BykcSignPoint {
+                        lat: 39.9,
+                        lng: 116.3,
+                        radius: 100.0,
+                    }],
+                    ..BykcSignConfig::default()
+                }),
+                ..BykcChosenCourse::default()
+            }])
+            .unwrap(),
+        ),
+        (CliFeature::Bykc, serde_json::json!([])),
+        (CliFeature::Cgyy, serde_json::json!([])),
+        (
+            CliFeature::Cgyy,
+            serde_json::to_value(CgyyActionResult::default()).unwrap(),
         ),
     ]
 }

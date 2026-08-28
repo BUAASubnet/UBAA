@@ -43,7 +43,8 @@ struct ListResponse<T> {
 
 #[derive(Debug, Deserialize)]
 struct WeeklyResponse {
-    code: String,
+    #[serde(rename = "code")]
+    _code: String,
     datas: WeeklySchedule,
 }
 
@@ -64,21 +65,18 @@ pub fn parse_terms(body: &str) -> Result<Vec<Term>> {
 /// 解析已验证的教学周包装。
 pub fn parse_weeks(body: &str) -> Result<Vec<Week>> {
     let response: ListResponse<Week> = parse_json(body)?;
-    ensure_ok(&response.code, "schedule week response")?;
     Ok(response.datas)
 }
 
 /// 解析周课表包装。
 pub fn parse_weekly_schedule(body: &str) -> Result<WeeklySchedule> {
     let response: WeeklyResponse = parse_json(body)?;
-    ensure_ok(&response.code, "weekly schedule response")?;
     Ok(response.datas)
 }
 
 /// 解析今日课表包装。
 pub fn parse_today(body: &str) -> Result<Vec<TodayClass>> {
     let response: ListResponse<TodayClass> = parse_json(body)?;
-    ensure_ok(&response.code, "today schedule response")?;
     Ok(response.datas)
 }
 

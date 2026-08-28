@@ -4,7 +4,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::domain::SigninClass;
+use crate::domain::{SigninActionResult, SigninClass};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
@@ -77,6 +77,75 @@ pub(crate) async fn get_today(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<SigninClass>> {
     get_today_once(runtime, true).await
+}
+
+/// Submit a classroom sign-in request. This is intentionally low-level; hosts
+/// must require an explicit write confirmation before calling it.
+#[allow(dead_code)]
+pub(crate) async fn perform_signin(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course_id: &str,
+) -> Result<SigninActionResult> {
+    if course_id.trim().is_empty() {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "课程编号不能为空",
+        ));
+    }
+    let credential = current_credential(runtime).await?;
+    let timestamp_url =
+        runtime.url("https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action")?;
+    let timestamp = runtime.request(HttpRequest::get(timestamp_url)).await?;
+    if timestamp.status != 200 {
+        return Err(upstream_error("无法获取签到时间戳"));
+    }
+    let timestamp = String::from_utf8_lossy(&timestamp.body).trim().to_owned();
+    if timestamp.is_empty() {
+        return Err(upstream_error("签到时间戳为空"));
+    }
+    let mut url = url::Url::parse(
+        &runtime.url("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")?,
+    )
+    .map_err(|_| invalid_url())?;
+    url.query_pairs_mut()
+        .append_pair("courseSchedId", course_id)
+        .append_pair("timestamp", &timestamp);
+    let response = super::post_form(
+        runtime,
+        url.to_string(),
+        &[("id", course_id.to_owned())],
+        &[("sessionId", &credential.session_id)],
+    )
+    .await?;
+    if response.status != 200 {
+        return Err(upstream_error("签到请求失败"));
+    }
+    let object: Value =
+        serde_json::from_slice(&response.body).map_err(|_| upstream_error("签到响应格式无效"))?;
+    let status = object
+        .get("STATUS")
+        .and_then(Value::as_i64)
+        .unwrap_or_default();
+    let signed = object
+        .get("stuSignStatus")
+        .and_then(Value::as_i64)
+        .unwrap_or_default()
+        == 1;
+    Ok(SigninActionResult {
+        code: i32::try_from(status).unwrap_or_default(),
+        success: signed,
+        message: object
+            .get("message")
+            .and_then(Value::as_str)
+            .unwrap_or(if signed {
+                "签到成功"
+            } else {
+                "签到未完成"
+            })
+            .to_owned(),
+    })
 }
 
 async fn get_today_once(

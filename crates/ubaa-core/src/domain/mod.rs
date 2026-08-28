@@ -53,6 +53,8 @@ pub enum ReadonlyFeature {
     Spoc,
     /// Judge assignment queries.
     Judge,
+    /// Teaching evaluation queries.
+    Evaluation,
 }
 
 impl ReadonlyFeature {
@@ -71,6 +73,7 @@ impl ReadonlyFeature {
             Self::Classroom => "classroom",
             Self::Spoc => "spoc",
             Self::Judge => "judge",
+            Self::Evaluation => "evaluation",
         }
     }
 }
@@ -377,6 +380,136 @@ pub struct LibBookBookingsPage {
     pub total: i32,
 }
 
+/// 图书馆座位预约请求。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookReserveRequest {
+    pub area_id: String,
+    pub seat_id: String,
+    pub day: String,
+    pub segment: String,
+    pub start_time: String,
+    pub end_time: String,
+}
+
+/// 图书馆预约结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookReserveResult {
+    pub success: bool,
+    pub message: String,
+    pub booking: Option<LibBookBooking>,
+}
+
+/// 图书馆取消结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookCancelResult {
+    pub success: bool,
+    pub message: String,
+}
+
+/// 博雅课程写操作结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcActionResult {
+    pub message: String,
+}
+
+/// 博雅签到/签退请求。
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcSignRequest {
+    pub course_id: i64,
+    pub lat: Option<f64>,
+    pub lng: Option<f64>,
+    pub sign_type: i32,
+}
+
+/// 评教任务。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationTask {
+    pub rwid: String,
+    pub rwmc: String,
+    pub questionnaires: Vec<EvaluationQuestionnaire>,
+}
+
+/// 评教问卷。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationQuestionnaire {
+    pub wjid: String,
+    pub wjmc: String,
+    pub msid: String,
+    pub courses: Vec<EvaluationCourse>,
+}
+
+/// 一门待评教课程及调用上游所需的稳定字段。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationCourse {
+    pub id: String,
+    pub kcmc: String,
+    pub bpmc: String,
+    pub is_evaluated: bool,
+    pub rwid: String,
+    pub wjid: String,
+    pub kcdm: String,
+    pub bpdm: Option<String>,
+    pub pjrdm: Option<String>,
+    pub pjrmc: Option<String>,
+    pub xnxq: Option<String>,
+    pub msid: String,
+    pub zdmc: Option<String>,
+    pub ypjcs: Option<i32>,
+    pub xypjcs: Option<i32>,
+    pub sxz: Option<String>,
+    pub rwh: Option<String>,
+    pub xn: Option<String>,
+    pub xq: Option<String>,
+    pub pjlxid: Option<String>,
+    pub sfksqbpj: Option<String>,
+    pub yxsfktjst: Option<String>,
+}
+
+/// 评教进度。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationProgress {
+    pub total_courses: i32,
+    pub evaluated_courses: i32,
+    pub pending_courses: i32,
+}
+
+impl EvaluationProgress {
+    #[must_use]
+    pub fn progress_percent(&self) -> i32 {
+        if self.total_courses > 0 {
+            self.evaluated_courses.saturating_mul(100) / self.total_courses
+        } else {
+            0
+        }
+    }
+}
+
+/// 评教课程列表及进度。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationCoursesResponse {
+    pub courses: Vec<EvaluationCourse>,
+    pub progress: EvaluationProgress,
+}
+
+/// 单门评教结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationResult {
+    pub success: bool,
+    pub message: String,
+    pub course_name: String,
+}
+
 /// 场馆预约站点。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -502,6 +635,48 @@ pub struct CgyyActionResult {
     pub order: Option<CgyyOrder>,
 }
 
+/// 场馆预约提交时选择的空间及时段。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationSelection {
+    pub space_id: i32,
+    pub time_id: i32,
+    pub venue_space_group_id: Option<i32>,
+}
+
+/// 场馆预约提交请求。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationSubmitRequest {
+    pub venue_site_id: i32,
+    pub reservation_date: String,
+    pub selections: Vec<CgyyReservationSelection>,
+    pub phone: String,
+    pub theme: String,
+    pub purpose_type: i32,
+    pub joiner_num: i32,
+    pub activity_content: String,
+    pub joiners: String,
+    pub is_philosophy_social_sciences: bool,
+    pub is_off_school_joiner: bool,
+}
+
+/// 场馆预约提交结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationResult {
+    pub success: bool,
+    pub message: String,
+    pub order: Option<CgyyOrder>,
+}
+
+/// 场馆门锁码响应的安全不透明载荷。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyLockCode {
+    pub raw_data: serde_json::Value,
+}
+
 /// 一条 iClass 课堂签到状态。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -516,6 +691,60 @@ pub struct SigninClass {
     pub class_end_time: String,
     /// 签到状态：零表示未签到，一表示已签到。
     pub sign_status: i32,
+}
+
+/// 课堂签到写操作结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SigninActionResult {
+    pub code: i32,
+    pub success: bool,
+    pub message: String,
+}
+
+/// 阳光打卡图片上传。图片字节只在一次请求内存中存在，不写入会话或输出。
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YgdkPhotoUpload {
+    #[serde(skip_serializing)]
+    pub bytes: Vec<u8>,
+    #[serde(skip_serializing)]
+    pub file_name: String,
+    #[serde(skip_serializing)]
+    pub mime_type: String,
+}
+
+impl fmt::Debug for YgdkPhotoUpload {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("YgdkPhotoUpload")
+            .field("bytes", &format_args!("[{} bytes]", self.bytes.len()))
+            .field("file_name", &"[REDACTED]")
+            .field("mime_type", &self.mime_type)
+            .finish()
+    }
+}
+
+/// 阳光打卡提交请求。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YgdkClockinSubmitRequest {
+    pub item_id: Option<i32>,
+    pub start_time: Option<String>,
+    pub end_time: Option<String>,
+    pub place: Option<String>,
+    pub share_to_square: Option<bool>,
+    pub photo: Option<YgdkPhotoUpload>,
+}
+
+/// 阳光打卡提交结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YgdkClockinSubmitResult {
+    pub success: bool,
+    pub message: String,
+    pub record_id: Option<i32>,
+    pub summary: Option<YgdkTermSummary>,
 }
 
 /// 一条已验证的学期信息。

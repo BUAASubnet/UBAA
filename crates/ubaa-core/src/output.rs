@@ -45,6 +45,8 @@ pub enum CliFeature {
     Ygdk,
     /// 场馆预约查询。
     Cgyy,
+    /// 教学评教查询。
+    Evaluation,
 }
 
 impl CliFeature {
@@ -66,6 +68,7 @@ impl CliFeature {
             Self::Bykc => "bykc",
             Self::Ygdk => "ygdk",
             Self::Cgyy => "cgyy",
+            Self::Evaluation => "evaluation",
         }
     }
 }

@@ -1,5 +1,21 @@
 use ubaa_core::domain::{JudgeSubmissionStatus, SpocSubmissionStatus};
-use ubaa_core::features::{classroom, grades, judge, schedule, spoc};
+use ubaa_core::features::{cgyy, classroom, evaluation, grades, judge, schedule, spoc};
+
+#[test]
+fn cgyy_lock_code_parser_keeps_only_opaque_data() {
+    let result =
+        cgyy::parse_lock_code(r#"{"code":200,"data":{"orderId":7,"lockCode":"1234"}}"#).unwrap();
+    assert_eq!(result.raw_data["orderId"], 7);
+    assert_eq!(result.raw_data["lockCode"], "1234");
+}
+
+#[test]
+fn evaluation_success_envelope_preserves_pending_progress() {
+    let body = r#"{"code":"200","result":{"list":[{"rwid":"task-1","rwmc":"课程评教","wjid":"form-1","kcdm":"course-1","kcmc":"课程","bpmc":"教师","ypjcs":0}]}}"#;
+    let response = evaluation::parse_courses(body).expect("evaluation fixture should parse");
+    assert_eq!(response.courses.len(), 1);
+    assert_eq!(response.progress.pending_courses, 1);
+}
 
 #[test]
 fn schedule_and_exam_parsers_map_verified_wrappers_and_reject_nonzero_codes() {
@@ -13,6 +29,29 @@ fn schedule_and_exam_parsers_map_verified_wrappers_and_reject_nonzero_codes() {
     )
     .unwrap();
     assert_eq!(exam.arranged.len(), 1);
+}
+
+#[test]
+fn schedule_week_and_today_wrappers_preserve_frozen_nonzero_code_tolerance() {
+    // LocalScheduleApi.kt checks code only for terms and exams. The other
+    // three local parsers return their decoded datas payload directly.
+    let weeks = schedule::parse_weeks(
+        r#"{"code":"7","datas":[{"startDate":"2026-01-01","endDate":"2026-01-07","term":"fixture","curWeek":false,"serialNumber":1,"name":"第1周"}]}"#,
+    )
+    .expect("frozen weeks parser does not gate on code");
+    assert_eq!(weeks.len(), 1);
+
+    let weekly = schedule::parse_weekly_schedule(
+        r#"{"code":"7","datas":{"arrangedList":[],"code":"fixture","name":"Fixture"}}"#,
+    )
+    .expect("frozen weekly parser does not gate on code");
+    assert_eq!(weekly.code, "fixture");
+
+    let today = schedule::parse_today(
+        r#"{"code":"7","datas":[{"bizName":"Fixture","place":null,"time":null,"shortName":null}]}"#,
+    )
+    .expect("frozen today parser does not gate on code");
+    assert_eq!(today.len(), 1);
 }
 
 #[test]

@@ -11,15 +11,17 @@ use crate::connection::{
     SystemGatewayProbe,
 };
 use crate::domain::{
-    AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
-    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite,
-    ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation, ExamArrangement,
-    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookLibrary, LibBookSeat, LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature,
-    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SigninClass, SpocAssignmentDetail,
-    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
-    WeeklySchedule, YgdkOverview, YgdkRecordsPage,
+    AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
+    BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
+    CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput,
+    DualLoginPreparation, EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData,
+    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
+    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginOutcome,
+    LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
+    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule, YgdkOverview,
+    YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
@@ -402,6 +404,62 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 查询全部评教课程。
+    pub async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::evaluation::get_all(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::evaluation::get_all(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    pub async fn bykc_select_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::select_course(&mut self.direct_runtime, course_id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::select_course(&mut self.webvpn_runtime, course_id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    pub async fn bykc_deselect_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::deselect_course(&mut self.direct_runtime, course_id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::deselect_course(&mut self.webvpn_runtime, course_id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    pub async fn bykc_sign_course(
+        &mut self,
+        request: BykcSignRequest,
+    ) -> RoutedResult<BykcActionResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::sign_course(&mut self.direct_runtime, request.clone()).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::sign_course(&mut self.webvpn_runtime, request).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
     /// 查询场馆站点。
     pub async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
@@ -482,6 +540,19 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_order_detail(&mut self.webvpn_runtime, id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    pub async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_lock_code(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_lock_code(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -632,6 +703,20 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 执行指定课程的课堂签到。
+    pub async fn signin_perform(&mut self, course_id: &str) -> RoutedResult<SigninActionResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::signin::perform_signin(&mut self.direct_runtime, course_id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::signin::perform_signin(&mut self.webvpn_runtime, course_id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
     /// 查询图书馆楼馆列表。
     pub async fn libbook_libraries(&mut self, day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
@@ -738,6 +823,35 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::libbook::get_bookings(&mut self.webvpn_runtime, page, limit).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    pub async fn libbook_reserve(
+        &mut self,
+        request: LibBookReserveRequest,
+    ) -> RoutedResult<LibBookReserveResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::reserve(&mut self.direct_runtime, request.clone()).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::reserve(&mut self.webvpn_runtime, request).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    pub async fn libbook_cancel_booking(&mut self, id: &str) -> RoutedResult<LibBookCancelResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::cancel_booking(&mut self.direct_runtime, id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::cancel_booking(&mut self.webvpn_runtime, id).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1336,6 +1450,13 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    pub async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::cgyy::get_lock_code(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 查询博雅课程分页。
     pub async fn bykc_courses(
         &mut self,
@@ -1375,6 +1496,39 @@ impl RouteClient {
     pub async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         self.guard_session_ownership()?;
         let result = crate::features::bykc::get_statistics(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询全部评教课程。
+    pub async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::evaluation::get_all(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    pub async fn bykc_select_course(
+        &mut self,
+        course_id: i64,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        let result = crate::features::bykc::select_course(&mut self.runtime, course_id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+    pub async fn bykc_deselect_course(
+        &mut self,
+        course_id: i64,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        let result = crate::features::bykc::deselect_course(&mut self.runtime, course_id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+    pub async fn bykc_sign_course(
+        &mut self,
+        request: BykcSignRequest,
+    ) -> Result<FeatureResult<BykcActionResult>> {
+        let result = crate::features::bykc::sign_course(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
@@ -1467,6 +1621,16 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 执行指定课程的课堂签到。
+    pub async fn signin_perform(
+        &mut self,
+        course_id: &str,
+    ) -> Result<FeatureResult<SigninActionResult>> {
+        let result = crate::features::signin::perform_signin(&mut self.runtime, course_id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 查询图书馆楼馆列表。
     pub async fn libbook_libraries(
         &mut self,
@@ -1533,6 +1697,24 @@ impl RouteClient {
     ) -> Result<FeatureResult<LibBookBookingsPage>> {
         self.guard_session_ownership()?;
         let result = crate::features::libbook::get_bookings(&mut self.runtime, page, limit).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    pub async fn libbook_reserve(
+        &mut self,
+        request: LibBookReserveRequest,
+    ) -> Result<FeatureResult<LibBookReserveResult>> {
+        let result = crate::features::libbook::reserve(&mut self.runtime, request).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    pub async fn libbook_cancel_booking(
+        &mut self,
+        id: &str,
+    ) -> Result<FeatureResult<LibBookCancelResult>> {
+        let result = crate::features::libbook::cancel_booking(&mut self.runtime, id).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

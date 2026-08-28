@@ -47,7 +47,7 @@ Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/�
 | 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
 | 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
 | 9e 签到查询 | Core 解析、独立 iClass 会话、facade 与 CLI 已接入；真实路线待验证 | `signin today` 使用路线隔离的 iClass 业务会话，按旧版固定跳转、登录参数和今日查询参数实现；脱敏解析与确定性接线已覆盖。必须补充 Direct/WebVPN live 验证后才能标记为完整迁移。签到提交仍不在范围内。 |
-| 9f 扩展只读查询 | Signin、Ygdk、LibBook、Bykc、Cgyy 的只读 Core/CLI 已接入；真实路线待验证 | 各功能的业务令牌、签名、分页和解析均按冻结来源实现；写操作、验证码和锁码仍未迁移。需为扩展功能补充真实验收命令或明确记录未验证状态。 |
+| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy 的只读 Core/CLI 已接入；真实路线待验证 | Signin and LibBook now also expose source-backed Core/CLI write paths with explicit confirmation. Ygdk/Cgyy/Evaluation writes and request-level vectors remain outstanding; no business write is used by live verification. |
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
 | 11 live matrix | Latest complete matrix passed; transient WebVPN Judge snapshot failures retained | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility causes a nonzero result. |
@@ -221,3 +221,10 @@ CI remains deterministic-only and never reads `.env.local`.
 主机、再按当前路线包装后，`feature=auth route=webvpn` 与
 `feature=bykc route=webvpn` 均通过并解析到 1 条课程；结合此前 Direct 成功结果，
 博雅五项只读功能的双路线入口已验证。
+# 2026-08-28 execution update
+
+- 新增评教 Core 只读链路（CAS 激活、任务/问卷/课程请求、稳定课程 DTO 和进度）以及 CLI `evaluation all|pending` 命令。
+- 新增 Bykc Core 选课、退选、签到请求构造和 CLI 命令。所有 Bykc、Cgyy 写命令都要求显式 `--confirm-write`，实时验证绝不执行写操作。
+- `just check-sensitive`、`just check`、`cargo test --locked -p ubaa-core --tests` 和 `cargo test --locked -p ubaa-cli --tests` 均通过。
+- `just verify-live mode=direct feature=evaluation` 与 `just verify-live mode=webvpn feature=evaluation` 均通过，仅记录脱敏的 `course_count=0` 摘要。
+- 剩余验收缺口：Ygdk、Cgyy、Evaluation 写操作仍需完整 Core 协议、向量和 Mock 测试；LibBook 与 Signin 已有 Core/CLI 写入口，但仍需专门的请求和向量测试。所有功能逐项 Direct/WebVPN/auto 读验证仍未完成，迁移尚未完成。

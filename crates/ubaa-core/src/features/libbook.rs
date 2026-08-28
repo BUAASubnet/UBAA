@@ -5,8 +5,12 @@ use crate::domain::{
     LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage, LibBookLibrary,
     LibBookSeat, LibBookStorey, LibBookTimeSlot,
 };
+use crate::domain::{LibBookCancelResult, LibBookReserveRequest, LibBookReserveResult};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
+use aes::Aes128;
+use base64::{Engine as _, engine::general_purpose::STANDARD};
+use cipher::{BlockEncryptMut, KeyInit, block_padding::Pkcs7};
 use serde_json::{Map, Value, json};
 
 /// 图书馆查询所需的路线内业务凭据。
@@ -314,6 +318,111 @@ pub(crate) async fn get_bookings(
         )
         .await?,
     )
+}
+
+fn encrypt_reserve_request(request: &LibBookReserveRequest) -> Result<String> {
+    let digits: String = request.day.chars().filter(char::is_ascii_digit).collect();
+    if digits.len() != 8 {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "预约日期无效",
+        ));
+    }
+    let key_text = format!("{digits}{}", digits.chars().rev().collect::<String>());
+    let key = key_text.as_bytes();
+    let plain = serde_json::to_vec(&json!({"seatId": request.seat_id, "segment": request.segment, "day": request.day, "startTime": "", "endTime": ""})).map_err(|_| error("图书馆预约参数无效"))?;
+    let cipher = Aes128::new_from_slice(key).map_err(|_| error("图书馆 AES 密钥无效"))?;
+    let mut buffer = plain.clone();
+    let len = buffer.len();
+    buffer.resize(len + 16, 0);
+    let encrypted = cipher
+        .encrypt_padded_mut::<Pkcs7>(&mut buffer, len)
+        .map_err(|_| error("图书馆预约加密失败"))?;
+    Ok(STANDARD.encode(encrypted))
+}
+
+pub(crate) async fn reserve(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: LibBookReserveRequest,
+) -> Result<LibBookReserveResult> {
+    if request.seat_id.trim().is_empty()
+        || request.segment.trim().is_empty()
+        || request.day.trim().is_empty()
+    {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "预约座位、时段和日期不能为空",
+        ));
+    }
+    let body = json!({"aesjson": encrypt_reserve_request(&request)?});
+    let response = request_json(runtime, "space/confirm", body, true).await?;
+    let value = envelope(&response)?;
+    let object = value.as_object();
+    let success = object
+        .and_then(|m| m.get("success"))
+        .and_then(Value::as_bool)
+        .or_else(|| {
+            object
+                .and_then(|m| m.get("status"))
+                .and_then(Value::as_i64)
+                .map(|v| v == 1)
+        })
+        .unwrap_or(true);
+    let message = object
+        .and_then(|m| m.get("message").or_else(|| m.get("msg")))
+        .and_then(Value::as_str)
+        .unwrap_or(if success {
+            "预约成功"
+        } else {
+            "预约失败"
+        })
+        .to_owned();
+    Ok(LibBookReserveResult {
+        success,
+        message,
+        booking: None,
+    })
+}
+
+pub(crate) async fn cancel_booking(
+    runtime: &mut crate::runtime::ClientRuntime,
+    booking_id: &str,
+) -> Result<LibBookCancelResult> {
+    if booking_id.trim().is_empty() {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "预约编号不能为空",
+        ));
+    }
+    let response = request_json(runtime, "space/cancel", json!({"id": booking_id}), true).await?;
+    let value = envelope(&response)?;
+    let object = value.as_object();
+    let success = object
+        .and_then(|m| m.get("success"))
+        .and_then(Value::as_bool)
+        .or_else(|| {
+            object
+                .and_then(|m| m.get("status"))
+                .and_then(Value::as_i64)
+                .map(|v| v == 1)
+        })
+        .unwrap_or(true);
+    let message = object
+        .and_then(|m| m.get("message").or_else(|| m.get("msg")))
+        .and_then(Value::as_str)
+        .unwrap_or(if success {
+            "取消成功"
+        } else {
+            "取消失败"
+        })
+        .to_owned();
+    Ok(LibBookCancelResult { success, message })
 }
 
 async fn request_json(

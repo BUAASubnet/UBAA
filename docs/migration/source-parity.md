@@ -241,6 +241,35 @@ invalid-input/upstream/parse errors.
 
 ## Review rule
 
+## UBAA2 直接写操作与评教（2026-08-28）
+
+Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时满足冻结成功状态和 `result.stuSignStatus=1`；畸形或非成功响应映射为稳定的上游错误。
+
+The following rows are the required parity boundary for the remaining direct upstream
+operations. `ubaa_old` is authoritative at the commit recorded in `references.md`;
+`examples/buaa-api` is explicitly non-equivalent for all rows except Evaluation's SPOC
+endpoints. No row authorizes a live write during migration verification.
+
+| operation | bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto/signature constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+|---|---|---|---|---|---|---|---|---|---|
+| Bykc select | CAS `bykc.buaa.edu.cn/sscv/cas/login`, API `/sscv/choseCourse` | same CAS token redirect and route wrapping as reads | route-local BYKC token | POST encrypted JSON `{courseId}` | encrypted body, `auth_token`/`authtoken`, `ak`,`sk`,`ts`, JSON content type | AES-128-ECB PKCS7; RSA PKCS#1 v1.5; SHA-1 digest; frozen public key in `LocalBykcCrypto.kt` | `BykcSuccessResponse.message` from envelope | login single-flight; retry after expired token | invalid input is local; upstream non-success is a stable write error |
+| Bykc deselect | same | same | same | POST encrypted JSON `{id}` to `/sscv/delChosenCourse` | same | same | success message | same | same |
+| Bykc sign/sign-out | same | same | same | POST encrypted JSON `{courseId,lat,lng,signType}` to `/sscv/signCourseByUser`; `signType` 1 or 2 | same | same | success message | selected-course/sign-config lookup precedes write; no global cache | missing course/location or unavailable window is input/upstream error |
+| Signin perform | iClass center `?type=jumpMyCenter`; business login `8347/app/user/login.action` | bounded allow-list redirect; extract decoded `loginName` | route-local `{userId,sessionId}`; one retry after login expiry | timestamp GET `app/common/get_timestamp.action`, then POST form `app/course/stu_scan_sign.action` with `id`, query `courseSchedId`,`timestamp` | `sessionId` header; URL-encoded form | none | `{code,success,message}`; success requires `STATUS` success and `result.stuSignStatus=1` | per-student single-flight session | never silently succeeds; failed status maps to stable write result/error |
+| Ygdk submit | OAuth index then `campusAppLogin` | bounded code extraction from query/fragment | route-local `{uid,token}` | multipart `Upload/File/post` (`uid`,`token`,`file`), then form `Clockin/clockin` with `start_time,end_time,place_type,place,isopen,form_time_fmt,images,classify_id,item_id,item_name,uid,token` | multipart photo, then `application/x-www-form-urlencoded` plus `X-Requested-With` | none | `{success,message,recordId,summary}` | session single-flight; no persisted token | `-98` clears/retries once; upload/clockin failure is write failure |
+| LibBook reserve | CAS service `booking.lib.buaa.edu.cn/v4/login/cas` then `/v4/login/user` | bounded SSO redirect and `cas` extraction | route-local bearer token | POST JSON `{aesjson}` to `/v4/space/confirm`; AES plaintext is reserve request `{areaId,seatId,day,segment,startTime,endTime}` | Authorization `bearer<token>`, Origin/Referer/X-Requested-With | frozen `LocalLibBookCrypto.encryptReserveRequest` AES constants | `{success,message,booking?}` | token single-flight; expired token clears and retries once | non-success envelope is stable write error |
+| LibBook cancel | same | same | same | POST JSON `{id}` to `/v4/space/cancel` | same | no additional crypto beyond request wrapper | `{success,message}` | same | invalid booking and expired session remain distinguishable |
+| Cgyy lock code | SSO `manageLogin`, then `/api/login` | bounded route-local redirects | route-local `cgAuthorization` access token | GET `/api/orders/lock/code` | signed query/header used by existing Cgyy client | existing Cgyy MD5 signature constants | opaque lock-code JSON data | token single-flight | envelope code/message determines stable error |
+| Cgyy submit | same | same | same | POST `/api/reservation/order/info`; captcha GET `/api/captcha/get`, POST `/api/captcha/check`; POST form `/api/reservation/order/submit` with `venueSiteId,reservationDate,reservationOrderJson,weekStartDate,phone,theme,purposeType,joinerNum,activityContent,joiners,isPhilosophySocialSciences,isOffSchoolJoiner,captchaVerification,token` | URL-encoded forms and JSON selection list | existing Cgyy request signature; captcha solver input is never persisted | `{success,message,order?}` | no write cache; captcha retries bounded at 3 | invalid slot/input is local; captcha exhaustion and upstream failures are stable write errors |
+| Cgyy cancel | same | same | same | POST `/api/orders/new/cancel/{id}` | signed request, empty body | existing signature | action message/order | token single-flight | explicit write confirmation required by CLI |
+| Evaluation list/pending | GET `spoc/pjxt/cas`, then task/list, questionnaire list, required reviews | bounded route-local SPOC redirects | route-local SPOC cookies/session | GET task params `yhdm,pageNum=1,pageSize=10`; questionnaire `rwid`; courses `wjid`; topic fields are sent exactly from `EvaluationCourse` | JSON envelope, GET query; revise pattern is best-effort JSON POST | none | task/questionnaire/course fields from frozen `EvaluationModel.kt`; pending filters `!isEvaluated` | activation mutex; course map key `${rwid}_${wjid}_${kcdm}_${bpdm}` | malformed envelope/upstream auth is stable error; empty result is only valid when upstream says success |
+| Evaluation submit | same | same | same | best-effort POST `/reviseQuestionnairePattern` `{rwid,wjid,msid}`, GET topic, POST `/submitSaveEvaluation` `{pjidlist:[],pjjglist:[...],pjzt:"1"}` | JSON | no additional crypto; payload fields follow frozen `LocalEvaluationService.kt` | per-course `EvaluationResult`; payload preserves `pjdf=93`, question IDs/options and teacher/course IDs | bounded sequential per-course submission; no cache | submit response code/message maps per-course success/failure; CLI confirmation is mandatory |
+
+For the pinned `examples/buaa-api`, the Evaluation module (`src/api/tes`) confirms the
+same SPOC task/form/submit URLs but is not evidence for the other feature URLs, fields,
+or crypto. Where old local code uses random answer selection, Core exposes an explicit
+deterministic answer policy for tests and never performs live submission in verification.
+
 ## 博雅课程只读查询
 
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |

@@ -3,6 +3,7 @@
 pub mod bykc;
 pub mod cgyy;
 pub mod classroom;
+pub mod evaluation;
 pub mod grades;
 pub mod judge;
 pub mod libbook;
