@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- `domain/route.rs` 拆出 `ConnectionMode`、`RoutePolicy` 与 `ReadonlyFeature`，保持序列化名称、配置键和路由语义不变；Core 全部测试与全量门禁通过。
 - 最新三路线只读复测：Direct 仅 Cgyy 日期/锁码为 `upstream_unavailable`；WebVPN 的 Cgyy 日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；auto 解析为 Direct，Cgyy 日期为 `invalid_semantics`、订单为 `upstream_unavailable`。其余功能逐项通过，未执行真实写操作。
 - 认证领域拆分后重新执行三路线逐操作只读矩阵：Direct 仅 Cgyy 日期/锁码为 `upstream_unavailable`；WebVPN 的 Cgyy 日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；auto 解析为 Direct，Cgyy 日期为 `invalid_semantics`、订单为 `upstream_unavailable`。其余功能逐项通过；未执行真实写操作。
 - `domain/auth.rs` 拆出认证输入、聚合登录结果、用户资料与认证状态 DTO；字段、serde 别名、脱敏 Debug/Display/Serialize 语义保持冻结实现一致。认证、契约、只读集成测试与全量门禁通过。
