@@ -553,3 +553,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN 全量中用途阶段通过静态回退，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和依赖详情返回 `upstream_unavailable`，聚合退出 5。
 - auto 全量解析到 Direct，用途阶段通过静态回退，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和订单返回 `upstream_unavailable`，聚合退出 5。
 - 两次运行只进行了只读请求，未改变日期/订单协议、未增加重试或放宽错误分类，也未执行真实写操作。
+
+## 2026-08-29 用途回退后 WebVPN/auto 全量复测
+
+- WebVPN 全量中用途静态回退成功，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和依赖详情返回 `upstream_unavailable`，聚合退出 5。
+- auto 全量解析到 Direct，用途静态回退成功，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和订单返回 `upstream_unavailable`，聚合退出 5。
+- 本轮无新的 URL、字段或重定向证据；不猜测协议、不增加重试，未执行真实写操作。
