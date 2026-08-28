@@ -438,3 +438,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN 全量：User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 通过；Cgyy 与 Evaluation 在业务阶段返回 `authentication_required`，聚合退出 3。
 - auto 全量解析到 Direct：User、课表、考试、成绩、教室、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Judge 在 `judge_all`、Cgyy 在 `cgyy_purposes` 返回 `upstream_unavailable`，聚合退出 5。
 - 本轮使用临时摘要盐，仅保留退出码、阶段和脱敏计数；没有输出或持久化凭据、Cookie、令牌、原始响应、课程/个人标识，也没有调用真实写操作。失败项继续作为硬门禁，不以 `all` 聚合掩盖。
+
+## 2026-08-29 Direct Judge/Cgyy 单项复测
+
+- `feature=cgyy` 站点查询成功（4 个站点），日期阶段仍为 `upstream_unavailable`，退出 5。
+- `feature=judge` 在列表阶段仍为 `upstream_unavailable`，退出 5。
+- 两次复测均未改变请求、解析或错误策略；没有跨路线复制 Cookie/令牌，也没有调用真实写操作。该结果确认失败位于实时上游可用性边界，不能由其他功能成功替代。
