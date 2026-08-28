@@ -4,7 +4,7 @@ use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 
 use async_trait::async_trait;
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand};
 use serde::Serialize;
 use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
@@ -34,6 +34,8 @@ mod input;
 use input::{
     build_ygdk_request, internal_error, invalid_input, prompt_line, read_secret_line, write_json,
 };
+mod connection_mode;
+pub use connection_mode::CliConnectionMode;
 
 /// UBAA 命令行接口。
 #[derive(Debug, Parser)]
@@ -667,24 +669,6 @@ impl std::fmt::Debug for LoginArgs {
             .field("username_stdin", &self.username_stdin)
             .field("password_stdin", &self.password_stdin)
             .finish()
-    }
-}
-
-/// CLI 中的连接模式写法。
-#[derive(Clone, Copy, Debug, ValueEnum)]
-pub enum CliConnectionMode {
-    /// 直接访问北航服务。
-    Direct,
-    /// 通过 `WebVPN` 访问北航服务。
-    Webvpn,
-}
-
-impl From<CliConnectionMode> for ConnectionMode {
-    fn from(value: CliConnectionMode) -> Self {
-        match value {
-            CliConnectionMode::Direct => Self::Direct,
-            CliConnectionMode::Webvpn => Self::WebVpn,
-        }
     }
 }
 
