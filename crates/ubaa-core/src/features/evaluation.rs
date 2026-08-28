@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 
+use rand::Rng;
 use serde_json::{Map, Value};
 
 use crate::domain::{
@@ -222,7 +223,7 @@ pub fn build_submit_body(pjjglist: &[Value]) -> Vec<u8> {
 }
 
 /// 提交已经由宿主构造好的评教结果列表。
-pub(crate) async fn submit(
+pub(crate) async fn submit_payload(
     runtime: &mut crate::runtime::ClientRuntime,
     pjjglist: Vec<Value>,
 ) -> Result<Vec<EvaluationResult>> {
@@ -260,6 +261,220 @@ pub(crate) async fn submit(
     }])
 }
 
+/// 按冻结旧版顺序自动读取问卷并提交课程评教。
+pub(crate) async fn submit_courses(
+    runtime: &mut crate::runtime::ClientRuntime,
+    courses: Vec<EvaluationCourse>,
+) -> Result<Vec<EvaluationResult>> {
+    super::require_session(runtime)?;
+    if courses.is_empty() {
+        return Ok(Vec::new());
+    }
+    let activation = super::get_with_redirects(runtime, runtime.url(CAS_URL)?, &[], "评教").await?;
+    super::check_response(&activation, "评教")?;
+    let mut results = Vec::with_capacity(courses.len());
+    for course in courses {
+        let result = submit_one_course(runtime, &course).await;
+        results.push(match result {
+            Ok(()) => EvaluationResult {
+                success: true,
+                message: "评教成功".into(),
+                course_name: course.kcmc,
+            },
+            Err(error) => EvaluationResult {
+                success: false,
+                message: error.message.clone(),
+                course_name: course.kcmc,
+            },
+        });
+    }
+    Ok(results)
+}
+
+async fn submit_one_course(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course: &EvaluationCourse,
+) -> Result<()> {
+    revise_questionnaire_pattern(runtime, course).await;
+    let topic = fetch_questionnaire_topic(runtime, course)
+        .await?
+        .ok_or_else(|| error("无法获取问卷题目"))?;
+    let question_index = rand::thread_rng().r#gen::<usize>();
+    let payload = build_evaluation_payload(course, &topic, question_index);
+    if payload.is_empty() {
+        return Err(error("问卷没有题目"));
+    }
+    let response = submit_payload(runtime, payload).await?;
+    if response.first().is_some_and(|item| item.success) {
+        Ok(())
+    } else {
+        Err(error(
+            response
+                .first()
+                .map_or("评教提交失败", |item| item.message.as_str()),
+        ))
+    }
+}
+
+async fn revise_questionnaire_pattern(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course: &EvaluationCourse,
+) {
+    let body = serde_json::json!({"rwid": course.rwid, "wjid": course.wjid, "msid": course.msid});
+    let Ok(url) =
+        runtime.url("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/reviseQuestionnairePattern")
+    else {
+        return;
+    };
+    if let Ok(response) = super::post_json(
+        runtime,
+        url,
+        body.to_string().into_bytes(),
+        &[("X-Requested-With", "XMLHttpRequest")],
+    )
+    .await
+    {
+        let _ = super::check_response(&response, "评教");
+    }
+}
+
+async fn fetch_questionnaire_topic(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course: &EvaluationCourse,
+) -> Result<Option<Value>> {
+    let mut url = url::Url::parse(
+        &runtime.url("https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getQuestionnaireTopic")?,
+    )
+    .map_err(|_| error("评教地址无效"))?;
+    let params = [
+        ("id", String::new()),
+        ("rwid", course.rwid.clone()),
+        ("wjid", course.wjid.clone()),
+        ("zdmc", course.zdmc.clone().unwrap_or_else(|| "STID".into())),
+        ("ypjcs", course.ypjcs.unwrap_or_default().to_string()),
+        ("xypjcs", course.xypjcs.unwrap_or(1).to_string()),
+        ("sxz", course.sxz.clone().unwrap_or_default()),
+        ("pjrdm", course.pjrdm.clone().unwrap_or_default()),
+        ("pjrmc", course.pjrmc.clone().unwrap_or_default()),
+        ("bpdm", course.bpdm.clone().unwrap_or_default()),
+        ("bpmc", course.bpmc.clone()),
+        ("kcdm", course.kcdm.clone()),
+        ("kcmc", course.kcmc.clone()),
+        ("rwh", course.rwh.clone().unwrap_or_default()),
+        ("xn", course.xn.clone().unwrap_or_default()),
+        ("xq", course.xq.clone().unwrap_or_default()),
+        ("xnxq", course.xnxq.clone().unwrap_or_default()),
+        (
+            "pjlxid",
+            course.pjlxid.clone().unwrap_or_else(|| "2".into()),
+        ),
+        (
+            "sfksqbpj",
+            course.sfksqbpj.clone().unwrap_or_else(|| "1".into()),
+        ),
+        ("yxsfktjst", course.yxsfktjst.clone().unwrap_or_default()),
+        ("yxdm", String::new()),
+    ];
+    url.query_pairs_mut()
+        .extend_pairs(params.iter().map(|(key, value)| (*key, value.as_str())));
+    let value = fetch(runtime, url, BTreeMap::new()).await?;
+    Ok(value
+        .as_array()
+        .and_then(|items| items.first())
+        .cloned()
+        .or_else(|| value.is_object().then_some(value)))
+}
+
+fn build_question_answer(
+    course: &EvaluationCourse,
+    payload: &Map<String, Value>,
+    question: &Map<String, Value>,
+    use_second_option: bool,
+) -> Value {
+    let question_type = string(question, "tmlx").unwrap_or_else(|| "1".into());
+    let choice = question_type == "1";
+    let options = question
+        .get("tmxxlist")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let first = options
+        .first()
+        .and_then(Value::as_object)
+        .and_then(|item| item.get("tmxxid"))
+        .cloned();
+    let selected = if choice && use_second_option && options.len() > 1 {
+        options
+            .get(1)
+            .and_then(Value::as_object)
+            .and_then(|item| item.get("tmxxid"))
+            .cloned()
+    } else if choice {
+        first.clone()
+    } else {
+        None
+    };
+    serde_json::json!({
+        "sjly": "1",
+        "stlx": if choice { "1" } else { "6" },
+        "wjid": course.wjid,
+        "wjssrwid": payload.get("wjssrwid").cloned().unwrap_or(Value::Null),
+        "wjstctid": if choice { Value::String(String::new()) } else { first.unwrap_or(Value::String(String::new())) },
+        "wjstid": question.get("tmid").cloned().unwrap_or(Value::Null),
+        "xxdalist": selected.into_iter().collect::<Vec<_>>(),
+    })
+}
+
+/// 根据冻结问卷结构构造一门课程的提交结果；`question_index` 仅用于确定性测试。
+pub fn build_evaluation_payload(
+    course: &EvaluationCourse,
+    topic: &Value,
+    question_index: usize,
+) -> Vec<Value> {
+    let Some(entity) = topic
+        .get("pjxtWjWjbReturnEntity")
+        .and_then(Value::as_object)
+    else {
+        return Vec::new();
+    };
+    let questions: Vec<Map<String, Value>> = entity
+        .get("wjzblist")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_object)
+        .flat_map(|section| {
+            section
+                .get("tklist")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .filter_map(Value::as_object)
+        .cloned()
+        .collect();
+    if questions.is_empty() {
+        return Vec::new();
+    }
+    let use_second = question_index % questions.len();
+    let pjmap = topic.get("pjmap").cloned().unwrap_or(Value::Null);
+    topic.get("pjxtPjjgPjjgckb").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_object).map(|payload| {
+        let answers = questions.iter().enumerate().map(|(index, question)| build_question_answer(course, payload, question, index == use_second)).collect::<Vec<_>>();
+        serde_json::json!({
+            "bprdm": payload.get("bprdm").cloned().unwrap_or(Value::Null), "bprmc": payload.get("bprmc").cloned().unwrap_or(Value::Null),
+            "kcdm": payload.get("kcdm").cloned().unwrap_or(Value::Null), "kcmc": payload.get("kcmc").cloned().unwrap_or(Value::Null),
+            "pjdf": 93, "pjfs": payload.get("pjfs").cloned().unwrap_or(Value::String("1".into())),
+            "pjid": payload.get("pjid").cloned().unwrap_or(Value::Null), "pjlx": payload.get("pjlx").cloned().unwrap_or(Value::Null),
+            "pjmap": pjmap, "pjrdm": payload.get("pjrdm").cloned().unwrap_or(Value::Null), "pjrjsdm": payload.get("pjrjsdm").cloned().unwrap_or(Value::Null),
+            "pjrxm": payload.get("pjrxm").cloned().unwrap_or(Value::Null), "pjsx": 1, "pjxxlist": answers,
+            "rwh": payload.get("rwh").cloned().unwrap_or(Value::Null), "stzjid": "xx", "wjid": course.wjid,
+            "wjssrwid": payload.get("wjssrwid").cloned().unwrap_or(Value::Null), "wtjjy": "", "xhgs": Value::Null,
+            "xnxq": payload.get("xnxq").cloned().unwrap_or(Value::Null), "sfxxpj": payload.get("sfxxpj").cloned().unwrap_or(Value::String("1".into())),
+            "sqzt": Value::Null, "yxfz": Value::Null, "zsxz": payload.get("pjrjsdm").cloned().unwrap_or(Value::String(String::new())), "sfnm": "1"
+        })
+    }).collect()
+}
+
 async fn fetch(
     runtime: &mut crate::runtime::ClientRuntime,
     mut url: url::Url,
@@ -291,7 +506,27 @@ pub fn pending(response: &EvaluationCoursesResponse) -> Vec<EvaluationCourse> {
 
 #[cfg(test)]
 mod tests {
-    use super::build_submit_body;
+    use super::{build_evaluation_payload, build_submit_body};
+    use crate::domain::EvaluationCourse;
+
+    #[test]
+    fn 评教题目按冻结结构生成题目答案() {
+        let course = EvaluationCourse {
+            wjid: "wj-safe".into(),
+            kcdm: "kc-safe".into(),
+            ..EvaluationCourse::default()
+        };
+        let topic = serde_json::json!({
+            "pjmap": {"safe": true},
+            "pjxtPjjgPjjgckb": [{"pjid":"pj-safe","kcdm":"kc-safe","pjfs":"1"}],
+            "pjxtWjWjbReturnEntity": {"wjzblist": [{"tklist": [{"tmid":"tm-safe","tmlx":"1","tmxxlist":[{"tmxxid":"opt-safe"}]}]}]}
+        });
+        let payload = build_evaluation_payload(&course, &topic, 0);
+        assert_eq!(payload.len(), 1);
+        assert_eq!(payload[0]["wjid"], "wj-safe");
+        assert_eq!(payload[0]["pjxxlist"][0]["wjstid"], "tm-safe");
+        assert_eq!(payload[0]["pjxxlist"][0]["xxdalist"][0], "opt-safe");
+    }
 
     #[test]
     fn 评教提交正文匹配冻结信封字段() {

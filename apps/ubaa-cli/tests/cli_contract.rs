@@ -178,6 +178,22 @@ async fn 其他写命令未确认时统一拒绝() {
     }
 }
 
+#[tokio::test]
+async fn 自动评教提交未确认时拒绝且不查询课程() {
+    let cli = Cli::try_parse_from(["ubaa", "--json", "evaluation", "submit-pending"]).unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 2);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["error"]["code"], "invalid_input");
+    assert!(stderr.is_empty());
+}
+
 #[derive(Default)]
 struct FakeBackend {
     login_calls: usize,

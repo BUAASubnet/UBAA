@@ -163,6 +163,11 @@ pub enum EvaluationCommand {
         #[arg(long = "confirm-write")]
         confirm_write: bool,
     },
+    /// 自动读取并提交所有待评教课程。
+    SubmitPending {
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
 }
 
 /// 场馆预约命令组。
@@ -936,6 +941,12 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
         Err(internal_error("评教写功能不可用"))
     }
+    async fn evaluation_submit_courses(
+        &mut self,
+        _courses: Vec<ubaa_core::domain::EvaluationCourse>,
+    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+        Err(internal_error("评教写功能不可用"))
+    }
 
     /// 查询学期。
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
@@ -1031,6 +1042,12 @@ pub trait RoutedCliBackend {
     async fn evaluation_submit(
         &mut self,
         _payload: Vec<Value>,
+    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+        Err(routed_unavailable("评教写功能不可用"))
+    }
+    async fn evaluation_submit_courses(
+        &mut self,
+        _courses: Vec<ubaa_core::domain::EvaluationCourse>,
     ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
         Err(routed_unavailable("评教写功能不可用"))
     }
@@ -1635,6 +1652,12 @@ impl CliBackend for RouteClient {
     ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
         self.evaluation_submit(payload).await
     }
+    async fn evaluation_submit_courses(
+        &mut self,
+        courses: Vec<ubaa_core::domain::EvaluationCourse>,
+    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+        self.evaluation_submit_courses(courses).await
+    }
 
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.schedule_terms().await
@@ -1713,6 +1736,12 @@ impl RoutedCliBackend for UbaaClient {
         payload: Vec<Value>,
     ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
         UbaaClient::evaluation_submit(self, payload).await
+    }
+    async fn evaluation_submit_courses(
+        &mut self,
+        courses: Vec<ubaa_core::domain::EvaluationCourse>,
+    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+        UbaaClient::evaluation_submit_courses(self, courses).await
     }
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         UbaaClient::signin_today(self).await
@@ -2936,6 +2965,25 @@ async fn run_routed_evaluation<B: RoutedCliBackend + Send>(
                 CliFeature::Evaluation,
             )
         }
+        EvaluationCommand::SubmitPending { confirm_write } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("评教是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            let value = backend.evaluation_all().await?;
+            let courses = value
+                .data
+                .courses
+                .into_iter()
+                .filter(|course| !course.is_evaluated)
+                .collect();
+            routed_readonly(
+                backend.evaluation_submit_courses(courses).await,
+                CliFeature::Evaluation,
+            )
+        }
     }
 }
 
@@ -2972,6 +3020,22 @@ async fn run_evaluation<B: CliBackend + Send>(
             let payload = read_evaluation_payload(&payload)?;
             backend
                 .evaluation_submit(payload)
+                .await
+                .and_then(|result| readonly(result, CliFeature::Evaluation))
+        }
+        EvaluationCommand::SubmitPending { confirm_write } => {
+            if !confirm_write {
+                return Err(invalid_input("评教是写操作，必须显式指定 --confirm-write"));
+            }
+            let result = backend.evaluation_all().await?;
+            let courses = result
+                .data
+                .courses
+                .into_iter()
+                .filter(|course| !course.is_evaluated)
+                .collect();
+            backend
+                .evaluation_submit_courses(courses)
                 .await
                 .and_then(|result| readonly(result, CliFeature::Evaluation))
         }

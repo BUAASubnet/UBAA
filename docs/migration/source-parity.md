@@ -309,4 +309,4 @@ Signin 提交请求的表单构造已单独覆盖：冻结 `stu_scan_sign.action
 
 ### Evaluation 评教提交信封
 
-冻结 `LocalEvaluationService.kt` 最终向 `evaluationMethodSix/submitSaveEvaluation` 发送 JSON 正文：`pjidlist` 固定为空数组、`pjjglist` 为逐课程结果列表、`pjzt` 固定为字符串 `"1"`，响应按业务 `code` 和消息字段判定成功。Rust Core 已迁移该 URL、JSON 编码、请求头和非空列表校验，并提供 `build_submit_body` 脱敏向量测试。旧版还会先读取问卷题目并构造 `pjjglist`；当前稳定 DTO 尚未保存题目选项，因此该自动答案构造和 CLI 输入仍未完成，禁止以默认答案替代冻结逻辑。`examples/buaa-api` 无等价评教提交协议。
+冻结 `LocalEvaluationService.kt` 最终向 `evaluationMethodSix/submitSaveEvaluation` 发送 JSON 正文：`pjidlist` 固定为空数组、`pjjglist` 为逐课程结果列表、`pjzt` 固定为字符串 `"1"`，响应按业务 `code` 和消息字段判定成功。Rust Core 已迁移该 URL、JSON 编码、请求头和非空列表校验，并提供 `build_submit_body` 脱敏向量测试。自动提交链会按旧版顺序对每门待评课程执行 `reviseQuestionnairePattern`（失败按冻结实现继续）、读取问卷题目、展开 `wjzblist[].tklist[]`，按题型构造答案后提交最终信封；选择题的第二个选项只在随机选中的一题使用，随机源保留在 Core 内且不写入日志。CLI 提供 `evaluation submit-pending --confirm-write`，未确认时在读取课程前拒绝；实时验证永不调用写操作。`examples/buaa-api` 无等价评教提交协议。

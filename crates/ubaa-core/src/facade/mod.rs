@@ -15,12 +15,12 @@ use crate::domain::{
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
     CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
     CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
-    EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult, GradeData,
-    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginOutcome,
-    LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
-    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    EvaluationCourse, EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult,
+    GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookCancelResult, LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
+    LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState,
+    RoutePolicy, SafeError, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
     SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
     YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
@@ -427,11 +427,36 @@ impl UbaaClient {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
-                crate::features::evaluation::submit(&mut self.direct_runtime, pjjglist.clone())
-                    .await
+                crate::features::evaluation::submit_payload(
+                    &mut self.direct_runtime,
+                    pjjglist.clone(),
+                )
+                .await
             }
             ConnectionMode::WebVpn => {
-                crate::features::evaluation::submit(&mut self.webvpn_runtime, pjjglist).await
+                crate::features::evaluation::submit_payload(&mut self.webvpn_runtime, pjjglist)
+                    .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 按冻结问卷链自动构造并提交课程评教。
+    pub async fn evaluation_submit_courses(
+        &mut self,
+        courses: Vec<EvaluationCourse>,
+    ) -> RoutedResult<Vec<EvaluationResult>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::evaluation::submit_courses(
+                    &mut self.direct_runtime,
+                    courses.clone(),
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::evaluation::submit_courses(&mut self.webvpn_runtime, courses).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1579,7 +1604,18 @@ impl RouteClient {
         pjjglist: Vec<serde_json::Value>,
     ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
         self.guard_session_ownership()?;
-        let result = crate::features::evaluation::submit(&mut self.runtime, pjjglist).await;
+        let result = crate::features::evaluation::submit_payload(&mut self.runtime, pjjglist).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 按冻结问卷链自动构造并提交课程评教。
+    pub async fn evaluation_submit_courses(
+        &mut self,
+        courses: Vec<EvaluationCourse>,
+    ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::evaluation::submit_courses(&mut self.runtime, courses).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

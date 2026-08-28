@@ -233,7 +233,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - Ygdk 写入阶段完成了 multipart 上传边界、固定表单字段和 CLI 文件输入校验；仍需后续补充脱敏 Mock 请求断言和完整写结果向量，当前不视为最终验收完成。
 - Cgyy 阶段已提交 `1d25ef2`：完成日期上下文、空间/时段校验、预约上下文创建和最终预约表单的冻结字段实现；验证码挑战与求解端口尚未迁移，CLI 提交入口和真实写验收继续禁止调用。
 - Signin 阶段已提交 `0824947`：按冻结协议严格读取 `get_timestamp.action` JSON 的 `timestamp` 字段，并拒绝非 JSON 或空值响应；Signin 写操作仍需补充 CLI 专用安全测试和 Mock 请求断言。
-- Evaluation 阶段完成最终提交 JSON 信封的 Core 构造、请求头和稳定业务错误校验；问卷题目读取/答案构造、CLI 提交入口及写操作 Mock 仍未完成，不能视为评教写能力迁移完成。
+- Evaluation 阶段已完成最终提交 JSON 信封、问卷题目读取/答案构造和逐课程自动提交链；CLI 提供 `evaluation submit-pending --confirm-write`，并以未确认不访问后端的测试覆盖安全门禁。仍需补充逐请求 Mock/错误向量以及真实只读矩阵收敛，评教写操作永不进入 live 验收。
 - 2026-08-28 只读实时矩阵：Direct 全量除 `cgyy_lock_code`（`upstream_unavailable`）外通过；WebVPN 全量的 Cgyy 与 Evaluation 返回 `authentication_required`，其余功能通过。Cgyy WebVPN 与冻结 `localCgyyUpstreamUrl` 的直连语义存在已记录路线冲突，尚未修复。
 - Cgyy 验证码阶段已补齐 Core `/api/captcha/check` 的 `pointJson`、挑战 token 和成功判定；敏感验证码字段仅存在当前请求内，CLI 暂不通过 argv 暴露，验证码获取/求解和 WebVPN 直连 runtime 仍未完成。
 - Cgyy CLI 已新增 `cgyy submit --request-stdin --confirm-write`，从标准输入读取包含敏感字段的 JSON 请求并在确认前拒绝读取；未执行真实预约。
