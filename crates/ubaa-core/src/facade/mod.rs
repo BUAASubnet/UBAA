@@ -508,11 +508,8 @@ impl UbaaClient {
     pub async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         let result = match resolution.mode {
-            ConnectionMode::Direct => {
+            ConnectionMode::Direct | ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_sites(&mut self.direct_runtime).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::get_sites(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -522,11 +519,8 @@ impl UbaaClient {
     pub async fn cgyy_purpose_types(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         let result = match resolution.mode {
-            ConnectionMode::Direct => {
+            ConnectionMode::Direct | ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_purpose_types(&mut self.direct_runtime).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::get_purpose_types(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -542,11 +536,8 @@ impl UbaaClient {
             ));
         }
         let result = match resolution.mode {
-            ConnectionMode::Direct => {
+            ConnectionMode::Direct | ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_day_info(&mut self.direct_runtime, site_id, date).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::get_day_info(&mut self.webvpn_runtime, site_id, date).await
             }
         };
         self.finish_routed(resolution, result)
@@ -559,11 +550,8 @@ impl UbaaClient {
             return Err(routed_error(invalid_input("分页参数无效"), resolution));
         }
         let result = match resolution.mode {
-            ConnectionMode::Direct => {
+            ConnectionMode::Direct | ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_orders(&mut self.direct_runtime, page, size).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::get_orders(&mut self.webvpn_runtime, page, size).await
             }
         };
         self.finish_routed(resolution, result)
@@ -579,11 +567,8 @@ impl UbaaClient {
             ));
         }
         let result = match resolution.mode {
-            ConnectionMode::Direct => {
+            ConnectionMode::Direct | ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_order_detail(&mut self.direct_runtime, id).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::get_order_detail(&mut self.webvpn_runtime, id).await
             }
         };
         self.finish_routed(resolution, result)
@@ -592,11 +577,8 @@ impl UbaaClient {
     pub async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         let result = match resolution.mode {
-            ConnectionMode::Direct => {
+            ConnectionMode::Direct | ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_lock_code(&mut self.direct_runtime).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::get_lock_code(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)

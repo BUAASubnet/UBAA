@@ -9,7 +9,9 @@ use ubaa_core::domain::{ConnectionMode, RoutePolicy};
 use ubaa_core::error::ErrorCode;
 use ubaa_core::facade::UbaaClient;
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
+use ubaa_core::session::{
+    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionSnapshot, SessionStore,
+};
 
 #[test]
 fn aggregate_facade_opens_saved_routes_without_host_session_inspection() {
@@ -227,8 +229,71 @@ fn aggregate_facade_resolves_spoc_diagnostics_before_session_preflight() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn cgyy_webvpn_uses_direct_business_transport_after_route_resolution() {
+    let root = test_root("cgyy-direct-business");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+        ))
+        .unwrap();
+    let direct_calls = Arc::new(AtomicUsize::new(0));
+    let webvpn_calls = Arc::new(AtomicUsize::new(0));
+    let config = RouteConfig::parse("[route]\ndefault = \"webvpn\"\n").unwrap();
+    let mut client = UbaaClient::with_routing(
+        TaggedTransport {
+            calls: direct_calls.clone(),
+            status: 401,
+        },
+        TaggedTransport {
+            calls: webvpn_calls.clone(),
+            status: 401,
+        },
+        store,
+        config,
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let error = runtime.block_on(client.cgyy_sites()).unwrap_err();
+
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(direct_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(webvpn_calls.load(Ordering::SeqCst), 0);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[derive(Clone)]
 struct CountingTransport(Arc<AtomicUsize>);
+
+#[derive(Clone)]
+struct TaggedTransport {
+    calls: Arc<AtomicUsize>,
+    status: u16,
+}
+
+#[async_trait]
+impl HttpTransport for TaggedTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(HttpResponse::new(self.status, request.url, Vec::new()))
+    }
+}
 
 #[async_trait]
 impl HttpTransport for CountingTransport {

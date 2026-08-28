@@ -444,3 +444,13 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - `feature=cgyy` 站点查询成功（4 个站点），日期阶段仍为 `upstream_unavailable`，退出 5。
 - `feature=judge` 在列表阶段仍为 `upstream_unavailable`，退出 5。
 - 两次复测均未改变请求、解析或错误策略；没有跨路线复制 Cookie/令牌，也没有调用真实写操作。该结果确认失败位于实时上游可用性边界，不能由其他功能成功替代。
+
+## 2026-08-29 WebVPN Cgyy 直连业务 transport 复测
+
+- 按冻结 `LocalCgyyApi.ensureBusinessLogin` 的 Direct 客户端语义，聚合 facade 在 WebVPN
+  路线解析和会话预检后改用 Direct 业务 transport；Cookie 仍由 Direct 路线槽位独立提供，
+  未从 WebVPN 槽位复制材料。
+- `feature=cgyy route=webvpn` 的站点查询通过（4 个站点），用途查询阶段返回
+  `upstream_unavailable`（退出 5），不再返回此前的 `authentication_required`。
+- 该结果证明 transport 分派方向正确，但尚不足以宣告 WebVPN Cgyy 全部读操作通过；
+  日期、订单、锁码等后续操作仍需逐项实时证据。

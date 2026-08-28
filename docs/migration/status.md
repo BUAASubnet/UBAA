@@ -290,3 +290,4 @@ CI remains deterministic-only and never reads `.env.local`.
 - auto：实际解析到 Direct；User、schedule、exam、grades、classroom、spoc、signin、ygdk、libbook、bykc、Cgyy 站点查询和 evaluation 成功；Judge 为 `upstream_unavailable`，Cgyy 用途查询为 `upstream_unavailable`，聚合退出码 5。
 - 本轮确认 Bykc 已选课程对象包装修复在三路线聚合中生效；所有命令仅执行读操作，未调用任何真实写接口。上述 Judge/Cgyy 失败仍是最终实时验收未满足项。
 - 随后 Direct 单项复测仍在 `cgyy_day` 返回 `upstream_unavailable`、在 `judge_all` 返回 `upstream_unavailable`；站点查询和请求前置均正常，未放宽解析或错误语义。
+- WebVPN Cgyy 在切换 Direct 业务 transport 后，站点查询已通过（4 个站点）；用途查询进入业务请求阶段但返回 `upstream_unavailable`，原先的 `authentication_required` 已消除，后续继续复核上游可用性。
