@@ -18,6 +18,8 @@ mod evaluation;
 pub use evaluation::*;
 mod signin;
 pub use signin::*;
+mod schedule;
+pub use schedule::*;
 
 /// 场馆预约站点。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -230,136 +232,6 @@ pub struct CgyyReservationResult {
 #[serde(rename_all = "camelCase")]
 pub struct CgyyLockCode {
     pub raw_data: serde_json::Value,
-}
-
-/// 一条已验证的学期信息。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Term {
-    /// 上游学期代码，例如 `2025-2026-1`。
-    pub item_code: String,
-    /// 供用户阅读的学期名称。
-    pub item_name: String,
-    /// 门户是否选中了该学期。
-    pub selected: bool,
-    /// 上游排序索引。
-    pub item_index: i32,
-}
-
-/// 一条教学周信息。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Week {
-    /// 周起始日期。
-    pub start_date: String,
-    /// 周结束日期。
-    pub end_date: String,
-    /// 所属学期代码。
-    pub term: String,
-    /// 是否为当前教学周。
-    pub cur_week: bool,
-    /// 数字形式的周序号。
-    pub serial_number: i32,
-    /// 显示名称。
-    pub name: String,
-}
-
-/// 一节课程安排。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CourseClass {
-    /// 课程代码。
-    pub course_code: String,
-    /// 课程显示名称。
-    pub course_name: String,
-    /// 可选的课程序号。
-    pub course_serial_no: Option<String>,
-    /// 门户表示的学分。
-    pub credit: Option<String>,
-    /// 开始时间。
-    pub begin_time: Option<String>,
-    /// 结束时间。
-    pub end_time: Option<String>,
-    /// 起始节次。
-    pub begin_section: Option<i32>,
-    /// 结束节次。
-    pub end_section: Option<i32>,
-    /// 教室。
-    pub place_name: Option<String>,
-    /// 周次和教师描述。
-    pub weeks_and_teachers: Option<String>,
-    /// 授课对象。
-    pub teaching_target: Option<String>,
-    /// 显示颜色。
-    pub color: Option<String>,
-    /// 星期，取值 1-7。
-    pub day_of_week: Option<i32>,
-}
-
-/// 教学周课表包装。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WeeklySchedule {
-    /// 已安排的课程。
-    pub arranged_list: Vec<CourseClass>,
-    /// 门户返回的学期代码。
-    pub code: String,
-    /// 学期显示名称。
-    pub name: String,
-}
-
-/// 一条今日课程摘要。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TodayClass {
-    /// 业务/课程名称。
-    pub biz_name: String,
-    /// 教室。
-    pub place: Option<String>,
-    /// 显示时间。
-    pub time: Option<String>,
-    /// 课程简称。
-    pub short_name: Option<String>,
-}
-
-/// 考试安排。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExamArrangement {
-    /// 已安排的考试。
-    pub arranged: Vec<Exam>,
-    /// 上游提供的未安排考试。
-    pub not_arranged: Vec<Exam>,
-}
-
-/// 一条考试信息。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Exam {
-    /// 课程名称。
-    pub course_name: String,
-    /// 课程编号。
-    pub course_no: Option<String>,
-    /// 显示时间描述。
-    pub exam_time_description: Option<String>,
-    /// 考试日期。
-    pub exam_date: Option<String>,
-    /// 开始时间。
-    pub start_time: Option<String>,
-    /// 结束时间。
-    pub end_time: Option<String>,
-    /// 考试地点。
-    pub exam_place: Option<String>,
-    /// 座位号。
-    pub exam_seat_no: Option<String>,
-    /// 周序号。
-    pub week: Option<i32>,
-    /// 上游状态。
-    pub exam_status: Option<i32>,
-    /// 考试类型。
-    pub exam_type: Option<String>,
-    /// 上游任务标识。
-    pub task_id: Option<String>,
 }
 
 /// 一门课程成绩。
