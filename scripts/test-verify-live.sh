@@ -398,10 +398,11 @@ extension_calls_output=$(
     elif [[ "$command" == "cgyy lock-code" ]]; then CLI_OUTPUT='{"data":{"rawData":{}}}'
     elif [[ "$command" == "evaluation all" ]]; then CLI_OUTPUT='{"data":{"courses":[]}}'
     elif [[ "$command" == "evaluation pending" ]]; then CLI_OUTPUT='{"data":[]}'
+    elif [[ "$command" == "user show" ]]; then CLI_OUTPUT='{"data":{"idCardType":null,"idCardTypeName":null,"phone":null,"schoolId":"TEST-04","name":"Fixture User","idCardNumber":null,"email":null,"username":"fixture-user"}}'
     else CLI_CODE=93; return 93
     fi
   }
-  for feature in ygdk libbook bykc cgyy evaluation; do
+  for feature in user ygdk libbook bykc cgyy evaluation; do
     run_readonly_feature || exit $?
   done
 )
@@ -409,6 +410,7 @@ extension_calls_code=$?
 set -e
 if [[ "$extension_calls_code" -ne 0 \
   || "$extension_calls_output" != *"ygdk overview"* \
+  || "$extension_calls_output" != *"user show"* \
   || "$extension_calls_output" != *"ygdk records --page 1 --size 20"* \
   || "$extension_calls_output" != *"libbook libraries --day 2026-08-29"* \
   || "$extension_calls_output" != *"libbook bookings --page 1 --limit 20"* \

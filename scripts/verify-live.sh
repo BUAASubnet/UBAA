@@ -872,7 +872,7 @@ main() {
       direct|webvpn) mode=$argument; route=$argument ;;
       '') ;;
       *)
-        echo "usage: $0 [direct|webvpn] [feature=auth|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation] [route=auto|direct|webvpn]" >&2
+        echo "usage: $0 [direct|webvpn] [feature=auth|user|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation] [route=auto|direct|webvpn]" >&2
         exit 2
         ;;
     esac
@@ -885,7 +885,7 @@ main() {
   fi
 
   case "$feature" in
-    auth|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation) ;;
+    auth|user|all|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation) ;;
     *) echo "unsupported feature: $feature" >&2; exit 2 ;;
   esac
   case "$route" in
@@ -999,7 +999,7 @@ run_readonly_feature() {
   if [[ "$feature" == all ]]; then
     original_feature=$feature
     local first_failure=0
-    for subfeature in schedule exam grades classroom spoc judge signin ygdk libbook bykc cgyy evaluation; do
+    for subfeature in user schedule exam grades classroom spoc judge signin ygdk libbook bykc cgyy evaluation; do
       feature=$subfeature
       if run_readonly_feature; then
         :
@@ -1027,6 +1027,12 @@ run_readonly_feature() {
   FEATURE_RESOLVED_ROUTE=
   TRACK_FEATURE_TIME=yes
   case "$feature" in
+    user)
+      run_json none user show
+      if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure user; return "$CLI_CODE"; fi
+      if ! validate_routed_success user || ! validate_user_profile no || ! capture_resolved_route; then semantic_failure user; return 1; fi
+      printf 'mode=%s route=%s resolved_route=%s feature=user outcome=success stage=user exit_code=0 elapsed_ms=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS"
+      ;;
     schedule)
       run_json none schedule terms
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure schedule_terms; return "$CLI_CODE"; fi
