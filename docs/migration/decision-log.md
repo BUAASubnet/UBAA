@@ -678,3 +678,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt` 的 `LocalAuthSession` 包含 `username` 和 `user.schoolid`，并由 `LocalAuthSessionStore` 持久化。
 - 当前约束：`docs/contracts/connection-and-session.md` 与合同安全边界要求 `session.json` 不保存 username、密码或用户资料。
 - 决策：不为追求表面 parity 写入个人身份资料；登录成功后仅在 Core 运行时内存使用 `school_id/username`，跨进程加载会话时身份参数缺失按安全契约处理。该边界可能使部分旧版依赖身份查询的上游在重启后不可用，若未来要改变必须另立安全与存储决策，不能从实时失败猜测协议。
+## 2026-08-29 三路线逐操作实时复测（认证领域拆分后）
+
+- Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge（课程/任务/详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 均成功；Cgyy 站点成功（7 个），日期与锁码均返回 `upstream_unavailable`，聚合退出码 5。
+- WebVPN：上述非 Cgyy 功能均成功；Cgyy 站点成功（7 个），日期返回 `invalid_semantics`、锁码返回 `upstream_unavailable`，聚合退出码 1。
+- auto：解析为 Direct；上述非 Cgyy 功能均成功；Cgyy 站点成功（7 个），日期返回 `invalid_semantics`、订单返回 `upstream_unavailable`，聚合退出码 1。
+- 本轮只执行认证和读操作，未调用任何选课、退选、签到、预约、取消、提交或上传接口。失败项没有提供新的 URL、参数、重定向、字段或加密证据；其本地逻辑与冻结实现一致但实时上游不可用/返回不满足语义，按约定只记录并继续，不猜测修改协议。
