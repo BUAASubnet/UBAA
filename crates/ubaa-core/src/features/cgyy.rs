@@ -1071,6 +1071,8 @@ pub fn parse_orders(body: &str) -> Result<CgyyOrdersPage> {
     let value = data(body)?;
     let root = value
         .as_object()
+        .cloned()
+        .or_else(|| value.is_null().then(Map::new))
         .ok_or_else(|| error("场馆订单响应结构无效"))?;
     Ok(CgyyOrdersPage {
         content: root
@@ -1081,10 +1083,10 @@ pub fn parse_orders(body: &str) -> Result<CgyyOrdersPage> {
             .filter_map(Value::as_object)
             .map(parse_order)
             .collect(),
-        total_elements: int(root, "totalElements").unwrap_or_default(),
-        total_pages: int(root, "totalPages").unwrap_or_default(),
-        size: int(root, "size").unwrap_or(20),
-        number: int(root, "number").unwrap_or_default(),
+        total_elements: int(&root, "totalElements").unwrap_or_default(),
+        total_pages: int(&root, "totalPages").unwrap_or_default(),
+        size: int(&root, "size").unwrap_or(20),
+        number: int(&root, "number").unwrap_or_default(),
     })
 }
 
@@ -1093,7 +1095,9 @@ pub fn parse_order_detail(body: &str) -> Result<CgyyOrder> {
     let value = data(body)?;
     value
         .as_object()
-        .map(parse_order)
+        .cloned()
+        .or_else(|| value.is_null().then(Map::new))
+        .map(|root| parse_order(&root))
         .ok_or_else(|| error("场馆订单详情结构无效"))
 }
 

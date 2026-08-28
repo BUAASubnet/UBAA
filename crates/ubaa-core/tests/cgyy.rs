@@ -73,6 +73,18 @@ fn 解析订单分页和详情完整字段() {
 }
 
 #[test]
+fn 成功订单空数据按冻结实现映射为空页和空详情() {
+    let page = parse_orders(r#"{"code":200,"data":null}"#).unwrap();
+    assert!(page.content.is_empty());
+    assert_eq!(page.total_elements, 0);
+    assert_eq!(page.size, 20);
+    assert_eq!(page.number, 0);
+
+    let detail = parse_order_detail(r#"{"code":200,"data":null}"#).unwrap();
+    assert_eq!(detail.id, 0);
+}
+
+#[test]
 fn 场馆预约写链按冻结顺序发送验证码和最终表单() {
     let root = std::env::temp_dir().join(format!("ubaa-cgyy-write-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
