@@ -239,6 +239,8 @@ invalid-input/upstream/parse errors.
 
 当前实现证据：UBAA2 Core 已完成五类图书馆只读查询及独立路线内 token 会话，CLI 已接入五个对应子命令，并有 Mock/CAS 回归测试。预约、取消现已接入 Core/CLI，并以冻结 golden 向量覆盖日期派生 AES-128-CBC、PKCS#7 和固定 IV；CLI 写入口要求显式确认，verify-live 永不调用。`examples/buaa-api` 没有等价实现。Direct/WebVPN 真实路线验证仍未完成。
 
+补充证据（`24acd8b`）：`crates/ubaa-core/tests/libbook.rs` 的 Mock 端到端测试按冻结顺序调用预约确认和取消接口，断言 `aesjson` 非空、取消请求携带预约标识，并复用路线内 bearer 会话。测试仅使用合成会话与脱敏响应，不产生真实预约或取消。
+
 ## Review rule
 
 ## UBAA2 直接写操作与评教（2026-08-28）

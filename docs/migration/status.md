@@ -227,6 +227,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - `just verify-live mode=direct feature=evaluation` 与 `just verify-live mode=webvpn feature=evaluation` 均通过，仅记录脱敏的 `course_count=0` 摘要。
 - 剩余验收缺口：Ygdk、Cgyy、Evaluation 写操作仍需完整 Core 协议、向量和 Mock 测试；LibBook 与 Signin 已有 Core/CLI 写入口，但仍需专门的请求和向量测试。所有功能逐项 Direct/WebVPN/auto 读验证仍未完成，迁移尚未完成。
 - 本阶段补齐 LibBook 预约/取消 Core 与 CLI 写入口，并以冻结 golden 向量验证字段顺序、日期派生 AES-128-CBC、PKCS#7 和固定 IV；本阶段提交为后续审查起点。
+- LibBook 写链阶段进一步增加了确定性 Mock 端到端测试，覆盖预约 `/v4/space/confirm` 与取消 `/v4/space/cancel` 的顺序、请求体和路线内会话；提交为 `24acd8b`。该证据不等同于真实写操作验收，verify-live 仍永久跳过写入口。
 - 新增 Ygdk `submit` Core/CLI 写入口，按冻结实现上传照片后提交打卡表单；默认拒绝，必须显式 `--confirm-write`，未执行真实写操作。
 - Ygdk 写入阶段完成了 multipart 上传边界、固定表单字段、CLI 文件输入校验及脱敏请求向量；真实写操作仍永久禁止，最终验收仍受全局实时矩阵门禁约束。
 - Cgyy 阶段已提交 `1d25ef2`：完成日期上下文、空间/时段校验、预约上下文创建和最终预约表单的冻结字段实现；验证码挑战与求解端口尚未迁移，CLI 提交入口和真实写验收继续禁止调用。
