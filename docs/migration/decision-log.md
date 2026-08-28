@@ -495,6 +495,14 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 改变日期未改变失败类别，因此当前证据不足以把问题归因于当天没有可预约数据；不据此
   修改日期格式、响应字段或错误映射，也未执行任何真实写操作。
 
+## 2026-08-29 锁码 CLI 脱敏边界
+
+- 冻结旧版允许 `getLockCode()` 返回可空不透明 `data`，但 CLI 安全合同禁止输出原始
+  锁码或 `rawData` 字段。提交 `8ef875a` 保留 Core facade 的原始 `Value`，将单路线与
+  聚合 CLI 投影为仅含 `{available: boolean}`，并同步 schema、验证器与脱敏单测。
+- Direct Cgyy 随后复测中锁码阶段返回 `upstream_unavailable`；验证器不再因旧的
+  `rawData` 结构要求产生误报。真实写操作仍未调用。
+
 ## 2026-08-29 三路线全量复测更新
 
 - Direct 全量：除 Cgyy 外所有 User、课表、考试、成绩、教室、SPOC、Judge、Signin、

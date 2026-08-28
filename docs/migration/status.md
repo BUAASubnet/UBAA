@@ -295,3 +295,4 @@ CI remains deterministic-only and never reads `.env.local`.
 - 验证器进一步修正站点失败语义：站点响应未通过时不再输出成功摘要，也不从错误信封提取站点标识。三路线 Cgyy 复测显示 WebVPN 站点/用途/订单通过、日期和锁码失败；auto 站点通过、用途/日期/订单/锁码失败；Direct 站点、用途和锁码均受上游失败影响。详情仅在真实订单标识存在时尝试。
 - 更新后的三路线全量复测：Direct 的 User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 均通过，Cgyy 用途/订单为 `upstream_unavailable`、日期为 `upstream_changed`、锁码为 `invalid_semantics`；auto 除 Cgyy 日期/锁码 `upstream_unavailable` 外其余通过；WebVPN 除 Cgyy 日期/锁码 `upstream_unavailable` 外其余通过。Judge 三路线均完成完整详情语义校验。
 - Direct Cgyy 使用只读日期覆盖 `2026-09-01` 复测后，站点仍通过（4 个），用途/日期/订单仍为 `upstream_unavailable`，锁码为 `invalid_semantics`；失败不随日期窗口改变，暂不能归因于当天无数据。
+- CLI 锁码输出已改为仅返回 `{available: boolean}`，Core facade 仍保留旧版不透明 `data`；CLI schema、验证器和脱敏单测均已同步。Direct 复测中锁码现按上游 `upstream_unavailable` 记录，不再误报 `rawData` 结构错误。
