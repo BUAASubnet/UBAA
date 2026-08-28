@@ -293,3 +293,5 @@ CI remains deterministic-only and never reads `.env.local`.
 - WebVPN Cgyy 在切换 Direct 业务 transport 后，站点查询已通过（4 个站点）；用途查询进入业务请求阶段但返回 `upstream_unavailable`，原先的 `authentication_required` 已消除，后续继续复核上游可用性。
 - 后续 WebVPN 全量复测：User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 均通过；Cgyy 站点通过（4 个站点），用途查询为 `upstream_unavailable`，聚合退出 5。
 - auto Judge 单项复测已通过（课程 5、当前任务 65，详情语义通过）；Direct Judge 同轮仍为 `upstream_unavailable`。Judge 列表存在实时快照波动，继续保留逐路线结果。
+- Direct Judge 随后单项复测通过（课程 5、当前任务 65，详情语义通过）；Judge 的 Direct/WebVPN/auto 成功证据现已齐备。
+- Direct Cgyy 同轮站点查询通过（4 个站点），日期查询仍为 `upstream_unavailable`；Cgyy 是当前唯一未收敛的只读实时领域。

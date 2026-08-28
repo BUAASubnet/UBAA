@@ -463,3 +463,10 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   波动一致，不能用 auto 成功替代 Direct 路线证据；继续保留逐路线硬门禁。
 - WebVPN 全量同轮除 Cgyy 用途查询 `upstream_unavailable` 外，其余已执行只读操作通过，
   包括 Judge 和 Evaluation。所有运行均未调用真实写接口。
+
+## 2026-08-29 Direct Judge/Cgyy 复测收敛
+
+- Direct Judge 随后单项复测通过：课程 5、当前任务 65，详情语义校验通过；结合本轮
+  WebVPN 与 auto 成功结果，Judge 三路线证据已齐备。
+- Direct Cgyy 站点查询通过（4 个站点），日期阶段仍返回 `upstream_unavailable`，退出 5。
+  该失败不被站点成功掩盖，也未改变冻结请求和错误分类。
