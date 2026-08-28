@@ -1272,12 +1272,12 @@ run_readonly_feature() {
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy; return "$CLI_CODE"; fi
       if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy; return 1; fi
       count=$(jq -r '.data | length' <<<"$CLI_OUTPUT")
+      local cgyy_site_id cgyy_date cgyy_order_id
+      cgyy_site_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
       printf 'mode=%s route=%s resolved_route=%s feature=cgyy outcome=success stage=cgyy exit_code=0 elapsed_ms=%s site_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       run_json none cgyy purposes
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_purposes; return "$CLI_CODE"; fi
       if ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_purposes; return 1; fi
-      local cgyy_site_id cgyy_date cgyy_order_id
-      cgyy_site_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
       cgyy_date=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
       if [[ -n "$cgyy_site_id" ]]; then
         run_json none cgyy day --site-id "$cgyy_site_id" --date "$cgyy_date"

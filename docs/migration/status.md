@@ -12,6 +12,11 @@ Updated: 2026-08-29
 - 当前阶段扩展 `verify-live` 的逐操作只读矩阵：Ygdk 记录、LibBook 区域/详情/座位/预约、
   Bykc 资料/课程详情/已选/统计、Cgyy 用途/日期/订单详情和 Evaluation 待评教均会独立
   执行；详情请求仅在上游返回脱敏标识时继续，空集合不会伪造详情成功。
+- 本轮三路线逐操作复测：Direct 的 Judge 返回 `upstream_unavailable`、Bykc 已选返回
+  `upstream_changed`、Cgyy 锁码结构不满足当前验证语义；WebVPN 的 Bykc 返回
+  `upstream_changed`、Cgyy 与 Evaluation 返回 `authentication_required`；auto 解析到
+  Direct，Judge 返回 `upstream_unavailable`、Bykc 已选返回 `upstream_changed`，Cgyy
+  在用途查询阶段返回 `upstream_unavailable`。这些均为失败证据，不能由其他读操作成功替代。
 - 本阶段 `just check-sensitive && just check` 全部通过。整体迁移仍未完成：Cgyy
   WebVPN 业务会话返回 `authentication_required`，Direct 门锁码返回
   `upstream_unavailable`，Signin/Ygdk/Evaluation 等逐操作实时矩阵仍有失败项。
