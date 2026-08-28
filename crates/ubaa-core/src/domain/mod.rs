@@ -182,23 +182,6 @@ pub struct LibBookCancelResult {
     pub message: String,
 }
 
-/// 博雅课程写操作结果。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BykcActionResult {
-    pub message: String,
-}
-
-/// 博雅签到/签退请求。
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BykcSignRequest {
-    pub course_id: i64,
-    pub lat: Option<f64>,
-    pub lng: Option<f64>,
-    pub sign_type: i32,
-}
-
 /// 评教任务。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
