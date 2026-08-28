@@ -18,7 +18,8 @@ use ubaa_core::domain::{
     LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginReadiness,
     RoutePolicy, SafeError, SecretValue, SigninActionResult, SigninClass, SpocAssignmentDetail,
     SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
-    WeeklySchedule, YgdkOverview, YgdkRecordsPage,
+    WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
+    YgdkPhotoUpload, YgdkRecordsPage,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, Result, UbaaError};
 use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
@@ -368,6 +369,22 @@ pub enum YgdkCommand {
         page: i32,
         #[arg(long, default_value_t = 20)]
         size: i32,
+    },
+    Submit {
+        #[arg(long)]
+        item_id: Option<i32>,
+        #[arg(long)]
+        start_time: String,
+        #[arg(long)]
+        end_time: String,
+        #[arg(long)]
+        place: Option<String>,
+        #[arg(long)]
+        photo: PathBuf,
+        #[arg(long)]
+        share_to_square: bool,
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
     },
 }
 
@@ -878,6 +895,12 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<YgdkRecordsPage>> {
         Err(internal_error("阳光打卡不可用"))
     }
+    async fn ygdk_submit(
+        &mut self,
+        _request: YgdkClockinSubmitRequest,
+    ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
+        Err(internal_error("阳光打卡写功能不可用"))
+    }
     /// 查询全部评教课程。
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         Err(internal_error("评教功能不可用"))
@@ -1094,6 +1117,12 @@ pub trait RoutedCliBackend {
     }
     async fn ygdk_records(&mut self, _page: i32, _size: i32) -> RoutedResult<YgdkRecordsPage> {
         Err(routed_unavailable("阳光打卡不可用"))
+    }
+    async fn ygdk_submit(
+        &mut self,
+        _request: YgdkClockinSubmitRequest,
+    ) -> RoutedResult<YgdkClockinSubmitResult> {
+        Err(routed_unavailable("阳光打卡写功能不可用"))
     }
     /// 通过 Core 路由获取用户中心资料。
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
@@ -1542,6 +1571,12 @@ impl CliBackend for RouteClient {
     ) -> Result<FeatureResult<YgdkRecordsPage>> {
         self.ygdk_records(page, size).await
     }
+    async fn ygdk_submit(
+        &mut self,
+        request: YgdkClockinSubmitRequest,
+    ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
+        self.ygdk_submit(request).await
+    }
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         self.evaluation_all().await
     }
@@ -1722,6 +1757,12 @@ impl RoutedCliBackend for UbaaClient {
     async fn ygdk_records(&mut self, page: i32, size: i32) -> RoutedResult<YgdkRecordsPage> {
         UbaaClient::ygdk_records(self, page, size).await
     }
+    async fn ygdk_submit(
+        &mut self,
+        request: YgdkClockinSubmitRequest,
+    ) -> RoutedResult<YgdkClockinSubmitResult> {
+        UbaaClient::ygdk_submit(self, request).await
+    }
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         UbaaClient::get_user_info(self).await
     }
@@ -1795,6 +1836,7 @@ impl RoutedCliBackend for UbaaClient {
 }
 
 /// 使用 Core 所有的路由解析执行普通用户命令或只读命令。
+#[allow(clippy::too_many_lines)]
 pub async fn run_with_routed_backend<B, O, E>(
     cli: Cli,
     backend: &mut B,
@@ -1882,6 +1924,41 @@ where
             CliFeature::Ygdk,
             routed_readonly(backend.ygdk_records(page, size).await, CliFeature::Ygdk),
         ),
+        Command::Ygdk(YgdkArgs {
+            command:
+                YgdkCommand::Submit {
+                    item_id,
+                    start_time,
+                    end_time,
+                    place,
+                    photo,
+                    share_to_square,
+                    confirm_write,
+                },
+        }) => {
+            let result = if confirm_write {
+                match build_ygdk_request(
+                    item_id,
+                    start_time,
+                    end_time,
+                    place,
+                    &photo,
+                    share_to_square,
+                ) {
+                    Ok(request) => backend.ygdk_submit(request).await,
+                    Err(error) => Err(RoutedError {
+                        error,
+                        resolution: None,
+                    }),
+                }
+            } else {
+                Err(RoutedError {
+                    error: invalid_input("打卡是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                })
+            };
+            (CliFeature::Ygdk, routed_readonly(result, CliFeature::Ygdk))
+        }
         Command::Auth(_) => (
             CliFeature::Auth,
             Err(RoutedError {
@@ -2325,6 +2402,7 @@ where
 }
 
 /// 使用宿主已验证的只读路由决策执行已解析命令。
+#[allow(clippy::too_many_lines)]
 pub async fn run_with_backend_with_route<B, R, O, E>(
     cli: Cli,
     backend: &mut B,
@@ -2407,6 +2485,37 @@ where
             .ygdk_records(page, size)
             .await
             .and_then(|data| readonly(data, CliFeature::Ygdk)),
+        Command::Ygdk(YgdkArgs {
+            command:
+                YgdkCommand::Submit {
+                    item_id,
+                    start_time,
+                    end_time,
+                    place,
+                    photo,
+                    share_to_square,
+                    confirm_write,
+                },
+        }) => {
+            if confirm_write {
+                match build_ygdk_request(
+                    item_id,
+                    start_time,
+                    end_time,
+                    place,
+                    &photo,
+                    share_to_square,
+                ) {
+                    Ok(request) => backend
+                        .ygdk_submit(request)
+                        .await
+                        .and_then(|data| readonly(data, CliFeature::Ygdk)),
+                    Err(error) => Err(error),
+                }
+            } else {
+                Err(invalid_input("打卡是写操作，必须显式指定 --confirm-write"))
+            }
+        }
     };
 
     render_result(
@@ -3102,6 +3211,53 @@ fn write_json<O: Write, T: serde::Serialize>(stdout: &mut O, value: &T) -> std::
 
 fn invalid_input(message: impl Into<String>) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
+}
+
+fn build_ygdk_request(
+    item_id: Option<i32>,
+    start_time: String,
+    end_time: String,
+    place: Option<String>,
+    photo: &PathBuf,
+    share_to_square: bool,
+) -> Result<YgdkClockinSubmitRequest> {
+    if start_time.trim().is_empty() || end_time.trim().is_empty() {
+        return Err(invalid_input("打卡开始和结束时间不能为空"));
+    }
+    let bytes = std::fs::read(photo).map_err(|_| invalid_input("无法读取打卡照片"))?;
+    if bytes.is_empty() {
+        return Err(invalid_input("打卡照片不能为空"));
+    }
+    let file_name = photo
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("photo.bin")
+        .to_owned();
+    let mime_type = match photo
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "webp" => "image/webp",
+        _ => "application/octet-stream",
+    }
+    .to_owned();
+    Ok(YgdkClockinSubmitRequest {
+        item_id,
+        start_time: Some(start_time),
+        end_time: Some(end_time),
+        place,
+        share_to_square: Some(share_to_square),
+        photo: Some(YgdkPhotoUpload {
+            bytes,
+            file_name,
+            mime_type,
+        }),
+    })
 }
 
 /// 构造进程入口使用的稳定缺失会话错误。

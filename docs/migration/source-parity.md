@@ -229,7 +229,7 @@ invalid-input/upstream/parse errors.
 |---|---|---|---|---|---|---|---|---|
 | **旧版：** OAuth 入口为 `https://app.buaa.edu.cn/uc/api/oauth/index`，交换地址为 `https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin`；**示例：**无等价模块；**决定：**仅采用冻结旧版证据。 | **旧版：**最多跟随 10 次跳转，从 query 或 fragment query 提取并解码 `code`；**决定：**仅允许已记录的 BUAA 主机。 | **旧版：**按学生标识缓存独立 `uid/token`，不复用主认证 Cookie；**决定：**挂在路线隔离的业务会话状态中，不持久化敏感令牌。 | **旧版：**先分类、项目、汇总/学期，再记录查询；记录使用 `page`、`limit`、`classify_id`、`user_id`，概览固定 `page=1`、`limit=1000`；**决定：**保持分页与体育分类选择语义。 | **旧版：**POST `application/x-www-form-urlencoded`，所有请求附加 `uid/token` 和 `X-Requested-With: XMLHttpRequest`；**决定：**不记录令牌值。 | **旧版/示例：**无加密；**决定：**不引入签名或自定义加密。 | **旧版：**概览包含学期汇总、分类、默认项目和项目列表；记录包含记录标识、项目、时间、地点、图片、状态及分页字段；时间按上海时区格式化。 | **旧版：**按学生标识缓存业务会话，认证失效时清除并重试一次；**决定：**使用路线内单飞登录与失效代数。 | **旧版：**外层 `code=1` 成功，`-98` 清会话并认证失败，其余使用 `msg` 映射上游错误；非法分页参数为输入错误；**决定：**禁止把失败伪装为空结果。 |
 
-当前实现证据：`crates/ubaa-core/tests/ygdk.rs` 已覆盖概览、记录分页和令牌业务会话，Core facade 与 `ygdk overview`/`ygdk records` CLI 已接入。OAuth code 同时从普通 query 与 `#/home?code=...` fragment query 提取；项目和记录参数按冻结实现同时发送至 query 与表单正文；业务 token 作为单独 URL 值解码，`-98` 会清除业务凭据并完整重登一次。`examples/buaa-api` 没有等价实现，不能从其模块类比 URL、字段或令牌流程。2026-08-28 Direct/WebVPN 实时验证均通过并解析到 11 个项目。写入打卡和照片上传明确排除。
+当前实现证据：`crates/ubaa-core/tests/ygdk.rs` 已覆盖概览、记录分页和令牌业务会话，Core facade 与 `ygdk overview`/`ygdk records` CLI 已接入；`ygdk submit` 现已接入照片 multipart 上传和固定字段表单提交，要求 CLI 显式 `--confirm-write`，实时验证永不调用。OAuth code 同时从普通 query 与 `#/home?code=...` fragment query 提取；项目和记录参数按冻结实现同时发送至 query 与表单正文；业务 token 作为单独 URL 值解码，`-98` 会清除业务凭据并完整重登一次。`examples/buaa-api` 没有等价实现，不能从其模块类比 URL、字段或令牌流程。2026-08-28 Direct/WebVPN 实时验证均通过并解析到 11 个项目。写入阶段已完成请求边界和输入校验，但仍需脱敏 Mock 请求断言与完整结果向量。
 
 ## 图书馆座位只读查询
 

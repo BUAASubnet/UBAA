@@ -20,8 +20,8 @@ use crate::domain::{
     LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginOutcome,
     LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
     SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule, YgdkOverview,
-    YgdkRecordsPage,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
@@ -885,6 +885,23 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    pub async fn ygdk_submit(
+        &mut self,
+        request: YgdkClockinSubmitRequest,
+    ) -> RoutedResult<YgdkClockinSubmitResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::ygdk::submit_clockin(&mut self.direct_runtime, request.clone())
+                    .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::ygdk::submit_clockin(&mut self.webvpn_runtime, request).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
     /// 通过 SPOC 路线策略读取当前作业列表。
     pub async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
@@ -1735,6 +1752,15 @@ impl RouteClient {
     ) -> Result<FeatureResult<YgdkRecordsPage>> {
         self.guard_session_ownership()?;
         let result = crate::features::ygdk::get_records(&mut self.runtime, page, size).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    pub async fn ygdk_submit(
+        &mut self,
+        request: YgdkClockinSubmitRequest,
+    ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
+        let result = crate::features::ygdk::submit_clockin(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

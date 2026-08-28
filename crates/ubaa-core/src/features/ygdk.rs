@@ -1,7 +1,10 @@
 //! 阳光打卡只读响应解析与业务查询。
 #![allow(clippy::missing_errors_doc)]
 
-use crate::domain::{YgdkItem, YgdkOverview, YgdkRecord, YgdkRecordsPage, YgdkTermSummary};
+use crate::domain::{
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkRecord,
+    YgdkRecordsPage, YgdkTermSummary,
+};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use serde_json::{Map, Value};
@@ -327,6 +330,137 @@ pub(crate) async fn get_records(
     )
     .await?;
     parse_records(&body, &overview.items, page, size)
+}
+
+/// 上传照片并提交打卡。该操作只由显式确认的宿主调用，实时验证器不会调用。
+pub(crate) async fn submit_clockin(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: YgdkClockinSubmitRequest,
+) -> Result<YgdkClockinSubmitResult> {
+    let credential = ensure_login(runtime).await?;
+    let overview = get_overview(runtime).await?;
+    let item = request
+        .item_id
+        .map_or_else(
+            || {
+                overview
+                    .items
+                    .iter()
+                    .find(|item| item.name.contains('跑'))
+                    .or_else(|| overview.items.first())
+            },
+            |id| overview.items.iter().find(|item| item.item_id == id),
+        )
+        .ok_or_else(|| error("未找到阳光打卡项目"))?;
+    let photo = request.photo.ok_or_else(|| {
+        UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "打卡照片不能为空",
+        )
+    })?;
+    if photo.bytes.is_empty() {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "打卡照片不能为空",
+        ));
+    }
+    let file_name = upload_photo(runtime, &credential, &photo).await?;
+    let (start, end) = request.start_time.zip(request.end_time).ok_or_else(|| {
+        UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "开始和结束时间必须同时提供",
+        )
+    })?;
+    let place = request
+        .place
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "操场".into());
+    let params = [
+        ("start_time", start.clone()),
+        ("end_time", end.clone()),
+        ("place_type", "1".into()),
+        ("place", place),
+        (
+            "isopen",
+            if request.share_to_square.unwrap_or(false) {
+                "1"
+            } else {
+                "0"
+            }
+            .into(),
+        ),
+        ("form_time_fmt", format!("{start}-{end}")),
+        ("images", serde_json::json!([file_name]).to_string()),
+        ("classify_id", overview.classify_id.to_string()),
+        ("item_id", item.item_id.to_string()),
+        ("item_name", item.name.clone()),
+    ];
+    let body = post(
+        runtime,
+        "/api/Front/Clockin/Clockin/clockin",
+        &credential,
+        &params,
+    )
+    .await?;
+    let result = parse_envelope(&body)?;
+    let object = result
+        .as_object()
+        .ok_or_else(|| error("阳光打卡提交响应无效"))?;
+    Ok(YgdkClockinSubmitResult {
+        success: true,
+        message: "打卡成功".into(),
+        record_id: integer(object, "record_id"),
+        summary: None,
+    })
+}
+
+async fn upload_photo(
+    runtime: &mut crate::runtime::ClientRuntime,
+    credential: &YgdkCredential,
+    photo: &crate::domain::YgdkPhotoUpload,
+) -> Result<String> {
+    let boundary = "ubaa-ygdk-boundary";
+    let mut body = Vec::new();
+    let mut field = |name: &str, value: &str| {
+        body.extend_from_slice(
+            format!(
+                "--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
+            )
+            .as_bytes(),
+        );
+    };
+    field("uid", &credential.uid.to_string());
+    field("token", &credential.token);
+    body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", photo.file_name, photo.mime_type).as_bytes());
+    body.extend_from_slice(&photo.bytes);
+    body.extend_from_slice(b"\r\n");
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+    let mut request = HttpRequest::post(
+        runtime.url(&format!("{FRONT_BASE}/api/Front/Upload/File/post"))?,
+        body,
+    );
+    request.headers.insert(
+        "Content-Type".into(),
+        format!("multipart/form-data; boundary={boundary}"),
+    );
+    request
+        .headers
+        .insert("X-Requested-With".into(), "XMLHttpRequest".into());
+    let response = runtime.request(request).await?;
+    if response.status != 200 {
+        return Err(error("阳光打卡图片上传失败"));
+    }
+    let value = parse_envelope(&super::body(&response))?;
+    value
+        .as_object()
+        .and_then(|object| string(object, "file_name"))
+        .ok_or_else(|| error("阳光打卡图片上传响应无效"))
 }
 
 async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<YgdkCredential> {
