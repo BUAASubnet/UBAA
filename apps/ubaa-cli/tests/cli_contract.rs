@@ -130,6 +130,54 @@ async fn 场馆预约默认拒绝且不读取标准输入() {
     assert!(stderr.is_empty());
 }
 
+#[tokio::test]
+async fn 其他写命令未确认时统一拒绝() {
+    let commands = [
+        Cli::try_parse_from(["ubaa", "--json", "signin", "perform", "--course-id", "safe"])
+            .unwrap(),
+        Cli::try_parse_from([
+            "ubaa",
+            "--json",
+            "ygdk",
+            "submit",
+            "--start-time",
+            "08:00",
+            "--end-time",
+            "09:00",
+            "--photo",
+            "/tmp/不存在的照片.jpg",
+        ])
+        .unwrap(),
+        Cli::try_parse_from([
+            "ubaa",
+            "--json",
+            "libbook",
+            "reserve",
+            "--area-id",
+            "a",
+            "--seat-id",
+            "s",
+            "--day",
+            "2026-08-28",
+            "--segment",
+            "1",
+        ])
+        .unwrap(),
+        Cli::try_parse_from(["ubaa", "--json", "bykc", "select", "--course-id", "1"]).unwrap(),
+    ];
+    for cli in commands {
+        let mut backend = FakeRoutedBackend::default();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+        assert_eq!(code, 2);
+        let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+        assert_cli_schema(&value);
+        assert_eq!(value["error"]["code"], "invalid_input");
+        assert!(stderr.is_empty());
+    }
+}
+
 #[derive(Default)]
 struct FakeBackend {
     login_calls: usize,
