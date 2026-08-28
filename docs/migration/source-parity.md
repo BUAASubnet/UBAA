@@ -300,3 +300,7 @@ list cannot prove detail/parser semantics.
 | 订单详情 | **old:** GET `/api/orders/{id}`。**example:** 无等价接口。**decision:** 仅采用旧实现接口。 | 与站点相同；失效后最多重登并重放一次。 | 与站点相同，复用当前路线的 `access_token`。 | GET，订单 ID 只进入路径，自动加入 `nocache`。 | 与站点相同，无请求体。 | 与站点相同，规范化详情路径和 `nocache` 参与签名。 | 单个订单字段按冻结 `Cgyy.kt` 映射，不接受分页包装替代详情对象。 | 不缓存详情结果。 | 非正订单 ID 是 `invalid_input`；空详情不是空成功，必须返回稳定解析错误。 |
 
 `examples/buaa-api` 在锁定提交中未实现 `venue-zhjs-server` 场馆预约协议，因此没有提供 URL、字段、令牌或错误语义；以上所有协议值均来自冻结 `ubaa_old/shared/.../CgyyApi.kt`、`LocalCgyyApi.kt`、`LocalCgyySigner.kt` 及对应服务测试。当前只读切片仅覆盖解析与 DTO，预约提交、取消、锁码和验证码明确不在本阶段范围内。
+
+### Signin 时间戳解析校正
+
+冻结 `LocalSigninApi.kt` 在 GET `app/common/get_timestamp.action` 响应 JSON 中读取字符串字段 `timestamp`；空字段或非 JSON 响应均映射为上游错误，随后将该值作为签到请求查询参数。Rust Core 已严格解析该字段，并以脱敏测试覆盖非 JSON 拒绝。`examples/buaa-api` 未实现 iClass 签到协议，因此未借用其响应结构。

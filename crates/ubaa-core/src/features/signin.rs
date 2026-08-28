@@ -101,10 +101,7 @@ pub(crate) async fn perform_signin(
     if timestamp.status != 200 {
         return Err(upstream_error("无法获取签到时间戳"));
     }
-    let timestamp = String::from_utf8_lossy(&timestamp.body).trim().to_owned();
-    if timestamp.is_empty() {
-        return Err(upstream_error("签到时间戳为空"));
-    }
+    let timestamp = parse_timestamp(&timestamp.body)?;
     let mut url = url::Url::parse(
         &runtime.url("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")?,
     )
@@ -146,6 +143,18 @@ pub(crate) async fn perform_signin(
             })
             .to_owned(),
     })
+}
+
+fn parse_timestamp(body: &[u8]) -> Result<String> {
+    let value: Value =
+        serde_json::from_slice(body).map_err(|_| upstream_error("签到时间戳响应格式无效"))?;
+    value
+        .get("timestamp")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| upstream_error("签到时间戳为空"))
 }
 
 async fn get_today_once(
@@ -359,7 +368,16 @@ fn parse_error() -> UbaaError {
 
 #[cfg(test)]
 mod tests {
-    use super::{SIGNIN_LOGIN_URL, parse_login_credential};
+    use super::{SIGNIN_LOGIN_URL, parse_login_credential, parse_timestamp};
+
+    #[test]
+    fn 时间戳读取冻结的_json字段() {
+        assert_eq!(
+            parse_timestamp(br#"{"timestamp":"1700000000000"}"#).unwrap(),
+            "1700000000000"
+        );
+        assert!(parse_timestamp(br#"1700000000000"#).is_err());
+    }
 
     #[test]
     fn 签到业务登录使用已验证的新入口() {
