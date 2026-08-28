@@ -45,6 +45,8 @@ pub use commands::{Cli, Command};
 mod execution;
 use execution::command_feature;
 pub use execution::run_with_backend;
+mod command_output;
+use command_output::{CommandOutput, readonly};
 
 #[derive(Debug, Args)]
 pub struct EvaluationArgs {
@@ -3021,27 +3023,6 @@ fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> {
         .read_to_string(&mut input)
         .map_err(|_| invalid_input("无法读取场馆预约请求"))?;
     serde_json::from_str(&input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
-}
-
-fn readonly<T: Serialize>(result: FeatureResult<T>, feature: CliFeature) -> Result<CommandOutput> {
-    let data =
-        serde_json::to_value(result.data).map_err(|_| internal_error("无法序列化命令输出"))?;
-    Ok(CommandOutput::Readonly {
-        data,
-        route: result.resolved_route,
-        feature,
-    })
-}
-
-enum CommandOutput {
-    Profile(UserProfile),
-    Status(AuthStatus),
-    Logout(Value),
-    Readonly {
-        data: Value,
-        route: ConnectionMode,
-        feature: CliFeature,
-    },
 }
 
 fn render_result<O: Write, E: Write>(
