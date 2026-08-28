@@ -415,3 +415,10 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   `upstream_changed`，Cgyy 在用途查询阶段返回 `upstream_unavailable`，聚合退出 5。
 - 以上运行只执行读操作；未记录凭据、Cookie、令牌、摘要盐、原始响应或个人数据，
   未调用任何选课、退选、签到、预约、取消、提交或上传接口。整体迁移继续保持未完成。
+
+## 2026-08-29 User 独立只读验收
+
+- `feature=user route=direct`、`feature=user route=webvpn` 和
+  `feature=user route=auto` 均退出 0；auto 实际解析到 Direct。
+- 三次运行均通过完整脱敏 profile 结构校验；没有记录姓名、联系方式、身份信息、Cookie、
+  令牌或原始响应，也没有调用任何写操作。
