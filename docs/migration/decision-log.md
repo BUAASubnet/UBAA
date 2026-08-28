@@ -513,6 +513,13 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 本轮没有出现新的可验证 URL/字段冲突；不据此增加网络重试、改写参数或放宽错误分类，
   继续保留失败证据并禁止真实写操作。
 
+## 2026-08-29 锁码投影后三路线复测
+
+- WebVPN：站点成功，用途、日期、订单、锁码均为 `upstream_unavailable`。
+- auto：站点、用途、订单、锁码均为 `upstream_unavailable`；站点失败后未构造依赖详情。
+- 两路线均未出现旧 `rawData` 结构误报，说明 CLI 安全投影与验证器合同已生效；Cgyy
+  实时硬门禁仍未满足，未执行任何写操作。
+
 ## 2026-08-29 三路线全量复测更新
 
 - Direct 全量：除 Cgyy 外所有 User、课表、考试、成绩、教室、SPOC、Judge、Signin、
