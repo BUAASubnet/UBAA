@@ -5,7 +5,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use url::Url;
@@ -21,6 +21,8 @@ pub use types::{
 };
 mod ports;
 pub use ports::SessionStore;
+mod storage;
+use storage::{SessionFileLock, TemporaryFile};
 
 const MAX_SESSION_FILE_BYTES: usize = 1024 * 1024;
 const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
@@ -586,47 +588,6 @@ impl FileSessionStore {
             _process_guard: process_guard,
             file,
         })
-    }
-}
-
-struct SessionFileLock<'a> {
-    _process_guard: MutexGuard<'a, ()>,
-    file: File,
-}
-
-impl Drop for SessionFileLock<'_> {
-    fn drop(&mut self) {
-        let _ = self.file.unlock();
-    }
-}
-
-struct TemporaryFile {
-    path: PathBuf,
-    remove_on_drop: bool,
-}
-
-impl TemporaryFile {
-    fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            remove_on_drop: true,
-        }
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
-    }
-
-    fn persisted(&mut self) {
-        self.remove_on_drop = false;
-    }
-}
-
-impl Drop for TemporaryFile {
-    fn drop(&mut self) {
-        if self.remove_on_drop {
-            let _ = fs::remove_file(&self.path);
-        }
     }
 }
 

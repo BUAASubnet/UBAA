@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `crates/ubaa-core/src/session/storage.rs`，收拢会话文件锁与临时文件生命周期；保持原子写入、失败清理、跨平台锁释放和权限边界不变；Session、CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/session/ports.rs`，收拢 `SessionStore` 持久化端口；保持版本化加载、比较交换、保存/清理循环和错误语义不变；Session、CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/login_args.rs`，收拢登录参数及敏感 Debug 脱敏实现；保持参数名称、隐藏属性、标准输入校验和 JSON/交互登录语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/session/types.rs`，收拢单路线/双路线会话快照、版本包装、校验与比较交换结果类型；保持 schema-v2 字段、旧版迁移、Deref 和序列化语义不变；Session、CLI、敏感扫描与全量门禁通过。
