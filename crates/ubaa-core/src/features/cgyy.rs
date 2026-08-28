@@ -2,7 +2,7 @@
 #![allow(clippy::missing_errors_doc)]
 
 use crate::domain::{
-    CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyySlotStatus, CgyySpaceAvailability,
+    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyySlotStatus, CgyySpaceAvailability,
     CgyyTimeSlot, CgyyVenueSite,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -206,6 +206,33 @@ pub(crate) async fn get_order_detail(
     id: i32,
 ) -> Result<CgyyOrder> {
     parse_order_detail(&get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?)
+}
+
+/// 取消指定场馆预约订单。
+pub(crate) async fn cancel_order(
+    runtime: &mut crate::runtime::ClientRuntime,
+    id: i32,
+) -> Result<CgyyActionResult> {
+    let token = ensure_login(runtime).await?;
+    let request = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Post,
+        &format!("/api/orders/new/cancel/{id}"),
+        BTreeMap::new(),
+        Some(&token),
+    )?;
+    let response = runtime.request(request).await?;
+    super::check_response(&response, "场馆预约")?;
+    parse_action_result(&super::body(&response))
+}
+
+/// 解析场馆预约写操作响应。
+pub fn parse_action_result(body: &str) -> Result<CgyyActionResult> {
+    let root = object(body)?;
+    let message = string(&root, "message").unwrap_or_default();
+    let value = data(body)?;
+    let order = value.as_object().map(parse_order);
+    Ok(CgyyActionResult { message, order })
 }
 
 fn authentication_error(message: &str) -> UbaaError {
@@ -515,5 +542,18 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
         check_content: string(raw, "checkContent"),
         handle_reason: string(raw, "handleReason"),
         remark: string(raw, "remark"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_action_result;
+
+    #[test]
+    fn 解析取消订单成功消息() {
+        let result = parse_action_result(r#"{"code":200,"message":"取消成功","data":null}"#)
+            .expect("应解析成功");
+        assert_eq!(result.message, "取消成功");
+        assert!(result.order.is_none());
     }
 }

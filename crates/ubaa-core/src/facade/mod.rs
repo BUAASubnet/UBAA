@@ -12,6 +12,7 @@ use crate::connection::{
 };
 use crate::domain::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
+    CgyyActionResult,
     CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery,
     ConnectionMode, DualLoginInput, DualLoginPreparation, ExamArrangement, FeatureResult,
     GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
@@ -483,6 +484,19 @@ impl UbaaClient {
             ConnectionMode::WebVpn => {
                 crate::features::cgyy::get_order_detail(&mut self.webvpn_runtime, id).await
             }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 取消场馆预约订单。
+    pub async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        if id <= 0 {
+            return Err(routed_error(invalid_input("订单标识必须为正数"), resolution));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => crate::features::cgyy::cancel_order(&mut self.direct_runtime, id).await,
+            ConnectionMode::WebVpn => crate::features::cgyy::cancel_order(&mut self.webvpn_runtime, id).await,
         };
         self.finish_routed(resolution, result)
     }

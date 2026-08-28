@@ -492,6 +492,16 @@ pub struct CgyyOrdersPage {
     pub number: i32,
 }
 
+/// 场馆预约写操作结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyActionResult {
+    /// 上游返回的中文提示。
+    pub message: String,
+    /// 受影响的订单（取消操作通常为空）。
+    pub order: Option<CgyyOrder>,
+}
+
 /// 一条 iClass 课堂签到状态。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
