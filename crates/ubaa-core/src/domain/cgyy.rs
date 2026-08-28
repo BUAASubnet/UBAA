@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -122,4 +124,70 @@ pub struct CgyyReservationResult {
 #[serde(rename_all = "camelCase")]
 pub struct CgyyLockCode {
     pub raw_data: serde_json::Value,
+}
+
+/// 场馆预约提交时选择的空间及时段。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationSelection {
+    pub space_id: i32,
+    pub time_id: i32,
+    pub venue_space_group_id: Option<i32>,
+}
+
+/// 场馆预约提交请求。
+#[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationSubmitRequest {
+    pub venue_site_id: i32,
+    pub reservation_date: String,
+    pub selections: Vec<CgyyReservationSelection>,
+    pub phone: String,
+    pub theme: String,
+    pub purpose_type: i32,
+    pub joiner_num: i32,
+    pub activity_content: String,
+    pub joiners: String,
+    pub is_philosophy_social_sciences: bool,
+    pub is_off_school_joiner: bool,
+    #[serde(skip_serializing)]
+    pub captcha_verification: String,
+    #[serde(skip_serializing)]
+    pub captcha_point_json: String,
+    #[serde(skip_serializing)]
+    pub captcha_token: String,
+    #[serde(skip_serializing)]
+    pub captcha_secret_key: Option<String>,
+    #[serde(skip_serializing)]
+    pub captcha_original_image_base64: Option<String>,
+    #[serde(skip_serializing)]
+    pub captcha_jigsaw_image_base64: Option<String>,
+}
+
+impl fmt::Debug for CgyyReservationSubmitRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CgyyReservationSubmitRequest")
+            .field("venue_site_id", &self.venue_site_id)
+            .field("reservation_date", &self.reservation_date)
+            .field("selections", &self.selections)
+            .field("phone", &"<redacted>")
+            .field("theme", &self.theme)
+            .field("purpose_type", &self.purpose_type)
+            .field("joiner_num", &self.joiner_num)
+            .field("activity_content", &self.activity_content)
+            .field("joiners", &"<redacted>")
+            .field(
+                "is_philosophy_social_sciences",
+                &self.is_philosophy_social_sciences,
+            )
+            .field("is_off_school_joiner", &self.is_off_school_joiner)
+            .field("captcha_verification", &"<redacted>")
+            .field("captcha_point_json", &"<redacted>")
+            .field("captcha_token", &"<redacted>")
+            .field("captcha_secret_key", &"<redacted>")
+            .field("captcha_original_image_base64", &"<redacted>")
+            .field("captcha_jigsaw_image_base64", &"<redacted>")
+            .finish()
+    }
 }

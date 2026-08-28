@@ -1,7 +1,5 @@
 //! Core facade 与宿主绑定共享的稳定领域值。
 
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
 
 mod auth;
@@ -26,78 +24,6 @@ mod classroom;
 pub use classroom::*;
 mod cgyy;
 pub use cgyy::*;
-
-/// 场馆预约提交时选择的空间及时段。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CgyyReservationSelection {
-    pub space_id: i32,
-    pub time_id: i32,
-    pub venue_space_group_id: Option<i32>,
-}
-
-/// 场馆预约提交请求。
-#[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CgyyReservationSubmitRequest {
-    pub venue_site_id: i32,
-    pub reservation_date: String,
-    pub selections: Vec<CgyyReservationSelection>,
-    pub phone: String,
-    pub theme: String,
-    pub purpose_type: i32,
-    pub joiner_num: i32,
-    pub activity_content: String,
-    pub joiners: String,
-    pub is_philosophy_social_sciences: bool,
-    pub is_off_school_joiner: bool,
-    /// 外部验证码服务返回的校验串；仅用于当前请求，不得持久化或输出。
-    #[serde(skip_serializing)]
-    pub captcha_verification: String,
-    /// 验证码滑块点位 JSON，仅用于当前请求。
-    #[serde(skip_serializing)]
-    pub captcha_point_json: String,
-    /// 验证码挑战令牌，仅用于当前请求。
-    #[serde(skip_serializing)]
-    pub captcha_token: String,
-    /// 验证码挑战 AES 密钥，仅用于当前请求。
-    #[serde(skip_serializing)]
-    pub captcha_secret_key: Option<String>,
-    /// 验证码背景图 base64，仅用于当前请求。
-    #[serde(skip_serializing)]
-    pub captcha_original_image_base64: Option<String>,
-    /// 验证码滑块图 base64，仅用于当前请求。
-    #[serde(skip_serializing)]
-    pub captcha_jigsaw_image_base64: Option<String>,
-}
-
-impl fmt::Debug for CgyyReservationSubmitRequest {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("CgyyReservationSubmitRequest")
-            .field("venue_site_id", &self.venue_site_id)
-            .field("reservation_date", &self.reservation_date)
-            .field("selections", &self.selections)
-            .field("phone", &"<redacted>")
-            .field("theme", &self.theme)
-            .field("purpose_type", &self.purpose_type)
-            .field("joiner_num", &self.joiner_num)
-            .field("activity_content", &self.activity_content)
-            .field("joiners", &"<redacted>")
-            .field(
-                "is_philosophy_social_sciences",
-                &self.is_philosophy_social_sciences,
-            )
-            .field("is_off_school_joiner", &self.is_off_school_joiner)
-            .field("captcha_verification", &"<redacted>")
-            .field("captcha_point_json", &"<redacted>")
-            .field("captcha_token", &"<redacted>")
-            .field("captcha_secret_key", &"<redacted>")
-            .field("captcha_original_image_base64", &"<redacted>")
-            .field("captcha_jigsaw_image_base64", &"<redacted>")
-            .finish()
-    }
-}
 
 /// SPOC 提交状态。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
