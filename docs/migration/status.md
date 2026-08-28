@@ -327,3 +327,8 @@ CI remains deterministic-only and never reads `.env.local`.
 - WebVPN 全量：用途回退成功，站点查询成功（4 个）；其余只读操作及 Judge 详情语义通过。Cgyy 日期和依赖详情为 `upstream_unavailable`，聚合退出码 5。
 - auto 全量解析到 Direct：用途回退成功，站点查询成功（4 个）；其余只读操作及 Judge 详情语义通过。Cgyy 日期和订单为 `upstream_unavailable`，聚合退出码 5。
 - 本轮仅执行只读请求，未改变协议策略或执行任何真实写操作。
+
+## 2026-08-29 Cgyy 成功信封严格校验
+
+- 对照冻结 `LocalCgyyApi.requestJson`，将 Core Cgyy 信封校验收紧为必须存在且等于 `code=200`；新增缺失码和 `code=0` 的脱敏测试，先失败后通过。
+- 该修复仅影响异常响应的解析语义，不改变实时 URL、重定向、签名或缓存；实时日期/订单硬门禁仍未通过，未执行真实写操作。

@@ -559,3 +559,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN 全量中用途静态回退成功，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和依赖详情返回 `upstream_unavailable`，聚合退出 5。
 - auto 全量解析到 Direct，用途静态回退成功，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和订单返回 `upstream_unavailable`，聚合退出 5。
 - 本轮无新的 URL、字段或重定向证据；不猜测协议、不增加重试，未执行真实写操作。
+
+## 2026-08-29 Cgyy 成功信封代码严格校验
+
+- 冻结 `LocalCgyyApi.requestJson` 在 JSON 解析后明确要求 `code == 200`；缺失代码或其他数值均抛出业务错误。
+- Rust `features/cgyy.rs::data` 原先允许缺失代码及 `code=0`，新增脱敏解析测试先复现错误再收紧为仅接受 `Some(200)`；非 JSON、数组或标量结构仍按原错误分类处理。
+- 未改变 URL、请求、重定向、签名、缓存或实时错误边界；未执行真实写操作。

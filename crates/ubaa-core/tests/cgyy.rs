@@ -20,6 +20,12 @@ fn 解析场馆站点和用途类型() {
 }
 
 #[test]
+fn 场馆响应缺少或非二百代码时拒绝成功() {
+    assert!(parse_sites(r#"{"data":[]}"#).is_err());
+    assert!(parse_sites(r#"{"code":0,"data":[]}"#).is_err());
+}
+
+#[test]
 fn 用途类型上游失败时回退到冻结静态定义() {
     let root =
         std::env::temp_dir().join(format!("ubaa-cgyy-purpose-fallback-{}", std::process::id()));

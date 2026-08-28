@@ -852,7 +852,7 @@ fn data(body: &str) -> Result<Value> {
     let root = object(body)?;
     let success = root.get("success").and_then(Value::as_bool);
     let code = root.get("code").and_then(Value::as_i64);
-    if success == Some(false) || code.is_some_and(|value| value != 0 && value != 200) {
+    if success == Some(false) || code != Some(200) {
         let message = string(&root, "message").unwrap_or_else(|| "场馆预约请求失败".into());
         return Err(error(message));
     }
