@@ -251,6 +251,8 @@ invalid-input/upstream/parse errors.
 
 Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时满足冻结成功状态和 `result.stuSignStatus=1`；畸形或非成功响应映射为稳定的上游错误。
 
+补充证据：`crates/ubaa-core/tests/signin.rs` 的合成传输按上述四步顺序返回脱敏响应，并断言最终 URL、表单和会话头；测试不会访问真实 iClass，也不持久化业务会话材料。
+
 The following rows are the required parity boundary for the remaining direct upstream
 operations. `ubaa_old` is authoritative at the commit recorded in `references.md`;
 `examples/buaa-api` is explicitly non-equivalent for all rows except Evaluation's SPOC
