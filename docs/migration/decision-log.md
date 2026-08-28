@@ -362,3 +362,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结依据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt` 的 `localCgyyUpstreamUrl` 明确返回原始直连 URL；注释说明 Cgyy 在校外公开可访问，不通过 WebVPN 包装。
 - 当前 Rust：`features/cgyy.rs` 通过所选 `ClientRuntime::url` 包装全部场馆地址；显式 WebVPN 验收的 Cgyy 业务阶段返回 `authentication_required`。
 - 决策：不能复制 Direct Cookie/令牌到 WebVPN，也不能只改 URL 而让 WebVPN 传输承载直连 Cookie。需要后续设计“主路线诊断与 Cgyy 直连业务 runtime”边界，并补充隔离 Mock；在此边界明确前不猜测修复。
+
+## 2026-08-28 Cgyy 直连 URL 复测
+
+- Rust 已按冻结 `localCgyyUpstreamUrl` 将 Cgyy 地址改为原始直连 URL，同时保留当前路线的 Cookie 容器和传输对象。
+- WebVPN 单项复测仍为 `authentication_required`；因此问题不只是 URL 包装，不能据此宣称 WebVPN 通过。
+- Direct 单项站点查询继续通过，门锁码仍返回 `upstream_unavailable`。后续必须设计独立直连业务 runtime，并用 Mock 证明 Cookie 不跨主认证路线复制。

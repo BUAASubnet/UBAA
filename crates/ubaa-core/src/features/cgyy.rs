@@ -44,7 +44,7 @@ fn sign(path: &str, params: &BTreeMap<String, String>, timestamp: i64) -> String
 }
 
 fn signed_request(
-    runtime: &crate::runtime::ClientRuntime,
+    _runtime: &crate::runtime::ClientRuntime,
     method: crate::ports::HttpMethod,
     path: &str,
     mut params: BTreeMap<String, String>,
@@ -67,17 +67,22 @@ fn signed_request(
         );
     }
     let mut request = match method {
-        crate::ports::HttpMethod::Get => HttpRequest::get(runtime.url(direct.as_str())?),
-        crate::ports::HttpMethod::Post => {
-            HttpRequest::post(runtime.url(direct.as_str())?, Vec::new())
+        crate::ports::HttpMethod::Get => {
+            HttpRequest::get(crate::runtime::ClientRuntime::direct_url(direct.as_str()))
         }
+        crate::ports::HttpMethod::Post => HttpRequest::post(
+            crate::runtime::ClientRuntime::direct_url(direct.as_str()),
+            Vec::new(),
+        ),
     };
     request
         .headers
         .insert("Accept".into(), "application/json, text/plain, */*".into());
     request.headers.insert(
         "Referer".into(),
-        runtime.url("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation")?,
+        crate::runtime::ClientRuntime::direct_url(
+            "https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation",
+        ),
     );
     request.headers.insert("app-key".into(), APP_KEY.into());
     request
@@ -108,8 +113,13 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
     if let Some(token) = state.cgyy.token() {
         return Ok(token);
     }
-    let response =
-        super::get_with_redirects(runtime, runtime.url(LOGIN_URL)?, &[], "场馆预约").await?;
+    let response = super::get_with_redirects(
+        runtime,
+        crate::runtime::ClientRuntime::direct_url(LOGIN_URL),
+        &[],
+        "场馆预约",
+    )
+    .await?;
     super::check_response(&response, "场馆预约")?;
     let sso_token = runtime
         .cookie_value(SSO_COOKIE)
