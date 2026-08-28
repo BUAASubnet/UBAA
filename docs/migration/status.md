@@ -237,5 +237,6 @@ CI remains deterministic-only and never reads `.env.local`.
 - 2026-08-28 只读实时矩阵：Direct 全量除 `cgyy_lock_code`（`upstream_unavailable`）外通过；WebVPN 全量的 Cgyy 与 Evaluation 返回 `authentication_required`，其余功能通过。Cgyy WebVPN 与冻结 `localCgyyUpstreamUrl` 的直连语义存在已记录路线冲突，尚未修复。
 - Cgyy 验证码阶段已补齐 Core `/api/captcha/check` 的 `pointJson`、挑战 token 和成功判定；敏感验证码字段仅存在当前请求内，CLI 暂不通过 argv 暴露，验证码获取/求解和 WebVPN 直连 runtime 仍未完成。
 - Cgyy 验证码挑战阶段已固化 `/api/captcha/get` 的冻结参数及四个响应字段解析测试；图像求解器仍需独立端口实现，未将任何默认位移或验证码写入真实请求。
+- 2026-08-28 复跑只读矩阵：Direct 除 `cgyy_lock_code=upstream_unavailable` 外通过；WebVPN 的 Grades 为 `upstream_changed`、Judge 为 `invalid_semantics`，Cgyy/Evaluation 为 `authentication_required`，其余已执行项通过。该结果不满足最终实时验收门禁。
 - Cgyy CLI 已新增 `cgyy submit --request-stdin --confirm-write`，从标准输入读取包含敏感字段的 JSON 请求并在确认前拒绝读取；未执行真实预约。
 - Signin 写请求已提取冻结表单构造器并增加只含 `id` 字段的确定性断言；真实签到和写请求 live 验收仍永久禁止。
