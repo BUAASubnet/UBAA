@@ -435,3 +435,9 @@ CI remains deterministic-only and never reads `.env.local`.
 - WebVPN：上述非 Cgyy 功能逐项通过；Cgyy 站点通过，日期为 `invalid_semantics`、锁码为 `upstream_unavailable`，聚合退出码 1。
 - auto：路由解析为 Direct；上述非 Cgyy 功能逐项通过；Cgyy 站点通过，日期与详情为 `upstream_unavailable`，聚合退出码 5。
 - 本轮只执行认证和读操作，未调用选课、签到、预约、取消、提交或上传；失败项按用户约定保留冻结实现并记录，未依据单次实时响应猜测新协议。
+
+## 2026-08-29 认证资料持久化边界
+
+- 冻结旧版会在 `LocalAuthSession` 中保存 `schoolid/username`，评教任务等请求可在进程重启后继续发送身份参数。
+- UBAA2 当前合同与公开会话契约明确禁止在 `session.json` 持久化用户名或个人资料；Core 因此只在本次进程登录成功后以内存状态提供身份参数，加载旧会话时缺失身份会保持空值并返回上游实际结果。
+- 该项是安全契约与旧版持久化语义的已记录边界，不从 Cookie 或未证实响应字段推导身份，也不因此修改上游协议。
