@@ -296,3 +296,4 @@ CI remains deterministic-only and never reads `.env.local`.
 - 更新后的三路线全量复测：Direct 的 User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 均通过，Cgyy 用途/订单为 `upstream_unavailable`、日期为 `upstream_changed`、锁码为 `invalid_semantics`；auto 除 Cgyy 日期/锁码 `upstream_unavailable` 外其余通过；WebVPN 除 Cgyy 日期/锁码 `upstream_unavailable` 外其余通过。Judge 三路线均完成完整详情语义校验。
 - Direct Cgyy 使用只读日期覆盖 `2026-09-01` 复测后，站点仍通过（4 个），用途/日期/订单仍为 `upstream_unavailable`，锁码为 `invalid_semantics`；失败不随日期窗口改变，暂不能归因于当天无数据。
 - CLI 锁码输出已改为仅返回 `{available: boolean}`，Core facade 仍保留旧版不透明 `data`；CLI schema、验证器和脱敏单测均已同步。Direct 复测中锁码现按上游 `upstream_unavailable` 记录，不再误报 `rawData` 结构错误。
+- 最新三路线 Cgyy 单项复测：Direct 在站点、用途、订单、锁码均为 `upstream_unavailable`；WebVPN 站点通过后用途、日期、订单、锁码均为 `upstream_unavailable`；auto 在站点、用途、订单失败后结束，均为 `upstream_unavailable`。该波动未提供足够证据修改请求或重试策略。

@@ -503,6 +503,16 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - Direct Cgyy 随后复测中锁码阶段返回 `upstream_unavailable`；验证器不再因旧的
   `rawData` 结构要求产生误报。真实写操作仍未调用。
 
+## 2026-08-29 Cgyy 最新三路线波动
+
+- Direct 单项：站点、用途、订单、锁码均为 `upstream_unavailable`。
+- WebVPN 单项：站点查询通过，随后用途、日期、订单、锁码均为
+  `upstream_unavailable`。
+- auto 单项：站点、用途、订单均为 `upstream_unavailable`，在没有订单标识时按规则
+  跳过详情。
+- 本轮没有出现新的可验证 URL/字段冲突；不据此增加网络重试、改写参数或放宽错误分类，
+  继续保留失败证据并禁止真实写操作。
+
 ## 2026-08-29 三路线全量复测更新
 
 - Direct 全量：除 Cgyy 外所有 User、课表、考试、成绩、教室、SPOC、Judge、Signin、
