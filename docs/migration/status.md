@@ -255,5 +255,6 @@ CI remains deterministic-only and never reads `.env.local`.
 - Direct：schedule、exam、grades、classroom、spoc、signin、ygdk、libbook、bykc、evaluation 均通过；Judge 返回 `upstream_unavailable`，Cgyy 返回 `timeout`，聚合退出码为 5。
 - WebVPN：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc 均通过；Cgyy 与 Evaluation 返回 `authentication_required`，聚合退出码为 3。
 - 两次运行均只调用读接口，未执行任何真实写操作；失败项保留，不以聚合成功掩盖。
+- Cgyy 单项复测（2026-08-29）：Direct 站点查询通过（4 个站点），门锁码仍为 `upstream_unavailable`；WebVPN 业务入口稳定返回 `authentication_required`。未跨路线复制 Cookie 或令牌。
 - Cgyy RouteClient 现补齐 `cgyy_cancel_order` 直接 Facade 入口，并以签名路径/订单标识 Mock 覆盖；聚合与直接宿主均要求显式确认，真实取消仍禁止。
 - Signin 写请求已提取冻结表单构造器并增加只含 `id` 字段的确定性断言；真实签到和写请求 live 验收仍永久禁止。

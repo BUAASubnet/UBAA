@@ -363,6 +363,12 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN 全量：Cgyy 与 Evaluation 为 `authentication_required`，其余已执行只读功能通过；聚合以 `one_or_more_features_failed` 结束。
 - 以上仅记录脱敏错误类别和功能结果；未记录摘要盐、Cookie、令牌、原始响应，也未调用任何写接口。
 
+# 2026-08-29 Cgyy 单项复测
+
+- Direct：站点查询成功，门锁码返回 `upstream_unavailable`（退出码 5）。
+- WebVPN：Cgyy 业务入口返回 `authentication_required`（退出码 3）。
+- 结论：失败可复现；不放宽错误分类，不跨路线复制 Cookie/令牌，不执行任何写操作。
+
 # 2026-08-28 Cgyy WebVPN 路线冲突
 
 - 冻结依据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt` 的 `localCgyyUpstreamUrl` 明确返回原始直连 URL；注释说明 Cgyy 在校外公开可访问，不通过 WebVPN 包装。
