@@ -337,22 +337,7 @@ pub(crate) async fn submit_clockin(
     runtime: &mut crate::runtime::ClientRuntime,
     request: YgdkClockinSubmitRequest,
 ) -> Result<YgdkClockinSubmitResult> {
-    let credential = ensure_login(runtime).await?;
-    let overview = get_overview(runtime).await?;
-    let item = request
-        .item_id
-        .map_or_else(
-            || {
-                overview
-                    .items
-                    .iter()
-                    .find(|item| item.name.contains('跑'))
-                    .or_else(|| overview.items.first())
-            },
-            |id| overview.items.iter().find(|item| item.item_id == id),
-        )
-        .ok_or_else(|| error("未找到阳光打卡项目"))?;
-    let photo = request.photo.ok_or_else(|| {
+    let photo = request.photo.as_ref().ok_or_else(|| {
         UbaaError::new(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
@@ -368,6 +353,30 @@ pub(crate) async fn submit_clockin(
             "打卡照片不能为空",
         ));
     }
+    if request.start_time.is_none() || request.end_time.is_none() {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "开始和结束时间必须同时提供",
+        ));
+    }
+    let credential = ensure_login(runtime).await?;
+    let overview = get_overview(runtime).await?;
+    let item = request
+        .item_id
+        .map_or_else(
+            || {
+                overview
+                    .items
+                    .iter()
+                    .find(|item| item.name.contains('跑'))
+                    .or_else(|| overview.items.first())
+            },
+            |id| overview.items.iter().find(|item| item.item_id == id),
+        )
+        .ok_or_else(|| error("未找到阳光打卡项目"))?;
+    let photo = request.photo.expect("validated photo");
     let file_name = upload_photo(runtime, &credential, &photo).await?;
     let (start, end) = request.start_time.zip(request.end_time).ok_or_else(|| {
         UbaaError::new(
@@ -611,7 +620,11 @@ async fn post_request(
 #[cfg(test)]
 mod tests {
     use super::{YgdkCredential, build_upload_body, code_from_url, percent_decode};
-    use crate::domain::YgdkPhotoUpload;
+    use crate::domain::{ConnectionMode, YgdkClockinSubmitRequest, YgdkPhotoUpload};
+    use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
+    use crate::runtime::ClientRuntime;
+    use crate::session::FileSessionStore;
+    use async_trait::async_trait;
 
     #[test]
     fn 从回调片段查询中提取授权码() {
@@ -642,5 +655,38 @@ mod tests {
         assert!(body.contains("name=\"token\"\r\n\r\ntok"));
         assert!(body.contains("name=\"file\"; filename=\"p.jpg\""));
         assert!(body.ends_with("\r\n--b--\r\n"));
+    }
+
+    #[test]
+    fn 无效打卡输入在任何网络请求前被拒绝() {
+        let mut runtime = ClientRuntime::new(
+            ConnectionMode::Direct,
+            NoNetworkTransport,
+            FileSessionStore::new(
+                std::env::temp_dir().join(format!("ubaa-ygdk-input-{}", std::process::id())),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let result = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(super::submit_clockin(
+                &mut runtime,
+                YgdkClockinSubmitRequest::default(),
+            ))
+            .unwrap_err();
+        assert_eq!(result.code, crate::error::ErrorCode::InvalidInput);
+        assert_eq!(result.message, "打卡照片不能为空");
+    }
+
+    struct NoNetworkTransport;
+
+    #[async_trait]
+    impl HttpTransport for NoNetworkTransport {
+        async fn execute(&self, _request: HttpRequest) -> crate::error::Result<HttpResponse> {
+            panic!("无效输入不应触发网络请求");
+        }
     }
 }
