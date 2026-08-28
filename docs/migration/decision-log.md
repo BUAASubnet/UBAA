@@ -487,3 +487,13 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   `upstream_unavailable`。
 - Direct：站点请求本轮为 `upstream_unavailable`，用途和锁码同样失败；验证器不再从
   失败信封提取站点标识或打印成功摘要。上述运行均未执行真实写操作。
+
+## 2026-08-29 三路线全量复测更新
+
+- Direct 全量：除 Cgyy 外所有 User、课表、考试、成绩、教室、SPOC、Judge、Signin、
+  Ygdk、LibBook、Bykc、Evaluation 通过；Cgyy 用途/订单为 `upstream_unavailable`、
+  日期为 `upstream_changed`、锁码为 `invalid_semantics`。
+- WebVPN 全量：除 Cgyy 日期和锁码 `upstream_unavailable` 外，其余只读操作通过，Cgyy
+  站点、用途、订单已通过。
+- auto 全量（解析到 Direct）：除 Cgyy 日期和锁码 `upstream_unavailable` 外，其余只读
+  操作通过。Judge 三路线均完成课程/任务/详情语义校验；所有命令仍未调用真实写接口。
