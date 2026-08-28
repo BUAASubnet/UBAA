@@ -20,6 +20,8 @@ mod signin;
 pub use signin::*;
 mod schedule;
 pub use schedule::*;
+mod grades;
+pub use grades::*;
 
 /// 场馆预约站点。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -232,38 +234,6 @@ pub struct CgyyReservationResult {
 #[serde(rename_all = "camelCase")]
 pub struct CgyyLockCode {
     pub raw_data: serde_json::Value,
-}
-
-/// 一门课程成绩。
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Grade {
-    /// 课程名称。
-    pub course_name: Option<String>,
-    /// 课程代码。
-    pub course_code: Option<String>,
-    /// 学分值。
-    pub credit: Option<f64>,
-    /// 上游展示的成绩。
-    pub score: Option<String>,
-    /// 绩点。
-    pub grade_point: Option<String>,
-    /// 课程类别/类型。
-    pub course_type: Option<String>,
-    /// 成绩认定类型。
-    pub score_type: Option<String>,
-    /// 学期代码。
-    pub term_code: Option<String>,
-}
-
-/// 指定学期的成绩。
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GradeData {
-    /// 请求的学期代码。
-    pub term_code: String,
-    /// 解析后的成绩。
-    pub grades: Vec<Grade>,
 }
 
 /// 空闲教室查询响应。
