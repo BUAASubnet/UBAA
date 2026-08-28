@@ -1130,9 +1130,13 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 mod tests {
     use super::{
         build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
-        parse_action_result, parse_captcha_challenge,
+        parse_action_result, parse_captcha_challenge, signed_request,
     };
-    use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest};
+    use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
+    use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+    use crate::runtime::ClientRuntime;
+    use crate::session::FileSessionStore;
+    use async_trait::async_trait;
 
     #[test]
     fn 解析取消订单成功消息() {
@@ -1208,6 +1212,38 @@ mod tests {
         assert_eq!(challenge.token, "token");
         assert_eq!(challenge.original_image_base64, "bg");
         assert_eq!(challenge.jigsaw_image_base64, "piece");
+    }
+
+    #[test]
+    fn web_vpn模式下场馆签名请求保持直连地址() {
+        let root = std::env::temp_dir().join(format!("ubaa-cgyy-url-{}", std::process::id()));
+        let runtime = ClientRuntime::new(
+            ConnectionMode::WebVpn,
+            NoNetworkTransport,
+            FileSessionStore::new(&root).unwrap(),
+        )
+        .unwrap();
+        let request = signed_request(
+            &runtime,
+            HttpMethod::Get,
+            "/api/front/website/venues",
+            std::collections::BTreeMap::new(),
+            Some("token-safe"),
+        )
+        .unwrap();
+        let url = url::Url::parse(&request.url).unwrap();
+        assert_eq!(url.host_str(), Some("cgyy.buaa.edu.cn"));
+        assert!(!request.url.contains("webvpn"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    struct NoNetworkTransport;
+
+    #[async_trait]
+    impl HttpTransport for NoNetworkTransport {
+        async fn execute(&self, _request: HttpRequest) -> crate::error::Result<HttpResponse> {
+            panic!("请求构造测试不应访问网络");
+        }
     }
 
     #[test]
