@@ -1536,6 +1536,17 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 取消场馆预约订单。
+    pub async fn cgyy_cancel_order(&mut self, id: i32) -> Result<FeatureResult<CgyyActionResult>> {
+        self.guard_session_ownership()?;
+        if id <= 0 {
+            return Err(invalid_input("订单标识必须为正数"));
+        }
+        let result = crate::features::cgyy::cancel_order(&mut self.runtime, id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 提交场馆预约；验证码校验结果必须由调用方显式提供。
     pub async fn cgyy_submit_reservation(
         &mut self,
