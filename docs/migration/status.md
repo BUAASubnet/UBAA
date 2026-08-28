@@ -392,6 +392,13 @@ CI remains deterministic-only and never reads `.env.local`.
 - 对照冻结 `JsonObject.long`，补齐数字字符串时间戳的东八区格式化；新增脱敏测试先失败后通过。
 - 未改变请求参数、会话、上传或真实写操作策略。
 
+## 2026-08-29 三路线全量只读复测
+
+- Direct：User、Schedule、Exam、Classroom、SPOC、Judge（含详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 通过；Grades 本轮未出现失败；Cgyy 在用途/站点后业务阶段返回 `upstream_unavailable`，聚合退出码 5。
+- WebVPN：User、Schedule、Classroom、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Grades 返回 `parse_error`，Judge 严格快照校验返回 `invalid_semantics`；Cgyy 日期、订单、锁码均 `upstream_unavailable`，聚合退出码 6。
+- auto：解析到 Direct；User、Schedule、Exam、Classroom、SPOC、Judge（含详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 通过；Grades 返回 `upstream_changed`；Cgyy 用途/站点后订单、锁码等阶段 `upstream_unavailable`，聚合退出码 6。
+- 三次运行均只执行认证和读操作，未调用任何真实业务写接口；失败项均保留冻结实现语义，未根据单次实时错误猜测新协议。
+
 ## 2026-08-29 LibBook 原语字段兼容
 
 - 对照冻结 `JsonPrimitive.contentOrNull`，补齐图书馆字段由数字/布尔原语转文本的行为；新增数字座位字段脱敏测试先失败后通过。
