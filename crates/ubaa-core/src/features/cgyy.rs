@@ -17,6 +17,62 @@ const PREFIX: &str = "c640ca392cd45fb3a55b00a63a86c618";
 const APP_KEY: &str = "8fceb735082b5a529312040b58ea780b";
 const SSO_COOKIE: &str = "sso_buaa_zhjs_token";
 
+/// 验证码挑战的脱敏结构；图像求解器端口接入前仅在 Core 内部流转。
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CgyyCaptchaChallenge {
+    pub(crate) secret_key: String,
+    pub(crate) token: String,
+    pub(crate) original_image_base64: String,
+    pub(crate) jigsaw_image_base64: String,
+}
+
+#[allow(dead_code)]
+fn build_captcha_params(now: i64) -> BTreeMap<String, String> {
+    [
+        ("captchaType".into(), "blockPuzzle".into()),
+        ("clientUid".into(), format!("slider-{now}")),
+        ("ts".into(), now.to_string()),
+    ]
+    .into_iter()
+    .collect()
+}
+
+#[allow(dead_code)]
+fn parse_captcha_challenge(body: &str) -> Result<CgyyCaptchaChallenge> {
+    let value = data(body)?;
+    let success = value
+        .get("success")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if !success {
+        return Err(error(
+            value
+                .get("repMsg")
+                .and_then(Value::as_str)
+                .unwrap_or("获取验证码失败"),
+        ));
+    }
+    let rep_data = value
+        .get("repData")
+        .and_then(Value::as_object)
+        .ok_or_else(|| error("验证码数据缺失"))?;
+    let required = |key: &str| {
+        rep_data
+            .get(key)
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| error("验证码数据缺失"))
+    };
+    Ok(CgyyCaptchaChallenge {
+        secret_key: required("secretKey")?,
+        token: required("token")?,
+        original_image_base64: required("originalImageBase64")?,
+        jigsaw_image_base64: required("jigsawImageBase64")?,
+    })
+}
+
 fn timestamp_millis() -> Result<i64> {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -790,7 +846,10 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_captcha_check_form, build_submit_form, parse_action_result};
+    use super::{
+        build_captcha_check_form, build_captcha_params, build_submit_form,
+        parse_action_result, parse_captcha_challenge,
+    };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest};
 
     #[test]
@@ -841,5 +900,22 @@ mod tests {
         let captcha = build_captcha_check_form("points", "challenge");
         assert_eq!(captcha.get("pointJson").map(String::as_str), Some("points"));
         assert_eq!(captcha.get("token").map(String::as_str), Some("challenge"));
+    }
+
+    #[test]
+    fn 验证码挑战请求参数和响应字段匹配冻结协议() {
+        let params = build_captcha_params(1234);
+        assert_eq!(params.get("captchaType").map(String::as_str), Some("blockPuzzle"));
+        assert_eq!(params.get("clientUid").map(String::as_str), Some("slider-1234"));
+        assert_eq!(params.get("ts").map(String::as_str), Some("1234"));
+
+        let challenge = parse_captcha_challenge(
+            r#"{"code":200,"data":{"success":true,"repData":{"secretKey":"key","token":"token","originalImageBase64":"bg","jigsawImageBase64":"piece"}}}"#,
+        )
+        .expect("应解析验证码挑战");
+        assert_eq!(challenge.secret_key, "key");
+        assert_eq!(challenge.token, "token");
+        assert_eq!(challenge.original_image_base64, "bg");
+        assert_eq!(challenge.jigsaw_image_base64, "piece");
     }
 }
