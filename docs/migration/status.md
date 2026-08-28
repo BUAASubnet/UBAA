@@ -371,3 +371,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结实现补齐分区详情缺少区域 ID 时回退请求 ID；新增脱敏回归测试已通过，LibBook focused suite 8/8 通过。
 - 本轮未改变上游请求或执行真实写操作。
+
+## 2026-08-29 Bykc 签到配置严格解析
+
+- 对照冻结 `LocalBykcApi.parseSignConfig`，补齐签到点列表的整体失败语义：任一点坐标缺失或类型错误时返回空配置，而不是静默丢弃坏点。
+- 新增脱敏测试先失败后通过，Bykc focused suite 9/9 通过；未改变请求协议、加密或实时验收策略。

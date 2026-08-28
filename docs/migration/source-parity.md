@@ -348,3 +348,5 @@ LibBook 座位排序补充：冻结 `LocalLibBookApi.getSeats` 在 DTO 映射后
 LibBook 预约分页补充：冻结 `getBookings` 在 `total` 缺失时以当前映射后的预约条数作为回退；Core `parse_bookings` 保留该回退，不把缺失总数误报为零。
 
 LibBook 分区详情补充：冻结 `mapAreaDetail(areaId, raw)` 在响应区域对象缺少 `id` 时回退传入的 `areaId`；Core 的 `parse_area_detail_for` 与 `Space/map` 查询入口保留该语义。
+
+Bykc 签到配置补充：冻结 `LocalBykcApi.parseSignConfig` 使用严格序列化，`signPointList` 中任一点缺少 `lat/lng` 或类型错误都会使整个配置解析失败并返回空；Core `parse_sign_config` 现对列表、点对象及坐标执行同等严格校验，`radius` 仅在字段缺失时回退零值。

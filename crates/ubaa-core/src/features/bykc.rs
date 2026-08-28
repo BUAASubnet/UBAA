@@ -701,23 +701,21 @@ fn parse_sub_category(value: &str) -> BykcCourseSubCategory {
 fn parse_sign_config(raw: &str) -> Option<BykcSignConfig> {
     let map = serde_json::from_str::<Value>(raw).ok()?;
     let map = map.as_object()?;
-    let sign_points = map
-        .get("signPointList")
-        .and_then(Value::as_array)
-        .map_or(&[][..], Vec::as_slice)
-        .iter()
-        .filter_map(|point| {
-            let point = point.as_object()?;
-            Some(BykcSignPoint {
-                lat: point.get("lat")?.as_f64()?,
-                lng: point.get("lng")?.as_f64()?,
-                radius: point
-                    .get("radius")
-                    .and_then(Value::as_f64)
-                    .unwrap_or_default(),
+    let sign_points = match map.get("signPointList") {
+        None => Vec::new(),
+        Some(value) => value
+            .as_array()?
+            .iter()
+            .map(|point| {
+                let point = point.as_object()?;
+                Some(BykcSignPoint {
+                    lat: point.get("lat")?.as_f64()?,
+                    lng: point.get("lng")?.as_f64()?,
+                    radius: point.get("radius").map_or(Some(0.0), Value::as_f64)?,
+                })
             })
-        })
-        .collect();
+            .collect::<Option<Vec<_>>>()?,
+    };
     Some(BykcSignConfig {
         sign_start_date: string(map, "signStartDate"),
         sign_end_date: string(map, "signEndDate"),
@@ -951,5 +949,16 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, 9001);
         assert_eq!(result[0].course_id, 9527);
+    }
+
+    #[test]
+    fn 签到配置包含无效签到点时整体解析失败() {
+        let raw = serde_json::json!({
+            "signStartDate": "2026-03-01 07:50:00",
+            "signPointList": [{"lat": "invalid", "lng": 116.3}]
+        })
+        .to_string();
+
+        assert!(parse_sign_config(&raw).is_none());
     }
 }
