@@ -56,7 +56,7 @@ Cgyy 场馆预约五项只读查询已完成 DTO、解析器、路线隔离业�
 
 ### 2026-08-27 Ygdk
 
-Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/业务令牌请求、路线 facade、CLI `ygdk overview`/`ygdk records` 及 JSON Schema 接线。提交打卡和照片上传仍明确排除；Direct/WebVPN 真实上游验证尚未完成。
+Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/业务令牌请求、路线 facade、CLI `ygdk overview`/`ygdk records` 及 JSON Schema 接线。提交打卡和照片上传已具备协议实现、Mock/向量和确认保护，但真实写操作永久排除；三路线只读验证已纳入全量矩阵。
 
 | 阶段 | 当前状态 | 收尾要求 |
 |---|---|---|
@@ -69,10 +69,10 @@ Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/�
 | 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
 | 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
 | 9e 签到查询 | Core 解析、独立 iClass 会话、facade 与 CLI 已接入；Direct/WebVPN 实时验证通过 | `signin today` 使用路线隔离的 iClass 业务会话，按旧版固定跳转、登录参数和今日查询参数实现；脱敏解析、确定性接线和双路线 live 证据均已覆盖。签到提交属于写操作，仍禁止真实调用。 |
-| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；写操作具备确定性证据 | 所有写操作均要求显式确认并由实时验证器排除；Ygdk、Evaluation、Cgyy 已补请求向量或 Mock 链，仍需继续补齐逐操作证据和错误矩阵。 |
+| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；写操作具备确定性证据 | 所有写操作均要求显式确认并由实时验证器排除；请求向量、Mock 链和输入拒绝测试已覆盖，实时只读失败仍按逐操作矩阵收敛。 |
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
-| 11 live matrix | Latest complete matrix passed; transient WebVPN Judge snapshot failures retained | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility causes a nonzero result. |
+| 11 live matrix | 三路线逐操作验证器已完成；最新全量仍有 Judge/Cgyy 上游失败 | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility or Cgyy business authentication causes a nonzero result. |
 | 12 交接/门禁 | 已可继续开发；当前改动按功能分别提交 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、认证 Direct/WebVPN、六类显式路线、`all/auto`、`all/direct` 和最新 `all/webvpn` 均有记录。后续真实重跑仍属于发布流程。 |
 
 ## 2026-08-26 Corrected Live Matrix
@@ -250,12 +250,12 @@ CI remains deterministic-only and never reads `.env.local`.
 - 新增 Bykc Core 选课、退选、签到请求构造和 CLI 命令。所有 Bykc、Cgyy 写命令都要求显式 `--confirm-write`，实时验证绝不执行写操作。
 - `just check-sensitive`、`just check`、`cargo test --locked -p ubaa-core --tests` 和 `cargo test --locked -p ubaa-cli --tests` 均通过。
 - `just verify-live mode=direct feature=evaluation` 与 `just verify-live mode=webvpn feature=evaluation` 均通过，仅记录脱敏的 `course_count=0` 摘要。
-- 剩余验收缺口：Ygdk、Cgyy、Evaluation 写操作仍需完整 Core 协议、向量和 Mock 测试；LibBook 与 Signin 已有 Core/CLI 写入口，但仍需专门的请求和向量测试。所有功能逐项 Direct/WebVPN/auto 读验证仍未完成，迁移尚未完成。
+- 剩余验收缺口：写操作的 Core 协议、向量、Mock 和 CLI 默认阻止均已具备，真实写操作永久禁止。当前缺口集中在 Judge 与 Cgyy 的三路线只读实时稳定性，迁移尚未完成。
 - 本阶段补齐 LibBook 预约/取消 Core 与 CLI 写入口，并以冻结 golden 向量验证字段顺序、日期派生 AES-128-CBC、PKCS#7 和固定 IV；本阶段提交为后续审查起点。
 - LibBook 写链阶段进一步增加了确定性 Mock 端到端测试，覆盖预约 `/v4/space/confirm` 与取消 `/v4/space/cancel` 的顺序、请求体和路线内会话；提交为 `24acd8b`。该证据不等同于真实写操作验收，verify-live 仍永久跳过写入口。
 - 新增 Ygdk `submit` Core/CLI 写入口，按冻结实现上传照片后提交打卡表单；默认拒绝，必须显式 `--confirm-write`，未执行真实写操作。
 - Ygdk 写入阶段完成了 multipart 上传边界、固定表单字段、CLI 文件输入校验及脱敏请求向量；真实写操作仍永久禁止，最终验收仍受全局实时矩阵门禁约束。
-- Cgyy 阶段已提交 `1d25ef2`：完成日期上下文、空间/时段校验、预约上下文创建和最终预约表单的冻结字段实现；验证码挑战与求解端口尚未迁移，CLI 提交入口和真实写验收继续禁止调用。
+- Cgyy 阶段已提交 `1d25ef2`：完成日期上下文、空间/时段校验、预约上下文创建和最终预约表单的冻结字段实现；验证码挑战、受控图像求解和重试已迁移，CLI 提交入口和真实写验收继续禁止调用。
 - Signin 阶段已提交 `0824947`：按冻结协议严格读取 `get_timestamp.action` JSON 的 `timestamp` 字段，并拒绝非 JSON 或空值响应；Signin 写操作仍需补充 CLI 专用安全测试和 Mock 请求断言。
 - Signin 写链阶段新增 `crates/ubaa-core/tests/signin.rs` 端到端 Mock 断言，覆盖业务会话跳转、时间戳 GET、签到 URL 查询参数、`sessionId` 请求头和仅含 `id` 的表单；真实签到仍永久禁止。
 - Evaluation 阶段已完成最终提交 JSON 信封、问卷题目读取/答案构造和逐课程自动提交链；CLI 提供 `evaluation submit-pending --confirm-write`，并以未确认不访问后端的测试覆盖安全门禁。仍需补充逐请求 Mock/错误向量以及真实只读矩阵收敛，评教写操作永不进入 live 验收。
