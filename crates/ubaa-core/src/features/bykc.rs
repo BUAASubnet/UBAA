@@ -589,8 +589,10 @@ pub fn parse_chosen_courses(body: &str) -> Result<Vec<BykcChosenCourse>> {
 }
 
 fn parse_chosen_courses_at(body: &str, now: NaiveDateTime) -> Result<Vec<BykcChosenCourse>> {
-    envelope(body)?
+    let payload = envelope(body)?;
+    payload
         .as_array()
+        .or_else(|| payload.get("courseList").and_then(Value::as_array))
         .ok_or_else(|| error("博雅已选课程结构无效"))?
         .iter()
         .map(|v| {
@@ -931,5 +933,23 @@ mod tests {
         assert_eq!(record.sign_config.expect("签到配置").sign_points.len(), 1);
         assert_eq!(record.homework.as_deref(), Some("提交学习报告"));
         assert_eq!(record.sign_info.as_deref(), Some("已签到"));
+    }
+
+    #[test]
+    fn 已选课程接受冻结的_course_list_响应包装() {
+        let body = serde_json::json!({
+            "status": "0",
+            "data": {
+                "courseList": [{
+                    "id": 9001,
+                    "courseInfo": {"id": 9527, "courseName": "耕趣农场劳动课"}
+                }]
+            }
+        })
+        .to_string();
+        let result = parse_chosen_courses(&body).expect("冻结 courseList 包装应可解析");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id, 9001);
+        assert_eq!(result[0].course_id, 9527);
     }
 }

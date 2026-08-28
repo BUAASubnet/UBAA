@@ -14,6 +14,11 @@ only when its sanitized observation is recorded in the decision log.
 Evaluation 均按独立 CLI 子操作执行；依赖上游返回标识的详情请求仅在存在脱敏标识时
 继续。真实验证仍严格只读，失败类别按各操作单独保留，不由 `all` 聚合结果覆盖。
 
+Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` 返回
+`data.courseList` 对象包装，而不是直接数组。Rust 现同时接受该冻结包装和既有数组
+兼容形状；`features/bykc.rs` 单元测试先复现旧实现失败，再验证 `id`、`courseInfo.id`
+和列表长度。2026-08-29 Direct、WebVPN、auto 的 Bykc 逐项复测均退出 0。
+
 The nine columns below are mandatory for every authentication or read-only
 operation before production code changes.
 

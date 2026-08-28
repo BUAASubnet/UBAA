@@ -422,3 +422,12 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   `feature=user route=auto` 均退出 0；auto 实际解析到 Direct。
 - 三次运行均通过完整脱敏 profile 结构校验；没有记录姓名、联系方式、身份信息、Cookie、
   令牌或原始响应，也没有调用任何写操作。
+
+## 2026-08-29 Bykc 已选课程包装修复
+
+- 冻结 `ubaa_old/shared/.../LocalBykcApi.kt` 的 `queryChosenCourse` DTO 是
+  `data.courseList`，Rust 原实现把解密后的业务数据直接当数组解析，导致 Direct、WebVPN
+  和 auto 均在 `bykc_chosen` 返回 `upstream_changed`。
+- 按 TDD 先加入 `courseList` 对象包装 fixture，旧实现失败；随后让解析器从对象读取
+  `courseList`，并保留已有数组兼容路径。聚焦测试通过后，三路线单项命令均退出 0，
+  返回脱敏课程计数摘要；未记录课程标识、令牌、密文或原始响应。
