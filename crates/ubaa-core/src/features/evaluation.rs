@@ -222,6 +222,12 @@ pub fn build_submit_body(pjjglist: &[Value]) -> Vec<u8> {
     .unwrap_or_else(|_| b"{\"pjidlist\":[],\"pjjglist\":[],\"pjzt\":\"1\"}".to_vec())
 }
 
+fn build_submit_request(url: String, pjjglist: &[Value]) -> crate::ports::HttpRequest {
+    crate::ports::HttpRequest::post(url, build_submit_body(pjjglist))
+        .with_header("Content-Type", "application/json")
+        .with_header("X-Requested-With", "XMLHttpRequest")
+}
+
 /// 提交已经由宿主构造好的评教结果列表。
 pub(crate) async fn submit_payload(
     runtime: &mut crate::runtime::ClientRuntime,
@@ -231,10 +237,7 @@ pub(crate) async fn submit_payload(
     if pjjglist.is_empty() {
         return Err(error("评教提交列表不能为空"));
     }
-    let request =
-        crate::ports::HttpRequest::post(runtime.url(SUBMIT_URL)?, build_submit_body(&pjjglist))
-            .with_header("Content-Type", "application/json")
-            .with_header("X-Requested-With", "XMLHttpRequest");
+    let request = build_submit_request(runtime.url(SUBMIT_URL)?, &pjjglist);
     let response = runtime.request(request).await?;
     super::check_response(&response, "评教")?;
     let root: Value =
@@ -506,6 +509,7 @@ pub fn pending(response: &EvaluationCoursesResponse) -> Vec<EvaluationCourse> {
 
 #[cfg(test)]
 mod tests {
+    use super::{SUBMIT_URL, build_submit_request};
     use super::{build_evaluation_payload, build_submit_body};
     use crate::domain::EvaluationCourse;
 
@@ -535,5 +539,23 @@ mod tests {
         assert_eq!(value["pjzt"], "1");
         assert_eq!(value["pjidlist"], serde_json::json!([]));
         assert_eq!(value["pjjglist"][0]["pjdf"], 93);
+    }
+
+    #[test]
+    fn 评教提交请求固定地址头和_json正文() {
+        let request =
+            build_submit_request(SUBMIT_URL.into(), &[serde_json::json!({"pjid": "safe"})]);
+        assert!(
+            request
+                .url
+                .ends_with("/pjxt/evaluationMethodSix/submitSaveEvaluation")
+        );
+        assert_eq!(
+            request.headers.get("Content-Type").map(String::as_str),
+            Some("application/json")
+        );
+        let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+        assert_eq!(body["pjidlist"], serde_json::json!([]));
+        assert_eq!(body["pjzt"], "1");
     }
 }
