@@ -102,17 +102,11 @@ pub(crate) async fn perform_signin(
         return Err(upstream_error("无法获取签到时间戳"));
     }
     let timestamp = parse_timestamp(&timestamp.body)?;
-    let mut url = url::Url::parse(
-        &runtime.url("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")?,
-    )
-    .map_err(|_| invalid_url())?;
-    url.query_pairs_mut()
-        .append_pair("courseSchedId", course_id)
-        .append_pair("timestamp", &timestamp);
+    let url = build_signin_url(runtime, course_id, &timestamp)?;
     let response = super::post_form(
         runtime,
-        url.to_string(),
-        &[("id", course_id.to_owned())],
+        url,
+        &build_signin_form(course_id),
         &[("sessionId", &credential.session_id)],
     )
     .await?;
@@ -143,6 +137,26 @@ pub(crate) async fn perform_signin(
             })
             .to_owned(),
     })
+}
+
+fn build_signin_url(
+    runtime: &crate::runtime::ClientRuntime,
+    course_id: &str,
+    timestamp: &str,
+) -> Result<String> {
+    let mut url = url::Url::parse(
+        &runtime.url("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")?,
+    )
+    .map_err(|_| invalid_url())?;
+    url.query_pairs_mut()
+        .append_pair("courseSchedId", course_id)
+        .append_pair("timestamp", timestamp);
+    Ok(url.to_string())
+}
+
+#[must_use]
+fn build_signin_form(course_id: &str) -> Vec<(&'static str, String)> {
+    vec![("id", course_id.into())]
 }
 
 fn parse_timestamp(body: &[u8]) -> Result<String> {
@@ -368,7 +382,7 @@ fn parse_error() -> UbaaError {
 
 #[cfg(test)]
 mod tests {
-    use super::{SIGNIN_LOGIN_URL, parse_login_credential, parse_timestamp};
+    use super::{SIGNIN_LOGIN_URL, build_signin_form, parse_login_credential, parse_timestamp};
 
     #[test]
     fn 时间戳读取冻结的_json字段() {
@@ -385,6 +399,13 @@ mod tests {
             SIGNIN_LOGIN_URL,
             "https://iclass.buaa.edu.cn:8346/eschool/app/user/login_buaa.do"
         );
+    }
+
+    #[test]
+    fn 签到提交表单只发送冻结的用户标识字段() {
+        let form = build_signin_form("course-safe");
+        assert_eq!(form.len(), 1);
+        assert_eq!(form[0], ("id", "course-safe".to_owned()));
     }
 
     #[test]
