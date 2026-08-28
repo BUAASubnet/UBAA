@@ -1511,6 +1511,14 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 查询场馆用途类型；上游不可用时由 feature 保留冻结静态回退。
+    pub async fn cgyy_purpose_types(&mut self) -> Result<FeatureResult<Vec<CgyyPurposeType>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::cgyy::get_purpose_types(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     pub async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>> {
         self.guard_session_ownership()?;
         let result = crate::features::cgyy::get_lock_code(&mut self.runtime).await;

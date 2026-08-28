@@ -20,6 +20,35 @@ fn 解析场馆站点和用途类型() {
 }
 
 #[test]
+fn 用途类型上游失败时回退到冻结静态定义() {
+    let root =
+        std::env::temp_dir().join(format!("ubaa-cgyy-purpose-fallback-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, CgyyPurposeFallbackTransport, store)
+            .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let result = runtime.block_on(client.cgyy_purpose_types()).unwrap();
+
+    assert_eq!(result.data.len(), 10);
+    assert_eq!(result.data[0].key, 1);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn 状态二的时段不可预约() {
     let body = include_str!("../../../fixtures/readonly/cgyy-day.json");
     let result = parse_day_info(body, 4, "2026-03-29").unwrap();
@@ -169,6 +198,36 @@ fn 场馆取消写链发送签名路径和订单标识() {
 #[derive(Clone)]
 struct CgyyWriteTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+struct CgyyPurposeFallbackTransport;
+
+#[async_trait]
+impl HttpTransport for CgyyPurposeFallbackTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        let path = url::Url::parse(&request.url).unwrap().path().to_owned();
+        let mut response = match path.as_str() {
+            "/venue-zhjs-server/sso/manageLogin" => HttpResponse::new(200, request.url, Vec::new()),
+            "/venue-zhjs-server/api/login" => HttpResponse::new(
+                200,
+                request.url,
+                br#"{"code":200,"data":{"token":{"access_token":"access-fixture"}}}"#.to_vec(),
+            ),
+            "/venue-zhjs-server/api/codes" => HttpResponse::new(
+                502,
+                request.url,
+                br#"{"code":500,"message":"fixture upstream failure"}"#.to_vec(),
+            ),
+            _ => panic!("未预期的用途类型请求: {path}"),
+        };
+        if path.ends_with("/sso/manageLogin") {
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["sso_buaa_zhjs_token=sso-fixture; Path=/".into()],
+            );
+        }
+        Ok(response)
+    }
 }
 
 #[async_trait]

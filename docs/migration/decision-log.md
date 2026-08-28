@@ -536,3 +536,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN 全量逐操作运行成功完成除 Cgyy 外的全部只读操作，Judge 详情语义校验通过。Cgyy 站点查询通过（4 个站点），用途和订单返回 `upstream_unavailable`，日期返回 `upstream_changed`，聚合退出码 5。
 - auto 全量解析为 Direct，除 Cgyy 外的全部只读操作通过；Cgyy 站点通过，用途和订单为 `upstream_unavailable`，日期为 `upstream_changed`，锁码为 `upstream_unavailable`，聚合退出码 5。
 - 三次运行均使用未持久化的进程内摘要盐，仅记录路由、阶段、计数和错误类别；没有输出凭据、Cookie、令牌、原始响应或个人标识，也没有调用真实写接口。Cgyy 仍未满足实时硬门禁，不修改协议实现或错误策略。
+
+## 2026-08-29 Cgyy 用途类型回退修复
+
+- 冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `getPurposeTypes` 在已有主会话后对动态请求和解析使用 `runCatching`，失败即采用静态十项列表。Rust 原实现传播 `/api/codes` 的上游错误，与冻结行为不符。
+- 新增 `crates/ubaa-core/tests/cgyy.rs` Mock：`/api/codes` 返回合成 502 时，单路线 facade 仍返回十项静态用途；测试先观察到 `UpstreamUnavailable` 失败，再实现回退并通过。`RouteClient` 同步补齐用途类型入口。
+- Direct、WebVPN、auto 复测中用途阶段均成功，失败边界后移到日期/订单（及依赖详情）的实时上游错误；未改变 URL、签名、重试或错误映射，也未调用真实写接口。

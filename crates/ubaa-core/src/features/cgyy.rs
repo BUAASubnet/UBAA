@@ -432,7 +432,13 @@ pub(crate) async fn get_sites(
 pub(crate) async fn get_purpose_types(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<CgyyPurposeType>> {
-    parse_purpose_types(&get(runtime, "/api/codes", BTreeMap::new()).await?)
+    // 冻结旧版在已有主会话后对动态用途接口使用 runCatching；请求或解析异常
+    // 都回退到静态定义，而没有主会话仍由登录前置返回认证错误。
+    super::require_session(runtime)?;
+    match get(runtime, "/api/codes", BTreeMap::new()).await {
+        Ok(body) => parse_purpose_types(&body).or_else(|_| Ok(fallback_purpose_types())),
+        Err(_) => Ok(fallback_purpose_types()),
+    }
 }
 
 pub(crate) async fn get_day_info(

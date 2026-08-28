@@ -305,3 +305,8 @@ CI remains deterministic-only and never reads `.env.local`.
 - WebVPN 全量使用进程内临时摘要盐执行：除 Cgyy 外全部只读操作通过，Judge 详情语义通过；Cgyy 站点通过（4 个），用途与订单为 `upstream_unavailable`，日期为 `upstream_changed`，聚合退出码 5。
 - auto 全量解析到 Direct：除 Cgyy 外全部只读操作通过，Judge 详情语义通过；Cgyy 站点通过（4 个），用途与订单为 `upstream_unavailable`，日期为 `upstream_changed`，锁码为 `upstream_unavailable`，聚合退出码 5。
 - 本轮未调用任何真实写操作。摘要盐仅存在当前 shell，未输出、保存或提交；Cgyy 失败仍是未解决的实时硬门禁，不能宣告迁移完成。
+
+## 2026-08-29 Cgyy 用途类型冻结回退修复
+
+- 根据冻结 `LocalCgyyApiBackend.getPurposeTypes` 的 `runCatching` 语义，动态 `/api/codes` 请求或解析失败时回退十项静态用途类型；无主会话仍返回认证错误。新增单路线 Mock 测试先失败后通过，并补齐 `RouteClient::cgyy_purpose_types` 入口。
+- 修复后 Direct、WebVPN、auto 的 Cgyy 用途阶段均不再失败；三路线继续执行到日期/订单阶段。Direct 日期/订单为 `upstream_unavailable`；WebVPN 与 auto 日期及依赖详情为 `upstream_unavailable`。未执行真实写操作。
