@@ -1,8 +1,8 @@
 use serde_json::{Value, json};
 use ubaa_core::domain::{
-    AuthStatus, ConnectionMode, DualLoginPreparation, LoginInput, LoginOutcome, LoginReadiness,
-    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue, UserInfoResponse,
-    UserProfile,
+    AuthStatus, CgyyReservationSubmitRequest, ConnectionMode, DualLoginPreparation, LoginInput,
+    LoginOutcome, LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
+    SecretValue, UserInfoResponse, UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, ExitCode, UbaaError};
 use ubaa_core::output::{
@@ -221,6 +221,22 @@ fn debug_formatting_redacts_sensitive_request_response_and_domain_values() {
             "ENVELOPE-DATA-SENTINEL",
         ],
     );
+}
+
+#[test]
+fn 场馆预约请求调试输出隐藏验证码材料() {
+    let request = CgyyReservationSubmitRequest {
+        captcha_verification: "VERIFICATION-SENTINEL".into(),
+        captcha_point_json: "POINT-SENTINEL".into(),
+        captcha_token: "TOKEN-SENTINEL".into(),
+        captcha_secret_key: Some("KEY-SENTINEL".into()),
+        captcha_original_image_base64: Some("IMAGE-SENTINEL".into()),
+        captcha_jigsaw_image_base64: Some("PIECE-SENTINEL".into()),
+        ..Default::default()
+    };
+    let debug = format!("{request:?}");
+    assert!(!debug.contains("SENTINEL"));
+    assert!(debug.contains("<redacted>"));
 }
 
 fn sensitive_profile() -> UserProfile {

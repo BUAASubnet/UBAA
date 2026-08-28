@@ -645,7 +645,7 @@ pub struct CgyyReservationSelection {
 }
 
 /// 场馆预约提交请求。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyReservationSubmitRequest {
     pub venue_site_id: i32,
@@ -677,6 +677,34 @@ pub struct CgyyReservationSubmitRequest {
     /// 验证码滑块图 base64，仅用于当前请求。
     #[serde(skip_serializing)]
     pub captcha_jigsaw_image_base64: Option<String>,
+}
+
+impl fmt::Debug for CgyyReservationSubmitRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CgyyReservationSubmitRequest")
+            .field("venue_site_id", &self.venue_site_id)
+            .field("reservation_date", &self.reservation_date)
+            .field("selections", &self.selections)
+            .field("phone", &"<redacted>")
+            .field("theme", &self.theme)
+            .field("purpose_type", &self.purpose_type)
+            .field("joiner_num", &self.joiner_num)
+            .field("activity_content", &self.activity_content)
+            .field("joiners", &"<redacted>")
+            .field(
+                "is_philosophy_social_sciences",
+                &self.is_philosophy_social_sciences,
+            )
+            .field("is_off_school_joiner", &self.is_off_school_joiner)
+            .field("captcha_verification", &"<redacted>")
+            .field("captcha_point_json", &"<redacted>")
+            .field("captcha_token", &"<redacted>")
+            .field("captcha_secret_key", &"<redacted>")
+            .field("captcha_original_image_base64", &"<redacted>")
+            .field("captcha_jigsaw_image_base64", &"<redacted>")
+            .finish()
+    }
 }
 
 /// 场馆预约提交结果。
