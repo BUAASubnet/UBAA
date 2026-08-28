@@ -391,3 +391,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `JsonObject.long`，补齐数字字符串时间戳的东八区格式化；新增脱敏测试先失败后通过。
 - 未改变请求参数、会话、上传或真实写操作策略。
+
+## 2026-08-29 LibBook 原语字段兼容
+
+- 对照冻结 `JsonPrimitive.contentOrNull`，补齐图书馆字段由数字/布尔原语转文本的行为；新增数字座位字段脱敏测试先失败后通过。
+- 未改变请求、加密、会话或真实写操作策略。

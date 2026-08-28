@@ -356,3 +356,5 @@ Ygdk 记录时间补充：冻结 `LocalYgdkRecordRaw` 将 `startTime/endTime` �
 Ygdk 记录图片补充：冻结 `extractRecordImages` 对 `images_fmt` 支持数组和非空单字符串；当字符串不是 JSON 数组时按单个地址保留，空字符串回退为空列表。Core `parse_records` 现保持该优先级和回退语义。
 
 Ygdk 时间字符串补充：冻结 `JsonObject.long` 先读取 primitive 文本再执行 `toLongOrNull`，因此数字字符串时间戳与数值时间戳相同，均按东八区格式化；Core `datetime_text` 现保留该兼容性，非数字文本仍原样保留。
+
+LibBook 原语字段补充：冻结 `JsonPrimitive.contentOrNull` 将数字和布尔原语按文本映射到馆区、楼层、座位、状态及预约字段；Core `text` 现兼容字符串、整数、浮点和布尔原语，保留字段别名与空值回退。

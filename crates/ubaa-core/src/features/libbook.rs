@@ -55,9 +55,17 @@ fn error(message: impl Into<String>) -> UbaaError {
 
 fn text(map: &Map<String, Value>, keys: &[&str]) -> String {
     keys.iter()
-        .find_map(|key| map.get(*key).and_then(Value::as_str))
+        .find_map(|key| {
+            let value = map.get(*key)?;
+            value
+                .as_str()
+                .map(str::to_owned)
+                .or_else(|| value.as_i64().map(|number| number.to_string()))
+                .or_else(|| value.as_u64().map(|number| number.to_string()))
+                .or_else(|| value.as_f64().map(|number| number.to_string()))
+                .or_else(|| value.as_bool().map(|boolean| boolean.to_string()))
+        })
         .unwrap_or_default()
-        .to_owned()
 }
 
 fn number(map: &Map<String, Value>, keys: &[&str]) -> i32 {
@@ -634,7 +642,7 @@ fn is_expired_body(body: &str) -> bool {
 
 #[cfg(test)]
 mod crypto_tests {
-    use super::encrypt_reserve_request;
+    use super::{encrypt_reserve_request, parse_seats};
     use crate::domain::LibBookReserveRequest;
 
     #[test]
@@ -652,5 +660,19 @@ mod crypto_tests {
             encrypted,
             "lGWxL9YCYE0sXIQzPsUCs3jfaFPunT/NyR93uF2nVP1OQPYYihpMRBvm7jxYdUZNTMCyIRtdY8d3DgCNz8G3lmeWmPjvy6jV2KeuJXR8nrOmk26JK+ATZB1VXBNOFebA"
         );
+    }
+
+    #[test]
+    fn 座位数字原语按冻结实现转为文本() {
+        let body = serde_json::json!({
+            "code": 0,
+            "data": [{"id": 101, "name": 7, "no": 12, "status": 1}]
+        })
+        .to_string();
+        let seats = parse_seats(&body).expect("解析座位");
+        assert_eq!(seats[0].id, "101");
+        assert_eq!(seats[0].no, "12");
+        assert_eq!(seats[0].status, "1");
+        assert!(seats[0].is_available);
     }
 }
