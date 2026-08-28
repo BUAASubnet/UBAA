@@ -290,7 +290,7 @@ deterministic answer policy for tests and never performs live submission in veri
 
 当前实现证据：UBAA2 已实现 Bykc Core、路线独立会话、facade 和 CLI 五项只读查询，并完成 Direct/WebVPN 真实验证。已选课程按冻结 `courseInfo` 嵌套结构展开课程标识、名称、地点、教师、时间、分类、考勤、考核、签到配置、作业与备注；缺失课程信息沿用旧版的标识零值和“未知课程”，签到可用性按考核状态、考勤状态和时间窗口计算。旧版 DTO 虽保留作业附件名称与路径，但本地实现没有从该只读响应赋值，因此 UBAA2 同样返回空值。`examples/buaa-api` 仅作端点交叉证据，不能替代冻结旧版的 AES、RSA、SHA-1 常量和错误语义。选课、退选、签到及附件写请求已接入 Core/CLI，并由显式确认保护；实时验证永不调用。
 
-选课写链 Mock 证据：`crates/ubaa-core/tests/bykc.rs` 按冻结顺序返回 CAS token，再校验 `/sscv/choseCourse` 请求的非空加密正文、`auth_token`/`authtoken` 和 `ak`/`sk`/`ts` 头。测试不记录密文内容、不使用真实会话。
+Bykc 写链 Mock 证据：`crates/ubaa-core/tests/bykc.rs` 按冻结顺序返回 CAS token，并依次校验 `/sscv/choseCourse`、`/sscv/delChosenCourse`、`/sscv/signCourseByUser` 的非空加密正文、`auth_token`/`authtoken` 和 `ak`/`sk`/`ts` 头。测试不记录密文内容、不使用真实会话。
 
 Any change to a URL, service value, redirect, Cookie/session scope, method,
 parameter, header, body encoding, crypto constant, DTO field/type, cache key,

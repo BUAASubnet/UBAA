@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
+use ubaa_core::domain::{BykcSignRequest, ConnectionMode};
 use ubaa_core::facade::RouteClient;
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
@@ -37,26 +37,52 @@ fn 博雅选课写链发送加密正文和双令牌头() {
         .unwrap()
         .data;
     assert_eq!(result.message, "ok");
+    assert_eq!(
+        runtime
+            .block_on(client.bykc_deselect_course(42))
+            .unwrap()
+            .data
+            .message,
+        "ok"
+    );
+    assert_eq!(
+        runtime
+            .block_on(client.bykc_sign_course(BykcSignRequest {
+                course_id: 42,
+                lat: Some(39.9),
+                lng: Some(116.3),
+                sign_type: 1,
+            }))
+            .unwrap()
+            .data
+            .message,
+        "ok"
+    );
 
     let requests = requests.lock().unwrap();
-    assert_eq!(requests.len(), 2);
+    assert_eq!(requests.len(), 4);
     let login = url::Url::parse(&requests[0].url).unwrap();
     assert_eq!(login.path(), "/sscv/cas/login");
-    let request = &requests[1];
-    let url = url::Url::parse(&request.url).unwrap();
-    assert_eq!(url.path(), "/sscv/choseCourse");
-    assert!(!request.body.is_empty());
-    assert_eq!(
-        request.headers.get("auth_token").map(String::as_str),
-        Some("token-safe")
-    );
-    assert_eq!(
-        request.headers.get("authtoken").map(String::as_str),
-        Some("token-safe")
-    );
-    assert!(request.headers.contains_key("ak"));
-    assert!(request.headers.contains_key("sk"));
-    assert!(request.headers.contains_key("ts"));
+    for (request, path) in requests.iter().skip(1).zip([
+        "/sscv/choseCourse",
+        "/sscv/delChosenCourse",
+        "/sscv/signCourseByUser",
+    ]) {
+        let url = url::Url::parse(&request.url).unwrap();
+        assert_eq!(url.path(), path);
+        assert!(!request.body.is_empty());
+        assert_eq!(
+            request.headers.get("auth_token").map(String::as_str),
+            Some("token-safe")
+        );
+        assert_eq!(
+            request.headers.get("authtoken").map(String::as_str),
+            Some("token-safe")
+        );
+        assert!(request.headers.contains_key("ak"));
+        assert!(request.headers.contains_key("sk"));
+        assert!(request.headers.contains_key("ts"));
+    }
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -79,11 +105,13 @@ impl HttpTransport for BykcWriteTransport {
                 "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-safe",
                 Vec::new(),
             )),
-            "/sscv/choseCourse" => Ok(HttpResponse::new(
-                200,
-                request.url,
-                br#"{"status":"0","data":{"message":"ok"}}"#.to_vec(),
-            )),
+            "/sscv/choseCourse" | "/sscv/delChosenCourse" | "/sscv/signCourseByUser" => {
+                Ok(HttpResponse::new(
+                    200,
+                    request.url,
+                    br#"{"status":"0","data":{"message":"ok"}}"#.to_vec(),
+                ))
+            }
             _ => Err(test_error("unexpected bykc path")),
         }
     }
