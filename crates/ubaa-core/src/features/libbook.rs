@@ -222,7 +222,7 @@ pub fn parse_area_detail(body: &str) -> Result<LibBookAreaDetail> {
 /// 解析座位列表，并将状态 `1` 映射为可用。
 pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
     let value = envelope(body)?;
-    Ok(list_value(&value, &["list", "seats"])
+    let mut seats: Vec<_> = list_value(&value, &["list", "seats"])
         .iter()
         .filter_map(Value::as_object)
         .map(|object| {
@@ -236,7 +236,9 @@ pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
                 is_available: status == "1",
             }
         })
-        .collect())
+        .collect();
+    seats.sort_by(|left, right| left.no.cmp(&right.no));
+    Ok(seats)
 }
 
 /// 解析当前用户的图书馆预约分页。

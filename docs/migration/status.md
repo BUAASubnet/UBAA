@@ -356,3 +356,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `asVenueSiteArray`，Core 现将 `data` 中场馆对象的 `siteList` 展开为扁平站点并继承 `venueName/campusName`；新增脱敏回归测试已通过。
 - 扁平响应仍兼容；本轮未改变实时协议或执行真实写操作。Cgyy 日期/订单实时硬门禁仍按上游不可用记录。
+
+## 2026-08-29 LibBook 座位排序
+
+- 对照冻结实现补齐座位 DTO 按 `no` 字符串升序输出；新增脱敏回归测试已通过，LibBook focused suite 6/6 通过。
+- 本轮未改变上游请求或执行真实写操作。

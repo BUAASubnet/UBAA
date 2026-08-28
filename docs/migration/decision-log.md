@@ -589,3 +589,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结 `LocalCgyyClient.getVenueSites` 调用 `asVenueSiteArray`，将场馆对象的 `siteList` 展开并继承场馆名称与校区；当前解析器原先把场馆对象误当作站点。
 - 新增旧版包装的脱敏测试，先复现站点 ID 被误读为场馆 ID，再实现展开并通过；同时保留扁平数组和 `content` 包装。
 - 未改变请求、签名、路由、会话或实时错误策略，未执行真实写操作。
+
+## 2026-08-29 LibBook 座位排序
+
+- 冻结 `LocalLibBookApi.getSeats` 在 DTO 映射后执行 `sortedBy { it.no }`；Rust `parse_seats` 原先保留响应顺序。
+- 新增逆序座位号脱敏测试先失败后通过，并在 Core 中按字符串座位号升序排序；未改变请求协议或实时路由行为。
