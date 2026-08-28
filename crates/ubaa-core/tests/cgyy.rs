@@ -26,6 +26,17 @@ fn 场馆响应缺少或非二百代码时拒绝成功() {
 }
 
 #[test]
+fn 旧版场馆包装会展开场馆下的站点列表() {
+    let body = r#"{"code":200,"data":[{"id":9,"venueName":"沙河研讨室","campusName":"沙河校区","siteList":[{"id":"101","siteName":"一层"}]}]}"#;
+    let sites = parse_sites(body).unwrap();
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].id, 101);
+    assert_eq!(sites[0].site_name, "一层");
+    assert_eq!(sites[0].venue_name, "沙河研讨室");
+    assert_eq!(sites[0].campus_name, "沙河校区");
+}
+
+#[test]
 fn 用途类型上游失败时回退到冻结静态定义() {
     let root =
         std::env::temp_dir().join(format!("ubaa-cgyy-purpose-fallback-{}", std::process::id()));

@@ -884,11 +884,39 @@ pub fn parse_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
     let value = data(body)?;
     let values = value
         .as_array()
-        .or_else(|| value.as_object()?.get("content")?.as_array())
+        .or_else(|| {
+            value
+                .as_object()
+                .and_then(|map| map.get("content"))
+                .and_then(Value::as_array)
+        })
         .ok_or_else(|| error("场馆站点响应结构无效"))?;
-    Ok(values
+    let mut flattened = Vec::new();
+    for item in values {
+        let Some(map) = item.as_object() else {
+            continue;
+        };
+        if let Some(site_list) = map.get("siteList").and_then(Value::as_array) {
+            for site in site_list {
+                let Some(site_map) = site.as_object() else {
+                    continue;
+                };
+                let mut merged = site_map.clone();
+                for key in ["venueName", "campusName"] {
+                    if !merged.contains_key(key)
+                        && let Some(value) = map.get(key)
+                    {
+                        merged.insert(key.to_owned(), value.clone());
+                    }
+                }
+                flattened.push(merged);
+            }
+        } else {
+            flattened.push(map.clone());
+        }
+    }
+    Ok(flattened
         .iter()
-        .filter_map(Value::as_object)
         .map(|item| CgyyVenueSite {
             id: int(item, "id").unwrap_or_default(),
             site_name: string(item, "siteName").unwrap_or_default(),

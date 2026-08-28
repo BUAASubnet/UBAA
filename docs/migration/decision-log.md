@@ -583,3 +583,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN：上述非 Cgyy 能力均成功，Judge 详情语义通过；Cgyy 站点成功（4 个），日期和订单为 `upstream_unavailable`，聚合退出 5。
 - auto：解析为 Direct，上述非 Cgyy 能力均成功；Cgyy 站点成功（4 个），日期为 `upstream_changed`、订单为 `upstream_unavailable`，聚合退出 6。
 - 结果与冻结实现的请求和解析行为一致但实时上游不可用的项仅作记录，不修改协议或错误策略；仅执行读操作，未执行真实写接口。
+
+## 2026-08-29 Cgyy 场馆包装展开
+
+- 冻结 `LocalCgyyClient.getVenueSites` 调用 `asVenueSiteArray`，将场馆对象的 `siteList` 展开并继承场馆名称与校区；当前解析器原先把场馆对象误当作站点。
+- 新增旧版包装的脱敏测试，先复现站点 ID 被误读为场馆 ID，再实现展开并通过；同时保留扁平数组和 `content` 包装。
+- 未改变请求、签名、路由、会话或实时错误策略，未执行真实写操作。

@@ -351,3 +351,8 @@ CI remains deterministic-only and never reads `.env.local`.
 - WebVPN：全部非 Cgyy 功能及 Judge 详情通过；Cgyy 站点 4 个通过，日期/订单 `upstream_unavailable`，退出码 5。
 - auto：解析到 Direct，全部非 Cgyy 功能及 Judge 详情通过；Cgyy 站点 4 个通过，日期 `upstream_changed`、订单 `upstream_unavailable`，退出码 6。
 - 这些失败项已确认不是本地缺失功能；按冻结实现保持现状并记录，未执行真实写操作。整体迁移仍未完成，待 Cgyy 实时上游恢复或取得新证据。
+
+## 2026-08-29 Cgyy 场馆包装展开
+
+- 对照冻结 `asVenueSiteArray`，Core 现将 `data` 中场馆对象的 `siteList` 展开为扁平站点并继承 `venueName/campusName`；新增脱敏回归测试已通过。
+- 扁平响应仍兼容；本轮未改变实时协议或执行真实写操作。Cgyy 日期/订单实时硬门禁仍按上游不可用记录。
