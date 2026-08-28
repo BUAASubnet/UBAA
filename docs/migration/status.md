@@ -224,7 +224,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - Judge parser, detail, cutoff, grouped batch and cache lifecycle are deterministically covered. Direct/auto and the latest WebVPN aggregate passed safe semantic checks; multiple WebVPN aggregate attempts failed `judge_cutoff` because upstream list snapshots drifted, and each immediate rerun passed, so the strict check remains unchanged. Route-local count differences remain observations, not normalization rules.
 - Judge terminal business-authentication failures now have a source-backed UC arbitration path under test and live-ready behavior: only explicit UC Invalid clears the selected route; valid or unavailable UC results preserve the primary session and return retryable `upstream_unavailable`.
 - CLI schema v2 and the live verifier's semantic rejection cases are deterministically covered for routed, unresolved, aggregate, SPOC query/detail identity, and Judge list/detail output. Judge cross-request comparison uses stdin rather than argv. Interactive verification fields and error codes are absent from the schema. This establishes verifier behavior only, not a real route result.
-- No write operation is migrated: submission/upload, answers, reservations, attendance, grading changes and other side effects remain out of scope.
+- All in-scope write operations have Core/CLI protocol implementations with deterministic Mock, vector, parser and confirmation-protection evidence; real submission/upload, answer, reservation, attendance, grading-change and other side-effect requests remain permanently disabled for this contract.
 - Windows owner-only directory ACL enforcement remains a release-audit item from the baseline.
 
 ## Rerun Handoff
