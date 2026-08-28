@@ -374,3 +374,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - Direct：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc、cgyy 站点及 evaluation 均通过；`cgyy_lock_code` 仍为 `upstream_unavailable`（退出码 5）。
 - WebVPN：schedule、exam、classroom、spoc、signin、ygdk、libbook、bykc 通过；grades 返回 `upstream_changed`（退出码 6），judge 返回 `invalid_semantics`（截止阶段退出码 1），cgyy 与 evaluation 返回 `authentication_required`（退出码 3）。
 - 处理：保留逐操作失败证据，聚合命令以 `one_or_more_features_failed` 结束；本轮只读验证未调用任何写操作，以上摘要不含原始响应或个人数据。
+
+## 2026-08-28 WebVPN 逐项复测
+
+- `feature=grades`、`feature=judge`、`feature=evaluation` 单项重跑均成功；Judge 脱敏计数为课程 5、原始锚点 49、过滤后 49、当前 17、截止跳过 32，并取得语义详情。
+- `feature=cgyy` 单项重跑仍为 `authentication_required`（退出码 3）。该失败与此前结果一致，不能由其他场馆或主认证成功替代。
+- 本次复测全部为只读操作，未调用任何提交、取消、预约、签到、上传或选课接口。
