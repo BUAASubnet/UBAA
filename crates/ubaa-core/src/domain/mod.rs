@@ -662,6 +662,12 @@ pub struct CgyyReservationSubmitRequest {
     /// 外部验证码服务返回的校验串；仅用于当前请求，不得持久化或输出。
     #[serde(skip_serializing)]
     pub captcha_verification: String,
+    /// 验证码滑块点位 JSON，仅用于当前请求。
+    #[serde(skip_serializing)]
+    pub captcha_point_json: String,
+    /// 验证码挑战令牌，仅用于当前请求。
+    #[serde(skip_serializing)]
+    pub captcha_token: String,
 }
 
 /// 场馆预约提交结果。

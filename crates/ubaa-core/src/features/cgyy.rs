@@ -295,6 +295,17 @@ pub fn build_submit_form(
     form
 }
 
+/// 构造冻结验证码校验表单。
+#[must_use]
+pub fn build_captcha_check_form(point_json: &str, token: &str) -> BTreeMap<String, String> {
+    [
+        ("pointJson".into(), point_json.into()),
+        ("token".into(), token.into()),
+    ]
+    .into_iter()
+    .collect()
+}
+
 /// 使用外部验证码校验结果提交场馆预约。
 pub(crate) async fn submit_reservation(
     runtime: &mut crate::runtime::ClientRuntime,
@@ -311,7 +322,10 @@ pub(crate) async fn submit_reservation(
     {
         return Err(error("至少选择一个有效的预约时段"));
     }
-    if request.captcha_verification.trim().is_empty() {
+    if request.captcha_verification.trim().is_empty()
+        || request.captcha_point_json.trim().is_empty()
+        || request.captcha_token.trim().is_empty()
+    {
         return Err(error("缺少验证码校验结果"));
     }
     let day = get_day_info(runtime, request.venue_site_id, &request.reservation_date).await?;
@@ -367,6 +381,23 @@ pub(crate) async fn submit_reservation(
     let response = runtime.request(context_request).await?;
     super::check_response(&response, "场馆预约")?;
     data(&super::body(&response))?;
+
+    let captcha_form =
+        build_captcha_check_form(&request.captcha_point_json, &request.captcha_token);
+    let mut captcha_request = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Post,
+        "/api/captcha/check",
+        captcha_form.clone(),
+        Some(&token),
+    )?;
+    captcha_request.body = crate::upstream::encode_form(&captcha_form);
+    let captcha_response = runtime.request(captcha_request).await?;
+    super::check_response(&captcha_response, "场馆预约")?;
+    let captcha_data = data(&super::body(&captcha_response))?;
+    if captcha_data.get("success").and_then(Value::as_bool) != Some(true) {
+        return Err(error("验证码校验失败"));
+    }
 
     let form = build_submit_form(&request, &token, &order_json);
     let mut submit_request = signed_request(
@@ -733,7 +764,7 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_submit_form, parse_action_result};
+    use super::{build_captcha_check_form, build_submit_form, parse_action_result};
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest};
 
     #[test]
@@ -763,6 +794,8 @@ mod tests {
             is_philosophy_social_sciences: false,
             is_off_school_joiner: true,
             captcha_verification: "verification".into(),
+            captcha_point_json: "[{\"x\":1,\"y\":2}]".into(),
+            captcha_token: "captcha-token".into(),
         };
         let form = build_submit_form(&request, "token", "[{\"spaceId\":11,\"timeId\":3}]");
         assert_eq!(form.get("venueSiteId").map(String::as_str), Some("7"));
@@ -779,5 +812,8 @@ mod tests {
             form.get("captchaVerification").map(String::as_str),
             Some("verification")
         );
+        let captcha = build_captcha_check_form("points", "challenge");
+        assert_eq!(captcha.get("pointJson").map(String::as_str), Some("points"));
+        assert_eq!(captcha.get("token").map(String::as_str), Some("challenge"));
     }
 }
