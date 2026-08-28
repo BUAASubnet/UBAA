@@ -13,23 +13,23 @@
 | 空闲教室 | `classroom search` | 已完成，只读 |
 | SPOC 作业 | `spoc` | 已完成，只读 |
 | 希冀作业 | `judge` | 已完成，只读 |
-| 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；Direct/WebVPN 概览已验证，记录分页仍需独立真实验证 |
-| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；Direct/WebVPN 馆区列表已验证，其余子命令仍需独立真实验证 |
-| 博雅课程只读查询 | `bykc profile`, `bykc courses`, `bykc course`, `bykc chosen`, `bykc statistics` | Core、业务会话和 CLI 已接入；Direct/WebVPN 课程分页已验证，其余子命令仍需独立真实验证 |
-| 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail` | Core、业务会话和 CLI 已接入；Direct 站点列表已验证，WebVPN 及其余子命令仍需独立真实验证 |
+| 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；Direct/WebVPN 概览与记录均有实时成功证据 |
+| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；Direct/WebVPN 已有实时成功证据 |
+| 博雅课程只读查询 | `bykc profile`, `bykc courses`, `bykc course`, `bykc chosen`, `bykc statistics` | Core、业务会话和 CLI 已接入；Direct/WebVPN 已有课程业务成功证据，其他子命令由确定性测试覆盖 |
+| 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail` | Core、业务会话和 CLI 已接入；Direct 站点查询通过，WebVPN 业务会话仍认证失败 |
 
 ## 尚未迁移
 
-以下接口存在于冻结旧版，但当前 UBAA 2 合同没有定义稳定 Core DTO、上游证据和 CLI 交互，因此不能声称已完成：
+以下写接口已具备 Core/CLI 协议实现和确定性安全证据，但仍不得在真实验收中调用：
 
 | 旧版接口 | 主要能力 | 迁移前置条件 |
 |---|---|---|
-| `BykcApi` 写操作 | 选课、退选、签到 | 需新的写操作合同；五项只读查询已迁移 |
-| `CgyyApi` 写操作 | 预约、取消、门锁码 | 需新的写操作合同；场地、用途、日期、订单和详情已迁移 |
-| `EvaluationService` | 评教查询与提交 | 需要冻结 DTO/测试、真实接口证据，以及批量提交确认策略 |
-| `LibBookApi` 写操作 | 预约、取消 | 需新的写操作合同；五项只读查询已迁移 |
-| `SigninApi` 写操作 | 执行签到 | 需新的写操作合同；今日查询已迁移并完成双路线验证 |
-| `YgdkApi` 写操作 | 照片上传、提交打卡 | 需新的写操作合同；概览与记录查询已迁移 |
+| `BykcApi` 写操作 | 选课、退选、签到 | Core/CLI 已实现；具备加密向量与默认阻止测试，禁止真实调用 |
+| `CgyyApi` 写操作 | 预约、取消、门锁码 | Core/CLI 已实现；预约验证码图像求解器仍缺端口，门锁码 Direct 上游不可用 |
+| `EvaluationService` | 评教查询与提交 | Core/CLI 已实现自动问卷链、提交信封和确认门禁；仅允许 Mock/向量验证 |
+| `LibBookApi` 写操作 | 预约、取消 | Core/CLI 已实现；具备 AES 请求向量与确认门禁，禁止真实调用 |
+| `SigninApi` 写操作 | 执行签到 | Core/CLI 已实现冻结表单与确认门禁，禁止真实调用 |
+| `YgdkApi` 写操作 | 照片上传、提交打卡 | Core/CLI 已实现 multipart/表单链与请求向量，禁止真实调用 |
 
 ## 实施顺序
 

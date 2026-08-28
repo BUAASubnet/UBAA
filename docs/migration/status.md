@@ -4,13 +4,11 @@ Updated: 2026-08-27
 
 ## Conclusion
 
-阶段 7-12 曾被标记完成，但 2026-08-23 的冻结源逐操作复核发现路由、双槽位、
-SPOC/Judge 语义和 live verifier 仍有实质缺口。本轮已补齐确定性实现、回归测试、
-source-parity 记录和二次审查；截至 2026-08-26，认证、六类只读功能的 Direct/WebVPN
-显式矩阵、`all/auto`、`all/direct` 和最新 `all/webvpn` 均通过。一次较早的
-`all/webvpn` 运行因 Judge 两次上游列表快照漂移触发严格 `judge_cutoff`，即时重跑后
-通过；这些失败和成功均保留在下方，不放宽验证器。因此当前代码门禁结论为“已修复、
-最新完整矩阵通过”，但上游快照波动仍是运行时重试条件。
+冻结源逐操作复核、Core/CLI 确定性门禁和大部分只读实时能力已完成；写操作均有
+协议实现、Mock/向量和 CLI 确认保护，但真实验收永不调用。当前整体仍未达到最终完成：
+Cgyy WebVPN 业务会话持续认证失败，Direct 门锁码上游不可用，且验证码图像求解器端口
+尚未迁移。WebVPN Grades/Judge/Evaluation 的最新单项重跑通过，但聚合矩阵仍必须保留
+瞬态失败证据并继续复核。
 
 ## Baseline
 
