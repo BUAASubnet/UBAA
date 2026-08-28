@@ -1,9 +1,10 @@
 //! CLI 输入读取、请求输入校验和稳定错误构造。
 
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 
-use ubaa_core::domain::{YgdkClockinSubmitRequest, YgdkPhotoUpload};
+use serde_json::Value;
+use ubaa_core::domain::{CgyyReservationSubmitRequest, YgdkClockinSubmitRequest, YgdkPhotoUpload};
 use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 pub(crate) fn prompt_line<R: BufRead, E: Write>(
@@ -40,6 +41,27 @@ pub(crate) fn read_secret_line<R: BufRead>(input: &mut R, missing_message: &str)
     } else {
         Ok(value)
     }
+}
+
+pub(crate) fn read_evaluation_payload(path: &PathBuf) -> Result<Vec<Value>> {
+    let bytes = std::fs::read(path).map_err(|_| invalid_input("无法读取评教 payload 文件"))?;
+    let value: Value = serde_json::from_slice(&bytes)
+        .map_err(|_| invalid_input("评教 payload 必须是 JSON 数组"))?;
+    let values = value
+        .as_array()
+        .ok_or_else(|| invalid_input("评教 payload 必须是 JSON 数组"))?;
+    if values.is_empty() {
+        return Err(invalid_input("评教 payload 不能为空"));
+    }
+    Ok(values.clone())
+}
+
+pub(crate) fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> {
+    let mut input = String::new();
+    std::io::stdin()
+        .read_to_string(&mut input)
+        .map_err(|_| invalid_input("无法读取场馆预约请求"))?;
+    serde_json::from_str(&input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
 }
 
 pub(crate) fn write_json<W: Write, T: serde::Serialize>(

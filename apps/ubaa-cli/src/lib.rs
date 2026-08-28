@@ -1,6 +1,6 @@
 //! UBAA Core 的命令行解析与输出展示。
 
-use std::io::{BufRead, Read, Write};
+use std::io::{BufRead, Write};
 use std::path::PathBuf;
 
 use async_trait::async_trait;
@@ -36,7 +36,8 @@ mod render;
 use render::{redacted_profile, redacted_status, safe_lock_code_value, write_profile};
 mod input;
 use input::{
-    build_ygdk_request, internal_error, invalid_input, prompt_line, read_secret_line, write_json,
+    build_ygdk_request, internal_error, invalid_input, prompt_line, read_cgyy_request_stdin,
+    read_evaluation_payload, read_secret_line, write_json,
 };
 mod connection_mode;
 pub use connection_mode::CliConnectionMode;
@@ -2865,19 +2866,6 @@ async fn run_evaluation<B: CliBackend + Send>(
     }
 }
 
-fn read_evaluation_payload(path: &PathBuf) -> Result<Vec<Value>> {
-    let bytes = std::fs::read(path).map_err(|_| invalid_input("无法读取评教 payload 文件"))?;
-    let value: Value = serde_json::from_slice(&bytes)
-        .map_err(|_| invalid_input("评教 payload 必须是 JSON 数组"))?;
-    let values = value
-        .as_array()
-        .ok_or_else(|| invalid_input("评教 payload 必须是 JSON 数组"))?;
-    if values.is_empty() {
-        return Err(invalid_input("评教 payload 不能为空"));
-    }
-    Ok(values.clone())
-}
-
 async fn run_bykc<B: CliBackend + Send>(
     arguments: BykcArgs,
     backend: &mut B,
@@ -3015,14 +3003,6 @@ async fn run_cgyy<B: CliBackend + Send>(
                 .and_then(|result| readonly(result, CliFeature::Cgyy))
         }
     }
-}
-
-fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> {
-    let mut input = String::new();
-    std::io::stdin()
-        .read_to_string(&mut input)
-        .map_err(|_| invalid_input("无法读取场馆预约请求"))?;
-    serde_json::from_str(&input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
 }
 
 fn render_result<O: Write, E: Write>(

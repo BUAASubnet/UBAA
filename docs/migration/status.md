@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 将 CLI 的评教 payload 与场馆预约标准输入读取移入 `apps/ubaa-cli/src/input.rs`；保持 JSON 校验、空 payload 拒绝、敏感输入边界和错误语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/command_output.rs`，收拢 `CommandOutput` 与 `readonly` Core 结果投影；保持 human/JSON 输出、路线元数据和序列化语义不变；CLI、敏感扫描与全量门禁通过。
 - 扩展 `docs/development/engineering-standards.md`，新增跨宿主交接规范矩阵，明确 Core/CLI 与 Flutter、OpenHarmony、Node、Swift、Kotlin、ArkTS、MCP、Server 的依赖方向、敏感边界、稳定输出和写操作默认关闭规则；文档、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/session/storage.rs`，收拢会话文件锁与临时文件生命周期；保持原子写入、失败清理、跨平台锁释放和权限边界不变；Session、CLI、敏感扫描与全量门禁通过。
