@@ -241,6 +241,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - 2026-08-28 复跑只读矩阵：Direct 除 `cgyy_lock_code=upstream_unavailable` 外通过；WebVPN 的 Grades 为 `upstream_changed`、Judge 为 `invalid_semantics`，Cgyy/Evaluation 为 `authentication_required`，其余已执行项通过。该结果不满足最终实时验收门禁。
 - Ygdk 写请求阶段已补充 multipart 上传正文确定性测试，覆盖冻结的 `uid`、`token`、`file` 字段及边界/文件元数据；仍不执行真实打卡写操作。
 - Ygdk 写入口现将照片非空、开始/结束时间成对校验前置到业务登录之前；新增无网络回归测试，确保无效写请求不会建立业务会话。
+- Ygdk 写链阶段新增完整 Mock 端到端测试，覆盖 OAuth 回调、业务登录、概览四请求、照片 multipart 上传和最终打卡表单；仅使用合成会话与响应，真实打卡仍禁止。
 - Evaluation 提交请求已补充固定地址、`Content-Type`、`X-Requested-With` 和 JSON 信封的确定性测试。
 - Evaluation `submit_payload` 现将空结果列表校验前置到会话和网络请求之前，新增禁止网络回归测试，避免无效评教写请求触发业务登录。
 - Cgyy CLI 已新增 `cgyy submit --request-stdin --confirm-write`，从标准输入读取包含敏感字段的 JSON 请求并在确认前拒绝读取；未执行真实预约。

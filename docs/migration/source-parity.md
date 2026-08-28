@@ -255,6 +255,8 @@ Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取�
 
 Ygdk 写入口的输入边界也已固定：照片必须存在且非空，开始和结束时间必须同时提供；这些检查发生在 OAuth/业务令牌请求之前。`features/ygdk.rs` 单元测试使用禁止网络的传输验证无效请求直接返回 `invalid_input`。
 
+`crates/ubaa-core/tests/ygdk.rs` 进一步以合成传输验证完整写链顺序：OAuth code、`campusAppLogin`、分类/项目/统计/学期概览、`Upload/File/post` multipart 和 `Clockin/clockin` 表单；断言 `uid`、业务 token、文件元数据及打卡字段均按冻结协议发送，且不产生真实副作用。
+
 The following rows are the required parity boundary for the remaining direct upstream
 operations. `ubaa_old` is authoritative at the commit recorded in `references.md`;
 `examples/buaa-api` is explicitly non-equivalent for all rows except Evaluation's SPOC
