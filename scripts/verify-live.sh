@@ -1306,7 +1306,7 @@ run_readonly_feature() {
       fi
       run_json none cgyy lock-code
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_lock_code; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
-      elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data | has("rawData"))' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_lock_code; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
+      elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "object" and (.data.available | type) == "boolean" and ((.data | keys | sort) == ["available"])' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_lock_code; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
       if [[ "$cgyy_failed" -ne 0 ]]; then return "$cgyy_first_code"; fi
       ;;
     evaluation)

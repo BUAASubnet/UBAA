@@ -1020,6 +1020,7 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
         ),
         (CliFeature::Bykc, serde_json::json!([])),
         (CliFeature::Cgyy, serde_json::json!([])),
+        (CliFeature::Cgyy, serde_json::json!({"available": true})),
         (
             CliFeature::Cgyy,
             serde_json::to_value(CgyyActionResult::default()).unwrap(),

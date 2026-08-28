@@ -397,7 +397,7 @@ extension_calls_output=$(
     elif [[ "$command" == cgyy\ day* ]]; then CLI_OUTPUT='{"data":{"timeSlots":[],"spaces":[]}}'
     elif [[ "$command" == cgyy\ orders* ]]; then CLI_OUTPUT='{"data":{"content":[{"id":2}]}}'
     elif [[ "$command" == "cgyy detail --id 2" ]]; then CLI_OUTPUT='{"data":{"id":2}}'
-    elif [[ "$command" == "cgyy lock-code" ]]; then CLI_OUTPUT='{"data":{"rawData":{}}}'
+    elif [[ "$command" == "cgyy lock-code" ]]; then CLI_OUTPUT='{"data":{"available":true}}'
     elif [[ "$command" == "evaluation all" ]]; then CLI_OUTPUT='{"data":{"courses":[]}}'
     elif [[ "$command" == "evaluation pending" ]]; then CLI_OUTPUT='{"data":[]}'
     elif [[ "$command" == "user show" ]]; then CLI_OUTPUT='{"data":{"idCardType":null,"idCardTypeName":null,"phone":null,"schoolId":"TEST-04","name":"Fixture User","idCardNumber":null,"email":null,"username":"fixture-user"}}'

@@ -2368,7 +2368,19 @@ async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
         CgyyCommand::Detail { id } => {
             routed_readonly(backend.cgyy_order_detail(id).await, CliFeature::Cgyy)
         }
-        CgyyCommand::LockCode => routed_readonly(backend.cgyy_lock_code().await, CliFeature::Cgyy),
+        CgyyCommand::LockCode => {
+            backend
+                .cgyy_lock_code()
+                .await
+                .map(|Routed { data, resolution }| Routed {
+                    data: CommandOutput::Readonly {
+                        data: safe_lock_code_value(&data),
+                        route: resolution.mode,
+                        feature: CliFeature::Cgyy,
+                    },
+                    resolution,
+                })
+        }
         CgyyCommand::Cancel { id, confirm_write } => {
             if !confirm_write {
                 return Err(RoutedError {
@@ -2434,6 +2446,10 @@ fn routed_readonly<T: Serialize>(
             resolution,
         })
     })
+}
+
+fn safe_lock_code_value(data: &CgyyLockCode) -> Value {
+    json!({"available": !data.raw_data.is_null()})
 }
 
 fn render_routed_result<O: Write, E: Write>(
@@ -3152,10 +3168,16 @@ async fn run_cgyy<B: CliBackend + Send>(
             .cgyy_order_detail(id)
             .await
             .and_then(|result| readonly(result, CliFeature::Cgyy)),
-        CgyyCommand::LockCode => backend
-            .cgyy_lock_code()
-            .await
-            .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::LockCode => {
+            backend
+                .cgyy_lock_code()
+                .await
+                .map(|result| CommandOutput::Readonly {
+                    data: safe_lock_code_value(&result.data),
+                    route: result.resolved_route,
+                    feature: CliFeature::Cgyy,
+                })
+        }
         CgyyCommand::Cancel { id, confirm_write } => {
             if !confirm_write {
                 return Err(invalid_input(
@@ -3515,5 +3537,14 @@ mod tests {
     fn sensitive_mask_handles_unicode_without_byte_slicing() {
         assert_eq!(mask_sensitive("ABCD1234"), "AB****34");
         assert_eq!(mask_sensitive("北航用户甲乙"), "北航**甲乙");
+    }
+
+    #[test]
+    fn lock_code_cli_projection_does_not_expose_opaque_payload() {
+        let value = safe_lock_code_value(&CgyyLockCode {
+            raw_data: json!({"lockCode": "fixture-secret"}),
+        });
+        assert_eq!(value, json!({"available": true}));
+        assert!(!value.to_string().contains("fixture-secret"));
     }
 }
