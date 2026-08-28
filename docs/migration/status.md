@@ -230,7 +230,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - 剩余验收缺口：Ygdk、Cgyy、Evaluation 写操作仍需完整 Core 协议、向量和 Mock 测试；LibBook 与 Signin 已有 Core/CLI 写入口，但仍需专门的请求和向量测试。所有功能逐项 Direct/WebVPN/auto 读验证仍未完成，迁移尚未完成。
 - 本阶段补齐 LibBook 预约/取消 Core 与 CLI 写入口，并以冻结 golden 向量验证字段顺序、日期派生 AES-128-CBC、PKCS#7 和固定 IV；本阶段提交为后续审查起点。
 - 新增 Ygdk `submit` Core/CLI 写入口，按冻结实现上传照片后提交打卡表单；默认拒绝，必须显式 `--confirm-write`，未执行真实写操作。
-- Ygdk 写入阶段完成了 multipart 上传边界、固定表单字段和 CLI 文件输入校验；仍需后续补充脱敏 Mock 请求断言和完整写结果向量，当前不视为最终验收完成。
+- Ygdk 写入阶段完成了 multipart 上传边界、固定表单字段、CLI 文件输入校验及脱敏请求向量；真实写操作仍永久禁止，最终验收仍受全局实时矩阵门禁约束。
 - Cgyy 阶段已提交 `1d25ef2`：完成日期上下文、空间/时段校验、预约上下文创建和最终预约表单的冻结字段实现；验证码挑战与求解端口尚未迁移，CLI 提交入口和真实写验收继续禁止调用。
 - Signin 阶段已提交 `0824947`：按冻结协议严格读取 `get_timestamp.action` JSON 的 `timestamp` 字段，并拒绝非 JSON 或空值响应；Signin 写操作仍需补充 CLI 专用安全测试和 Mock 请求断言。
 - Evaluation 阶段已完成最终提交 JSON 信封、问卷题目读取/答案构造和逐课程自动提交链；CLI 提供 `evaluation submit-pending --confirm-write`，并以未确认不访问后端的测试覆盖安全门禁。仍需补充逐请求 Mock/错误向量以及真实只读矩阵收敛，评教写操作永不进入 live 验收。
@@ -238,5 +238,6 @@ CI remains deterministic-only and never reads `.env.local`.
 - Cgyy 验证码阶段已补齐 Core `/api/captcha/check` 的 `pointJson`、挑战 token 和成功判定；敏感验证码字段仅存在当前请求内，CLI 暂不通过 argv 暴露，验证码获取/求解和 WebVPN 直连 runtime 仍未完成。
 - Cgyy 验证码挑战阶段已固化 `/api/captcha/get` 的冻结参数及四个响应字段解析测试；图像求解器仍需独立端口实现，未将任何默认位移或验证码写入真实请求。
 - 2026-08-28 复跑只读矩阵：Direct 除 `cgyy_lock_code=upstream_unavailable` 外通过；WebVPN 的 Grades 为 `upstream_changed`、Judge 为 `invalid_semantics`，Cgyy/Evaluation 为 `authentication_required`，其余已执行项通过。该结果不满足最终实时验收门禁。
+- Ygdk 写请求阶段已补充 multipart 上传正文确定性测试，覆盖冻结的 `uid`、`token`、`file` 字段及边界/文件元数据；仍不执行真实打卡写操作。
 - Cgyy CLI 已新增 `cgyy submit --request-stdin --confirm-write`，从标准输入读取包含敏感字段的 JSON 请求并在确认前拒绝读取；未执行真实预约。
 - Signin 写请求已提取冻结表单构造器并增加只含 `id` 字段的确定性断言；真实签到和写请求 live 验收仍永久禁止。

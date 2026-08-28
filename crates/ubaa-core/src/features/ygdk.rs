@@ -426,21 +426,7 @@ async fn upload_photo(
     photo: &crate::domain::YgdkPhotoUpload,
 ) -> Result<String> {
     let boundary = "ubaa-ygdk-boundary";
-    let mut body = Vec::new();
-    let mut field = |name: &str, value: &str| {
-        body.extend_from_slice(
-            format!(
-                "--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
-            )
-            .as_bytes(),
-        );
-    };
-    field("uid", &credential.uid.to_string());
-    field("token", &credential.token);
-    body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", photo.file_name, photo.mime_type).as_bytes());
-    body.extend_from_slice(&photo.bytes);
-    body.extend_from_slice(b"\r\n");
-    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+    let body = build_upload_body(credential, photo, boundary);
     let mut request = HttpRequest::post(
         runtime.url(&format!("{FRONT_BASE}/api/Front/Upload/File/post"))?,
         body,
@@ -461,6 +447,29 @@ async fn upload_photo(
         .as_object()
         .and_then(|object| string(object, "file_name"))
         .ok_or_else(|| error("阳光打卡图片上传响应无效"))
+}
+
+fn build_upload_body(
+    credential: &YgdkCredential,
+    photo: &crate::domain::YgdkPhotoUpload,
+    boundary: &str,
+) -> Vec<u8> {
+    let mut body = Vec::new();
+    let mut field = |name: &str, value: &str| {
+        body.extend_from_slice(
+            format!(
+                "--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n"
+            )
+            .as_bytes(),
+        );
+    };
+    field("uid", &credential.uid.to_string());
+    field("token", &credential.token);
+    body.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", photo.file_name, photo.mime_type).as_bytes());
+    body.extend_from_slice(&photo.bytes);
+    body.extend_from_slice(b"\r\n");
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+    body
 }
 
 async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<YgdkCredential> {
@@ -601,7 +610,8 @@ async fn post_request(
 
 #[cfg(test)]
 mod tests {
-    use super::{code_from_url, percent_decode};
+    use super::{build_upload_body, code_from_url, percent_decode, YgdkCredential};
+    use crate::domain::YgdkPhotoUpload;
 
     #[test]
     fn 从回调片段查询中提取授权码() {
@@ -614,5 +624,16 @@ mod tests {
     #[test]
     fn 解码不含等号的业务令牌值() {
         assert_eq!(percent_decode("token%2Bvalue%2Ftail"), "token+value/tail");
+    }
+
+    #[test]
+    fn 阳光打卡上传正文匹配冻结_multipart_字段() {
+        let credential = YgdkCredential { uid: 7, token: "tok".into() };
+        let photo = YgdkPhotoUpload { file_name: "p.jpg".into(), mime_type: "image/jpeg".into(), bytes: b"PNG".to_vec() };
+        let body = String::from_utf8(build_upload_body(&credential, &photo, "b")).unwrap();
+        assert!(body.contains("name=\"uid\"\r\n\r\n7"));
+        assert!(body.contains("name=\"token\"\r\n\r\ntok"));
+        assert!(body.contains("name=\"file\"; filename=\"p.jpg\""));
+        assert!(body.ends_with("\r\n--b--\r\n"));
     }
 }
