@@ -1,6 +1,17 @@
 # 迁移状态
 
-Updated: 2026-08-28
+Updated: 2026-08-29
+
+## 2026-08-29 阶段提交
+
+- `a70ea60` 固化 Cgyy 签名请求的 WebVPN 路线合同：场馆业务签名请求保持
+  `cgyy.buaa.edu.cn` 直连主机，不被错误包装为 WebVPN 地址；测试使用无网络传输，
+  不读取或写入真实会话。
+- `baf295f` 校正扩展功能库存，使 Signin、Ygdk、LibBook、Cgyy、Bykc 和 Evaluation
+  的 Core/CLI 实现状态与当前代码一致，并明确真实写操作永久禁止。
+- 本阶段 `just check-sensitive && just check` 全部通过。整体迁移仍未完成：Cgyy
+  WebVPN 业务会话返回 `authentication_required`，Direct 门锁码返回
+  `upstream_unavailable`，Signin/Ygdk/Evaluation 等逐操作实时矩阵仍有失败项。
 
 ## Conclusion
 
