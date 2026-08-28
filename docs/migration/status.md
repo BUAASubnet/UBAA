@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `crates/ubaa-core/src/session/types.rs`，收拢单路线/双路线会话快照、版本包装、校验与比较交换结果类型；保持 schema-v2 字段、旧版迁移、Deref 和序列化语义不变；Session、CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/session/cookies.rs`，收拢 `StoredCookie`、`CookieJar` 及其容器逻辑；保持 Cookie 的 Domain/Path/Secure/Max-Age/Expires 过滤、替换、持久化和敏感 Debug 脱敏语义不变；Cookie、Session、支持库测试及全量门禁通过。
 - 新增 `apps/ubaa-cli/src/routing.rs`，收拢 `ReadonlyRouteContext` 及路由决策转换；保持 CLI 公共导出、路由元数据和 JSON 输出语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 三路线逐操作只读复核（本轮）：Direct 的 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 通过，Cgyy 站点通过而日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；WebVPN 的 User、Schedule、Exam、Grades、Classroom、SPOC、Signin、Ygdk、LibBook、Bykc、Evaluation 通过，Judge 为 `timeout`，Cgyy 日期/订单/锁码为 `upstream_unavailable`；auto 解析到 Direct，除 Schedule 当前周 `timeout` 外非 Cgyy 操作通过，Cgyy 日期/详情/锁码为 `upstream_unavailable`。未执行真实写操作；失败项与冻结请求逻辑一致，按上游实时证据保留。
