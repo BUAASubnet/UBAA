@@ -22,6 +22,8 @@ mod schedule;
 pub use schedule::*;
 mod grades;
 pub use grades::*;
+mod classroom;
+pub use classroom::*;
 
 /// 场馆预约站点。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -234,32 +236,6 @@ pub struct CgyyReservationResult {
 #[serde(rename_all = "camelCase")]
 pub struct CgyyLockCode {
     pub raw_data: serde_json::Value,
-}
-
-/// 空闲教室查询响应。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ClassroomQuery {
-    /// 上游结果代码。
-    pub code: i32,
-    /// 上游消息。
-    pub message: String,
-    /// 按楼层/楼栋分组的教室。
-    pub floors: std::collections::BTreeMap<String, Vec<ClassroomInfo>>,
-}
-
-/// 一间可用教室。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ClassroomInfo {
-    /// 教室标识。
-    pub id: String,
-    /// 楼层/楼栋标识。
-    pub floor_id: String,
-    /// 教室名称。
-    pub name: String,
-    /// 可用节次。
-    pub available_sections: String,
 }
 
 /// SPOC 提交状态。
