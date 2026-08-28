@@ -15,9 +15,9 @@ use crate::domain::{
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
     CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
     CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
-    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
-    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
-    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
+    EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult, GradeData,
+    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
+    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
     LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginOutcome,
     LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
     SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
@@ -414,6 +414,24 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::evaluation::get_all(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 提交由宿主构造的评教结果列表。
+    pub async fn evaluation_submit(
+        &mut self,
+        pjjglist: Vec<serde_json::Value>,
+    ) -> RoutedResult<Vec<EvaluationResult>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::evaluation::submit(&mut self.direct_runtime, pjjglist.clone())
+                    .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::evaluation::submit(&mut self.webvpn_runtime, pjjglist).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1551,6 +1569,17 @@ impl RouteClient {
     pub async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         self.guard_session_ownership()?;
         let result = crate::features::evaluation::get_all(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 提交由宿主构造的评教结果列表。
+    pub async fn evaluation_submit(
+        &mut self,
+        pjjglist: Vec<serde_json::Value>,
+    ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::evaluation::submit(&mut self.runtime, pjjglist).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

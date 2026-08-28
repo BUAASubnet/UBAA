@@ -304,3 +304,7 @@ list cannot prove detail/parser semantics.
 ### Signin 时间戳解析校正
 
 冻结 `LocalSigninApi.kt` 在 GET `app/common/get_timestamp.action` 响应 JSON 中读取字符串字段 `timestamp`；空字段或非 JSON 响应均映射为上游错误，随后将该值作为签到请求查询参数。Rust Core 已严格解析该字段，并以脱敏测试覆盖非 JSON 拒绝。`examples/buaa-api` 未实现 iClass 签到协议，因此未借用其响应结构。
+
+### Evaluation 评教提交信封
+
+冻结 `LocalEvaluationService.kt` 最终向 `evaluationMethodSix/submitSaveEvaluation` 发送 JSON 正文：`pjidlist` 固定为空数组、`pjjglist` 为逐课程结果列表、`pjzt` 固定为字符串 `"1"`，响应按业务 `code` 和消息字段判定成功。Rust Core 已迁移该 URL、JSON 编码、请求头和非空列表校验，并提供 `build_submit_body` 脱敏向量测试。旧版还会先读取问卷题目并构造 `pjjglist`；当前稳定 DTO 尚未保存题目选项，因此该自动答案构造和 CLI 输入仍未完成，禁止以默认答案替代冻结逻辑。`examples/buaa-api` 无等价评教提交协议。

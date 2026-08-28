@@ -5,7 +5,9 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value};
 
-use crate::domain::{EvaluationCourse, EvaluationCoursesResponse, EvaluationProgress};
+use crate::domain::{
+    EvaluationCourse, EvaluationCoursesResponse, EvaluationProgress, EvaluationResult,
+};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 const CAS_URL: &str = "https://spoc.buaa.edu.cn/pjxt/cas";
@@ -15,6 +17,7 @@ const QUESTIONNAIRES_URL: &str =
     "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getQuestionnaireListToTask";
 const COURSES_URL: &str =
     "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/getRequiredReviewsData";
+const SUBMIT_URL: &str = "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/submitSaveEvaluation";
 
 fn error(message: impl Into<String>) -> UbaaError {
     UbaaError::new(
@@ -207,6 +210,56 @@ pub(crate) async fn get_all(
     Ok(response)
 }
 
+/// 构造冻结评教提交 JSON 信封。
+#[must_use]
+pub fn build_submit_body(pjjglist: &[Value]) -> Vec<u8> {
+    serde_json::to_vec(&serde_json::json!({
+        "pjidlist": [],
+        "pjjglist": pjjglist,
+        "pjzt": "1"
+    }))
+    .unwrap_or_else(|_| b"{\"pjidlist\":[],\"pjjglist\":[],\"pjzt\":\"1\"}".to_vec())
+}
+
+/// 提交已经由宿主构造好的评教结果列表。
+pub(crate) async fn submit(
+    runtime: &mut crate::runtime::ClientRuntime,
+    pjjglist: Vec<Value>,
+) -> Result<Vec<EvaluationResult>> {
+    super::require_session(runtime)?;
+    if pjjglist.is_empty() {
+        return Err(error("评教提交列表不能为空"));
+    }
+    let request =
+        crate::ports::HttpRequest::post(runtime.url(SUBMIT_URL)?, build_submit_body(&pjjglist))
+            .with_header("Content-Type", "application/json")
+            .with_header("X-Requested-With", "XMLHttpRequest");
+    let response = runtime.request(request).await?;
+    super::check_response(&response, "评教")?;
+    let root: Value =
+        serde_json::from_str(&super::body(&response)).map_err(|_| error("评教提交响应无法解析"))?;
+    let code = root
+        .get("code")
+        .and_then(|v| v.as_i64().or_else(|| v.as_str()?.parse().ok()))
+        .unwrap_or_default();
+    if code != 0 && code != 200 {
+        return Err(error(
+            root.get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("评教提交失败"),
+        ));
+    }
+    Ok(vec![EvaluationResult {
+        success: true,
+        message: root
+            .get("message")
+            .and_then(Value::as_str)
+            .unwrap_or("评教成功")
+            .into(),
+        course_name: String::new(),
+    }])
+}
+
 async fn fetch(
     runtime: &mut crate::runtime::ClientRuntime,
     mut url: url::Url,
@@ -234,4 +287,18 @@ pub fn pending(response: &EvaluationCoursesResponse) -> Vec<EvaluationCourse> {
         .filter(|course| !course.is_evaluated)
         .cloned()
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_submit_body;
+
+    #[test]
+    fn 评教提交正文匹配冻结信封字段() {
+        let body = build_submit_body(&[serde_json::json!({"pjid":"safe-id","pjdf":93})]);
+        let value: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(value["pjzt"], "1");
+        assert_eq!(value["pjidlist"], serde_json::json!([]));
+        assert_eq!(value["pjjglist"][0]["pjdf"], 93);
+    }
 }
