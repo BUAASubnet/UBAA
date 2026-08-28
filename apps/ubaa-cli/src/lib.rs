@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
+    CgyyActionResult,
     CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery,
     ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
@@ -170,6 +171,12 @@ pub enum CgyyCommand {
     },
     /// 查询订单详情。
     Detail {
+        /// 订单编号。
+        #[arg(long)]
+        id: i32,
+    },
+    /// 取消预约订单。
+    Cancel {
         /// 订单编号。
         #[arg(long)]
         id: i32,
@@ -739,6 +746,10 @@ pub trait CliBackend {
     async fn cgyy_order_detail(&mut self, _id: i32) -> Result<FeatureResult<CgyyOrder>> {
         Err(internal_error("场馆预约功能不可用"))
     }
+    /// 取消预约订单。
+    async fn cgyy_cancel_order(&mut self, _id: i32) -> Result<FeatureResult<CgyyActionResult>> {
+        Err(internal_error("场馆预约功能不可用"))
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         Err(internal_error("阳光打卡不可用"))
     }
@@ -919,6 +930,10 @@ pub trait RoutedCliBackend {
     }
     /// 通过 Core 路由查询订单详情。
     async fn cgyy_order_detail(&mut self, _id: i32) -> RoutedResult<CgyyOrder> {
+        Err(routed_unavailable("场馆预约功能不可用"))
+    }
+    /// 通过 Core 路由取消预约订单。
+    async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
         Err(routed_unavailable("场馆预约功能不可用"))
     }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
@@ -1322,6 +1337,9 @@ impl CliBackend for RouteClient {
     async fn cgyy_order_detail(&mut self, id: i32) -> Result<FeatureResult<CgyyOrder>> {
         self.cgyy_order_detail(id).await
     }
+    async fn cgyy_cancel_order(&mut self, id: i32) -> Result<FeatureResult<CgyyActionResult>> {
+        self.cgyy_cancel_order(id).await
+    }
     async fn ygdk_overview(&mut self) -> Result<FeatureResult<YgdkOverview>> {
         self.ygdk_overview().await
     }
@@ -1449,6 +1467,9 @@ impl RoutedCliBackend for UbaaClient {
     }
     async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
         UbaaClient::cgyy_order_detail(self, id).await
+    }
+    async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
+        UbaaClient::cgyy_cancel_order(self, id).await
     }
     async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
         UbaaClient::bykc_profile(self).await
@@ -1825,6 +1846,9 @@ async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
         }
         CgyyCommand::Detail { id } => {
             routed_readonly(backend.cgyy_order_detail(id).await, CliFeature::Cgyy)
+        }
+        CgyyCommand::Cancel { id } => {
+            routed_readonly(backend.cgyy_cancel_order(id).await, CliFeature::Cgyy)
         }
     }
 }
@@ -2305,6 +2329,10 @@ async fn run_cgyy<B: CliBackend + Send>(
             .and_then(|result| readonly(result, CliFeature::Cgyy)),
         CgyyCommand::Detail { id } => backend
             .cgyy_order_detail(id)
+            .await
+            .and_then(|result| readonly(result, CliFeature::Cgyy)),
+        CgyyCommand::Cancel { id } => backend
+            .cgyy_cancel_order(id)
             .await
             .and_then(|result| readonly(result, CliFeature::Cgyy)),
     }
