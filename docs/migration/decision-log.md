@@ -529,3 +529,10 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   站点、用途、订单已通过。
 - auto 全量（解析到 Direct）：除 Cgyy 日期和锁码 `upstream_unavailable` 外，其余只读
   操作通过。Judge 三路线均完成课程/任务/详情语义校验；所有命令仍未调用真实写接口。
+
+## 2026-08-29 当前轮三路线全量验收
+
+- Direct 全量逐操作运行成功完成 User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation；Judge 课程/任务/详情语义校验通过。Cgyy 站点查询通过（4 个站点），用途和订单返回 `upstream_unavailable`，日期返回 `upstream_changed`，聚合退出码 5。
+- WebVPN 全量逐操作运行成功完成除 Cgyy 外的全部只读操作，Judge 详情语义校验通过。Cgyy 站点查询通过（4 个站点），用途和订单返回 `upstream_unavailable`，日期返回 `upstream_changed`，聚合退出码 5。
+- auto 全量解析为 Direct，除 Cgyy 外的全部只读操作通过；Cgyy 站点通过，用途和订单为 `upstream_unavailable`，日期为 `upstream_changed`，锁码为 `upstream_unavailable`，聚合退出码 5。
+- 三次运行均使用未持久化的进程内摘要盐，仅记录路由、阶段、计数和错误类别；没有输出凭据、Cookie、令牌、原始响应或个人标识，也没有调用真实写接口。Cgyy 仍未满足实时硬门禁，不修改协议实现或错误策略。

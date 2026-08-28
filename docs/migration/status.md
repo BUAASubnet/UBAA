@@ -298,3 +298,10 @@ CI remains deterministic-only and never reads `.env.local`.
 - CLI 锁码输出已改为仅返回 `{available: boolean}`，Core facade 仍保留旧版不透明 `data`；CLI schema、验证器和脱敏单测均已同步。Direct 复测中锁码现按上游 `upstream_unavailable` 记录，不再误报 `rawData` 结构错误。
 - 锁码投影后的 WebVPN/auto 单项复测均未再出现 `rawData` 结构误报：WebVPN 站点成功但用途、日期、订单、锁码均为 `upstream_unavailable`；auto 在站点、用途、订单阶段失败并按依赖规则跳过详情，锁码同样为 `upstream_unavailable`。
 - 最新三路线 Cgyy 单项复测：Direct 在站点、用途、订单、锁码均为 `upstream_unavailable`；WebVPN 站点通过后用途、日期、订单、锁码均为 `upstream_unavailable`；auto 在站点、用途、订单失败后结束，均为 `upstream_unavailable`。该波动未提供足够证据修改请求或重试策略。
+
+## 2026-08-29 当前轮三路线全量复测
+
+- Direct 全量使用进程内临时摘要盐执行：User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 均通过；Judge 详情语义通过。Cgyy 站点通过（4 个），用途与订单为 `upstream_unavailable`，日期为 `upstream_changed`，聚合退出码 5。
+- WebVPN 全量使用进程内临时摘要盐执行：除 Cgyy 外全部只读操作通过，Judge 详情语义通过；Cgyy 站点通过（4 个），用途与订单为 `upstream_unavailable`，日期为 `upstream_changed`，聚合退出码 5。
+- auto 全量解析到 Direct：除 Cgyy 外全部只读操作通过，Judge 详情语义通过；Cgyy 站点通过（4 个），用途与订单为 `upstream_unavailable`，日期为 `upstream_changed`，锁码为 `upstream_unavailable`，聚合退出码 5。
+- 本轮未调用任何真实写操作。摘要盐仅存在当前 shell，未输出、保存或提交；Cgyy 失败仍是未解决的实时硬门禁，不能宣告迁移完成。
