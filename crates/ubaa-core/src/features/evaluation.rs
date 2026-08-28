@@ -233,10 +233,15 @@ pub(crate) async fn submit_payload(
     runtime: &mut crate::runtime::ClientRuntime,
     pjjglist: Vec<Value>,
 ) -> Result<Vec<EvaluationResult>> {
-    super::require_session(runtime)?;
     if pjjglist.is_empty() {
-        return Err(error("评教提交列表不能为空"));
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "评教提交列表不能为空",
+        ));
     }
+    super::require_session(runtime)?;
     let request = build_submit_request(runtime.url(SUBMIT_URL)?, &pjjglist);
     let response = runtime.request(request).await?;
     super::check_response(&response, "评教")?;
@@ -511,7 +516,11 @@ pub fn pending(response: &EvaluationCoursesResponse) -> Vec<EvaluationCourse> {
 mod tests {
     use super::{SUBMIT_URL, build_submit_request};
     use super::{build_evaluation_payload, build_submit_body};
-    use crate::domain::EvaluationCourse;
+    use crate::domain::{ConnectionMode, EvaluationCourse};
+    use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
+    use crate::runtime::ClientRuntime;
+    use crate::session::FileSessionStore;
+    use async_trait::async_trait;
 
     #[test]
     fn 评教题目按冻结结构生成题目答案() {
@@ -557,5 +566,34 @@ mod tests {
         let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
         assert_eq!(body["pjidlist"], serde_json::json!([]));
         assert_eq!(body["pjzt"], "1");
+    }
+
+    #[test]
+    fn 空评教提交在建立会话前被拒绝() {
+        let path =
+            std::env::temp_dir().join(format!("ubaa-evaluation-input-{}", std::process::id()));
+        let mut runtime = ClientRuntime::new(
+            ConnectionMode::Direct,
+            NoNetworkTransport,
+            FileSessionStore::new(path).unwrap(),
+        )
+        .unwrap();
+        let result = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(super::submit_payload(&mut runtime, Vec::new()))
+            .unwrap_err();
+        assert_eq!(result.code, crate::error::ErrorCode::InvalidInput);
+        assert_eq!(result.message, "评教提交列表不能为空");
+    }
+
+    struct NoNetworkTransport;
+
+    #[async_trait]
+    impl HttpTransport for NoNetworkTransport {
+        async fn execute(&self, _request: HttpRequest) -> crate::error::Result<HttpResponse> {
+            panic!("空评教提交不应触发网络请求");
+        }
     }
 }
