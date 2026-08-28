@@ -27,3 +27,14 @@ cookies, raw upstream bodies, complete HTML or captcha data.
 Code is organized by domain, ports, connection, session, auth, features, facade, commands,
 execution and render. New logic belongs in the smallest owning module; do not extend a
 multi-thousand-line host file when a feature module or command helper is appropriate.
+
+## 跨宿主交接规范
+
+| 宿主 | 允许依赖 | 禁止依赖 | 输出与错误要求 |
+|---|---|---|---|
+| Rust Core | `domain`、`ports`、`connection`、`session`、`auth`、`features`、`facade` | 向宿主泄漏上游原始响应；绕过 facade 访问运行时状态 | 只返回稳定 DTO、结构化错误和路线元数据 |
+| CLI | `facade`、`commands`、`execution`、`render` | 直接调用 `upstream`、读取 Cookie/Session、在 argv 放置密码或令牌 | human/JSON schema v2、稳定退出码、敏感字段脱敏 |
+| Flutter/OpenHarmony/Node/Swift/Kotlin/ArkTS | 版本化 facade 契约或对应绑定层 | 依赖 Rust 私有模块、拼接上游 URL、保存业务令牌或原始 HTML | 与 CLI 相同的错误分类；平台日志不得包含认证材料 |
+| MCP/Server | 经过授权的 facade 服务接口 | 暴露 `ubaa_old`、`examples`、实时 Cookie/Token、未审计写操作 | 读操作逐项可观测；写操作默认关闭并保留审计上下文 |
+
+跨宿主新增能力必须先更新 `docs/contracts/` 与 `docs/migration/source-parity.md`，再添加脱敏 fixture/Mock 和绑定层测试。宿主不得以“已有兼容实现”为理由复制旧版内部协议；若冻结实现与实时上游冲突，应在 `decision-log.md` 记录证据并保留失败语义。本轮只交付 Rust Core + CLI，其他宿主仅维护契约和边界文档。
