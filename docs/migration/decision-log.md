@@ -570,3 +570,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 
 - 冻结 `LocalCgyyApi.mapDayInfo` 会过滤无效槽位并按 `timeId` 升序整理每个空间的槽位；Rust 原实现保留上游顺序。
 - 新增逆序 `spaceTimeInfo` 脱敏测试先失败后通过，当前输出与冻结排序一致；未改变请求协议或实时错误策略。
+
+## 2026-08-29 Cgyy 三路线逐操作复测
+
+- 使用未持久化进程内摘要盐执行 `feature=cgyy` 的 Direct、WebVPN、auto 只读验证；三次站点查询均成功并返回 4 个站点。
+- Direct 日期和锁码为 `upstream_unavailable`；WebVPN 日期为 `upstream_changed`、订单和锁码为 `upstream_unavailable`；auto 解析为 Direct，日期为 `upstream_changed`、订单为 `upstream_unavailable`。
+- 脚本逐项继续执行并返回首个失败码；本轮未改变 URL、参数、解析或错误策略，未执行任何真实写操作。Cgyy 实时硬门禁仍未满足。

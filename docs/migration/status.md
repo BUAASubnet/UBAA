@@ -337,3 +337,10 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结日期映射补齐每个空间槽位按 `timeId` 升序输出，逆序脱敏响应测试已通过。
 - 本轮未改变上游协议或执行真实写操作；Cgyy 日期/订单实时硬门禁仍待上游可用证据。
+
+## 2026-08-29 Cgyy 三路线逐操作复测
+
+- Direct：站点成功（4 个），日期和锁码 `upstream_unavailable`，退出码 5。
+- WebVPN：站点成功（4 个），日期 `upstream_changed`，订单和锁码 `upstream_unavailable`，退出码 6。
+- auto：解析到 Direct；站点成功（4 个），日期 `upstream_changed`、订单 `upstream_unavailable`，退出码 6。
+- 仅记录路由、阶段、计数和稳定错误类别；没有输出凭据、Cookie、令牌、原始响应或个人数据，也没有调用真实写接口。Cgyy 仍是未通过的实时硬门禁。
