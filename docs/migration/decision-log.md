@@ -488,6 +488,13 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - Direct：站点请求本轮为 `upstream_unavailable`，用途和锁码同样失败；验证器不再从
   失败信封提取站点标识或打印成功摘要。上述运行均未执行真实写操作。
 
+## 2026-08-29 Cgyy 日期窗口排除复测
+
+- Direct Cgyy 使用验证器允许的只读日期覆盖 `2026-09-01` 重跑：站点仍通过（4 个），
+  用途、日期、订单返回 `upstream_unavailable`，锁码为 `invalid_semantics`。
+- 改变日期未改变失败类别，因此当前证据不足以把问题归因于当天没有可预约数据；不据此
+  修改日期格式、响应字段或错误映射，也未执行任何真实写操作。
+
 ## 2026-08-29 三路线全量复测更新
 
 - Direct 全量：除 Cgyy 外所有 User、课表、考试、成绩、教室、SPOC、Judge、Signin、
