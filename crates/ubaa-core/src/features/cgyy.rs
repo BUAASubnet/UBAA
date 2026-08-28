@@ -1222,4 +1222,34 @@ mod tests {
     fn 验证码位移求解拒绝非法图片() {
         assert!(super::solve_captcha_offset(b"not-an-image", b"not-an-image").is_err());
     }
+
+    #[test]
+    fn 验证码位移求解匹配内存_png_图案() {
+        use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
+        use std::io::Cursor;
+
+        fn encode(image: RgbaImage) -> Vec<u8> {
+            let mut output = Cursor::new(Vec::new());
+            DynamicImage::ImageRgba8(image)
+                .write_to(&mut output, ImageFormat::Png)
+                .expect("测试图片应可编码");
+            output.into_inner()
+        }
+
+        let mut background = RgbaImage::from_pixel(64, 32, Rgba([255, 255, 255, 255]));
+        let mut piece = RgbaImage::from_pixel(12, 12, Rgba([255, 255, 255, 0]));
+        for y in 0..12 {
+            for x in 0..12 {
+                let border = x == 0 || y == 0 || x == 11 || y == 11;
+                if border {
+                    piece.put_pixel(x, y, Rgba([0, 0, 0, 255]));
+                    background.put_pixel(30 + x, 10 + y, Rgba([0, 0, 0, 255]));
+                }
+            }
+        }
+        let offset = super::solve_captcha_offset(&encode(background), &encode(piece))
+            .expect("应匹配测试滑块");
+        // 算法匹配的是白色背景到黑色边框的边界，因此横坐标为 29。
+        assert_eq!(offset, 29);
+    }
 }
