@@ -356,3 +356,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 结果：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc 均通过；Judge 仅记录脱敏计数和盐化摘要。
 - 失败：Cgyy 与 Evaluation 在业务阶段均返回 `authentication_required`（退出码 3），聚合以 `one_or_more_features_failed` 结束。
 - 处理：保留逐项失败，不用 all 聚合结果掩盖；不调用写操作。下一步核对 WebVPN 下 Cgyy 登录跳转与 Evaluation CAS 激活的路线 Cookie/最终 URL 证据。
+
+# 2026-08-28 Cgyy WebVPN 路线冲突
+
+- 冻结依据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt` 的 `localCgyyUpstreamUrl` 明确返回原始直连 URL；注释说明 Cgyy 在校外公开可访问，不通过 WebVPN 包装。
+- 当前 Rust：`features/cgyy.rs` 通过所选 `ClientRuntime::url` 包装全部场馆地址；显式 WebVPN 验收的 Cgyy 业务阶段返回 `authentication_required`。
+- 决策：不能复制 Direct Cookie/令牌到 WebVPN，也不能只改 URL 而让 WebVPN 传输承载直连 Cookie。需要后续设计“主路线诊断与 Cgyy 直连业务 runtime”边界，并补充隔离 Mock；在此边界明确前不猜测修复。
