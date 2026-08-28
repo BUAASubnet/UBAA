@@ -242,6 +242,176 @@ pub(crate) async fn cancel_order(
     parse_action_result(&super::body(&response))
 }
 
+fn reservation_order_json(
+    selections: &[crate::domain::CgyyReservationSelection],
+) -> Result<String> {
+    serde_json::to_string(selections).map_err(|_| error("预约时段无法编码"))
+}
+
+/// 构造冻结实现要求的预约提交表单。
+#[must_use]
+pub fn build_submit_form(
+    request: &crate::domain::CgyyReservationSubmitRequest,
+    token: &str,
+    reservation_order_json: &str,
+) -> BTreeMap<String, String> {
+    let mut form = BTreeMap::new();
+    form.insert("venueSiteId".into(), request.venue_site_id.to_string());
+    form.insert("reservationDate".into(), request.reservation_date.clone());
+    form.insert("reservationOrderJson".into(), reservation_order_json.into());
+    form.insert("weekStartDate".into(), request.reservation_date.clone());
+    form.insert("phone".into(), request.phone.trim().into());
+    form.insert("theme".into(), request.theme.trim().into());
+    form.insert("purposeType".into(), request.purpose_type.to_string());
+    form.insert("joinerNum".into(), request.joiner_num.to_string());
+    form.insert(
+        "activityContent".into(),
+        request.activity_content.trim().into(),
+    );
+    form.insert("joiners".into(), request.joiners.trim().into());
+    form.insert(
+        "isPhilosophySocialSciences".into(),
+        if request.is_philosophy_social_sciences {
+            "1"
+        } else {
+            "0"
+        }
+        .into(),
+    );
+    form.insert(
+        "isOffSchoolJoiner".into(),
+        if request.is_off_school_joiner {
+            "1"
+        } else {
+            "0"
+        }
+        .into(),
+    );
+    form.insert(
+        "captchaVerification".into(),
+        request.captcha_verification.clone(),
+    );
+    form.insert("token".into(), token.into());
+    form
+}
+
+/// 使用外部验证码校验结果提交场馆预约。
+pub(crate) async fn submit_reservation(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: crate::domain::CgyyReservationSubmitRequest,
+) -> Result<crate::domain::CgyyReservationResult> {
+    if request.venue_site_id <= 0 || request.reservation_date.trim().is_empty() {
+        return Err(error("场馆站点和预约日期不能为空"));
+    }
+    if request.selections.is_empty()
+        || request
+            .selections
+            .iter()
+            .any(|item| item.space_id <= 0 || item.time_id <= 0)
+    {
+        return Err(error("至少选择一个有效的预约时段"));
+    }
+    if request.captcha_verification.trim().is_empty() {
+        return Err(error("缺少验证码校验结果"));
+    }
+    let day = get_day_info(runtime, request.venue_site_id, &request.reservation_date).await?;
+    let token = day
+        .reservation_token
+        .ok_or_else(|| error("预约上下文 token 缺失，请刷新后重试"))?;
+    let space_id = request.selections[0].space_id;
+    if request
+        .selections
+        .iter()
+        .any(|item| item.space_id != space_id)
+    {
+        return Err(error("同次预约只能选择同一房间的时段"));
+    }
+    let space = day
+        .spaces
+        .iter()
+        .find(|item| item.space_id == space_id)
+        .ok_or_else(|| error("所选房间不存在或已失效"))?;
+    for selection in &request.selections {
+        let slot = space
+            .slots
+            .iter()
+            .find(|slot| slot.time_id == selection.time_id)
+            .ok_or_else(|| error("所选时段不存在或已失效"))?;
+        if !slot.is_reservable {
+            return Err(error("所选时段已不可预约，请刷新后重试"));
+        }
+    }
+    let order_json = reservation_order_json(&request.selections)?;
+    let context_form = [
+        ("venueSiteId".into(), request.venue_site_id.to_string()),
+        ("reservationDate".into(), request.reservation_date.clone()),
+        ("weekStartDate".into(), request.reservation_date.clone()),
+        ("reservationOrderJson".into(), order_json.clone()),
+        ("token".into(), token.clone()),
+    ]
+    .into_iter()
+    .collect();
+    let mut context_request = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Post,
+        "/api/reservation/order/info",
+        context_form,
+        Some(&token),
+    )?;
+    context_request.body = crate::upstream::encode_form(&context_request_body(
+        &context_request,
+        &request,
+        &token,
+        &order_json,
+    ));
+    let response = runtime.request(context_request).await?;
+    super::check_response(&response, "场馆预约")?;
+    data(&super::body(&response))?;
+
+    let form = build_submit_form(&request, &token, &order_json);
+    let mut submit_request = signed_request(
+        runtime,
+        crate::ports::HttpMethod::Post,
+        "/api/reservation/order/submit",
+        form.clone(),
+        Some(&token),
+    )?;
+    submit_request.body = crate::upstream::encode_form(&form);
+    let response = runtime.request(submit_request).await?;
+    super::check_response(&response, "场馆预约")?;
+    let body = super::body(&response);
+    let root = object(&body)?;
+    let message = string(&root, "message").unwrap_or_else(|| "预约提交完成".into());
+    let value = data(&body)?;
+    let order = value
+        .as_object()
+        .and_then(|map| map.get("orderInfo"))
+        .and_then(Value::as_object)
+        .map(parse_order);
+    Ok(crate::domain::CgyyReservationResult {
+        success: true,
+        message,
+        order,
+    })
+}
+
+fn context_request_body(
+    _request: &HttpRequest,
+    request: &crate::domain::CgyyReservationSubmitRequest,
+    token: &str,
+    order_json: &str,
+) -> BTreeMap<String, String> {
+    [
+        ("venueSiteId".into(), request.venue_site_id.to_string()),
+        ("reservationDate".into(), request.reservation_date.clone()),
+        ("weekStartDate".into(), request.reservation_date.clone()),
+        ("reservationOrderJson".into(), order_json.into()),
+        ("token".into(), token.into()),
+    ]
+    .into_iter()
+    .collect()
+}
+
 /// 解析场馆预约写操作响应。
 pub fn parse_action_result(body: &str) -> Result<CgyyActionResult> {
     let root = object(body)?;
@@ -563,7 +733,8 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_action_result;
+    use super::{build_submit_form, parse_action_result};
+    use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest};
 
     #[test]
     fn 解析取消订单成功消息() {
@@ -571,5 +742,42 @@ mod tests {
             .expect("应解析成功");
         assert_eq!(result.message, "取消成功");
         assert!(result.order.is_none());
+    }
+
+    #[test]
+    fn 预约提交表单匹配冻结字段() {
+        let request = CgyyReservationSubmitRequest {
+            venue_site_id: 7,
+            reservation_date: "2026-08-28".into(),
+            selections: vec![CgyyReservationSelection {
+                space_id: 11,
+                time_id: 3,
+                venue_space_group_id: None,
+            }],
+            phone: "010-00000000".into(),
+            theme: "测试".into(),
+            purpose_type: 1,
+            joiner_num: 2,
+            activity_content: "内容".into(),
+            joiners: "甲,乙".into(),
+            is_philosophy_social_sciences: false,
+            is_off_school_joiner: true,
+            captcha_verification: "verification".into(),
+        };
+        let form = build_submit_form(&request, "token", "[{\"spaceId\":11,\"timeId\":3}]");
+        assert_eq!(form.get("venueSiteId").map(String::as_str), Some("7"));
+        assert_eq!(
+            form.get("reservationOrderJson").map(String::as_str),
+            Some("[{\"spaceId\":11,\"timeId\":3}]")
+        );
+        assert_eq!(
+            form.get("isPhilosophySocialSciences").map(String::as_str),
+            Some("0")
+        );
+        assert_eq!(form.get("isOffSchoolJoiner").map(String::as_str), Some("1"));
+        assert_eq!(
+            form.get("captchaVerification").map(String::as_str),
+            Some("verification")
+        );
     }
 }

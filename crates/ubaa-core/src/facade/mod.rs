@@ -13,10 +13,11 @@ use crate::connection::{
 use crate::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
-    CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput,
-    DualLoginPreparation, EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData,
-    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
+    CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
+    CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
+    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
+    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
     LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, LoginOutcome,
     LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError,
     SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
@@ -573,6 +574,24 @@ impl UbaaClient {
             }
             ConnectionMode::WebVpn => {
                 crate::features::cgyy::cancel_order(&mut self.webvpn_runtime, id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 提交场馆预约；验证码校验结果必须由调用方显式提供。
+    pub async fn cgyy_submit_reservation(
+        &mut self,
+        request: CgyyReservationSubmitRequest,
+    ) -> RoutedResult<CgyyReservationResult> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::submit_reservation(&mut self.direct_runtime, request.clone())
+                    .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::submit_reservation(&mut self.webvpn_runtime, request).await
             }
         };
         self.finish_routed(resolution, result)
@@ -1470,6 +1489,17 @@ impl RouteClient {
     pub async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>> {
         self.guard_session_ownership()?;
         let result = crate::features::cgyy::get_lock_code(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 提交场馆预约；验证码校验结果必须由调用方显式提供。
+    pub async fn cgyy_submit_reservation(
+        &mut self,
+        request: CgyyReservationSubmitRequest,
+    ) -> Result<FeatureResult<CgyyReservationResult>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::cgyy::submit_reservation(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

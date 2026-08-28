@@ -243,6 +243,10 @@ invalid-input/upstream/parse errors.
 
 ## UBAA2 直接写操作与评教（2026-08-28）
 
+### Cgyy 预约提交
+
+冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `submitReservation` 要求先读取 `/api/reservation/day/info`，取得预约上下文 `token`，校验所有选择属于同一空间且时段可预约，再以表单 POST `/api/reservation/order/info` 创建订单上下文。验证码获取与校验分别使用 `/api/captcha/get`、`/api/captcha/check`，旧实现由注入的验证码求解器提供 `pointJson` 和 `captchaVerification`，失败最多重试三次。最终表单 POST `/api/reservation/order/submit`，字段为 `venueSiteId`、`reservationDate`、`reservationOrderJson`、`weekStartDate`、`phone`、`theme`、`purposeType`、`joinerNum`、`activityContent`、`joiners`、`isPhilosophySocialSciences`、`isOffSchoolJoiner`、`captchaVerification`、`token`。Rust Core 已实现上下文创建、选择校验和最终表单构造；验证码挑战/求解端口尚未迁移，因此当前接口要求调用方显式提供脱敏测试用 `captchaVerification`，CLI 和 live 验收暂不调用该写操作。`examples/buaa-api` 未提供同一场馆预约协议，未借用其 URL、字段或错误语义。
+
 Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时满足冻结成功状态和 `result.stuSignStatus=1`；畸形或非成功响应映射为稳定的上游错误。
 
 The following rows are the required parity boundary for the remaining direct upstream

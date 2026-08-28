@@ -659,6 +659,9 @@ pub struct CgyyReservationSubmitRequest {
     pub joiners: String,
     pub is_philosophy_social_sciences: bool,
     pub is_off_school_joiner: bool,
+    /// 外部验证码服务返回的校验串；仅用于当前请求，不得持久化或输出。
+    #[serde(skip_serializing)]
+    pub captcha_verification: String,
 }
 
 /// 场馆预约提交结果。
