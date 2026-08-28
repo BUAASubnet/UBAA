@@ -15,6 +15,7 @@ Updated: 2026-08-29
 - 新增 `domain/grades.rs`，收拢成绩课程与学期结果 DTO；保持字段、可空性和 camelCase 序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 新增 `domain/classroom.rs`，收拢空闲教室查询及教室信息 DTO；保持严格字段类型、公开导出和 camelCase 序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 新增 `domain/cgyy.rs`，收拢场馆站点、用途、时段、空间、日期和订单等只读 DTO；验证码敏感写请求仍保留原边界，公开导出与 camelCase 序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
+- `domain/cgyy.rs` 进一步收拢场馆写操作结果与安全锁码载荷；预约请求及验证码敏感字段保持原位和 Debug 脱敏，公开导出、字段与序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - `domain/bykc.rs` 先拆出 `BykcUserProfile` DTO，保持 camelCase 序列化和公开导出不变；Core、CLI、敏感扫描与全量门禁通过，后续继续在同一模块收拢 Bykc 类型。
 - `domain/route.rs` 拆出 `ConnectionMode`、`RoutePolicy` 与 `ReadonlyFeature`，保持序列化名称、配置键和路由语义不变；Core 全部测试与全量门禁通过。
 - 最新三路线只读复测：Direct 仅 Cgyy 日期/锁码为 `upstream_unavailable`；WebVPN 的 Cgyy 日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；auto 解析为 Direct，Cgyy 日期为 `invalid_semantics`、订单为 `upstream_unavailable`。其余功能逐项通过，未执行真实写操作。

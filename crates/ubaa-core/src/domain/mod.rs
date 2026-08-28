@@ -27,16 +27,6 @@ pub use classroom::*;
 mod cgyy;
 pub use cgyy::*;
 
-/// 场馆预约写操作结果。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CgyyActionResult {
-    /// 上游返回的中文提示。
-    pub message: String,
-    /// 受影响的订单（取消操作通常为空）。
-    pub order: Option<CgyyOrder>,
-}
-
 /// 场馆预约提交时选择的空间及时段。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -107,22 +97,6 @@ impl fmt::Debug for CgyyReservationSubmitRequest {
             .field("captcha_jigsaw_image_base64", &"<redacted>")
             .finish()
     }
-}
-
-/// 场馆预约提交结果。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CgyyReservationResult {
-    pub success: bool,
-    pub message: String,
-    pub order: Option<CgyyOrder>,
-}
-
-/// 场馆门锁码响应的安全不透明载荷。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CgyyLockCode {
-    pub raw_data: serde_json::Value,
 }
 
 /// SPOC 提交状态。
