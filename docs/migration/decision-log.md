@@ -660,6 +660,12 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 原差异：Rust Ygdk `string` 只调用 `Value::as_str`，合法原语字段会被当作缺失。
 - 决策：统一将字符串、数字、布尔映射为文本并保留空文本过滤；未借用非等价示例协议，未执行真实写操作。
 
+## 2026-08-29 Evaluation 文本原语
+
+- 证据：冻结评教 DTO 映射使用 `JsonPrimitive.contentOrNull`，其文本读取不限定 JSON 字符串类型。
+- 原差异：Rust Evaluation `string` 只接受字符串和整数，布尔/浮点字段会被当作缺失；新增布尔字段测试先失败。
+- 决策：扩展为字符串、整数、浮点、布尔的文本化并保留空值语义；未从示例项目类比协议，未执行真实写操作。
+
 ## 2026-08-29 三路线逐操作实时证据
 
 - Direct 全量：非 Cgyy 功能全部通过；Cgyy 站点通过，日期 `upstream_unavailable`。

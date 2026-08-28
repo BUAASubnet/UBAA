@@ -38,6 +38,8 @@ fn string(object: &Map<String, Value>, key: &str) -> Option<String> {
         v.as_str()
             .map(str::to_owned)
             .or_else(|| v.as_i64().map(|n| n.to_string()))
+            .or_else(|| v.as_f64().map(|n| n.to_string()))
+            .or_else(|| v.as_bool().map(|value| value.to_string()))
     })
 }
 
@@ -530,6 +532,15 @@ mod tests {
     fn 评教任务使用登录资料中的学校标识() {
         assert_eq!(super::task_user_code(Some("22373333")), "22373333");
         assert_eq!(super::task_user_code(None), "");
+    }
+
+    #[test]
+    fn 评教文本原语支持布尔值() {
+        let object = serde_json::json!({"flag": true});
+        assert_eq!(
+            super::string(object.as_object().unwrap(), "flag"),
+            Some("true".into())
+        );
     }
 
     #[test]
