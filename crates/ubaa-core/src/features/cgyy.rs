@@ -7,6 +7,9 @@ use crate::domain::{
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
+use aes::{Aes128, Aes192, Aes256};
+use base64::Engine as _;
+use cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
 use md5::{Digest, Md5};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
@@ -25,6 +28,46 @@ pub(crate) struct CgyyCaptchaChallenge {
     pub(crate) token: String,
     pub(crate) original_image_base64: String,
     pub(crate) jigsaw_image_base64: String,
+}
+
+/// 使用冻结验证码密钥生成校验点和预约提交凭据。
+///
+/// 图像求解器只需提供滑块横向位移；密钥、令牌和 AES-ECB/PKCS#7 细节不会暴露给宿主。
+#[allow(dead_code)]
+pub(crate) fn build_captcha_solution(
+    secret_key: &str,
+    token: &str,
+    move_distance: u32,
+) -> Result<(String, String)> {
+    let point_json = format!(r#"{{"x":{move_distance},"y":5}}"#);
+    let verification_plain = format!("{token}---{point_json}");
+    Ok((
+        encrypt_captcha_text(&point_json, secret_key)?,
+        encrypt_captcha_text(&verification_plain, secret_key)?,
+    ))
+}
+
+#[allow(dead_code)]
+fn encrypt_captcha_text(plain: &str, secret_key: &str) -> Result<String> {
+    let key = secret_key.as_bytes();
+    if !matches!(key.len(), 16 | 24 | 32) {
+        return Err(error("验证码密钥长度无效"));
+    }
+    let padding = 16 - (plain.len() % 16);
+    let mut bytes = plain.as_bytes().to_vec();
+    let padding = u8::try_from(padding).map_err(|_| error("验证码填充长度无效"))?;
+    bytes.resize(bytes.len() + usize::from(padding), padding);
+    for block in bytes.chunks_exact_mut(16) {
+        match key.len() {
+            16 => Aes128::new(GenericArray::from_slice(key))
+                .encrypt_block(GenericArray::from_mut_slice(block)),
+            24 => Aes192::new(GenericArray::from_slice(key))
+                .encrypt_block(GenericArray::from_mut_slice(block)),
+            _ => Aes256::new(GenericArray::from_slice(key))
+                .encrypt_block(GenericArray::from_mut_slice(block)),
+        }
+    }
+    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
 }
 
 #[allow(dead_code)]
@@ -847,8 +890,8 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_captcha_check_form, build_captcha_params, build_submit_form, parse_action_result,
-        parse_captcha_challenge,
+        build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
+        parse_action_result, parse_captcha_challenge,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest};
 
@@ -923,5 +966,13 @@ mod tests {
         assert_eq!(challenge.token, "token");
         assert_eq!(challenge.original_image_base64, "bg");
         assert_eq!(challenge.jigsaw_image_base64, "piece");
+    }
+
+    #[test]
+    fn 验证码位移凭据使用冻结_aes_ecb_pkcs7_向量() {
+        let (point, verification) =
+            build_captcha_solution("0123456789abcdef", "token", 12).expect("应生成验证码凭据");
+        assert_eq!(point, "//vojImUw+QfCP7LYCytFg==");
+        assert!(!verification.is_empty());
     }
 }
