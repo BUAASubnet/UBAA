@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- `0d6284b` 将 CLI 连接模式解析及 `ConnectionMode` 转换拆分到独立模块；命令名、参数、退出码、路由和协议行为保持不变，`just check-sensitive` 与 `just check` 均通过。
 - `a70ea60` 固化 Cgyy 签名请求的 WebVPN 路线合同：场馆业务签名请求保持
   `cgyy.buaa.edu.cn` 直连主机，不被错误包装为 WebVPN 地址；测试使用无网络传输，
   不读取或写入真实会话。
