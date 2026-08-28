@@ -6,7 +6,9 @@ use ubaa_core::facade::RouteClient;
 use ubaa_core::features::bykc::{
     parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
 };
-use ubaa_core::features::libbook::{parse_area_detail, parse_libraries, parse_seats};
+use ubaa_core::features::libbook::{
+    parse_area_detail, parse_bookings, parse_libraries, parse_seats,
+};
 
 #[test]
 fn 博雅解析五类只读响应并拒绝失败包装() {
@@ -69,6 +71,13 @@ fn 座位列表按冻结实现的座位号升序输出() {
             .collect::<Vec<_>>(),
         vec!["002", "010"]
     );
+}
+
+#[test]
+fn 预约分页缺少总数时回退为当前条数() {
+    let page = parse_bookings(r#"{"code":0,"data":{"data":[{"id":"b1","no":"001"}]}}"#).unwrap();
+    assert_eq!(page.bookings.len(), 1);
+    assert_eq!(page.total, 1);
 }
 
 #[test]

@@ -262,11 +262,20 @@ pub fn parse_bookings(body: &str) -> Result<LibBookBookingsPage> {
             status_name: text(booking, &["status_name", "statusName"]),
         })
         .collect::<Vec<_>>();
+    let total = object
+        .get("total")
+        .and_then(|value| {
+            value
+                .as_i64()
+                .and_then(|value| i32::try_from(value).ok())
+                .or_else(|| value.as_str().and_then(|value| value.parse().ok()))
+        })
+        .unwrap_or_else(|| i32::try_from(bookings.len()).unwrap_or(i32::MAX));
     Ok(LibBookBookingsPage {
         bookings,
         page: number(object, &["current_page", "page"]).max(1),
         limit: number(object, &["per_page", "limit"]).max(1),
-        total: number(object, &["total"]),
+        total,
     })
 }
 

@@ -361,3 +361,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结实现补齐座位 DTO 按 `no` 字符串升序输出；新增脱敏回归测试已通过，LibBook focused suite 6/6 通过。
 - 本轮未改变上游请求或执行真实写操作。
+
+## 2026-08-29 LibBook 预约总数回退
+
+- 对照冻结实现补齐预约分页缺少 `total` 时回退为当前条数；新增脱敏回归测试已通过，LibBook focused suite 7/7 通过。
+- 本轮未改变上游请求或执行真实写操作。
