@@ -610,7 +610,7 @@ async fn post_request(
 
 #[cfg(test)]
 mod tests {
-    use super::{build_upload_body, code_from_url, percent_decode, YgdkCredential};
+    use super::{YgdkCredential, build_upload_body, code_from_url, percent_decode};
     use crate::domain::YgdkPhotoUpload;
 
     #[test]
@@ -628,8 +628,15 @@ mod tests {
 
     #[test]
     fn 阳光打卡上传正文匹配冻结_multipart_字段() {
-        let credential = YgdkCredential { uid: 7, token: "tok".into() };
-        let photo = YgdkPhotoUpload { file_name: "p.jpg".into(), mime_type: "image/jpeg".into(), bytes: b"PNG".to_vec() };
+        let credential = YgdkCredential {
+            uid: 7,
+            token: "tok".into(),
+        };
+        let photo = YgdkPhotoUpload {
+            file_name: "p.jpg".into(),
+            mime_type: "image/jpeg".into(),
+            bytes: b"PNG".to_vec(),
+        };
         let body = String::from_utf8(build_upload_body(&credential, &photo, "b")).unwrap();
         assert!(body.contains("name=\"uid\"\r\n\r\n7"));
         assert!(body.contains("name=\"token\"\r\n\r\ntok"));

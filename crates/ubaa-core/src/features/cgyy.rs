@@ -847,8 +847,8 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_captcha_check_form, build_captcha_params, build_submit_form,
-        parse_action_result, parse_captcha_challenge,
+        build_captcha_check_form, build_captcha_params, build_submit_form, parse_action_result,
+        parse_captcha_challenge,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest};
 
@@ -905,8 +905,14 @@ mod tests {
     #[test]
     fn 验证码挑战请求参数和响应字段匹配冻结协议() {
         let params = build_captcha_params(1234);
-        assert_eq!(params.get("captchaType").map(String::as_str), Some("blockPuzzle"));
-        assert_eq!(params.get("clientUid").map(String::as_str), Some("slider-1234"));
+        assert_eq!(
+            params.get("captchaType").map(String::as_str),
+            Some("blockPuzzle")
+        );
+        assert_eq!(
+            params.get("clientUid").map(String::as_str),
+            Some("slider-1234")
+        );
         assert_eq!(params.get("ts").map(String::as_str), Some("1234"));
 
         let challenge = parse_captcha_challenge(
