@@ -7,7 +7,7 @@ use ubaa_core::features::bykc::{
     parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
 };
 use ubaa_core::features::libbook::{
-    parse_area_detail, parse_bookings, parse_libraries, parse_seats,
+    parse_area_detail, parse_area_detail_for, parse_bookings, parse_libraries, parse_seats,
 };
 
 #[test]
@@ -78,6 +78,16 @@ fn 预约分页缺少总数时回退为当前条数() {
     let page = parse_bookings(r#"{"code":0,"data":{"data":[{"id":"b1","no":"001"}]}}"#).unwrap();
     assert_eq!(page.bookings.len(), 1);
     assert_eq!(page.total, 1);
+}
+
+#[test]
+fn 分区详情缺少区域编号时回退请求编号() {
+    let detail = parse_area_detail_for(
+        "area-42",
+        r#"{"code":0,"data":{"area":{"name":"自习区"},"date":{"list":[]}}}"#,
+    )
+    .unwrap();
+    assert_eq!(detail.id, "area-42");
 }
 
 #[test]

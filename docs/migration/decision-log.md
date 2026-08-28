@@ -599,3 +599,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 
 - 冻结 `LocalLibBookApi.getBookings` 在响应缺少 `total` 时使用当前预约列表条数；Rust 原解析固定回退为 0。
 - 新增缺少 `total` 的脱敏分页测试先失败后通过，Core 现按冻结语义回退；未改变请求协议或实时路由行为。
+
+## 2026-08-29 LibBook 分区编号回退
+
+- 冻结 `LocalLibBookApi.mapAreaDetail(areaId, raw)` 在上游区域对象缺少 ID 时回退请求参数 `areaId`；原 Core 解析器没有请求上下文并返回空 ID。
+- 新增缺少区域 ID 的脱敏测试先失败后通过，增加带请求 ID 的解析入口并由查询调用；未改变请求协议或实时路由行为。

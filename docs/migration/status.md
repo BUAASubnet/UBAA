@@ -366,3 +366,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结实现补齐预约分页缺少 `total` 时回退为当前条数；新增脱敏回归测试已通过，LibBook focused suite 7/7 通过。
 - 本轮未改变上游请求或执行真实写操作。
+
+## 2026-08-29 LibBook 分区编号回退
+
+- 对照冻结实现补齐分区详情缺少区域 ID 时回退请求 ID；新增脱敏回归测试已通过，LibBook focused suite 8/8 通过。
+- 本轮未改变上游请求或执行真实写操作。

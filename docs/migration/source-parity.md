@@ -346,3 +346,5 @@ Signin 提交请求的表单构造已单独覆盖：冻结 `stu_scan_sign.action
 LibBook 座位排序补充：冻结 `LocalLibBookApi.getSeats` 在 DTO 映射后执行 `sortedBy { it.no }`；Core `parse_seats` 同样按座位号字符串升序输出，并由逆序脱敏测试固定该行为。
 
 LibBook 预约分页补充：冻结 `getBookings` 在 `total` 缺失时以当前映射后的预约条数作为回退；Core `parse_bookings` 保留该回退，不把缺失总数误报为零。
+
+LibBook 分区详情补充：冻结 `mapAreaDetail(areaId, raw)` 在响应区域对象缺少 `id` 时回退传入的 `areaId`；Core 的 `parse_area_detail_for` 与 `Space/map` 查询入口保留该语义。

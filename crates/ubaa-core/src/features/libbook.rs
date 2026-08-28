@@ -167,6 +167,11 @@ pub fn parse_areas(body: &str) -> Result<Vec<LibBookArea>> {
 
 /// 解析分区详情、可用日期和时段。
 pub fn parse_area_detail(body: &str) -> Result<LibBookAreaDetail> {
+    parse_area_detail_for("", body)
+}
+
+/// 解析分区详情，并在上游缺少区域 ID 时使用请求 ID 回退。
+pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDetail> {
     let value = envelope(body)?;
     let object = value
         .as_object()
@@ -211,8 +216,13 @@ pub fn parse_area_detail(body: &str) -> Result<LibBookAreaDetail> {
             value
         })
         .collect();
+    let id = text(area, &["id"]);
     Ok(LibBookAreaDetail {
-        id: text(area, &["id"]),
+        id: if id.is_empty() {
+            area_id.to_owned()
+        } else {
+            id
+        },
         name: text(area, &["name"]),
         available_dates,
         time_slots,
@@ -303,7 +313,10 @@ pub(crate) async fn get_area_detail(
     runtime: &mut crate::runtime::ClientRuntime,
     area_id: &str,
 ) -> Result<LibBookAreaDetail> {
-    parse_area_detail(&request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)
+    parse_area_detail_for(
+        area_id,
+        &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
+    )
 }
 
 /// 查询指定日期和时段的座位。
