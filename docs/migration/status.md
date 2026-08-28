@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `apps/ubaa-cli/src/login_args.rs`，收拢登录参数及敏感 Debug 脱敏实现；保持参数名称、隐藏属性、标准输入校验和 JSON/交互登录语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/session/types.rs`，收拢单路线/双路线会话快照、版本包装、校验与比较交换结果类型；保持 schema-v2 字段、旧版迁移、Deref 和序列化语义不变；Session、CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/session/cookies.rs`，收拢 `StoredCookie`、`CookieJar` 及其容器逻辑；保持 Cookie 的 Domain/Path/Secure/Max-Age/Expires 过滤、替换、持久化和敏感 Debug 脱敏语义不变；Cookie、Session、支持库测试及全量门禁通过。
 - 新增 `apps/ubaa-cli/src/routing.rs`，收拢 `ReadonlyRouteContext` 及路由决策转换；保持 CLI 公共导出、路由元数据和 JSON 输出语义不变；Core、CLI、敏感扫描与全量门禁通过。
