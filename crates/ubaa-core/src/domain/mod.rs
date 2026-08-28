@@ -10,6 +10,8 @@ mod route;
 pub use route::*;
 mod bykc;
 pub use bykc::*;
+mod libbook;
+pub use libbook::*;
 
 /// 阳光打卡项目。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -75,111 +77,6 @@ pub struct YgdkRecordsPage {
     pub page: i32,
     pub size: i32,
     pub has_more: bool,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookLibrary {
-    pub id: String,
-    pub name: String,
-    pub free_num: i32,
-    pub total_num: i32,
-    pub storeys: Vec<LibBookStorey>,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookStorey {
-    pub id: String,
-    pub name: String,
-    pub free_num: i32,
-    pub total_num: i32,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookArea {
-    pub id: String,
-    pub name: String,
-    pub area_name: String,
-    pub premises_id: String,
-    pub storey_id: String,
-    pub free_num: i32,
-    pub total_num: i32,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookAreaDetail {
-    pub id: String,
-    pub name: String,
-    pub available_dates: Vec<String>,
-    pub time_slots: Vec<LibBookTimeSlot>,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookTimeSlot {
-    pub id: String,
-    pub start: String,
-    pub end: String,
-    pub label: String,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookSeat {
-    pub id: String,
-    pub name: String,
-    pub no: String,
-    pub status: String,
-    pub status_name: String,
-    pub is_available: bool,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookBooking {
-    pub id: String,
-    pub name_merge: String,
-    pub area_name: String,
-    pub seat_no: String,
-    pub day: String,
-    pub begin_time: String,
-    pub end_time: String,
-    pub status: String,
-    pub status_name: String,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookBookingsPage {
-    pub bookings: Vec<LibBookBooking>,
-    pub page: i32,
-    pub limit: i32,
-    pub total: i32,
-}
-
-/// 图书馆座位预约请求。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookReserveRequest {
-    pub area_id: String,
-    pub seat_id: String,
-    pub day: String,
-    pub segment: String,
-    pub start_time: String,
-    pub end_time: String,
-}
-
-/// 图书馆预约结果。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookReserveResult {
-    pub success: bool,
-    pub message: String,
-    pub booking: Option<LibBookBooking>,
-}
-
-/// 图书馆取消结果。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LibBookCancelResult {
-    pub success: bool,
-    pub message: String,
 }
 
 /// 评教任务。
