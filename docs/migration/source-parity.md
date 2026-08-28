@@ -354,3 +354,5 @@ Bykc 签到配置补充：冻结 `LocalBykcApi.parseSignConfig` 使用严格序�
 Ygdk 记录时间补充：冻结 `LocalYgdkRecordRaw` 将 `startTime/endTime` 读取为 Unix 秒，并由 `timestampToDateTimeText` 按 `Asia/Shanghai` 格式化为 `yyyy-MM-dd HH:mm`；Core `parse_records` 现兼容数值秒时间戳并使用固定东八区格式化，同时保留已存在的字符串兼容路径。
 
 Ygdk 记录图片补充：冻结 `extractRecordImages` 对 `images_fmt` 支持数组和非空单字符串；当字符串不是 JSON 数组时按单个地址保留，空字符串回退为空列表。Core `parse_records` 现保持该优先级和回退语义。
+
+Ygdk 时间字符串补充：冻结 `JsonObject.long` 先读取 primitive 文本再执行 `toLongOrNull`，因此数字字符串时间戳与数值时间戳相同，均按东八区格式化；Core `datetime_text` 现保留该兼容性，非数字文本仍原样保留。

@@ -620,3 +620,8 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 
 - 冻结证据：`LocalYgdkApi.kt` 的 `extractRecordImages` 对 `images_fmt` 的 `JsonPrimitive` 非空内容直接返回单元素列表；只有数组字符串才尝试 JSON 数组解析。
 - 原 Core 将所有字符串当作数组 JSON，合法单地址会变为空列表。新增单字符串脱敏测试先失败，再保留非空字符串作为单地址；未执行真实写操作。
+
+## 2026-08-29 Ygdk 数字字符串时间戳
+
+- 冻结证据：`LocalYgdkApi.kt` 的 `JsonObject.long` 对 JSON primitive 的文本执行 `toLongOrNull`，数字字符串会进入时间戳格式化。
+- 原 Core 遇到任意字符串即原样返回。新增数字字符串时间戳测试先失败，再仅对可解析整数执行东八区转换；未改变非数字文本路径。

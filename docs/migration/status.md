@@ -386,3 +386,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `extractRecordImages`，补齐 `images_fmt` 非空字符串作为单个地址的兼容解析；新增脱敏测试先失败后通过。
 - 未改变请求参数、会话、上传或真实写操作策略。
+
+## 2026-08-29 Ygdk 数字字符串时间戳
+
+- 对照冻结 `JsonObject.long`，补齐数字字符串时间戳的东八区格式化；新增脱敏测试先失败后通过。
+- 未改变请求参数、会话、上传或真实写操作策略。

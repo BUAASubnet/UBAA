@@ -48,6 +48,12 @@ fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
 
 fn datetime_text(map: &Map<String, Value>, key: &str) -> Option<String> {
     if let Some(value) = string(map, key) {
+        if let Ok(seconds) = value.trim().parse::<i64>() {
+            return FixedOffset::east_opt(8 * 60 * 60)?
+                .timestamp_opt(seconds, 0)
+                .single()
+                .map(|value| value.format("%Y-%m-%d %H:%M").to_string());
+        }
         return Some(value);
     }
     let seconds = map.get(key).and_then(Value::as_i64)?;
@@ -661,6 +667,20 @@ mod tests {
         let body = serde_json::json!({
             "code": 1,
             "result": {"list": [{"record_id": 1, "start_time": 1_772_323_200, "end_time": 1_772_326_800}]}
+        })
+        .to_string();
+        let page = parse_records(&body, &[], 1, 10).expect("解析记录");
+        assert_eq!(
+            page.content[0].start_time.as_deref(),
+            Some("2026-03-01 08:00")
+        );
+    }
+
+    #[test]
+    fn 数字字符串时间戳同样按冻结格式化() {
+        let body = serde_json::json!({
+            "code": 1,
+            "result": {"list": [{"record_id": 1, "start_time": "1772323200"}]}
         })
         .to_string();
         let page = parse_records(&body, &[], 1, 10).expect("解析记录");
