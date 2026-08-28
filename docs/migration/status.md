@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- `domain/auth.rs` 拆出认证输入、聚合登录结果、用户资料与认证状态 DTO；字段、serde 别名、脱敏 Debug/Display/Serialize 语义保持冻结实现一致。认证、契约、只读集成测试与全量门禁通过。
 - `execution.rs` 拆出 CLI 的公共后端执行入口与命令到功能映射；具体 feature 分支和渲染逻辑保持原边界，CLI、Core、敏感扫描和文档门禁全部通过。
 - 后续结构提交将 CLI 顶层解析器与命令分派移入 `apps/ubaa-cli/src/commands.rs`，保持现有命令、参数、输出和退出语义；本阶段全量确定性门禁通过。
 - `0d6284b` 将 CLI 连接模式解析及 `ConnectionMode` 转换拆分到独立模块；命令名、参数、退出码、路由和协议行为保持不变，`just check-sensitive` 与 `just check` 均通过。
