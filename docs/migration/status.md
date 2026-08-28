@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `domain/spoc.rs`，收拢 SPOC 作业状态、列表、诊断和详情 DTO；保持字段、公开导出与 camelCase/SCREAMING_SNAKE_CASE 序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - `domain/cgyy.rs` 进一步收拢 `CgyyReservationSelection`、`CgyyReservationSubmitRequest` 及其 Debug 脱敏实现；保持验证码字段 `skip_serializing`、CLI 写操作保护和序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - `domain/bykc.rs` 继续收拢 `BykcCourse` 与 `BykcCourseStatus`，保持 camelCase/snake_case 序列化、默认状态和公开导出不变；Core、CLI、敏感扫描与全量门禁通过。
 - `domain/bykc.rs` 已收拢课程分页、已选课程、分类、签到配置和统计 DTO，保持字段、默认值与 serde 语义不变；Core、CLI、敏感扫描与全量门禁通过。
