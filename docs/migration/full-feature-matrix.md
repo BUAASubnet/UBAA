@@ -18,9 +18,9 @@
 | 博雅课程只读查询 | `bykc profile`, `bykc courses`, `bykc course`, `bykc chosen`, `bykc statistics` | Core、业务会话和 CLI 已接入；Direct/WebVPN 已有课程业务成功证据，其他子命令由确定性测试覆盖 |
 | 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail` | Core、业务会话和 CLI 已接入；Direct 站点查询通过，WebVPN 业务会话仍认证失败 |
 
-## 尚未迁移
+## 已实现但禁止真实执行的写操作
 
-以下写接口已具备 Core/CLI 协议实现和确定性安全证据，但仍不得在真实验收中调用：
+以下写接口已具备 Core/CLI 协议实现和确定性安全证据，但依据本合同仍不得在真实验收中调用：
 
 | 旧版接口 | 主要能力 | 迁移前置条件 |
 |---|---|---|
