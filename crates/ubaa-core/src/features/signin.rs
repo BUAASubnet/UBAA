@@ -376,7 +376,7 @@ mod tests {
             parse_timestamp(br#"{"timestamp":"1700000000000"}"#).unwrap(),
             "1700000000000"
         );
-        assert!(parse_timestamp(br#"1700000000000"#).is_err());
+        assert!(parse_timestamp(br"1700000000000").is_err());
     }
 
     #[test]

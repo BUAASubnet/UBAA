@@ -90,6 +90,30 @@ async fn 场馆取消显式确认后才调用后端() {
     assert!(stderr.is_empty());
 }
 
+#[tokio::test]
+async fn 评教提交默认拒绝且不读取后端() {
+    let cli = Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "evaluation",
+        "submit",
+        "--payload",
+        "/tmp/不存在的评教文件.json",
+    ])
+    .unwrap();
+    let mut backend = FakeRoutedBackend::default();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+
+    let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+    assert_eq!(code, 2);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_cli_schema(&value);
+    assert_eq!(value["error"]["code"], "invalid_input");
+    assert!(stderr.is_empty());
+}
+
 #[derive(Default)]
 struct FakeBackend {
     login_calls: usize,

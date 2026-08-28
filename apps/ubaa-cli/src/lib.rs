@@ -153,6 +153,15 @@ pub enum EvaluationCommand {
     All,
     /// 查询待评教课程。
     Pending,
+    /// 提交由文件提供的评教结果 JSON 数组。
+    Submit {
+        /// 包含 pjjglist 数组元素的 JSON 文件路径。
+        #[arg(long)]
+        payload: PathBuf,
+        /// 明确确认向上游发送有副作用的评教请求。
+        #[arg(long = "confirm-write")]
+        confirm_write: bool,
+    },
 }
 
 /// 场馆预约命令组。
@@ -905,6 +914,12 @@ pub trait CliBackend {
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         Err(internal_error("评教功能不可用"))
     }
+    async fn evaluation_submit(
+        &mut self,
+        _payload: Vec<Value>,
+    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+        Err(internal_error("评教写功能不可用"))
+    }
 
     /// 查询学期。
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
@@ -996,6 +1011,12 @@ pub trait RoutedCliBackend {
     /// 通过 Core 路由查询全部评教课程。
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         Err(routed_unavailable("评教功能不可用"))
+    }
+    async fn evaluation_submit(
+        &mut self,
+        _payload: Vec<Value>,
+    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+        Err(routed_unavailable("评教写功能不可用"))
     }
     /// 查询今日课堂签到状态。
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
@@ -1580,6 +1601,12 @@ impl CliBackend for RouteClient {
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         self.evaluation_all().await
     }
+    async fn evaluation_submit(
+        &mut self,
+        payload: Vec<Value>,
+    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+        self.evaluation_submit(payload).await
+    }
 
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
         self.schedule_terms().await
@@ -1652,6 +1679,12 @@ impl CliBackend for RouteClient {
 impl RoutedCliBackend for UbaaClient {
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         UbaaClient::evaluation_all(self).await
+    }
+    async fn evaluation_submit(
+        &mut self,
+        payload: Vec<Value>,
+    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+        UbaaClient::evaluation_submit(self, payload).await
     }
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         UbaaClient::signin_today(self).await
@@ -2825,6 +2858,25 @@ async fn run_routed_evaluation<B: RoutedCliBackend + Send>(
             }
             Err(error) => Err(error),
         },
+        EvaluationCommand::Submit {
+            payload,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(RoutedError {
+                    error: invalid_input("评教是写操作，必须显式指定 --confirm-write"),
+                    resolution: None,
+                });
+            }
+            let payload = read_evaluation_payload(&payload).map_err(|error| RoutedError {
+                error,
+                resolution: None,
+            })?;
+            routed_readonly(
+                backend.evaluation_submit(payload).await,
+                CliFeature::Evaluation,
+            )
+        }
     }
 }
 
@@ -2851,7 +2903,33 @@ async fn run_evaluation<B: CliBackend + Send>(
                 feature: CliFeature::Evaluation,
             })
         }),
+        EvaluationCommand::Submit {
+            payload,
+            confirm_write,
+        } => {
+            if !confirm_write {
+                return Err(invalid_input("评教是写操作，必须显式指定 --confirm-write"));
+            }
+            let payload = read_evaluation_payload(&payload)?;
+            backend
+                .evaluation_submit(payload)
+                .await
+                .and_then(|result| readonly(result, CliFeature::Evaluation))
+        }
     }
+}
+
+fn read_evaluation_payload(path: &PathBuf) -> Result<Vec<Value>> {
+    let bytes = std::fs::read(path).map_err(|_| invalid_input("无法读取评教 payload 文件"))?;
+    let value: Value = serde_json::from_slice(&bytes)
+        .map_err(|_| invalid_input("评教 payload 必须是 JSON 数组"))?;
+    let values = value
+        .as_array()
+        .ok_or_else(|| invalid_input("评教 payload 必须是 JSON 数组"))?;
+    if values.is_empty() {
+        return Err(invalid_input("评教 payload 不能为空"));
+    }
+    Ok(values.clone())
 }
 
 async fn run_bykc<B: CliBackend + Send>(
