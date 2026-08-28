@@ -10,9 +10,8 @@ use serde_json::{Value, json};
 use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 use ubaa_core::domain::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile,
-    CgyyActionResult,
-    CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite, ClassroomQuery,
-    ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
+    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyVenueSite,
+    ClassroomQuery, ConnectionMode, DualLoginInput, ExamArrangement, FeatureResult, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
     LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary, LibBookSeat, LoginInput,
     LoginReadiness, RoutePolicy, SafeError, SecretValue, SigninClass, SpocAssignmentDetail,

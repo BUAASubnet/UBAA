@@ -2,8 +2,8 @@
 #![allow(clippy::missing_errors_doc)]
 
 use crate::domain::{
-    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyySlotStatus, CgyySpaceAvailability,
-    CgyyTimeSlot, CgyyVenueSite,
+    CgyyActionResult, CgyyDayInfo, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyySlotStatus,
+    CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
