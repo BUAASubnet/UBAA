@@ -423,3 +423,10 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `JsonPrimitive.contentOrNull`，补齐记录文本字段对数字/布尔原语的文本化；新增脱敏测试覆盖 `item_name` 与 `place` 并通过。
 - 未改变阳光打卡请求、令牌、上传或真实写操作禁止策略。
+
+## 2026-08-29 三路线全量只读复测（原语兼容后）
+
+- Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge（含详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 逐项通过；Cgyy 站点通过，日期返回 `upstream_unavailable`，聚合退出码 5。
+- WebVPN：上述非 Cgyy 功能逐项通过；Cgyy 站点通过，日期为 `invalid_semantics`、锁码为 `upstream_unavailable`，聚合退出码 1。
+- auto：路由解析为 Direct；上述非 Cgyy 功能逐项通过；Cgyy 站点通过，日期与详情为 `upstream_unavailable`，聚合退出码 5。
+- 本轮只执行认证和读操作，未调用选课、签到、预约、取消、提交或上传；失败项按用户约定保留冻结实现并记录，未依据单次实时响应猜测新协议。

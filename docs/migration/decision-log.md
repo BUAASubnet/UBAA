@@ -659,3 +659,10 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 证据：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 读取 `jsonPrimitive.contentOrNull`，因此数字和布尔原语也会得到文本内容。
 - 原差异：Rust Ygdk `string` 只调用 `Value::as_str`，合法原语字段会被当作缺失。
 - 决策：统一将字符串、数字、布尔映射为文本并保留空文本过滤；未借用非等价示例协议，未执行真实写操作。
+
+## 2026-08-29 三路线逐操作实时证据
+
+- Direct 全量：非 Cgyy 功能全部通过；Cgyy 站点通过，日期 `upstream_unavailable`。
+- WebVPN 全量：非 Cgyy 功能全部通过；Cgyy 日期 `invalid_semantics`、锁码 `upstream_unavailable`。
+- auto 全量：解析到 Direct；非 Cgyy 功能全部通过；Cgyy 日期/详情 `upstream_unavailable`。
+- 这些实时失败没有提供足以证明新 URL、参数或字段的证据；与冻结实现一致的项不改协议，仅保留稳定错误分类并继续其它迁移。所有命令均未调用真实业务写操作，输出未包含凭据、Cookie、令牌、原始响应或完整个人数据。
