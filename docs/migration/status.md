@@ -315,3 +315,9 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - Direct 全量：用途阶段通过静态回退，站点查询成功（4 个）；其余非 Cgyy 只读操作及 Judge 详情语义均通过。Cgyy 日期为 `upstream_changed`、锁码为 `upstream_unavailable`，聚合退出码 6。
 - 本轮仍只执行读操作；未改变日期/锁码请求或错误分类，也未执行任何真实写接口。
+
+## 2026-08-29 Cgyy 回退后三路线复测更新
+
+- WebVPN 全量：用途静态回退成功，站点成功（4 个）；其余只读操作及 Judge 详情语义通过，Cgyy 日期和依赖详情为 `upstream_unavailable`，聚合退出码 5。
+- auto 全量解析到 Direct：用途静态回退成功，站点成功（4 个）；其余只读操作及 Judge 详情语义通过，Cgyy 日期和订单为 `upstream_unavailable`，聚合退出码 5。
+- 两次运行均未调用真实写接口；失败集中在日期/订单实时上游，暂无新协议证据支持修改请求或错误策略。
