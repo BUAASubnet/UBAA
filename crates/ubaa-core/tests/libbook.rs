@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
+use ubaa_core::domain::{ConnectionMode, LibBookReserveRequest};
 use ubaa_core::facade::RouteClient;
 use ubaa_core::features::bykc::{
     parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
@@ -137,6 +137,70 @@ fn 图书馆查询完成八跳内的_cas_换票并复用独立令牌() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn 图书馆预约取消写链发送冻结加密请求() {
+    let root = std::env::temp_dir().join(format!("ubaa-libbook-write-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        MockLibBookTransport {
+            requests: Arc::clone(&requests),
+        },
+        store,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let result = runtime
+        .block_on(client.libbook_reserve(LibBookReserveRequest {
+            area_id: "area-1".into(),
+            seat_id: "seat-1".into(),
+            day: "2026-08-28".into(),
+            segment: "seg-1".into(),
+            start_time: "08:00".into(),
+            end_time: "10:00".into(),
+        }))
+        .unwrap()
+        .data;
+    assert!(result.success);
+    let cancelled = runtime
+        .block_on(client.libbook_cancel_booking("booking-1"))
+        .unwrap()
+        .data;
+    assert!(cancelled.success);
+
+    let requests = requests.lock().unwrap();
+    let confirm = requests
+        .iter()
+        .find(|request| request.url.ends_with("/v4/space/confirm"))
+        .expect("应发送预约请求");
+    let confirm_json: serde_json::Value = serde_json::from_slice(&confirm.body).unwrap();
+    assert!(
+        confirm_json["aesjson"]
+            .as_str()
+            .is_some_and(|value| !value.is_empty())
+    );
+    let cancel = requests
+        .iter()
+        .find(|request| request.url.ends_with("/v4/space/cancel"))
+        .expect("应发送取消请求");
+    assert!(String::from_utf8_lossy(&cancel.body).contains("booking-1"));
+    drop(requests);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[derive(Clone)]
 struct MockLibBookTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
@@ -193,6 +257,16 @@ impl HttpTransport for MockLibBookTransport {
                 200,
                 request.url,
                 r#"{"code":1,"data":{"data":[{"id":"b1","nameMerge":"分区 / 001","no":"001","status_name":"已预约"}],"total":1,"current_page":1,"per_page":20}}"#.as_bytes().to_vec(),
+            ),
+            "/v4/space/confirm" => HttpResponse::new(
+                200,
+                request.url,
+                r#"{"code":0,"data":{"success":true,"message":"预约成功"}}"#.as_bytes().to_vec(),
+            ),
+            "/v4/space/cancel" => HttpResponse::new(
+                200,
+                request.url,
+                r#"{"code":0,"data":{"success":true,"message":"取消成功"}}"#.as_bytes().to_vec(),
             ),
             _ => panic!("未预期的图书馆请求: {}", request.url),
         };
