@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use serde::Serialize;
 use serde_json::{Value, json};
-use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
+use ubaa_core::connection::RouteResolution;
 use ubaa_core::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
@@ -28,6 +28,8 @@ use ubaa_core::output::{
     UnresolvedRoutedJsonMeta,
 };
 
+mod routing;
+pub use routing::ReadonlyRouteContext;
 mod render;
 use render::{redacted_profile, redacted_status, safe_lock_code_value, write_profile};
 mod input;
@@ -41,65 +43,6 @@ pub use commands::{Cli, Command};
 mod execution;
 use execution::command_feature;
 pub use execution::run_with_backend;
-
-/// Core 门面完成路由解析后返回的安全路由决策上下文。
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadonlyRouteContext {
-    /// 当前功能实际使用的路由策略。
-    pub policy: RoutePolicy,
-    /// 决策所用的网关可达状态；未探测时为未知。
-    pub network: NetworkState,
-    /// 回退前选择的路由。
-    pub initial_route: ConnectionMode,
-    /// 回退后选择的路由。
-    pub resolved_route: ConnectionMode,
-    /// 是否发生了就绪路由回退。
-    pub used_fallback: bool,
-}
-
-impl ReadonlyRouteContext {
-    fn explicit(mode: ConnectionMode) -> Self {
-        Self {
-            policy: match mode {
-                ConnectionMode::Direct => RoutePolicy::Direct,
-                ConnectionMode::WebVpn => RoutePolicy::WebVpn,
-            },
-            network: NetworkState::Unknown,
-            initial_route: mode,
-            resolved_route: mode,
-            used_fallback: false,
-        }
-    }
-
-    fn meta(self, feature: CliFeature, resolved_route: ConnectionMode) -> ResolvedRoutedJsonMeta {
-        ResolvedRoutedJsonMeta::from_resolution(feature, self.resolution(resolved_route))
-    }
-
-    fn resolution(self, resolved_route: ConnectionMode) -> RouteResolution {
-        RouteResolution {
-            mode: resolved_route,
-            policy: self.policy,
-            diagnostic: RouteDiagnostic {
-                network: self.network,
-                initial_route: self.initial_route,
-                mode: resolved_route,
-                used_fallback: self.used_fallback,
-            },
-        }
-    }
-}
-
-impl From<RouteResolution> for ReadonlyRouteContext {
-    fn from(resolution: RouteResolution) -> Self {
-        Self {
-            policy: resolution.policy,
-            network: resolution.diagnostic.network,
-            initial_route: resolution.diagnostic.initial_route,
-            resolved_route: resolution.mode,
-            used_fallback: resolution.diagnostic.used_fallback,
-        }
-    }
-}
 
 #[derive(Debug, Args)]
 pub struct EvaluationArgs {
