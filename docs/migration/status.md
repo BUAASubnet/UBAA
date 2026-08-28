@@ -228,3 +228,4 @@ CI remains deterministic-only and never reads `.env.local`.
 - `just check-sensitive`、`just check`、`cargo test --locked -p ubaa-core --tests` 和 `cargo test --locked -p ubaa-cli --tests` 均通过。
 - `just verify-live mode=direct feature=evaluation` 与 `just verify-live mode=webvpn feature=evaluation` 均通过，仅记录脱敏的 `course_count=0` 摘要。
 - 剩余验收缺口：Ygdk、Cgyy、Evaluation 写操作仍需完整 Core 协议、向量和 Mock 测试；LibBook 与 Signin 已有 Core/CLI 写入口，但仍需专门的请求和向量测试。所有功能逐项 Direct/WebVPN/auto 读验证仍未完成，迁移尚未完成。
+- 本阶段补齐 LibBook 预约/取消 Core 与 CLI 写入口，并以冻结 golden 向量验证字段顺序、日期派生 AES-128-CBC、PKCS#7 和固定 IV；本阶段提交为后续审查起点。

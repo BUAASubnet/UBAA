@@ -10,13 +10,25 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use aes::Aes128;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
-use cipher::{BlockEncryptMut, KeyInit, block_padding::Pkcs7};
+use cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
 use serde_json::{Map, Value, json};
 
 /// 图书馆查询所需的路线内业务凭据。
 #[derive(Clone)]
 pub(crate) struct LibBookCredential {
     pub(crate) token: String,
+}
+
+#[derive(serde::Serialize)]
+struct EncryptedReserveBody<'a> {
+    #[serde(rename = "seat_id")]
+    seat_id: &'a str,
+    segment: &'a str,
+    day: &'a str,
+    #[serde(rename = "start_time")]
+    start_time: &'a str,
+    #[serde(rename = "end_time")]
+    end_time: &'a str,
 }
 
 impl std::fmt::Debug for LibBookCredential {
@@ -332,14 +344,29 @@ fn encrypt_reserve_request(request: &LibBookReserveRequest) -> Result<String> {
     }
     let key_text = format!("{digits}{}", digits.chars().rev().collect::<String>());
     let key = key_text.as_bytes();
-    let plain = serde_json::to_vec(&json!({"seatId": request.seat_id, "segment": request.segment, "day": request.day, "startTime": "", "endTime": ""})).map_err(|_| error("图书馆预约参数无效"))?;
+    let plain = serde_json::to_vec(&EncryptedReserveBody {
+        seat_id: &request.seat_id,
+        segment: &request.segment,
+        day: &request.day,
+        start_time: "",
+        end_time: "",
+    })
+    .map_err(|_| error("图书馆预约参数无效"))?;
     let cipher = Aes128::new_from_slice(key).map_err(|_| error("图书馆 AES 密钥无效"))?;
-    let mut buffer = plain.clone();
-    let len = buffer.len();
-    buffer.resize(len + 16, 0);
-    let encrypted = cipher
-        .encrypt_padded_mut::<Pkcs7>(&mut buffer, len)
-        .map_err(|_| error("图书馆预约加密失败"))?;
+    let pad = 16 - (plain.len() % 16);
+    let mut padded = plain;
+    padded.extend(std::iter::repeat_n(u8::try_from(pad).unwrap_or(16), pad));
+    let mut previous = *b"ZZWBKJ_ZHIHUAWEI";
+    let mut encrypted = Vec::with_capacity(padded.len());
+    for chunk in padded.chunks_exact(16) {
+        let mut block = [0_u8; 16];
+        for (index, byte) in chunk.iter().enumerate() {
+            block[index] = *byte ^ previous[index];
+        }
+        cipher.encrypt_block(GenericArray::from_mut_slice(&mut block));
+        encrypted.extend_from_slice(&block);
+        previous = block;
+    }
     Ok(STANDARD.encode(encrypted))
 }
 
@@ -579,4 +606,27 @@ fn is_expired_body(body: &str) -> bool {
         .ok()
         .and_then(|value| value.as_object().cloned())
         .is_some_and(|object| is_expired_message(&text(&object, &["message", "msg"])))
+}
+
+#[cfg(test)]
+mod crypto_tests {
+    use super::encrypt_reserve_request;
+    use crate::domain::LibBookReserveRequest;
+
+    #[test]
+    fn reserve_request_matches_frozen_golden_vector() {
+        let encrypted = encrypt_reserve_request(&LibBookReserveRequest {
+            area_id: "8".into(),
+            seat_id: "101".into(),
+            day: "2026-05-08".into(),
+            segment: "seg-1".into(),
+            start_time: String::new(),
+            end_time: String::new(),
+        })
+        .expect("vector should encrypt");
+        assert_eq!(
+            encrypted,
+            "lGWxL9YCYE0sXIQzPsUCs3jfaFPunT/NyR93uF2nVP1OQPYYihpMRBvm7jxYdUZNTMCyIRtdY8d3DgCNz8G3lmeWmPjvy6jV2KeuJXR8nrOmk26JK+ATZB1VXBNOFebA"
+        );
+    }
 }
