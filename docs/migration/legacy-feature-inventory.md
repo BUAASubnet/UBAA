@@ -4,7 +4,7 @@
 
 ## 结论摘要
 
-当前 UBAA2 CLI 的合同范围是用户信息、课表、考试、成绩、空闲教室、SPOC 作业、希冀作业和签到查询。旧版还实现了签到（`Signin`）、阳光打卡（`Ygdk`）、图书馆预约（`LibBook`）、场馆预约（`Cgyy`）和博雅课程（`Bykc`）五组 API；其中只有查询部分适合后续只读迁移，写操作必须继续排除在本次 CLI 合同之外。
+当前 UBAA2 CLI 的合同范围是用户信息、课表、考试、成绩、空闲教室、SPOC 作业、希冀作业、签到查询，以及 Signin、Ygdk、LibBook、Cgyy、Bykc 和 Evaluation 的扩展能力。写操作已在 Core/CLI 中实现协议、确认门禁和确定性 Mock/向量测试；真实验收与真实账号写请求仍永久禁止。
 
 这五组功能均不是简单的中转接口：本地实现会在主认证会话之上建立业务登录、独立 Cookie/令牌或会话缓存，处理重定向、过期重试、分页、字段兼容和错误映射。迁移时应先在 Core 中定义稳定 DTO 与 facade，再由 CLI 消费，不能把旧版 `Local*Client` 或上游 JSON 暴露给宿主。
 
@@ -41,7 +41,7 @@
 
 ### UBAA2 缺口与优先级
 
-UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `signin today` CLI 查询命令，并纳入 Direct/WebVPN 路线隔离状态。当前已有脱敏解析测试和确定性接线测试，但尚未完成真实上游矩阵验证；签到写操作明确不迁移。
+UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `signin today` CLI 查询命令，并纳入 Direct/WebVPN 路线隔离状态。脱敏解析、请求接线和双路线只读实时证据已记录；签到提交协议仅允许 Mock/向量验证，并由 CLI 确认门禁保护。
 
 ## Ygdk（阳光打卡）
 
@@ -76,7 +76,7 @@ UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `s
 
 ### UBAA2 缺口与优先级
 
-当前无对应 Core/CLI 能力。概览和记录查询优先级为中低：需要 OAuth 业务会话、运动分类选择和分页兼容；打卡提交、照片上传及提醒存储（`YgdkReminderStore`）均为写/本地状态功能，暂不迁移。
+UBAA2 已提供 OAuth 业务会话、概览和记录分页的 Core/CLI 能力，并覆盖照片上传与打卡提交的 multipart/表单协议测试。写操作仅允许 Mock/向量验证；提醒存储属于本地定时任务边界，本轮不迁移。
 
 ## LibBook（图书馆座位）
 
@@ -206,5 +206,5 @@ UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `s
 | Signin | 今日课堂/签到状态 | 执行签到 | 已接入 `signin today`（Core facade + CLI）；真实上游待验证 | 中 |
 | Ygdk | 概览、记录分页 | 运动打卡、照片上传 | 已接入 `ygdk overview`/`ygdk records`（Core facade + CLI）；真实上游待验证 | 中低 |
 | LibBook | 图书馆、区域、座位、我的预约 | 预约、取消 | 已接入五类只读 CLI；真实路线待验证 | 低 |
-| Cgyy | 场地、用途、日期可用性、订单、锁码 | 预约、取消、验证码 | 已接入场地、用途、日期、订单、详情五项只读 Core/CLI；锁码、预约、取消和验证码未迁移；真实上游待验证 | 低 |
-| Bykc | 资料、课程、详情、已选、统计 | 选课、退选、签到/签退 | 已接入资料、课程、详情、已选、统计五项只读 Core/CLI；写操作未迁移；真实上游待验证 | 中低 |
+| Cgyy | 场地、用途、日期可用性、订单、锁码 | 预约、取消、验证码 | 已接入五项只读及锁码 Core/CLI；预约验证码求解、预约、取消具备确定性协议证据；真实写请求禁止，WebVPN 业务会话仍认证失败 | 低 |
+| Bykc | 资料、课程、详情、已选、统计 | 选课、退选、签到/签退 | 五项只读及三项写请求均已接入 Core/CLI，具备加密向量和 Mock；真实写请求禁止，WebVPN 业务路线仍待上游确认 | 中低 |
