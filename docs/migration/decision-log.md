@@ -478,3 +478,12 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
   订单列表提供标识时调用，日期详情仅在站点列表提供标识时调用。
 - `scripts/test-verify-live.sh` 已补齐站点、日期、订单、订单详情和锁码的合成响应与调用
   顺序断言；真实验证仍不执行写操作，聚合返回首个失败退出码。
+
+## 2026-08-29 Cgyy 三路线逐操作复测
+
+- WebVPN：站点与用途通过，日期和锁码为 `upstream_unavailable`；订单查询通过但没有
+  可用详情标识，因此未伪造详情请求。
+- auto（解析到 Direct）：站点通过；用途、日期、订单和锁码均为
+  `upstream_unavailable`。
+- Direct：站点请求本轮为 `upstream_unavailable`，用途和锁码同样失败；验证器不再从
+  失败信封提取站点标识或打印成功摘要。上述运行均未执行真实写操作。

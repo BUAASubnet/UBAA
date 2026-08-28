@@ -1274,14 +1274,18 @@ run_readonly_feature() {
       printf 'mode=%s route=%s resolved_route=%s feature=bykc outcome=success stage=bykc exit_code=0 elapsed_ms=%s course_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
       ;;
     cgyy)
-      local cgyy_failed=0 cgyy_first_code=0
+      local cgyy_failed=0 cgyy_first_code=0 cgyy_sites_ok=0
       run_json none cgyy sites
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy; cgyy_failed=1; cgyy_first_code=$CLI_CODE; count=0
       elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy; cgyy_failed=1; cgyy_first_code=1; count=0
-      else count=$(jq -r '.data | length' <<<"$CLI_OUTPUT"); fi
+      else count=$(jq -r '.data | length' <<<"$CLI_OUTPUT"); cgyy_sites_ok=1; fi
       local cgyy_site_id cgyy_date cgyy_order_id
-      cgyy_site_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
-      printf 'mode=%s route=%s resolved_route=%s feature=cgyy outcome=success stage=cgyy exit_code=0 elapsed_ms=%s site_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
+      if [[ "$cgyy_sites_ok" -eq 1 ]]; then
+        cgyy_site_id=$(jq -r '.data[0].id // empty' <<<"$CLI_OUTPUT")
+        printf 'mode=%s route=%s resolved_route=%s feature=cgyy outcome=success stage=cgyy exit_code=0 elapsed_ms=%s site_count=%s\n' "$mode" "$route" "$FEATURE_RESOLVED_ROUTE" "$FEATURE_ELAPSED_MS" "$count"
+      else
+        cgyy_site_id=
+      fi
       run_json none cgyy purposes
       if [[ "$CLI_CODE" -ne 0 ]]; then redacted_failure cgyy_purposes; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=$CLI_CODE
       elif ! validate_routed_success cgyy || ! jq -e '(.data | type) == "array"' >/dev/null 2>&1 <<<"$CLI_OUTPUT" || ! capture_resolved_route; then semantic_failure cgyy_purposes; cgyy_failed=1; [[ "$cgyy_first_code" -eq 0 ]] && cgyy_first_code=1; fi
