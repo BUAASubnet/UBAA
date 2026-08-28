@@ -70,6 +70,7 @@ Signin 与 Ygdk 在业务登录页返回 `upstream_changed`；Bykc 在 CLI 聚�
 Bykc 首次结果的 `invalid_semantics` 后经审计确认为验证器误将合法分页字段
 `data.content` 判为敏感键；修复提交 `adc3d4f` 后，`feature=bykc route=direct`
 成功并解析到 1 条课程。该结果不替代 WebVPN 路线验证。
+- Bykc 写链阶段新增选课端到端 Mock，覆盖 CAS token 跳转、随机 AES/RSA 请求封装、双认证头及 `ak`/`sk`/`ts` 元数据；响应使用脱敏明文信封，真实选课仍永久禁止。
 随后 `feature=auth route=webvpn` 成功，但 `feature=bykc route=webvpn`
 返回 `upstream_changed`，因此 Bykc WebVPN 业务路线仍未验证通过。
 重新建立 Direct 主认证后，`feature=signin route=direct` 与
