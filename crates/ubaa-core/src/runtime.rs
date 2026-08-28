@@ -17,6 +17,7 @@ pub(crate) struct ClientRuntime {
     jar: CookieJar,
     authenticated_at: Option<i64>,
     last_activity: Option<i64>,
+    account_name: Option<String>,
     session_revision: u64,
     feature_state: Arc<RouteFeatureState>,
 }
@@ -62,6 +63,7 @@ impl ClientRuntime {
             jar,
             authenticated_at,
             last_activity,
+            account_name: None,
             session_revision,
             feature_state: Arc::new(RouteFeatureState::default()),
         })
@@ -95,6 +97,7 @@ impl ClientRuntime {
             jar,
             authenticated_at: self.authenticated_at,
             last_activity: self.last_activity,
+            account_name: self.account_name.clone(),
             session_revision: self.session_revision,
             feature_state: Arc::clone(&self.feature_state),
         }
@@ -118,6 +121,17 @@ impl ClientRuntime {
 
     pub(crate) fn has_local_session(&self) -> bool {
         self.authenticated_at.is_some()
+    }
+
+    pub(crate) fn account_name(&self) -> Option<&str> {
+        self.account_name.as_deref()
+    }
+
+    pub(crate) fn remember_account_name(&mut self, account_name: Option<&str>) {
+        self.account_name = account_name
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned);
     }
 
     pub(crate) fn url(&self, direct: &str) -> Result<String> {

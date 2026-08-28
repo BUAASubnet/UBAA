@@ -58,6 +58,10 @@ fn boolish(object: &Map<String, Value>, key: &str) -> bool {
     }
 }
 
+fn task_user_code(account_name: Option<&str>) -> &str {
+    account_name.unwrap_or_default()
+}
+
 fn result_value(body: &str) -> Result<Value> {
     let root: Value = serde_json::from_str(body).map_err(|_| error("评教响应无法解析"))?;
     let object = root.as_object().ok_or_else(|| error("评教响应结构无效"))?;
@@ -150,7 +154,7 @@ pub(crate) async fn get_all(
         url::Url::parse(&runtime.url(TASKS_URL)?).map_err(|_| error("评教地址无效"))?;
     task_url
         .query_pairs_mut()
-        .append_pair("yhdm", "")
+        .append_pair("yhdm", task_user_code(runtime.account_name()))
         .append_pair("pageNum", "1")
         .append_pair("pageSize", "10");
     let tasks = fetch(runtime, task_url, BTreeMap::new()).await?;
@@ -521,6 +525,12 @@ mod tests {
     use crate::runtime::ClientRuntime;
     use crate::session::FileSessionStore;
     use async_trait::async_trait;
+
+    #[test]
+    fn 评教任务使用登录资料中的学校标识() {
+        assert_eq!(super::task_user_code(Some("22373333")), "22373333");
+        assert_eq!(super::task_user_code(None), "");
+    }
 
     #[test]
     fn 评教题目按冻结结构生成题目答案() {

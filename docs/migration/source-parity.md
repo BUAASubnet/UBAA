@@ -362,3 +362,5 @@ LibBook 原语字段补充：冻结 `JsonPrimitive.contentOrNull` 将数字和�
 Cgyy 原语字段补充：冻结 `LocalCgyyApi.string` 使用 `jsonPrimitive.contentOrNull`，场馆、订单和说明类文本字段可由数字或布尔原语转为文本；Core `string` 现保持同等原语文本化，整数 ID 仍由独立 `int` 解析。
 
 Signin 写响应补充：冻结 `LocalSigninApi` 的 `jsonStringValue`/`int` 对 `STATUS` 与 `stuSignStatus` 同时接受数字和数字字符串；Core `perform_signin` 现通过 `integer_value` 保持该状态解析兼容。
+
+Evaluation 任务身份参数补充：冻结 `LocalEvaluationService.fetchTasks` 将已登录资料的 `schoolid`（为空时回退 `username`）作为 `yhdm`，并固定 `pageNum=1&pageSize=10`。Core 运行时现仅在内存保留登录成功资料中的 `school_id`/`username`，任务请求按同一优先级发送 `yhdm`；既有会话若无资料则保持空值，不从未证实的 Cookie 或响应字段推导身份。

@@ -413,3 +413,8 @@ CI remains deterministic-only and never reads `.env.local`.
 
 - 对照冻结 `jsonStringValue`/`int`，补齐签到写响应中数字字符串 `STATUS` 与 `stuSignStatus` 的解析；新增脱敏单元测试通过。
 - 未改变签到登录入口、请求参数或真实写操作禁止策略。
+
+## 2026-08-29 Evaluation 任务身份参数
+
+- 对照冻结 `LocalEvaluationService.fetchTasks`，补齐任务列表 `yhdm` 使用登录资料 `schoolid`、空值回退 `username` 的语义；新增脱敏单元测试并通过。
+- 账号标识仅保存在 Core 运行时内存，不写入会话文件、日志或实时证据；未改变评教写操作禁止策略。

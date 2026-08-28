@@ -142,10 +142,11 @@ impl AuthWorkflow {
 
     fn finish_successful_login(
         &mut self,
-        runtime: &ClientRuntime,
+        runtime: &mut ClientRuntime,
         profile: UserProfile,
     ) -> UserProfile {
         runtime.clear_feature_state();
+        runtime.remember_account_name(profile.school_id.as_deref().or(profile.username.as_deref()));
         self.state.clear();
         profile
     }

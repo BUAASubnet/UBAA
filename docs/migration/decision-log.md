@@ -647,3 +647,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 
 - 冻结证据：`LocalSigninApi.kt` 的 `jsonStringValue` 读取 primitive 文本，`int` 随后执行 `toIntOrNull`；签到写响应的 `STATUS`/`stuSignStatus` 因此接受数字或数字字符串。
 - 原 Core 写响应仅使用 `Value::as_i64`，数字字符串会回退为零/未完成。新增脱敏状态测试先失败，再增加整数兼容辅助；未执行真实写操作。
+
+## 2026-08-29 Evaluation 任务 `yhdm` 身份来源
+
+- 证据：冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalEvaluationService.kt` 的 `fetchTasks` 明确发送 `authSession.user.schoolid.ifBlank { authSession.username }`。
+- 原差异：Rust `features/evaluation.rs::get_all` 曾固定发送空 `yhdm`，无法保持同一请求构造。
+- 决策：登录成功后仅在运行时内存记录 `UserProfile.school_id`，缺失时记录 `username`；评教任务请求使用该值，既有无资料会话保持空值。未从 Cookie、实时响应或示例项目猜测身份字段，也未执行真实写操作。
