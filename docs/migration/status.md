@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- `domain/bykc.rs` 继续收拢 `BykcCourse` 与 `BykcCourseStatus`，保持 camelCase/snake_case 序列化、默认状态和公开导出不变；Core、CLI、敏感扫描与全量门禁通过。
 - `domain/bykc.rs` 先拆出 `BykcUserProfile` DTO，保持 camelCase 序列化和公开导出不变；Core、CLI、敏感扫描与全量门禁通过，后续继续在同一模块收拢 Bykc 类型。
 - `domain/route.rs` 拆出 `ConnectionMode`、`RoutePolicy` 与 `ReadonlyFeature`，保持序列化名称、配置键和路由语义不变；Core 全部测试与全量门禁通过。
 - 最新三路线只读复测：Direct 仅 Cgyy 日期/锁码为 `upstream_unavailable`；WebVPN 的 Cgyy 日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；auto 解析为 Direct，Cgyy 日期为 `invalid_semantics`、订单为 `upstream_unavailable`。其余功能逐项通过，未执行真实写操作。
