@@ -6,9 +6,9 @@ Updated: 2026-08-28
 
 冻结源逐操作复核、Core/CLI 确定性门禁和大部分只读实时能力已完成；写操作均有
 协议实现、Mock/向量和 CLI 确认保护，但真实验收永不调用。当前整体仍未达到最终完成：
-Cgyy WebVPN 业务会话持续认证失败，Direct 门锁码上游不可用，且验证码图像求解器端口
-尚未迁移。WebVPN Grades/Judge/Evaluation 的最新单项重跑通过，但聚合矩阵仍必须保留
-瞬态失败证据并继续复核。
+Cgyy WebVPN 业务会话持续认证失败，Direct 门锁码上游不可用。验证码图像求解器已迁移
+并有 PNG/JPEG、加密向量、重试和逐请求 Mock 证据；WebVPN Grades/Judge/Evaluation
+的最新单项重跑通过，但聚合矩阵仍必须保留瞬态失败证据并继续复核。
 
 ## Baseline
 
@@ -45,7 +45,7 @@ Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/�
 | 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
 | 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
 | 9e 签到查询 | Core 解析、独立 iClass 会话、facade 与 CLI 已接入；Direct/WebVPN 实时验证通过 | `signin today` 使用路线隔离的 iClass 业务会话，按旧版固定跳转、登录参数和今日查询参数实现；脱敏解析、确定性接线和双路线 live 证据均已覆盖。签到提交属于写操作，仍禁止真实调用。 |
-| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；写操作仅有确定性证据 | 所有写操作均要求显式确认并由实时验证器排除；Ygdk/Evaluation 已补请求向量，Cgyy 验证码图像求解器和部分逐请求 Mock 仍待完成。 |
+| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；写操作具备确定性证据 | 所有写操作均要求显式确认并由实时验证器排除；Ygdk、Evaluation、Cgyy 已补请求向量或 Mock 链，仍需继续补齐逐操作证据和错误矩阵。 |
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
 | 11 live matrix | Latest complete matrix passed; transient WebVPN Judge snapshot failures retained | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility causes a nonzero result. |
