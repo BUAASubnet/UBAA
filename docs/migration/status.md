@@ -344,3 +344,10 @@ CI remains deterministic-only and never reads `.env.local`.
 - WebVPN：站点成功（4 个），日期 `upstream_changed`，订单和锁码 `upstream_unavailable`，退出码 6。
 - auto：解析到 Direct；站点成功（4 个），日期 `upstream_changed`、订单 `upstream_unavailable`，退出码 6。
 - 仅记录路由、阶段、计数和稳定错误类别；没有输出凭据、Cookie、令牌、原始响应或个人数据，也没有调用真实写接口。Cgyy 仍是未通过的实时硬门禁。
+
+## 2026-08-29 三路线全量只读复测
+
+- Direct：全部非 Cgyy 功能及 Judge 详情通过；Cgyy 站点 4 个通过，日期/订单 `upstream_unavailable`，退出码 5。
+- WebVPN：全部非 Cgyy 功能及 Judge 详情通过；Cgyy 站点 4 个通过，日期/订单 `upstream_unavailable`，退出码 5。
+- auto：解析到 Direct，全部非 Cgyy 功能及 Judge 详情通过；Cgyy 站点 4 个通过，日期 `upstream_changed`、订单 `upstream_unavailable`，退出码 6。
+- 这些失败项已确认不是本地缺失功能；按冻结实现保持现状并记录，未执行真实写操作。整体迁移仍未完成，待 Cgyy 实时上游恢复或取得新证据。
