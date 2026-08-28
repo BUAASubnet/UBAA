@@ -684,3 +684,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - WebVPN：上述非 Cgyy 功能均成功；Cgyy 站点成功（7 个），日期返回 `invalid_semantics`、锁码返回 `upstream_unavailable`，聚合退出码 1。
 - auto：解析为 Direct；上述非 Cgyy 功能均成功；Cgyy 站点成功（7 个），日期返回 `invalid_semantics`、订单返回 `upstream_unavailable`，聚合退出码 1。
 - 本轮只执行认证和读操作，未调用任何选课、退选、签到、预约、取消、提交或上传接口。失败项没有提供新的 URL、参数、重定向、字段或加密证据；其本地逻辑与冻结实现一致但实时上游不可用/返回不满足语义，按约定只记录并继续，不猜测修改协议。
+## 2026-08-29 认证领域拆分后实时只读矩阵
+
+- Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 逐项成功；Cgyy 站点返回 7 个站点，日期和锁码均为 `upstream_unavailable`，聚合退出 5。
+- WebVPN：非 Cgyy 功能逐项成功；Cgyy 站点返回 7 个站点，日期为 `invalid_semantics`、锁码为 `upstream_unavailable`，聚合退出 1。
+- auto：路由解析为 Direct；非 Cgyy 功能逐项成功；Cgyy 站点返回 7 个站点，日期为 `invalid_semantics`、订单为 `upstream_unavailable`，聚合退出 1。
+- 本轮只读验证未调用任何选课、退选、签到、预约、取消、提交或上传接口。失败项未提供新协议证据，按冻结逻辑与实时上游状态分别记录，不猜测修改 URL、参数、字段或错误语义。
