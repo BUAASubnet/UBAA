@@ -118,6 +118,13 @@ human/JSON redaction, route diagnostics, session preconditions and the complete
 write-command default-deny plus explicit-confirmation behavior. No live write
 request is part of this test.
 
+## 2026-08-29: Authentication status across all routes
+
+Separate `feature=auth` runs succeeded for Direct, WebVPN and auto; each
+returned `stage=auth_status`, `exit_code=0` and `parsed_user=yes`. These checks
+only established or inspected read-only authentication state and did not call
+any business write operation.
+
 ## 2026-08-29: Core integration test gate
 
 `cargo test --locked -p ubaa-core --tests` passed with exit code 0. The run
