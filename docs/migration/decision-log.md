@@ -98,6 +98,26 @@ digest salt. This is a configuration prerequisite failure, not evidence of an
 upstream protocol result; per-feature read-only runs remain the authoritative
 evidence and no write operation was invoked.
 
+## 2026-08-29: Full three-route matrix with ephemeral digest salt
+
+With `UBAA_VERIFY_DIGEST_SALT` supplied only as a shell-scoped temporary value,
+Direct and WebVPN completed User, Schedule, Exam, Grades, Classroom, SPOC, Judge
+(including detail checks), Signin, Ygdk, LibBook, Bykc and Evaluation. Auto
+resolved to Direct and completed the same set. Direct Cgyy failed at date and
+lock-code with `upstream_unavailable`; WebVPN failed at date with
+`invalid_semantics` and at orders/lock-code with `upstream_unavailable`; auto
+failed at Cgyy date with `upstream_unavailable`. The salt was never persisted or
+printed, and no real write operation was called. These Cgyy outcomes remain
+strict live gates rather than reasons to alter frozen protocol behavior.
+
+## 2026-08-29: CLI contract end-to-end gate
+
+`cargo test --locked -p ubaa-cli --test cli_contract` passed all 23 tests. The
+suite exercises the thirteen feature command groups, schema-v2 envelopes,
+human/JSON redaction, route diagnostics, session preconditions and the complete
+write-command default-deny plus explicit-confirmation behavior. No live write
+request is part of this test.
+
 ## 2026-08-29: Cgyy read-only availability recheck
 
 Fresh per-feature runs returned `site_count=7` on Direct, WebVPN and auto (auto
