@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 实时复核记录：`feature=auth route=direct` 单项认证成功；`feature=all route=direct` 在聚合登录语义校验阶段返回 `invalid_semantics`，未进入业务读操作。该结果按验证器双路线聚合边界记录，未据此修改冻结认证协议。
 - 将 WebVPN 主机段 AES-CFB 编解码与十六进制辅助逻辑移入 `crates/ubaa-core/src/connection_codec.rs`；保持冻结密钥、填充、重定向主机还原及错误码不变；Core、敏感扫描与全量门禁通过。
 - 将 CLI 的 `command_output_value` 与 human 输出渲染分别移入 `apps/ubaa-cli/src/command_output.rs`、`apps/ubaa-cli/src/render.rs`；保持 JSON/human 内容、错误文本和退出码不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/facade/aggregate_helpers.rs`，收拢聚合登录准备、路由结果、安全错误和备用路线辅助函数；保持 `UbaaClient` 的路由顺序、错误码和 JSON 安全投影不变；Core、CLI、敏感扫描与全量门禁通过。
