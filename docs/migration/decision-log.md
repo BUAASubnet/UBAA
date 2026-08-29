@@ -38,6 +38,14 @@ queried today's classes and did not invoke the sign-in write operation.
 safe summary (`stage=signin`, `exit_code=0`, `result_count=0`). The run only
 queried today's classes and did not invoke the sign-in write operation.
 
+## 2026-08-29: Direct and WebVPN LibBook read-only verification
+
+`feature=libbook` completed successfully on both explicit routes. Each run
+returned a safe `library_count=2` summary and did not invoke reservation or
+cancellation writes. The source-parity entry is updated from its stale
+"not verified" wording to reflect this evidence; write operations remain
+explicitly excluded from live verification.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
