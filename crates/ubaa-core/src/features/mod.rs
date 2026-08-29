@@ -16,6 +16,7 @@ pub(crate) mod state;
 mod state_cache;
 pub(crate) mod user;
 pub mod ygdk;
+pub(crate) mod ygdk_upload;
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};
