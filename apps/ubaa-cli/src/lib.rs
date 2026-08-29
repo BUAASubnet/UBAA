@@ -65,24 +65,8 @@ mod schedule_args;
 pub use schedule_args::{ScheduleArgs, ScheduleCommand};
 mod user_args;
 pub use user_args::{UserArgs, UserCommand};
-
-/// 考试操作。
-#[derive(Debug, Args)]
-pub struct ExamArgs {
-    /// 考试操作。
-    #[command(subcommand)]
-    pub command: ExamCommand,
-}
-
-/// 考试子命令。
-#[derive(Debug, Subcommand)]
-pub enum ExamCommand {
-    /// 列出指定学期的考试。
-    List {
-        #[arg(long)]
-        term: String,
-    },
-}
+mod exam_args;
+pub use exam_args::{ExamArgs, ExamCommand};
 
 /// 成绩操作。
 #[derive(Debug, Args)]
