@@ -25,6 +25,7 @@ Updated: 2026-08-29
 - CLI 合同端到端测试 `cargo test --locked -p ubaa-cli --test cli_contract` 通过 23/23；覆盖所有功能入口、JSON schema、human/JSON 脱敏、路线诊断及全部写操作默认拒绝与显式确认行为。
 - Core 集成测试 `cargo test --locked -p ubaa-core --tests` 通过（各功能、连接、会话、解析及写链 Mock 测试均通过，退出码 0）；未执行真实写请求。
 - Direct、WebVPN、auto 认证状态复验均成功（`feature=auth`，三条路线均 `parsed_user=yes`）；认证仅用于建立/检查只读会话，未执行业务写操作。
+- 方法级对照复核冻结 `ubaa_old/shared/api/feature` 的 13 个领域：当前 Core facade、RouteClient 与 CLI 均覆盖对应读写方法；未发现遗漏的直接上游操作。该复核未将 Server 或非等价 examples 接口纳入范围。
 - 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
 - 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。
