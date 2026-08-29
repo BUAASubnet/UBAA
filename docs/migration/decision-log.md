@@ -69,6 +69,10 @@ read-only overview calls and did not invoke clock-in submission or photo upload.
 
 ## 2026-08-29: Preserve optional Evaluation list fallbacks
 
+Both explicit route runs of `feature=evaluation` completed successfully with a
+safe `course_count=0` summary. They performed only task/list reads and did not
+invoke evaluation submission.
+
 Frozen `LocalEvaluationService` treats activation, task, questionnaire and
 course-list non-authentication exceptions as empty results/lists through
 `runCatching`; authentication failures remain errors. A sanitized CAS-503 Mock

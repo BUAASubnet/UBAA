@@ -14,6 +14,7 @@ Updated: 2026-08-29
 - Direct Ygdk 概览只读复验（`feature=ygdk route=direct`）成功，返回 11 个项目；验证器未执行打卡提交或照片上传。
 - WebVPN Ygdk 概览只读复验（`feature=ygdk route=webvpn`）成功，返回 11 个项目；验证器未执行打卡提交或照片上传。
 - 对照冻结 `LocalEvaluationService` 补齐评教激活、任务、问卷及课程读取的非认证异常回退；新增激活临时失败 Mock 先失败后通过，认证失效仍保持错误传播，未改变评教写链或 CLI 确认保护。
+- Direct 与 WebVPN Evaluation 只读复验均成功（`feature=evaluation`），各返回 0 门课程；验证器仅读取评教任务，未执行评教提交。
 - 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
 - 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。
