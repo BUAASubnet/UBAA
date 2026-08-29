@@ -66,7 +66,8 @@ fn 评教提交通过路线客户端发送冻结_json信封() {
 
 #[test]
 fn 评教激活临时失败按冻结实现回退为空结果() {
-    let root = std::env::temp_dir().join(format!("ubaa-evaluation-fallback-{}", std::process::id()));
+    let root =
+        std::env::temp_dir().join(format!("ubaa-evaluation-fallback-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
     store
@@ -77,8 +78,13 @@ fn 评教激活临时失败按冻结实现回退为空结果() {
             last_activity: 1_001,
         })
         .unwrap();
-    let mut client = RouteClient::with_transport(ConnectionMode::Direct, EvaluationFallbackTransport, store).unwrap();
-    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, EvaluationFallbackTransport, store)
+            .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
     let response = runtime.block_on(client.evaluation_all()).unwrap().data;
     assert!(response.courses.is_empty());
     assert_eq!(response.progress.total_courses, 0);
