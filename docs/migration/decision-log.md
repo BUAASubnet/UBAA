@@ -118,6 +118,13 @@ human/JSON redaction, route diagnostics, session preconditions and the complete
 write-command default-deny plus explicit-confirmation behavior. No live write
 request is part of this test.
 
+## 2026-08-29: Core integration test gate
+
+`cargo test --locked -p ubaa-core --tests` passed with exit code 0. The run
+covered feature parsers, connection and session isolation, deterministic Mock
+request chains, crypto/signature vectors and write-operation error paths. It
+performed no real write request.
+
 ## 2026-08-29: Cgyy read-only availability recheck
 
 Fresh per-feature runs returned `site_count=7` on Direct, WebVPN and auto (auto

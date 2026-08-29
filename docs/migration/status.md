@@ -23,6 +23,7 @@ Updated: 2026-08-29
 - 最新 Cgyy 三路线逐项复验：Direct、WebVPN、auto 的站点读取均成功并返回 7 个站点；三路线日期与订单阶段均返回 `upstream_unavailable`，WebVPN 锁码同样返回 `upstream_unavailable`。未获得新的协议证据，保持冻结请求与失败关闭语义，未执行真实写操作。
 - 使用仅存在于当前 shell 的临时 `UBAA_VERIFY_DIGEST_SALT` 完成三路线 `feature=all` 复验：Direct 与 WebVPN 的 User、Schedule、Exam、Grades、Classroom、SPOC、Judge（含详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 均成功；auto 解析到 Direct 且上述功能均成功。Direct Cgyy 日期/锁码为 `upstream_unavailable`；WebVPN Cgyy 日期为 `invalid_semantics`、订单/锁码为 `upstream_unavailable`；auto 在 Cgyy 日期阶段为 `upstream_unavailable`。盐值未写入、未输出，未执行真实写操作。
 - CLI 合同端到端测试 `cargo test --locked -p ubaa-cli --test cli_contract` 通过 23/23；覆盖所有功能入口、JSON schema、human/JSON 脱敏、路线诊断及全部写操作默认拒绝与显式确认行为。
+- Core 集成测试 `cargo test --locked -p ubaa-core --tests` 通过（各功能、连接、会话、解析及写链 Mock 测试均通过，退出码 0）；未执行真实写请求。
 - 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
 - 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。
