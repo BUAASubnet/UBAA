@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 将 Cgyy 验证码点位/校验凭据的 AES-ECB、PKCS#7 与 Base64 加密辅助移入 `crates/ubaa-core/src/features/cgyy_crypto.rs`；保持 128/192/256 位密钥分支、字段拼接、错误文本和冻结向量不变；Core、敏感扫描与全量门禁通过。
 - 将 Ygdk 照片 multipart 正文构造移入 `crates/ubaa-core/src/features/ygdk_upload.rs`；保持 `uid`、`token`、文件元数据、CRLF 和 boundary 终止顺序不变；上传字段测试、敏感扫描与全量门禁通过。
 - 将 LibBook 预约请求 DTO 与日期派生 AES-128-CBC/PKCS#7 加密辅助移入 `crates/ubaa-core/src/features/libbook_crypto.rs`；保持固定 IV、字段顺序、错误文本和 Base64 输出不变；LibBook golden 向量、敏感扫描与全量门禁通过。
 - 将 SPOC 参数 AES-CFB/Base64 加密辅助移入 `crates/ubaa-core/src/features/spoc_crypto.rs`；保持冻结密钥、链式初始向量、零填充、块加密和 Base64 输出不变；golden 向量、敏感扫描与全量门禁通过。

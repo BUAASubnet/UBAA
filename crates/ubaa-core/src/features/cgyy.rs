@@ -7,12 +7,12 @@ use crate::domain::{
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
-use aes::{Aes128, Aes192, Aes256};
 use base64::Engine as _;
-use cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
 use md5::{Digest, Md5};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
+
+use super::cgyy_crypto::build_captcha_solution;
 
 const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
 const LOGIN_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin";
@@ -33,43 +33,6 @@ pub(crate) struct CgyyCaptchaChallenge {
 /// 使用冻结验证码密钥生成校验点和预约提交凭据。
 ///
 /// 图像求解器只需提供滑块横向位移；密钥、令牌和 AES-ECB/PKCS#7 细节不会暴露给宿主。
-#[allow(dead_code)]
-pub(crate) fn build_captcha_solution(
-    secret_key: &str,
-    token: &str,
-    move_distance: u32,
-) -> Result<(String, String)> {
-    let point_json = format!(r#"{{"x":{move_distance},"y":5}}"#);
-    let verification_plain = format!("{token}---{point_json}");
-    Ok((
-        encrypt_captcha_text(&point_json, secret_key)?,
-        encrypt_captcha_text(&verification_plain, secret_key)?,
-    ))
-}
-
-#[allow(dead_code)]
-fn encrypt_captcha_text(plain: &str, secret_key: &str) -> Result<String> {
-    let key = secret_key.as_bytes();
-    if !matches!(key.len(), 16 | 24 | 32) {
-        return Err(error("验证码密钥长度无效"));
-    }
-    let padding = 16 - (plain.len() % 16);
-    let mut bytes = plain.as_bytes().to_vec();
-    let padding = u8::try_from(padding).map_err(|_| error("验证码填充长度无效"))?;
-    bytes.resize(bytes.len() + usize::from(padding), padding);
-    for block in bytes.chunks_exact_mut(16) {
-        match key.len() {
-            16 => Aes128::new(GenericArray::from_slice(key))
-                .encrypt_block(GenericArray::from_mut_slice(block)),
-            24 => Aes192::new(GenericArray::from_slice(key))
-                .encrypt_block(GenericArray::from_mut_slice(block)),
-            _ => Aes256::new(GenericArray::from_slice(key))
-                .encrypt_block(GenericArray::from_mut_slice(block)),
-        }
-    }
-    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
-}
-
 /// 复刻冻结旧版的滑块位移匹配算法。输入为去除可选 data URI 前缀后的图片字节。
 #[allow(dead_code)]
 pub(crate) fn solve_captcha_offset(original: &[u8], jigsaw: &[u8]) -> Result<u32> {
