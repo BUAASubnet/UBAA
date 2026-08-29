@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 最新 `auto` 全量只读复测解析到 Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 成功；Cgyy 站点成功而日期、订单详情、锁码为 `upstream_unavailable`。未执行真实写操作；自动路由结果与 Direct 实时证据一致。
 - 最新 Direct/WebVPN 全量只读复测：Direct 的 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 成功，Cgyy 站点成功而日期/订单/锁码为 `upstream_unavailable`；WebVPN 的 User、Schedule、Exam、Grades、Classroom、SPOC、Signin、Ygdk、LibBook、Bykc、Evaluation 成功，Judge 因冻结语义校验为 `judge_cutoff`/`invalid_semantics`，Cgyy 日期/锁码为 `upstream_unavailable`。未执行真实写操作；失败项按旧版逻辑与实时上游证据保留。
 - 将 CLI 的评教 payload 与场馆预约标准输入读取移入 `apps/ubaa-cli/src/input.rs`；保持 JSON 校验、空 payload 拒绝、敏感输入边界和错误语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/command_output.rs`，收拢 `CommandOutput` 与 `readonly` Core 结果投影；保持 human/JSON 输出、路线元数据和序列化语义不变；CLI、敏感扫描与全量门禁通过。
