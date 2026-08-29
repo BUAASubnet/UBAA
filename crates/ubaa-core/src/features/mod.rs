@@ -10,6 +10,7 @@ pub mod libbook;
 pub mod schedule;
 pub mod signin;
 pub mod spoc;
+pub(crate) mod spoc_crypto;
 pub(crate) mod state;
 mod state_cache;
 pub(crate) mod user;
