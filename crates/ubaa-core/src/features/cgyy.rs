@@ -8,15 +8,14 @@ use crate::domain::{
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use base64::Engine as _;
-use md5::{Digest, Md5};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
 use super::cgyy_crypto::build_captcha_solution;
+use super::cgyy_sign::sign;
 
 const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
 const LOGIN_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin";
-const PREFIX: &str = "c640ca392cd45fb3a55b00a63a86c618";
 const APP_KEY: &str = "8fceb735082b5a529312040b58ea780b";
 const SSO_COOKIE: &str = "sso_buaa_zhjs_token";
 
@@ -243,23 +242,6 @@ fn timestamp_millis() -> Result<i64> {
         .as_millis()
         .try_into()
         .map_err(|_| error("系统时间无效"))
-}
-
-fn sign(path: &str, params: &BTreeMap<String, String>, timestamp: i64) -> String {
-    let path = if path.starts_with('/') {
-        path.to_owned()
-    } else {
-        format!("/{path}")
-    };
-    let mut payload = format!("{PREFIX}{path}");
-    for (key, value) in params.iter().filter(|(_, value)| !value.is_empty()) {
-        payload.push_str(key);
-        payload.push_str(value);
-    }
-    payload.push_str(&timestamp.to_string());
-    payload.push(' ');
-    payload.push_str(PREFIX);
-    format!("{:x}", Md5::digest(payload.as_bytes()))
 }
 
 fn signed_request(

@@ -3,6 +3,7 @@
 pub mod bykc;
 pub mod cgyy;
 pub(crate) mod cgyy_crypto;
+pub(crate) mod cgyy_sign;
 pub mod classroom;
 pub mod evaluation;
 pub mod grades;
