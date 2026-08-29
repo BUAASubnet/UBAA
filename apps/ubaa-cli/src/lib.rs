@@ -69,26 +69,8 @@ mod exam_args;
 pub use exam_args::{ExamArgs, ExamCommand};
 mod grades_args;
 pub use grades_args::{GradesArgs, GradesCommand};
-
-/// 空闲教室操作。
-#[derive(Debug, Args)]
-pub struct ClassroomArgs {
-    /// 空闲教室操作。
-    #[command(subcommand)]
-    pub command: ClassroomCommand,
-}
-
-/// 空闲教室子命令。
-#[derive(Debug, Subcommand)]
-pub enum ClassroomCommand {
-    /// 查询空闲教室。
-    Search {
-        #[arg(long)]
-        campus: i32,
-        #[arg(long)]
-        date: String,
-    },
-}
+mod classroom_args;
+pub use classroom_args::{ClassroomArgs, ClassroomCommand};
 
 /// SPOC 操作。
 #[derive(Debug, Args)]

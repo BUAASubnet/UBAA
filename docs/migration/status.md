@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `apps/ubaa-cli/src/classroom_args.rs`，收拢空闲教室命令参数与子命令定义；保持校区、日期参数及查询输出语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/grades_args.rs`，收拢成绩命令参数与子命令定义；保持 `grades list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/exam_args.rs`，收拢考试命令参数与子命令定义；保持 `exam list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/user_args.rs`，收拢用户中心命令参数与子命令定义；保持 `user show` 入口、会话要求和输出语义不变；CLI、敏感扫描与全量门禁通过。
