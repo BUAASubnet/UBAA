@@ -10,6 +10,7 @@ Updated: 2026-08-29
 - Direct Signin 只读复验（`feature=signin route=direct`）成功，返回 0 条课程；验证器只执行今日查询，未调用签到提交写操作。
 - WebVPN Signin 只读复验（`feature=signin route=webvpn`）成功，返回 0 条课程；验证器只执行今日查询，未调用签到提交写操作。
 - Direct 与 WebVPN LibBook 只读复验均成功（`feature=libbook`），各返回 2 个馆区；验证器仅执行馆区及后续只读查询，未调用预约或取消写操作。
+- 对照冻结 `LocalYgdkApi.getOverview` 补齐统计与学期请求的可选失败回退；新增 Mock 先失败后通过，保留分类/项目概览并将缺失统计回退为零值，未改变记录或写链协议。
 - 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
 - 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。

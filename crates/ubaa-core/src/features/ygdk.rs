@@ -19,6 +19,7 @@ pub(crate) struct YgdkCredential {
 }
 
 const FRONT_BASE: &str = "https://ygdk.buaa.edu.cn";
+const EMPTY_SUCCESS_ENVELOPE: &str = r#"{"code":1,"result":{}}"#;
 const OAUTH_URL: &str = "https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1";
 const LOGIN_URL: &str = "https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin";
 const REDIRECT_LIMIT: usize = 10;
@@ -315,18 +316,29 @@ async fn get_overview_once(runtime: &mut crate::runtime::ClientRuntime) -> Resul
         &query,
     )
     .await?;
-    let count = post(
-        runtime,
-        "/api/Front/Clockin/Clockin/getCount",
-        &credential,
-        &[
-            ("classify_id", classify_id.to_string()),
-            ("user_id", credential.uid.to_string()),
-        ],
-    )
-    .await?;
-    let term = post(runtime, "/api/Front/Clockin/Term/get", &credential, &[]).await?;
+    let count = optional_success_response(
+        post(
+            runtime,
+            "/api/Front/Clockin/Clockin/getCount",
+            &credential,
+            &[
+                ("classify_id", classify_id.to_string()),
+                ("user_id", credential.uid.to_string()),
+            ],
+        )
+        .await,
+    );
+    let term = optional_success_response(
+        post(runtime, "/api/Front/Clockin/Term/get", &credential, &[]).await,
+    );
     parse_overview(&classify, &items, &count, &term)
+}
+
+fn optional_success_response(response: Result<String>) -> String {
+    match response {
+        Ok(body) if parse_envelope(&body).is_ok() => body,
+        _ => EMPTY_SUCCESS_ENVELOPE.to_owned(),
+    }
 }
 
 /// 查询阳光打卡历史记录。

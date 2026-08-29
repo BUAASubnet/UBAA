@@ -31,6 +31,32 @@ fn 解析记录图片和分页状态并拒绝非法页码() {
 }
 
 #[test]
+fn 概览统计和学期请求失败仍按冻结实现返回基础数据() {
+    let root = std::env::temp_dir().join(format!("ubaa-ygdk-optional-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let mut client =
+        RouteClient::with_transport(ConnectionMode::Direct, YgdkOptionalTransport, store).unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let overview = runtime.block_on(client.ygdk_overview()).unwrap().data;
+    assert_eq!(overview.default_item_name, "跑步");
+    assert_eq!(overview.summary.term_count, 0);
+    assert!(overview.summary.term_id.is_none());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn 阳光打卡写链按冻结顺序完成登录概览上传和提交() {
     let root = std::env::temp_dir().join(format!("ubaa-ygdk-write-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
@@ -104,6 +130,42 @@ fn 阳光打卡写链按冻结顺序完成登录概览上传和提交() {
 #[derive(Clone)]
 struct YgdkWriteTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+struct YgdkOptionalTransport;
+
+#[async_trait]
+impl HttpTransport for YgdkOptionalTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        let url = url::Url::parse(&request.url).map_err(|_| test_error("invalid test URL"))?;
+        let path = url.path();
+        let body = match path {
+            "/uc/api/oauth/index" => Vec::new(),
+            "/api/Front/Clockin/User/campusAppLogin" => {
+                br#"{"code":1,"result":{"uid":7,"token":"tok"}}"#.to_vec()
+            }
+            "/api/Front/Clockin/Classify/getList" => {
+                r#"{"code":1,"result":{"list":[{"classify_id":1,"name":"阳光体育"}]}}"#
+                    .as_bytes()
+                    .to_vec()
+            }
+            "/api/Front/Clockin/Item/getList" => {
+                r#"{"code":1,"result":{"list":[{"item_id":2,"name":"跑步","sort":1}]}}"#
+                    .as_bytes()
+                    .to_vec()
+            }
+            "/api/Front/Clockin/Clockin/getCount" | "/api/Front/Clockin/Term/get" => {
+                return Err(test_error("optional ygdk request failed"));
+            }
+            _ => return Err(test_error("unexpected ygdk path")),
+        };
+        let final_url = if path == "/uc/api/oauth/index" {
+            "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into()
+        } else {
+            request.url
+        };
+        Ok(HttpResponse::new(200, final_url, body))
+    }
 }
 
 #[async_trait]

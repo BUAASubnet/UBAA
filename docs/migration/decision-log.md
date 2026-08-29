@@ -46,6 +46,15 @@ cancellation writes. The source-parity entry is updated from its stale
 "not verified" wording to reflect this evidence; write operations remain
 explicitly excluded from live verification.
 
+## 2026-08-29: Preserve optional Ygdk overview enrichments
+
+Frozen `LocalYgdkApi.getOverview` treats `getCount` and `Term.get` as optional
+enrichments via `runCatching`; failures do not discard the required classify and
+item list. A sanitized transport test reproduced Rust's previous propagation
+of those errors. Core now substitutes an empty successful envelope for a failed
+or malformed optional response, yielding zero/empty enrichment fields while
+preserving the primary overview result.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
