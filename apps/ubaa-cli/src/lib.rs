@@ -63,21 +63,8 @@ mod auth_args;
 pub use auth_args::{AuthArgs, AuthCommand};
 mod schedule_args;
 pub use schedule_args::{ScheduleArgs, ScheduleCommand};
-
-/// 用户中心命令组。
-#[derive(Debug, Args)]
-pub struct UserArgs {
-    /// 用户中心操作。
-    #[command(subcommand)]
-    pub command: UserCommand,
-}
-
-/// 用户中心操作。
-#[derive(Debug, Subcommand)]
-pub enum UserCommand {
-    /// 显示已认证的用户中心资料。
-    Show,
-}
+mod user_args;
+pub use user_args::{UserArgs, UserCommand};
 
 /// 考试操作。
 #[derive(Debug, Args)]
