@@ -17,6 +17,15 @@ the verifier continued according to its dependency rules and did not invoke
 reservation or cancellation writes. These are live upstream outcomes, not a
 change to the frozen request or signing behavior.
 
+## 2026-08-29: Align Signin today request with frozen local API
+
+The frozen `LocalSigninApi.getTodayClasses` uses a GET request with the
+`sessionId` header and `id`/`dateStr` query parameters. Rust had temporarily
+used the non-equivalent example module's POST/`Sessionid` shape. A sanitized
+request-construction test reproduced the mismatch; Core now follows the frozen
+local method and header, while the example is recorded as supplemental and not
+authoritative for this operation.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.

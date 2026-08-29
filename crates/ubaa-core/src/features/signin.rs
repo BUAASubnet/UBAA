@@ -171,20 +171,35 @@ fn parse_timestamp(body: &[u8]) -> Result<String> {
         .ok_or_else(|| upstream_error("签到时间戳为空"))
 }
 
+fn build_today_request(
+    base_url: &str,
+    user_id: &str,
+    session_id: &str,
+    date: &str,
+) -> Result<HttpRequest> {
+    let mut url = url::Url::parse(base_url).map_err(|_| invalid_url())?;
+    url.query_pairs_mut()
+        .append_pair("id", user_id)
+        .append_pair("dateStr", date);
+    let mut request = HttpRequest::get(url.to_string());
+    request
+        .headers
+        .insert("sessionId".into(), session_id.to_owned());
+    Ok(request)
+}
+
 async fn get_today_once(
     runtime: &mut crate::runtime::ClientRuntime,
     allow_retry: bool,
 ) -> Result<Vec<SigninClass>> {
     super::require_session(runtime)?;
     let credential = current_credential(runtime).await?;
-    let mut url = url::Url::parse(&runtime.url(SIGNIN_TODAY_URL)?).map_err(|_| invalid_url())?;
-    url.query_pairs_mut()
-        .append_pair("id", &credential.user_id)
-        .append_pair("dateStr", &shanghai_date());
-    let mut request = HttpRequest::post(url.to_string(), Vec::new());
-    request
-        .headers
-        .insert("Sessionid".into(), credential.session_id.clone());
+    let request = build_today_request(
+        &runtime.url(SIGNIN_TODAY_URL)?,
+        &credential.user_id,
+        &credential.session_id,
+        &shanghai_date(),
+    )?;
     let response = runtime.request(request).await?;
     if response.status != 200 {
         return Err(upstream_error("签到查询服务暂时不可用"));
@@ -389,8 +404,35 @@ fn parse_error() -> UbaaError {
 #[cfg(test)]
 mod tests {
     use super::{
-        SIGNIN_LOGIN_URL, build_signin_form, integer_value, parse_login_credential, parse_timestamp,
+        SIGNIN_LOGIN_URL, build_signin_form, build_today_request, integer_value,
+        parse_login_credential, parse_timestamp,
     };
+
+    #[test]
+    fn 今日查询请求匹配冻结方法和会话头() {
+        let request = build_today_request(
+            "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action",
+            "student-safe",
+            "session-safe",
+            "20260829",
+        )
+        .expect("今日查询请求应可构造");
+        assert_eq!(request.method, crate::ports::HttpMethod::Get);
+        assert_eq!(
+            request.headers.get("sessionId").map(String::as_str),
+            Some("session-safe")
+        );
+        assert!(!request.headers.contains_key("Sessionid"));
+        let url = url::Url::parse(&request.url).expect("请求 URL 应有效");
+        assert_eq!(
+            url.query_pairs().find(|(k, _)| k == "id").unwrap().1,
+            "student-safe"
+        );
+        assert_eq!(
+            url.query_pairs().find(|(k, _)| k == "dateStr").unwrap().1,
+            "20260829"
+        );
+    }
 
     #[test]
     fn 时间戳读取冻结的_json字段() {
