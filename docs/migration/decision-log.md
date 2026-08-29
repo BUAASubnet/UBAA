@@ -55,6 +55,12 @@ of those errors. Core now substitutes an empty successful envelope for a failed
 or malformed optional response, yielding zero/empty enrichment fields while
 preserving the primary overview result.
 
+## 2026-08-29: Direct Ygdk verification after fallback correction
+
+`just verify-live mode=direct feature=ygdk route=direct` succeeded with a safe
+summary (`stage=ygdk`, `exit_code=0`, `item_count=11`). The run performed only
+read-only overview calls and did not invoke clock-in submission or photo upload.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
