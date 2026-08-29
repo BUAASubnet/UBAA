@@ -2,10 +2,12 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
+use super::execution::command_feature;
 use super::{
     AuthArgs, BykcArgs, CgyyArgs, ClassroomArgs, EvaluationArgs, ExamArgs, GradesArgs, JudgeArgs,
     LibBookArgs, ScheduleArgs, SigninArgs, SpocArgs, UserArgs, YgdkArgs,
 };
+use super::{AuthCommand, CliFeature, ConnectionMode, UserCommand};
 
 /// UBAA 命令行接口。
 #[derive(Debug, Parser)]
@@ -59,4 +61,80 @@ pub enum Command {
     Cgyy(CgyyArgs),
     /// 教学评教只读操作。
     Evaluation(EvaluationArgs),
+}
+
+impl Cli {
+    /// 当前命令是否为认证登录命令。
+    #[must_use]
+    pub const fn is_login(&self) -> bool {
+        matches!(
+            self.command,
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Login(_)
+            })
+        )
+    }
+
+    /// 当前命令为认证登录命令时，返回显式登录模式。
+    #[must_use]
+    pub fn login_mode(&self) -> Option<ConnectionMode> {
+        match &self.command {
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Login(arguments),
+            }) => arguments.mode.map(Into::into),
+            _ => None,
+        }
+    }
+
+    /// 构造客户端前，当前命令是否要求已有会话。
+    #[must_use]
+    pub const fn requires_session(&self) -> bool {
+        matches!(
+            self.command,
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Status
+            }) | Command::User(UserArgs {
+                command: UserCommand::Show
+            }) | Command::Schedule(_)
+                | Command::Exam(_)
+                | Command::Grades(_)
+                | Command::Classroom(_)
+                | Command::Spoc(_)
+                | Command::Judge(_)
+                | Command::Signin(_)
+                | Command::Libbook(_)
+                | Command::Bykc(_)
+                | Command::Cgyy(_)
+                | Command::Ygdk(_)
+                | Command::Evaluation(_)
+        )
+    }
+
+    /// 当前命令是否为退出命令。
+    #[must_use]
+    pub const fn is_logout(&self) -> bool {
+        matches!(
+            self.command,
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Logout
+            })
+        )
+    }
+
+    /// 当前命令是否为普通的聚合认证状态命令。
+    #[must_use]
+    pub const fn is_auth_status(&self) -> bool {
+        matches!(
+            self.command,
+            Command::Auth(AuthArgs {
+                command: AuthCommand::Status
+            })
+        )
+    }
+
+    /// 返回与当前命令关联的稳定 JSON 功能标识。
+    #[must_use]
+    pub const fn feature(&self) -> CliFeature {
+        command_feature(&self.command)
+    }
 }
