@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `apps/ubaa-cli/src/ygdk_args.rs`，收拢阳光打卡命令参数与子命令定义；保持概览/记录分页默认值、照片输入参数及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/libbook_args.rs`，收拢图书馆命令参数与子命令定义；保持库馆/分区/座位/预约查询参数、默认分页值及预约/取消的显式写保护不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/evaluation_args.rs`，收拢评教命令参数与子命令定义；保持全部/待评教查询、payload 路径校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/bykc_args.rs`，收拢博雅课程命令参数与子命令定义；保持课程分页默认值、详情/已选/统计查询以及选课、退选、签到的显式写保护不变；CLI、敏感扫描与全量门禁通过。
