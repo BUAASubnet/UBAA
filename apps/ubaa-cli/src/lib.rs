@@ -48,6 +48,8 @@ use execution::command_feature;
 pub use execution::run_with_backend;
 mod command_output;
 use command_output::{CommandOutput, readonly};
+mod cgyy_args;
+pub use cgyy_args::{CgyyArgs, CgyyCommand};
 
 #[derive(Debug, Args)]
 pub struct EvaluationArgs {
@@ -72,66 +74,6 @@ pub enum EvaluationCommand {
     },
     /// 自动读取并提交所有待评教课程。
     SubmitPending {
-        #[arg(long = "confirm-write")]
-        confirm_write: bool,
-    },
-}
-
-/// 场馆预约命令组。
-#[derive(Debug, Args)]
-pub struct CgyyArgs {
-    #[command(subcommand)]
-    pub command: CgyyCommand,
-}
-
-/// 场馆预约只读操作。
-#[derive(Debug, Subcommand)]
-pub enum CgyyCommand {
-    /// 查询场馆站点。
-    Sites,
-    /// 查询预约用途。
-    Purposes,
-    /// 查询指定站点日期的时段与空间状态。
-    Day {
-        /// 场馆站点编号。
-        #[arg(long)]
-        site_id: i32,
-        /// 日期，格式为 yyyy-MM-dd。
-        #[arg(long)]
-        date: String,
-    },
-    /// 查询当前用户订单。
-    Orders {
-        /// 页码，从 0 开始。
-        #[arg(long, default_value_t = 0)]
-        page: i32,
-        /// 每页数量。
-        #[arg(long, default_value_t = 10)]
-        size: i32,
-    },
-    /// 查询订单详情。
-    Detail {
-        /// 订单编号。
-        #[arg(long)]
-        id: i32,
-    },
-    /// 查询当前用户门锁码。
-    LockCode,
-    /// 取消预约订单。
-    Cancel {
-        /// 订单编号。
-        #[arg(long)]
-        id: i32,
-        /// 明确确认向上游发送有副作用的取消请求。
-        #[arg(long = "confirm-write")]
-        confirm_write: bool,
-    },
-    /// 提交场馆预约；敏感请求从标准输入读取。
-    Submit {
-        /// 必须显式声明从标准输入读取 JSON 请求。
-        #[arg(long)]
-        request_stdin: bool,
-        /// 明确确认向上游发送有副作用的预约请求。
         #[arg(long = "confirm-write")]
         confirm_write: bool,
     },
