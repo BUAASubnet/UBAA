@@ -1,5 +1,13 @@
 # Decision Log
 
+## 2026-08-29: Direct Cgyy read-only verification after signer parity fix
+
+`just verify-live mode=direct feature=cgyy route=direct` completed with a safe
+summary (`stage=cgyy`, `exit_code=0`, `site_count=7`). The verifier did not call
+reservation or cancellation writes. This confirms the Direct site-list read for
+this run only; date, order, detail and lock-code operations remain separately
+subject to their own live outcomes and are not inferred from the site count.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
