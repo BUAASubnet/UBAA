@@ -107,6 +107,18 @@ request, redirect, signing or response evidence was observed, so the frozen
 protocol and failure-closed behavior remain unchanged. The verifier performed
 read-only calls only and invoked no reservation or cancellation write.
 
+## 2026-08-29: Full three-route matrix with ephemeral digest salt
+
+With `UBAA_VERIFY_DIGEST_SALT` supplied only as a shell-scoped temporary value,
+Direct and WebVPN completed User, Schedule, Exam, Grades, Classroom, SPOC, Judge
+(including detail checks), Signin, Ygdk, LibBook, Bykc and Evaluation. Auto
+resolved to Direct and completed the same set. Direct Cgyy failed at date and
+lock-code with `upstream_unavailable`; WebVPN failed at date with
+`invalid_semantics` and at orders/lock-code with `upstream_unavailable`; auto
+failed at Cgyy date with `upstream_unavailable`. The salt was never persisted or
+printed, and no real write operation was called. These Cgyy outcomes remain
+strict live gates rather than reasons to alter frozen protocol behavior.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
