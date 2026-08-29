@@ -150,8 +150,21 @@ pub(crate) async fn get_all(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<EvaluationCoursesResponse> {
     super::require_session(runtime)?;
-    let activation = super::get_with_redirects(runtime, runtime.url(CAS_URL)?, &[], "评教").await?;
-    super::check_response(&activation, "评教")?;
+    let activation = match runtime.url(CAS_URL) {
+        Ok(url) => super::get_with_redirects(runtime, url, &[], "评教").await,
+        Err(error) => Err(error),
+    };
+    let activation = match activation {
+        Ok(response) => response,
+        Err(error) if !is_authentication_error(&error) => return Ok(empty_response()),
+        Err(error) => return Err(error),
+    };
+    if let Err(error) = super::check_response(&activation, "评教") {
+        if !is_authentication_error(&error) {
+            return Ok(empty_response());
+        }
+        return Err(error);
+    }
     let mut task_url =
         url::Url::parse(&runtime.url(TASKS_URL)?).map_err(|_| error("评教地址无效"))?;
     task_url
@@ -159,7 +172,7 @@ pub(crate) async fn get_all(
         .append_pair("yhdm", task_user_code(runtime.account_name()))
         .append_pair("pageNum", "1")
         .append_pair("pageSize", "10");
-    let tasks = fetch(runtime, task_url, BTreeMap::new()).await?;
+    let tasks = fetch_optional(runtime, task_url, BTreeMap::new()).await?;
     let task_rows = tasks
         .get("list")
         .and_then(Value::as_array)
@@ -177,7 +190,7 @@ pub(crate) async fn get_all(
         questionnaire_url
             .query_pairs_mut()
             .append_pair("rwid", &rwid);
-        let forms = fetch(runtime, questionnaire_url, BTreeMap::new()).await?;
+        let forms = fetch_optional(runtime, questionnaire_url, BTreeMap::new()).await?;
         let forms = forms.as_array().cloned().unwrap_or_default();
         for form in forms {
             let Some(form) = form.as_object() else {
@@ -187,7 +200,7 @@ pub(crate) async fn get_all(
             let mut course_url =
                 url::Url::parse(&runtime.url(COURSES_URL)?).map_err(|_| error("评教地址无效"))?;
             course_url.query_pairs_mut().append_pair("wjid", &wjid);
-            let rows = fetch(runtime, course_url, BTreeMap::new()).await?;
+            let rows = fetch_optional(runtime, course_url, BTreeMap::new()).await?;
             for row in rows.as_array().cloned().unwrap_or_default() {
                 if let Some(mut parsed) = parse_courses(&serde_json::json!({"code":200,"result":[{ "rwid": rwid, "wjid": wjid, "kcdm": row.get("kcdm").and_then(Value::as_str).unwrap_or_default(), "kcmc": row.get("kcmc").and_then(Value::as_str).unwrap_or(""), "bpmc": row.get("bpmc").and_then(Value::as_str).unwrap_or(""), "ypjcs": row.get("ypjcs").cloned().unwrap_or(Value::from(0)) }]}).to_string())?.courses.pop() {
                     parsed.pjrdm = row.get("pjrdm").and_then(Value::as_str).map(str::to_owned);
@@ -215,6 +228,22 @@ pub(crate) async fn get_all(
         pending_courses,
     };
     Ok(response)
+}
+
+fn empty_response() -> EvaluationCoursesResponse {
+    EvaluationCoursesResponse {
+        courses: Vec::new(),
+        progress: EvaluationProgress::default(),
+    }
+}
+
+fn is_authentication_error(error: &UbaaError) -> bool {
+    matches!(
+        error.code,
+        ErrorCode::AuthenticationRequired
+            | ErrorCode::InvalidCredentials
+            | ErrorCode::PermissionDenied
+    )
 }
 
 /// 构造冻结评教提交 JSON 信封。
@@ -505,6 +534,18 @@ async fn fetch(
     .await?;
     super::check_response(&response, "评教")?;
     result_value(&super::body(&response))
+}
+
+async fn fetch_optional(
+    runtime: &mut crate::runtime::ClientRuntime,
+    url: url::Url,
+    params: BTreeMap<String, String>,
+) -> Result<Value> {
+    match fetch(runtime, url, params).await {
+        Ok(value) => Ok(value),
+        Err(error) if is_authentication_error(&error) => Err(error),
+        Err(_) => Ok(Value::Array(Vec::new())),
+    }
 }
 
 /// 仅用于测试和宿主校验的待评教过滤。

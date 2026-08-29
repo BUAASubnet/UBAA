@@ -67,6 +67,15 @@ read-only overview calls and did not invoke clock-in submission or photo upload.
 summary (`stage=ygdk`, `exit_code=0`, `item_count=11`). The run performed only
 read-only overview calls and did not invoke clock-in submission or photo upload.
 
+## 2026-08-29: Preserve optional Evaluation list fallbacks
+
+Frozen `LocalEvaluationService` treats activation, task, questionnaire and
+course-list non-authentication exceptions as empty results/lists through
+`runCatching`; authentication failures remain errors. A sanitized CAS-503 Mock
+reproduced Rust's previous propagation. Core now returns an empty evaluation
+response for non-auth activation failure and empty nested lists for later
+non-auth fetch failures, while preserving authentication error propagation.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.

@@ -65,6 +65,27 @@ fn 评教提交通过路线客户端发送冻结_json信封() {
 }
 
 #[test]
+fn 评教激活临时失败按冻结实现回退为空结果() {
+    let root = std::env::temp_dir().join(format!("ubaa-evaluation-fallback-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let mut client = RouteClient::with_transport(ConnectionMode::Direct, EvaluationFallbackTransport, store).unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    let response = runtime.block_on(client.evaluation_all()).unwrap().data;
+    assert!(response.courses.is_empty());
+    assert_eq!(response.progress.total_courses, 0);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn 自动评教按冻结顺序读取题目并提交课程结果() {
     let root = std::env::temp_dir().join(format!("ubaa-evaluation-auto-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
@@ -131,6 +152,22 @@ fn 自动评教按冻结顺序读取题目并提交课程结果() {
 #[derive(Clone)]
 struct EvaluationAutoTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+struct EvaluationFallbackTransport;
+
+#[async_trait]
+impl HttpTransport for EvaluationFallbackTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        let path = url::Url::parse(&request.url)
+            .map_err(|_| test_error("invalid test URL"))?
+            .path()
+            .to_owned();
+        if path == "/pjxt/cas" {
+            return Ok(HttpResponse::new(503, request.url, Vec::new()));
+        }
+        Err(test_error("unexpected evaluation fallback path"))
+    }
 }
 
 #[async_trait]
