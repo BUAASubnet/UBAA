@@ -89,6 +89,15 @@ performed read operations; no sign-in, reservation, evaluation submission,
 clock-in or photo-upload write was invoked. The results are recorded separately
 from the explicit-route evidence and do not mask any other feature's outcome.
 
+## 2026-08-29: Aggregate live gate blocked by missing Judge digest configuration
+
+Fresh `feature=all` runs for Direct, WebVPN and auto each stopped before Judge
+route comparison with exit code 2 because `UBAA_VERIFY_DIGEST_SALT` is unset.
+The local environment contains only the test username/password keys and no
+digest salt. This is a configuration prerequisite failure, not evidence of an
+upstream protocol result; per-feature read-only runs remain the authoritative
+evidence and no write operation was invoked.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
