@@ -61,6 +61,8 @@ mod signin_args;
 pub use signin_args::{SigninArgs, SigninCommand};
 mod auth_args;
 pub use auth_args::{AuthArgs, AuthCommand};
+mod schedule_args;
+pub use schedule_args::{ScheduleArgs, ScheduleCommand};
 
 /// 用户中心命令组。
 #[derive(Debug, Args)]
@@ -75,35 +77,6 @@ pub struct UserArgs {
 pub enum UserCommand {
     /// 显示已认证的用户中心资料。
     Show,
-}
-
-/// 课表操作。
-#[derive(Debug, Args)]
-pub struct ScheduleArgs {
-    /// 课表操作。
-    #[command(subcommand)]
-    pub command: ScheduleCommand,
-}
-
-/// 课表子命令。
-#[derive(Debug, Subcommand)]
-pub enum ScheduleCommand {
-    /// 列出学期。
-    Terms,
-    /// 列出教学周。
-    Weeks {
-        #[arg(long)]
-        term: String,
-    },
-    /// 查询指定教学周。
-    Current {
-        #[arg(long)]
-        term: String,
-        #[arg(long)]
-        week: i32,
-    },
-    /// 查询今日课程。
-    Today,
 }
 
 /// 考试操作。

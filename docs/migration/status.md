@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `apps/ubaa-cli/src/schedule_args.rs`，收拢课表命令参数与子命令定义；保持学期、教学周、指定周次和今日课表入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/auth_args.rs`，收拢认证命令参数与子命令定义；保持登录、状态、登出命令、敏感输入边界及输出语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/signin_args.rs`，收拢课堂签到命令参数与子命令定义；保持今日查询、课程编号校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/ygdk_args.rs`，收拢阳光打卡命令参数与子命令定义；保持概览/记录分页默认值、照片输入参数及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
