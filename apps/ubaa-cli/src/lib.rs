@@ -31,7 +31,9 @@ pub use routing::ReadonlyRouteContext;
 mod login_args;
 pub use login_args::LoginArgs;
 mod render;
-use render::{redacted_profile, redacted_status, safe_lock_code_value, write_profile};
+use render::{
+    redacted_profile, redacted_status, render_human, safe_lock_code_value, write_profile,
+};
 mod input;
 use input::{
     build_ygdk_request, internal_error, invalid_input, prompt_line, read_cgyy_request_stdin,
@@ -45,7 +47,8 @@ mod execution;
 use execution::command_feature;
 pub use execution::run_with_backend;
 mod command_output;
-use command_output::{CommandOutput, readonly};
+pub(crate) use command_output::CommandOutput;
+use command_output::{command_output_value, readonly};
 mod cgyy_args;
 pub use cgyy_args::{CgyyArgs, CgyyCommand};
 mod bykc_args;
@@ -2523,15 +2526,6 @@ fn render_result<O: Write, E: Write>(
     }
 }
 
-fn command_output_value(output: CommandOutput) -> Result<Value> {
-    match output {
-        CommandOutput::Profile(profile) => serde_json::to_value(profile),
-        CommandOutput::Status(status) => serde_json::to_value(status),
-        CommandOutput::Logout(value) | CommandOutput::Readonly { data: value, .. } => Ok(value),
-    }
-    .map_err(|_| internal_error("无法序列化命令输出"))
-}
-
 fn render_resolved_error<O: Write, E: Write>(
     json_mode: bool,
     feature: CliFeature,
@@ -2583,19 +2577,6 @@ pub fn render_startup_error<O: Write, E: Write>(
         return ExitCode::Internal as i32;
     }
     exit_code
-}
-
-fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> std::io::Result<()> {
-    match output {
-        CommandOutput::Profile(profile) => write_profile(stdout, &profile),
-        CommandOutput::Status(status) => {
-            writeln!(stdout, "已认证：是")?;
-            writeln!(stdout, "连接检查时间：{}", status.last_activity)?;
-            write_profile(stdout, &status.user)
-        }
-        CommandOutput::Logout(_) => writeln!(stdout, "已退出登录。"),
-        CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
-    }
 }
 
 #[cfg(test)]

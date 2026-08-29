@@ -5,6 +5,8 @@ use std::io::{self, Write};
 use serde_json::{Value, json};
 use ubaa_core::domain::{AuthStatus, CgyyLockCode, UserProfile};
 
+use crate::CommandOutput;
+
 pub(crate) fn safe_lock_code_value(data: &CgyyLockCode) -> Value {
     json!({"available": !data.raw_data.is_null()})
 }
@@ -16,6 +18,19 @@ pub(crate) fn write_profile<W: Write>(stdout: &mut W, profile: &UserProfile) -> 
     write_optional(stdout, "手机号", profile.phone.as_deref())?;
     write_optional(stdout, "身份证号", profile.id_card_number.as_deref())?;
     write_optional(stdout, "邮箱", profile.email.as_deref())
+}
+
+pub(crate) fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> io::Result<()> {
+    match output {
+        CommandOutput::Profile(profile) => write_profile(stdout, &profile),
+        CommandOutput::Status(status) => {
+            writeln!(stdout, "已认证：是")?;
+            writeln!(stdout, "连接检查时间：{}", status.last_activity)?;
+            write_profile(stdout, &status.user)
+        }
+        CommandOutput::Logout(_) => writeln!(stdout, "已退出登录。"),
+        CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
+    }
 }
 
 fn write_optional<W: Write>(stdout: &mut W, label: &str, value: Option<&str>) -> io::Result<()> {

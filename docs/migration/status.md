@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 将 CLI 的 `command_output_value` 与 human 输出渲染分别移入 `apps/ubaa-cli/src/command_output.rs`、`apps/ubaa-cli/src/render.rs`；保持 JSON/human 内容、错误文本和退出码不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `crates/ubaa-core/src/facade/aggregate_helpers.rs`，收拢聚合登录准备、路由结果、安全错误和备用路线辅助函数；保持 `UbaaClient` 的路由顺序、错误码和 JSON 安全投影不变；Core、CLI、敏感扫描与全量门禁通过。
 - 将 `Cli` 的登录、会话预检、登出、认证状态和功能映射方法移入 `apps/ubaa-cli/src/commands.rs`；保持命令匹配、路由模式和稳定功能标识不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/judge_args.rs`，收拢 Judge 列表、隐藏诊断和详情/批量 key 参数定义；保持历史作业开关、参数名称及输出语义不变；CLI、敏感扫描与全量门禁通过。

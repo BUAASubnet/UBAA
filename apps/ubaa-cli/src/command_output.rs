@@ -31,3 +31,12 @@ pub(crate) enum CommandOutput {
         feature: CliFeature,
     },
 }
+
+pub(crate) fn command_output_value(output: CommandOutput) -> Result<Value> {
+    match output {
+        CommandOutput::Profile(profile) => serde_json::to_value(profile),
+        CommandOutput::Status(status) => serde_json::to_value(status),
+        CommandOutput::Logout(value) | CommandOutput::Readonly { data: value, .. } => Ok(value),
+    }
+    .map_err(|_| internal_error("无法序列化命令输出"))
+}
