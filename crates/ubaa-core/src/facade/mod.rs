@@ -20,11 +20,11 @@ use crate::domain::{
     JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
     LibBookCancelResult, LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
     LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState,
-    RoutePolicy, SafeError, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    RoutePolicy, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
     SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
     YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::error::{ErrorCode, Result};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
@@ -33,6 +33,11 @@ use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 mod types;
 use types::Operation;
 pub use types::{Routed, RoutedError};
+mod aggregate_helpers;
+use aggregate_helpers::{
+    alternate_route, authentication_required, failed_preparation, failed_route,
+    fixed_route_results, invalid_input, ready_route, routed_error, safe_error,
+};
 
 /// 仅供诊断、测试和真实验证使用的单路线客户端。
 pub struct RouteClient {
@@ -1253,83 +1258,6 @@ impl UbaaClient {
         } else {
             Ok(())
         }
-    }
-}
-
-fn failed_preparation(error: &UbaaError) -> DualLoginPreparation {
-    let error = safe_error(error);
-    DualLoginPreparation {
-        routes: [ConnectionMode::Direct, ConnectionMode::WebVpn].map(|route| RouteLoginResult {
-            route,
-            state: RouteLoginState::Failed,
-            error: Some(error.clone()),
-        }),
-    }
-}
-
-fn fixed_route_results(routes: Vec<RouteLoginResult>) -> [RouteLoginResult; 2] {
-    routes
-        .try_into()
-        .expect("completed aggregate operations always produce Direct and WebVPN results")
-}
-
-fn ready_route(route: ConnectionMode) -> RouteLoginResult {
-    RouteLoginResult {
-        route,
-        state: RouteLoginState::Ready,
-        error: None,
-    }
-}
-
-fn failed_route(route: ConnectionMode, error: &UbaaError) -> RouteLoginResult {
-    RouteLoginResult {
-        route,
-        state: RouteLoginState::Failed,
-        error: Some(safe_error(error)),
-    }
-}
-
-fn authentication_required() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::AuthenticationRequired,
-        ErrorKind::Authentication,
-        false,
-        "需要认证",
-    )
-}
-
-fn invalid_input(message: impl Into<String>) -> UbaaError {
-    UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
-}
-
-fn routed_error(error: UbaaError, resolution: RouteResolution) -> RoutedError {
-    RoutedError {
-        error,
-        resolution: Some(resolution),
-    }
-}
-
-const fn alternate_route(route: ConnectionMode) -> ConnectionMode {
-    match route {
-        ConnectionMode::Direct => ConnectionMode::WebVpn,
-        ConnectionMode::WebVpn => ConnectionMode::Direct,
-    }
-}
-
-fn safe_error(error: &UbaaError) -> SafeError {
-    let code = serde_json::to_string(&error.code)
-        .unwrap_or_else(|_| "\"internal_error\"".into())
-        .trim_matches('"')
-        .to_owned();
-    let kind = serde_json::to_string(&error.kind)
-        .unwrap_or_else(|_| "\"internal\"".into())
-        .trim_matches('"')
-        .to_owned();
-    SafeError {
-        code,
-        kind,
-        retryable: error.retryable,
-        message: error.message.clone(),
     }
 }
 
