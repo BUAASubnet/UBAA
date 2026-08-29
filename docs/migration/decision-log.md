@@ -8,6 +8,15 @@ reservation or cancellation writes. This confirms the Direct site-list read for
 this run only; date, order, detail and lock-code operations remain separately
 subject to their own live outcomes and are not inferred from the site count.
 
+## 2026-08-29: Auto Cgyy read-only verification
+
+`just verify-live mode=auto feature=cgyy route=auto` resolved to Direct and
+returned a safe site summary with `site_count=7`. The dependent date operation
+returned `invalid_semantics`, while lock-code returned `upstream_unavailable`;
+the verifier continued according to its dependency rules and did not invoke
+reservation or cancellation writes. These are live upstream outcomes, not a
+change to the frozen request or signing behavior.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
