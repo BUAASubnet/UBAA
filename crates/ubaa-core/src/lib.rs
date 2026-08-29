@@ -9,6 +9,7 @@
 pub mod auth;
 pub mod config;
 pub mod connection;
+pub(crate) mod connection_codec;
 pub mod domain;
 pub mod error;
 pub mod facade;
