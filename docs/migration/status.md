@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `apps/ubaa-cli/src/judge_args.rs`，收拢 Judge 列表、隐藏诊断和详情/批量 key 参数定义；保持历史作业开关、参数名称及输出语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/spoc_args.rs`，收拢 SPOC 列表、隐藏诊断与详情命令定义；保持作业 ID 参数、诊断隐藏属性和输出语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/classroom_args.rs`，收拢空闲教室命令参数与子命令定义；保持校区、日期参数及查询输出语义不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/grades_args.rs`，收拢成绩命令参数与子命令定义；保持 `grades list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。

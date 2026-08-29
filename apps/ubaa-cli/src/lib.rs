@@ -3,7 +3,6 @@
 use std::io::{BufRead, Write};
 
 use async_trait::async_trait;
-use clap::{Args, Subcommand};
 use serde::Serialize;
 use serde_json::{Value, json};
 use ubaa_core::connection::RouteResolution;
@@ -73,52 +72,8 @@ mod classroom_args;
 pub use classroom_args::{ClassroomArgs, ClassroomCommand};
 mod spoc_args;
 pub use spoc_args::{SpocArgs, SpocAssignmentCommand, SpocCommand};
-
-/// 希冀作业操作。
-#[derive(Debug, Args)]
-pub struct JudgeArgs {
-    /// 希冀作业操作。
-    #[command(subcommand)]
-    pub command: JudgeCommand,
-}
-
-/// 希冀作业子命令。
-#[derive(Debug, Subcommand)]
-pub enum JudgeCommand {
-    /// 列出作业。
-    Assignments {
-        #[arg(long)]
-        include_expired: bool,
-    },
-    /// 输出用于实时验证的安全列表解析计数。
-    #[command(hide = true)]
-    Diagnostics {
-        #[arg(long)]
-        include_expired: bool,
-    },
-    /// 作业操作。
-    Assignment {
-        #[command(subcommand)]
-        command: JudgeAssignmentCommand,
-    },
-}
-
-/// 希冀作业子命令。
-#[derive(Debug, Subcommand)]
-pub enum JudgeAssignmentCommand {
-    /// 显示一项详情。
-    Show {
-        #[arg(long)]
-        course_id: String,
-        #[arg(long)]
-        id: String,
-    },
-    /// 显示多项详情。
-    Details {
-        #[arg(long = "key")]
-        keys: Vec<String>,
-    },
-}
+mod judge_args;
+pub use judge_args::{JudgeArgs, JudgeAssignmentCommand, JudgeCommand};
 
 impl Cli {
     /// 当前命令是否为认证登录命令。
