@@ -67,24 +67,8 @@ mod user_args;
 pub use user_args::{UserArgs, UserCommand};
 mod exam_args;
 pub use exam_args::{ExamArgs, ExamCommand};
-
-/// 成绩操作。
-#[derive(Debug, Args)]
-pub struct GradesArgs {
-    /// 成绩操作。
-    #[command(subcommand)]
-    pub command: GradesCommand,
-}
-
-/// 成绩子命令。
-#[derive(Debug, Subcommand)]
-pub enum GradesCommand {
-    /// 列出指定学期的成绩。
-    List {
-        #[arg(long)]
-        term: String,
-    },
-}
+mod grades_args;
+pub use grades_args::{GradesArgs, GradesCommand};
 
 /// 空闲教室操作。
 #[derive(Debug, Args)]
