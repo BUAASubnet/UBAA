@@ -98,6 +98,15 @@ digest salt. This is a configuration prerequisite failure, not evidence of an
 upstream protocol result; per-feature read-only runs remain the authoritative
 evidence and no write operation was invoked.
 
+## 2026-08-29: Cgyy read-only availability recheck
+
+Fresh per-feature runs returned `site_count=7` on Direct, WebVPN and auto (auto
+resolved to Direct). Date and order stages returned `upstream_unavailable` on
+all three routes; WebVPN lock-code also returned `upstream_unavailable`. No new
+request, redirect, signing or response evidence was observed, so the frozen
+protocol and failure-closed behavior remain unchanged. The verifier performed
+read-only calls only and invoked no reservation or cancellation write.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
