@@ -52,34 +52,8 @@ mod cgyy_args;
 pub use cgyy_args::{CgyyArgs, CgyyCommand};
 mod bykc_args;
 pub use bykc_args::{BykcArgs, BykcCommand};
-
-#[derive(Debug, Args)]
-pub struct EvaluationArgs {
-    #[command(subcommand)]
-    pub command: EvaluationCommand,
-}
-
-#[derive(Debug, Subcommand)]
-pub enum EvaluationCommand {
-    /// 查询全部评教课程及进度。
-    All,
-    /// 查询待评教课程。
-    Pending,
-    /// 提交由文件提供的评教结果 JSON 数组。
-    Submit {
-        /// 包含 pjjglist 数组元素的 JSON 文件路径。
-        #[arg(long)]
-        payload: PathBuf,
-        /// 明确确认向上游发送有副作用的评教请求。
-        #[arg(long = "confirm-write")]
-        confirm_write: bool,
-    },
-    /// 自动读取并提交所有待评教课程。
-    SubmitPending {
-        #[arg(long = "confirm-write")]
-        confirm_write: bool,
-    },
-}
+mod evaluation_args;
+pub use evaluation_args::{EvaluationArgs, EvaluationCommand};
 
 /// 图书馆座位命令组。
 #[derive(Debug, Args)]

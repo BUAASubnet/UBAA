@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 新增 `apps/ubaa-cli/src/evaluation_args.rs`，收拢评教命令参数与子命令定义；保持全部/待评教查询、payload 路径校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/bykc_args.rs`，收拢博雅课程命令参数与子命令定义；保持课程分页默认值、详情/已选/统计查询以及选课、退选、签到的显式写保护不变；CLI、敏感扫描与全量门禁通过。
 - 新增 `apps/ubaa-cli/src/cgyy_args.rs`，收拢场馆命令参数与子命令定义；保持查询参数、写操作 `--confirm-write`/`--request-stdin` 保护和 CLI 命令语义不变；CLI、敏感扫描与全量门禁通过。
 - 最新 `auto` 全量只读复测解析到 Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 成功；Cgyy 站点成功而日期、订单详情、锁码为 `upstream_unavailable`。未执行真实写操作；自动路由结果与 Direct 实时证据一致。
