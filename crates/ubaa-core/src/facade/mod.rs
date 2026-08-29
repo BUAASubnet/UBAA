@@ -38,6 +38,7 @@ use aggregate_helpers::{
     alternate_route, authentication_required, failed_preparation, failed_route,
     fixed_route_results, invalid_input, ready_route, routed_error, safe_error,
 };
+mod session_lifecycle;
 
 /// 仅供诊断、测试和真实验证使用的单路线客户端。
 pub struct RouteClient {
@@ -1830,46 +1831,5 @@ impl RouteClient {
         let result = crate::features::judge::get_assignment_details(&mut self.runtime, keys).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
-    }
-
-    fn guard_session_ownership(&mut self) -> Result<()> {
-        if self
-            .sessions
-            .as_ref()
-            .is_some_and(DualSessionCoordinator::is_conflicted)
-        {
-            self.runtime.clear_memory();
-            self.auth.clear();
-            Err(DualSessionCoordinator::conflict_error())
-        } else {
-            Ok(())
-        }
-    }
-
-    fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
-        self.guard_session_ownership()?;
-        result
-    }
-
-    fn finish_readonly_operation<T>(&mut self, result: Result<T>) -> Result<T> {
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
-        {
-            if self.runtime.has_local_session() {
-                self.runtime.clear_with(|| self.auth.clear())?;
-            } else {
-                self.runtime.clear_memory();
-                self.auth.clear();
-            }
-        }
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::InternalError)
-            && !self.runtime.has_local_session()
-        {
-            self.auth.clear();
-        }
-        self.finish_session_operation(result)
     }
 }
