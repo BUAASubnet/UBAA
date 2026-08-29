@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 将 LibBook 预约请求 DTO 与日期派生 AES-128-CBC/PKCS#7 加密辅助移入 `crates/ubaa-core/src/features/libbook_crypto.rs`；保持固定 IV、字段顺序、错误文本和 Base64 输出不变；LibBook golden 向量、敏感扫描与全量门禁通过。
 - 将 SPOC 参数 AES-CFB/Base64 加密辅助移入 `crates/ubaa-core/src/features/spoc_crypto.rs`；保持冻结密钥、链式初始向量、零填充、块加密和 Base64 输出不变；golden 向量、敏感扫描与全量门禁通过。
 - 将 Judge 路线缓存共用的定时条目、TTL 判断和有界插入辅助移入 `crates/ubaa-core/src/features/state_cache.rs`；保持缓存容量、过期淘汰、空结果处理和并发语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 最新实时复测：WebVPN 全量在 Cgyy 日期阶段返回 `invalid_semantics`（此前非 Cgyy 及 Cgyy 站点均成功）；auto 解析到 Direct 并在 Ygdk 阶段返回 `timeout`，此前 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin 成功。失败项按冻结逻辑与实时证据保留，未执行真实写操作。
