@@ -49,14 +49,6 @@ pub fn parse_response(body: &str) -> Result<ClassroomQuery> {
             "空教室响应不是有效 JSON",
         )
     })?;
-    if response.code != 0 {
-        return Err(UbaaError::new(
-            ErrorCode::UpstreamChanged,
-            ErrorKind::Upstream,
-            false,
-            "空教室响应返回非零状态码",
-        ));
-    }
     Ok(ClassroomQuery {
         code: response.code,
         message: response.message,

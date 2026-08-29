@@ -80,6 +80,15 @@ fn classroom_parser_preserves_empty_results_and_spoc_status_mapping() {
 }
 
 #[test]
+fn classroom_parser_preserves_nonzero_legacy_code_in_decoded_response() {
+    let classroom =
+        classroom::parse_response(r#"{"e":1,"m":"legacy status","d":{"list":{"Main":[]}}}"#)
+            .expect("frozen classroom parser decodes e without gating its value");
+    assert_eq!(classroom.code, 1);
+    assert_eq!(classroom.message, "legacy status");
+}
+
+#[test]
 fn classroom_parser_requires_the_complete_frozen_envelope_and_room_strings() {
     for incomplete in [
         r#"{"m":"ok","d":{"list":{}}}"#,

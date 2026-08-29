@@ -133,6 +133,15 @@ commands. Every listed direct read/write operation has a corresponding Core and
 CLI entry; no missing direct method was found. Server-only routes and
 non-equivalent example modules were excluded from this conclusion.
 
+## 2026-08-29: Preserve Classroom response status field semantics
+
+The frozen classroom implementation deserializes the complete `e/m/d` envelope
+without checking that `e == 0`; `e` is a response field rather than a success
+gate. A sanitized Rust test with `e=1` first failed because Core returned
+`upstream_changed`. Removing that unevidenced gate makes the test pass while
+retaining required envelope and room-field type validation. No URL, request or
+live behavior was changed.
+
 ## 2026-08-29: Core integration test gate
 
 `cargo test --locked -p ubaa-core --tests` passed with exit code 0. The run

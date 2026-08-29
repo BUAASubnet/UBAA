@@ -79,6 +79,11 @@ that a new upstream field or marker is part of the protocol.
 
 ## Classroom query
 
+当前实现补充：`crates/ubaa-core/src/features/classroom.rs::parse_response` 与冻结
+`LocalClassroomApi` 一致，仅要求完整 `e/m/d.list` 信封和教室字符串字段；`e` 的具体数值
+不作为额外成功门控，而是原样保留在 `ClassroomQuery.code`。脱敏回归测试覆盖 `e=1`
+的兼容解析，避免引入旧版不存在的非零状态码拒绝。
+
 | bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
 |---|---|---|---|---|---|---|---|---|
 | **old:** requires classroom sync; GET `https://app.buaa.edu.cn/buaafreeclass/wap/default/search1`. **example:** iClass query is N/A/non-equivalent. **decision:** use old free-classroom endpoint only. | **old:** query uses a no-redirect client; SSO Location/HTML is session expiry. **example:** N/A. **decision:** disable redirects for this request on both routes. | **old:** current route Cookie jar and local auth preflight. **example:** N/A. **decision:** selected route slot and route-owned sync state. | **old:** GET query `xqid=<int>`, `floorid=""`, `date=yyyy-mm-dd`. **example:** N/A. **decision:** preserve exact parameters. | **old:** exact long UA, `Accept: application/json, text/javascript, */*; q=0.01`, route-transformed Referer `https://app.buaa.edu.cn/site/classRoomQuery/index`, `X-Requested-With: XMLHttpRequest`; no body. **example:** N/A. | **old/example:** N/A. | **old:** required `e:int`, `m:string`, `d`, required `d.list: Map<String,List<ClassroomInfo>>`; room requires string `id`, `floorid`, `name`, `kxsds`. **example:** N/A. **decision:** missing `d/list` is parse error, not empty success; genuine empty map remains success. | **old:** no result cache; sync mutex as above. **example:** N/A. **decision:** same. | **old:** missing auth, SSO/401 invalidation, non-200 upstream, parse failure; date validation is host API concern. **decision:** stable `invalid_input`, `authentication_required`, upstream, parse codes; no fallback unless matrix later permits it. |
