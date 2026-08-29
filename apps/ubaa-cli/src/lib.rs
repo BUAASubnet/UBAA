@@ -71,39 +71,8 @@ mod grades_args;
 pub use grades_args::{GradesArgs, GradesCommand};
 mod classroom_args;
 pub use classroom_args::{ClassroomArgs, ClassroomCommand};
-
-/// SPOC 操作。
-#[derive(Debug, Args)]
-pub struct SpocArgs {
-    /// SPOC 操作。
-    #[command(subcommand)]
-    pub command: SpocCommand,
-}
-
-/// SPOC 子命令。
-#[derive(Debug, Subcommand)]
-pub enum SpocCommand {
-    /// 列出作业。
-    Assignments,
-    /// 输出用于实时验证的安全全局分页证据。
-    #[command(hide = true)]
-    Diagnostics,
-    /// 显示一项作业。
-    Assignment {
-        #[command(subcommand)]
-        command: SpocAssignmentCommand,
-    },
-}
-
-/// SPOC 作业子命令。
-#[derive(Debug, Subcommand)]
-pub enum SpocAssignmentCommand {
-    /// 显示作业详情。
-    Show {
-        #[arg(long)]
-        id: String,
-    },
-}
+mod spoc_args;
+pub use spoc_args::{SpocArgs, SpocAssignmentCommand, SpocCommand};
 
 /// 希冀作业操作。
 #[derive(Debug, Args)]
