@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 校正 `legacy-feature-inventory.md` 与 `source-parity.md` 的 Cgyy WebVPN 现状：独立 Direct 业务 runtime 已实现并有 facade 测试，剩余日期/订单/锁码仅按逐操作实时结果记录；避免历史失败表述与当前代码不一致。
 - 将 Cgyy 验证码点位与校验凭据的 AES-ECB/PKCS#7/Base64 加密辅助移入 `crates/ubaa-core/src/features/cgyy_crypto.rs`；保持三种密钥长度、字段拼接、错误文本和冻结向量不变；Core、敏感扫描与全量门禁通过。
 - 将 Ygdk 照片 multipart 正文构造移入 `crates/ubaa-core/src/features/ygdk_upload.rs`；保持 `uid`、`token`、文件元数据、CRLF 和 boundary 终止顺序不变；上传字段测试、敏感扫描与全量门禁通过。
 - 将 LibBook 预约请求 DTO 与日期派生 AES-128-CBC/PKCS#7 加密辅助移入 `crates/ubaa-core/src/features/libbook_crypto.rs`；保持固定 IV、字段顺序、错误文本和 Base64 输出不变；LibBook golden 向量、敏感扫描与全量门禁通过。
