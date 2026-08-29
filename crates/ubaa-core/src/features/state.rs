@@ -2,12 +2,13 @@
 
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
-use std::hash::Hash;
 use std::sync::Mutex as SyncMutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex;
+
+use super::state_cache::{TimedEntry, insert_bounded, is_fresh};
 
 /// 仅由一条路线/一个客户端的运行时和读取工作线程共享的状态。
 #[derive(Debug, Default)]
@@ -357,11 +358,6 @@ pub(super) const JUDGE_ASSIGNMENT_CACHE_LIMIT: usize = 128;
 pub(super) const JUDGE_DETAIL_CACHE_LIMIT: usize = 1_024;
 pub(super) const JUDGE_HISTORICAL_CACHE_LIMIT: usize = 128;
 
-struct TimedEntry<T> {
-    value: T,
-    cached_at: Instant,
-}
-
 #[derive(Default)]
 struct JudgeCache {
     courses: Option<TimedEntry<Vec<crate::features::judge::Course>>>,
@@ -565,37 +561,6 @@ impl std::fmt::Debug for JudgeState {
             .field("historical_course_entries", &cache.historical_courses.len())
             .finish()
     }
-}
-
-fn is_fresh(cached_at: Instant, now: Instant, ttl: Duration) -> bool {
-    now.saturating_duration_since(cached_at) < ttl
-}
-
-fn insert_bounded<K, V>(
-    map: &mut HashMap<K, TimedEntry<V>>,
-    key: K,
-    value: V,
-    now: Instant,
-    limit: usize,
-) where
-    K: Clone + Eq + Hash,
-{
-    if !map.contains_key(&key)
-        && map.len() >= limit
-        && let Some(oldest) = map
-            .iter()
-            .min_by_key(|(_, entry)| entry.cached_at)
-            .map(|(key, _)| key.clone())
-    {
-        map.remove(&oldest);
-    }
-    map.insert(
-        key,
-        TimedEntry {
-            value,
-            cached_at: now,
-        },
-    );
 }
 
 #[cfg(test)]

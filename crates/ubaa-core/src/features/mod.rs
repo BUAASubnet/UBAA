@@ -11,6 +11,7 @@ pub mod schedule;
 pub mod signin;
 pub mod spoc;
 pub(crate) mod state;
+mod state_cache;
 pub(crate) mod user;
 pub mod ygdk;
 

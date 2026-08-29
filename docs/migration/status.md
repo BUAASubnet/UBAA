@@ -4,6 +4,7 @@ Updated: 2026-08-29
 
 ## 2026-08-29 阶段提交
 
+- 将 Judge 路线缓存共用的定时条目、TTL 判断和有界插入辅助移入 `crates/ubaa-core/src/features/state_cache.rs`；保持缓存容量、过期淘汰、空结果处理和并发语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 最新实时复测：WebVPN 全量在 Cgyy 日期阶段返回 `invalid_semantics`（此前非 Cgyy 及 Cgyy 站点均成功）；auto 解析到 Direct 并在 Ygdk 阶段返回 `timeout`，此前 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin 成功。失败项按冻结逻辑与实时证据保留，未执行真实写操作。
 - 将 `RouteClient` 会话冲突保护、认证失效清理和操作收尾逻辑移入 `crates/ubaa-core/src/facade/session_lifecycle.rs`；保持会话所有权、错误码、清理时机及重试语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 实时复核记录：`feature=auth route=direct` 单项认证成功；`feature=all route=direct` 在聚合登录语义校验阶段返回 `invalid_semantics`，未进入业务读操作。该结果按验证器双路线聚合边界记录，未据此修改冻结认证协议。
