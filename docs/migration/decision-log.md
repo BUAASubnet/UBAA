@@ -696,3 +696,9 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - `feature=auth route=direct` 单独验证成功，输出为 `auth_status` 成功。
 - `feature=all route=direct` 在业务操作前的聚合登录语义校验失败，返回 `login`/`invalid_semantics`；未执行任何业务读请求。
 - 该差异来自 `all` 验证路径要求双路线聚合登录，不足以证明 Direct 单路线认证或任一业务协议缺失；保持冻结认证逻辑和验证器边界，不猜测修改实现。所有真实业务写操作仍未调用。
+
+## 2026-08-29 WebVPN/auto 全量实时复测
+
+- WebVPN 全量逐操作：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 与 Cgyy 站点成功；Cgyy 日期阶段返回 `invalid_semantics`，依赖订单/锁码未调用。
+- auto 全量解析到 Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin 成功；Ygdk 阶段返回 `timeout`，后续功能未调用。
+- 失败项没有提供新的 URL、参数、字段或加密证据；按冻结实现保留现状并记录实时上游不稳定性。全程未调用真实业务写接口。
