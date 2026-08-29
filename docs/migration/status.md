@@ -6,6 +6,7 @@ Updated: 2026-08-29
 
 - 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
+- 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。
 - 校正 `legacy-feature-inventory.md` 与 `source-parity.md` 的 Cgyy WebVPN 现状：独立 Direct 业务 runtime 已实现并有 facade 测试，剩余日期/订单/锁码仅按逐操作实时结果记录；避免历史失败表述与当前代码不一致。
 - 将 Cgyy 验证码点位与校验凭据的 AES-ECB/PKCS#7/Base64 加密辅助移入 `crates/ubaa-core/src/features/cgyy_crypto.rs`；保持三种密钥长度、字段拼接、错误文本和冻结向量不变；Core、敏感扫描与全量门禁通过。
 - 将 Ygdk 照片 multipart 正文构造移入 `crates/ubaa-core/src/features/ygdk_upload.rs`；保持 `uid`、`token`、文件元数据、CRLF 和 boundary 终止顺序不变；上传字段测试、敏感扫描与全量门禁通过。

@@ -2,6 +2,15 @@ use md5::{Digest, Md5};
 use std::collections::BTreeMap;
 
 const PREFIX: &str = "c640ca392cd45fb3a55b00a63a86c618";
+const REMOVE_KEYS: [&str; 7] = [
+    "gmtCreate",
+    "gmtModified",
+    "creator",
+    "modifier",
+    "id",
+    "_index",
+    "_rowKey",
+];
 
 pub(crate) fn timestamp_millis() -> crate::error::Result<i64> {
     std::time::SystemTime::now()
@@ -33,7 +42,10 @@ pub(crate) fn sign(path: &str, params: &BTreeMap<String, String>, timestamp: i64
         format!("/{path}")
     };
     let mut payload = format!("{PREFIX}{path}");
-    for (key, value) in params.iter().filter(|(_, value)| !value.is_empty()) {
+    for (key, value) in params
+        .iter()
+        .filter(|(key, value)| !value.is_empty() && !REMOVE_KEYS.contains(&key.as_str()))
+    {
         payload.push_str(key);
         payload.push_str(value);
     }

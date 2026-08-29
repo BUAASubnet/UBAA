@@ -1115,13 +1115,38 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 mod tests {
     use super::{
         build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
-        parse_action_result, parse_captcha_challenge, parse_sites, signed_request,
+        parse_action_result, parse_captcha_challenge, parse_sites, sign, signed_request,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
     use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
     use crate::runtime::ClientRuntime;
     use crate::session::FileSessionStore;
     use async_trait::async_trait;
+
+    #[test]
+    fn 签名排除冻结审计字段() {
+        let timestamp = 1_710_000_000_000;
+        let mut noisy = std::collections::BTreeMap::from([
+            ("a".to_owned(), "1".to_owned()),
+            ("b".to_owned(), "2".to_owned()),
+            ("id".to_owned(), "123".to_owned()),
+            ("creator".to_owned(), "operator".to_owned()),
+            ("gmtModified".to_owned(), "today".to_owned()),
+        ]);
+        let clean = std::collections::BTreeMap::from([
+            ("a".to_owned(), "1".to_owned()),
+            ("b".to_owned(), "2".to_owned()),
+        ]);
+        assert_eq!(
+            sign("/api/test", &clean, timestamp),
+            sign("/api/test", &noisy, timestamp)
+        );
+        noisy.insert("_rowKey".to_owned(), "row".to_owned());
+        assert_eq!(
+            sign("/api/test", &clean, timestamp),
+            sign("/api/test", &noisy, timestamp)
+        );
+    }
 
     #[test]
     fn 解析取消订单成功消息() {
