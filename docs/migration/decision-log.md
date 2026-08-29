@@ -80,6 +80,15 @@ reproduced Rust's previous propagation. Core now returns an empty evaluation
 response for non-auth activation failure and empty nested lists for later
 non-auth fetch failures, while preserving authentication error propagation.
 
+## 2026-08-29: Auto read-only matrix for corrected features
+
+The independent auto-route runs resolved to Direct and completed successfully:
+Signin returned `result_count=0`, LibBook returned `library_count=2`, Evaluation
+returned `course_count=0`, and Ygdk returned `item_count=11`. These commands only
+performed read operations; no sign-in, reservation, evaluation submission,
+clock-in or photo-upload write was invoked. The results are recorded separately
+from the explicit-route evidence and do not mask any other feature's outcome.
+
 ## 2026-08-17: Execute the authentication contract from frozen evidence
 
 The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
