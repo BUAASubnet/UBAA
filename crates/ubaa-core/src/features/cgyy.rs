@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
 use super::cgyy_crypto::build_captcha_solution;
-use super::cgyy_sign::sign;
+use super::cgyy_sign::{sign, timestamp_millis};
 
 const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
 const LOGIN_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin";
@@ -233,15 +233,6 @@ fn parse_captcha_challenge(body: &str) -> Result<CgyyCaptchaChallenge> {
         original_image_base64: required("originalImageBase64")?,
         jigsaw_image_base64: required("jigsawImageBase64")?,
     })
-}
-
-fn timestamp_millis() -> Result<i64> {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|_| error("系统时间无效"))?
-        .as_millis()
-        .try_into()
-        .map_err(|_| error("系统时间无效"))
 }
 
 fn signed_request(
