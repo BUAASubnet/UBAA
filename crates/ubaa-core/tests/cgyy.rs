@@ -229,6 +229,61 @@ fn 业务令牌失效时按旧版重建会话并只重放一次() {
 }
 
 #[test]
+fn webvpn_从网关_cookie接口取得_cgyy_sso令牌() {
+    let root = std::env::temp_dir().join(format!("ubaa-cgyy-webvpn-cookie-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::WebVpn,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::WebVpn,
+        WebVpnGatewayCookieTransport {
+            requests: Arc::clone(&requests),
+        },
+        store,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let sites = runtime.block_on(client.cgyy_sites()).unwrap().data;
+
+    assert_eq!(sites[0].id, 101);
+    let requests = requests.lock().unwrap();
+    let gateway_cookie = requests
+        .iter()
+        .find(|request| {
+            let url = url::Url::parse(&request.url).unwrap();
+            url.host_str() == Some("d.buaa.edu.cn") && url.path() == "/wengine-vpn/cookie"
+        })
+        .expect("WebVPN Cgyy 登录应读取网关 Cookie 接口");
+    let gateway_url = url::Url::parse(&gateway_cookie.url).unwrap();
+    assert!(
+        gateway_url
+            .query_pairs()
+            .any(|(name, value)| name == "method" && value == "get")
+    );
+    let login = requests
+        .iter()
+        .find(|request| request.url.contains("/venue-zhjs-server/api/login"))
+        .expect("应发送 Cgyy 业务登录请求");
+    assert_eq!(
+        login.headers.get("Sso-Token").map(String::as_str),
+        Some("sso-gateway-fixture")
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn 场馆预约写链按冻结顺序发送验证码和最终表单() {
     let root = std::env::temp_dir().join(format!("ubaa-cgyy-write-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
@@ -360,6 +415,52 @@ fn 场馆取消写链发送签名路径和订单标识() {
 #[derive(Clone)]
 struct CgyyWriteTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+#[derive(Clone)]
+struct WebVpnGatewayCookieTransport {
+    requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+#[async_trait]
+impl HttpTransport for WebVpnGatewayCookieTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        self.requests.lock().unwrap().push(request.clone());
+        let parsed = url::Url::parse(&request.url).unwrap();
+        let response = match (parsed.host_str(), parsed.path()) {
+            (Some("d.buaa.edu.cn"), "/wengine-vpn/cookie") => HttpResponse::new(
+                200,
+                request.url,
+                b"_zte_fp_=fixture-fingerprint; sso_buaa_zhjs_token=sso-gateway-fixture; logout_flag".to_vec(),
+            ),
+            (_, path) if path.ends_with("/venue-zhjs-server/sso/manageLogin") => {
+                HttpResponse::new(200, request.url, Vec::new())
+            }
+            (_, path) if path.ends_with("/venue-zhjs-server/api/login") => {
+                assert_eq!(
+                    request.headers.get("Sso-Token").map(String::as_str),
+                    Some("sso-gateway-fixture")
+                );
+                HttpResponse::new(
+                    200,
+                    request.url,
+                    br#"{"code":200,"data":{"token":{"access_token":"webvpn-access"}}}"#
+                        .to_vec(),
+                )
+            }
+            (_, path) if path.ends_with("/venue-zhjs-server/api/front/website/venues") => {
+                HttpResponse::new(
+                    200,
+                    request.url,
+                    r#"{"code":200,"data":[{"id":101,"siteName":"A101","venueName":"场馆","campusName":"校区"}]}"#
+                        .as_bytes()
+                        .to_vec(),
+                )
+            }
+            (_, path) => panic!("未预期的 WebVPN Cookie 请求: {path}"),
+        };
+        Ok(response)
+    }
 }
 
 #[derive(Clone)]

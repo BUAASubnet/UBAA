@@ -20,6 +20,8 @@ const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
 const LOGIN_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin";
 const APP_KEY: &str = "8fceb735082b5a529312040b58ea780b";
 const SSO_COOKIE: &str = "sso_buaa_zhjs_token";
+const WEBVPN_COOKIE_URL: &str = "https://d.buaa.edu.cn/wengine-vpn/cookie";
+const WEBVPN_COOKIE_PATH: &str = "/venue-zhjs";
 
 /// 验证码挑战的脱敏结构；图像求解过程仅在 Core 内部流转。
 #[allow(dead_code)]
@@ -321,7 +323,7 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
         super::get_with_redirects(runtime, runtime.url(LOGIN_URL)?, &[], "场馆预约").await?;
     log_response(runtime, "business_login.sso", &response);
     super::check_response(&response, "场馆预约")?;
-    let Some(sso_token) = runtime.cookie_value(SSO_COOKIE) else {
+    let Some(sso_token) = get_sso_token(runtime).await? else {
         warn!(target: "ubaa::cgyy", operation = "business_login.sso", route = ?runtime.mode(), sso_cookie_present = false, "Cgyy SSO 响应未写入令牌 Cookie");
         return Err(authentication_error("未获取到场馆预约 SSO 令牌"));
     };
@@ -354,6 +356,57 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
     state.cgyy.set(token.clone());
     info!(target: "ubaa::cgyy", operation = "business_login", access_token_len = token.len(), "Cgyy 业务会话建立完成");
     Ok(token)
+}
+
+/// 从路线会话或 `WebVPN` 网关的 Cookie 同步接口取得 Cgyy SSO 令牌。
+///
+/// 浏览器端 `WebVPN` 通过脚本读取 `/wengine-vpn/cookie` 的纯文本 Cookie 快照；
+/// Core 不执行网页脚本，因此在 `WebVPN` 路线显式重放这个只读同步请求。令牌只在
+/// 当前请求内存中流转，不写入 Core 会话、日志或文件。
+async fn get_sso_token(runtime: &mut crate::runtime::ClientRuntime) -> Result<Option<String>> {
+    if let Some(token) = runtime.cookie_value(SSO_COOKIE) {
+        return Ok((!token.is_empty()).then_some(token));
+    }
+    if runtime.mode() != crate::domain::ConnectionMode::WebVpn {
+        return Ok(None);
+    }
+    let timestamp = timestamp_millis()?;
+    let mut url = url::Url::parse(WEBVPN_COOKIE_URL)
+        .map_err(|_| authentication_error("WebVPN Cookie 同步地址无效"))?;
+    url.query_pairs_mut()
+        .append_pair("method", "get")
+        .append_pair("host", "cgyy.buaa.edu.cn")
+        .append_pair("scheme", "https")
+        .append_pair("path", WEBVPN_COOKIE_PATH)
+        .append_pair("vpn_timestamp", &timestamp.to_string());
+    let mut request = HttpRequest::get(url.to_string());
+    request.headers.insert(
+        "Referer".into(),
+        runtime.url("https://cgyy.buaa.edu.cn/venue-zhjs")?,
+    );
+    debug!(
+        target: "ubaa::cgyy",
+        operation = "business_login.webvpn_cookie",
+        route = ?runtime.mode(),
+        host = "cgyy.buaa.edu.cn",
+        path = WEBVPN_COOKIE_PATH,
+        "读取 WebVPN Cgyy Cookie 快照"
+    );
+    let response = runtime.request(request).await?;
+    if response.status != 200 {
+        return Err(authentication_error("WebVPN Cookie 同步失败"));
+    }
+    let body = String::from_utf8_lossy(&response.body);
+    Ok(parse_cookie_snapshot(&body, SSO_COOKIE))
+}
+
+fn parse_cookie_snapshot(body: &str, name: &str) -> Option<String> {
+    body.split(';').find_map(|part| {
+        let (key, value) = part.trim().split_once('=')?;
+        (key.trim() == name)
+            .then(|| value.trim().to_owned())
+            .filter(|value| !value.is_empty())
+    })
 }
 
 async fn business_request(
