@@ -1,0 +1,6 @@
+# 源码与配置跨平台统一使用 LF，避免 Windows checkout 破坏 rustfmt 门禁。
+* text=auto eol=lf
+
+# Windows 命令解释器脚本保留原生换行。
+*.bat text eol=crlf
+*.cmd text eol=crlf
