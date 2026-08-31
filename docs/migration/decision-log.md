@@ -23,7 +23,7 @@
 
 ## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑
 
-重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 本次瞬时数量为 `include_expired/current/details_batch=40/0/0`，同日快照曾有 `80/48/48`、`49/17/17` 或 `209/209/209`，但列表、详情和批量详情均按当前依赖 ID 语义门禁记录。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
+重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 本次瞬时数量为 `include_expired/current/details_batch=49/17/17`，此前同日快照曾有 `80/48/48` 或更早的 `40/0/0`，但列表、详情和批量详情均按当前依赖 ID 语义门禁记录。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
 
 ## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
 
