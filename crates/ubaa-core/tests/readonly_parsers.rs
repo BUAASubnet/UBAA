@@ -32,8 +32,8 @@ fn schedule_and_exam_parsers_map_verified_wrappers_and_reject_nonzero_codes() {
 
 #[test]
 fn schedule_week_and_today_wrappers_preserve_frozen_nonzero_code_tolerance() {
-    // LocalScheduleApi.kt checks code only for terms and exams. The other
-    // three local parsers return their decoded datas payload directly.
+    // LocalScheduleApi.kt 只对学期和考试检查 code；另外三个本地解析器
+    // 直接返回解码后的 datas 载荷。
     let weeks = schedule::parse_weeks(
         r#"{"code":"7","datas":[{"startDate":"2026-01-01","endDate":"2026-01-07","term":"fixture","curWeek":false,"serialNumber":1,"name":"第1周"}]}"#,
     )

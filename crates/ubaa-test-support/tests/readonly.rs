@@ -3063,7 +3063,7 @@ impl HttpTransport for JudgeGroupedBatchTransport {
                 r#"<a href="courselist.jsp?courseID=1">Course 1</a>"#
             }
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=1" => {
-                // Give independent per-key workers time to observe the same missing cache entry.
+                // 给独立的键级 worker 留出时间观察同一个缺失缓存项。
                 tokio::time::sleep(Duration::from_millis(10)).await;
                 "selected"
             }

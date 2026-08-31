@@ -9,6 +9,7 @@ use crate::domain::{LibBookCancelResult, LibBookReserveRequest, LibBookReserveRe
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use serde_json::{Map, Value, json};
+use tracing::debug;
 
 use super::libbook_crypto::encrypt_reserve_request;
 
@@ -457,6 +458,16 @@ async fn request_json(
         ],
     )
     .await?;
+    debug!(
+        target: "ubaa::libbook",
+        operation = path,
+        route = ?runtime.mode(),
+        status = response.status,
+        final_url = %safe_url(&response.final_url),
+        body_len = response.body.len(),
+        body_shape = %safe_body_shape(&response.body),
+        "图书馆业务响应摘要"
+    );
     if response.status == 401 || (allow_retry && is_expired_body(&super::body(&response))) {
         if allow_retry {
             runtime.feature_state().libbook.clear_credential();
@@ -478,6 +489,60 @@ async fn request_json(
         ));
     }
     Ok(super::body(&response))
+}
+
+fn safe_url(value: &str) -> String {
+    url::Url::parse(value).map_or_else(
+        |_| "<无效 URL>".to_owned(),
+        |url| {
+            format!(
+                "{}://{}{}",
+                url.scheme(),
+                url.host_str().unwrap_or("<无主机>"),
+                url.path()
+            )
+        },
+    )
+}
+
+fn safe_body_shape(body: &[u8]) -> String {
+    let Ok(value) = serde_json::from_slice::<Value>(body) else {
+        return "非 JSON".to_owned();
+    };
+    let Some(object) = value.as_object() else {
+        return format!("顶层={}", json_kind(&value));
+    };
+    let mut keys = object.keys().cloned().collect::<Vec<_>>();
+    keys.sort_unstable();
+    let code = object.get("code").map_or_else(
+        || "无 code".to_owned(),
+        |value| format!("code={}", safe_scalar(value)),
+    );
+    let data = object.get("data").map_or_else(
+        || "无 data".to_owned(),
+        |value| format!("data={}", json_kind(value)),
+    );
+    format!("{}; keys={}; {}", code, keys.join(","), data)
+}
+
+fn json_kind(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "bool",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
+}
+
+fn safe_scalar(value: &Value) -> String {
+    match value {
+        Value::Number(number) => number.to_string(),
+        Value::Bool(value) => value.to_string(),
+        Value::String(value) => format!("字符串(len={})", value.len()),
+        _ => json_kind(value).to_owned(),
+    }
 }
 
 async fn current_credential(

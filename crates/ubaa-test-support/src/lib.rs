@@ -53,7 +53,7 @@ pub fn readonly_fixture(name: &str) -> Option<&'static str> {
     }
 }
 
-/// Reject common credential/header markers and plausible long numeric identifiers.
+/// 拒绝常见凭据/请求头标记及疑似较长个人数字标识。
 ///
 /// # Errors
 ///
@@ -68,7 +68,7 @@ pub fn assert_fixture_is_sanitized(fixture: &str) -> std::result::Result<(), Str
         "-----begin private key-----",
     ] {
         if lower.contains(marker) {
-            return Err(format!("fixture contains forbidden marker: {marker}"));
+            return Err(format!("fixture 包含禁止标记: {marker}"));
         }
     }
 
@@ -76,12 +76,12 @@ pub fn assert_fixture_is_sanitized(fixture: &str) -> std::result::Result<(), Str
         .split(|character: char| !character.is_ascii_digit())
         .any(|digits| digits.len() >= 8)
     {
-        return Err("fixture contains a plausible numeric personal identifier".into());
+        return Err("fixture 包含疑似个人数字标识".into());
     }
     Ok(())
 }
 
-/// One expected request and its deterministic response.
+/// 一条期望请求及其确定性响应。
 #[derive(Clone)]
 pub struct ExpectedRequest {
     method: HttpMethod,
@@ -155,7 +155,7 @@ impl MockTransport {
         }
     }
 
-    /// Verify that the protocol consumed every scripted request.
+    /// 验证协议已消费脚本中的全部请求。
     ///
     /// # Errors
     ///
@@ -211,7 +211,7 @@ impl HttpTransport for MockTransport {
     }
 }
 
-/// In-memory session store used by deterministic Core integration tests.
+/// 确定性 Core 集成测试使用的内存会话存储。
 #[derive(Clone, Debug, Default)]
 pub struct MemorySessionStore {
     state: Arc<Mutex<MemorySessionState>>,

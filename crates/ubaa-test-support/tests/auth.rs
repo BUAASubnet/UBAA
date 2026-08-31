@@ -950,7 +950,8 @@ async fn stale_client_cannot_recreate_a_session_cleared_by_another_process() {
     assert!(store.snapshot().unwrap().is_none());
     let next = stale_client.auth_status().await.unwrap_err();
     assert_eq!(next.code, ErrorCode::AuthenticationRequired);
-    assert_eq!(observer.requests().unwrap().len(), 1);
+    // 会话修订在请求前已被发现，后续无会话状态也不得再产生网络请求。
+    assert_eq!(observer.requests().unwrap().len(), 0);
 }
 
 #[tokio::test]

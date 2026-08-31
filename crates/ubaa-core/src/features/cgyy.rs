@@ -363,7 +363,9 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
 /// Core 不执行网页脚本，因此在 `WebVPN` 路线显式重放这个只读同步请求。令牌只在
 /// 当前请求内存中流转，不写入 Core 会话、日志或文件。
 async fn get_sso_token(runtime: &mut crate::runtime::ClientRuntime) -> Result<Option<String>> {
-    if let Some(token) = runtime.cookie_value(SSO_COOKIE, "https://cgyy.buaa.edu.cn/venue-zhjs")? {
+    // Cookie 的路径按实际场馆服务根目录匹配；不能使用 WebVPN 前端别名路径，
+    // 否则上游返回 `Path=/venue-zhjs-server/` 时会被错误过滤。
+    if let Some(token) = runtime.cookie_value(SSO_COOKIE, LOGIN_URL)? {
         return Ok((!token.is_empty()).then_some(token));
     }
     if runtime.mode() != crate::domain::ConnectionMode::WebVpn {
