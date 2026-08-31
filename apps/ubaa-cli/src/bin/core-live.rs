@@ -469,6 +469,8 @@ async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
         }
         Err(error) => {
             evidence.fail("judge", "current", error.code);
+            evidence.blocked("judge", "detail", "current_failed");
+            evidence.blocked("judge", "details_batch", "current_failed");
             return;
         }
     };
@@ -612,6 +614,7 @@ async fn run_bykc(client: &mut RouteClient, evidence: &mut Evidence) {
 }
 
 async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str) {
+    let mut sites_failed = false;
     let sites = match client.cgyy_sites().await {
         Ok(result) => {
             evidence.pass("cgyy", "sites", Some(result.data.len()));
@@ -619,6 +622,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
         }
         Err(error) => {
             evidence.fail("cgyy", "sites", error.code);
+            sites_failed = true;
             Vec::new()
         }
     };
@@ -631,9 +635,12 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             Ok(_) => evidence.pass("cgyy", "day", None),
             Err(error) => evidence.fail("cgyy", "day", error.code),
         }
+    } else if sites_failed {
+        evidence.blocked("cgyy", "day", "sites_failed");
     } else {
         evidence.not_applicable("cgyy", "day", "no_site_id");
     }
+    let mut orders_failed = false;
     let orders = match client.cgyy_orders(0, 20).await {
         Ok(result) => {
             evidence.pass("cgyy", "orders", Some(result.data.content.len()));
@@ -641,6 +648,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
         }
         Err(error) => {
             evidence.fail("cgyy", "orders", error.code);
+            orders_failed = true;
             ubaa_core::domain::CgyyOrdersPage::default()
         }
     };
@@ -649,6 +657,8 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             Ok(_) => evidence.pass("cgyy", "order_detail", None),
             Err(error) => evidence.fail("cgyy", "order_detail", error.code),
         }
+    } else if orders_failed {
+        evidence.blocked("cgyy", "order_detail", "orders_failed");
     } else {
         evidence.not_applicable("cgyy", "order_detail", "no_order_id");
     }
