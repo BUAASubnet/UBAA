@@ -118,6 +118,7 @@ impl Evidence {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit(
     route: &str,
     feature: &str,
