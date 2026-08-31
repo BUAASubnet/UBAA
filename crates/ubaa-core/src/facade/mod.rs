@@ -1444,7 +1444,8 @@ impl RouteClient {
     ///
     /// 返回稳定的输入、认证、网络或上游错误。
     pub async fn login(&mut self, input: LoginInput) -> Result<UserProfile> {
-        self.guard_session_ownership()?;
+        // 登录会发送凭据 POST，同样必须在任何网络副作用前确认修订仍归当前运行时所有。
+        self.guard_latest_session_ownership()?;
         let result = self.auth.login(&mut self.runtime, input).await;
         self.finish_session_operation(result)
     }

@@ -743,29 +743,9 @@ fn dual_snapshot(label: &str) -> DualSessionSnapshot {
 #[tokio::test]
 async fn persistence_conflict_clears_pending_login_workflow_state() {
     let login = "https://sso.buaa.edu.cn/login";
-    let landing = "https://uc.buaa.edu.cn/landing";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
     let page = r#"<form id="fm1"><input type="hidden" name="execution" value="e-cap"><input name="username"><input name="password"></form>"#;
     let transport = MockTransport::new([
         ExpectedRequest::new(HttpMethod::Get, login, response(200, login, page)),
-        ExpectedRequest::new(HttpMethod::Post, login, redirect(login, landing)),
-        ExpectedRequest::new(HttpMethod::Get, landing, response(200, landing, Vec::new())),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            activate,
-            response(200, activate, Vec::new()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            status,
-            response(
-                200,
-                status,
-                r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
-            ),
-        ),
         ExpectedRequest::new(HttpMethod::Get, login, response(503, login, Vec::new())),
     ]);
     let observer = transport.clone();
@@ -778,6 +758,7 @@ async fn persistence_conflict_clears_pending_login_workflow_state() {
     let conflict = client.login(login_input()).await.unwrap_err();
     assert_eq!(conflict.code, ErrorCode::InternalError);
     assert!(conflict.retryable);
+    assert_eq!(observer.requests().unwrap().len(), 1);
 
     let next = client.login(login_input()).await.unwrap_err();
     assert_eq!(next.code, ErrorCode::UpstreamUnavailable);
