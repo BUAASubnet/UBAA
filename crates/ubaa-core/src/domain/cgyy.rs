@@ -21,6 +21,25 @@ pub struct CgyyPurposeType {
     pub key: i32,
     pub name: String,
 }
+
+/// 场馆用途来源，用于把上游读取和冻结静态回退区分开。
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CgyyPurposeSource {
+    /// 成功解析上游用途接口。
+    Upstream,
+    /// 上游请求或响应不可用时使用冻结定义。
+    #[default]
+    StaticFallback,
+}
+
+/// 场馆用途及其安全来源诊断。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyPurposeTypes {
+    pub items: Vec<CgyyPurposeType>,
+    pub source: CgyyPurposeSource,
+}
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyTimeSlot {

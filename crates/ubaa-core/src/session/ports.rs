@@ -16,6 +16,11 @@ pub trait SessionStore: Send + Sync {
         replacement: Option<&SessionSnapshot>,
     ) -> Result<SessionMutation>;
 
+    /// 检查指定修订是否仍为外部持久化的最新修订，不采用外部快照。
+    fn is_revision_current(&self, expected_revision: u64) -> Result<bool> {
+        Ok(self.load_versioned()?.revision == expected_revision)
+    }
+
     /// 加载会话快照（如果存在）。
     fn load(&self) -> Result<Option<SessionSnapshot>> {
         self.load_versioned().map(|state| state.snapshot)

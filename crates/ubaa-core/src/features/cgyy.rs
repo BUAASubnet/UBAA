@@ -2,8 +2,8 @@
 #![allow(clippy::missing_errors_doc)]
 
 use crate::domain::{
-    CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType,
-    CgyySlotStatus, CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
+    CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeSource,
+    CgyyPurposeType, CgyySlotStatus, CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -619,12 +619,18 @@ pub(crate) async fn get_sites(
 pub(crate) async fn get_purpose_types(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<CgyyPurposeType>> {
+    Ok(get_purpose_types_with_source(runtime).await?.0)
+}
+
+pub(crate) async fn get_purpose_types_with_source(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<(Vec<CgyyPurposeType>, CgyyPurposeSource)> {
     // 冻结旧版在已有主会话后对动态用途接口使用 runCatching；请求或解析异常
     // 都回退到静态定义，而没有主会话仍由登录前置返回认证错误。
     super::require_session(runtime)?;
     match get(runtime, "/api/codes", BTreeMap::new()).await {
-        Ok(body) => parse_purpose_types(&body).or_else(|_| Ok(fallback_purpose_types())),
-        Err(_) => Ok(fallback_purpose_types()),
+        Ok(body) => parse_purpose_types_with_source(&body),
+        Err(_) => Ok((fallback_purpose_types(), CgyyPurposeSource::StaticFallback)),
     }
 }
 
@@ -1114,15 +1120,21 @@ pub fn parse_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
 
 /// 解析用途类型；上游未返回有效类型时使用冻结实现中的静态定义。
 pub fn parse_purpose_types(body: &str) -> Result<Vec<CgyyPurposeType>> {
+    Ok(parse_purpose_types_with_source(body)?.0)
+}
+
+fn parse_purpose_types_with_source(
+    body: &str,
+) -> Result<(Vec<CgyyPurposeType>, CgyyPurposeSource)> {
     let value = data(body)?;
     let mut result = Vec::new();
     collect_purpose_types(&value, &mut result);
     result.sort_by_key(|item| item.key);
     result.dedup_by_key(|item| item.key);
     Ok(if result.is_empty() {
-        fallback_purpose_types()
+        (fallback_purpose_types(), CgyyPurposeSource::StaticFallback)
     } else {
-        result
+        (result, CgyyPurposeSource::Upstream)
     })
 }
 

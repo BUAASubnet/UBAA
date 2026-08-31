@@ -123,6 +123,24 @@ impl ClientRuntime {
         self.authenticated_at.is_some()
     }
 
+    /// 在产生网络副作用前确认本地会话修订仍由当前运行时拥有。
+    ///
+    /// 只比较单调 CAS 修订，不重新采用外部快照；发现变化后由上层清理内存并拒绝操作。
+    pub(crate) fn ensure_session_revision(&self) -> Result<()> {
+        if !self.store.is_revision_current(self.session_revision)? {
+            return Err(session_conflict());
+        }
+        Ok(())
+    }
+
+    /// 会话为空时同步最新修订，允许随后开始新的登录流程。
+    pub(crate) fn sync_empty_session_revision(&mut self) -> Result<()> {
+        if !self.has_local_session() {
+            self.session_revision = self.store.load_versioned()?.revision;
+        }
+        Ok(())
+    }
+
     pub(crate) fn account_name(&self) -> Option<&str> {
         self.account_name.as_deref()
     }

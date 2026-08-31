@@ -148,6 +148,32 @@ impl DualSessionCoordinator {
         dual_session_conflict()
     }
 
+    pub(crate) fn is_revision_current(
+        &self,
+        mode: ConnectionMode,
+        expected_revision: u64,
+    ) -> Result<bool> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| session_error("dual session coordinator is unavailable"))?;
+        if state.conflicted {
+            return Ok(false);
+        }
+        let current = state.store.load_dual_versioned()?;
+        let route_revision = match mode {
+            ConnectionMode::Direct => state.direct_revision,
+            ConnectionMode::WebVpn => state.webvpn_revision,
+        };
+        if current.revision != state.revision || expected_revision != route_revision {
+            // 只进入终态并丢弃内存快照，绝不采用外部快照继续写入。
+            state.snapshot = DualSessionSnapshot::new(None, None);
+            state.conflicted = true;
+            return Ok(false);
+        }
+        Ok(true)
+    }
+
     pub(crate) fn clear_both(&self) -> Result<DualRouteRevisions> {
         let mut state = self
             .state
@@ -294,6 +320,11 @@ impl SessionStore for CoordinatedRouteSessionStore {
             }
         }
     }
+
+    fn is_revision_current(&self, expected_revision: u64) -> Result<bool> {
+        self.coordinator
+            .is_revision_current(self.mode, expected_revision)
+    }
 }
 
 impl SessionStore for RouteSessionStore {
@@ -338,6 +369,10 @@ impl SessionStore for RouteSessionStore {
             DualSessionMutation::Applied { revision } => Ok(SessionMutation::Applied { revision }),
             DualSessionMutation::Conflict => Ok(SessionMutation::Conflict),
         }
+    }
+
+    fn is_revision_current(&self, expected_revision: u64) -> Result<bool> {
+        Ok(self.inner.load_dual_versioned()?.revision == expected_revision)
     }
 }
 

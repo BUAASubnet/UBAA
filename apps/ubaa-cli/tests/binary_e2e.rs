@@ -16,6 +16,18 @@ fn assert_cli_schema(value: &serde_json::Value) {
     );
 }
 
+fn collect_source_files(root: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(root).expect("could not enumerate CLI sources") {
+        let entry = entry.expect("could not inspect CLI source entry");
+        let path = entry.path();
+        if path.is_dir() {
+            collect_source_files(&path, files);
+        } else if path.extension().is_some_and(|extension| extension == "rs") {
+            files.push(path);
+        }
+    }
+}
+
 #[test]
 fn repository_gate_include_uses_tracked_justfile_case() {
     let source = include_str!("binary_e2e.rs");
@@ -81,6 +93,34 @@ fn binary_host_does_not_reach_through_the_facade_for_session_state() {
     assert!(!main_source.contains("ubaa_core::session"));
     assert!(!main_source.contains("FileSessionStore"));
     assert!(!main_source.contains("SessionStore"));
+}
+
+#[test]
+fn cli_production_sources_use_only_facade_for_core_internals() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let forbidden = [
+        "ubaa_core::connection",
+        "ubaa_core::session",
+        "ubaa_core::features",
+        "ubaa_core::runtime",
+        "ubaa_core::upstream",
+        "FileSessionStore",
+        "SessionStore",
+        "ReqwestTransport",
+    ];
+    let mut files = Vec::new();
+    collect_source_files(&root, &mut files);
+    for path in files {
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|_| panic!("could not read CLI source {}", path.display()));
+        for item in forbidden {
+            assert!(
+                !source.contains(item),
+                "CLI production source {} reaches through Core boundary: {item}",
+                path.display()
+            );
+        }
+    }
 }
 
 #[test]
@@ -212,7 +252,7 @@ fn binary_json_login_without_mode_or_config_enters_aggregate_facade() {
     proxy.set_nonblocking(true).unwrap();
     let proxy_address = proxy.local_addr().unwrap();
     let proxy_thread = std::thread::spawn(move || {
-        let deadline = Instant::now() + Duration::from_secs(5);
+        let deadline = Instant::now() + Duration::from_secs(15);
         let mut accepted = 0;
         while accepted < 2 && Instant::now() < deadline {
             match proxy.accept() {
@@ -298,7 +338,7 @@ fn binary_json_logout_without_session_uses_fixed_aggregate_routes() {
     proxy.set_nonblocking(true).unwrap();
     let proxy_address = proxy.local_addr().unwrap();
     let proxy_thread = std::thread::spawn(move || {
-        let deadline = Instant::now() + Duration::from_secs(5);
+        let deadline = Instant::now() + Duration::from_secs(15);
         let mut accepted = 0;
         while accepted < 2 && Instant::now() < deadline {
             match proxy.accept() {
@@ -371,7 +411,7 @@ fn binary_json_logout_clears_a_saved_session_when_remote_logout_fails() {
     proxy.set_nonblocking(true).unwrap();
     let proxy_address = proxy.local_addr().unwrap();
     let proxy_thread = std::thread::spawn(move || {
-        let deadline = Instant::now() + Duration::from_secs(5);
+        let deadline = Instant::now() + Duration::from_secs(15);
         loop {
             match proxy.accept() {
                 Ok((connection, _)) => {

@@ -424,6 +424,60 @@ fn cgyy_auto_uses_the_resolved_webvpn_runtime() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn stale_writer_is_rejected_before_any_write_request() {
+    let root = test_root("stale-writer-before-request");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    let initial = SessionSnapshot {
+        mode: ConnectionMode::Direct,
+        cookies: Vec::new(),
+        authenticated_at: 1_000,
+        last_activity: 1_001,
+    };
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: initial.cookies.clone(),
+                authenticated_at: initial.authenticated_at,
+                last_activity: initial.last_activity,
+            }),
+            None,
+        ))
+        .unwrap();
+    let writes = Arc::new(AtomicUsize::new(0));
+    let config = RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap();
+    let mut client = UbaaClient::with_routing(
+        CountingTransport(writes.clone()),
+        CountingTransport(writes.clone()),
+        FileSessionStore::new(&root).unwrap(),
+        config,
+        NeverProbe,
+    )
+    .unwrap();
+
+    // 另一个进程已经写入同一路线，推进共享 CAS 修订。
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 2_002,
+            }),
+            None,
+        ))
+        .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let error = runtime.block_on(client.bykc_select_course(42)).unwrap_err();
+
+    assert_eq!(error.error.code, ErrorCode::InternalError);
+    assert_eq!(writes.load(Ordering::SeqCst), 0);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[derive(Clone)]
 struct CountingTransport(Arc<AtomicUsize>);
 

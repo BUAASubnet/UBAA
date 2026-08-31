@@ -19,6 +19,23 @@ impl RouteClient {
         }
     }
 
+    /// 在会产生网络副作用的入口前确认当前运行时仍拥有最新会话修订。
+    pub(super) fn guard_latest_session_ownership(&mut self) -> Result<()> {
+        self.guard_session_ownership()?;
+        if !self.runtime.has_local_session() && !self.auth.has_pending_login() {
+            self.runtime.sync_empty_session_revision()?;
+            return Ok(());
+        }
+        match self.runtime.ensure_session_revision() {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.runtime.clear_memory();
+                self.auth.clear();
+                Err(error)
+            }
+        }
+    }
+
     pub(super) fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
         self.guard_session_ownership()?;
         result

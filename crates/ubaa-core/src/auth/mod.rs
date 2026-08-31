@@ -166,6 +166,10 @@ impl AuthWorkflow {
         self.state.clear();
     }
 
+    pub(crate) fn has_pending_login(&self) -> bool {
+        self.state.page().is_some() || self.state.authenticated_ready()
+    }
+
     async fn validate_status(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
         let mut clear_workflow = || self.state.clear();
         user::validate_status(runtime, &mut clear_workflow).await?;

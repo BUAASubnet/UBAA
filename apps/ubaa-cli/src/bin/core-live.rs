@@ -64,6 +64,16 @@ struct Evidence {
 
 impl Evidence {
     fn pass(&self, feature: &str, operation: &str, count: Option<usize>) {
+        self.pass_with_fields(feature, operation, count, &[]);
+    }
+
+    fn pass_with_fields(
+        &self,
+        feature: &str,
+        operation: &str,
+        count: Option<usize>,
+        extra_fields: &[(&str, String)],
+    ) {
         emit(
             self.route,
             feature,
@@ -73,6 +83,7 @@ impl Evidence {
             count,
             None,
             self.started.elapsed().as_millis(),
+            extra_fields,
         );
     }
 
@@ -87,6 +98,7 @@ impl Evidence {
             None,
             None,
             self.started.elapsed().as_millis(),
+            &[],
         );
     }
 
@@ -101,6 +113,7 @@ impl Evidence {
             None,
             Some(reason),
             self.started.elapsed().as_millis(),
+            &[],
         );
     }
 
@@ -114,6 +127,7 @@ impl Evidence {
             None,
             Some(reason),
             self.started.elapsed().as_millis(),
+            &[],
         );
     }
 }
@@ -128,6 +142,7 @@ fn emit(
     count: Option<usize>,
     reason: Option<&str>,
     elapsed_ms: u128,
+    extra_fields: &[(&str, String)],
 ) {
     let mut fields = vec![
         format!("route={route}"),
@@ -145,6 +160,9 @@ fn emit(
     }
     if let Some(reason) = reason {
         fields.push(format!("reason={reason}"));
+    }
+    for (key, value) in extra_fields {
+        fields.push(format!("{key}={value}"));
     }
     println!("{}", fields.join(" "));
 }
@@ -221,6 +239,20 @@ async fn run(args: Args) -> Result<Evidence> {
         started: Instant::now(),
         failed: false,
     };
+    match client.prepare_login().await {
+        Ok(()) => evidence.pass_with_fields(
+            "auth",
+            "prepare",
+            None,
+            &[("mapping", "embedded_login_state".to_string())],
+        ),
+        Err(error) => {
+            evidence.fail("auth", "prepare", error.code);
+            evidence.blocked("auth", "login", "prepare_failed");
+            block_after_auth_failure(&mut evidence, &args.feature);
+            return Ok(evidence);
+        }
+    }
     match client
         .login(LoginInput {
             username,
@@ -231,6 +263,7 @@ async fn run(args: Args) -> Result<Evidence> {
         Ok(_) => evidence.pass("auth", "login", None),
         Err(error) => {
             evidence.fail("auth", "login", error.code);
+            block_after_auth_failure(&mut evidence, &args.feature);
             return Ok(evidence);
         }
     }
@@ -279,6 +312,56 @@ async fn run(args: Args) -> Result<Evidence> {
     Ok(evidence)
 }
 
+fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
+    const ALL: &[(&str, &str)] = &[
+        ("auth", "status"),
+        ("user", "info"),
+        ("schedule", "terms"),
+        ("schedule", "weeks"),
+        ("schedule", "current"),
+        ("schedule", "today"),
+        ("exam", "arrangement"),
+        ("grades", "query"),
+        ("classroom", "search"),
+        ("spoc", "assignments"),
+        ("spoc", "detail"),
+        ("judge", "include_expired"),
+        ("judge", "current"),
+        ("judge", "detail"),
+        ("judge", "details_batch"),
+        ("signin", "today"),
+        ("ygdk", "overview"),
+        ("ygdk", "records"),
+        ("libbook", "libraries"),
+        ("libbook", "areas"),
+        ("libbook", "area_detail"),
+        ("libbook", "seats"),
+        ("libbook", "bookings"),
+        ("bykc", "profile"),
+        ("bykc", "courses"),
+        ("bykc", "course_detail"),
+        ("bykc", "chosen"),
+        ("bykc", "statistics"),
+        ("cgyy", "sites"),
+        ("cgyy", "purposes"),
+        ("cgyy", "day"),
+        ("cgyy", "orders"),
+        ("cgyy", "order_detail"),
+        ("cgyy", "lock_code"),
+        ("evaluation", "all"),
+        ("evaluation", "pending"),
+    ];
+    for &(operation_feature, operation) in ALL {
+        let selected = feature == "all"
+            || feature == operation_feature
+            || operation_feature == "auth"
+            || (matches!(feature, "exam" | "grades") && operation_feature == "schedule");
+        if selected && !(operation_feature == "auth" && operation == "login") {
+            evidence.blocked(operation_feature, operation, "authentication_failed");
+        }
+    }
+}
+
 fn read_credentials() -> Result<(String, String)> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).map_err(|_| {
@@ -311,7 +394,7 @@ async fn run_auth_status(client: &mut RouteClient, evidence: &mut Evidence) {
 }
 
 async fn run_user(client: &mut RouteClient, evidence: &mut Evidence, feature: &str) {
-    if feature != "all" && feature != "user" && feature != "auth" {
+    if feature != "all" && feature != "user" {
         return;
     }
     match client.get_user_info().await {
@@ -421,10 +504,14 @@ async fn run_classroom(
 async fn run_spoc(client: &mut RouteClient, evidence: &mut Evidence) {
     let result = match client.spoc_assignments_diagnostics().await {
         Ok(result) => {
-            evidence.pass(
+            evidence.pass_with_fields(
                 "spoc",
                 "assignments",
                 Some(result.data.result.assignments.len()),
+                &[(
+                    "global_page_count",
+                    result.data.global_page_count.to_string(),
+                )],
             );
             result.data
         }
@@ -447,10 +534,18 @@ async fn run_spoc(client: &mut RouteClient, evidence: &mut Evidence) {
 async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
     match client.judge_assignments_diagnostics(true).await {
         Ok(result) => {
-            evidence.pass(
+            evidence.pass_with_fields(
                 "judge",
                 "include_expired",
                 Some(result.data.summaries.len()),
+                &[
+                    ("course_count", result.data.course_count.to_string()),
+                    ("raw_anchor_count", result.data.raw_anchor_count.to_string()),
+                    (
+                        "filtered_unique_count",
+                        result.data.filtered_unique_count.to_string(),
+                    ),
+                ],
             );
             result.data
         }
@@ -626,8 +721,16 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             Vec::new()
         }
     };
-    match client.cgyy_purpose_types().await {
-        Ok(result) => evidence.pass("cgyy", "purposes", Some(result.data.len())),
+    match client.cgyy_purpose_types_diagnostics().await {
+        Ok(result) => evidence.pass_with_fields(
+            "cgyy",
+            "purposes",
+            Some(result.data.items.len()),
+            &[(
+                "source",
+                purpose_source_name(result.data.source).to_string(),
+            )],
+        ),
         Err(error) => evidence.fail("cgyy", "purposes", error.code),
     }
     if let Some(site) = sites.first() {
@@ -669,6 +772,13 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
             Some(usize::from(result.data.available)),
         ),
         Err(error) => evidence.fail("cgyy", "lock_code", error.code),
+    }
+}
+
+fn purpose_source_name(source: ubaa_core::domain::CgyyPurposeSource) -> &'static str {
+    match source {
+        ubaa_core::domain::CgyyPurposeSource::Upstream => "upstream",
+        ubaa_core::domain::CgyyPurposeSource::StaticFallback => "static_fallback",
     }
 }
 

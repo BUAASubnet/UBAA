@@ -5,7 +5,6 @@ use std::io::{BufRead, Write};
 use async_trait::async_trait;
 use serde::Serialize;
 use serde_json::{Value, json};
-use ubaa_core::connection::RouteResolution;
 use ubaa_core::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
@@ -20,7 +19,9 @@ use ubaa_core::domain::{
     YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::error::{ExitCode, Result, UbaaError};
-use ubaa_core::facade::{RouteClient, Routed, RoutedError, RoutedResult, UbaaClient};
+use ubaa_core::facade::{
+    RouteClient, RouteResolution, Routed, RoutedError, RoutedResult, UbaaClient,
+};
 use ubaa_core::output::{
     AggregateJsonEnvelope, CliFeature, CliJsonError, ResolvedRoutedJsonMeta, RoutedJsonEnvelope,
     UnresolvedRoutedJsonMeta,

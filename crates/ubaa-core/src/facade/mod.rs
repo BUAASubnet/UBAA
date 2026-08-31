@@ -6,23 +6,21 @@ use std::time::Duration;
 
 use crate::auth::AuthWorkflow;
 use crate::config::{FeatureRouteConfig, RouteConfig};
-use crate::connection::{
-    CachingGatewayProbe, GatewayProbe, NetworkState, RouteDiagnostic, RouteResolution,
-    SystemGatewayProbe,
-};
+use crate::connection::{CachingGatewayProbe, GatewayProbe, SystemGatewayProbe};
 use crate::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
-    CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
-    CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput, DualLoginPreparation,
-    EvaluationCourse, EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult,
-    GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelResult, LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
-    LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState,
-    RoutePolicy, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes, CgyyReservationResult,
+    CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode, DualLoginInput,
+    DualLoginPreparation, EvaluationCourse, EvaluationCoursesResponse, EvaluationResult,
+    ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
+    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail,
+    LibBookBookingsPage, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
+    LibBookReserveResult, LibBookSeat, LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature,
+    RouteLoginResult, RouteLoginState, RoutePolicy, SigninActionResult, SigninClass,
+    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
+    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
+    YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, Result};
 use crate::features::user;
@@ -33,6 +31,8 @@ use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 mod types;
 use types::Operation;
 pub use types::{Routed, RoutedError};
+// 这些类型是宿主可见的安全路线诊断投影；其余 connection 实现仍属于 Core 内部。
+pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 mod aggregate_helpers;
 use aggregate_helpers::{
     alternate_route, authentication_required, failed_preparation, failed_route,
@@ -143,7 +143,7 @@ impl UbaaClient {
 
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
-        if let Err(error) = self.clear_on_session_conflict() {
+        if let Err(error) = self.guard_latest_session_ownership() {
             return failed_preparation(&error);
         }
         let mut routes = Vec::with_capacity(2);
@@ -167,7 +167,7 @@ impl UbaaClient {
 
     /// 分别向 Direct 和 `WebVPN` 提交凭据，并保留部分成功结果。
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
-        self.clear_on_session_conflict()?;
+        self.guard_latest_session_ownership()?;
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
@@ -208,7 +208,7 @@ impl UbaaClient {
 
     /// 清理两条路线流程及两个持久化槽位。
     pub async fn logout(&mut self) -> Result<()> {
-        self.clear_on_session_conflict()?;
+        self.guard_latest_session_ownership()?;
         self.direct_auth
             .remote_logout(&mut self.direct_runtime)
             .await;
@@ -390,6 +390,7 @@ impl UbaaClient {
         &mut self,
         pjjglist: Vec<serde_json::Value>,
     ) -> RoutedResult<Vec<EvaluationResult>> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -412,6 +413,7 @@ impl UbaaClient {
         &mut self,
         courses: Vec<EvaluationCourse>,
     ) -> RoutedResult<Vec<EvaluationResult>> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -429,6 +431,7 @@ impl UbaaClient {
     }
 
     pub async fn bykc_select_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -442,6 +445,7 @@ impl UbaaClient {
     }
 
     pub async fn bykc_deselect_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -458,6 +462,7 @@ impl UbaaClient {
         &mut self,
         request: BykcSignRequest,
     ) -> RoutedResult<BykcActionResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -498,6 +503,23 @@ impl UbaaClient {
             }
         };
         self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆用途并保留上游或静态回退来源诊断。
+    pub async fn cgyy_purpose_types_diagnostics(&mut self) -> RoutedResult<CgyyPurposeTypes> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_purpose_types_with_source(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_purpose_types_with_source(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(
+            resolution,
+            result.map(|(items, source)| CgyyPurposeTypes { items, source }),
+        )
     }
 
     /// 查询场馆日期可用性。
@@ -576,6 +598,7 @@ impl UbaaClient {
 
     /// 取消场馆预约订单。
     pub async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "orders.cancel");
         if id <= 0 {
@@ -600,6 +623,7 @@ impl UbaaClient {
         &mut self,
         request: CgyyReservationSubmitRequest,
     ) -> RoutedResult<CgyyReservationResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "reservation.submit");
         let result = match resolution.mode {
@@ -756,6 +780,7 @@ impl UbaaClient {
 
     /// 执行指定课程的课堂签到。
     pub async fn signin_perform(&mut self, course_id: &str) -> RoutedResult<SigninActionResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -883,6 +908,7 @@ impl UbaaClient {
         &mut self,
         request: LibBookReserveRequest,
     ) -> RoutedResult<LibBookReserveResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -896,6 +922,7 @@ impl UbaaClient {
     }
 
     pub async fn libbook_cancel_booking(&mut self, id: &str) -> RoutedResult<LibBookCancelResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -940,6 +967,7 @@ impl UbaaClient {
         &mut self,
         request: YgdkClockinSubmitRequest,
     ) -> RoutedResult<YgdkClockinSubmitResult> {
+        self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
         let result = match resolution.mode {
             ConnectionMode::Direct => {
@@ -1155,6 +1183,37 @@ impl UbaaClient {
             return Err(routed_error(authentication_required(), resolution));
         }
         Ok(resolution)
+    }
+
+    fn guard_latest_session_ownership(&mut self) -> Result<()> {
+        self.clear_on_session_conflict()?;
+        if !self.direct_runtime.has_local_session() && !self.direct_auth.has_pending_login() {
+            self.direct_runtime.sync_empty_session_revision()?;
+        }
+        if !self.webvpn_runtime.has_local_session() && !self.webvpn_auth.has_pending_login() {
+            self.webvpn_runtime.sync_empty_session_revision()?;
+        }
+        if (self.direct_runtime.has_local_session() || self.direct_auth.has_pending_login())
+            && let Err(error) = self.direct_runtime.ensure_session_revision()
+        {
+            self.clear_all_memory();
+            return Err(error);
+        }
+        if (self.webvpn_runtime.has_local_session() || self.webvpn_auth.has_pending_login())
+            && let Err(error) = self.webvpn_runtime.ensure_session_revision()
+        {
+            self.clear_all_memory();
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    fn guard_latest_routed(&mut self) -> std::result::Result<(), RoutedError> {
+        self.guard_latest_session_ownership()
+            .map_err(|error| RoutedError {
+                error,
+                resolution: None,
+            })
     }
 
     fn route_is_ready(&self, route: ConnectionMode) -> bool {
@@ -1374,7 +1433,7 @@ impl RouteClient {
     ///
     /// 返回安全的网络、认证或上游协议错误。
     pub async fn prepare_login(&mut self) -> Result<()> {
-        self.guard_session_ownership()?;
+        self.guard_latest_session_ownership()?;
         let result = self.auth.prepare_login(&mut self.runtime).await;
         self.finish_session_operation(result)
     }
@@ -1420,7 +1479,7 @@ impl RouteClient {
     ///
     /// 返回持久化或修订版本错误；远程注销失败会被有意忽略。
     pub async fn logout(&mut self) -> Result<()> {
-        self.guard_session_ownership()?;
+        self.guard_latest_session_ownership()?;
         let result = self.auth.logout(&mut self.runtime).await;
         self.finish_session_operation(result)
     }
@@ -1447,6 +1506,22 @@ impl RouteClient {
         let result = crate::features::cgyy::get_purpose_types(&mut self.runtime).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询场馆用途并保留上游或静态回退来源诊断。
+    pub async fn cgyy_purpose_types_diagnostics(
+        &mut self,
+    ) -> Result<FeatureResult<CgyyPurposeTypes>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::cgyy::get_purpose_types_with_source(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(
+            &self.runtime,
+            CgyyPurposeTypes {
+                items: data.0,
+                source: data.1,
+            },
+        ))
     }
 
     /// 查询场馆日期可用性。
@@ -1499,7 +1574,7 @@ impl RouteClient {
 
     /// 取消场馆预约订单。
     pub async fn cgyy_cancel_order(&mut self, id: i32) -> Result<FeatureResult<CgyyActionResult>> {
-        self.guard_session_ownership()?;
+        self.guard_latest_session_ownership()?;
         if id <= 0 {
             return Err(invalid_input("订单标识必须为正数"));
         }
@@ -1513,7 +1588,7 @@ impl RouteClient {
         &mut self,
         request: CgyyReservationSubmitRequest,
     ) -> Result<FeatureResult<CgyyReservationResult>> {
-        self.guard_session_ownership()?;
+        self.guard_latest_session_ownership()?;
         let result = crate::features::cgyy::submit_reservation(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1575,7 +1650,7 @@ impl RouteClient {
         &mut self,
         pjjglist: Vec<serde_json::Value>,
     ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
-        self.guard_session_ownership()?;
+        self.guard_latest_session_ownership()?;
         let result = crate::features::evaluation::submit_payload(&mut self.runtime, pjjglist).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1586,7 +1661,7 @@ impl RouteClient {
         &mut self,
         courses: Vec<EvaluationCourse>,
     ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
-        self.guard_session_ownership()?;
+        self.guard_latest_session_ownership()?;
         let result = crate::features::evaluation::submit_courses(&mut self.runtime, courses).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1596,6 +1671,7 @@ impl RouteClient {
         &mut self,
         course_id: i64,
     ) -> Result<FeatureResult<BykcActionResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::bykc::select_course(&mut self.runtime, course_id).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1604,6 +1680,7 @@ impl RouteClient {
         &mut self,
         course_id: i64,
     ) -> Result<FeatureResult<BykcActionResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::bykc::deselect_course(&mut self.runtime, course_id).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1612,6 +1689,7 @@ impl RouteClient {
         &mut self,
         request: BykcSignRequest,
     ) -> Result<FeatureResult<BykcActionResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::bykc::sign_course(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1710,6 +1788,7 @@ impl RouteClient {
         &mut self,
         course_id: &str,
     ) -> Result<FeatureResult<SigninActionResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::signin::perform_signin(&mut self.runtime, course_id).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1789,6 +1868,7 @@ impl RouteClient {
         &mut self,
         request: LibBookReserveRequest,
     ) -> Result<FeatureResult<LibBookReserveResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::libbook::reserve(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1798,6 +1878,7 @@ impl RouteClient {
         &mut self,
         id: &str,
     ) -> Result<FeatureResult<LibBookCancelResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::libbook::cancel_booking(&mut self.runtime, id).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
@@ -1827,6 +1908,7 @@ impl RouteClient {
         &mut self,
         request: YgdkClockinSubmitRequest,
     ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
+        self.guard_latest_session_ownership()?;
         let result = crate::features::ygdk::submit_clockin(&mut self.runtime, request).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
