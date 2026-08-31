@@ -9,7 +9,12 @@ set(PROJECT_NAME "ubaa_bindings")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} ../../../crates/ubaa-flutter-bridge ubaa_flutter_bridge "")
+get_filename_component(
+  UBAA_RUST_CRATE_DIR
+  "${CMAKE_SOURCE_DIR}/../../../crates/ubaa-flutter-bridge"
+  ABSOLUTE
+)
+apply_cargokit(${PROJECT_NAME} "${UBAA_RUST_CRATE_DIR}" ubaa_flutter_bridge "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an

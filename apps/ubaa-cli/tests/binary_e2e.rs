@@ -479,3 +479,21 @@ fn binary_json_logout_clears_a_saved_session_when_remote_logout_fails() {
     assert!(store.load().unwrap().is_none());
     let _ = std::fs::remove_dir_all(config);
 }
+
+#[test]
+fn windows_cargokit_manifest_avoids_plugin_junction_parent_traversal() {
+    let windows_cmake = include_str!("../../../packages/ubaa_bindings/windows/CMakeLists.txt");
+    let cargokit_cmake =
+        include_str!("../../../packages/ubaa_bindings/cargokit/cmake/cargokit.cmake");
+
+    assert!(windows_cmake.contains("${CMAKE_SOURCE_DIR}/../../../crates/ubaa-flutter-bridge"));
+    assert!(windows_cmake.contains(
+        "apply_cargokit(${PROJECT_NAME} \"${UBAA_RUST_CRATE_DIR}\" ubaa_flutter_bridge \"\")"
+    ));
+    assert!(
+        !windows_cmake
+            .contains("apply_cargokit(${PROJECT_NAME} ../../../crates/ubaa-flutter-bridge")
+    );
+    assert!(cargokit_cmake.contains("if(IS_ABSOLUTE \"${manifest_dir}\")"));
+    assert!(cargokit_cmake.contains("CARGOKIT_MANIFEST_DIR=${CARGOKIT_MANIFEST_DIR}"));
+}
