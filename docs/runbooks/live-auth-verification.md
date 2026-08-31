@@ -1,25 +1,38 @@
-# Live Authentication Verification
+# 实时认证验证
 
-Status: local-only verifier implemented and deterministically tested. Fresh Direct and WebVPN authentication checks passed on the corrected 2026-08-26 HEAD; older 2026-08-17 and 2026-08-23 results remain historical observations only.
+状态：本地验证器已实现并通过确定性测试。修正后的 2026-08-26 HEAD 已通过 Direct 和
+WebVPN 认证检查；更早的 2026-08-17、2026-08-23 结果仅作历史观察。
 
-Live verification loads only the two required variable names from the ignored `.env.local`, builds with locked dependencies, passes username and password through standard input, uses a mode-0700 temporary configuration directory, logs in, fetches the User Center profile, and validates `auth status`. Every parsed CLI value must be a schema-v2 envelope with closed metadata. Profile checks require the complete stable eight-field DTO, nonempty name/school ID, and an already-masked or absent phone/identity number. Aggregate `all_ready` or `partial` output must contain that profile, while `none_ready` must omit it. Failed routes must carry a stable safe error, ready routes must omit errors, and no route result may contain challenge or image fields. If the upstream login page requires an interactive verification step, Core returns `upstream_changed`; the verifier records the safe failure and does not prompt, fetch an image, or retry. Known credential, session, request and response key aliases are rejected independently of their value. It records only policy/route, outcome, duration, stable error code, and whether required profile fields were parsed. The script keeps command output in memory and removes its temporary directory on exit; it never retains raw responses, Cookie headers, verification material, or profile fields.
+实时验证只从被忽略的 `.env.local` 读取两个必需变量，使用锁定依赖构建，通过标准输入传递
+用户名和密码，使用 mode-0700 临时配置目录，执行登录、获取用户中心资料并校验 `auth status`。
+每个解析的 CLI 值都必须是带封闭元数据的 schema-v2 envelope。资料校验要求稳定八字段 DTO 完整、
+姓名/学号非空，手机号/证件号已脱敏或缺失。聚合 `all_ready` 或 `partial` 输出必须包含资料，
+`none_ready` 必须省略。失败路线必须携带安全稳定错误，就绪路线不得携带错误，任何路线结果
+都不得包含挑战或图片字段。若登录页要求交互式验证，Core 返回 `upstream_changed`；验证器
+记录安全失败，不提示、不下载图片、不重试。无论值为何，已知凭据、会话、请求和响应键别名
+都会独立拒绝。验证器只记录策略/路线、结果、耗时、稳定错误码及必需资料字段是否解析；命令
+输出仅保存在内存中，退出时删除临时目录，不保留原始响应、Cookie Header、验证材料或资料字段。
 
-Run each mode explicitly:
+显式运行两条路线：
 
 ```bash
 just verify-live feature=auth route=direct
 just verify-live feature=auth route=webvpn
 ```
 
-These explicit commands use the hidden route-locked diagnostic entry point to establish each route independently. The historical `mode=direct|webvpn` form remains only as a compatibility alias. Read-only and `auto` verification instead performs aggregate login and requires the atomic Direct/WebVPN coordinator to make both slots ready.
+这些显式命令使用隐藏的锁定路线诊断入口，独立建立每条路线的证据。历史
+`mode=direct|webvpn` 形式仅保留为兼容别名。只读全量和 `auto` 验证改为执行聚合登录，并要求
+原子 Direct/WebVPN 协调器使两个槽位都就绪。
 
-Never attach raw output, session files, cookies, upstream verification material, or complete profile fields to an issue or commit.
+绝不要把原始输出、会话文件、Cookie、上游验证材料或完整资料字段附加到 issue 或提交中。
 
-## Evidence log
+## 证据记录
 
-| Mode | Status | Evidence |
+| 路线 | 状态 | 证据 |
 |---|---|---|
 | Direct | Passed on corrected 2026-08-26 HEAD | Fresh `auth_status` verification exited 0 and parsed the user on Direct |
 | WebVPN | Passed on corrected 2026-08-26 HEAD | Fresh `auth_status` verification exited 0 and parsed the user on WebVPN |
 
-There is no human fallback. The verifier permanently disables inherited shell xtrace before reading `.env.local`; it never prints or records the password, digest salt, Judge payload, upstream verification material, or complete profile. An `upstream_changed` login result is a hard evidence failure for that route and must be recorded with the exact rerun condition rather than worked around interactively.
+没有人工回退。验证器在读取 `.env.local` 前永久关闭继承的 Shell xtrace；绝不打印或记录密码、
+摘要盐、Judge 正文、上游验证材料或完整资料。`upstream_changed` 登录结果是该路线的硬证据
+失败，必须记录精确重跑条件，不能通过交互式方式绕过。

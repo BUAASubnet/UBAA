@@ -1,32 +1,27 @@
-# UBAA2 Engineering Standards
+# UBAA2 工程规范
 
-This document is the repository-wide contract for Rust Core and CLI work. Core owns
-protocol facts, routing, session/cookie scope, crypto, parsing, caching and concurrency.
-Hosts call only the facade and may not inspect upstream responses or session storage.
+本文是 Rust Core 和 CLI 工作的仓库级合同。Core 负责协议事实、路由、会话/Cookie 作用域、
+密码学、解析、缓存和并发。宿主只能调用 facade，不得检查上游响应或会话存储。
 
-Every direct operation must have a source-parity row covering bootstrap and service URLs,
-redirect/final URL rules, cookie/session scope, method and exact parameters, headers/body,
-crypto/signatures, DTO/parser fields, caching/concurrency, and error/exit semantics. Evidence
-order is live upstream observation, frozen `ubaa_old`, then pinned `examples/buaa-api`.
-Conflicts are recorded in `docs/migration/decision-log.md`; fields are never guessed.
+每个 Direct 操作都必须有 source-parity 行，覆盖引导/服务 URL、重定向/最终 URL 规则、
+Cookie/会话作用域、HTTP 方法和精确参数、Header/正文、加密/签名、DTO/解析字段、缓存/并发
+以及错误/退出语义。证据顺序为真实上游观察、冻结 `ubaa_old`、固定版本
+`examples/buaa-api`。冲突记录在 `docs/migration/decision-log.md`，不得猜测字段。
 
-Feature changes use a failing sanitized fixture or Mock request first, then the smallest
-implementation, focused tests, `just check-sensitive`, and `just check`. Sensitive inputs
-(`ubaa_old`, `examples`, `.env.local`, sessions, cookies, tokens, captcha images and live
-bodies) are read-only and never staged, logged or persisted.
+功能修改先添加会失败的脱敏 Fixture 或 Mock 请求，再做最小实现，运行 focused 测试、
+`just check-sensitive` 和 `just check`。敏感输入（`ubaa_old`、`examples`、`.env.local`、
+Session、Cookie、令牌、验证码图片和实时正文）只读，绝不暂存、记录或持久化。
 
-Read operations must be verifiable independently on Direct, WebVPN and auto routes. Live
-verification never invokes a write. Every write has deterministic request/parser evidence and
-is blocked by default at the CLI with an explicit `--confirm-write` gate; confirmation does
-not bypass Core validation or route/session ownership checks.
+只读操作必须能在 Direct、WebVPN 和 auto 路线上独立验证。实时验证绝不调用写操作。每个写
+操作都必须有确定性的请求/解析证据，并在 CLI 默认阻止、要求显式 `--confirm-write`；确认
+不能绕过 Core 校验或路线/会话所有权检查。
 
-Stable CLI output is schema version 2: JSON goes only to stdout, diagnostics to stderr, and
-exit codes are limited to the documented taxonomy. Human output must not expose credentials,
-cookies, raw upstream bodies, complete HTML or captcha data.
+稳定 CLI 输出为 schema 版本 2：JSON 只写 stdout，诊断写 stderr，退出码限定于文档分类。
+人工输出不得暴露凭据、Cookie、上游原始正文、完整 HTML 或验证码数据。
 
-Code is organized by domain, ports, connection, session, auth, features, facade, commands,
-execution and render. New logic belongs in the smallest owning module; do not extend a
-multi-thousand-line host file when a feature module or command helper is appropriate.
+代码按 domain、ports、connection、session、auth、features、facade、commands、execution 和
+render 分层。新逻辑应放在拥有其不变量的最小模块中；已有合适的功能模块或命令辅助模块时，
+不要继续扩展数千行的宿主文件。
 
 ## 跨宿主交接规范
 

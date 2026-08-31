@@ -1,8 +1,10 @@
-# Development Setup
+# 开发环境设置
 
-Install Git, Rustup, `just`, Bash, `jq`, and the platform shell utilities used by the deterministic verifier. The pinned `rust-toolchain.toml` selects Rust 1.95.0 with rustfmt and Clippy. Live verification is non-interactive and uses credentials only through stdin.
+安装 Git、Rustup、`just`、Bash、`jq` 以及确定性验证器使用的平台 Shell 工具。固定的
+`rust-toolchain.toml` 选择 Rust 1.95.0，并启用 rustfmt 与 Clippy。实时验证是非交互式的，
+凭据只通过 stdin 使用。
 
-From a clean checkout:
+在干净工作树中执行：
 
 ```bash
 just refs
@@ -10,6 +12,10 @@ cargo metadata --locked --no-deps --format-version 1
 just check
 ```
 
-`just refs` creates missing ignored references at fixed commits and refuses to overwrite or normalize existing directories. `just check` validates the lockfile, uses locked dependency resolution, and never reads `.env.local`. Live tests additionally need an ignored `.env.local` created from `.env.example`; never commit its values.
+`just refs` 会按固定提交创建缺失的忽略引用目录，并拒绝覆盖或规范化已有目录。`just check`
+校验锁文件、使用锁定依赖解析，且从不读取 `.env.local`。实时测试还需要根据 `.env.example`
+创建被忽略的 `.env.local`；绝不提交其中的值。
 
-The Linux CI job runs the complete `just` gates. macOS and Windows jobs use the same pinned Rust toolchain and locked Rust-only Clippy, test, build, and documentation commands plus formatting, so platform-specific session replacement, revision locking, and no-follow opens remain exercised without requiring Bash fixtures on Windows.
+Linux CI 任务运行完整 `just` 门禁。macOS 和 Windows 任务使用相同的固定 Rust 工具链，并
+运行带锁定依赖的 Clippy、测试、构建、文档和格式化命令，使平台相关的会话替换、revision
+锁和 no-follow 打开逻辑得到覆盖；Windows 不需要 Bash Fixture。

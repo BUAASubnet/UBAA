@@ -1,6 +1,11 @@
-# Architecture Overview
+# 架构概览
 
-The current product boundary is a platform-independent Rust Core plus a Rust CLI host. `UbaaClient` is the ordinary aggregate facade: it owns validated route configuration, the cached gateway-reachability probe, independent Direct and WebVPN runtimes, and one atomic dual-session coordinator. `UbaaClient::open` loads both slots from one revisioned schema-v2 snapshot without exposing the session store to hosts. `RouteClient` is a route-locked diagnostic/test entry point, not the ordinary host API. Direct and WebVPN URL strategy is applied before every upstream request; the raw transport never follows redirects or owns a global Cookie store.
+当前产品边界是与平台无关的 Rust Core 加 Rust CLI 宿主。`UbaaClient` 是普通聚合 facade，
+负责经过校验的路由配置、带缓存的网关可达性探测、独立的 Direct/WebVPN runtime 以及一个
+原子双路线会话协调器。`UbaaClient::open` 从一个带 revision 的 schema-v2 快照加载两个槽位，
+不会向宿主暴露会话存储。`RouteClient` 是锁定路线的诊断/测试入口，不是普通宿主 API。每次
+上游请求前都会应用 Direct 或 WebVPN URL 策略；原始传输既不自动跟随重定向，也不拥有全局
+Cookie 存储。
 
 ```text
 CLI / future bindings
@@ -16,4 +21,8 @@ CLI / future bindings
  connection + ports (HTTP, persistence)
 ```
 
-The CLI host reaches Core only through the facade; the `upstream` parser/URL module is crate-private. Actual-envelope JSON schema validation, aggregate schema-v2 login output, argument-error envelopes, explicit rejection of unsupported interactive login steps, redacted presentation, atomic revisioned dual sessions, Core-owned TCP route diagnostics, and the non-interactive local verifier are implemented. The six business parsers and facade methods have deterministic fixture coverage; current Direct/WebVPN/auto evidence remains a separate live gate. Flutter, MCP, server relay, and write APIs are not implemented.
+CLI 宿主只能通过 facade 访问 Core；`upstream` 解析/URL 模块为 crate-private。实际 envelope 的
+JSON Schema 校验、schema-v2 聚合登录输出、参数错误 envelope、不支持交互式登录步骤的显式
+拒绝、脱敏展示、带 revision 的原子双路线会话、Core 所有的 TCP 路由诊断和非交互式本地验证器
+均已实现。标准和扩展业务解析器及 facade 方法均有确定性 Fixture 覆盖；当前 Direct/WebVPN/
+auto 证据仍是独立的实时门禁。Flutter、MCP、服务器中继和真实写验证不属于本周期交付。
