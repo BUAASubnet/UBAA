@@ -1,6 +1,8 @@
 # 文档索引
 
 - 架构概览：`architecture/overview.md`
+- Flutter 六平台版本与验收矩阵：`architecture/flutter-platforms.md`
+- Flutter + FRB 六平台宿主决策：`adr/0005-flutter-frb-six-platforms.md`
 - 认证合同：`contracts/auth-and-user.md`
 - 路由策略：`contracts/route-policy.md`
 - 只读功能合同：`contracts/readonly-features.md`

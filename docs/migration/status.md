@@ -1,6 +1,32 @@
 # 迁移状态
 
-更新日期：2026-08-31
+更新日期：2026-09-01
+
+## 2026-09-01 Flutter 六平台 P0 基线
+
+已按新的 `goal.md` 开始 P0。开始时工作树包含用户已有的 Flutter/OHOS 探索骨架、
+共享 Dart package、版本矩阵与 ADR，均先按未验收输入保留。冻结引用验证通过：
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。
+
+本轮基线事实：
+
+- `just check` 完整通过；首次 `just check-sensitive` 被共享 package 的可再生 Dart
+  二进制测试缓存误报阻断，未发现源码秘密。缓存移到系统临时目录并增加 package 级
+  `.dart_tool`/`build`/`coverage` 忽略规则后，敏感扫描通过（327 个仓库文件）。
+- 官方 Flutter `3.41.9` 固定在提交
+  `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694`，OHOS fork
+  `3.41.10-ohos-1.0.1` 固定在提交
+  `adaf911c35c9136a7d18fc424d714c9ec7724e60`；两者均为 Dart `3.11.5`。
+- 官方 SDK 下 `ubaa_domain`、`ubaa_platform`、`ubaa_app` 与官方宿主的 analyze/test
+  通过；`ubaa_ui` analyze 通过但初始没有测试，已作为 P0 缺口补最小 widget 测试后复验。
+- 本机 DevEco Command Line Tools 为 `6.0.1.251`、OpenHarmony API 21，不能满足
+  合同锁定的 CLI/API 26；当前只作为失败边界证据，未将 API 18/21 冒充发布基线。
+- 当前探索 UI 仍含 Demo backend、摘要卡片和占位详情，不是产品验收结果；P1 至 P4
+  必须由 FRB production backend、完整 DTO/页面和一次性写确认流程替换。
+
+本节仅记录确定性和工具链事实；未执行任何真实账号写操作，也未读取、输出或暂存
+`.env.local`、会话、Cookie、token、验证码图片或真实响应。
 
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 

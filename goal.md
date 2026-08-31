@@ -1,659 +1,426 @@
-# UBAA Core + CLI 收口、验证与交接执行目标
+# UBAA Flutter 六平台全功能正式版执行计划
 
-状态：部分完成（代码、文档与确定性门禁已完成；图书馆分区详情最近一次样本在非营业时间，需在每日 08:30–23:00（Asia/Shanghai）窗口内重跑）
-周期：2026-08-31 起
-项目根目录：`/Users/moorefoss/Code/UBAA`
+状态：P0 进行中（基线与工具链核验）
+计划确认日期：2026-09-01
+项目根目录：/Users/moorefoss/Code/UBAA
 
-本文件是本周期 Codex 的唯一活动目标和执行合同。Codex 必须持续推进到本文件的完成条件满足；不能只完成分析、列出建议或只提交局部修复。每个阶段都要留下可审查的代码、测试、文档和提交记录。
+本文件是当前阶段唯一的活动执行计划。目标是以现有 Rust Core/facade 为唯一业务核心，交付共享 Dart/UI 的 Flutter 正式版，覆盖 Windows、macOS、Linux、Android、iOS 和 HarmonyOS，并让当前迁移矩阵中的全部用户可见读取与写入能力在六个平台可用。
 
-本周期的最终目标是：整理并稳定 Rust Core 与 CLI，修复 Cgyy 的统一路由行为，建立可复核的 Direct/WebVPN 真实只读验证，清理无用内容，完成一次完整代码审查，并把文档整理到可以开始 app、SDK 和 MCP 开发的状态。
+“完成”必须同时意味着：功能完整、六平台可复现构建、正式签名产物、真实设备验证、写操作安全闭环、隐私和凭据安全、Direct/WebVPN 路线证据以及发布文档齐备。空壳页面、Demo backend、Mock 成功、单个平台编译通过或仅实现读取能力都不能宣告完成。
 
-本周期不实现 app、SDK、MCP、Flutter、Server 或其他宿主；只为这些后续宿主提供稳定、文档化的 Core facade 和 CLI 合同。
+## 1. 已确认的产品决策
 
-## 1. 当前基线和变更管理
+- 技术路线：Flutter + flutter_rust_bridge（FRB），Rust Core 继续负责全部协议、认证、路由、Cookie、Session、加密、解析和业务规则。
+- 平台路线：Windows、macOS、Linux、Android、iOS 使用官方 Flutter；HarmonyOS 使用锁定的 CPF-Flutter/OpenHarmony fork。
+- 共享方式：六个平台共享 domain、app、UI 和 FRB Dart API，只保留宿主、签名、权限和平台安全存储差异。
+- UI：保留旧版 UBAA 的品牌、中文标签、导航层级、菜单顺序、Material 3 风格和主要交互体验，不要求像素级复制。
+- 网络路线：Auto 为默认；设置中提供 Direct 和 WebVPN；不提供 Server Relay。Dart 不拼 URL、不处理 Cookie、不自行探测或切换路线。
+- 正式版范围：覆盖 docs/migration/full-feature-matrix.md 与当前 facade 中所有面向用户的读取和写入能力。
+- 账号：单账号；支持安全持久化密码和自动登录。登录流程不猜测或预留尚未由 Core 证明的交互验证码；只有已有协议证据和 typed facade 合同的业务挑战才进入 UI，材料不持久化。
+- 系统：只承诺仍受上游框架或厂商支持的主流系统版本，具体范围由第 8 节的实际构建和设备证据定稿。
+- 冻结参考：ubaa_old/、examples/、.env.local、运行时会话和真实响应始终只读。
 
-1. 当前工作区中已经存在的未提交代码改动作为本周期基线，不把它们当作已经验收通过的代码。
-2. 不要求在工作树中保留旧版 `goal.md` 的副本；替换后的本文件立即成为活动合同。旧内容如已存在于 Git 历史，不需要再复制到文档目录。
-3. 开始任何功能改动前必须执行：
+## 2. 范围权威与变更规则
 
-   ```text
-   git status --short --branch
-   just refs
-   just check-sensitive
-   just check
-   ```
+功能范围按以下顺序确定：
 
-   如果基线检查失败，必须在 `docs/migration/status.md` 记录具体失败，不得通过删除测试、放宽门禁或伪造结果来“修复”基线。
-4. 当前基线应尽快拆成可审查提交；格式整理、结构重构、Cgyy 路由、测试入口、清理和文档不得全部混在一个不可审查的提交中。
-5. 每个阶段完成后都要检查 `git diff --check`、暂存文件和敏感信息。禁止使用会把嵌套参考仓库或运行时文件一起加入的宽泛 `git add .`。
-6. `ubaa_old/`、`examples/`、`.env.local`、运行时 session、Cookie、Token、验证码图片和真实响应始终只读，不能修改或提交。
+1. docs/migration/full-feature-matrix.md 中记录的旧版用户能力；
+2. crates/ubaa-core/src/facade 当前公开的稳定业务方法；
+3. docs/contracts 下的认证、路线、会话、读取功能和 CLI JSON 合同；
+4. 冻结旧版 UI、接口、DTO、实现和测试；
+5. 必要时由安全实时观察补充当前上游事实。
 
-## 2. 范围、非目标和安全底线
+隐藏诊断入口、原始上游 payload、Cookie/token、验证码内部材料和仅供测试的 RouteClient 不属于用户功能。若执行中发现矩阵与 facade 冲突，先记录差异、确定产品语义、更新本计划或链接的合同，再修改生产代码。
 
-### 2.1 本周期必须完成
+已有未提交 Flutter/OHOS 骨架只是此前探索产物，不因存在于工作树就自动成为验收基线。P0 必须逐文件审查、保留有证据的部分、重写不符合计划的部分，并记录最终采用结果。
 
-- 统一 Rust、Shell、测试和文档相关的格式、目录职责和命名；保持目录有真实职责，不创建空模块。
-- 清理确认无用、无引用或被等价合同完全替代的测试、脚本和临时文档。
-- 将 Cgyy 接入与其他功能相同的 Direct/WebVPN/auto 路由语义，不再在 WebVPN 主路线下强制使用 Direct 业务传输。
-- 完成 Core 确定性测试、Core-live 真实只读测试、CLI 合同测试、CLI 二进制端到端测试和启动器安全测试。
-- 完成当前功能清单中所有读操作的 Direct 与 WebVPN 逐操作真实证据；auto 只通过确定性路由测试，不做额外真实登录矩阵。
-- 完成当前 Core 与 CLI 已纳入范围的读写能力实现检查。写操作只实现、只做 Fixture/Mock/向量/阻止路径测试，绝不在真实账号上执行。
-- 对完整代码和文档差异进行独立审查，修复审查发现的问题。
-- 整理 `docs/` 中的项目文档和 Rust/Shell 代码注释，使维护性说明使用中文、职责清晰、没有重复结论，并补齐后续宿主所需的公共合同说明。
+### 2.1 强制来源对照门禁
 
-### 2.2 明确不做
+每个认证、读取和写入操作在修改生产代码前，都必须分别对照 docs/migration/references.md 固定提交中的 ubaa_old 和 examples/buaa-api，并在 docs/migration/source-parity.md 或链接的决策记录中逐项固定：
 
-- 不在本周期实现 app、SDK、MCP、Flutter、OpenHarmony、Node、Swift、Kotlin、ArkTS、Server 或旧 API 兼容层。
-- 不在真实上游执行签到、选课、退选、打卡提交、照片上传、图书馆预约/取消、场馆预约/取消、评教提交或任何其他业务写操作。
-- 不增加跨多个独立 CLI 进程的全局客户端、常驻 daemon 或 CLI 会话，也不持久化 Cgyy 业务令牌。Core-live 的内部验证批次例外允许复用一个客户端，但不向普通 CLI 扩展该能力。
-- 不关闭 TLS 校验，不绕过 CAS/SSO，不硬编码账号，不把凭据放进命令行参数、Fixture、日志或文档。
-- 不通过猜测补齐 URL、参数、Header、Cookie、加密常量、DTO 字段或错误语义。
-- 不以编译通过、Fixture/Mock 通过或单个聚合命令通过替代逐操作真实只读证据。
+1. 业务 CAS/Bootstrap URL 与 service 参数；
+2. 重定向与最终 URL 规则；
+3. Cookie、Session 与业务 token 作用域；
+4. HTTP 方法、精确参数、Header 与 Body 编码；
+5. 加密、签名和挑战常量；
+6. DTO、解析字段、类型与缺失值规则；
+7. 缓存、并发、去重与重试行为；
+8. 错误、退出和结果不确定语义；
+9. Flutter 展示或写确认所需但不能反推上游协议的产品语义。
 
-### 2.3 不可变参考和证据优先级
+某个参考没有等价协议时记录“不适用”，不得类比借用。两个参考冲突时停止该协议边界的实现，在 docs/migration/decision-log.md 记录文件、提交和安全实时观察，只采用实时证据或适用冻结本地实现支持的行为。
 
-协议事实按以下顺序取得：
+每个 parity 缺口遵循同一 TDD 闭环：先增加脱敏 fixture、Mock 请求或解析失败测试并保留预期失败证据，再做最小实现，随后运行聚焦测试、just check-sensitive 和 just check。冻结目录、真实响应、Cookie、token、验证码和个人数据不得进入补丁或测试材料。
 
-1. 当前真实上游的安全只读观察；
-2. `docs/migration/references.md` 固定提交中的 `ubaa_old/` 实现和测试；
-3. 固定提交中的 `examples/buaa-api/`，但仅在协议确实等价时使用；
-4. 已记录的架构决策和合同。
+## 3. 当前基线
 
-每个认证、读操作和写操作都必须在 `docs/migration/source-parity.md` 或链接的决策记录中逐操作记录以下九类事实：业务 CAS/Bootstrap URL 和 Service、重定向与最终 URL、Cookie/Session/Token 作用域、方法与参数、Header 与 Body 编码、加密/签名常量、DTO 与解析、缓存/并发/重试、错误和退出语义。
+恢复任何执行阶段时先运行：
 
-如果参考来源冲突，先在 `docs/migration/decision-log.md` 记录具体文件、提交、实时观察和选择理由，再改生产代码。`examples/buaa-api/` 没有等价协议时必须明确写“不适用”，不能类比借用。
+    git status --short --branch
+    just refs
+    just check-sensitive
+    just check
 
-## 3. Core、CLI 和路线合同
+已知事实：
 
-### 3.1 Core 与宿主边界
+1. 当前分支为 ubaa2，已知基线提交为 efbc1c4。该分支没有可依赖的远程 upstream，执行前需要建立清晰的 Flutter 阶段提交基线。
+2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
+3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
+4. 官方 Flutter 候选为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
+5. HarmonyOS fork 候选为 tag 3.41.10-ohos-1.0.1，commit adaf911c35c9136a7d18fc424d714c9ec7724e60。
+6. 当前 OHOS fork 的发布说明要求 DevEco/Command Line Tools 26.0.0 Beta2 与 OpenHarmony API 26 构建。本机现有 API 21 不是发布基线；API 18 公共 SDK 也不能替代完整 API 26 工具链。
+7. 取得匹配 API 26 工具链、构建签名 HAP、打包 FRB arm64 动态库并完成实体机验证，是 HarmonyOS 正式版硬门槛。
+8. 当前真实读取证据仍有待闭合项：libbook_area_detail 需在营业窗口复跑；Bykc/SPOC 详情可能因父列表无可用 ID 而 N/A；Cgyy 用途可能来自 static_fallback。第 10.3 节规定这些状态能否进入 RC。
 
-- `facade` 是 CLI、未来 app、SDK、MCP 唯一允许依赖的 Core 公共边界。
-- 宿主不能访问 raw upstream client、DTO、Cookie、连接实现、内部 Feature 状态或 Session Store。
-- Core 不读取 `.env.local`，不打印终端，不决定 CLI 退出码；凭据由外层安全注入，输入、渲染、退出码由 CLI 负责。
-- Session 文件只保存允许持久化的路线 Cookie、时间戳和版本信息；业务访问令牌、验证码和原始响应不落盘。
-- `UbaaClient` 是可由宿主持有的客户端实例，但本周期不引入隐式进程全局单例。一个 Core-live 批次可以持有同一个 `UbaaClient` 并连续调用多个方法。
+## 4. 安全与架构边界
 
-### 3.2 统一路线语义
+- 宿主只能依赖 ubaa-core facade 和专用 bridge DTO，不能访问 upstream、runtime、原始 URL、Cookie、业务 token 或内部 DTO。
+- 密码、Cookie、token、验证码、真实响应、个人资料和照片不得进入日志、错误详情、命令行、普通配置文件、fixture 或版本库。
+- 不关闭 TLS 校验，不绕过 CAS/SSO，不猜测上游 URL、字段、Header、加密常量或错误语义。
+- 显式 Direct 或 WebVPN 失败时不得静默切换路线；只有 Core 的 Auto 策略可以统一选择路线。
+- 每个写操作都必须由用户在前台主动发起，显示不可含糊的目标与影响，并再次确认。禁止后台写入、定时写入、登录后自动写入和隐藏批量写入。
+- 写请求一旦可能到达上游，不得自动重试。结果不确定时先通过对应读取接口核对状态，再决定是否允许用户重试。
+- 真实写入验证不是本计划的默认授权。每次真实验证前仍需用户对具体账号、目标、操作、路线、时间和可见副作用作出明确授权。
+- 安全存储不可用时只能使用本次进程内凭据，并明确提示；绝不以明文文件兜底。
 
-- `direct`：只使用 Direct runtime、Direct transport 和 Direct 会话。
-- `webvpn`：只使用 WebVPN runtime、WebVPN transport 和 WebVPN 会话；不得因 Cgyy 特殊处理而转用 Direct。
-- `auto`：使用现有统一探测和路由解析逻辑选择 Direct 或 WebVPN；本周期只用确定性测试覆盖，不执行独立真实 auto 矩阵。
-- 显式路线失败时不得在 Feature 内部偷偷切换另一条路线；如需回退，只能由统一 `auto` 策略决定并在结果中记录。
-- 两条路线的主 Cookie、业务令牌、认证工作流、失效清理和重试状态必须隔离。
+## 5. 完整功能矩阵
 
-Cgyy 用途类型是唯一保留的冻结回退例外：缺少主会话或明确的业务认证失效仍必须返回认证错误；
-在主会话有效时，已证明的请求失败、空集合或解析失败可以返回冻结静态用途列表，并在结果中标记
-`source=static_fallback`。这不是路线切换，也不能扩展到其它 Cgyy 操作或其它功能。
+### 5.1 认证、会话和设置
 
-## 4. Cgyy WebVPN 改造合同
-
-1. Cgyy 的所有公共读写方法都必须使用 facade 解析出的路线 runtime；不得继续调用固定的 `direct_runtime` 或无视 runtime 的原始直连 URL。
-2. WebVPN 路线下，Cgyy 的 SSO 引导、业务登录、业务请求、重定向、Cookie、Header、Referer、签名和响应解析都必须经过 WebVPN transport/URL 策略。若上游实际协议要求某个字段或路径不同，必须由当前只读证据证明并记录。
-3. Direct 路线保持现有已验证行为；本次变更只取消 Cgyy 对 WebVPN 强制走 Direct 的特殊决定，不把旧版特殊路线规则继续当作当前产品要求。
-4. Cgyy 业务令牌只在选定路线和当前 `UbaaClient` 生命周期内缓存；正常同一批次复用一次业务登录，明确的业务认证失效最多执行一次清理、重新登录和请求重放。
-5. 必须先增加失败的 WebVPN-only 测试：只有 WebVPN 会话、没有 Direct 会话时，Cgyy 仍能构造并发送 WebVPN 请求；然后实现最小修复并保留 Direct、WebVPN、auto Mock 回归。
-6. 如果真实 WebVPN 上游不支持某项操作，记录为该路线的真实失败或不适用，不得静默改走 Direct，也不得伪造成功。
-7. Cgyy 写协议仍需完成实现、请求顺序、签名/验证码向量和 CLI 显式确认测试，但本周期不得用真实写请求验证。
-
-## 5. 代码格式和目录结构
-
-本节定义的是可执行的职责边界和迁移目标，不要求一次性把每个文件拆成目录。现有文件只有在职责确实分离、测试可以跟随迁移且公共 API 不变时才移动；候选文件名是建议，不得为了“看起来整齐”创建空模块或只转发一行代码的文件。
-
-### 5.1 设计原则
-
-1. **按依赖方向分层。** 领域类型不依赖网络和宿主；协议实现不依赖 facade；CLI 只依赖 facade、稳定输出类型和错误合同。上层只能调用下层公开的窄接口，不能通过 `pub` 或路径绕过边界。
-2. **按行为聚合文件。** 一个文件应围绕一个可测试的责任（例如路由解析、Cookie 持久化、Cgyy 读操作），而不是按“工具函数”随意堆放。跨多个业务的函数必须放在真正拥有其不变量的层，禁止继续增加无主的 `utils.rs`、`helpers.rs`。
-3. **公共面与内部实现分离。** `mod.rs` 和 crate 根只声明模块、组合实现和导出稳定类型；请求 URL、上游 DTO、Cookie、业务 Token、验证码和重试状态保持 `pub(crate)` 或私有。
-4. **垂直切片优先。** 大型业务按“入口/协议、读、写、解析、认证、密码学”拆分，相关测试与脱敏 Fixture 同步归位。跨业务共享的只有已证明稳定的基础设施，不为未来 app、SDK、MCP 预先抽象空接口。
-5. **重构与行为修改可区分。** 文件移动和纯格式化必须能单独编译、测试和回滚；Cgyy WebVPN 行为、Core-live 入口和测试矩阵修改不得隐藏在大规模重排提交中。
-
-Rust 的同名模块不得并存。例如将 `connection.rs` 变为目录时，必须把它迁移为 `connection/mod.rs`（同理处理 `config`、`session`、`output` 以及 `features/<name>`），不能同时保留 `connection.rs` 和 `connection/`。迁移采用保留历史的 `git mv`，完成一个模块的声明、导出、编译和测试后再处理下一个模块；过渡期只能在父模块保留明确的兼容 `pub use`，不能复制一套实现。
-
-### 5.2 Core 目标树和每层职责
-
-目标树如下。标注“可选拆分”的文件只有在现有文件被触碰、职责边界已经由测试证明时才创建。
-
-```text
-crates/ubaa-core/
-├── src/
-│   ├── lib.rs                         # crate 根；只声明公共模块和版本
-│   ├── domain/                        # 路线无关的领域模型、值对象和结果类型
-│   │   ├── mod.rs                     # 声明与 re-export，不放业务逻辑
-│   │   ├── auth.rs
-│   │   ├── route.rs
-│   │   ├── schedule.rs
-│   │   ├── grades.rs
-│   │   ├── classroom.rs
-│   │   ├── signin.rs
-│   │   ├── spoc.rs
-│   │   ├── judge.rs
-│   │   ├── ygdk.rs
-│   │   ├── libbook.rs
-│   │   ├── bykc.rs
-│   │   ├── cgyy.rs
-│   │   └── evaluation.rs
-│   ├── ports/                         # 可替换边界：HTTP、存储、时钟、日志
-│   │   ├── mod.rs                     # trait 和公共端口类型的总入口
-│   │   ├── http.rs                    # 可选拆分：请求、响应、Transport trait
-│   │   ├── storage.rs                 # 可选拆分：Session 存储 trait
-│   │   ├── clock.rs                   # 可选拆分：时间注入
-│   │   └── logging.rs                 # 可选拆分：脱敏诊断接口
-│   ├── adapters/                      # 可选：具体外部适配实现，不污染 ports 抽象
-│   │   ├── mod.rs                     # 可选拆分：适配器声明
-│   │   └── http/reqwest.rs            # 当前 ReqwestTransport 的迁移位置
-│   ├── config/                        # 路线策略和安全的配置文件读写
-│   │   ├── mod.rs                     # 配置公共入口
-│   │   ├── types.rs                   # 可选拆分：RouteConfig 等类型
-│   │   ├── validation.rs              # 可选拆分：字段和 TOML 校验
-│   │   └── store.rs                   # 可选拆分：安全文件持久化
-│   ├── connection/                    # Direct/WebVPN 的传输和路由机械
-│   │   ├── mod.rs                     # RouteResolution 等入口的组合
-│   │   ├── direct.rs                   # 可选拆分：Direct URL/请求策略
-│   │   ├── webvpn.rs                   # 可选拆分：WebVPN URL/请求策略
-│   │   ├── redirect.rs                 # 可选拆分：有界重定向和主机白名单
-│   │   ├── probe.rs                    # 可选拆分：探测和诊断
-│   │   ├── policy.rs                   # 可选拆分：路线选择与认证主机规则
-│   │   └── codec.rs                    # 当前 connection_codec.rs 的私有实现
-│   ├── session/                       # Cookie、Session 文件和并发协调
-│   │   ├── mod.rs                     # SessionStore/Coordinator 组合入口
-│   │   ├── cookies.rs                 # Cookie jar 与作用域
-│   │   ├── types.rs                   # Session 快照、版本和安全字段
-│   │   ├── storage.rs                 # 文件读写、权限和原子更新
-│   │   ├── ports.rs                   # Session 专用端口适配
-│   │   ├── coordinator.rs             # 双路线协调、锁和 stale writer 处理
-│   │   └── validation.rs              # 可选拆分：快照校验和敏感字段拒绝
-│   ├── auth/                          # CAS/SSO、重定向和用户中心激活工作流
-│   │   ├── mod.rs                     # AuthWorkflow 公共入口
-│   │   ├── cas.rs                     # 可选拆分：CAS 表单和票据步骤
-│   │   ├── redirect.rs                # 可选拆分：登录重定向规则
-│   │   ├── activation.rs              # 可选拆分：用户中心激活编排
-│   │   └── status.rs                  # 可选拆分：认证状态和失效分类
-│   ├── runtime/                        # crate-private 客户端运行时与请求上下文
-│   │   ├── mod.rs                     # 运行时组合入口
-│   │   ├── client.rs                  # 可选拆分：单 client 生命周期
-│   │   ├── request.rs                 # 可选拆分：统一请求/刷新
-│   │   └── state.rs                   # 可选拆分：中性路线状态容器
-│   ├── upstream/                      # crate-private 上游常量、表单和解析器
-│   │   ├── mod.rs                     # 私有适配入口
-│   │   ├── auth.rs                    # 可选拆分：认证表单/解析
-│   │   ├── user.rs                    # 可选拆分：用户信息解析
-│   │   ├── redirect.rs                # 可选拆分：上游跳转解析
-│   │   └── parsers.rs                 # 可选拆分：共享 HTML/JSON 解析
-│   ├── features/                      # 业务协议、解析、状态和操作
-│   │   ├── mod.rs                     # 业务入口和共享小函数
-│   │   ├── state/                     # crate-private、按路线隔离的业务状态
-│   │   │   └── mod.rs                 # 状态聚合入口
-│   │   ├── schedule.rs                # 当前同时承载 Schedule/Exam；拆分前先记录边界
-│   │   ├── grades.rs
-│   │   ├── classroom.rs
-│   │   ├── signin.rs
-│   │   ├── user.rs
-│   │   ├── cgyy/                      # 重点垂直切片，见 5.3
-│   │   ├── judge/                     # 大文件按读/解析/认证拆分
-│   │   ├── spoc/                      # 大文件按读/解析/认证/密码学拆分
-│   │   ├── bykc/                      # 大文件按协议/读/写/解析拆分
-│   │   ├── libbook/                   # 大文件按认证/读/写/解析拆分
-│   │   ├── ygdk/                      # 大文件按认证/读/写/上传拆分
-│   │   └── evaluation/                # 任务读取、本地派生和写保护
-│   ├── facade/                        # 唯一面向宿主的稳定 API
-│   │   ├── mod.rs                     # 声明、组合和 re-export
-│   │   ├── client.rs                  # UbaaClient 生命周期
-│   │   ├── route_dispatch.rs          # mode→runtime 的统一解析/借用
-│   │   ├── diagnostic.rs              # RouteClient 和诊断 API
-│   │   ├── auth.rs                    # 登录、状态、退出委托
-│   │   ├── user.rs                    # 用户资料委托
-│   │   ├── schedule.rs、exam.rs、grades.rs、classroom.rs
-│   │   ├── spoc.rs、judge.rs、signin.rs、ygdk.rs、libbook.rs
-│   │   ├── bykc.rs、cgyy.rs、evaluation.rs # 每个业务的路由解析与委托
-│   │   ├── types.rs                   # facade 专用请求/结果类型
-│   │   ├── aggregate_helpers.rs       # 聚合读取的共享编排
-│   │   └── session_lifecycle.rs       # 会话刷新、清理和失效处理
-│   ├── output/                        # 稳定结果 envelope、错误和校验
-│   │   ├── mod.rs                     # 公共导出
-│   │   ├── envelope.rs                # 可选拆分：JSON/聚合 envelope
-│   │   └── validation.rs              # 可选拆分：Schema 和安全字段校验
-│   └── error/                         # 稳定错误码、错误种类和退出语义
-│       ├── mod.rs                     # 公共导出
-│       ├── codes.rs                   # 可选拆分：ErrorCode/ExitCode
-│       └── types.rs                   # 可选拆分：UbaaError/ErrorKind
-└── tests/                             # Core 边界和合同测试（见 5.5）
-```
-
-各层的职责和禁止事项如下：
-
-| 层 | 允许负责的内容 | 不得出现的内容 |
+| 能力 | Core/facade 边界 | Flutter 交付 |
 |---|---|---|
-| `domain` | DTO、值对象、路线无关的业务结果、稳定枚举 | HTTP、Cookie jar、文件读写、CLI 输出、上游 URL |
-| `ports` | trait、请求/响应等可替换抽象 | 具体业务 URL、重试循环、文件路径和终端交互 |
-| `config` | 路线策略、TOML 解析和配置文件安全读写 | 主机白名单/重定向决策、认证 Cookie、业务 Token、网络请求 |
-| `connection` | Direct/WebVPN URL、请求上下文、探测、主机白名单、重定向和路线锁定 | 业务解析、业务登录、跨路线隐式回退 |
-| `session` | Cookie 作用域、文件快照、并发协调、失效清理 | Cgyy/Judge 等业务参数和协议解析 |
-| `auth` | CAS/SSO 步骤、票据、用户中心激活编排和认证错误分类 | 用户资料 DTO、CLI 凭据读取、业务功能请求、终端输出 |
-| `features` | 某一业务的请求、解析、状态、缓存、重试和读写保护 | 调用另一个业务的私有状态、直接暴露给宿主 |
-| `runtime` | 单个 `UbaaClient` 的生命周期、路线上下文、统一 request | 公共宿主 API、进程全局单例、CLI 逻辑 |
-| `facade` | 路线解析、认证前置、业务委托、稳定返回类型 | 上游细节、原始响应、终端打印 |
-| `output` | Core 可序列化的稳定 envelope 和安全校验 | HTTP 请求、Session 文件、CLI 样式 |
-| `upstream` | crate-private 常量、表单编码、上游解析 | `pub` 宿主接口、猜测的协议字段 |
-| `adapters` | `ReqwestTransport` 等具体外部实现 | 领域规则、公共宿主合同和业务解析 |
+| 打开客户端 | open | 使用平台应用私有配置目录创建 opaque client |
+| 登录准备 | prepare_login | 分路线准备状态和可行动错误；当前 Core 未证明交互验证码时只展示稳定错误，不由 Flutter 猜测挑战协议 |
+| 登录 | login | 单账号登录、部分路线成功、自动登录、安全凭据写入 |
+| 状态恢复 | auth_status | Splash 恢复、过期会话清理、重新登录 |
+| 用户资料 | get_user_info | 我的页面，只展示必要字段 |
+| 注销 | logout | 退出登录；另有退出并清除本机账号 |
+| 路线策略 | default_route_policy、active_routes、新增 set_default_route_policy | Auto、Direct、WebVPN；展示配置策略与实际解析路线，按本节下方合同切换 |
 
-`domain` 可以继续使用 `serde` 派生，因为这些类型构成稳定 DTO/JSON 合同；“领域无网络依赖”不等于禁止序列化。当前 `ports/mod.rs` 中的 `ReqwestTransport` 是历史布局，目标是将具体实现移到 `adapters/http/reqwest.rs`（或经审查后放入 `connection/transport/`），并在 `ports` 暂时保留兼容导出，直到所有调用方完成迁移。`SessionStore` 等 trait 留在 `ports`/`session` 的抽象面，`FileSessionStore` 属于 Core 的具体存储实现，不应被 CLI 业务代码直接使用。
+Flutter 不开放 per-feature route override。set_default_route_policy 必须作为新的稳定 facade 能力实现：拒绝在写 intent 或请求进行中切换；原子保存新的全局策略并清除 App 私有配置中的 feature override；使全部 WriteIntent 失效；dispose 后从同一私有目录重新 open；保留彼此隔离的路线 Session，再以 auth_status 检查目标路线，缺少目标路线认证时提示重新登录。每个业务结果仍展示 Core 返回的 resolved_route，不能把配置策略冒充实际路线。
 
-生产宿主边界与测试注入边界必须区分：CLI、未来 app、SDK、MCP 只能依赖 `facade`；Core 集成测试和 `ubaa-test-support` 可以在 `dev-dependencies`/测试合同中使用 `features` 的解析器、`session` 的测试存储和 `ports` 的 Mock。当前 `features`、`session` 的部分符号因跨 crate 测试仍为 `pub`，本周期不得直接收窄造成编译破坏；先迁移测试到稳定的 test-support 接口，记录 API 快照和版本策略，再在单独的兼容变更中隐藏或移除。任何兼容 re-export 都必须标注不属于宿主稳定 API，并有对应的可见性测试。
+### 5.2 全部读取能力
 
-### 5.3 大型业务的垂直切片
-
-目录拆分必须保留一个窄的 `mod.rs` 入口，并让每个子模块有明确的输入、输出和测试。以下是本周期的首选边界：
-
-```text
-features/cgyy/
-  mod.rs             # 对 features 暴露的操作入口
-  protocol.rs        # 业务登录、请求构造、URL/参数和重试策略
-  auth.rs            # manageLogin/api/login 等业务认证步骤
-  read.rs            # 站点、用途、日期、订单、详情、锁码读取
-  write.rs           # 预约/取消请求链；只由显式写 API 调用
-  captcha.rs         # 验证码挑战、校验和失败分类
-  parser.rs          # envelope、列表、详情、动作响应解析
-  crypto.rs          # 当前 cgyy_crypto.rs 的实现
-  sign.rs            # 当前 cgyy_sign.rs 的实现
-  diagnostics.rs     # 脱敏日志和诊断摘要
-
-features/judge/
-  mod.rs  read.rs  parser.rs  status.rs  auth.rs  diagnostics.rs
-features/spoc/
-  mod.rs  read.rs  parser.rs  auth.rs  protocol.rs  crypto.rs
-features/bykc/
-  mod.rs  read.rs  write.rs  parser.rs  auth.rs  protocol.rs  crypto.rs
-features/libbook/
-  mod.rs  read.rs  write.rs  parser.rs  auth.rs  crypto.rs
-features/ygdk/
-  mod.rs  read.rs  write.rs  parser.rs  auth.rs  upload.rs
-features/evaluation/
-  mod.rs  read.rs  write.rs  parser.rs  projection.rs
-```
-
-其中：
-
-- `read.rs` 只包含只读请求和读取结果；`write.rs` 只包含写请求链、确认前置和默认阻止逻辑，便于静态审查真实写风险。
-- `parser.rs` 不发请求，密码学模块不决定路线；这两类纯函数优先使用 Fixture/向量测试。
-- `auth.rs` 只处理该业务的二次认证或业务会话建立；顶层 CAS/SSO 仍归 `auth/`。
-- Cgyy 的业务 Token 必须由路线作用域的状态容器管理，不能由 `parser`、全局静态变量或 Session 文件持久化。
-- `schedule` 当前同时承载 Schedule 与 Exam 操作；拆成 `schedule.rs`/`exam.rs` 前先用测试和 parity 记录两者的共享请求及不同语义，不能只按命令名机械移动。`grades`、`classroom`、`signin`、`user` 当前规模较小，可先保持单文件；只有出现第二个独立协议阶段或超过行数阈值时才拆目录。
-- `features/state.rs` 与 `state_cache.rs` 应合并为私有 `features/state/`，按业务拆分状态结构。若拆分后 `runtime` 与业务模块形成循环，先把不透明状态容器上移为私有 `runtime_state`，不得让业务模块互相读取私有状态。
-
-### 5.4 现有文件到目标结构的迁移映射
-
-以下映射是重构顺序和审查边界，不表示现在立即执行所有 `git mv`：
-
-| 当前文件/模块 | 目标位置 | 拆分边界和优先级 |
+| 领域 | facade 方法 | 必须完成的页面与状态 |
 |---|---|---|
-| `config.rs` | `config/mod.rs`、`types.rs`、`validation.rs`、`store.rs` | 先分离纯配置类型，再分离安全文件写入；低风险基础设施 |
-| `ports/mod.rs` | `ports/mod.rs` 加 `http`/`storage`/`clock`/`logging` 抽象；`ReqwestTransport` → `adapters/http/reqwest.rs` | 先保留 `ports::ReqwestTransport` 兼容导出，确认没有宿主依赖后再收窄 |
-| `connection.rs`、`connection_codec.rs` | `connection/` 下的 `direct`、`webvpn`、`redirect`、`probe`、`policy`、`codec` | 路线解析和 URL 转换先保持行为不变；Cgyy 协议改动不得混入机械移动 |
-| `session/mod.rs` 与现有 `session/*` | `session/mod.rs`、`coordinator.rs`、`cookies.rs`、`storage.rs`、`types.rs`、`ports.rs` | 已完成同名模块迁移；后续先抽协调器和安全校验，再移动文件存储；保留并发/stale reader/writer 测试 |
-| `auth/mod.rs` | `auth/mod.rs` 加 `cas`、`redirect`、`activation`、`status` | 每次只移动一个认证阶段，保留 CAS/SSO 顺序测试；用户资料仍由 `features/user` 负责 |
-| `runtime.rs` | `runtime/mod.rs`、`client.rs`、`request.rs`、`state.rs` | 先抽出中性 `RouteFeatureState`/状态接口，再拆请求流程；保持 `pub(crate)` |
-| `upstream/mod.rs`、`upstream/tests.rs` | `upstream/` 私有子模块与对应测试 | 常量、编码器、解析器分离；不提升可见性 |
-| `features/state.rs`、`state_cache.rs` | `features/state/` | 状态结构与缓存策略分开；状态必须仍按路线和客户端实例隔离 |
-| `features/cgyy.rs`、`cgyy_crypto.rs`、`cgyy_sign.rs` | `features/cgyy/` | 本周期首要拆分对象；先写 WebVPN-only 失败测试，再做行为变更 |
-| `features/judge.rs`、`spoc.rs` | 各自目录的 `read/parser/auth/diagnostics` | 第二批大文件；先保证只读解析和诊断行为不变 |
-| `features/bykc.rs`、`libbook.rs`、`ygdk.rs` | 各自目录的 `read/write/parser/auth` | 写请求与读请求物理分离，方便真实写禁止审查 |
-| `features/evaluation.rs` | `features/evaluation/` | 将本地 pending 投影与上游任务读取分开，不增加额外请求 |
-| `features/schedule.rs`、`grades.rs`、`classroom.rs`、`signin.rs`、`user.rs` | 暂留原位置 | 小模块暂不为拆分而拆分；触碰且超过阈值时再迁移 |
-| `facade/mod.rs`、`types.rs`、`aggregate_helpers.rs`、`session_lifecycle.rs` | `facade/client.rs`、按业务的 facade 文件及现有辅助模块 | `mod.rs` 只组合；每个业务 facade 文件只做路线解析、前置和委托，不做协议解析 |
-| `apps/ubaa-cli/src/lib.rs` | `backend.rs`、`execution/`、`input/`、`render/`、`args/` | 首要 CLI 拆分对象；先保留 `lib.rs` 作为 crate 根和 re-export，避免改变二进制合同 |
-| `commands.rs` 与各 `*_args.rs` | `commands.rs` 加 `args/` | Clap 定义与运行逻辑分离；参数类型不持有 Core runtime |
-| `input.rs`、`render.rs`、`execution.rs` | `input/`、`render/`、`execution/` 子模块 | 输入、调用编排、展示和退出码分离；禁止在 render 层发请求 |
-
-迁移 `config.rs`、`connection.rs`、`runtime.rs`、`output.rs` 或某个 `features/<name>.rs` 时，目标目录的 `mod.rs` 必须先接管原模块内容，再逐步把真实实现移入子文件；不得在同一次提交中留下同名文件和目录。若外部测试暂时依赖旧路径，使用父模块的兼容 re-export，并在下一阶段更新调用方和可见性合同。
-
-### 5.5 CLI 目标树和宿主边界
-
-```text
-apps/ubaa-cli/
-├── src/
-│   ├── main.rs                         # 进程启动、日志初始化、配置和一次性 client 组装
-│   ├── lib.rs                          # crate 根、公共 trait/re-export；保持薄
-│   ├── commands.rs                     # 顶层 Clap 命令和子命令组合
-│   ├── args/                           # 可选目标目录；由现有 *_args.rs 迁入
-│   │   ├── mod.rs                     # 参数模块组合和 re-export
-│   │   ├── auth.rs  user.rs  schedule.rs  exam.rs
-│   │   ├── grades.rs  classroom.rs  spoc.rs  judge.rs
-│   │   ├── signin.rs  libbook.rs  bykc.rs  cgyy.rs
-│   │   ├── ygdk.rs  evaluation.rs
-│   │   └── common.rs                   # 只有确实共享的参数
-│   ├── backend.rs                      # CliBackend/RoutedCliBackend 适配
-│   ├── execution/
-│   │   ├── mod.rs                      # 命令分派和错误汇总
-│   │   ├── auth.rs                     # 登录、状态、退出流程
-│   │   ├── readonly.rs                 # 只读命令编排
-│   │   ├── writes.rs                   # 写命令确认和阻止门
-│   │   └── feature.rs                  # 可选：业务 runner（仅在文件过大时拆）
-│   ├── input/
-│   │   ├── mod.rs                      # 安全输入入口
-│   │   ├── credentials.rs               # stdin/受控输入，不把凭据放参数
-│   │   ├── payloads.rs                  # 业务 JSON/表单输入
-│   │   └── write_guard.rs               # 写操作确认、默认拒绝
-│   ├── render/
-│   │   ├── mod.rs                      # 展示入口
-│   │   ├── human.rs                    # 人类可读输出
-│   │   ├── json.rs                     # 稳定 JSON envelope
-│   │   └── error.rs                    # 错误映射和退出码
-│   ├── routing.rs                      # CLI 路线参数到 Core RoutePolicy 的转换
-│   ├── connection_mode.rs              # CLI 参数类型
-│   └── command_output.rs               # 命令级中间结果
-└── tests/
-    ├── cli_contract.rs                 # 参数、JSON、错误和安全合同
-    ├── binary_e2e.rs                   # 真实进程边界
-    └── launcher_contract.rs            # Shell 启动器合同（如适用）
-```
-
-CLI 的依赖只允许是 `ubaa_core::facade`、`domain`、`output` 和稳定错误类型。CLI 不得导入 `runtime`、`session`、`upstream`、`features::*` 的内部模块，也不得自行拼接上游 URL、Cookie 或业务 Token。`main.rs` 不保存跨进程状态；每个进程创建一个 client 属于当前合同，跨命令全局复用仍是本周期非目标。
-
-### 5.6 测试、Fixture 和证据的镜像结构
-
-生产代码移动时，测试按“被证明的合同”而不是按历史文件名归位：
-
-```text
-crates/ubaa-core/tests/
-├── contracts.rs                    # facade、输出、错误码和可见性合同
-├── domain.rs                       # 可选：纯领域不变量
-├── auth.rs
-├── connection.rs
-├── route_policy.rs
-├── session/mod.rs  cookies.rs
-├── facade/                         # 可选目录；按业务拆分现有 facade.rs
-│   ├── auth.rs  schedule.rs  ...
-│   └── cgyy.rs
-├── features/                       # 可选目录；按业务和行为拆分
-│   ├── cgyy.rs  judge.rs  spoc.rs
-│   └── bykc.rs  libbook.rs  ygdk.rs
-└── parsers/                        # 纯解析/加密向量，不发网络请求
-
-crates/ubaa-test-support/
-├── src/
-│   ├── lib.rs                      # 公开最小测试 API
-│   ├── fixtures.rs                 # 脱敏 Fixture 加载
-│   ├── transport.rs                # 精确请求/响应 Mock
-│   ├── assertions.rs               # 路线、Cookie、敏感字段断言
-│   └── sessions.rs                 # 临时 Session 和并发测试辅助
-└── tests/
-    ├── auth.rs  readonly.rs  writes.rs  security.rs
-    └── support.rs
-
-apps/ubaa-cli/tests/
-├── cli_contract.rs                 # 参数、渲染、JSON、退出码
-├── binary_e2e.rs                   # 进程、stdin、Session 文件和 facade 边界
-└── launcher_contract.rs            # verify-live/core-live 参数转发和安全
-
-fixtures/
-├── auth/  connection/  session/
-├── schedule/  exam/  grades/  classroom/  spoc/  judge/
-├── signin/  ygdk/  libbook/  bykc/  cgyy/  evaluation/
-└── README.md                       # 脱敏规则和来源说明
-```
-
-现有的 `readonly.rs`、`auth.rs` 等大型测试可以渐进拆分，但每次移动必须保留原有断言并在提交说明中列出覆盖映射。真实验证结果放在 `docs/migration/` 的状态或证据记录中；`fixtures/` 永远只含脱敏请求、响应和向量，不放原始 live body、Cookie、Token、验证码或完整个人资料。
-
-测试目录也遵守同名模块规则：如果把 `facade.rs` 或 `readonly_parsers.rs` 拆成目录，先将原文件迁为该目录的唯一入口（例如 `facade/mod.rs`，或保留一个明确命名的 `facade_contract.rs` 测试入口），再添加子模块；不能让 Cargo 同时发现两套同名测试目标。测试辅助目录中的 `mod.rs` 只组合测试模块，不复制生产实现。`ubaa-test-support` 只提供脱敏 Fixture、精确 Mock、断言和临时 Session，不提供真实登录快捷路径。
-
-脚本按“入口薄、职责单一”整理：
-
-```text
-scripts/
-├── ensure-references.sh             # 固定参考提交检查
-├── check-sensitive.sh               # 敏感文件/内容扫描
-├── core-live.sh                     # Core-live 的安全网络入口（如采用脚本封装）
-├── verify-live.sh                   # 仅参数校验、凭据注入和 Core-live 转发
-└── test-verify-live.sh              # verify-live 薄封装的 Shell 合同
-```
-
-脚本不得各自实现登录、请求、解析或重试；需要共享的检查应调用一个已审查的实现并测试参数转发。脚本重命名或合并前，先更新 `justfile`、CI 和 `docs/` 的引用。
-
-### 5.7 依赖方向和可见性门槛
-
-```text
-CLI
-  -> facade
-facade -> config + connection + session + auth + features + domain/error/output
-auth -> runtime + upstream + domain/error
-       └─> features::user（仅在保留现有用户中心适配时）
-features -> runtime + domain + error + ports + crate-private upstream helpers
-runtime -> connection + session + ports + runtime_state（均为 Core 内部）
-connection -> config + domain + error + ports + adapters
-session -> domain + error + ports/std
-adapters -> ports
-upstream -> domain + error（纯表单/文本解析，crate-private）
-domain -> std/serde 等无网络依赖
-```
-
-必须同时满足以下规则：
-
-- `domain`、`output` 和 `ports` 不得反向依赖 `features`、`facade` 或 CLI。
-- 业务 Feature 不得调用另一个 Feature 的私有函数；需要共享时先提升为有合同的 Core 基础设施并补测试。
-- `facade` 是唯一向宿主公开业务操作的层；`pub(crate)` 不能通过 re-export 间接泄露给 CLI。
-- `runtime` 可以持有路线作用域的状态容器，但不能变成进程全局单例；若状态拆分引入循环，使用私有中性模块解决，不降低可见性。
-- 任何需要 `HttpRequest`、Cookie、重定向或上游常量的代码都必须位于 Core 内部；CLI 和公共 `domain` 不能出现这些依赖。
-- 模块重命名后用编译器、API 快照和合同测试确认可见性没有扩大；禁止以“方便测试”为由把内部协议类型改成 `pub`。
-
-### 5.8 结构迁移顺序和完成标准
-
-按以下顺序执行，每一步都保持行为中性并单独提交：
-
-1. 记录当前模块图、公共 API、命令和测试基线；用 `git mv` 保留历史，先不改协议。
-2. 拆分 `config`、`connection`、`session`、`output` 等基础设施，先跑对应单元/合同测试，再跑 `just check`。
-3. 将 `facade/mod.rs` 按认证、用户和业务委托拆开；确认所有宿主仍只依赖 facade。
-4. 将 CLI `lib.rs` 分为参数、backend、execution、input 和 render；保持命令、JSON 和退出码不变。
-5. 先拆 Cgyy，再拆 Judge/SPOC/Bykc/LibBook/Ygdk/Evaluation；每个业务的读、写、解析和认证边界分别有测试。
-6. 最后整理测试和 Fixture 目录，删除无覆盖映射的重复内容；清理不能与行为修改混在同一提交。
-
-结构阶段的完成标准是：没有空目录或无主的“工具”模块；每个公共类型有唯一归属；大文件达到阈值或有书面例外；依赖方向和可见性测试通过；`cargo fmt --check`、Clippy、敏感扫描、Core 合同测试和 CLI 测试通过。若某次拆分无法在不改变行为的情况下完成，保留原文件并在 `docs/migration/status.md` 记录原因，不得为了满足树形图强行移动。
-
-### 5.9 格式和重构规则
+| 课表 | schedule_terms、schedule_weeks、schedule_week、schedule_today | 学期、周次、周课表、今日课程、刷新和空状态 |
+| 考试 | exam_arrangement | 学期选择、已安排/未安排、时间地点和座位 |
+| 成绩 | grades | 学期成绩、课程详情、学分/绩点字段和缺失字段状态 |
+| 空教室 | classroom_search | 校区、日期、楼层、节次筛选和结果分组 |
+| SPOC | spoc_assignments、spoc_assignment | 作业列表、筛选排序、详情和提交状态 |
+| 希冀 | judge_assignments、judge_assignment、judge_assignment_details | 列表、批量详情、题目与提交进度 |
+| 课堂签到 | signin_today | 今日课程、签到状态和可操作窗口 |
+| 博雅课程 | bykc_profile、bykc_courses、bykc_course_detail、bykc_chosen_courses、bykc_statistics | 课程浏览、详情、已选课程和修读进度 |
+| 图书馆 | libbook_libraries、libbook_areas、libbook_area_detail、libbook_seats、libbook_bookings | 馆/楼层/分区/时段/座位和预约记录 |
+| 阳光打卡 | ygdk_overview、ygdk_records | 学期进度、项目列表、记录分页和图片状态 |
+| 场馆预约 | cgyy_sites、cgyy_purpose_types、cgyy_day_info、cgyy_orders、cgyy_order_detail、cgyy_lock_code | 站点、用途、日期空间、订单详情和门锁可用状态 |
+| 教学评教 | evaluation_all | 全部/待评课程、完成进度和选择状态 |
 
-- Rust 使用锁定工具链、rustfmt 和 Clippy；Shell 保持 `bash -euo pipefail` 约束并通过语法检查。
-- 新增生产文件原则上不超过 500 行；超过 800 行时，下一次触碰必须先拆分职责。单个函数原则上不超过 80 行，超过 120 行必须记录原因。
-- 第一批重点检查大文件：`apps/ubaa-cli/src/lib.rs`、`crates/ubaa-core/src/facade/mod.rs`、`session/mod.rs`、`features/cgyy.rs`、`features/spoc.rs`、`features/judge.rs`、`features/state.rs`、`features/bykc.rs` 及大型测试文件；`domain/mod.rs` 只做结构性瘦身，不以行数为理由拆分领域文件。
-- 纯格式化、行为保持的结构重构和协议行为修改分别提交；不得用全仓库无关格式化掩盖功能差异。
-- 保持现有 facade、CLI 命令、JSON Schema 和错误码的向后兼容。新增能力优先使用增量字段、命令或版本；破坏性变化必须更新合同、测试和决策记录。
-
-## 6. 完整测试矩阵
-
-### 6.1 证据层级
-
-| 层级 | 证明内容 | 是否访问真实上游 |
-|---|---|---|
-| Core 单元/合同 | 领域模型、错误、URL、Cookie、Session、路由和稳定输出 | 否 |
-| Fixture/解析 | 脱敏响应解析、请求构造、加密/签名向量 | 否 |
-| Core Mock 集成 | 登录顺序、精确请求、路线锁定、缓存、重试和写保护 | 否 |
-| Core-live | Core facade 与当前上游的真实认证和读协议 | 是，仅只读 |
-| CLI 合同 | 输入、渲染、JSON Schema、错误分类、敏感信息脱敏 | 否 |
-| CLI 二进制 E2E | 真实 CLI 进程、参数边界、facade-only 依赖、会话文件行为 | 否，使用 Fixture/Mock |
-| 启动器/Shell 合同 | `verify-live` 参数转发、stdin 凭据、锁定构建、输出安全 | 否 |
-| 写操作合同 | 精确请求链、向量、响应、确认和默认阻止 | 否，严禁真实写 |
-
-普通 `cargo test --locked`、`just check` 和 CI 必须保持离线。Core-live 必须是显式 opt-in 的独立入口；外层命令可以安全读取 `.env.local` 并通过 stdin 或受控输入注入凭据，Core 不直接读取该文件。
-
-### 6.2 Core-live 真实矩阵
+诊断型方法只用于测试和脱敏诊断，不作为普通页面展示，也不能暴露内部协议信息。
+
+不存在独立的 evaluation_pending facade 方法。待评列表统一由 evaluation_all 返回的稳定 is_evaluated=false 字段派生；P1 必须修正与此冲突的只读合同，并为 Core DTO、Dart 派生和 CLI 一致性建立 schema 快照测试。
+
+### 5.3 全部写入能力
+
+| 领域 | facade 方法 | 正式 UI 流程 | 完成后的核对 |
+|---|---|---|---|
+| 博雅选课 | bykc_select_course | 课程详情、资格/时间/容量检查、确认选课 | 刷新课程详情和已选列表 |
+| 博雅退选 | bykc_deselect_course | 显示课程与退选截止时间、二次确认 | 刷新详情、已选列表和修读进度 |
+| 博雅签到/签退 | bykc_sign_course | 显示课程、签到类型、时间窗口和位置要求、确认 | 刷新考勤状态 |
+| 课堂签到 | signin_perform | 显示课程名称、上课时间和当前状态、确认 | 刷新今日签到状态，防止重复 |
+| 图书馆预约 | libbook_reserve | 馆/分区/日期/时段/座位逐步选择、最终摘要确认 | 查询预约记录并匹配结果 |
+| 图书馆取消 | libbook_cancel_booking | 显示预约详情、取消条件和确认 | 刷新预约记录 |
+| 阳光打卡 | ygdk_submit | 项目、起止时间、地点、照片、公开选项、预览确认 | 刷新记录与进度 |
+| 场馆预约 | cgyy_submit_reservation | 站点/日期/空间/时段、主题、用途、参与信息、挑战处理、最终摘要 | 查询订单并匹配结果 |
+| 场馆取消 | cgyy_cancel_order | 显示订单详情、状态和取消影响、确认 | 刷新订单列表与详情 |
+| 教学评教 | evaluation_submit_courses | 选择未评课程、展示答题策略与不可撤销警告、批量确认、逐项进度 | 重新读取完成进度并展示逐项结果 |
 
-真实验证只跑两条路线：
+evaluation_submit 的原始字符串 payload 是低层 CLI/兼容入口，不直接暴露给 Flutter。Flutter 只使用 typed course 提交流程。SPOC、希冀、课表、考试、成绩和空教室在当前 Core 没有写入能力，不凭旧页面文案推断或新增协议。
+
+### 5.4 写操作统一确认模型
+
+bridge 为每项写操作提供 typed prepare 方法，并返回 WriteIntent：
+
+- intent_id：只在当前 opaque client 内有效的随机标识；
+- operation：固定写操作枚举；
+- target_summary：用户可读的目标与影响摘要；
+- resolved_route：Core 已解析的实际路线；
+- warnings：不可撤销、时间窗口、权限或资源状态提示；
+- expires_at：短时有效期；
+- request_digest：用于检测确认前请求内容是否变化，不含秘密。
+
+UI 展示摘要后，用户明确确认，再调用 commit_write(intent_id)。intent 只能使用一次；超时、客户端重开、路线改变、会话改变或请求内容改变都必须重新准备。commit 只执行已存储的 typed 请求，禁止接收任意 JSON 或 raw payload。
 
-```text
-route=direct   -> 一个 Core client、一次登录批次、串行执行全部必需读操作
-route=webvpn   -> 一个 Core client、一次登录批次、串行执行全部必需读操作
-```
-
-每条路线的证据按“操作 × 路线”单独记录，不能用一次聚合 `all` 覆盖单项失败。至少覆盖当前功能清单中的以下读操作：
-
-- Auth/User：登录准备、登录状态、用户信息；
-- Schedule：学期、教学周、周课表、今日课表；
-- Exam：指定学期考试安排；
-- Grades：指定学期成绩；
-- Classroom：校区和日期的空闲教室；
-- SPOC：作业列表、诊断信息、作业详情；
-- Judge：当前列表、包含过期列表、诊断信息、单项详情、批量详情；
-- Signin：今日签到状态；
-- Ygdk：总览、记录分页；
-- LibBook：馆列表、区域、区域详情、座位、预约记录；
-- Cgyy：站点、用途、日期、订单、订单详情、锁码；
-- Bykc：用户资料、课程列表、课程详情、已选课程、统计；
-- Evaluation：全部任务和本地派生的待评教任务。
+新增稳定写错误至少覆盖 confirmation_required、intent_expired、operation_conflict 和 outcome_unknown，并映射为安全中文提示。若 Core 已有等价错误，复用 Core；否则作为 bridge 合同新增并测试。
 
-依赖操作必须显式记录条件状态：没有有效 ID 时详情为 `NOT_APPLICABLE` 并说明原因；依赖失败导致的后续操作为 `BLOCKED`；认证、网络或协议错误为 `FAIL`。状态只允许 `PASS`、`FAIL`、`BLOCKED`、`NOT_APPLICABLE`、`FORBIDDEN`。任何必需读操作出现未解决的 `FAIL` 或 `BLOCKED`，本周期不能完成。
+## 6. Flutter/FRB 目标架构
 
-`Evaluation pending`、SPOC/Judge 诊断等本地派生或复用链不得虚增上游请求，但必须在证据中说明其依赖关系。Schedule 选出的学期必须被 Exam/Grades 一致使用；Cgyy 日期、订单、详情和锁码必须逐项记录，即使上游返回暂时性错误。
+    apps/ubaa_flutter/                 Android、iOS、Windows、macOS、Linux 官方宿主
+    apps/ubaa_ohos/                    HarmonyOS fork 宿主
+    packages/ubaa_domain/              DTO、枚举、UiError、WriteIntent 和页面模型
+    packages/ubaa_app/                 状态机、用例、依赖注入、读取与写入协调
+    packages/ubaa_ui/                  主题、导航、读取页面、写入流程和组件
+    packages/ubaa_platform/            CredentialVault、路径、权限、照片和位置接口
+    packages/ubaa_bindings/            FRB 生成 Dart API，禁止手改
+    crates/ubaa-flutter-bridge/        facade 到 FRB 的唯一映射层
+    crates/ubaa-core/                  协议、路线、会话和全部业务实现
 
-### 6.3 真实禁止项
+bridge crate 使用 cdylib 和 staticlib，并通过 Cargokit/FRB 生成平台产物。FRB Dart package、Rust crate、codegen 和 macros 必须锁定完全相同版本。生成配置、命令和输出目录纳入版本控制；重复生成不得产生未预期 diff。
 
-Core-live、`verify-live`、手工真实验收和 CI 都不得调用：
+bridge 必须：
+
+- 使用 opaque BridgeClient 管理 UbaaClient；
+- 串行保护当前需要 &mut self 的 facade 调用；
+- 只返回专用、可序列化、FRB 兼容的最小字段 DTO；每个 DTO 使用展示白名单，不得把 Core DTO 整体透传；
+- 不直接导出 Routed<T>、RoutedError、Path 或内部类型；
+- 捕获 Rust panic 并投影为稳定内部错误，禁止 panic 穿越 FFI；
+- 支持幂等 dispose，并测试 double-dispose、use-after-dispose、取消中的会话一致性、Dart isolate 重建、内存泄漏和应用生命周期恢复；
+- 默认单进程单 BridgeClient；多实例或桌面多进程必须通过 Session Store 锁定，不能并发写同一会话文件；
+- 为所有读取与写入方法建立明确的 Dart API、参数边界和 schema 快照；
+- 在 docs/contracts/flutter-bridge.md 固定完整方法表、DTO、错误、schema 版本和 semver 兼容规则。
 
-- 签到执行；
-- 打卡提交或照片上传；
-- 图书馆预约、取消；
-- Cgyy 预约、验证码提交、取消；
-- Bykc 选课、退选、签到；
-- 评教提交；
-- 其他会改变真实账号状态的操作。
+flutter-bridge.md 必须逐 DTO 记录字段用途、是否含个人信息、遮盖规则、缓存期限和错误/崩溃快照策略。手机号、证件号、参与人、图片、交易号等字段只有页面确有用途时才可进入 Dart；Cgyy 锁码继续只返回 available；图片由受控字节或临时句柄传递，禁止把带 token 的原始 URL 交给 Dart。
 
-这些操作只能通过脱敏 Fixture、Mock、向量测试和 CLI 默认阻止/显式确认路径验证。
+若首页串行读取影响体验，先在 Core 增加返回逐项结果的 home_bootstrap 聚合方法；未经会话并发审计不得在 Dart 建立多个隐式客户端或复制路由逻辑。
 
-### 6.4 `core-live` 与 `verify-live`
+## 7. UI、权限、凭据和本地数据
 
-- `core-live` 是唯一拥有真实网络逻辑的验证入口，建议提供明确的 `route=direct|webvpn` 和 `feature=all|<feature>` 参数。
-- Core-live 必须在一次路线批次内复用同一 `UbaaClient`；不能为每个 operation fork CLI 进程。
-- `verify-live` 只保留兼容和便利调用功能，负责参数校验、凭据安全注入和调用 Core-live，不得包含另一套请求、解析、登录或业务重试逻辑。
-- `scripts/test-verify-live.sh` 应改为验证该薄封装的安全合同；如果更名，必须保留等价覆盖并更新所有引用。
-- Core-live 的真实输出只允许安全摘要：路线、操作、阶段、稳定错误码、耗时、数量或存在性标志；禁止输出凭据、Cookie、Token、验证码、原始响应和完整个人数据。
+### 7.1 页面与导航
 
-### 6.5 确定性和 CLI 门槛
+- Splash：品牌、版本检查、会话恢复；公告或更新检查失败不得阻塞使用。
+- 登录：学号、密码、记住密码、自动登录和路线选择；当前 Core 不支持的交互验证码显示可行动错误，不伪造输入流程。
+- 根导航：主页、普通功能、高级功能、我的；宽屏侧栏，窄屏底部导航或抽屉。
+- 普通功能顺序：课表、考试、成绩、博雅、空教室、SPOC、希冀、图书馆。
+- 高级功能：课堂签到、研讨室预约、阳光打卡、教学评教和其他已证明能力。
+- 首页各卡片独立 loading、success、empty、failure、stale 和 retry；单项失败不能白屏。
+- 写按钮必须根据当前状态、时间窗口和权限禁用，并说明原因。
+- 写入进行时只锁定相关目标；防重复点击。成功后刷新关联读取状态，失败保留非敏感输入。
+- Material 3 明暗主题、动态字体、键盘导航、屏幕阅读器语义、焦点顺序和颜色以外的状态标识全部覆盖。
 
-至少保持并扩展以下测试：
+每个页面在 docs/design/flutter-ui-spec.md 记录导航来源、旧版参考文件、响应式布局、所有状态、确认文案和 widget/golden 测试。
 
-```text
-just refs
-just check-sensitive
-just check
-cargo test --locked -p ubaa-cli --all-targets
-```
+### 7.2 CredentialVault
 
-新增或修复行为必须先添加失败的脱敏测试，再实现最小改动，运行 focused test，最后运行完整门槛。auto 只在 Core 路由解析、Mock facade 和 CLI 路由输出中验证，不进入真实账号矩阵。
+CredentialVault 提供 read、write、delete、capability，只保存一个账号的最小凭据，使用版本化命名空间和原子更新：
 
-## 7. 测试和脚本清理
+- macOS/iOS：Keychain；
+- Android：Keystore 保护的密钥与应用私有密文，关闭敏感备份；
+- Windows：Credential Manager/Locker；
+- Linux：Secret Service/libsecret；
+- HarmonyOS：HUKS 非导出密钥保护应用私有密文。
 
-1. 先列出每个测试、Fixture、脚本的被测合同、调用方和替代覆盖；没有覆盖映射不得删除。
-2. 保留安全、写保护、路由隔离、Session 并发、Cgyy 单批次业务登录复用和 CLI/facade 边界测试，即使它们在不同层看起来相似。
-3. 清除无引用、仅重复旧实现且已有等价覆盖的脚本和测试；删除前更新 `justfile`、CI、文档和运行手册中的所有引用。
-4. `verify-live` 的旧网络实现必须删除或彻底改为 Core-live 薄封装，不能两套逻辑并存。
-5. `ubaa_old/`、`examples/`、固定证据、ADR、迁移状态和必要的决策记录不能因“清理冗余”删除。已完成且无证据价值的临时计划可以合并或删除，但不能删除唯一的协议依据。
+登录成功后才保存密码；凭据错误时清理旧密码；退出登录与退出并清除本机账号分开。安全存储缺失、锁定或损坏时退回本次会话，不创建明文备份。密码和挑战材料在使用后立即从 UI controller 与 bridge 临时状态中清理。
 
-## 8. 完整代码审查
+### 7.3 Core Session 存储
 
-代码审查在 Cgyy、Core-live、结构整理和清理完成后进行，审查基线为本周期全部提交相对于基线提交的完整差异。审查至少覆盖：
+UbaaClient::open 只能接收 PlatformPaths 解析出的 App 私有目录。Core 继续拥有 Session 内容，Dart 和平台宿主不得读取 Cookie。P1/P2 必须冻结 session schema、迁移和清理合同，并逐平台满足：
 
-- facade 是否仍是唯一宿主边界；
-- Direct/WebVPN Cookie、Session、业务 Token 和失效清理是否隔离；
-- Cgyy 是否存在隐藏 Direct 回退或路线错配；
-- 并发、缓存、重试、版本冲突和 stale writer 行为；
-- URL、Header、Body、签名、解析和错误分类；
-- 敏感数据是否进入日志、stdout、错误、Fixture、Session 或命令参数；
-- CLI 输入校验、JSON Schema、退出码和写操作确认；
-- Core-live 是否可能执行真实写操作；
-- macOS/Linux/Windows 锁定构建、测试和文档命令；
-- 文档、代码、测试和状态证据是否一致。
+- Windows：当前用户专属目录、严格用户 ACL、原子替换，安装包和便携包都不得落到程序目录；
+- macOS/iOS：App Container/Application Support、备份排除；iOS 使用可用的数据保护级别；
+- Linux：XDG 私有数据目录、目录 0700、文件 0600、原子替换；权限无法保证时禁止持久化；
+- Android：应用私有 noBackupFilesDir 或等价目录，禁止云备份和设备间迁移；
+- HarmonyOS：应用沙箱私有目录、备份排除和厂商支持的文件保护。
 
-审查发现的问题必须分类、修复并重新运行相关测试。未解决的高严重度问题、敏感泄漏、真实写风险、协议猜测和硬门槛失败都禁止宣布完成；低严重度问题若暂不修复，必须在状态或决策文档中说明理由和后续任务。
+启动时拒绝符号链接、宽权限、损坏或降级 schema；注销清除 Core Session 但默认保留用户主动保存的密码，退出并清除账号同时删除 Session、密码和非必要缓存。升级、崩溃中断、重装和卸载后的行为必须有平台测试。
 
-## 9. 文档整理和中文要求
+### 7.4 平台权限与敏感输入
 
-### 9.1 语言范围
+- 阳光打卡：移动端支持相机/相册，桌面支持文件选择；提交前显示照片预览。照片只在本次提交和必要的预览生命周期内存在。
+- 博雅签到：仅在业务配置要求时请求前台位置；不申请后台位置。桌面没有位置能力时提供明确、可审查的手动输入或上游允许的无坐标路径，不能伪造位置。
+- 场馆挑战：图像和解答只保留在当前操作内存中，超时立即清理。
+- 权限拒绝必须给出可行动说明；拒绝权限不能导致应用崩溃或影响无关读取功能。
+- 普通缓存不得保存密码、Cookie、token、证件号、完整手机号、挑战图片或提交照片。
+- 诊断日志只记录稳定错误码、阶段、耗时桶和随机问题编号；用户手动导出前再次脱敏。
 
-- `docs/**` 的维护性说明、表格、运行手册、迁移记录和 ADR 使用中文；
-- Rust、Shell 代码注释使用中文，注释解释原因和不变量，不复述代码；
-- 命令、代码标识符、JSON key、Schema 字段、URL、HTTP 方法/字段、上游固定值、许可证和必要的原文保持准确，不为中文化而改名；
-- `README.md`、`AGENTS.md`、`SECURITY.md`、`CONTRIBUTING.md` 等根目录文件不纳入本次语言范围，但涉及本周期命令或安全合同的内容必须同步更新。
+## 8. 六平台目标与正式产物
 
-### 9.2 文档职责和去重
+| 平台 | 目标系统 | 正式产物 | 发布硬门槛 |
+|---|---|---|---|
+| Windows | Windows 10/11 x64 | 签名 MSIX 或安装包，另提供便携包 | Windows 原生 runner 构建、安装/升级/卸载、Credential Manager |
+| macOS | macOS 12+，arm64；评估 x64 | 签名并公证的 DMG/App | Apple Silicon 实机、Intel 构建证据、Keychain |
+| Linux | Ubuntu 22.04/24.04、Debian 12 x64 | AppImage 与 deb | Linux runner、GTK、Secret Service 存在/缺失两种路径 |
+| Android | API 24+，重点 API29/API35 | 签名 AAB 与测试 APK | 模拟器+实体机、Keystore、权限和备份检查 |
+| iOS | iOS 15+ arm64 | 签名 Archive/IPA 或 TestFlight 构建 | 模拟器+实体机、Keychain、权限、后台/前台恢复 |
+| HarmonyOS | build/target API26，实际最低运行版本由设备证据定稿 | 签名 HAP/应用市场包 | DevEco/CLI26、完整 API26、arm64 FRB、HUKS、实体机 |
 
-统一文档职责：
+Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以交叉编译替代运行证据。每个平台至少一个受支持环境完成全流程 smoke；Android、iOS、HarmonyOS 至少各一台实体设备验证权限、安全存储和写操作 UI。
 
-- `docs/contracts/`：稳定的 Core/facade/CLI/JSON 合同；
-- `docs/architecture/`：架构和边界；
-- `docs/development/`：开发、测试和命令；
-- `docs/migration/`：逐操作 parity、状态、证据和冲突决策；
-- `docs/runbooks/`：真实验证和故障排查；
-- `docs/adr/`：长期架构决策；
-- `docs/superpowers/`：工作计划和设计草案，完成后只保留仍有引用或证据价值的内容。
+正式签名需要的 Apple、Google、Microsoft、Linux 发布、HarmonyOS 账号与证书由项目所有者安全提供。没有签名/公证证据的开发产物不能标记正式版完成。
 
-必须删除重复的完成定义、过时的“六项功能”或旧 `verify-live` 唯一入口表述，统一改为全量操作、Core-live、Direct/WebVPN 双路线和逐操作证据。保留历史失败和上游不稳定记录，但明确其日期、范围和是否仍为当前阻塞项。
+## 9. 分阶段执行
 
-## 10. 分阶段执行顺序
+工期是单人顺序执行的粗略范围，不是发布日期承诺；OHOS 工具链、签名账号和真实写入窗口会影响总历时。
 
-### 阶段 0：基线提交
+### P0：冻结基线和兼容性闸门（3–5 个工作日）
 
-- 执行基线命令，检查工作树、参考提交和敏感文件；
-- 审阅当前未提交改动，把实现改动作为本周期基线及时提交；
-- 不把基线提交描述为功能验收通过。
+- 审查当前未提交 Flutter/OHOS 探索文件，形成可审查基线提交。
+- 固定 Flutter、OHOS fork、Dart、Rust、FRB、Cargokit、DevEco/CLI 和 SDK 精确版本。
+- 官方五平台分别建立最小宿主构建；OHOS 获得匹配 API26 并构建签名空 HAP。
+- 在 macOS 和 OHOS 完成 FRB hello，确认 HAP 包含正确 arm64 Rust 动态库。
+- 建立根级 just flutter-codegen-check、just flutter-check、just flutter-build 和 just ohos-check 配方；配方显式进入每个 package/app，官方 Flutter 与 OHOS fork 使用独立绝对 SDK 路径，禁止依赖当前 shell 中碰巧命中的 flutter。
+- 建立 docs/architecture/flutter-platforms.md、风险表和 go/no-go 结果。
+- OHOS 失败不阻塞其他五平台继续开发，但最终发布状态保持未完成。
 
-### 阶段 1：合同、清单和测试设计
+### P1：稳定 bridge 合同（1–2 周）
 
-- 核对当前功能清单和每个 operation；
-- 更新 source parity、decision log 和只读矩阵的旧入口/旧路线表述；
-- 固化 Cgyy 统一路由语义、Core-live/verify-live 边界、状态分类和写操作禁止规则；
-- 为缺失行为先写失败测试。
+- 建立 docs/contracts/flutter-bridge.md 和逐方法 DTO/schema。
+- 修正 evaluation pending 合同；实现 BridgeClient 生命周期、认证、路线读取/设置和全部读取方法。
+- 实现全部 typed 写请求、WriteIntent、一次性 commit 和不确定结果处理。
+- 增加 panic、dispose、isolate 重建、会话锁、错误映射、个人字段白名单、并发/取消/重复提交测试。
+- 建立可重复 FRB 生成、Cargokit 和六平台 native library 构建任务。
 
-### 阶段 2：格式和结构
+### P2：共享应用壳与认证（1–2 周）
 
-- 运行格式化、Clippy 和现有测试；
-- 做行为保持的模块拆分和 CLI 分层；
-- 单独提交格式/结构变更，确保功能差异可单独审查。
+- 完成 domain/app/ui/platform package 依赖边界。
+- 完成 Splash、登录、会话恢复、自动登录、注销、我的、设置和安全凭据。
+- 完成 Core Session 私有路径、权限、备份排除、损坏恢复、迁移和清理策略。
+- 确定状态管理与导航依赖；只有通过官方 Flutter 与 OHOS spike 的依赖才能进入锁文件。
+- 完成明暗主题、响应式导航、错误组件、空状态和无障碍基础。
+- 使用 fake backend、脱敏 fixture 和 FRB mock 完成 widget/integration 测试。
 
-### 阶段 3：Cgyy 路由修复
+### P3：全部读取能力（2–4 周）
 
-- 增加 WebVPN-only、Direct、auto Mock 和路线隔离测试；
-- 删除 Cgyy 固定 Direct runtime/URL 特例；
-- 实现统一 runtime、Cookie、业务令牌、重试和错误清理；
-- 运行 Cgyy focused tests、facade tests 和 CLI contract tests。
+按第 5.2 节逐领域交付。每个领域必须同时完成：
 
-### 阶段 4：Core-live 和全量测试矩阵
+1. bridge DTO 与 Dart mapping；
+2. 列表/详情/筛选/分页页面；
+3. loading、empty、failure、retry、stale；
+4. widget/golden 测试；
+5. Core fixture/Mock 与 Direct/WebVPN 回归；
+6. 对应真实读取证据或明确 BLOCKED 原因。
 
-- 实现 Core-live 一次路线批次内的共享客户端和逐操作安全证据；
-- 将 `verify-live` 改为薄封装并补齐其 Shell 合同测试；
-- 先完成所有确定性门槛，再分别运行 Direct 和 WebVPN 的完整只读矩阵；
-- 失败、阻塞和不适用操作逐项写入 `docs/migration/status.md`。
+不得先做八张摘要卡片后长期保留空详情页；一个领域只有详情与全部读取闭环完成才可勾选。
 
-### 阶段 5：清理
+当前读取缺口按以下规则闭合：libbook_area_detail 必须在 Asia/Shanghai 08:30–23:00 对 Direct/WebVPN 复跑；Bykc/SPOC 等详情只有在同一路线、同一批次的父列表确实为空时才可记 N/A，并保留父列表证据与详情 fixture 测试；Cgyy static_fallback 必须在 UI 标明来源和可能过期，且只有现有冻结回退决策仍适用并经 RC 审查时才可接受。
 
-- 按覆盖映射删除无用测试、脚本和无引用计划；
-- 删除重复实现而不是删除唯一证据；
-- 更新 `justfile`、CI 和全部命令文档。
+### P4：全部写入能力（3–6 周）
 
-### 阶段 6：代码审查和修复
+按风险从可逆到不可逆推进：
 
-- 审查完整差异和安全边界；
-- 修复所有高严重度问题及可复现的行为缺陷；
-- 每项修复遵循失败测试、最小实现、focused test、全量门槛。
+1. 图书馆预约/取消；
+2. 场馆预约/取消及挑战；
+3. 博雅选课/退选；
+4. 博雅签到/签退与课堂签到；
+5. 阳光打卡照片提交；
+6. 教学评教选择与批量提交。
 
-### 阶段 7：文档和交接
+每项依次完成：冻结来源 parity、失败测试、typed bridge 请求、WriteIntent、确认 UI、重复点击防护、结果核对、错误恢复、六平台 widget/integration 测试、两条路线确定性测试。完成全部确定性证据后，才申请具体真实写入授权。
 
-- 完成 `docs/**` 中文化、去重和链接检查；
-- 补齐 app、SDK、MCP 所需的 facade、JSON、错误、路线、Session 生命周期和版本兼容说明；
-- 复核代码、测试、状态、parity、决策和命令文档一致。
+不可撤销操作必须单独列出目标、影响、时间窗口和预期结果；没有安全样本或授权时标记 BLOCKED，不能以 Mock 替代真实成功声明。
 
-### 阶段 8：最终门槛
+### P5：平台能力与六平台体验（2–4 周）
 
-- 运行所有确定性门槛、CLI E2E、敏感扫描和 Direct/WebVPN Core-live 矩阵；
-- 检查没有真实写请求、敏感泄漏、未提交生成物或错误引用；
-- 只有所有必需读操作通过、所有写操作有确定性实现证据、审查问题已处理、文档一致且工作区可交接时，才能报告本周期完成。
+- 完成六个平台安全凭据适配。
+- 完成相机/相册/文件选择、前台位置、已有 typed 合同的 Cgyy 业务挑战交互和权限拒绝路径。
+- 完成桌面窗口尺寸、键盘/鼠标、移动端生命周期和 OHOS 平台差异。
+- 对每个平台执行安装、升级、卸载重装、断网、会话过期、路线切换和权限变化测试。
+- 完成性能、内存、无障碍和长列表检查。
 
-## 11. 最终验收和报告格式
+### P6：发布候选与正式发布（2–4 周）
 
-最终报告必须区分：
+- 在原生 CI/runner 构建六平台 Release 产物。
+- 完成签名、公证、SBOM、第三方许可、依赖审计和敏感信息扫描。
+- 完成 Direct/WebVPN 全读取矩阵和经授权的写入矩阵。
+- 完成崩溃恢复、版本升级、配置迁移、回滚和发布 runbook。
+- 冻结 RC，所有阻塞问题关闭后生成正式版本与校验摘要。
 
-1. 已实现的 Core/CLI 读操作和写操作；
-2. Direct 与 WebVPN 的逐操作真实只读结果；
-3. auto 的确定性路由测试结果；
-4. 写操作仅有 Mock/向量/阻止证据，未在真实账号执行；
-5. 确定性门槛、CLI E2E、敏感扫描和代码审查结果；
-6. 仍未完成、被上游阻塞或明确不适用的项目；
-7. 面向 app、SDK、MCP 的可用公共合同和已知限制。
+## 10. 测试、证据与 CI 门禁
 
-不得使用“全产品完成”“所有平台完成”或其他超出本周期范围的表述。任何真实写操作、凭据泄漏、参考仓库修改或未记录的协议猜测都属于硬失败，必须立即停止并记录。
+### 10.1 每次合并门禁
+
+    just refs
+    just check-sensitive
+    just check
+    just flutter-codegen-check
+    just flutter-check
+    git diff --check
+
+上述 Flutter 配方由 P0 创建后生效：flutter-codegen-check 使用锁定 FRB 版本重新生成并要求零漂移；flutter-check 用官方 SDK 在明确 cwd 遍历共享 package 和官方 App，执行 pub get、analyze、test；ohos-check 使用独立 OHOS fork SDK 执行对应 analyze、test、HAP/native 构建。平台 build 和 Release 阶段再运行 just flutter-build 与 just ohos-check。FRB 重新生成后工作树必须只有预期生成差异。不得通过放宽 lint、删除测试、忽略敏感扫描或手改生成文件获得通过。
+
+### 10.2 分层测试
+
+- Rust：领域、协议、路由、会话、读取、写入请求向量、默认拒绝、WriteIntent 和不确定结果。
+- Dart domain/app：DTO mapping、状态机、分页、缓存失效、错误和写确认。
+- Widget/golden：所有页面在手机、平板、桌面断点及明暗主题下的关键状态。
+- Integration：登录、会话恢复、路线切换、每个读取流程、每个写入准备/取消/确认流程。
+- 平台：安全存储、权限、文件/照片、应用私有目录、动态库加载和生命周期。
+- Release：安装、升级、卸载、签名、公证、产物校验和依赖清单。
+
+### 10.3 真实系统证据
+
+读取能力：Direct 与 WebVPN 按操作逐项验证，记录路线、时间、HTTP/业务安全状态和最终结论；Auto 保留确定性选择证据。FAIL 和必需 BLOCKED 一律阻止 RC。N/A 只有在父集合为空、前置条件客观不存在且有同批次证据时可接受；static_fallback 不算上游 PASS，只有 Cgyy 用途的既有冻结回退决策经复核且 UI 明示来源时可例外接受。
+
+Core-live 证明协议，不证明 App 链路。Windows、macOS、Linux、Android、iOS 和 HarmonyOS 必须分别在受支持的原生环境通过真实 Flutter→FRB→Core→upstream 只读 E2E：登录/恢复、用户资料、每个业务域至少一个代表读取，以及 Direct/WebVPN 两种固定路线；平台或网络客观不支持某路线时必须给出可复核 BLOCKED，不能用 Mock 或另一平台代替。全部读取方法的协议矩阵仍由 Core-live 覆盖，全部页面状态由 fixture/integration 覆盖。
+
+写入能力：
+
+1. 先通过两条路线的 fixture/Mock/向量和默认拒绝测试；
+2. 提交一份不含秘密的真实验证清单；
+3. 用户明确授权具体操作和目标；
+4. 单操作串行执行，不并行、不批量、不自动重试；
+5. 立即使用读取接口核对结果；
+6. 可逆操作在授权包含清理时执行取消/退选并再次核对；
+7. 不可逆操作保留最小安全结果摘要；
+8. 任一结果不确定立即停止该领域后续写入。
+
+每个操作的 PASS、FAIL、BLOCKED 分开记录。历史上某次写入成功不能自动证明当前版本、另一条路线或另一项操作可用。
+
+真实写入协议逐操作在一台受控代表设备完成即可；六平台不重复制造相同副作用，但每个平台必须通过 Flutter→FRB→Core 的写入 prepare、取消、确认门禁、平台权限和 Mock 提交 E2E。任何真实写入仍受本节逐次授权规则约束。
+
+### 10.4 CI 平台
+
+- macOS runner：Rust、Dart、macOS、iOS simulator。
+- Linux runner：Rust、Dart、Linux、Android 构建。
+- Windows runner：Rust、Dart、Windows 安装包。
+- 受控 OHOS runner：固定 DevEco/CLI26、API26、HAP 构建和设备 smoke。
+- 实体设备测试与签名任务使用受保护凭据，不在普通 Pull Request 中运行。
+
+## 11. 完成定义
+
+只有以下条件全部满足，状态才能改为“完成”：
+
+1. 第 5 节列出的全部读取与写入能力均有正式 Flutter 页面，不存在占位页、Demo backend 或只显示摘要的未完成流程。
+2. 每项业务通过 Rust、Dart、widget/integration 和 bridge 合同测试；写入额外通过确认、重复提交和结果不确定测试。
+3. Windows、macOS、Linux、Android、iOS、HarmonyOS 分别有可复现 Release 产物和原生环境运行证据。
+4. 六个平台分别完成登录、会话恢复、路线设置、凭据能力、全部读取 smoke 和全部写入 UI 流程；涉及权限的平台完成实体机验证。
+5. Direct/WebVPN 全读取矩阵和六平台真实 App 代表读取 E2E 通过；每个写入操作有符合第 10.3 节的当前版本证据或明确记录的 BLOCKED。存在必需 BLOCKED 时不能完成。
+6. 密码只进入经审计的平台安全存储或当前会话；日志、诊断、fixture、生成产物和版本库无秘密或个人数据。
+7. 所有写操作均使用一次性确认意图，无后台写入、无透明路线切换、无可能重复提交的自动重试。
+8. 正式产物完成签名/公证、安装/升级/卸载、依赖许可、安全扫描和回滚验证。
+9. 平台矩阵、bridge 合同、UI 规格、功能矩阵、测试证据、已知限制和发布 runbook 完整。
+10. just refs、just check-sensitive、just check、Flutter/FRB/六平台 Release 门禁全部通过，工作树干净。
+
+## 12. 提交与变更管理
+
+- 每个阶段分成可审查提交；计划/合同、生成骨架、bridge、单一领域 UI、平台适配和发布配置不得混成一个提交。
+- 每个业务操作先增加失败测试并保留预期失败证据，再做最小实现。
+- 每次提交前检查 staged 文件和敏感扫描；禁止使用宽泛 git add . 把冻结目录或本地配置带入。
+- 自动生成文件必须可重现，禁止直接手改。
+- 新依赖必须记录用途、许可证、六平台支持和 OHOS 验证结果。
+- 任何范围、协议、平台最低版本或写入语义变化都要更新本计划或链接合同后实施。
+
+## 13. 执行队列
+
+- [x] 明确技术路线为 Flutter + FRB + Rust Core。
+- [x] 明确目标为六平台全部读取与写入能力正式版。
+- [x] 完成旧版 UI、Core facade、FRB/OHOS 工具链初步勘察。
+- [x] 将本文件重写为全功能正式版执行计划。
+- [ ] P0：审查探索产物、冻结提交基线和六平台工具链。
+- [ ] P1：冻结完整 Flutter bridge 合同并实现绑定。
+- [ ] P2：完成共享应用壳、认证、设置和安全凭据。
+- [ ] P3：完成全部读取页面与证据。
+- [ ] P4：完成全部写入页面、安全确认和证据。
+- [ ] P5：完成六平台适配与设备体验。
+- [ ] P6：完成签名 Release、真实矩阵和正式发布。
+- [ ] 所有完成定义满足后，将状态改为“完成”。
+
+## 14. 默认决策与后续授权点
+
+- “记住密码”默认关闭，用户主动开启；安全存储不可用不明文降级。
+- 路线默认 Auto；App 不暴露 feature override；切换固定路线时清除 App 私有 override、使 intent 失效、重新打开 Core client，并在 auth_status 表明目标路线未认证时重新登录。
+- 所有写操作采用准备、摘要、明确确认、一次提交、读取核对的统一模型。
+- 批量评教默认不自动提交；用户选择课程、查看数量和不可撤销提示后确认。
+- 位置权限仅前台按需申请；不生成虚假位置。
+- OHOS 锁定 fork commit + DevEco/CLI26/API26；完成实体机证据前不能作为正式版发布。
+- 平台签名账号、证书、应用标识和商店发布权限在 P0/P6 由项目所有者单独安全提供。
+- 每次真实写入验证仍需单独授权；本计划本身只授权实现和确定性测试，不授权对真实账号产生副作用。
