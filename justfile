@@ -30,3 +30,19 @@ verify-live *args:
 
 core-live *args:
     ./scripts/core-live.sh {{args}}
+
+# 固定 SDK 下重生成 FRB 绑定并要求零漂移。
+flutter-codegen-check:
+    ./scripts/flutter-codegen-check.sh
+
+# 固定官方 Flutter SDK 下逐 package 执行依赖、静态分析和测试。
+flutter-check:
+    ./scripts/flutter-check.sh
+
+# 在当前原生 runner 构建指定平台；例如 platform=macos、android-apk、ios-simulator。
+flutter-build platform="host" mode="debug":
+    ./scripts/flutter-build.sh "{{platform}}" "{{mode}}"
+
+# 固定 OHOS fork、CLI/API26、native SDK 和 HAP 构建门禁。
+ohos-check mode="release":
+    ./scripts/ohos-check.sh "{{mode}}"

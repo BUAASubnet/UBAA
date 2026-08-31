@@ -1,0 +1,115 @@
+name: Flutter 原生平台构建
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/flutter-platforms.yml'
+      - 'apps/ubaa_flutter/**'
+      - 'crates/ubaa-core/**'
+      - 'crates/ubaa-flutter-bridge/**'
+      - 'packages/**'
+      - 'scripts/check-flutter-toolchains.sh'
+      - 'scripts/flutter-build.sh'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+  push:
+    branches:
+      - ubaa2
+    paths:
+      - '.github/workflows/flutter-platforms.yml'
+      - 'apps/ubaa_flutter/**'
+      - 'crates/ubaa-core/**'
+      - 'crates/ubaa-flutter-bridge/**'
+      - 'packages/**'
+      - 'scripts/check-flutter-toolchains.sh'
+      - 'scripts/flutter-build.sh'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-debug:
+    name: ${{ matrix.label }} debug
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux
+            os: ubuntu-24.04
+            platform: linux
+            artifact: apps/ubaa_flutter/build/linux/x64/debug/bundle
+          - label: Windows
+            os: windows-2025
+            platform: windows
+            artifact: apps/ubaa_flutter/build/windows/x64/runner/Debug
+          - label: macOS
+            os: macos-15
+            platform: macos
+            artifact: apps/ubaa_flutter/build/macos/Build/Products/Debug/ubaa_flutter.app
+          - label: iOS simulator
+            os: macos-15
+            platform: ios-simulator
+            artifact: apps/ubaa_flutter/build/ios/iphonesimulator/Runner.app
+          - label: Android APK
+            os: ubuntu-24.04
+            platform: android-apk
+            artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - uses: taiki-e/install-action@just
+
+      - name: 安装 Linux 构建依赖
+        if: runner.os == 'Linux'
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: 固定官方 Flutter SDK
+        shell: bash
+        run: |
+          flutter_root="$RUNNER_TEMP/flutter"
+          if command -v cygpath >/dev/null 2>&1; then
+            flutter_root=$(cygpath -u "$flutter_root")
+          fi
+          git init "$flutter_root"
+          git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
+          git -C "$flutter_root" fetch --depth=1 origin 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
+          git -C "$flutter_root" checkout --detach FETCH_HEAD
+          printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
+          printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
+          "$flutter_root/bin/flutter" --version
+
+      - name: 安装 Android 固定组件
+        if: matrix.platform == 'android-apk'
+        shell: bash
+        run: |
+          sdkmanager_bin="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager_bin" --licenses >/dev/null || true
+          "$sdkmanager_bin" \
+            'platforms;android-36' \
+            'build-tools;36.0.0' \
+            'ndk;28.2.13676358' \
+            'cmake;3.22.1'
+
+      - name: 构建原生宿主
+        shell: bash
+        run: just flutter-build platform=${{ matrix.platform }} mode=debug
+
+      - name: 保存可复核产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubaa-${{ matrix.platform }}-debug-${{ github.run_id }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 14

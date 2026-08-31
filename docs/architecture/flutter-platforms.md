@@ -33,11 +33,11 @@
 
 | 平台 | 目标系统 | 架构 | 当前状态 |
 |---|---|---|---|
-| Windows | Windows 10/11 | x64；arm64 后续 | 宿主生成，尚未在 Windows 构建 |
-| macOS | macOS 12+ | arm64；x64 兼容构建 | 本机可用于首个闭环 |
-| Linux | Ubuntu 22.04/24.04、Debian 12 | x64 | 宿主生成，尚未在 Linux 构建 |
-| Android | API 24+，重点 API29/API35 | arm64-v8a；模拟器 x64 | 宿主生成，Android SDK/NDK 待定稿 |
-| iOS | iOS 15+ | arm64；模拟器 arm64 | 宿主生成，签名/真机待验证 |
+| Windows | Windows 10/11 | x64；arm64 后续 | 宿主生成，尚未在 Windows 原生 runner 构建 |
+| macOS | macOS 12+ | arm64；x64 兼容构建 | arm64 debug App 已构建、启动并完成 FRB hello |
+| Linux | Ubuntu 22.04/24.04、Debian 12 | x64 | 宿主生成，尚未在 Linux 原生 runner 构建 |
+| Android | API 24+，重点 API29/API35 | arm64-v8a；模拟器 x64 | debug APK 已含三种 ABI 的 FRB 动态库；实体机/签名待验证 |
+| iOS | iOS 15+ | arm64；模拟器 arm64 | simulator debug 已链接 FRB universal framework；签名/真机待验证 |
 | HarmonyOS | build/target API26，理论 runtime API17+ | arm64-v8a | fork 已安装；匹配 SDK/DevEco 与真机待完成 |
 
 版本页面展示的区间只用于选择候选。UBAA 的承诺以本表实际通过范围为准。
@@ -57,28 +57,27 @@ P0 必须完成：
 ## 4. 可复现命令
 
 ```sh
-export PATH=/Users/moorefoss/Dev/flutter-3.41.9/bin:$PATH
-flutter --version
-flutter doctor -v
-
-cd /Users/moorefoss/Code/UBAA/apps/ubaa_flutter
-flutter pub get
-flutter analyze
-flutter test
-flutter build macos --debug
-
 cd /Users/moorefoss/Code/UBAA
+just flutter-codegen-check
+just flutter-check
+just flutter-build platform=macos mode=debug
+just flutter-build platform=android-apk mode=debug
+just flutter-build platform=ios-simulator mode=debug
 cargo test --locked -p ubaa-flutter-bridge
-flutter_rust_bridge_codegen generate
+cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D warnings
 ```
 
-OHOS 命令必须在匹配 API26 工具链安装后写入；当前不记录一个已知会失败的伪基线。
+OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前仅将其预检失败记录为
+工具链阻断，匹配 API26 安装并实际生成 HAP 前不得记录为构建通过。
 
 ## 5. 验收记录模板
 
 | 日期 | 平台/设备 | SDK/架构 | 命令/产物 | 启动 | FRB | 登录模拟 | 安全存储 | 只读 smoke | 备注 |
 |---|---|---|---|---|---|---|---|---|---|
-| 待填 | macOS 本机 | 3.41.9/arm64 | 待填 | 待填 | 待填 | 待填 | 待填 | 待填 | 首个闭环 |
+| 2026-09-01 | macOS 本机 | 3.41.9/arm64 | debug App | 通过 | hello 通过 | 未验证 | 未验证 | 未验证 | 仅 P0 FFI 链路 |
+| 2026-09-01 | iOS simulator | 3.41.9/x86_64+arm64 | debug framework | 不适用 | 链接通过 | 未验证 | 未验证 | 未验证 | 无签名/真机证据 |
+| 2026-09-01 | Android APK | 3.41.9/三 ABI | debug APK | 未运行 | 三 ABI 打包通过 | 未验证 | 未验证 | 未验证 | 无签名/实体机证据 |
+| 2026-09-01 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `just ohos-check mode=debug` | 阻断 | 阻断 | 阻断 | 阻断 | 阻断 | runner 已生成；DevEco 26/API26 缺失 |
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
@@ -87,9 +86,44 @@ OHOS 命令必须在匹配 API26 工具链安装后写入；当前不记录一�
 | 产物 | 采用结论 | P0 证据 | 后续约束 |
 |---|---|---|---|
 | `apps/ubaa_flutter` 五平台官方宿主 | 保留生成宿主与薄入口作为构建起点 | 官方 `3.41.9` analyze/test 通过，五个平台目录齐全 | 默认 Demo backend 仅限测试/预览，Release 前必须由 FRB production backend 替换 |
-| `apps/ubaa_ohos` | 保留共享入口、版本说明与工具链预检 | fork 提交与 Dart 版本匹配 | 尚无可验收 API26 工程/HAP；完成匹配工具链后重新生成宿主，不手工伪造 |
+| `apps/ubaa_ohos` | 保留共享入口并用锁定 fork 生成官方 runner | fork 提交/Dart 匹配，pub get、analyze、widget test 通过 | arm64 Cargokit/FRB 已接线；尚无 API26 HAP、签名或设备证据 |
 | `ubaa_domain`、`ubaa_app`、`ubaa_platform` | 保留为分层骨架 | 官方 SDK analyze/test 通过 | 当前仅有摘要模型与内存/回调适配，不能作为完整功能或安全存储实现 |
 | `ubaa_ui` | 保留主题、响应式导航和基础状态组件 | analyze 通过；P0 补充 widget 基线测试 | 摘要卡片、占位详情和“即将接入”均明确未验收，P3/P4 必须逐领域替换 |
 | Demo backend、交互验证码字段 | 不作为生产合同采用 | Core 当前未证明通用交互验证码；Demo 不访问 Core | P1/P2 移除生产默认 Demo，并按稳定 bridge 合同收敛登录状态 |
 
 P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goal.md` 的功能、平台或发布完成条件。
+
+## 7. FRB 生成边界
+
+`packages/ubaa_bindings/lib/src/rust/` 与
+`crates/ubaa-flutter-bridge/src/frb_generated.rs` 是 FRB `2.13.0` 的机械生成输出，
+禁止手改。生成的 FFI 编解码需要 `unsafe`；仓库仅在私有 `frb_generated` 模块上局部
+允许 `unsafe_code` 与生成噪声，bridge crate 的手写模块仍保持 `unsafe_code=deny` 和
+严格 Clippy。`just flutter-codegen-check` 重新生成、以锁定 Rust toolchain 机械执行
+`cargo fmt --all` 并要求零漂移，防止例外扩散到业务代码。
+
+## 8. 新依赖审计
+
+| 依赖 | 固定版本 | 用途 | 许可证 | 五平台状态 | OHOS 状态 |
+|---|---|---|---|---|---|
+| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | macOS、iOS simulator、Android 已实际链接；Windows/Linux 待原生 CI | Dart API/HAR 已接线，HAP 受 API26 阻断 |
+| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定 Rust crate | MIT/Apache-2.0 | 同上；快照纳入仓库审查 | arm64 HAR/CMake 已接线，HAP 受 API26 阻断 |
+
+两项依赖都不拥有协议、Cookie、路线或业务 DTO；它们只负责 FFI 生成与 native library
+构建。版本升级必须同时更新 Rust crate、Dart package、codegen、Cargokit 快照和六平台
+构建证据，禁止只升级其中一处。
+
+## 9. P0 风险与 go/no-go
+
+| 风险 | 当前证据 | 影响 | 处置与门禁 |
+|---|---|---|---|
+| Windows/Linux 原生兼容性尚无执行证据 | 原生 debug workflow 已定义、尚未运行 | 不能确认五平台最小宿主全部可构建 | 推送 `ubaa2` 后按原生 runner 日志闭环；失败不得以 macOS 替代 |
+| OHOS 工具链版本不满足合同 | DevEco `6.0.1.251`、API21；预检明确失败 | 无法生成可验收 HAP 或设备 FRB hello | 仅安装 DevEco/CLI26 与完整 API26 后重跑；不得用 API18/21 降级 |
+| OHOS 下载入口需要华为账号 | 未登录、未传输账号信息 | 工具链取得受外部账号与授权约束 | 取得项目所有者明确授权后才登录或使用受限下载 |
+| 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
+| 当前 Flutter UI 仍含探索 Demo/占位 | P0 仅验证宿主与 hello | 不能作为 P1 至 P6 功能完成证据 | P1 固定 bridge 合同，P2/P3/P4 逐项移除并以测试闭环 |
+
+当前结论为 **NO-GO（正式发布）/ GO（继续五平台 P1 开发）**。理由是官方 Flutter
+本机 FFI 基线已建立，但 Windows/Linux 原生矩阵尚未执行，OHOS API26、签名 HAP 与
+实体机 hello 仍为硬阻断。该结论只允许继续不依赖签名和真实写入的实现、确定性测试及
+只读验证，不允许将任何 debug 产物称为正式版。

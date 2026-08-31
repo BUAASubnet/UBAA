@@ -1,6 +1,6 @@
 # UBAA Flutter 六平台全功能正式版执行计划
 
-状态：P0 进行中（基线与工具链核验）
+状态：P0 进行中（本地 FRB/三平台通过；Windows/Linux CI 与 DevEco/API26 待闭合）
 计划确认日期：2026-09-01
 项目根目录：/Users/moorefoss/Code/UBAA
 
@@ -63,14 +63,26 @@
 
 已知事实：
 
-1. 当前分支为 ubaa2，已知基线提交为 efbc1c4。该分支没有可依赖的远程 upstream，执行前需要建立清晰的 Flutter 阶段提交基线。
+1. 当前分支为 ubaa2；合同、探索骨架、FRB 绑定与 OHOS runner 已分别形成阶段提交，
+   最近两项为 `893aa84` 与 `8099327`。该分支尚未建立远程 upstream，Windows/Linux
+   原生 CI 需在安全审查后推送该分支才能取得执行证据。
 2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
 3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
-4. 官方 Flutter 候选为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
-5. HarmonyOS fork 候选为 tag 3.41.10-ohos-1.0.1，commit adaf911c35c9136a7d18fc424d714c9ec7724e60。
+4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
+5. HarmonyOS fork 已锁定为 tag 3.41.10-ohos-1.0.1，commit adaf911c35c9136a7d18fc424d714c9ec7724e60。
 6. 当前 OHOS fork 的发布说明要求 DevEco/Command Line Tools 26.0.0 Beta2 与 OpenHarmony API 26 构建。本机现有 API 21 不是发布基线；API 18 公共 SDK 也不能替代完整 API 26 工具链。
 7. 取得匹配 API 26 工具链、构建签名 HAP、打包 FRB arm64 动态库并完成实体机验证，是 HarmonyOS 正式版硬门槛。
 8. 当前真实读取证据仍有待闭合项：libbook_area_detail 需在营业窗口复跑；Bykc/SPOC 详情可能因父列表无可用 ID 而 N/A；Cgyy 用途可能来自 static_fallback。第 10.3 节规定这些状态能否进入 RC。
+9. FRB Dart/Rust/runtime/codegen 与 Cargokit 已锁定 2.13.0；生成后由锁定 Rust
+   toolchain 机械格式化并通过零漂移门禁。macOS App 已实际启动越过 hello 断言，
+   iOS simulator 已链接 x86_64+arm64 framework，Android APK 已包含三种 ABI 的
+   Rust 动态库；这些证据只覆盖 P0 FFI 链路，不代表业务功能完成。
+10. OHOS runner 与 arm64 Cargokit HAR 已生成，OHOS app 的 pub get、analyze 和
+    widget test 通过；`just ohos-check mode=debug` 仍明确失败于 DevEco
+    `6.0.1.251` 与 API21，不存在 HAP、签名或设备 hello 证据。
+11. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
+    `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。P0 仍因
+    Windows/Linux 原生构建、DevEco/API26、签名空 HAP 与 OHOS 设备 hello 未完成。
 
 ## 4. 安全与架构边界
 

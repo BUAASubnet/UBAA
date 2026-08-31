@@ -24,6 +24,33 @@
   合同锁定的 CLI/API 26；当前只作为失败边界证据，未将 API 18/21 冒充发布基线。
 - 当前探索 UI 仍含 Demo backend、摘要卡片和占位详情，不是产品验收结果；P1 至 P4
   必须由 FRB production backend、完整 DTO/页面和一次性写确认流程替换。
+- FRB Dart/Rust/runtime/codegen 已精确锁定 `2.13.0`。新增
+  `ubaa-flutter-bridge` 的 `cdylib`/`staticlib` 与 Cargokit binding package；生成 API
+  目前只有固定非敏感 `bridge_hello`，不会发起业务网络请求。
+  `cargo test --locked -p ubaa-flutter-bridge`、严格 Clippy、
+  `just flutter-codegen-check` 的二次生成零漂移，以及全部共享 package/官方宿主的
+  `just flutter-check` 均通过。
+- 官方五平台宿主已完成本机可验证的三类实际链接：macOS arm64 App 启动并越过
+  `RustLib.init`/hello 断言；iOS simulator 产出 x86_64+arm64 framework；Android
+  debug APK 同时包含 armeabi-v7a、arm64-v8a、x86_64 的
+  `libubaa_flutter_bridge.so`。这些只证明 P0 FFI 链路，不证明登录或任何业务功能。
+- Android 首次构建被本机 JDK `25.0.3` 与 Gradle 组合阻断；切换到固定用户级
+  OpenJDK `17.0.19` 后 APK 构建通过。Android SDK 已补齐 API29/API35/API36、
+  NDK、CMake、Ninja 与已接受许可；官方 `flutter doctor` 的 Android/Xcode/
+  CocoaPods 必需项通过。
+- OHOS Rust target `aarch64-unknown-linux-ohos` 已安装。`just ohos-check mode=debug`
+  仍按预期只在 DevEco `6.0.1.251` 与 API21 两个硬门槛失败。锁定 fork 已生成
+  OHOS runner，OHOS app 的 pub get/analyze/widget test 通过，并接入同一 FRB Dart API
+  与 arm64 Cargokit HAR；但因工具链预检失败，尚无 HAP/FRB 设备 hello 证据，P0
+  不得标记完成。华为当前 API26/DevEco 26 下载入口要求账号登录，本轮未提交账号信息
+  或下载受限工具包。
+- 由 FRB 生成的 FFI 编解码模块包含必要 `unsafe` 与机械转换；bridge crate 仍默认
+  `unsafe_code=deny`，仅对私有生成模块使用局部 allow。生成文件不手改，业务 API
+  继续受严格 Clippy 与零漂移门禁约束。
+- 新增 GitHub Actions 原生 debug 矩阵，固定同一 Flutter commit，在
+  Ubuntu 24.04、Windows 2025 与 macOS 15 runner 构建 Linux、Windows、macOS、
+  iOS simulator 和 Android APK，并保存短期构建产物。工作流尚未推送执行，当前只能
+  记为“门禁已定义、原生证据待运行”，不能把 YAML 当作 Windows/Linux 通过证据。
 
 本节仅记录确定性和工具链事实；未执行任何真实账号写操作，也未读取、输出或暂存
 `.env.local`、会话、Cookie、token、验证码图片或真实响应。
