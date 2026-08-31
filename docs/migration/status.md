@@ -125,10 +125,14 @@ cargo test --locked -p ubaa-cli --test cli_contract PASS（23）
 bash ./scripts/test-verify-live.sh                  PASS
 ```
 
-提交前 `git diff --check` 通过，暂存范围仅为 Core Cgyy 协议实现、脱敏 Mock 和迁移记录；
-HAR、`ubaa_old`、`examples/buaa-api`、`.env.local` 及任何运行时会话材料均未暂存。真实
-Direct/WebVPN 只读矩阵均在同一批次单路线客户端内串行完成；所有写操作仍仅有 Mock、向量
-和 CLI 阻止证据。
+各主题提交前均通过 `git diff --check`；Cgyy 协议提交只暂存 Core 实现、脱敏 Mock 和
+迁移记录，文档收口提交只涉及合同与历史矩阵。HAR、`ubaa_old`、`examples/buaa-api`、
+`.env.local` 及任何运行时会话材料均未暂存。真实 Direct/WebVPN 只读矩阵均在同一批次
+单路线客户端内串行完成；所有写操作仍仅有 Mock、向量和 CLI 阻止证据。
+
+独立代码审查覆盖本周期完整差异，重点检查 facade 唯一宿主边界、Cgyy Direct/WebVPN/auto
+路线绑定、业务令牌生命周期、Core-live/verify-live 分工、写操作入口和敏感输出。未发现
+可复现的高严重度问题；相关 Cgyy 与 facade 回归测试在最终门禁后再次通过。
 
 ## 2026-08-29 阶段提交
 
