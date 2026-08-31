@@ -65,7 +65,7 @@ jobs:
             artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@1.95.0
       - uses: taiki-e/install-action@just
 
@@ -110,7 +110,7 @@ jobs:
         run: just flutter-build platform=${{ matrix.platform }} mode=debug
 
       - name: 保存可复核产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ubaa-${{ matrix.platform }}-debug-${{ github.run_id }}
           path: ${{ matrix.artifact }}
