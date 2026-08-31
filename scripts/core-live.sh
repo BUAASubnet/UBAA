@@ -54,17 +54,33 @@ if [[ -z "$config_dir" ]]; then
 else
   cleanup_config=no
 fi
-trap 'if [[ ${cleanup_config:-no} == yes ]]; then rm -rf -- "$config_dir"; fi' EXIT
+
+cleanup_config_dir() {
+  if [[ ${cleanup_config:-no} == yes && -n ${config_dir:-} ]]; then
+    rm -rf -- "$config_dir" || true
+  fi
+}
+
+# 统一使用 EXIT 收尾；信号先转为退出，再由 EXIT 删除自动创建的目录。
+trap cleanup_config_dir EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 if [[ ! -x "$binary" || ${UBAA_CORE_LIVE_BUILD:-yes} == yes ]]; then
   cargo build --locked --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-cli --bin core-live
 fi
 
-exec "$binary" \
+if "$binary" \
   --route "$route" \
   --feature "$feature" \
   --config-dir "$config_dir" \
   --date "$date_value" \
   --campus-id "$campus_id" \
   --username-stdin \
-  --password-stdin
+  --password-stdin; then
+  status=0
+else
+  status=$?
+fi
+exit "$status"
