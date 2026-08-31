@@ -104,6 +104,37 @@ fn binary_host_does_not_own_route_resolution() {
 }
 
 #[test]
+fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
+    let core_live = include_str!("../src/bin/core-live.rs");
+    assert_eq!(core_live.matches("RouteClient::new").count(), 1);
+    for forbidden in [
+        "cgyy_cancel_order",
+        "cgyy_submit_reservation",
+        "bykc_select_course",
+        "bykc_deselect_course",
+        "bykc_sign_course",
+        "signin_perform",
+        "libbook_reserve",
+        "libbook_cancel_booking",
+        "evaluation_submit",
+        "evaluation_submit_courses",
+    ] {
+        assert!(
+            !core_live.contains(forbidden),
+            "Core-live contains write call {forbidden}"
+        );
+    }
+    let verifier = include_str!("../../../scripts/verify-live.sh");
+    for forbidden in ["run_json", "target/debug/ubaa", "jq ", "CLI_OUTPUT"] {
+        assert!(
+            !verifier.contains(forbidden),
+            "verify-live retained business logic {forbidden}"
+        );
+    }
+    assert!(verifier.matches("core_live").count() >= 3);
+}
+
+#[test]
 fn binary_help_lists_required_commands_without_password_option() {
     let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
         .arg("auth")

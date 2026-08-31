@@ -1,8 +1,12 @@
-# Read-Only Feature Contract
+# 只读功能合同
 
-Status: the six implementations and their hidden safe diagnostics are deterministically covered; the corrected 2026-08-26 auto, Direct, and latest WebVPN live aggregates passed. Transient WebVPN Judge list-snapshot drift and its immediate passing rerun remain recorded.
+状态：只读实现及隐藏安全诊断均有确定性覆盖；Direct/WebVPN 的真实结果由当前
+`core-live` 逐操作记录，`auto` 只保留确定性路由证据。历史实时快照漂移和上游失败
+继续保留在迁移状态中，不用聚合成功掩盖单项失败。
 
-The CLI exposes only the aggregate Core facade methods below. Host code never imports `upstream`, builds a campus URL, probes the gateway or selects a route. Every result contains stable DTO data and safe route diagnostics produced by Core; raw HTML, encrypted parameters, token values, Cookies, and response bodies remain internal.
+CLI 只暴露下列 Core facade 方法。宿主不得导入 `upstream`、拼接上游 URL、探测网关
+或自行选择路线；结果由 Core 生成稳定 DTO 和安全路线元数据。原始 HTML、加密参数、
+Token、Cookie 和响应正文始终留在 Core 内部，Cgyy 锁码仅投影为 `available`。
 
 | Feature | CLI | Facade | Frozen request evidence |
 |---|---|---|---|
@@ -17,7 +21,12 @@ The CLI exposes only the aggregate Core facade methods below. Host code never im
 
 Schedule term values and week serials are selected from the upstream response. Grades reject terms that do not match `yyyy-yyyy-semester`. Classroom dates must use `yyyy-mm-dd`; `UBAA_VERIFY_CAMPUS_ID` and `UBAA_VERIFY_DATE` are non-secret live-verifier overrides. Empty lists and empty classroom maps are valid only after the authoritative operation was actually requested and its required wrapper parsed; an unsupported undergraduate portal or missing account capability is a real, nonzero live failure.
 
-The implementation ports the frozen read paths, including the undergraduate AAS-specific CAS activation required by `examples/buaa-api/src/api/aas/core.rs`, the local schedule form encoding, SPOC encrypted global pagination/token/role setup, one forced token refresh after a business authentication failure, Asia/Shanghai time normalization, optional submission fallback and HTML-to-plain-text normalization, plus Judge course selection, complete detail/problem parsing, six-month cutoff and route/client-scoped caches cleared with the session. SPOC HTML is never a public DTO field. Deterministic fixtures and Mock transports establish request shape; the post-remediation live matrix in `docs/migration/status.md` establishes the recorded 2026-08-26 upstream results. The source-by-source audit is in `docs/migration/source-parity.md`; different protocols in `buaa-api` (such as App grades/exams, iClass classroom, per-course SPOC lists, or absent Judge support) are not substituted for local APIs. No submission, upload, reservation, attendance, grading, or other write operation is exposed.
+实现严格沿用冻结只读路径，包括 AAS CAS 激活、课表表单、SPOC 加密全局分页、业务
+认证失效的一次刷新、东八区时间、可选回退、HTML 文本化以及 Judge 详情/题目解析。
+SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证据以
+`docs/migration/status.md` 中 Core-live 的 Direct/WebVPN 逐操作记录为准。
+`examples/buaa-api` 的其它协议不能替代本地 API。任何提交、上传、预约、签到、评教
+或其它写操作都不在只读入口中。
 
 ## Verification-only diagnostics
 

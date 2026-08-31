@@ -467,7 +467,7 @@ domain -> std/serde 等无网络依赖
 | 启动器/Shell 合同 | `verify-live` 参数转发、stdin 凭据、锁定构建、输出安全 | 否 |
 | 写操作合同 | 精确请求链、向量、响应、确认和默认阻止 | 否，严禁真实写 |
 
-普通 `cargo test`、`just check` 和 CI 必须保持离线。Core-live 必须是显式 opt-in 的独立入口；外层命令可以安全读取 `.env.local` 并通过 stdin 或受控输入注入凭据，Core 不直接读取该文件。
+普通 `cargo test --locked`、`just check` 和 CI 必须保持离线。Core-live 必须是显式 opt-in 的独立入口；外层命令可以安全读取 `.env.local` 并通过 stdin 或受控输入注入凭据，Core 不直接读取该文件。
 
 ### 6.2 Core-live 真实矩阵
 

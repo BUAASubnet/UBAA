@@ -1,31 +1,52 @@
-# Live Read-Only Verification
+# 真实只读验证运行手册
 
-Prerequisites: the fixed reference worktrees pass `just refs`, `.env.local` contains non-empty `UBAA_TEST_USERNAME` and `UBAA_TEST_PASSWORD`, and `jq` and `openssl` are installed. The environment file is ignored and is never copied or printed.
+真实验证的唯一网络入口是 Core-live。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/core-live.sh` 只负责启动已构建的二进制。二进制在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
 
-Run the required matrix commands:
+前置条件：`just refs`、`just check-sensitive` 和 `just check` 已通过；`.env.local` 仅包含非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称）。该文件被忽略，凭据不会复制、打印或写入参数。
+
+## Direct/WebVPN 矩阵
+
+只执行两条真实路线，禁止用 `auto` 代替真实证据：
 
 ```bash
-export UBAA_VERIFY_DIGEST_SALT="$(openssl rand -hex 16)"
-
-just verify-live feature=auth route=direct
-just verify-live feature=auth route=webvpn
-just verify-live feature=all route=auto
-for feature in schedule exam grades classroom spoc judge; do
-  just verify-live feature="$feature" route=direct
-  just verify-live feature="$feature" route=webvpn
-done
-
-unset UBAA_VERIFY_DIGEST_SALT
+just verify-live mode=direct
+just verify-live mode=webvpn
 ```
 
-The verifier builds with `--locked`, uses stdin for the password, and creates a temporary owner-only config/session directory. Every read-only run uses aggregate login and requires both Direct and WebVPN slots; `route=auto` writes only the non-secret `config.toml`, then the Core facade probes `gw.buaa.edu.cn:80` with one 500 ms total TCP budget and resolves the feature route. All requests belonging to one feature run must report the same resolved route or verification fails. Schedule selects one returned `selected=true` term when unique, otherwise the first valid `itemCode`; every returned week must name that same term, while the current-schedule wrapper must only provide the frozen `arrangedList`, non-empty `code`, and `name` shape. The current wrapper's display `code` is independent of the requested semester term. Exam and grades reuse the selected term, and grades must return it. Classroom defaults to campus `1` and the `Asia/Shanghai` current date; `UBAA_VERIFY_CAMPUS_ID` and `UBAA_VERIFY_DATE` can override those values.
+也可以缩小功能范围以重跑单项：
 
-Output is a redacted one-line summary containing feature, policy and resolved route, stage, stable error code, timing, and safe counts or presence flags. The in-memory parser rejects any non-v2 envelope, unsafe or malformed stable error, aggregate route order other than Direct then WebVPN, route drift, incomplete or extra fields relative to stable DTOs, fractional or out-of-range Rust integer fields, unmasked phone/identity fields, cross-request term mismatches, contradictory status/count/text values, impossible Judge diagnostic counts, forbidden credential/session/raw-response aliases, obvious complete upstream HTML documents or CAS forms, and duplicate Judge keys. It does not classify arbitrary angle-bracket text or fragments as HTML because normalized assignment text may legitimately contain encoded tag examples; exact DTO closure plus deterministic Core parser tests establish that no raw HTML field is exposed. Schedule `dayOfWeek` is null or `1..7`; every grade row repeats the requested wrapper term. `unsupported_portal`, an undergraduate-incompatible account, an upstream interactive verification page, and upstream network/protocol failures are nonzero outcomes and must be recorded in `docs/migration/status.md` with the exact command and rerun condition. A fixture or Mock result cannot be copied into this matrix as live evidence.
+```bash
+just verify-live feature=cgyy route=direct
+just verify-live feature=cgyy route=webvpn
+```
 
-SPOC verification uses the hidden diagnostic facade path and requires `globalPageCount` in `1..=u32::MAX`; only then can an empty `result.assignments` be accepted as a real empty authoritative global query. Summary `UNKNOWN` text must contain a nonempty unknown raw value and must not contain any submitted/unsubmitted value recognized by the frozen mapping. Detail may use bare `未知状态`, but a parenthesized value has the same exclusion. A non-empty result triggers one detail read whose `assignmentId` and optional `courseId` must both equal the sampled summary. The hidden command adds no upstream request and returns only the ordinary result plus the safe page count.
+`feature=all` 会在一个客户端内依次检查认证、用户、课表/考试/成绩、教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教读取。依赖数据缺失必须输出 `NOT_APPLICABLE`，依赖请求失败必须输出 `BLOCKED`，独立操作继续执行；任何 `FAIL` 或 `BLOCKED` 都使该路线退出非零。真实写操作（选课、签到、预约、取消、评教、上传）不在 Core-live 白名单中。
 
-Judge verification requires `UBAA_VERIFY_DIGEST_SALT` for both `feature=judge` and `feature=all`. Use the same fresh in-memory salt for routes being compared, then unset it. The hidden diagnostic path returns course, raw-anchor and filtered-unique counts plus ordinary summaries. IDs must remain nonempty digit strings, course `"0"` is invalid, DTO counts stay within nonnegative `i32`, and diagnostic counts stay within JSON's exact-integer ceiling. The verifier also checks that the current list is a subset of `--include-expired`, records the cutoff-skip count, validates one detail's score/problem/status semantics when available, and prints only a short salted digest of sorted identifiers. Full current/include-expired payloads are compared through jq stdin, never command arguments. It never prints or persists those identifiers, titles, bodies, raw HTML, Cookies, tokens, captcha data, or the salt.
+摘要格式为 `route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> [error=<stable-code>] [count=<n>] [reason=<code>]`。只把这些字段及日期、固定引用提交、退出码记录到 `docs/migration/status.md`，不要保存 stderr 或上游正文。
 
-For Judge, a non-empty list triggers exactly one detail read. The sample is the first item returned by that same list response. This is deliberate: the list and detail commands run in separate CLI processes, so selecting a later ID can race a changing upstream list and produce a false `not found`; the verifier must not retry with an invented ID or suppress that error. Direct, WebVPN, and `auto` are separate evidence rows. The 2026-08-26 evidence in `docs/migration/readonly-feature-matrix.md` retains transient strict `judge_cutoff` failures and the immediate complete WebVPN reruns that passed; a future failure remains nonzero until its own complete rerun passes.
+## auto 确定性验证
 
-The historical compatibility form `just verify-live mode=direct|webvpn` remains available for the phase 5 authentication shell contract.
+`auto` 只在 Core/Mock 路由测试中验证网络探测、解析和 WebVPN-only 会话；`verify-live` 与 `core-live` 均拒绝 `auto`，不执行真实登录矩阵。
+
+## Cgyy 诊断
+
+需要排查 Cgyy 时可临时设置窄范围日志并让其写入 stderr：
+
+```bash
+RUST_LOG='ubaa::cgyy=debug' just verify-live feature=cgyy route=direct
+RUST_LOG='ubaa::cgyy=debug' just verify-live feature=cgyy route=webvpn
+```
+
+日志只允许操作名、方法/路径、脱敏参数键与长度、状态码、最终主机/路径、响应长度/哈希和稳定错误码；不得使用全局 `trace`，不得记录用户名、密码、Cookie、业务令牌、签名、验证码、查询值或正文。WebVPN 的每个 Cgyy 操作都必须使用 facade 解析出的 WebVPN runtime，不能回退 Direct。
+
+## 记录失败
+
+```text
+date=<YYYY-MM-DD> commit=<client-commit> refs=<old-commit>,<example-commit>
+command=just verify-live mode=<direct|webvpn>
+route=<direct|webvpn> feature=<name> operation=<name>
+status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> error=<stable-code-or-none>
+count=<safe-count-or-none> reason=<dependency-code-or-none> exit_code=<n>
+```
+
+`upstream_changed`、`upstream_unavailable`、交互式认证页面、账号不适用和网络阻塞都必须逐操作记录，并说明可重复的日期/路线重跑条件。不要以认证成功、站点数量或 Mock 通过推断其它操作成功，也不要为真实账号调用任何写入口。

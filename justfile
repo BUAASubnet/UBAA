@@ -27,3 +27,6 @@ check-sensitive:
 
 verify-live *args:
     ./scripts/verify-live.sh {{args}}
+
+core-live *args:
+    ./scripts/core-live.sh {{args}}
