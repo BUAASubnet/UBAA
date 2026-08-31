@@ -33,9 +33,9 @@
 
 | 平台 | 目标系统 | 架构 | 当前状态 |
 |---|---|---|---|
-| Windows | Windows 10/11 | x64；arm64 后续 | 宿主生成，尚未在 Windows 原生 runner 构建 |
+| Windows | Windows 10/11 | x64；arm64 后续 | `windows-2025` 原生 debug runner 构建与产物上传通过 |
 | macOS | macOS 12+ | arm64；x64 兼容构建 | arm64 debug App 已构建、启动并完成 FRB hello |
-| Linux | Ubuntu 22.04/24.04、Debian 12 | x64 | 宿主生成，尚未在 Linux 原生 runner 构建 |
+| Linux | Ubuntu 22.04/24.04、Debian 12 | x64 | Ubuntu 24.04 原生 debug runner 构建与产物上传通过 |
 | Android | API 24+，重点 API29/API35 | arm64-v8a；模拟器 x64 | debug APK 已含三种 ABI 的 FRB 动态库；实体机/签名待验证 |
 | iOS | iOS 15+ | arm64；模拟器 arm64 | simulator debug 已链接 FRB universal framework；签名/真机待验证 |
 | HarmonyOS | build/target API26，理论 runtime API17+ | arm64-v8a | fork 已安装；匹配 SDK/DevEco 与真机待完成 |
@@ -77,6 +77,8 @@ OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前仅将其�
 | 2026-09-01 | macOS 本机 | 3.41.9/arm64 | debug App | 通过 | hello 通过 | 未验证 | 未验证 | 未验证 | 仅 P0 FFI 链路 |
 | 2026-09-01 | iOS simulator | 3.41.9/x86_64+arm64 | debug framework | 不适用 | 链接通过 | 未验证 | 未验证 | 未验证 | 无签名/真机证据 |
 | 2026-09-01 | Android APK | 3.41.9/三 ABI | debug APK | 未运行 | 三 ABI 打包通过 | 未验证 | 未验证 | 未验证 | 无签名/实体机证据 |
+| 2026-09-01 | Windows GitHub runner | 3.41.9/x64 | `ubaa-windows-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | `windows-2025` 原生构建 |
+| 2026-09-01 | Linux GitHub runner | 3.41.9/x64 | `ubaa-linux-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | Ubuntu 24.04 原生构建 |
 | 2026-09-01 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `just ohos-check mode=debug` | 阻断 | 阻断 | 阻断 | 阻断 | 阻断 | runner 已生成；DevEco 26/API26 缺失 |
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
@@ -106,8 +108,8 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 
 | 依赖 | 固定版本 | 用途 | 许可证 | 五平台状态 | OHOS 状态 |
 |---|---|---|---|---|---|
-| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | macOS、iOS simulator、Android 已实际链接；Windows/Linux 待原生 CI | Dart API/HAR 已接线，HAP 受 API26 阻断 |
-| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定 Rust crate | MIT/Apache-2.0 | 同上；快照纳入仓库审查 | arm64 HAR/CMake 已接线，HAP 受 API26 阻断 |
+| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | Windows、Linux、macOS、iOS simulator、Android 原生 runner 均已实际链接 | Dart API/HAR 已接线，HAP 受 API26 阻断 |
+| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定 Rust crate | MIT/Apache-2.0 | 五平台均通过；Windows 使用 app `CMAKE_SOURCE_DIR` 计算绝对 manifest，避免 plugin junction 的父目录语义差异 | arm64 HAR/CMake 已接线，HAP 受 API26 阻断 |
 
 两项依赖都不拥有协议、Cookie、路线或业务 DTO；它们只负责 FFI 生成与 native library
 构建。版本升级必须同时更新 Rust crate、Dart package、codegen、Cargokit 快照和六平台
@@ -117,13 +119,14 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 
 | 风险 | 当前证据 | 影响 | 处置与门禁 |
 |---|---|---|---|
-| Windows/Linux 原生兼容性尚无执行证据 | 原生 debug workflow 已定义、尚未运行 | 不能确认五平台最小宿主全部可构建 | 推送 `ubaa2` 后按原生 runner 日志闭环；失败不得以 macOS 替代 |
+| GitHub Actions Node.js 20 运行时进入弃用迁移 | 成功 run `33450597586` 对 `checkout@v4`、`upload-artifact@v4` 给出强制 Node.js 24 警告 | 当前不影响产物，但后续 runner 可能停止兼容旧 action runtime | P1 前期按官方 action 版本说明升级并以完整 CI/native run 复验 |
 | OHOS 工具链版本不满足合同 | DevEco `6.0.1.251`、API21；预检明确失败 | 无法生成可验收 HAP 或设备 FRB hello | 仅安装 DevEco/CLI26 与完整 API26 后重跑；不得用 API18/21 降级 |
 | OHOS 下载入口需要华为账号 | 未登录、未传输账号信息 | 工具链取得受外部账号与授权约束 | 取得项目所有者明确授权后才登录或使用受限下载 |
 | 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
 | 当前 Flutter UI 仍含探索 Demo/占位 | P0 仅验证宿主与 hello | 不能作为 P1 至 P6 功能完成证据 | P1 固定 bridge 合同，P2/P3/P4 逐项移除并以测试闭环 |
 
-当前结论为 **NO-GO（正式发布）/ GO（继续五平台 P1 开发）**。理由是官方 Flutter
-本机 FFI 基线已建立，但 Windows/Linux 原生矩阵尚未执行，OHOS API26、签名 HAP 与
-实体机 hello 仍为硬阻断。该结论只允许继续不依赖签名和真实写入的实现、确定性测试及
-只读验证，不允许将任何 debug 产物称为正式版。
+当前结论为 **NO-GO（正式发布）/ GO（继续五平台 P1 开发）**。官方 Flutter 五平台
+native debug 矩阵已在 run `33450597586` 全部通过并上传独立产物，合同与 macOS/Windows
+Rust job 也在 run `33450597476` 全部通过；OHOS API26、签名 HAP 与实体机 hello 仍为
+硬阻断。该结论只允许继续不依赖签名和真实写入的实现、确定性测试及只读验证，不允许将
+任何 debug 产物称为正式版。

@@ -47,10 +47,17 @@
 - 由 FRB 生成的 FFI 编解码模块包含必要 `unsafe` 与机械转换；bridge crate 仍默认
   `unsafe_code=deny`，仅对私有生成模块使用局部 allow。生成文件不手改，业务 API
   继续受严格 Clippy 与零漂移门禁约束。
-- 新增 GitHub Actions 原生 debug 矩阵，固定同一 Flutter commit，在
-  Ubuntu 24.04、Windows 2025 与 macOS 15 runner 构建 Linux、Windows、macOS、
-  iOS simulator 和 Android APK，并保存短期构建产物。工作流尚未推送执行，当前只能
-  记为“门禁已定义、原生证据待运行”，不能把 YAML 当作 Windows/Linux 通过证据。
+- GitHub Actions 原生 debug 矩阵已在提交 `c94dbcd` 的 run `33450597586` 完整通过：
+  Windows、Linux、macOS、iOS simulator、Android APK 五个 job 均在对应原生 runner
+  构建并上传 `ubaa-<platform>-debug-33450597586` 产物。对应 CI run `33450597476` 的
+  `contract-gates`、macOS Rust、Windows Rust 三个 job 同样全部通过。
+- 首轮远端证据依次暴露并关闭了真实跨平台缺口：浅克隆缺少 Flutter tag、Windows 路径
+  形式、CRLF 导致的 rustfmt 差异、Windows 本地状态门禁和 plugin junction 下 Cargokit
+  父目录解析。最终 Windows CMake 从 app `CMAKE_SOURCE_DIR` 生成绝对 Rust manifest
+  目录，未修改协议、FFI schema、冻结目录或任何真实账号数据。
+- run `33450597586` 的五份未过期产物大小分别为 Android APK 69,375,026 字节、iOS
+  simulator 50,530,714 字节、Windows 33,378,901 字节、macOS 108,101,612 字节、Linux
+  54,378,146 字节。它们是无签名 debug 构建证据，不是 P6 正式发布产物。
 
 本节仅记录确定性和工具链事实；未执行任何真实账号写操作，也未读取、输出或暂存
 `.env.local`、会话、Cookie、token、验证码图片或真实响应。

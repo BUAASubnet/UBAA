@@ -1,6 +1,6 @@
 # UBAA Flutter 六平台全功能正式版执行计划
 
-状态：P0 进行中（本地 FRB/三平台通过；Windows/Linux CI 与 DevEco/API26 待闭合）
+状态：P0 受阻并继续 P1（官方五平台 native CI 通过；DevEco/API26/HAP/设备待闭合）
 计划确认日期：2026-09-01
 项目根目录：/Users/moorefoss/Code/UBAA
 
@@ -63,9 +63,8 @@
 
 已知事实：
 
-1. 当前分支为 ubaa2；合同、探索骨架、FRB 绑定与 OHOS runner 已分别形成阶段提交，
-   最近两项为 `893aa84` 与 `8099327`。该分支尚未建立远程 upstream，Windows/Linux
-   原生 CI 需在安全审查后推送该分支才能取得执行证据。
+1. 当前分支为 ubaa2 并跟踪 `origin/ubaa2`；合同、探索骨架、FRB 绑定、OHOS runner、
+   六平台门禁和跨平台修复均已形成阶段提交，当前远端基线为 `c94dbcd`。
 2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
 3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
 4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
@@ -81,8 +80,11 @@
     widget test 通过；`just ohos-check mode=debug` 仍明确失败于 DevEco
     `6.0.1.251` 与 API21，不存在 HAP、签名或设备 hello 证据。
 11. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
-    `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。P0 仍因
-    Windows/Linux 原生构建、DevEco/API26、签名空 HAP 与 OHOS 设备 hello 未完成。
+    `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。远端 CI
+    `33450597476` 的合同、macOS Rust、Windows Rust job 全部通过；原生构建
+    `33450597586` 的 Windows、Linux、macOS、iOS simulator、Android APK job
+    全部通过并各自产生产物。P0 仅因 DevEco/API26、签名空 HAP 与 OHOS 设备 hello
+    未完成而保持未勾选；按 P0 合同继续不依赖该阻断的五平台 P1 工作。
 
 ## 4. 安全与架构边界
 
