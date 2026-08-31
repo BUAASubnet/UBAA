@@ -270,6 +270,13 @@ fn restrict_config_directory(dir: &Path) -> Result<()> {
             .set_permissions(std::fs::Permissions::from_mode(0o700))
             .map_err(|_| invalid_config())?;
     }
+    #[cfg(windows)]
+    {
+        let metadata = std::fs::symlink_metadata(dir).map_err(|_| invalid_config())?;
+        if !metadata.file_type().is_dir() {
+            return Err(invalid_config());
+        }
+    }
     Ok(())
 }
 
@@ -313,6 +320,8 @@ fn restrict_file_creation(options: &mut OpenOptions) {
         use std::os::unix::fs::OpenOptionsExt as _;
         options.mode(0o600);
     }
+    #[cfg(not(unix))]
+    let _ = options;
 }
 
 fn restrict_open_file(file: &File) -> Result<()> {
@@ -322,8 +331,13 @@ fn restrict_open_file(file: &File) -> Result<()> {
         file.set_permissions(std::fs::Permissions::from_mode(0o600))
             .map_err(|_| invalid_config())?;
     }
-    #[cfg(not(unix))]
-    let _ = file;
+    #[cfg(windows)]
+    {
+        let metadata = file.metadata().map_err(|_| invalid_config())?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(invalid_config());
+        }
+    }
     Ok(())
 }
 
@@ -350,7 +364,29 @@ fn sync_config_directory(dir: &Path) -> Result<()> {
             .and_then(|directory| directory.sync_all())
             .map_err(|_| invalid_config())?;
     }
+    #[cfg(windows)]
+    {
+        let metadata = std::fs::symlink_metadata(dir).map_err(|_| invalid_config())?;
+        if !metadata.file_type().is_dir() {
+            return Err(invalid_config());
+        }
+    }
     Ok(())
+}
+
+#[cfg(test)]
+mod platform_safety_tests {
+    use super::*;
+
+    #[test]
+    fn 缺失配置目录不能通过限制与同步门禁() {
+        let missing = std::env::temp_dir().join(format!(
+            "ubaa-missing-config-directory-{}",
+            std::process::id()
+        ));
+        assert!(restrict_config_directory(&missing).is_err());
+        assert!(sync_config_directory(&missing).is_err());
+    }
 }
 
 fn policy_name(policy: RoutePolicy) -> &'static str {

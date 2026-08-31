@@ -769,6 +769,14 @@ fn sync_directory(path: &Path) -> Result<()> {
             .and_then(|directory| directory.sync_all())
             .map_err(|_| session_error("could not sync config directory"))?;
     }
+    #[cfg(windows)]
+    {
+        let metadata = fs::symlink_metadata(path)
+            .map_err(|_| session_error("could not sync config directory"))?;
+        if !metadata.file_type().is_dir() {
+            return Err(session_error("could not sync config directory"));
+        }
+    }
     Ok(())
 }
 
@@ -915,6 +923,14 @@ fn restrict_directory(path: &Path) -> Result<()> {
             .and_then(|directory| directory.set_permissions(fs::Permissions::from_mode(0o700)))
             .map_err(|_| session_error("could not restrict config directory"))?;
     }
+    #[cfg(windows)]
+    {
+        let metadata = fs::symlink_metadata(path)
+            .map_err(|_| session_error("could not restrict config directory"))?;
+        if !metadata.file_type().is_dir() {
+            return Err(session_error("could not restrict config directory"));
+        }
+    }
     Ok(())
 }
 
@@ -924,6 +940,8 @@ fn restrict_file_creation(options: &mut OpenOptions) {
         use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
+    #[cfg(not(unix))]
+    let _ = options;
 }
 
 fn restrict_open_file(file: &File, message: &'static str) -> Result<()> {
@@ -933,14 +951,29 @@ fn restrict_open_file(file: &File, message: &'static str) -> Result<()> {
         file.set_permissions(fs::Permissions::from_mode(0o600))
             .map_err(|_| session_error(message))?;
     }
-    #[cfg(not(unix))]
-    let _ = (file, message);
+    #[cfg(windows)]
+    {
+        let metadata = file.metadata().map_err(|_| session_error(message))?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(session_error(message));
+        }
+    }
     Ok(())
 }
 
 #[cfg(test)]
 mod coordinator_tests {
     use super::*;
+
+    #[test]
+    fn 缺失会话目录不能通过限制与同步门禁() {
+        let missing = std::env::temp_dir().join(format!(
+            "ubaa-missing-session-directory-{}",
+            std::process::id()
+        ));
+        assert!(restrict_directory(&missing).is_err());
+        assert!(sync_directory(&missing).is_err());
+    }
 
     #[test]
     fn coordinated_route_store_rejects_a_stale_same_route_revision() {
