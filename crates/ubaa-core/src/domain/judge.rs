@@ -21,17 +21,17 @@ pub enum JudgeSubmissionStatus {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentSummary {
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
-    /// Assignment ID.
+    /// 作业标识。
     pub assignment_id: String,
-    /// Assignment title.
+    /// 作业标题。
     pub title: String,
-    /// Start time.
+    /// 开始时间。
     pub start_time: Option<String>,
-    /// Due time.
+    /// 截止时间。
     pub due_time: Option<String>,
     /// 最高分。
     pub max_score: Option<String>,
@@ -65,9 +65,9 @@ pub struct JudgeAssignmentsDiagnostics {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentKey {
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Assignment ID.
+    /// 作业标识。
     pub assignment_id: String,
 }
 
@@ -91,29 +91,29 @@ pub struct JudgeProblem {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JudgeAssignmentDetail {
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
-    /// Assignment ID.
+    /// 作业标识。
     pub assignment_id: String,
-    /// Assignment title.
+    /// 作业标题。
     pub title: String,
-    /// Start time.
+    /// 开始时间。
     pub start_time: Option<String>,
-    /// Due time.
+    /// 截止时间。
     pub due_time: Option<String>,
-    /// Maximum score.
+    /// 最高分。
     pub max_score: Option<String>,
     /// 用户得分。
     pub my_score: Option<String>,
-    /// Number of problems.
+    /// 题目数量。
     pub total_problems: i32,
-    /// Number submitted.
+    /// 已提交数量。
     pub submitted_count: i32,
-    /// Submission state.
+    /// 提交状态。
     pub submission_status: JudgeSubmissionStatus,
-    /// Safe status text.
+    /// 可安全展示的状态文本。
     pub submission_status_text: String,
     /// 解析后的题目列表。
     pub problems: Vec<JudgeProblem>,

@@ -1,9 +1,14 @@
-# ADR 0004: Verified HTTP and HTML Parsing Dependencies
+# ADR 0004：已验证的 HTTP 与 HTML 解析依赖
 
-Date: 2026-08-17
+日期：2026-08-17
 
-Status: accepted
+状态：已接受
 
-`reqwest` is the production raw HTTP transport because the fixed Rust reference already uses it and it provides TLS verification, bounded timeouts, request headers and response status/body access. Automatic redirects and its Cookie store are disabled so Core policy remains auditable. The default TLS verifier is never bypassed.
+生产原始 HTTP 传输采用 `reqwest`，因为固定 Rust 参考已经使用它，且它提供 TLS 校验、有界超时、
+请求头及响应状态/正文访问。禁用自动重定向和其 Cookie 存储，使 Core 策略保持可审计；绝不绕过
+默认 TLS 校验器。
 
-`scraper` parses CAS HTML selectors for hidden fields, checkbox state, button filtering, errors, and execution. `regex` is used only for small, evidence-backed business-page patterns (for example Judge links and SPOC score text); it is not used to implement an interactive login protocol. `base64` is retained for the frozen SPOC read-only request protocol, not authentication or image material. `tokio` supplies the async timer/runtime compatibility used by host tests and the transport ecosystem.
+`scraper` 解析 CAS HTML 选择器中的隐藏字段、复选框状态、按钮过滤、错误和 execution。`regex`
+仅用于有证据支持的小型业务页面模式（如 Judge 链接和 SPOC 分数文本），不用于实现交互式登录协议。
+`base64` 仅因冻结 SPOC 只读请求协议保留，不用于认证或图像材料。`tokio` 提供宿主测试和传输生态
+所需的异步计时器/运行时兼容。

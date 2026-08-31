@@ -4,7 +4,7 @@ use crate::error::Result;
 
 use super::{SessionMutation, SessionSnapshot, VersionedSession};
 
-/// Persistence port for one client-owned session.
+/// 一个客户端所属会话的持久化端口。
 pub trait SessionStore: Send + Sync {
     /// 原子加载会话快照及当前版本号。
     fn load_versioned(&self) -> Result<VersionedSession>;
@@ -39,7 +39,7 @@ pub trait SessionStore: Send + Sync {
         }
     }
 
-    /// Remove local session state.
+    /// 删除本地会话状态。
     fn clear(&self) -> Result<()> {
         loop {
             let current = self.load_versioned()?;

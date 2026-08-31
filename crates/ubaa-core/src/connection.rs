@@ -34,7 +34,7 @@ pub enum NetworkState {
     Unknown,
 }
 
-/// Injectable gateway reachability probe used by route resolution.
+/// 路由解析使用的可注入网关可达性探测器。
 pub trait GatewayProbe: Send + Sync {
     /// 在一个总预算内探测网关 TCP 可达性。
     fn probe(&self, budget: Duration) -> NetworkState;

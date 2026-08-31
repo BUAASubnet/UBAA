@@ -29,7 +29,7 @@ const MAX_TEMP_FILE_ATTEMPTS: usize = 128;
 const REVISION_FILE_BYTES: usize = 17;
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
-/// File-backed session store using `<config-dir>/session.json`.
+/// 使用 `<config-dir>/session.json` 的文件会话存储。
 #[derive(Clone)]
 pub struct FileSessionStore {
     path: PathBuf,
@@ -38,9 +38,8 @@ pub struct FileSessionStore {
 
 /// schema-v2 双路线会话文件的路线范围视图。
 ///
-/// The view implements the legacy `SessionStore` port so existing runtime code can remain
-/// route-local while reads and compare-exchanges are still performed against the shared dual
-/// file and its single revision lock.
+/// 该视图实现旧版 `SessionStore` 端口，使现有运行时保持路线局部；读取和比较交换仍针对
+/// 共享的双路线文件及其单一修订锁执行。
 #[derive(Clone)]
 pub struct RouteSessionStore {
     inner: FileSessionStore,
@@ -49,8 +48,8 @@ pub struct RouteSessionStore {
 
 /// 一个客户端拥有的完整双路线会话快照及版本号视图。
 ///
-/// Route adapters share this coordinator so a mutation by one route is visible to the other
-/// without reloading and adopting an external process's revision.
+/// 两条路线适配器共享此协调器，使一条路线的变更对另一条路线可见，但不会重新加载并采用
+/// 外部进程的修订。
 #[derive(Clone)]
 pub(crate) struct DualSessionCoordinator {
     state: Arc<Mutex<DualSessionState>>,
@@ -261,8 +260,8 @@ impl SessionStore for CoordinatedRouteSessionStore {
             .state
             .lock()
             .map_err(|_| session_error("dual session coordinator is unavailable"))?;
-        // A coordinator conflict is terminal for this client. Do not return a second
-        // `Conflict` that callers might interpret as permission to retry or touch the file.
+        // 协调器冲突对当前客户端是终态。不要返回调用方可能误认为可以重试或触碰文件的第二个
+        // `Conflict`。
         if state.conflicted {
             return Err(dual_session_conflict());
         }
@@ -386,7 +385,7 @@ impl std::fmt::Debug for FileSessionStore {
 }
 
 impl FileSessionStore {
-    /// Create a restricted configuration directory and session path.
+    /// 创建受限的配置目录和会话路径。
     ///
     /// # Errors
     ///
@@ -448,7 +447,7 @@ impl FileSessionStore {
         Ok(VersionedDualSession { snapshot, revision })
     }
 
-    /// Persist a complete schema-v2 dual snapshot atomically.
+    /// 原子持久化完整的 schema-v2 双路线快照。
     pub fn save_dual(&self, snapshot: &DualSessionSnapshot) -> Result<DualSessionSnapshot> {
         loop {
             let current = self.load_dual_versioned()?;
@@ -755,7 +754,7 @@ fn prevent_symlink_following(options: &mut OpenOptions) {
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt as _;
-        // Rust 1.95 std uses this Win32 flag when opening a link without following it.
+        // Rust 1.95 标准库在不跟随链接打开文件时使用此 Win32 标志。
         const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
         options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
     }

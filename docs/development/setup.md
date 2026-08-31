@@ -1,6 +1,6 @@
 # 开发环境设置
 
-安装 Git、Rustup、`just`、Bash、`jq` 以及确定性验证器使用的平台 Shell 工具。固定的
+安装 Git、Rustup、`just`、Bash 以及确定性验证器使用的平台 Shell 工具。固定的
 `rust-toolchain.toml` 选择 Rust 1.95.0，并启用 rustfmt 与 Clippy。实时验证是非交互式的，
 凭据只通过 stdin 使用。
 

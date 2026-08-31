@@ -17,19 +17,19 @@ pub struct StoredCookie {
     pub name: String,
     /// Cookie 值；这是会话材料，绝不写入日志。
     pub value: String,
-    /// Effective domain.
+    /// 生效域名。
     pub domain: String,
     /// Cookie 是否仅限当前主机。
     pub host_only: bool,
-    /// Effective path.
+    /// 生效路径。
     pub path: String,
-    /// Secure-only flag.
+    /// 仅限 Secure 的标记。
     pub secure: bool,
-    /// Absolute expiration timestamp in Unix seconds.
+    /// Unix 秒表示的绝对过期时间戳。
     pub expires_at: Option<i64>,
-    /// Creation timestamp in Unix seconds, used with Max-Age.
+    /// Unix 秒表示的创建时间戳，用于计算 Max-Age。
     pub created_at: i64,
-    /// Max-Age in seconds when supplied.
+    /// 提供时的 Max-Age 秒数。
     pub max_age: Option<i64>,
 }
 
@@ -51,7 +51,7 @@ impl std::fmt::Debug for StoredCookie {
 }
 
 impl StoredCookie {
-    /// Construct a cookie fixture for deterministic tests.
+    /// 构造确定性测试使用的 Cookie fixture。
     pub fn fixture(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -119,7 +119,7 @@ impl CookieJar {
             .join("; "))
     }
 
-    /// Borrow currently retained cookies for session serialization.
+    /// 借用当前保留的 Cookie，以便序列化会话。
     #[must_use]
     pub fn cookies(&self) -> &[StoredCookie] {
         &self.cookies

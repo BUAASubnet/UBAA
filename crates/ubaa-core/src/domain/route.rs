@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConnectionMode {
-    /// Reach upstream services directly.
+    /// 直接访问上游服务。
     Direct,
     /// 通过北航 `WebVPN` 网关访问上游服务。
     WebVpn,
@@ -37,19 +37,19 @@ pub enum ReadonlyFeature {
     Ygdk,
     /// 课堂签到状态查询。
     Signin,
-    /// Schedule and teaching-week operations.
+    /// 课表和教学周操作。
     Schedule,
     /// 考试安排。
     Exam,
     /// 成绩列表操作。
     Grades,
-    /// Empty classroom search.
+    /// 空闲教室查询。
     Classroom,
-    /// SPOC assignment queries.
+    /// SPOC 作业查询。
     Spoc,
-    /// Judge assignment queries.
+    /// 希冀作业查询。
     Judge,
-    /// Teaching evaluation queries.
+    /// 教学评教查询。
     Evaluation,
 }
 

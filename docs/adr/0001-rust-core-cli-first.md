@@ -1,10 +1,11 @@
-# ADR 0001: Rust Core and CLI First
+# ADR 0001：优先采用 Rust Core 与 CLI
 
-Date: 2026-08-17
+日期：2026-08-17
 
-Status: accepted
+状态：已接受
 
-UBAA 2 places protocol correctness in a platform-independent Rust core and uses a Rust CLI as the first host and integration harness. The KMP application and Ktor relay remain frozen references, not runtime dependencies. This keeps Direct/WebVPN authentication, Cookie handling, redirects, parsing, and stable errors consistent across future hosts.
+UBAA 2 将协议正确性放在与平台无关的 Rust Core 中，并使用 Rust CLI 作为首个宿主和集成验证器。
+KMP 应用和 Ktor 中继仅作为冻结参考，不作为运行时依赖。这样可确保未来各宿主的 Direct/WebVPN
+认证、Cookie 处理、重定向、解析和稳定错误保持一致。
 
-Flutter bindings, MCP, server relay, and business APIs are deferred. A host consumes stable facade DTOs and does not reach into upstream implementation modules.
-
+Flutter 绑定、MCP、服务器中继和业务 API 延后实现。宿主只消费稳定的 facade DTO，不得深入上游实现模块。

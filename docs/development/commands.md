@@ -3,11 +3,11 @@
 工作区使用 `rust-toolchain.toml` 中的 Rust 1.95.0，并通过 `just` 固化可重复检查。
 
 ```bash
-just refs                                                   # verify or clone fixed ignored references
-cargo metadata --locked --no-deps --format-version 1        # verify Cargo.lock without fetching target-only crates
-just check                                                  # locked metadata, fmt, Clippy, tests, build, docs, diff
-just check-sensitive                                        # scan tracked paths and obvious secret shapes
-cargo test --locked -p ubaa-cli --all-targets               # CLI unit, contract, and binary tests
+just refs                                                   # 校验或克隆固定的忽略参考仓库
+cargo metadata --locked --no-deps --format-version 1        # 不拉取目标专用 crate，校验 Cargo.lock
+just check                                                  # 锁定元数据、格式、Clippy、测试、构建、文档和差异
+just check-sensitive                                        # 扫描受跟踪路径和明显的秘密格式
+cargo test --locked -p ubaa-cli --all-targets               # CLI 单元、合同和二进制测试
 just verify-live mode=direct                                 # Direct 真实只读矩阵
 just verify-live mode=webvpn                                 # WebVPN 真实只读矩阵
 just verify-live feature=auth route=direct                   # 单项认证只读证据
@@ -28,7 +28,7 @@ RUST_LOG='ubaa::cgyy=debug' \
 
 `just verify-live` 接受 `mode=direct|webvpn` 和 `feature=<name> route=direct|webvpn` 形式，拒绝真实 `auto`。它安全读取被忽略的 `.env.local` 中非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称），构建 `core-live` 后一次性经 stdin 注入；凭据不会出现在参数、日志或文件中。Core-live 在一个固定路线 `RouteClient` 内顺序执行只读 facade，认证交互页面直接报告 `upstream_changed`，不保存验证码材料。
 
-CI runs `just refs`, `scripts/check-sensitive.sh`, and `just check`. CI never runs live authentication and therefore never needs `.env.local`.
+CI 运行 `just refs`、`scripts/check-sensitive.sh` 和 `just check`；CI 从不执行真实认证，因此不需要 `.env.local`。
 
 常见失败：
 

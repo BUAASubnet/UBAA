@@ -11,11 +11,11 @@ use super::StoredCookie;
 /// 可跨 CLI 进程持久化的会话快照。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SessionSnapshot {
-    /// Connection strategy used by this session.
+    /// 此会话使用的连接策略。
     pub mode: ConnectionMode,
-    /// Filtered upstream cookies.
+    /// 过滤后的上游 Cookie。
     pub cookies: Vec<StoredCookie>,
-    /// Unix timestamp when authentication succeeded.
+    /// 认证成功时的 Unix 时间戳。
     pub authenticated_at: i64,
     /// 最近一次成功校验的 Unix 时间戳。
     pub last_activity: i64,
@@ -25,11 +25,11 @@ pub struct SessionSnapshot {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RouteSessionSnapshot {
-    /// Filtered upstream Cookies scoped to this route.
+    /// 作用域限定在此路线的过滤后上游 Cookie。
     pub cookies: Vec<StoredCookie>,
-    /// Unix timestamp when authentication succeeded.
+    /// 认证成功时的 Unix 时间戳。
     pub authenticated_at: i64,
-    /// Unix timestamp of the last successful validation.
+    /// 最近一次成功校验的 Unix 时间戳。
     pub last_activity: i64,
 }
 
@@ -56,7 +56,7 @@ impl RouteSessionSnapshot {
     }
 }
 
-/// Direct and `WebVPN` slots persisted atomically in schema version 2.
+/// 在 schema 版本 2 中原子持久化的 Direct 与 `WebVPN` 槽位。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DualSessionSnapshot {
@@ -78,16 +78,16 @@ pub struct VersionedDualSession {
 /// schema-v2 会话文件中的路线槽位。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RouteSessions {
-    /// Direct route session.
+    /// Direct 路线会话。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub direct: Option<RouteSessionSnapshot>,
-    /// `WebVPN` route session.
+    /// `WebVPN` 路线会话。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webvpn: Option<RouteSessionSnapshot>,
 }
 
 impl DualSessionSnapshot {
-    /// Construct a schema-v2 snapshot.
+    /// 构造 schema-v2 快照。
     #[must_use]
     pub const fn new(
         direct: Option<RouteSessionSnapshot>,
@@ -99,13 +99,13 @@ impl DualSessionSnapshot {
         }
     }
 
-    /// Direct route slot.
+    /// Direct 路线槽位。
     #[must_use]
     pub fn direct(&self) -> Option<&RouteSessionSnapshot> {
         self.sessions.direct.as_ref()
     }
 
-    /// `WebVPN` route slot.
+    /// `WebVPN` 路线槽位。
     #[must_use]
     pub fn webvpn(&self) -> Option<&RouteSessionSnapshot> {
         self.sessions.webvpn.as_ref()
@@ -156,9 +156,9 @@ impl SessionValidation {
 /// 原子加载的持久化快照及其变更版本号。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VersionedSession {
-    /// Persisted session, if present.
+    /// 持久化会话（如果存在）。
     pub snapshot: Option<SessionSnapshot>,
-    /// Monotonic local revision used to reject stale writers.
+    /// 用于拒绝过期写入方的本地单调修订。
     pub revision: u64,
 }
 
@@ -176,6 +176,6 @@ pub enum SessionMutation {
 pub enum DualSessionMutation {
     /// 变更已应用，版本号已前进。
     Applied { revision: u64 },
-    /// Another process changed either route slot.
+    /// 另一进程修改了某个路线槽位。
     Conflict,
 }

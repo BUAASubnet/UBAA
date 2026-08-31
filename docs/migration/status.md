@@ -699,7 +699,7 @@ CI remains deterministic-only and never reads `.env.local`.
 - 对照冻结 `JsonObject.long`，补齐数字字符串时间戳的东八区格式化；新增脱敏测试先失败后通过。
 - 未改变请求参数、会话、上传或真实写操作策略。
 
-## 2026-08-29 三路线全量只读复测
+## 2026-08-29 三路线全量只读复测（二）
 
 - Direct：User、Schedule、Exam、Classroom、SPOC、Judge（含详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 通过；Grades 本轮未出现失败；Cgyy 在用途/站点后业务阶段返回 `upstream_unavailable`，聚合退出码 5。
 - WebVPN：User、Schedule、Classroom、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Grades 返回 `parse_error`，Judge 严格快照校验返回 `invalid_semantics`；Cgyy 日期、订单、锁码均 `upstream_unavailable`，聚合退出码 6。

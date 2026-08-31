@@ -1,14 +1,12 @@
-# Source Parity Matrix
+# 协议来源对照矩阵
 
-Updated: 2026-08-31
+更新日期：2026-08-31
 
-This is an operation-by-operation behavior audit. `old` means frozen
-`ubaa_old/` commit `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`;
-`example` means pinned `examples/buaa-api/` commit
-`efb7976bf513f38364b88aeb83d704586cff9b2a`. Every cell records both sources
-and the UBAA 2 decision. A source marked non-equivalent supplies no URL, field,
-crypto or error by analogy. Live evidence may supersede a frozen protocol fact
-only when its sanitized observation is recorded in the decision log.
+本文件逐操作审计行为。`old` 指冻结的 `ubaa_old/` 提交
+`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`example` 指固定的
+`examples/buaa-api/` 提交 `efb7976bf513f38364b88aeb83d704586cff9b2a`。每个单元格均记录两份
+来源与 UBAA 2 决策。标记为不等价的来源不得通过类比提供 URL、字段、加密或错误语义。只有在
+决策日志记录脱敏观察后，实时证据才可以取代冻结协议事实。
 
 2026-08-29 验证边界：`verify-live` 对 User、Signin、Ygdk、LibBook、Bykc、Cgyy 和
 Evaluation 均按独立 CLI 子操作执行；依赖上游返回标识的详情请求仅在存在脱敏标识时
@@ -22,94 +20,81 @@ Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` �
 兼容形状；`features/bykc.rs` 单元测试先复现旧实现失败，再验证 `id`、`courseInfo.id`
 和列表长度。2026-08-29 Direct、WebVPN、auto 的 Bykc 逐项复测均退出 0。
 
-The nine columns below are mandatory for every authentication or read-only
-operation before production code changes.
+生产代码变更前，每个认证或只读操作都必须填写下方九列。
 
-The frozen WebVPN codec uses gateway `d.buaa.edu.cn`, the key/IV text
-`wrdvpnisthebest!`, AES-128-CFB without padding, and the
-`scheme[-port]/encrypted-host/path` layout. UBAA 2 matches those wire values.
-For exact edge behavior, empty query/fragment separators are omitted like the
-frozen Kotlin implementation; an explicit root slash remains preserved by the
-Rust URL/runtime path representation so route request and final-URL semantics
-do not change. Cookie matching itself remains against the gateway URL. Both
-decisions are covered by sanitized connection tests. No redirect host is added
-from this comparison: the current allowlist remains evidence-gated by live
-observations.
+冻结 WebVPN 编解码使用网关 `d.buaa.edu.cn`、密钥/初始向量文本
+`wrdvpnisthebest!`、无填充 AES-128-CFB，以及 `scheme[-port]/encrypted-host/path` 布局，UBAA 2
+与这些线路值一致。为保持边界行为，空查询和片段分隔符按冻结 Kotlin 实现省略；Rust URL/运行时
+路径表示保留显式根斜杠，因此路线请求和最终 URL 语义不变。Cookie 匹配仍针对网关 URL。两项
+选择均有脱敏连接测试覆盖，本对照不会新增重定向主机，当前白名单仍以实时观察为依据。
 
-## Gateway probe
+## 网关探测
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** N/A; no campus probe exists. **example:** `utils/net.rs` targets `gw.buaa.edu.cn:80`. **decision:** use exactly that host and port, not an IP range. | **old/example:** N/A; this is not HTTP. **decision:** no redirects or final URL. | **old/example:** no Cookie or credential. **decision:** process-local probe state only. | **example:** `ToSocketAddrs`, then `TcpStream::connect_timeout` until one succeeds. **decision:** one 500ms total deadline includes resolution and all address attempts. | **old/example:** no headers or body. **decision:** send TCP connect only, no HTTP/TLS payload. | **old/example:** N/A. **decision:** no encryption/signature. | **example:** Boolean campus result. **decision:** `Campus` on any success; ordinary resolution/no-address/connect/timeout is `OffCampus`; only internal/injected probe failure is `Unknown`. | **example:** no cache and 500ms per address. **decision:** the product contract narrows this to one total budget and adds a process-local 60s cache with injectable clock/probe. | **example:** all ordinary failures return false. **decision:** `OffCampus -> WebVPN`; `Unknown -> operation unknown_default`; probe does not itself emit a CLI failure. |
 
-Deterministic implementation evidence on 2026-08-24: `route_policy` covers the fixed 500ms
-budget, all three states, explicit-policy zero probing, cache expiry and concurrent miss
-single-flight behavior; `facade` covers facade-owned caching, default-versus-feature policy,
-successful diagnostics and zero-request missing-session errors. The CLI binary boundary test
-forbids config/probe/resolver ownership in `main.rs`. These tests do not establish live campus
-reachability or any business endpoint result.
+2026-08-24 的确定性实现证据：`route_policy` 覆盖固定 500ms 预算、三种网络状态、显式策略不探测、
+缓存过期和并发缺失时的单飞行为；`facade` 覆盖 facade 所有缓存、默认与功能策略、成功诊断及
+缺少会话时零请求。CLI 二进制边界测试禁止 `main.rs` 持有配置、探测或解析器。这些测试不证明
+实时校园网络可达性或任何业务端点结果。
 
-## Dual load/save/logout
+## 双路线加载/保存/退出
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** remote logout is `https://sso.buaa.edu.cn/logout`; persistence has no URL. **example:** no equivalent dual logout. **decision:** each route uses its transformed SSO logout URL; storage operations are local only. | **old:** remote-first logout then local clear; no final-URL assertion. **example:** N/A. **decision:** remote calls are best effort and cannot authorize persisted deletion. | **old:** `ModeScopedSessionStore` isolates auth/Cookies by mode, but switching/reset clears all scopes. **example:** one shared `cookies.json` plus `cred.json`, not dual. **decision:** one dual snapshot with independent route slots and route-owned feature state. | **old:** settings get/put/remove; no CAS. **example:** separate truncate-and-write files. **decision:** load snapshot+revision under one lock; route save and aggregate clear each perform one full-snapshot CAS. | **old/example:** JSON persistence; no HTTP body for local operations. **decision:** schema-v2 `session.json`; legacy single-route reader only; unique atomic temp writes and owner-only permissions. | **old/example:** N/A. **decision:** no crypto is invented for local persistence. | **old:** username/user/timestamps plus Cookie records. **example:** Cookies and credential/token expiry. **decision:** persist only route, filtered Cookies and timestamps; never username/password/execution/challenge/business token. | **old:** per-store mutexes but no cross-file transaction; reset clears caches. **example:** atomic cells in-process, no file lock/CAS. **decision:** one coordinator owns dual snapshot+revision; never reload/adopt an external revision after conflict; clear all route feature state on local invalidation/logout. | **old:** remote error still clears local state. **example:** ordinary I/O/parse errors. **decision:** stale CAS is retryable `internal_error`, clears this process only and preserves both newer slots; aggregate logout advances revision once on success. |
 
-## Prepare/login (captcha unsupported in UBAA2)
+## 准备/登录（UBAA2 不支持交互验证码）
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** GET/POST `https://sso.buaa.edu.cn/login`, followed by User Center activation at `https://uc.buaa.edu.cn/api/login?target=...`; the frozen old flow may also expose `config.captcha` and fetch `/captcha?captchaId=...`. **example:** SSO `/login`; no equivalent captcha protocol. **decision:** preserve the ordinary login and activation sequence independently on Direct and WebVPN, but deliberately do not implement the optional interactive verification branch. | **old:** manual absolute/protocol-relative/root/path redirects; one password-risk `ignoreAndContinue`; UC status proves activation. **example:** reqwest follows redirects; `verify_url` is UC or gateway root. **decision:** route-lock every redirect and require allowed HTTP(S) hosts/final UC validation. | **old:** mode-scoped Cookie store; execution is in-memory request state. **example:** one shared context Cookie/credential store. **decision:** independent route Cookie jars and transient execution state; never persist execution or interactive verification material. | **old:** form mirrors hidden inputs and adds `username`, `password`, `execution`, `_eventId=submit`, `submit=登录`, `type=username_password`; the old captcha branch additionally sends `captcha`/`captchaResponse`. **example:** same ordinary basic fields and risk form. **decision:** send only the ordinary evidence-backed form. A page containing `config.captcha` is rejected as `upstream_changed` before image fetch or credential POST. | **old/example:** form URL encoding. **decision:** preserve hidden-field semantics and form encoding; no form values in logs/errors. | **old/example:** no additional login encryption. **decision:** none; WebVPN URL host codec is separate connection evidence. | **old:** execution input, `config.captcha {type,id}`, tip/error text, `UserInfoResponse code/data`. **example:** execution and risk-page marker only; captcha unsupported. **decision:** expose only stable profile/error DTOs; no challenge ID, image availability or verification bytes are public. | **old:** each route backend holds its own preparation through its Cookie store. **example:** no captcha generation. **decision:** each route retains only its own prepared execution; no cross-route or cross-process verification state exists. | **old:** missing captcha can raise captcha-required; bad credentials/risk/activation have user-facing errors. **example:** missing execution/server and login failure errors. **decision:** any interactive verification marker is `upstream_changed` with no retry or prompt; ordinary authentication, network and parser errors retain their stable classifications. |
 
-The current classifier additionally rejects any extra visible input, `textarea`/`select`,
-the frozen captcha field names `captcha`/`captchaResponse`, or deny-only `config.*`
-markers named `captcha`, `mfa`, `otp`, `verification`, `verify`, or `challenge`.
-This is a closed-world safety boundary derived from the ordinary frozen input parser;
-it prevents credentials from being posted to unknown verification UI without claiming
-that a new upstream field or marker is part of the protocol.
+当前分类器还会拒绝额外的可见输入、`textarea`/`select`、冻结验证码字段名
+`captcha`/`captchaResponse`，以及仅拒绝型 `config.*` 标记（`captcha`、`mfa`、`otp`、
+`verification`、`verify` 或 `challenge`）。这是从冻结普通输入解析器导出的封闭世界安全边界，
+可防止凭据被提交到未知验证界面，同时不声称这些新字段或标记属于协议。
 
-## User show
+## 用户资料
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** UC activation is part of login; query is `https://uc.buaa.edu.cn/api/uc/userinfo`. **example:** `api/user` activates UC but exposes only status, not the same userinfo operation. **decision:** use the old userinfo endpoint on the facade-resolved route. | **old:** SSO/final HTML indicates expired session. **example:** UC activation follows redirects. **decision:** WebVPN conversion and redirects remain route-locked; no cross-route retry. | **old:** current mode's Cookie/auth session; `getUserInfo` itself lacks the desired local preflight. **example:** shared context. **decision:** selected route slot only; `authenticated_at` from a validated/persisted login is the local proof, while prepare-page Cookies alone never authorize a business request. | **old:** GET `/api/uc/userinfo`, no parameters. **example:** non-equivalent GET `/api/uc/status?selfTimestamp=...`. **decision:** do not substitute status for profile. | **old:** default GET. **example:** default GET. **decision:** no invented request body/header. | **old/example:** N/A. | **old:** `code`, optional `data`; profile fields `idCardType`, `idCardTypeName`, `phone`, `schoolid`, `name`, `idCardNumber`, `email`, `username`. **example:** returns raw status text, non-equivalent. **decision:** stable optional profile DTO; mask sensitive display fields. | **old/example:** no profile cache. **decision:** route resolution and preflight occur in aggregate facade; zero HTTP requests without a validated local slot, including after prepare and before login. | **old:** 401/SSO HTML clears current local session; nonzero/missing data is `user_info_failed`. **decision:** missing slot is `authentication_required`; explicit invalidation clears only selected route; transient 5xx/timeout preserves both. |
 
-## Classroom sync
+## 空教室会话同步
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** exact SSO service URL in `LocalClassroomApi.kt::classroomSyncUrl`, including encoded `a_buaa/api/cas/index`, redirect, `from=wap`, `login_from=` and `noAutoRedirect=1`. **example:** `api/class/*` targets iClass and is N/A/non-equivalent. **decision:** use only the old free-classroom bootstrap. | **old:** shared redirect-following client; any 200..399 marks sync. **example:** N/A. **decision:** route-transform the complete URL; preserve old acceptance until live evidence says otherwise. | **old:** selected mode Cookie jar; `sessionSynced` belongs to one backend. **example:** `Sessionid` iClass token is unrelated. **decision:** one sync state per route/client, never global or cross-route. | **old:** GET exact service URL. **example:** N/A/non-equivalent. | **old:** exact long Android/WeCom `User-Agent`, no body. **example:** N/A. **decision:** preserve exact old UA. | **old/example:** N/A. | **old:** only HTTP status drives sync flag. **example:** N/A. **decision:** no response DTO exposed. | **old:** double-checked `Mutex`; once per backend until `clearCache`/session reset. **example:** N/A. **decision:** reproduce once-per-route synchronization and clear it on invalidation/logout/re-login. | **old:** exceptions are swallowed by `runCatching`; query proceeds and later classifies auth/upstream. **example:** N/A. **decision:** preserve this best-effort sync boundary; never report sync alone as feature success. |
 
-## Classroom query
+## 空教室查询
 
 当前实现补充：`crates/ubaa-core/src/features/classroom.rs::parse_response` 与冻结
 `LocalClassroomApi` 一致，仅要求完整 `e/m/d.list` 信封和教室字符串字段；`e` 的具体数值
 不作为额外成功门控，而是原样保留在 `ClassroomQuery.code`。脱敏回归测试覆盖 `e=1`
 的兼容解析，避免引入旧版不存在的非零状态码拒绝。
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** requires classroom sync; GET `https://app.buaa.edu.cn/buaafreeclass/wap/default/search1`. **example:** iClass query is N/A/non-equivalent. **decision:** use old free-classroom endpoint only. | **old:** query uses a no-redirect client; SSO Location/HTML is session expiry. **example:** N/A. **decision:** disable redirects for this request on both routes. | **old:** current route Cookie jar and local auth preflight. **example:** N/A. **decision:** selected route slot and route-owned sync state. | **old:** GET query `xqid=<int>`, `floorid=""`, `date=yyyy-mm-dd`. **example:** N/A. **decision:** preserve exact parameters. | **old:** exact long UA, `Accept: application/json, text/javascript, */*; q=0.01`, route-transformed Referer `https://app.buaa.edu.cn/site/classRoomQuery/index`, `X-Requested-With: XMLHttpRequest`; no body. **example:** N/A. | **old/example:** N/A. | **old:** required `e:int`, `m:string`, `d`, required `d.list: Map<String,List<ClassroomInfo>>`; room requires string `id`, `floorid`, `name`, `kxsds`. **example:** N/A. **decision:** missing `d/list` is parse error, not empty success; genuine empty map remains success. | **old:** no result cache; sync mutex as above. **example:** N/A. **decision:** same. | **old:** missing auth, SSO/401 invalidation, non-200 upstream, parse failure; date validation is host API concern. **decision:** stable `invalid_input`, `authentication_required`, upstream, parse codes; no fallback unless matrix later permits it. |
 
-Deterministic implementation evidence on 2026-08-24: parser tests reject every missing required
-`e/m/d/list` layer and non-string room field while preserving a genuine empty map. Transport tests
-assert the frozen complete mobile `User-Agent`, XHR/Accept headers, route-transformed Referer,
-once-per-client and route-isolated synchronization, best-effort failure followed by retry, and one
-no-follow business request. Raw SSO Location, 401, and login HTML return
-`authentication_required`, clear the selected persisted route and its feature state, and successful
-session replacement forces a later synchronization. A state-level concurrency test proves the
-double-checked async mutex runs one synchronization. The pinned example Classroom API remains
-non-equivalent and supplied no protocol values to this implementation.
+2026-08-24 的确定性实现证据：解析测试拒绝缺失 `e/m/d/list` 任一必需层和非字符串教室字段，同时
+保留真实空映射。传输测试断言冻结完整移动端 `User-Agent`、XHR/Accept 请求头、路线转换后的
+Referer、每客户端一次且路线隔离的同步、尽力失败后的重试，以及一次不跟随重定向的业务请求。
+原始 SSO Location、401 和登录 HTML 均返回 `authentication_required`，清理选定的持久化路线及
+功能状态；成功替换会话会强制后续再次同步。状态级并发测试证明双重检查异步互斥锁只执行一次
+同步。固定示例 Classroom API 不等价，未向本实现提供协议值。
 
-## SPOC auth
+## SPOC 认证
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** GET `https://spoc.buaa.edu.cn/spocnewht/cas`, then POST `/spocnewht/sys/casLogin`. **example:** GET `/spocnewht/cas` only; no `sys/casLogin`/role setup, so auth is partially non-equivalent. **decision:** old local flow is authoritative. | **old:** manually follows at most 8 route-transformed redirects and extracts token only from `/spocnew/cas?token=...&refreshToken=...`; raw SSO redirect from `sys/casLogin` is expired authentication. **example:** follows client redirects and reads the first `token` query pair. **decision:** preserve old bound and classify the no-follow raw SSO Location before status parsing. | **old:** route Cookie jar; in-memory token and role code keyed by cached client username. **example:** shared Cookie store and 3h credential token. **decision:** token/role/login mutex live in route-owned client feature state and are cleared with that session. | **old:** GET CAS; POST JSON `{token}` to `sys/casLogin`. **example:** no equivalent role POST. | **old:** JSON, `X-Requested-With: XMLHttpRequest`, `Token: Inco-<token>`; later calls add `RoleCode`. **example:** `Token: Inco-<token>` only. **decision:** preserve old RoleCode establishment. | **old/example:** no crypto for CAS login itself. | **old:** token/optional refreshToken from URL; `code/content` role fields `jsdm`, `rolecode`, `jsdmList`; null content or no resolvable role is authentication failure. **example:** token only. **decision:** role is required; no field inferred from example. | **old:** login mutex, reuse token/role, one forced refresh after business auth failure. **example:** credential expiry refresh. **decision:** once-per-route serialized login and exactly one refresh/retry. Optional course/submission callers retain their old `runCatching` boundary. | **old:** after required business authentication is exhausted, `resolveLocalBusinessAuthenticationFailure` validates UC: only explicit Invalid clears the selected primary session; Valid, transient, or inconclusive validation preserves it and returns `spoc_error`. **example:** no equivalent primary-session arbitration. **decision:** required operations perform the same UC validation; only `authentication_required` clears the selected route, while every other validation result returns retryable `upstream_unavailable` without clearing it. |
 
-## SPOC list
+## SPOC 列表
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** authenticated current term POST `/inco/ht/queryOne`; optional course metadata GET `/jxkj/queryKclb`; authoritative global assignment POST `/inco/ht/queryListByPage`. **example:** current-week/course APIs differ and assignment list is per-course GET `/kczy/queryXsZyList`; list protocol is non-equivalent. **decision:** use old global list even when course lookup fails/returns empty. | **old:** route-transformed, no cross-route redirect/replay. **example:** ordinary same-host requests. **decision:** lock entire term/list sequence to one route. | **old:** same token/RoleCode and route Cookie state; course metadata failure is optional. **example:** shared token state. **decision:** route-owned SPOC state. | **old:** queryOne POST JSON fixed encrypted `param`; courses GET `kcmc=""`, `xnxq`; list POST JSON `{param}` whose plaintext fields, in order, are `pageSize=15`, `pageNum`, fixed `sqlid=1713252980496efac7d5d9985e81693116d3e8a52ebf2b`, `xnxq`, `kcid=""`, `yzwz=""`. **example:** GET `flag=1`, `sflx=2`, `sskcid=<course>`, non-equivalent. | **old:** JSON plus XHR, `Token`, `RoleCode`. **example:** query plus `Token`, no RoleCode. **decision:** old exact encoding/headers. | **old:** AES-128-CBC with zero padding and Base64, key `inco12345678ocni`, IV `ocni12345678inco`; aligned plaintext receives no extra block; fixed vector in `LocalSpocSupportTest`. **example:** confirms the AES constants but always appends 1-16 zero bytes, including a full block for aligned plaintext. **decision:** preserve the applicable frozen local no-extra-block behavior and test both aligned and unaligned inputs; the example remains supplemental. | **old:** current term `dqxq/mrxq`; page integer `total/pageNum/pageSize/pages`, Boolean `hasNextPage`, list; frozen defaults are `0/1/15/1`, false, and empty; assignment requires string `zyid/zymc`, with optional string `tjzt/zyjzsj/zykssj/sskcid/xnxq/mf/kcmc`; course metadata is optional. **example:** different per-course `Homework` fields. **decision:** preserve defaults/optionality but reject every present field of the wrong type. | **old:** pages from 1 until `!hasNextPage`, page limit reached, or empty list; cached route client; course lookup `runCatching`. **example:** caller loops courses, no equivalent global pagination. **decision:** old pagination and optional metadata; empty courses must still issue global list request. | **old:** business auth triggers one refresh; its malformed-JSON branch scans raw text and can treat the word `token` as authentication. **example:** typed JSON errors, no equivalent global list. **decision:** active contract forbids replaying parse/unknown failures, so malformed JSON is always `parse_error`; valid evidenced auth envelopes still refresh once. Genuine global empty page remains success. |
 
@@ -125,22 +110,16 @@ non-equivalent and supplied no protocol values to this implementation.
 |---|---|---|---|---|---|---|---|---|
 | **old:** first resolves summary from the authoritative list; GET `/kczy/queryKczyInfoByid`; optional GET `/kczy/queryXsSubmitKczyInfo`. **example:** matching detail GET exists; submission read is only noted, not implemented. **decision:** old full sequence is authoritative; example corroborates detail endpoint/fields only. | **old/example:** same-host route-transformed GET; SSO HTML is auth failure. **decision:** one route for list/detail/submission. | **old:** route SPOC token/role/Cookies; submission failure is optional. **example:** token only. **decision:** route-owned state, no public raw HTML. | **old:** detail query `id=<assignmentId>`; submission query `kczyid=<assignmentId>`. **example:** matching detail `id`; no implemented submission request. | **old:** XHR, `Token`, `RoleCode`; GET query. **example:** `Token` only. **decision:** preserve old headers. | **old/example:** none for these GETs. | **old:** detail requires string `id` and `zymc`; `zynr/zykssj/zyjzsj/zyfs/sskcid` are optional strings; optional submission has `tjzt/tjsj`; detail score/time fall back to list summary; the old public DTO exposes both raw `contentHtml` and derived `contentPlainText`. **example:** corroborates required `zynr` plus other non-equivalent detail fields, but has no submission/fallback. **decision:** strictly parse the frozen identity fields, keep the list identity authoritative, preserve summary fallback, convert HTML internally, and expose plain text only. | **old:** reuses list/auth client; optional submission under same call; one auth refresh. **example:** token expiry only. **decision:** route-owned state and one refresh, no global cache. | **old:** missing summary is not found; submission failure does not fail detail; unknown status remains explicit. **example:** parser errors only. **decision:** stable not-found/auth/parse errors; remove public `contentHtml`. |
 
-Deterministic SPOC implementation evidence on 2026-08-24: the CAS bootstrap follows at most eight
-no-follow, allow-listed redirects, accepts a token only from an HTTPS `spoc.buaa.edu.cn` terminal
-on the exact `/spocnew/cas` path, and requires the terminal representation to match Direct or
-WebVPN routing. It does not request the token landing URL. Primitive and array role forms follow
-the frozen `JsonPrimitive` behavior. Credentials are serialized and cached only inside one route
-state, are redacted from `Debug`, cannot be repopulated after a state-generation invalidation, and
-each individual business call performs at most one authentication refresh. A second auth failure
-from a required term/page/detail operation validates the primary UC session: explicit invalidation
-clears only the selected route, while valid or unavailable UC preserves both primary state and the
-sibling slot and returns a non-authentication SPOC availability error. A raw business `Location`
-resolving to SSO triggers that same bounded refresh despite the no-follow transport. Raw SSO
-Location, null content, and missing role during `sys/casLogin` enter the same primary-session
-arbitration. Course metadata remains optional even after its own retry is exhausted.
-The frozen client's standalone `权限` authentication marker conflicts with the active no-permission-
-retry contract; UBAA 2 records that conflict in the decision log and does not replay code-403
-permission envelopes.
+2026-08-24 的确定性 SPOC 实现证据：CAS 引导最多跟随八次不自动跳转且受主机白名单限制的
+重定向，只接受 HTTPS `spoc.buaa.edu.cn` 主机精确 `/spocnew/cas` 路径中的令牌，并要求最终
+表示与 Direct 或 WebVPN 路线一致；不会请求令牌落地页。原语和数组角色形态遵循冻结
+`JsonPrimitive` 行为。凭据只在单一路线状态内序列化和缓存，`Debug` 已脱敏，状态生成号失效后
+不能重新写入，每个业务调用至多刷新一次认证。必需学期/页面/详情操作第二次认证失败时会校验
+主 UC 会话：明确失效只清理选定路线，有效或不可用 UC 保留主会话及兄弟槽位并返回非认证类
+SPOC 可用性错误。即使传输不跟随重定向，解析到 SSO 的业务 Location 也触发同一有界刷新。
+`sys/casLogin` 的原始 SSO Location、空 content 和缺角色进入同一主会话仲裁。课程元数据即使
+重试耗尽仍为可选。冻结客户端独立的“权限”认证标记与当前禁止无条件重试的合同冲突，UBAA 2
+已在决策日志记录，不重放 code-403 权限信封。
 
 List transport tests capture the actual page-one and page-two JSON POST bodies, test-side decrypt
 their Base64 AES-CBC `param`, and assert the complete ordered plaintext including empty `kcid` and
@@ -151,9 +130,9 @@ course metadata is empty or unavailable. Parser tests cover integer page metadat
 optional submission enrichment, plain-text decoding, and omission of raw HTML. These are
 deterministic protocol results only; current Direct/WebVPN/auto live evidence remains open.
 
-## Judge list
+## Judge 列表
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** SSO `https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F`, then `judge.buaa.edu.cn/courselist.jsp?courseID=0`. **example:** N/A/non-equivalent; pinned tree has no Judge module. **decision:** old is the only frozen protocol source. | **old:** one activation redirect is resolved then route-transformed; SSO pages trigger reactivation up to 3 retries. **example:** N/A. **decision:** route-lock all redirects/URLs. | **old:** per-user/per-mode client; isolated workers fork non-Judge parent Cookies and keep Judge cookies local. **example:** N/A. **decision:** route/client-owned state; no global cache/cookie mixing. | **old:** GET courses; GET `courselist.jsp?courseID=<id>` to select; GET `assignment/index.jsp`; `includeExpired` affects local cutoff, not an upstream parameter. **example:** N/A. | **old:** browser `Accept`, `Accept-Language: zh-CN,zh;q=0.9`, exact Chrome 58 UA; no body. **example:** N/A. **decision:** preserve. | **old/example:** N/A. | **old:** parse course links excluding course 0; assignment links by `assignID`, excluding `problemContent` and `judgeDetails`; dedupe IDs. **example:** N/A. **decision:** exact filter required before live parity. | **old:** list caches keyed user+route, assignment work bounded at 4, 5-minute list TTL; six-month cutoff/historical course store unless includeExpired. **example:** N/A. **decision:** state is owned and cleared by route client/session lifecycle. | **old:** missing local auth, SSO reactivation failure, non-200, no permission/not found map to stable errors. After Judge business authentication retries are exhausted, old code validates UC and clears the primary session only for explicit Invalid; Valid, 5xx, network, or inconclusive UC results preserve it and return a business failure. **example:** N/A. **decision:** implement the same top-level arbitration with `upstream_unavailable` for preserved-session failures; list exit 0/count alone does not prove parser parity; Direct/WebVPN count divergence remains unresolved. |
 
@@ -163,74 +142,58 @@ deterministic protocol results only; current Direct/WebVPN/auto live evidence re
 |---|---|---|---|---|---|---|---|---|
 | **old:** no diagnostic API; it uses the same Judge list bootstrap above. **example:** N/A/non-equivalent. **decision:** diagnostics add no upstream request or URL. | **old:** same list activation and bounded reactivation. **example:** N/A. **decision:** reuse the exact list chain and route resolution. | **old:** same per-user/per-mode client and isolated workers. **example:** N/A. **decision:** expose counts only through the facade; never expose worker/session state. | **old:** same course, selection, assignment-list and detail GETs; no diagnostic parameter. **example:** N/A. **decision:** ordinary and diagnostic reads share one request/cache path. | **old:** same browser headers and empty bodies. **example:** N/A. | **old/example:** N/A. | **old:** its parser first matches numeric `assignID` anchors, then excludes `problemContent`/`judgeDetails`, rejects blank titles and deduplicates assignment IDs; it has no count DTO. **example:** N/A. **decision:** `courseCount` is the parsed course count before historical-course skipping; `rawAnchorCount` sums numeric `assignID` `a[href]` matches from assignment-list entries reached by the operation, whether freshly fetched or cache-backed, before exclusion/title filtering/deduplication; historical courses skipped before worker creation contribute neither raw nor filtered counts; `filteredUniqueCount` sums the final nonblank unique assignment lists; `summaries` is exactly the ordinary `includeExpired` result. No raw HTML, new IDs, titles beyond existing summaries, Cookies or tokens are added. | **old:** list TTL is 5 minutes and empty assignment lists are not cached. **example:** N/A. **decision:** cache the two safe counts atomically with each nonempty parsed assignment list so an ordinary read followed by diagnostics does not refetch or infer counts; retain the same four-worker bound and lifecycle invalidation. | **old:** list authentication/upstream errors are unchanged. **example:** N/A. **decision:** diagnostic facade returns the same error and route semantics as ordinary Judge list; counts are evidence metadata, not proof of live success by themselves. |
 
-## Judge detail
+## Judge 详情
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** after activation/course selection, GET `assignment/index.jsp?assignID=<id>`. **example:** N/A/non-equivalent. | **old:** SSO page reactivates and retries; route remains fixed. **example:** N/A. | **old:** selected course mutex and isolated worker Cookie state. **example:** N/A. **decision:** same route/client scope. | **old:** GET with exact numeric/string course and assignment IDs discovered from list. **example:** N/A. | **old:** Judge browser headers; no body. **example:** N/A. | **old/example:** N/A. | **old:** parses start/due, max/own score, total/submitted count, nested/top-level problem tables, per-problem score/max/status, `PARTIAL`, fallback submitted counts and plain text. **example:** N/A. **decision:** all fields/status semantics are required; fixed empty `problems`/`myScore` is non-parity. | **old:** course selection mutex; detail cache 2 minutes keyed user+route+course+assignment. **example:** N/A. **decision:** no global cache and clear on session reset. | **old:** missing assignment/course is not found; auth page reactivates; non-200/auth exhaustion stable failures. After terminal business authentication failure, old code validates UC before deciding whether the primary session is invalid. **decision:** the same arbitration must wrap the top-level detail operation, not each internal request; historical detail exit 0 is unverified semantic evidence until complete parser assertions pass. |
 
-## Judge batch/cache
+## Judge 批量与缓存
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** reuses Judge activation/list/detail endpoints; no separate batch upstream API. **example:** N/A/non-equivalent. | **old:** each worker activates and remains on its route. **example:** N/A. | **old:** cache scope is `(mode,username)`; worker cookies isolate Judge session; reset clears `LocalJudgeApiCache`. **example:** N/A. **decision:** runtime-owned `RouteFeatureState`, never process-global. | **old:** normalizes nonblank `(courseId,assignmentId)` keys, deduplicates, groups by course and performs the same GET detail sequence. **example:** N/A. | **old:** same browser headers. **example:** N/A. | **old/example:** N/A. | **old:** grouped traversal returns complete detail DTO plus public `historicalCutoffCourseIds`; empty normalized input returns empty details. **example:** N/A. **decision:** UBAA 2 keeps cutoff IDs internal to route state and restores the normalized caller key order after grouped work. | **old:** max 4 concurrent course workers; list TTL 5m, detail TTL 2m; no empty assignment-list cache; six-month cutoff retaining local time of day; reset clears all. **example:** N/A. **decision:** reproduce bounds/cache keys/lifecycle inside the owning facade, preserve time of day and clamp the target month day. | **old:** one missing course/assignment fails batch as not found; auth/upstream errors are not hidden. Terminal business authentication failures still pass through old UC arbitration before primary-session cleanup. **example:** N/A. **decision:** top-level batch operations share the Judge arbitration boundary; no stale/global reuse after logout or account/route change. |
 
-## CLI/config
+## CLI 与配置
 
-| bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto constants | DTO/parser fields | caching/concurrency | error/exit semantics |
+| 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **old:** host UI chooses `ConnectionMode`; no equivalent UBAA 2 CLI/config. **example:** library context only, no CLI/config/schema. **decision:** N/A to upstream URLs; aggregate Core facade owns ordinary routing. | **old/example:** no equivalent CLI redirect contract. **decision:** hosts receive only facade results. | **old:** mode-scoped settings but switching clears sessions. **example:** caller-managed `cookies.json`/`cred.json`. **decision:** Core loads strict `config.toml` format version `1` and dual `session.json`; CLI never reads storage internals. | **old/example:** no equivalent commands. **decision:** CLI parses documented commands/arguments, invokes facade methods without `ConnectionMode`, and renders; hidden mode is diagnostic/test-only. | **old/example:** no envelope. **decision:** one JSON value on stdout, diagnostics only on stderr, no sensitive values/raw upstream data. | **old/example:** N/A. | **old/example:** no equivalent schema. **decision:** CLI output is schema version 2 only; config/session on-disk versions remain independent. Aggregate route arrays are exactly Direct then WebVPN; `all_ready`/`partial` require a complete profile while `none_ready` forbids one. Route failures contain only stable safe errors; no challenge/image fields or captcha error code exist. Single-route envelopes cannot carry aggregate fields, and pre-resolution failures carry only the feature. | **old:** global mode/runtime. **example:** caller-owned context. **decision:** config/probe cache/routing/session/feature state are facade-owned; CLI has no routing cache. Config writes reject symlinks/non-regular files and use unique atomic temp files. | **old/example:** no equivalent exit taxonomy. **decision:** stable exits 0/2/3/5/6/7; a fresh config directory must support JSON login; an interactive verification page maps to `upstream_changed` (exit 6), and missing local user/feature session fails before network. |
 
-Config persistence evidence on 2026-08-24: Unix tests prove load and save reject a
-symlinked `config.toml` without reading or changing its target. Eight concurrent saves publish one
-complete parseable configuration using unique exclusive temporary files, leave no temporary file,
-and retain directory/file modes `0700`/`0600`. This is local filesystem evidence only.
+2026-08-24 的配置持久化证据：Unix 测试证明加载和保存会拒绝符号链接 `config.toml`，不会读取
+或改变其目标。八个并发保存使用唯一独占临时文件发布一份完整可解析配置，不遗留临时文件，
+并保持目录/文件权限 `0700`/`0600`。这仅是本地文件系统证据。
 
-Verifier evidence on 2026-08-24 is likewise deterministic only. The shell harness rejects CLI
-schema versions other than 2, unsafe stable errors, aggregate route arrays not exactly Direct then
-WebVPN, route/error state that exposes unsupported interactive verification fields, a claimed empty SPOC result without an
-authoritative global page, incomplete, causally inconsistent or unmasked profiles, fractional or
-out-of-range Rust integer fields, cross-request schedule/grade term drift, SPOC detail identity or
-frozen status-text drift,
-contradictory Judge ID/problem/count/score/status semantics, resolved-route contradictions,
-incomplete or extra business DTO fields, duplicate Judge keys, and output containing credential,
-session or raw-response aliases, obvious complete HTML documents or CAS forms. Arbitrary
-angle-bracket text is not used to infer provenance; exact DTO closure and deterministic parser tests
-prove that raw HTML fields are absent. The paragraph above describes a superseded verifier design.
-The current `core-live` emits only route, operation, status, stable error, timing, count and
-dependency/source fields, performs no jq aggregation, and has no `UBAA_VERIFY_DIGEST_SALT`
-prerequisite. Current Direct/WebVPN evidence is recorded per operation in
-`docs/migration/status.md`; `auto` remains deterministic-only.
+2026-08-24 的验证器证据同样仅为确定性证据。Shell harness 拒绝非 2 的 CLI Schema、危险稳定错误、
+非严格 Direct 后 WebVPN 的聚合路线数组、暴露不支持交互验证字段的路线/错误状态、没有权威全局
+页却声称 SPOC 空结果、资料不完整/因果矛盾/未脱敏、Rust 整数字段为小数或越界、跨请求课表/成绩
+学期漂移、SPOC 详情身份或冻结状态文本漂移、Judge ID/题目/计数/分数/状态语义矛盾、解析路线
+矛盾、不完整或多余 DTO 字段、重复 Judge 键，以及包含凭据、会话或原始响应别名、完整 HTML 文档
+或 CAS 表单的输出。不会用任意尖括号文本推断来源；严格 DTO 闭合和确定性解析测试证明原始 HTML
+字段不存在。上一段描述的是已取代的验证器设计。当前 `core-live` 只输出路线、操作、状态、
+稳定错误、耗时、计数和依赖/来源字段，不执行 jq 聚合，也没有 `UBAA_VERIFY_DIGEST_SALT` 前置
+条件。当前 Direct/WebVPN 证据按操作记录在 `docs/migration/status.md`，`auto` 仍仅确定性验证。
 
-## Unchanged schedule/exam evidence
+## 未改变的课表/考试证据
 
-`LocalScheduleApi.kt` probes `currentUser.do`; `Schedule.kt` and
-`LocalScheduleApiBackendTest.kt` prove the terms/weeks/today/exam GETs and the
-weekly schedule form fields `termCode`, `type=week`, `week`. Pinned
-`api/aas/core.rs` proves the same AAS service-specific CAS activation and final
-landing URL. Pinned `api/aas/opt.rs` uses a different query payload including
-`campusCode`; UBAA 2 does not borrow that extra field without local/live
-evidence. No encryption is involved. Route locking, unsupported-undergraduate
-classification and sanitized parser fixtures remain required.
+`LocalScheduleApi.kt` 探测 `currentUser.do`；`Schedule.kt` 和
+`LocalScheduleApiBackendTest.kt` 证明学期/教学周/今日/考试 GET 请求，以及周课表表单字段
+`termCode`、`type=week`、`week`。固定的 `api/aas/core.rs` 证明相同的 AAS 专用 CAS 激活和最终
+落地 URL。固定的 `api/aas/opt.rs` 使用包含 `campusCode` 的不同查询正文，UBAA 2 没有本地或
+实时证据时不借用该字段。不涉及加密；路线锁定、本科不支持分类和脱敏解析器 Fixture 仍是必需项。
 
-The 2026-08-25 Direct and WebVPN live shape check returned a successful
-`WeeklySchedule` envelope with the frozen `arrangedList`, `code`, and `name`
-fields; the list was empty and `data.code` was a non-empty string different
-from the selected semester term. The frozen DTO/parser only decodes
-`WeeklyScheduleResponse.datas` and does not assert that equality. The live
-verifier therefore validates that `data.code` is a non-empty string while the
-request term remains selected from the terms response and is sent unchanged;
-it must not invent an equality rule unsupported by either frozen source.
+2026-08-25 Direct 和 WebVPN 实时结构检查返回成功的 `WeeklySchedule` 信封，包含冻结的
+`arrangedList`、`code`、`name` 字段；列表为空，`data.code` 是非空字符串且不同于选定学期。冻结
+DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。因此实时验证器仅检查
+`data.code` 为非空字符串；请求学期仍从学期响应选择并原样发送，不得凭空增加两份冻结来源均未
+支持的相等规则。
 
-## Unchanged grades evidence
+## 未改变的成绩证据
 
-`LocalGradeApi.kt` proves activation at
-`https://app.buaa.edu.cn/buaascore/wap/default/index`, then a form POST with
-`xq` and `year`; `Grade.kt` proves the `e/m/d` wrapper and scalar mapping. The
-pinned App module is N/A/non-equivalent and supplies no local score URL, DTO or
-error. The separate old grade score cache is not evidence for an upstream
-request cache. UBAA 2 retains strict `yyyy-yyyy-semester` parsing and stable
-invalid-input/upstream/parse errors.
+`LocalGradeApi.kt` 证明先在 `https://app.buaa.edu.cn/buaascore/wap/default/index` 激活，再以
+表单 POST 发送 `xq` 和 `year`；`Grade.kt` 证明 `e/m/d` 信封及标量映射。固定 App 模块不适用且
+不等价，未提供本地成绩 URL、DTO 或错误语义。旧版独立成绩缓存不能作为上游请求缓存证据。UBAA 2
+保留严格的 `yyyy-yyyy-semester` 解析，以及稳定的输入无效/上游/解析错误。
 
 ## 课堂签到今日查询
 
@@ -258,13 +221,11 @@ invalid-input/upstream/parse errors.
 
 补充证据（`24acd8b`）：`crates/ubaa-core/tests/libbook.rs` 的 Mock 端到端测试按冻结顺序调用预约确认和取消接口，断言 `aesjson` 非空、取消请求携带预约标识，并复用路线内 bearer 会话。测试仅使用合成会话与脱敏响应，不产生真实预约或取消。
 
-## Review rule
+## 变更审查规则
 
 ## UBAA2 直接写操作与评教（2026-08-28）
 
 ### Cgyy 预约提交
-
-取消操作的直接 Facade 证据：`RouteClient::cgyy_cancel_order` 已补齐正数订单校验，并通过合成传输断言 `/api/orders/new/cancel/{id}` 的 POST 签名请求；不跨路线复用令牌，也不执行真实取消。
 
 取消操作的直接 Facade 证据：`RouteClient::cgyy_cancel_order` 已补齐正数订单校验，并通过合成传输断言 `/api/orders/new/cancel/{id}` 的 POST 签名请求；不跨路线复用令牌，也不执行真实取消。
 
@@ -278,11 +239,9 @@ Ygdk 写入口的输入边界也已固定：照片必须存在且非空，开始
 
 `crates/ubaa-core/tests/ygdk.rs` 进一步以合成传输验证完整写链顺序：OAuth code、`campusAppLogin`、分类/项目/统计/学期概览、`Upload/File/post` multipart 和 `Clockin/clockin` 表单；断言 `uid`、业务 token、文件元数据及打卡字段均按冻结协议发送，且不产生真实副作用。
 
-The following rows are the required parity boundary for the remaining direct upstream
-operations. `ubaa_old` is authoritative at the commit recorded in `references.md`;
-`examples/buaa-api` is explicitly non-equivalent for all rows except Evaluation's SPOC
-endpoints. No row authorizes a live write during migration verification unless an independent
-user authorization and sanitized result are recorded in the decision log.
+下表是其余直连上游操作的必填对照边界。`ubaa_old` 以 `references.md` 记录的提交为准；除
+Evaluation 的 SPOC 端点外，`examples/buaa-api` 对所有行均明确不等价。除非决策日志记录了独立的
+用户授权和脱敏结果，否则任何一行都不授权在迁移验证期间执行真实写操作。
 
 | operation | bootstrap/service URL | redirect/final URL | cookie/session scope | method and exact parameters | headers/body encoding | crypto/signature constants | DTO/parser fields | caching/concurrency | error/exit semantics |
 |---|---|---|---|---|---|---|---|---|---|
@@ -299,10 +258,9 @@ user authorization and sanitized result are recorded in the decision log.
 | Evaluation list/pending | GET `spoc/pjxt/cas`, then task/list, questionnaire list, required reviews | bounded route-local SPOC redirects | route-local SPOC cookies/session | GET task params `yhdm,pageNum=1,pageSize=10`; questionnaire `rwid`; courses `wjid`; topic fields are sent exactly from `EvaluationCourse` | JSON envelope, GET query; revise pattern is best-effort JSON POST | none | task/questionnaire/course fields from frozen `EvaluationModel.kt`; pending filters `!isEvaluated` | activation mutex; course map key `${rwid}_${wjid}_${kcdm}_${bpdm}` | malformed envelope/upstream auth is stable error; empty result is only valid when upstream says success |
 | Evaluation submit | same | same | same | best-effort POST `/reviseQuestionnairePattern` `{rwid,wjid,msid}`, GET topic, POST `/submitSaveEvaluation` `{pjidlist:[],pjjglist:[...],pjzt:"1"}` | JSON | no additional crypto; payload fields follow frozen `LocalEvaluationService.kt` | per-course `EvaluationResult`; payload preserves `pjdf=93`, question IDs/options and teacher/course IDs | bounded sequential per-course submission; no cache | submit response code/message maps per-course success/failure; CLI confirmation is mandatory |
 
-For the pinned `examples/buaa-api`, the Evaluation module (`src/api/tes`) confirms the
-same SPOC task/form/submit URLs but is not evidence for the other feature URLs, fields,
-or crypto. Where old local code uses random answer selection, Core exposes an explicit
-deterministic answer policy for tests and never performs live submission in verification.
+固定的 `examples/buaa-api` 中，Evaluation 模块（`src/api/tes`）确认相同的 SPOC 任务/表单/提交
+URL，但不能作为其它功能 URL、字段或加密的证据。旧版本地代码使用随机答案时，Core 为测试提供
+显式确定性答案策略，验证过程中从不执行真实提交。
 
 ## 博雅课程只读查询
 
@@ -314,12 +272,10 @@ deterministic answer policy for tests and never performs live submission in veri
 
 Bykc 写链 Mock 证据：`crates/ubaa-core/tests/bykc.rs` 按冻结顺序返回 CAS token，并依次校验 `/sscv/choseCourse`、`/sscv/delChosenCourse`、`/sscv/signCourseByUser` 的非空加密正文、`auth_token`/`authtoken` 和 `ak`/`sk`/`ts` 头。测试不记录密文内容、不使用真实会话。
 
-Any change to a URL, service value, redirect, Cookie/session scope, method,
-parameter, header, body encoding, crypto constant, DTO field/type, cache key,
-concurrency bound or error mapping must update the corresponding operation row
-before production code changes. A fixture alone cannot close live parity, an
-authentication success cannot close a business operation, and an exit-zero
-list cannot prove detail/parser semantics.
+URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求头、正文编码、加密常量、DTO
+字段/类型、缓存键、并发上限或错误映射的任何变更，都必须在生产代码修改前更新对应操作行。
+仅有 Fixture 不能关闭实时对照，认证成功不能关闭业务操作，退出码为零的列表也不能证明详情或
+解析语义。
 
 ## 场馆预约只读查询
 

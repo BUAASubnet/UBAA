@@ -211,7 +211,7 @@ request, redirect, signing or response evidence was observed, so the frozen
 protocol and failure-closed behavior remain unchanged. The verifier performed
 read-only calls only and invoked no reservation or cancellation write.
 
-## 2026-08-29: Full three-route matrix with ephemeral digest salt
+## 2026-08-29: Full three-route matrix with ephemeral digest salt（二）
 
 With `UBAA_VERIFY_DIGEST_SALT` supplied only as a shell-scoped temporary value,
 Direct and WebVPN completed User, Schedule, Exam, Grades, Classroom, SPOC, Judge
@@ -794,7 +794,7 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结 `LocalCgyyApi.mapDayInfo` 会过滤无效槽位并按 `timeId` 升序整理每个空间的槽位；Rust 原实现保留上游顺序。
 - 新增逆序 `spaceTimeInfo` 脱敏测试先失败后通过，当前输出与冻结排序一致；未改变请求协议或实时错误策略。
 
-## 2026-08-29 Cgyy 三路线逐操作复测
+## 2026-08-29 Cgyy 三路线逐操作复测（二）
 
 - 使用未持久化进程内摘要盐执行 `feature=cgyy` 的 Direct、WebVPN、auto 只读验证；三次站点查询均成功并返回 4 个站点。
 - Direct 日期和锁码为 `upstream_unavailable`；WebVPN 日期为 `upstream_changed`、订单和锁码为 `upstream_unavailable`；auto 解析为 Direct，日期为 `upstream_changed`、订单为 `upstream_unavailable`。
@@ -854,7 +854,7 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 冻结证据：`LocalLibBookApi.kt` 的 `JsonObject.string` 读取 `jsonPrimitive.contentOrNull`，其语义覆盖字符串、数字和布尔原语。
 - 原 Core `text` 仅接受 JSON 字符串，数字座位标识/状态会清空。新增数字字段脱敏测试先失败，再扩展原语文本化；未执行真实写操作。
 
-## 2026-08-29 三路线全量只读复测
+## 2026-08-29 三路线全量只读复测（二）
 
 - Direct 全量首个失败为 Cgyy 业务阶段 `upstream_unavailable`（退出 5）；其余功能及 Judge 详情语义通过。
 - WebVPN 记录 Grades `parse_error`、Judge `invalid_semantics`，以及 Cgyy 日期/订单/锁码 `upstream_unavailable`（退出 6）；站点和其他可用功能仍按逐操作结果记录。

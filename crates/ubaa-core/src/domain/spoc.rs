@@ -67,25 +67,25 @@ pub struct SpocAssignmentsDiagnostics {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpocAssignmentDetail {
-    /// Assignment ID.
+    /// 作业标识。
     pub assignment_id: String,
-    /// Course ID.
+    /// 课程标识。
     pub course_id: String,
-    /// Course name.
+    /// 课程名称。
     pub course_name: String,
-    /// Teacher name.
+    /// 教师姓名。
     pub teacher_name: Option<String>,
-    /// Assignment title.
+    /// 作业标题。
     pub title: String,
-    /// Start time.
+    /// 开始时间。
     pub start_time: Option<String>,
-    /// Due time.
+    /// 截止时间。
     pub due_time: Option<String>,
-    /// Score.
+    /// 成绩。
     pub score: Option<String>,
-    /// Submission status.
+    /// 提交状态。
     pub submission_status: SpocSubmissionStatus,
-    /// Safe status text.
+    /// 可安全展示的状态文本。
     pub submission_status_text: String,
     /// 纯文本描述。
     pub content_plain_text: Option<String>,

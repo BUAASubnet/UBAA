@@ -198,7 +198,7 @@ impl fmt::Debug for CliJsonError {
     }
 }
 
-/// JSON envelope for one routed command.
+/// 一项路线命令的 JSON 信封。
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RoutedJsonEnvelope<T> {
@@ -355,7 +355,7 @@ impl<T> fmt::Debug for AggregateJsonEnvelope<T> {
     }
 }
 
-/// Fixed route state emitted by aggregate logout.
+/// 聚合退出时输出的固定路线状态。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum AggregateLogoutRouteState {
@@ -369,7 +369,7 @@ struct AggregateLogoutRoute {
     state: AggregateLogoutRouteState,
 }
 
-/// Successful aggregate logout data with both route slots named explicitly.
+/// 成功聚合退出的数据，明确命名两条路线槽位。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AggregateLogoutData {

@@ -1,17 +1,34 @@
-# ADR 0003: URL, WebVPN Crypto, Cookie and Session Dependencies
+# ADR 0003：URL、WebVPN 加密、Cookie 与会话依赖
 
-Date: 2026-08-17
+日期：2026-08-17
 
-Status: accepted
+状态：已接受
 
-The connection layer uses `url` for standards-based absolute and relative URL resolution and `aes` for the AES-128 block primitive required by the frozen BUAA WebVPN AES/CFB/NoPadding host encoding. The CFB chaining is kept in the narrow WebVPN codec module and covered by round-trip and protocol-segment tests. `httpdate` parses the standard `Expires` Cookie attribute.
+连接层使用 `url` 进行符合标准的绝对/相对 URL 解析，使用 `aes` 提供冻结 BUAA WebVPN
+AES/CFB/NoPadding 主机编码所需的 AES-128 分组原语。CFB 链式处理保留在窄范围 WebVPN 编解码
+模块，并由往返与协议片段测试覆盖。`httpdate` 用于解析标准 `Expires` Cookie 属性。
 
-The project does not use a browser Cookie store because the Core must serialize, inspect and test the exact filtering policy independent of a host. The custom jar covers the contract's host-only/domain, path, Secure, Max-Age, Expires and replacement rules. It intentionally does not expose Cookie values through logging APIs.
+项目不使用浏览器 Cookie 存储，因为 Core 必须独立于宿主序列化、检查和测试精确的过滤策略。自定义
+容器覆盖合同中的仅主机/域、路径、Secure、Max-Age、Expires 和替换规则，并有意不通过日志 API 暴露
+Cookie 值。
 
-Session persistence uses standard-library file/locking APIs, the Unix `O_NOFOLLOW` flag exposed by `libc`, the corresponding standard-library Windows reparse-point flag, unique exclusively-created temporary files, and atomic same-directory replacement. Each fully buffered session JSON document is capped at 1 MiB; this is an internal safety budget, not an upstream protocol limit. Writes are flushed and synchronized before replacement, failed writes remove their temporary file, and existing session files are restricted again when opened. The `session.json` schema remains unchanged. On Unix the implementation enforces 0700 for the configuration directory and 0600 for session/lock files. Symlinks and non-regular configuration/session targets are rejected before access. Passwords and usernames are not part of the serialized type.
+会话持久化使用标准库文件/锁 API、`libc` 暴露的 Unix `O_NOFOLLOW` 标志、标准库对应的 Windows
+重解析点标志、唯一独占创建的临时文件和同目录原子替换。每份完整缓冲的会话 JSON 文档上限为
+1 MiB，这是内部安全预算而非上游协议限制。替换前会刷新并同步数据，失败写入会删除临时文件，
+打开现有会话文件时再次收紧权限。`session.json` 架构保持不变。Unix 上配置目录权限为 0700，
+会话/锁文件权限为 0600。符号链接和非普通配置/会话目标在访问前拒绝。序列化类型不包含密码和
+用户名。
 
-The advisory `.session.lock` file also stores a fixed-width hexadecimal monotonic revision. Snapshot plus revision are read while holding the lock. Every runtime save/clear compare-exchanges the loaded revision, synchronizes the incremented revision first, then replaces or removes `session.json`. Synchronizing the revision first deliberately prefers a recoverable false conflict after a crash over allowing a stale write; it also prevents an equal-snapshot ABA after delete/recreate. Unconditional `SessionStore::save` and `clear` remain convenience operations implemented as retrying CAS loops, while `ClientRuntime` uses the exact revision and returns a fixed retryable internal error on conflict.
+建议性的 `.session.lock` 文件还保存定宽十六进制单调修订。快照和修订在持锁时读取。每次运行时
+保存/清理都比较交换已加载修订，先同步递增后的修订，再替换或删除 `session.json`。先同步修订
+有意在崩溃后优先产生可恢复的假冲突，而不是允许过期写入；同时阻止删除/重建后相同快照造成的
+ABA。无条件的 `SessionStore::save` 和 `clear` 仍是通过重试 CAS 循环实现的便利操作，而
+`ClientRuntime` 使用精确修订并在冲突时返回固定的可重试内部错误。
 
-The response transport has a separate 8 MiB cap for fully buffered authentication and User Center bodies and rejects oversized known-length or streamed responses before exposing them to parsers. Larger future business payloads require a dedicated streaming port rather than increasing this authentication safety budget.
+响应传输对完整缓冲的认证和用户中心正文另设 8 MiB 上限，在交给解析器前拒绝已知长度或流式传输
+的超大响应。未来更大的业务正文应使用专用流式端口，而不是提高认证安全预算。
 
-Windows does not receive an owner-only ACL from the standard library permission APIs used here. The application therefore relies on the inherited ACL of the user-selected configuration directory, exercises replacement and locking in the Windows CI matrix, and keeps a release audit item for custom configuration directories. The lock remains advisory against non-cooperating writers. Revision CAS protects local persistence only; remote logout concurrency is not inferred from these file guarantees.
+Windows 无法通过这里使用的标准库权限 API 获得仅所有者 ACL。因此应用依赖用户选择的配置目录所
+继承的 ACL，在 Windows CI 矩阵中执行替换和加锁测试，并保留自定义配置目录的发布审计事项。
+该锁对于不合作的写入方仍是建议性的；修订 CAS 只保护本地持久化，不能从这些文件保证推断远程
+注销并发行为。
