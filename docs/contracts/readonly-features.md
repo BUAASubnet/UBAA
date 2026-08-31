@@ -65,5 +65,12 @@ Judge 诊断返回 `courseCount`、`rawAnchorCount`、`filteredUniqueCount` 和�
 Unicode 数字，不能转换为有界 JSON 整数；解析器只排除精确课程 ID `"0"`。DTO 的
 `totalProblems` 和 `submittedCount` 保持非负 `i32` 边界，诊断 `usize` 计数仅在 JSON 安全
 整数范围内接受。题目行只使用 `SUBMITTED` 或 `UNSUBMITTED`；四单元上游行的题目名称可以
-为空。实时验证器通过 jq stdin（而非进程参数）比较当前与含过期列表，在可用时校验一个详情，
-只输出数量和加盐摘要。Judge/all 验证必须提供摘要盐，应用不得持久化该盐。
+为空。Core-live 直接以安全键值摘要输出这些字段，不解析或保存原始 JSON；实时验证器不再依赖
+jq、摘要盐或进程参数中的敏感值。`auth/prepare` 必须先于 `auth/login`，并记录
+`mapping=embedded_login_state`；登录失败时所有依赖认证的操作都必须逐项输出
+`BLOCKED(reason=authentication_failed)`，不能用汇总成功掩盖失败。
+
+Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本次请求和解析成功，
+`source=static_fallback` 表示请求失败或上游返回空集合而使用冻结静态列表；两者都不得把
+原始响应投影到宿主。Cgyy 锁码仍只公开 `available`，真实验证永远不调用预约、取消或锁码
+写入口。

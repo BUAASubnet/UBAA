@@ -22,7 +22,11 @@ just verify-live feature=cgyy route=webvpn
 
 `feature=all` 会在一个客户端内依次检查认证、用户、课表/考试/成绩、教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教读取。依赖数据缺失必须输出 `NOT_APPLICABLE`，依赖请求失败必须输出 `BLOCKED`，独立操作继续执行；任何 `FAIL` 或 `BLOCKED` 都使该路线退出非零。真实写操作（选课、签到、预约、取消、评教、上传）不在 Core-live 白名单中。
 
-摘要格式为 `route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> [error=<stable-code>] [count=<n>] [reason=<code>]`。只把这些字段及日期、固定引用提交、退出码记录到 `docs/migration/status.md`，不要保存 stderr 或上游正文。
+摘要格式为 `route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> [error=<stable-code>] [count=<n>] [reason=<code>] [mapping=embedded_login_state] [source=<upstream|static_fallback>] [global_page_count=<n>] [course_count=<n>] [raw_anchor_count=<n>] [filtered_unique_count=<n>]`。只把这些字段及日期、固定引用提交、退出码记录到 `docs/migration/status.md`，不要保存 stderr 或上游正文。
+
+每条路线只创建并复用一个 `RouteClient`；登录前的 `auth/prepare` 必须与
+`auth/login` 成对出现。认证失败时，当前功能所需的全部操作都要输出
+`BLOCKED(reason=authentication_failed)`，使矩阵完整且可审计。
 
 ## auto 确定性验证
 

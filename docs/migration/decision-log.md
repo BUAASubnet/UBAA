@@ -1,4 +1,19 @@
-# Decision Log
+# 决策记录
+
+## 当前有效性说明（2026-08-31）
+
+本文件按日期保留协议证据和历史冲突。2026-08-29 的真实写探针属于周期外、一次性授权的
+历史记录，不是当前验收例外；本周期仍禁止真实签到、选课、预约、取消、上传和评教提交。
+旧版聚合验证、`route=auto` 真实示例、jq/摘要盐及曾经的 Cgyy Direct 兼容分支均已被后续
+决策取代，当前入口只有 Core-live 的显式 Direct/WebVPN 逐操作只读矩阵。
+
+本周期新增的 `auth/prepare` 证据映射到登录内部保存的准备状态，Core-live 不再重复发起
+准备请求；SPOC/ Judge 诊断逐项输出 `global_page_count`、`course_count`、`raw_anchor_count`
+和 `filtered_unique_count` 等安全计数。认证准备或登录失败会为所选矩阵补齐所有后续
+`BLOCKED` 项，依赖 ID 缺失才使用带原因的 `NOT_APPLICABLE`。Cgyy 用途若采用冻结静态
+回退，会显式输出 `source=static_fallback`，不伪装为上游成功。所有 facade 写入口在请求
+前重新校验外部会话 CAS 修订；stale writer 的 Mock 证明不会发出写请求。`core-live.sh`
+已取消 `exec`，并用统一 EXIT/信号陷阱清理自动临时目录，显式目录仍由调用方管理。
 
 ## 2026-08-31：Cgyy WebVPN 网关 Cookie 同步证据
 
@@ -8,7 +23,7 @@
 
 ## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑
 
-重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 数量本次为 `include_expired/current/details_batch=80/48/48`，同日快照曾为 `49/17/17` 或 `209/209/209`，但列表、详情和批量详情每次均通过语义门禁。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
+重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 本次瞬时数量为 `include_expired/current/details_batch=40/0/0`，同日快照曾有 `80/48/48`、`49/17/17` 或 `209/209/209`，但列表、详情和批量详情均按当前依赖 ID 语义门禁记录。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
 
 ## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
 

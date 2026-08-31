@@ -1,10 +1,10 @@
 # UBAA 2
 
-UBAA 2 是面向北京航空航天大学服务的 Rust Core 与宿主应用。本阶段提供自动直连/WebVPN 路由、双路线认证、用户中心以及六类校园只读功能。
+UBAA 2 是面向北京航空航天大学服务的 Rust Core 与宿主应用。本阶段提供自动直连/WebVPN 路由、双路线认证、用户中心以及十三类校园只读功能。
 
 ## 当前状态
 
-认证、Core 管理的路由策略、原子双会话协调器、CLI schema v2 及六类只读实现均有确定性测试覆盖。修正后的 2026-08-26 提交已通过 Direct/WebVPN 认证，以及 auto、Direct 和最新 WebVPN 六功能真实聚合验证。严格的 WebVPN 希冀验证曾记录上游列表快照短暂漂移，立即完整重跑后通过。安全证据和重跑条件记录于 `docs/migration/status.md`；fixture、Mock 或验证脚本通过不等于真实协议通过。
+认证、Core 管理的路由策略、原子双会话协调器、CLI schema v2 及十三类只读实现均有确定性测试覆盖。Direct/WebVPN 的当前逐操作真实证据记录于 `docs/migration/status.md`；fixture、Mock 或脚本门禁通过不等于真实协议通过。
 
 ## 使用准备
 
@@ -55,14 +55,13 @@ just check
 just verify-live feature=auth route=direct
 just verify-live feature=auth route=webvpn
 
-# Judge/all 路线比较摘要必须使用；不要持久化该值。
-export UBAA_VERIFY_DIGEST_SALT="$(openssl rand -hex 16)"
-just verify-live feature=all route=auto
-unset UBAA_VERIFY_DIGEST_SALT
+# 真实验证只允许显式 Direct 和 WebVPN；每条路线在单个 Core-live 批次中复用一个客户端。
+just verify-live mode=direct
+just verify-live mode=webvpn
 ```
 
-真实验证需要在已忽略的 `.env.local` 中配置 `UBAA_TEST_USERNAME` 和 `UBAA_TEST_PASSWORD`；验证 `feature=judge|all` 时还需提供 `UBAA_VERIFY_DIGEST_SALT`。CLI 从不接受命令行明文密码，验证器只输出安全的路线、耗时、数量、存在性和加盐摘要。运行完整矩阵前请先阅读两份真实验证手册。
+真实验证需要在已忽略的 `.env.local` 中配置 `UBAA_TEST_USERNAME` 和 `UBAA_TEST_PASSWORD`。CLI 从不接受命令行明文密码，Core-live 只输出路线、操作、状态、稳定错误码、耗时、数量和依赖原因等安全摘要。`auto` 仅通过 Core/Mock 确定性测试验证，不执行真实登录矩阵。
 
 ## 范围
 
-本阶段覆盖认证、会话管理、用户中心，以及课表、考试、成绩、空教室、SPOC 和希冀只读访问。人类输出和 JSON 输出都会遮盖手机号及证件号码。Flutter、MCP、服务器中转和所有写操作仍不在范围内。
+本阶段覆盖认证、会话管理、用户中心，以及课表、考试、成绩、空教室、SPOC、希冀、签到状态、阳光打卡、图书馆、博雅课程、场馆和评教读取。人类输出和 JSON 输出都会遮盖手机号及证件号码。Flutter、MCP、服务器中转和所有真实写操作仍不在范围内。

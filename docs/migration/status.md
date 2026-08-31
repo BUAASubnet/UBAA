@@ -1,6 +1,85 @@
 # 迁移状态
 
-Updated: 2026-08-31
+更新日期：2026-08-31
+
+## 2026-08-31 本周期复核结果（当前）
+
+基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`
+均已重新执行并通过。当前实现新增了 `core-live` 的显式 `auth/prepare` 证据（映射到登录
+内部已保存的准备状态，不重复发起请求）、诊断计数字段、认证失败后的完整依赖阻断矩阵、
+Cgyy 用途来源标记，以及启动器成功/失败/构建失败/信号清理合同。聚合 facade 在所有写入口
+网络副作用前校验外部会话 CAS 修订；stale writer 的 Mock 测试确认请求数为 0。CLI 生产源
+只从 facade 取得路线诊断，依赖方向扫描已覆盖全部 `src/` 文件。
+
+本次新入口真实只读结果如下（每条路线一个 `RouteClient`，未执行真实写操作）：
+
+- Direct：`auth/prepare`、登录、状态、用户、课表四项、考试、成绩、教室、SPOC 列表与
+  `global_page_count=1`、Judge 列表/当前/详情/批量及 `course_count=5`、`raw_anchor_count=88`、
+  `filtered_unique_count=83`、签到、阳光打卡、图书馆五项、博雅五项、Cgyy 六项、评教两项均
+  为 `PASS`；SPOC 详情和博雅课程详情因无 ID 为 `NOT_APPLICABLE`。Cgyy 用途为
+  `PASS source=static_fallback`，表示本地冻结回退，不代表上游用途接口成功。
+- WebVPN：上述所有必需操作均为 `PASS`；本次瞬时 Judge 计数为 `course_count=5`、`raw_anchor_count=40`、
+  `filtered_unique_count=40`，当前列表为空因此当前/详情/批量分别为 `PASS count=0`、
+  `NOT_APPLICABLE`、`NOT_APPLICABLE`；SPOC/博雅详情因无 ID 为 `NOT_APPLICABLE`。Cgyy 同样为
+  `source=static_fallback`，没有切换到 Direct。
+
+逐操作安全摘要（本次运行）如下，计数为瞬时上游快照，不作为跨日期稳定断言：
+
+```text
+Direct:
+auth/prepare PASS(mapping=embedded_login_state); auth/login PASS; auth/status PASS; user/info PASS
+schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
+exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
+spoc/assignments PASS(0,global_page_count=1); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(83,course_count=5,raw_anchor_count=88,filtered_unique_count=83); judge/current PASS(65); judge/detail PASS; judge/details_batch PASS(65)
+signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
+cgyy/sites PASS(7); cgyy/purposes PASS(10,source=static_fallback); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
+evaluation/all PASS(0); evaluation/pending PASS(0)
+
+WebVPN:
+auth/prepare PASS(mapping=embedded_login_state); auth/login PASS; auth/status PASS; user/info PASS
+schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
+exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
+spoc/assignments PASS(0,global_page_count=1); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(40,course_count=5,raw_anchor_count=40,filtered_unique_count=40); judge/current PASS(0); judge/detail NOT_APPLICABLE(no_assignment_id); judge/details_batch NOT_APPLICABLE(no_assignment_id)
+signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
+cgyy/sites PASS(7); cgyy/purposes PASS(10,source=static_fallback); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
+evaluation/all PASS(0); evaluation/pending PASS(0)
+```
+
+认证准备失败或登录失败时，Core-live 会继续输出所选功能的每一个认证、用户和业务操作，
+并按依赖标记 `BLOCKED reason=authentication_failed`；依赖 ID 缺失只标记带原因的
+`NOT_APPLICABLE`。真实矩阵的逐行安全摘要以本节为当前依据，下面较早日期的失败和上游
+波动记录仅作历史证据，不得覆盖当前结果。
+
+## 2026-08-31 独立代码审查复核
+
+| 严重度 | 位置 | 发现 | 修复与验证 | 残留风险 |
+|---|---|---|---|---|
+| 高 | `scripts/core-live.sh` | `exec` 绕过 `EXIT` 陷阱导致自动会话目录泄漏，构建失败和信号路径也没有合同测试。 | 移除 `exec`，保留子进程退出码，增加 EXIT 与信号陷阱；`scripts/test-verify-live.sh` 运行时覆盖成功、失败、构建失败、SIGTERM、参数转发和显式目录保留。 | 无；显式目录仍由调用方负责清理。 |
+| 高 | `crates/ubaa-core/src/facade/mod.rs`、`runtime.rs`、`session.rs` | 写请求前只检查进程内状态，外部会话修订变化可能在网络副作用后才被发现。 | 新增 `SessionStore::is_revision_current` 和协调器外部修订检查；聚合 facade 所有操作入口统一预检；stale writer Mock 断言请求计数为 0。 | Windows 权限策略仍依赖平台 ACL，按既有会话审计记录。 |
+| 中 | `apps/ubaa-cli/src/lib.rs`、`routing.rs` | CLI 生产代码直接导入 `connection` 路由诊断，宿主边界不完整。 | 将安全诊断类型经 `facade` 重导出，新增递归源码依赖扫描覆盖全部 CLI `src/`；CLI 全量测试通过。 | Core 内部模块仍为测试兼容保持公开，后续可在测试支持库迁移后进一步收紧。 |
+| 中 | `apps/ubaa-cli/src/bin/core-live.rs` | 认证准备、诊断字段和认证失败后的矩阵项不完整，Cgyy 静态回退来源不可区分。 | 显式调用一次 `prepare_login` 并映射到登录状态，补齐阻断矩阵和 SPOC/Judge 计数，新增 Cgyy 来源 DTO；两条真实路线逐项通过。 | 真实上游列表数量会波动，只记录安全计数并保持逐项语义门禁。 |
+
+## 当前大文件拆分例外
+
+本周期先保留以下仍超过 800 行的文件，以避免在协议收口阶段引入行为变化；每个文件的
+职责和测试边界已由现有模块/测试固定，后续触碰时按目标树渐进拆分，不创建空转发模块：
+
+| 文件 | 行数（2026-08-31） | 暂缓原因与后续安排 |
+|---|---:|---|
+| `apps/ubaa-cli/src/lib.rs` | 2598 | 仍是 CLI backend 合同和命令委托的唯一组合入口；先保持公共 trait/退出语义稳定，后续按 `args/backend/execution/input/render` 迁移并逐组验证。 |
+| `crates/ubaa-core/src/facade/mod.rs` | 1970 | facade 委托方法共享路线生命周期和收尾逻辑；本周期新增 stale writer 预检，继续拆分前先冻结 facade 快照并为每个业务建立单独合同测试。 |
+| `crates/ubaa-core/src/features/cgyy.rs` | 1600 | Cgyy 协议、解析和写保护刚完成路线统一；加密/签名已独立文件，下一次协议变更前拆读/写/解析。 |
+| `crates/ubaa-core/src/features/judge.rs` | 1423 | Judge 列表、详情、缓存和并发边界需共享同一生命周期；保持四 worker/缓存测试完整，后续拆为读、解析、诊断。 |
+| `crates/ubaa-core/src/features/spoc.rs` | 1417 | SPOC 登录、分页、解析和诊断共享业务令牌状态；保持一次登录和全局页计数，后续按认证/读/解析拆分。 |
+| `crates/ubaa-core/src/session.rs` | 1050 | 会话 CAS、锁、迁移和权限代码共同维护原子不变量；存储、Cookie、端口已先行拆出，后续继续按 coordinator/validation 拆分。 |
+| `crates/ubaa-core/src/features/bykc.rs` | 964 | 博雅读写协议和加密调用共享认证上下文；下一次写协议变更前按读/写/解析拆分。 |
+| `crates/ubaa-core/src/features/state.rs` | 843 | 路线状态缓存的生成号和失效逻辑需要集中维护；已有 `state_cache.rs`，后续按业务状态拆分并保留并发测试。 |
 
 ## 2026-08-31 本周期基线检查
 

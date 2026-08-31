@@ -18,11 +18,11 @@ just core-live route=direct feature=cgyy                      # 已有凭据 std
 排查 Cgyy 时只打开窄范围的 stderr 诊断日志；JSON/摘要仍写 stdout，便于单独解析：
 
 ```bash
-RUST_LOG='ubaa::cgyy=debug' UBAA_SHOW_LOGS=yes \
+RUST_LOG='ubaa::cgyy=debug' \
   just verify-live feature=cgyy route=direct
 ```
 
-`UBAA_SHOW_LOGS=yes` 仅控制验证器是否透传子进程 stderr，默认值为关闭。`RUST_LOG=ubaa::cgyy=debug` 将 Cgyy 的 `info`/`debug`/`warn` 事件发送到 stderr；事件只含操作名、方法和路径、脱敏参数键/长度、HTTP 状态、最终主机和路径、响应长度/哈希、耗时及稳定错误码。认证材料、Cookie、令牌、签名、验证码、表单值、查询字符串和原始响应正文禁止进入日志。不要使用全局 `trace` 过滤器，也不要将用户名、密码或 `UBAA_VERIFY_DIGEST_SALT` 放在命令参数中。
+`RUST_LOG=ubaa::cgyy=debug` 将 Cgyy 的 `info`/`debug`/`warn` 事件发送到 stderr；事件只含操作名、方法和路径、脱敏参数键/长度、HTTP 状态、最终主机和路径、响应长度/哈希、耗时及稳定错误码。认证材料、Cookie、令牌、签名、验证码、表单值、查询字符串和原始响应正文禁止进入日志。不要使用全局 `trace` 过滤器，也不要将用户名或密码放在命令参数中。
 
 实时排查顺序建议为 `feature=cgyy route=direct` 和 `feature=cgyy route=webvpn`；`auto` 只运行确定性 Mock 路由测试。每次只读运行都应保留路线、操作、状态、错误码和安全计数，失败时记录到 `docs/migration/status.md`，而不是复制 stderr 或上游响应。需要复现日期时可临时设置 `UBAA_VERIFY_DATE=YYYY-MM-DD`；该值不包含凭据，测试后应取消设置。
 

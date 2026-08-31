@@ -196,11 +196,11 @@ contradictory Judge ID/problem/count/score/status semantics, resolved-route cont
 incomplete or extra business DTO fields, duplicate Judge keys, and output containing credential,
 session or raw-response aliases, obvious complete HTML documents or CAS forms. Arbitrary
 angle-bracket text is not used to infer provenance; exact DTO closure and deterministic parser tests
-prove that raw HTML fields are absent. The production verifier requires one resolved
-route for every request in a feature run, supplies full Judge comparison JSON to jq only through
-stdin, and exposes only safe counts, timing, stable errors and a salted Judge digest. The shell
-contract also fixes the mandatory salt and digest-stability semantics. These checks do not establish
-any live Direct, WebVPN or auto result until the corrected real matrix runs.
+prove that raw HTML fields are absent. The paragraph above describes a superseded verifier design.
+The current `core-live` emits only route, operation, status, stable error, timing, count and
+dependency/source fields, performs no jq aggregation, and has no `UBAA_VERIFY_DIGEST_SALT`
+prerequisite. Current Direct/WebVPN evidence is recorded per operation in
+`docs/migration/status.md`; `auto` remains deterministic-only.
 
 ## Unchanged schedule/exam evidence
 
