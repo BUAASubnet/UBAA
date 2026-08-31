@@ -55,7 +55,7 @@ evaluation/all PASS(0); evaluation/pending PASS(0)
 ```
 
 WebVPN 的认证、用户、课表/考试/成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook 和
-Bykc 均通过；本次 Judge `include_expired/current/details_batch` 分别为 209/209/209；SPOC 详情与 Bykc 课程详情因上游列表为空分别为
+Bykc 均通过；本次 Judge `include_expired/current/details_batch` 分别为 49/17/17（同日早先重跑为 209/209/209，保留为上游列表波动观察）；SPOC 详情与 Bykc 课程详情因上游列表为空分别为
 `NOT_APPLICABLE(no_assignment_id)`、`NOT_APPLICABLE(no_course_id)`。WebVPN 退出码 5，
 失败项逐项为：
 
