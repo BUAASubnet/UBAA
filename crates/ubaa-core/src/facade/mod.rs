@@ -1,7 +1,7 @@
 //! CLI 与未来绑定层使用的稳定 facade。
 #![allow(clippy::missing_errors_doc, clippy::similar_names)]
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::auth::AuthWorkflow;
@@ -22,7 +22,7 @@ use crate::domain::{
     UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
     YgdkOverview, YgdkRecordsPage,
 };
-use crate::error::{ErrorCode, Result};
+use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
@@ -50,6 +50,7 @@ pub struct RouteClient {
 
 /// 面向宿主的聚合客户端，负责路由和相互独立的路线流程。
 pub struct UbaaClient {
+    config_dir: Option<PathBuf>,
     config: RouteConfig,
     probe: Box<dyn GatewayProbe>,
     direct_runtime: ClientRuntime,
@@ -67,13 +68,15 @@ impl UbaaClient {
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self> {
         let config_dir = config_dir.as_ref();
         let config = RouteConfig::load(config_dir)?;
-        Self::with_routing(
+        let mut client = Self::with_routing(
             ReqwestTransport::new()?,
             ReqwestTransport::new()?,
             FileSessionStore::new(config_dir)?,
             config,
             SystemGatewayProbe,
-        )
+        )?;
+        client.config_dir = Some(config_dir.to_path_buf());
+        Ok(client)
     }
 
     /// 使用可注入传输和默认路由构造聚合客户端。
@@ -112,6 +115,7 @@ impl UbaaClient {
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
+            config_dir: None,
             config,
             probe: Box::new(CachingGatewayProbe::with_default_ttl(probe)),
             direct_runtime: ClientRuntime::new(
@@ -140,6 +144,23 @@ impl UbaaClient {
     #[must_use]
     pub const fn default_route_policy(&self) -> RoutePolicy {
         self.config.default
+    }
+
+    /// 原子保存新的全局路线策略并清除功能覆盖项。
+    pub fn set_default_route_policy(&mut self, policy: RoutePolicy) -> Result<()> {
+        let Some(config_dir) = self.config_dir.as_ref() else {
+            return Err(UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "route configuration directory is unavailable",
+            ));
+        };
+        let mut replacement = self.config.clone();
+        replacement.replace_default_policy(policy);
+        replacement.save(config_dir)?;
+        self.config = replacement;
+        Ok(())
     }
 
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。

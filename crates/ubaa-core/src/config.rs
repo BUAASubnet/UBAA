@@ -156,25 +156,21 @@ impl RouteConfig {
             self.schema_version,
             policy_name(self.default)
         );
-        for feature in [
-            ReadonlyFeature::Bykc,
-            ReadonlyFeature::Cgyy,
-            ReadonlyFeature::LibBook,
-            ReadonlyFeature::Signin,
-            ReadonlyFeature::Schedule,
-            ReadonlyFeature::Exam,
-            ReadonlyFeature::Grades,
-            ReadonlyFeature::Classroom,
-            ReadonlyFeature::Spoc,
-            ReadonlyFeature::Judge,
-            ReadonlyFeature::Evaluation,
-        ] {
-            output.push_str(feature.as_str());
-            output.push_str(" = \"");
-            output.push_str(policy_name(self.feature(feature)));
-            output.push_str("\"\n");
+        for (feature, policy) in self.explicit_feature_policies() {
+            if let Some(policy) = policy {
+                output.push_str(feature.as_str());
+                output.push_str(" = \"");
+                output.push_str(policy_name(policy));
+                output.push_str("\"\n");
+            }
         }
         output
+    }
+
+    /// 替换全局策略并清除 App 不开放的功能覆盖项。
+    pub(crate) fn replace_default_policy(&mut self, policy: RoutePolicy) {
+        self.default = policy;
+        self.features = FeaturePolicies::default();
     }
 
     /// 原子写入不含秘密信息的配置文件；在支持的平台上仅授予所有者权限。
@@ -231,6 +227,23 @@ impl RouteConfig {
             ReadonlyFeature::Evaluation => self.features.evaluation,
         }
         .unwrap_or(self.default)
+    }
+
+    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 12] {
+        [
+            (ReadonlyFeature::Bykc, self.features.bykc),
+            (ReadonlyFeature::Cgyy, self.features.cgyy),
+            (ReadonlyFeature::LibBook, self.features.libbook),
+            (ReadonlyFeature::Ygdk, self.features.ygdk),
+            (ReadonlyFeature::Signin, self.features.signin),
+            (ReadonlyFeature::Schedule, self.features.schedule),
+            (ReadonlyFeature::Exam, self.features.exam),
+            (ReadonlyFeature::Grades, self.features.grades),
+            (ReadonlyFeature::Classroom, self.features.classroom),
+            (ReadonlyFeature::Spoc, self.features.spoc),
+            (ReadonlyFeature::Judge, self.features.judge),
+            (ReadonlyFeature::Evaluation, self.features.evaluation),
+        ]
     }
 }
 
