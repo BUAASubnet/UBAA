@@ -1,0 +1,27 @@
+name: ubaa_flutter
+description: "UBAA 跨平台客户端"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ubaa_app:
+    path: ../../packages/ubaa_app
+  ubaa_domain:
+    path: ../../packages/ubaa_domain
+  ubaa_platform:
+    path: ../../packages/ubaa_platform
+  ubaa_ui:
+    path: ../../packages/ubaa_ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

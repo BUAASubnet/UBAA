@@ -1,0 +1,7 @@
+# 将本文件复制为 ohos/local.properties，并把所有占位路径替换为绝对路径。
+# ohos/local.properties 属于本机配置，严禁提交。
+hwsdk.dir=/absolute/path/to/deveco-studio-26/Contents/sdk
+nodejs.dir=/absolute/path/to/deveco-studio-26/Contents/tools/node
+flutter.sdk=/absolute/path/to/flutter-ohos-3.41.10
+flutter.versionName=0.1.0
+flutter.versionCode=1

@@ -1,0 +1,24 @@
+name: ubaa_ohos
+description: UBAA 的 HarmonyOS Flutter OH 薄宿主。
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ubaa_app:
+    path: ../../packages/ubaa_app
+  ubaa_platform:
+    path: ../../packages/ubaa_platform
+  ubaa_ui:
+    path: ../../packages/ubaa_ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,20 @@
+name: ubaa_app
+description: UBAA Flutter 客户端的应用状态与用例协调层。
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  meta: ^1.16.0
+  ubaa_domain:
+    path: ../ubaa_domain
+  ubaa_platform:
+    path: ../ubaa_platform
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

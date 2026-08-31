@@ -9,6 +9,12 @@
 # Rust output
 /target/
 
+# Flutter/OpenHarmony local build metadata
+/.hvigor/
+/packages/*/.dart_tool/
+/packages/*/build/
+/packages/*/coverage/
+
 # Runtime state and live verification artifacts
 session.json
 *.session.json
@@ -23,4 +29,3 @@ session.json
 .idea/
 .vscode/
 *.swp
-

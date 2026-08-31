@@ -1,0 +1,11 @@
+/.dart_tool/
+/.flutter-plugins-dependencies
+/.pub-cache/
+/build/
+/coverage/
+/ohos/.hvigor/
+/ohos/build/
+/ohos/local.properties
+/ohos/oh_modules/
+/ohos/node_modules/
+local.properties

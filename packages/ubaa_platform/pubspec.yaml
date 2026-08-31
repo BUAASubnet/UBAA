@@ -1,0 +1,15 @@
+name: ubaa_platform
+description: UBAA Flutter 客户端的平台能力抽象与安全错误投影。
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  meta: ^1.16.0
+  ubaa_domain:
+    path: ../ubaa_domain
+
+dev_dependencies:
+  test: ^1.26.3
