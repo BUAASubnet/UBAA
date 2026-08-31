@@ -629,7 +629,10 @@ pub(crate) async fn get_purpose_types_with_source(
     // 都回退到静态定义，而没有主会话仍由登录前置返回认证错误。
     super::require_session(runtime)?;
     match get(runtime, "/api/codes", BTreeMap::new()).await {
-        Ok(body) => parse_purpose_types_with_source(&body),
+        Ok(body) => match parse_purpose_types_with_source(&body) {
+            Ok(result) => Ok(result),
+            Err(_) => Ok((fallback_purpose_types(), CgyyPurposeSource::StaticFallback)),
+        },
         Err(_) => Ok((fallback_purpose_types(), CgyyPurposeSource::StaticFallback)),
     }
 }
