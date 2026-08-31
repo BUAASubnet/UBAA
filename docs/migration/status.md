@@ -112,6 +112,24 @@ Judge 数量随上游快照变化（本次 WebVPN 为 `80/48/48`，早先同日�
 数量波动不改变路线成功结论。SPOC 与 Bykc 详情因对应列表为空按合同标记
 `NOT_APPLICABLE`。auto 没有真实登录矩阵，只保留确定性路线解析与 WebVPN-only Mock 证据。
 
+## 2026-08-31 最终确定性门禁与交接复核
+
+以下命令在 HAR 修复、测试和文档更新后再次执行并通过：
+
+```text
+just refs                         PASS（冻结引用版本匹配）
+just check-sensitive              PASS（176 个仓库文件）
+just check                        PASS（fmt、Clippy、全工作区测试、构建、文档、Shell、diff）
+cargo test --locked -p ubaa-cli --test binary_e2e   PASS（12）
+cargo test --locked -p ubaa-cli --test cli_contract PASS（23）
+bash ./scripts/test-verify-live.sh                  PASS
+```
+
+提交前 `git diff --check` 通过，暂存范围仅为 Core Cgyy 协议实现、脱敏 Mock 和迁移记录；
+HAR、`ubaa_old`、`examples/buaa-api`、`.env.local` 及任何运行时会话材料均未暂存。真实
+Direct/WebVPN 只读矩阵均在同一批次单路线客户端内串行完成；所有写操作仍仅有 Mock、向量
+和 CLI 阻止证据。
+
 ## 2026-08-29 阶段提交
 
 - Cgyy Rust CLI 已完成一次用户明确授权的 Direct 读写探针：登录、站点、用途、日期、订单读取成功；提交时省略验证码字段，由 Core 自动获取、求解和校验；提交后按冻结 Python 脚本等待 5 秒再取消，取消命令成功，订单列表最终确认 `orderStatus=2`。本次未输出或持久化订单号、手机号、令牌、Cookie、验证码和原始响应；`verify-live` 仍不执行写操作。
@@ -275,7 +293,7 @@ Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/�
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
 | 11 live matrix | Direct 与 WebVPN Core-live 完整只读矩阵均逐项通过；auto 仅确定性路由验证 | Judge 列表数量按上游快照波动逐项记录；详情依赖空列表按 `NOT_APPLICABLE`，不以聚合成功掩盖单项状态。 |
-| 12 交接/门禁 | 本周期硬门槛已完成，待最终命令复跑留痕 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、Shell 合同、Direct/WebVPN Core-live 和 auto 确定性测试均须在最终交接再次记录；真实写操作永久排除。 |
+| 12 交接/门禁 | 本周期硬门槛已完成，最终命令与真实矩阵均已留痕 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、Shell 合同、Direct/WebVPN Core-live 和 auto 确定性测试均已记录；真实写操作永久排除。 |
 
 ## 2026-08-26 Corrected Live Matrix
 
