@@ -16,7 +16,7 @@
 | SPOC 作业 | `spoc` | 已完成，只读 |
 | 希冀作业 | `judge` | 已完成，只读 |
 | 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；Direct/WebVPN 概览与记录均有实时成功证据 |
-| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；Direct/WebVPN 已有实时成功证据 |
+| 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；Direct/WebVPN 已有实时证据，分区详情须在每日 08:30–23:00（`Asia/Shanghai`）开放窗口内验收 |
 | 博雅课程只读查询 | `bykc profile`, `bykc courses`, `bykc course`, `bykc chosen`, `bykc statistics` | Core、业务会话和 CLI 已接入；Direct/WebVPN 已有课程业务成功证据，其他子命令由确定性测试覆盖 |
 | 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail`, `cgyy lock-code` | Core、业务会话和 CLI 已接入；Direct/WebVPN 由 Core-live 逐操作验证，站点/用途及日期、订单、详情、锁码的实时结果分别记录，不以单项成功推断其它操作 |
 

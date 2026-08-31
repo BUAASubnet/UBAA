@@ -22,6 +22,10 @@ just verify-live feature=cgyy route=webvpn
 
 `feature=all` 会在一个客户端内依次检查认证、用户、课表/考试/成绩、教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教读取。依赖数据缺失必须输出 `NOT_APPLICABLE`，依赖请求失败必须输出 `BLOCKED`，独立操作继续执行；任何 `FAIL` 或 `BLOCKED` 都使该路线退出非零。真实写操作（选课、签到、预约、取消、评教、上传）不在 Core-live 白名单中。
 
+图书馆分区详情依赖上游营业窗口：每日 08:30–23:00（`Asia/Shanghai`）。应在该窗口内执行
+`libbook/area_detail` 的实时验收；窗口外若出现 HTTP 200、业务 `code=500` 且缺少 `data`，
+必须保留原始安全摘要，但只能记录为“非营业时间待复测”，不能据此判定协议变化或放宽解析器。
+
 摘要格式为 `route=<direct|webvpn> feature=<name> operation=<name> status=<PASS|FAIL|BLOCKED|NOT_APPLICABLE> [error=<stable-code>] [count=<n>] [reason=<code>] [mapping=embedded_login_state] [source=<upstream|static_fallback>] [global_page_count=<n>] [course_count=<n>] [raw_anchor_count=<n>] [filtered_unique_count=<n>]`。只把这些字段及日期、固定引用提交、退出码记录到 `docs/migration/status.md`，不要保存 stderr 或上游正文。
 
 每条路线只创建并复用一个 `RouteClient`；登录前的 `auth/prepare` 必须与
@@ -54,3 +58,6 @@ count=<safe-count-or-none> reason=<dependency-code-or-none> exit_code=<n>
 ```
 
 `upstream_changed`、`upstream_unavailable`、交互式认证页面、账号不适用和网络阻塞都必须逐操作记录，并说明可重复的日期/路线重跑条件。不要以认证成功、站点数量或 Mock 通过推断其它操作成功，也不要为真实账号调用任何写入口。
+
+图书馆非营业时间样本还必须记录开放时间和时区，并在 08:30–23:00 窗口内用同一条
+Direct/WebVPN 命令重跑；重跑前不得修改 `Space/map` 的 URL、参数或错误映射。

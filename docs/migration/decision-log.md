@@ -32,15 +32,16 @@
 
 重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 本次瞬时数量为 `include_expired/current/details_batch=49/17/17`，此前同日快照曾有 `80/48/48` 或更早的 `40/0/0`，但列表、详情和批量详情均按当前依赖 ID 语义门禁记录。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
 
-## 2026-08-31：最新 Core-live 实时复核保留图书馆上游失败
+## 2026-08-31：最新 Core-live 实时复核处于图书馆非营业时间
 
 随后再次串行执行 `just verify-live mode=direct` 和 `just verify-live mode=webvpn`。两条路线的
 认证、用户、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、Bykc、Cgyy 和 Evaluation
-逐项结果与前述快照一致，Cgyy 六项均通过且 WebVPN 没有回退 Direct。唯一失败是
+逐项结果与前述快照一致，Cgyy 六项均通过且 WebVPN 没有回退 Direct。唯一异常是
 `libbook/area_detail`：HTTP 状态为 200，但业务信封为 `code=500` 且缺少 `data`，Core 按冻结
-合同返回 `upstream_changed`，两条路线均以退出码 5 结束。安全调试摘要只记录操作、路线、状态、
-脱敏路径、正文长度和 JSON 结构，不记录响应正文或消息值。该结果说明图书馆分区详情是当前上游
-不可用/结构不符，不能通过放宽解析或伪造空详情掩盖；后续应在上游恢复或提供新协议证据后重跑。
+合同返回 `upstream_changed`，两条路线均以退出码 5 结束。该轮运行时间处于图书馆开放时间之外；
+已知开放时间为每日 08:30–23:00（`Asia/Shanghai`），因此该样本不能作为协议不兼容或实现错误
+的结论。安全调试摘要只记录操作、路线、状态、脱敏路径、正文长度和 JSON 结构，不记录响应正文
+或消息值；必须在开放窗口内重新运行后再判定。
 
 ## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
 
