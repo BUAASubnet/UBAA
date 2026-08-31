@@ -8,10 +8,10 @@ cargo metadata --locked --no-deps --format-version 1        # 不拉取目标专
 just check                                                  # 锁定元数据、格式、Clippy、测试、构建、文档和差异
 just check-sensitive                                        # 扫描受跟踪路径和明显的秘密格式
 cargo test --locked -p ubaa-cli --all-targets               # CLI 单元、合同和二进制测试
-just verify-live mode=direct                                 # Direct 真实只读矩阵
-just verify-live mode=webvpn                                 # WebVPN 真实只读矩阵
-just verify-live feature=auth route=direct                   # 单项认证只读证据
-just verify-live feature=all route=webvpn                    # 单个 Core client 的全量只读证据
+just verify-live mode=direct                                 # Core-live 的 Direct 真实只读矩阵
+just verify-live mode=webvpn                                 # Core-live 的 WebVPN 真实只读矩阵
+just verify-live feature=auth route=direct                   # Core-live 单项认证只读证据
+just verify-live feature=all route=webvpn                    # 一个 Core-live client 的全量只读证据
 just core-live route=direct feature=cgyy                      # 已有凭据 stdin 的 Core-live 启动器
 ```
 

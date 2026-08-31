@@ -30,8 +30,8 @@ just verify-live feature=auth route=webvpn
 
 | 路线 | 状态 | 证据 |
 |---|---|---|
-| Direct | Passed on corrected 2026-08-26 HEAD | Fresh `auth_status` verification exited 0 and parsed the user on Direct |
-| WebVPN | Passed on corrected 2026-08-26 HEAD | Fresh `auth_status` verification exited 0 and parsed the user on WebVPN |
+| Direct | 2026-08-26 修正版提交已通过 | 新鲜的 `auth_status` 验证退出码为 0，并在 Direct 路线解析出用户资料 |
+| WebVPN | 2026-08-26 修正版提交已通过 | 新鲜的 `auth_status` 验证退出码为 0，并在 WebVPN 路线解析出用户资料 |
 
 没有人工回退。验证器在读取 `.env.local` 前永久关闭继承的 Shell xtrace；绝不打印或记录密码、
 摘要盐、Judge 正文、上游验证材料或完整资料。`upstream_changed` 登录结果是该路线的硬证据

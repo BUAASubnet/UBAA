@@ -1,6 +1,6 @@
 # UBAA Core + CLI 收口、验证与交接执行目标
 
-状态：已完成
+状态：执行中（代码修复与确定性验证已完成，待最终门槛和实时证据更新）
 周期：2026-08-31 起
 项目根目录：`/Users/moorefoss/Code/UBAA`
 
@@ -80,6 +80,10 @@
 - `auto`：使用现有统一探测和路由解析逻辑选择 Direct 或 WebVPN；本周期只用确定性测试覆盖，不执行独立真实 auto 矩阵。
 - 显式路线失败时不得在 Feature 内部偷偷切换另一条路线；如需回退，只能由统一 `auto` 策略决定并在结果中记录。
 - 两条路线的主 Cookie、业务令牌、认证工作流、失效清理和重试状态必须隔离。
+
+Cgyy 用途类型是唯一保留的冻结回退例外：缺少主会话或明确的业务认证失效仍必须返回认证错误；
+在主会话有效时，已证明的请求失败、空集合或解析失败可以返回冻结静态用途列表，并在结果中标记
+`source=static_fallback`。这不是路线切换，也不能扩展到其它 Cgyy 操作或其它功能。
 
 ## 4. Cgyy WebVPN 改造合同
 
@@ -285,7 +289,7 @@ features/evaluation/
 | `config.rs` | `config/mod.rs`、`types.rs`、`validation.rs`、`store.rs` | 先分离纯配置类型，再分离安全文件写入；低风险基础设施 |
 | `ports/mod.rs` | `ports/mod.rs` 加 `http`/`storage`/`clock`/`logging` 抽象；`ReqwestTransport` → `adapters/http/reqwest.rs` | 先保留 `ports::ReqwestTransport` 兼容导出，确认没有宿主依赖后再收窄 |
 | `connection.rs`、`connection_codec.rs` | `connection/` 下的 `direct`、`webvpn`、`redirect`、`probe`、`policy`、`codec` | 路线解析和 URL 转换先保持行为不变；Cgyy 协议改动不得混入机械移动 |
-| `session.rs` 与现有 `session/*` | `session/mod.rs`、`coordinator.rs`、`cookies.rs`、`storage.rs`、`types.rs`、`ports.rs` | 先抽协调器和安全校验，再移动文件存储；保留并发/stale writer 测试 |
+| `session/mod.rs` 与现有 `session/*` | `session/mod.rs`、`coordinator.rs`、`cookies.rs`、`storage.rs`、`types.rs`、`ports.rs` | 已完成同名模块迁移；后续先抽协调器和安全校验，再移动文件存储；保留并发/stale reader/writer 测试 |
 | `auth/mod.rs` | `auth/mod.rs` 加 `cas`、`redirect`、`activation`、`status` | 每次只移动一个认证阶段，保留 CAS/SSO 顺序测试；用户资料仍由 `features/user` 负责 |
 | `runtime.rs` | `runtime/mod.rs`、`client.rs`、`request.rs`、`state.rs` | 先抽出中性 `RouteFeatureState`/状态接口，再拆请求流程；保持 `pub(crate)` |
 | `upstream/mod.rs`、`upstream/tests.rs` | `upstream/` 私有子模块与对应测试 | 常量、编码器、解析器分离；不提升可见性 |
@@ -356,7 +360,7 @@ crates/ubaa-core/tests/
 ├── auth.rs
 ├── connection.rs
 ├── route_policy.rs
-├── session.rs  cookies.rs
+├── session/mod.rs  cookies.rs
 ├── facade/                         # 可选目录；按业务拆分现有 facade.rs
 │   ├── auth.rs  schedule.rs  ...
 │   └── cgyy.rs
@@ -448,7 +452,7 @@ domain -> std/serde 等无网络依赖
 
 - Rust 使用锁定工具链、rustfmt 和 Clippy；Shell 保持 `bash -euo pipefail` 约束并通过语法检查。
 - 新增生产文件原则上不超过 500 行；超过 800 行时，下一次触碰必须先拆分职责。单个函数原则上不超过 80 行，超过 120 行必须记录原因。
-- 第一批重点检查大文件：`apps/ubaa-cli/src/lib.rs`、`crates/ubaa-core/src/facade/mod.rs`、`session.rs`、`features/cgyy.rs`、`features/spoc.rs`、`features/judge.rs`、`features/state.rs`、`features/bykc.rs` 及大型测试文件；`domain/mod.rs` 只做结构性瘦身，不以行数为理由拆分领域文件。
+- 第一批重点检查大文件：`apps/ubaa-cli/src/lib.rs`、`crates/ubaa-core/src/facade/mod.rs`、`session/mod.rs`、`features/cgyy.rs`、`features/spoc.rs`、`features/judge.rs`、`features/state.rs`、`features/bykc.rs` 及大型测试文件；`domain/mod.rs` 只做结构性瘦身，不以行数为理由拆分领域文件。
 - 纯格式化、行为保持的结构重构和协议行为修改分别提交；不得用全仓库无关格式化掩盖功能差异。
 - 保持现有 facade、CLI 命令、JSON Schema 和错误码的向后兼容。新增能力优先使用增量字段、命令或版本；破坏性变化必须更新合同、测试和决策记录。
 

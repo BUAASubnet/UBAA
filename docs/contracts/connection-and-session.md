@@ -7,17 +7,17 @@
 
 | 行为 | 冻结证据 | Rust 覆盖 |
 |---|---|---|
-| Direct URLs remain direct | `LocalWebVpnSupport.kt::localUpstreamUrl` | `tests/connection.rs` |
-| WebVPN gateway is `d.buaa.edu.cn` | `LocalWebVpnSupport.kt`, `VpnCipher.kt`, `examples/buaa-api/src/api/sso/auth.rs` | `tests/connection.rs` |
-| Protocol segment is scheme for no/default port, otherwise `scheme-port` | `LocalWebVpnSupport.kt::toWebVpnUrl` and `VpnCipher.kt::toVpnUrl` | HTTP, HTTPS, default and custom-port tests |
-| Host encoding uses AES/CFB/NoPadding with protocol constant `wrdvpnisthebest!` as key and IV | `LocalWebVpnSupport.kt`, platform AES implementations, `VpnCipher.kt` | URL round-trip tests |
-| Path, query and fragment are retained | both frozen WebVPN implementations and tests | path/query/fragment round-trip tests |
-| Already wrapped URLs are unchanged | both frozen WebVPN implementations | idempotence test |
-| Absolute, protocol-relative, root-relative and path-relative redirects resolve from the current URL | `LocalConnectionAuth.kt::resolveRedirectUrl` | redirect table tests |
-| Authentication redirects are restricted to SSO, User Center and gateway hosts | `goal.md` security contract plus observed auth URLs | rejection tests for unverified hosts |
-| Authentication redirects accept only HTTP or HTTPS after host validation | `LocalConnectionAuth.kt::resolveRedirectUrl`, WebVPN protocol-segment tests | non-HTTP allowed-host rejection tests |
-| Cookie filters include host/domain, path, Secure, expiration and replacement | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`, `LocalCookieStoreTest.kt`, `examples/buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
-| Explicit invalidation clears a session; timeout/5xx preserve it | `validateLocalConnectionSession` and `getAuthStatus` | `tests/session.rs` policy test |
+| Direct URL 保持直连 | `LocalWebVpnSupport.kt::localUpstreamUrl` | `tests/connection.rs` |
+| WebVPN 网关为 `d.buaa.edu.cn` | `LocalWebVpnSupport.kt`、`VpnCipher.kt`、`examples/buaa-api/src/api/sso/auth.rs` | `tests/connection.rs` |
+| 无端口使用协议名，有端口使用 `scheme-port` | `LocalWebVpnSupport.kt::toWebVpnUrl`、`VpnCipher.kt::toVpnUrl` | HTTP、HTTPS、默认端口和自定义端口测试 |
+| 主机编码使用 AES/CFB/NoPadding，协议常量 `wrdvpnisthebest!` 同时作密钥和初始向量 | `LocalWebVpnSupport.kt`、平台 AES 实现、`VpnCipher.kt` | URL 往返测试 |
+| 保留路径、查询和片段 | 两份冻结 WebVPN 实现及测试 | 路径/查询/片段往返测试 |
+| 已包装 URL 保持不变 | 两份冻结 WebVPN 实现 | 幂等测试 |
+| 绝对、协议相对、根相对和路径相对跳转均从当前 URL 解析 | `LocalConnectionAuth.kt::resolveRedirectUrl` | 跳转表测试 |
+| 认证跳转仅允许 SSO、用户中心和网关主机 | `goal.md` 安全合同及实时观察 URL | 未验证主机拒绝测试 |
+| 主机校验后只接受 HTTP 或 HTTPS 认证跳转 | `LocalConnectionAuth.kt::resolveRedirectUrl`、WebVPN 协议段测试 | 非 HTTP 跳转拒绝测试 |
+| Cookie 过滤域名、路径、Secure、过期时间并处理替换 | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`、`LocalCookieStoreTest.kt`、`examples/buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
+| 显式失效清理会话，超时/5xx 保留会话 | `validateLocalConnectionSession`、`getAuthStatus` | `tests/session.rs` 策略测试 |
 
 自动路由选择同样属于 Core 所有的连接状态。生产探测器只连接 `gw.buaa.edu.cn:80` 的 TCP；单个 500 ms 总期限包含域名解析和所有地址尝试。三态结果在 facade 进程内以 single-flight 方式缓存 60 秒。它不发送 HTTP/TLS 正文，也不读取 Cookie 或凭据。完整策略和错误映射见 `docs/contracts/route-policy.md`。
 

@@ -8,17 +8,17 @@
 Cookie 存储。
 
 ```text
-CLI / future bindings
+CLI / 未来绑定
         |
-  concrete facade
+  稳定 facade
         |
- auth + features/user
+ 认证 + 功能/用户
         |
- private runtime + session
+私有运行时 + 会话
         |
- upstream parsers and verified URLs
+上游解析器和已验证 URL
         |
- connection + ports (HTTP, persistence)
+连接与端口（HTTP、持久化）
 ```
 
 CLI 宿主只能通过 facade 访问 Core；`upstream` 解析/URL 模块为 crate-private。实际 envelope 的

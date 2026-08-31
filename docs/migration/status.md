@@ -2,26 +2,31 @@
 
 更新日期：2026-08-31
 
-## 2026-08-31 本周期复核结果（当前）
+## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`
 均已重新执行并通过。当前实现新增了 `core-live` 的显式 `auth/prepare` 证据（映射到登录
-内部已保存的准备状态，不重复发起请求）、诊断计数字段、认证失败后的完整依赖阻断矩阵、
-Cgyy 用途来源标记，以及启动器成功/失败/构建失败/信号清理合同。聚合 facade 在所有写入口
-网络副作用前校验外部会话 CAS 修订；stale writer 的 Mock 测试确认请求数为 0。CLI 生产源
-只从 facade 取得路线诊断，依赖方向扫描已覆盖全部 `src/` 文件。
+内部已保存的准备状态，不重复发起请求）、完整的 SPOC/Judge 诊断矩阵行、认证失败后的完整
+依赖阻断矩阵，以及禁止猜测周次的依赖处理。Cgyy 现在按 facade 解析出的 Direct/WebVPN/auto
+路线执行，业务令牌在同一客户端内单飞复用，3xx 统一认证跳转会触发一次安全重登，Cookie
+读取遵守域名、路径、Secure 和过期规则；预约上下文令牌和验证码字段不再是宿主可读的公共
+字段，日志只保留操作名与长度摘要。聚合 facade 的读写入口均在网络副作用前校验外部会话
+CAS 修订；stale reader/writer 的 Mock 测试均确认请求数为 0。图书馆分区详情本次两条路线
+均收到 HTTP 200 但业务 `code=500` 且没有 `data`，因此按冻结合同保留为
+`upstream_changed`，不能伪造成功。
 
 本次新入口真实只读结果如下（每条路线一个 `RouteClient`，未执行真实写操作）：
 
-- Direct：`auth/prepare`、登录、状态、用户、课表四项、考试、成绩、教室、SPOC 列表与
+- Direct：除 `libbook/area_detail` 外，`auth/prepare`、登录、状态、用户、课表四项、考试、成绩、教室、SPOC 列表与
   `global_page_count=1`、Judge 列表/当前/详情/批量及 `course_count=5`、`raw_anchor_count=88`、
-  `filtered_unique_count=83`、签到、阳光打卡、图书馆五项、博雅五项、Cgyy 六项、评教两项均
-  为 `PASS`；SPOC 详情和博雅课程详情因无 ID 为 `NOT_APPLICABLE`。Cgyy 用途为
+  `filtered_unique_count=83`、签到、阳光打卡、图书馆其余四项、博雅五项、Cgyy 六项、评教两项均
+  为 `PASS`；`libbook/area_detail` 为 `FAIL(upstream_changed)`（业务 `code=500`、无 `data`）。
+  SPOC 详情和博雅课程详情因无 ID 为 `NOT_APPLICABLE`。Cgyy 用途为
   `PASS source=static_fallback`，表示本地冻结回退，不代表上游用途接口成功。
-- WebVPN：上述所有必需操作均为 `PASS`；本次瞬时 Judge 计数为 `course_count=5`、`raw_anchor_count=49`、
-  `filtered_unique_count=49`，当前列表为 17 项，详情和批量均为 `PASS`；SPOC/博雅详情因无 ID
-  为 `NOT_APPLICABLE`。Cgyy 同样为
-  `source=static_fallback`，没有切换到 Direct。
+- WebVPN：除 `libbook/area_detail` 外，上述所有必需操作均为 `PASS`；本次瞬时 Judge 计数为 `course_count=5`、`raw_anchor_count=17`、
+  `filtered_unique_count=17`，当前列表为 17 项，详情和批量均为 `PASS`；SPOC/博雅详情因无 ID
+  为 `NOT_APPLICABLE`。`libbook/area_detail` 同样为 `FAIL(upstream_changed)`（业务 `code=500`、无 `data`）。
+  Cgyy 同样为 `source=static_fallback`，没有切换到 Direct。
 
 逐操作安全摘要（本次运行）如下，计数为瞬时上游快照，不作为跨日期稳定断言：
 
@@ -30,10 +35,10 @@ Direct:
 auth/prepare PASS(mapping=embedded_login_state); auth/login PASS; auth/status PASS; user/info PASS
 schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
 exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
-spoc/assignments PASS(0,global_page_count=1); spoc/detail NOT_APPLICABLE(no_assignment_id)
-judge/include_expired PASS(83,course_count=5,raw_anchor_count=88,filtered_unique_count=83); judge/current PASS(65); judge/detail PASS; judge/details_batch PASS(65)
+spoc/assignments PASS(0,global_page_count=1); spoc/diagnostics PASS(1,reuse_from=assignments); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(83,course_count=5,raw_anchor_count=88,filtered_unique_count=83); judge/diagnostics PASS(83,reuse_from=include_expired); judge/current PASS(65); judge/detail PASS; judge/details_batch PASS(65)
 signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
-libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail FAIL(upstream_changed); libbook/seats PASS(175); libbook/bookings PASS(2)
 bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
 cgyy/sites PASS(7); cgyy/purposes PASS(10,source=static_fallback); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
 evaluation/all PASS(0); evaluation/pending PASS(0)
@@ -42,10 +47,10 @@ WebVPN:
 auth/prepare PASS(mapping=embedded_login_state); auth/login PASS; auth/status PASS; user/info PASS
 schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
 exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
-spoc/assignments PASS(0,global_page_count=1); spoc/detail NOT_APPLICABLE(no_assignment_id)
-judge/include_expired PASS(49,course_count=5,raw_anchor_count=49,filtered_unique_count=49); judge/current PASS(17); judge/detail PASS; judge/details_batch PASS(17)
+spoc/assignments PASS(0,global_page_count=1); spoc/diagnostics PASS(1,reuse_from=assignments); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(49,course_count=5,raw_anchor_count=49,filtered_unique_count=49); judge/diagnostics PASS(49,reuse_from=include_expired); judge/current PASS(17); judge/detail PASS; judge/details_batch PASS(17)
 signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
-libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail FAIL(upstream_changed); libbook/seats PASS(175); libbook/bookings PASS(2)
 bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
 cgyy/sites PASS(7); cgyy/purposes PASS(10,source=static_fallback); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
 evaluation/all PASS(0); evaluation/pending PASS(0)
@@ -61,7 +66,7 @@ evaluation/all PASS(0); evaluation/pending PASS(0)
 | 严重度 | 位置 | 发现 | 修复与验证 | 残留风险 |
 |---|---|---|---|---|
 | 高 | `scripts/core-live.sh` | `exec` 绕过 `EXIT` 陷阱导致自动会话目录泄漏，构建失败和信号路径也没有合同测试。 | 移除 `exec`，保留子进程退出码，增加 EXIT 与信号陷阱；`scripts/test-verify-live.sh` 运行时覆盖成功、失败、构建失败、SIGTERM、参数转发和显式目录保留。 | 无；显式目录仍由调用方负责清理。 |
-| 高 | `crates/ubaa-core/src/facade/mod.rs`、`runtime.rs`、`session.rs` | 写请求前只检查进程内状态，外部会话修订变化可能在网络副作用后才被发现。 | 新增 `SessionStore::is_revision_current` 和协调器外部修订检查；聚合 facade 所有操作入口统一预检；stale writer Mock 断言请求计数为 0。 | Windows 权限策略仍依赖平台 ACL，按既有会话审计记录。 |
+| 高 | `crates/ubaa-core/src/facade/mod.rs`、`runtime.rs`、`session/mod.rs` | 读写请求前只检查进程内状态，外部会话修订变化可能在网络副作用后才被发现。 | 新增 `SessionStore::is_revision_current` 和协调器外部修订检查；聚合 facade 所有操作入口统一预检；stale reader/writer Mock 均断言请求计数为 0。 | Windows 权限策略仍依赖平台 ACL，按既有会话审计记录。 |
 | 中 | `apps/ubaa-cli/src/lib.rs`、`routing.rs` | CLI 生产代码直接导入 `connection` 路由诊断，宿主边界不完整。 | 将安全诊断类型经 `facade` 重导出，新增递归源码依赖扫描覆盖全部 CLI `src/`；CLI 全量测试通过。 | Core 内部模块仍为测试兼容保持公开，后续可在测试支持库迁移后进一步收紧。 |
 | 中 | `apps/ubaa-cli/src/bin/core-live.rs` | 认证准备、诊断字段和认证失败后的矩阵项不完整，Cgyy 静态回退来源不可区分。 | 显式调用一次 `prepare_login` 并映射到登录状态，补齐阻断矩阵和 SPOC/Judge 计数，新增 Cgyy 来源 DTO；两条真实路线逐项通过。 | 真实上游列表数量会波动，只记录安全计数并保持逐项语义门禁。 |
 
@@ -73,11 +78,11 @@ evaluation/all PASS(0); evaluation/pending PASS(0)
 | 文件 | 行数（2026-08-31） | 暂缓原因与后续安排 |
 |---|---:|---|
 | `apps/ubaa-cli/src/lib.rs` | 2598 | 仍是 CLI backend 合同和命令委托的唯一组合入口；先保持公共 trait/退出语义稳定，后续按 `args/backend/execution/input/render` 迁移并逐组验证。 |
-| `crates/ubaa-core/src/facade/mod.rs` | 1970 | facade 委托方法共享路线生命周期和收尾逻辑；本周期新增 stale writer 预检，继续拆分前先冻结 facade 快照并为每个业务建立单独合同测试。 |
-| `crates/ubaa-core/src/features/cgyy.rs` | 1600 | Cgyy 协议、解析和写保护刚完成路线统一；加密/签名已独立文件，下一次协议变更前拆读/写/解析。 |
+| `crates/ubaa-core/src/facade/mod.rs` | 2000 | facade 委托方法共享路线生命周期和收尾逻辑；本周期新增读写 stale revision 预检，继续拆分前先冻结 facade 快照并为每个业务建立单独合同测试。 |
+| `crates/ubaa-core/src/features/cgyy.rs` | 1603 | Cgyy 协议、解析、重定向和写保护刚完成路线统一；加密/签名已独立文件，下一次协议变更前拆读/写/解析。 |
 | `crates/ubaa-core/src/features/judge.rs` | 1423 | Judge 列表、详情、缓存和并发边界需共享同一生命周期；保持四 worker/缓存测试完整，后续拆为读、解析、诊断。 |
 | `crates/ubaa-core/src/features/spoc.rs` | 1417 | SPOC 登录、分页、解析和诊断共享业务令牌状态；保持一次登录和全局页计数，后续按认证/读/解析拆分。 |
-| `crates/ubaa-core/src/session.rs` | 1050 | 会话 CAS、锁、迁移和权限代码共同维护原子不变量；存储、Cookie、端口已先行拆出，后续继续按 coordinator/validation 拆分。 |
+| `crates/ubaa-core/src/session/mod.rs` | 1050 | 会话 CAS、锁、迁移和权限代码共同维护原子不变量；存储、Cookie、端口已先行拆出，后续继续按 coordinator/validation 拆分。 |
 | `crates/ubaa-core/src/features/bykc.rs` | 964 | 博雅读写协议和加密调用共享认证上下文；下一次写协议变更前按读/写/解析拆分。 |
 | `crates/ubaa-core/src/features/state.rs` | 843 | 路线状态缓存的生成号和失效逻辑需要集中维护；已有 `state_cache.rs`，后续按业务状态拆分并保留并发测试。 |
 
@@ -150,9 +155,9 @@ WebVPN Cgyy 没有回退到 Direct；上述 `authentication_required` 是当前�
 以 200 返回，但未写入冻结要求的 SSO Cookie，Core 因此安全失败。`auto` 未执行真实登录，
 只由 facade 的确定性 WebVPN-only、Direct/WebVPN 探测和路由策略测试覆盖。
 
-## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果（HAR 网关 Cookie 修复后）
+## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果（HAR 网关 Cookie 修复后的历史快照）
 
-依据 `examples/buaa-cgyy/d.buaa.edu.cn.cgyy.har` 的脱敏证据，Core 在 WebVPN Cgyy SSO
+依据 `examples/BUAA-CGYY/d.buaa.edu.cn.cgyy.har` 的脱敏证据，Core 在 WebVPN Cgyy SSO
 重定向后读取网关 Cookie 快照；令牌只在内存中作为 `Sso-Token` 使用。以下为重新执行的
 单路线、串行、只读结果，凭据仅经 stdin 注入，未调用任何真实写方法。
 
@@ -191,13 +196,13 @@ Judge 数量随上游快照变化（本次 WebVPN 为 `80/48/48`，早先同日�
 数量波动不改变路线成功结论。SPOC 与 Bykc 详情因对应列表为空按合同标记
 `NOT_APPLICABLE`。auto 没有真实登录矩阵，只保留确定性路线解析与 WebVPN-only Mock 证据。
 
-## 2026-08-31 最终确定性门禁与交接复核
+## 2026-08-31 确定性门禁与交接复核（历史快照）
 
 以下命令在 HAR 修复、测试和文档更新后再次执行并通过：
 
 ```text
 just refs                         PASS（冻结引用版本匹配）
-just check-sensitive              PASS（177 个仓库文件）
+just check-sensitive              PASS（168 个仓库文件）
 just check                        PASS（fmt、Clippy、全工作区测试、构建、文档、Shell、diff）
 cargo test --locked -p ubaa-cli --all-targets       PASS（13 个二进制 E2E、23 个 CLI 合同、2 个 Core-live 运行时）
 cargo test --locked -p ubaa-cli --test cli_contract PASS（23）
@@ -206,8 +211,9 @@ bash ./scripts/test-verify-live.sh                  PASS
 
 各主题提交前均通过 `git diff --check`；Cgyy 协议提交只暂存 Core 实现、脱敏 Mock 和
 迁移记录，文档收口提交只涉及合同与历史矩阵。HAR、`ubaa_old`、`examples/buaa-api`、
-`.env.local` 及任何运行时会话材料均未暂存。真实 Direct/WebVPN 只读矩阵均在同一批次
-单路线客户端内串行完成；所有写操作仍仅有 Mock、向量和 CLI 阻止证据。
+`.env.local` 及任何运行时会话材料均未暂存。真实 Direct/WebVPN 只读矩阵曾在同一批次
+单路线客户端内串行完成；顶部最近一次运行发现图书馆分区详情业务 `code=500`，不被本节
+历史快照覆盖。所有写操作仍仅有 Mock、向量和 CLI 阻止证据。
 
 独立代码审查覆盖本周期完整差异，重点检查 facade 唯一宿主边界、Cgyy Direct/WebVPN/auto
 路线绑定、业务令牌生命周期、Core-live/verify-live 分工、写操作入口和敏感输出。未发现
@@ -329,211 +335,77 @@ bash ./scripts/test-verify-live.sh                  PASS
   WebVPN 业务会话返回 `authentication_required`，Direct 门锁码返回
   `upstream_unavailable`，Signin/Ygdk/Evaluation 等逐操作实时矩阵仍有失败项。
 
-## Conclusion
+## 当前结论与历史阶段摘要
 
-冻结源逐操作复核、Core/CLI 确定性门禁和大部分只读实时能力已完成；写操作均有
-协议实现、Mock/向量和 CLI 确认保护，但真实验收永不调用。当前整体仍未达到最终完成：
-Cgyy 日期、订单、锁码等操作仍有路线相关的 `upstream_unavailable`、`upstream_changed`
-或安全结构校验失败。验证码图像求解器已迁移并有 PNG/JPEG、加密向量、重试和逐请求
-Mock 证据；Judge 三路线和其他领域的最新逐操作重跑通过。
+冻结来源逐操作复核、Core/CLI 确定性门禁和当前只读能力已经完成；写操作均有协议实现、
+Mock/向量和 CLI 确认保护，但真实账号永不执行写操作。当前验收以本文件顶部的
+2026-08-31 Core-live Direct/WebVPN 逐操作记录为准，历史失败和上游波动不覆盖当前结论。
 
-## Baseline
+- 基线分支为 `ubaa2`；冻结 `ubaa_old/` 与 `examples/buaa-api/` 的提交分别为
+  `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 和
+  `efb7976bf513f38364b88aeb83d704586cff9b2a`。参考目录只读，`.env.local` 不进入输出、
+  日志、暂存或持久化。
+- Core 的路由、双路线会话、认证、标准业务和扩展业务已按目标树整理；Cgyy 统一使用
+  facade 解析出的 Direct/WebVPN/auto runtime，业务令牌在单一客户端内复用，WebVPN 不隐藏回退
+  Direct。SPOC/Judge 诊断复用普通请求并只输出安全计数。
+- CLI 只调用 facade，所有普通、诊断、参数和错误输出均使用 schema v2；写命令需要显式
+  `--confirm-write`，Core-live 与 `verify-live` 永远不调用写接口。
+- 历史阶段曾完成 Cgyy、Bykc、Signin、Ygdk、LibBook 和 Evaluation 的 DTO、解析、协议向量、
+  Mock 链与默认拒绝；逐项实时失败只按日期、路线和稳定错误记录，不从失败响应猜测协议。
+- 大文件和同名模块迁移遵循书面例外：`session.rs` 已迁移为唯一的 `session/mod.rs`；
+  facade、CLI 和大型业务文件暂不强行拆分，下一次触碰时按目标树渐进拆分。
+- 2026-08-28 以前的三路线聚合、旧验证器摘要和 Cgyy 直连兼容分支均已被当前决策取代；
+  完整细节保留在 Git 历史，当前文档只维护中文结论和仍有证据价值的冲突。
 
-- Branch: `ubaa2`.
-- Frozen `ubaa_old/` HEAD: `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`.
-- Frozen `examples/buaa-api/` HEAD: `efb7976bf513f38364b88aeb83d704586cff9b2a`.
-- `just refs` on 2026-08-23 verifies both clean reference worktrees and fixed HEADs.
-- `.env.local` remains a read-only sensitive input; no value is printed, logged, staged or persisted.
-- 先前未提交的 `goal.md` 扩展现已纳入本次合同修复阶段。
+## 历史阶段门槛
 
-## Remediation Status
+历史运行曾通过格式、Clippy、工作区测试、构建、文档、差异检查、CLI E2E、Shell 合同、
+`just refs` 和敏感扫描。它们只能说明对应提交的确定性状态；最终结果必须以本周期最后一次
+串行 `just check`、CLI 测试、Shell 测试、敏感扫描和 Core-live 实时运行重新确认。
+## 2026-08-26：修正后的实时矩阵历史摘要
 
-### 2026-08-28 Cgyy/Bykc/扩展只读 CLI
+以下内容只保留历史命令的安全计数、路线元数据和稳定结果，不保存作业 ID、标题、正文、
+Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2026-08-31 的当前 Core-live
+逐操作证据。
 
-Cgyy 场馆预约全部只读查询已完成 DTO、解析器、路线隔离业务会话、Core facade、CLI 双执行路径和 JSON Schema；Bykc 全部只读查询同样已完成。当前 CLI 已覆盖标准业务及 Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的全部只读入口。所有真实上游验证仍需按路线矩阵单独执行，不能由 Mock 或编译通过替代。
+- 认证历史：2026-08-23 的 Direct、WebVPN `auth_status` 均退出 0，只能证明当时认证路线可用，不能证明注销原子性、交互验证边界或任何业务端点。
+- 旧版只读聚合：课表、考试、成绩、空教室、SPOC、Judge 曾在三路线命令中退出 0，但当时的 SPOC 可能未真正发送全局空 `kcid` 请求，Judge 详情未覆盖完整题目/分数/状态语义，自动路由还由宿主实现，因此这些结果不再作为当前门槛。
+- 路线波动：历史 Judge 曾出现 Direct 65、WebVPN 17 等不同数量，也曾返回 `timeout`、`upstream_changed` 或找不到过期 ID。这些是上游快照变化，不用于固定路线或放宽解析器。
+- 旧版确定性门禁：历史 `cargo test --locked --workspace`、Clippy、CLI 二进制测试、测试辅助库测试、Shell 合同、`just refs`、`just check-sensitive` 和 `just check` 均曾通过；它们只描述修复前实现，当前结果以本文件顶部和最终命令为准。
+- 2026-08-28 至 2026-08-29 的扩展读取记录了 Signin、Ygdk、Bykc、Cgyy 和 Evaluation 的多次业务认证、上游不可用或语义不符；没有从失败响应猜测新 URL、参数或字段，也没有调用真实写接口。
+- 当前验收边界：所有历史聚合摘要均不覆盖逐操作失败；Core-live 只接受显式 Direct/WebVPN，`auto` 只做确定性路由测试，真实写操作永久排除。
 
-2026-08-28 的 CLI 命令矩阵审计发现 `cgyy` 已接入普通与聚合执行路径，但遗漏在
-`requires_session()` 的会话预检枚举之外。新增覆盖所有扩展只读子命令的解析与功能映射
-测试后复现该缺口，并将 `cgyy` 纳入会话预检；场馆查询现在与其他只读功能一致，会在
-构造客户端时装载已有双路线会话。
+## 2026-08-26：历史确定性门槛摘要
 
-### 2026-08-27 Ygdk
+- `just refs`：冻结参考提交匹配。
+- `just check-sensitive`：未发现凭据、Cookie、令牌、验证码或原始实时材料。
+- `just check`：历史运行包含格式、Clippy（`-D warnings`）、工作区测试、Shell 合同、构建、文档和差异检查。
+- CLI 二进制和验证器测试均有历史通过记录；这些记录不替代本周期最终串行门禁。
+- 确定性门禁与实时矩阵是两类独立证据，Fixture/Mock 通过不能替代真实上游结果。
 
-Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/业务令牌请求、路线 facade、CLI `ygdk overview`/`ygdk records` 及 JSON Schema 接线。提交打卡和照片上传已具备协议实现、Mock/向量和确认保护，但真实写操作永久排除；三路线只读验证已纳入全量矩阵。
+## 历史认证和只读命令说明
 
-| 阶段 | 当前状态 | 收尾要求 |
-|---|---|---|
-| 0-6 基线 | 保留；最终确定性门禁通过 | 当前工作树已通过冻结引用、敏感数据扫描、格式、Clippy、工作区测试、构建、文档和差异检查。 |
-| 7 route policy | Deterministic remediation complete; live Direct/auto/WebVPN resolution accepted | TCP target/total budget/failure classes, explicit-policy probe bypass, 60-second single-flight cache and Core-owned operation resolution are covered; future WebVPN retries may encounter transient upstream Judge snapshot drift. |
-| 8 dual sessions | Deterministic remediation complete; aggregate login live-checked | Atomic load, shared coordinator, route-logical CAS, uncertain-write termination, unconditional remote attempts, one-CAS aggregate logout, terminal conflict fail-fast and whole-facade invalidation are covered; aggregate Direct/WebVPN login succeeded in the accepted `all` runs. |
-| 8a authentication verification boundary | Deterministic remediation complete | The old challenge registry, image fetch, answer binding and captcha exit contract are removed. A `config.captcha` or other interactive verification marker returns `upstream_changed` before image fetch or credential POST; the sanitized regression proves the one-GET/no-POST boundary. |
-| 9a schedule/exam/grades | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | Schedule display `code` is validated as a non-empty string independent of the requested term, matching the frozen parser and live shape; preserve the source-parity record. |
-| 9b classroom | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | Exact long UA, one no-follow query, strict required `e/m/d/list` and room strings, best-effort once-per-route synchronization, route isolation, and session lifecycle clearing are covered and live-checked. |
-| 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
-| 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
-| 9e 签到查询 | Core 解析、独立 iClass 会话、facade 与 CLI 已接入；Direct/WebVPN 实时验证通过 | `signin today` 使用路线隔离的 iClass 业务会话，按旧版固定跳转、登录参数和今日查询参数实现；脱敏解析、确定性接线和双路线 live 证据均已覆盖。签到提交属于写操作，仍禁止真实调用。 |
-| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；Direct/WebVPN 只读矩阵逐项通过 | 所有写操作均要求显式确认并由实时验证器排除；请求向量、Mock 链和输入拒绝测试已覆盖，真实账号从不执行写操作。 |
-| 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
-| 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
-| 11 live matrix | Direct 与 WebVPN Core-live 完整只读矩阵均逐项通过；auto 仅确定性路由验证 | Judge 列表数量按上游快照波动逐项记录；详情依赖空列表按 `NOT_APPLICABLE`，不以聚合成功掩盖单项状态。 |
-| 12 交接/门禁 | 本周期硬门槛已完成，最终命令与真实矩阵均已留痕 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、Shell 合同、Direct/WebVPN Core-live 和 auto 确定性测试均已记录；真实写操作永久排除。 |
+历史命令的功能名、路线和退出码仍保留在 Git 记录中；当前文档只保留上面的中文结论，避免重复维护同一批摘要。
+## 当前缺陷与证据缺口
 
-## 2026-08-26 Corrected Live Matrix
+- 生产自动选择已使用经过验收的 TCP 可达性探测和 Core facade 所有权；修正后的 Direct/auto 与最新 WebVPN 聚合证据已接受。若再次出现瞬时 WebVPN Judge 快照失败，仍须严格重跑。
+- 交互式验证按设计不支持：Core 回归证明 `config.captcha` 在登录页 GET 后、图片请求和凭据 POST 前返回 `upstream_changed`。实时遇到该页面时应记录为硬门槛上游变化，不得增加提示或绕过。
+- 配置持久化已有符号链接、普通文件、唯一临时文件、权限和并发写入的确定性覆盖；真实路由配置行为仍属于后续实时矩阵。
+- Classroom 已在确定性测试中匹配冻结的 UA、跳转、DTO 和状态合同，并通过修正后的 Direct/auto 聚合及 WebVPN 显式运行。
+- SPOC 传输测试会捕获并解密包含 `kcid=""` 的全局分页请求；修正后的实时诊断在 Direct、WebVPN 和 auto 均观察到一个权威全局页。非空详情/提交语义仍取决于上游是否返回数据。
+- Judge 解析、详情、截止时间、分组批量和缓存生命周期均有确定性覆盖；路线本地数量差异只作观察，不得归一化。WebVPN 快照漂移导致的 `judge_cutoff` 失败必须保留并立即重跑。
+- Judge 业务认证耗尽已有来源支持的 UC 仲裁：只有 UC 明确 Invalid 才清理所选路线；Valid 或不可用结果保留主会话并返回可重试的 `upstream_unavailable`。
+- CLI schema v2 及实时验证器的路线、未解析、聚合、SPOC 身份和 Judge 语义拒绝均有确定性覆盖；Judge 跨请求比较经 stdin 传递，schema 不含交互验证字段或错误码。这些只证明验证器行为，不等同于实时路线成功。
+- 范围内所有写操作均有 Core/CLI 协议实现、Mock、向量、解析和确认保护证据；真实提交、上传、答题、预约、签到、成绩变更等副作用请求在本合同中永久禁用。
+- Windows 仅所有者目录 ACL 强制仍是基线遗留的发布审计项。
 
-Only safe counts, route metadata and stable outcomes are recorded here. No
-assignment IDs, titles, response bodies, cookies, tokens or digest salt are
-stored.
+## 后续重跑交接
 
-## 2026-08-28 扩展只读实时结果
-
-使用临时进程内摘要盐运行 `feature=all route=auto`，未保存盐值或任何敏感
-响应。课表、考试、成绩、空闲教室、SPOC、Judge、图书馆和场馆预约均成功；
-Signin 与 Ygdk 在业务登录页返回 `upstream_changed`；Bykc 在 CLI 聚合路由修复
-后仍返回 `authentication_required`，表示业务 CAS 会话未建立。随后单独运行
-`feature=auth route=direct` 成功，但 `feature=bykc route=auto` 仍未通过语义门禁。
-这些结果只证明本次真实运行的具体功能状态，不把认证成功推导为业务成功。
-同日 `feature=auth route=webvpn` 认证成功，但 `feature=cgyy route=webvpn`
-返回 `authentication_required`，因此场馆 WebVPN 业务路线仍未验证通过。
-Bykc 首次结果的 `invalid_semantics` 后经审计确认为验证器误将合法分页字段
-`data.content` 判为敏感键；修复提交 `adc3d4f` 后，`feature=bykc route=direct`
-成功并解析到 1 条课程。该结果不替代 WebVPN 路线验证。
-- Bykc 写链阶段新增选课、退选、签到三条端到端 Mock，覆盖 CAS token 跳转、随机 AES/RSA 请求封装、双认证头及 `ak`/`sk`/`ts` 元数据；响应使用脱敏明文信封，真实业务写操作仍永久禁止。
-随后 `feature=auth route=webvpn` 成功，但 `feature=bykc route=webvpn`
-返回 `upstream_changed`，因此 Bykc WebVPN 业务路线仍未验证通过。
-重新建立 Direct 主认证后，`feature=signin route=direct` 与
-`feature=ygdk route=direct` 仍返回 `upstream_changed`，而
-`feature=cgyy route=direct` 成功并解析 4 个站点；这排除了会话残留导致的假失败。
-再次复测 Bykc WebVPN（主认证成功后）仍返回 `upstream_changed`；当前没有冻结
-证据支持新增跳转参数或放宽主机/令牌解析，保持失败关闭并待上游协议确认。
-本轮重新执行 Direct 显式路线：认证、课表、考试、成绩、空闲教室、SPOC、
-图书馆、博雅和场馆预约均通过；空闲教室返回 158 条、图书馆返回 2 个馆区、
-博雅返回 1 条课程、场馆预约返回 4 个站点。SPOC 全局分页证据为 1 页且当前
-作业为空。Signin 与 Ygdk 再次稳定返回 `upstream_changed`，确认其失败并非
-聚合路由或残留会话造成；在取得脱敏上游结构证据前继续失败关闭。
-同轮 WebVPN 显式路线中，认证、课表、考试、成绩、空闲教室、SPOC 和图书馆
-通过；空闲教室仍返回 158 条，SPOC 仍为 1 个全局分页且作业为空，图书馆返回
-2 个馆区。Signin 与 Ygdk 返回 `upstream_changed`，Bykc 返回
-`upstream_changed`，Cgyy 返回 `authentication_required`。这些失败与此前复测
-一致，不能用主认证或其他业务成功替代对应业务路线的协议证据。
-
-| Run | Result |
-|---|---|
-| `feature=all route=auto` | Exit 0; resolved Direct; all standard features passed. Classroom count 158; SPOC global page count 1 with empty assignments; Judge counts course/raw/filtered/current/cutoff `5/88/83/65/18`, detail present. |
-| `feature=all route=direct` | Exit 0; all standard features passed. Judge counts `5/88/83/65/18`, detail present. |
-| `feature=schedule`, `exam`, `grades`, `classroom`, `spoc`, `judge` on Direct | Exit 0 for each; Judge counts `5/88/83/65/18`, detail present; SPOC global page count 1 with empty assignments. |
-| `feature=schedule`, `exam`, `grades`, `classroom`, `spoc`, `judge` on WebVPN | Exit 0 for each; Judge standalone counts `5/49/49/17/32`, detail present; SPOC global page count 1 with empty assignments. |
-| `feature=all route=webvpn` first attempt | Exit 1 at strict `judge_cutoff`; schedule/exam/grades/classroom/SPOC passed. The failure is retained as upstream snapshot volatility evidence. |
-| `feature=all route=webvpn` immediate rerun | Exit 0; all standard features passed. Judge counts `5/77/57/17/40`, detail present. |
-| final `feature=all route=webvpn` verification attempt | Exit 1 at strict `judge_cutoff`; schedule/exam/grades/classroom/SPOC passed. The failure is retained as upstream snapshot volatility evidence. |
-| final immediate `feature=all route=webvpn` rerun | Exit 0; all standard features passed. Judge counts `5/77/57/17/40`, detail present. |
-
-## 2026-08-26 Deterministic Gates
-
-- `just refs`: passed for both frozen commits listed above.
-- `just check-sensitive`: passed; no credentials, cookies, tokens, captcha data or raw live material entered the checked tree.
-- `just check`: passed, including format, Clippy with `-D warnings`, all workspace tests, shell verifier regression, build, docs and diff checks.
-- `cargo test --locked -p ubaa-cli --test binary_e2e`: 11 passed.
-- `bash ./scripts/test-verify-live.sh`: passed.
-
-These repository gates are deterministic and were rerun after the production fixes. The live
-matrix above is separate evidence; it is not replaced by fixture or Mock success.
-
-## Historical Live Authentication
-
-These commands exited 0 on 2026-08-23 and established only that both
-authentication routes worked at that time. They do not prove atomic logout,
-the intentionally unsupported interactive-verification boundary, Core-owned selection or any business endpoint.
-
-| Command | Historical result |
-|---|---|
-| `just verify-live feature=auth route=direct` | Exit 0; `auth_status` parsed a user. |
-| `just verify-live feature=auth route=webvpn` | Exit 0; `auth_status` parsed a user. |
-
-## Historical Read-Only Commands And Limitations
-
-| Feature | Direct historical result | WebVPN historical result | Auto historical result | Current interpretation |
-|---|---|---|---|---|
-| Schedule (terms/weeks/current/today) | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Exit 0; all four reads parsed | Pre-fix historical evidence only; current Direct/WebVPN/auto cells remain pending. |
-| Exam arrangement | Exit 0 | Exit 0 | Exit 0 | Pre-fix historical evidence only; rerun with a term returned by schedule. |
-| Grades | Exit 0 | Exit 0 | Exit 0 | Pre-fix historical evidence only; rerun with strict old term semantics. |
-| Empty classroom | Exit 0; reported 158 for campus 1/date 2026-08-23 | Exit 0; reported 158 | Exit 0; reported 158 | The result predates exact UA/no-redirect/strict-DTO remediation; rerun is required. |
-| SPOC assignments/detail | Exit 0; reported empty | Exit 0; reported empty | Exit 0; reported empty | **Unverified until the global empty-`kcid` query is observed.** The pre-remediation implementation could return a false empty result when course metadata was empty. No live detail ran. |
-| Judge list/detail | Exit 0; reported 65 plus one detail | Exit 0; reported 17 plus one detail | Exit 0; reported 65 plus one detail | Counts are historical observations only. That sampled detail did not prove score/problem/status semantics, and the Direct 65/WebVPN 17 difference is unresolved. |
-
-The following individual command summaries are retained as historical command
-evidence, not current acceptance:
-
-```text
-feature=schedule route=auto: exit 0; terms/weeks/current/today parsed
-feature=exam route=auto: exit 0; term selected and response parsed
-feature=grades route=auto: exit 0; term selected and response parsed
-feature=classroom route=auto: exit 0; result_count=158 date=2026-08-23
-feature=spoc route=auto: exit 0; reported result_count=0; INVALID AS EMPTY-SEMANTICS PROOF
-feature=judge route=auto: exit 0; reported result_count=65 plus one detail; DETAIL SEMANTICS UNVERIFIED
-```
-
-Additional explicit-route commands historically exited 0:
-
-```text
-schedule direct/webvpn: terms/weeks/current/today parsed on both
-exam direct/webvpn: parsed on both
-grades direct/webvpn: parsed on both
-classroom direct/webvpn: reported result_count=158 on both
-spoc direct/webvpn: reported result_count=0 on both; global empty-kcid request not established
-judge direct: reported result_count=65 plus one detail
-judge webvpn: reported result_count=17 plus one detail
-```
-
-The historical aggregate
-`just verify-live feature=all route=auto` also exited 0 after reporting each
-feature successful. It is not a current hard-gate pass because SPOC could have
-short-circuited before the authoritative global query, Judge detail assertions
-did not cover the old parser semantics, and automatic selection used the
-superseded host-owned resolver implementation.
-
-Historical failed Judge attempts remain relevant: explicit Direct previously
-returned `upstream_unavailable`; later WebVPN/auto attempts returned `timeout`
-or `upstream_changed`; stale sampled IDs returned not found. These observations
-show upstream volatility but select neither a permanent route nor a parser
-contract. The 65/17 count divergence must be investigated using safe in-memory
-IDs/counts after the parser/cache fixes; it must not be normalized or hidden.
-
-## Historical Deterministic Gates
-
-Before this audit, the following passed:
-
-- `cargo test --locked --workspace`.
-- `cargo clippy --locked --workspace --all-targets -- -D warnings`.
-- `cargo test --locked -p ubaa-cli --test binary_e2e` (10 passed).
-- `cargo test --locked -p ubaa-test-support --test readonly` (19 passed).
-- `cargo test --locked -p ubaa-test-support --test support` (8 passed).
-- `./scripts/test-verify-live.sh`.
-- `just refs`, `just check-sensitive`, and `just check`.
-
-Those passes describe the pre-remediation implementation. They do not validate
-the newly corrected contract and must be rerun after every production phase.
-CI remains deterministic-only and never reads `.env.local`.
-
-## Open Defects And Evidence Gaps
-
-- Production automatic selection now uses the accepted TCP reachability implementation and Core-facade ownership; corrected Direct/auto and latest WebVPN aggregate evidence is accepted. A transient WebVPN Judge snapshot failure remains recorded and must be retried strictly if it recurs.
-- Interactive verification is intentionally unsupported: the Core regression proves that `config.captcha` causes `upstream_changed` after the login-page GET with no image request or credential POST. A live occurrence is a hard-gate upstream-change result, not a reason to add a prompt or bypass.
-- Config persistence now has deterministic symlink, regular-file, unique-temp, permission and concurrent-write coverage; real routing configuration behavior remains part of the later live matrix.
-- Classroom now matches the frozen UA/redirect/DTO/state contract in deterministic tests and passed the corrected Direct/auto aggregate plus WebVPN explicit runs.
-- SPOC transport tests now capture and decrypt both actual global page requests, including `kcid=""`; corrected live diagnostics observed one authoritative global page on Direct, WebVPN and auto. Non-empty detail/submission semantics remain conditional on upstream data.
-- Judge parser, detail, cutoff, grouped batch and cache lifecycle are deterministically covered. Direct/auto and the latest WebVPN aggregate passed safe semantic checks; multiple WebVPN aggregate attempts failed `judge_cutoff` because upstream list snapshots drifted, and each immediate rerun passed, so the strict check remains unchanged. Route-local count differences remain observations, not normalization rules.
-- Judge terminal business-authentication failures now have a source-backed UC arbitration path under test and live-ready behavior: only explicit UC Invalid clears the selected route; valid or unavailable UC results preserve the primary session and return retryable `upstream_unavailable`.
-- CLI schema v2 and the live verifier's semantic rejection cases are deterministically covered for routed, unresolved, aggregate, SPOC query/detail identity, and Judge list/detail output. Judge cross-request comparison uses stdin rather than argv. Interactive verification fields and error codes are absent from the schema. This establishes verifier behavior only, not a real route result.
-- All in-scope write operations have Core/CLI protocol implementations with deterministic Mock, vector, parser and confirmation-protection evidence; real submission/upload, answer, reservation, attendance, grading-change and other side-effect requests remain permanently disabled for this contract.
-- Windows owner-only directory ACL enforcement remains a release-audit item from the baseline.
-
-## Rerun Handoff
-
-1. On future upstream changes, rerun `just refs`, `just check-sensitive`, `just check`, CLI binary E2E and verifier regression from the integrated tree.
-2. Generate one ephemeral `UBAA_VERIFY_DIGEST_SALT`, keep it only in the current shell for comparable Judge digests, and never record its value.
-3. Rerun `feature=auth` on Direct and WebVPN, `feature=all route=auto`, every feature on both explicit routes, and both complete explicit aggregates. Every multi-request feature must retain one resolved route.
-4. For SPOC, require `global_page_count >= 1`; if non-empty, require one detail. For Judge, require course/raw-anchor/filtered/current/cutoff counts and one semantic detail when available.
-5. Record only safe route, timing, count, presence, stable error and salted-digest summaries. If list snapshots drift, retain the strict failure and rerun; never normalize route differences or weaken subset checks.
+1. 上游变化后，从整合工作树重新运行 `just refs`、`just check-sensitive`、`just check`、CLI 二进制 E2E 和验证器回归。
+2. 如需比较 Judge 摘要，只在当前 Shell 生成一次临时 `UBAA_VERIFY_DIGEST_SALT`，绝不记录其值。
+3. 在 Direct 和 WebVPN 重跑 `feature=auth`、`feature=all route=auto`、两条显式路线的每项功能以及两个完整聚合；每个多请求功能必须保持同一解析路线。
+4. SPOC 要求 `global_page_count >= 1`，非空时再要求一个详情；Judge 要求课程、原始锚点、过滤后、当前和截止数量，并在有数据时验证一个语义详情。
+5. 只记录安全路线、耗时、数量、存在性、稳定错误和盐化摘要。列表快照漂移时保留严格失败并重跑，不得归一化路线差异或放宽子集检查。
 随后依据固定 Class 模块证据修正签到业务登录入口、会话头和查询方法，并将
 `STATUS=2` 识别为合法空课程结果。修正后 `feature=signin route=direct` 与
 `feature=signin route=webvpn` 均通过，返回 0 条课程；签到只读功能的两条真实路线
@@ -547,7 +419,7 @@ CI remains deterministic-only and never reads `.env.local`.
 主机、再按当前路线包装后，`feature=auth route=webvpn` 与
 `feature=bykc route=webvpn` 均通过并解析到 1 条课程；结合此前 Direct 成功结果，
 博雅五项只读功能的双路线入口已验证。
-# 2026-08-28 execution update
+# 2026-08-28 执行更新（历史）
 
 - 新增评教 Core 只读链路（CAS 激活、任务/问卷/课程请求、稳定课程 DTO 和进度）以及 CLI `evaluation all|pending` 命令。
 - 新增 Bykc Core 选课、退选、签到请求构造和 CLI 命令。所有 Bykc、Cgyy 写命令都要求显式 `--confirm-write`，实时验证绝不执行写操作。

@@ -15,15 +15,32 @@
 前重新校验外部会话 CAS 修订；stale writer 的 Mock 证明不会发出写请求。`core-live.sh`
 已取消 `exec`，并用统一 EXIT/信号陷阱清理自动临时目录，显式目录仍由调用方管理。
 
+本次复核补充四项边界：Core-live 的 SPOC/Judge 诊断行与普通结果共享同一次响应并明确
+`reuse_from`；课表没有正数周序号时输出 `NOT_APPLICABLE`，禁止猜测周次；Cgyy 业务 3xx
+跳转到 SSO 时分类为认证失效，其它 3xx 分类为上游变化；Cgyy 日期上下文令牌和验证码
+材料均留在 Core 内部，Cookie 单值读取也必须按请求 URL 过滤域名、路径、Secure 和过期时间。
+聚合 facade 的普通读操作同样在发起请求前校验外部会话 revision，防止过期读客户端产生网络
+副作用。
+
 ## 2026-08-31：Cgyy WebVPN 网关 Cookie 同步证据
 
-用户提供的 `examples/buaa-cgyy/d.buaa.edu.cn.cgyy.har`（仅读）记录了完整的 WebVPN 浏览器流程。脱敏审阅确认：Cgyy `manageLogin` 在 WebVPN 包装地址上经两次 302 到 `/venue-zhjs`，没有 HTTP `Set-Cookie`；浏览器随后调用 `d.buaa.edu.cn/wengine-vpn/cookie` 的 `method=get` 接口，按 `host=cgyy.buaa.edu.cn`、`scheme=https`、`path=/venue-zhjs` 和当前时间戳读取纯文本 Cookie 快照，其中包含 `sso_buaa_zhjs_token` 名称。前端把该值作为 `Sso-Token` 头发送到包装后的 `POST /venue-zhjs-server/api/login`，成功信封仍为 `code/data/message`，再以 `cgAuthorization` 继续业务读取。
+用户提供的 `examples/BUAA-CGYY/d.buaa.edu.cn.cgyy.har`（仅读）记录了完整的 WebVPN 浏览器流程。脱敏审阅确认：Cgyy `manageLogin` 在 WebVPN 包装地址上经两次 302 到 `/venue-zhjs`，没有 HTTP `Set-Cookie`；浏览器随后调用 `d.buaa.edu.cn/wengine-vpn/cookie` 的 `method=get` 接口，按 `host=cgyy.buaa.edu.cn`、`scheme=https`、`path=/venue-zhjs` 和当前时间戳读取纯文本 Cookie 快照，其中包含 `sso_buaa_zhjs_token` 名称。前端把该值作为 `Sso-Token` 头发送到包装后的 `POST /venue-zhjs-server/api/login`，成功信封仍为 `code/data/message`，再以 `cgAuthorization` 继续业务读取。
 
 此前 Core 只等待 Cgyy 响应的 `Set-Cookie`，因此 WebVPN 实时矩阵安全返回 `authentication_required`。先添加 `webvpn_从网关_cookie接口取得_cgyy_sso令牌` 脱敏 Mock 并观察到预期失败，再实现网关 Cookie 同步；同步响应只在当前请求内存中解析，令牌不进入 Session、日志或文件。该证据不改变冻结 `ubaa_old` 的 Direct Cgyy URL、参数、签名、DTO 或错误语义，`examples/buaa-api` 仍无等价 Cgyy 模块；本地 Core WebVPN-only 回归和敏感扫描需在真实重跑前通过。
 
-## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑
+## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑（历史快照）
 
 重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 本次瞬时数量为 `include_expired/current/details_batch=49/17/17`，此前同日快照曾有 `80/48/48` 或更早的 `40/0/0`，但列表、详情和批量详情均按当前依赖 ID 语义门禁记录。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
+
+## 2026-08-31：最新 Core-live 实时复核保留图书馆上游失败
+
+随后再次串行执行 `just verify-live mode=direct` 和 `just verify-live mode=webvpn`。两条路线的
+认证、用户、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、Bykc、Cgyy 和 Evaluation
+逐项结果与前述快照一致，Cgyy 六项均通过且 WebVPN 没有回退 Direct。唯一失败是
+`libbook/area_detail`：HTTP 状态为 200，但业务信封为 `code=500` 且缺少 `data`，Core 按冻结
+合同返回 `upstream_changed`，两条路线均以退出码 5 结束。安全调试摘要只记录操作、路线、状态、
+脱敏路径、正文长度和 JSON 结构，不记录响应正文或消息值。该结果说明图书馆分区详情是当前上游
+不可用/结构不符，不能通过放宽解析或伪造空详情掩盖；后续应在上游恢复或提供新协议证据后重跑。
 
 ## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
 
@@ -53,502 +70,26 @@
 
 确定性证据为 Core Cgyy 集成测试 12/12、CLI 合同测试 23/23，以及 Cgyy facade 路由回归测试通过。实时只读证据仅确认两条路线的站点列表各返回 7 个；日期、订单和锁码在不同日期/路线出现 `upstream_unavailable` 或 `invalid_semantics`，部分日期结构探针曾返回正常对象，因此需把上游窗口/限流不稳定与本地协议错误分开处理。本轮没有调用预约、验证码校验、提交或取消写接口。`examples/buaa-api` 在冻结提交中没有等价 Cgyy 协议，未借用其 URL、字段或错误语义。
 
-## 2026-08-29: Direct Cgyy read-only verification after signer parity fix
-
-`just verify-live mode=direct feature=cgyy route=direct` completed with a safe
-summary (`stage=cgyy`, `exit_code=0`, `site_count=7`). The verifier did not call
-reservation or cancellation writes. This confirms the Direct site-list read for
-this run only; date, order, detail and lock-code operations remain separately
-subject to their own live outcomes and are not inferred from the site count.
-
-## 2026-08-29: Auto Cgyy read-only verification
-
-`just verify-live mode=auto feature=cgyy route=auto` resolved to Direct and
-returned a safe site summary with `site_count=7`. The dependent date operation
-returned `invalid_semantics`, while lock-code returned `upstream_unavailable`;
-the verifier continued according to its dependency rules and did not invoke
-reservation or cancellation writes. These are live upstream outcomes, not a
-change to the frozen request or signing behavior.
-
-## 2026-08-29: Align Signin today request with frozen local API
-
-The frozen `LocalSigninApi.getTodayClasses` uses a GET request with the
-`sessionId` header and `id`/`dateStr` query parameters. Rust had temporarily
-used the non-equivalent example module's POST/`Sessionid` shape. A sanitized
-request-construction test reproduced the mismatch; Core now follows the frozen
-local method and header, while the example is recorded as supplemental and not
-authoritative for this operation.
-
-## 2026-08-29: Direct Signin verification after method correction
-
-`just verify-live mode=direct feature=signin route=direct` succeeded with a
-safe summary (`stage=signin`, `exit_code=0`, `result_count=0`). The run only
-queried today's classes and did not invoke the sign-in write operation.
-
-## 2026-08-29: WebVPN Signin verification after method correction
-
-`just verify-live mode=webvpn feature=signin route=webvpn` succeeded with a
-safe summary (`stage=signin`, `exit_code=0`, `result_count=0`). The run only
-queried today's classes and did not invoke the sign-in write operation.
-
-## 2026-08-29: Direct and WebVPN LibBook read-only verification
-
-`feature=libbook` completed successfully on both explicit routes. Each run
-returned a safe `library_count=2` summary and did not invoke reservation or
-cancellation writes. The source-parity entry is updated from its stale
-"not verified" wording to reflect this evidence; write operations remain
-explicitly excluded from live verification.
-
-## 2026-08-29: Preserve optional Ygdk overview enrichments
-
-Frozen `LocalYgdkApi.getOverview` treats `getCount` and `Term.get` as optional
-enrichments via `runCatching`; failures do not discard the required classify and
-item list. A sanitized transport test reproduced Rust's previous propagation
-of those errors. Core now substitutes an empty successful envelope for a failed
-or malformed optional response, yielding zero/empty enrichment fields while
-preserving the primary overview result.
-
-## 2026-08-29: Direct Ygdk verification after fallback correction
-
-`just verify-live mode=direct feature=ygdk route=direct` succeeded with a safe
-summary (`stage=ygdk`, `exit_code=0`, `item_count=11`). The run performed only
-read-only overview calls and did not invoke clock-in submission or photo upload.
-
-## 2026-08-29: WebVPN Ygdk verification after fallback correction
-
-`just verify-live mode=webvpn feature=ygdk route=webvpn` succeeded with a safe
-summary (`stage=ygdk`, `exit_code=0`, `item_count=11`). The run performed only
-read-only overview calls and did not invoke clock-in submission or photo upload.
-
-## 2026-08-29: Preserve optional Evaluation list fallbacks
-
-Both explicit route runs of `feature=evaluation` completed successfully with a
-safe `course_count=0` summary. They performed only task/list reads and did not
-invoke evaluation submission.
-
-Frozen `LocalEvaluationService` treats activation, task, questionnaire and
-course-list non-authentication exceptions as empty results/lists through
-`runCatching`; authentication failures remain errors. A sanitized CAS-503 Mock
-reproduced Rust's previous propagation. Core now returns an empty evaluation
-response for non-auth activation failure and empty nested lists for later
-non-auth fetch failures, while preserving authentication error propagation.
-
-## 2026-08-29: Auto read-only matrix for corrected features
-
-The independent auto-route runs resolved to Direct and completed successfully:
-Signin returned `result_count=0`, LibBook returned `library_count=2`, Evaluation
-returned `course_count=0`, and Ygdk returned `item_count=11`. These commands only
-performed read operations; no sign-in, reservation, evaluation submission,
-clock-in or photo-upload write was invoked. The results are recorded separately
-from the explicit-route evidence and do not mask any other feature's outcome.
-
-## 2026-08-29: Aggregate live gate blocked by missing Judge digest configuration
-
-Fresh `feature=all` runs for Direct, WebVPN and auto each stopped before Judge
-route comparison with exit code 2 because `UBAA_VERIFY_DIGEST_SALT` is unset.
-The local environment contains only the test username/password keys and no
-digest salt. This is a configuration prerequisite failure, not evidence of an
-upstream protocol result; per-feature read-only runs remain the authoritative
-evidence and no write operation was invoked.
-
-## 2026-08-29: Full three-route matrix with ephemeral digest salt
-
-With `UBAA_VERIFY_DIGEST_SALT` supplied only as a shell-scoped temporary value,
-Direct and WebVPN completed User, Schedule, Exam, Grades, Classroom, SPOC, Judge
-(including detail checks), Signin, Ygdk, LibBook, Bykc and Evaluation. Auto
-resolved to Direct and completed the same set. Direct Cgyy failed at date and
-lock-code with `upstream_unavailable`; WebVPN failed at date with
-`invalid_semantics` and at orders/lock-code with `upstream_unavailable`; auto
-failed at Cgyy date with `upstream_unavailable`. The salt was never persisted or
-printed, and no real write operation was called. These Cgyy outcomes remain
-strict live gates rather than reasons to alter frozen protocol behavior.
-
-## 2026-08-29: CLI contract end-to-end gate
-
-`cargo test --locked -p ubaa-cli --test cli_contract` passed all 23 tests. The
-suite exercises the thirteen feature command groups, schema-v2 envelopes,
-human/JSON redaction, route diagnostics, session preconditions and the complete
-write-command default-deny plus explicit-confirmation behavior. No live write
-request is part of this test.
-
-## 2026-08-29: Authentication status across all routes
-
-Separate `feature=auth` runs succeeded for Direct, WebVPN and auto; each
-returned `stage=auth_status`, `exit_code=0` and `parsed_user=yes`. These checks
-only established or inspected read-only authentication state and did not call
-any business write operation.
-
-## 2026-08-29: Method-level direct API inventory audit
-
-The frozen `ubaa_old/shared/api/feature` interfaces for all thirteen in-scope
-domains were compared with the Rust feature functions, facade methods and CLI
-commands. Every listed direct read/write operation has a corresponding Core and
-CLI entry; no missing direct method was found. Server-only routes and
-non-equivalent example modules were excluded from this conclusion.
-
-## 2026-08-29: Preserve Classroom response status field semantics
-
-The frozen classroom implementation deserializes the complete `e/m/d` envelope
-without checking that `e == 0`; `e` is a response field rather than a success
-gate. A sanitized Rust test with `e=1` first failed because Core returned
-`upstream_changed`. Removing that unevidenced gate makes the test pass while
-retaining required envelope and room-field type validation. No URL, request or
-live behavior was changed.
-
-## 2026-08-29: Core integration test gate
-
-`cargo test --locked -p ubaa-core --tests` passed with exit code 0. The run
-covered feature parsers, connection and session isolation, deterministic Mock
-request chains, crypto/signature vectors and write-operation error paths. It
-performed no real write request.
-
-## 2026-08-29: Cgyy read-only availability recheck
-
-Fresh per-feature runs returned `site_count=7` on Direct, WebVPN and auto (auto
-resolved to Direct). Date and order stages returned `upstream_unavailable` on
-all three routes; WebVPN lock-code also returned `upstream_unavailable`. No new
-request, redirect, signing or response evidence was observed, so the frozen
-protocol and failure-closed behavior remain unchanged. The verifier performed
-read-only calls only and invoked no reservation or cancellation write.
-
-## 2026-08-29: Full three-route matrix with ephemeral digest salt（二）
-
-With `UBAA_VERIFY_DIGEST_SALT` supplied only as a shell-scoped temporary value,
-Direct and WebVPN completed User, Schedule, Exam, Grades, Classroom, SPOC, Judge
-(including detail checks), Signin, Ygdk, LibBook, Bykc and Evaluation. Auto
-resolved to Direct and completed the same set. Direct Cgyy failed at date and
-lock-code with `upstream_unavailable`; WebVPN failed at date with
-`invalid_semantics` and at orders/lock-code with `upstream_unavailable`; auto
-failed at Cgyy date with `upstream_unavailable`. The salt was never persisted or
-printed, and no real write operation was called. These Cgyy outcomes remain
-strict live gates rather than reasons to alter frozen protocol behavior.
-
-## 2026-08-17: Execute the authentication contract from frozen evidence
-
-The active design is `goal.md`. The old and example repositories match their required HEAD and origins and are clean. No protocol conflict has been identified during the initial inventory. Unknown upstream behavior will not be guessed; it will be recorded here with evidence before a decision.
-
-## 2026-08-17: Preserve verified HTTP redirect compatibility
-
-Fixed SSO and User Center entry points remain HTTPS and TLS verification remains enabled. Redirect resolution continues to accept both `http://` and `https://` only for the authentication host allow-list. This follows `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt::resolveRedirectUrl`, which explicitly recognizes both schemes, and the frozen WebVPN URL codec/tests that preserve HTTP protocol segments. Rejecting HTTP would be an unevidenced protocol change. Secure-cookie filtering still prevents Secure cookies from being sent over HTTP.
-
-The scheme and host checks are both mandatory. Non-HTTP schemes such as `ftp` are rejected even when their host is otherwise allowed, and WebVPN conversion never encodes them.
-
-## 2026-08-17: Keep the public facade concrete and runtime private
-
-Hosts consume the non-generic `UbaaClient`; injected transport and session ports are boxed inside private `ClientRuntime`. Authentication and User Center workflows live in `auth` and `features/user`, while `facade` delegates stable DTO operations. `upstream` is crate-private, and the CLI uses `UbaaClient::open` rather than inspecting `FileSessionStore`. This keeps host APIs independent of upstream and storage implementation types without removing deterministic port injection.
-
-## 2026-08-17: Add bounded buffering and locked session replacement
-
-Authentication/User Center response bodies are capped at 8 MiB and persisted session JSON at 1 MiB. These are conservative UBAA 2 memory/file safety budgets, not upstream protocol facts. Session operations reject symlink/non-regular targets, open final files without following links, restore owner-only Unix permissions, use a sidecar OS lock and unique exclusive temporary files, synchronize writes, and preserve the existing `session.json` schema.
-
-The sidecar lock also stores a synchronized monotonic revision. A runtime loads the snapshot and revision atomically, then compare-exchanges every save, invalidation, mode-mismatch clear, and logout clear. The revision is advanced and synchronized before replacing or deleting `session.json`; a crash may cause a conservative conflict but cannot authorize a stale writer. This prevents snapshot-equality ABA and ensures an old process cannot recreate a cleared session or delete a newer one. Windows inherits the selected directory ACL; explicit owner-only ACL enforcement remains a release audit item.
-
-## 2026-08-17: Preserve JSON captcha non-interactivity (superseded)
-
-This historical design recorded the old JSON `captcha_required` and human-fallback
-workflow. It is superseded by the 2026-08-25 decision below: the current Core, CLI
-and verifier are non-interactive and return `upstream_changed` before any image or
-credential request when an unsupported verification step is detected. The old
-workflow is retained only as frozen-source evidence and is not an acceptance gate.
-
-## 2026-08-25: Remove the unsupported interactive verification branch
-
-The previous JSON challenge and human-fallback design is superseded. The user-facing product now runs client-direct and must remain non-interactive for this authentication boundary. `LoginInput` and `DualLoginInput` contain only username and password; the Core domain, facade, CLI, JSON schema, live verifier and tests expose no challenge, image, captcha answer or captcha-specific exit code. The frozen old implementation still documents and implements a captcha branch, while the pinned example has no equivalent protocol. UBAA2 therefore keeps only the ordinary evidence-backed login form. If the SSO page contains the observed `config.captcha` marker or another interactive verification step, Core returns `upstream_changed` before any image request or credential POST. This is an intentional source-parity difference, not an inferred upstream field; it must be treated as a live hard-gate failure and recorded for future protocol work rather than worked around.
-
-## 2026-08-25: Do not equate weekly schedule display code with the request term
-
-The corrected Direct and WebVPN live verifier reached `schedule current` and
-returned a successful `WeeklySchedule` envelope with an empty `arrangedList`.
-Its `data.code` was a non-empty string but did not equal the selected semester
-term on either route. The frozen `WeeklyScheduleResponse` and
-`WeeklySchedule` only define decoding of `datas` and do not specify an equality
-invariant; the pinned AAS example is non-equivalent for this local DTO. The
-prior verifier assertion was therefore an unsupported semantic restriction,
-not a Core parse failure. It now checks only the evidenced non-empty string
-contract and keeps term selection/request parameters independently validated.
-Empty code remains rejected. No raw live value is recorded.
-
-## 2026-08-17: Preserve remote-first logout while protecting local revisions
-
-Both `LocalConnectionAuth.kt::logout` and the remote-backed `AuthApi.kt::logout` attempt remote logout before clearing local state. UBAA 2 preserves that evidenced order and always clears the current client's in-memory Cookie/login state. The persisted clear is revision-conditional so a stale process cannot delete a newer local session. Frozen code and current live evidence do not define whether a stale process's remote logout can invalidate a concurrently created upstream session, so future long-lived hosts must serialize logout for a shared account rather than inventing a remote concurrency guarantee.
-
-## 2026-08-17: Require locked dependency resolution in deterministic gates
-
-`just check`, macOS/Windows CI, the live verifier, and documented user commands use `--locked` for every Cargo command that resolves dependencies. `just check` first runs `cargo metadata --locked --no-deps --format-version 1`; a cross-platform binary test uses the Git index to scan tracked Markdown, `justfile`, workflow, and shell command sources so later edits cannot silently remove the lock contract. `cargo fmt` is exempt because it does not resolve the dependency graph.
-
-## 2026-08-19: Historical Judge auto WebVPN route (superseded 2026-08-23)
-
-The frozen `LocalJudgeApi` and its tests establish the Judge SSO service URL, route-local business pages, course selection, and isolated worker clients. At that time live verification showed Judge Direct unavailable while the explicit WebVPN route completed list/detail parsing with exit 0, so the route matrix temporarily forced `auto` to WebVPN for all network states. This was a deterministic feature exception, not a fallback replay. Later WebVPN/auto attempts also returned upstream timeouts or changed responses; those observations remain historical rerun conditions. Fresh campus evidence and the superseding 2026-08-23 decision below removed the stale override.
-
-## 2026-08-19: Require AAS service activation before schedule reads
-
-The frozen local schedule implementation probes `byxt.buaa.edu.cn/.../currentUser.do` and classifies an SSO page as authentication-required. The pinned `examples/buaa-api/src/api/aas/core.rs` proves that the same AAS protocol has a service-specific CAS bootstrap URL ending in `.../homeapp/index.do?contextPath=/jwapp` and requires the final URL to start with that AAS landing page. Live `.env.local` verification initially returned an SSO-shaped response for the probe, so terms/weeks could not begin even though generic SSO and User Center authentication succeeded. Core now performs the proven AAS activation only after that probe condition, verifies the route-local final URL, then probes again. Direct and WebVPN schedule terms/weeks/current/today subsequently passed; no generic SSO bypass or cross-route cookie replay was added.
-
-## 2026-08-19: Preserve form content type for schedule/grade POSTs
-
-The old local implementations use Ktor `FormDataContent` for the weekly schedule and grade query forms. The Rust helper serialized the same fields but omitted `Content-Type: application/x-www-form-urlencoded`. A TDD request-contract test observed the missing header, and the minimal fix was applied in the shared form helper. The first real schedule-current response had only safe structural error keys (`code`, `logId`, `msg`), and after the header fix the full schedule auto/Direct/WebVPN verifier passed. The pinned AAS example uses a POST query payload rather than this local form helper; it is not used to override the local endpoint's observed form contract.
-
-## 2026-08-19: Do not merge non-equivalent example protocols
-
-The pinned `buaa-api` App module exposes a mini-program exam page and no local `buaascore` grades operation; its Class module exposes iClass course/check-in endpoints and no free-classroom query; its tree has no Judge module. The frozen local implementation has separate grades, free-classroom, and Judge protocols. These are documented as non-equivalent in `docs/migration/source-parity.md`; their URLs, headers, DTOs, encryption, or errors must not be borrowed by analogy. This is a deliberate evidence boundary, not an implementation omission.
-
-## 2026-08-19: Choose a stable Judge detail sample in the live verifier
-
-The verifier contract requires one real Judge detail when the list is non-empty; it does not require the last list item. Three required/diagnostic auto attempts selected `.data[-1]` and returned `Judge assignment was not found` at the separate detail CLI process, while an evidence probe selecting `.data[0]` completed list plus detail with exit 0. The list and detail are separate processes and the upstream list can change between them, so the verifier now selects the first returned item and has a shell regression test. This changes only verifier sampling, not Core Judge lookup or its old-reference semantics; stale-ID results remain nonzero rather than being hidden.
-
-## 2026-08-23: Revalidate Judge Direct in the campus network
-
-The previous Judge `auto -> WebVPN` override was introduced after an explicit Direct attempt returned `upstream_unavailable`. With the test account on the campus network, later live checks returned exit 0 on Direct (reported 65 assignments) and WebVPN (reported 17 assignments), while the other five features also returned exit 0 on both explicit routes. The old implementation supports route-local Judge requests and does not require WebVPN, so the stale feature override was removed. This decision did not explain the 65/17 difference and did not prove the old detail parser semantics; the remediation decision below therefore reclassifies these values as historical observations rather than completed parity evidence.
-
-## 2026-08-23: Use a bounded TCP gateway probe
-
-The accepted product signal is a TCP connection attempt to `gw.buaa.edu.cn:80`, following the concrete target, port and 500ms duration in pinned `examples/buaa-api/src/utils/net.rs`. The entire operation, including hostname resolution and all resolved-address attempts, has one 500ms budget. Any successful connection is `Campus`; ordinary resolution failure, no addresses, refusal, unreachable network or deadline exhaustion is `OffCampus`. Only an internal probe implementation failure or deliberately injected diagnostic failure is `Unknown`. Results are process-local and cached for 60 seconds. The probe sends no HTTP/TLS request, reads no credential and hard-codes no IP address/range.
-
-This supersedes the earlier resolver-only authority. The total-budget and `Unknown` boundary are explicit UBAA 2 product constraints because the example applies 500ms per address and returns only Boolean; they are not presented as frozen upstream behavior.
-
-## 2026-08-23: Move ordinary route selection into the aggregate Core facade
-
-The earlier host-owned diagnostic design is superseded. The ordinary `UbaaClient` facade owns strict config loading, the cached gateway probe, route resolution/readiness checks, two private route runtimes, the shared dual-session coordinator and route-owned feature state. CLI and future hosts only parse input, call facade methods and render the facade's safe diagnostics. Explicit `ConnectionMode` remains available only through a clearly separate diagnostic/test path.
-
-One coordinator owns the loaded dual snapshot and revision. It never adopts a revision written by another process in order to retry a mutation. Aggregate logout performs both best-effort remote calls, clears this process, and attempts one dual compare-exchange; a conflict preserves the complete newer persisted snapshot.
-
-## 2026-08-23: Preserve route CAS semantics inside the dual coordinator
-
-The two route runtimes share one file revision but retain independent route-local logical revisions. A route adapter rejects an outdated logical revision before building a candidate, so two same-route writers that loaded the same state cannot both succeed. A valid sibling-route mutation may advance the file revision without making the other route's logical revision stale; the coordinator then merges that route's replacement into its client-owned full snapshot and performs one file CAS. Aggregate logout advances both route-local revisions and the file revision through one full-snapshot clear, including when this client originally loaded no slots.
-
-An external file CAS conflict is terminal for that coordinator instance. It clears the coordinator snapshot and both route runtimes/auth workflows, stops any not-yet-started sibling request, preserves the complete external snapshot, and returns the stable retryable conflict. Later calls on that instance keep returning the conflict without network I/O; recovery requires opening a new facade. This prevents a stale process from silently adopting the external revision or continuing with sibling Cookies after one route has lost ownership.
-
-A file CAS error is treated as equally terminal because the crash-safe store intentionally advances and synchronizes its revision before replacing or deleting `session.json`. An error may therefore mean that revision ownership was lost even when the body operation did not complete. The coordinator clears its client-owned snapshot and the facade clears all in-memory Cookies/workflows before returning; it never assumes that an `Err` happened before the revision write. A Unix permission fault-injection test covers this post-revision/body-write failure boundary.
-
-Remote logout remains an unconditional best-effort request on each owned route, matching both frozen logout implementations and the aggregate contract. An absent local slot suppresses Cookie attachment but does not suppress the Direct or WebVPN logout attempt. Deterministic CLI tests route these requests through a local rejecting proxy, so the repository gate never depends on the real upstream.
-
-Receiving SSO prepare-page Cookies does not establish a local authenticated session. Only an `authenticated_at` value restored from a persisted route slot or produced after successful User Center status validation authorizes user/business preflight. This keeps `prepare_login` state usable for credential submission while ensuring status, profile and all read-only features make zero requests between prepare and completed login. Any persistence-port error while committing that validated state clears the runtime Cookie jar, timestamps and pending workflow before the error escapes, including for injected non-file stores.
-
-## 2026-08-23: Make CLI schema v2 the only output contract
-
-All ordinary commands, hidden diagnostics, argument failures, authentication results and read-only results emit only schema version 2. The unshipped schema-v1 CLI branch is removed rather than maintained as compatibility surface. This does not change `config.toml` on-disk format version `1` or the versioned `session.json` migration reader; those are independent disk formats.
-
-## 2026-08-24: Represent pre-resolution CLI failures without inventing a route
-
-Neither frozen source defines a CLI JSON envelope. The UBAA 2 contract requires schema version 2
-for argument and startup errors, but those failures can occur before configuration is loaded or a
-route is resolved. Such failures use the routed schema-v2 envelope with an unresolved metadata form
-containing only the stable command feature. They never fabricate `routePolicy`, `networkState`,
-`initialRoute`, `resolvedRoute`, `usedFallback`, or aggregate route results. Once Core returns a
-`RouteResolution`, the complete six-field resolved metadata is mandatory. Aggregate authentication
-envelopes are emitted only after an actual two-route outcome exists and always carry Direct then
-WebVPN in fixed order.
-
-## 2026-08-23: Bind aggregate captcha answers before credential submission (superseded)
-
-This historical design recorded route-scoped captcha challenge state and answer
-binding from an earlier implementation. It is superseded by the 2026-08-25
-non-interactive authentication decision; no challenge IDs, answers or image data
-exist in the current public or internal login workflow.
-
-## 2026-08-23: Reopen SPOC and Judge live conclusions
-
-Frozen `LocalSpocApi.kt` treats course metadata as optional and always calls the encrypted global `queryListByPage` operation with `kcid=""`. Pinned `buaa-api` instead calls per-course `queryXsZyList`, so its list/auth flow is non-equivalent; only matching AES constants, token facts and the detail endpoint may supplement the old source. The prior three-route empty result is unverified until the corrected global empty-`kcid` request is observed. It cannot be called a valid empty list merely because the command exited 0.
-
-Pinned `buaa-api` has no Judge module. Frozen `LocalJudgeApi.kt` filters `problemContent`/`judgeDetails` assignment links and parses nested problem tables, scores, `PARTIAL` state and fallback counts. The current historical exit-0 detail checks did not assert all those semantics. Direct reported 65 items while WebVPN reported 17; the difference is unresolved and must be investigated after parser/cache parity without persisting IDs, titles or raw bodies. Neither route is permanently preferred from this observation.
-
-## 2026-08-24: Keep Judge cutoff and batch behavior deterministic
-
-The frozen local Judge API returns `historicalCutoffCourseIds`, groups batch work by course and
-subtracts six months while retaining the current local time of day. UBAA 2 keeps cutoff course IDs
-inside route-owned state rather than exposing them in the current summary-list DTO, and restores
-normalized batch results to the caller's original key order. The cutoff retains the current
-Shanghai time of day and clamps the day to the target month's final valid day (for example,
-August 31 becomes February 28 or 29). These are explicit host-contract choices: internalizing the
-cutoff IDs and restoring input order differ from the old public DTO/group traversal, while the
-time-of-day rule preserves the applicable frozen comparison boundary.
-
-## 2026-08-24: Resolve SPOC crypto and public-content source conflicts
-
-The frozen local implementation and pinned example use the same AES-128-CBC key and IV, but they
-do not agree for plaintext whose byte length is already a multiple of 16. `LocalSpocCrypto` adds
-no zero block in that case; the example AES helper always appends a full zero block. UBAA 2 follows
-the applicable frozen local implementation and covers aligned and unaligned plaintext with fixed
-vectors. The example corroborates constants and CBC operation only.
-
-The old detail DTO publicly exposes both raw HTML and derived plain text. UBAA 2 intentionally
-keeps raw upstream HTML internal and exposes only normalized plain text. This is a security and
-host-contract divergence, not a claim of exact DTO parity; detail/submission fields, fallback
-rules, and status semantics continue to follow the frozen local implementation.
-
-## 2026-08-24: Scope read-only feature state to one route runtime
-
-Frozen `LocalClassroomApiBackend` owns a double-checked synchronization flag and mutex per backend,
-and clears the flag with the selected authentication session. Pinned `buaa-api` exposes an iClass
-API rather than this free-classroom protocol, so it contributes no URL, header, DTO, or state rule.
-UBAA 2 therefore gives every Direct and WebVPN `ClientRuntime` a distinct
-`Arc<RouteFeatureState>`. Read workers forked from that runtime share only that route's state;
-separately constructed runtimes and the sibling route do not share it.
-
-`clear_memory` is the common invalidation boundary for Cookies, authentication timestamps, and all
-feature state. Authentication-required read-only errors in the diagnostic `RouteClient` now clear
-the selected persisted route through the same compare-exchange path used by aggregate routed
-operations. Logout, terminal conflict, explicit invalidation, and every successful login exit also
-reach the same feature-state clearing contract. Classroom synchronization failures remain
-best-effort and retryable, while a successful 200..399 bootstrap is reused only until that route's
-state is cleared. The business query uses the no-redirect transport exactly once and treats a raw
-SSO Location, 401, or evidenced login HTML as selected-route authentication invalidation.
-
-## 2026-08-24: Bind SPOC retries and tokens to verified operation and route boundaries
-
-Frozen `LocalSpocClient.withAuthenticatedCall` wraps current-term, course, assignment-page, detail,
-and submission requests separately. Therefore an authentication failure on page two refreshes the
-route credential once and repeats page two, rather than restarting the term/course/page-one
-sequence. UBAA 2 follows that boundary with one common retry helper returning the second failure
-unchanged. The outer frozen course lookup uses `runCatching`, so exhausted course authentication is
-still optional metadata and cannot suppress the authoritative global assignment query.
-
-The frozen token parser checks the landing path but not its host. Applying it literally before
-redirect allow-listing would allow a foreign host with the same path to supply a token, while a
-Direct client could consume a WebVPN terminal. UBAA 2 therefore adds a security boundary without
-inventing protocol fields: the decoded terminal must be HTTPS `spoc.buaa.edu.cn`, its path must be
-exactly `/spocnew/cas`, and its raw representation must match the active route. Direct redirect
-resolution rejects gateway URLs; WebVPN decodes, validates, then re-encodes only allow-listed BUAA
-targets. The route state checks its generation while holding the credential lock so a login
-completing across logout, conflict, or session replacement cannot repopulate an invalidated token.
-The credential itself has no token-revealing `Debug` implementation.
-
-The production transport does not follow redirects. A SPOC business response whose raw
-`Location` resolves to `sso.buaa.edu.cn` is therefore an authentication failure even when its
-`final_url` remains the business URL; the one-refresh helper repeats only that failed operation.
-The frozen client also treats the standalone text `权限` as an authentication marker, but that
-would replay an evidenced permission denial such as code 403. The active remediation contract
-explicitly forbids retrying permission errors, so UBAA 2 recognizes only the evidenced login,
-token, `未认证`, and `未登录` markers and returns a permission envelope unchanged as an upstream
-error. No field, URL, or retry beyond those boundaries is inferred.
-
-## 2026-08-24: Preserve primary sessions after exhausted SPOC authentication
-
-Frozen `LocalSpocApiBackend.runLocalSpocCall` sends a terminal business-authentication failure to
-`resolveLocalBusinessAuthenticationFailure`. That helper validates the User Center session and
-clears it only when UC explicitly returns Invalid; Valid, transient, and inconclusive validation
-preserve the primary session and become a SPOC business error. UBAA 2 applies this arbitration only
-after required current-term, global-page, or detail operations exhaust one credential refresh.
-Optional course metadata and submission enrichment retain their surrounding frozen `runCatching`
-behavior. Deterministic dual-slot tests prove an invalid Direct result clears Direct only, while a
-valid or 5xx UC result retains the selected session and returns retryable `upstream_unavailable`
-instead of `authentication_required`.
-
-The no-follow transport exposes a raw SSO `Location` from `/sys/casLogin`; null `content` and a
-content object without `jsdm`, `rolecode`, or `jsdmList` also fail to establish a credential. All
-three are treated as SPOC authentication failures and enter the same primary-session arbitration.
-The frozen JSON decode fallback scans malformed raw bodies and can retry solely because arbitrary
-text contains `token`. That conflicts with the active contract that parse/unknown failures are not
-authentication evidence, so UBAA 2 returns `parse_error` without a second login for malformed JSON.
-Valid parsed envelopes with evidenced authentication markers retain the bounded one-refresh rule.
-
-The frozen page DTO defaults absent `total/pageNum/pageSize/pages` to `0/1/15/1`, while present
-values must be integers; assignment `xnxq` and detail `sskcid` are optional strings, and detail
-`zymc` is a required string. UBAA 2 now preserves those exact presence rules and rejects wrong
-types. Its transport test captures both encrypted page POSTs, decrypts their actual `param` values
-only inside the test process, and asserts the complete ordered page-one and page-two plaintext. No
-live token, Cookie, raw response, assignment identity, or decrypted request is persisted.
-
-## 2026-08-24: Keep semantic live diagnostics hidden and count-only
-
-Neither frozen source defines a CLI verifier or diagnostic DTO. Ordinary SPOC and Judge results
-cannot by themselves prove that an empty SPOC list reached the authoritative global page or show
-where Judge link filtering changed a route count. UBAA 2 therefore adds hidden test/live-only CLI
-commands backed by facade methods that reuse the ordinary operation, route, cache, parser and error
-path. They add no upstream URL, request, redirect, header, parameter or retry.
-
-SPOC diagnostics return the ordinary result plus the number of successfully parsed authoritative
-global pages. Judge diagnostics return the parsed course count, pre-filter numeric assignment-anchor
-count, post-filter unique count and ordinary summaries. These values are evidence metadata, not a
-stable user feature, and remain schema-v2 routed output.
-
-The verifier rejects any route change between requests in one feature run, unsafe stable errors,
-incomplete, causally inconsistent or unmasked profile fields, fractional or out-of-range Rust
-integer fields, term drift, a SPOC detail that does not preserve both sampled IDs, a SPOC UNKNOWN
-value contradicted by the frozen status mapping, impossible Judge diagnostic/status/score
-relationships, any incomplete or extra business DTO field, or a duplicate Judge
-`(courseId, assignmentId)` key. Interactive verification is not a verifier state: Core rejects
-the login page before any credential POST, and the verifier accepts only the resulting safe
-`upstream_changed` error. Judge IDs remain parser-produced digit strings rather than numbers;
-only the exact course ID `"0"` is excluded. Judge cross-request JSON is supplied to jq through
-stdin so titles and IDs do not enter the process argument vector.
-
-The string gate rejects obvious complete HTML documents and CAS execution forms, but deliberately
-does not infer that arbitrary angle-bracket text is raw markup: an encoded assignment can normalize
-to literal text such as `<html>`. Stable DTO closure forbids every HTML/raw-body field, while Core
-parser fixtures prove HTML-to-plain-text conversion. This division avoids both a false live pass
-claim about fragment provenance and rejection of valid assignment content.
-
-The verifier requires a fresh caller-provided salt for Judge/all, hashes sorted identifiers only in
-memory, and prints only the short digest plus safe counts. The shell contract proves that the same
-salt and payload are stable, a different salt changes the digest, and a missing salt exits before
-login. Known credential/session/request/response key aliases are rejected independently of their
-values, and resolved metadata objects are closed. It never prints or persists identifiers, titles,
-bodies, raw HTML, tokens, Cookies, captcha
-material, profile fields, decrypted SPOC parameters or the salt. The corrected real matrix was
-still pending when this decision was recorded, so the diagnostics do not promote any historical
-route result.
-
-An earlier draft of this record described an aggregate human-captcha child, PTY ownership and
-synthetic captcha-artifact cleanup. That design was superseded by the 2026-08-25 non-interactive
-authentication decision above; it is historical planning text, not an implemented flow or
-acceptance proof. The current verifier never opens `/dev/tty`, starts a human child, fetches an
-image or persists a challenge. The Core classifier rejects the frozen captcha fields, deny-only
-interactive `config.*` markers and any unknown visible verification control before the credential
-POST, and the shell regression proves that only safe summaries are emitted.
-
-## 2026-08-26: Preserve the primary session after Judge business-auth exhaustion
-
-The frozen `LocalJudgeApi` catches a terminal Judge business-authentication failure and delegates
-to `resolveLocalBusinessAuthenticationFailure`. That helper checks the User Center session and
-clears the primary route only when UC explicitly reports Invalid; a valid, unavailable, network,
-or inconclusive UC result preserves the session and returns a business failure. The current Rust
-Judge retry loop returned `authentication_required` directly, so the facade treated every terminal
-Judge failure as route invalidation. This round adds the missing Judge top-level arbitration,
-mirroring the already implemented SPOC boundary, and maps preserved-session failures to the stable
-retryable `upstream_unavailable` code because no Judge-specific public error code exists.
-
-The arbitration is applied once after a list/diagnostics or batch/detail operation exhausts its
-three reactivations; it is not placed inside `get_html`, which would issue a User Center status
-request for every internal course or detail request. Tests cover UC valid, explicit Invalid, and
-unavailable outcomes, including preservation of the sibling route slot. No URL, request
-parameter, Cookie, token, raw response, or live credential is recorded.
-
-UC status JSON that is syntactically malformed after an object prefix is treated as inconclusive:
-the parser error is preserved for direct status callers, while Judge maps it to the same retryable
-business failure and keeps the primary session. A syntactically valid nonzero `code` or missing
-`data`, as well as an explicitly non-JSON or non-2xx invalid response, remains an authentication
-invalidation according to the frozen classifier.
-
-If the UC validation itself cannot commit refreshed authentication because of a persistence or
-CAS conflict, that `internal_error` is propagated unchanged instead of being relabeled as an
-upstream business failure. When the aggregate facade observes that the route was already cleared
-by explicit UC invalidation or conflict handling, it also clears the route's pending AuthWorkflow
-state without issuing a second persistence mutation.
-
-## 2026-08-26: Keep WebVPN root slash and omit empty separators
-
-The frozen `LocalWebVpnSupport` omits blank query and fragment components while decoding and
-encoding, so Rust now filters empty `?` and `#` values as well. Its decoder does not add a root
-slash when the wrapped path has only the protocol and encrypted host. Rust retains an explicit
-root slash because the URL/runtime path representation and root Judge request/final-URL semantics
-use that distinction; Cookie matching itself remains against the gateway URL. The choice is covered
-by sanitized round-trip tests and does not change the gateway, AES, protocol, port, or redirect-host
-contract.
-
-## 2026-08-26: Record the complete live matrix and Judge snapshot volatility
-
-The corrected live matrix passed authentication on Direct and WebVPN, `feature=all route=auto`,
-all six explicit Direct features, all six explicit WebVPN features, and `feature=all route=direct`.
-The first complete `feature=all route=webvpn` attempt passed schedule, exam, grades, classroom and
-SPOC but failed the unchanged Judge `judge_cutoff` subset check. An immediate rerun passed all six
-features with safe Judge counts `5/77/57/17/40`; the standalone WebVPN Judge run in the same
-round passed with `5/49/49/17/32`. The differing snapshots are upstream list volatility, not a
-reason to weaken the verifier or merge identifiers across requests. The failure and rerun are both
-recorded in `docs/migration/status.md`; a later final verification showed the same failure followed
-by another passing immediate rerun. Future reruns must keep the strict cutoff check.
-
-## 2026-08-28：场馆预约的 WebVPN 策略必须保留直连业务域
+## 2026-08-17 至 2026-08-29：已归档历史决策摘要
+
+以下条目是已被当前中文合同、来源对照和后续决策吸收的历史摘要；完整旧正文仍可从 Git
+历史追溯，不再在当前文档重复维护。
+
+- 认证与连接只接受主机白名单内的 HTTP/HTTPS 跳转，TLS 校验保持开启；非 HTTP 协议即使主机匹配也拒绝。公共宿主只使用具体的 facade，运行时、上游解析和存储实现保持私有。
+- 响应正文、会话文件和内存缓冲均有上限；Session 文件使用防符号链接、仅所有者权限、侧车锁、唯一临时文件和单调 CAS 修订，防止陈旧进程覆盖、重建或删除新会话。
+- 交互式验证码分支已被 2026-08-25 的非交互决策取代。遇到未支持的验证控件时，Core 在请求验证码图片或提交凭据前返回 `upstream_changed`；CLI、JSON 合同和真实验证器不暴露挑战、答案或图片。
+- 课表周视图的响应 `code` 只按冻结 DTO 作为非空展示字段解析，不能强行要求它等于请求学期；课表和成绩表单保持 `application/x-www-form-urlencoded`。AAS 读取前执行有证据支持的服务激活并校验最终 URL。
+- 注销保持“远端尽力请求后清理本地”的冻结顺序；持久化清理由 CAS 修订保护。确定性 Cargo 门禁统一锁定依赖解析；格式检查工具不解析依赖，因此不需要锁定参数。
+- Judge 的历史 `auto -> WebVPN` 覆盖已在校园网 Direct 复核后撤销；现在所有功能使用统一路线表。网关探测固定为 `gw.buaa.edu.cn:80` 的一次 500 毫秒总预算 TCP 探测，并在进程内缓存 60 秒。
+- 普通路线选择已从宿主迁入聚合 `UbaaClient`。双路线协调器拥有完整快照和修订；外部 CAS 冲突是当前实例的终止状态，清理双路线内存并停止后续网络 I/O，恢复必须重新打开 facade。
+- 仅接收 SSO 准备页 Cookie 不代表已认证；只有持久化的认证时间或用户中心状态成功后才允许业务读取。CLI 对所有命令只输出 schema v2；路线解析前的错误只包含功能名，不虚构路线元数据。
+- SPOC 以冻结本地实现为准：课程元数据可选，作业列表必须调用加密的全局分页请求；加密正文恰好按 16 字节对齐时不额外补零块。详情公共 DTO 只保留规范化纯文本，不暴露原始 HTML。
+- SPOC 令牌必须绑定 HTTPS `spoc.buaa.edu.cn/spocnew/cas` 和当前路线；业务认证重试只重放失败的单项请求，解析错误和权限错误不伪装成认证失效。业务认证耗尽后仅在用户中心明确失效时清主会话。
+- Judge 与 SPOC 的隐藏诊断仅输出安全计数并复用普通 facade 响应；它们不增加 URL、参数、Header 或重试。历史摘要盐、jq 聚合与真实 `auto` 验证器已停用，当前 Core-live 直接输出逐操作安全证据。
+- Cgyy、Signin、Ygdk、LibBook、Evaluation 的历史单项修复均已纳入 `source-parity.md`：Signin 使用冻结 GET/`sessionId` 形状；Ygdk 和 Evaluation 保留有证据的可选读取回退；LibBook 双路线读取已验证；Cgyy 签名、业务令牌与每项真实结果独立判定。
+- 2026-08-29 的 Direct/WebVPN/auto 聚合结果和瞬时 Judge 数量只保留为上游波动背景，不再作为当前验收。当前门禁只接受 Core-live 的显式 Direct/WebVPN 只读矩阵，且绝不调用真实写操作。
+
+## 2026-08-28：场馆预约的 WebVPN 策略必须保留直连业务域（已被 2026-08-31 决策取代）
 
 本轮真实验证中，WebVPN 主认证成功，但场馆预约返回
 `authentication_required`；同一账号的 Direct 场馆查询成功并返回 4 个站点。
@@ -639,7 +180,7 @@ by another passing immediate rerun. Future reruns must keep the strict cutoff ch
 - 以上运行只执行读操作；未记录凭据、Cookie、令牌、摘要盐、原始响应或个人数据，
   未调用任何选课、退选、签到、预约、取消、提交或上传接口。整体迁移继续保持未完成。
 
-## 2026-08-29 User 独立只读验收
+## 2026-08-29 用户独立只读验收
 
 - `feature=user route=direct`、`feature=user route=webvpn` 和
   `feature=user route=auto` 均退出 0；auto 实际解析到 Direct。
