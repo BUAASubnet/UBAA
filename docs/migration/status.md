@@ -267,7 +267,7 @@ Mock 证据；Judge 三路线和其他领域的最新逐操作重跑通过。
 
 ### 2026-08-28 Cgyy/Bykc/扩展只读 CLI
 
-Cgyy 场馆预约五项只读查询已完成 DTO、解析器、路线隔离业务会话、Core Facade、CLI 双执行路径和 JSON Schema；Bykc 五项只读查询同样已完成。当前 CLI 已覆盖合同六类业务以及 Signin、Ygdk、LibBook、Bykc、Cgyy 的全部只读入口。所有真实上游验证仍需按路线矩阵单独执行，不能由 Mock 或编译通过替代。
+Cgyy 场馆预约全部只读查询已完成 DTO、解析器、路线隔离业务会话、Core facade、CLI 双执行路径和 JSON Schema；Bykc 全部只读查询同样已完成。当前 CLI 已覆盖标准业务及 Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的全部只读入口。所有真实上游验证仍需按路线矩阵单独执行，不能由 Mock 或编译通过替代。
 
 2026-08-28 的 CLI 命令矩阵审计发现 `cgyy` 已接入普通与聚合执行路径，但遗漏在
 `requires_session()` 的会话预检枚举之外。新增覆盖所有扩展只读子命令的解析与功能映射
@@ -335,14 +335,14 @@ Bykc 首次结果的 `invalid_semantics` 后经审计确认为验证器误将合
 
 | Run | Result |
 |---|---|
-| `feature=all route=auto` | Exit 0; resolved Direct; all six features passed. Classroom count 158; SPOC global page count 1 with empty assignments; Judge counts course/raw/filtered/current/cutoff `5/88/83/65/18`, detail present. |
-| `feature=all route=direct` | Exit 0; all six features passed. Judge counts `5/88/83/65/18`, detail present. |
+| `feature=all route=auto` | Exit 0; resolved Direct; all standard features passed. Classroom count 158; SPOC global page count 1 with empty assignments; Judge counts course/raw/filtered/current/cutoff `5/88/83/65/18`, detail present. |
+| `feature=all route=direct` | Exit 0; all standard features passed. Judge counts `5/88/83/65/18`, detail present. |
 | `feature=schedule`, `exam`, `grades`, `classroom`, `spoc`, `judge` on Direct | Exit 0 for each; Judge counts `5/88/83/65/18`, detail present; SPOC global page count 1 with empty assignments. |
 | `feature=schedule`, `exam`, `grades`, `classroom`, `spoc`, `judge` on WebVPN | Exit 0 for each; Judge standalone counts `5/49/49/17/32`, detail present; SPOC global page count 1 with empty assignments. |
 | `feature=all route=webvpn` first attempt | Exit 1 at strict `judge_cutoff`; schedule/exam/grades/classroom/SPOC passed. The failure is retained as upstream snapshot volatility evidence. |
-| `feature=all route=webvpn` immediate rerun | Exit 0; all six features passed. Judge counts `5/77/57/17/40`, detail present. |
+| `feature=all route=webvpn` immediate rerun | Exit 0; all standard features passed. Judge counts `5/77/57/17/40`, detail present. |
 | final `feature=all route=webvpn` verification attempt | Exit 1 at strict `judge_cutoff`; schedule/exam/grades/classroom/SPOC passed. The failure is retained as upstream snapshot volatility evidence. |
-| final immediate `feature=all route=webvpn` rerun | Exit 0; all six features passed. Judge counts `5/77/57/17/40`, detail present. |
+| final immediate `feature=all route=webvpn` rerun | Exit 0; all standard features passed. Judge counts `5/77/57/17/40`, detail present. |
 
 ## 2026-08-26 Deterministic Gates
 
