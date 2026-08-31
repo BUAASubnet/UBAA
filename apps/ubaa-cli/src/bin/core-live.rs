@@ -167,6 +167,7 @@ fn error_code(code: ErrorCode) -> &'static str {
 
 #[tokio::main]
 async fn main() {
+    init_logging();
     let args = match Args::try_parse() {
         Ok(args) => args,
         Err(error) => {
@@ -183,6 +184,17 @@ async fn main() {
         }
     };
     std::process::exit(code);
+}
+
+fn init_logging() {
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .with_target(true)
+        .with_ansi(false)
+        .try_init();
 }
 
 async fn run(args: Args) -> Result<Evidence> {

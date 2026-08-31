@@ -67,8 +67,9 @@ evaluation/all FAIL(authentication_required); evaluation/pending BLOCKED(all_fai
 ```
 
 WebVPN Cgyy 没有回退到 Direct；上述 `authentication_required` 是当前上游路线结果，
-不是本地改写为成功。`auto` 未执行真实登录，只由 facade 的确定性 WebVPN-only、
-Direct/ WebVPN 探测和路由策略测试覆盖。
+不是本地改写为成功。窄范围日志显示 Cgyy SSO 在 `d.buaa.edu.cn` 路线完成 4 次重定向后
+以 200 返回，但未写入冻结要求的 SSO Cookie，Core 因此安全失败。`auto` 未执行真实登录，
+只由 facade 的确定性 WebVPN-only、Direct/WebVPN 探测和路由策略测试覆盖。
 
 ## 2026-08-29 阶段提交
 
