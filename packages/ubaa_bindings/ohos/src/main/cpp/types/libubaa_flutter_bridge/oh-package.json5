@@ -1,0 +1,6 @@
+{
+  "name": "libubaa_flutter_bridge.so",
+  "types": "./Index.d.ts",
+  "version": "1.0.0",
+  "description": "UBAA Flutter Rust bridge arm64 动态库。"
+}

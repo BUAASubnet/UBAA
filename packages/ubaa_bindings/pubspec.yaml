@@ -1,0 +1,36 @@
+name: ubaa_bindings
+description: UBAA Rust Core 的 FRB 生成绑定与 Cargokit 平台集成。
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.5
+  flutter: '>=3.41.9'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rust_bridge: 2.13.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true
+      ohos:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true

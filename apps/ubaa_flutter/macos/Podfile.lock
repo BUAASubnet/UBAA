@@ -1,0 +1,22 @@
+PODS:
+  - FlutterMacOS (1.0.0)
+  - ubaa_bindings (0.1.0):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - ubaa_bindings (from `Flutter/ephemeral/.symlinks/plugins/ubaa_bindings/macos`)
+
+EXTERNAL SOURCES:
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  ubaa_bindings:
+    :path: Flutter/ephemeral/.symlinks/plugins/ubaa_bindings/macos
+
+SPEC CHECKSUMS:
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  ubaa_bindings: 5e584c71c919fc51e66adad15eaed3fa02d68c01
+
+PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
+
+COCOAPODS: 1.16.2

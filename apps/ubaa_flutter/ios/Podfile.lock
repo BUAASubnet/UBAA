@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - ubaa_bindings (0.1.0):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - ubaa_bindings (from `.symlinks/plugins/ubaa_bindings/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  ubaa_bindings:
+    :path: ".symlinks/plugins/ubaa_bindings/ios"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  ubaa_bindings: 2763efad48f11e17a1d5dc363a0e7ec8cc5ebfcb
+
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+
+COCOAPODS: 1.16.2

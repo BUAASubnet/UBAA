@@ -1,0 +1,3 @@
+rust_input: crate::api
+rust_root: ../../crates/ubaa-flutter-bridge/
+dart_output: lib/src/rust

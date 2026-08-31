@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  ubaa_bindings:
+    path: ../../packages/ubaa_bindings
   ubaa_app:
     path: ../../packages/ubaa_app
   ubaa_domain:

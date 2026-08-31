@@ -1,0 +1,11 @@
+{
+  "module": {
+    "name": "ubaa_bindings",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "phone",
+      "tablet"
+    ]
+  }
+}

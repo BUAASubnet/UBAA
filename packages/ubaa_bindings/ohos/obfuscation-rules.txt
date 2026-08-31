@@ -1,0 +1,5 @@
+# FFI plugin 的 Release 混淆规则；当前 build profile 尚未启用混淆。
+-enable-property-obfuscation
+-enable-toplevel-obfuscation
+-enable-filename-obfuscation
+-enable-export-obfuscation

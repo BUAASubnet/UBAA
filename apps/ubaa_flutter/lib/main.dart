@@ -2,15 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
-void main() {
+Future<void> main() async {
+  await RustLib.init();
+  assert(bridgeHello() == 'UBAA FRB 2.13.0 ready');
   runApp(const UbaaFlutterApp());
 }
 
-/// 官方 Flutter 宿主。生产构建通过构造函数注入 FRB backend；默认 Demo
-/// backend 只用于 UI 预览和 widget 测试，不会访问真实学校服务。
+/// 官方 Flutter 宿主。P0 只接通 FRB 初始化与 hello；默认 Demo backend
+/// 仍只用于 UI 预览和 widget 测试，不会访问真实学校服务。P1 必须在生产入口
+/// 注入 FRB backend，届时不得保留生产 Demo 回退。
 class UbaaFlutterApp extends StatefulWidget {
   const UbaaFlutterApp({
     this.backend,

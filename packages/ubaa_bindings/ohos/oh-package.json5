@@ -1,0 +1,11 @@
+{
+  "name": "ubaa_bindings",
+  "version": "0.1.0",
+  "description": "UBAA Rust Core 的 FRB FFI plugin。",
+  "main": "Index.ets",
+  "author": "BUAASubnet",
+  "license": "MIT",
+  "dependencies": {
+    "libubaa_flutter_bridge.so": "file:./src/main/cpp/types/libubaa_flutter_bridge"
+  }
+}

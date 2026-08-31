@@ -1,0 +1,1 @@
+# 当前 FFI plugin 没有需由宿主保留的 ArkTS 符号。
