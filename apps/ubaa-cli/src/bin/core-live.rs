@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use clap::Parser;
-use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue};
+use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue, Week};
 use ubaa_core::error::{ErrorCode, Result};
 use ubaa_core::facade::RouteClient;
 
@@ -324,8 +324,10 @@ fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
         ("grades", "query"),
         ("classroom", "search"),
         ("spoc", "assignments"),
+        ("spoc", "diagnostics"),
         ("spoc", "detail"),
         ("judge", "include_expired"),
+        ("judge", "diagnostics"),
         ("judge", "current"),
         ("judge", "detail"),
         ("judge", "details_batch"),
@@ -458,14 +460,13 @@ async fn run_schedule(client: &mut RouteClient, evidence: &mut Evidence, feature
             return;
         }
     };
-    let week = weeks
-        .iter()
-        .find(|week| week.cur_week)
-        .or_else(|| weeks.first())
-        .map_or(1, |week| week.serial_number);
-    match client.schedule_week(&term, week).await {
-        Ok(_) => evidence.pass("schedule", "current", None),
-        Err(error) => evidence.fail("schedule", "current", error.code),
+    if let Some(week) = select_valid_week(&weeks) {
+        match client.schedule_week(&term, week).await {
+            Ok(_) => evidence.pass("schedule", "current", None),
+            Err(error) => evidence.fail("schedule", "current", error.code),
+        }
+    } else {
+        evidence.not_applicable("schedule", "current", "no_valid_week_id");
     }
     match client.schedule_today().await {
         Ok(result) => evidence.pass("schedule", "today", Some(result.data.len())),
@@ -483,6 +484,14 @@ async fn run_schedule(client: &mut RouteClient, evidence: &mut Evidence, feature
             Err(error) => evidence.fail("grades", "query", error.code),
         }
     }
+}
+
+fn select_valid_week(weeks: &[Week]) -> Option<i32> {
+    weeks
+        .iter()
+        .find(|week| week.cur_week && week.serial_number > 0)
+        .or_else(|| weeks.iter().find(|week| week.serial_number > 0))
+        .map(|week| week.serial_number)
 }
 
 async fn run_classroom(
@@ -513,10 +522,17 @@ async fn run_spoc(client: &mut RouteClient, evidence: &mut Evidence) {
                     result.data.global_page_count.to_string(),
                 )],
             );
+            evidence.pass_with_fields(
+                "spoc",
+                "diagnostics",
+                Some(result.data.global_page_count as usize),
+                &[("reuse_from", "assignments".to_string())],
+            );
             result.data
         }
         Err(error) => {
             evidence.fail("spoc", "assignments", error.code);
+            evidence.fail("spoc", "diagnostics", error.code);
             evidence.blocked("spoc", "detail", "assignments_failed");
             return;
         }
@@ -547,10 +563,17 @@ async fn run_judge(client: &mut RouteClient, evidence: &mut Evidence) {
                     ),
                 ],
             );
+            evidence.pass_with_fields(
+                "judge",
+                "diagnostics",
+                Some(result.data.summaries.len()),
+                &[("reuse_from", "include_expired".to_string())],
+            );
             result.data
         }
         Err(error) => {
             evidence.fail("judge", "include_expired", error.code);
+            evidence.fail("judge", "diagnostics", error.code);
             evidence.blocked("judge", "current", "include_expired_failed");
             evidence.blocked("judge", "detail", "include_expired_failed");
             evidence.blocked("judge", "details_batch", "include_expired_failed");
@@ -798,5 +821,38 @@ async fn run_evaluation(client: &mut RouteClient, evidence: &mut Evidence) {
             evidence.fail("evaluation", "all", error.code);
             evidence.blocked("evaluation", "pending", "all_failed");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_valid_week;
+    use ubaa_core::domain::Week;
+
+    fn week(serial_number: i32, cur_week: bool) -> Week {
+        Week {
+            serial_number,
+            cur_week,
+            ..Week::default()
+        }
+    }
+
+    #[test]
+    fn 选择当前且为正数的周次() {
+        assert_eq!(select_valid_week(&[week(0, true), week(3, true)]), Some(3));
+    }
+
+    #[test]
+    fn 当前周无效时选择第一个正数周次() {
+        assert_eq!(
+            select_valid_week(&[week(0, true), week(-1, false), week(4, false)]),
+            Some(4)
+        );
+    }
+
+    #[test]
+    fn 没有有效周次时不猜测默认值() {
+        assert_eq!(select_valid_week(&[week(0, false), week(-2, true)]), None);
+        assert_eq!(select_valid_week(&[]), None);
     }
 }

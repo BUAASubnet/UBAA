@@ -158,8 +158,6 @@ mod tests {
 
         let request = parse_cgyy_request(input).unwrap();
 
-        assert!(request.captcha_verification.is_empty());
-        assert!(request.captcha_point_json.is_empty());
-        assert!(request.captcha_token.is_empty());
+        assert!(!request.has_captcha_material());
     }
 }

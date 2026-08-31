@@ -13,9 +13,19 @@ impl RouteClient {
         {
             self.runtime.clear_memory();
             self.auth.clear();
-            Err(DualSessionCoordinator::conflict_error())
-        } else {
-            Ok(())
+            return Err(DualSessionCoordinator::conflict_error());
+        }
+        if !self.runtime.has_local_session() && !self.auth.has_pending_login() {
+            self.runtime.sync_empty_session_revision()?;
+            return Ok(());
+        }
+        match self.runtime.ensure_session_revision() {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.runtime.clear_memory();
+                self.auth.clear();
+                Err(error)
+            }
         }
     }
 

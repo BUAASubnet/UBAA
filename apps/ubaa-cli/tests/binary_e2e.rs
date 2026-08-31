@@ -175,6 +175,22 @@ fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
 }
 
 #[test]
+fn core_live_matrix_contains_shared_diagnostic_rows_and_no_guessed_week() {
+    let core_live = include_str!("../src/bin/core-live.rs");
+    for label in [
+        "\"spoc\",\n                \"diagnostics\"",
+        "\"judge\",\n                \"diagnostics\"",
+    ] {
+        assert!(
+            core_live.contains(label),
+            "Core-live 缺少诊断矩阵行: {label}"
+        );
+    }
+    assert!(core_live.contains("no_valid_week_id"));
+    assert!(!core_live.contains("map_or(1"));
+}
+
+#[test]
 fn binary_help_lists_required_commands_without_password_option() {
     let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
         .arg("auth")

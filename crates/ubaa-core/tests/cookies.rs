@@ -111,3 +111,62 @@ fn expired_cookie_is_not_sent_or_persisted() {
     );
     assert_eq!(jar.cookies().len(), 0);
 }
+
+#[test]
+fn cookie_value_lookup_respects_domain_path_and_expiry() {
+    let now = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000);
+    let mut jar = CookieJar::default();
+    jar.store_response(
+        &response("TOKEN=wrong-domain; Domain=uc.buaa.edu.cn; Path=/"),
+        "https://uc.buaa.edu.cn/login",
+        now,
+    )
+    .unwrap();
+    jar.store_response(
+        &response("TOKEN=wrong-path; Domain=sso.buaa.edu.cn; Path=/other"),
+        "https://sso.buaa.edu.cn/other/login",
+        now,
+    )
+    .unwrap();
+    jar.store_response(
+        &response("OLDTOKEN=expired; Domain=sso.buaa.edu.cn; Path=/cas; Max-Age=1"),
+        "https://sso.buaa.edu.cn/cas/login",
+        now,
+    )
+    .unwrap();
+    jar.store_response(
+        &response("TOKEN=valid; Domain=sso.buaa.edu.cn; Path=/cas"),
+        "https://sso.buaa.edu.cn/cas/login",
+        now,
+    )
+    .unwrap();
+
+    assert_eq!(
+        jar.cookie_value_for_url("TOKEN", "https://sso.buaa.edu.cn/cas/step", now)
+            .unwrap(),
+        Some("valid".into())
+    );
+    assert_eq!(
+        jar.cookie_value_for_url(
+            "OLDTOKEN",
+            "https://sso.buaa.edu.cn/cas/step",
+            now + Duration::from_secs(2)
+        )
+        .unwrap(),
+        None
+    );
+    assert_eq!(
+        jar.cookie_value_for_url(
+            "TOKEN",
+            "https://sso.buaa.edu.cn/cas/step",
+            now + Duration::from_secs(2)
+        )
+        .unwrap(),
+        Some("valid".into())
+    );
+    assert_eq!(
+        jar.cookie_value_for_url("TOKEN", "https://uc.buaa.edu.cn/", now)
+            .unwrap(),
+        Some("wrong-domain".into())
+    );
+}

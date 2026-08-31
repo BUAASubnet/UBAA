@@ -6,8 +6,7 @@ use ubaa_core::features::cgyy::{
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use ubaa_core::domain::{
-    CgyyDayInfo, CgyyPurposeSource, CgyyReservationSelection, CgyyReservationSubmitRequest,
-    ConnectionMode,
+    CgyyPurposeSource, CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode,
 };
 use ubaa_core::facade::RouteClient;
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
@@ -109,14 +108,16 @@ fn 日期空间槽位按时间编号排序() {
 
 #[test]
 fn 预约上下文令牌不进入公共序列化输出() {
-    let day = CgyyDayInfo {
-        reservation_token: Some("reservation-token".into()),
-        ..Default::default()
-    };
-
+    let day = parse_day_info(
+        r#"{"code":200,"data":{"token":"reservation-token"}}"#,
+        4,
+        "2026-03-29",
+    )
+    .unwrap();
     let value = serde_json::to_value(day).unwrap();
 
     assert!(value.get("reservationToken").is_none());
+    assert!(!value.to_string().contains("reservation-token"));
 }
 
 #[test]
@@ -233,6 +234,56 @@ fn 业务令牌失效时按旧版重建会话并只重放一次() {
 }
 
 #[test]
+fn 同一客户端连续读取只建立一次场馆业务会话() {
+    let root = std::env::temp_dir().join(format!("ubaa-cgyy-reuse-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        CgyyReuseTransport {
+            requests: Arc::clone(&requests),
+        },
+        store,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    runtime.block_on(client.cgyy_sites()).unwrap();
+    runtime.block_on(client.cgyy_sites()).unwrap();
+
+    let requests = requests.lock().unwrap();
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| url::Url::parse(&request.url).unwrap().path()
+                == "/venue-zhjs-server/api/login")
+            .count(),
+        1
+    );
+    assert_eq!(
+        requests
+            .iter()
+            .filter(|request| url::Url::parse(&request.url).unwrap().path()
+                == "/venue-zhjs-server/api/front/website/venues")
+            .count(),
+        2
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn webvpn_从网关_cookie接口取得_cgyy_sso令牌() {
     let root = std::env::temp_dir().join(format!("ubaa-cgyy-webvpn-cookie-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
@@ -309,27 +360,23 @@ fn 场馆预约写链按冻结顺序发送验证码和最终表单() {
         store,
     )
     .unwrap();
-    let request = CgyyReservationSubmitRequest {
-        venue_site_id: 4,
-        reservation_date: "2026-03-29".into(),
-        selections: vec![CgyyReservationSelection {
-            space_id: 6,
-            time_id: 242,
-            venue_space_group_id: None,
-        }],
-        phone: "010-00000000".into(),
-        theme: "测试预约".into(),
-        purpose_type: 1,
-        joiner_num: 1,
-        activity_content: "测试内容".into(),
-        joiners: "测试人员".into(),
-        is_philosophy_social_sciences: false,
-        is_off_school_joiner: false,
-        captcha_verification: "verification".into(),
-        captcha_point_json: "point-json".into(),
-        captcha_token: "captcha-token".into(),
-        ..Default::default()
-    };
+    let mut request = CgyyReservationSubmitRequest::default();
+    request.venue_site_id = 4;
+    request.reservation_date = "2026-03-29".into();
+    request.selections = vec![CgyyReservationSelection {
+        space_id: 6,
+        time_id: 242,
+        venue_space_group_id: None,
+    }];
+    request.phone = "010-00000000".into();
+    request.theme = "测试预约".into();
+    request.purpose_type = 1;
+    request.joiner_num = 1;
+    request.activity_content = "测试内容".into();
+    request.joiners = "测试人员".into();
+    request.is_philosophy_social_sciences = false;
+    request.is_off_school_joiner = false;
+    let request = request.with_captcha_material("verification", "point-json", "captcha-token");
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -473,6 +520,43 @@ struct CgyyAuthRetryTransport {
 }
 
 struct CgyyPurposeFallbackTransport;
+
+#[derive(Clone)]
+struct CgyyReuseTransport {
+    requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
+#[async_trait]
+impl HttpTransport for CgyyReuseTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        self.requests.lock().unwrap().push(request.clone());
+        let path = url::Url::parse(&request.url).unwrap().path().to_owned();
+        let mut response = match path.as_str() {
+            "/venue-zhjs-server/sso/manageLogin" => HttpResponse::new(200, request.url, Vec::new()),
+            "/venue-zhjs-server/api/login" => HttpResponse::new(
+                200,
+                request.url,
+                br#"{"code":200,"data":{"token":{"access_token":"access-reuse"}}}"#
+                    .to_vec(),
+            ),
+            "/venue-zhjs-server/api/front/website/venues" => HttpResponse::new(
+                200,
+                request.url,
+                r#"{"code":200,"data":[{"id":101,"siteName":"A101","venueName":"场馆","campusName":"校区"}]}"#
+                    .as_bytes()
+                    .to_vec(),
+            ),
+            _ => panic!("未预期的场馆复用请求: {path}"),
+        };
+        if path == "/venue-zhjs-server/sso/manageLogin" {
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["sso_buaa_zhjs_token=sso-reuse; Path=/".into()],
+            );
+        }
+        Ok(response)
+    }
+}
 
 #[async_trait]
 impl HttpTransport for CgyyPurposeFallbackTransport {

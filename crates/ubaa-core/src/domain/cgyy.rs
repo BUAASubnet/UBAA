@@ -80,8 +80,6 @@ pub struct CgyyDayInfo {
     pub available_dates: Vec<String>,
     pub time_slots: Vec<CgyyTimeSlot>,
     pub spaces: Vec<CgyySpaceAvailability>,
-    #[serde(skip_serializing)]
-    pub reservation_token: Option<String>,
     pub reservation_total_num: Option<i32>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -172,17 +170,41 @@ pub struct CgyyReservationSubmitRequest {
     pub is_philosophy_social_sciences: bool,
     pub is_off_school_joiner: bool,
     #[serde(default, skip_serializing)]
-    pub captcha_verification: String,
+    pub(crate) captcha_verification: String,
     #[serde(default, skip_serializing)]
-    pub captcha_point_json: String,
+    pub(crate) captcha_point_json: String,
     #[serde(default, skip_serializing)]
-    pub captcha_token: String,
+    pub(crate) captcha_token: String,
     #[serde(default, skip_serializing)]
-    pub captcha_secret_key: Option<String>,
+    pub(crate) captcha_secret_key: Option<String>,
     #[serde(default, skip_serializing)]
-    pub captcha_original_image_base64: Option<String>,
+    pub(crate) captcha_original_image_base64: Option<String>,
     #[serde(default, skip_serializing)]
-    pub captcha_jigsaw_image_base64: Option<String>,
+    pub(crate) captcha_jigsaw_image_base64: Option<String>,
+}
+
+impl CgyyReservationSubmitRequest {
+    /// 注入调用方已经完成的验证码三元组；具体字段不会暴露给宿主读取。
+    #[must_use]
+    pub fn with_captcha_material(
+        mut self,
+        verification: impl Into<String>,
+        point_json: impl Into<String>,
+        token: impl Into<String>,
+    ) -> Self {
+        self.captcha_verification = verification.into();
+        self.captcha_point_json = point_json.into();
+        self.captcha_token = token.into();
+        self
+    }
+
+    /// 返回是否提供了完整的外部验证码材料，不返回材料本身。
+    #[must_use]
+    pub fn has_captcha_material(&self) -> bool {
+        !self.captcha_verification.is_empty()
+            && !self.captcha_point_json.is_empty()
+            && !self.captcha_token.is_empty()
+    }
 }
 
 impl fmt::Debug for CgyyReservationSubmitRequest {

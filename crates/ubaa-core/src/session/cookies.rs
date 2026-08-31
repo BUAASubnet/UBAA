@@ -119,6 +119,23 @@ impl CookieJar {
             .join("; "))
     }
 
+    /// 按请求地址和完整 Cookie 匹配规则读取一个 Cookie 值。
+    pub fn cookie_value_for_url(
+        &mut self,
+        name: &str,
+        request_url: &str,
+        now: SystemTime,
+    ) -> Result<Option<String>> {
+        let url = Url::parse(request_url).map_err(|_| session_error("invalid Cookie URL"))?;
+        let now_seconds = unix_seconds(now)?;
+        self.purge_expired(now_seconds);
+        Ok(self
+            .cookies
+            .iter()
+            .find(|cookie| cookie.name == name && cookie_matches(cookie, &url, now_seconds))
+            .map(|cookie| cookie.value.clone()))
+    }
+
     /// 借用当前保留的 Cookie，以便序列化会话。
     #[must_use]
     pub fn cookies(&self) -> &[StoredCookie] {

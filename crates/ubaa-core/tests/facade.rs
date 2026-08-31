@@ -425,6 +425,54 @@ fn cgyy_auto_uses_the_resolved_webvpn_runtime() {
 }
 
 #[test]
+fn cgyy_auto_uses_resolved_direct_runtime_when_on_campus() {
+    let root = test_root("cgyy-auto-direct");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+            None,
+        ))
+        .unwrap();
+    let direct_requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let webvpn_calls = Arc::new(AtomicUsize::new(0));
+    let mut client = UbaaClient::with_routing(
+        CgyyWebVpnTransport {
+            requests: direct_requests.clone(),
+        },
+        TaggedTransport {
+            calls: webvpn_calls.clone(),
+            status: 500,
+        },
+        store,
+        RouteConfig::parse("[route]\ndefault = \"auto\"\n").unwrap(),
+        CampusProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let routed = runtime.block_on(client.cgyy_sites()).unwrap();
+
+    assert_eq!(routed.resolution.mode, ConnectionMode::Direct);
+    assert_eq!(webvpn_calls.load(Ordering::SeqCst), 0);
+    assert!(direct_requests.lock().unwrap().iter().all(|request| {
+        url::Url::parse(&request.url)
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_owned))
+            == Some("cgyy.buaa.edu.cn".into())
+    }));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn stale_writer_is_rejected_before_any_write_request() {
     let root = test_root("stale-writer-before-request");
     let _ = std::fs::remove_dir_all(&root);
@@ -478,6 +526,52 @@ fn stale_writer_is_rejected_before_any_write_request() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn stale_reader_is_rejected_before_any_read_request() {
+    let root = test_root("stale-reader-before-request");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+            None,
+        ))
+        .unwrap();
+    let reads = Arc::new(AtomicUsize::new(0));
+    let mut client = UbaaClient::with_routing(
+        CountingTransport(reads.clone()),
+        CountingTransport(reads.clone()),
+        FileSessionStore::new(&root).unwrap(),
+        RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        NeverProbe,
+    )
+    .unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 2_002,
+            }),
+            None,
+        ))
+        .unwrap();
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let error = runtime.block_on(client.get_user_info()).unwrap_err();
+
+    assert_eq!(error.error.code, ErrorCode::InternalError);
+    assert_eq!(reads.load(Ordering::SeqCst), 0);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[derive(Clone)]
 struct CountingTransport(Arc<AtomicUsize>);
 
@@ -498,6 +592,11 @@ impl HttpTransport for CgyyWebVpnTransport {
         self.requests.lock().unwrap().push(request.clone());
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
         let mut response = match path.as_str() {
+            "/wengine-vpn/cookie" => HttpResponse::new(
+                200,
+                request.url.clone(),
+                b"sso_buaa_zhjs_token=sso-webvpn;".to_vec(),
+            ),
             path if path.ends_with("/venue-zhjs-server/sso/manageLogin") => {
                 HttpResponse::new(200, request.url.clone(), Vec::new())
             }
@@ -589,6 +688,14 @@ impl GatewayProbe for CountingProbe {
 }
 
 struct NeverProbe;
+
+struct CampusProbe;
+
+impl GatewayProbe for CampusProbe {
+    fn probe(&self, _budget: Duration) -> NetworkState {
+        NetworkState::Campus
+    }
+}
 
 impl GatewayProbe for NeverProbe {
     fn probe(&self, _budget: Duration) -> NetworkState {

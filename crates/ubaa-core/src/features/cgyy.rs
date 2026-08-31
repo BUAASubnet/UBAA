@@ -296,7 +296,6 @@ fn signed_request(
         route = ?runtime.mode(),
         operation = operation_name(method, path),
         method = method_name_value(method),
-        path,
         request_url = %safe_url(&request.url),
         parameter_count = params.len(),
         token_present = token.is_some(),
@@ -364,7 +363,7 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
 /// Core 不执行网页脚本，因此在 `WebVPN` 路线显式重放这个只读同步请求。令牌只在
 /// 当前请求内存中流转，不写入 Core 会话、日志或文件。
 async fn get_sso_token(runtime: &mut crate::runtime::ClientRuntime) -> Result<Option<String>> {
-    if let Some(token) = runtime.cookie_value(SSO_COOKIE) {
+    if let Some(token) = runtime.cookie_value(SSO_COOKIE, "https://cgyy.buaa.edu.cn/venue-zhjs")? {
         return Ok((!token.is_empty()).then_some(token));
     }
     if runtime.mode() != crate::domain::ConnectionMode::WebVpn {
@@ -417,7 +416,7 @@ async fn business_request(
 ) -> Result<String> {
     let started = Instant::now();
     let operation = operation_name(method, path);
-    info!(target: "ubaa::cgyy", feature = "cgyy", operation, method = method_name_value(method), path, "开始 Cgyy 请求");
+    info!(target: "ubaa::cgyy", feature = "cgyy", operation, method = method_name_value(method), "开始 Cgyy 请求");
     debug!(target: "ubaa::cgyy", feature = "cgyy", operation, parameter_keys = ?params.keys().collect::<Vec<_>>(), parameter_summary = ?safe_parameter_summary(&params), "构造 Cgyy 请求");
     for attempt in 0..2 {
         let access_token = match ensure_login(runtime).await {
@@ -476,6 +475,7 @@ fn check_business_response(response: &crate::ports::HttpResponse, feature: &str)
     let text = super::body(response);
     if response.status == 401
         || is_sso_url(&response.final_url)
+        || response_location_targets_sso(response)
         || (text.contains("name=\"execution\"") && text.contains("username_password"))
     {
         debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, auth_marker = true, "Cgyy 响应识别为认证失效");
@@ -484,6 +484,14 @@ fn check_business_response(response: &crate::ports::HttpResponse, feature: &str)
             ErrorKind::Authentication,
             false,
             format!("{feature}需要认证"),
+        ));
+    }
+    if (300..400).contains(&response.status) {
+        return Err(UbaaError::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            true,
+            format!("{feature}返回了未处理的重定向"),
         ));
     }
     let root = object(&text)?;
@@ -500,6 +508,22 @@ fn check_business_response(response: &crate::ports::HttpResponse, feature: &str)
     }
     debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = 200, "Cgyy 业务响应通过");
     Ok(())
+}
+
+fn response_location_targets_sso(response: &crate::ports::HttpResponse) -> bool {
+    response
+        .headers
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case("location"))
+        .and_then(|(_, values)| values.first())
+        .and_then(|location| {
+            url::Url::parse(&response.final_url)
+                .ok()
+                .and_then(|base| base.join(location).ok())
+                .map(|target| target.to_string())
+                .or_else(|| Some(location.clone()))
+        })
+        .is_some_and(|target| is_sso_url(&target))
 }
 
 fn operation_name(method: crate::ports::HttpMethod, path: &str) -> &'static str {
@@ -528,20 +552,7 @@ const fn method_name_value(method: crate::ports::HttpMethod) -> &'static str {
 fn safe_parameter_summary(params: &BTreeMap<String, String>) -> BTreeMap<String, String> {
     params
         .iter()
-        .map(|(key, value)| {
-            let safe = matches!(
-                key.as_str(),
-                "page" | "size" | "reservationRoleId" | "venueSiteId" | "searchDate"
-            );
-            (
-                key.clone(),
-                if safe {
-                    value.clone()
-                } else {
-                    format!("<存在，长度={}", value.len()) + ">"
-                },
-            )
-        })
+        .map(|(key, value)| (key.clone(), format!("<存在，长度={}>", value.len())))
         .collect()
 }
 
@@ -570,9 +581,40 @@ fn safe_url(value: &str) -> String {
         |_| "<无效 URL>".into(),
         |parsed| {
             let host = parsed.host_str().unwrap_or("<无主机>");
-            format!("{}://{}{}", parsed.scheme(), host, parsed.path())
+            let path = parsed
+                .path_segments()
+                .map(|segments| {
+                    segments
+                        .map(safe_path_segment)
+                        .collect::<Vec<_>>()
+                        .join("/")
+                })
+                .unwrap_or_default();
+            format!(
+                "{}://{}{}",
+                parsed.scheme(),
+                host,
+                if path.is_empty() {
+                    String::new()
+                } else {
+                    format!("/{path}")
+                }
+            )
         },
     )
+}
+
+fn safe_path_segment(segment: &str) -> String {
+    if segment.chars().all(|character| character.is_ascii_digit())
+        || segment.len() >= 24
+            && segment
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || "-_".contains(character))
+    {
+        "<id>".into()
+    } else {
+        segment.into()
+    }
 }
 
 fn sha1_hex(value: &[u8]) -> String {
@@ -625,14 +667,14 @@ pub(crate) async fn get_purpose_types(
 pub(crate) async fn get_purpose_types_with_source(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<(Vec<CgyyPurposeType>, CgyyPurposeSource)> {
-    // 冻结旧版在已有主会话后对动态用途接口使用 runCatching；请求或解析异常
-    // 都回退到静态定义，而没有主会话仍由登录前置返回认证错误。
+    // 保留冻结实现的静态回退语义，但认证失效必须向上游报告，不能伪装成成功。
     super::require_session(runtime)?;
     match get(runtime, "/api/codes", BTreeMap::new()).await {
         Ok(body) => match parse_purpose_types_with_source(&body) {
             Ok(result) => Ok(result),
             Err(_) => Ok((fallback_purpose_types(), CgyyPurposeSource::StaticFallback)),
         },
+        Err(error) if error.code == ErrorCode::AuthenticationRequired => Err(error),
         Err(_) => Ok((fallback_purpose_types(), CgyyPurposeSource::StaticFallback)),
     }
 }
@@ -642,13 +684,26 @@ pub(crate) async fn get_day_info(
     site_id: i32,
     date: &str,
 ) -> Result<CgyyDayInfo> {
+    Ok(get_day_context(runtime, site_id, date).await?.info)
+}
+
+struct CgyyDayContext {
+    info: CgyyDayInfo,
+    reservation_token: Option<String>,
+}
+
+async fn get_day_context(
+    runtime: &mut crate::runtime::ClientRuntime,
+    site_id: i32,
+    date: &str,
+) -> Result<CgyyDayContext> {
     let params = [
         ("searchDate".into(), date.into()),
         ("venueSiteId".into(), site_id.to_string()),
     ]
     .into_iter()
     .collect();
-    parse_day_info(
+    parse_day_context(
         &get(runtime, "/api/reservation/day/info", params).await?,
         site_id,
         date,
@@ -777,7 +832,7 @@ pub(crate) async fn submit_reservation(
     mut request: crate::domain::CgyyReservationSubmitRequest,
 ) -> Result<crate::domain::CgyyReservationResult> {
     validate_submit_request(&request)?;
-    let day = get_day_info(runtime, request.venue_site_id, &request.reservation_date).await?;
+    let day = get_day_context(runtime, request.venue_site_id, &request.reservation_date).await?;
     let token = day
         .reservation_token
         .ok_or_else(|| error("预约上下文 token 缺失，请刷新后重试"))?;
@@ -790,6 +845,7 @@ pub(crate) async fn submit_reservation(
         return Err(error("同次预约只能选择同一房间的时段"));
     }
     let space = day
+        .info
         .spaces
         .iter()
         .find(|item| item.space_id == space_id)
@@ -1191,6 +1247,14 @@ pub fn parse_day_info(
     venue_site_id: i32,
     reservation_date: &str,
 ) -> Result<CgyyDayInfo> {
+    Ok(parse_day_context(body, venue_site_id, reservation_date)?.info)
+}
+
+fn parse_day_context(
+    body: &str,
+    venue_site_id: i32,
+    reservation_date: &str,
+) -> Result<CgyyDayContext> {
     let root = success_root(body)?
         .get("data")
         .and_then(Value::as_object)
@@ -1261,14 +1325,16 @@ pub fn parse_day_info(
         .filter_map(Value::as_str)
         .map(str::to_owned)
         .collect();
-    Ok(CgyyDayInfo {
-        venue_site_id,
-        reservation_date: date_key,
-        available_dates,
-        time_slots,
-        spaces,
+    Ok(CgyyDayContext {
+        info: CgyyDayInfo {
+            venue_site_id,
+            reservation_date: date_key,
+            available_dates,
+            time_slots,
+            spaces,
+            reservation_total_num: int(&root, "reservationTotalNum"),
+        },
         reservation_token: string(&root, "token"),
-        reservation_total_num: int(&root, "reservationTotalNum"),
     })
 }
 
@@ -1369,8 +1435,8 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 mod tests {
     use super::{
         build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
-        check_business_response, parse_action_result, parse_captcha_challenge, parse_sites, sign,
-        signed_request, validate_submit_request,
+        check_business_response, parse_action_result, parse_captcha_challenge, parse_sites,
+        safe_parameter_summary, safe_url, sign, signed_request, validate_submit_request,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
     use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
@@ -1409,6 +1475,35 @@ mod tests {
             .expect("应解析成功");
         assert_eq!(result.message, "取消成功");
         assert!(result.order.is_none());
+    }
+
+    #[test]
+    fn 场馆三百零二跳转到统一认证时识别为认证失效() {
+        let mut response = HttpResponse::new(302, "https://cgyy.buaa.edu.cn/api/codes", Vec::new());
+        response.headers.insert(
+            "location".into(),
+            vec!["https://sso.buaa.edu.cn/login".into()],
+        );
+        let error = check_business_response(&response, "场馆预约").expect_err("应识别认证跳转");
+        assert_eq!(error.code, crate::error::ErrorCode::AuthenticationRequired);
+    }
+
+    #[test]
+    fn 日志摘要不包含参数值并隐藏动态路径段() {
+        let params = std::collections::BTreeMap::from([
+            ("venueSiteId".into(), "123".into()),
+            ("searchDate".into(), "2026-08-31".into()),
+            ("token".into(), "access-token-secret".into()),
+        ]);
+        let summary = safe_parameter_summary(&params);
+        let rendered = format!("{summary:?}");
+        assert!(!rendered.contains("123"));
+        assert!(!rendered.contains("2026-08-31"));
+        assert!(!rendered.contains("access-token-secret"));
+        assert_eq!(
+            safe_url("https://cgyy.buaa.edu.cn/api/orders/123"),
+            "https://cgyy.buaa.edu.cn/api/orders/<id>"
+        );
     }
 
     #[test]

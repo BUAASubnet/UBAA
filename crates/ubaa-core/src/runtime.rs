@@ -107,12 +107,9 @@ impl ClientRuntime {
         Arc::clone(&self.feature_state)
     }
 
-    pub(crate) fn cookie_value(&self, name: &str) -> Option<String> {
+    pub(crate) fn cookie_value(&mut self, name: &str, request_url: &str) -> Result<Option<String>> {
         self.jar
-            .cookies()
-            .iter()
-            .find(|cookie| cookie.name == name)
-            .map(|cookie| cookie.value.clone())
+            .cookie_value_for_url(name, request_url, SystemTime::now())
     }
 
     pub(crate) fn clear_feature_state(&self) {

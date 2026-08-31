@@ -1129,7 +1129,7 @@ impl UbaaClient {
         &mut self,
         operation: Operation,
     ) -> std::result::Result<RouteResolution, RoutedError> {
-        self.clear_on_session_conflict()
+        self.guard_latest_session_ownership()
             .map_err(|error| RoutedError {
                 error,
                 resolution: None,
