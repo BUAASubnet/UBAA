@@ -59,13 +59,25 @@ pub(crate) async fn get_with_redirects(
 ) -> Result<HttpResponse> {
     require_session(runtime)?;
     let mut current = url;
-    for _ in 0..8 {
+    for hop in 0..8 {
         let mut request = HttpRequest::get(current.clone());
         for (name, value) in headers {
             request.headers.insert((*name).into(), (*value).into());
         }
         let response = runtime.request(request).await?;
         if !(300..400).contains(&response.status) {
+            if feature == "场馆预约" {
+                tracing::debug!(
+                    target: "ubaa::cgyy",
+                    feature = "cgyy",
+                    route = ?runtime.mode(),
+                    operation = "business_login.sso",
+                    redirect_hops = hop,
+                    status = response.status,
+                    final_url = %safe_feature_url(&response.final_url),
+                    "Cgyy SSO 重定向结束"
+                );
+            }
             return Ok(response);
         }
         let location = response
@@ -74,9 +86,34 @@ pub(crate) async fn get_with_redirects(
             .find(|(name, _)| name.eq_ignore_ascii_case("location"))
             .and_then(|(_, values)| values.first())
             .ok_or_else(|| feature_redirect_error(feature))?;
-        current = resolve_feature_redirect(&response.final_url, location, runtime.mode(), feature)?;
+        let next =
+            resolve_feature_redirect(&response.final_url, location, runtime.mode(), feature)?;
+        if feature == "场馆预约" {
+            tracing::debug!(
+                target: "ubaa::cgyy",
+                feature = "cgyy",
+                route = ?runtime.mode(),
+                operation = "business_login.sso",
+                redirect_hop = hop + 1,
+                status = response.status,
+                from_url = %safe_feature_url(&response.final_url),
+                to_url = %safe_feature_url(&next),
+                "Cgyy SSO 跟随重定向"
+            );
+        }
+        current = next;
     }
     Err(feature_redirect_error(feature))
+}
+
+fn safe_feature_url(value: &str) -> String {
+    url::Url::parse(value).map_or_else(
+        |_| "<无效 URL>".into(),
+        |parsed| {
+            let host = parsed.host_str().unwrap_or("<无主机>");
+            format!("{}://{}{}", parsed.scheme(), host, parsed.path())
+        },
+    )
 }
 
 fn resolve_feature_redirect(

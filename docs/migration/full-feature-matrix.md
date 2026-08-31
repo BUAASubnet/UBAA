@@ -16,16 +16,16 @@
 | 阳光打卡查询 | `ygdk overview`, `ygdk records` | Core、OAuth 业务会话和 CLI 已接入；Direct/WebVPN 概览与记录均有实时成功证据 |
 | 图书馆只读查询 | `libbook libraries`, `libbook areas`, `libbook area-detail`, `libbook seats`, `libbook bookings` | Core、CAS 业务会话和 CLI 已接入；Direct/WebVPN 已有实时成功证据 |
 | 博雅课程只读查询 | `bykc profile`, `bykc courses`, `bykc course`, `bykc chosen`, `bykc statistics` | Core、业务会话和 CLI 已接入；Direct/WebVPN 已有课程业务成功证据，其他子命令由确定性测试覆盖 |
-| 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail` | Core、业务会话和 CLI 已接入；Direct 站点查询通过，WebVPN 业务会话仍认证失败 |
+| 场馆预约只读查询 | `cgyy sites`, `cgyy purposes`, `cgyy day`, `cgyy orders`, `cgyy detail`, `cgyy lock-code` | Core、业务会话和 CLI 已接入；Direct/WebVPN 由 Core-live 逐操作验证，站点/用途及日期、订单、详情、锁码的实时结果分别记录，不以单项成功推断其它操作 |
 
-## 已实现但禁止真实执行的写操作
+## 已实现但默认禁止真实执行的写操作
 
-以下写接口已具备 Core/CLI 协议实现和确定性安全证据，但依据本合同仍不得在真实验收中调用：
+以下写接口已具备 Core/CLI 协议实现和确定性安全证据，依据本合同默认不得在真实验收中调用；只有独立记录的明确授权例外才可执行：
 
 | 旧版接口 | 主要能力 | 迁移前置条件 |
 |---|---|---|
 | `BykcApi` 写操作 | 选课、退选、签到 | Core/CLI 已实现；具备加密向量与默认阻止测试，禁止真实调用 |
-| `CgyyApi` 写操作 | 预约、取消、门锁码 | Core/CLI 已实现；预约验证码图像求解、加密向量、重试和 Mock 链已有确定性证据，门锁码 Direct 上游不可用 |
+| `CgyyApi` 写操作 | 预约、取消 | Core/CLI 已实现；预约验证码图像求解、加密向量、重试和 Mock 链已有确定性证据；2026-08-29 经用户独立授权完成一次 Direct 预约、等待旧版要求的 5 秒后取消，并由订单列表确认状态 2；后续仍默认禁止 |
 | `EvaluationService` | 评教查询与提交 | Core/CLI 已实现自动问卷链、提交信封和确认门禁；仅允许 Mock/向量验证 |
 | `LibBookApi` 写操作 | 预约、取消 | Core/CLI 已实现；具备 AES 请求向量与确认门禁，禁止真实调用 |
 | `SigninApi` 写操作 | 执行签到 | Core/CLI 已实现冻结表单与确认门禁，禁止真实调用 |

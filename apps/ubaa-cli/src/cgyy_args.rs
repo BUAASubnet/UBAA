@@ -25,7 +25,7 @@ pub enum CgyyCommand {
     Orders {
         #[arg(long, default_value_t = 0)]
         page: i32,
-        #[arg(long, default_value_t = 10)]
+        #[arg(long, default_value_t = 20)]
         size: i32,
     },
     /// 查询订单详情。

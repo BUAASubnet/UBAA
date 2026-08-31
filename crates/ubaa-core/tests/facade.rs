@@ -230,7 +230,7 @@ fn aggregate_facade_resolves_spoc_diagnostics_before_session_preflight() {
 }
 
 #[test]
-fn cgyy_webvpn_uses_direct_business_transport_after_route_resolution() {
+fn cgyy_webvpn_uses_webvpn_business_transport_after_route_resolution() {
     let root = test_root("cgyy-direct-business");
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
@@ -273,8 +273,154 @@ fn cgyy_webvpn_uses_direct_business_transport_after_route_resolution() {
     let error = runtime.block_on(client.cgyy_sites()).unwrap_err();
 
     assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
-    assert_eq!(direct_calls.load(Ordering::SeqCst), 1);
-    assert_eq!(webvpn_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(direct_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(webvpn_calls.load(Ordering::SeqCst), 1);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn cgyy_webvpn_writes_use_webvpn_business_transport() {
+    let root = test_root("cgyy-direct-write-business");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+        ))
+        .unwrap();
+    let direct_calls = Arc::new(AtomicUsize::new(0));
+    let webvpn_calls = Arc::new(AtomicUsize::new(0));
+    let config = RouteConfig::parse("[route]\ndefault = \"webvpn\"\n").unwrap();
+    let mut client = UbaaClient::with_routing(
+        TaggedTransport {
+            calls: direct_calls.clone(),
+            status: 401,
+        },
+        TaggedTransport {
+            calls: webvpn_calls.clone(),
+            status: 401,
+        },
+        store,
+        config,
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let error = runtime.block_on(client.cgyy_cancel_order(77)).unwrap_err();
+
+    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
+    assert_eq!(direct_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(webvpn_calls.load(Ordering::SeqCst), 1);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn cgyy_webvpn_only_session_does_not_require_direct_session() {
+    let root = test_root("cgyy-webvpn-only");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            None,
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+        ))
+        .unwrap();
+    let direct_calls = Arc::new(AtomicUsize::new(0));
+    let webvpn_requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let config = RouteConfig::parse("[route]\ndefault = \"webvpn\"\n").unwrap();
+    let mut client = UbaaClient::with_routing(
+        TaggedTransport {
+            calls: direct_calls.clone(),
+            status: 500,
+        },
+        CgyyWebVpnTransport {
+            requests: webvpn_requests.clone(),
+        },
+        store,
+        config,
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let routed = runtime.block_on(client.cgyy_sites()).unwrap();
+
+    assert_eq!(routed.data.len(), 1);
+    assert_eq!(direct_calls.load(Ordering::SeqCst), 0);
+    let requests = webvpn_requests.lock().unwrap();
+    assert!(!requests.is_empty());
+    assert!(requests.iter().all(|request| {
+        url::Url::parse(&request.url)
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_owned))
+            .as_deref()
+            == Some("d.buaa.edu.cn")
+    }));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn cgyy_auto_uses_the_resolved_webvpn_runtime() {
+    let root = test_root("cgyy-auto-webvpn");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            None,
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+        ))
+        .unwrap();
+    let direct_calls = Arc::new(AtomicUsize::new(0));
+    let webvpn_calls = Arc::new(AtomicUsize::new(0));
+    let config = RouteConfig::parse("[route]\ndefault = \"auto\"\n").unwrap();
+    let mut client = UbaaClient::with_routing(
+        TaggedTransport {
+            calls: direct_calls.clone(),
+            status: 500,
+        },
+        TaggedTransport {
+            calls: webvpn_calls.clone(),
+            status: 401,
+        },
+        store,
+        config,
+        CountingProbe(Arc::new(AtomicUsize::new(0))),
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let error = runtime.block_on(client.cgyy_sites()).unwrap_err();
+
+    assert_eq!(error.resolution.unwrap().mode, ConnectionMode::WebVpn);
+    assert_eq!(direct_calls.load(Ordering::SeqCst), 0);
+    assert_eq!(webvpn_calls.load(Ordering::SeqCst), 1);
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -285,6 +431,47 @@ struct CountingTransport(Arc<AtomicUsize>);
 struct TaggedTransport {
     calls: Arc<AtomicUsize>,
     status: u16,
+}
+
+#[derive(Clone)]
+struct CgyyWebVpnTransport {
+    requests: Arc<std::sync::Mutex<Vec<HttpRequest>>>,
+}
+
+#[async_trait]
+impl HttpTransport for CgyyWebVpnTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        self.requests.lock().unwrap().push(request.clone());
+        let path = url::Url::parse(&request.url).unwrap().path().to_owned();
+        let mut response = match path.as_str() {
+            path if path.ends_with("/venue-zhjs-server/sso/manageLogin") => {
+                HttpResponse::new(200, request.url.clone(), Vec::new())
+            }
+            path if path.ends_with("/venue-zhjs-server/api/login") => HttpResponse::new(
+                200,
+                request.url.clone(),
+                br#"{"code":200,"data":{"token":{"access_token":"webvpn-access"}}}"#
+                    .to_vec(),
+            ),
+            path if path.ends_with("/venue-zhjs-server/api/front/website/venues") => {
+                HttpResponse::new(
+                    200,
+                    request.url,
+                    r#"{"code":200,"data":[{"id":101,"siteName":"WebVPN 场馆","venueName":"场馆","campusName":"校区"}]}"#
+                        .as_bytes()
+                        .to_vec(),
+                )
+            }
+            _ => panic!("未预期的 WebVPN Cgyy 请求: {path}"),
+        };
+        if path.ends_with("/sso/manageLogin") {
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["sso_buaa_zhjs_token=sso-webvpn; Path=/".into()],
+            );
+        }
+        Ok(response)
+    }
 }
 
 #[async_trait]

@@ -16,6 +16,7 @@ rpassword = "7.4.0"
 serde = "1.0.228"
 serde_json = "1.0.149"
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 ubaa-core = { path = "../../crates/ubaa-core" }
 
 [dev-dependencies]

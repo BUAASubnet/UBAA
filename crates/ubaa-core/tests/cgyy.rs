@@ -1,10 +1,13 @@
 use ubaa_core::features::cgyy::{
-    parse_day_info, parse_order_detail, parse_orders, parse_purpose_types, parse_sites,
+    parse_day_info, parse_lock_code, parse_order_detail, parse_orders, parse_purpose_types,
+    parse_sites,
 };
 
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
-use ubaa_core::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
+use ubaa_core::domain::{
+    CgyyDayInfo, CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode,
+};
 use ubaa_core::facade::RouteClient;
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
@@ -101,6 +104,18 @@ fn 日期空间槽位按时间编号排序() {
 }
 
 #[test]
+fn 预约上下文令牌不进入公共序列化输出() {
+    let day = CgyyDayInfo {
+        reservation_token: Some("reservation-token".into()),
+        ..Default::default()
+    };
+
+    let value = serde_json::to_value(day).unwrap();
+
+    assert!(value.get("reservationToken").is_none());
+}
+
+#[test]
 fn 解析订单分页和详情完整字段() {
     let body = include_str!("../../../fixtures/readonly/cgyy-orders.json");
     let page = parse_orders(body).unwrap();
@@ -126,6 +141,91 @@ fn 成功订单空数据按冻结实现映射为空页和空详情() {
 
     let detail = parse_order_detail(r#"{"code":200,"data":null}"#).unwrap();
     assert_eq!(detail.id, 0);
+}
+
+#[test]
+fn 订单缺少数据字段时按旧版映射为空对象() {
+    let page =
+        parse_orders(r#"{"code":200,"message":"OK","content":[{"id":99}],"totalElements":1}"#)
+            .unwrap();
+    assert!(page.content.is_empty());
+    assert_eq!(page.total_elements, 0);
+
+    let detail = parse_order_detail(r#"{"code":200,"message":"OK"}"#).unwrap();
+    assert_eq!(detail.id, 0);
+}
+
+#[test]
+fn 锁码和日期响应遵守旧版成功信封与空数据语义() {
+    assert!(parse_lock_code(r#"{"data":{"lockCode":"fixture"}}"#).is_err());
+    assert!(parse_lock_code(r#"{"code":500,"data":{"lockCode":"fixture"}}"#).is_err());
+    let empty_lock_code = parse_lock_code(r#"{"code":200,"data":null}"#).unwrap();
+    assert!(!empty_lock_code.available);
+    assert!(parse_day_info(r#"{"code":200}"#, 4, "2026-03-29").is_err());
+}
+
+#[test]
+fn 锁码公共序列化不暴露上游原始数据() {
+    let lock_code =
+        parse_lock_code(r#"{"code":200,"data":{"lockCode":"fixture-secret","orderId":7}}"#)
+            .unwrap();
+    let serialized = serde_json::to_string(&lock_code).unwrap();
+    assert!(!serialized.contains("fixture-secret"));
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&serialized).unwrap(),
+        serde_json::json!({"available": true})
+    );
+}
+
+#[test]
+fn 业务令牌失效时按旧版重建会话并只重放一次() {
+    let root = std::env::temp_dir().join(format!("ubaa-cgyy-auth-retry-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        })
+        .unwrap();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let mut client = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        CgyyAuthRetryTransport {
+            requests: Arc::clone(&requests),
+        },
+        store,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let sites = runtime.block_on(client.cgyy_sites()).unwrap().data;
+
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].id, 101);
+    let paths: Vec<_> = requests
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|request| url::Url::parse(&request.url).unwrap().path().to_owned())
+        .collect();
+    assert_eq!(
+        paths,
+        vec![
+            "/venue-zhjs-server/sso/manageLogin",
+            "/venue-zhjs-server/api/login",
+            "/venue-zhjs-server/api/front/website/venues",
+            "/venue-zhjs-server/sso/manageLogin",
+            "/venue-zhjs-server/api/login",
+            "/venue-zhjs-server/api/front/website/venues",
+        ]
+    );
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]
@@ -197,6 +297,12 @@ fn 场馆预约写链按冻结顺序发送验证码和最终表单() {
             "/venue-zhjs-server/api/reservation/order/submit",
         ]
     );
+    for request in &requests[3..] {
+        assert_eq!(
+            request.headers.get("cgAuthorization").map(String::as_str),
+            Some("access-fixture")
+        );
+    }
     let captcha = &requests[4];
     assert!(String::from_utf8_lossy(&captcha.body).contains("pointJson=point-json"));
     let submit = &requests[5];
@@ -256,6 +362,11 @@ struct CgyyWriteTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
 }
 
+#[derive(Clone)]
+struct CgyyAuthRetryTransport {
+    requests: Arc<Mutex<Vec<HttpRequest>>>,
+}
+
 struct CgyyPurposeFallbackTransport;
 
 #[async_trait]
@@ -310,6 +421,51 @@ impl HttpTransport for CgyyWriteTransport {
             _ => panic!("未预期的场馆写请求: {path}"),
         };
         if path.ends_with("/sso/manageLogin") {
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["sso_buaa_zhjs_token=sso-fixture; Path=/".into()],
+            );
+        }
+        Ok(response)
+    }
+}
+
+#[async_trait]
+impl HttpTransport for CgyyAuthRetryTransport {
+    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+        self.requests.lock().unwrap().push(request.clone());
+        let path = url::Url::parse(&request.url).unwrap().path().to_owned();
+        let snapshot = self.requests.lock().unwrap().clone();
+        let count_path = |expected: &str| {
+            snapshot
+                .iter()
+                .filter(|request| url::Url::parse(&request.url).unwrap().path() == expected)
+                .count()
+        };
+        let mut response = match path.as_str() {
+            "/venue-zhjs-server/sso/manageLogin" =>
+                HttpResponse::new(200, request.url, Vec::new()),
+            "/venue-zhjs-server/api/login" => HttpResponse::new(
+                200,
+                request.url,
+                r#"{"code":200,"data":{"token":{"access_token":"access-fixture"}}}"#
+                    .as_bytes()
+                    .to_vec(),
+            ),
+            "/venue-zhjs-server/api/front/website/venues"
+                if count_path("/venue-zhjs-server/api/front/website/venues") == 1 => {
+                HttpResponse::new(401, request.url, Vec::new())
+            }
+            "/venue-zhjs-server/api/front/website/venues" => HttpResponse::new(
+                200,
+                request.url,
+                r#"{"code":200,"data":[{"id":101,"siteName":"A101","venueName":"沙河研讨室","campusName":"沙河校区"}]}"#
+                    .as_bytes()
+                    .to_vec(),
+            ),
+            _ => panic!("未预期的场馆认证重试请求: {path}"),
+        };
+        if path == "/venue-zhjs-server/sso/manageLogin" {
             response.headers.insert(
                 "Set-Cookie".into(),
                 vec!["sso_buaa_zhjs_token=sso-fixture; Path=/".into()],

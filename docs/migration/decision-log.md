@@ -1,5 +1,33 @@
 # Decision Log
 
+## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
+
+本周期先对照冻结 `ubaa_old`、固定版本 `examples/buaa-api` 和现有脱敏 Mock。原有 WebVPN Cgyy 测试复现了业务请求误走 Direct 的失败：WebVPN-only 会话无法完成站点读取，且写入口也固定访问 Direct。新增失败测试后，Core facade 将每个 Cgyy 公共操作分别绑定到解析出的路线 runtime；WebVPN 现在只使用 WebVPN URL，Direct 会话缺失不会触发偷偷回退。相同批次内业务令牌仍只在当前客户端内存复用，认证失效最多清理、重登并重放一次。
+
+冻结旧版 `LocalWebVpnSupport.localCgyyUpstreamUrl` 曾返回直连地址，`examples/buaa-api` 没有等价实现；该冻结行为与本周期明确的 WebVPN-only 路线合同冲突。冲突边界以脱敏 WebVPN-only 失败/修复测试和当前路线安全要求为依据，未从示例协议借用任何 URL、字段或令牌；后续真实 WebVPN 结果必须逐操作记录，若上游不支持该路线则记录失败而不回退 Direct。
+
+锁码解析另以脱敏失败测试复现了 CLI 序列化原始 `data` 的泄漏，现已收敛为 Core/CLI 公共结果 `{available: boolean}`；锁码正文不会进入 Session、日志或文件。以上修复均通过 focused Cgyy 测试、敏感扫描和确定性检查；协议 URL、参数、签名常量仍只取冻结实现，`examples/buaa-api` 无对应 Cgyy 实现，未作类比推断。
+
+真实验证入口已拆为单批次 `core-live` 与薄 `verify-live`：Core-live 一次创建固定路线 `RouteClient`，从 stdin 读取凭据并串行执行只读 facade 操作，逐项输出路线、操作、`PASS/FAIL/BLOCKED/NOT_APPLICABLE` 和稳定错误码；不调用任何写方法。`verify-live` 仅校验参数、临时读取 `.env.local`、锁定构建并转发，拒绝 `auto`；`auto` 只保留 Mock/确定性路由证据。Direct/WebVPN 的真实结果必须在本周期重新逐项记录，不能沿用旧脚本聚合摘要。
+
+新入口真实结果：Direct 全量逐项退出码 0，仅 SPOC 详情与 Bykc 课程详情因空列表为 `NOT_APPLICABLE`；课表、考试、成绩、教室、SPOC、Judge（含批量详情）、Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 均有安全 `PASS`。WebVPN 的认证、用户、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 逐项通过，SPOC/Bykc 详情因无标识为 `NOT_APPLICABLE`；Cgyy 站点/用途/订单/锁码和 Evaluation 全部得到 `authentication_required`，依赖日期/订单详情为 `NOT_APPLICABLE`，Evaluation pending 为 `BLOCKED`，退出码 5。该失败保持 WebVPN 路线，不以 Direct 结果替代。
+
+## 2026-08-29：用户授权 Cgyy Rust CLI 读写探针及提交落库时序
+
+用户明确授权使用 `.env.local` 中的真实测试账号执行一次 Cgyy Rust CLI 预约并立即清理订单；该授权仅覆盖本次单笔 Direct 探针，不改变 `verify-live` 永远只读的全局规则。实时读操作中，Direct 登录、站点、用途、日期和订单读取均成功；日期返回 84 个时段，其中存在可预约时段。请求 JSON 省略验证码材料，由 Core 自动获取挑战、求解图片、校验并提交。
+
+首次提交返回成功后立即调用取消，取消接口和 CLI 均返回成功，但订单列表仍暂时为 `orderStatus=1`。对照冻结 Python 脚本的 `sleep(5)`，等待 5 秒后对同一订单再次取消，订单列表最终变为 `orderStatus=2`；因此记录“提交完成到取消之间需要等待旧版落库窗口”，不能仅以取消接口的成功信封作为最终状态证据。没有保留或记录订单号、手机号、令牌、Cookie、验证码或原始响应。
+
+取消后的详情请求第一次返回 `upstream_unavailable`，随后成功信封的 `data` 为空，Rust 按冻结旧版映射为空详情；订单列表状态 2 是本次取消的最终实时证据。另发现日期 DTO 曾将预约上下文 `reservationToken` 序列化到 CLI，导致安全合同拒绝成功响应；已通过脱敏失败测试先复现，再对 `CgyyDayInfo.reservation_token` 增加仅 Core 内部可用的序列化屏蔽。
+
+## 2026-08-29：继续对齐 Cgyy 业务会话、信封和 Direct 路由
+
+冻结 `ubaa_old` 的 `requestJson` 对场馆 GET/POST 请求都使用同一业务访问令牌，并在业务认证失效时清理业务令牌、强制登录后只重放一次；预约上下文返回的 `token` 只作为后续预约表单的业务字段，不能替代 `access_token` 放入 `cgAuthorization`。Rust 原实现在上下文、验证码校验和最终提交中误用了该预约 `token`，且业务认证失败没有按旧版重试；`WebVPN` facade 的 Cgyy 写操作也错误地使用了主路线 transport。
+
+历史记录：本轮先以脱敏 Mock 固定上述失败行为，再完成最小修复：所有 Cgyy 业务 GET/POST 统一经过一次认证重试，写请求头恢复使用业务 `access_token`。当时的 WebVPN Direct 兼容分支已被本周期路线校正 supersede；当前 facade 读写均使用解析出的路线 runtime。日期接口严格要求 `code=200` 且 `data` 存在并为 JSON 对象（允许空对象）；锁码接口严格要求成功代码，缺失 `data` 映射为空值，保持旧版可空语义。
+
+确定性证据为 Core Cgyy 集成测试 12/12、CLI 合同测试 23/23，以及 Cgyy facade 路由回归测试通过。实时只读证据仅确认两条路线的站点列表各返回 7 个；日期、订单和锁码在不同日期/路线出现 `upstream_unavailable` 或 `invalid_semantics`，部分日期结构探针曾返回正常对象，因此需把上游窗口/限流不稳定与本地协议错误分开处理。本轮没有调用预约、验证码校验、提交或取消写接口。`examples/buaa-api` 在冻结提交中没有等价 Cgyy 协议，未借用其 URL、字段或错误语义。
+
 ## 2026-08-29: Direct Cgyy read-only verification after signer parity fix
 
 `just verify-live mode=direct feature=cgyy route=direct` completed with a safe

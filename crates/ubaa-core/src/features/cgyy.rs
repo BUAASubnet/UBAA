@@ -10,6 +10,8 @@ use crate::ports::HttpRequest;
 use base64::Engine as _;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
+use std::time::Instant;
+use tracing::{debug, info, warn};
 
 use super::cgyy_crypto::build_captcha_solution;
 use super::cgyy_sign::{sign, timestamp_millis};
@@ -19,7 +21,7 @@ const LOGIN_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLo
 const APP_KEY: &str = "8fceb735082b5a529312040b58ea780b";
 const SSO_COOKIE: &str = "sso_buaa_zhjs_token";
 
-/// 验证码挑战的脱敏结构；图像求解器端口接入前仅在 Core 内部流转。
+/// 验证码挑战的脱敏结构；图像求解过程仅在 Core 内部流转。
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CgyyCaptchaChallenge {
@@ -236,7 +238,7 @@ fn parse_captcha_challenge(body: &str) -> Result<CgyyCaptchaChallenge> {
 }
 
 fn signed_request(
-    _runtime: &crate::runtime::ClientRuntime,
+    runtime: &crate::runtime::ClientRuntime,
     method: crate::ports::HttpMethod,
     path: &str,
     mut params: BTreeMap<String, String>,
@@ -258,23 +260,17 @@ fn signed_request(
                 .map(|(key, value)| (key.as_str(), value.as_str())),
         );
     }
+    let request_url = runtime.url(direct.as_str())?;
     let mut request = match method {
-        crate::ports::HttpMethod::Get => {
-            HttpRequest::get(crate::runtime::ClientRuntime::direct_url(direct.as_str()))
-        }
-        crate::ports::HttpMethod::Post => HttpRequest::post(
-            crate::runtime::ClientRuntime::direct_url(direct.as_str()),
-            Vec::new(),
-        ),
+        crate::ports::HttpMethod::Get => HttpRequest::get(request_url),
+        crate::ports::HttpMethod::Post => HttpRequest::post(request_url, Vec::new()),
     };
     request
         .headers
         .insert("Accept".into(), "application/json, text/plain, */*".into());
     request.headers.insert(
         "Referer".into(),
-        crate::runtime::ClientRuntime::direct_url(
-            "https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation",
-        ),
+        runtime.url("https://cgyy.buaa.edu.cn/venue-zhjs/mobileReservation")?,
     );
     request.headers.insert("app-key".into(), APP_KEY.into());
     request
@@ -292,6 +288,19 @@ fn signed_request(
             .headers
             .insert("cgAuthorization".into(), token.into());
     }
+    debug!(
+        target: "ubaa::cgyy",
+        feature = "cgyy",
+        route = ?runtime.mode(),
+        operation = operation_name(method, path),
+        method = method_name_value(method),
+        path,
+        request_url = %safe_url(&request.url),
+        parameter_count = params.len(),
+        token_present = token.is_some(),
+        token_len = token.map_or(0, str::len),
+        "已构造 Cgyy HTTP 请求"
+    );
     Ok(request)
 }
 
@@ -299,23 +308,24 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
     super::require_session(runtime)?;
     let state = runtime.feature_state();
     if let Some(token) = state.cgyy.token() {
+        debug!(target: "ubaa::cgyy", operation = "business_login", cached = true, "复用 Cgyy 业务会话");
         return Ok(token);
     }
+    info!(target: "ubaa::cgyy", operation = "business_login", route = ?runtime.mode(), "开始建立 Cgyy 业务会话");
     let _guard = state.cgyy.login_guard().await;
     if let Some(token) = state.cgyy.token() {
         return Ok(token);
     }
-    let response = super::get_with_redirects(
-        runtime,
-        crate::runtime::ClientRuntime::direct_url(LOGIN_URL),
-        &[],
-        "场馆预约",
-    )
-    .await?;
+    debug!(target: "ubaa::cgyy", operation = "business_login.sso", route = ?runtime.mode(), bootstrap_url = %safe_url(LOGIN_URL), "请求 Cgyy SSO 引导");
+    let response =
+        super::get_with_redirects(runtime, runtime.url(LOGIN_URL)?, &[], "场馆预约").await?;
+    log_response(runtime, "business_login.sso", &response);
     super::check_response(&response, "场馆预约")?;
-    let sso_token = runtime
-        .cookie_value(SSO_COOKIE)
-        .ok_or_else(|| authentication_error("未获取到场馆预约 SSO 令牌"))?;
+    let Some(sso_token) = runtime.cookie_value(SSO_COOKIE) else {
+        warn!(target: "ubaa::cgyy", operation = "business_login.sso", route = ?runtime.mode(), sso_cookie_present = false, "Cgyy SSO 响应未写入令牌 Cookie");
+        return Err(authentication_error("未获取到场馆预约 SSO 令牌"));
+    };
+    debug!(target: "ubaa::cgyy", operation = "business_login.sso", sso_cookie_present = true, sso_cookie_len = sso_token.len(), "已取得 Cgyy SSO Cookie");
     let mut request = signed_request(
         runtime,
         crate::ports::HttpMethod::Post,
@@ -324,7 +334,15 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
         None,
     )?;
     request.headers.insert("Sso-Token".into(), sso_token);
+    debug!(
+        target: "ubaa::cgyy",
+        operation = "business_login.api",
+        route = ?runtime.mode(),
+        body_len = request.body.len(),
+        "发送 Cgyy 业务登录请求"
+    );
     let response = runtime.request(request).await?;
+    log_response(runtime, "business_login.api", &response);
     super::check_response(&response, "场馆预约")?;
     let value = data(&super::body(&response))?;
     let token = value
@@ -334,7 +352,197 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Str
         .filter(|token| !token.is_empty())
         .ok_or_else(|| authentication_error("场馆预约登录未返回访问令牌"))?;
     state.cgyy.set(token.clone());
+    info!(target: "ubaa::cgyy", operation = "business_login", access_token_len = token.len(), "Cgyy 业务会话建立完成");
     Ok(token)
+}
+
+async fn business_request(
+    runtime: &mut crate::runtime::ClientRuntime,
+    method: crate::ports::HttpMethod,
+    path: &str,
+    params: BTreeMap<String, String>,
+) -> Result<String> {
+    let started = Instant::now();
+    let operation = operation_name(method, path);
+    info!(target: "ubaa::cgyy", feature = "cgyy", operation, method = method_name_value(method), path, "开始 Cgyy 请求");
+    debug!(target: "ubaa::cgyy", feature = "cgyy", operation, parameter_keys = ?params.keys().collect::<Vec<_>>(), parameter_summary = ?safe_parameter_summary(&params), "构造 Cgyy 请求");
+    for attempt in 0..2 {
+        let access_token = match ensure_login(runtime).await {
+            Ok(token) => token,
+            Err(error) => {
+                warn!(
+                    target: "ubaa::cgyy",
+                    feature = "cgyy",
+                    route = ?runtime.mode(),
+                    operation,
+                    elapsed_ms = elapsed_millis(started),
+                    error_code = ?error.code,
+                    "Cgyy 业务登录失败"
+                );
+                return Err(error);
+            }
+        };
+        let mut request =
+            signed_request(runtime, method, path, params.clone(), Some(&access_token))?;
+        if method == crate::ports::HttpMethod::Post {
+            request.body = crate::upstream::encode_form(&params);
+        }
+        debug!(
+            target: "ubaa::cgyy",
+            feature = "cgyy",
+            route = ?runtime.mode(),
+            operation,
+            attempt = attempt + 1,
+            request_url = %safe_url(&request.url),
+            body_len = request.body.len(),
+            "发送 Cgyy HTTP 请求"
+        );
+        let response = runtime.request(request).await?;
+        log_response(runtime, operation, &response);
+        match check_business_response(&response, "场馆预约") {
+            Ok(()) => {
+                info!(target: "ubaa::cgyy", feature = "cgyy", operation, attempt = attempt + 1, elapsed_ms = elapsed_millis(started), "Cgyy 请求成功");
+                return Ok(super::body(&response));
+            }
+            Err(error) if attempt == 0 && error.code == ErrorCode::AuthenticationRequired => {
+                warn!(target: "ubaa::cgyy", feature = "cgyy", operation, attempt = attempt + 1, error_code = ?error.code, "Cgyy 业务会话失效，清理令牌并重试");
+                runtime.feature_state().cgyy.clear();
+            }
+            Err(error) => {
+                warn!(target: "ubaa::cgyy", feature = "cgyy", operation, attempt = attempt + 1, elapsed_ms = elapsed_millis(started), error_code = ?error.code, "Cgyy 请求失败");
+                return Err(error);
+            }
+        }
+    }
+    unreachable!("场馆请求认证重试次数已耗尽")
+}
+
+/// 按冻结旧版 `LocalCgyyApi.requestJson` 的顺序检查响应。
+/// Cgyy 上游曾出现 HTTP 状态与业务 `code` 不一致的响应，旧版以业务信封为准。
+fn check_business_response(response: &crate::ports::HttpResponse, feature: &str) -> Result<()> {
+    let text = super::body(response);
+    if response.status == 401
+        || is_sso_url(&response.final_url)
+        || (text.contains("name=\"execution\"") && text.contains("username_password"))
+    {
+        debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, auth_marker = true, "Cgyy 响应识别为认证失效");
+        return Err(UbaaError::new(
+            ErrorCode::AuthenticationRequired,
+            ErrorKind::Authentication,
+            false,
+            format!("{feature}需要认证"),
+        ));
+    }
+    let root = object(&text)?;
+    let code = root.get("code").and_then(|value| {
+        value
+            .as_i64()
+            .or_else(|| value.as_str()?.parse::<i64>().ok())
+    });
+    if code != Some(200) {
+        warn!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = ?code, "Cgyy 业务 code 非成功值");
+        return Err(error(
+            string(&root, "message").unwrap_or_else(|| "场馆预约请求失败".into()),
+        ));
+    }
+    debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = 200, "Cgyy 业务响应通过");
+    Ok(())
+}
+
+fn operation_name(method: crate::ports::HttpMethod, path: &str) -> &'static str {
+    match path {
+        "/api/orders/mine" => "orders.list",
+        path if path.starts_with("/api/orders/") && !path.contains("/lock/") => {
+            "orders.detail_or_cancel"
+        }
+        "/api/orders/lock/code" => "orders.lock_code",
+        "/api/front/website/venues" => "sites.list",
+        "/api/reservation/day/info" => "day.info",
+        "/api/codes" => "purposes.list",
+        "/api/login" => "business_login.api",
+        _ if method == crate::ports::HttpMethod::Post => "business.write",
+        _ => "business.read",
+    }
+}
+
+const fn method_name_value(method: crate::ports::HttpMethod) -> &'static str {
+    match method {
+        crate::ports::HttpMethod::Get => "GET",
+        crate::ports::HttpMethod::Post => "POST",
+    }
+}
+
+fn safe_parameter_summary(params: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+    params
+        .iter()
+        .map(|(key, value)| {
+            let safe = matches!(
+                key.as_str(),
+                "page" | "size" | "reservationRoleId" | "venueSiteId" | "searchDate"
+            );
+            (
+                key.clone(),
+                if safe {
+                    value.clone()
+                } else {
+                    format!("<存在，长度={}", value.len()) + ">"
+                },
+            )
+        })
+        .collect()
+}
+
+fn log_response(
+    runtime: &crate::runtime::ClientRuntime,
+    operation: &str,
+    response: &crate::ports::HttpResponse,
+) {
+    let body = &response.body;
+    debug!(
+        target: "ubaa::cgyy",
+        feature = "cgyy",
+        route = ?runtime.mode(),
+        operation,
+        status = response.status,
+        final_url = %safe_url(&response.final_url),
+        body_len = body.len(),
+        body_sha1 = %sha1_hex(body),
+        content_type = ?response.headers.get("content-type").and_then(|values| values.first()),
+        "收到 Cgyy 响应"
+    );
+}
+
+fn safe_url(value: &str) -> String {
+    url::Url::parse(value).map_or_else(
+        |_| "<无效 URL>".into(),
+        |parsed| {
+            let host = parsed.host_str().unwrap_or("<无主机>");
+            format!("{}://{}{}", parsed.scheme(), host, parsed.path())
+        },
+    )
+}
+
+fn sha1_hex(value: &[u8]) -> String {
+    use sha1::{Digest, Sha1};
+    use std::fmt::Write as _;
+    let mut result = String::with_capacity(40);
+    for byte in Sha1::digest(value) {
+        write!(&mut result, "{byte:02x}").expect("写入 String 不会失败");
+    }
+    result
+}
+
+fn elapsed_millis(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
+}
+
+fn is_sso_url(candidate: &str) -> bool {
+    let direct =
+        crate::connection::from_webvpn_url(candidate).unwrap_or_else(|_| candidate.to_owned());
+    url::Url::parse(&direct)
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|host| host == "sso.buaa.edu.cn")
 }
 
 async fn get(
@@ -342,17 +550,7 @@ async fn get(
     path: &str,
     params: BTreeMap<String, String>,
 ) -> Result<String> {
-    let token = ensure_login(runtime).await?;
-    let request = signed_request(
-        runtime,
-        crate::ports::HttpMethod::Get,
-        path,
-        params,
-        Some(&token),
-    )?;
-    let response = runtime.request(request).await?;
-    super::check_response(&response, "场馆预约")?;
-    Ok(super::body(&response))
+    business_request(runtime, crate::ports::HttpMethod::Get, path, params).await
 }
 
 pub(crate) async fn get_sites(
@@ -424,11 +622,11 @@ pub(crate) async fn get_lock_code(
     parse_lock_code(&value)
 }
 
-/// 解析门锁码响应，仅保留不透明的业务数据。
+/// 解析门锁码响应，仅保留是否存在数据的安全摘要。
 pub fn parse_lock_code(body: &str) -> Result<CgyyLockCode> {
-    let root = object(body)?;
+    let root = success_root(body)?;
     Ok(CgyyLockCode {
-        raw_data: root.get("data").cloned().unwrap_or(Value::Object(root)),
+        available: !root.get("data").is_none_or(Value::is_null),
     })
 }
 
@@ -437,17 +635,14 @@ pub(crate) async fn cancel_order(
     runtime: &mut crate::runtime::ClientRuntime,
     id: i32,
 ) -> Result<CgyyActionResult> {
-    let token = ensure_login(runtime).await?;
-    let request = signed_request(
+    let body = business_request(
         runtime,
         crate::ports::HttpMethod::Post,
         &format!("/api/orders/new/cancel/{id}"),
         BTreeMap::new(),
-        Some(&token),
-    )?;
-    let response = runtime.request(request).await?;
-    super::check_response(&response, "场馆预约")?;
-    parse_action_result(&super::body(&response))
+    )
+    .await?;
+    parse_action_result(&body)
 }
 
 fn reservation_order_json(
@@ -514,7 +709,7 @@ pub fn build_captcha_check_form(point_json: &str, token: &str) -> BTreeMap<Strin
     .collect()
 }
 
-/// 使用外部验证码校验结果提交场馆预约。
+/// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
 pub(crate) async fn submit_reservation(
     runtime: &mut crate::runtime::ClientRuntime,
     mut request: crate::domain::CgyyReservationSubmitRequest,
@@ -557,33 +752,25 @@ pub(crate) async fn submit_reservation(
     ]
     .into_iter()
     .collect();
-    let mut context_request = signed_request(
+    let context_body = business_request(
         runtime,
         crate::ports::HttpMethod::Post,
         "/api/reservation/order/info",
         context_form,
-        Some(&token),
-    )?;
-    context_request.body = crate::upstream::encode_form(&context_request_body(
-        &context_request,
-        &request,
-        &token,
-        &order_json,
-    ));
-    let response = runtime.request(context_request).await?;
-    super::check_response(&response, "场馆预约")?;
-    data(&super::body(&response))?;
+    )
+    .await?;
+    data(&context_body)?;
 
     let external = !request.captcha_verification.trim().is_empty()
         && !request.captcha_point_json.trim().is_empty()
         && !request.captcha_token.trim().is_empty();
     if external {
-        check_captcha(runtime, &request, &token).await?;
+        check_captcha(runtime, &request).await?;
         return submit_order(runtime, &request, &token, &order_json).await;
     }
     let mut last_error = None;
     for _ in 0..3 {
-        match prepare_captcha_once(runtime, &mut request, &token).await {
+        match prepare_captcha_once(runtime, &mut request).await {
             Ok(()) => match submit_order(runtime, &request, &token, &order_json).await {
                 Ok(result) => return Ok(result),
                 Err(error) => last_error = Some(error),
@@ -601,17 +788,13 @@ async fn submit_order(
     order_json: &str,
 ) -> Result<crate::domain::CgyyReservationResult> {
     let form = build_submit_form(request, token, order_json);
-    let mut submit_request = signed_request(
+    let body = business_request(
         runtime,
         crate::ports::HttpMethod::Post,
         "/api/reservation/order/submit",
-        form.clone(),
-        Some(token),
-    )?;
-    submit_request.body = crate::upstream::encode_form(&form);
-    let response = runtime.request(submit_request).await?;
-    super::check_response(&response, "场馆预约")?;
-    let body = super::body(&response);
+        form,
+    )
+    .await?;
     let root = object(&body)?;
     let message = string(&root, "message").unwrap_or_else(|| "预约提交完成".into());
     let value = data(&body)?;
@@ -639,9 +822,24 @@ fn validate_submit_request(request: &crate::domain::CgyyReservationSubmitRequest
     {
         return Err(error("至少选择一个有效的预约时段"));
     }
+    let has_external = !request.captcha_verification.trim().is_empty()
+        || !request.captcha_point_json.trim().is_empty();
     let external = !request.captcha_verification.trim().is_empty()
         && !request.captcha_point_json.trim().is_empty()
         && !request.captcha_token.trim().is_empty();
+    let has_solver_input = request
+        .captcha_secret_key
+        .as_deref()
+        .is_some_and(|value| !value.is_empty())
+        || request
+            .captcha_original_image_base64
+            .as_deref()
+            .is_some_and(|value| !value.is_empty())
+        || request
+            .captcha_jigsaw_image_base64
+            .as_deref()
+            .is_some_and(|value| !value.is_empty());
+    let has_captcha_token = !request.captcha_token.trim().is_empty();
     let solver_input = request
         .captcha_secret_key
         .as_deref()
@@ -650,12 +848,17 @@ fn validate_submit_request(request: &crate::domain::CgyyReservationSubmitRequest
             .captcha_original_image_base64
             .as_deref()
             .is_some_and(|value| !value.is_empty())
-        && request
-            .captcha_jigsaw_image_base64
-            .as_deref()
-            .is_some_and(|value| !value.is_empty());
+        && !request.captcha_token.trim().is_empty()
+        && !has_external;
+    if (has_external && !external)
+        || (has_solver_input && !solver_input)
+        || (external && has_solver_input)
+        || (!external && !solver_input && (has_external || has_solver_input || has_captcha_token))
+    {
+        return Err(error("验证码材料不完整或相互冲突"));
+    }
     if !external && !solver_input {
-        return Err(error("缺少验证码校验结果或挑战图片"));
+        return Ok(());
     }
     Ok(())
 }
@@ -663,7 +866,6 @@ fn validate_submit_request(request: &crate::domain::CgyyReservationSubmitRequest
 async fn prepare_captcha_once(
     runtime: &mut crate::runtime::ClientRuntime,
     request: &mut crate::domain::CgyyReservationSubmitRequest,
-    reservation_token: &str,
 ) -> Result<()> {
     let challenge = if let (Some(secret_key), Some(original), Some(jigsaw)) = (
         request.captcha_secret_key.as_deref(),
@@ -690,7 +892,7 @@ async fn prepare_captcha_once(
     request.captcha_point_json = point_json;
     request.captcha_token = challenge.token;
     request.captcha_verification = verification;
-    check_captcha(runtime, request, reservation_token).await
+    check_captcha(runtime, request).await
 }
 
 async fn get_captcha(runtime: &mut crate::runtime::ClientRuntime) -> Result<CgyyCaptchaChallenge> {
@@ -709,44 +911,19 @@ fn decode_captcha_image(value: &str) -> Result<Vec<u8>> {
 async fn check_captcha(
     runtime: &mut crate::runtime::ClientRuntime,
     request: &crate::domain::CgyyReservationSubmitRequest,
-    token: &str,
 ) -> Result<()> {
     let form = build_captcha_check_form(&request.captcha_point_json, &request.captcha_token);
-    let mut http = signed_request(
+    let body = business_request(
         runtime,
         crate::ports::HttpMethod::Post,
         "/api/captcha/check",
-        form.clone(),
-        Some(token),
-    )?;
-    http.body = crate::upstream::encode_form(&form);
-    let response = runtime.request(http).await?;
-    super::check_response(&response, "场馆预约")?;
-    if data(&super::body(&response))?
-        .get("success")
-        .and_then(Value::as_bool)
-        != Some(true)
-    {
+        form,
+    )
+    .await?;
+    if data(&body)?.get("success").and_then(Value::as_bool) != Some(true) {
         return Err(error("验证码校验失败"));
     }
     Ok(())
-}
-
-fn context_request_body(
-    _request: &HttpRequest,
-    request: &crate::domain::CgyyReservationSubmitRequest,
-    token: &str,
-    order_json: &str,
-) -> BTreeMap<String, String> {
-    [
-        ("venueSiteId".into(), request.venue_site_id.to_string()),
-        ("reservationDate".into(), request.reservation_date.clone()),
-        ("weekStartDate".into(), request.reservation_date.clone()),
-        ("reservationOrderJson".into(), order_json.into()),
-        ("token".into(), token.into()),
-    ]
-    .into_iter()
-    .collect()
 }
 
 /// 解析场馆预约写操作响应。
@@ -784,15 +961,23 @@ fn object(body: &str) -> Result<Map<String, Value>> {
         .ok_or_else(|| error("场馆预约响应结构无效"))
 }
 
-fn data(body: &str) -> Result<Value> {
+fn success_root(body: &str) -> Result<Map<String, Value>> {
     let root = object(body)?;
-    let success = root.get("success").and_then(Value::as_bool);
-    let code = root.get("code").and_then(Value::as_i64);
-    if success == Some(false) || code != Some(200) {
+    let code = root.get("code").and_then(|value| {
+        value
+            .as_i64()
+            .or_else(|| value.as_str()?.parse::<i64>().ok())
+    });
+    if code != Some(200) {
         let message = string(&root, "message").unwrap_or_else(|| "场馆预约请求失败".into());
         return Err(error(message));
     }
-    Ok(root.get("data").cloned().unwrap_or(Value::Object(root)))
+    Ok(root)
+}
+
+fn data(body: &str) -> Result<Value> {
+    let root = success_root(body)?;
+    Ok(root.get("data").cloned().unwrap_or(Value::Null))
 }
 
 fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
@@ -938,9 +1123,10 @@ pub fn parse_day_info(
     venue_site_id: i32,
     reservation_date: &str,
 ) -> Result<CgyyDayInfo> {
-    let value = data(body)?;
-    let root = value
-        .as_object()
+    let root = success_root(body)?
+        .get("data")
+        .and_then(Value::as_object)
+        .cloned()
         .ok_or_else(|| error("场馆日期响应结构无效"))?;
     let time_slots: Vec<_> = root
         .get("spaceTimeInfo")
@@ -1013,8 +1199,8 @@ pub fn parse_day_info(
         available_dates,
         time_slots,
         spaces,
-        reservation_token: string(root, "token"),
-        reservation_total_num: int(root, "reservationTotalNum"),
+        reservation_token: string(&root, "token"),
+        reservation_total_num: int(&root, "reservationTotalNum"),
     })
 }
 
@@ -1115,7 +1301,8 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 mod tests {
     use super::{
         build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
-        parse_action_result, parse_captcha_challenge, parse_sites, sign, signed_request,
+        check_business_response, parse_action_result, parse_captcha_challenge, parse_sites, sign,
+        signed_request, validate_submit_request,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
     use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
@@ -1154,6 +1341,16 @@ mod tests {
             .expect("应解析成功");
         assert_eq!(result.message, "取消成功");
         assert!(result.order.is_none());
+    }
+
+    #[test]
+    fn 业务响应按旧版允许状态码异常但业务代码成功() {
+        let response = HttpResponse::new(
+            500,
+            "https://cgyy.buaa.edu.cn/venue-zhjs-server/api/orders/mine",
+            br#"{"code":200,"data":{"content":[]}}"#.to_vec(),
+        );
+        assert!(check_business_response(&response, "订单").is_ok());
     }
 
     #[test]
@@ -1234,7 +1431,7 @@ mod tests {
     }
 
     #[test]
-    fn web_vpn模式下场馆签名请求保持直连地址() {
+    fn web_vpn模式下场馆签名请求使用_webvpn地址() {
         let root = std::env::temp_dir().join(format!("ubaa-cgyy-url-{}", std::process::id()));
         let runtime = ClientRuntime::new(
             ConnectionMode::WebVpn,
@@ -1251,8 +1448,12 @@ mod tests {
         )
         .unwrap();
         let url = url::Url::parse(&request.url).unwrap();
-        assert_eq!(url.host_str(), Some("cgyy.buaa.edu.cn"));
-        assert!(!request.url.contains("webvpn"));
+        assert_eq!(url.host_str(), Some("d.buaa.edu.cn"));
+        let direct = crate::connection::from_webvpn_url(&request.url).unwrap();
+        assert_eq!(
+            url::Url::parse(&direct).unwrap().host_str(),
+            Some("cgyy.buaa.edu.cn")
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1306,5 +1507,29 @@ mod tests {
             .expect("应匹配测试滑块");
         // 算法匹配的是白色背景到黑色边框的边界，因此横坐标为 29。
         assert_eq!(offset, 29);
+    }
+
+    #[test]
+    fn 预约请求省略验证码时允许内部挑战流程() {
+        let request = CgyyReservationSubmitRequest {
+            venue_site_id: 4,
+            reservation_date: "2026-03-29".into(),
+            selections: vec![CgyyReservationSelection {
+                space_id: 6,
+                time_id: 242,
+                venue_space_group_id: None,
+            }],
+            phone: "010-00000000".into(),
+            theme: "测试预约".into(),
+            purpose_type: 1,
+            joiner_num: 1,
+            activity_content: "测试内容".into(),
+            joiners: "测试人员".into(),
+            is_philosophy_social_sciences: false,
+            is_off_school_joiner: false,
+            ..Default::default()
+        };
+
+        assert!(validate_submit_request(&request).is_ok());
     }
 }

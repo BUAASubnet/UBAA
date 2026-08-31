@@ -61,6 +61,7 @@ pub struct CgyyDayInfo {
     pub available_dates: Vec<String>,
     pub time_slots: Vec<CgyyTimeSlot>,
     pub spaces: Vec<CgyySpaceAvailability>,
+    #[serde(skip_serializing)]
     pub reservation_token: Option<String>,
     pub reservation_total_num: Option<i32>,
 }
@@ -119,11 +120,12 @@ pub struct CgyyReservationResult {
     pub order: Option<CgyyOrder>,
 }
 
-/// 场馆门锁码响应的安全不透明载荷。
+/// 场馆门锁码的安全摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyLockCode {
-    pub raw_data: serde_json::Value,
+    /// 上游是否返回了可用的锁码数据；具体锁码永不离开 Core。
+    pub available: bool,
 }
 
 /// 场馆预约提交时选择的空间及时段。
@@ -150,17 +152,17 @@ pub struct CgyyReservationSubmitRequest {
     pub joiners: String,
     pub is_philosophy_social_sciences: bool,
     pub is_off_school_joiner: bool,
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub captcha_verification: String,
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub captcha_point_json: String,
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub captcha_token: String,
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub captcha_secret_key: Option<String>,
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub captcha_original_image_base64: Option<String>,
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub captcha_jigsaw_image_base64: Option<String>,
 }
 

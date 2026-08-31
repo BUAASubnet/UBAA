@@ -61,7 +61,11 @@ pub(crate) fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> 
     std::io::stdin()
         .read_to_string(&mut input)
         .map_err(|_| invalid_input("无法读取场馆预约请求"))?;
-    serde_json::from_str(&input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
+    parse_cgyy_request(&input)
+}
+
+pub(crate) fn parse_cgyy_request(input: &str) -> Result<CgyyReservationSubmitRequest> {
+    serde_json::from_str(input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
 }
 
 pub(crate) fn write_json<W: Write, T: serde::Serialize>(
@@ -130,4 +134,32 @@ pub(crate) fn internal_error(message: impl Into<String>) -> UbaaError {
         false,
         message,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_cgyy_request;
+
+    #[test]
+    fn 场馆预约请求可以省略由_core_内部获取的验证码材料() {
+        let input = r#"{
+            "venueSiteId": 4,
+            "reservationDate": "2026-03-29",
+            "selections": [{"spaceId": 6, "timeId": 242}],
+            "phone": "010-00000000",
+            "theme": "test reservation",
+            "purposeType": 1,
+            "joinerNum": 1,
+            "activityContent": "test content",
+            "joiners": "tester",
+            "isPhilosophySocialSciences": false,
+            "isOffSchoolJoiner": false
+        }"#;
+
+        let request = parse_cgyy_request(input).unwrap();
+
+        assert!(request.captcha_verification.is_empty());
+        assert!(request.captcha_point_json.is_empty());
+        assert!(request.captcha_token.is_empty());
+    }
 }

@@ -473,9 +473,13 @@ impl UbaaClient {
     /// 查询场馆站点。
     pub async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "sites.list");
         let result = match resolution.mode {
-            ConnectionMode::Direct | ConnectionMode::WebVpn => {
+            ConnectionMode::Direct => {
                 crate::features::cgyy::get_sites(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_sites(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -484,9 +488,13 @@ impl UbaaClient {
     /// 查询场馆用途类型。
     pub async fn cgyy_purpose_types(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "purposes.list");
         let result = match resolution.mode {
-            ConnectionMode::Direct | ConnectionMode::WebVpn => {
+            ConnectionMode::Direct => {
                 crate::features::cgyy::get_purpose_types(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_purpose_types(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -495,6 +503,7 @@ impl UbaaClient {
     /// 查询场馆日期可用性。
     pub async fn cgyy_day_info(&mut self, site_id: i32, date: &str) -> RoutedResult<CgyyDayInfo> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "day.info");
         if site_id <= 0 || date.trim().is_empty() {
             return Err(routed_error(
                 invalid_input("场馆站点和日期不能为空"),
@@ -502,8 +511,11 @@ impl UbaaClient {
             ));
         }
         let result = match resolution.mode {
-            ConnectionMode::Direct | ConnectionMode::WebVpn => {
+            ConnectionMode::Direct => {
                 crate::features::cgyy::get_day_info(&mut self.direct_runtime, site_id, date).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_day_info(&mut self.webvpn_runtime, site_id, date).await
             }
         };
         self.finish_routed(resolution, result)
@@ -512,12 +524,16 @@ impl UbaaClient {
     /// 查询我的场馆订单。
     pub async fn cgyy_orders(&mut self, page: i32, size: i32) -> RoutedResult<CgyyOrdersPage> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.list");
         if page < 0 || size <= 0 {
             return Err(routed_error(invalid_input("分页参数无效"), resolution));
         }
         let result = match resolution.mode {
-            ConnectionMode::Direct | ConnectionMode::WebVpn => {
+            ConnectionMode::Direct => {
                 crate::features::cgyy::get_orders(&mut self.direct_runtime, page, size).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_orders(&mut self.webvpn_runtime, page, size).await
             }
         };
         self.finish_routed(resolution, result)
@@ -526,6 +542,7 @@ impl UbaaClient {
     /// 查询场馆订单详情。
     pub async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.detail");
         if id <= 0 {
             return Err(routed_error(
                 invalid_input("订单标识必须为正数"),
@@ -533,8 +550,11 @@ impl UbaaClient {
             ));
         }
         let result = match resolution.mode {
-            ConnectionMode::Direct | ConnectionMode::WebVpn => {
+            ConnectionMode::Direct => {
                 crate::features::cgyy::get_order_detail(&mut self.direct_runtime, id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_order_detail(&mut self.webvpn_runtime, id).await
             }
         };
         self.finish_routed(resolution, result)
@@ -542,9 +562,13 @@ impl UbaaClient {
 
     pub async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.lock_code");
         let result = match resolution.mode {
-            ConnectionMode::Direct | ConnectionMode::WebVpn => {
+            ConnectionMode::Direct => {
                 crate::features::cgyy::get_lock_code(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_lock_code(&mut self.webvpn_runtime).await
             }
         };
         self.finish_routed(resolution, result)
@@ -553,6 +577,7 @@ impl UbaaClient {
     /// 取消场馆预约订单。
     pub async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.cancel");
         if id <= 0 {
             return Err(routed_error(
                 invalid_input("订单标识必须为正数"),
@@ -570,22 +595,38 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 提交场馆预约；验证码校验结果必须由调用方显式提供。
+    /// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
     pub async fn cgyy_submit_reservation(
         &mut self,
         request: CgyyReservationSubmitRequest,
     ) -> RoutedResult<CgyyReservationResult> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "reservation.submit");
         let result = match resolution.mode {
             ConnectionMode::Direct => {
-                crate::features::cgyy::submit_reservation(&mut self.direct_runtime, request.clone())
-                    .await
+                crate::features::cgyy::submit_reservation(&mut self.direct_runtime, request).await
             }
             ConnectionMode::WebVpn => {
                 crate::features::cgyy::submit_reservation(&mut self.webvpn_runtime, request).await
             }
         };
         self.finish_routed(resolution, result)
+    }
+
+    fn log_cgyy_route(&self, resolution: RouteResolution, operation: &str) {
+        let runtime_mode = match resolution.mode {
+            ConnectionMode::Direct => self.direct_runtime.mode(),
+            ConnectionMode::WebVpn => self.webvpn_runtime.mode(),
+        };
+        tracing::debug!(
+            target: "ubaa::cgyy",
+            feature = "cgyy",
+            operation,
+            route_policy = ?resolution.policy,
+            resolved_route = ?resolution.mode,
+            selected_runtime = ?runtime_mode,
+            "Cgyy 门面完成路线解析"
+        );
     }
 
     /// 通过课表路线策略读取可用学期。
@@ -1408,6 +1449,47 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 查询场馆日期可用性。
+    pub async fn cgyy_day_info(
+        &mut self,
+        site_id: i32,
+        date: &str,
+    ) -> Result<FeatureResult<CgyyDayInfo>> {
+        self.guard_session_ownership()?;
+        if site_id <= 0 || date.trim().is_empty() {
+            return Err(invalid_input("场馆站点和日期不能为空"));
+        }
+        let result = crate::features::cgyy::get_day_info(&mut self.runtime, site_id, date).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询场馆订单分页。
+    pub async fn cgyy_orders(
+        &mut self,
+        page: i32,
+        size: i32,
+    ) -> Result<FeatureResult<CgyyOrdersPage>> {
+        self.guard_session_ownership()?;
+        if page < 0 || size <= 0 {
+            return Err(invalid_input("分页参数无效"));
+        }
+        let result = crate::features::cgyy::get_orders(&mut self.runtime, page, size).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询场馆订单详情。
+    pub async fn cgyy_order_detail(&mut self, id: i32) -> Result<FeatureResult<CgyyOrder>> {
+        self.guard_session_ownership()?;
+        if id <= 0 {
+            return Err(invalid_input("订单标识必须为正数"));
+        }
+        let result = crate::features::cgyy::get_order_detail(&mut self.runtime, id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     pub async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>> {
         self.guard_session_ownership()?;
         let result = crate::features::cgyy::get_lock_code(&mut self.runtime).await;
@@ -1426,7 +1508,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 提交场馆预约；验证码校验结果必须由调用方显式提供。
+    /// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
     pub async fn cgyy_submit_reservation(
         &mut self,
         request: CgyyReservationSubmitRequest,

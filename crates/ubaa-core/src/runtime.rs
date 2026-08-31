@@ -141,11 +141,6 @@ impl ClientRuntime {
         }
     }
 
-    /// Cgyy 冻结实现要求始终使用原始直连地址，即使主路线为 `WebVPN`。
-    pub(crate) fn direct_url(direct: &str) -> String {
-        direct.into()
-    }
-
     pub(crate) async fn request(&mut self, mut request: HttpRequest) -> Result<HttpResponse> {
         let now = SystemTime::now();
         let cookie = self.jar.cookie_header(&request.url, now)?;

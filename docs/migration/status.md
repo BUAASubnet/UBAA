@@ -1,9 +1,84 @@
 # 迁移状态
 
-Updated: 2026-08-29
+Updated: 2026-08-31
+
+## 2026-08-31 本周期基线检查
+
+本周期开始时工作树包含既有未提交改动，按合同作为基线保留。`just refs` 和
+`just check-sensitive` 已通过；`just check` 在 Clippy 阶段失败，具体为
+`crates/ubaa-core/src/facade/mod.rs:592` 的 `RouteResolution`（可复制小类型）
+仍按引用传递，触发 `clippy::trivially-copy-pass-by-ref`。该失败是基线事实，
+不是验收通过；后续先做最小修复并重新运行完整门槛。
+
+## 2026-08-31 Cgyy WebVPN 路由失败优先证据
+
+按 Cgyy 合同先将 facade 回归断言改为 WebVPN runtime，并运行
+`cargo test --locked -p ubaa-core --test facade cgyy_webvpn_uses_`。测试按预期失败：
+`cgyy_webvpn_uses_webvpn_business_transport_after_route_resolution` 实际调用
+Direct 传输 1 次、WebVPN 传输 0 次。该失败证明现有实现仍存在固定 Direct 路由，随后只做
+runtime/URL 选择的最小修复。
+
+Core 安全失败优先证据：新增 `锁码公共序列化不暴露上游原始数据` 后，
+`cargo test --locked -p ubaa-core --test cgyy 锁码公共序列化不暴露上游原始数据`
+按预期失败，序列化结果包含 fixture 锁码。该失败确认不能只在 CLI 做投影，Core
+公共 DTO 本身也必须阻断原始 `data` 外泄。
+
+修复路由后首次 `just check` 仍在 Core 单元测试发现一条旧断言
+`web_vpn模式下场馆签名请求保持直连地址`，其期望为 `cgyy.buaa.edu.cn`，
+与当前 WebVPN 合同冲突；该测试已改为验证 `d.buaa.edu.cn` 及编码后的 Cgyy 目标。
+
+## 2026-08-31 Core-live 验证入口改造
+
+已新增 `core-live` 二进制和 `scripts/core-live.sh` 启动器。Core-live 在单个固定路线
+`RouteClient` 内完成一次登录，然后串行调用只读 facade，并按操作输出路线、状态和稳定错误码；
+详情 ID 只在进程内存中传递，写方法不在入口白名单内。`verify-live` 已收敛为参数白名单、
+`.env.local` 安全读取、锁定构建和一次 stdin 转发，拒绝 `auto` 真实登录；对应 Shell 合同测试
+已改用假 Core-live 验证凭据不进入参数或 xtrace。Direct/WebVPN 真实矩阵尚待本周期新入口
+分别执行，旧脚本的聚合摘要不作为当前证据。
+
+## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果
+
+使用 `just verify-live mode=direct` 和 `just verify-live mode=webvpn`，凭据只经
+stdin 注入，未保存 stdout 以外的内容，两个运行均未调用写方法。Direct 退出码 0：
+
+```text
+auth/login PASS; auth/status PASS; user/info PASS
+schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
+exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
+spoc/assignments PASS(0); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(83); judge/current PASS(65); judge/detail PASS; judge/details_batch PASS(65)
+signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
+cgyy/sites PASS(7); cgyy/purposes PASS(10); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
+evaluation/all PASS(0); evaluation/pending PASS(0)
+```
+
+WebVPN 的认证、用户、课表/考试/成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook 和
+Bykc 均通过；SPOC 详情与 Bykc 课程详情因上游列表为空分别为
+`NOT_APPLICABLE(no_assignment_id)`、`NOT_APPLICABLE(no_course_id)`。WebVPN 退出码 5，
+失败项逐项为：
+
+```text
+cgyy/sites FAIL(authentication_required); cgyy/purposes FAIL(authentication_required)
+cgyy/day NOT_APPLICABLE(no_site_id); cgyy/orders FAIL(authentication_required)
+cgyy/order_detail NOT_APPLICABLE(no_order_id); cgyy/lock_code FAIL(authentication_required)
+evaluation/all FAIL(authentication_required); evaluation/pending BLOCKED(all_failed)
+```
+
+WebVPN Cgyy 没有回退到 Direct；上述 `authentication_required` 是当前上游路线结果，
+不是本地改写为成功。`auto` 未执行真实登录，只由 facade 的确定性 WebVPN-only、
+Direct/ WebVPN 探测和路由策略测试覆盖。
 
 ## 2026-08-29 阶段提交
 
+- Cgyy Rust CLI 已完成一次用户明确授权的 Direct 读写探针：登录、站点、用途、日期、订单读取成功；提交时省略验证码字段，由 Core 自动获取、求解和校验；提交后按冻结 Python 脚本等待 5 秒再取消，取消命令成功，订单列表最终确认 `orderStatus=2`。本次未输出或持久化订单号、手机号、令牌、Cookie、验证码和原始响应；`verify-live` 仍不执行写操作。
+- 修复 Cgyy 日期 DTO 的敏感边界：预约上下文 `reservationToken` 继续留在 Core 提交链，但不再序列化到 facade/CLI 输出；新增失败优先的序列化回归测试。修复后 Direct/WebVPN Cgyy 站点与日期实时门禁均通过；订单详情/锁码仍可能受上游 `upstream_unavailable` 影响。
+- 本轮继续对照冻结 `ubaa_old` 修复 Cgyy 业务请求：GET/POST 共用业务令牌失效后的单次重登重放；预约上下文、验证码校验和最终提交的 `cgAuthorization` 均使用 `access_token`，预约表单中的业务 `token` 仍按旧版保留；未执行真实写请求。
+- Cgyy 日期接口现在要求成功信封中的 `data` 存在且为 JSON 对象（允许空对象）；锁码接口要求 `code=200`，缺失 `data` 按旧版映射为空值；新增业务认证重试、信封和路由回归测试，Core Cgyy 集成测试通过 12/12，CLI 合同测试通过 23/23。
+- 历史记录：Cgyy 在 `WebVPN` facade 中的写操作曾固定使用 Direct 业务地址；本周期已由路线失败测试和最小修复 supersede，当前公共读写入口均绑定解析出的路线 runtime，真实验证仍禁止写操作。
+- `verify-live` 在未设置 `UBAA_VERIFY_DATE` 且日期接口明确返回 `upstream_unavailable` 时，最多尝试当前日期及未来 7 天；显式日期不回退，`invalid_semantics` 仍立即失败，避免用日期轮询掩盖协议变化。
+- 本轮只读实时证据：Direct 与 WebVPN 站点均返回 7 个；结构探针在部分未来日期获得正常的日期对象、时段数组和空间数组，但正式复验中的日期/订单/锁码仍出现 `upstream_unavailable` 或 `invalid_semantics`。实时上游不稳定，不能据此宣称 Cgyy 全链路验收完成；未执行预约、提交或取消。
 - Direct Cgyy 只读复验（`feature=cgyy route=direct`）成功，站点摘要为 7 个；验证器未执行任何预约或取消写操作，后续日期/订单等依赖操作仍按逐项结果记录。
 - auto Cgyy 只读复验解析到 Direct：站点摘要为 7 个；日期返回 `invalid_semantics`，锁码返回 `upstream_unavailable`。验证器按依赖关系继续逐项输出，未执行任何预约或取消写操作。
 - 对照冻结 `LocalSigninApi.getTodayClasses` 修正签到今日查询：使用 GET 与 `sessionId` 请求头；新增请求构造测试先失败后通过，并校正 source parity 中与示例协议混淆的旧描述。
@@ -30,7 +105,7 @@ Updated: 2026-08-29
 - 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
 - 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。
-- 校正 `legacy-feature-inventory.md` 与 `source-parity.md` 的 Cgyy WebVPN 现状：独立 Direct 业务 runtime 已实现并有 facade 测试，剩余日期/订单/锁码仅按逐操作实时结果记录；避免历史失败表述与当前代码不一致。
+- 校正 `legacy-feature-inventory.md` 与 `source-parity.md` 的 Cgyy WebVPN 现状：当前业务 runtime 与 facade 解析路线一致，并有 WebVPN-only 回归测试；剩余日期/订单/锁码仅按逐操作实时结果记录，避免历史失败表述与当前代码不一致。
 - 将 Cgyy 验证码点位与校验凭据的 AES-ECB/PKCS#7/Base64 加密辅助移入 `crates/ubaa-core/src/features/cgyy_crypto.rs`；保持三种密钥长度、字段拼接、错误文本和冻结向量不变；Core、敏感扫描与全量门禁通过。
 - 将 Ygdk 照片 multipart 正文构造移入 `crates/ubaa-core/src/features/ygdk_upload.rs`；保持 `uid`、`token`、文件元数据、CRLF 和 boundary 终止顺序不变；上传字段测试、敏感扫描与全量门禁通过。
 - 将 LibBook 预约请求 DTO 与日期派生 AES-128-CBC/PKCS#7 加密辅助移入 `crates/ubaa-core/src/features/libbook_crypto.rs`；保持固定 IV、字段顺序、错误文本和 Base64 输出不变；LibBook golden 向量、敏感扫描与全量门禁通过。

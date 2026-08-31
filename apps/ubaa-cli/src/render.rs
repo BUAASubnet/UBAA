@@ -8,7 +8,7 @@ use ubaa_core::domain::{AuthStatus, CgyyLockCode, UserProfile};
 use crate::CommandOutput;
 
 pub(crate) fn safe_lock_code_value(data: &CgyyLockCode) -> Value {
-    json!({"available": !data.raw_data.is_null()})
+    json!({"available": data.available})
 }
 
 pub(crate) fn write_profile<W: Write>(stdout: &mut W, profile: &UserProfile) -> io::Result<()> {

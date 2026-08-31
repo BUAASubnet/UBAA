@@ -2,11 +2,10 @@ use ubaa_core::domain::{JudgeSubmissionStatus, SpocSubmissionStatus};
 use ubaa_core::features::{cgyy, classroom, evaluation, grades, judge, schedule, spoc};
 
 #[test]
-fn cgyy_lock_code_parser_keeps_only_opaque_data() {
+fn cgyy_lock_code_parser_returns_safe_availability_summary() {
     let result =
         cgyy::parse_lock_code(r#"{"code":200,"data":{"orderId":7,"lockCode":"1234"}}"#).unwrap();
-    assert_eq!(result.raw_data["orderId"], 7);
-    assert_eq!(result.raw_data["lockCode"], "1234");
+    assert!(result.available);
 }
 
 #[test]

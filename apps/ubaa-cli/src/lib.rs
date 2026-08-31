@@ -2591,10 +2591,7 @@ mod tests {
 
     #[test]
     fn lock_code_cli_projection_does_not_expose_opaque_payload() {
-        let value = safe_lock_code_value(&CgyyLockCode {
-            raw_data: json!({"lockCode": "fixture-secret"}),
-        });
+        let value = safe_lock_code_value(&CgyyLockCode { available: true });
         assert_eq!(value, json!({"available": true}));
-        assert!(!value.to_string().contains("fixture-secret"));
     }
 }
