@@ -84,8 +84,8 @@ jobs:
           fi
           git init "$flutter_root"
           git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
-          git -C "$flutter_root" fetch --depth=1 origin 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
-          git -C "$flutter_root" checkout --detach FETCH_HEAD
+          git -C "$flutter_root" fetch --depth=1 origin refs/tags/3.41.9:refs/tags/3.41.9
+          git -C "$flutter_root" checkout --detach 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
           printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
           printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
           "$flutter_root/bin/flutter" --version
