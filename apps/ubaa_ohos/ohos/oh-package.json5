@@ -1,0 +1,10 @@
+{
+  "modelVersion": "5.1.0",
+  "name": "ubaa_ohos",
+  "version": "1.0.0",
+  "description": "UBAA HarmonyOS Flutter OH 宿主。",
+  "main": "",
+  "author": "BUAASubnet",
+  "license": "MIT",
+  "dependencies": {}
+}

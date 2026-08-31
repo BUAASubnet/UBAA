@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "UBAA HarmonyOS 主入口"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "UBAA HarmonyOS 应用入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "UBAA"
+    }
+  ]
+}

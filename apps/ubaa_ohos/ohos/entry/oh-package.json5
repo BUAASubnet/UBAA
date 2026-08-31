@@ -1,0 +1,10 @@
+
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "UBAA HarmonyOS 主入口模块。",
+  "main": "",
+  "author": "BUAASubnet",
+  "license": "MIT",
+  "dependencies": {},
+}

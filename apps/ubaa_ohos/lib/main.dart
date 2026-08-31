@@ -2,17 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
-void main() {
+Future<void> main() async {
+  await RustLib.init();
+  assert(bridgeHello() == 'UBAA FRB 2.13.0 ready');
   runApp(const UbaaOhosApp());
 }
 
 /// HarmonyOS 的薄宿主入口。
 ///
-/// 页面、主题与应用状态均来自共享 package；这里只负责组合平台实现。FRB、
-/// HUKS 凭据库和遥测发送器就绪后，通过构造函数注入，禁止在宿主复制协议逻辑。
+/// 页面、主题与应用状态均来自共享 package；这里只负责组合平台实现。P0 已接通
+/// FRB hello，HUKS 凭据库和生产 backend 在后续阶段通过构造函数注入，禁止在宿主
+/// 复制协议逻辑。P1 必须移除生产入口的 Demo 回退。
 class UbaaOhosApp extends StatefulWidget {
   const UbaaOhosApp({
     this.backend,

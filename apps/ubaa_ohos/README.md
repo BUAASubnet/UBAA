@@ -1,7 +1,7 @@
 # UBAA HarmonyOS 宿主
 
 本目录是 HarmonyOS 的 Flutter OH 薄宿主。页面、主题、状态机、错误文案和
-遥测合同来自 `../../packages/`；Rust 业务只能经后续的 FRB binding 调用
+遥测合同来自 `../../packages/`；Rust 业务只能经 FRB binding 调用
 `ubaa-core::facade`。宿主不得复制 URL、Cookie、路线选择或协议解析逻辑。
 
 ## 固定基线
@@ -23,23 +23,27 @@
 符号不能由 API 21 或公开 API 18 SDK 提供。不能通过改低
 `compatibleSdkVersion`、伪造清单或删除失败代码规避。
 
-在 DevEco/Command Line Tools 26.0.0 Beta2、OpenHarmony API 26 和可签名
-设备就绪前，本目录只代表可审查宿主骨架，HarmonyOS 状态仍为实验支持。
+锁定 fork 已生成 `ohos/` runner，OHOS Dart app 的 pub get、analyze 和 widget test
+通过，`ubaa_bindings` 也已接入 arm64 Cargokit HAR。DevEco/Command Line Tools
+26.0.0 Beta2、OpenHarmony API 26 和可签名设备就绪前，仍不能生成验收 HAP，
+HarmonyOS 状态保持实验支持。
 
 ## 共享 package 接入
 
 `pubspec.yaml` 只依赖共享层：
 
+- `ubaa_bindings`：同一 FRB Dart API 与 OHOS arm64 native 构建接线；
 - `ubaa_app`：启动、登录、首页 bootstrap 与依赖注入；
 - `ubaa_ui`：旧版风格的 Material 3 页面和组件；
 - `ubaa_platform`：安全存储、遥测和安全错误投影接口。
 
-`lib/main.dart` 只是 composition root。当前默认注入 `DemoBackend`、会话内
-凭据库和关闭的遥测，便于无账号预览；FRB、HUKS 凭据库与遥测发送器完成
-后在这里注入平台实现，不能把平台细节下沉到共享 UI。
+`lib/main.dart` 只是 composition root。P0 已执行 `RustLib.init` 与固定 hello，
+当前业务 backend 仍默认使用 `DemoBackend` 供无账号预览；P1 必须移除生产 Demo
+回退并注入 FRB backend。HUKS 凭据库与遥测发送器也只在这里组合，不能把平台细节
+下沉到共享 UI。
 
-后续 `packages/ubaa_bindings` 就绪后，本宿主和官方五平台宿主应依赖同一份
-生成 Dart API。OHOS 只拥有 runner、签名、HUKS 适配和必要的平台插件差异。
+本宿主和官方五平台宿主已经依赖同一份生成 Dart API。OHOS 只拥有 runner、
+签名、HUKS 适配和必要的平台插件差异。
 
 ## 工具链预检
 
@@ -56,25 +60,19 @@ UBAA_DEVECO_HOME=/absolute/path/to/DevEco-Studio.app/Contents \
 Node、`ohpm`、`hvigor`、`hdc`、JDK 17+ 和 Rust
 `aarch64-unknown-linux-ohos` target。任一硬门槛不满足都会非零退出。
 
-## 生成 runner
+## 可复现检查与构建
 
-只有预检全部通过后才能生成 `ohos/`：
+runner 已由锁定 fork 生成。工具链不匹配时只允许运行 Dart 检查；HAP 构建必须先
+通过根级预检：
 
 ```sh
-cd apps/ubaa_ohos
-export UBAA_OHOS_FLUTTER_HOME=/absolute/path/to/flutter-ohos-3.41.10
-export UBAA_DEVECO_HOME=/absolute/path/to/DevEco-Studio.app/Contents
-export HOS_SDK_HOME="$UBAA_DEVECO_HOME/sdk"
-export OHOS_SDK_HOME="$HOS_SDK_HOME/default/openharmony/native"
-export NODE_HOME="$UBAA_DEVECO_HOME/tools/node"
-export PATH="$UBAA_OHOS_FLUTTER_HOME/bin:$UBAA_DEVECO_HOME/tools/ohpm/bin:$UBAA_DEVECO_HOME/tools/hvigor/bin:$NODE_HOME/bin:$PATH"
-
-flutter create --platforms ohos --org cn.edu.ubaa .
-cp local.properties.example ohos/local.properties
-# 修改 ohos/local.properties 中全部占位路径，再审查 flutter create 的 diff。
-flutter pub get
-flutter build hap --debug --target-platform ohos-arm64
+cd /absolute/path/to/UBAA
+just ohos-check mode=debug
 ```
+
+`ohos/local.properties` 只保存本机绝对路径，始终忽略且不得提交。设备 FRB smoke 使用
+`ohos/ohos_device_smoke_main.dart`，只在 `bridgeHello` 返回固定值后输出
+`FRB_OHOS_SMOKE_RESULT=PASS`。
 
 构建产物应位于 `build/ohos/hap/`。正式验收还必须完成：
 

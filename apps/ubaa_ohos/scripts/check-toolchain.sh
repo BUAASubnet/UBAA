@@ -101,6 +101,24 @@ if [[ -d "$ohos_native_home" ]]; then
 else
   fail "OHOS native SDK 不存在：$ohos_native_home"
 fi
+if [[ "$ohos_native_home" =~ [[:space:]] ]]; then
+  fail "OHOS native SDK 路径不能包含空白：$ohos_native_home"
+fi
+if [[ -x "$ohos_native_home/llvm/bin/clang" ]]; then
+  pass "OHOS clang 可用"
+else
+  fail "OHOS clang 不存在：$ohos_native_home/llvm/bin/clang"
+fi
+if [[ -x "$ohos_native_home/llvm/bin/llvm-ar" ]]; then
+  pass "OHOS llvm-ar 可用"
+else
+  fail "OHOS llvm-ar 不存在：$ohos_native_home/llvm/bin/llvm-ar"
+fi
+if [[ -d "$ohos_native_home/sysroot" ]]; then
+  pass "OHOS sysroot 可用"
+else
+  fail "OHOS sysroot 不存在：$ohos_native_home/sysroot"
+fi
 
 if [[ -x "$node_home/bin/node" ]]; then
   node_version=$($node_home/bin/node --version 2>/dev/null || true)

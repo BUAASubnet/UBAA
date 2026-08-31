@@ -1,4 +1,5 @@
 /.dart_tool/
+/.hvigor/
 /.flutter-plugins-dependencies
 /.pub-cache/
 /build/
