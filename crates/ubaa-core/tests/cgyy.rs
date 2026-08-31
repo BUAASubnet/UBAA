@@ -6,7 +6,8 @@ use ubaa_core::features::cgyy::{
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use ubaa_core::domain::{
-    CgyyDayInfo, CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode,
+    CgyyDayInfo, CgyyPurposeSource, CgyyReservationSelection, CgyyReservationSubmitRequest,
+    ConnectionMode,
 };
 use ubaa_core::facade::RouteClient;
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
@@ -61,10 +62,13 @@ fn 用途类型上游失败时回退到冻结静态定义() {
         .build()
         .unwrap();
 
-    let result = runtime.block_on(client.cgyy_purpose_types()).unwrap();
+    let result = runtime
+        .block_on(client.cgyy_purpose_types_diagnostics())
+        .unwrap();
 
-    assert_eq!(result.data.len(), 10);
-    assert_eq!(result.data[0].key, 1);
+    assert_eq!(result.data.items.len(), 10);
+    assert_eq!(result.data.items[0].key, 1);
+    assert_eq!(result.data.source, CgyyPurposeSource::StaticFallback);
     let _ = std::fs::remove_dir_all(root);
 }
 
