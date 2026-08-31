@@ -15,6 +15,12 @@ check_sdk() {
   local expected_commit=$3
   local expected_version=$4
 
+  # Windows runner 会把 GITHUB_ENV 中的 /d/... 重新表示为 D:/...；在 Git Bash
+  # 内先还原成 POSIX 绝对路径，再执行同一套版本和可执行文件检查。
+  if command -v cygpath >/dev/null 2>&1; then
+    root=$(cygpath -u "$root")
+  fi
+
   if [[ "$root" != /* || ! -x "$root/bin/flutter" ]]; then
     printf 'error: %s SDK 必须是包含 bin/flutter 的绝对路径：%s\n' "$label" "$root" >&2
     return 1
