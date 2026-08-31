@@ -6,6 +6,10 @@
 
 此前 Core 只等待 Cgyy 响应的 `Set-Cookie`，因此 WebVPN 实时矩阵安全返回 `authentication_required`。先添加 `webvpn_从网关_cookie接口取得_cgyy_sso令牌` 脱敏 Mock 并观察到预期失败，再实现网关 Cookie 同步；同步响应只在当前请求内存中解析，令牌不进入 Session、日志或文件。该证据不改变冻结 `ubaa_old` 的 Direct Cgyy URL、参数、签名、DTO 或错误语义，`examples/buaa-api` 仍无等价 Cgyy 模块；本地 Core WebVPN-only 回归和敏感扫描需在真实重跑前通过。
 
+## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑
+
+重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 数量本次为 `include_expired/current/details_batch=80/48/48`，同日快照曾为 `49/17/17` 或 `209/209/209`，但列表、详情和批量详情每次均通过语义门禁。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
+
 ## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
 
 本周期先对照冻结 `ubaa_old`、固定版本 `examples/buaa-api` 和现有脱敏 Mock。原有 WebVPN Cgyy 测试复现了业务请求误走 Direct 的失败：WebVPN-only 会话无法完成站点读取，且写入口也固定访问 Direct。新增失败测试后，Core facade 将每个 Cgyy 公共操作分别绑定到解析出的路线 runtime；WebVPN 现在只使用 WebVPN URL，Direct 会话缺失不会触发偷偷回退。相同批次内业务令牌仍只在当前客户端内存复用，认证失效最多清理、重登并重放一次。

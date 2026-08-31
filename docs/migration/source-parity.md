@@ -1,6 +1,6 @@
 # Source Parity Matrix
 
-Updated: 2026-08-29
+Updated: 2026-08-31
 
 This is an operation-by-operation behavior audit. `old` means frozen
 `ubaa_old/` commit `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`;

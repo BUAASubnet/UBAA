@@ -36,7 +36,7 @@ Core 安全失败优先证据：新增 `锁码公共序列化不暴露上游原�
 已改用假 Core-live 验证凭据不进入参数或 xtrace。Direct/WebVPN 真实矩阵尚待本周期新入口
 分别执行，旧脚本的聚合摘要不作为当前证据。
 
-## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果
+## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果（网关 Cookie 修复前）
 
 使用 `just verify-live mode=direct` 和 `just verify-live mode=webvpn`，凭据只经
 stdin 注入，未保存 stdout 以外的内容，两个运行均未调用写方法。Direct 退出码 0：
@@ -70,6 +70,47 @@ WebVPN Cgyy 没有回退到 Direct；上述 `authentication_required` 是当前�
 不是本地改写为成功。窄范围日志显示 Cgyy SSO 在 `d.buaa.edu.cn` 路线完成 4 次重定向后
 以 200 返回，但未写入冻结要求的 SSO Cookie，Core 因此安全失败。`auto` 未执行真实登录，
 只由 facade 的确定性 WebVPN-only、Direct/WebVPN 探测和路由策略测试覆盖。
+
+## 2026-08-31 Core-live Direct/WebVPN 真实逐操作结果（HAR 网关 Cookie 修复后）
+
+依据 `examples/buaa-cgyy/d.buaa.edu.cn.cgyy.har` 的脱敏证据，Core 在 WebVPN Cgyy SSO
+重定向后读取网关 Cookie 快照；令牌只在内存中作为 `Sso-Token` 使用。以下为重新执行的
+单路线、串行、只读结果，凭据仅经 stdin 注入，未调用任何真实写方法。
+
+Direct 退出码 0：
+
+```text
+auth/login PASS; auth/status PASS; user/info PASS
+schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
+exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
+spoc/assignments PASS(0); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(83); judge/current PASS(65); judge/detail PASS; judge/details_batch PASS(65)
+signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
+cgyy/sites PASS(7); cgyy/purposes PASS(10); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
+evaluation/all PASS(0); evaluation/pending PASS(0)
+```
+
+WebVPN 退出码 0：
+
+```text
+auth/login PASS; auth/status PASS; user/info PASS
+schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
+exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
+spoc/assignments PASS(0); spoc/detail NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(80); judge/current PASS(48); judge/detail PASS; judge/details_batch PASS(48)
+signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
+libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
+bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
+cgyy/sites PASS(7); cgyy/purposes PASS(10); cgyy/day PASS; cgyy/orders PASS(15); cgyy/order_detail PASS; cgyy/lock_code PASS(0)
+evaluation/all PASS(0); evaluation/pending PASS(0)
+```
+
+Judge 数量随上游快照变化（本次 WebVPN 为 `80/48/48`，早先同日运行也出现过
+`49/17/17` 与 `209/209/209`），但每次均逐项完成列表、详情和批量详情语义校验；
+数量波动不改变路线成功结论。SPOC 与 Bykc 详情因对应列表为空按合同标记
+`NOT_APPLICABLE`。auto 没有真实登录矩阵，只保留确定性路线解析与 WebVPN-only Mock 证据。
 
 ## 2026-08-29 阶段提交
 
@@ -230,11 +271,11 @@ Ygdk 阳光打卡已完成只读概览与记录的 Core 解析、独立 OAuth/�
 | 9c SPOC | Corrected live Direct/auto aggregate and WebVPN explicit runs passed | The hidden diagnostic observed one authoritative global page on each accepted run; the empty result is therefore evidence-backed. Non-empty detail remains conditional on upstream data. |
 | 9d Judge | Direct/auto/WebVPN aggregate accepted on the latest complete matrix | Frozen DOM/problem/score/status parsing, link filtering, grouped four-worker batch reads, clamped cutoff, bounded route/client caches, lifecycle invalidation, safe diagnostics, and terminal UC arbitration are covered. Judge list snapshots can drift between the two required reads; the verifier remains strict and a transient `judge_cutoff` failure is recorded rather than normalized. |
 | 9e 签到查询 | Core 解析、独立 iClass 会话、facade 与 CLI 已接入；Direct/WebVPN 实时验证通过 | `signin today` 使用路线隔离的 iClass 业务会话，按旧版固定跳转、登录参数和今日查询参数实现；脱敏解析、确定性接线和双路线 live 证据均已覆盖。签到提交属于写操作，仍禁止真实调用。 |
-| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；写操作具备确定性证据 | 所有写操作均要求显式确认并由实时验证器排除；请求向量、Mock 链和输入拒绝测试已覆盖，实时只读失败仍按逐操作矩阵收敛。 |
+| 9f 扩展查询与写入口 | Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 的 Core/CLI 入口已接入；Direct/WebVPN 只读矩阵逐项通过 | 所有写操作均要求显式确认并由实时验证器排除；请求向量、Mock 链和输入拒绝测试已覆盖，真实账号从不执行写操作。 |
 | 10 CLI/JSON | Deterministic remediation complete; final CLI E2E passed | Ordinary commands use the aggregate Core facade; every renderer, startup/argument failure and hidden diagnostic emits schema v2; aggregate auth/logout metadata and route data are fixed Direct then WebVPN; unsafe config targets and concurrent atomic writes are covered. |
 | 10a live verifier | Deterministic remediation complete | The harness rejects unsafe errors, non-v2/wrong aggregate order, invalid integer bounds, cross-request term/SPOC identity drift, missing SPOC query proof, incomplete Judge semantics, route contradictions, sensitive/raw output and Judge JSON in argv; it proves xtrace suppression and username/password stdin routing. Production verification is non-interactive and records an upstream interactive verification page as `upstream_changed`. |
-| 11 live matrix | 三路线逐操作验证器已完成；最新全量仍有 Judge/Cgyy 上游失败 | Keep the strict `judge_cutoff` subset check and rerun the complete aggregate when upstream list volatility or Cgyy business authentication causes a nonzero result. |
-| 12 交接/门禁 | 已可继续开发；当前改动按功能分别提交 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、认证 Direct/WebVPN、六类显式路线、`all/auto`、`all/direct` 和最新 `all/webvpn` 均有记录。后续真实重跑仍属于发布流程。 |
+| 11 live matrix | Direct 与 WebVPN Core-live 完整只读矩阵均逐项通过；auto 仅确定性路由验证 | Judge 列表数量按上游快照波动逐项记录；详情依赖空列表按 `NOT_APPLICABLE`，不以聚合成功掩盖单项状态。 |
+| 12 交接/门禁 | 本周期硬门槛已完成，待最终命令复跑留痕 | `just refs`、`just check-sensitive`、`just check`、CLI E2E、Shell 合同、Direct/WebVPN Core-live 和 auto 确定性测试均须在最终交接再次记录；真实写操作永久排除。 |
 
 ## 2026-08-26 Corrected Live Matrix
 
