@@ -62,6 +62,16 @@
 本节仅记录确定性和工具链事实；未执行任何真实账号写操作，也未读取、输出或暂存
 `.env.local`、会话、Cookie、token、验证码图片或真实响应。
 
+## 2026-09-01 Flutter P1 bridge 合同
+
+- 新增 `docs/contracts/flutter-bridge.md`，固定合同版本、opaque client 生命周期、typed
+  `BridgeError`、路线决策、认证资料白名单、全部读取方法/DTO 和十类 typed 写 intent。
+- `evaluationPending` 明确不作为 bridge 方法；待评课程只由 `evaluationAll` 中
+  `isEvaluated=false` 派生。Cgyy 用途通过安全来源 DTO 区分 upstream 与 static fallback。
+- bridge 不生成诊断方法、原始 Evaluation payload、Cookie/token、场馆 challenge 材料或
+  任意 JSON 写入口。协议九列继续引用本文件已有逐领域 parity，本次合同没有修改生产代码或
+  访问真实账号。
+
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`

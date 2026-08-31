@@ -19,6 +19,26 @@ Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` �
 
 生产代码变更前，每个认证或只读操作都必须填写下方九列。
 
+## Flutter bridge 产品投影
+
+P1 的 `docs/contracts/flutter-bridge.md` 只把本文件已审计的 facade 方法映射为 typed FRB
+DTO，不修改任何 URL、service、跳转、Cookie/Session、HTTP 参数、Header、正文、加密、
+缓存、并发、重试或 Core 错误语义。逐操作仍使用下列已有九列证据：
+
+| bridge 领域 | 本文件权威段落 | Flutter 仅新增的产品语义 |
+|---|---|---|
+| 认证、用户、路线 | 网关探测；双路线加载/保存/退出；准备/登录；用户资料；CLI 与配置 | opaque client、资料白名单、typed error、策略切换后重开 |
+| 课表、考试、成绩、空教室 | 未改变的课表/考试证据；未改变的成绩证据；空教室会话同步/查询 | typed DTO 与 `RouteDecision` |
+| SPOC、Judge | SPOC 认证/列表/详情；Judge 列表/详情/批量与缓存 | 不生成诊断入口，只生成列表/详情 DTO |
+| Signin、Ygdk、LibBook | 课堂签到今日查询；阳光打卡只读查询；图书馆座位只读查询；直接写操作表 | typed prepare、一次性 intent、commit 后读取核对 |
+| Bykc、Cgyy、Evaluation | 博雅课程只读查询；场馆预约只读查询；直接写操作表 | Cgyy 用途来源明示；待评由 `is_evaluated=false` 派生；原始评教 payload 不暴露 |
+
+`set_default_route_policy` 是本地配置/facade 能力，不是上游协议：它只能原子保存已存在的
+`RoutePolicy`，清空 App 不开放的 feature override，使 bridge intent 失效并从同一应用私有
+目录重开 `UbaaClient`；不得触发登录、业务请求、Cookie 复制或透明路线回退。每项写 intent
+只保存已审计的 typed facade 请求，commit 不接收任意 JSON。若实现需要改变上述任一协议列，
+必须先停止并回到对应操作的来源对照与失败测试，不得以 bridge 需要为由推断字段。
+
 冻结 WebVPN 编解码使用网关 `d.buaa.edu.cn`、密钥/初始向量文本
 `wrdvpnisthebest!`、无填充 AES-128-CFB，以及 `scheme[-port]/encrypted-host/path` 布局，UBAA 2
 与这些线路值一致。为保持边界行为，空查询和片段分隔符按冻结 Kotlin 实现省略；Rust URL/运行时

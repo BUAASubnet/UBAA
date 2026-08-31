@@ -85,6 +85,9 @@
     `33450597586` 的 Windows、Linux、macOS、iOS simulator、Android APK job
     全部通过并各自产生产物。P0 仅因 DevEco/API26、签名空 HAP 与 OHOS 设备 hello
     未完成而保持未勾选；按 P0 合同继续不依赖该阻断的五平台 P1 工作。
+12. `docs/contracts/flutter-bridge.md` 已冻结 P1 的 opaque client、typed error、认证/路线、
+    全部读取 DTO 和一次性写 intent 目标合同；当前仅完成合同与 parity 链接，P1 生产绑定和
+    测试仍未完成，不得勾选 P1。
 
 ## 4. 安全与架构边界
 
