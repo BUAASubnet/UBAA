@@ -18,9 +18,9 @@ Cgyy 用途来源标记，以及启动器成功/失败/构建失败/信号清理
   `filtered_unique_count=83`、签到、阳光打卡、图书馆五项、博雅五项、Cgyy 六项、评教两项均
   为 `PASS`；SPOC 详情和博雅课程详情因无 ID 为 `NOT_APPLICABLE`。Cgyy 用途为
   `PASS source=static_fallback`，表示本地冻结回退，不代表上游用途接口成功。
-- WebVPN：上述所有必需操作均为 `PASS`；本次瞬时 Judge 计数为 `course_count=5`、`raw_anchor_count=40`、
-  `filtered_unique_count=40`，当前列表为空因此当前/详情/批量分别为 `PASS count=0`、
-  `NOT_APPLICABLE`、`NOT_APPLICABLE`；SPOC/博雅详情因无 ID 为 `NOT_APPLICABLE`。Cgyy 同样为
+- WebVPN：上述所有必需操作均为 `PASS`；本次瞬时 Judge 计数为 `course_count=5`、`raw_anchor_count=49`、
+  `filtered_unique_count=49`，当前列表为 17 项，详情和批量均为 `PASS`；SPOC/博雅详情因无 ID
+  为 `NOT_APPLICABLE`。Cgyy 同样为
   `source=static_fallback`，没有切换到 Direct。
 
 逐操作安全摘要（本次运行）如下，计数为瞬时上游快照，不作为跨日期稳定断言：
@@ -43,7 +43,7 @@ auth/prepare PASS(mapping=embedded_login_state); auth/login PASS; auth/status PA
 schedule/terms PASS(9); schedule/weeks PASS(19); schedule/current PASS; schedule/today PASS(0)
 exam/arrangement PASS; grades/query PASS; classroom/search PASS(158)
 spoc/assignments PASS(0,global_page_count=1); spoc/detail NOT_APPLICABLE(no_assignment_id)
-judge/include_expired PASS(40,course_count=5,raw_anchor_count=40,filtered_unique_count=40); judge/current PASS(0); judge/detail NOT_APPLICABLE(no_assignment_id); judge/details_batch NOT_APPLICABLE(no_assignment_id)
+judge/include_expired PASS(49,course_count=5,raw_anchor_count=49,filtered_unique_count=49); judge/current PASS(17); judge/detail PASS; judge/details_batch PASS(17)
 signin/today PASS(0); ygdk/overview PASS(11); ygdk/records PASS(20)
 libbook/libraries PASS(3); libbook/areas PASS(2); libbook/area_detail PASS(1); libbook/seats PASS(175); libbook/bookings PASS(2)
 bykc/profile PASS; bykc/courses PASS(0); bykc/course_detail NOT_APPLICABLE(no_course_id); bykc/chosen PASS(0); bykc/statistics PASS
@@ -197,9 +197,9 @@ Judge 数量随上游快照变化（本次 WebVPN 为 `80/48/48`，早先同日�
 
 ```text
 just refs                         PASS（冻结引用版本匹配）
-just check-sensitive              PASS（176 个仓库文件）
+just check-sensitive              PASS（177 个仓库文件）
 just check                        PASS（fmt、Clippy、全工作区测试、构建、文档、Shell、diff）
-cargo test --locked -p ubaa-cli --test binary_e2e   PASS（12）
+cargo test --locked -p ubaa-cli --all-targets       PASS（13 个二进制 E2E、23 个 CLI 合同、2 个 Core-live 运行时）
 cargo test --locked -p ubaa-cli --test cli_contract PASS（23）
 bash ./scripts/test-verify-live.sh                  PASS
 ```
