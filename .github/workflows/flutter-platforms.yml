@@ -104,6 +104,9 @@ jobs:
 
       - name: 构建原生宿主
         shell: bash
+        env:
+          CARGOKIT_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
+          UBAA_FLUTTER_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
         run: just flutter-build platform=${{ matrix.platform }} mode=debug
 
       - name: 保存可复核产物
