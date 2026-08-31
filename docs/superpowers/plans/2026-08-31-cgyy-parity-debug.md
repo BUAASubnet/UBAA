@@ -17,9 +17,9 @@
 
 ## 待本周期最终验收
 
-- [ ] 运行并记录 Direct Core-live 完整只读矩阵。
-- [ ] 运行并记录 WebVPN Core-live 完整只读矩阵。
-- [ ] 运行 `just refs`、`just check-sensitive`、`just check`、CLI 全量 E2E 和 Shell 合同测试。
+- [x] 运行并记录 Direct Core-live 完整只读矩阵（退出码 0，依赖空列表逐项标记 `NOT_APPLICABLE`）。
+- [x] 运行并记录 WebVPN Core-live 完整只读矩阵（退出码 5，Cgyy/Evaluation 上游 `authentication_required` 逐项保留）。
+- [x] 运行 `just refs`、`just check-sensitive`、`just check`、CLI 全量 E2E 和 Shell 合同测试。
 
 如果真实上游逐项失败、阻塞或不适用，必须记录对应 `route/feature/operation/status/error`
 和重跑条件；不能用聚合成功、Mock 或历史脚本结果代替。
