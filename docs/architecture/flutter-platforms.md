@@ -85,6 +85,7 @@ OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前工具链�
 | 2026-09-01 | macOS 本机 | 3.41.9/arm64 | debug App | 通过 | hello 通过 | 未验证 | 未验证 | 未验证 | 仅 P0 FFI 链路 |
 | 2026-09-01 | iOS simulator | 3.41.9/x86_64+arm64 | debug framework | 不适用 | 链接通过 | 未验证 | 未验证 | 未验证 | 无签名/真机证据 |
 | 2026-09-01 | Android APK | 3.41.9/三 ABI | debug APK | 未运行 | 三 ABI 打包通过 | 未验证 | 未验证 | 未验证 | 无签名/实体机证据 |
+| 2026-09-01 | Android AAB 本机 | 3.41.9/三 ABI | `flutter build appbundle --release` | 不适用 | Gradle bundle 成功；Flutter `apkanalyzer` 终检阻断 | 未验证 | 未验证 | 未验证 | SDK `cmdline-tools/latest` 为 Homebrew symlink，apkanalyzer 无法定位 `build-tools`；临时 SDK 复核含三 ABI debug symbols，但产物未签名/未上传 |
 | 2026-09-01 | Windows GitHub runner | 3.41.9/x64 | `ubaa-windows-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | `windows-2025` 原生构建 |
 | 2026-09-01 | Linux GitHub runner | 3.41.9/x64 | `ubaa-linux-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | Ubuntu 24.04 原生构建 |
 | 2026-09-01 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `just ohos-check mode=debug` | 阻断 | 阻断 | 阻断 | 阻断 | 阻断 | API26 工具链/Dart/native 前置通过；HAP 在调试签名处停止 |

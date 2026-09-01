@@ -227,6 +227,10 @@
 52. 课堂签到现通过 `FeatureQueryView.signinPending`/`signinCompleted` 接入共享 UI/BridgeBackend；
     两种视图均只调用 `signinToday`，按冻结 `signStatus` 0/1 本地派生并保留实际路线。签到写入、
     完整页面状态、golden/integration 和真实 Flutter App E2E 仍未闭合。
+53. 2026-09-01 在当前 SDK 上复核 `just flutter-build platform=android-appbundle mode=release`：Gradle
+    `bundleRelease` 成功，但 Flutter `apkanalyzer` 因 `cmdline-tools/latest` Homebrew symlink 无法定位
+    SDK `build-tools` 而按门禁失败；临时 overlay 仅证明三 ABI AAB 含 debug symbols。产物未签名、未上传，
+    Android Release/安装/实体机证据仍未完成。
 
 ## 4. 安全与架构边界
 

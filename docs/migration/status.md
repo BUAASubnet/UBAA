@@ -2,6 +2,15 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 Android Release AAB 终检复核
+
+- `just flutter-build platform=android-appbundle mode=release` 的 Gradle `bundleRelease` 成功，生成本地
+  未签名 AAB；Flutter 随后的 `apkanalyzer files list` 因 SDK `cmdline-tools/latest` 指向 Homebrew
+  symlink，无法定位 `build-tools`，按门禁返回失败。
+- 使用临时只读 SDK overlay（build-tools 指向现有 SDK）复核 AAB，确认 `arm64-v8a`、`armeabi-v7a`
+  和 `x86_64` 均包含 `libflutter.so.sym` 与 `libubaa_flutter_bridge.so.sym`；这只证明产物内容，不能
+  将 Flutter release gate、签名、安装、实体机或商店发布标记为通过。未改 SDK、未签名、未上传。
+
 ## 2026-09-01 课堂签到状态本地派生视图
 
 - `FeatureQueryView` 新增 `signinPending`/`signinCompleted`；BridgeBackend 两者均只调用已有
