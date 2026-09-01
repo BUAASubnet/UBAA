@@ -15,5 +15,6 @@
 - 冻结来源行为对照：`migration/source-parity.md`
 - 认证真实验证：`runbooks/live-auth-verification.md`
 - 只读功能真实验证：`runbooks/live-readonly-verification.md`
+- Flutter 六平台发布流程：`runbooks/flutter-release.md`
 
 状态标签按字面解释：已实现、fixture 已验证、真实上游已验证或未实现。仅构建通过不能证明上游协议可用。

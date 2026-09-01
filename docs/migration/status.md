@@ -106,6 +106,14 @@
 - 各领域选择器、权限/挑战交互、读后核对、六平台 integration 与真实写入仍未完成；本轮没有
   触发任何真实账号写操作，P4 不能勾选。
 
+## 2026-09-01 Flutter P6 发布 Runbook
+
+- 新增 `docs/runbooks/flutter-release.md` 并在 `docs/index.md` 建立入口，固定发布前门禁、六平台
+  产物/签名隔离、设备与 Direct/WebVPN smoke、写入授权和回滚留档顺序。
+- Runbook 明确签名私钥、商店账号和真实写入必须逐项授权；当前仅允许无签名开发构建与确定性
+  测试。OHOS DevEco/API26、正式签名、实体设备、安全存储插件和真实写入矩阵未闭合，不能宣告
+  P6 或执行发布。
+
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`

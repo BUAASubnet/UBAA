@@ -123,6 +123,9 @@
 23. `WriteFlowController.prepare` 与 `BridgeBackend` 十项 typed prepare 已统一接入安全错误映射；
    prepare 阶段不提交网络，确认页仍只消费一次性 `WriteIntent`。各领域表单、权限/挑战、读后
    核对、integration 和真实写入授权仍缺失，本轮未产生真实副作用。
+24. 已新增 `docs/runbooks/flutter-release.md`，固定六平台发布前门禁、未签名/正式产物隔离、设备
+   smoke、两条路线证据、写入授权和回滚留档流程；签名账号/私钥和真实写入继续等待逐项明确授权。
+   OHOS API26/DevEco、实体设备、原生安全存储和正式签名仍是 P5/P6 阻断。
 
 ## 4. 安全与架构边界
 
