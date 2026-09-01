@@ -290,6 +290,20 @@ void main() {
     expect(vault.saveCount, 0);
   });
 
+  test('controller 销毁后延迟路线设置不会回写策略', () async {
+    final backend = _DelayedRoutePolicyBackend();
+    final controller = AppController(backend: backend);
+
+    final changing = controller.setRoutePolicy(RoutePolicy.webvpn);
+    await backend.prepareStarted.future;
+    controller.dispose();
+    backend.releasePrepare.complete();
+    await changing;
+
+    expect(backend.routeSettingsCalls, 0);
+    expect(controller.loginForm.routePolicy, RoutePolicy.auto);
+  });
+
   test('controller 销毁后延迟的功能读取不会回写快照', () async {
     final backend = _DelayedFeatureBackend();
     final controller = AppController(backend: backend);
@@ -887,6 +901,47 @@ class _DelayedLoginBackend implements UbaaBackend, BackendLifecycle {
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async =>
       const FeatureResult.empty();
+
+  @override
+  Future<void> dispose() async {}
+}
+
+class _DelayedRoutePolicyBackend
+    implements UbaaBackend, RouteSettingsBackend, BackendLifecycle {
+  final Completer<void> prepareStarted = Completer<void>();
+  final Completer<void> releasePrepare = Completer<void>();
+  int routeSettingsCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async => null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {
+    prepareStarted.complete();
+    await releasePrepare.future;
+  }
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async {
+    routeSettingsCalls++;
+    return const BackendRouteSettings(
+      defaultPolicy: RoutePolicy.webvpn,
+      activeRoutes: <ConnectionMode>[],
+    );
+  }
 
   @override
   Future<void> dispose() async {}

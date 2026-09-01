@@ -232,15 +232,17 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setRoutePolicy(RoutePolicy value) async {
-    if (_phase == AppPhase.loggingIn) return;
+    if (_disposed || _phase == AppPhase.loggingIn) return;
     final previousPolicy = _loginForm.routePolicy;
     if (previousPolicy == value) return;
     _clearError();
     try {
       await _backend.prepareLogin(value);
+      if (_disposed) return;
       BackendRouteSettings? settings;
       if (_backend case final RouteSettingsBackend routeBackend) {
         settings = await routeBackend.routeSettings();
+        if (_disposed) return;
       }
       if (settings case final routeSettings?) {
         _applyRouteSettings(routeSettings);
@@ -257,9 +259,11 @@ class AppController extends ChangeNotifier {
         _setPhase(AppPhase.login);
       }
     } on BackendException catch (exception) {
+      if (_disposed) return;
       _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
       _error = UbaaErrorMapper.fromCode(exception.code);
     } catch (_) {
+      if (_disposed) return;
       _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
     }

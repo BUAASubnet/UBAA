@@ -43,6 +43,9 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 登录提交同样受 controller 生命周期约束：`login`、路线状态和用户资料的在途结果在销毁后
 不再继续读取或写入用户/凭据/UI 状态；安全凭据清理仍可在已开始的失败处理内完成。
 
+路线策略切换在 controller 销毁后也立即停止；延迟的 `prepareLogin` 或路线状态读取不得
+回写默认策略、活动路线或错误状态。
+
 ## 3. 错误合同
 
 `Result<T, BridgeError>` 在 Dart 中抛出 typed `BridgeError implements Exception`。字段固定为：
