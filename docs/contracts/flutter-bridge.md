@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：P1 冻结中
+状态：P1 合同与生产绑定已提交；P1 验收仍待补齐平台/并发证据
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -227,3 +227,17 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 
 P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后才能勾选；只有合同文件或部分方法
 不能标记 P1 完成。
+
+## 9. 当前实现证据（2026-09-01）
+
+- 提交 `2faa753` 实现 `BridgeClient` opaque 生命周期、认证、路线设置、全部表中读取方法、
+  typed 写入准备/一次性提交和安全错误投影；Core 新增仅用于准备阶段的路线解析入口。
+- `just flutter-codegen-check` 在该提交后再次生成并报告“FRB 生成零漂移”；生成的 Rust/Dart
+  文件由 FRB 机械产出，未手工改写生成内容。
+- `cargo fmt --all`、bridge 严格 Clippy、bridge 测试（4 项）和 `just check` 均通过；测试覆盖
+  相对路径拒绝、幂等 dispose、use-after-dispose、随机 intent/digest 形状以及未知/重复 intent
+  在网络前拒绝。
+- 生产 Flutter 适配提交 `7bd8fd2` 通过 `BridgeBackend` 连接上述 API，并保留显式
+  `UnavailableBackend` 安全失败；生产入口不再默认构造 `DemoBackend`。
+- 尚未把这些结果标记为 P1 完成：panic 归约、Dart isolate 重建、跨进程 Session 锁、路线/会话
+  失效 intent、完整 schema 快照和每个 DTO 的 Dart domain/UI 消费测试仍需逐项补齐。

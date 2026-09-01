@@ -292,6 +292,18 @@ URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求�
 仅有 Fixture 不能关闭实时对照，认证成功不能关闭业务操作，退出码为零的列表也不能证明详情或
 解析语义。
 
+## Flutter bridge 实现对照记录（2026-09-01）
+
+本轮生产代码只调用已在本文件逐操作固定的 `ubaa-core` facade 方法；`2faa753` 的
+`crates/ubaa-flutter-bridge/src/api/client.rs`、`read.rs`、`write.rs` 仅做 typed 字段白名单、
+路线结果投影和一次性意图保存，不复制 URL、Cookie、Header、加密、重试或解析逻辑。认证、读取
+和写入的 URL、参数、常量、DTO 缺失值、缓存/并发及错误语义分别沿用本文件对应表格，并由
+`docs/contracts/flutter-bridge.md` 的方法/字段表约束；`examples/buaa-api` 无等价协议的行继续
+标记为“不适用”，没有类比借用字段。
+
+桥接新增的失败测试先验证相对配置目录、销毁后调用、重复意图和随机摘要在网络前拒绝，再实现
+最小投影。真实账号、Cookie、挑战材料和上游响应没有进入 bridge、fixture 或生成绑定。
+
 ## 场馆预约只读查询
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |

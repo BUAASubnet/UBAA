@@ -1,6 +1,6 @@
 # UBAA Flutter 六平台全功能正式版执行计划
 
-状态：P0 受阻并继续 P1（官方五平台 native CI 通过；DevEco/API26/HAP/设备待闭合）
+状态：P0 受阻；P1 bridge 已实现但验收未闭合；继续 P2/P3（官方五平台 native CI 通过；DevEco/API26/HAP/设备待闭合）
 计划确认日期：2026-09-01
 项目根目录：/Users/moorefoss/Code/UBAA
 
@@ -64,7 +64,8 @@
 已知事实：
 
 1. 当前分支为 ubaa2 并跟踪 `origin/ubaa2`；合同、探索骨架、FRB 绑定、OHOS runner、
-   六平台门禁和跨平台修复均已形成阶段提交，当前远端基线为 `c94dbcd`。
+   六平台门禁、bridge 实现和跨平台修复均已形成阶段提交；本地最新阶段提交为
+   `7bd8fd2`（bridge 实现为 `2faa753`），推送后再更新远端基线。
 2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
 3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
 4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
@@ -86,8 +87,12 @@
     全部通过并各自产生产物。P0 仅因 DevEco/API26、签名空 HAP 与 OHOS 设备 hello
     未完成而保持未勾选；按 P0 合同继续不依赖该阻断的五平台 P1 工作。
 12. `docs/contracts/flutter-bridge.md` 已冻结 P1 的 opaque client、typed error、认证/路线、
-    全部读取 DTO 和一次性写 intent 目标合同；当前仅完成合同与 parity 链接，P1 生产绑定和
-    测试仍未完成，不得勾选 P1。
+    全部读取 DTO 和一次性写 intent 目标合同；`2faa753` 已实现生产 Rust binding 与生成 Dart
+    API，`7bd8fd2` 已接入应用 backend，但 panic/isolate/跨进程锁、完整 schema 快照和逐领域
+    页面消费仍未闭合，不得勾选 P1。
+13. `just flutter-codegen-check` 在 `2faa753` 后二次生成报告零漂移；`just flutter-check`、
+    `just check-sensitive` 与 `just check` 均通过。官方入口当前创建 `BridgeBackend`，初始化
+    失败只进入安全 `unsupported`，测试仍显式注入 `DemoBackend`；没有真实账号写入或签名凭据。
 
 ## 4. 安全与架构边界
 
@@ -423,7 +428,7 @@ Core-live 证明协议，不证明 App 链路。Windows、macOS、Linux、Androi
 - [x] 完成旧版 UI、Core facade、FRB/OHOS 工具链初步勘察。
 - [x] 将本文件重写为全功能正式版执行计划。
 - [ ] P0：审查探索产物、冻结提交基线和六平台工具链。
-- [ ] P1：冻结完整 Flutter bridge 合同并实现绑定。
+- [ ] P1：冻结完整 Flutter bridge 合同并实现绑定（生产绑定已提交，剩余验收证据待补齐）。
 - [ ] P2：完成共享应用壳、认证、设置和安全凭据。
 - [ ] P3：完成全部读取页面与证据。
 - [ ] P4：完成全部写入页面、安全确认和证据。

@@ -693,3 +693,15 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - 冻结旧版会在 `LocalAuthSession` 中保存 `schoolid/username`，评教任务等请求可在进程重启后继续发送身份参数。
 - UBAA2 当前合同与公开会话契约明确禁止在 `session.json` 持久化用户名或个人资料；Core 因此只在本次进程登录成功后以内存状态提供身份参数，加载旧会话时缺失身份会保持空值并返回上游实际结果。
 - 该项是安全契约与旧版持久化语义的已记录边界，不从 Cookie 或未证实响应字段推导身份，也不因此修改上游协议。
+
+## 2026-09-01 Flutter bridge 与生产入口
+
+- `2faa753` 完成 FRB 2.13.0 的 opaque `BridgeClient`、认证/路线 typed DTO、全部 facade 读取
+  投影和十项 typed 写入意图；Core 仅新增 `resolve_route_for_feature` 供准备阶段解析实际路线。
+- bridge 严格 Clippy、单元测试、全工作区 `just check` 通过；FRB 重新生成零漂移，敏感扫描通过。
+- `7bd8fd2` 接入共享 `BridgeBackend`、应用私有配置目录解析和生命周期销毁。官方 Flutter/OHOS
+  生产入口改为创建 FRB backend；初始化失败进入安全 `unsupported`，不再以 Demo 数据伪造成功。
+- `just flutter-check` 覆盖六个 package/宿主的 analyze 与测试并通过。P1 尚不勾选：完整
+  schema 快照、isolate 重建、跨进程会话锁、intent 路线/会话失效测试及逐领域页面仍待实现。
+- 本轮没有读取或写入真实账号，也没有传入签名凭据；OHOS API26/DevEco、正式签名和实体设备门禁
+  仍按下方历史记录保持阻断。
