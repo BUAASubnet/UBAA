@@ -68,17 +68,17 @@ PY
 lock_manifest="$output_dir/pubspec-locks.txt"
 : >"$lock_manifest"
 : >"$output_dir/pubspec-locks.sha256"
-while IFS= read -r lockfile; do
+while IFS= read -r -d '' lockfile; do
   printf '%s\n' "$lockfile" >>"$lock_manifest"
   sha256sum "$lockfile" >>"$output_dir/pubspec-locks.sha256"
-done < <(find apps packages -name pubspec.lock -type f -print | sort)
+done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
 
 dependency_audit="$output_dir/dependency-audit.txt"
 {
   printf 'UBAA 无签名 RC 依赖/许可证审计\n'
   printf 'Cargo SBOM：sbom.cdx.json（许可证取自 Cargo 包元数据）\n'
   printf 'Dart/Flutter 锁文件及包版本：\n'
-  while IFS= read -r lockfile; do
+  while IFS= read -r -d '' lockfile; do
     printf '\n[%s]\n' "$lockfile"
     awk '
       /^packages:/ { in_packages=1; next }
@@ -86,7 +86,7 @@ dependency_audit="$output_dir/dependency-audit.txt"
       in_packages && /^  [A-Za-z0-9_+.-]+:/ { name=$1; sub(/:$/, "", name); printf "  %s", name }
       in_packages && /^    version:/ { print " " $2 }
     ' "$lockfile"
-  done < <(find apps packages -name pubspec.lock -type f -print | sort)
+  done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
   printf '\n审计边界：只读取锁定依赖和许可证元数据；不联网、不上传、不读取账号或运行时响应。\n'
 } >"$dependency_audit"
 
