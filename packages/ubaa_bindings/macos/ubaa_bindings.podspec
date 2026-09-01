@@ -21,6 +21,9 @@ UBAA Flutter Rust bridge generated bindings.
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'FlutterMacOS'
+  # reqwest/hyper 的 macOS 系统代理探测依赖此系统框架；显式声明避免 arm64
+  # 链接时遗漏 SCDynamicStore/SCNetworkReachability 符号。
+  s.frameworks = 'SystemConfiguration'
 
   s.platform = :osx, '10.11'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
@@ -41,5 +44,9 @@ UBAA Flutter Rust bridge generated bindings.
     # Flutter.framework does not contain a i386 slice.
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
     'OTHER_LDFLAGS' => '-force_load ${PODS_CONFIGURATION_BUILD_DIR}/ubaa_flutter_bridge/libubaa_flutter_bridge.a',
+  }
+  # 静态 Rust archive 的系统框架依赖需要传递到最终 Runner target。
+  s.user_target_xcconfig = {
+    'OTHER_LDFLAGS' => '$(inherited) -framework SystemConfiguration',
   }
 end
