@@ -163,6 +163,8 @@
     先创建新 opaque backend，再释放旧实例、清空旧用户/路线/功能快照并重新执行持久化路线与认证
     恢复；无工厂、登录中和并发重建安全拒绝，app 回归测试已通过。官方 Flutter 与 OHOS 宿主
     已接入后台→前台恢复回调。该证据仍不替代六平台实体生命周期与内存泄漏测试。
+36. 修正 `docs/contracts/readonly-features.md` 遗留的 `evaluation_pending` 表述：待评列表仅由
+    `evaluation_all` 的 `is_evaluated=false` 字段在 CLI/UI 本地派生，未新增未经 Core 证明的接口。
 
 ## 4. 安全与架构边界
 

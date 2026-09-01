@@ -29,7 +29,10 @@ HTML、加密参数、Token、Cookie 和响应正文始终留在 Core 内部，C
 | Ygdk | `ygdk overview`, `ygdk records` | `ygdk_overview`, `ygdk_records` |
 | Bykc | `bykc profile`, `courses`, `course`, `chosen`, `statistics` | 对应 `bykc_*` 读取方法 |
 | Cgyy | `cgyy sites`, `purposes`, `day`, `orders`, `detail`, `lock-code` | 对应 `cgyy_*` 读取方法 |
-| Evaluation | `evaluation all`, `pending` | `evaluation_all`, `evaluation_pending` |
+| Evaluation | `evaluation all`, `pending` | `evaluation_all` |
+
+`evaluation pending` 是 CLI 对 `evaluation_all` 返回的 `is_evaluated=false` 课程进行的本地
+派生视图，不存在独立的 `evaluation_pending` facade 或 bridge 方法。
 
 扩展写命令（包括 Cgyy 预约/取消）不属于只读合同；它们虽然有 Core/CLI 协议实现，仍
 必须经过显式确认，真实验证入口永久阻止，只有 Mock、Fixture 和向量证据可以证明。

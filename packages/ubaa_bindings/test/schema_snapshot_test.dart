@@ -71,6 +71,8 @@ void main() {
         reason: '生成 API 缺少 $method',
       );
     }
+    expect(client, isNot(contains('evaluationPending')));
+    expect(client, isNot(contains('evaluation_pending')));
   });
 
   test('生成 DTO 快照保留领域白名单和安全来源字段', () {

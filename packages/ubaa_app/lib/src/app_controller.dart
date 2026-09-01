@@ -147,6 +147,11 @@ class AppController extends ChangeNotifier {
     _setPhase(AppPhase.checkingSession);
     try {
       final replacement = factory();
+      if (identical(replacement, _backend)) {
+        _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+        _setPhase(AppPhase.login);
+        return false;
+      }
       final previous = _backend;
       if (previous case final BackendLifecycle lifecycle) {
         try {
@@ -154,6 +159,16 @@ class AppController extends ChangeNotifier {
         } on Object {
           // 新实例已经创建；旧实例清理失败不能让新实例继续持有旧状态。
         }
+      }
+      if (_disposed) {
+        if (replacement case final BackendLifecycle lifecycle) {
+          try {
+            await lifecycle.dispose();
+          } on Object {
+            // controller 已销毁时尽力释放新实例，不能向 UI 抛出异常。
+          }
+        }
+        return false;
       }
       _backend = replacement;
       _initialized = false;
