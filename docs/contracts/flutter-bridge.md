@@ -219,7 +219,8 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 - Rust：每个映射的字段快照、错误映射、dispose、串行锁、panic 归约、intent 过期/重复/
   Session 或路线失效、outcome unknown 和 typed 请求测试。
 - Dart：生成 API schema 快照、`evaluationAll` 待评派生、ID/可选字段、错误映射和
-  `BridgeClient` isolate 重建测试。
+  `BridgeClient` isolate 重建测试；宿主通过 `BackendFactory` 创建新的 opaque
+  backend 后，应用重新读取持久化路线与认证状态，不复用已 dispose 的 handle。
 - FRB：`just flutter-codegen-check` 二次生成零漂移；生成目录禁止手改。
 - 安全：Debug/Display、错误、intent 摘要和测试 fixture 均不得出现密码、Cookie、token、
   完整证件号、完整手机号、照片内容、challenge 或真实响应。
@@ -247,5 +248,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   生产 bridge 仍由 Core 完成原子保存、重开和 intent 失效，Dart 不读取 Session 内容。
 - 应用启动时先读取同一投影恢复 Core 已保存的 `defaultPolicy`，再检查认证状态；因此设置页不会
   把 `auto` 默认值误显示为持久化的固定路线。
+- `AppController.rebuildBackend()` 为 isolate/宿主生命周期重建提供显式安全入口：只有新
+  backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有
+  `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
 - 尚未把这些结果标记为 P1 完成：panic 归约、Dart isolate 重建、跨进程 Session 锁、路线/会话
   失效 intent、完整 schema 快照和每个 DTO 的 Dart domain/UI 消费测试仍需逐项补齐。

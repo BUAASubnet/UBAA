@@ -47,9 +47,11 @@ class LoginFormState {
 class AppController extends ChangeNotifier {
   AppController({
     required UbaaBackend backend,
+    BackendFactory? backendFactory,
     CredentialVault? credentialVault,
     TelemetryClient? telemetry,
   }) : _backend = backend,
+       _backendFactory = backendFactory,
        _credentialVault = credentialVault ?? const NoopCredentialVault(),
        _telemetry = telemetry ?? const NoopTelemetryClient(),
        _telemetryEnabled = (telemetry ?? const NoopTelemetryClient()).enabled,
@@ -58,7 +60,8 @@ class AppController extends ChangeNotifier {
            feature: FeatureSnapshot(feature: feature),
        };
 
-  final UbaaBackend _backend;
+  UbaaBackend _backend;
+  final BackendFactory? _backendFactory;
   final CredentialVault _credentialVault;
   final TelemetryClient _telemetry;
   final Map<FeatureId, FeatureSnapshot> _snapshots;
@@ -72,6 +75,7 @@ class AppController extends ChangeNotifier {
   int _refreshGeneration = 0;
   bool _telemetryEnabled;
   List<ConnectionMode> _activeRoutes = const <ConnectionMode>[];
+  bool _rebuildingBackend = false;
 
   AppPhase get phase => _phase;
   LoginFormState get loginForm => _loginForm;
@@ -81,6 +85,7 @@ class AppController extends ChangeNotifier {
   bool get credentialPersistenceAvailable => _credentialVault.isAvailable;
   List<ConnectionMode> get activeRoutes =>
       List<ConnectionMode>.unmodifiable(_activeRoutes);
+  bool get isRebuildingBackend => _rebuildingBackend;
   Map<FeatureId, FeatureSnapshot> get snapshots =>
       Map<FeatureId, FeatureSnapshot>.unmodifiable(_snapshots);
 
@@ -125,6 +130,49 @@ class AppController extends ChangeNotifier {
     } catch (_) {
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
       _setPhase(AppPhase.login);
+    }
+  }
+
+  /// 在 Dart isolate 或宿主生命周期重建后替换 opaque backend。
+  ///
+  /// 新 backend 成功创建后才 dispose 旧 backend；随后重新读取 Core 的路线和
+  ///认证状态。没有提供工厂、正在登录/重建或 controller 已销毁时返回 `false`，
+  ///不伪造恢复成功。
+  Future<bool> rebuildBackend() async {
+    final factory = _backendFactory;
+    if (factory == null || _disposed || _rebuildingBackend) return false;
+    if (_phase == AppPhase.loggingIn) return false;
+    _rebuildingBackend = true;
+    _refreshGeneration++;
+    _setPhase(AppPhase.checkingSession);
+    try {
+      final replacement = factory();
+      final previous = _backend;
+      if (previous case final BackendLifecycle lifecycle) {
+        try {
+          await lifecycle.dispose();
+        } on Object {
+          // 新实例已经创建；旧实例清理失败不能让新实例继续持有旧状态。
+        }
+      }
+      _backend = replacement;
+      _initialized = false;
+      _user = null;
+      _activeRoutes = const <ConnectionMode>[];
+      _resetFeatureSnapshots();
+      await initialize();
+      return true;
+    } on BackendException catch (exception) {
+      _error = UbaaErrorMapper.fromCode(exception.code);
+      _setPhase(AppPhase.login);
+      return false;
+    } on Object {
+      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+      _setPhase(AppPhase.login);
+      return false;
+    } finally {
+      _rebuildingBackend = false;
+      _notify();
     }
   }
 

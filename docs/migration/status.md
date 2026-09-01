@@ -13,6 +13,11 @@
 - 启动时会先恢复 Core 持久化的 `defaultPolicy` 再检查认证状态，避免设置页显示错误的默认路线。
 - AppController 现在同步暴露不含 Session 内容的 `activeRoutes`，共享“我的”页展示已认证路线，
   与各功能结果的“实际路线”字段分开。
+- `AppController.rebuildBackend()` 已增加显式 isolate/宿主生命周期重建路径：通过注入的
+  `BackendFactory` 只创建全新 backend，成功后释放旧实例、清空旧投影并重新读取路线/认证状态；
+  无工厂、并发重建和登录中均安全拒绝，新增 app 回归测试覆盖旧实例释放与 WebVPN 槽位恢复。
+- 官方 Flutter 与 OHOS 宿主已监听后台→前台恢复，在恢复时调用该入口；测试注入的 fake backend
+  不提供工厂，因此不会被生命周期回调替换。
 - 共享“我的”页面现区分“退出登录”和经二次确认的“退出并清除本机账号”；app/widget 测试
   覆盖取消确认与确认回调，后者调用 `logout(clearSavedCredential: true)`。
 

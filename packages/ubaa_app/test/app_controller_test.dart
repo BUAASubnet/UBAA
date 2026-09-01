@@ -200,6 +200,35 @@ void main() {
     expect(controller.snapshots[FeatureId.classroom]!.summary, '指定查询');
     controller.dispose();
   });
+
+  test('宿主重建 backend 后重新读取认证和路线状态', () async {
+    final first = _RebuildBackend(
+      signedIn: false,
+      activeRoutes: const <ConnectionMode>[],
+    );
+    final second = _RebuildBackend(
+      signedIn: true,
+      activeRoutes: const <ConnectionMode>[ConnectionMode.webvpn],
+    );
+    var factoryCalls = 0;
+    final controller = AppController(
+      backend: first,
+      backendFactory: () {
+        factoryCalls++;
+        return second;
+      },
+    );
+    await controller.initialize();
+    expect(controller.phase, AppPhase.login);
+
+    expect(await controller.rebuildBackend(), isTrue);
+    expect(factoryCalls, 1);
+    expect(first.disposed, isTrue);
+    expect(controller.phase, AppPhase.home);
+    expect(controller.user?.username, 'student');
+    expect(controller.activeRoutes, <ConnectionMode>[ConnectionMode.webvpn]);
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -290,4 +319,45 @@ class _RouteStateBackend implements UbaaBackend, RouteSettingsBackend {
     defaultPolicy: defaultPolicy,
     activeRoutes: activeRoutes,
   );
+}
+
+class _RebuildBackend
+    implements UbaaBackend, RouteSettingsBackend, BackendLifecycle {
+  _RebuildBackend({required this.signedIn, required this.activeRoutes});
+
+  final bool signedIn;
+  final List<ConnectionMode> activeRoutes;
+  bool disposed = false;
+
+  @override
+  Future<AuthStatus> authStatus() async =>
+      signedIn ? AuthStatus.signedIn : AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      signedIn ? const UserSummary(username: 'student') : null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
+    defaultPolicy: RoutePolicy.auto,
+    activeRoutes: activeRoutes,
+  );
+
+  @override
+  Future<void> dispose() async {
+    disposed = true;
+  }
 }

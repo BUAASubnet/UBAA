@@ -33,14 +33,17 @@ class UbaaOhosApp extends StatefulWidget {
   State<UbaaOhosApp> createState() => _UbaaOhosAppState();
 }
 
-class _UbaaOhosAppState extends State<UbaaOhosApp> {
+class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
   late final AppController _controller;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = AppController(
       backend: widget.backend ?? createProductionBackend(),
+      backendFactory: widget.backend == null ? createProductionBackend : null,
       credentialVault: widget.credentialVault,
       telemetry: widget.telemetry,
     );
@@ -49,8 +52,22 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _wasBackgrounded = true;
+      return;
+    }
+    if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      unawaited(_controller.rebuildBackend());
+    }
   }
 
   @override

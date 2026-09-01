@@ -30,14 +30,18 @@ class UbaaFlutterApp extends StatefulWidget {
   State<UbaaFlutterApp> createState() => _UbaaFlutterAppState();
 }
 
-class _UbaaFlutterAppState extends State<UbaaFlutterApp> {
+class _UbaaFlutterAppState extends State<UbaaFlutterApp>
+    with WidgetsBindingObserver {
   late final AppController _controller;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = AppController(
       backend: widget.backend ?? createProductionBackend(),
+      backendFactory: widget.backend == null ? createProductionBackend : null,
       credentialVault: widget.credentialVault,
       telemetry: widget.telemetry,
     );
@@ -46,8 +50,24 @@ class _UbaaFlutterAppState extends State<UbaaFlutterApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _wasBackgrounded = true;
+      return;
+    }
+    if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      // 新 isolate/宿主恢复后重新打开 opaque client；没有生产工厂时该调用
+      // 安全返回 false，测试 backend 不会被替换。
+      unawaited(_controller.rebuildBackend());
+    }
   }
 
   @override
