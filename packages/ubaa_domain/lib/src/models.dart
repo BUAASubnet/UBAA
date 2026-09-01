@@ -213,7 +213,7 @@ class UserSummary {
       : displayName!;
 }
 
-enum FeatureLoadStatus { idle, loading, success, empty, failure }
+enum FeatureLoadStatus { idle, loading, success, empty, stale, failure }
 
 @immutable
 class FeatureSnapshot {

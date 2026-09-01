@@ -39,4 +39,58 @@ void main() {
     expect(error.message, isNot(contains('http')));
     expect(error.retryable, isTrue);
   });
+
+  test('刷新失败时保留上次数据并标记 stale', () async {
+    var loads = 0;
+    final backend = _FlakyBackend(
+      load: (_) async {
+        loads++;
+        if (loads > 1) {
+          throw const BackendException(UbaaErrorCode.networkError);
+        }
+        return const FeatureResult.success(
+          summary: '上次成功数据',
+          details: <FeatureDetail>[
+            FeatureDetail(title: '课程', subtitle: '保留内容'),
+          ],
+        );
+      },
+    );
+    final controller = AppController(backend: backend);
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    expect(
+      controller.snapshots[FeatureId.schedule]!.status,
+      FeatureLoadStatus.success,
+    );
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    final snapshot = controller.snapshots[FeatureId.schedule]!;
+    expect(snapshot.status, FeatureLoadStatus.stale);
+    expect(snapshot.details.single.title, '课程');
+    expect(snapshot.error?.code, UbaaErrorCode.networkError);
+    controller.dispose();
+  });
+}
+
+class _FlakyBackend implements UbaaBackend {
+  _FlakyBackend({required this.load});
+
+  final Future<FeatureResult> Function(FeatureId) load;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async => null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) => load(feature);
 }

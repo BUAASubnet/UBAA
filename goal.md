@@ -96,6 +96,12 @@
 14. `65b7b48` 已将普通 8 项与高级 4 项只读能力接入共享详情模型和导航，详情页不再是占位文案，
     并通过 widget/app 测试；P3 的领域筛选、分页、stale 缓存、golden/integration 和完整写入
     UI 尚未完成，不能勾选 P3。
+15. `5ffc9f6` 增加了平台安全凭据存储的 typed 注入边界和测试，但没有把回调冒充为原生实现；
+    六平台 Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件与设备证据仍是 P5/P6
+    阻断，生产默认安全地不持久化密码。
+16. `1b0d24e` 已将十项 typed 写入意图接入共享 `WriteIntent`、确认页面和 app 状态机，覆盖
+    过期、重复确认和 `outcome_unknown` 的禁止自动重试语义；真实写入、各领域选择器/权限/读取
+    核对和六平台集成尚未完成，P4 不能勾选。
 
 ## 4. 安全与架构边界
 

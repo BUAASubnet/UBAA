@@ -668,6 +668,7 @@ class _FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isFailure = snapshot.status == FeatureLoadStatus.failure;
+    final isStale = snapshot.status == FeatureLoadStatus.stale;
     return Card(
       clipBehavior: Clip.antiAlias,
       color: colorScheme.surfaceContainerHighest,
@@ -691,7 +692,7 @@ class _FeatureCard extends StatelessWidget {
                       dimension: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  else if (isFailure)
+                  else if (isFailure || isStale)
                     IconButton(
                       tooltip: '重试',
                       onPressed: () => onRetry(),
@@ -717,6 +718,8 @@ class _FeatureCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: isFailure
                         ? colorScheme.error
+                        : isStale
+                        ? colorScheme.tertiary
                         : colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -733,6 +736,8 @@ class _FeatureCard extends StatelessWidget {
     FeatureLoadStatus.loading => '正在加载…',
     FeatureLoadStatus.success => snapshot.summary ?? '已加载，点击查看详情',
     FeatureLoadStatus.empty => '暂无数据',
+    FeatureLoadStatus.stale =>
+      '${snapshot.summary ?? '已显示上次数据'}（刷新失败，可重试）',
     FeatureLoadStatus.failure => snapshot.error?.message ?? '加载失败，请重试',
   };
 }
@@ -866,6 +871,7 @@ class _FeatureDetailView extends StatelessWidget {
         child: CircularProgressIndicator(),
       ),
       FeatureLoadStatus.failure => _error(context),
+      FeatureLoadStatus.stale => _stale(context),
       FeatureLoadStatus.empty => _empty(context),
       FeatureLoadStatus.idle => _empty(context),
       FeatureLoadStatus.success => _details(context),
@@ -891,6 +897,24 @@ class _FeatureDetailView extends StatelessWidget {
   Widget _details(BuildContext context) {
     if (snapshot.details.isEmpty) return _empty(context);
     return _FeatureDetailList(details: snapshot.details);
+  }
+
+  Widget _stale(BuildContext context) {
+    if (snapshot.details.isEmpty) return _error(context);
+    return Column(
+      children: <Widget>[
+        MaterialBanner(
+          content: Text(
+            snapshot.error?.message ?? '刷新失败，以下是上次成功加载的数据。',
+          ),
+          leading: const Icon(Icons.sync_problem),
+          actions: <Widget>[
+            TextButton(onPressed: () => onRetry(), child: const Text('重试')),
+          ],
+        ),
+        Expanded(child: _FeatureDetailList(details: snapshot.details)),
+      ],
+    );
   }
 
   Widget _empty(BuildContext context) => Center(

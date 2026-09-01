@@ -219,6 +219,7 @@ class AppController extends ChangeNotifier {
 
   Future<void> _loadFeature(FeatureId feature, int generation) async {
     final started = DateTime.now();
+    final hadPreviousData = _snapshots[feature]!.updatedAt != null;
     try {
       final result = await _backend.loadFeature(feature);
       if (generation != _refreshGeneration) return;
@@ -246,7 +247,9 @@ class AppController extends ChangeNotifier {
       if (generation != _refreshGeneration) return;
       final uiError = UbaaErrorMapper.fromCode(exception.code);
       _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: FeatureLoadStatus.failure,
+        status: hadPreviousData
+            ? FeatureLoadStatus.stale
+            : FeatureLoadStatus.failure,
         error: uiError,
         updatedAt: DateTime.now(),
       );
@@ -258,7 +261,9 @@ class AppController extends ChangeNotifier {
     } catch (_) {
       if (generation != _refreshGeneration) return;
       _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: FeatureLoadStatus.failure,
+        status: hadPreviousData
+            ? FeatureLoadStatus.stale
+            : FeatureLoadStatus.failure,
         error: UbaaErrorMapper.fromCode(UbaaErrorCode.internalError),
         updatedAt: DateTime.now(),
       );

@@ -60,7 +60,7 @@ void main() {
     controller.setIntent(intent());
     await expectLater(controller.confirm(), throwsA(isA<BackendException>()));
     expect(controller.error?.code, UbaaErrorCode.outcomeUnknown);
-    expect(controller.intent, isNotNull);
+    expect(controller.intent, isNull);
     controller.dispose();
   });
 }

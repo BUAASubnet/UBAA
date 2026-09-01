@@ -714,3 +714,19 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   状态和键盘/语义提示；widget 测试验证真实字段渲染。
 - 这只是 P3 的共享壳基础，不宣称领域完成：学期/日期/校区筛选、分页/详情层级、缓存 stale
   状态、逐领域 golden/integration 及所有写入确认页仍未完成。
+
+## 2026-09-01 平台安全凭据适配边界
+
+- `5ffc9f6` 增加 `PlatformSecureCredentialStore` 与版本化 `PlatformCredentialVault`，统一校验
+  最小凭据、能力探测和稳定错误归约；测试覆盖命名空间、不可用存储和异常隐藏。
+- 该提交不伪造平台安全能力：Keychain、Keystore、Credential Manager、Secret Service 和
+  HUKS 的原生插件实现及六平台实体设备证据仍未提供，生产宿主默认继续使用安全的 Noop
+  （本次会话不持久化），P5/P6 不能勾选。
+
+## 2026-09-01 写入确认状态机
+
+- `1b0d24e` 将 bridge 的十项 typed 写意图投影为共享 `WriteIntent`，并由
+  `WriteFlowController`/`WriteConfirmationView` 统一处理摘要、实际路线、警告、过期、单次
+  提交和 `outcome_unknown`；提交异常不会自动重试，测试覆盖重复确认、过期和未知结果。
+- 该轮只增加确定性状态机和 UI 组件，没有调用真实写接口；各领域的目标选择器、权限窗口、
+  照片/位置输入、读取核对和六平台集成仍属于 P4 未完成项。

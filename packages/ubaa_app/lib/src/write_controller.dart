@@ -54,6 +54,9 @@ class WriteFlowController extends ChangeNotifier {
       _intent = null;
       return result;
     } on BackendException catch (exception) {
+      // bridge 在 commit 前已原子消费 intent；尤其是 outcome_unknown，
+      // 不允许控制器保留旧 intent 造成再次提交。用户必须先走读取核对。
+      _intent = null;
       _error = UbaaErrorMapper.fromCode(exception.code);
       rethrow;
     } finally {
