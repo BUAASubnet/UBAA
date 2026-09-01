@@ -1,6 +1,11 @@
 # 迁移状态
 
-更新日期：2026-09-01
+更新日期：2026-09-02
+
+## 2026-09-02 当前 HEAD 双路线与 API26 门禁复核
+
+- `just verify-live mode=direct` 与 `mode=webvpn` 均以 exit code 0 完成；认证、用户资料、课表、考试、成绩、空教室、SPOC/Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需只读操作均为 `PASS`。同批次 SPOC/博雅课程详情因父列表为空记 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`；本次未调用任何真实写接口。
+- `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools just ohos-check mode=debug` 的 Flutter OH、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart/widget 与 native 前置检查均为 0 失败/0 警告；HAP assemble 仍在调试签名配置处按门禁停止。未配置签名、未生成可发布 HAP、未连接设备，P0/P6 继续受阻。
 
 ## 2026-09-02 只读 bridge 内部字段边界收紧
 
