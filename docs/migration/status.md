@@ -2,6 +2,12 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 当前 HEAD 双路线只读复核
+
+- `just verify-live mode=direct` 在当前 HEAD 串行执行：认证、用户资料、课表、考试、成绩、空教室、SPOC、Judge、阳光打卡、图书馆、博雅、场馆和评教读取均按既有矩阵返回；`libbook/area_detail` 为 `PASS(count=1)`，SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途明确为 `PASS source=static_fallback`。
+- 同批次 Direct 的 `signin/today` 返回 `FAIL error=network_error`，命令以 exit code 5 结束；因此 Direct 本批次不能记为全通过，失败事实保留，不以历史成功替代。
+- 随后串行执行 `just verify-live mode=webvpn`，所有必需只读操作通过（`signin/today`、`libbook/area_detail` 均 PASS），未调用任何真实写接口。该结果仍只证明 Core-live 协议矩阵，不替代六平台 Flutter→FRB→Core 实体设备 E2E。
+
 ## 2026-09-01 三类复杂写入 typed 准备边界
 
 - AppController 现对阳光打卡、场馆预约和教学评教提供 typed prepare 入口：照片只复制到本次内存请求，场馆空间/时段只接受公开 ID，评教只接受读取结果中的待评课程稳定字段；均不接受 raw JSON，也不会在准备阶段提交网络写请求。

@@ -272,6 +272,9 @@
     selection 与评教课程字段逐项映射，非法输入在网络前拒绝；教学评教详情补齐公开课程/任务/问卷/课程代码/模型标识并提供
     单课程确认入口。app/bridge/widget 聚焦回归通过，本轮无真实账号写入、照片上传或验证码挑战；三类完整表单、权限/挑战、
     批量答题与读后核对仍缺失，P4/P5/P6 不能勾选。
+67. 当前 HEAD 在 2026-09-01 18:56（Asia/Shanghai）串行复核真实只读路线：WebVPN 全部必需操作通过（`signin/today`、
+    `libbook/area_detail` 均 `PASS`）；Direct 除同样既有通过项外，`signin/today` 本批次为 `FAIL error=network_error`（exit code 5），
+    因此 Direct 本批次不能记为全通过。两条路线均未调用真实写接口；该失败阻止 RC，不能用历史成功或 Mock 替代。
 
 ## 4. 安全与架构边界
 
