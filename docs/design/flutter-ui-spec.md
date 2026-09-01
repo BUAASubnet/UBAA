@@ -1,6 +1,6 @@
 # Flutter UI 规格（P3 进行中）
 
-更新：2026-09-01
+更新：2026-09-02
 
 本规格只描述共享 `ubaa_ui` 的用户可见状态。上游 URL、Cookie、令牌和原始响应不进入
 页面模型；页面只消费 `ubaa_app` 映射后的 `FeatureSnapshot` 与 `FeatureDetail`。
@@ -24,7 +24,8 @@
 `stale` 横幅、旧数据和重试按钮；首次失败只展示稳定中文错误，不渲染上游正文。详情列表提供
 本地筛选和每页 20 项分页，筛选只匹配 bridge 白名单字段并重置到第一页。读取成功或空结果
 若包含 Core 的 `resolvedRoute`，卡片和详情页显示“实际路线”；该字段不由登录设置中的
-`defaultPolicy` 推导，`stale` 状态沿用上次成功路线。
+`defaultPolicy` 推导，`stale` 状态沿用上次成功路线。若上次成功结果只有摘要而没有详情项，
+详情页仍显示该摘要，同时保留失败横幅和重试按钮，不降级为首次失败错误页。
 
 写操作的确认页必须在对应领域接入 `WriteIntent` 后单独实现：摘要、实际路线、警告和过期时间
 全部可见，确认按钮一次点击后禁用，结果不确定时只引导读取核对，不自动重试。当前博雅课程
@@ -55,7 +56,8 @@
 
 ## 当前证据与剩余范围
 
-- `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染、本地分页/筛选和
+- `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染、本地分页/筛选、
+  摘要-only stale 保留和
   实际路线展示；`packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不
   伪造 Demo 登录、刷新失败后的 `stale` 数据保留、实际路线投影以及未认证固定路线的安全
   回登录。

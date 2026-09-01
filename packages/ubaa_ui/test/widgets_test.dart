@@ -1935,4 +1935,61 @@ void main() {
       ),
     ]);
   });
+
+  testWidgets('已有摘要但详情为空的 stale 状态保留摘要并提供重试', (
+    tester,
+  ) async {
+    var retryCalls = 0;
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: feature == FeatureId.schedule
+              ? FeatureLoadStatus.stale
+              : FeatureLoadStatus.idle,
+          summary: feature == FeatureId.schedule ? '旧摘要仍可查看' : null,
+          error: feature == FeatureId.schedule
+              ? const UiError(
+                  code: UbaaErrorCode.networkError,
+                  title: '网络暂时不可用',
+                  message: '刷新失败，请重试。',
+                  retryable: true,
+                )
+              : null,
+          resolvedRoute: feature == FeatureId.schedule
+              ? ConnectionMode.direct
+              : null,
+          details: const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {
+            retryCalls++;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('课表查询'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('刷新失败，请重试。'), findsOneWidget);
+    expect(find.text('旧摘要仍可查看'), findsOneWidget);
+    expect(find.text('重试'), findsWidgets);
+    await tester.tap(find.text('重试').last);
+    await tester.pumpAndSettle();
+    expect(retryCalls, 1);
+  });
 }

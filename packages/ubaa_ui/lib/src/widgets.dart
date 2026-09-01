@@ -1454,7 +1454,6 @@ class _FeatureDetailView extends StatelessWidget {
   }
 
   Widget _stale(BuildContext context) {
-    if (snapshot.details.isEmpty) return _error(context);
     return Column(
       children: <Widget>[
         MaterialBanner(
@@ -1465,19 +1464,21 @@ class _FeatureDetailView extends StatelessWidget {
           ],
         ),
         Expanded(
-          child: _FeatureDetailList(
-            feature: feature,
-            details: snapshot.details,
-            onBykcWrite: onBykcWrite,
-            onBykcSignWrite: onBykcSignWrite,
-            onSigninWrite: onSigninWrite,
-            onCancellationWrite: onCancellationWrite,
-            onLibbookReserveWrite: onLibbookReserveWrite,
-            onCgyySubmitWrite: onCgyySubmitWrite,
-            onEvaluationWrite: onEvaluationWrite,
-            onYgdkSubmitWrite: onYgdkSubmitWrite,
-            onPickYgdkPhoto: onPickYgdkPhoto,
-          ),
+          child: snapshot.details.isEmpty
+              ? _empty(context)
+              : _FeatureDetailList(
+                  feature: feature,
+                  details: snapshot.details,
+                  onBykcWrite: onBykcWrite,
+                  onBykcSignWrite: onBykcSignWrite,
+                  onSigninWrite: onSigninWrite,
+                  onCancellationWrite: onCancellationWrite,
+                  onLibbookReserveWrite: onLibbookReserveWrite,
+                  onCgyySubmitWrite: onCgyySubmitWrite,
+                  onEvaluationWrite: onEvaluationWrite,
+                  onYgdkSubmitWrite: onYgdkSubmitWrite,
+                  onPickYgdkPhoto: onPickYgdkPhoto,
+                ),
         ),
       ],
     );

@@ -2,6 +2,12 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 stale 摘要状态修复
+
+- 新增 widget 回归，先在旧实现上观察到：刷新失败且上次成功快照只有摘要、详情为空时，详情页会错误降级为首次失败卡片，丢失旧摘要和 stale 重试横幅。
+- `_FeatureDetailView` 现统一保留 stale 横幅与重试按钮；详情为空时在横幅下显示旧摘要，详情非空时继续显示完整旧详情列表。
+- 聚焦 `packages/ubaa_ui/test/widgets_test.dart` 32 项全部通过；该 UI 状态修复不改变 Core、路线、协议或写入行为，P3 的完整领域状态、golden/integration 和六平台真实 App E2E 仍未闭合。
+
 ## 2026-09-02 文档矩阵提交 CI 终态
 
 - 提交 `bb51298` 的合同 CI `33543510586` 已终态成功；macOS Rust、Windows Rust 与合同门禁三个 job 均通过。该 CI 不包含 Flutter 原生五平台重建、OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E。

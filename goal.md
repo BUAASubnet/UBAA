@@ -339,6 +339,7 @@
 104. 提交 `bb51298` 的合同 CI `33543510586` 已终态成功，macOS Rust、Windows Rust 与合同门禁均通过；该文档提交不改变 Flutter/OHOS 产物或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实 Flutter→FRB→Core E2E 仍未完成，P0/P5/P6 仍未完成。
 105. 当前 HEAD `ef83cb9` 的 `just refs`、`just check-sensitive`、`just check`、`just flutter-check` 均通过；随后以 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 成功报告 FRB 零漂移。默认增量 FRB 首次尝试因 `cargo-expand` 长时间无输出被安全中断，重试未产生任何源码改动；OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 106. 提交 `f4ebd54` 的合同 CI `33547707165` 已终态成功，合同门禁、macOS Rust 与 Windows Rust 均通过；该文档提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
+107. 新增 widget 回归并先在旧实现上观察到：已有成功摘要但详情为空的 `stale` 刷新失败会错误降级为首次失败卡片，丢失旧摘要和 stale 重试横幅；随后 `_FeatureDetailView` 在详情为空时保留旧摘要，并统一显示失败横幅与重试按钮。`ubaa_ui` 聚焦测试 32/32 通过。本轮只修复 UI 状态语义，不改变 Core、路线、上游协议或真实写入；P3 完整领域状态、golden/integration、六平台真实 App E2E 及 P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
