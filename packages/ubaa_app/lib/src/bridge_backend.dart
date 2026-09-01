@@ -194,7 +194,9 @@ class BridgeBackend
           );
         case FeatureId.bykc:
           final result = await client.bykcCourses(
-            page: query.page < 0 ? 0 : query.page,
+            // Core 的分页合同为 1-based；UI 的通用查询默认从 0 开始，
+            // 因此这里在 bridge 边界显式收敛为首个有效页。
+            page: query.page <= 0 ? 1 : query.page,
             size: query.size.clamp(1, 100),
             all: true,
           );
