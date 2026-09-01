@@ -364,6 +364,13 @@
     `flutter analyze` 与既有 widget test 均通过。该证据不访问网络或真实账号，不替代各领域
     golden/逐领域 integration、六平台真实 App→FRB→Core 读取或写入；P3–P6 仍未完成。
 
+119. 在提交 `57e928a` 串行执行 `just verify-live mode=direct` 与
+    `just verify-live mode=webvpn` 均退出码 0；两条路线的认证、用户资料及必需只读操作均为
+    `PASS`，空父列表详情按同批次证据为 `NOT_APPLICABLE`，Cgyy 用途为
+    `PASS source=static_fallback`，本次未调用任何真实写接口。执行时间为 06:07
+    （Asia/Shanghai），早于 `libbook/area_detail` 的 08:30–23:00 窗口，因此该项不冒充窗口内
+    最终验收，既有窗口内记录继续有效；六平台真实 App E2E、P3–P6 仍未完成。
+
 ## 4. 安全与架构边界
 
 - 宿主只能依赖 ubaa-core facade 和专用 bridge DTO，不能访问 upstream、runtime、原始 URL、Cookie、业务 token 或内部 DTO。

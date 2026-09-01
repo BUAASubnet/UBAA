@@ -2,6 +2,19 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 当前提交双路线只读复核
+
+- 在提交 `57e928a` 串行执行 `just verify-live mode=direct` 与
+  `just verify-live mode=webvpn`，两条路线均退出码 0；认证、用户资料、课表、考试、成绩、
+  空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教的必需读取均输出 `PASS`，
+  详情前置为空时按同批次父列表证据记为 `NOT_APPLICABLE`，Cgyy 用途明确为
+  `PASS source=static_fallback`。
+- 本次只读复核未调用选课、退选、签到、预约、取消、打卡上传或评教提交；日志只保留状态、计数、
+  路线和安全原因，不保存账号、Cookie、令牌或原始响应。
+- 本次执行时间为 06:07（Asia/Shanghai），早于图书馆 `area_detail` 合同要求的 08:30–23:00
+  营业窗口；该项仅作为当前提交的观察记录，最终窗口内证据继续采用既有记录。该复核不替代六平台
+  Flutter→FRB→Core 真实 App E2E，P3–P6 仍未完成。
+
 ## 2026-09-02 Flutter 宿主集成回归
 
 - 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏集成场景：使用注入的
