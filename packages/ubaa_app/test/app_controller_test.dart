@@ -229,6 +229,49 @@ void main() {
     expect(controller.activeRoutes, <ConnectionMode>[ConnectionMode.webvpn]);
     controller.dispose();
   });
+
+  test('博雅写意图通过 typed backend 准备且控制器不替换请求参数', () async {
+    final backend = _BykcWriteBackend();
+    final controller = AppController(backend: backend);
+
+    final intent = await controller.prepareBykcWrite(
+      WriteOperation.bykcSelectCourse,
+      42,
+    );
+    expect(intent.operation, WriteOperation.bykcSelectCourse);
+    expect(backend.selectedCourseId, 42);
+    expect(backend.commitCalls, 0);
+
+    final committed = await controller.commitWrite(intent.intentId);
+    expect(committed.success, isTrue);
+    expect(backend.commitCalls, 1);
+    controller.dispose();
+  });
+
+  test('博雅写意图拒绝非正课程 ID 和未接入的操作', () async {
+    final controller = AppController(backend: _BykcWriteBackend());
+    await expectLater(
+      controller.prepareBykcWrite(WriteOperation.bykcSelectCourse, 0),
+      throwsA(
+        isA<BackendException>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.invalidInput,
+        ),
+      ),
+    );
+    await expectLater(
+      controller.prepareBykcWrite(WriteOperation.signinPerform, 42),
+      throwsA(
+        isA<BackendException>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.invalidInput,
+        ),
+      ),
+    );
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -360,4 +403,62 @@ class _RebuildBackend
   Future<void> dispose() async {
     disposed = true;
   }
+}
+
+class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
+  int? selectedCourseId;
+  int commitCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async {
+    selectedCourseId = courseId;
+    return _intent(WriteOperation.bykcSelectCourse);
+  }
+
+  @override
+  Future<WriteIntent> prepareBykcDeselectCourse({required int courseId}) async {
+    selectedCourseId = courseId;
+    return _intent(WriteOperation.bykcDeselectCourse);
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commitCalls++;
+    return const WriteCommitResult(
+      operation: WriteOperation.bykcSelectCourse,
+      success: true,
+      message: 'ok',
+      outcomeUnknown: false,
+    );
+  }
+
+  WriteIntent _intent(WriteOperation operation) => WriteIntent(
+    intentId: 'intent-${selectedCourseId ?? 0}',
+    operation: operation,
+    targetSummary: '课程 ${selectedCourseId ?? 0}',
+    resolvedRoute: ConnectionMode.direct,
+    warnings: const <String>[],
+    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+    requestDigest: 'digest',
+  );
 }

@@ -15,6 +15,7 @@ class BridgeBackend
     implements
         UbaaBackend,
         FeatureQueryBackend,
+        BykcWriteBackend,
         RouteSettingsBackend,
         BackendLifecycle {
   BridgeBackend(this.client);

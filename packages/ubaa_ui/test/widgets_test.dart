@@ -108,6 +108,86 @@ void main() {
     expect(clearedAccount, isTrue);
   });
 
+  testWidgets('博雅课程写操作先展示一次性确认且仅在确认后提交', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    String? committedIntent;
+    final intent = WriteIntent(
+      intentId: 'intent-42',
+      operation: WriteOperation.bykcSelectCourse,
+      targetSummary: '选择课程 42',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>['提交后请刷新已选课程确认结果'],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (operation, courseId) async {
+            expect(operation, WriteOperation.bykcSelectCourse);
+            expect(courseId, 42);
+            prepareCalls++;
+            return intent;
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            committedIntent = intentId;
+            return const WriteCommitResult(
+              operation: WriteOperation.bykcSelectCourse,
+              success: true,
+              message: '已提交，请刷新已选课程确认',
+              outcomeUnknown: false,
+              resolvedRoute: ConnectionMode.direct,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备选课'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认博雅选课'), findsNWidgets(2));
+    expect(find.text('选择课程 42'), findsOneWidget);
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(committedIntent, 'intent-42');
+    expect(find.text('已提交，请刷新已选课程确认'), findsOneWidget);
+  });
+
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {
     final intent = WriteIntent(
       intentId: 'intent',

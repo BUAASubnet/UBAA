@@ -352,6 +352,43 @@ class AppController extends ChangeNotifier {
     await _loadFeature(feature, generation, query: query);
   }
 
+  /// 准备博雅选课/退选的 typed 一次性意图；准备本身不提交写请求。
+  Future<WriteIntent> prepareBykcWrite(
+    WriteOperation operation,
+    int courseId,
+  ) async {
+    final backend = _backend;
+    if (backend is! BykcWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final writer = backend as BykcWriteBackend;
+    if (courseId <= 0) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return switch (operation) {
+      WriteOperation.bykcSelectCourse => writer.prepareBykcSelectCourse(
+        courseId: courseId,
+      ),
+      WriteOperation.bykcDeselectCourse => writer.prepareBykcDeselectCourse(
+        courseId: courseId,
+      ),
+      _ => throw const BackendException(UbaaErrorCode.invalidInput),
+    };
+  }
+
+  /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    final backend = _backend;
+    if (backend is! BykcWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final writer = backend as BykcWriteBackend;
+    if (intentId.trim().isEmpty) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return writer.commitWrite(intentId);
+  }
+
   Future<void> _loadFeature(
     FeatureId feature,
     int generation, {

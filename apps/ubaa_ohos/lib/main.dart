@@ -117,6 +117,9 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
       onFeatureQuery: (feature, query) {
         return _controller.refreshFeatureQuery(feature, query);
       },
+      onPrepareBykcWrite: (operation, courseId) =>
+          _controller.prepareBykcWrite(operation, courseId),
+      onCommitWrite: _controller.commitWrite,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>
           _controller.logout(clearSavedCredential: true),

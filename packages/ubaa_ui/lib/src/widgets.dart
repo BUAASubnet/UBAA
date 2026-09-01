@@ -370,6 +370,8 @@ class UbaaMainShell extends StatefulWidget {
     required this.onTelemetryChanged,
     this.activeRoutes = const <ConnectionMode>[],
     this.onFeatureQuery,
+    this.onPrepareBykcWrite,
+    this.onCommitWrite,
     super.key,
   });
 
@@ -386,6 +388,9 @@ class UbaaMainShell extends StatefulWidget {
   final List<ConnectionMode> activeRoutes;
   final Future<void> Function(FeatureId feature, FeatureQuery query)?
   onFeatureQuery;
+  final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
+  onPrepareBykcWrite;
+  final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
 
   @override
   State<UbaaMainShell> createState() => _UbaaMainShellState();
@@ -396,6 +401,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureId? _openedFeature;
   final Map<FeatureId, FeatureQuery> _featureQueries =
       <FeatureId, FeatureQuery>{};
+  WriteIntent? _pendingWrite;
+  UiError? _writeError;
+  bool _writeSubmitting = false;
 
   static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
     (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -411,7 +419,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
-    final body = _openedFeature == null
+    final body = _pendingWrite != null
+        ? WriteConfirmationView(
+            intent: _pendingWrite!,
+            onCancel: _cancelWrite,
+            onConfirm: _confirmWrite,
+            isSubmitting: _writeSubmitting,
+            error: _writeError,
+          )
+        : _openedFeature == null
         ? _buildTab(context)
         : _FeatureDetailView(
             feature: _openedFeature!,
@@ -431,11 +447,18 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                     _featureQueries[feature] = query;
                     return widget.onFeatureQuery!(feature, query);
                   },
+            onBykcWrite: widget.onPrepareBykcWrite == null
+                ? null
+                : _startBykcWrite,
           );
     return Scaffold(
       appBar: AppBar(
-        title: Text(_openedFeature?.title ?? _tabs[_selectedIndex].label),
-        leading: _openedFeature == null
+        title: Text(
+          _pendingWrite == null
+              ? (_openedFeature?.title ?? _tabs[_selectedIndex].label)
+              : '确认${_pendingWrite!.operation.title}',
+        ),
+        leading: _openedFeature == null || _pendingWrite != null
             ? null
             : IconButton(
                 tooltip: '返回',
@@ -566,10 +589,76 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   );
 
   void _selectTab(int index) {
+    if (_pendingWrite != null) return;
     setState(() {
       _selectedIndex = index;
       _openedFeature = null;
     });
+  }
+
+  Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
+    final prepare = widget.onPrepareBykcWrite;
+    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final intent = await prepare(operation, courseId);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = intent;
+        _writeSubmitting = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备操作；尚未提交任何写请求。')));
+    }
+  }
+
+  void _cancelWrite() {
+    if (_writeSubmitting) return;
+    setState(() {
+      _pendingWrite = null;
+      _writeError = null;
+    });
+  }
+
+  Future<void> _confirmWrite() async {
+    final intent = _pendingWrite;
+    final commit = widget.onCommitWrite;
+    if (intent == null || commit == null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final result = await commit(intent.intentId);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = null;
+        _writeSubmitting = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message)));
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = null;
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('提交结果不确定，请先刷新相关课程状态，不要重复提交。')),
+      );
+    }
   }
 }
 
@@ -928,6 +1017,7 @@ class _FeatureDetailView extends StatelessWidget {
     required this.snapshot,
     required this.onBack,
     required this.onRetry,
+    this.onBykcWrite,
     this.onQuery,
   });
 
@@ -935,6 +1025,8 @@ class _FeatureDetailView extends StatelessWidget {
   final FeatureSnapshot snapshot;
   final VoidCallback onBack;
   final Future<void> Function() onRetry;
+  final Future<void> Function(WriteOperation operation, int courseId)?
+  onBykcWrite;
   final Future<void> Function(FeatureQuery query)? onQuery;
 
   @override
@@ -1001,7 +1093,11 @@ class _FeatureDetailView extends StatelessWidget {
 
   Widget _details(BuildContext context) {
     if (snapshot.details.isEmpty) return _empty(context);
-    return _FeatureDetailList(details: snapshot.details);
+    return _FeatureDetailList(
+      feature: feature,
+      details: snapshot.details,
+      onBykcWrite: onBykcWrite,
+    );
   }
 
   Widget _stale(BuildContext context) {
@@ -1015,7 +1111,13 @@ class _FeatureDetailView extends StatelessWidget {
             TextButton(onPressed: () => onRetry(), child: const Text('重试')),
           ],
         ),
-        Expanded(child: _FeatureDetailList(details: snapshot.details)),
+        Expanded(
+          child: _FeatureDetailList(
+            feature: feature,
+            details: snapshot.details,
+            onBykcWrite: onBykcWrite,
+          ),
+        ),
       ],
     );
   }
@@ -2229,9 +2331,16 @@ class _DetailField extends StatelessWidget {
 
 /// 详情列表的本地筛选只作用于 bridge 白名单字段。
 class _FeatureDetailList extends StatefulWidget {
-  const _FeatureDetailList({required this.details});
+  const _FeatureDetailList({
+    required this.feature,
+    required this.details,
+    this.onBykcWrite,
+  });
 
+  final FeatureId feature;
   final List<FeatureDetail> details;
+  final Future<void> Function(WriteOperation operation, int courseId)?
+  onBykcWrite;
 
   @override
   State<_FeatureDetailList> createState() => _FeatureDetailListState();
@@ -2301,6 +2410,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final detail = visible[index];
+                    final courseId = _courseId(detail);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -2324,6 +2434,35 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                               _DetailField(
                                 label: field.label,
                                 value: field.value,
+                              ),
+                            ],
+                            if (widget.feature == FeatureId.bykc &&
+                                widget.onBykcWrite != null &&
+                                courseId != null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: <Widget>[
+                                  OutlinedButton.icon(
+                                    onPressed: () => widget.onBykcWrite!(
+                                      WriteOperation.bykcSelectCourse,
+                                      courseId,
+                                    ),
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    label: const Text('准备选课'),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () => widget.onBykcWrite!(
+                                      WriteOperation.bykcDeselectCourse,
+                                      courseId,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                    ),
+                                    label: const Text('准备退选'),
+                                  ),
+                                ],
                               ),
                             ],
                           ],
@@ -2362,6 +2501,13 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
           ),
       ],
     );
+  }
+
+  int? _courseId(FeatureDetail detail) {
+    for (final field in detail.fields) {
+      if (field.label == '课程 ID') return int.tryParse(field.value.trim());
+    }
+    return null;
   }
 }
 

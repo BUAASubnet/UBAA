@@ -59,6 +59,18 @@ abstract interface class FeatureQueryBackend {
   Future<FeatureResult> loadFeatureQuery(FeatureId feature, FeatureQuery query);
 }
 
+/// 已接入 typed 写意图的博雅课程能力。
+///
+/// 该接口只暴露公开课程 ID 和一次性意图；确认提交仍需单独调用
+/// [commitWrite]，测试后端可以不实现它而安全保持只读。
+abstract interface class BykcWriteBackend {
+  Future<WriteIntent> prepareBykcSelectCourse({required int courseId});
+
+  Future<WriteIntent> prepareBykcDeselectCourse({required int courseId});
+
+  Future<WriteCommitResult> commitWrite(String intentId);
+}
+
 /// 可由应用生命周期关闭的后端资源。
 abstract interface class BackendLifecycle {
   Future<void> dispose();
