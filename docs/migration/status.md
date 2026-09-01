@@ -114,6 +114,17 @@
   测试。OHOS DevEco/API26、正式签名、实体设备、安全存储插件和真实写入矩阵未闭合，不能宣告
   P6 或执行发布。
 
+## 2026-09-01 Flutter 五平台 CI 与 Release 探索
+
+- 提交 `79e8391` 的 CI run `33466562627` 和 Flutter 原生 run `33466562620` 均已成功；
+  原生矩阵的 Windows、Linux、macOS、Android APK、iOS simulator job 均完成并上传 debug
+  产物。这些是五平台 debug/确定性证据，不包含 OHOS、正式签名或真实设备。
+- 本机 macOS Release 因缺少 `x86_64-apple-darwin` Rust target 且下载无输出而中断；Android
+  AAB 的 Gradle/native strip 阶段完成并写出本地 AAB，但 Flutter 最终使用 `apkanalyzer`
+  检查 debug symbols 时因 Homebrew command-line tools 的 SDK 目录布局无法定位 latest build
+  tools，命令失败。该 AAB 未签名、未上传，不计 Release PASS；应在修复工具链目录布局的受控
+  runner 重新执行。
+
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`

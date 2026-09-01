@@ -82,10 +82,10 @@
     `6.0.1.251` 与 API21，不存在 HAP、签名或设备 hello 证据。
 11. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
     `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。远端 CI
-    `33450597476` 的合同、macOS Rust、Windows Rust job 全部通过；原生构建
-    `33450597586` 的 Windows、Linux、macOS、iOS simulator、Android APK job
-    全部通过并各自产生产物。P0 仅因 DevEco/API26、签名空 HAP 与 OHOS 设备 hello
-    未完成而保持未勾选；按 P0 合同继续不依赖该阻断的五平台 P1 工作。
+    `33466562627` 与原生构建 `33466562620` 均在提交 `79e8391` 通过；原生构建的
+    Windows、Linux、macOS、iOS simulator、Android APK job 全部通过并各自产生产物。
+    P0 仅因 DevEco/API26、签名空 HAP 与 OHOS 设备 hello 未完成而保持未勾选；按 P0
+    合同继续不依赖该阻断的五平台 P1 工作。
 12. `docs/contracts/flutter-bridge.md` 已冻结 P1 的 opaque client、typed error、认证/路线、
     全部读取 DTO 和一次性写 intent 目标合同；`2faa753` 已实现生产 Rust binding 与生成 Dart
     API，`7bd8fd2` 已接入应用 backend，但 panic/isolate/跨进程锁、完整 schema 快照和逐领域
@@ -126,6 +126,11 @@
 24. 已新增 `docs/runbooks/flutter-release.md`，固定六平台发布前门禁、未签名/正式产物隔离、设备
    smoke、两条路线证据、写入授权和回滚留档流程；签名账号/私钥和真实写入继续等待逐项明确授权。
    OHOS API26/DevEco、实体设备、原生安全存储和正式签名仍是 P5/P6 阻断。
+25. 本机曾执行无签名 Release 探索：macOS 因 Cargokit 需要的 `x86_64-apple-darwin` Rust target
+    下载长期无输出而中断；Android AAB 的 Gradle 任务及 native strip 均完成并生成了本地 AAB，
+    但 Flutter 最终 `apkanalyzer` 因 Homebrew command-line tools 的 SDK 目录布局无法定位
+    latest build tools，命令按合同失败，不能将该 AAB 记为 Release PASS。未修改 SDK、未签名、
+    未上传任何产物；该环境问题与 OHOS/API26、正式签名和设备阻断一并保留。
 
 ## 4. 安全与架构边界
 
