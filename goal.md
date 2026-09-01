@@ -1,12 +1,22 @@
 # UBAA Flutter 六平台全功能正式版执行计划
 
-状态：P0 受阻；P1 bridge 已实现但验收未闭合；继续 P2/P3（官方五平台 native CI 通过；DevEco/API26 已就绪；签名 HAP/设备待闭合）
+状态：无签名执行目标进行中；P1 bridge 已实现但验收未闭合；继续 P2/P3/P4/P5/P6（签名、证书、实体设备和正式发布改列后置项）
 计划确认日期：2026-09-01
 项目根目录：/Users/moorefoss/Code/UBAA
 
-本文件是当前阶段唯一的活动执行计划。目标是以现有 Rust Core/facade 为唯一业务核心，交付共享 Dart/UI 的 Flutter 正式版，覆盖 Windows、macOS、Linux、Android、iOS 和 HarmonyOS，并让当前迁移矩阵中的全部用户可见读取与写入能力在六个平台可用。
+本文件是当前阶段唯一的活动执行计划。当前轮目标是以现有 Rust Core/facade 为唯一业务核心，交付共享 Dart/UI 的 Flutter 无签名 RC，覆盖 Windows、macOS、Linux、Android、iOS 和 HarmonyOS，并让当前迁移矩阵中的全部用户可见读取与写入能力在六个平台具备可验证实现；正式签名发布作为后置阶段。
 
-“完成”必须同时意味着：功能完整、六平台可复现构建、正式签名产物、真实设备验证、写操作安全闭环、隐私和凭据安全、Direct/WebVPN 路线证据以及发布文档齐备。空壳页面、Demo backend、Mock 成功、单个平台编译通过或仅实现读取能力都不能宣告完成。
+本轮“完成”改按无签名执行目标判定：功能完整、六平台宿主代码与可复现无签名构建检查、确定性测试、写操作安全闭环、隐私和凭据安全、Direct/WebVPN 路线证据以及发布文档齐备。签名证书、正式签名产物、实体设备和商店发布不再阻塞本轮目标，但必须作为后置发布项明确记录。空壳页面、Demo backend、Mock 成功冒充真实协议、或仅实现读取能力都不能宣告本轮完成。
+
+## 0. 本轮无签名执行合同（2026-09-02）
+
+用户明确要求在没有签名证书、签名账号和实体设备的条件下完成可由代码、确定性测试、无签名构建、静态检查和文档证明的全部任务。本轮合同因此采用以下边界：
+
+- 必须继续完成 P1–P4 的生产代码、typed bridge、页面、状态机、测试、来源对照和安全文档；真实写入仍按每次具体操作、目标、路线和时间单独授权，默认不执行。
+- 必须完成 P5 中不依赖证书或实体设备的六平台宿主代码、权限/文件/照片抽象、生命周期、错误路径、静态 ABI/动态库检查和可复现无签名 Debug 构建；设备专属验证记录为 `BLOCKED`，不伪造成功。
+- 必须完成 P6 中不依赖签名的发布准备：无签名构建配方、产物结构检查、SBOM/许可证/依赖审计、敏感扫描、迁移/回滚 runbook 和 CI 证据。
+- 签名 HAP、正式签名 Release、公证、商店上传、实体设备安装/hello、硬件安全存储和设备权限验证为“后置发布条件”，不计入本轮完成门禁，也不得在无凭据时猜测或伪造。
+- 本轮完成不能写成“正式版已发布”；必须同时标明“无签名执行目标完成”和“后置发布项未完成”。
 
 ## 1. 已确认的产品决策
 
@@ -538,20 +548,20 @@ UbaaClient::open 只能接收 PlatformPaths 解析出的 App 私有目录。Core
 - 普通缓存不得保存密码、Cookie、token、证件号、完整手机号、挑战图片或提交照片。
 - 诊断日志只记录稳定错误码、阶段、耗时桶和随机问题编号；用户手动导出前再次脱敏。
 
-## 8. 六平台目标与正式产物
+## 8. 六平台目标与本轮无签名产物
 
-| 平台 | 目标系统 | 正式产物 | 发布硬门槛 |
+| 平台 | 目标系统 | 本轮无签名交付 | 后置正式发布项 |
 |---|---|---|---|
-| Windows | Windows 10/11 x64 | 签名 MSIX 或安装包，另提供便携包 | Windows 原生 runner 构建、安装/升级/卸载、Credential Manager |
-| macOS | macOS 12+，arm64；评估 x64 | 签名并公证的 DMG/App | Apple Silicon 实机、Intel 构建证据、Keychain |
-| Linux | Ubuntu 22.04/24.04、Debian 12 x64 | AppImage 与 deb | Linux runner、GTK、Secret Service 存在/缺失两种路径 |
-| Android | API 24+，重点 API29/API35 | 签名 AAB 与测试 APK | 模拟器+实体机、Keystore、权限和备份检查 |
-| iOS | iOS 15+ arm64 | 签名 Archive/IPA 或 TestFlight 构建 | 模拟器+实体机、Keychain、权限、后台/前台恢复 |
-| HarmonyOS | build/target API26，实际最低运行版本由设备证据定稿 | 签名 HAP/应用市场包 | DevEco/CLI26、完整 API26、arm64 FRB、HUKS、实体机 |
+| Windows | Windows 10/11 x64 | 原生 Debug 构建、安装包结构和运行门禁 | 签名 MSIX、安装/升级/卸载、Credential Manager 设备验证 |
+| macOS | macOS 12+，arm64；评估 x64 | 原生 Debug 构建、FRB hello 和 widget/integration | Apple Silicon/Intel 实机、Keychain、公证 DMG/App |
+| Linux | Ubuntu 22.04/24.04、Debian 12 x64 | 原生 Debug 构建、GTK 和 Secret Service 缺失路径测试 | AppImage/deb、Secret Service 设备验证 |
+| Android | API 24+，重点 API29/API35 | Debug APK 构建、ABI/产物结构和确定性测试 | 签名 AAB、模拟器/实体机、Keystore、权限和备份验证 |
+| iOS | iOS 15+ arm64 | simulator Debug 构建、FRB 链路和确定性测试 | 实体机 Archive/IPA、Keychain、权限、后台/前台恢复 |
+| HarmonyOS | build/target API26，实际最低运行版本由设备证据定稿 | API26 无签名 Debug HAP、arm64 FRB 和包内容检查 | 签名 HAP、HUKS、实体机和应用市场包 |
 
-Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以交叉编译替代运行证据。每个平台至少一个受支持环境完成全流程 smoke；Android、iOS、HarmonyOS 至少各一台实体设备验证权限、安全存储和写操作 UI。
+Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以交叉编译替代本轮可验证的运行证据。无签名目标要求每个平台至少一个 CI/本机可复现构建、静态检查和确定性 smoke；Android、iOS、HarmonyOS 的实体设备验证改列后置项。
 
-正式签名需要的 Apple、Google、Microsoft、Linux 发布、HarmonyOS 账号与证书由项目所有者安全提供。没有签名/公证证据的开发产物不能标记正式版完成。
+正式签名需要的 Apple、Google、Microsoft、Linux 发布、HarmonyOS 账号与证书由项目所有者在后置发布阶段安全提供。无签名产物只能标记为开发/RC 证据，不能标记为正式发布。
 
 ## 9. 分阶段执行
 
@@ -561,11 +571,11 @@ Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以�
 
 - 审查当前未提交 Flutter/OHOS 探索文件，形成可审查基线提交。
 - 固定 Flutter、OHOS fork、Dart、Rust、FRB、Cargokit、DevEco/CLI 和 SDK 精确版本。
-- 官方五平台分别建立最小宿主构建；OHOS 获得匹配 API26 并构建签名空 HAP。
-- 在 macOS 和 OHOS 完成 FRB hello，确认 HAP 包含正确 arm64 Rust 动态库。
+- 官方五平台分别建立最小宿主构建；OHOS 获得匹配 API26 并构建无签名 Debug HAP。
+- 在 macOS 完成 FRB hello；OHOS 在无设备条件下完成 HAP 内容、arm64 Rust 动态库和加载前置静态核对，设备 hello 记录为后置 `BLOCKED`。
 - 建立根级 just flutter-codegen-check、just flutter-check、just flutter-build 和 just ohos-check 配方；配方显式进入每个 package/app，官方 Flutter 与 OHOS fork 使用独立绝对 SDK 路径，禁止依赖当前 shell 中碰巧命中的 flutter。
 - 建立 docs/architecture/flutter-platforms.md、风险表和 go/no-go 结果。
-- OHOS 失败不阻塞其他五平台继续开发，但最终发布状态保持未完成。
+- OHOS 设备或签名失败不阻塞本轮无签名目标；设备专属验证和正式发布状态单独保持后置未完成。
 
 ### P1：稳定 bridge 合同（1–2 周）
 
@@ -593,7 +603,7 @@ Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以�
 3. loading、empty、failure、retry、stale；
 4. widget/golden 测试；
 5. Core fixture/Mock 与 Direct/WebVPN 回归；
-6. 对应真实读取证据或明确 BLOCKED 原因。
+6. 对应 Core-live 真实读取证据，或在设备/签名不可用时记录可复核的 `BLOCKED` 原因；不得用 Mock 冒充真实上游成功。
 
 不得先做八张摘要卡片后长期保留空详情页；一个领域只有详情与全部读取闭环完成才可勾选。
 
@@ -610,25 +620,25 @@ Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以�
 5. 阳光打卡照片提交；
 6. 教学评教选择与批量提交。
 
-每项依次完成：冻结来源 parity、失败测试、typed bridge 请求、WriteIntent、确认 UI、重复点击防护、结果核对、错误恢复、六平台 widget/integration 测试、两条路线确定性测试。完成全部确定性证据后，才申请具体真实写入授权。
+每项依次完成：冻结来源 parity、失败测试、typed bridge 请求、WriteIntent、确认 UI、重复点击防护、结果核对、错误恢复、六平台 widget/integration 测试、两条路线确定性测试。完成全部确定性证据后，真实写入仍须另行申请具体操作、目标、路线和时间授权；本轮不因没有授权而停止代码和 Mock 闭环。
 
 不可撤销操作必须单独列出目标、影响、时间窗口和预期结果；没有安全样本或授权时标记 BLOCKED，不能以 Mock 替代真实成功声明。
 
 ### P5：平台能力与六平台体验（2–4 周）
 
-- 完成六个平台安全凭据适配。
+- 完成六个平台安全凭据适配代码、抽象和 fake/Mock 合同测试；实体设备和系统密钥链验证列为后置 `BLOCKED`。
 - 完成相机/相册/文件选择、前台位置、已有 typed 合同的 Cgyy 业务挑战交互和权限拒绝路径。
 - 完成桌面窗口尺寸、键盘/鼠标、移动端生命周期和 OHOS 平台差异。
-- 对每个平台执行安装、升级、卸载重装、断网、会话过期、路线切换和权限变化测试。
+- 对每个平台执行可在 CI/模拟环境完成的安装包结构、断网、会话过期、路线切换和权限变化测试；实体设备安装、升级、卸载和硬件权限验证列为后置 `BLOCKED`。
 - 完成性能、内存、无障碍和长列表检查。
 
 ### P6：发布候选与正式发布（2–4 周）
 
-- 在原生 CI/runner 构建六平台 Release 产物。
-- 完成签名、公证、SBOM、第三方许可、依赖审计和敏感信息扫描。
-- 完成 Direct/WebVPN 全读取矩阵和经授权的写入矩阵。
+- 在原生 CI/runner 构建五平台 Debug 与 OHOS 无签名 Debug 产物，并尽可能验证无签名 Release 的产物结构。
+- 完成 SBOM、第三方许可、依赖审计和敏感信息扫描；签名、公证和商店上传列为后置发布项。
+- 完成 Direct/WebVPN 全读取矩阵和确定性写入矩阵；真实写入仍按授权规则单独处理。
 - 完成崩溃恢复、版本升级、配置迁移、回滚和发布 runbook。
-- 冻结 RC，所有阻塞问题关闭后生成正式版本与校验摘要。
+- 冻结无签名 RC，记录所有设备/签名阻塞项并生成产物校验摘要；正式签名 RC 待后置条件满足后另行生成。
 
 ## 10. 测试、证据与 CI 门禁
 
@@ -656,7 +666,7 @@ Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以�
 
 读取能力：Direct 与 WebVPN 按操作逐项验证，记录路线、时间、HTTP/业务安全状态和最终结论；Auto 保留确定性选择证据。FAIL 和必需 BLOCKED 一律阻止 RC。N/A 只有在父集合为空、前置条件客观不存在且有同批次证据时可接受；static_fallback 不算上游 PASS，只有 Cgyy 用途的既有冻结回退决策经复核且 UI 明示来源时可例外接受。
 
-Core-live 证明协议，不证明 App 链路。Windows、macOS、Linux、Android、iOS 和 HarmonyOS 必须分别在受支持的原生环境通过真实 Flutter→FRB→Core→upstream 只读 E2E：登录/恢复、用户资料、每个业务域至少一个代表读取，以及 Direct/WebVPN 两种固定路线；平台或网络客观不支持某路线时必须给出可复核 BLOCKED，不能用 Mock 或另一平台代替。全部读取方法的协议矩阵仍由 Core-live 覆盖，全部页面状态由 fixture/integration 覆盖。
+Core-live 证明协议，不证明 App 链路。本轮无签名执行目标要求 Windows、macOS、Linux、Android、iOS 的宿主构建和可在 CI/本机完成的 Flutter→FRB→Core 确定性 integration/static smoke；HarmonyOS 要求 API26、无签名 HAP、arm64 动态库和加载前置静态核对。真实设备、签名 HAP 和设备安装/hello 在没有设备或凭据时必须记录可复核的 `BLOCKED`，不能用 Mock 冒充设备成功。Direct/WebVPN 的协议矩阵仍由 Core-live 逐操作覆盖，全部页面状态由 fixture/integration 覆盖；后置发布条件恢复后再补实体设备真实 E2E。
 
 写入能力：
 
@@ -678,23 +688,27 @@ Core-live 证明协议，不证明 App 链路。Windows、macOS、Linux、Androi
 - macOS runner：Rust、Dart、macOS、iOS simulator。
 - Linux runner：Rust、Dart、Linux、Android 构建。
 - Windows runner：Rust、Dart、Windows 安装包。
-- 受控 OHOS runner：固定 DevEco/CLI26、API26、HAP 构建和设备 smoke。
-- 实体设备测试与签名任务使用受保护凭据，不在普通 Pull Request 中运行。
+- 受控 OHOS runner：固定 DevEco/CLI26、API26、无签名 HAP 构建、arm64/包内容检查和可用的静态 smoke；设备 smoke 列为后置条件。
+- 实体设备测试与签名任务使用受保护凭据，不在普通 Pull Request 中运行；本轮没有凭据时只记录 `BLOCKED`，不伪造结果。
 
-## 11. 完成定义
+## 11. 本轮无签名执行完成定义
 
-只有以下条件全部满足，状态才能改为“完成”：
+本轮状态可以改为“无签名执行目标完成”，但不得改写为“正式发布完成”。以下条件必须全部满足：
 
 1. 第 5 节列出的全部读取与写入能力均有正式 Flutter 页面，不存在占位页、Demo backend 或只显示摘要的未完成流程。
 2. 每项业务通过 Rust、Dart、widget/integration 和 bridge 合同测试；写入额外通过确认、重复提交和结果不确定测试。
-3. Windows、macOS、Linux、Android、iOS、HarmonyOS 分别有可复现 Release 产物和原生环境运行证据。
-4. 六个平台分别完成登录、会话恢复、路线设置、凭据能力、全部读取 smoke 和全部写入 UI 流程；涉及权限的平台完成实体机验证。
-5. Direct/WebVPN 全读取矩阵和六平台真实 App 代表读取 E2E 通过；每个写入操作有符合第 10.3 节的当前版本证据或明确记录的 BLOCKED。存在必需 BLOCKED 时不能完成。
-6. 密码只进入经审计的平台安全存储或当前会话；日志、诊断、fixture、生成产物和版本库无秘密或个人数据。
+3. Windows、macOS、Linux、Android、iOS 有可复现 Debug 宿主构建；HarmonyOS 有 API26 无签名 Debug HAP、arm64 动态库和包内容检查。
+4. 六个平台的登录、会话恢复、路线设置、无签名条件下可验证的凭据边界、全部读取 smoke 和全部写入 UI 流程均有代码或 CI/模拟证据；实体设备专属项目明确记录 `BLOCKED`。
+5. Direct/WebVPN 全读取矩阵通过；每个写入操作均有来源对照、typed 请求、确认、防重复、结果核对和 deterministic/Mock 证据。真实写入没有授权时保持默认禁止，不得以 Mock 声称真实成功。
+6. 密码只进入经审计的平台安全存储边界或当前会话；日志、诊断、fixture、生成产物和版本库无秘密或个人数据。
 7. 所有写操作均使用一次性确认意图，无后台写入、无透明路线切换、无可能重复提交的自动重试。
-8. 正式产物完成签名/公证、安装/升级/卸载、依赖许可、安全扫描和回滚验证。
+8. 无签名发布准备完成：产物结构校验、SBOM、依赖许可/审计、敏感扫描、配置迁移、回滚 runbook 和已知阻塞项清单齐备。
 9. 平台矩阵、bridge 合同、UI 规格、功能矩阵、测试证据、已知限制和发布 runbook 完整。
-10. just refs、just check-sensitive、just check、Flutter/FRB/六平台 Release 门禁全部通过，工作树干净。
+10. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、无签名 OHOS 门禁和适用的 Flutter 构建门禁全部通过，工作树干净。
+
+### 11.1 后置正式发布条件（不计入本轮完成门禁）
+
+签名证书/账号、正式签名 HAP 与 Release、公证、实体设备安装/升级/卸载、硬件安全存储、设备权限和商店上传仍必须在取得相应凭据与设备后单独完成。它们在本轮记录为后置 `BLOCKED`，不得伪造结果，也不得阻塞无签名执行目标。
 
 ## 12. 提交与变更管理
 
@@ -711,14 +725,14 @@ Core-live 证明协议，不证明 App 链路。Windows、macOS、Linux、Androi
 - [x] 明确目标为六平台全部读取与写入能力正式版。
 - [x] 完成旧版 UI、Core facade、FRB/OHOS 工具链初步勘察。
 - [x] 将本文件重写为全功能正式版执行计划。
-- [ ] P0：审查探索产物、冻结提交基线和六平台工具链。
+- [ ] P0：审查探索产物、冻结提交基线和六平台无签名工具链；签名 HAP/设备 hello 转为后置条件。
 - [ ] P1：冻结完整 Flutter bridge 合同并实现绑定（生产绑定已提交，剩余验收证据待补齐）。
 - [ ] P2：完成共享应用壳、认证、设置和安全凭据。
 - [ ] P3：完成全部读取页面与证据。
 - [ ] P4：完成全部写入页面、安全确认和证据。
-- [ ] P5：完成六平台适配与设备体验。
-- [ ] P6：完成签名 Release、真实矩阵和正式发布。
-- [ ] 所有完成定义满足后，将状态改为“完成”。
+- [ ] P5：完成六平台适配、可验证的权限/生命周期/安全存储边界和无签名体验；设备专属部分记录后置 `BLOCKED`。
+- [ ] P6：完成无签名 RC、真实只读矩阵、确定性写入矩阵、SBOM/审计和发布文档；签名 Release 与正式发布转为后置条件。
+- [ ] 第 11 节无签名执行完成定义全部满足后，将状态改为“无签名执行目标完成”，并保留后置发布条件清单。
 
 ## 14. 默认决策与后续授权点
 
@@ -728,5 +742,5 @@ Core-live 证明协议，不证明 App 链路。Windows、macOS、Linux、Androi
 - 批量评教默认不自动提交；用户选择课程、查看数量和不可撤销提示后确认。
 - 位置权限仅前台按需申请；不生成虚假位置。
 - OHOS 锁定 fork commit + DevEco/CLI26/API26；完成实体机证据前不能作为正式版发布。
-- 平台签名账号、证书、应用标识和商店发布权限在 P0/P6 由项目所有者单独安全提供。
+- 平台签名账号、证书、应用标识和商店发布权限不属于本轮执行前置；取得后只能用于后置正式发布条件，并由项目所有者单独安全提供。
 - 每次真实写入验证仍需单独授权；本计划本身只授权实现和确定性测试，不授权对真实账号产生副作用。
