@@ -260,6 +260,9 @@
     AppController 通过 `LibbookWriteBackend` 严格校验完整参数并调用既有 typed `prepareLibbookReserve`，确认页二次确认后才单次提交。
     bridge/app/widget 回归覆盖字段投影、参数清理和准备阶段零提交，本轮无真实账号写入；场馆预约、阳光打卡、教学评教提交仍缺失，
     P4/P5/P6 门禁仍未闭合。
+63. 统一确认页在写入返回确定成功后通过 `AppController.refreshAfterWrite` 只刷新关联读取领域，作为结果核对钩子；刷新失败不重试写请求，
+    `outcome_unknown`/commit 异常仍消费 intent 并要求先读取核对。app/widget 回归覆盖成功回调一次调用，本轮无真实账号写入，
+    场馆预约、阳光打卡、教学评教提交及 P4/P5/P6 门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
