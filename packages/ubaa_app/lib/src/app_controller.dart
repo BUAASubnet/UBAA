@@ -649,6 +649,24 @@ class AppController extends ChangeNotifier {
     return refreshHome(only: <FeatureId>[feature]);
   }
 
+  /// 在场馆订单刷新完成后，仅按公开订单编号匹配提交收据。
+  ///
+  /// 该方法不发起额外请求，调用方必须先等待 [refreshAfterWrite]；读取失败、
+  /// 空结果或不匹配均返回 `false`，绝不把写入结果升级为已核对。
+  Future<bool> matchesCgyyReceipt(CgyyReservationReceipt receipt) async {
+    if (receipt.orderId <= 0) return false;
+    final snapshot = _snapshots[FeatureId.cgyy];
+    if (snapshot == null || snapshot.status != FeatureLoadStatus.success) {
+      return false;
+    }
+    final orderId = receipt.orderId.toString();
+    return snapshot.details.any(
+      (detail) => detail.fields.any(
+        (field) => field.label == '订单编号' && field.value == orderId,
+      ),
+    );
+  }
+
   Future<void> _loadFeature(
     FeatureId feature,
     int generation, {

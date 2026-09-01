@@ -506,6 +506,38 @@ void main() {
     expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
     controller.dispose();
   });
+
+  test('场馆提交收据只匹配刷新后订单列表中的公开编号', () async {
+    final backend = _CgyyQueryWriteBackend(
+      queryResult: const FeatureResult.success(
+        details: <FeatureDetail>[
+          FeatureDetail(
+            title: '场馆订单',
+            fields: <FeatureField>[
+              FeatureField(label: '订单编号', value: '42'),
+            ],
+          ),
+        ],
+      ),
+    );
+    final controller = AppController(backend: backend);
+
+    await controller.refreshAfterWrite(WriteOperation.cgyySubmitReservation);
+
+    expect(
+      await controller.matchesCgyyReceipt(
+        const CgyyReservationReceipt(orderId: 42),
+      ),
+      isTrue,
+    );
+    expect(
+      await controller.matchesCgyyReceipt(
+        const CgyyReservationReceipt(orderId: 43),
+      ),
+      isFalse,
+    );
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -985,6 +1017,9 @@ class _CgyyWriteBackend implements UbaaBackend, CgyyWriteBackend {
 
 class _CgyyQueryWriteBackend extends _CgyyWriteBackend
     implements FeatureQueryBackend {
+  _CgyyQueryWriteBackend({this.queryResult = const FeatureResult.empty()});
+
+  final FeatureResult queryResult;
   final List<(FeatureId, FeatureQuery)> queries = <(FeatureId, FeatureQuery)>[];
 
   @override
@@ -993,7 +1028,7 @@ class _CgyyQueryWriteBackend extends _CgyyWriteBackend
     FeatureQuery query,
   ) async {
     queries.add((feature, query));
-    return const FeatureResult.empty();
+    return queryResult;
   }
 }
 

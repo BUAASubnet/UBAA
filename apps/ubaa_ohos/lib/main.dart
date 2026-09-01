@@ -144,6 +144,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onCommitWrite: _controller.commitWrite,
       onWriteSuccess: _controller.refreshAfterWrite,
+      onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>
           _controller.logout(clearSavedCredential: true),

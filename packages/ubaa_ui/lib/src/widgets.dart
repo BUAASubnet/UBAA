@@ -419,6 +419,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPickYgdkPhoto,
     this.onCommitWrite,
     this.onWriteSuccess,
+    this.onVerifyCgyyReceipt,
     super.key,
   });
 
@@ -449,6 +450,9 @@ class UbaaMainShell extends StatefulWidget {
   final YgdkPhotoPicker? onPickYgdkPhoto;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final Future<void> Function(WriteOperation operation)? onWriteSuccess;
+  /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
+  final Future<bool> Function(CgyyReservationReceipt receipt)?
+  onVerifyCgyyReceipt;
 
   @override
   State<UbaaMainShell> createState() => _UbaaMainShellState();
@@ -915,6 +919,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final intent = _pendingWrite;
     final commit = widget.onCommitWrite;
     if (intent == null || commit == null || _writeSubmitting) return;
+    bool? cgyyReceiptVerified;
     setState(() {
       _writeSubmitting = true;
       _writeError = null;
@@ -927,6 +932,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         } on Object {
           // 写入已完成但读取核对失败；结果提示仍保持确定，不重试写请求。
         }
+        final receipt = result.cgyyReceipt;
+        if (result.operation == WriteOperation.cgyySubmitReservation &&
+            receipt != null) {
+          try {
+            cgyyReceiptVerified = await widget.onVerifyCgyyReceipt?.call(
+              receipt,
+            );
+          } on Object {
+            // 核对失败不改变已完成的写入结果，也不重试写请求。
+          }
+        }
       }
       if (!mounted) return;
       setState(() {
@@ -935,7 +951,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(_writeResultMessage(result))));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            _writeResultMessage(
+              result,
+              cgyyReceiptVerified: cgyyReceiptVerified,
+            ),
+          ),
+        ),
+      );
     } on Object {
       if (!mounted) return;
       setState(() {
@@ -949,11 +974,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  String _writeResultMessage(WriteCommitResult result) {
+  String _writeResultMessage(
+    WriteCommitResult result, {
+    bool? cgyyReceiptVerified,
+  }) {
     final receipt = result.cgyyReceipt;
     if (result.operation == WriteOperation.cgyySubmitReservation &&
         receipt != null) {
-      return '${result.message}（订单编号 ${receipt.orderId}，请在订单列表核对）';
+      final hint = cgyyReceiptVerified == true
+          ? '订单列表已核对'
+          : '请在订单列表核对';
+      return '${result.message}（订单编号 ${receipt.orderId}，$hint）';
     }
     return result.message;
   }

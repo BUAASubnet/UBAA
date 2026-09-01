@@ -444,6 +444,10 @@ void main() {
               ),
             );
           },
+          onVerifyCgyyReceipt: (receipt) async {
+            expect(receipt.orderId, 42);
+            return true;
+          },
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
@@ -472,7 +476,7 @@ void main() {
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
-    expect(find.text('场馆预约结果已提交，请刷新订单确认（订单编号 42，请在订单列表核对）'), findsOneWidget);
+    expect(find.text('场馆预约结果已提交，请刷新订单确认（订单编号 42，订单列表已核对）'), findsOneWidget);
   });
 
   testWidgets('阳光打卡填写时间并选择内存照片后才进入确认页', (tester) async {
