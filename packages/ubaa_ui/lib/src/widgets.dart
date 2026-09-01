@@ -406,6 +406,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onLogoutAndClearAccount,
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
+    this.initialTab = 0,
     this.activeRoutes = const <ConnectionMode>[],
     this.onFeatureQuery,
     this.onPrepareBykcWrite,
@@ -433,6 +434,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
+  /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
+  final int initialTab;
   final List<ConnectionMode> activeRoutes;
   final Future<void> Function(FeatureId feature, FeatureQuery query)?
   onFeatureQuery;
@@ -459,13 +462,19 @@ class UbaaMainShell extends StatefulWidget {
 }
 
 class _UbaaMainShellState extends State<UbaaMainShell> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   FeatureId? _openedFeature;
   final Map<FeatureId, FeatureQuery> _featureQueries =
       <FeatureId, FeatureQuery>{};
   WriteIntent? _pendingWrite;
   UiError? _writeError;
   bool _writeSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialTab.clamp(0, _tabs.length - 1);
+  }
 
   static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
     (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -576,6 +585,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               destinations: _tabs
                   .map(
                     (tab) => NavigationDestination(
+                      key: ValueKey<String>('tab-${tab.label}'),
                       icon: Icon(tab.icon),
                       selectedIcon: Icon(tab.selectedIcon),
                       label: tab.label,
@@ -2809,7 +2819,7 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
             if (widget.onPickPhoto == null)
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text('当前平台尚未接入照片选择器，无法提交打卡。'),
+                child: Text('当前运行环境未提供照片选择器，无法提交打卡。'),
               ),
             CheckboxListTile(
               value: _shareToSquare,

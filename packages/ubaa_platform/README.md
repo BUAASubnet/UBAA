@@ -26,3 +26,12 @@
 字段以及 CLI schema-v2 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
 安全中文文案。未知或畸形载荷统一归约为 `internal_error`；上游 message 默认不会展示，
 只有显式请求且通过脱敏检查的短诊断文本才进入 `technicalDetail`。
+
+## 媒体与权限边界
+
+`PlatformPermissionGateway` 统一承载相机、相册、文件和前台位置权限申请，并只返回
+`granted`、`denied`、`restricted`、`unavailable` 四种稳定状态。没有原生插件时使用
+`UnavailablePermissionGateway`，安全拒绝而不伪造授权。`PlatformPhotoPicker` 只返回
+typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePhotoPicker` 是无设备
+构建的默认后置能力，`MemoryPhotoPicker` 仅用于脱敏 widget/integration 测试。原生
+Keychain/Keystore/Secret Service/HUKS 插件接入和设备权限验证仍需在后置发布阶段完成。

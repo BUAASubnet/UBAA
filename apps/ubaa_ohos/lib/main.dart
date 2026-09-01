@@ -21,12 +21,16 @@ class UbaaOhosApp extends StatefulWidget {
   const UbaaOhosApp({
     this.backend,
     this.credentialVault,
+    this.photoPicker,
+    this.initialTab = 0,
     this.telemetry,
     super.key,
   });
 
   final UbaaBackend? backend;
   final CredentialVault? credentialVault;
+  final PlatformPhotoPicker? photoPicker;
+  final int initialTab;
   final TelemetryClient? telemetry;
 
   @override
@@ -111,6 +115,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
       snapshots: _controller.snapshots,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,
+      initialTab: widget.initialTab,
       telemetryEnabled: _controller.telemetryEnabled,
       onRefresh: _controller.refreshHome,
       onRetryFeature: _controller.retryFeature,
@@ -141,6 +146,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
           ),
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
+      onPickYgdkPhoto: widget.photoPicker?.pickPhoto,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onCommitWrite: _controller.commitWrite,
       onWriteSuccess: _controller.refreshAfterWrite,

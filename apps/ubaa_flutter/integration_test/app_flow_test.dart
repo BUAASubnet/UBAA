@@ -4,6 +4,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_flutter/main.dart';
 
 void main() {
@@ -94,6 +95,65 @@ void main() {
     expect(backend.signinLoads, greaterThanOrEqualTo(2));
     expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
     expect(find.text('已签到'), findsOneWidget);
+  });
+
+  testWidgets('宿主集成流程可打开全部十二项功能详情', (tester) async {
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        key: const ValueKey<String>('advanced-smoke'),
+        backend: _IntegrationBackend(),
+        credentialVault: MemoryCredentialVault(),
+        initialTab: 1,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '2020000002');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+    expect(find.byType(UbaaMainShell), findsOneWidget);
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(CustomScrollView), findsOneWidget);
+
+    for (final feature in ordinaryFeatureIds) {
+      final target = find.text(feature.title).first;
+      await tester.ensureVisible(target);
+      await tester.pumpAndSettle();
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(find.text('返回功能列表'), findsOneWidget);
+      expect(find.text(feature.title), findsAtLeastNWidgets(1));
+      await tester.tap(find.text('返回功能列表'));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        key: const ValueKey<String>('advanced-smoke-replacement'),
+        backend: _IntegrationBackend(),
+        credentialVault: MemoryCredentialVault(),
+        initialTab: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '2020000003');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+    expect(find.byType(UbaaMainShell), findsOneWidget);
+    for (final feature in advancedFeatureIds) {
+      final target = find.text(feature.title).first;
+      await tester.ensureVisible(target);
+      await tester.pumpAndSettle();
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(find.text('返回功能列表'), findsOneWidget);
+      expect(find.text(feature.title), findsAtLeastNWidgets(1));
+      await tester.tap(find.text('返回功能列表'));
+      await tester.pumpAndSettle();
+    }
   });
 }
 
