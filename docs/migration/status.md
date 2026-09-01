@@ -15,6 +15,7 @@
 ## 2026-09-02 文档记录提交 CI 终态
 
 - 文档记录提交 `6f7506f` 的合同 CI `33552619888` 已成功；contract-gates、macOS Rust 和 Windows Rust 均通过。
+- 随后的事实记录提交 `ed3433a` 的合同 CI `33553372169` 亦已成功；contract-gates、macOS Rust 和 Windows Rust 均通过，工作树保持干净。
 
 ## 2026-09-02 空结果后的失败状态修复
 

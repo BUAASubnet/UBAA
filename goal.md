@@ -344,6 +344,7 @@
 109. 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 与 `just flutter-check` 均通过；空结果失败状态回归后 Flutter 全量测试仍通过。以 `/Users/moorefoss/Code/bin/command-line-tools` 执行同一提交的 OHOS debug 门禁时，DevEco `26.0.0.821`、OpenHarmony API26、辅助工具链、Rust arm64、Dart/widget/native 前置均为 0 失败/0 警告，HAP assemble 仍在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备，临时输出已移出工作树。
 110. 提交 `8e11c31` 的合同 CI `33551528661` 与 Flutter 原生五平台 CI `33551528765` 均已终态成功；后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 全部完成并上传 debug 产物。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未完成。
 111. 文档记录提交 `6f7506f` 的合同 CI `33552619888` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该文档提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
+112. 事实记录提交 `ed3433a` 的合同 CI `33553372169` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 
 ## 4. 安全与架构边界
 
