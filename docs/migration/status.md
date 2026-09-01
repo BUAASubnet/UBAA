@@ -15,6 +15,7 @@
 - `apps/ubaa_flutter/integration_test/app_flow_test.dart` 现覆盖普通 8 项与高级 4 项全部详情入口，登录后逐项打开并返回；官方 Flutter macOS 集成场景 3/3 通过，未访问网络或真实账号。
 - `just flutter-check`、`just check`、`just check-sensitive`、`CARGO_INCREMENTAL=0 just flutter-codegen-check` 均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 的工具链、Dart/widget/native 前置均为 0 失败/0 警告，并生成 `entry-default-unsigned.hap`；实体设备和签名未执行。
 - 提交 `38763f4` 的 `release-preflight` 现生成 Cargo CycloneDX 风格 SBOM、Dart/Flutter 锁文件版本与许可证审计，并由合同 CI 归档；无签名报告仍不等价于正式签名发布。
+- 提交 `a7d4ac0` 将报告锁文件来源收敛为 Git 跟踪清单，排除构建目录临时文件；干净工作树复跑成功，报告列出 8 个锁文件并生成 SBOM、许可证审计、源码校验和无签名摘要。
 
 ## 2026-09-02 当前提交双路线只读复核
 
