@@ -285,6 +285,8 @@ class AppController extends ChangeNotifier {
         error: result.error,
         updatedAt: DateTime.now(),
         clearError: result.error == null,
+        clearSummary: result.summary == null,
+        clearDetails: result.details.isEmpty,
       );
       await _recordFeature(
         feature,

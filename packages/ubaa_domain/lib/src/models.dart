@@ -240,11 +240,13 @@ class FeatureSnapshot {
     UiError? error,
     DateTime? updatedAt,
     bool clearError = false,
+    bool clearSummary = false,
+    bool clearDetails = false,
   }) => FeatureSnapshot(
     feature: feature,
     status: status ?? this.status,
-    summary: summary ?? this.summary,
-    details: details ?? this.details,
+    summary: clearSummary ? null : (summary ?? this.summary),
+    details: clearDetails ? const <FeatureDetail>[] : (details ?? this.details),
     error: clearError ? null : (error ?? this.error),
     updatedAt: updatedAt ?? this.updatedAt,
   );

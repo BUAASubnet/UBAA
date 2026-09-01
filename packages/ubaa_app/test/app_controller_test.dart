@@ -89,6 +89,29 @@ void main() {
     controller.dispose();
   });
 
+  test('Core 明确返回空结果时清除上次成功摘要和详情', () async {
+    var loads = 0;
+    final backend = _FlakyBackend(
+      load: (_) async {
+        loads++;
+        return loads == 1
+            ? const FeatureResult.success(
+                summary: '上次成功数据',
+                details: <FeatureDetail>[FeatureDetail(title: '课程')],
+              )
+            : const FeatureResult.empty();
+      },
+    );
+    final controller = AppController(backend: backend);
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    final snapshot = controller.snapshots[FeatureId.schedule]!;
+    expect(snapshot.status, FeatureLoadStatus.empty);
+    expect(snapshot.summary, isNull);
+    expect(snapshot.details, isEmpty);
+    controller.dispose();
+  });
+
   test('领域查询参数通过 FeatureQueryBackend typed 传递', () async {
     FeatureQuery? received;
     final backend = _QueryBackend(
