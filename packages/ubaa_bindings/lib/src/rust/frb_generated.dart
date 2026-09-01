@@ -2632,8 +2632,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeBykcChosenCourse dco_decode_bridge_bykc_chosen_course(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 22)
-      throw Exception('unexpected arr length: expect 22 but see ${arr.length}');
+    if (arr.length != 18)
+      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
     return BridgeBykcChosenCourse(
       id: dco_decode_i_64(arr[0]),
       courseId: dco_decode_i_64(arr[1]),
@@ -2655,10 +2655,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       canSignOut: dco_decode_bool(arr[15]),
       signConfig: dco_decode_opt_box_autoadd_bridge_bykc_sign_config(arr[16]),
       courseSignType: dco_decode_opt_box_autoadd_i_32(arr[17]),
-      homework: dco_decode_opt_String(arr[18]),
-      homeworkAttachmentName: dco_decode_opt_String(arr[19]),
-      homeworkAttachmentPath: dco_decode_opt_String(arr[20]),
-      signInfo: dco_decode_opt_String(arr[21]),
     );
   }
 
@@ -2940,20 +2936,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCgyySlotStatus dco_decode_bridge_cgyy_slot_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return BridgeCgyySlotStatus(
       timeId: dco_decode_i_32(arr[0]),
       reservationStatus: dco_decode_i_32(arr[1]),
       isReservable: dco_decode_bool(arr[2]),
       startDate: dco_decode_opt_String(arr[3]),
       endDate: dco_decode_opt_String(arr[4]),
-      tradeNo: dco_decode_opt_String(arr[5]),
-      orderId: dco_decode_opt_box_autoadd_i_32(arr[6]),
-      useNum: dco_decode_opt_box_autoadd_i_32(arr[7]),
-      alreadyNum: dco_decode_opt_box_autoadd_i_32(arr[8]),
-      takeUp: dco_decode_opt_box_autoadd_bool(arr[9]),
-      takeUpExplain: dco_decode_opt_String(arr[10]),
     );
   }
 
@@ -5026,10 +5016,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       deserializer,
     );
     var var_courseSignType = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_homework = sse_decode_opt_String(deserializer);
-    var var_homeworkAttachmentName = sse_decode_opt_String(deserializer);
-    var var_homeworkAttachmentPath = sse_decode_opt_String(deserializer);
-    var var_signInfo = sse_decode_opt_String(deserializer);
     return BridgeBykcChosenCourse(
       id: var_id,
       courseId: var_courseId,
@@ -5049,10 +5035,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       canSignOut: var_canSignOut,
       signConfig: var_signConfig,
       courseSignType: var_courseSignType,
-      homework: var_homework,
-      homeworkAttachmentName: var_homeworkAttachmentName,
-      homeworkAttachmentPath: var_homeworkAttachmentPath,
-      signInfo: var_signInfo,
     );
   }
 
@@ -5393,24 +5375,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_isReservable = sse_decode_bool(deserializer);
     var var_startDate = sse_decode_opt_String(deserializer);
     var var_endDate = sse_decode_opt_String(deserializer);
-    var var_tradeNo = sse_decode_opt_String(deserializer);
-    var var_orderId = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_useNum = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_alreadyNum = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_takeUp = sse_decode_opt_box_autoadd_bool(deserializer);
-    var var_takeUpExplain = sse_decode_opt_String(deserializer);
     return BridgeCgyySlotStatus(
       timeId: var_timeId,
       reservationStatus: var_reservationStatus,
       isReservable: var_isReservable,
       startDate: var_startDate,
       endDate: var_endDate,
-      tradeNo: var_tradeNo,
-      orderId: var_orderId,
-      useNum: var_useNum,
-      alreadyNum: var_alreadyNum,
-      takeUp: var_takeUp,
-      takeUpExplain: var_takeUpExplain,
     );
   }
 
@@ -7934,10 +7904,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       serializer,
     );
     sse_encode_opt_box_autoadd_i_32(self.courseSignType, serializer);
-    sse_encode_opt_String(self.homework, serializer);
-    sse_encode_opt_String(self.homeworkAttachmentName, serializer);
-    sse_encode_opt_String(self.homeworkAttachmentPath, serializer);
-    sse_encode_opt_String(self.signInfo, serializer);
   }
 
   @protected
@@ -8201,12 +8167,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.isReservable, serializer);
     sse_encode_opt_String(self.startDate, serializer);
     sse_encode_opt_String(self.endDate, serializer);
-    sse_encode_opt_String(self.tradeNo, serializer);
-    sse_encode_opt_box_autoadd_i_32(self.orderId, serializer);
-    sse_encode_opt_box_autoadd_i_32(self.useNum, serializer);
-    sse_encode_opt_box_autoadd_i_32(self.alreadyNum, serializer);
-    sse_encode_opt_box_autoadd_bool(self.takeUp, serializer);
-    sse_encode_opt_String(self.takeUpExplain, serializer);
   }
 
   @protected

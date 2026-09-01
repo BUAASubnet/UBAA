@@ -320,6 +320,7 @@
 85. Cgyy 成功收据现在由统一确认 UI 只显示非敏感订单编号并提示前往订单列表核对；widget 先复现旧泛化成功文案，再验证带合成收据的安全提示，其他操作无收据时保持原文案。该呈现不改变写入次数或 Core 协议，未执行真实预约，最终核对与 P4/P5/P6 仍未完成。
 86. 先加入生成 Dart schema 失败断言并确认旧绑定暴露敏感订单字段，随后收窄 Rust `BridgeCgyyOrder` 与 FRB 生成结果：交易号、手机号、支付状态、活动正文、参与人、审核内容、处理原因和备注不再跨 FFI；仅保留订单编号、站点/日期/空间/校区、时间、状态、主题、用途名称和参与人数等页面白名单。聚焦 bridge/schema 回归通过，本轮不改变 Cgyy 上游协议、写入次数或真实写入；P1 仍缺真实 isolate/生命周期与逐 DTO 消费证据，P4/P5/P6 仍未完成。
 87. `AppController.matchesCgyyReceipt` 现只在成功的同路线 `cgyyOrders` 刷新快照中完全匹配公开订单编号时返回已核对；统一确认 UI 通过可选 verifier 显示“订单列表已核对”，刷新失败、空结果或编号不匹配保持提示核对且不重试。新增 app/widget 回归并接入官方 Flutter/OHOS 宿主，本轮无真实写入；P4/P5/P6 仍未完成。
+88. 先在生成 Dart schema 快照中观察到旧绑定暴露 `BykcChosenCourse` 的作业正文/附件/签到附注及 `CgyySlotStatus` 的交易号、订单号、占用审核字段，随后收窄 Rust bridge DTO 与映射并重新生成 FRB；新增 schema 禁曝回归和 bridge 测试通过。该收窄只影响 FFI 投影，不改变 Core 冻结 DTO、上游协议或真实写入；P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

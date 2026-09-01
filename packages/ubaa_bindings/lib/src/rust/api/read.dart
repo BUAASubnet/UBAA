@@ -29,10 +29,6 @@ class BridgeBykcChosenCourse {
   final bool canSignOut;
   final BridgeBykcSignConfig? signConfig;
   final int? courseSignType;
-  final String? homework;
-  final String? homeworkAttachmentName;
-  final String? homeworkAttachmentPath;
-  final String? signInfo;
 
   const BridgeBykcChosenCourse({
     required this.id,
@@ -53,10 +49,6 @@ class BridgeBykcChosenCourse {
     required this.canSignOut,
     this.signConfig,
     this.courseSignType,
-    this.homework,
-    this.homeworkAttachmentName,
-    this.homeworkAttachmentPath,
-    this.signInfo,
   });
 
   @override
@@ -78,11 +70,7 @@ class BridgeBykcChosenCourse {
       canSign.hashCode ^
       canSignOut.hashCode ^
       signConfig.hashCode ^
-      courseSignType.hashCode ^
-      homework.hashCode ^
-      homeworkAttachmentName.hashCode ^
-      homeworkAttachmentPath.hashCode ^
-      signInfo.hashCode;
+      courseSignType.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -106,11 +94,7 @@ class BridgeBykcChosenCourse {
           canSign == other.canSign &&
           canSignOut == other.canSignOut &&
           signConfig == other.signConfig &&
-          courseSignType == other.courseSignType &&
-          homework == other.homework &&
-          homeworkAttachmentName == other.homeworkAttachmentName &&
-          homeworkAttachmentPath == other.homeworkAttachmentPath &&
-          signInfo == other.signInfo;
+          courseSignType == other.courseSignType;
 }
 
 class BridgeBykcCourse {
@@ -591,12 +575,6 @@ class BridgeCgyySlotStatus {
   final bool isReservable;
   final String? startDate;
   final String? endDate;
-  final String? tradeNo;
-  final int? orderId;
-  final int? useNum;
-  final int? alreadyNum;
-  final bool? takeUp;
-  final String? takeUpExplain;
 
   const BridgeCgyySlotStatus({
     required this.timeId,
@@ -604,12 +582,6 @@ class BridgeCgyySlotStatus {
     required this.isReservable,
     this.startDate,
     this.endDate,
-    this.tradeNo,
-    this.orderId,
-    this.useNum,
-    this.alreadyNum,
-    this.takeUp,
-    this.takeUpExplain,
   });
 
   @override
@@ -618,13 +590,7 @@ class BridgeCgyySlotStatus {
       reservationStatus.hashCode ^
       isReservable.hashCode ^
       startDate.hashCode ^
-      endDate.hashCode ^
-      tradeNo.hashCode ^
-      orderId.hashCode ^
-      useNum.hashCode ^
-      alreadyNum.hashCode ^
-      takeUp.hashCode ^
-      takeUpExplain.hashCode;
+      endDate.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -635,13 +601,7 @@ class BridgeCgyySlotStatus {
           reservationStatus == other.reservationStatus &&
           isReservable == other.isReservable &&
           startDate == other.startDate &&
-          endDate == other.endDate &&
-          tradeNo == other.tradeNo &&
-          orderId == other.orderId &&
-          useNum == other.useNum &&
-          alreadyNum == other.alreadyNum &&
-          takeUp == other.takeUp &&
-          takeUpExplain == other.takeUpExplain;
+          endDate == other.endDate;
 }
 
 class BridgeCgyySpaceAvailability {

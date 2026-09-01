@@ -317,10 +317,6 @@ pub struct BridgeBykcChosenCourse {
     pub can_sign_out: bool,
     pub sign_config: Option<BridgeBykcSignConfig>,
     pub course_sign_type: Option<i32>,
-    pub homework: Option<String>,
-    pub homework_attachment_name: Option<String>,
-    pub homework_attachment_path: Option<String>,
-    pub sign_info: Option<String>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeBykcStatistic {
@@ -497,12 +493,6 @@ pub struct BridgeCgyySlotStatus {
     pub is_reservable: bool,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
-    pub trade_no: Option<String>,
-    pub order_id: Option<i32>,
-    pub use_num: Option<i32>,
-    pub already_num: Option<i32>,
-    pub take_up: Option<bool>,
-    pub take_up_explain: Option<String>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyySpaceAvailability {
@@ -1361,10 +1351,6 @@ fn map_bykc_chosen(v: domain::BykcChosenCourse) -> BridgeBykcChosenCourse {
         can_sign_out: v.can_sign_out,
         sign_config: v.sign_config.map(map_bykc_sign_config),
         course_sign_type: v.course_sign_type,
-        homework: v.homework,
-        homework_attachment_name: v.homework_attachment_name,
-        homework_attachment_path: v.homework_attachment_path,
-        sign_info: v.sign_info,
     }
 }
 fn map_bykc_chosen_courses(v: Vec<domain::BykcChosenCourse>) -> Vec<BridgeBykcChosenCourse> {
@@ -1572,12 +1558,6 @@ fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
         is_reservable: v.is_reservable,
         start_date: v.start_date,
         end_date: v.end_date,
-        trade_no: v.trade_no,
-        order_id: v.order_id,
-        use_num: v.use_num,
-        already_num: v.already_num,
-        take_up: v.take_up,
-        take_up_explain: v.take_up_explain,
     }
 }
 fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {

@@ -141,9 +141,10 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 - `BykcUserProfile {id,employeeId?,realName?,studentNo?,collegeName?}`；
   `BykcCourse {id,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,courseSelectStartDate?,courseSelectEndDate?,courseCancelEndDate?,courseMaxCount?,courseCurrentCount?,status,selected?}`；
   `BykcCoursePage {content,totalElements,totalPages,size,number}`。
-- `BykcChosenCourse` 固定 facade 全部公开字段；`signConfig` 仅含四个时间字段与
-  `signPoints {lat,lng,radius}`；附件只保留 facade 当前公开的名称/路径字段，不由 Dart
-  解释为 URL。`BykcStatistics {totalValidCount?,categories}`，分类项为
+- `BykcChosenCourse` 仅保留课程/签到所需的公开字段
+  `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin,score?,pass?,canSign,canSignOut,signConfig?,courseSignType?}`；`signConfig` 仅含四个时间字段与
+  `signPoints {lat,lng,radius}`。作业正文、附件名称/路径和签到附注属于内部材料，均不得跨 FFI。
+  `BykcStatistics {totalValidCount?,categories}`，分类项为
   `{categoryName?,subCategoryName?,requiredCount?,passedCount?,qualified?}`。
 - `LibBookLibrary {id,name,freeNum,totalNum,storeys}`；`LibBookStorey` 同名计数字段；
   `LibBookArea {id,name,areaName,premisesId,storeyId,freeNum,totalNum}`；
@@ -155,8 +156,9 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `{termId?,termName?,termCount,termTarget?,weekCount?,weekTarget?,monthCount?,monthTarget?,dayCount?,goodCount?}`；
   项目 `{itemId,name,kind?,sort?}`；记录分页 `{content,total,page,size,hasMore}`；记录
   `{recordId,itemId?,itemName?,startTime?,endTime?,place?,images,isOpen,state?,createdAt?,createdAtLabel?}`。
-- `CgyyVenueSite`、`CgyyTimeSlot`、`CgyySlotStatus`、`CgyySpaceAvailability`、
-  `CgyyDayInfo` 保持 facade 公共字段；`CgyyOrder` 的 Dart 投影仅允许
+- `CgyyVenueSite`、`CgyyTimeSlot`、`CgyySpaceAvailability`、`CgyyDayInfo` 保持 facade 公共字段；
+  `CgyySlotStatus` 仅允许 `{timeId,reservationStatus,isReservable,startDate?,endDate?}`；交易号、
+  订单号、占用数量/标记和内部说明不得跨 FFI。`CgyyOrder` 的 Dart 投影仅允许
   `{id,venueSiteId?,reservationDate?,reservationDateDetail?,venueSpaceName?,campusName?,venueName?,siteName?,reservationStartDate?,reservationEndDate?,orderStatus?,checkStatus?,theme?,purposeTypeName?,joinerNum?}`。
   交易号、手机号、支付状态、用途原始编号、活动正文、参与人、审核内容、处理原因和备注
   不得进入 `BridgeCgyyOrder`；写入结果另只从该投影提取非敏感收据。`CgyyOrdersPage`
@@ -278,7 +280,7 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 
 - Rust：每个映射的字段快照、错误映射、dispose、串行锁、panic 归约、intent 过期/重复/
   Session 或路线失效、outcome unknown 和 typed 请求测试。
-- Dart：生成 API schema 快照（包括场馆订单敏感字段禁曝断言）、`evaluationAll` 待评派生、ID/可选字段、错误映射和
+- Dart：生成 API schema 快照（包括场馆订单、场馆时段和博雅已选课程内部字段禁曝断言）、`evaluationAll` 待评派生、ID/可选字段、错误映射和
   `BridgeClient` isolate 重建测试；宿主通过 `BackendFactory` 创建新的 opaque
   backend 后，应用重新读取持久化路线与认证状态，不复用已 dispose 的 handle。
 - FRB：`just flutter-codegen-check` 二次生成零漂移；生成目录禁止手改。

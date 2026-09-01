@@ -2,6 +2,12 @@
 
 更新日期：2026-09-01
 
+## 2026-09-02 只读 bridge 内部字段边界收紧
+
+- 先在生成 Dart schema 快照中加入博雅已选课程与场馆时段状态的失败禁曝断言，旧绑定实际暴露作业正文/附件/签到附注及交易号、订单号、占用审核字段；随后收窄 Rust bridge 结构和映射并重新生成 FRB。
+- `BridgeBykcChosenCourse` 现在只保留课程、签到和公开配置字段；`BridgeCgyySlotStatus` 只保留时段、状态、日期和可预约性，内部材料不会跨 FFI。Core 冻结 DTO 与上游解析保持不变，页面既有行为不变。
+- 失败回归、修复后的 schema/bridge 单元测试、`just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均已通过；生成检查在提交前按预期观察到新生成差异，提交后需复跑零漂移门禁。本轮不改变上游协议、不执行真实写入，P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
+
 ## 2026-09-02 场馆提交收据的订单编号核对
 
 - `AppController.matchesCgyyReceipt` 只在 `refreshAfterWrite` 完成同路线 `cgyyOrders` 刷新后，检查成功快照中的公开“订单编号”是否与收据的正整数 `orderId` 完全一致；空结果、刷新失败/过期状态或编号不匹配均返回未核对。

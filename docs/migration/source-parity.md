@@ -348,6 +348,8 @@ URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求�
 调整不改变冻结 URL、参数、Cookie、签名、缓存、并发或错误语义，写入结果仍只从白名单投影非敏感
 收据。`just flutter-codegen-check` 与 bridge/Dart 回归负责防止后续生成漂移或敏感字段回流。
 
+2026-09-02 bridge 只读内部字段补充：冻结 `ubaa_old` 的 `BykcChosenCourse` 原始 DTO 还包含作业正文、附件名称/路径和签到附注，`CgyySlotStatus` 还包含交易号、订单号、占用数量/标记及内部说明；`examples/buaa-api` 均无等价协议。这些字段未被 Flutter 页面消费，且附件路径、交易号和占用审核信息不属于稳定产品合同。先在生成 Dart schema 快照中加入两类 DTO 的失败禁曝断言，再将 Rust bridge 结构及映射收窄为课程/签到公开字段和时段可预约状态字段，并重新生成 FRB。该收窄只影响 FFI 投影，不改变 Core 解析、上游 URL/参数、Cookie、签名、缓存、并发或错误语义；冻结 Core DTO 仍保留其内部字段供协议和业务逻辑使用，不能据此把它们暴露给宿主。
+
 ## 场馆预约只读查询
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |

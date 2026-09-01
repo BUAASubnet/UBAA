@@ -3306,10 +3306,6 @@ impl SseDecode for crate::api::read::BridgeBykcChosenCourse {
         let mut var_signConfig =
             <Option<crate::api::read::BridgeBykcSignConfig>>::sse_decode(deserializer);
         let mut var_courseSignType = <Option<i32>>::sse_decode(deserializer);
-        let mut var_homework = <Option<String>>::sse_decode(deserializer);
-        let mut var_homeworkAttachmentName = <Option<String>>::sse_decode(deserializer);
-        let mut var_homeworkAttachmentPath = <Option<String>>::sse_decode(deserializer);
-        let mut var_signInfo = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeBykcChosenCourse {
             id: var_id,
             course_id: var_courseId,
@@ -3329,10 +3325,6 @@ impl SseDecode for crate::api::read::BridgeBykcChosenCourse {
             can_sign_out: var_canSignOut,
             sign_config: var_signConfig,
             course_sign_type: var_courseSignType,
-            homework: var_homework,
-            homework_attachment_name: var_homeworkAttachmentName,
-            homework_attachment_path: var_homeworkAttachmentPath,
-            sign_info: var_signInfo,
         };
     }
 }
@@ -3696,24 +3688,12 @@ impl SseDecode for crate::api::read::BridgeCgyySlotStatus {
         let mut var_isReservable = <bool>::sse_decode(deserializer);
         let mut var_startDate = <Option<String>>::sse_decode(deserializer);
         let mut var_endDate = <Option<String>>::sse_decode(deserializer);
-        let mut var_tradeNo = <Option<String>>::sse_decode(deserializer);
-        let mut var_orderId = <Option<i32>>::sse_decode(deserializer);
-        let mut var_useNum = <Option<i32>>::sse_decode(deserializer);
-        let mut var_alreadyNum = <Option<i32>>::sse_decode(deserializer);
-        let mut var_takeUp = <Option<bool>>::sse_decode(deserializer);
-        let mut var_takeUpExplain = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeCgyySlotStatus {
             time_id: var_timeId,
             reservation_status: var_reservationStatus,
             is_reservable: var_isReservable,
             start_date: var_startDate,
             end_date: var_endDate,
-            trade_no: var_tradeNo,
-            order_id: var_orderId,
-            use_num: var_useNum,
-            already_num: var_alreadyNum,
-            take_up: var_takeUp,
-            take_up_explain: var_takeUpExplain,
         };
     }
 }
@@ -6453,10 +6433,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeBykcChosenCourse 
             self.can_sign_out.into_into_dart().into_dart(),
             self.sign_config.into_into_dart().into_dart(),
             self.course_sign_type.into_into_dart().into_dart(),
-            self.homework.into_into_dart().into_dart(),
-            self.homework_attachment_name.into_into_dart().into_dart(),
-            self.homework_attachment_path.into_into_dart().into_dart(),
-            self.sign_info.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -6965,12 +6941,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyySlotStatus {
             self.is_reservable.into_into_dart().into_dart(),
             self.start_date.into_into_dart().into_dart(),
             self.end_date.into_into_dart().into_dart(),
-            self.trade_no.into_into_dart().into_dart(),
-            self.order_id.into_into_dart().into_dart(),
-            self.use_num.into_into_dart().into_dart(),
-            self.already_num.into_into_dart().into_dart(),
-            self.take_up.into_into_dart().into_dart(),
-            self.take_up_explain.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9341,10 +9311,6 @@ impl SseEncode for crate::api::read::BridgeBykcChosenCourse {
         <bool>::sse_encode(self.can_sign_out, serializer);
         <Option<crate::api::read::BridgeBykcSignConfig>>::sse_encode(self.sign_config, serializer);
         <Option<i32>>::sse_encode(self.course_sign_type, serializer);
-        <Option<String>>::sse_encode(self.homework, serializer);
-        <Option<String>>::sse_encode(self.homework_attachment_name, serializer);
-        <Option<String>>::sse_encode(self.homework_attachment_path, serializer);
-        <Option<String>>::sse_encode(self.sign_info, serializer);
     }
 }
 
@@ -9608,12 +9574,6 @@ impl SseEncode for crate::api::read::BridgeCgyySlotStatus {
         <bool>::sse_encode(self.is_reservable, serializer);
         <Option<String>>::sse_encode(self.start_date, serializer);
         <Option<String>>::sse_encode(self.end_date, serializer);
-        <Option<String>>::sse_encode(self.trade_no, serializer);
-        <Option<i32>>::sse_encode(self.order_id, serializer);
-        <Option<i32>>::sse_encode(self.use_num, serializer);
-        <Option<i32>>::sse_encode(self.already_num, serializer);
-        <Option<bool>>::sse_encode(self.take_up, serializer);
-        <Option<String>>::sse_encode(self.take_up_explain, serializer);
     }
 }
 

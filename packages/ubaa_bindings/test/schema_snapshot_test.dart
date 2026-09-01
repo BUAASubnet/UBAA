@@ -126,6 +126,48 @@ void main() {
     }
   });
 
+  test('场馆时段与博雅已选课程 DTO 不暴露内部材料', () {
+    final chosen = RegExp(
+      r'class BridgeBykcChosenCourse \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(chosen, isNotNull);
+    final chosenBody = chosen!.namedGroup('body')!;
+    for (final forbidden in <String>[
+      'homework',
+      'homeworkAttachmentName',
+      'homeworkAttachmentPath',
+      'signInfo',
+    ]) {
+      expect(
+        chosenBody,
+        isNot(contains(forbidden)),
+        reason: 'BridgeBykcChosenCourse 不得暴露 $forbidden',
+      );
+    }
+
+    final slot = RegExp(
+      r'class BridgeCgyySlotStatus \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(slot, isNotNull);
+    final slotBody = slot!.namedGroup('body')!;
+    for (final forbidden in <String>[
+      'tradeNo',
+      'orderId',
+      'useNum',
+      'alreadyNum',
+      'takeUp',
+      'takeUpExplain',
+    ]) {
+      expect(
+        slotBody,
+        isNot(contains(forbidden)),
+        reason: 'BridgeCgyySlotStatus 不得暴露 $forbidden',
+      );
+    }
+  });
+
   test('写入 schema 仍是十项封闭 operation 和一次性 intent', () {
     const operations = <String>[
       'bykcSelectCourse',
