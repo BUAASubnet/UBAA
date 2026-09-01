@@ -198,6 +198,8 @@ ID/分页字段：
 | `spocDetail` | `assignmentId` | `spocAssignment(assignmentId)` |
 | `judgeDetail` | `courseId`、`assignmentId` | `judgeAssignment(courseId, assignmentId)` |
 | `judgeBatchDetails` | `judgeKeys: List<{courseId,assignmentId}>`，至少一项 | `judgeAssignmentDetails(keys)` |
+| `signinPending` | 无 | `signinToday` 后按 `signStatus == 0` 本地派生 |
+| `signinCompleted` | 无 | `signinToday` 后按 `signStatus == 1` 本地派生 |
 
 缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
 批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw

@@ -2,6 +2,15 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 课堂签到状态本地派生视图
+
+- `FeatureQueryView` 新增 `signinPending`/`signinCompleted`；BridgeBackend 两者均只调用已有
+  `signinToday`，按冻结 `SigninClass.signStatus` 的 0/1 语义在本地筛选并保留 Core 实际路线。
+- 高级功能查询控件提供“全部课程/未签到/已签到”下拉视图，app/widget 回归覆盖筛选结果和参数传递，
+  未触发课堂签到写请求。
+- P3/P4 仍未完成：签到课程选择、写入确认/核对、完整页面状态、golden/integration 和真实 Flutter
+  App E2E 仍缺证据。
+
 ## 2026-09-01 Judge 批量详情读取增量
 
 - `FeatureQueryView.judgeBatchDetails` 与 `JudgeAssignmentQueryKey` 接入共享查询模型；UI 使用每行

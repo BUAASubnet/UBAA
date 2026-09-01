@@ -977,10 +977,10 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.libbook ||
     FeatureId.ygdk ||
     FeatureId.cgyy ||
+    FeatureId.signin ||
     FeatureId.spoc ||
     FeatureId.judge ||
     FeatureId.evaluation => true,
-    _ => false,
   };
 
   Widget _details(BuildContext context) {
@@ -1089,6 +1089,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   FeatureQueryView _cgyyView = FeatureQueryView.summary;
   FeatureQueryView _spocView = FeatureQueryView.summary;
   FeatureQueryView _judgeView = FeatureQueryView.summary;
+  FeatureQueryView _signinView = FeatureQueryView.summary;
   bool _includeExpired = false;
   bool _submitting = false;
 
@@ -1704,6 +1705,29 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ],
             ),
+          if (widget.feature == FeatureId.signin)
+            DropdownButton<FeatureQueryView>(
+              value: _signinView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _signinView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('全部课程'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.signinPending,
+                  child: Text('未签到'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.signinCompleted,
+                  child: Text('已签到'),
+                ),
+              ],
+            ),
           if (widget.feature == FeatureId.judge) ...<Widget>[
             DropdownButton<FeatureQueryView>(
               value: _judgeView,
@@ -2004,6 +2028,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ? _spocView
               : widget.feature == FeatureId.judge
               ? _judgeView
+              : widget.feature == FeatureId.signin
+              ? _signinView
               : _libbookView,
           premisesId: _optionalText(_premisesController),
           storeyId: _optionalText(_storeyController),

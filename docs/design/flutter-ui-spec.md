@@ -50,6 +50,6 @@
   周次）、空教室提供日期/校区及楼层/节次本地过滤的 typed 查询入口；详情页控件只向
   `AppController.refreshFeatureQuery` 传递 `FeatureQuery`，不拼接 URL。上述入口已有 app/widget
   参数传递测试。Judge 另提供批量详情视图，逐行接收公开的 `课程编号/作业编号` 并解析为 typed
-  键列表，不接收 raw JSON 或上游正文。
+  键列表，不接收 raw JSON 或上游正文；课堂签到提供全部/未签到/已签到本地状态视图。
 - 博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/
   integration 测试和领域写入确认页仍需按 P3/P4 补齐，故本规格不把当前实现标记为完成。

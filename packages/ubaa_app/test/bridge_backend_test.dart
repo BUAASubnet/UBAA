@@ -105,6 +105,44 @@ void main() {
     );
     expect(result.resolvedRoute, ConnectionMode.webvpn);
   });
+
+  test('BridgeBackend 课堂签到按冻结状态本地派生筛选', () async {
+    final response = BridgeRoutedSigninClasses(
+      data: const <BridgeSigninClass>[
+        BridgeSigninClass(
+          courseId: 'course-1',
+          courseName: '已签到课程',
+          classBeginTime: '08:00',
+          classEndTime: '09:00',
+          signStatus: 1,
+        ),
+        BridgeSigninClass(
+          courseId: 'course-2',
+          courseName: '未签到课程',
+          classBeginTime: '10:00',
+          classEndTime: '11:00',
+          signStatus: 0,
+        ),
+      ],
+      route: const BridgeRouteDecision(
+        policy: BridgeRoutePolicy.direct,
+        resolvedRoute: BridgeConnectionMode.direct,
+        network: BridgeNetworkState.campus,
+        initialRoute: BridgeConnectionMode.direct,
+        usedFallback: false,
+      ),
+    );
+    final backend = BridgeBackend(_FakeSigninClient(response));
+
+    final result = await backend.loadFeatureQuery(
+      FeatureId.signin,
+      const FeatureQuery(view: FeatureQueryView.signinPending),
+    );
+
+    expect(result.summary, '1门未签到课程');
+    expect(result.details.single.title, '未签到课程');
+    expect(result.resolvedRoute, ConnectionMode.direct);
+  });
 }
 
 class _FakeClassroomClient implements BridgeClient {
@@ -160,6 +198,20 @@ class _FakeJudgeBatchClient implements BridgeClient {
         'c-1/a-1',
       ]);
       return Future<BridgeRoutedJudgeAssignmentDetails>.value(response);
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
+
+class _FakeSigninClient implements BridgeClient {
+  _FakeSigninClient(this.response);
+
+  final BridgeRoutedSigninClasses response;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #signinToday) {
+      return Future<BridgeRoutedSigninClasses>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }

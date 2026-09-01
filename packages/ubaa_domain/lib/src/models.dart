@@ -227,6 +227,8 @@ enum FeatureQueryView {
   examNotArranged,
   gradesScored,
   gradesMissing,
+  signinPending,
+  signinCompleted,
   evaluationPending,
   bykcDetail,
   bykcProfile,

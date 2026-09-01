@@ -908,11 +908,25 @@ class BridgeBackend
             case FeatureQueryView.spocDetail:
             case FeatureQueryView.judgeDetail:
             case FeatureQueryView.judgeBatchDetails:
+            case FeatureQueryView.signinPending:
+            case FeatureQueryView.signinCompleted:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.signin:
           final result = await client.signinToday();
-          final details = result.data
+          final classes = switch (query.view) {
+            FeatureQueryView.summary => result.data,
+            FeatureQueryView.signinPending =>
+              result.data
+                  .where((item) => item.signStatus == 0)
+                  .toList(growable: false),
+            FeatureQueryView.signinCompleted =>
+              result.data
+                  .where((item) => item.signStatus == 1)
+                  .toList(growable: false),
+            _ => throw const BackendException(UbaaErrorCode.invalidInput),
+          };
+          final details = classes
               .map(
                 (item) => FeatureDetail(
                   title: item.courseName,
@@ -924,8 +938,12 @@ class BridgeBackend
               )
               .toList(growable: false);
           return _countResult(
-            result.data.length,
-            '门今日签到课程',
+            classes.length,
+            switch (query.view) {
+              FeatureQueryView.signinPending => '门未签到课程',
+              FeatureQueryView.signinCompleted => '门已签到课程',
+              _ => '门今日签到课程',
+            },
             details: details,
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
@@ -1108,6 +1126,8 @@ class BridgeBackend
             case FeatureQueryView.spocDetail:
             case FeatureQueryView.judgeDetail:
             case FeatureQueryView.judgeBatchDetails:
+            case FeatureQueryView.signinPending:
+            case FeatureQueryView.signinCompleted:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.ygdk:
@@ -1184,6 +1204,8 @@ class BridgeBackend
             case FeatureQueryView.spocDetail:
             case FeatureQueryView.judgeDetail:
             case FeatureQueryView.judgeBatchDetails:
+            case FeatureQueryView.signinPending:
+            case FeatureQueryView.signinCompleted:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.evaluation:

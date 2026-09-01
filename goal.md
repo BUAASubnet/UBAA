@@ -224,6 +224,9 @@
     UI 每行解析 `课程编号/作业编号`，bridge 调用既有 `judgeAssignmentDetails(keys)` 并按白名单映射
     作业头与题目。空键在 bridge/UI 均拒绝；P3 的列表选择器、分页、完整状态、golden/integration 和
     真实 Flutter App E2E 仍未闭合。
+52. 课堂签到现通过 `FeatureQueryView.signinPending`/`signinCompleted` 接入共享 UI/BridgeBackend；
+    两种视图均只调用 `signinToday`，按冻结 `signStatus` 0/1 本地派生并保留实际路线。签到写入、
+    完整页面状态、golden/integration 和真实 Flutter App E2E 仍未闭合。
 
 ## 4. 安全与架构边界
 
