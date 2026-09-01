@@ -278,6 +278,9 @@
 68. 最新代码在 DevEco Studio 默认路径与 `/Users/moorefoss/Code/bin/command-line-tools` CLI 路径复跑 `just ohos-check mode=debug`：
     两次工具链/API26、Dart analyze/widget、native 前置均 0 失败/0 警告，并进入 HAP assemble；均在调试签名配置处按门禁停止。
     未配置签名、未生成可发布 HAP、未连接设备；临时生成输出已移出工作树，P0/P6 仍未完成。
+69. 提交 `6e0ecf6` 的合同 CI `33499492838` 与 Flutter native `33499492820` 均已终态成功；后者 Windows、macOS、Linux、Android APK、
+    iOS simulator 五个 job 全部完成并上传 debug 产物。该证据不包含 OHOS HAP/签名、公证、实体设备或真实 App E2E；最新文档提交的
+    CI 仍在运行，P0/P5/P6 及 P4 完整表单仍未完成。
 
 ## 4. 安全与架构边界
 

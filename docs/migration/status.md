@@ -13,6 +13,11 @@
 - 最新代码在 DevEco Studio 默认路径和 `/Users/moorefoss/Code/bin/command-line-tools` CLI 路径分别执行 `just ohos-check mode=debug`；两次 Flutter OH、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 与 native 前置检查均为 0 失败/0 警告。
 - 两次 HAP assemble 均运行到调试签名配置后按门禁停止（要求在 DevEco Studio Project Structure → Signing Configs 配置自动签名）；未配置签名、未生成可发布 HAP、未连接设备。构建生成的 `rawfile/`、`BuildProfile.ets`、`libs/` 等临时输出已移出工作树。
 
+## 2026-09-01 typed 写入提交的远端门禁
+
+- 提交 `6e0ecf6` 的合同 CI run `33499492838` 已成功；Flutter native run `33499492820` 也已成功，Windows、macOS、Linux、Android APK 和 iOS simulator 五个 job 均完成并上传 debug 产物。
+- 该远端结果不包含 OHOS HAP、正式签名/公证、实体设备、六平台真实 App→FRB→Core E2E 或真实写入；随后文档提交的 CI 仍按队列状态记录。
+
 ## 2026-09-01 三类复杂写入 typed 准备边界
 
 - AppController 现对阳光打卡、场馆预约和教学评教提供 typed prepare 入口：照片只复制到本次内存请求，场馆空间/时段只接受公开 ID，评教只接受读取结果中的待评课程稳定字段；均不接受 raw JSON，也不会在准备阶段提交网络写请求。
