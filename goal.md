@@ -142,6 +142,11 @@
 27. 远端 CI run `33468279841`（当前文档提交 `530a38e`）已终态成功：`contract-gates`、
     macOS Rust 和 Windows Rust 三个 job 全部通过；该 run 只覆盖 Rust/合同门禁，不新增
     OHOS API26、正式签名、实体设备或 Flutter Release 证据。
+28. 提交 `a17d398` 修正共享刷新状态：Core 明确返回空结果时清除旧摘要和详情，避免空状态
+    残留过期数据；新增 app 回归测试通过。本修复不改变 stale 失败保留上次成功数据的语义。
+29. 提交 `a17d398` 的远端 CI run `33469682792` 与 Flutter 原生 debug run `33469682830`
+    均已成功；后者在 Linux、Windows、macOS、iOS simulator、Android APK 五个原生 job
+    构建并上传 debug 产物。两者仍不提供 OHOS API26/HAP、正式签名或实体设备证据。
 
 ## 4. 安全与架构边界
 

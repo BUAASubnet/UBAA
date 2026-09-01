@@ -37,10 +37,10 @@ HarmonyOS 状态保持实验支持。
 - `ubaa_ui`：旧版风格的 Material 3 页面和组件；
 - `ubaa_platform`：安全存储、遥测和安全错误投影接口。
 
-`lib/main.dart` 只是 composition root。P0 已执行 `RustLib.init` 与固定 hello，
-当前业务 backend 仍默认使用 `DemoBackend` 供无账号预览；P1 必须移除生产 Demo
-回退并注入 FRB backend。HUKS 凭据库与遥测发送器也只在这里组合，不能把平台细节
-下沉到共享 UI。
+`lib/main.dart` 只是 composition root。P0 已执行 `RustLib.init` 与固定 hello；当前
+生产入口使用 `createProductionBackend()` 创建 FRB backend，初始化失败时安全显示
+`unsupported`，不会回退到 Demo 数据。`DemoBackend` 只允许由 widget 测试显式注入。
+HUKS 凭据库与遥测发送器也只在这里组合，不能把平台细节下沉到共享 UI。
 
 本宿主和官方五平台宿主已经依赖同一份生成 Dart API。OHOS 只拥有 runner、
 签名、HUKS 适配和必要的平台插件差异。

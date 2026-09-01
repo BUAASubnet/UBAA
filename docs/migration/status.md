@@ -10,6 +10,18 @@
 - 该 run 不包含 OHOS API26/DevEco、正式签名、实体设备或 Flutter Release；这些门禁仍按
   `goal.md` 保持未完成。
 
+## 2026-09-01 空结果刷新状态修复
+
+- 提交 `a17d398` 为 `FeatureSnapshot` 增加显式摘要/详情清理语义；Core 明确返回空结果时，
+  app 现在会清除上次成功内容并进入 `empty`，刷新失败仍保留内容并进入 `stale`。
+- 新增 app 回归测试覆盖该边界；`flutter-check`、`check-sensitive` 和完整 `just check` 均通过。
+
+## 2026-09-01 a17d398 远端构建终态
+
+- CI run `33469682792` 已成功，contract-gates、macOS Rust 和 Windows Rust 全部通过。
+- Flutter 原生 debug run `33469682830` 已成功，Linux、Windows、macOS、iOS simulator 和
+  Android APK 五个 job 均构建并上传 debug 产物；不包含 OHOS API26/HAP、正式签名或实体设备。
+
 ## 2026-09-01 Flutter 六平台 P0 基线
 
 已按新的 `goal.md` 开始 P0。开始时工作树包含用户已有的 Flutter/OHOS 探索骨架、
