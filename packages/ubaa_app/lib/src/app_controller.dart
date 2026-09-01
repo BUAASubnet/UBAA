@@ -356,6 +356,9 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    if (_backend case final BackendLifecycle lifecycle) {
+      unawaited(lifecycle.dispose().catchError((_) {}));
+    }
     super.dispose();
   }
 }

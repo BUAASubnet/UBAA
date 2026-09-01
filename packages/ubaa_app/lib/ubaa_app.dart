@@ -2,4 +2,5 @@
 library;
 
 export 'src/backend.dart';
+export 'src/bridge_backend.dart';
 export 'src/app_controller.dart';

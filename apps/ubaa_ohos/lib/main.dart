@@ -15,8 +15,8 @@ Future<void> main() async {
 /// HarmonyOS 的薄宿主入口。
 ///
 /// 页面、主题与应用状态均来自共享 package；这里只负责组合平台实现。P0 已接通
-/// FRB hello，HUKS 凭据库和生产 backend 在后续阶段通过构造函数注入，禁止在宿主
-/// 复制协议逻辑。P1 必须移除生产入口的 Demo 回退。
+/// FRB hello，HUKS 凭据库和平台差异通过共享 package 注入，禁止在宿主复制协议
+/// 逻辑。生产入口不使用 Demo backend；初始化失败时显示安全的不可用状态。
 class UbaaOhosApp extends StatefulWidget {
   const UbaaOhosApp({
     this.backend,
@@ -40,7 +40,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> {
   void initState() {
     super.initState();
     _controller = AppController(
-      backend: widget.backend ?? DemoBackend(),
+      backend: widget.backend ?? createProductionBackend(),
       credentialVault: widget.credentialVault,
       telemetry: widget.telemetry,
     );

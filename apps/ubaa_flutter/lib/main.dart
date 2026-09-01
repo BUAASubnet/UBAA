@@ -12,9 +12,8 @@ Future<void> main() async {
   runApp(const UbaaFlutterApp());
 }
 
-/// 官方 Flutter 宿主。P0 只接通 FRB 初始化与 hello；默认 Demo backend
-/// 仍只用于 UI 预览和 widget 测试，不会访问真实学校服务。P1 必须在生产入口
-/// 注入 FRB backend，届时不得保留生产 Demo 回退。
+/// 官方 Flutter 宿主。生产入口只使用 FRB backend；widget 测试可显式注入
+/// [DemoBackend]，初始化失败时显示安全的不可用状态，不伪造业务成功。
 class UbaaFlutterApp extends StatefulWidget {
   const UbaaFlutterApp({
     this.backend,
@@ -38,7 +37,7 @@ class _UbaaFlutterAppState extends State<UbaaFlutterApp> {
   void initState() {
     super.initState();
     _controller = AppController(
-      backend: widget.backend ?? DemoBackend(),
+      backend: widget.backend ?? createProductionBackend(),
       credentialVault: widget.credentialVault,
       telemetry: widget.telemetry,
     );

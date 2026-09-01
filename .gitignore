@@ -12,6 +12,7 @@
 # Flutter/OpenHarmony local build metadata
 /.hvigor/
 /packages/*/.dart_tool/
+**/.flutter-plugins-dependencies
 /packages/*/build/
 /packages/*/coverage/
 
