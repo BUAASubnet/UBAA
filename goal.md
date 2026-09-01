@@ -281,6 +281,9 @@
 69. 提交 `6e0ecf6` 的合同 CI `33499492838` 与 Flutter native `33499492820` 均已终态成功；后者 Windows、macOS、Linux、Android APK、
     iOS simulator 五个 job 全部完成并上传 debug 产物。该证据不包含 OHOS HAP/签名、公证、实体设备或真实 App E2E；最新文档提交的
     CI 仍在运行，P0/P5/P6 及 P4 完整表单仍未完成。
+70. 场馆日期空间读取现在逐个投影可预约时段公开站点/日期/空间/时段 ID 与时间；共享 UI 增加联系电话、主题、用途、人数、内容和
+    布尔选项填写表单，校验后才进入既有 typed `prepareCgyySubmitReservation` 与统一二次确认。widget/bridge 回归通过，验证码仍由
+    Core 受控流程处理，未执行真实预约；挑战恢复、订单匹配核对、阳光打卡照片表单、评教答题与 P4/P5/P6 仍未闭合。
 
 ## 4. 安全与架构边界
 
