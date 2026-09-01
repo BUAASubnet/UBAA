@@ -7,6 +7,8 @@
 - `f38c07d` 在 `prepareYgdkSubmit` 进入路线解析前校验照片存在且非空、开始/结束时间成对提供；无效输入直接返回稳定 `InvalidInput`，不建立路线请求、不保存写 intent。
 - 先加入失败回归（修复前实际返回 `AuthenticationRequired`），再完成最小修复；修复后的 bridge 测试覆盖空照片与缺少结束时间，确认 pending intent 保持为空。
 - `6bc7889` 保留 FRB 工具生成的 Dart ignored 函数清单更新；`just check-sensitive`、`just check`、`just flutter-codegen-check`（`FRB 生成零漂移`）和 `just flutter-check` 均通过。
+- `f38c07d` 的合同 CI `33507226398` 与 Flutter 原生五平台 CI `33507226352` 均成功；随后生成提交 `6bc7889` 的合同 CI `33509909514` 与 Flutter 原生五平台 CI `33509909557` 也均成功（Windows、macOS、Linux、Android APK、iOS simulator）。
+- 文档提交 `4e28091` 的合同 CI `33510082731` 成功；上述 CI 均不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E。
 
 ## 2026-09-01 `5998d6d` 当前提交门禁与实时复核
 

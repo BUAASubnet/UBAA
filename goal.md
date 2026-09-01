@@ -311,6 +311,9 @@
     `AuthenticationRequired`，修复后 bridge 回归证明无效请求返回 `InvalidInput`、不建立路线请求且不保存 intent。
     `6bc7889` 保留 FRB 生成的 Dart 清单更新，随后 `just check-sensitive`、`just check`、`just flutter-codegen-check` 和
     `just flutter-check` 均通过；协议上传/提交、原生 picker、真实照片上传和 P4/P5/P6 仍未完成。
+82. `f38c07d` 的合同 CI `33507226398`、Flutter 原生五平台 CI `33507226352`，以及生成提交 `6bc7889` 的合同 CI
+    `33509909514`、Flutter 原生五平台 CI `33509909557` 均成功；文档提交 `4e28091` 的 CI `33510082731` 也成功。
+    CI 仍不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 及完整 P4 仍未完成。
 
 ## 4. 安全与架构边界
 
