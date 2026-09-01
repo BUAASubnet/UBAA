@@ -2855,33 +2855,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCgyyOrder dco_decode_bridge_cgyy_order(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 24)
-      throw Exception('unexpected arr length: expect 24 but see ${arr.length}');
+    if (arr.length != 15)
+      throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
     return BridgeCgyyOrder(
       id: dco_decode_i_32(arr[0]),
-      tradeNo: dco_decode_opt_String(arr[1]),
-      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[2]),
-      reservationDate: dco_decode_opt_String(arr[3]),
-      reservationDateDetail: dco_decode_opt_String(arr[4]),
-      venueSpaceName: dco_decode_opt_String(arr[5]),
-      campusName: dco_decode_opt_String(arr[6]),
-      venueName: dco_decode_opt_String(arr[7]),
-      siteName: dco_decode_opt_String(arr[8]),
-      reservationStartDate: dco_decode_opt_String(arr[9]),
-      reservationEndDate: dco_decode_opt_String(arr[10]),
-      phone: dco_decode_opt_String(arr[11]),
-      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[12]),
-      payStatus: dco_decode_opt_box_autoadd_i_32(arr[13]),
-      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[14]),
-      theme: dco_decode_opt_String(arr[15]),
-      purposeType: dco_decode_opt_box_autoadd_i_32(arr[16]),
-      purposeTypeName: dco_decode_opt_String(arr[17]),
-      joinerNum: dco_decode_opt_box_autoadd_i_32(arr[18]),
-      activityContent: dco_decode_opt_String(arr[19]),
-      joiners: dco_decode_opt_String(arr[20]),
-      checkContent: dco_decode_opt_String(arr[21]),
-      handleReason: dco_decode_opt_String(arr[22]),
-      remark: dco_decode_opt_String(arr[23]),
+      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      reservationDate: dco_decode_opt_String(arr[2]),
+      reservationDateDetail: dco_decode_opt_String(arr[3]),
+      venueSpaceName: dco_decode_opt_String(arr[4]),
+      campusName: dco_decode_opt_String(arr[5]),
+      venueName: dco_decode_opt_String(arr[6]),
+      siteName: dco_decode_opt_String(arr[7]),
+      reservationStartDate: dco_decode_opt_String(arr[8]),
+      reservationEndDate: dco_decode_opt_String(arr[9]),
+      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[10]),
+      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[11]),
+      theme: dco_decode_opt_String(arr[12]),
+      purposeTypeName: dco_decode_opt_String(arr[13]),
+      joinerNum: dco_decode_opt_box_autoadd_i_32(arr[14]),
     );
   }
 
@@ -5296,7 +5287,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCgyyOrder sse_decode_bridge_cgyy_order(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_i_32(deserializer);
-    var var_tradeNo = sse_decode_opt_String(deserializer);
     var var_venueSiteId = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_reservationDate = sse_decode_opt_String(deserializer);
     var var_reservationDateDetail = sse_decode_opt_String(deserializer);
@@ -5306,22 +5296,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_siteName = sse_decode_opt_String(deserializer);
     var var_reservationStartDate = sse_decode_opt_String(deserializer);
     var var_reservationEndDate = sse_decode_opt_String(deserializer);
-    var var_phone = sse_decode_opt_String(deserializer);
     var var_orderStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_payStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_checkStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_theme = sse_decode_opt_String(deserializer);
-    var var_purposeType = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_purposeTypeName = sse_decode_opt_String(deserializer);
     var var_joinerNum = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_activityContent = sse_decode_opt_String(deserializer);
-    var var_joiners = sse_decode_opt_String(deserializer);
-    var var_checkContent = sse_decode_opt_String(deserializer);
-    var var_handleReason = sse_decode_opt_String(deserializer);
-    var var_remark = sse_decode_opt_String(deserializer);
     return BridgeCgyyOrder(
       id: var_id,
-      tradeNo: var_tradeNo,
       venueSiteId: var_venueSiteId,
       reservationDate: var_reservationDate,
       reservationDateDetail: var_reservationDateDetail,
@@ -5331,19 +5312,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       siteName: var_siteName,
       reservationStartDate: var_reservationStartDate,
       reservationEndDate: var_reservationEndDate,
-      phone: var_phone,
       orderStatus: var_orderStatus,
-      payStatus: var_payStatus,
       checkStatus: var_checkStatus,
       theme: var_theme,
-      purposeType: var_purposeType,
       purposeTypeName: var_purposeTypeName,
       joinerNum: var_joinerNum,
-      activityContent: var_activityContent,
-      joiners: var_joiners,
-      checkContent: var_checkContent,
-      handleReason: var_handleReason,
-      remark: var_remark,
     );
   }
 
@@ -8148,7 +8121,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.id, serializer);
-    sse_encode_opt_String(self.tradeNo, serializer);
     sse_encode_opt_box_autoadd_i_32(self.venueSiteId, serializer);
     sse_encode_opt_String(self.reservationDate, serializer);
     sse_encode_opt_String(self.reservationDateDetail, serializer);
@@ -8158,19 +8130,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.siteName, serializer);
     sse_encode_opt_String(self.reservationStartDate, serializer);
     sse_encode_opt_String(self.reservationEndDate, serializer);
-    sse_encode_opt_String(self.phone, serializer);
     sse_encode_opt_box_autoadd_i_32(self.orderStatus, serializer);
-    sse_encode_opt_box_autoadd_i_32(self.payStatus, serializer);
     sse_encode_opt_box_autoadd_i_32(self.checkStatus, serializer);
     sse_encode_opt_String(self.theme, serializer);
-    sse_encode_opt_box_autoadd_i_32(self.purposeType, serializer);
     sse_encode_opt_String(self.purposeTypeName, serializer);
     sse_encode_opt_box_autoadd_i_32(self.joinerNum, serializer);
-    sse_encode_opt_String(self.activityContent, serializer);
-    sse_encode_opt_String(self.joiners, serializer);
-    sse_encode_opt_String(self.checkContent, serializer);
-    sse_encode_opt_String(self.handleReason, serializer);
-    sse_encode_opt_String(self.remark, serializer);
   }
 
   @protected

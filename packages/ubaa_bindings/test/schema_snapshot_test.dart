@@ -101,6 +101,31 @@ void main() {
     expect(read, contains('available'));
   });
 
+  test('场馆订单 DTO 不跨 FFI 暴露敏感订单字段', () {
+    final match = RegExp(
+      r'class BridgeCgyyOrder \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(match, isNotNull);
+    final body = match!.namedGroup('body')!;
+    for (final forbidden in <String>[
+      'tradeNo',
+      'phone',
+      'payStatus',
+      'activityContent',
+      'joiners',
+      'checkContent',
+      'handleReason',
+      'remark',
+    ]) {
+      expect(
+        body,
+        isNot(contains(forbidden)),
+        reason: 'BridgeCgyyOrder 不得暴露 $forbidden',
+      );
+    }
+  });
+
   test('写入 schema 仍是十项封闭 operation 和一次性 intent', () {
     const operations = <String>[
       'bykcSelectCourse',

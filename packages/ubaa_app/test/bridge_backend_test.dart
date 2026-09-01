@@ -519,7 +519,6 @@ class _FakeCgyyCommitClient implements BridgeClient {
             venueSiteId: 3,
             reservationDate: '2026-09-03',
             orderStatus: 1,
-            phone: 'private-phone',
             theme: 'private-theme',
           ),
         ),

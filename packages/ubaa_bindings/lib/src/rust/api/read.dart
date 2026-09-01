@@ -439,7 +439,6 @@ class BridgeCgyyLockCode {
 
 class BridgeCgyyOrder {
   final int id;
-  final String? tradeNo;
   final int? venueSiteId;
   final String? reservationDate;
   final String? reservationDateDetail;
@@ -449,23 +448,14 @@ class BridgeCgyyOrder {
   final String? siteName;
   final String? reservationStartDate;
   final String? reservationEndDate;
-  final String? phone;
   final int? orderStatus;
-  final int? payStatus;
   final int? checkStatus;
   final String? theme;
-  final int? purposeType;
   final String? purposeTypeName;
   final int? joinerNum;
-  final String? activityContent;
-  final String? joiners;
-  final String? checkContent;
-  final String? handleReason;
-  final String? remark;
 
   const BridgeCgyyOrder({
     required this.id,
-    this.tradeNo,
     this.venueSiteId,
     this.reservationDate,
     this.reservationDateDetail,
@@ -475,25 +465,16 @@ class BridgeCgyyOrder {
     this.siteName,
     this.reservationStartDate,
     this.reservationEndDate,
-    this.phone,
     this.orderStatus,
-    this.payStatus,
     this.checkStatus,
     this.theme,
-    this.purposeType,
     this.purposeTypeName,
     this.joinerNum,
-    this.activityContent,
-    this.joiners,
-    this.checkContent,
-    this.handleReason,
-    this.remark,
   });
 
   @override
   int get hashCode =>
       id.hashCode ^
-      tradeNo.hashCode ^
       venueSiteId.hashCode ^
       reservationDate.hashCode ^
       reservationDateDetail.hashCode ^
@@ -503,19 +484,11 @@ class BridgeCgyyOrder {
       siteName.hashCode ^
       reservationStartDate.hashCode ^
       reservationEndDate.hashCode ^
-      phone.hashCode ^
       orderStatus.hashCode ^
-      payStatus.hashCode ^
       checkStatus.hashCode ^
       theme.hashCode ^
-      purposeType.hashCode ^
       purposeTypeName.hashCode ^
-      joinerNum.hashCode ^
-      activityContent.hashCode ^
-      joiners.hashCode ^
-      checkContent.hashCode ^
-      handleReason.hashCode ^
-      remark.hashCode;
+      joinerNum.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -523,7 +496,6 @@ class BridgeCgyyOrder {
       other is BridgeCgyyOrder &&
           runtimeType == other.runtimeType &&
           id == other.id &&
-          tradeNo == other.tradeNo &&
           venueSiteId == other.venueSiteId &&
           reservationDate == other.reservationDate &&
           reservationDateDetail == other.reservationDateDetail &&
@@ -533,19 +505,11 @@ class BridgeCgyyOrder {
           siteName == other.siteName &&
           reservationStartDate == other.reservationStartDate &&
           reservationEndDate == other.reservationEndDate &&
-          phone == other.phone &&
           orderStatus == other.orderStatus &&
-          payStatus == other.payStatus &&
           checkStatus == other.checkStatus &&
           theme == other.theme &&
-          purposeType == other.purposeType &&
           purposeTypeName == other.purposeTypeName &&
-          joinerNum == other.joinerNum &&
-          activityContent == other.activityContent &&
-          joiners == other.joiners &&
-          checkContent == other.checkContent &&
-          handleReason == other.handleReason &&
-          remark == other.remark;
+          joinerNum == other.joinerNum;
 }
 
 class BridgeCgyyOrdersPage {

@@ -3585,7 +3585,6 @@ impl SseDecode for crate::api::read::BridgeCgyyOrder {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <i32>::sse_decode(deserializer);
-        let mut var_tradeNo = <Option<String>>::sse_decode(deserializer);
         let mut var_venueSiteId = <Option<i32>>::sse_decode(deserializer);
         let mut var_reservationDate = <Option<String>>::sse_decode(deserializer);
         let mut var_reservationDateDetail = <Option<String>>::sse_decode(deserializer);
@@ -3595,22 +3594,13 @@ impl SseDecode for crate::api::read::BridgeCgyyOrder {
         let mut var_siteName = <Option<String>>::sse_decode(deserializer);
         let mut var_reservationStartDate = <Option<String>>::sse_decode(deserializer);
         let mut var_reservationEndDate = <Option<String>>::sse_decode(deserializer);
-        let mut var_phone = <Option<String>>::sse_decode(deserializer);
         let mut var_orderStatus = <Option<i32>>::sse_decode(deserializer);
-        let mut var_payStatus = <Option<i32>>::sse_decode(deserializer);
         let mut var_checkStatus = <Option<i32>>::sse_decode(deserializer);
         let mut var_theme = <Option<String>>::sse_decode(deserializer);
-        let mut var_purposeType = <Option<i32>>::sse_decode(deserializer);
         let mut var_purposeTypeName = <Option<String>>::sse_decode(deserializer);
         let mut var_joinerNum = <Option<i32>>::sse_decode(deserializer);
-        let mut var_activityContent = <Option<String>>::sse_decode(deserializer);
-        let mut var_joiners = <Option<String>>::sse_decode(deserializer);
-        let mut var_checkContent = <Option<String>>::sse_decode(deserializer);
-        let mut var_handleReason = <Option<String>>::sse_decode(deserializer);
-        let mut var_remark = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeCgyyOrder {
             id: var_id,
-            trade_no: var_tradeNo,
             venue_site_id: var_venueSiteId,
             reservation_date: var_reservationDate,
             reservation_date_detail: var_reservationDateDetail,
@@ -3620,19 +3610,11 @@ impl SseDecode for crate::api::read::BridgeCgyyOrder {
             site_name: var_siteName,
             reservation_start_date: var_reservationStartDate,
             reservation_end_date: var_reservationEndDate,
-            phone: var_phone,
             order_status: var_orderStatus,
-            pay_status: var_payStatus,
             check_status: var_checkStatus,
             theme: var_theme,
-            purpose_type: var_purposeType,
             purpose_type_name: var_purposeTypeName,
             joiner_num: var_joinerNum,
-            activity_content: var_activityContent,
-            joiners: var_joiners,
-            check_content: var_checkContent,
-            handle_reason: var_handleReason,
-            remark: var_remark,
         };
     }
 }
@@ -6836,7 +6818,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyyOrder {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.id.into_into_dart().into_dart(),
-            self.trade_no.into_into_dart().into_dart(),
             self.venue_site_id.into_into_dart().into_dart(),
             self.reservation_date.into_into_dart().into_dart(),
             self.reservation_date_detail.into_into_dart().into_dart(),
@@ -6846,19 +6827,11 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyyOrder {
             self.site_name.into_into_dart().into_dart(),
             self.reservation_start_date.into_into_dart().into_dart(),
             self.reservation_end_date.into_into_dart().into_dart(),
-            self.phone.into_into_dart().into_dart(),
             self.order_status.into_into_dart().into_dart(),
-            self.pay_status.into_into_dart().into_dart(),
             self.check_status.into_into_dart().into_dart(),
             self.theme.into_into_dart().into_dart(),
-            self.purpose_type.into_into_dart().into_dart(),
             self.purpose_type_name.into_into_dart().into_dart(),
             self.joiner_num.into_into_dart().into_dart(),
-            self.activity_content.into_into_dart().into_dart(),
-            self.joiners.into_into_dart().into_dart(),
-            self.check_content.into_into_dart().into_dart(),
-            self.handle_reason.into_into_dart().into_dart(),
-            self.remark.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9558,7 +9531,6 @@ impl SseEncode for crate::api::read::BridgeCgyyOrder {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.id, serializer);
-        <Option<String>>::sse_encode(self.trade_no, serializer);
         <Option<i32>>::sse_encode(self.venue_site_id, serializer);
         <Option<String>>::sse_encode(self.reservation_date, serializer);
         <Option<String>>::sse_encode(self.reservation_date_detail, serializer);
@@ -9568,19 +9540,11 @@ impl SseEncode for crate::api::read::BridgeCgyyOrder {
         <Option<String>>::sse_encode(self.site_name, serializer);
         <Option<String>>::sse_encode(self.reservation_start_date, serializer);
         <Option<String>>::sse_encode(self.reservation_end_date, serializer);
-        <Option<String>>::sse_encode(self.phone, serializer);
         <Option<i32>>::sse_encode(self.order_status, serializer);
-        <Option<i32>>::sse_encode(self.pay_status, serializer);
         <Option<i32>>::sse_encode(self.check_status, serializer);
         <Option<String>>::sse_encode(self.theme, serializer);
-        <Option<i32>>::sse_encode(self.purpose_type, serializer);
         <Option<String>>::sse_encode(self.purpose_type_name, serializer);
         <Option<i32>>::sse_encode(self.joiner_num, serializer);
-        <Option<String>>::sse_encode(self.activity_content, serializer);
-        <Option<String>>::sse_encode(self.joiners, serializer);
-        <Option<String>>::sse_encode(self.check_content, serializer);
-        <Option<String>>::sse_encode(self.handle_reason, serializer);
-        <Option<String>>::sse_encode(self.remark, serializer);
     }
 }
 

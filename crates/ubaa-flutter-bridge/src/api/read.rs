@@ -524,7 +524,6 @@ pub struct BridgeCgyyDayInfo {
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyOrder {
     pub id: i32,
-    pub trade_no: Option<String>,
     pub venue_site_id: Option<i32>,
     pub reservation_date: Option<String>,
     pub reservation_date_detail: Option<String>,
@@ -534,19 +533,11 @@ pub struct BridgeCgyyOrder {
     pub site_name: Option<String>,
     pub reservation_start_date: Option<String>,
     pub reservation_end_date: Option<String>,
-    pub phone: Option<String>,
     pub order_status: Option<i32>,
-    pub pay_status: Option<i32>,
     pub check_status: Option<i32>,
     pub theme: Option<String>,
-    pub purpose_type: Option<i32>,
     pub purpose_type_name: Option<String>,
     pub joiner_num: Option<i32>,
-    pub activity_content: Option<String>,
-    pub joiners: Option<String>,
-    pub check_content: Option<String>,
-    pub handle_reason: Option<String>,
-    pub remark: Option<String>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyOrdersPage {
@@ -1612,7 +1603,6 @@ fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
 pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
     BridgeCgyyOrder {
         id: v.id,
-        trade_no: v.trade_no,
         venue_site_id: v.venue_site_id,
         reservation_date: v.reservation_date,
         reservation_date_detail: v.reservation_date_detail,
@@ -1622,19 +1612,11 @@ pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
         site_name: v.site_name,
         reservation_start_date: v.reservation_start_date,
         reservation_end_date: v.reservation_end_date,
-        phone: v.phone,
         order_status: v.order_status,
-        pay_status: v.pay_status,
         check_status: v.check_status,
         theme: v.theme,
-        purpose_type: v.purpose_type,
         purpose_type_name: v.purpose_type_name,
         joiner_num: v.joiner_num,
-        activity_content: v.activity_content,
-        joiners: v.joiners,
-        check_content: v.check_content,
-        handle_reason: v.handle_reason,
-        remark: v.remark,
     }
 }
 fn map_cgyy_orders(v: domain::CgyyOrdersPage) -> BridgeCgyyOrdersPage {

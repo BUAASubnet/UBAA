@@ -156,8 +156,12 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   项目 `{itemId,name,kind?,sort?}`；记录分页 `{content,total,page,size,hasMore}`；记录
   `{recordId,itemId?,itemName?,startTime?,endTime?,place?,images,isOpen,state?,createdAt?,createdAtLabel?}`。
 - `CgyyVenueSite`、`CgyyTimeSlot`、`CgyySlotStatus`、`CgyySpaceAvailability`、
-  `CgyyDayInfo`、`CgyyOrder`、`CgyyOrdersPage` 保持 facade 公共字段；用途结果必须为
-  `{items,source}`，`source` 为 `upstream|staticFallback`；锁码只含 `{available}`。
+  `CgyyDayInfo` 保持 facade 公共字段；`CgyyOrder` 的 Dart 投影仅允许
+  `{id,venueSiteId?,reservationDate?,reservationDateDetail?,venueSpaceName?,campusName?,venueName?,siteName?,reservationStartDate?,reservationEndDate?,orderStatus?,checkStatus?,theme?,purposeTypeName?,joinerNum?}`。
+  交易号、手机号、支付状态、用途原始编号、活动正文、参与人、审核内容、处理原因和备注
+  不得进入 `BridgeCgyyOrder`；写入结果另只从该投影提取非敏感收据。`CgyyOrdersPage`
+  保持分页字段；用途结果必须为 `{items,source}`，`source` 为
+  `upstream|staticFallback`；锁码只含 `{available}`。
 - `EvaluationCoursesResponse {courses,progress}`；课程保持 facade 公开字段；进度为
   `{totalCourses,evaluatedCourses,pendingCourses}`。Dart 的待评列表必须由
   `courses.where((course) => !course.isEvaluated)` 派生，不存在 `evaluationPending` 方法。
@@ -273,7 +277,7 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 
 - Rust：每个映射的字段快照、错误映射、dispose、串行锁、panic 归约、intent 过期/重复/
   Session 或路线失效、outcome unknown 和 typed 请求测试。
-- Dart：生成 API schema 快照、`evaluationAll` 待评派生、ID/可选字段、错误映射和
+- Dart：生成 API schema 快照（包括场馆订单敏感字段禁曝断言）、`evaluationAll` 待评派生、ID/可选字段、错误映射和
   `BridgeClient` isolate 重建测试；宿主通过 `BackendFactory` 创建新的 opaque
   backend 后，应用重新读取持久化路线与认证状态，不复用已 dispose 的 handle。
 - FRB：`just flutter-codegen-check` 二次生成零漂移；生成目录禁止手改。
@@ -306,5 +310,6 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 - `AppController.rebuildBackend()` 为 isolate/宿主生命周期重建提供显式安全入口：只有新
   backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有
   `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
-- 尚未把这些结果标记为 P1 完成：panic 归约、Dart isolate 重建、跨进程 Session 锁、路线/会话
-  失效 intent、完整 schema 快照和每个 DTO 的 Dart domain/UI 消费测试仍需逐项补齐。
+- panic 归约、跨进程 Session 锁、路线/会话失效 intent 和场馆订单敏感字段禁曝快照已有实现与
+  回归；尚未把这些结果标记为 P1 完成。Dart isolate 的真实重建/内存泄漏证据、完整逐 DTO
+  domain/UI 消费测试和跨平台生命周期证据仍需逐项补齐。

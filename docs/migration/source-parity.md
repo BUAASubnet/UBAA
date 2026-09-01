@@ -339,6 +339,15 @@ URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求�
 成对校验；失败返回 `InvalidInput` 且不保存 intent。该边界不改变 Ygdk 上传/提交协议或错误映射，
 并以禁止网络的 bridge 回归证明无效请求不会进入认证或路线请求。
 
+2026-09-01 Cgyy bridge DTO 敏感字段补充：冻结 `ubaa_old` 的 `Cgyy.kt` 订单对象同时包含交易号、
+手机号、参与人、活动正文及审核内部字段，`examples/buaa-api` 没有等价 Cgyy 协议；这些字段只
+属于 Core 解析/写入所需的内部来源，不是 Flutter 产品合同。此前生成的 `BridgeCgyyOrder` 将
+上述字段逐一暴露到 Dart，虽然后续 mapping 未展示，仍违反 bridge 最小白名单边界。先以失败的
+生成 schema 测试固定禁曝字段，再将 Rust `BridgeCgyyOrder` 和 `map_cgyy_order` 收窄为订单编号、
+站点/日期/空间/校区、时间、状态、主题、用途名称和参与人数等页面白名单，并重新生成 FRB；该
+调整不改变冻结 URL、参数、Cookie、签名、缓存、并发或错误语义，写入结果仍只从白名单投影非敏感
+收据。`just flutter-codegen-check` 与 bridge/Dart 回归负责防止后续生成漂移或敏感字段回流。
+
 ## 场馆预约只读查询
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
