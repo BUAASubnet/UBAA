@@ -2,6 +2,16 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 当前 HEAD 双路线只读复核
+
+- 在当前 HEAD `62ec048` 串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，认证、用户资料和全部必需只读操作均为 `PASS`；两条路线的图书馆 `area_detail` 均为 `PASS(count=1)`，SPOC/博雅课程详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。
+- 本次只调用只读验证，没有真实写入、验证码提交或照片上传；该证据证明 Core-live 协议矩阵，不替代六平台 Flutter→FRB→Core 真实 App E2E。
+
+## 2026-09-02 当前 HEAD OHOS API26 前置复核
+
+- 以更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS Flutter fork、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 和 native 前置均 0 失败/0 警告。
+- HAP assemble 仍在调试签名配置处按门禁停止；未配置签名、未生成可发布 HAP、未连接设备，临时生成输出已移出工作树。该证据不替代签名 HAP、设备 hello、正式 Release 或 P6 发布证据。
+
 ## 2026-09-02 销毁后的在途注销不回写登录状态
 
 - 新增延迟注销回归：controller 销毁后，旧实现仍会回写登录阶段；修复 `logout` 入口和异步注销完成边界的 `_disposed` no-op 保护。
