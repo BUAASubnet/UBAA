@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_platform/ubaa_platform.dart';
 
 import 'app_controller.dart';
 import 'backend.dart';
