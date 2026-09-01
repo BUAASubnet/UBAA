@@ -10,7 +10,7 @@ use std::fmt::Write as _;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::client::{
-    BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind,
+    BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind, catch_panic,
 };
 use super::read::{BridgeCgyyOrder, BridgeEvaluationCourse};
 use rand::random;
@@ -183,31 +183,34 @@ impl BridgeClient {
         warnings: Vec<String>,
         pending: PendingWrite,
     ) -> Result<BridgeWriteIntent, BridgeError> {
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
-        let resolution = client
-            .resolve_route_for_feature(feature)
-            .map_err(|error| BridgeError::from_core(error, None))?;
-        let intent_id = random_id();
-        let digest = digest(&canonical);
-        let expires_at = now_seconds().saturating_add(120);
-        self.write_intents.lock().await.insert(
-            intent_id.clone(),
-            PendingEntry {
-                request: pending,
-                expires_at,
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
+            let resolution = client
+                .resolve_route_for_feature(feature)
+                .map_err(|error| BridgeError::from_core(error, None))?;
+            let intent_id = random_id();
+            let digest = digest(&canonical);
+            let expires_at = now_seconds().saturating_add(120);
+            self.write_intents.lock().await.insert(
+                intent_id.clone(),
+                PendingEntry {
+                    request: pending,
+                    expires_at,
+                    resolved_route: resolution.mode.into(),
+                },
+            );
+            Ok(BridgeWriteIntent {
+                intent_id,
+                operation,
+                target_summary,
                 resolved_route: resolution.mode.into(),
-            },
-        );
-        Ok(BridgeWriteIntent {
-            intent_id,
-            operation,
-            target_summary,
-            resolved_route: resolution.mode.into(),
-            warnings,
-            expires_at,
-            request_digest: digest,
+                warnings,
+                expires_at,
+                request_digest: digest,
+            })
         })
+        .await
     }
 
     pub async fn prepare_bykc_select_course(
@@ -419,149 +422,152 @@ impl BridgeClient {
         &self,
         intent_id: String,
     ) -> Result<BridgeWriteCommitResult, BridgeError> {
-        if intent_id.trim().is_empty() {
-            return Err(invalid_input("intent id is required"));
-        }
-        let entry = {
-            let mut intents = self.write_intents.lock().await;
-            intents.remove(&intent_id).ok_or_else(|| {
-                BridgeError::local(
+        catch_panic(async {
+            if intent_id.trim().is_empty() {
+                return Err(invalid_input("intent id is required"));
+            }
+            let entry = {
+                let mut intents = self.write_intents.lock().await;
+                intents.remove(&intent_id).ok_or_else(|| {
+                    BridgeError::local(
+                        BridgeErrorCode::IntentExpired,
+                        BridgeErrorKind::Input,
+                        false,
+                        "write intent is expired or already used",
+                    )
+                })?
+            };
+            if now_seconds() > entry.expires_at {
+                return Err(BridgeError::local(
                     BridgeErrorCode::IntentExpired,
                     BridgeErrorKind::Input,
                     false,
-                    "write intent is expired or already used",
-                )
-            })?
-        };
-        if now_seconds() > entry.expires_at {
-            return Err(BridgeError::local(
-                BridgeErrorCode::IntentExpired,
-                BridgeErrorKind::Input,
-                false,
-                "write intent is expired",
-            ));
-        }
-        let pending = entry.request;
-        let operation = pending.operation();
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
-        let current_resolution = client
-            .resolve_route_for_feature(pending.feature())
-            .map_err(map_resolution_error)?;
-        let current_route: BridgeConnectionMode = current_resolution.mode.into();
-        if current_route != entry.resolved_route {
-            return Err(BridgeError::local(
-                BridgeErrorCode::OperationConflict,
-                BridgeErrorKind::Input,
-                true,
-                "route changed; prepare the write again",
-            ));
-        }
-        let result = match pending {
-            PendingWrite::BykcSelect(request) => client
-                .bykc_select_course(request.course_id)
-                .await
-                .map(|r| (r.resolution, safe_message("博雅选课已提交"), None)),
-            PendingWrite::BykcDeselect(request) => client
-                .bykc_deselect_course(request.course_id)
-                .await
-                .map(|r| (r.resolution, safe_message("博雅退选已提交"), None)),
-            PendingWrite::BykcSign(request) => client
-                .bykc_sign_course(domain::BykcSignRequest {
-                    course_id: request.course_id,
-                    lat: request.lat,
-                    lng: request.lng,
-                    sign_type: request.sign_type,
-                })
-                .await
-                .map(|r| (r.resolution, safe_message("博雅签到已提交"), None)),
-            PendingWrite::Signin(request) => client
-                .signin_perform(&request.course_id)
-                .await
-                .map(|r| (r.resolution, safe_message("课堂签到已提交"), None)),
-            PendingWrite::LibbookReserve(request) => client
-                .libbook_reserve(domain::LibBookReserveRequest {
-                    area_id: request.area_id,
-                    seat_id: request.seat_id,
-                    day: request.day,
-                    segment: request.segment,
-                    start_time: request.start_time,
-                    end_time: request.end_time,
-                })
-                .await
-                .map(|r| (r.resolution, safe_message("图书馆预约已提交"), None)),
-            PendingWrite::LibbookCancel(request) => client
-                .libbook_cancel_booking(&request.id)
-                .await
-                .map(|r| (r.resolution, safe_message("图书馆预约已取消"), None)),
-            PendingWrite::Ygdk(request) => client
-                .ygdk_submit(domain::YgdkClockinSubmitRequest {
-                    item_id: request.item_id,
-                    start_time: request.start_time,
-                    end_time: request.end_time,
-                    place: request.place,
-                    share_to_square: request.share_to_square,
-                    photo: request.photo.map(|p| domain::YgdkPhotoUpload {
-                        bytes: p.bytes,
-                        file_name: p.file_name,
-                        mime_type: p.mime_type,
+                    "write intent is expired",
+                ));
+            }
+            let pending = entry.request;
+            let operation = pending.operation();
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
+            let current_resolution = client
+                .resolve_route_for_feature(pending.feature())
+                .map_err(map_resolution_error)?;
+            let current_route: BridgeConnectionMode = current_resolution.mode.into();
+            if current_route != entry.resolved_route {
+                return Err(BridgeError::local(
+                    BridgeErrorCode::OperationConflict,
+                    BridgeErrorKind::Input,
+                    true,
+                    "route changed; prepare the write again",
+                ));
+            }
+            let result = match pending {
+                PendingWrite::BykcSelect(request) => client
+                    .bykc_select_course(request.course_id)
+                    .await
+                    .map(|r| (r.resolution, safe_message("博雅选课已提交"), None)),
+                PendingWrite::BykcDeselect(request) => client
+                    .bykc_deselect_course(request.course_id)
+                    .await
+                    .map(|r| (r.resolution, safe_message("博雅退选已提交"), None)),
+                PendingWrite::BykcSign(request) => client
+                    .bykc_sign_course(domain::BykcSignRequest {
+                        course_id: request.course_id,
+                        lat: request.lat,
+                        lng: request.lng,
+                        sign_type: request.sign_type,
+                    })
+                    .await
+                    .map(|r| (r.resolution, safe_message("博雅签到已提交"), None)),
+                PendingWrite::Signin(request) => client
+                    .signin_perform(&request.course_id)
+                    .await
+                    .map(|r| (r.resolution, safe_message("课堂签到已提交"), None)),
+                PendingWrite::LibbookReserve(request) => client
+                    .libbook_reserve(domain::LibBookReserveRequest {
+                        area_id: request.area_id,
+                        seat_id: request.seat_id,
+                        day: request.day,
+                        segment: request.segment,
+                        start_time: request.start_time,
+                        end_time: request.end_time,
+                    })
+                    .await
+                    .map(|r| (r.resolution, safe_message("图书馆预约已提交"), None)),
+                PendingWrite::LibbookCancel(request) => client
+                    .libbook_cancel_booking(&request.id)
+                    .await
+                    .map(|r| (r.resolution, safe_message("图书馆预约已取消"), None)),
+                PendingWrite::Ygdk(request) => client
+                    .ygdk_submit(domain::YgdkClockinSubmitRequest {
+                        item_id: request.item_id,
+                        start_time: request.start_time,
+                        end_time: request.end_time,
+                        place: request.place,
+                        share_to_square: request.share_to_square,
+                        photo: request.photo.map(|p| domain::YgdkPhotoUpload {
+                            bytes: p.bytes,
+                            file_name: p.file_name,
+                            mime_type: p.mime_type,
+                        }),
+                    })
+                    .await
+                    .map(|r| (r.resolution, safe_message("阳光打卡已提交"), None)),
+                PendingWrite::CgyyReserve(request) => client
+                    .cgyy_submit_reservation(map_cgyy_request(request))
+                    .await
+                    .map(|r| {
+                        (
+                            r.resolution,
+                            safe_message("场馆预约已提交"),
+                            r.data.order.map(super::read::map_cgyy_order),
+                        )
                     }),
-                })
-                .await
-                .map(|r| (r.resolution, safe_message("阳光打卡已提交"), None)),
-            PendingWrite::CgyyReserve(request) => client
-                .cgyy_submit_reservation(map_cgyy_request(request))
-                .await
-                .map(|r| {
-                    (
-                        r.resolution,
-                        safe_message("场馆预约已提交"),
-                        r.data.order.map(super::read::map_cgyy_order),
+                PendingWrite::CgyyCancel(request) => client
+                    .cgyy_cancel_order(request.id)
+                    .await
+                    .map(|r| (r.resolution, safe_message("场馆订单已取消"), None)),
+                PendingWrite::Evaluation(request) => client
+                    .evaluation_submit_courses(
+                        request
+                            .courses
+                            .into_iter()
+                            .map(map_evaluation_course)
+                            .collect(),
                     )
+                    .await
+                    .map(|r| (r.resolution, safe_message("教学评教已提交"), None)),
+            };
+            match result {
+                Ok((resolution, message, order)) => Ok(BridgeWriteCommitResult {
+                    operation,
+                    success: true,
+                    message,
+                    outcome_unknown: false,
+                    resolved_route: Some(resolution.mode.into()),
+                    order,
                 }),
-            PendingWrite::CgyyCancel(request) => client
-                .cgyy_cancel_order(request.id)
-                .await
-                .map(|r| (r.resolution, safe_message("场馆订单已取消"), None)),
-            PendingWrite::Evaluation(request) => client
-                .evaluation_submit_courses(
-                    request
-                        .courses
-                        .into_iter()
-                        .map(map_evaluation_course)
-                        .collect(),
-                )
-                .await
-                .map(|r| (r.resolution, safe_message("教学评教已提交"), None)),
-        };
-        match result {
-            Ok((resolution, message, order)) => Ok(BridgeWriteCommitResult {
-                operation,
-                success: true,
-                message,
-                outcome_unknown: false,
-                resolved_route: Some(resolution.mode.into()),
-                order,
-            }),
-            Err(error) => {
-                let unknown = matches!(
-                    error.error.code,
-                    ubaa_core::error::ErrorCode::NetworkError
-                        | ubaa_core::error::ErrorCode::Timeout
-                        | ubaa_core::error::ErrorCode::UpstreamUnavailable
-                );
-                if unknown {
-                    Err(BridgeError::local(
-                        BridgeErrorCode::OutcomeUnknown,
-                        BridgeErrorKind::Network,
-                        true,
-                        "write outcome is unknown; refresh status before retrying",
-                    ))
-                } else {
-                    Err(BridgeError::from_routed(error))
+                Err(error) => {
+                    let unknown = matches!(
+                        error.error.code,
+                        ubaa_core::error::ErrorCode::NetworkError
+                            | ubaa_core::error::ErrorCode::Timeout
+                            | ubaa_core::error::ErrorCode::UpstreamUnavailable
+                    );
+                    if unknown {
+                        Err(BridgeError::local(
+                            BridgeErrorCode::OutcomeUnknown,
+                            BridgeErrorKind::Network,
+                            true,
+                            "write outcome is unknown; refresh status before retrying",
+                        ))
+                    } else {
+                        Err(BridgeError::from_routed(error))
+                    }
                 }
             }
-        }
+        })
+        .await
     }
 }
 

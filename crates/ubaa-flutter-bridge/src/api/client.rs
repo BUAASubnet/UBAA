@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::future::Future;
+use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 
+use futures_util::FutureExt;
 use ubaa_core::connection::{NetworkState, RouteResolution};
 use ubaa_core::domain::{
     ConnectionMode, DualLoginPreparation, LoginOutcome, RouteLoginResult, RouteLoginState,
@@ -253,7 +256,9 @@ impl BridgeClient {
                 "config directory must be an absolute path",
             ));
         }
-        let client = UbaaClient::open(path).map_err(|error| BridgeError::from_core(error, None))?;
+        let client = std::panic::catch_unwind(AssertUnwindSafe(|| UbaaClient::open(path)))
+            .map_err(|_| panic_error())?
+            .map_err(|error| BridgeError::from_core(error, None))?;
         Ok(Self {
             config_dir: path.to_path_buf(),
             inner: tokio::sync::Mutex::new(Some(client)),
@@ -274,10 +279,13 @@ impl BridgeClient {
     ///
     /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
     pub async fn dispose(&self) -> Result<(), BridgeError> {
-        let mut guard = self.inner.lock().await;
-        *guard = None;
-        self.write_intents.lock().await.clear();
-        Ok(())
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            *guard = None;
+            self.write_intents.lock().await.clear();
+            Ok(())
+        })
+        .await
     }
 
     /// 准备两条路线的登录页状态。
@@ -286,9 +294,12 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 无法准备路线时返回安全错误。
     pub async fn prepare_login(&self) -> Result<BridgeLoginPreparation, BridgeError> {
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
-        Ok(map_preparation(client.prepare_login().await))
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            Ok(map_preparation(client.prepare_login().await))
+        })
+        .await
     }
 
     /// 提交双路线账号密码。
@@ -309,21 +320,24 @@ impl BridgeClient {
                 "username and password are required",
             ));
         }
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
-        let input = ubaa_core::domain::DualLoginInput {
-            username: username.trim().to_owned(),
-            password: ubaa_core::domain::SecretValue::new(password),
-        };
-        let result = client
-            .login(input)
-            .await
-            .map(map_login_outcome)
-            .map_err(|error| BridgeError::from_core(error, None));
-        if result.is_ok() {
-            self.write_intents.lock().await.clear();
-        }
-        result
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let input = ubaa_core::domain::DualLoginInput {
+                username: username.trim().to_owned(),
+                password: ubaa_core::domain::SecretValue::new(password),
+            };
+            let result = client
+                .login(input)
+                .await
+                .map(map_login_outcome)
+                .map_err(|error| BridgeError::from_core(error, None));
+            if result.is_ok() {
+                self.write_intents.lock().await.clear();
+            }
+            result
+        })
+        .await
     }
 
     /// 校验持久化认证状态。
@@ -332,13 +346,16 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
     pub async fn auth_status(&self) -> Result<BridgeLoginOutcome, BridgeError> {
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
-        client
-            .auth_status()
-            .await
-            .map(map_login_outcome)
-            .map_err(|error| BridgeError::from_core(error, None))
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            client
+                .auth_status()
+                .await
+                .map(map_login_outcome)
+                .map_err(|error| BridgeError::from_core(error, None))
+        })
+        .await
     }
 
     /// 获取必要的用户资料。
@@ -347,16 +364,19 @@ impl BridgeClient {
     ///
     /// 客户端已销毁、未认证或 Core 读取资料失败时返回安全错误。
     pub async fn user_info(&self) -> Result<BridgeRoutedUserProfile, BridgeError> {
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
-        client
-            .get_user_info()
-            .await
-            .map(|result| BridgeRoutedUserProfile {
-                data: map_profile(result.data),
-                route: map_route(result.resolution),
-            })
-            .map_err(BridgeError::from_routed)
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            client
+                .get_user_info()
+                .await
+                .map(|result| BridgeRoutedUserProfile {
+                    data: map_profile(result.data),
+                    route: map_route(result.resolution),
+                })
+                .map_err(BridgeError::from_routed)
+        })
+        .await
     }
 
     /// 清理 Core Session 并执行尽力远端注销。
@@ -365,14 +385,17 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 注销失败时返回安全错误。
     pub async fn logout(&self) -> Result<(), BridgeError> {
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
-        let result = client
-            .logout()
-            .await
-            .map_err(|error| BridgeError::from_core(error, None));
-        self.write_intents.lock().await.clear();
-        result
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let result = client
+                .logout()
+                .await
+                .map_err(|error| BridgeError::from_core(error, None));
+            self.write_intents.lock().await.clear();
+            result
+        })
+        .await
     }
 
     /// 读取全局路线策略与已认证槽位。
@@ -381,12 +404,15 @@ impl BridgeClient {
     ///
     /// 客户端已销毁时返回安全错误。
     pub async fn route_settings(&self) -> Result<BridgeRouteSettings, BridgeError> {
-        let guard = self.inner.lock().await;
-        let client = guard.as_ref().ok_or_else(disposed_error)?;
-        Ok(BridgeRouteSettings {
-            default_policy: client.default_route_policy().into(),
-            active_routes: client.active_routes().into_iter().map(Into::into).collect(),
+        catch_panic(async {
+            let guard = self.inner.lock().await;
+            let client = guard.as_ref().ok_or_else(disposed_error)?;
+            Ok(BridgeRouteSettings {
+                default_policy: client.default_route_policy().into(),
+                active_routes: client.active_routes().into_iter().map(Into::into).collect(),
+            })
         })
+        .await
     }
 
     /// 保存新的全局策略、清除 feature override 并重开 Core client。
@@ -399,28 +425,53 @@ impl BridgeClient {
         &self,
         policy: BridgeRoutePolicy,
     ) -> Result<BridgeRouteSettings, BridgeError> {
-        let mut guard = self.inner.try_lock().map_err(|_| {
-            BridgeError::local(
-                BridgeErrorCode::OperationConflict,
-                BridgeErrorKind::Internal,
-                true,
-                "another bridge operation is in progress",
-            )
-        })?;
-        let client = guard.as_mut().ok_or_else(disposed_error)?;
-        client
-            .set_default_route_policy(policy.into())
-            .map_err(|error| BridgeError::from_core(error, None))?;
-        let reopened = UbaaClient::open(&self.config_dir)
-            .map_err(|error| BridgeError::from_core(error, None))?;
-        *guard = Some(reopened);
-        self.write_intents.lock().await.clear();
-        let client = guard.as_ref().ok_or_else(disposed_error)?;
-        Ok(BridgeRouteSettings {
-            default_policy: client.default_route_policy().into(),
-            active_routes: client.active_routes().into_iter().map(Into::into).collect(),
+        catch_panic(async {
+            let mut guard = self.inner.try_lock().map_err(|_| {
+                BridgeError::local(
+                    BridgeErrorCode::OperationConflict,
+                    BridgeErrorKind::Internal,
+                    true,
+                    "another bridge operation is in progress",
+                )
+            })?;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            client
+                .set_default_route_policy(policy.into())
+                .map_err(|error| BridgeError::from_core(error, None))?;
+            let reopened =
+                std::panic::catch_unwind(AssertUnwindSafe(|| UbaaClient::open(&self.config_dir)))
+                    .map_err(|_| panic_error())?
+                    .map_err(|error| BridgeError::from_core(error, None))?;
+            *guard = Some(reopened);
+            self.write_intents.lock().await.clear();
+            let client = guard.as_ref().ok_or_else(disposed_error)?;
+            Ok(BridgeRouteSettings {
+                default_policy: client.default_route_policy().into(),
+                active_routes: client.active_routes().into_iter().map(Into::into).collect(),
+            })
         })
+        .await
     }
+}
+
+/// 将 Rust panic 归约为不含 panic 正文的稳定 bridge 错误。
+pub(crate) async fn catch_panic<T, F>(future: F) -> Result<T, BridgeError>
+where
+    F: Future<Output = Result<T, BridgeError>>,
+{
+    AssertUnwindSafe(future)
+        .catch_unwind()
+        .await
+        .unwrap_or_else(|_| Err(panic_error()))
+}
+
+pub(crate) fn panic_error() -> BridgeError {
+    BridgeError::local(
+        BridgeErrorCode::InternalError,
+        BridgeErrorKind::Internal,
+        false,
+        "bridge operation failed internally",
+    )
 }
 
 pub(crate) fn disposed_error() -> BridgeError {
@@ -536,7 +587,21 @@ impl From<NetworkState> for BridgeNetworkState {
 
 #[cfg(test)]
 mod tests {
-    use super::{BridgeClient, BridgeErrorCode};
+    use super::{BridgeClient, BridgeError, BridgeErrorCode, catch_panic};
+
+    #[tokio::test]
+    async fn panic_is_reduced_to_a_stable_internal_error_without_payload() {
+        let error = catch_panic(async {
+            panic!("sensitive panic payload");
+            #[allow(unreachable_code)]
+            Ok::<(), BridgeError>(())
+        })
+        .await
+        .expect_err("panic must become a typed bridge error");
+        assert_eq!(error.code, BridgeErrorCode::InternalError);
+        assert_eq!(error.message, "bridge operation failed internally");
+        assert!(!error.message.contains("sensitive"));
+    }
 
     #[tokio::test]
     async fn client_lifecycle_rejects_relative_paths_and_disposes_idempotently() {

@@ -14,7 +14,7 @@ use std::pin::Pin;
 use ubaa_core::domain;
 use ubaa_core::facade::{RoutedResult, UbaaClient};
 
-use super::client::{BridgeClient, BridgeError, BridgeRouteDecision, map_route};
+use super::client::{BridgeClient, BridgeError, BridgeRouteDecision, catch_panic, map_route};
 
 macro_rules! routed {
     ($name:ident, $data:ty) => {
@@ -651,10 +651,13 @@ impl BridgeClient {
             &'a mut UbaaClient,
         ) -> Pin<Box<dyn Future<Output = RoutedResult<T>> + Send + 'a>>,
     {
-        let mut guard = self.inner.lock().await;
-        let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
-        let routed = call(client).await.map_err(BridgeError::from_routed)?;
-        Ok((mapper(routed.data), map_route(routed.resolution)))
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
+            let routed = call(client).await.map_err(BridgeError::from_routed)?;
+            Ok((mapper(routed.data), map_route(routed.resolution)))
+        })
+        .await
     }
 
     pub async fn schedule_terms(&self) -> Result<BridgeRoutedTerms, BridgeError> {
