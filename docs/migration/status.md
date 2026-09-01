@@ -2,6 +2,12 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 阳光打卡 bridge 输入前置验证
+
+- `f38c07d` 在 `prepareYgdkSubmit` 进入路线解析前校验照片存在且非空、开始/结束时间成对提供；无效输入直接返回稳定 `InvalidInput`，不建立路线请求、不保存写 intent。
+- 先加入失败回归（修复前实际返回 `AuthenticationRequired`），再完成最小修复；修复后的 bridge 测试覆盖空照片与缺少结束时间，确认 pending intent 保持为空。
+- `6bc7889` 保留 FRB 工具生成的 Dart ignored 函数清单更新；`just check-sensitive`、`just check`、`just flutter-codegen-check`（`FRB 生成零漂移`）和 `just flutter-check` 均通过。
+
 ## 2026-09-01 `5998d6d` 当前提交门禁与实时复核
 
 - 当前 HEAD `5998d6d` 的根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 与 `just flutter-check` 均退出码 0；Flutter UI 全量回归 32 项通过，生成检查报告零漂移。

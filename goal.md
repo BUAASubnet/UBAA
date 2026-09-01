@@ -307,6 +307,10 @@
     因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
 80. 提交 `85deca3` 的合同 CI `33504585524` 与 Flutter 原生五平台 CI `33504585537` 均终态成功；文档提交 `5998d6d` 的 CI `33505133780`
     也终态成功。CI 证据不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E；P0/P5/P6 及完整 P4 仍未完成。
+81. `f38c07d` 在 `prepareYgdkSubmit` 路线解析前复用冻结的照片非空、开始/结束时间成对校验；失败测试先观察到
+    `AuthenticationRequired`，修复后 bridge 回归证明无效请求返回 `InvalidInput`、不建立路线请求且不保存 intent。
+    `6bc7889` 保留 FRB 生成的 Dart 清单更新，随后 `just check-sensitive`、`just check`、`just flutter-codegen-check` 和
+    `just flutter-check` 均通过；协议上传/提交、原生 picker、真实照片上传和 P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
