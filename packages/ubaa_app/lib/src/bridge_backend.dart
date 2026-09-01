@@ -485,6 +485,8 @@ class BridgeBackend
                 details: details,
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
+            case FeatureQueryView.ygdkRecords:
+              throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.signin:
           final result = await client.signinToday();
@@ -533,26 +535,60 @@ class BridgeBackend
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.ygdk:
-          final result = await client.ygdkOverview();
-          final details = result.data.items
-              .map(
-                (item) => FeatureDetail(
-                  title: item.name,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('项目编号', '${item.itemId}'),
-                    item.kind == null ? null : _field('类型', '${item.kind}'),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          final summary = result.data.summary.termTarget == null
-              ? '已打卡 ${result.data.summary.termCount} 次'
-              : '学期进度 ${result.data.summary.termCount}/${result.data.summary.termTarget}';
-          return FeatureResult.success(
-            summary: summary,
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+          switch (query.view) {
+            case FeatureQueryView.summary:
+              final result = await client.ygdkOverview();
+              final details = result.data.items
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.name,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('项目编号', '${item.itemId}'),
+                        item.kind == null ? null : _field('类型', '${item.kind}'),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              final summary = result.data.summary.termTarget == null
+                  ? '已打卡 ${result.data.summary.termCount} 次'
+                  : '学期进度 ${result.data.summary.termCount}/${result.data.summary.termTarget}';
+              return FeatureResult.success(
+                summary: summary,
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.ygdkRecords:
+              final page = query.page <= 0 ? 1 : query.page;
+              final size = query.size.clamp(1, 100);
+              final result = await client.ygdkRecords(page: page, size: size);
+              final details = result.data.content
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.itemName ?? '打卡记录 ${item.recordId}',
+                      subtitle: item.createdAtLabel ?? item.createdAt,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('记录编号', '${item.recordId}'),
+                        _field('开始时间', item.startTime),
+                        _field('结束时间', item.endTime),
+                        _field('地点', item.place),
+                        _field('公开状态', item.isOpen ? '公开' : '不公开'),
+                        _field('图片数量', '${item.images.length}'),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.content.length,
+                '条打卡记录',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.libbookAreas:
+            case FeatureQueryView.libbookAreaDetail:
+            case FeatureQueryView.libbookSeats:
+            case FeatureQueryView.libbookBookings:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.evaluation:
           final result = await client.evaluationAll();
           final details = result.data.courses

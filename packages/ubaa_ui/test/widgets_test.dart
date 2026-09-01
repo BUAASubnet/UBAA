@@ -374,4 +374,56 @@ void main() {
     expect(received?.premisesId, 'main-library');
     expect(received?.storeyId, 'floor-1');
   });
+
+  testWidgets('阳光打卡查询控件提交记录分页 typed 参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.ygdk
+              ? const <FeatureDetail>[FeatureDetail(title: '打卡概览')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.ygdk);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('阳光打卡'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('概览'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记录列表'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.first, '3');
+    await tester.enterText(fields.at(1), '15');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.view, FeatureQueryView.ygdkRecords);
+    expect(received?.page, 3);
+    expect(received?.size, 15);
+  });
 }

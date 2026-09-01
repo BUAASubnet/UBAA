@@ -974,7 +974,8 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.grades ||
     FeatureId.classroom ||
     FeatureId.bykc ||
-    FeatureId.libbook => true,
+    FeatureId.libbook ||
+    FeatureId.ygdk => true,
     _ => false,
   };
 
@@ -1066,6 +1067,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _endController;
   int _campus = 1;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
+  FeatureQueryView _ygdkView = FeatureQueryView.summary;
   bool _submitting = false;
 
   @override
@@ -1325,6 +1327,52 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ),
             ],
           ],
+          if (widget.feature == FeatureId.ygdk) ...<Widget>[
+            DropdownButton<FeatureQueryView>(
+              value: _ygdkView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _ygdkView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('概览'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.ygdkRecords,
+                  child: Text('记录列表'),
+                ),
+              ],
+            ),
+            if (_ygdkView == FeatureQueryView.ygdkRecords) ...<Widget>[
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _pageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '页码',
+                    hintText: '从 1 开始',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _sizeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '每页数量',
+                    hintText: '1–100',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ],
           FilledButton.tonal(
             onPressed: _submitting ? null : _apply,
             child: _submitting
@@ -1422,6 +1470,15 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           }
         }
       }
+      if (widget.feature == FeatureId.ygdk &&
+          _ygdkView == FeatureQueryView.ygdkRecords) {
+        page = int.tryParse(_pageController.text.trim()) ?? 0;
+        size = int.tryParse(_sizeController.text.trim()) ?? 0;
+        if (page <= 0 || size <= 0 || size > 100) {
+          _showMessage('页码必须从 1 开始，每页数量须为 1–100。');
+          return;
+        }
+      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -1432,7 +1489,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           week: week,
           page: page,
           size: size,
-          view: _libbookView,
+          view: widget.feature == FeatureId.ygdk ? _ygdkView : _libbookView,
           premisesId: _optionalText(_premisesController),
           storeyId: _optionalText(_storeyController),
           areaId: _optionalText(_areaController),

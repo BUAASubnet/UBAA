@@ -2,6 +2,15 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 阳光打卡记录读取增量
+
+- `FeatureQueryView` 增加 `ygdkRecords`，`BridgeBackend` 以 typed 页码/数量调用已有
+  `ygdkRecords` facade，并仅把记录编号、时间、地点、公开状态和图片数量映射为白名单详情；
+  不把图片地址或业务令牌交给 UI。
+- 高级功能页新增“概览/记录列表”分页控件及 widget 回归测试；该增量只读，不触发阳光打卡提交。
+- P3 仍未完成：其余领域详情、全部页面状态、golden/integration、服务端分页核对和六平台真实
+  App E2E 仍缺少证据。
+
 ## 2026-09-01 图书馆读取详情闭环增量
 
 - 共享 `FeatureQuery` 新增封闭的 `FeatureQueryView` 及图书馆公开 ID/时段字段；BridgeBackend

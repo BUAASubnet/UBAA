@@ -223,6 +223,7 @@ enum FeatureQueryView {
   libbookAreaDetail,
   libbookSeats,
   libbookBookings,
+  ygdkRecords,
 }
 
 @immutable

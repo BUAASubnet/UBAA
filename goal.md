@@ -169,6 +169,9 @@
     `BridgeBackend` 和详情控件现可 typed 调用馆区、分区详情、座位及预约记录读取，并以
     `FeatureDetail` 展示白名单字段。该增量只读且有 widget 回归测试，不替代 P3 的全部领域
     页面、服务端分页、golden/integration 和六平台真实 App E2E。
+38. `FeatureQueryView` 现支持 `ygdkRecords`；BridgeBackend 和高级功能控件可 typed 调用
+    阳光打卡记录分页，并只展示不含图片地址/业务令牌的白名单字段。新增 widget 回归测试，
+    仍不代表阳光打卡提交或 P3 完成。
 
 ## 4. 安全与架构边界
 
