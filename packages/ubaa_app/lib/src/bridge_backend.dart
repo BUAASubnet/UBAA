@@ -18,6 +18,7 @@ class BridgeBackend
         BykcWriteBackend,
         SigninWriteBackend,
         CancellationWriteBackend,
+        LibbookWriteBackend,
         RouteSettingsBackend,
         BackendLifecycle {
   BridgeBackend(this.client);
@@ -849,7 +850,12 @@ class BridgeBackend
                       title: item.name,
                       subtitle: item.no,
                       fields: _compactFields(<FeatureField?>[
+                        _field('分区 ID', areaId),
                         _field('座位 ID', item.id),
+                        _field('日期', today),
+                        _field('时段', query.segment),
+                        _field('开始时间', startTime),
+                        _field('结束时间', endTime),
                         _field('状态', item.statusName),
                         _field('可预约', item.isAvailable ? '是' : '否'),
                       ]),

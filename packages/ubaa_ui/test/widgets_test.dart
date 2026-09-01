@@ -128,6 +128,7 @@ void main() {
         ),
     };
     var prepareCalls = 0;
+    var signCalls = 0;
     var commitCalls = 0;
     String? committedIntent;
     final intent = WriteIntent(
@@ -138,6 +139,15 @@ void main() {
       warnings: const <String>['提交后请刷新已选课程确认结果'],
       expiresAt: DateTime.now().add(const Duration(minutes: 2)),
       requestDigest: 'digest',
+    );
+    final signIntent = WriteIntent(
+      intentId: 'sign-intent-42',
+      operation: WriteOperation.bykcSignCourse,
+      targetSummary: '博雅课程 42 签到',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>['位置或时间窗要求由 Core 校验'],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'sign-digest',
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -154,6 +164,12 @@ void main() {
             expect(courseId, 42);
             prepareCalls++;
             return intent;
+          },
+          onPrepareBykcSignWrite: (courseId, signType) async {
+            signCalls++;
+            expect(courseId, 42);
+            expect(signType, 1);
+            return signIntent;
           },
           onCommitWrite: (intentId) async {
             commitCalls++;
@@ -174,6 +190,13 @@ void main() {
       ),
     );
     await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备博雅签到'));
+    await tester.pumpAndSettle();
+    expect(signCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认博雅签到'), findsNWidgets(2));
+    await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备选课'));
     await tester.pumpAndSettle();
@@ -343,6 +366,102 @@ void main() {
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('订单取消结果已提交，请刷新确认'), findsOneWidget);
+  });
+
+  testWidgets('图书馆可预约座位展示完整时段摘要后再准备写入', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1000));
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.libbook
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '座位 A-01',
+                    fields: <FeatureField>[
+                      FeatureField(label: '分区 ID', value: 'area-1'),
+                      FeatureField(label: '座位 ID', value: 'seat-2'),
+                      FeatureField(label: '日期', value: '2026-09-02'),
+                      FeatureField(label: '时段', value: '3'),
+                      FeatureField(label: '开始时间', value: '10:00'),
+                      FeatureField(label: '结束时间', value: '12:00'),
+                      FeatureField(label: '可预约', value: '是'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareLibbookReserveWrite: ({
+            required areaId,
+            required seatId,
+            required day,
+            required segment,
+            required startTime,
+            required endTime,
+          }) async {
+            prepareCalls++;
+            expect(areaId, 'area-1');
+            expect(seatId, 'seat-2');
+            expect(day, '2026-09-02');
+            expect(segment, '3');
+            expect(startTime, '10:00');
+            expect(endTime, '12:00');
+            return WriteIntent(
+              intentId: 'reserve-seat-2',
+              operation: WriteOperation.libbookReserve,
+              targetSummary: 'area-1 / seat-2 / 2026-09-02 3',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['请确认座位、日期和时段'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'reserve-seat-2');
+            return const WriteCommitResult(
+              operation: WriteOperation.libbookReserve,
+              success: true,
+              message: '预约结果已提交，请刷新预约记录确认',
+              outcomeUnknown: false,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('图书馆座位'));
+    await tester.tap(find.text('图书馆座位'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备预约此座位'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认图书馆预约'), findsNWidgets(2));
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('预约结果已提交，请刷新预约记录确认'), findsOneWidget);
   });
 
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {

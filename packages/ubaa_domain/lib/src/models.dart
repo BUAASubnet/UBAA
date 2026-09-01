@@ -370,6 +370,7 @@ class FeatureQuery {
     this.areaId,
     this.startTime,
     this.endTime,
+    this.segment,
     this.siteId,
     this.orderId,
     this.assignmentId,
@@ -399,6 +400,8 @@ class FeatureQuery {
   final String? areaId;
   final String? startTime;
   final String? endTime;
+  /// 图书馆预约使用的公开时段编号；读取座位时也随查询保留供预约确认使用。
+  final String? segment;
   final int? siteId;
   final int? orderId;
   final String? assignmentId;
@@ -423,6 +426,7 @@ class FeatureQuery {
     String? areaId,
     String? startTime,
     String? endTime,
+    String? segment,
     int? siteId,
     int? orderId,
     String? assignmentId,
@@ -444,6 +448,7 @@ class FeatureQuery {
     areaId: areaId ?? this.areaId,
     startTime: startTime ?? this.startTime,
     endTime: endTime ?? this.endTime,
+    segment: segment ?? this.segment,
     siteId: siteId ?? this.siteId,
     orderId: orderId ?? this.orderId,
     assignmentId: assignmentId ?? this.assignmentId,

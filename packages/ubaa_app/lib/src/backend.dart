@@ -71,6 +71,13 @@ abstract interface class BykcWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId});
 
   Future<WriteIntent> prepareBykcDeselectCourse({required int courseId});
+
+  Future<WriteIntent> prepareBykcSignCourse({
+    required int courseId,
+    double? lat,
+    double? lng,
+    required int signType,
+  });
 }
 
 /// 已接入 typed 课堂签到写意图的能力。
@@ -86,6 +93,18 @@ abstract interface class CancellationWriteBackend implements WriteCommitBackend 
   Future<WriteIntent> prepareLibbookCancelBooking({required String id});
 
   Future<WriteIntent> prepareCgyyCancelOrder({required int id});
+}
+
+/// 已接入图书馆座位预约的 typed 写意图能力。
+abstract interface class LibbookWriteBackend implements WriteCommitBackend {
+  Future<WriteIntent> prepareLibbookReserve({
+    required String areaId,
+    required String seatId,
+    required String day,
+    required String segment,
+    required String startTime,
+    required String endTime,
+  });
 }
 
 /// 可由应用生命周期关闭的后端资源。

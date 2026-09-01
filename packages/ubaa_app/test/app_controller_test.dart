@@ -324,6 +324,49 @@ void main() {
     );
     controller.dispose();
   });
+
+  test('博雅签到写意图只接受冻结 signType 1 或 2', () async {
+    final backend = _BykcWriteBackend();
+    final controller = AppController(backend: backend);
+
+    final intent = await controller.prepareBykcSignWrite(42, 1);
+    expect(intent.operation, WriteOperation.bykcSignCourse);
+    expect(backend.signCourseId, 42);
+    expect(backend.signType, 1);
+
+    await expectLater(
+      controller.prepareBykcSignWrite(42, 3),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
+
+  test('图书馆预约写意图要求完整的公开选座参数', () async {
+    final backend = _LibbookWriteBackend();
+    final controller = AppController(backend: backend);
+    final intent = await controller.prepareLibbookReserveWrite(
+      areaId: 'area-1',
+      seatId: 'seat-2',
+      day: '2026-09-02',
+      segment: '3',
+      startTime: '10:00',
+      endTime: '12:00',
+    );
+    expect(intent.operation, WriteOperation.libbookReserve);
+    expect(backend.seatId, 'seat-2');
+    await expectLater(
+      controller.prepareLibbookReserveWrite(
+        areaId: ' ',
+        seatId: 'seat-2',
+        day: '2026-09-02',
+        segment: '3',
+        startTime: '10:00',
+        endTime: '12:00',
+      ),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -459,6 +502,8 @@ class _RebuildBackend
 
 class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
   int? selectedCourseId;
+  int? signCourseId;
+  int? signType;
   int commitCalls = 0;
 
   @override
@@ -491,6 +536,18 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
   Future<WriteIntent> prepareBykcDeselectCourse({required int courseId}) async {
     selectedCourseId = courseId;
     return _intent(WriteOperation.bykcDeselectCourse);
+  }
+
+  @override
+  Future<WriteIntent> prepareBykcSignCourse({
+    required int courseId,
+    double? lat,
+    double? lng,
+    required int signType,
+  }) async {
+    this.signCourseId = courseId;
+    this.signType = signType;
+    return _intent(WriteOperation.bykcSignCourse);
   }
 
   @override
@@ -622,4 +679,58 @@ class _CancellationWriteBackend
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),
     requestDigest: 'digest',
   );
+}
+
+class _LibbookWriteBackend implements UbaaBackend, LibbookWriteBackend {
+  String? seatId;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareLibbookReserve({
+    required String areaId,
+    required String seatId,
+    required String day,
+    required String segment,
+    required String startTime,
+    required String endTime,
+  }) async {
+    this.seatId = seatId;
+    return WriteIntent(
+      intentId: 'reserve-intent',
+      operation: WriteOperation.libbookReserve,
+      targetSummary: '$areaId/$seatId $day $segment',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>[],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async =>
+      const WriteCommitResult(
+        operation: WriteOperation.libbookReserve,
+        success: true,
+        message: 'ok',
+        outcomeUnknown: false,
+      );
 }

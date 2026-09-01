@@ -119,9 +119,25 @@ class _UbaaFlutterAppState extends State<UbaaFlutterApp>
       },
           onPrepareBykcWrite: (operation, courseId) =>
               _controller.prepareBykcWrite(operation, courseId),
+          onPrepareBykcSignWrite: _controller.prepareBykcSignWrite,
           onPrepareSigninWrite: _controller.prepareSigninWrite,
           onPrepareCancellationWrite: (operation, targetId) =>
               _controller.prepareCancellationWrite(operation, targetId),
+          onPrepareLibbookReserveWrite: ({
+            required areaId,
+            required seatId,
+            required day,
+            required segment,
+            required startTime,
+            required endTime,
+          }) => _controller.prepareLibbookReserveWrite(
+            areaId: areaId,
+            seatId: seatId,
+            day: day,
+            segment: segment,
+            startTime: startTime,
+            endTime: endTime,
+          ),
           onCommitWrite: _controller.commitWrite,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>

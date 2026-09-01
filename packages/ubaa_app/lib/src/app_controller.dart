@@ -376,6 +376,22 @@ class AppController extends ChangeNotifier {
     };
   }
 
+  /// 准备博雅签到/签退；仅接受冻结合同的 signType 1/2，不伪造位置。
+  Future<WriteIntent> prepareBykcSignWrite(int courseId, int signType) async {
+    final backend = _backend;
+    if (backend is! BykcWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    if (courseId <= 0 || (signType != 1 && signType != 2)) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final writer = backend as BykcWriteBackend;
+    return writer.prepareBykcSignCourse(
+      courseId: courseId,
+      signType: signType,
+    );
+  }
+
   /// 准备课堂签到的 typed 一次性意图；课程编号必须来自读取白名单。
   Future<WriteIntent> prepareSigninWrite(String courseId) async {
     final backend = _backend;
@@ -413,6 +429,36 @@ class AppController extends ChangeNotifier {
       },
       _ => throw const BackendException(UbaaErrorCode.invalidInput),
     };
+  }
+
+  /// 准备图书馆预约；所有目标与时段均必须由用户从公开读取结果/控件提供。
+  Future<WriteIntent> prepareLibbookReserveWrite({
+    required String areaId,
+    required String seatId,
+    required String day,
+    required String segment,
+    required String startTime,
+    required String endTime,
+  }) async {
+    final backend = _backend;
+    if (backend is! LibbookWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final values = <String>[areaId, seatId, day, segment, startTime, endTime]
+        .map((value) => value.trim())
+        .toList(growable: false);
+    if (values.any((value) => value.isEmpty)) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final writer = backend as LibbookWriteBackend;
+    return writer.prepareLibbookReserve(
+      areaId: values[0],
+      seatId: values[1],
+      day: values[2],
+      segment: values[3],
+      startTime: values[4],
+      endTime: values[5],
+    );
   }
 
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
