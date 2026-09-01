@@ -10,6 +10,7 @@
   保留上次成功路线。该增量不发起网络写入，也不改变 Core 协议。
 - 应用层新增受限 `RouteSettingsBackend` 投影；固定路线切换后若目标路线没有认证槽位，立即
   清除用户和功能快照并回到登录页，生产 bridge 仍由 Core 负责原子保存、重开和 intent 失效。
+- 启动时会先恢复 Core 持久化的 `defaultPolicy` 再检查认证状态，避免设置页显示错误的默认路线。
 - 共享“我的”页面现区分“退出登录”和经二次确认的“退出并清除本机账号”；app/widget 测试
   覆盖取消确认与确认回调，后者调用 `logout(clearSavedCredential: true)`。
 

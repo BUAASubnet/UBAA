@@ -156,6 +156,7 @@ void main() {
     final controller = AppController(backend: backend);
     await controller.initialize();
     expect(controller.phase, AppPhase.home);
+    expect(controller.loginForm.routePolicy, RoutePolicy.auto);
 
     await controller.setRoutePolicy(RoutePolicy.direct);
 
@@ -260,6 +261,7 @@ class _RouteStateBackend implements UbaaBackend, RouteSettingsBackend {
   _RouteStateBackend({required this.activeRoutes});
 
   final List<ConnectionMode> activeRoutes;
+  RoutePolicy defaultPolicy = RoutePolicy.auto;
 
   @override
   Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
@@ -269,7 +271,9 @@ class _RouteStateBackend implements UbaaBackend, RouteSettingsBackend {
       const UserSummary(username: 'student');
 
   @override
-  Future<void> prepareLogin(RoutePolicy policy) async {}
+  Future<void> prepareLogin(RoutePolicy policy) async {
+    defaultPolicy = policy;
+  }
 
   @override
   Future<void> login(LoginInput input) async {}
@@ -283,7 +287,7 @@ class _RouteStateBackend implements UbaaBackend, RouteSettingsBackend {
 
   @override
   Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
-    defaultPolicy: RoutePolicy.direct,
+    defaultPolicy: defaultPolicy,
     activeRoutes: activeRoutes,
   );
 }

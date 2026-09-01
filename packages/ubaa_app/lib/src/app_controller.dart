@@ -86,6 +86,10 @@ class AppController extends ChangeNotifier {
     _initialized = true;
     _setPhase(AppPhase.checkingSession);
     try {
+      if (_backend case final RouteSettingsBackend routeBackend) {
+        final settings = await routeBackend.routeSettings();
+        _loginForm = _loginForm.copyWith(routePolicy: settings.defaultPolicy);
+      }
       final status = await _backend.authStatus();
       if (status == AuthStatus.signedIn) {
         _user = await _backend.userInfo();
