@@ -5,7 +5,7 @@
 ## 2026-09-02 阳光打卡记录图片地址不跨 FFI
 
 - 先在生成 Dart schema 中观察到旧 `BridgeYgdkRecord` 暴露 `images` 地址列表，加入失败禁曝回归后，将 Rust bridge 投影收窄为有界 `imageCount`；UI 继续显示图片数量，不再接触地址或其中可能的业务令牌。
-- Core 冻结解析仍保留内部图片列表供协议/业务使用；FRB 重新生成、schema/bridge 聚焦测试待本阶段提交后复跑，未改变上游协议或执行真实写入，P1/P4/P5/P6 仍未完成。
+- Core 冻结解析仍保留内部图片列表供协议/业务使用；失败回归、修复后的 schema/bridge 聚焦测试、`just refs`、`just check-sensitive`、`just check`、`just flutter-check` 及提交后的 `just flutter-codegen-check`（`FRB 生成零漂移`）均已通过，未改变上游协议或执行真实写入，P1/P4/P5/P6 仍未完成。
 
 ## 2026-09-02 初始化阶段的生命周期重建竞态
 
