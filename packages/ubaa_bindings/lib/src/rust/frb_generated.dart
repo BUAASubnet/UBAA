@@ -4279,7 +4279,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       startTime: dco_decode_opt_String(arr[3]),
       endTime: dco_decode_opt_String(arr[4]),
       place: dco_decode_opt_String(arr[5]),
-      images: dco_decode_list_String(arr[6]),
+      imageCount: dco_decode_i_32(arr[6]),
       isOpen: dco_decode_bool(arr[7]),
       state: dco_decode_opt_box_autoadd_i_32(arr[8]),
       createdAt: dco_decode_opt_String(arr[9]),
@@ -6851,7 +6851,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_startTime = sse_decode_opt_String(deserializer);
     var var_endTime = sse_decode_opt_String(deserializer);
     var var_place = sse_decode_opt_String(deserializer);
-    var var_images = sse_decode_list_String(deserializer);
+    var var_imageCount = sse_decode_i_32(deserializer);
     var var_isOpen = sse_decode_bool(deserializer);
     var var_state = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_createdAt = sse_decode_opt_String(deserializer);
@@ -6863,7 +6863,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       startTime: var_startTime,
       endTime: var_endTime,
       place: var_place,
-      images: var_images,
+      imageCount: var_imageCount,
       isOpen: var_isOpen,
       state: var_state,
       createdAt: var_createdAt,
@@ -9309,7 +9309,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.startTime, serializer);
     sse_encode_opt_String(self.endTime, serializer);
     sse_encode_opt_String(self.place, serializer);
-    sse_encode_list_String(self.images, serializer);
+    sse_encode_i_32(self.imageCount, serializer);
     sse_encode_bool(self.isOpen, serializer);
     sse_encode_opt_box_autoadd_i_32(self.state, serializer);
     sse_encode_opt_String(self.createdAt, serializer);

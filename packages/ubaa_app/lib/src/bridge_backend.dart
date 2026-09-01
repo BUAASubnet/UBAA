@@ -1202,7 +1202,7 @@ class BridgeBackend
                         _field('结束时间', item.endTime),
                         _field('地点', item.place),
                         _field('公开状态', item.isOpen ? '公开' : '不公开'),
-                        _field('图片数量', '${item.images.length}'),
+                        _field('图片数量', '${item.imageCount}'),
                       ]),
                     ),
                   )

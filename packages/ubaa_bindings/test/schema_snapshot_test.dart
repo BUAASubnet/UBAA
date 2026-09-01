@@ -168,6 +168,21 @@ void main() {
     }
   });
 
+  test('阳光打卡记录 DTO 不暴露图片地址', () {
+    final record = RegExp(
+      r'class BridgeYgdkRecord \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(record, isNotNull);
+    final body = record!.namedGroup('body')!;
+    expect(
+      body,
+      isNot(contains('images')),
+      reason: 'BridgeYgdkRecord 不得暴露图片地址列表',
+    );
+    expect(body, contains('imageCount'));
+  });
+
   test('写入 schema 仍是十项封闭 operation 和一次性 intent', () {
     const operations = <String>[
       'bykcSelectCourse',

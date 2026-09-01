@@ -2600,7 +2600,7 @@ class BridgeYgdkRecord {
   final String? startTime;
   final String? endTime;
   final String? place;
-  final List<String> images;
+  final int imageCount;
   final bool isOpen;
   final int? state;
   final String? createdAt;
@@ -2613,7 +2613,7 @@ class BridgeYgdkRecord {
     this.startTime,
     this.endTime,
     this.place,
-    required this.images,
+    required this.imageCount,
     required this.isOpen,
     this.state,
     this.createdAt,
@@ -2628,7 +2628,7 @@ class BridgeYgdkRecord {
       startTime.hashCode ^
       endTime.hashCode ^
       place.hashCode ^
-      images.hashCode ^
+      imageCount.hashCode ^
       isOpen.hashCode ^
       state.hashCode ^
       createdAt.hashCode ^
@@ -2645,7 +2645,7 @@ class BridgeYgdkRecord {
           startTime == other.startTime &&
           endTime == other.endTime &&
           place == other.place &&
-          images == other.images &&
+          imageCount == other.imageCount &&
           isOpen == other.isOpen &&
           state == other.state &&
           createdAt == other.createdAt &&

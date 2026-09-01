@@ -323,6 +323,7 @@
 88. 先在生成 Dart schema 快照中观察到旧绑定暴露 `BykcChosenCourse` 的作业正文/附件/签到附注及 `CgyySlotStatus` 的交易号、订单号、占用审核字段，随后收窄 Rust bridge DTO 与映射并重新生成 FRB；新增 schema 禁曝回归和 bridge 测试通过。该收窄只影响 FFI 投影，不改变 Core 冻结 DTO、上游协议或真实写入；P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
 89. `e748dcb` 当前 HEAD 串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0，认证、用户资料和全部必需只读操作均为 `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，未调用真实写接口。随后使用更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `just ohos-check mode=debug`：API26/工具链、Dart/widget/native 前置均 0 失败/0 警告，HAP assemble 在调试签名配置处停止；无签名 HAP、无实体设备证据，P0/P6 仍受阻。
 90. 为避免生命周期恢复与初始化读取并发，先加入延迟认证 backend 的失败回归并观察到旧实现错误地释放旧 backend、创建替代实例，随后 `AppController.rebuildBackend` 在 `checkingSession` 阶段安全拒绝重建；聚焦测试通过。该修复只约束 Dart 生命周期，不改变 Core 协议或真实写入；P1 仍缺真实 isolate/内存生命周期与完整 DTO 消费证据，P2/P3/P4/P5/P6 仍未完成。
+91. 先在生成 Dart schema 中观察到旧 `BridgeYgdkRecord` 暴露图片地址列表，随后将 Rust bridge DTO/映射收窄为有界 `imageCount` 并重新生成 FRB；UI 继续显示图片数量，新增禁曝回归先失败后通过。Core 冻结解析、Ygdk 上游协议和真实写入均未改变；P1 仍缺完整逐 DTO 消费/平台生命周期证据，P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

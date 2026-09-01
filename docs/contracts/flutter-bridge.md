@@ -156,7 +156,8 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 - `YgdkOverview {summary,classifyId,classifyName,defaultItemId,defaultItemName,items}`；统计
   `{termId?,termName?,termCount,termTarget?,weekCount?,weekTarget?,monthCount?,monthTarget?,dayCount?,goodCount?}`；
   项目 `{itemId,name,kind?,sort?}`；记录分页 `{content,total,page,size,hasMore}`；记录
-  `{recordId,itemId?,itemName?,startTime?,endTime?,place?,images,isOpen,state?,createdAt?,createdAtLabel?}`。
+  `{recordId,itemId?,itemName?,startTime?,endTime?,place?,imageCount,isOpen,state?,createdAt?,createdAtLabel?}`。
+  `imageCount` 只表示图片数量；图片地址列表和其中可能包含的业务令牌不得跨 FFI。
 - `CgyyVenueSite`、`CgyyTimeSlot`、`CgyySpaceAvailability`、`CgyyDayInfo` 保持 facade 公共字段；
   `CgyySlotStatus` 仅允许 `{timeId,reservationStatus,isReservable,startDate?,endDate?}`；交易号、
   订单号、占用数量/标记和内部说明不得跨 FFI。`CgyyOrder` 的 Dart 投影仅允许

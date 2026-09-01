@@ -5277,7 +5277,7 @@ impl SseDecode for crate::api::read::BridgeYgdkRecord {
         let mut var_startTime = <Option<String>>::sse_decode(deserializer);
         let mut var_endTime = <Option<String>>::sse_decode(deserializer);
         let mut var_place = <Option<String>>::sse_decode(deserializer);
-        let mut var_images = <Vec<String>>::sse_decode(deserializer);
+        let mut var_imageCount = <i32>::sse_decode(deserializer);
         let mut var_isOpen = <bool>::sse_decode(deserializer);
         let mut var_state = <Option<i32>>::sse_decode(deserializer);
         let mut var_createdAt = <Option<String>>::sse_decode(deserializer);
@@ -5289,7 +5289,7 @@ impl SseDecode for crate::api::read::BridgeYgdkRecord {
             start_time: var_startTime,
             end_time: var_endTime,
             place: var_place,
-            images: var_images,
+            image_count: var_imageCount,
             is_open: var_isOpen,
             state: var_state,
             created_at: var_createdAt,
@@ -9156,7 +9156,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeYgdkRecord {
             self.start_time.into_into_dart().into_dart(),
             self.end_time.into_into_dart().into_dart(),
             self.place.into_into_dart().into_dart(),
-            self.images.into_into_dart().into_dart(),
+            self.image_count.into_into_dart().into_dart(),
             self.is_open.into_into_dart().into_dart(),
             self.state.into_into_dart().into_dart(),
             self.created_at.into_into_dart().into_dart(),
@@ -10667,7 +10667,7 @@ impl SseEncode for crate::api::read::BridgeYgdkRecord {
         <Option<String>>::sse_encode(self.start_time, serializer);
         <Option<String>>::sse_encode(self.end_time, serializer);
         <Option<String>>::sse_encode(self.place, serializer);
-        <Vec<String>>::sse_encode(self.images, serializer);
+        <i32>::sse_encode(self.image_count, serializer);
         <bool>::sse_encode(self.is_open, serializer);
         <Option<i32>>::sse_encode(self.state, serializer);
         <Option<String>>::sse_encode(self.created_at, serializer);
