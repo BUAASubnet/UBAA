@@ -21,6 +21,17 @@
   Rust 三个 job 全部通过。该文档提交不改变代码、产物、签名或设备证据；OHOS 签名 HAP、实体设备、
   正式 Release/公证和真实六平台 Flutter→FRB→Core E2E 仍未完成。
 
+## 2026-09-02 宿主写入组合回归
+
+- 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏课堂签到场景：宿主从登录、
+  高级功能页和公开课程编号进入一次性 `WriteIntent` 确认页，确认后只调用一次 typed commit，并
+  通过对应只读刷新观察到“已签到”状态。
+- 使用官方 Flutter 3.41.9 在 macOS runner 执行该集成测试，2 个场景全部通过；随后
+  `UBAA_FLUTTER_HOME=/Users/moorefoss/Dev/flutter-3.41.9 just flutter-check` 全量通过。本轮
+  仅使用 fake backend 和脱敏数据，不访问网络、真实账号或真实写接口。
+- 该证据补齐宿主写入确认/刷新组合的一条确定性链路，但不替代十项写操作的逐领域真实核对、六平台
+  App→FRB→Core E2E、实体设备和正式发布门禁；P4–P6 仍未完成。
+
 ## 2026-09-02 Flutter 宿主集成回归
 
 - 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏集成场景：使用注入的

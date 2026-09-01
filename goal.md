@@ -373,6 +373,10 @@
 120. 提交 `0464971` 的合同 CI `33564697988` 已终态成功；contract-gates、macOS Rust 和 Windows Rust
     三个 job 全部通过。该文档提交不改变代码、产物、签名或设备证据；OHOS 签名 HAP、实体设备、正式
     Release/公证和真实六平台 Flutter→FRB→Core E2E 仍未完成，P0/P5/P6 继续受阻。
+121. 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏宿主写入组合回归：从登录和
+     高级功能页进入课堂签到确认，验证 typed `WriteIntent` 只提交一次，并在成功后通过对应只读刷新
+     观察到“已签到”状态；集成测试 2/2 通过，随后 `just flutter-check` 全量通过。本轮不访问网络、
+     真实账号或真实写接口；十项写操作逐领域核对、六平台真实 App E2E、签名和设备证据仍未完成。
 
 ## 4. 安全与架构边界
 
