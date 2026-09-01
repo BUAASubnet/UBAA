@@ -97,6 +97,8 @@ class _UbaaFlutterAppState extends State<UbaaFlutterApp> {
         return _controller.refreshFeatureQuery(feature, query);
       },
       onLogout: _controller.logout,
+      onLogoutAndClearAccount: () =>
+          _controller.logout(clearSavedCredential: true),
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));
       },

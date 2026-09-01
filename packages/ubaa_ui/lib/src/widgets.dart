@@ -365,6 +365,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onRefresh,
     required this.onRetryFeature,
     required this.onLogout,
+    required this.onLogoutAndClearAccount,
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     this.onFeatureQuery,
@@ -378,6 +379,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final Future<void> Function(FeatureId feature) onRetryFeature;
   final Future<void> Function() onLogout;
+  final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
   final Future<void> Function(FeatureId feature, FeatureQuery query)?
@@ -488,6 +490,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onRoutePolicyChanged: widget.onRoutePolicyChanged,
       onTelemetryChanged: widget.onTelemetryChanged,
       onLogout: widget.onLogout,
+      onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
     ),
   };
 
@@ -789,6 +792,7 @@ class _ProfileView extends StatelessWidget {
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     required this.onLogout,
+    required this.onLogoutAndClearAccount,
   });
 
   final UserSummary? user;
@@ -797,6 +801,7 @@ class _ProfileView extends StatelessWidget {
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
   final Future<void> Function() onLogout;
+  final Future<void> Function() onLogoutAndClearAccount;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -853,6 +858,12 @@ class _ProfileView extends StatelessWidget {
         icon: const Icon(Icons.logout),
         label: const Text('退出登录'),
       ),
+      const SizedBox(height: 12),
+      TextButton.icon(
+        onPressed: () => _confirmClearAccount(context),
+        icon: const Icon(Icons.delete_outline),
+        label: const Text('退出并清除本机账号'),
+      ),
       const SizedBox(height: 32),
       Text(
         'UBAA 应用\nMake BUAA Great Again',
@@ -861,6 +872,27 @@ class _ProfileView extends StatelessWidget {
       ),
     ],
   );
+
+  Future<void> _confirmClearAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清除本机账号？'),
+        content: const Text('这会退出登录，并删除你主动保存的账号密码；学校服务器上的数据不会被删除。'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('退出并清除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await onLogoutAndClearAccount();
+  }
 }
 
 class _FeatureDetailView extends StatelessWidget {

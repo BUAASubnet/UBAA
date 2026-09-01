@@ -43,6 +43,7 @@ void main() {
   });
 
   testWidgets('功能卡片打开真实详情字段而不是占位页', (tester) async {
+    var clearedAccount = false;
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -76,6 +77,7 @@ void main() {
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onLogout: () async {},
+          onLogoutAndClearAccount: () async => clearedAccount = true,
           onRoutePolicyChanged: (_) {},
           onTelemetryChanged: (_) {},
         ),
@@ -87,6 +89,21 @@ void main() {
     expect(find.text('主楼 101'), findsOneWidget);
     expect(find.text('实际路线：直连'), findsOneWidget);
     expect(find.textContaining('只读详情页面将在'), findsNothing);
+
+    await tester.tap(find.text('返回功能列表'));
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
+    expect(find.text('清除本机账号？'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(clearedAccount, isFalse);
+    await tester.tap(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('退出并清除'));
+    await tester.pumpAndSettle();
+    expect(clearedAccount, isTrue);
   });
 
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {
@@ -143,6 +160,7 @@ void main() {
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
           onTelemetryChanged: (_) {},
         ),
@@ -189,6 +207,7 @@ void main() {
             received = query;
           },
           onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
           onTelemetryChanged: (_) {},
         ),
@@ -236,6 +255,7 @@ void main() {
             received = query;
           },
           onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
           onTelemetryChanged: (_) {},
         ),
@@ -281,6 +301,7 @@ void main() {
             received = query;
           },
           onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
           onTelemetryChanged: (_) {},
         ),

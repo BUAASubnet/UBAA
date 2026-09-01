@@ -52,6 +52,26 @@ void main() {
     controller.dispose();
   });
 
+  test('退出登录与退出并清除本机账号保持分离', () async {
+    final vault = MemoryCredentialVault(
+      initial: const Credential(
+        username: '2020000000',
+        password: 'saved-secret',
+      ),
+    );
+    final controller = AppController(
+      backend: DemoBackend(loginDelay: Duration.zero),
+      credentialVault: vault,
+    );
+    await controller.initialize();
+
+    await controller.logout();
+    expect(vault.hasValue, isTrue);
+    await controller.logout(clearSavedCredential: true);
+    expect(vault.hasValue, isFalse);
+    controller.dispose();
+  });
+
   test('错误映射不暴露上游细节', () {
     final error = UbaaErrorMapper.fromCode(UbaaErrorCode.networkError);
     expect(error.message, contains('校园网'));

@@ -100,6 +100,8 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> {
         return _controller.refreshFeatureQuery(feature, query);
       },
       onLogout: _controller.logout,
+      onLogoutAndClearAccount: () =>
+          _controller.logout(clearSavedCredential: true),
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));
       },
