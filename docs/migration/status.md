@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 当前提交远端合同与五平台 native CI
+
+- 提交 `538f57d` 的远端合同 CI `33537041843` 已成功：`contract-gates`、macOS Rust 与 Windows Rust 全部通过；五平台 native debug run `33537041816` 已成功，Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传产物。
+- 随后的文档提交 `991f090` 的合同 CI `33537405629` 也已成功。上述 CI 仍不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E；P0/P5/P6 不能勾选。
+
 ## 2026-09-02 当前提交双路线与 DevEco/CLI API26 复核
 
 - 在当前 HEAD `538f57d` 串行执行 `just verify-live mode=direct` 与 `mode=webvpn`：两条路线的认证、用户资料、课表、考试、成绩、空教室、SPOC/Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`；SPOC/博雅详情因同批次父列表为空记 `NOT_APPLICABLE`，Cgyy 用途为 `source=static_fallback`。本批次没有真实写接口调用。

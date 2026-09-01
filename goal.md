@@ -327,6 +327,7 @@
 92. 追加 `BridgeBackend` 应用层回归，验证 `BridgeYgdkRecord.imageCount` 只投影为“图片数量”、不传递图片地址，并核对分页调用使用 1-based 页码和固定大小；聚焦测试和完整 `just flutter-check` 通过。该证据仍不替代六平台真实 App→FRB→Core E2E，P1/P3/P4/P5/P6 仍未完成。
 93. 扩展生成 Dart schema 快照，覆盖 `read.dart` 的全部公开读取 DTO、嵌套类型和 `Routed<T>` 包装，防止生成器删除或改名类型而未被合同测试发现；绑定快照聚焦测试通过，不改变 Core 协议或生成物。逐 DTO Dart 消费、跨 isolate/平台生命周期及六平台真实链路仍缺证据，P1/P3/P5/P6 仍未完成。
 94. 当前 HEAD `538f57d` 串行复跑 Direct/WebVPN：必需只读操作均为 `PASS`，SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`，未调用真实写接口；随后以更新后的 Command Line Tools API26 路径复跑 OHOS debug，工具链与 native 前置 0 失败/0 警告，HAP 仍在调试签名处停止，未产生签名 HAP 或设备证据。P0/P5/P6 仍未完成。
+95. 提交 `538f57d` 的合同 CI `33537041843` 与五平台 native debug CI `33537041816` 均成功（Windows、macOS、Linux、Android APK、iOS simulator）；文档提交 `991f090` 的合同 CI `33537405629` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实六平台 App E2E，P0/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
