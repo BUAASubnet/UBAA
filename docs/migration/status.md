@@ -77,10 +77,12 @@
 - `FeatureQuery` 固定 term/date/campus/page/size 五类非敏感查询参数；`FeatureQueryBackend` 作为
   可选能力保持旧 fake backend 兼容，`AppController.refreshFeatureQuery` 不支持时返回稳定
   `unsupported`，不会在 Dart 端拼接 URL 或伪造查询成功。
-- `BridgeBackend` 的考试/成绩学期参数和空教室日期/校区参数已 typed 传递到 Core；博雅列表的
-  page/size 也经过边界收敛。官方 Flutter 与 OHOS 宿主均把详情页查询回调接到同一协调器。
-- 详情页新增考试/成绩学期编码、空教室日期/校区控件，非法日期显示可行动中文提示；widget 与
-  app 测试分别证明控件提交和协调器参数不变形。其余领域筛选、真正服务端分页、golden/
+- `BridgeBackend` 的课表学期/周次、考试/成绩学期和空教室日期/校区参数已 typed 传递到 Core；
+  博雅列表的 page/size 也经过边界收敛。官方 Flutter 与 OHOS 宿主均把详情页查询回调接到同一
+  协调器。
+- 详情页新增课表/考试/成绩学期编码（课表可选周次）、空教室日期/校区控件，非法日期或周次显示
+  可行动中文提示；widget 与 app 测试分别证明控件提交和协调器参数不变形。其余领域筛选、
+  真正服务端分页、golden/
   integration 以及写入页面仍未完成，P3/P4 不能勾选。
 
 ## 2026-09-01 Flutter P1 panic 归约补强

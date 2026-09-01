@@ -904,7 +904,10 @@ class _FeatureDetailView extends StatelessWidget {
   }
 
   bool get _supportsQuery => switch (feature) {
-    FeatureId.exam || FeatureId.grades || FeatureId.classroom => true,
+    FeatureId.schedule ||
+    FeatureId.exam ||
+    FeatureId.grades ||
+    FeatureId.classroom => true,
     _ => false,
   };
 
@@ -986,6 +989,7 @@ class _FeatureQueryControls extends StatefulWidget {
 class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _termController;
   late final TextEditingController _dateController;
+  late final TextEditingController _weekController;
   int _campus = 1;
   bool _submitting = false;
 
@@ -994,12 +998,14 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     super.initState();
     _termController = TextEditingController();
     _dateController = TextEditingController(text: _today());
+    _weekController = TextEditingController();
   }
 
   @override
   void dispose() {
     _termController.dispose();
     _dateController.dispose();
+    _weekController.dispose();
     super.dispose();
   }
 
@@ -1013,8 +1019,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
-          if (widget.feature == FeatureId.exam ||
-              widget.feature == FeatureId.grades)
+          if (widget.feature == FeatureId.schedule ||
+              widget.feature == FeatureId.exam ||
+              widget.feature == FeatureId.grades) ...<Widget>[
             SizedBox(
               width: 180,
               child: TextField(
@@ -1026,6 +1033,20 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
             ),
+            if (widget.feature == FeatureId.schedule)
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _weekController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '周次（可选）',
+                    hintText: '如 1',
+                    isDense: true,
+                  ),
+                ),
+              ),
+          ],
           if (widget.feature == FeatureId.classroom) ...<Widget>[
             SizedBox(
               width: 150,
@@ -1068,6 +1089,21 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     setState(() => _submitting = true);
     try {
       DateTime? date;
+      int? week;
+      if (widget.feature == FeatureId.schedule) {
+        final rawWeek = _weekController.text.trim();
+        if (rawWeek.isNotEmpty) {
+          week = int.tryParse(rawWeek);
+          if (week == null || week <= 0) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('周次必须是正整数。')));
+            }
+            return;
+          }
+        }
+      }
       if (widget.feature == FeatureId.classroom) {
         final rawDate = _dateController.text.trim();
         if (rawDate.isNotEmpty) {
@@ -1089,6 +1125,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : _termController.text.trim(),
           date: date,
           campus: widget.feature == FeatureId.classroom ? _campus : null,
+          week: week,
         ),
       );
     } finally {

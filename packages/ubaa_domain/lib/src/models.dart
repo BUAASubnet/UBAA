@@ -284,6 +284,7 @@ class FeatureQuery {
     this.term,
     this.date,
     this.campus,
+    this.week,
     this.page = 0,
     this.size = 20,
   });
@@ -291,6 +292,7 @@ class FeatureQuery {
   final String? term;
   final DateTime? date;
   final int? campus;
+  final int? week;
   final int page;
   final int size;
 
@@ -298,12 +300,14 @@ class FeatureQuery {
     String? term,
     DateTime? date,
     int? campus,
+    int? week,
     int? page,
     int? size,
   }) => FeatureQuery(
     term: term ?? this.term,
     date: date ?? this.date,
     campus: campus ?? this.campus,
+    week: week ?? this.week,
     page: page ?? this.page,
     size: size ?? this.size,
   );

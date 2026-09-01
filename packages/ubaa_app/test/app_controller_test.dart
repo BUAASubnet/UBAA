@@ -103,9 +103,16 @@ void main() {
     final controller = AppController(backend: backend);
     await controller.refreshFeatureQuery(
       FeatureId.classroom,
-      FeatureQuery(date: DateTime(2026, 9, 2), campus: 2, page: 1, size: 10),
+      FeatureQuery(
+        date: DateTime(2026, 9, 2),
+        campus: 2,
+        week: 3,
+        page: 1,
+        size: 10,
+      ),
     );
     expect(received?.campus, 2);
+    expect(received?.week, 3);
     expect(received?.page, 1);
     expect(controller.snapshots[FeatureId.classroom]!.summary, '指定查询');
     controller.dispose();

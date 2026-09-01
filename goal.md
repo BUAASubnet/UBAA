@@ -113,9 +113,10 @@
 20. 当前 `AppController` 仅从可用安全保险箱恢复并执行用户已选择的自动登录，随后清空密码；
    不可用保险箱会禁用持久化选项。自动登录确定性测试已通过，但六平台原生安全存储插件和
    生命周期/设备证据仍属于 P5/P6。
-21. `FeatureQuery` 已固定 term/date/campus/page/size 非敏感参数；`FeatureQueryBackend` 将考试/成绩
-   学期、空教室日期/校区和博雅分页以 typed 方式传入 Core，详情页查询控件与 app/widget 测试
-   已接线。其余领域筛选、服务端分页、逐领域详情闭环、golden/integration 和写入页面仍未完成。
+21. `FeatureQuery` 已固定 term/date/campus/week/page/size 非敏感参数；`FeatureQueryBackend` 将课表
+   学期/周次、考试/成绩学期、空教室日期/校区和博雅分页以 typed 方式传入 Core，详情页查询控件
+   与 app/widget 测试已接线。其余领域筛选、服务端分页、逐领域详情闭环、golden/integration 和
+   写入页面仍未完成。
 22. bridge 现对 open、认证、路线、读取执行和 typed 写意图统一捕获 Rust panic，并归约为固定
    `internal_error`；panic payload 不进入 Dart。对应单元测试、全 Rust 门禁和 FRB 生成零漂移已
    通过，但 Dart isolate 重建、内存泄漏及六平台生命周期证据仍未完成。

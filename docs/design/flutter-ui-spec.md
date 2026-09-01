@@ -39,8 +39,9 @@
 - `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染和本地分页/筛选；
   `packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不伪造 Demo 登录及
   刷新失败后的 `stale` 数据保留。
-- `BridgeBackend` 已为 12 个只读功能映射白名单详情，并为考试/成绩提供学期编码、空教室提供
-  日期和校区的 typed 查询入口；详情页控件只向 `AppController.refreshFeatureQuery` 传递
-  `FeatureQuery`，不拼接 URL。上述入口已有 app/widget 参数传递测试。
-- 课表学期/周次、博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/
+- `BridgeBackend` 已为 12 个只读功能映射白名单详情，并为课表/考试/成绩提供学期（课表另有
+  周次）、空教室提供日期和校区的 typed 查询入口；详情页控件只向
+  `AppController.refreshFeatureQuery` 传递 `FeatureQuery`，不拼接 URL。上述入口已有 app/widget
+  参数传递测试。
+- 博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/
   integration 测试和领域写入确认页仍需按 P3/P4 补齐，故本规格不把当前实现标记为完成。

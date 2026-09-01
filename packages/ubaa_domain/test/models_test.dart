@@ -27,4 +27,20 @@ void main() {
     expect(RoutePolicy.direct.wireName, 'direct');
     expect(RoutePolicy.webvpn.wireName, 'webvpn');
   });
+
+  test('领域查询参数保留学期、周次、校区和分页边界', () {
+    const query = FeatureQuery(
+      term: '2026-2027-1',
+      week: 3,
+      campus: 2,
+      page: 1,
+      size: 50,
+    );
+    final copied = query.copyWith(size: 20);
+    expect(copied.term, '2026-2027-1');
+    expect(copied.week, 3);
+    expect(copied.campus, 2);
+    expect(copied.page, 1);
+    expect(copied.size, 20);
+  });
 }

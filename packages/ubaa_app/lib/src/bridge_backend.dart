@@ -103,6 +103,30 @@ class BridgeBackend
       final today = _dateOnly(query.date ?? DateTime.now());
       switch (feature) {
         case FeatureId.schedule:
+          if (query.term != null && query.week != null) {
+            final result = await client.scheduleWeek(
+              term: query.term!,
+              week: query.week!,
+            );
+            final details = result.data.arrangedList
+                .map(
+                  (item) => FeatureDetail(
+                    title: item.courseName,
+                    subtitle: item.courseCode,
+                    fields: _compactFields(<FeatureField?>[
+                      _field('时间', item.beginTime),
+                      _field('地点', item.placeName),
+                      _field('周次', item.weeksAndTeachers),
+                    ]),
+                  ),
+                )
+                .toList(growable: false);
+            return _countResult(
+              details.length,
+              '第 ${query.week} 周课表',
+              details: details,
+            );
+          }
           final result = await client.scheduleToday();
           final details = result.data
               .map(
