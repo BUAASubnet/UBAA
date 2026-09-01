@@ -952,7 +952,11 @@ class _FeatureDetailView extends StatelessWidget {
     return Column(
       children: <Widget>[
         if (onQuery != null && _supportsQuery)
-          _FeatureQueryControls(feature: feature, onApply: onQuery!),
+          _FeatureQueryControls(
+            feature: feature,
+            details: snapshot.details,
+            onApply: onQuery!,
+          ),
         if (snapshot.resolvedRoute case final route?)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -1061,9 +1065,14 @@ class _FeatureDetailView extends StatelessWidget {
 }
 
 class _FeatureQueryControls extends StatefulWidget {
-  const _FeatureQueryControls({required this.feature, required this.onApply});
+  const _FeatureQueryControls({
+    required this.feature,
+    required this.details,
+    required this.onApply,
+  });
 
   final FeatureId feature;
+  final List<FeatureDetail> details;
   final Future<void> Function(FeatureQuery query) onApply;
 
   @override
@@ -1367,7 +1376,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
             ],
-            if (_bykcView == FeatureQueryView.bykcDetail)
+            if (_bykcView == FeatureQueryView.bykcDetail) ...<Widget>[
               SizedBox(
                 width: 150,
                 child: TextField(
@@ -1380,6 +1389,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   ),
                 ),
               ),
+              _valuePicker(
+                label: '从当前列表选择课程',
+                values: _detailFieldValues('课程 ID'),
+                onSelected: (value) => _bykcCourseController.text = value,
+              ),
+            ],
           ],
           if (widget.feature == FeatureId.libbook) ...<Widget>[
             DropdownButton<FeatureQueryView>(
@@ -1434,8 +1449,13 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   ),
                 ),
               ),
+              _valuePicker(
+                label: '从当前馆列表选择',
+                values: _detailFieldValues('馆 ID'),
+                onSelected: (value) => _premisesController.text = value,
+              ),
             ],
-            if (_libbookView == FeatureQueryView.libbookAreaDetail)
+            if (_libbookView == FeatureQueryView.libbookAreaDetail) ...<Widget>[
               SizedBox(
                 width: 150,
                 child: TextField(
@@ -1447,6 +1467,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   ),
                 ),
               ),
+              _valuePicker(
+                label: '从当前馆区选择',
+                values: _detailFieldValues('分区 ID'),
+                onSelected: (value) => _areaController.text = value,
+              ),
+            ],
             if (_libbookView == FeatureQueryView.libbookSeats) ...<Widget>[
               SizedBox(
                 width: 150,
@@ -1491,6 +1517,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                     isDense: true,
                   ),
                 ),
+              ),
+              _valuePicker(
+                label: '从当前馆区选择',
+                values: _detailFieldValues('分区 ID'),
+                onSelected: (value) => _areaController.text = value,
               ),
             ],
             if (_libbookView == FeatureQueryView.libbookBookings) ...<Widget>[
@@ -1625,6 +1656,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   ),
                 ),
               ),
+              _valuePicker(
+                label: '从当前站点选择',
+                values: _detailFieldValues('站点 ID'),
+                onSelected: (value) => _siteController.text = value,
+              ),
             ],
             if (_cgyyView == FeatureQueryView.cgyyOrders) ...<Widget>[
               SizedBox(
@@ -1652,7 +1688,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
             ],
-            if (_cgyyView == FeatureQueryView.cgyyOrderDetail)
+            if (_cgyyView == FeatureQueryView.cgyyOrderDetail) ...<Widget>[
               SizedBox(
                 width: 110,
                 child: TextField(
@@ -1665,6 +1701,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   ),
                 ),
               ),
+              _valuePicker(
+                label: '从当前订单选择',
+                values: _detailFieldValues('订单编号'),
+                onSelected: (value) => _orderController.text = value,
+              ),
+            ],
           ],
           if (widget.feature == FeatureId.spoc) ...<Widget>[
             DropdownButton<FeatureQueryView>(
@@ -1685,7 +1727,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ],
             ),
-            if (_spocView == FeatureQueryView.spocDetail)
+            if (_spocView == FeatureQueryView.spocDetail) ...<Widget>[
               SizedBox(
                 width: 160,
                 child: TextField(
@@ -1697,6 +1739,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   ),
                 ),
               ),
+              _valuePicker(
+                label: '从当前作业列表选择',
+                values: _detailFieldValues('作业编号'),
+                onSelected: (value) => _spocAssignmentController.text = value,
+              ),
+            ],
           ],
           if (widget.feature == FeatureId.evaluation)
             DropdownButton<FeatureQueryView>(
@@ -1785,6 +1833,16 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                     isDense: true,
                   ),
                 ),
+              ),
+              _valuePicker(
+                label: '从当前作业列表选择课程',
+                values: _detailFieldValues('课程编号'),
+                onSelected: (value) => _judgeCourseController.text = value,
+              ),
+              _valuePicker(
+                label: '从当前作业列表选择作业',
+                values: _detailFieldValues('作业编号'),
+                onSelected: (value) => _judgeAssignmentController.text = value,
               ),
             ],
             if (_judgeView == FeatureQueryView.judgeBatchDetails)
@@ -2079,6 +2137,31 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
       if (mounted) setState(() => _submitting = false);
     }
   }
+
+  List<String> _detailFieldValues(String label) => widget.details
+      .expand((detail) => detail.fields)
+      .where((field) => field.label == label && field.value.trim().isNotEmpty)
+      .map((field) => field.value.trim())
+      .toSet()
+      .toList(growable: false);
+
+  Widget _valuePicker({
+    required String label,
+    required List<String> values,
+    required ValueChanged<String> onSelected,
+  }) => DropdownButton<String>(
+    hint: Text(label),
+    onChanged: _submitting || values.isEmpty
+        ? null
+        : (value) {
+            if (value != null) onSelected(value);
+          },
+    items: values
+        .map(
+          (value) => DropdownMenuItem<String>(value: value, child: Text(value)),
+        )
+        .toList(growable: false),
+  );
 
   String _today() {
     final now = DateTime.now();

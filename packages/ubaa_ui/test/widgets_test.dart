@@ -961,7 +961,14 @@ void main() {
           status: FeatureLoadStatus.success,
           summary: '已加载',
           details: feature == FeatureId.spoc
-              ? const <FeatureDetail>[FeatureDetail(title: '作业')]
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '作业',
+                    fields: <FeatureField>[
+                      FeatureField(label: '作业编号', value: 'assignment-17'),
+                    ],
+                  ),
+                ]
               : const <FeatureDetail>[],
         ),
     };
@@ -998,7 +1005,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('作业详情'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'assignment-17');
+    await tester.tap(find.byType(DropdownButton<String>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('assignment-17').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.view, FeatureQueryView.spocDetail);
