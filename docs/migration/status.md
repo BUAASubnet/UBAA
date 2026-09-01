@@ -5,7 +5,7 @@
 ## 2026-09-02 初始化阶段的生命周期重建竞态
 
 - 新增 app 回归：旧 backend 正在读取认证状态时，`rebuildBackend` 安全返回 `false`，不释放旧实例、不创建替代实例，待初始化结束后再由下一次生命周期恢复触发重建。
-- 该门禁只约束 Dart 生命周期并发，不改变 Core Session、路线或上游协议；失败回归先在旧实现上观察到错误地重建并返回成功，修复后的聚焦测试及既有全量 Flutter 门禁待在本阶段提交后复跑。
+- 该门禁只约束 Dart 生命周期并发，不改变 Core Session、路线或上游协议；失败回归先在旧实现上观察到错误地重建并返回成功，修复后的聚焦测试及全量 `just check-sensitive`、`just check`、`just flutter-check` 均已通过。
 
 ## 2026-09-02 当前 HEAD 双路线与 API26 门禁复核
 
@@ -16,7 +16,7 @@
 
 - 先在生成 Dart schema 快照中加入博雅已选课程与场馆时段状态的失败禁曝断言，旧绑定实际暴露作业正文/附件/签到附注及交易号、订单号、占用审核字段；随后收窄 Rust bridge 结构和映射并重新生成 FRB。
 - `BridgeBykcChosenCourse` 现在只保留课程、签到和公开配置字段；`BridgeCgyySlotStatus` 只保留时段、状态、日期和可预约性，内部材料不会跨 FFI。Core 冻结 DTO 与上游解析保持不变，页面既有行为不变。
-- 失败回归、修复后的 schema/bridge 单元测试、`just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均已通过；生成检查在提交前按预期观察到新生成差异，提交后需复跑零漂移门禁。本轮不改变上游协议、不执行真实写入，P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
+- 失败回归、修复后的 schema/bridge 单元测试、`just refs`、`just check-sensitive`、`just check`、`just flutter-check` 和提交后的 `just flutter-codegen-check`（`FRB 生成零漂移`）均已通过。本轮不改变上游协议、不执行真实写入，P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
 
 ## 2026-09-02 场馆提交收据的订单编号核对
 
