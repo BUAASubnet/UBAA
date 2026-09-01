@@ -29,6 +29,11 @@ Core 已按冻结 DTO 映射；`examples/buaa-api` 仍无同一场馆协议，�
 `BridgeBackend 保留场馆提交的非敏感订单收据用于结果核对` 与 `场馆写入成功优先刷新订单列表用于核对`
 回归固定了该边界；未改变 URL、方法、挑战或真实写入授权。
 
+2026-09-01 Cgyy 收据 UI 呈现复核：Flutter 统一确认状态只显示收据中的公开订单编号并提示进入订单
+列表核对，不把交易号、电话、主题、参与人或活动正文放入 SnackBar/日志。widget 回归
+`场馆可预约时段先填写 typed 信息再进入确认页` 先复现旧泛化文案，再验证带收据文案；这只是安全呈现，
+不构成真实订单成功或最终核对证据。
+
 Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` 返回
 `data.courseList` 对象包装，而不是直接数组。Rust 现同时接受该冻结包装和既有数组
 兼容形状；`features/bykc.rs` 单元测试先复现旧实现失败，再验证 `id`、`courseInfo.id`

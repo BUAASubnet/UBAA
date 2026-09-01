@@ -317,6 +317,7 @@
 83. 当前 bridge 对 `prepareCgyySubmitReservation` 增加路线解析前的 typed 输入门禁：站点/日期、至少一个有效时段、同一房间、联系电话/主题/活动内容、正用途编号和正参与人数均须满足；失败回归先观察到旧实现返回 `AuthenticationRequired`，修复后统一返回 `InvalidInput` 且不保存 intent。
     `cgyy_canonical`/`ygdk_canonical` 同时收敛为非敏感形状摘要，不保留或哈希电话、主题、参与人、活动正文、地点、照片文件名和照片字节；新增 bridge 脱敏回归、`just check-sensitive` 与 `just check` 通过。本轮未改变 Core 上游协议、未执行真实写入、验证码材料或照片上传，P4/P5/P6 仍未完成。
 84. Cgyy typed 提交结果不再丢弃 Core 已返回的订单对象：`BridgeBackend` 仅映射正订单编号及可选站点/日期/状态为 `CgyyReservationReceipt`，交易号、电话、主题、参与人和活动正文被排除；失败回归先证明 `WriteCommitResult` 缺少收据，修复后通过 BridgeBackend 映射测试。场馆预约/取消成功核对在支持查询的 backend 上优先刷新同路线 `cgyyOrders`，收据或刷新缺失不冒充最终核对；本轮无真实写入，P4/P5/P6 仍未完成。
+85. Cgyy 成功收据现在由统一确认 UI 只显示非敏感订单编号并提示前往订单列表核对；widget 先复现旧泛化成功文案，再验证带合成收据的安全提示，其他操作无收据时保持原文案。该呈现不改变写入次数或 Core 协议，未执行真实预约，最终核对与 P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

@@ -229,7 +229,7 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 `cgyyReservation` 成功结果可附带 `CgyyReservationReceipt`，只投影
 `orderId`、可选 `venueSiteId`、可选 `reservationDate` 和可选 `orderStatus`；交易号、电话、主题、
 参与人及活动正文不会进入 Dart。App 在成功回调后优先刷新 `cgyyOrders`，页面必须以订单列表/详情
-作为最终核对来源；收据缺失或刷新失败不得宣称已完成核对。
+作为最终核对来源；UI 可以显示订单编号并提示核对，但收据缺失或刷新失败不得宣称已完成核对。
 
 `WriteIntent` 固定字段：
 

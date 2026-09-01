@@ -935,7 +935,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(result.message)));
+      ).showSnackBar(SnackBar(content: Text(_writeResultMessage(result))));
     } on Object {
       if (!mounted) return;
       setState(() {
@@ -947,6 +947,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         const SnackBar(content: Text('提交结果不确定，请先刷新相关课程状态，不要重复提交。')),
       );
     }
+  }
+
+  String _writeResultMessage(WriteCommitResult result) {
+    final receipt = result.cgyyReceipt;
+    if (result.operation == WriteOperation.cgyySubmitReservation &&
+        receipt != null) {
+      return '${result.message}（订单编号 ${receipt.orderId}，请在订单列表核对）';
+    }
+    return result.message;
   }
 }
 
