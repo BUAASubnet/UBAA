@@ -11,6 +11,10 @@
 - 当前 HEAD `ef83cb9` 的 `just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均退出码 0；Rust 全量测试、doc-test、verify-live shell、Flutter 各 package/宿主 analyze 与 widget 测试均通过。
 - 首次默认增量执行 FRB 生成在 `cargo-expand` 的展开阶段长时间无输出后安全中断；随后以 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 重试成功并报告“FRB 生成零漂移”，未产生源码漂移或工作树改动。
 
+## 2026-09-02 最终文档提交 CI 终态
+
+- 提交 `f4ebd54` 的合同 CI `33547707165` 已终态成功；合同门禁、macOS Rust 和 Windows Rust 三个 job 均通过。该文档提交不改变代码、产物、签名或设备证据。
+
 ## 2026-09-02 当前 HEAD 双路线只读复核
 
 - 在当前 HEAD `62ec048` 串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，认证、用户资料和全部必需只读操作均为 `PASS`；两条路线的图书馆 `area_detail` 均为 `PASS(count=1)`，SPOC/博雅课程详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。
