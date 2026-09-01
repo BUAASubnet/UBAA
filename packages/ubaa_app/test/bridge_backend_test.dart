@@ -360,6 +360,51 @@ void main() {
     expect(fields['空间组 ID'], '9');
     expect(fields['可预约'], '是');
   });
+
+  test('BridgeBackend 阳光打卡记录只投影图片数量而不传递地址', () async {
+    final response = BridgeRoutedYgdkRecords(
+      data: const BridgeYgdkRecordsPage(
+        content: <BridgeYgdkRecord>[
+          BridgeYgdkRecord(
+            recordId: 7,
+            itemId: 3,
+            itemName: '跑步',
+            startTime: '2026-09-02 08:00',
+            endTime: '2026-09-02 09:00',
+            place: '校园',
+            imageCount: 2,
+            isOpen: false,
+          ),
+        ],
+        total: 1,
+        page: 1,
+        size: 20,
+        hasMore: false,
+      ),
+      route: const BridgeRouteDecision(
+        policy: BridgeRoutePolicy.direct,
+        resolvedRoute: BridgeConnectionMode.direct,
+        network: BridgeNetworkState.campus,
+        initialRoute: BridgeConnectionMode.direct,
+        usedFallback: false,
+      ),
+    );
+    final result = await BridgeBackend(_FakeYgdkRecordsClient(response))
+        .loadFeatureQuery(
+          FeatureId.ygdk,
+          const FeatureQuery(view: FeatureQueryView.ygdkRecords),
+        );
+    expect(result.summary, '1条打卡记录');
+    final fields = {
+      for (final field in result.details.single.fields)
+        field.label: field.value,
+    };
+    expect(fields['图片数量'], '2');
+    expect(
+      result.details.single.fields.any((field) => field.value.contains('http')),
+      isFalse,
+    );
+  });
 }
 
 class _FakeClassroomClient implements BridgeClient {
@@ -539,6 +584,22 @@ class _FakeCgyyDayClient implements BridgeClient {
       expect(invocation.namedArguments[#siteId], 3);
       expect(invocation.namedArguments[#date], isNotEmpty);
       return Future<BridgeRoutedCgyyDayInfo>.value(response);
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
+
+class _FakeYgdkRecordsClient implements BridgeClient {
+  _FakeYgdkRecordsClient(this.response);
+
+  final BridgeRoutedYgdkRecords response;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #ygdkRecords) {
+      expect(invocation.namedArguments[#page], 1);
+      expect(invocation.namedArguments[#size], 20);
+      return Future<BridgeRoutedYgdkRecords>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }

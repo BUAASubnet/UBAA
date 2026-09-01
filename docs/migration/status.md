@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 阳光打卡记录图片数量的应用层回归
+
+- 新增 `BridgeBackend` app 回归，使用 typed `BridgeYgdkRecord.imageCount` 验证记录详情只投影“图片数量”，且任何界面字段值都不含图片地址；同时断言记录分页按 1-based 页码和固定大小调用 bridge。
+- 聚焦 `bridge_backend_test.dart` 与完整 `UBAA_FLUTTER_HOME=/Users/moorefoss/Dev/flutter-3.41.9 just flutter-check` 均通过；该测试只覆盖本地 typed 投影，不代表六平台真实 App→FRB→Core E2E，P1/P3/P4/P5/P6 仍未完成。
+
 ## 2026-09-02 阳光打卡记录图片地址不跨 FFI
 
 - 先在生成 Dart schema 中观察到旧 `BridgeYgdkRecord` 暴露 `images` 地址列表，加入失败禁曝回归后，将 Rust bridge 投影收窄为有界 `imageCount`；UI 继续显示图片数量，不再接触地址或其中可能的业务令牌。
