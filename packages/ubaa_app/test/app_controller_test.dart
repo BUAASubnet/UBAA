@@ -296,6 +296,34 @@ void main() {
     );
     controller.dispose();
   });
+
+  test('可逆取消写意图按领域严格校验公开编号', () async {
+    final backend = _CancellationWriteBackend();
+    final controller = AppController(backend: backend);
+
+    final libraryIntent = await controller.prepareCancellationWrite(
+      WriteOperation.libbookCancelBooking,
+      ' booking-3 ',
+    );
+    expect(libraryIntent.operation, WriteOperation.libbookCancelBooking);
+    expect(backend.bookingId, 'booking-3');
+
+    final venueIntent = await controller.prepareCancellationWrite(
+      WriteOperation.cgyyCancelOrder,
+      '17',
+    );
+    expect(venueIntent.operation, WriteOperation.cgyyCancelOrder);
+    expect(backend.orderId, 17);
+
+    await expectLater(
+      controller.prepareCancellationWrite(
+        WriteOperation.cgyyCancelOrder,
+        'not-a-number',
+      ),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -532,6 +560,63 @@ class _SigninWriteBackend implements UbaaBackend, SigninWriteBackend {
     intentId: 'signin-intent',
     operation: WriteOperation.signinPerform,
     targetSummary: '课程 ${courseId ?? ''}',
+    resolvedRoute: ConnectionMode.direct,
+    warnings: const <String>[],
+    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+    requestDigest: 'digest',
+  );
+}
+
+class _CancellationWriteBackend
+    implements UbaaBackend, CancellationWriteBackend {
+  String? bookingId;
+  int? orderId;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) async {
+    bookingId = id;
+    return _intent(WriteOperation.libbookCancelBooking, id);
+  }
+
+  @override
+  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) async {
+    orderId = id;
+    return _intent(WriteOperation.cgyyCancelOrder, '$id');
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async =>
+      const WriteCommitResult(
+        operation: WriteOperation.libbookCancelBooking,
+        success: true,
+        message: 'ok',
+        outcomeUnknown: false,
+      );
+
+  WriteIntent _intent(WriteOperation operation, String target) => WriteIntent(
+    intentId: 'cancel-intent',
+    operation: operation,
+    targetSummary: '取消 $target',
     resolvedRoute: ConnectionMode.direct,
     warnings: const <String>[],
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),

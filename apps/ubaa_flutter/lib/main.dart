@@ -120,6 +120,8 @@ class _UbaaFlutterAppState extends State<UbaaFlutterApp>
           onPrepareBykcWrite: (operation, courseId) =>
               _controller.prepareBykcWrite(operation, courseId),
           onPrepareSigninWrite: _controller.prepareSigninWrite,
+          onPrepareCancellationWrite: (operation, targetId) =>
+              _controller.prepareCancellationWrite(operation, targetId),
           onCommitWrite: _controller.commitWrite,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>

@@ -390,6 +390,31 @@ class AppController extends ChangeNotifier {
     return writer.prepareSigninPerform(courseId: normalized);
   }
 
+  /// 准备图书馆或场馆取消的 typed 一次性意图；只接受读取结果中的公开编号。
+  Future<WriteIntent> prepareCancellationWrite(
+    WriteOperation operation,
+    String targetId,
+  ) async {
+    final backend = _backend;
+    if (backend is! CancellationWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final writer = backend as CancellationWriteBackend;
+    final normalized = targetId.trim();
+    if (normalized.isEmpty) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return switch (operation) {
+      WriteOperation.libbookCancelBooking =>
+        writer.prepareLibbookCancelBooking(id: normalized),
+      WriteOperation.cgyyCancelOrder => switch (int.tryParse(normalized)) {
+        final id? when id > 0 => writer.prepareCgyyCancelOrder(id: id),
+        _ => throw const BackendException(UbaaErrorCode.invalidInput),
+      },
+      _ => throw const BackendException(UbaaErrorCode.invalidInput),
+    };
+  }
+
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
   Future<WriteCommitResult> commitWrite(String intentId) async {
     final backend = _backend;

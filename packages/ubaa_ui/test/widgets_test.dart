@@ -267,6 +267,84 @@ void main() {
     expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
   });
 
+  testWidgets('场馆订单取消只从公开订单编号进入确认页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.cgyy
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '羽毛球馆订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '17'),
+                      FeatureField(label: '订单状态', value: '待审核'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareCancellationWrite: (operation, targetId) async {
+            prepareCalls++;
+            expect(operation, WriteOperation.cgyyCancelOrder);
+            expect(targetId, '17');
+            return WriteIntent(
+              intentId: 'cancel-17',
+              operation: operation,
+              targetSummary: '取消订单 17',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['取消后请刷新订单列表确认状态'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'cancel-17');
+            return const WriteCommitResult(
+              operation: WriteOperation.cgyyCancelOrder,
+              success: true,
+              message: '订单取消结果已提交，请刷新确认',
+              outcomeUnknown: false,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('场馆预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备取消订单'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认取消场馆订单'), findsNWidgets(2));
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('订单取消结果已提交，请刷新确认'), findsOneWidget);
+  });
+
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {
     final intent = WriteIntent(
       intentId: 'intent',

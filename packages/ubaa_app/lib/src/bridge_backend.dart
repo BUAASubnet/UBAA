@@ -17,6 +17,7 @@ class BridgeBackend
         FeatureQueryBackend,
         BykcWriteBackend,
         SigninWriteBackend,
+        CancellationWriteBackend,
         RouteSettingsBackend,
         BackendLifecycle {
   BridgeBackend(this.client);

@@ -81,6 +81,13 @@ abstract interface class SigninWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareSigninPerform({required String courseId});
 }
 
+/// 已接入图书馆/场馆可逆取消的 typed 写意图能力。
+abstract interface class CancellationWriteBackend implements WriteCommitBackend {
+  Future<WriteIntent> prepareLibbookCancelBooking({required String id});
+
+  Future<WriteIntent> prepareCgyyCancelOrder({required int id});
+}
+
 /// 可由应用生命周期关闭的后端资源。
 abstract interface class BackendLifecycle {
   Future<void> dispose();

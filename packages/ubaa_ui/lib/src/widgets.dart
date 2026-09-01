@@ -372,6 +372,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onFeatureQuery,
     this.onPrepareBykcWrite,
     this.onPrepareSigninWrite,
+    this.onPrepareCancellationWrite,
     this.onCommitWrite,
     super.key,
   });
@@ -392,6 +393,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
   onPrepareBykcWrite;
   final Future<WriteIntent> Function(String courseId)? onPrepareSigninWrite;
+  final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
+  onPrepareCancellationWrite;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
 
   @override
@@ -455,6 +458,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onSigninWrite: widget.onPrepareSigninWrite == null
                 ? null
                 : _startSigninWrite,
+            onCancellationWrite: widget.onPrepareCancellationWrite == null
+                ? null
+                : _startCancellationWrite,
           );
     return Scaffold(
       appBar: AppBar(
@@ -650,6 +656,35 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('暂时无法准备签到；尚未提交任何写请求。')));
+    }
+  }
+
+  Future<void> _startCancellationWrite(
+    WriteOperation operation,
+    String targetId,
+  ) async {
+    final prepare = widget.onPrepareCancellationWrite;
+    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final intent = await prepare(operation, targetId);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = intent;
+        _writeSubmitting = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂时无法准备取消操作；尚未提交任何写请求。')),
+      );
     }
   }
 
@@ -1050,6 +1085,7 @@ class _FeatureDetailView extends StatelessWidget {
     required this.onRetry,
     this.onBykcWrite,
     this.onSigninWrite,
+    this.onCancellationWrite,
     this.onQuery,
   });
 
@@ -1060,6 +1096,8 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final Future<void> Function(String courseId)? onSigninWrite;
+  final Future<void> Function(WriteOperation operation, String targetId)?
+  onCancellationWrite;
   final Future<void> Function(FeatureQuery query)? onQuery;
 
   @override
@@ -1131,6 +1169,7 @@ class _FeatureDetailView extends StatelessWidget {
       details: snapshot.details,
       onBykcWrite: onBykcWrite,
       onSigninWrite: onSigninWrite,
+      onCancellationWrite: onCancellationWrite,
     );
   }
 
@@ -1151,6 +1190,7 @@ class _FeatureDetailView extends StatelessWidget {
             details: snapshot.details,
             onBykcWrite: onBykcWrite,
             onSigninWrite: onSigninWrite,
+            onCancellationWrite: onCancellationWrite,
           ),
         ),
       ],
@@ -2371,6 +2411,7 @@ class _FeatureDetailList extends StatefulWidget {
     required this.details,
     this.onBykcWrite,
     this.onSigninWrite,
+    this.onCancellationWrite,
   });
 
   final FeatureId feature;
@@ -2378,6 +2419,8 @@ class _FeatureDetailList extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final Future<void> Function(String courseId)? onSigninWrite;
+  final Future<void> Function(WriteOperation operation, String targetId)?
+  onCancellationWrite;
 
   @override
   State<_FeatureDetailList> createState() => _FeatureDetailListState();
@@ -2449,6 +2492,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final detail = visible[index];
                     final courseId = _courseId(detail);
                     final signinCourseId = _courseKey(detail);
+                    final cancellation = _cancellationTarget(detail);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -2515,6 +2559,23 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 label: const Text('准备签到'),
                               ),
                             ],
+                            if (cancellation != null &&
+                                widget.onCancellationWrite != null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () => widget.onCancellationWrite!(
+                                  cancellation.operation,
+                                  cancellation.targetId,
+                                ),
+                                icon: const Icon(Icons.event_busy),
+                                label: Text(
+                                  cancellation.operation ==
+                                          WriteOperation.libbookCancelBooking
+                                      ? '准备取消预约'
+                                      : '准备取消订单',
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -2563,6 +2624,29 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   String? _courseKey(FeatureDetail detail) {
     for (final field in detail.fields) {
       if (field.label == '课程 ID') return field.value.trim();
+    }
+    return null;
+  }
+
+  ({WriteOperation operation, String targetId})? _cancellationTarget(
+    FeatureDetail detail,
+  ) {
+    final label = switch (widget.feature) {
+      FeatureId.libbook => '预约 ID',
+      FeatureId.cgyy => '订单编号',
+      _ => null,
+    };
+    if (label == null) return null;
+    for (final field in detail.fields) {
+      final value = field.value.trim();
+      if (field.label == label && value.isNotEmpty) {
+        return (
+          operation: widget.feature == FeatureId.libbook
+              ? WriteOperation.libbookCancelBooking
+              : WriteOperation.cgyyCancelOrder,
+          targetId: value,
+        );
+      }
     }
     return null;
   }
