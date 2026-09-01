@@ -12,6 +12,16 @@
 Cgyy Direct 写探针。本记录仅保留来源证据，不属于当前执行合同；当前唯一真实网络入口是
 `core-live`，只验证 Direct 和 WebVPN 的读操作，任何写操作均只做 Mock/Fixture 验证。
 
+2026-09-01 bridge 写入边界复核（Cgyy/Ygdk）：本轮只修改 Flutter bridge 的本地输入校验和
+intent 摘要规范化，没有改变 Core facade、上游 URL、HTTP 方法、验证码挑战、正文或错误协议。
+Cgyy 的站点/日期/时段/同房间/必填文本/正数约束与 `crates/ubaa-core/src/features/cgyy.rs`
+既有 `validate_submit_request` 及共享 UI typed 表单一致；验证码仍由 Core 内部获取、求解和校验。
+`cgyy_canonical`/`ygdk_canonical` 仅保留公开结构和文本形状，不保留或哈希电话、主题、参与人、
+活动正文、地点、照片文件名和照片字节。脱敏测试
+`api::write::tests::write_digest_shapes_do_not_include_sensitive_text_or_photo_bytes` 与
+`api::write::tests::cgyy_prepare_rejects_incomplete_request_before_route_resolution` 证明该边界；
+本轮没有真实账号写入、验证码材料或照片上传。
+
 Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` 返回
 `data.courseList` 对象包装，而不是直接数组。Rust 现同时接受该冻结包装和既有数组
 兼容形状；`features/bykc.rs` 单元测试先复现旧实现失败，再验证 `id`、`courseInfo.id`

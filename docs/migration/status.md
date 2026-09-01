@@ -2,6 +2,13 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 场馆预约 bridge 输入与摘要安全门禁
+
+- `prepareCgyySubmitReservation` 现在在路线解析前校验站点、日期、至少一个有效时段、同一房间约束、联系电话/主题/活动内容、用途编号和参与人数；非法输入统一返回 `InvalidInput`，不建立路线请求、不保存写 intent。
+- 先加入失败回归并在旧实现上观察到 `AuthenticationRequired`，再完成最小修复；聚焦 bridge 测试确认不完整请求被前置拒绝且 pending intent 为空。
+- 场馆预约与阳光打卡的 `request_digest` 规范化为非敏感形状：不包含电话、主题、参与人、活动正文、地点、照片文件名或照片字节，仅保留必要的存在/长度、结构 ID、MIME 和布尔状态，避免将可逆个人或照片材料带入 Dart intent 投影。
+- 本轮不改变 Core 上游 URL、HTTP 方法、验证码挑战或提交字段；冻结来源对照见 `docs/migration/source-parity.md`，新增 Rust bridge 脱敏回归与全量合同门禁通过，未执行真实预约或照片上传。
+
 ## 2026-09-01 阳光打卡 bridge 输入前置验证
 
 - `f38c07d` 在 `prepareYgdkSubmit` 进入路线解析前校验照片存在且非空、开始/结束时间成对提供；无效输入直接返回稳定 `InvalidInput`，不建立路线请求、不保存写 intent。

@@ -248,6 +248,8 @@ Core。过期、已消费、client 重开、策略改变、Session 改变、同�
 场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token
 或 verification。`evaluationSubmit` 的原始字符串 payload 不生成到 Dart。
 
+场馆预约的 bridge prepare 在路线解析前执行本地输入门禁：站点/日期、至少一个有效时段、同一房间、联系电话/主题/活动内容、正用途编号和正参与人数必须满足；这只约束产品 typed 请求，不改变 Core 上游协议。阳光打卡和场馆预约的 `request_digest` 只对非敏感形状做规范化（结构 ID、文本存在/长度、照片字节数/MIME、布尔值），不写入或哈希返回电话、主题、参与人、活动正文、地点、照片文件名和照片字节，避免敏感材料穿过 intent 投影；对应回归记录在 `docs/migration/source-parity.md`。
+
 ## 7. 来源对照与安全边界
 
 | bridge 领域 | 协议对照权威 |

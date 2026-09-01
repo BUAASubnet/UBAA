@@ -314,6 +314,8 @@
 82. `f38c07d` 的合同 CI `33507226398`、Flutter 原生五平台 CI `33507226352`，以及生成提交 `6bc7889` 的合同 CI
     `33509909514`、Flutter 原生五平台 CI `33509909557` 均成功；文档提交 `4e28091` 的 CI `33510082731` 也成功。
     CI 仍不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 及完整 P4 仍未完成。
+83. 当前 bridge 对 `prepareCgyySubmitReservation` 增加路线解析前的 typed 输入门禁：站点/日期、至少一个有效时段、同一房间、联系电话/主题/活动内容、正用途编号和正参与人数均须满足；失败回归先观察到旧实现返回 `AuthenticationRequired`，修复后统一返回 `InvalidInput` 且不保存 intent。
+    `cgyy_canonical`/`ygdk_canonical` 同时收敛为非敏感形状摘要，不保留或哈希电话、主题、参与人、活动正文、地点、照片文件名和照片字节；新增 bridge 脱敏回归、`just check-sensitive` 与 `just check` 通过。本轮未改变 Core 上游协议、未执行真实写入、验证码材料或照片上传，P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

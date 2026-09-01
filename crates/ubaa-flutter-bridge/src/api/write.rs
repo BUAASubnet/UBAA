@@ -322,16 +322,7 @@ impl BridgeClient {
         request: BridgeYgdkSubmitRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
         validate_ygdk_request(&request)?;
-        let photo_digest = request.photo.as_ref().map(|p| digest_bytes(&p.bytes));
-        let canonical = format!(
-            "item={:?};start={:?};end={:?};place={:?};share={:?};photo={:?}",
-            request.item_id,
-            request.start_time,
-            request.end_time,
-            request.place,
-            request.share_to_square,
-            photo_digest
-        );
+        let canonical = ygdk_canonical(&request);
         self.prepare_write(
             ReadonlyFeature::Ygdk,
             BridgeWriteOperation::YgdkSubmit,
@@ -346,27 +337,8 @@ impl BridgeClient {
         &self,
         request: BridgeCgyySubmitReservationRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
-        validate_text(&request.reservation_date)?;
-        validate_text(&request.phone)?;
-        validate_text(&request.theme)?;
-        let canonical = format!(
-            "site={};date={};selections={:?};phone={};theme={};purpose={};joiner_num={};content={};joiners={};philosophy={};off_school={}",
-            request.venue_site_id,
-            request.reservation_date,
-            request
-                .selections
-                .iter()
-                .map(|s| (s.space_id, s.time_id, s.venue_space_group_id))
-                .collect::<Vec<_>>(),
-            request.phone,
-            request.theme,
-            request.purpose_type,
-            request.joiner_num,
-            request.activity_content,
-            request.joiners,
-            request.is_philosophy_social_sciences,
-            request.is_off_school_joiner
-        );
+        validate_cgyy_request(&request)?;
+        let canonical = cgyy_canonical(&request);
         self.prepare_write(
             ReadonlyFeature::Cgyy,
             BridgeWriteOperation::CgyySubmitReservation,
@@ -692,6 +664,82 @@ fn validate_ygdk_request(request: &BridgeYgdkSubmitRequest) -> Result<(), Bridge
     }
     Ok(())
 }
+
+fn validate_cgyy_request(request: &BridgeCgyySubmitReservationRequest) -> Result<(), BridgeError> {
+    validate_id_i32(request.venue_site_id)?;
+    validate_text(&request.reservation_date)?;
+    if request.selections.is_empty() {
+        return Err(invalid_input("至少选择一个预约时段"));
+    }
+    let first_space = request.selections[0].space_id;
+    for selection in &request.selections {
+        validate_id_i32(selection.space_id)?;
+        validate_id_i32(selection.time_id)?;
+        if selection.space_id != first_space {
+            return Err(invalid_input("同次预约只能选择同一房间的时段"));
+        }
+    }
+    validate_text(&request.phone)?;
+    validate_text(&request.theme)?;
+    if request.purpose_type <= 0 {
+        return Err(invalid_input("用途编号必须是正整数"));
+    }
+    if request.joiner_num <= 0 {
+        return Err(invalid_input("参与人数必须是正整数"));
+    }
+    validate_text(&request.activity_content)?;
+    Ok(())
+}
+
+fn ygdk_canonical(request: &BridgeYgdkSubmitRequest) -> String {
+    let photo_shape = request.photo.as_ref().map_or_else(
+        || "none".to_owned(),
+        |photo| format!("present:{}:{}", photo.bytes.len(), photo.mime_type),
+    );
+    format!(
+        "item={:?};start={};end={};place={};share={:?};photo={}",
+        request.item_id,
+        text_shape(request.start_time.as_deref()),
+        text_shape(request.end_time.as_deref()),
+        text_shape(request.place.as_deref()),
+        request.share_to_square,
+        photo_shape,
+    )
+}
+
+fn cgyy_canonical(request: &BridgeCgyySubmitReservationRequest) -> String {
+    let selections = request
+        .selections
+        .iter()
+        .map(|selection| {
+            (
+                selection.space_id,
+                selection.time_id,
+                selection.venue_space_group_id,
+            )
+        })
+        .collect::<Vec<_>>();
+    format!(
+        "site={};date={};selections={selections:?};phone={};theme={};purpose={};joiner_num={};content={};joiners={};philosophy={};off_school={}",
+        request.venue_site_id,
+        request.reservation_date,
+        text_shape(Some(&request.phone)),
+        text_shape(Some(&request.theme)),
+        request.purpose_type,
+        request.joiner_num,
+        text_shape(Some(&request.activity_content)),
+        text_shape(Some(&request.joiners)),
+        request.is_philosophy_social_sciences,
+        request.is_off_school_joiner,
+    )
+}
+
+fn text_shape(value: Option<&str>) -> String {
+    value.map_or_else(
+        || "none".to_owned(),
+        |text| format!("present:{}", text.len()),
+    )
+}
 fn invalid_input(message: &str) -> BridgeError {
     BridgeError::local(
         BridgeErrorCode::InvalidInput,
@@ -707,8 +755,10 @@ fn safe_message(message: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        BridgeBykcCourseRequest, BridgePhotoUpload, BridgeYgdkSubmitRequest, PendingEntry,
-        PendingWrite, digest, map_resolution_error, random_id,
+        BridgeBykcCourseRequest, BridgeCgyyReservationSelection,
+        BridgeCgyySubmitReservationRequest, BridgePhotoUpload, BridgeYgdkSubmitRequest,
+        PendingEntry, PendingWrite, cgyy_canonical, digest, map_resolution_error, random_id,
+        ygdk_canonical,
     };
     use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 
@@ -721,6 +771,55 @@ mod tests {
         assert_ne!(first, second);
         assert_eq!(digest("course_id=7").len(), 64);
         assert_eq!(digest("course_id=7"), digest("course_id=7"));
+    }
+
+    #[test]
+    fn write_digest_shapes_do_not_include_sensitive_text_or_photo_bytes() {
+        let cgyy = BridgeCgyySubmitReservationRequest {
+            venue_site_id: 4,
+            reservation_date: "2026-09-02".to_owned(),
+            selections: vec![BridgeCgyyReservationSelection {
+                space_id: 6,
+                time_id: 242,
+                venue_space_group_id: None,
+            }],
+            phone: "phone-secret".to_owned(),
+            theme: "theme-secret".to_owned(),
+            purpose_type: 1,
+            joiner_num: 2,
+            activity_content: "activity-secret".to_owned(),
+            joiners: "joiner-secret".to_owned(),
+            is_philosophy_social_sciences: false,
+            is_off_school_joiner: true,
+        };
+        let cgyy_shape = cgyy_canonical(&cgyy);
+        for secret in [
+            "phone-secret",
+            "theme-secret",
+            "activity-secret",
+            "joiner-secret",
+        ] {
+            assert!(!cgyy_shape.contains(secret));
+        }
+        assert!(cgyy_shape.contains("phone=present:12"));
+
+        let ygdk = BridgeYgdkSubmitRequest {
+            item_id: Some(1),
+            start_time: Some("2026-09-02 08:00".to_owned()),
+            end_time: Some("2026-09-02 09:00".to_owned()),
+            place: Some("private-place".to_owned()),
+            share_to_square: Some(false),
+            photo: Some(BridgePhotoUpload {
+                bytes: vec![0xde, 0xad, 0xbe, 0xef],
+                file_name: "private-photo.jpg".to_owned(),
+                mime_type: "image/jpeg".to_owned(),
+            }),
+        };
+        let ygdk_shape = ygdk_canonical(&ygdk);
+        assert!(!ygdk_shape.contains("private-place"));
+        assert!(!ygdk_shape.contains("private-photo.jpg"));
+        assert!(!ygdk_shape.contains("deadbeef"));
+        assert!(ygdk_shape.contains("photo=present:4:image/jpeg"));
     }
 
     #[test]
@@ -821,6 +920,37 @@ mod tests {
             .await
             .expect_err("both Ygdk times must be supplied during prepare");
         assert_eq!(missing_time.code, BridgeErrorCode::InvalidInput);
+        assert!(client.write_intents.lock().await.is_empty());
+        client.dispose().await.expect("dispose client");
+        let _ = std::fs::remove_dir_all(path);
+    }
+
+    #[tokio::test]
+    async fn cgyy_prepare_rejects_incomplete_request_before_route_resolution() {
+        let path = std::env::temp_dir().join(format!(
+            "ubaa-bridge-cgyy-input-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
+        let error = client
+            .prepare_cgyy_submit_reservation(BridgeCgyySubmitReservationRequest {
+                venue_site_id: 4,
+                reservation_date: "2026-09-02".to_owned(),
+                selections: Vec::new(),
+                phone: "010-00000000".to_owned(),
+                theme: "测试预约".to_owned(),
+                purpose_type: 0,
+                joiner_num: 0,
+                activity_content: String::new(),
+                joiners: String::new(),
+                is_philosophy_social_sciences: false,
+                is_off_school_joiner: false,
+            })
+            .await
+            .expect_err("invalid Cgyy input must be rejected during prepare");
+        assert_eq!(error.code, BridgeErrorCode::InvalidInput);
         assert!(client.write_intents.lock().await.is_empty());
         client.dispose().await.expect("dispose client");
         let _ = std::fs::remove_dir_all(path);
