@@ -1061,6 +1061,8 @@ class _FeatureQueryControls extends StatefulWidget {
 class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _termController;
   late final TextEditingController _dateController;
+  late final TextEditingController _floorController;
+  late final TextEditingController _sectionController;
   late final TextEditingController _weekController;
   late final TextEditingController _pageController;
   late final TextEditingController _sizeController;
@@ -1094,6 +1096,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     super.initState();
     _termController = TextEditingController();
     _dateController = TextEditingController(text: _today());
+    _floorController = TextEditingController();
+    _sectionController = TextEditingController();
     _weekController = TextEditingController();
     _pageController = TextEditingController(text: '1');
     _sizeController = TextEditingController(text: '20');
@@ -1114,6 +1118,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   void dispose() {
     _termController.dispose();
     _dateController.dispose();
+    _floorController.dispose();
+    _sectionController.dispose();
     _weekController.dispose();
     _pageController.dispose();
     _sizeController.dispose();
@@ -1250,6 +1256,28 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 decoration: const InputDecoration(
                   labelText: '日期',
                   hintText: 'YYYY-MM-DD',
+                  isDense: true,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 130,
+              child: TextField(
+                controller: _floorController,
+                decoration: const InputDecoration(
+                  labelText: '楼层（可选）',
+                  hintText: '如 F2',
+                  isDense: true,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 130,
+              child: TextField(
+                controller: _sectionController,
+                decoration: const InputDecoration(
+                  labelText: '节次（可选）',
+                  hintText: '如 3',
                   isDense: true,
                 ),
               ),
@@ -1784,6 +1812,14 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
             return;
           }
         }
+        final rawSection = _sectionController.text.trim();
+        if (rawSection.isNotEmpty) {
+          final section = int.tryParse(rawSection);
+          if (section == null || section <= 0) {
+            _showMessage('节次必须是正整数。');
+            return;
+          }
+        }
       }
       if (widget.feature == FeatureId.bykc) {
         if (_bykcView == FeatureQueryView.summary) {
@@ -1907,6 +1943,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : _termController.text.trim(),
           date: date,
           campus: widget.feature == FeatureId.classroom ? _campus : null,
+          floorId: widget.feature == FeatureId.classroom
+              ? _optionalText(_floorController)
+              : null,
+          section: widget.feature == FeatureId.classroom
+              ? _optionalText(_sectionController)
+              : null,
           week: week,
           page: page,
           size: size,

@@ -530,23 +530,26 @@ class BridgeBackend
             campus: query.campus ?? 1,
             date: today,
           );
-          final rooms = result.data.floors.fold<int>(
-            0,
-            (total, floor) => total + floor.rooms.length,
-          );
+          final floorFilter = query.floorId?.trim();
+          final sectionFilter = query.section?.trim();
           final details = <FeatureDetail>[
             for (final floor in result.data.floors)
               for (final room in floor.rooms)
+                if (_matchesClassroomFloor(room, floor.name, floorFilter) &&
+                    _matchesClassroomSection(
+                      room.availableSections,
+                      sectionFilter,
+                    ))
                 FeatureDetail(
                   title: room.name,
                   subtitle: floor.name,
                   fields: _compactFields(<FeatureField?>[
                     _field('可用节次', room.availableSections),
                   ]),
-                ),
+              ),
           ];
           return _countResult(
-            rooms,
+            details.length,
             '间可用教室',
             details: details,
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
@@ -1472,6 +1475,27 @@ class BridgeBackend
   static String? _nonBlank(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  static bool _matchesClassroomFloor(
+    BridgeClassroomInfo room,
+    String floorName,
+    String? filter,
+  ) {
+    if (filter == null || filter.isEmpty) return true;
+    final normalized = filter.toLowerCase();
+    return room.floorId.trim().toLowerCase() == normalized ||
+        floorName.trim().toLowerCase() == normalized;
+  }
+
+  /// 冻结 `kxsds`/`availableSections` 是逗号分隔的节次序号；只匹配完整令牌，
+  /// 避免把第 3 节误命中为第 13 节。
+  static bool _matchesClassroomSection(String available, String? filter) {
+    if (filter == null || filter.isEmpty) return true;
+    return available
+        .split(',')
+        .map((item) => item.trim())
+        .any((item) => item == filter);
   }
 
   static BackendException _mapError(BridgeError error) =>

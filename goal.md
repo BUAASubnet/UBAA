@@ -116,7 +116,7 @@
 20. 当前 `AppController` 仅从可用安全保险箱恢复并执行用户已选择的自动登录，随后清空密码；
    不可用保险箱会禁用持久化选项。自动登录确定性测试已通过，但六平台原生安全存储插件和
    生命周期/设备证据仍属于 P5/P6。
-21. `FeatureQuery` 已固定 term/date/campus/week/page/size 非敏感参数；`FeatureQueryBackend` 将课表
+21. `FeatureQuery` 已固定 term/date/campus/floorId/section/week/page/size 非敏感参数；`FeatureQueryBackend` 将课表
    学期/周次、考试/成绩学期、空教室日期/校区和博雅分页以 typed 方式传入 Core，详情页查询控件
    与 app/widget 测试已接线（博雅页码控件遵循 1-based）；bridge 将博雅页码明确收敛为 Core 要求的 1-based。其余领域筛选、
    服务端分页、逐领域详情闭环、golden/integration 和写入页面仍未完成。
@@ -216,6 +216,10 @@
     hvigor/project `modelVersion: "6.0.0"`；Studio 默认路径和 CLI 根路径执行
     `just ohos-check mode=debug` 均通过工具链、Dart、native 前置并进入 HAP assemble，随后
     在调试签名配置处停止。未配置自动签名、未签名/上传 HAP、未连接设备；P0/P6 仍未完成。
+50. 空教室查询现支持 `floorId` 与 `section` 本地筛选：楼层按白名单 `floorId` 或分组名精确匹配，
+    节次按冻结 `kxsds`/`availableSections` 的逗号分隔令牌精确匹配；`BridgeBackend` 仍只调用
+    `classroomSearch(campus,date)`，未改变上游参数。widget 控件参数测试通过，P3 的服务端筛选/分页、
+    完整领域状态、golden/integration 与真实 Flutter App E2E 仍未闭合。
 
 ## 4. 安全与架构边界
 

@@ -47,7 +47,7 @@
   伪造 Demo 登录、刷新失败后的 `stale` 数据保留、实际路线投影以及未认证固定路线的安全
   回登录。
 - `BridgeBackend` 已为 12 个只读功能映射白名单详情，并为课表/考试/成绩提供学期（课表另有
-  周次）、空教室提供日期和校区的 typed 查询入口；详情页控件只向
+  周次）、空教室提供日期/校区及楼层/节次本地过滤的 typed 查询入口；详情页控件只向
   `AppController.refreshFeatureQuery` 传递 `FeatureQuery`，不拼接 URL。上述入口已有 app/widget
   参数传递测试。
 - 博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/

@@ -331,6 +331,8 @@ class FeatureQuery {
     this.term,
     this.date,
     this.campus,
+    this.floorId,
+    this.section,
     this.week,
     this.page = 0,
     this.size = 20,
@@ -350,6 +352,10 @@ class FeatureQuery {
   final String? term;
   final DateTime? date;
   final int? campus;
+  /// 空教室结果的本地楼层筛选，不改变 Core 的固定查询参数。
+  final String? floorId;
+  /// 空教室结果的本地节次筛选，按白名单 `availableSections` 文本匹配。
+  final String? section;
   final int? week;
   final int page;
   final int size;
@@ -372,6 +378,8 @@ class FeatureQuery {
     String? term,
     DateTime? date,
     int? campus,
+    String? floorId,
+    String? section,
     int? week,
     int? page,
     int? size,
@@ -390,6 +398,8 @@ class FeatureQuery {
     term: term ?? this.term,
     date: date ?? this.date,
     campus: campus ?? this.campus,
+    floorId: floorId ?? this.floorId,
+    section: section ?? this.section,
     week: week ?? this.week,
     page: page ?? this.page,
     size: size ?? this.size,

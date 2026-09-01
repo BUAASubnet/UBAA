@@ -229,6 +229,51 @@ void main() {
     expect(received?.campus, 2);
   });
 
+  testWidgets('空教室查询控件提交楼层和节次本地筛选参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.classroom);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('空教室查询'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(1), 'F2');
+    await tester.enterText(fields.at(2), '3');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.floorId, 'F2');
+    expect(received?.section, '3');
+  });
+
   testWidgets('考试查询控件提交已安排本地派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

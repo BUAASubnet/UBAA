@@ -36,6 +36,17 @@
 - P3 仍未完成：成绩更细的服务端筛选/分页、完整状态核对、golden/integration、真实 Flutter
   App E2E 和其他领域细粒度筛选仍缺证据。
 
+## 2026-09-01 空教室楼层与节次本地筛选
+
+- `FeatureQuery` 新增非敏感 `floorId`/`section` 字段；页面同时提交日期、校区和这两个本地
+  筛选值。`BridgeBackend` 仍只调用冻结的 `classroomSearch(campus,date)`，不会把新字段拼入
+  URL 或改变上游请求。
+- 楼层按白名单 `floorId` 或分组楼层名精确匹配；节次按冻结 `kxsds`/`availableSections`
+  的逗号分隔令牌精确匹配，避免第 3 节误命中第 13 节。widget 回归覆盖控件参数传递，并保留
+  首次缺字段的编译失败证据后通过。
+- P3 仍未完成：服务端筛选/分页、所有领域完整状态、golden/integration、真实 Flutter App
+  E2E 及写入页面仍缺证据。
+
 ## 2026-09-01 考试安排本地派生视图
 
 - 普通功能页新增“全部考试/已安排/未安排”封闭视图；BridgeBackend 三种视图均调用同一
@@ -239,10 +250,10 @@
 
 ## 2026-09-01 Flutter P3 查询入口与页面状态推进
 
-- `FeatureQuery` 固定 term/date/campus/week/page/size 六类非敏感查询参数；`FeatureQueryBackend` 作为
+- `FeatureQuery` 固定 term/date/campus/floorId/section/week/page/size 八类非敏感查询参数；`FeatureQueryBackend` 作为
   可选能力保持旧 fake backend 兼容，`AppController.refreshFeatureQuery` 不支持时返回稳定
   `unsupported`，不会在 Dart 端拼接 URL 或伪造查询成功。
-- `BridgeBackend` 的课表学期/周次、考试/成绩学期和空教室日期/校区参数已 typed 传递到 Core；
+- `BridgeBackend` 的课表学期/周次、考试/成绩学期和空教室日期/校区参数已 typed 传递到 Core；空教室楼层/节次仅在白名单结果上本地过滤；
   博雅列表的 1-based page/size 也经过 bridge 边界收敛。官方 Flutter 与 OHOS 宿主均把详情页查询回调接到同一
   协调器。
 - 详情页新增课表/考试/成绩学期编码（课表可选周次）、空教室日期/校区及博雅 1-based 页码/每页数量控件，非法日期、周次或分页显示

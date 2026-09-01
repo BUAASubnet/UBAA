@@ -126,6 +126,10 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 - `ClassroomQuery {code,message,floors}`；`floors` 在 bridge 中编码为
   `List<ClassroomFloor {name,rooms}>`，避免跨语言 map 顺序差异；
   `ClassroomInfo {id,floorId,name,availableSections}`。
+
+空教室页面的 `floorId` 和 `section` 仅是 Dart 对上述白名单 DTO 的本地筛选参数：前者按
+`ClassroomInfo.floorId` 或分组楼层名精确匹配，后者按冻结 `availableSections` 的逗号分隔
+节次令牌精确匹配；它们不会改变 `classroomSearch(campus,date)` 的请求、会话或上游协议。
 - `SpocAssignments {termCode,termName?,assignments}`；摘要字段为
   `{assignmentId,courseId,courseName,teacherName?,title,startTime?,dueTime?,score?,submissionStatus,submissionStatusText}`；
   详情在摘要字段后增加 `{contentPlainText?,submittedAt?}`。

@@ -28,7 +28,7 @@ DTO，不修改任何 URL、service、跳转、Cookie/Session、HTTP 参数、He
 | bridge 领域 | 本文件权威段落 | Flutter 仅新增的产品语义 |
 |---|---|---|
 | 认证、用户、路线 | 网关探测；双路线加载/保存/退出；准备/登录；用户资料；CLI 与配置 | opaque client、资料白名单、typed error、策略切换后重开 |
-| 课表、考试、成绩、空教室 | 未改变的课表/考试证据；未改变的成绩证据；空教室会话同步/查询 | typed DTO 与 `RouteDecision`；考试“已安排/未安排”仅投影同一 `examArrangement(term)` 信封的冻结两列表；成绩“已出/待出”仅按冻结 `score` 字段非空性本地投影，均不新增请求 |
+| 课表、考试、成绩、空教室 | 未改变的课表/考试证据；未改变的成绩证据；空教室会话同步/查询 | typed DTO 与 `RouteDecision`；考试“已安排/未安排”仅投影同一 `examArrangement(term)` 信封的冻结两列表；成绩“已出/待出”仅按冻结 `score` 字段非空性本地投影；空教室楼层按 `floorid`/分组名、节次按冻结逗号分隔 `kxsds` 令牌本地精确过滤，均不新增请求 |
 | SPOC、Judge | SPOC 认证/列表/详情；Judge 列表/详情/批量与缓存 | 不生成诊断入口，只生成列表/详情 DTO；Judge 列表的“包含已过期”仅传递冻结 `includeExpired` 本地截止时间筛选参数 |
 | Signin、Ygdk、LibBook | 课堂签到今日查询；阳光打卡只读查询；图书馆座位只读查询；直接写操作表 | typed prepare、一次性 intent、commit 后读取核对 |
 | Bykc、Cgyy、Evaluation | 博雅课程只读查询；场馆预约只读查询；直接写操作表 | Cgyy 用途来源明示；待评由 `is_evaluated=false` 派生；原始评教 payload 不暴露 |
