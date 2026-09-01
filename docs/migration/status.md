@@ -2,6 +2,13 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 希冀过期作业筛选
+
+- 希冀作业列表控件现提供“包含已过期作业”本地开关，按冻结 `judgeAssignments(includeExpired)`
+  的既有参数传递，不新增上游字段或请求；详情视图不显示该开关。
+- widget 回归覆盖开关到 typed `FeatureQuery.includeExpired` 的传递，未触发任何写操作。
+- P3 仍未完成：完整作业状态/分页、golden/integration、真实 Flutter App E2E 及写入表单仍缺证据。
+
 ## 2026-09-01 成绩状态本地派生视图
 
 - 普通功能页新增“全部成绩/已出成绩/待出成绩”封闭视图；BridgeBackend 三种视图均调用同一

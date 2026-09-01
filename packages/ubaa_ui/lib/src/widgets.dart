@@ -1086,6 +1086,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   FeatureQueryView _cgyyView = FeatureQueryView.summary;
   FeatureQueryView _spocView = FeatureQueryView.summary;
   FeatureQueryView _judgeView = FeatureQueryView.summary;
+  bool _includeExpired = false;
   bool _submitting = false;
 
   @override
@@ -1715,6 +1716,14 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
             ],
+            if (_judgeView == FeatureQueryView.summary)
+              FilterChip(
+                label: const Text('包含已过期作业'),
+                selected: _includeExpired,
+                onSelected: _submitting
+                    ? null
+                    : (selected) => setState(() => _includeExpired = selected),
+              ),
           ],
           FilledButton.tonal(
             onPressed: _submitting ? null : _apply,
@@ -1941,6 +1950,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : widget.feature == FeatureId.bykc
               ? _optionalText(_bykcCourseController)
               : null,
+          includeExpired: widget.feature == FeatureId.judge
+              ? _includeExpired
+              : false,
         ),
       );
     } finally {

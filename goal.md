@@ -203,6 +203,10 @@
     `grades(term)`，仅按冻结 DTO 的 `score` 是否为空在本地派生，控件与 widget 回归已接线，
     未新增接口或写操作。成绩服务端筛选/分页、空教室/签到细筛及完整 P3 状态、真实 Flutter
     E2E 仍未闭合。
+47. 希冀作业列表控件现提供“包含已过期作业”本地开关，按冻结
+    `judgeAssignments(includeExpired)` 的既有 typed 参数传递；详情视图不显示该开关，widget
+    回归已覆盖，未新增接口或写操作。完整作业状态/分页、golden/integration、真实 Flutter
+    E2E 与 P4 写入页面仍未闭合。
 
 ## 4. 安全与架构边界
 
