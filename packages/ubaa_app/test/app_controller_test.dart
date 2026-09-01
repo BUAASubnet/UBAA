@@ -134,6 +134,26 @@ void main() {
     controller.dispose();
   });
 
+  test('明确空结果后刷新失败不伪造成 stale 旧数据', () async {
+    var loads = 0;
+    final backend = _FlakyBackend(
+      load: (_) async {
+        loads++;
+        if (loads == 1) return const FeatureResult.empty();
+        throw const BackendException(UbaaErrorCode.networkError);
+      },
+    );
+    final controller = AppController(backend: backend);
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    final snapshot = controller.snapshots[FeatureId.schedule]!;
+    expect(snapshot.status, FeatureLoadStatus.failure);
+    expect(snapshot.summary, isNull);
+    expect(snapshot.details, isEmpty);
+    expect(snapshot.error?.code, UbaaErrorCode.networkError);
+    controller.dispose();
+  });
+
   test('读取结果保留 Core 实际解析路线而不使用配置策略替代', () async {
     final backend = _FlakyBackend(
       load: (_) async => const FeatureResult.success(

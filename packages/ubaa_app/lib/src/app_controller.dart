@@ -694,7 +694,11 @@ class AppController extends ChangeNotifier {
     FeatureQuery? query,
   }) async {
     final started = DateTime.now();
-    final hadPreviousData = _snapshots[feature]!.updatedAt != null;
+    final previous = _snapshots[feature]!;
+    final hadPreviousData =
+        previous.updatedAt != null &&
+        (previous.details.isNotEmpty ||
+            previous.summary?.trim().isNotEmpty == true);
     try {
       final result = switch ((_backend, query)) {
         (FeatureQueryBackend queryBackend, final FeatureQuery value) =>
