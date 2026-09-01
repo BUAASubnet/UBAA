@@ -281,7 +281,7 @@ class _LoginOptions extends StatelessWidget {
             children: <Widget>[
               Checkbox(
                 value: rememberPassword,
-                onChanged: enabled
+                onChanged: enabled && persistenceAvailable
                     ? (value) => onRememberPasswordChanged(value ?? false)
                     : null,
               ),
@@ -293,7 +293,7 @@ class _LoginOptions extends StatelessWidget {
             children: <Widget>[
               Checkbox(
                 value: autoLogin,
-                onChanged: enabled
+                onChanged: enabled && persistenceAvailable
                     ? (value) => onAutoLoginChanged(value ?? false)
                     : null,
               ),

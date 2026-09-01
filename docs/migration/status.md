@@ -754,3 +754,11 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   `just flutter-build` 的 macOS debug 已重新通过，Podfile.lock 校验同步更新。
 - 写 intent 路线复核将 Core 已冻结的跨进程会话修订冲突安全投影为 `operation_conflict`，并有
   bridge 单元测试；不会继续提交旧请求。
+
+## 2026-09-01 自动登录与敏感输入生命周期
+
+- `AppController.initialize` 现在仅在安全 `CredentialVault` 返回且用户此前明确开启
+  `autoLogin` 时自动提交一次登录；成功或失败都会清空 controller 中的密码，错误凭据会清理
+  保险箱。自动登录偏好随最小凭据对象保存，安全存储不可用时复用本次会话但不宣称持久化。
+- 登录 UI 在安全存储不可用时同时禁用“记住密码”和“自动登录”选项；没有改变 Core 协议或
+  真实写入范围，平台原生插件仍待 P5。

@@ -7,17 +7,25 @@ import 'package:meta/meta.dart';
 /// 系统 Keychain/Keystore，并在请求完成后尽快释放引用。
 @immutable
 class Credential {
-  const Credential({required this.username, required this.password});
+  const Credential({
+    required this.username,
+    required this.password,
+    this.autoLogin = false,
+  });
 
   final String username;
   final String password;
+  /// 仅在用户明确开启“自动登录”时保存的非秘密偏好。
+  final bool autoLogin;
 
   /// 是否满足最小输入要求。
   bool get isUsable => username.trim().isNotEmpty && password.isNotEmpty;
 
-  Credential copyWith({String? username, String? password}) => Credential(
+  Credential copyWith({String? username, String? password, bool? autoLogin}) =>
+      Credential(
     username: username ?? this.username,
     password: password ?? this.password,
+    autoLogin: autoLogin ?? this.autoLogin,
   );
 
   @override
@@ -27,10 +35,11 @@ class Credential {
   bool operator ==(Object other) =>
       other is Credential &&
       other.username == username &&
-      other.password == password;
+      other.password == password &&
+      other.autoLogin == autoLogin;
 
   @override
-  int get hashCode => Object.hash(username, password);
+  int get hashCode => Object.hash(username, password, autoLogin);
 }
 
 /// 兼容调用方常用的复数命名。
@@ -104,7 +113,10 @@ abstract class CredentialVault {
   Future<void> saveCredentials({
     required String username,
     required String password,
-  }) => save(Credential(username: username, password: password));
+    bool autoLogin = false,
+  }) => save(
+    Credential(username: username, password: password, autoLogin: autoLogin),
+  );
 
   /// `load` 的字段命名别名。
   Future<Credential?> loadCredentials() => load();

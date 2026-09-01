@@ -97,8 +97,19 @@ class AppController extends ChangeNotifier {
         }
       }
       final saved = await _credentialVault.read();
-      if (saved != null) {
-        _loginForm = _loginForm.copyWith(username: saved.username);
+      if (saved != null && saved.isUsable) {
+        _loginForm = _loginForm.copyWith(
+          username: saved.username,
+          autoLogin: saved.autoLogin,
+          rememberPassword: _credentialVault.isAvailable,
+        );
+        if (saved.autoLogin && _credentialVault.isAvailable) {
+          // 密码只在当前登录调用的短生命周期内放入 controller；submitLogin 成功
+          // 或失败都会清空密码字段，且失败凭据会被清理。
+          _loginForm = _loginForm.copyWith(password: saved.password);
+          await submitLogin();
+          return;
+        }
       }
       _setPhase(AppPhase.login);
     } on BackendException catch (exception) {
@@ -134,7 +145,10 @@ class AppController extends ChangeNotifier {
   }
 
   void setAutoLogin(bool value) {
-    _loginForm = _loginForm.copyWith(autoLogin: value);
+    _loginForm = _loginForm.copyWith(
+      autoLogin: value,
+      rememberPassword: value ? true : _loginForm.rememberPassword,
+    );
     _notify();
   }
 
@@ -178,7 +192,11 @@ class AppController extends ChangeNotifier {
       _user = await _backend.userInfo() ?? UserSummary(username: username);
       if (_loginForm.rememberPassword && _credentialVault.isAvailable) {
         await _credentialVault.write(
-          Credential(username: username, password: _loginForm.password),
+          Credential(
+            username: username,
+            password: _loginForm.password,
+            autoLogin: _loginForm.autoLogin,
+          ),
         );
       } else if (!_loginForm.rememberPassword) {
         await _credentialVault.clear();

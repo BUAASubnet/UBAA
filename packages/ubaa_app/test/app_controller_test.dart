@@ -33,6 +33,25 @@ void main() {
     controller.dispose();
   });
 
+  test('安全保险箱明确开启自动登录时恢复会话并清理密码', () async {
+    final controller = AppController(
+      backend: DemoBackend(loginDelay: Duration.zero),
+      credentialVault: MemoryCredentialVault(
+        initial: const Credential(
+          username: '2020000000',
+          password: 'saved-secret',
+          autoLogin: true,
+        ),
+      ),
+    );
+    await controller.initialize();
+    expect(controller.phase, AppPhase.home);
+    expect(controller.user?.username, '2020000000');
+    expect(controller.loginForm.password, isEmpty);
+    expect(controller.loginForm.autoLogin, isTrue);
+    controller.dispose();
+  });
+
   test('错误映射不暴露上游细节', () {
     final error = UbaaErrorMapper.fromCode(UbaaErrorCode.networkError);
     expect(error.message, contains('校园网'));
