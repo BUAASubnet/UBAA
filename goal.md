@@ -370,6 +370,9 @@
     `PASS source=static_fallback`，本次未调用任何真实写接口。执行时间为 06:07
     （Asia/Shanghai），早于 `libbook/area_detail` 的 08:30–23:00 窗口，因此该项不冒充窗口内
     最终验收，既有窗口内记录继续有效；六平台真实 App E2E、P3–P6 仍未完成。
+120. 提交 `0464971` 的合同 CI `33564697988` 已终态成功；contract-gates、macOS Rust 和 Windows Rust
+    三个 job 全部通过。该文档提交不改变代码、产物、签名或设备证据；OHOS 签名 HAP、实体设备、正式
+    Release/公证和真实六平台 Flutter→FRB→Core E2E 仍未完成，P0/P5/P6 继续受阻。
 
 ## 4. 安全与架构边界
 

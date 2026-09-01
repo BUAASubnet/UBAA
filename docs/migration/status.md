@@ -15,6 +15,12 @@
   营业窗口；该项仅作为当前提交的观察记录，最终窗口内证据继续采用既有记录。该复核不替代六平台
   Flutter→FRB→Core 真实 App E2E，P3–P6 仍未完成。
 
+## 2026-09-02 当前文档提交 CI 终态
+
+- 提交 `0464971` 的合同 CI `33564697988` 已终态成功；contract-gates、macOS Rust 和 Windows
+  Rust 三个 job 全部通过。该文档提交不改变代码、产物、签名或设备证据；OHOS 签名 HAP、实体设备、
+  正式 Release/公证和真实六平台 Flutter→FRB→Core E2E 仍未完成。
+
 ## 2026-09-02 Flutter 宿主集成回归
 
 - 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏集成场景：使用注入的
