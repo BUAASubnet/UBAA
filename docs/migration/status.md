@@ -2,6 +2,10 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 文档矩阵提交 CI 终态
+
+- 提交 `bb51298` 的合同 CI `33543510586` 已终态成功；macOS Rust、Windows Rust 与合同门禁三个 job 均通过。该 CI 不包含 Flutter 原生五平台重建、OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E。
+
 ## 2026-09-02 当前 HEAD 双路线只读复核
 
 - 在当前 HEAD `62ec048` 串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，认证、用户资料和全部必需只读操作均为 `PASS`；两条路线的图书馆 `area_detail` 均为 `PASS(count=1)`，SPOC/博雅课程详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。
