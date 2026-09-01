@@ -35,6 +35,8 @@ void main() {
       campus: 2,
       page: 1,
       size: 50,
+      view: FeatureQueryView.bykcDetail,
+      courseId: '12345',
     );
     final copied = query.copyWith(size: 20);
     expect(copied.term, '2026-2027-1');
@@ -42,5 +44,7 @@ void main() {
     expect(copied.campus, 2);
     expect(copied.page, 1);
     expect(copied.size, 20);
+    expect(copied.view, FeatureQueryView.bykcDetail);
+    expect(copied.courseId, '12345');
   });
 }

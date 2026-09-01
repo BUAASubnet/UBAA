@@ -2,6 +2,17 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 博雅课程详情读取增量
+
+- `FeatureQueryView` 增加 `bykcDetail`；列表现在展示可再次查询的课程 ID，详情视图将用户选择的
+  正整数 ID 传给已有 `bykcCourseDetail` typed facade，并映射课程、教师、地点、时间、容量、
+  状态与已选标记，不接触加密正文或业务令牌。
+- 普通功能页新增“课程列表/课程详情”控件；列表继续使用 Core 的 1-based 服务端分页，详情输入
+  在 UI 与 bridge 两层拒绝非正整数。新增 widget 测试先观察缺失 enum 的编译失败，再验证课程 ID
+  的 typed 传递通过。
+- 本轮只读，不触发选课、退选或签到；P3/P4 仍未完成，已选课程/统计详情、写入表单、结果核对、
+  golden/integration 和六平台真实 App E2E 仍缺证据。
+
 ## 2026-09-01 SPOC/Judge 作业详情读取增量
 
 - `FeatureQueryView` 增加 `spocDetail` 与 `judgeDetail`；`BridgeBackend` 分别以

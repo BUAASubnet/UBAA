@@ -161,12 +161,13 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 类型，不把字符串 ID 自动转数字，不把可选字段默认成空字符串或零。
 
 共享应用层的 `FeatureQuery` 只携带已证明的 typed 查询参数。除学期、日期、校区、周次和分页
-外，图书馆、阳光打卡、场馆预约、SPOC 和 Judge 详情使用封闭的 `FeatureQueryView` 与公开
+外，Bykc、图书馆、阳光打卡、场馆预约、SPOC 和 Judge 详情使用封闭的 `FeatureQueryView` 与公开
 ID/分页字段：
 
 | `view` | 必填字段 | bridge 调用 |
 |---|---|---|
 | `summary` | `date?` | `libbookLibraries(day)` |
+| `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
 | `libbookAreas` | `premisesId`，`storeyId?`，`date?` | `libbookAreas(premisesId, storeyId?, day)` |
 | `libbookAreaDetail` | `areaId` | `libbookAreaDetail(areaId)` |
 | `libbookSeats` | `areaId`、`startTime`、`endTime`、`date?` | `libbookSeats(areaId, day, startTime, endTime)` |

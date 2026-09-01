@@ -229,6 +229,58 @@ void main() {
     expect(received?.campus, 2);
   });
 
+  testWidgets('博雅查询控件提交课程详情 typed 参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[FeatureDetail(title: '课程')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.bykc);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('博雅课程'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课程列表'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课程详情'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '12345');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.view, FeatureQueryView.bykcDetail);
+    expect(received?.courseId, '12345');
+  });
+
   testWidgets('课表查询控件提交学期和周次 typed 参数', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

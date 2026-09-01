@@ -240,39 +240,83 @@ class BridgeBackend
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.bykc:
-          final result = await client.bykcCourses(
-            // Core 的分页合同为 1-based；UI 的通用查询默认从 0 开始，
-            // 因此这里在 bridge 边界显式收敛为首个有效页。
-            page: query.page <= 0 ? 1 : query.page,
-            size: query.size.clamp(1, 100),
-            all: true,
-          );
-          final details = result.data.content
-              .map(
-                (item) => FeatureDetail(
-                  title: item.courseName,
-                  subtitle: item.courseTeacher,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('地点', item.coursePosition),
-                    _field('状态', item.status.name),
-                    item.courseCurrentCount == null
-                        ? null
-                        : _field('已选人数', '${item.courseCurrentCount}'),
-                    item.courseMaxCount == null
-                        ? null
-                        : _field('容量', '${item.courseMaxCount}'),
-                    _field('选课截止', item.courseSelectEndDate),
-                    _field('退选截止', item.courseCancelEndDate),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.content.length,
-            '门博雅课程',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+          switch (query.view) {
+            case FeatureQueryView.summary:
+              final result = await client.bykcCourses(
+                // Core 的分页合同为 1-based；UI 的通用查询默认从 0 开始，
+                // 因此这里在 bridge 边界显式收敛为首个有效页。
+                page: query.page <= 0 ? 1 : query.page,
+                size: query.size.clamp(1, 100),
+                all: true,
+              );
+              final details = result.data.content
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.courseName,
+                      subtitle: item.courseTeacher,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('课程 ID', item.id.toString()),
+                        _field('地点', item.coursePosition),
+                        _field('状态', item.status.name),
+                        item.courseCurrentCount == null
+                            ? null
+                            : _field('已选人数', '${item.courseCurrentCount}'),
+                        item.courseMaxCount == null
+                            ? null
+                            : _field('容量', '${item.courseMaxCount}'),
+                        _field('选课截止', item.courseSelectEndDate),
+                        _field('退选截止', item.courseCancelEndDate),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.content.length,
+                '门博雅课程',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.bykcDetail:
+              final id = _requiredPositiveQueryInt(query.courseId, '课程 ID');
+              final result = await client.bykcCourseDetail(id: id);
+              final item = result.data;
+              return FeatureResult.success(
+                summary: '博雅课程详情',
+                details: <FeatureDetail>[
+                  FeatureDetail(
+                    title: item.courseName,
+                    subtitle: item.courseTeacher,
+                    fields: _compactFields(<FeatureField?>[
+                      _field('课程 ID', item.id.toString()),
+                      _field('地点', item.coursePosition),
+                      _field('状态', item.status.name),
+                      item.courseCurrentCount == null
+                          ? null
+                          : _field('已选人数', '${item.courseCurrentCount}'),
+                      item.courseMaxCount == null
+                          ? null
+                          : _field('容量', '${item.courseMaxCount}'),
+                      _field('开始', item.courseStartDate),
+                      _field('结束', item.courseEndDate),
+                      _field('选课开始', item.courseSelectStartDate),
+                      _field('选课截止', item.courseSelectEndDate),
+                      _field('退选截止', item.courseCancelEndDate),
+                      _field(
+                        '已选',
+                        item.selected == null
+                            ? null
+                            : item.selected!
+                            ? '是'
+                            : '否',
+                      ),
+                    ]),
+                  ),
+                ],
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.classroom:
           final result = await client.classroomSearch(
             campus: query.campus ?? 1,
@@ -579,6 +623,7 @@ class BridgeBackend
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.ygdkRecords:
+            case FeatureQueryView.bykcDetail:
             case FeatureQueryView.cgyyPurposeTypes:
             case FeatureQueryView.cgyyDayInfo:
             case FeatureQueryView.cgyyOrders:
@@ -766,6 +811,7 @@ class BridgeBackend
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.libbookAreas:
+            case FeatureQueryView.bykcDetail:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
@@ -824,6 +870,7 @@ class BridgeBackend
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.libbookAreas:
+            case FeatureQueryView.bykcDetail:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
@@ -1139,6 +1186,18 @@ class BridgeBackend
       );
     }
     return value;
+  }
+
+  static int _requiredPositiveQueryInt(String? value, String label) {
+    final trimmed = value?.trim();
+    final parsed = trimmed == null ? null : int.tryParse(trimmed);
+    if (parsed == null || parsed <= 0) {
+      throw BackendException(
+        UbaaErrorCode.invalidInput,
+        detail: '$label 必须为正整数',
+      );
+    }
+    return parsed;
   }
 
   static String _dateOnly(DateTime value) {

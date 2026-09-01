@@ -180,6 +180,10 @@
     typed 详情 facade，并仅映射作业头、题目状态/分数和纯文本内容；高级功能控件与 widget
     测试已接线，缺少必要编号时返回 `invalid_input`。本轮只读，不代表 P3 的完整详情核对、
     golden/integration、写入页面或六平台真实 App E2E 已完成。
+41. `FeatureQueryView` 现支持 `bykcDetail`；博雅列表展示课程 ID，详情控件与 BridgeBackend
+    仅接受正整数并调用已有 `bykcCourseDetail` typed facade，映射课程/教师/地点/时间/容量/状态
+    白名单字段。widget 测试先观察缺失视图的预期失败再通过；本轮不触发选课、退选或签到，
+    也不代表 P3/P4 的其余详情、表单、核对和六平台 App E2E 已完成。
 
 ## 4. 安全与架构边界
 

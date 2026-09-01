@@ -1070,11 +1070,13 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _endController;
   late final TextEditingController _siteController;
   late final TextEditingController _orderController;
+  late final TextEditingController _bykcCourseController;
   late final TextEditingController _spocAssignmentController;
   late final TextEditingController _judgeCourseController;
   late final TextEditingController _judgeAssignmentController;
   int _campus = 1;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
+  FeatureQueryView _bykcView = FeatureQueryView.summary;
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
   FeatureQueryView _cgyyView = FeatureQueryView.summary;
   FeatureQueryView _spocView = FeatureQueryView.summary;
@@ -1096,6 +1098,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _endController = TextEditingController(text: '22:00');
     _siteController = TextEditingController();
     _orderController = TextEditingController();
+    _bykcCourseController = TextEditingController();
     _spocAssignmentController = TextEditingController();
     _judgeCourseController = TextEditingController();
     _judgeAssignmentController = TextEditingController();
@@ -1115,6 +1118,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _endController.dispose();
     _siteController.dispose();
     _orderController.dispose();
+    _bykcCourseController.dispose();
     _spocAssignmentController.dispose();
     _judgeCourseController.dispose();
     _judgeAssignmentController.dispose();
@@ -1184,30 +1188,63 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
             ),
           ],
           if (widget.feature == FeatureId.bykc) ...<Widget>[
-            SizedBox(
-              width: 110,
-              child: TextField(
-                controller: _pageController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '页码',
-                  hintText: '从 1 开始',
-                  isDense: true,
+            DropdownButton<FeatureQueryView>(
+              value: _bykcView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _bykcView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('课程列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.bykcDetail,
+                  child: Text('课程详情'),
+                ),
+              ],
+            ),
+            if (_bykcView == FeatureQueryView.summary) ...<Widget>[
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _pageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '页码',
+                    hintText: '从 1 开始',
+                    isDense: true,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(
-              width: 110,
-              child: TextField(
-                controller: _sizeController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '每页数量',
-                  hintText: '1–100',
-                  isDense: true,
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _sizeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '每页数量',
+                    hintText: '1–100',
+                    isDense: true,
+                  ),
                 ),
               ),
-            ),
+            ],
+            if (_bykcView == FeatureQueryView.bykcDetail)
+              SizedBox(
+                width: 150,
+                child: TextField(
+                  controller: _bykcCourseController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '课程 ID',
+                    hintText: '从课程列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
           ],
           if (widget.feature == FeatureId.libbook) ...<Widget>[
             DropdownButton<FeatureQueryView>(
@@ -1620,15 +1657,24 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
         }
       }
       if (widget.feature == FeatureId.bykc) {
-        page = int.tryParse(_pageController.text.trim()) ?? 0;
-        size = int.tryParse(_sizeController.text.trim()) ?? 0;
-        if (page <= 0 || size <= 0 || size > 100) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('页码必须从 1 开始，每页数量须为 1–100。')),
-            );
+        if (_bykcView == FeatureQueryView.summary) {
+          page = int.tryParse(_pageController.text.trim()) ?? 0;
+          size = int.tryParse(_sizeController.text.trim()) ?? 0;
+          if (page <= 0 || size <= 0 || size > 100) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('页码必须从 1 开始，每页数量须为 1–100。')),
+              );
+            }
+            return;
           }
-          return;
+        }
+        if (_bykcView == FeatureQueryView.bykcDetail) {
+          final courseId = int.tryParse(_bykcCourseController.text.trim());
+          if (courseId == null || courseId <= 0) {
+            _showMessage('课程 ID 必须是正整数。');
+            return;
+          }
         }
       }
       if (widget.feature == FeatureId.libbook) {
@@ -1739,6 +1785,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ? _ygdkView
               : widget.feature == FeatureId.cgyy
               ? _cgyyView
+              : widget.feature == FeatureId.bykc
+              ? _bykcView
               : widget.feature == FeatureId.spoc
               ? _spocView
               : widget.feature == FeatureId.judge
@@ -1762,6 +1810,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : null,
           courseId: widget.feature == FeatureId.judge
               ? _optionalText(_judgeCourseController)
+              : widget.feature == FeatureId.bykc
+              ? _optionalText(_bykcCourseController)
               : null,
         ),
       );
