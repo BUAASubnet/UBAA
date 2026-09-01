@@ -275,6 +275,9 @@
 67. 当前 HEAD 在 2026-09-01 18:56（Asia/Shanghai）串行复核真实只读路线：WebVPN 全部必需操作通过（`signin/today`、
     `libbook/area_detail` 均 `PASS`）；Direct 除同样既有通过项外，`signin/today` 本批次为 `FAIL error=network_error`（exit code 5），
     因此 Direct 本批次不能记为全通过。两条路线均未调用真实写接口；该失败阻止 RC，不能用历史成功或 Mock 替代。
+68. 最新代码在 DevEco Studio 默认路径与 `/Users/moorefoss/Code/bin/command-line-tools` CLI 路径复跑 `just ohos-check mode=debug`：
+    两次工具链/API26、Dart analyze/widget、native 前置均 0 失败/0 警告，并进入 HAP assemble；均在调试签名配置处按门禁停止。
+    未配置签名、未生成可发布 HAP、未连接设备；临时生成输出已移出工作树，P0/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
