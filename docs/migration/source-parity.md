@@ -1,6 +1,6 @@
 # 协议来源对照矩阵
 
-更新日期：2026-08-31
+更新日期：2026-09-01
 
 本文件逐操作审计行为。`旧版` 指冻结的 `ubaa_old/` 提交
 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`示例` 指固定的
@@ -28,7 +28,7 @@ DTO，不修改任何 URL、service、跳转、Cookie/Session、HTTP 参数、He
 | bridge 领域 | 本文件权威段落 | Flutter 仅新增的产品语义 |
 |---|---|---|
 | 认证、用户、路线 | 网关探测；双路线加载/保存/退出；准备/登录；用户资料；CLI 与配置 | opaque client、资料白名单、typed error、策略切换后重开 |
-| 课表、考试、成绩、空教室 | 未改变的课表/考试证据；未改变的成绩证据；空教室会话同步/查询 | typed DTO 与 `RouteDecision` |
+| 课表、考试、成绩、空教室 | 未改变的课表/考试证据；未改变的成绩证据；空教室会话同步/查询 | typed DTO 与 `RouteDecision`；考试“已安排/未安排”仅投影同一 `examArrangement(term)` 信封的冻结两列表，不新增请求 |
 | SPOC、Judge | SPOC 认证/列表/详情；Judge 列表/详情/批量与缓存 | 不生成诊断入口，只生成列表/详情 DTO |
 | Signin、Ygdk、LibBook | 课堂签到今日查询；阳光打卡只读查询；图书馆座位只读查询；直接写操作表 | typed prepare、一次性 intent、commit 后读取核对 |
 | Bykc、Cgyy、Evaluation | 博雅课程只读查询；场馆预约只读查询；直接写操作表 | Cgyy 用途来源明示；待评由 `is_evaluated=false` 派生；原始评教 payload 不暴露 |

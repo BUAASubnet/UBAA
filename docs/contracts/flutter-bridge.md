@@ -172,6 +172,8 @@ ID/分页字段：
 | `scheduleWeeks` | `term` | `scheduleWeeks(term)` |
 | `scheduleWeek` | `term`、`week` | `scheduleWeek(term, week)` |
 | `evaluationPending` | 无 | `evaluationAll` 后按 `isEvaluated=false` 本地派生 |
+| `examArranged` | `term?` | `examArrangement(term)` 后取 `arranged` |
+| `examNotArranged` | `term?` | `examArrangement(term)` 后取 `notArranged` |
 | `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
 | `bykcProfile` | 无 | `bykcProfile` |
 | `bykcChosenCourses` | 无 | `bykcChosenCourses` |

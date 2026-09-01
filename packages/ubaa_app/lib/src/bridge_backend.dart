@@ -266,38 +266,54 @@ class BridgeBackend
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.exam:
-          final term = query.term ?? await _selectedTerm();
-          if (term == null) return const FeatureResult.empty();
-          final result = await client.examArrangement(term: term);
-          final exams = <BridgeExam>[
-            ...result.data.arranged,
-            ...result.data.notArranged,
-          ];
-          final details = exams
-              .map(
-                (item) => FeatureDetail(
-                  title: item.courseName,
-                  subtitle: item.examTimeDescription ?? item.examDate,
-                  fields: _compactFields(<FeatureField?>[
-                    _field(
-                      '时间',
-                      item.startTime == null || item.endTime == null
-                          ? null
-                          : '${item.startTime}–${item.endTime}',
+          switch (query.view) {
+            case FeatureQueryView.summary:
+            case FeatureQueryView.examArranged:
+            case FeatureQueryView.examNotArranged:
+              final term = query.term ?? await _selectedTerm();
+              if (term == null) return const FeatureResult.empty();
+              final result = await client.examArrangement(term: term);
+              final exams = switch (query.view) {
+                FeatureQueryView.examArranged => result.data.arranged,
+                FeatureQueryView.examNotArranged => result.data.notArranged,
+                _ => <BridgeExam>[
+                  ...result.data.arranged,
+                  ...result.data.notArranged,
+                ],
+              };
+              final details = exams
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.courseName,
+                      subtitle: item.examTimeDescription ?? item.examDate,
+                      fields: _compactFields(<FeatureField?>[
+                        _field(
+                          '时间',
+                          item.startTime == null || item.endTime == null
+                              ? null
+                              : '${item.startTime}–${item.endTime}',
+                        ),
+                        _field('地点', item.examPlace),
+                        _field('座位', item.examSeatNo),
+                        _field('类型', item.examType),
+                      ]),
                     ),
-                    _field('地点', item.examPlace),
-                    _field('座位', item.examSeatNo),
-                    _field('类型', item.examType),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            exams.length,
-            '考试安排',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+                  )
+                  .toList(growable: false);
+              final label = switch (query.view) {
+                FeatureQueryView.examArranged => '已安排考试',
+                FeatureQueryView.examNotArranged => '未安排考试',
+                _ => '考试安排',
+              };
+              return _countResult(
+                exams.length,
+                label,
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.grades:
           final term = query.term ?? await _selectedTerm();
           if (term == null) return const FeatureResult.empty();
@@ -796,6 +812,8 @@ class BridgeBackend
             case FeatureQueryView.scheduleTerms:
             case FeatureQueryView.scheduleWeeks:
             case FeatureQueryView.scheduleWeek:
+            case FeatureQueryView.examArranged:
+            case FeatureQueryView.examNotArranged:
             case FeatureQueryView.evaluationPending:
             case FeatureQueryView.cgyyPurposeTypes:
             case FeatureQueryView.cgyyDayInfo:
@@ -992,6 +1010,8 @@ class BridgeBackend
             case FeatureQueryView.scheduleTerms:
             case FeatureQueryView.scheduleWeeks:
             case FeatureQueryView.scheduleWeek:
+            case FeatureQueryView.examArranged:
+            case FeatureQueryView.examNotArranged:
             case FeatureQueryView.evaluationPending:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
@@ -1059,6 +1079,8 @@ class BridgeBackend
             case FeatureQueryView.scheduleTerms:
             case FeatureQueryView.scheduleWeeks:
             case FeatureQueryView.scheduleWeek:
+            case FeatureQueryView.examArranged:
+            case FeatureQueryView.examNotArranged:
             case FeatureQueryView.evaluationPending:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:

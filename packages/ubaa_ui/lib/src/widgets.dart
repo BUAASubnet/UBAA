@@ -1077,6 +1077,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _judgeAssignmentController;
   int _campus = 1;
   FeatureQueryView _scheduleView = FeatureQueryView.summary;
+  FeatureQueryView _examView = FeatureQueryView.summary;
   FeatureQueryView _evaluationView = FeatureQueryView.summary;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
   FeatureQueryView _bykcView = FeatureQueryView.summary;
@@ -1162,6 +1163,29 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 DropdownMenuItem(
                   value: FeatureQueryView.scheduleWeek,
                   child: Text('周课表'),
+                ),
+              ],
+            ),
+          if (widget.feature == FeatureId.exam)
+            DropdownButton<FeatureQueryView>(
+              value: _examView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _examView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('全部考试'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.examArranged,
+                  child: Text('已安排'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.examNotArranged,
+                  child: Text('未安排'),
                 ),
               ],
             ),
@@ -1853,7 +1877,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           week: week,
           page: page,
           size: size,
-          view: widget.feature == FeatureId.schedule
+          view: widget.feature == FeatureId.exam
+              ? _examView
+              : widget.feature == FeatureId.schedule
               ? _scheduleView
               : widget.feature == FeatureId.evaluation
               ? _evaluationView

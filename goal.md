@@ -196,6 +196,9 @@
     `evaluationAll`，仅按 `isEvaluated=false` 在本地派生待评列表，未新增未经证明的
     `evaluation_pending` facade。控件/widget 回归已接线且不触发提交；题目选择、批量写入、
     结果核对及 P3/P4/P5/P6 证据仍未完成。
+45. 考试页现提供“全部考试/已安排/未安排”视图；BridgeBackend 三种视图均调用
+    `examArrangement(term)`，只在本地从已安排/未安排集合派生，控件与 widget 回归已接线，
+    未新增接口或写操作。成绩、空教室、签到细筛及完整 P3 状态、真实 Flutter E2E 仍未闭合。
 
 ## 4. 安全与架构边界
 
