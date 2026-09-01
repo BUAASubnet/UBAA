@@ -321,6 +321,7 @@ impl BridgeClient {
         &self,
         request: BridgeYgdkSubmitRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        validate_ygdk_request(&request)?;
         let photo_digest = request.photo.as_ref().map(|p| digest_bytes(&p.bytes));
         let canonical = format!(
             "item={:?};start={:?};end={:?};place={:?};share={:?};photo={:?}",
@@ -679,6 +680,18 @@ fn validate_text(value: &str) -> Result<(), BridgeError> {
         Ok(())
     }
 }
+fn validate_ygdk_request(request: &BridgeYgdkSubmitRequest) -> Result<(), BridgeError> {
+    let Some(photo) = request.photo.as_ref() else {
+        return Err(invalid_input("photo is required"));
+    };
+    if photo.bytes.is_empty() {
+        return Err(invalid_input("photo is empty"));
+    }
+    if request.start_time.is_none() || request.end_time.is_none() {
+        return Err(invalid_input("start and end time are both required"));
+    }
+    Ok(())
+}
 fn invalid_input(message: &str) -> BridgeError {
     BridgeError::local(
         BridgeErrorCode::InvalidInput,
@@ -694,8 +707,8 @@ fn safe_message(message: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        BridgeBykcCourseRequest, PendingEntry, PendingWrite, digest, map_resolution_error,
-        random_id,
+        BridgeBykcCourseRequest, BridgePhotoUpload, BridgeYgdkSubmitRequest, PendingEntry,
+        PendingWrite, digest, map_resolution_error, random_id,
     };
     use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 
@@ -762,6 +775,53 @@ mod tests {
             .await
             .expect_err("consumed intent cannot be retried");
         assert_eq!(second.code, BridgeErrorCode::IntentExpired);
+        client.dispose().await.expect("dispose client");
+        let _ = std::fs::remove_dir_all(path);
+    }
+
+    #[tokio::test]
+    async fn ygdk_prepare_rejects_missing_photo_and_time_before_storing_intent() {
+        let path = std::env::temp_dir().join(format!(
+            "ubaa-bridge-ygdk-input-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
+        let missing_photo = client
+            .prepare_ygdk_submit(BridgeYgdkSubmitRequest {
+                item_id: Some(1),
+                start_time: Some("08:00".to_owned()),
+                end_time: Some("09:00".to_owned()),
+                place: None,
+                share_to_square: Some(false),
+                photo: Some(BridgePhotoUpload {
+                    bytes: Vec::new(),
+                    file_name: "photo.jpg".to_owned(),
+                    mime_type: "image/jpeg".to_owned(),
+                }),
+            })
+            .await
+            .expect_err("invalid Ygdk input must be rejected during prepare");
+        assert_eq!(missing_photo.code, BridgeErrorCode::InvalidInput);
+
+        let missing_time = client
+            .prepare_ygdk_submit(BridgeYgdkSubmitRequest {
+                item_id: Some(1),
+                start_time: None,
+                end_time: Some("09:00".to_owned()),
+                place: None,
+                share_to_square: Some(false),
+                photo: Some(BridgePhotoUpload {
+                    bytes: vec![1, 2, 3],
+                    file_name: "photo.jpg".to_owned(),
+                    mime_type: "image/jpeg".to_owned(),
+                }),
+            })
+            .await
+            .expect_err("both Ygdk times must be supplied during prepare");
+        assert_eq!(missing_time.code, BridgeErrorCode::InvalidInput);
+        assert!(client.write_intents.lock().await.is_empty());
         client.dispose().await.expect("dispose client");
         let _ = std::fs::remove_dir_all(path);
     }
