@@ -2,6 +2,15 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 OHOS 门禁复核
+
+- `just ohos-check mode=debug` 的共享 OHOS `analyze` 与 widget 测试通过，锁定 fork
+  `3.41.10-ohos-1.0.1 @ adaf911c35c9136a7d18fc424d714c9ec7724e60`、native SDK/clang/sysroot、
+  Rust `aarch64-unknown-linux-ohos`、Node/ohpm/hvigor/hdc 均可用。
+- 门禁仍失败两项：本机 DevEco `6.0.1.251` 而发布要求 `26.0.0 Beta2`；OpenHarmony SDK 为
+  API `21` 而合同要求 API `26`。因此没有 HAP、签名或设备 hello 证据；受限工具链更换及
+  华为账号操作仍需项目所有者明确授权。
+
 ## 2026-09-01 希冀过期作业筛选
 
 - 希冀作业列表控件现提供“包含已过期作业”本地开关，按冻结 `judgeAssignments(includeExpired)`

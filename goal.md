@@ -207,6 +207,10 @@
     `judgeAssignments(includeExpired)` 的既有 typed 参数传递；详情视图不显示该开关，widget
     回归已覆盖，未新增接口或写操作。完整作业状态/分页、golden/integration、真实 Flutter
     E2E 与 P4 写入页面仍未闭合。
+48. 2026-09-01 复跑 `just ohos-check mode=debug`：共享 OHOS analyze/widget 及锁定 fork、native
+    工具可用性通过，但 DevEco `6.0.1.251`（要求 `26.0.0 Beta2`）和 OpenHarmony SDK API `21`
+    （要求 API `26`）两项失败。未下载受限工具链、未登录华为门户、未签名/构建 HAP、未连接
+    设备；P0/P6 继续受阻。
 
 ## 4. 安全与架构边界
 
