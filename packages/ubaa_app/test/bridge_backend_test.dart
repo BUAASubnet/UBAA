@@ -286,6 +286,18 @@ void main() {
     expect(evaluationIntent.operation, WriteOperation.evaluationSubmitCourses);
   });
 
+  test('BridgeBackend 保留场馆提交的非敏感订单收据用于结果核对', () async {
+    final backend = BridgeBackend(_FakeCgyyCommitClient());
+
+    final result = await backend.commitWrite('cgyy-intent');
+
+    expect(result.operation, WriteOperation.cgyySubmitReservation);
+    expect(result.cgyyReceipt?.orderId, 42);
+    expect(result.cgyyReceipt?.venueSiteId, 3);
+    expect(result.cgyyReceipt?.reservationDate, '2026-09-03');
+    expect(result.cgyyReceipt?.orderStatus, 1);
+  });
+
   test('BridgeBackend 场馆日期空间只投影可预约时段的公开 ID', () async {
     final backend = BridgeBackend(
       _FakeCgyyDayClient(
@@ -488,6 +500,32 @@ class _FakeComplexWriteClient implements BridgeClient {
       );
     }
     throw UnsupportedError('unexpected bridge call: $method');
+  }
+}
+
+class _FakeCgyyCommitClient implements BridgeClient {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #commitWrite) {
+      return Future<BridgeWriteCommitResult>.value(
+        BridgeWriteCommitResult(
+          operation: BridgeWriteOperation.cgyySubmitReservation,
+          success: true,
+          message: '场馆预约已提交',
+          outcomeUnknown: false,
+          resolvedRoute: BridgeConnectionMode.direct,
+          order: const BridgeCgyyOrder(
+            id: 42,
+            venueSiteId: 3,
+            reservationDate: '2026-09-03',
+            orderStatus: 1,
+            phone: 'private-phone',
+            theme: 'private-theme',
+          ),
+        ),
+      );
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }
 }
 

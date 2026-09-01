@@ -623,6 +623,17 @@ class AppController extends ChangeNotifier {
 
   /// 写入成功后仅刷新关联只读领域，用于结果核对；不会重试写请求。
   Future<void> refreshAfterWrite(WriteOperation operation) {
+    if (operation == WriteOperation.cgyySubmitReservation ||
+        operation == WriteOperation.cgyyCancelOrder) {
+      // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，
+      // 保留旧的领域刷新兼容路径，不伪造核对成功。
+      if (_backend is FeatureQueryBackend) {
+        return refreshFeatureQuery(
+          FeatureId.cgyy,
+          const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+        );
+      }
+    }
     final feature = switch (operation) {
       WriteOperation.bykcSelectCourse ||
       WriteOperation.bykcDeselectCourse ||

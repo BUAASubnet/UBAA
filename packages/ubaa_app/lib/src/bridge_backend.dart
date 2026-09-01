@@ -1468,6 +1468,10 @@ class BridgeBackend
         resolvedRoute: result.resolvedRoute == null
             ? null
             : _toConnectionMode(result.resolvedRoute!),
+        cgyyReceipt:
+            result.operation == BridgeWriteOperation.cgyySubmitReservation
+            ? _mapCgyyReceipt(result.order)
+            : null,
       );
     } on BridgeError catch (error) {
       throw _mapError(error);
@@ -1485,6 +1489,18 @@ class BridgeBackend
     ),
     requestDigest: intent.requestDigest,
   );
+
+  static CgyyReservationReceipt? _mapCgyyReceipt(BridgeCgyyOrder? order) {
+    if (order == null || order.id <= 0) return null;
+    return CgyyReservationReceipt(
+      orderId: order.id,
+      venueSiteId: order.venueSiteId,
+      reservationDate: order.reservationDate?.trim().isEmpty ?? true
+          ? null
+          : order.reservationDate!.trim(),
+      orderStatus: order.orderStatus,
+    );
+  }
 
   static WriteOperation _toWriteOperation(BridgeWriteOperation operation) =>
       switch (operation) {

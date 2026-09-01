@@ -22,6 +22,13 @@ Cgyy 的站点/日期/时段/同房间/必填文本/正数约束与 `crates/ubaa
 `api::write::tests::cgyy_prepare_rejects_incomplete_request_before_route_resolution` 证明该边界；
 本轮没有真实账号写入、验证码材料或照片上传。
 
+2026-09-01 Cgyy 提交收据边界复核：冻结 `LocalCgyyApi.submitReservation` 的成功结果可带订单对象，
+Core 已按冻结 DTO 映射；`examples/buaa-api` 仍无同一场馆协议，因此未借用其字段。Flutter bridge
+只把订单编号、站点编号、预约日期和订单状态投影为 `CgyyReservationReceipt`，明确排除交易号、电话、
+主题、参与人和活动正文；成功后 App 优先按同一路线刷新 `cgyyOrders`，收据或刷新缺失不被视为最终核对。
+`BridgeBackend 保留场馆提交的非敏感订单收据用于结果核对` 与 `场馆写入成功优先刷新订单列表用于核对`
+回归固定了该边界；未改变 URL、方法、挑战或真实写入授权。
+
 Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` 返回
 `data.courseList` 对象包装，而不是直接数组。Rust 现同时接受该冻结包装和既有数组
 兼容形状；`features/bykc.rs` 单元测试先复现旧实现失败，再验证 `id`、`courseInfo.id`

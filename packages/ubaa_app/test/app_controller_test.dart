@@ -494,6 +494,18 @@ void main() {
     expect(backend.loadedFeatures, <FeatureId>[FeatureId.libbook]);
     controller.dispose();
   });
+
+  test('场馆写入成功优先刷新订单列表用于核对', () async {
+    final backend = _CgyyQueryWriteBackend();
+    final controller = AppController(backend: backend);
+
+    await controller.refreshAfterWrite(WriteOperation.cgyySubmitReservation);
+
+    expect(backend.queries, hasLength(1));
+    expect(backend.queries.single.$1, FeatureId.cgyy);
+    expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -969,6 +981,20 @@ class _CgyyWriteBackend implements UbaaBackend, CgyyWriteBackend {
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),
     requestDigest: 'digest',
   );
+}
+
+class _CgyyQueryWriteBackend extends _CgyyWriteBackend
+    implements FeatureQueryBackend {
+  final List<(FeatureId, FeatureQuery)> queries = <(FeatureId, FeatureQuery)>[];
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async {
+    queries.add((feature, query));
+    return const FeatureResult.empty();
+  }
 }
 
 class _EvaluationWriteBackend implements UbaaBackend, EvaluationWriteBackend {

@@ -683,6 +683,25 @@ class WriteIntent {
       !(expiresAt.isAfter(now ?? DateTime.now()));
 }
 
+/// 场馆预约提交后用于只读核对的非敏感订单收据。
+///
+/// 不包含交易号、手机号、主题、参与人或活动正文；完整订单仍通过受控的
+/// 场馆订单详情读取接口获取并按页面白名单投影。
+@immutable
+class CgyyReservationReceipt {
+  const CgyyReservationReceipt({
+    required this.orderId,
+    this.venueSiteId,
+    this.reservationDate,
+    this.orderStatus,
+  });
+
+  final int orderId;
+  final int? venueSiteId;
+  final String? reservationDate;
+  final int? orderStatus;
+}
+
 /// 写入提交后的安全结果；不携带上游原始正文。
 @immutable
 class WriteCommitResult {
@@ -692,6 +711,7 @@ class WriteCommitResult {
     required this.message,
     required this.outcomeUnknown,
     this.resolvedRoute,
+    this.cgyyReceipt,
   });
 
   final WriteOperation operation;
@@ -699,4 +719,5 @@ class WriteCommitResult {
   final String message;
   final bool outcomeUnknown;
   final ConnectionMode? resolvedRoute;
+  final CgyyReservationReceipt? cgyyReceipt;
 }

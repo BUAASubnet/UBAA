@@ -2,6 +2,13 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 场馆预约提交收据与订单核对入口
+
+- Rust bridge 已返回的 Cgyy typed `order` 现在映射为 Dart `CgyyReservationReceipt`，仅保留正订单编号、可选站点/日期/状态；交易号、联系电话、主题、参与人和活动正文不会进入 `WriteCommitResult`。
+- 先加入失败回归并观察到 `WriteCommitResult` 丢失 `cgyyReceipt`，再完成最小映射；BridgeBackend 回归验证收据字段投影，合成订单中的敏感字段不会被投影。
+- `AppController.refreshAfterWrite` 对场馆预约/取消在支持 typed 查询时优先刷新 `cgyyOrders`，为结果核对提供同路线订单列表；不支持查询的 fake backend 保留兼容刷新路径，不伪造核对成功。
+- 本轮不改变 Core 上游协议或验证码流程，未执行真实写入；冻结来源与订单字段规则见 `docs/migration/source-parity.md` 和 `docs/contracts/flutter-bridge.md`。
+
 ## 2026-09-01 场馆预约 bridge 输入与摘要安全门禁
 
 - `prepareCgyySubmitReservation` 现在在路线解析前校验站点、日期、至少一个有效时段、同一房间约束、联系电话/主题/活动内容、用途编号和参与人数；非法输入统一返回 `InvalidInput`，不建立路线请求、不保存写 intent。
