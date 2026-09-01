@@ -2,6 +2,22 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 当前提交状态与 API26 复核
+
+- 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均通过；新增空结果失败状态回归后，Flutter 全量测试仍通过，工作树仅保留本段文档待提交变更。
+- 以 `/Users/moorefoss/Code/bin/command-line-tools` 执行当前提交的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：DevEco `26.0.0.821`、OpenHarmony API26、OHOS Flutter fork、Node/ohpm/Hvigor/hdc/Java、Rust `aarch64-unknown-linux-ohos` 及 Dart/native 前置均为 0 失败/0 警告；HAP assemble 在调试签名配置处按门禁停止，未产生签名 HAP、未连接设备。临时输出已移出工作树。
+
+## 2026-09-02 `8e11c31` 远端 CI 终态
+
+- 合同 CI `33551528661` 已成功，contract-gates、macOS Rust 和 Windows Rust 均通过。
+- Flutter 原生五平台 CI `33551528765` 已成功；Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传 debug 产物。该 CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E。
+
+## 2026-09-02 空结果后的失败状态修复
+
+- 新增 app 回归，先在旧实现上观察到：功能已明确返回空结果后再次刷新失败，控制器仍因 `updatedAt` 被标记为 stale。
+- `AppController._loadFeature` 现只有在上一结果确实保留非空摘要或详情时才进入 stale；空结果后的失败保持首次失败状态和稳定错误文案。
+- 聚焦 `packages/ubaa_app/test/app_controller_test.dart` 30 项全部通过；本修复只收紧读取状态语义，不改变 Core 协议、路线或写入行为，P3 其他领域闭环和 P4/P5/P6 仍未完成。
+
 ## 2026-09-02 stale 摘要状态修复
 
 - 新增 widget 回归，先在旧实现上观察到：刷新失败且上次成功快照只有摘要、详情为空时，详情页会错误降级为首次失败卡片，丢失旧摘要和 stale 重试横幅。

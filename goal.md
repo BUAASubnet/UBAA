@@ -340,6 +340,9 @@
 105. 当前 HEAD `ef83cb9` 的 `just refs`、`just check-sensitive`、`just check`、`just flutter-check` 均通过；随后以 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 成功报告 FRB 零漂移。默认增量 FRB 首次尝试因 `cargo-expand` 长时间无输出被安全中断，重试未产生任何源码改动；OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 106. 提交 `f4ebd54` 的合同 CI `33547707165` 已终态成功，合同门禁、macOS Rust 与 Windows Rust 均通过；该文档提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 107. 新增 widget 回归并先在旧实现上观察到：已有成功摘要但详情为空的 `stale` 刷新失败会错误降级为首次失败卡片，丢失旧摘要和 stale 重试横幅；随后 `_FeatureDetailView` 在详情为空时保留旧摘要，并统一显示失败横幅与重试按钮。`ubaa_ui` 聚焦测试 32/32 通过。本轮只修复 UI 状态语义，不改变 Core、路线、上游协议或真实写入；P3 完整领域状态、golden/integration、六平台真实 App E2E 及 P4/P5/P6 仍未完成。
+108. 新增 app 回归并先在旧实现上观察到：功能已明确返回空结果后再次刷新失败会因 `updatedAt` 被错误标记为 `stale`；随后 `_loadFeature` 仅在上一结果保留非空摘要或详情时标记 stale，空结果后的失败保持 `failure`。`app_controller` 聚焦测试 30/30 通过。本轮只收紧读取状态语义，不改变 Core、路线、上游协议或真实写入；P3 其他领域闭环、golden/integration、六平台真实 App E2E 及 P4/P5/P6 仍未完成。
+109. 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 与 `just flutter-check` 均通过；空结果失败状态回归后 Flutter 全量测试仍通过。以 `/Users/moorefoss/Code/bin/command-line-tools` 执行同一提交的 OHOS debug 门禁时，DevEco `26.0.0.821`、OpenHarmony API26、辅助工具链、Rust arm64、Dart/widget/native 前置均为 0 失败/0 警告，HAP assemble 仍在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备，临时输出已移出工作树。
+110. 提交 `8e11c31` 的合同 CI `33551528661` 与 Flutter 原生五平台 CI `33551528765` 均已终态成功；后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 全部完成并上传 debug 产物。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
