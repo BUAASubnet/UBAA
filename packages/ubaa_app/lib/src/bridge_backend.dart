@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
@@ -406,6 +408,93 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
           request: BridgeLibbookCancelBookingRequest(id: id),
         ),
       );
+
+  /// 准备阳光打卡。照片字节只在本次调用构造 typed DTO，不写入配置或日志。
+  Future<WriteIntent> prepareYgdkSubmit({
+    int? itemId,
+    String? startTime,
+    String? endTime,
+    String? place,
+    bool? shareToSquare,
+    List<int>? photoBytes,
+    String photoFileName = 'upload.jpg',
+    String photoMimeType = 'image/jpeg',
+  }) async => _mapIntent(
+    await client.prepareYgdkSubmit(
+      request: BridgeYgdkSubmitRequest(
+        itemId: itemId,
+        startTime: startTime,
+        endTime: endTime,
+        place: place,
+        shareToSquare: shareToSquare,
+        photo: photoBytes == null
+            ? null
+            : BridgePhotoUpload(
+                bytes: Uint8List.fromList(photoBytes),
+                fileName: photoFileName,
+                mimeType: photoMimeType,
+              ),
+      ),
+    ),
+  );
+
+  /// 准备场馆预约；selection 只包含经过 UI 选择的 ID，不接受 raw JSON。
+  Future<WriteIntent> prepareCgyySubmitReservation({
+    required int venueSiteId,
+    required String reservationDate,
+    required List<({int spaceId, int timeId, int? venueSpaceGroupId})>
+    selections,
+    required String phone,
+    required String theme,
+    required int purposeType,
+    required int joinerNum,
+    required String activityContent,
+    required String joiners,
+    required bool isPhilosophySocialSciences,
+    required bool isOffSchoolJoiner,
+  }) async => _mapIntent(
+    await client.prepareCgyySubmitReservation(
+      request: BridgeCgyySubmitReservationRequest(
+        venueSiteId: venueSiteId,
+        reservationDate: reservationDate,
+        selections: selections
+            .map(
+              (selection) => BridgeCgyyReservationSelection(
+                spaceId: selection.spaceId,
+                timeId: selection.timeId,
+                venueSpaceGroupId: selection.venueSpaceGroupId,
+              ),
+            )
+            .toList(growable: false),
+        phone: phone,
+        theme: theme,
+        purposeType: purposeType,
+        joinerNum: joinerNum,
+        activityContent: activityContent,
+        joiners: joiners,
+        isPhilosophySocialSciences: isPhilosophySocialSciences,
+        isOffSchoolJoiner: isOffSchoolJoiner,
+      ),
+    ),
+  );
+
+  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) async =>
+      _mapIntent(
+        await client.prepareCgyyCancelOrder(
+          request: BridgeCgyyCancelOrderRequest(id: id),
+        ),
+      );
+
+  /// 评教只接收 bridge 白名单课程 DTO，并在 commit 后由页面重新读取进度。
+  Future<WriteIntent> prepareEvaluationSubmitCourses({
+    required List<BridgeEvaluationCourse> courses,
+  }) async => _mapIntent(
+    await client.prepareEvaluationSubmitCourses(
+      request: BridgeEvaluationSubmitCoursesRequest(
+        courses: List<BridgeEvaluationCourse>.unmodifiable(courses),
+      ),
+    ),
+  );
 
   Future<WriteCommitResult> commitWrite(String intentId) async {
     try {

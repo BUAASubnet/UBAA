@@ -102,6 +102,9 @@
 16. `1b0d24e` 已将十项 typed 写入意图接入共享 `WriteIntent`、确认页面和 app 状态机，覆盖
     过期、重复确认和 `outcome_unknown` 的禁止自动重试语义；真实写入、各领域选择器/权限/读取
     核对和六平台集成尚未完成，P4 不能勾选。
+17. `061c8c2` 修正未知结果后的 intent 消费语义，并让已有成功数据在刷新失败时进入 `stale`；
+    `60686a9` 增加生成 API schema 快照、dispose 后重建、过期 intent 消费和独立会话实例文件锁
+    测试。P1 仍缺 FRB panic 归约、真实 isolate 重建和完整逐 DTO/Dart 消费证据。
 
 ## 4. 安全与架构边界
 

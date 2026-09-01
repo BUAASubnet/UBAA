@@ -730,3 +730,12 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   提交和 `outcome_unknown`；提交异常不会自动重试，测试覆盖重复确认、过期和未知结果。
 - 该轮只增加确定性状态机和 UI 组件，没有调用真实写接口；各领域的目标选择器、权限窗口、
   照片/位置输入、读取核对和六平台集成仍属于 P4 未完成项。
+
+## 2026-09-01 P1 生命周期、schema 与 stale 证据
+
+- `061c8c2` 修正 `outcome_unknown` 后 app 不再保留旧 intent，并为已成功加载数据的刷新失败
+  增加 `stale` 状态、旧详情保留和可重试提示；Flutter 全量分析/测试通过。
+- `60686a9` 增加生成 Dart API 的方法/DTO/十项写 operation schema 快照测试、dispose 后重建
+  client 测试、过期 intent 消费测试，以及独立 `FileSessionStore` 实例的 OS 文件锁串行测试。
+- 这些证据闭合了部分 P1 测试缺口，但 FRB panic 归约、跨 isolate 的真实 native 重建、六平台
+  原生安全存储和领域级读取/写入页面仍未闭合。
