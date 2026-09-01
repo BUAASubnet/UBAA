@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 生成读取 DTO 全量快照覆盖
+
+- 扩展 `packages/ubaa_bindings/test/schema_snapshot_test.dart`，从原先的代表性列表扩展为生成 `read.dart` 中全部公开读取 DTO、嵌套类型和 `Routed<T>` 包装；生成器删除或改名任何公开读取类型都会在 Dart 合同测试中失败。
+- 绑定聚焦快照测试通过；本增量不改变 FRB 生成物、Core 协议或运行时行为，仍需补齐逐 DTO 消费、跨 isolate/平台生命周期与真实六平台链路证据，P1/P3/P5/P6 未完成。
+
 ## 2026-09-02 阳光打卡记录图片数量的应用层回归
 
 - 新增 `BridgeBackend` app 回归，使用 typed `BridgeYgdkRecord.imageCount` 验证记录详情只投影“图片数量”，且任何界面字段值都不含图片地址；同时断言记录分页按 1-based 页码和固定大小调用 bridge。

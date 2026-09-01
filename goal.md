@@ -325,6 +325,7 @@
 90. 为避免生命周期恢复与初始化读取并发，先加入延迟认证 backend 的失败回归并观察到旧实现错误地释放旧 backend、创建替代实例，随后 `AppController.rebuildBackend` 在 `checkingSession` 阶段安全拒绝重建；聚焦测试通过。该修复只约束 Dart 生命周期，不改变 Core 协议或真实写入；P1 仍缺真实 isolate/内存生命周期与完整 DTO 消费证据，P2/P3/P4/P5/P6 仍未完成。
 91. 先在生成 Dart schema 中观察到旧 `BridgeYgdkRecord` 暴露图片地址列表，随后将 Rust bridge DTO/映射收窄为有界 `imageCount` 并重新生成 FRB；UI 继续显示图片数量，新增禁曝回归先失败后通过。Core 冻结解析、Ygdk 上游协议和真实写入均未改变；P1 仍缺完整逐 DTO 消费/平台生命周期证据，P4/P5/P6 仍未完成。
 92. 追加 `BridgeBackend` 应用层回归，验证 `BridgeYgdkRecord.imageCount` 只投影为“图片数量”、不传递图片地址，并核对分页调用使用 1-based 页码和固定大小；聚焦测试和完整 `just flutter-check` 通过。该证据仍不替代六平台真实 App→FRB→Core E2E，P1/P3/P4/P5/P6 仍未完成。
+93. 扩展生成 Dart schema 快照，覆盖 `read.dart` 的全部公开读取 DTO、嵌套类型和 `Routed<T>` 包装，防止生成器删除或改名类型而未被合同测试发现；绑定快照聚焦测试通过，不改变 Core 协议或生成物。逐 DTO Dart 消费、跨 isolate/平台生命周期及六平台真实链路仍缺证据，P1/P3/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
