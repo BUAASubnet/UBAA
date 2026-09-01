@@ -394,6 +394,8 @@ class UbaaMainShell extends StatefulWidget {
 class _UbaaMainShellState extends State<UbaaMainShell> {
   int _selectedIndex = 0;
   FeatureId? _openedFeature;
+  final Map<FeatureId, FeatureQuery> _featureQueries =
+      <FeatureId, FeatureQuery>{};
 
   static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
     (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
@@ -415,10 +417,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             feature: _openedFeature!,
             snapshot: widget.snapshots[_openedFeature!]!,
             onBack: () => setState(() => _openedFeature = null),
-            onRetry: () => widget.onRetryFeature(_openedFeature!),
+            onRetry: () {
+              final feature = _openedFeature!;
+              final query = _featureQueries[feature];
+              return query == null || widget.onFeatureQuery == null
+                  ? widget.onRetryFeature(feature)
+                  : widget.onFeatureQuery!(feature, query);
+            },
             onQuery: widget.onFeatureQuery == null
                 ? null
-                : (query) => widget.onFeatureQuery!(_openedFeature!, query),
+                : (query) {
+                    final feature = _openedFeature!;
+                    _featureQueries[feature] = query;
+                    return widget.onFeatureQuery!(feature, query);
+                  },
           );
     return Scaffold(
       appBar: AppBar(

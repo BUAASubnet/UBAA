@@ -274,6 +274,94 @@ void main() {
     expect(received?.section, '3');
   });
 
+  testWidgets('查询失败重试会复用当前 typed 查询而不是退回摘要', (tester) async {
+    var snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? applied;
+    var retryCalls = 0;
+    Future<void> onQuery(FeatureId feature, FeatureQuery query) async {
+      expect(feature, FeatureId.classroom);
+      applied = query;
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async => retryCalls++,
+          onFeatureQuery: onQuery,
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('空教室查询'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), 'F2');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(applied?.floorId, 'F2');
+
+    snapshots = {
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: feature == FeatureId.classroom
+              ? FeatureLoadStatus.failure
+              : FeatureLoadStatus.success,
+          summary: '已加载',
+          error: feature == FeatureId.classroom
+              ? const UiError(
+                  code: UbaaErrorCode.networkError,
+                  title: '网络错误',
+                  message: '请稍后重试',
+                  retryable: true,
+                )
+              : null,
+          details: const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async => retryCalls++,
+          onFeatureQuery: onQuery,
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(retryCalls, 0);
+    expect(applied?.floorId, 'F2');
+  });
+
   testWidgets('课堂签到控件提交未签到本地派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
