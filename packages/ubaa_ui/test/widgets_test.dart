@@ -878,6 +878,7 @@ void main() {
     expect(received?.view, FeatureQueryView.judgeDetail);
     expect(received?.courseId, 'course-3');
     expect(received?.assignmentId, 'assignment-17');
+    expect(received?.includeExpired, isFalse);
   });
 
   testWidgets('希冀查询控件可包含已过期作业', (tester) async {

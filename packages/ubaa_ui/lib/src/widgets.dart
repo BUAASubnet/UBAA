@@ -1950,7 +1950,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : widget.feature == FeatureId.bykc
               ? _optionalText(_bykcCourseController)
               : null,
-          includeExpired: widget.feature == FeatureId.judge
+          includeExpired:
+              widget.feature == FeatureId.judge &&
+                  _judgeView == FeatureQueryView.summary
               ? _includeExpired
               : false,
         ),
