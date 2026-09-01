@@ -25,6 +25,10 @@ check:
 check-sensitive:
     ./scripts/check-sensitive.sh
 
+# 生成不含签名、账号或真实响应的无签名 RC 依赖/源码校验报告。
+release-preflight report_dir="":
+    ./scripts/release-preflight.sh "{{report_dir}}"
+
 verify-live *args:
     ./scripts/verify-live.sh {{args}}
 

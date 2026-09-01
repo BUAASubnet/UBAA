@@ -77,9 +77,10 @@ cargo test --locked -p ubaa-flutter-bridge
 cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D warnings
 ```
 
-OHOS 的完整发布门禁命令为 `just ohos-check mode=release`；无设备时可先执行
-`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 进行包内容检查，但该模式只验证未签名
-debug HAP，完成签名并实际生成 HAP 前不得记录为发布构建通过。
+本轮无签名 RC 的 OHOS 门禁命令为
+`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`；该命令验证 API26 工具链、Dart/native
+前置、arm64 动态库和无签名 HAP 包内容。它不能替代后置的签名 HAP、实体设备 FRB hello 或正式
+发布构建，后置项必须单独记录为 `BLOCKED`。
 
 ## 5. 验收记录模板
 
@@ -91,7 +92,7 @@ debug HAP，完成签名并实际生成 HAP 前不得记录为发布构建通过
 | 2026-09-01 | Android AAB 本机 | 3.41.9/三 ABI | `flutter build appbundle --release` | 不适用 | Gradle bundle 成功；Flutter `apkanalyzer` 终检阻断 | 未验证 | 未验证 | 未验证 | SDK `cmdline-tools/latest` 为 Homebrew symlink，apkanalyzer 无法定位 `build-tools`；临时 SDK 复核含三 ABI debug symbols，但产物未签名/未上传 |
 | 2026-09-01 | Windows GitHub runner | 3.41.9/x64 | `ubaa-windows-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | `windows-2025` 原生构建 |
 | 2026-09-01 | Linux GitHub runner | 3.41.9/x64 | `ubaa-linux-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | Ubuntu 24.04 原生构建 |
-| 2026-09-02 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 未运行 | 包内容通过 | 未验证 | 未验证 | 未验证 | API26 工具链/Dart/native 前置通过；生成 `entry-default-unsigned.hap`，实体机/签名待完成 |
+| 2026-09-02 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 未运行 | 包内容通过 | 未验证 | 后置 BLOCKED | 未验证 | API26 工具链/Dart/native 前置通过；生成 `entry-default-unsigned.hap`，实体机/签名待完成 |
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
@@ -141,9 +142,8 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 | 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
 | 当前 Flutter UI 仍含探索 Demo/占位 | P0 仅验证宿主与 hello | 不能作为 P1 至 P6 功能完成证据 | P1 固定 bridge 合同，P2/P3/P4 逐项移除并以测试闭环 |
 
-当前结论为 **NO-GO（正式发布）/ GO（继续五平台 P1 开发）**。官方 Flutter 五平台
+当前结论为 **NO-GO（正式签名发布）/ GO（无签名 RC 与跨平台确定性开发）**。官方 Flutter 五平台
 native debug 矩阵已在 run `33541980112` 全部通过并上传独立产物，提交 `62ec048` 的合同
 run `33541980109` 也全部通过；随后文档提交 `8fd836a` 的合同 run `33542479679` 成功。
-OHOS 签名 HAP 与实体机 hello 仍为
-硬阻断。该结论只允许继续不依赖签名和真实写入的实现、确定性测试及只读验证，不允许将
-任何 debug 产物称为正式版。
+OHOS 签名 HAP 与实体机 hello 是后置发布项而非本轮无签名目标阻断。该结论只允许继续不依赖
+签名和真实写入的实现、确定性测试及只读验证，不允许将任何 debug/无签名产物称为正式版。
