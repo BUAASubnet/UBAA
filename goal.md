@@ -347,6 +347,8 @@
 112. 事实记录提交 `ed3433a` 的合同 CI `33553372169` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 113. 最终事实记录提交 `b0a0bcf` 的合同 CI `33554202731` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；当前 HEAD 与 `origin/ubaa2` 一致、工作树干净。该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 
+114. 当前事实记录提交 `c33c659` 的合同 CI `33554997879` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
+
 ## 4. 安全与架构边界
 
 - 宿主只能依赖 ubaa-core facade 和专用 bridge DTO，不能访问 upstream、runtime、原始 URL、Cookie、业务 token 或内部 DTO。

@@ -17,6 +17,7 @@
 - 文档记录提交 `6f7506f` 的合同 CI `33552619888` 已成功；contract-gates、macOS Rust 和 Windows Rust 均通过。
 - 随后的事实记录提交 `ed3433a` 的合同 CI `33553372169` 亦已成功；contract-gates、macOS Rust 和 Windows Rust 均通过，工作树保持干净。
 - 最终事实记录提交 `b0a0bcf` 的合同 CI `33554202731` 亦已成功；contract-gates、macOS Rust 和 Windows Rust 均通过，当前 HEAD 与 `origin/ubaa2` 一致且工作树干净。
+- 当前事实记录提交 `c33c659` 的合同 CI `33554997879` 已成功；contract-gates、macOS Rust 和 Windows Rust 均通过，未改变代码、产物、签名或设备证据。
 
 ## 2026-09-02 空结果后的失败状态修复
 
