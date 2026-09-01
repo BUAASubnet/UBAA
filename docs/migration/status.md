@@ -36,6 +36,13 @@
 - 只有用户显式勾选至少一门课程后才调用既有 `prepareEvaluationSubmitCourses`，随后沿用一次性 `WriteIntent` 二次确认；未勾选、取消或准备失败均不触发提交。新增 widget 回归覆盖两门课程的顺序传递与确认前零提交。
 - 本轮没有新增评教上游接口、答案字段或随机策略，未执行真实账号评教；题目答题策略、逐项进度和提交后完成度核对仍待完成。
 
+## 2026-09-01 评教批量入口后的门禁与实时复核
+
+- 评教批量入口提交 `0626fa0` 后，根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和 `just flutter-check` 均通过；Flutter UI 全量测试为 31 项通过，工作树生成的 OHOS 临时输出已移出。
+- 当前提交在 CLI API26 路径执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools just ohos-check mode=debug`：工具链、Dart/widget、native 前置均为 0 失败/0 警告，HAP assemble 在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备。
+- 当前提交串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口。
+- 远端合同 CI `33502775133`、Flutter 原生五平台 CI `33502775143` 和文档 CI `33502786574` 均已成功；原生构建仍不包含 OHOS HAP、正式签名/公证、实体设备或真实 App→FRB→Core E2E。
+
 ## 2026-09-01 核对刷新映射回归
 
 - AppController 的写入成功核对映射已通过回归：取消图书馆预约只刷新图书馆读取领域，不触发其它领域或任何额外写请求。

@@ -287,6 +287,14 @@
 71. 共享评教详情页新增用户显式勾选待评课程、已选数量/全选控制和批量 typed prepare 入口；仅按读取白名单字段保持课程顺序传入
     既有 `prepareEvaluationSubmitCourses`，新增 widget 回归证明未勾选时不准备、两门课程确认前不提交且确认后只提交一次。
     本轮未新增上游评教协议或答案策略，未执行真实账号评教；题目答题、逐项进度、结果核对及 P4/P5/P6 仍未完成。
+72. 评教批量入口提交 `0626fa0` 后，根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和
+    `just flutter-check` 均通过；Flutter UI 全量测试 31 项通过，工作树保持干净。
+73. 当前提交以 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `just ohos-check mode=debug`：DevEco/SDK API26、Dart/widget、
+    native 前置均 0 失败/0 警告并进入 HAP assemble，随后在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备。
+74. 当前提交串行复核 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅
+    详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
+75. 远端合同 CI `33502775133`、Flutter 原生五平台 CI `33502775143` 和文档 CI `33502786574` 均成功；该证据不包含 OHOS HAP/
+    正式签名、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 及完整 P4 仍未完成。
 
 ## 4. 安全与架构边界
 
