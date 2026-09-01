@@ -223,6 +223,7 @@ class FeatureSnapshot {
     this.summary,
     this.details = const <FeatureDetail>[],
     this.error,
+    this.resolvedRoute,
     this.updatedAt,
   });
 
@@ -231,6 +232,9 @@ class FeatureSnapshot {
   final String? summary;
   final List<FeatureDetail> details;
   final UiError? error;
+
+  /// Core 对本次读取实际解析出的路线；不能用配置策略替代。
+  final ConnectionMode? resolvedRoute;
   final DateTime? updatedAt;
 
   FeatureSnapshot copyWith({
@@ -238,16 +242,21 @@ class FeatureSnapshot {
     String? summary,
     List<FeatureDetail>? details,
     UiError? error,
+    ConnectionMode? resolvedRoute,
     DateTime? updatedAt,
     bool clearError = false,
     bool clearSummary = false,
     bool clearDetails = false,
+    bool clearResolvedRoute = false,
   }) => FeatureSnapshot(
     feature: feature,
     status: status ?? this.status,
     summary: clearSummary ? null : (summary ?? this.summary),
     details: clearDetails ? const <FeatureDetail>[] : (details ?? this.details),
     error: clearError ? null : (error ?? this.error),
+    resolvedRoute: clearResolvedRoute
+        ? null
+        : (resolvedRoute ?? this.resolvedRoute),
     updatedAt: updatedAt ?? this.updatedAt,
   );
 }
@@ -258,10 +267,11 @@ class FeatureResult {
   const FeatureResult.success({
     this.summary,
     this.details = const <FeatureDetail>[],
+    this.resolvedRoute,
   }) : isEmpty = false,
        error = null;
 
-  const FeatureResult.empty()
+  const FeatureResult.empty({this.resolvedRoute})
     : summary = null,
       details = const <FeatureDetail>[],
       isEmpty = true,
@@ -270,10 +280,14 @@ class FeatureResult {
   const FeatureResult.failure(this.error)
     : summary = null,
       details = const <FeatureDetail>[],
+      resolvedRoute = null,
       isEmpty = false;
 
   final String? summary;
   final List<FeatureDetail> details;
+
+  /// Core 对本次读取实际解析出的路线；失败或未执行时可以为空。
+  final ConnectionMode? resolvedRoute;
   final bool isEmpty;
   final UiError? error;
 }

@@ -2,6 +2,13 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 读取实际路线投影
+
+- `FeatureResult`、`FeatureSnapshot` 和 `BridgeBackend` 现在保留 Core 返回的
+  `resolved_route`；共享卡片与详情页显示“实际路线”，不会把配置策略当作请求结果。
+- 新增 app/widget 回归测试，并通过固定 Flutter SDK 的聚焦测试；刷新失败进入 `stale` 时继续
+  保留上次成功路线。该增量不发起网络写入，也不改变 Core 协议。
+
 ## 2026-09-01 最新 CI 终态
 
 - 远端 CI run `33468279841`（提交 `530a38e`）已完成且结论为 success；`contract-gates`、

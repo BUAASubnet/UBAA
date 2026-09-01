@@ -730,6 +730,13 @@ class _FeatureCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (snapshot.resolvedRoute case final route?)
+                Text(
+                  '实际路线：${route.label}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
             ],
           ),
         ),
@@ -887,6 +894,17 @@ class _FeatureDetailView extends StatelessWidget {
       children: <Widget>[
         if (onQuery != null && _supportsQuery)
           _FeatureQueryControls(feature: feature, onApply: onQuery!),
+        if (snapshot.resolvedRoute case final route?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Chip(
+                avatar: const Icon(Icons.route, size: 18),
+                label: Text('实际路线：${route.label}'),
+              ),
+            ),
+          ),
         Expanded(child: content),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),

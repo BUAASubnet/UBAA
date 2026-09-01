@@ -239,5 +239,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   在网络前拒绝。
 - 生产 Flutter 适配提交 `7bd8fd2` 通过 `BridgeBackend` 连接上述 API，并保留显式
   `UnavailableBackend` 安全失败；生产入口不再默认构造 `DemoBackend`。
+- 读取结果中的 `RouteDecision.resolvedRoute` 现在沿 `FeatureResult`、`FeatureSnapshot` 和
+  `BridgeBackend` 传到卡片与详情页；页面显示“实际路线”，不会把 `defaultPolicy` 冒充为本次
+  请求路线。app/widget 回归测试固定该投影，刷新失败的 `stale` 数据继续保留上次实际路线。
 - 尚未把这些结果标记为 P1 完成：panic 归约、Dart isolate 重建、跨进程 Session 锁、路线/会话
   失效 intent、完整 schema 快照和每个 DTO 的 Dart domain/UI 消费测试仍需逐项补齐。

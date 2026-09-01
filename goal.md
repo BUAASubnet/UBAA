@@ -147,6 +147,9 @@
 29. 提交 `a17d398` 的远端 CI run `33469682792` 与 Flutter 原生 debug run `33469682830`
     均已成功；后者在 Linux、Windows、macOS、iOS simulator、Android APK 五个原生 job
     构建并上传 debug 产物。两者仍不提供 OHOS API26/HAP、正式签名或实体设备证据。
+30. 当前增量将 Core 返回的 `resolved_route` 从 `FeatureResult`/`BridgeBackend` 保留到
+    `FeatureSnapshot`，并在共享卡片与详情页显示“实际路线”；app/widget 回归测试已通过。
+    这修复了配置策略与实际路线可能混淆的展示缺口，但不替代六平台真实 App E2E。
 
 ## 4. 安全与架构边界
 

@@ -112,6 +112,23 @@ void main() {
     controller.dispose();
   });
 
+  test('读取结果保留 Core 实际解析路线而不使用配置策略替代', () async {
+    final backend = _FlakyBackend(
+      load: (_) async => const FeatureResult.success(
+        summary: 'WebVPN 数据',
+        details: <FeatureDetail>[FeatureDetail(title: '课程')],
+        resolvedRoute: ConnectionMode.webvpn,
+      ),
+    );
+    final controller = AppController(backend: backend);
+    await controller.refreshHome(only: const <FeatureId>[FeatureId.schedule]);
+    expect(
+      controller.snapshots[FeatureId.schedule]!.resolvedRoute,
+      ConnectionMode.webvpn,
+    );
+    controller.dispose();
+  });
+
   test('领域查询参数通过 FeatureQueryBackend typed 传递', () async {
     FeatureQuery? received;
     final backend = _QueryBackend(

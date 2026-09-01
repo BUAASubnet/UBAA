@@ -283,10 +283,12 @@ class AppController extends ChangeNotifier {
         summary: result.summary,
         details: result.details,
         error: result.error,
+        resolvedRoute: result.resolvedRoute,
         updatedAt: DateTime.now(),
         clearError: result.error == null,
         clearSummary: result.summary == null,
         clearDetails: result.details.isEmpty,
+        clearResolvedRoute: result.resolvedRoute == null,
       );
       await _recordFeature(
         feature,

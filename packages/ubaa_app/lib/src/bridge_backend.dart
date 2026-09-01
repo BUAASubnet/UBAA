@@ -125,6 +125,7 @@ class BridgeBackend
               details.length,
               '第 ${query.week} 周课表',
               details: details,
+              resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
             );
           }
           final result = await client.scheduleToday();
@@ -140,7 +141,12 @@ class BridgeBackend
                 ),
               )
               .toList(growable: false);
-          return _countResult(result.data.length, '今日课程', details: details);
+          return _countResult(
+            result.data.length,
+            '今日课程',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.exam:
           final term = query.term ?? await _selectedTerm();
           if (term == null) return const FeatureResult.empty();
@@ -168,7 +174,12 @@ class BridgeBackend
                 ),
               )
               .toList(growable: false);
-          return _countResult(exams.length, '考试安排', details: details);
+          return _countResult(
+            exams.length,
+            '考试安排',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.grades:
           final term = query.term ?? await _selectedTerm();
           if (term == null) return const FeatureResult.empty();
@@ -191,6 +202,7 @@ class BridgeBackend
             result.data.grades.length,
             '门课程成绩',
             details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.bykc:
           final result = await client.bykcCourses(
@@ -224,6 +236,7 @@ class BridgeBackend
             result.data.content.length,
             '门博雅课程',
             details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.classroom:
           final result = await client.classroomSearch(
@@ -245,7 +258,12 @@ class BridgeBackend
                   ]),
                 ),
           ];
-          return _countResult(rooms, '间可用教室', details: details);
+          return _countResult(
+            rooms,
+            '间可用教室',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.spoc:
           final result = await client.spocAssignments();
           final details = result.data.assignments
@@ -267,6 +285,7 @@ class BridgeBackend
             result.data.assignments.length,
             '项 SPOC 作业',
             details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.judge:
           final result = await client.judgeAssignments(includeExpired: false);
@@ -288,7 +307,12 @@ class BridgeBackend
                 ),
               )
               .toList(growable: false);
-          return _countResult(result.data.length, '项希冀作业', details: details);
+          return _countResult(
+            result.data.length,
+            '项希冀作业',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.libbook:
           final result = await client.libbookLibraries(day: today);
           final details = result.data
@@ -303,7 +327,12 @@ class BridgeBackend
                 ),
               )
               .toList(growable: false);
-          return _countResult(result.data.length, '所图书馆', details: details);
+          return _countResult(
+            result.data.length,
+            '所图书馆',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.signin:
           final result = await client.signinToday();
           final details = result.data
@@ -317,7 +346,12 @@ class BridgeBackend
                 ),
               )
               .toList(growable: false);
-          return _countResult(result.data.length, '门今日签到课程', details: details);
+          return _countResult(
+            result.data.length,
+            '门今日签到课程',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.cgyy:
           final result = await client.cgyySites();
           final details = result.data
@@ -339,7 +373,12 @@ class BridgeBackend
                 ),
               )
               .toList(growable: false);
-          return _countResult(result.data.length, '个可预约场馆', details: details);
+          return _countResult(
+            result.data.length,
+            '个可预约场馆',
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.ygdk:
           final result = await client.ygdkOverview();
           final details = result.data.items
@@ -356,7 +395,11 @@ class BridgeBackend
           final summary = result.data.summary.termTarget == null
               ? '已打卡 ${result.data.summary.termCount} 次'
               : '学期进度 ${result.data.summary.termCount}/${result.data.summary.termTarget}';
-          return FeatureResult.success(summary: summary, details: details);
+          return FeatureResult.success(
+            summary: summary,
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
         case FeatureId.evaluation:
           final result = await client.evaluationAll();
           final details = result.data.courses
@@ -376,7 +419,11 @@ class BridgeBackend
           final progress = result.data.progress;
           final summary =
               '已评 ${progress.evaluatedCourses}/${progress.totalCourses} 门';
-          return FeatureResult.success(summary: summary, details: details);
+          return FeatureResult.success(
+            summary: summary,
+            details: details,
+            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          );
       }
     } on BridgeError catch (error) {
       throw _mapError(error);
@@ -614,9 +661,14 @@ class BridgeBackend
     int count,
     String unit, {
     List<FeatureDetail> details = const <FeatureDetail>[],
+    ConnectionMode? resolvedRoute,
   }) => count == 0
-      ? const FeatureResult.empty()
-      : FeatureResult.success(summary: '$count$unit', details: details);
+      ? FeatureResult.empty(resolvedRoute: resolvedRoute)
+      : FeatureResult.success(
+          summary: '$count$unit',
+          details: details,
+          resolvedRoute: resolvedRoute,
+        );
 
   static FeatureField? _field(String label, String? value) {
     final trimmed = value?.trim();

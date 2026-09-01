@@ -49,6 +49,9 @@ void main() {
           feature: feature,
           status: FeatureLoadStatus.success,
           summary: '已加载',
+          resolvedRoute: feature == FeatureId.schedule
+              ? ConnectionMode.direct
+              : null,
           details: feature == FeatureId.schedule
               ? const <FeatureDetail>[
                   FeatureDetail(
@@ -82,6 +85,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.text('主楼 101'), findsOneWidget);
+    expect(find.text('实际路线：直连'), findsOneWidget);
     expect(find.textContaining('只读详情页面将在'), findsNothing);
   });
 
