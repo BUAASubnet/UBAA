@@ -188,6 +188,85 @@ void main() {
     expect(find.text('已提交，请刷新已选课程确认'), findsOneWidget);
   });
 
+  testWidgets('课堂签到从公开课程编号准备并在确认后提交', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.signin
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '课堂签到课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: 'course-7'),
+                      FeatureField(label: '签到状态', value: '未签到'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    final intent = WriteIntent(
+      intentId: 'signin-intent',
+      operation: WriteOperation.signinPerform,
+      targetSummary: '课堂签到课程',
+      resolvedRoute: ConnectionMode.webvpn,
+      warnings: const <String>['提交后请刷新今日签到状态确认结果'],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareSigninWrite: (courseId) async {
+            prepareCalls++;
+            expect(courseId, 'course-7');
+            return intent;
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'signin-intent');
+            return const WriteCommitResult(
+              operation: WriteOperation.signinPerform,
+              success: true,
+              message: '签到结果已提交，请刷新确认',
+              outcomeUnknown: false,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课堂签到'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备签到'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认课堂签到'), findsNWidgets(2));
+    expect(find.text('WebVPN'), findsOneWidget);
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
+  });
+
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {
     final intent = WriteIntent(
       intentId: 'intent',

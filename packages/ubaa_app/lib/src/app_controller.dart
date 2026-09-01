@@ -376,13 +376,27 @@ class AppController extends ChangeNotifier {
     };
   }
 
+  /// 准备课堂签到的 typed 一次性意图；课程编号必须来自读取白名单。
+  Future<WriteIntent> prepareSigninWrite(String courseId) async {
+    final backend = _backend;
+    if (backend is! SigninWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final writer = backend as SigninWriteBackend;
+    final normalized = courseId.trim();
+    if (normalized.isEmpty) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return writer.prepareSigninPerform(courseId: normalized);
+  }
+
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
   Future<WriteCommitResult> commitWrite(String intentId) async {
     final backend = _backend;
-    if (backend is! BykcWriteBackend) {
+    if (backend is! WriteCommitBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    final writer = backend as BykcWriteBackend;
+    final writer = backend as WriteCommitBackend;
     if (intentId.trim().isEmpty) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }

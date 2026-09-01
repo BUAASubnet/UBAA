@@ -371,6 +371,7 @@ class UbaaMainShell extends StatefulWidget {
     this.activeRoutes = const <ConnectionMode>[],
     this.onFeatureQuery,
     this.onPrepareBykcWrite,
+    this.onPrepareSigninWrite,
     this.onCommitWrite,
     super.key,
   });
@@ -390,6 +391,7 @@ class UbaaMainShell extends StatefulWidget {
   onFeatureQuery;
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
   onPrepareBykcWrite;
+  final Future<WriteIntent> Function(String courseId)? onPrepareSigninWrite;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
 
   @override
@@ -450,6 +452,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onBykcWrite: widget.onPrepareBykcWrite == null
                 ? null
                 : _startBykcWrite,
+            onSigninWrite: widget.onPrepareSigninWrite == null
+                ? null
+                : _startSigninWrite,
           );
     return Scaffold(
       appBar: AppBar(
@@ -619,6 +624,32 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('暂时无法准备操作；尚未提交任何写请求。')));
+    }
+  }
+
+  Future<void> _startSigninWrite(String courseId) async {
+    final prepare = widget.onPrepareSigninWrite;
+    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final intent = await prepare(courseId);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = intent;
+        _writeSubmitting = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备签到；尚未提交任何写请求。')));
     }
   }
 
@@ -1018,6 +1049,7 @@ class _FeatureDetailView extends StatelessWidget {
     required this.onBack,
     required this.onRetry,
     this.onBykcWrite,
+    this.onSigninWrite,
     this.onQuery,
   });
 
@@ -1027,6 +1059,7 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function() onRetry;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
+  final Future<void> Function(String courseId)? onSigninWrite;
   final Future<void> Function(FeatureQuery query)? onQuery;
 
   @override
@@ -1097,6 +1130,7 @@ class _FeatureDetailView extends StatelessWidget {
       feature: feature,
       details: snapshot.details,
       onBykcWrite: onBykcWrite,
+      onSigninWrite: onSigninWrite,
     );
   }
 
@@ -1116,6 +1150,7 @@ class _FeatureDetailView extends StatelessWidget {
             feature: feature,
             details: snapshot.details,
             onBykcWrite: onBykcWrite,
+            onSigninWrite: onSigninWrite,
           ),
         ),
       ],
@@ -2335,12 +2370,14 @@ class _FeatureDetailList extends StatefulWidget {
     required this.feature,
     required this.details,
     this.onBykcWrite,
+    this.onSigninWrite,
   });
 
   final FeatureId feature;
   final List<FeatureDetail> details;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
+  final Future<void> Function(String courseId)? onSigninWrite;
 
   @override
   State<_FeatureDetailList> createState() => _FeatureDetailListState();
@@ -2411,6 +2448,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                   itemBuilder: (context, index) {
                     final detail = visible[index];
                     final courseId = _courseId(detail);
+                    final signinCourseId = _courseKey(detail);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -2465,6 +2503,18 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 ],
                               ),
                             ],
+                            if (widget.feature == FeatureId.signin &&
+                                widget.onSigninWrite != null &&
+                                signinCourseId != null &&
+                                signinCourseId.isNotEmpty) ...<Widget>[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () =>
+                                    widget.onSigninWrite!(signinCourseId),
+                                icon: const Icon(Icons.how_to_reg),
+                                label: const Text('准备签到'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -2506,6 +2556,13 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   int? _courseId(FeatureDetail detail) {
     for (final field in detail.fields) {
       if (field.label == '课程 ID') return int.tryParse(field.value.trim());
+    }
+    return null;
+  }
+
+  String? _courseKey(FeatureDetail detail) {
+    for (final field in detail.fields) {
+      if (field.label == '课程 ID') return field.value.trim();
     }
     return null;
   }

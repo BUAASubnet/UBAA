@@ -272,6 +272,30 @@ void main() {
     );
     controller.dispose();
   });
+
+  test('课堂签到写意图只接受读取结果中的非空课程编号', () async {
+    final backend = _SigninWriteBackend();
+    final controller = AppController(backend: backend);
+
+    final intent = await controller.prepareSigninWrite(' course-7 ');
+    expect(intent.operation, WriteOperation.signinPerform);
+    expect(backend.courseId, 'course-7');
+    expect(backend.commitCalls, 0);
+    await controller.commitWrite(intent.intentId);
+    expect(backend.commitCalls, 1);
+
+    await expectLater(
+      controller.prepareSigninWrite('  '),
+      throwsA(
+        isA<BackendException>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.invalidInput,
+        ),
+      ),
+    );
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -456,6 +480,58 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
     intentId: 'intent-${selectedCourseId ?? 0}',
     operation: operation,
     targetSummary: '课程 ${selectedCourseId ?? 0}',
+    resolvedRoute: ConnectionMode.direct,
+    warnings: const <String>[],
+    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+    requestDigest: 'digest',
+  );
+}
+
+class _SigninWriteBackend implements UbaaBackend, SigninWriteBackend {
+  String? courseId;
+  int commitCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareSigninPerform({required String courseId}) async {
+    this.courseId = courseId;
+    return _intent();
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commitCalls++;
+    return const WriteCommitResult(
+      operation: WriteOperation.signinPerform,
+      success: true,
+      message: 'ok',
+      outcomeUnknown: false,
+    );
+  }
+
+  WriteIntent _intent() => WriteIntent(
+    intentId: 'signin-intent',
+    operation: WriteOperation.signinPerform,
+    targetSummary: '课程 ${courseId ?? ''}',
     resolvedRoute: ConnectionMode.direct,
     warnings: const <String>[],
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),

@@ -16,6 +16,7 @@ class BridgeBackend
         UbaaBackend,
         FeatureQueryBackend,
         BykcWriteBackend,
+        SigninWriteBackend,
         RouteSettingsBackend,
         BackendLifecycle {
   BridgeBackend(this.client);
@@ -934,6 +935,7 @@ class BridgeBackend
                   title: item.courseName,
                   subtitle: '${item.classBeginTime}–${item.classEndTime}',
                   fields: <FeatureField>[
+                    FeatureField(label: '课程 ID', value: item.courseId),
                     FeatureField(
                       label: '签到状态',
                       value: switch (item.signStatus) {
