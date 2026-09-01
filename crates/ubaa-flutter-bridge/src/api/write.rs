@@ -140,6 +140,7 @@ pub(crate) enum PendingWrite {
 pub(crate) struct PendingEntry {
     pub request: PendingWrite,
     pub expires_at: i64,
+    pub resolved_route: BridgeConnectionMode,
 }
 
 impl PendingWrite {
@@ -155,6 +156,19 @@ impl PendingWrite {
             Self::CgyyReserve(_) => BridgeWriteOperation::CgyySubmitReservation,
             Self::CgyyCancel(_) => BridgeWriteOperation::CgyyCancelOrder,
             Self::Evaluation(_) => BridgeWriteOperation::EvaluationSubmitCourses,
+        }
+    }
+
+    fn feature(&self) -> ReadonlyFeature {
+        match self {
+            Self::BykcSelect(_) | Self::BykcDeselect(_) | Self::BykcSign(_) => {
+                ReadonlyFeature::Bykc
+            }
+            Self::Signin(_) => ReadonlyFeature::Signin,
+            Self::LibbookReserve(_) | Self::LibbookCancel(_) => ReadonlyFeature::LibBook,
+            Self::Ygdk(_) => ReadonlyFeature::Ygdk,
+            Self::CgyyReserve(_) | Self::CgyyCancel(_) => ReadonlyFeature::Cgyy,
+            Self::Evaluation(_) => ReadonlyFeature::Evaluation,
         }
     }
 }
@@ -182,6 +196,7 @@ impl BridgeClient {
             PendingEntry {
                 request: pending,
                 expires_at,
+                resolved_route: resolution.mode.into(),
             },
         );
         Ok(BridgeWriteIntent {
@@ -430,6 +445,18 @@ impl BridgeClient {
         let operation = pending.operation();
         let mut guard = self.inner.lock().await;
         let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
+        let current_resolution = client
+            .resolve_route_for_feature(pending.feature())
+            .map_err(|error| BridgeError::from_core(error, None))?;
+        let current_route: BridgeConnectionMode = current_resolution.mode.into();
+        if current_route != entry.resolved_route {
+            return Err(BridgeError::local(
+                BridgeErrorCode::OperationConflict,
+                BridgeErrorKind::Input,
+                true,
+                "route changed; prepare the write again",
+            ));
+        }
         let result = match pending {
             PendingWrite::BykcSelect(request) => client
                 .bykc_select_course(request.course_id)
