@@ -29,8 +29,9 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
-`open`，不得复用旧 handle 或 intent。panic 由 FRB 捕获为 `internal_error`，不得把 panic
-正文、backtrace 或参数回传 UI。
+`open`，不得复用旧 handle 或 intent。应用仍处于认证/路线初始化读取阶段时，宿主重建请求
+必须安全拒绝，避免旧初始化结果写入新 handle；初始化结束后的下一次生命周期恢复再重建。
+panic 由 FRB 捕获为 `internal_error`，不得把 panic 正文、backtrace 或参数回传 UI。
 
 ## 3. 错误合同
 

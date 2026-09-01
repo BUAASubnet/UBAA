@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 初始化阶段的生命周期重建竞态
+
+- 新增 app 回归：旧 backend 正在读取认证状态时，`rebuildBackend` 安全返回 `false`，不释放旧实例、不创建替代实例，待初始化结束后再由下一次生命周期恢复触发重建。
+- 该门禁只约束 Dart 生命周期并发，不改变 Core Session、路线或上游协议；失败回归先在旧实现上观察到错误地重建并返回成功，修复后的聚焦测试及既有全量 Flutter 门禁待在本阶段提交后复跑。
+
 ## 2026-09-02 当前 HEAD 双路线与 API26 门禁复核
 
 - `just verify-live mode=direct` 与 `mode=webvpn` 均以 exit code 0 完成；认证、用户资料、课表、考试、成绩、空教室、SPOC/Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需只读操作均为 `PASS`。同批次 SPOC/博雅课程详情因父列表为空记 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`；本次未调用任何真实写接口。

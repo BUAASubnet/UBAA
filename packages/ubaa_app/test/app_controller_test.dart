@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -227,6 +229,30 @@ void main() {
     expect(controller.phase, AppPhase.home);
     expect(controller.user?.username, 'student');
     expect(controller.activeRoutes, <ConnectionMode>[ConnectionMode.webvpn]);
+    controller.dispose();
+  });
+
+  test('初始化进行中时生命周期重建安全拒绝且不释放旧 backend', () async {
+    final first = _DelayedInitializeBackend();
+    final second = _RebuildBackend(
+      signedIn: true,
+      activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+    );
+    final controller = AppController(
+      backend: first,
+      backendFactory: () => second,
+    );
+    final initializing = controller.initialize();
+    await first.authStarted.future;
+
+    expect(controller.phase, AppPhase.checkingSession);
+    expect(await controller.rebuildBackend(), isFalse);
+    expect(first.disposed, isFalse);
+    expect(second.disposed, isFalse);
+
+    first.releaseAuth.complete();
+    await initializing;
+    expect(controller.phase, AppPhase.login);
     controller.dispose();
   });
 
@@ -664,6 +690,41 @@ class _RebuildBackend
     defaultPolicy: RoutePolicy.auto,
     activeRoutes: activeRoutes,
   );
+
+  @override
+  Future<void> dispose() async {
+    disposed = true;
+  }
+}
+
+class _DelayedInitializeBackend
+    implements UbaaBackend, BackendLifecycle {
+  final Completer<void> authStarted = Completer<void>();
+  final Completer<void> releaseAuth = Completer<void>();
+  bool disposed = false;
+
+  @override
+  Future<AuthStatus> authStatus() async {
+    authStarted.complete();
+    await releaseAuth.future;
+    return AuthStatus.signedOut;
+  }
+
+  @override
+  Future<UserSummary?> userInfo() async => null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
 
   @override
   Future<void> dispose() async {

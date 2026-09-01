@@ -141,7 +141,12 @@ class AppController extends ChangeNotifier {
   Future<bool> rebuildBackend() async {
     final factory = _backendFactory;
     if (factory == null || _disposed || _rebuildingBackend) return false;
-    if (_phase == AppPhase.loggingIn) return false;
+    // 初始化正在读取旧 backend 的认证/路线状态时，生命周期重建会与旧
+    // handle 竞争并可能把结果写入新实例；等待初始化完成后再由下一次
+    // resumed 事件触发重建。
+    if (_phase == AppPhase.loggingIn || _phase == AppPhase.checkingSession) {
+      return false;
+    }
     _rebuildingBackend = true;
     _refreshGeneration++;
     _setPhase(AppPhase.checkingSession);
