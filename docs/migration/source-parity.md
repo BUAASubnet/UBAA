@@ -308,6 +308,11 @@ URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求�
 `prepareEvaluationSubmitCourses` 调用，仍复用上表已固定的单一冻结评教提交协议、答案构造和一次性
 `WriteIntent`；没有新增 URL、参数、Header、DTO、答案策略或重试语义，因此不引入新的上游协议假设。
 
+2026-09-01 阳光打卡表单补充：本轮只在共享 Flutter UI 增加公开项目编号的表单、内存照片 picker 边界
+和一次性 `prepareYgdkSubmit` 调用，仍复用冻结 Ygdk 表中已固定的上传/提交 URL、字段、照片校验和错误
+语义；没有新增上游 URL、参数、Header、DTO、权限协议或自动重试行为。原生 picker 尚未接入，未执行
+真实照片上传或账号写入。
+
 ## 场馆预约只读查询
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
