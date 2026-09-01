@@ -220,6 +220,9 @@ enum FeatureLoadStatus { idle, loading, success, empty, stale, failure }
 enum FeatureQueryView {
   summary,
   bykcDetail,
+  bykcProfile,
+  bykcChosenCourses,
+  bykcStatistics,
   libbookAreas,
   libbookAreaDetail,
   libbookSeats,

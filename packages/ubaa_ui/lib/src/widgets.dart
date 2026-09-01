@@ -1204,6 +1204,18 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   value: FeatureQueryView.bykcDetail,
                   child: Text('课程详情'),
                 ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.bykcChosenCourses,
+                  child: Text('已选课程'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.bykcStatistics,
+                  child: Text('修读统计'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.bykcProfile,
+                  child: Text('个人资料'),
+                ),
               ],
             ),
             if (_bykcView == FeatureQueryView.summary) ...<Widget>[

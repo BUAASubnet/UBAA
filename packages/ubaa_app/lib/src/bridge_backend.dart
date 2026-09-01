@@ -314,6 +314,88 @@ class BridgeBackend
                 ],
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
+            case FeatureQueryView.bykcProfile:
+              final result = await client.bykcProfile();
+              final item = result.data;
+              return FeatureResult.success(
+                summary: '博雅个人资料',
+                details: <FeatureDetail>[
+                  FeatureDetail(
+                    title: item.realName ?? '博雅个人资料',
+                    fields: _compactFields(<FeatureField?>[
+                      _field('用户 ID', item.id.toString()),
+                      _field('姓名', item.realName),
+                      _field('学号', item.studentNo),
+                      _field('学院', item.collegeName),
+                    ]),
+                  ),
+                ],
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.bykcChosenCourses:
+              final result = await client.bykcChosenCourses();
+              final details = result.data
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.courseName,
+                      subtitle: item.courseTeacher,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('课程 ID', item.courseId.toString()),
+                        _field('地点', item.coursePosition),
+                        _field('开始', item.courseStartDate),
+                        _field('结束', item.courseEndDate),
+                        _field('签到状态', '${item.checkin}'),
+                        _field('成绩', item.score?.toString()),
+                        _field(
+                          '通过',
+                          item.pass == null
+                              ? null
+                              : item.pass! > 0
+                              ? '是'
+                              : '否',
+                        ),
+                        _field('可签到', item.canSign ? '是' : '否'),
+                        _field('可签退', item.canSignOut ? '是' : '否'),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                details.length,
+                '门已选博雅课程',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.bykcStatistics:
+              final result = await client.bykcStatistics();
+              final details = result.data.categories
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.categoryName ?? item.subCategoryName ?? '分类',
+                      subtitle: item.subCategoryName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('要求数量', item.requiredCount?.toString()),
+                        _field('通过数量', item.passedCount?.toString()),
+                        _field(
+                          '达标',
+                          item.qualified == null
+                              ? null
+                              : item.qualified!
+                              ? '是'
+                              : '否',
+                        ),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                details.length,
+                result.data.totalValidCount == null
+                    ? '博雅修读统计'
+                    : '有效课程 ${result.data.totalValidCount}',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
             default:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
@@ -624,6 +706,9 @@ class BridgeBackend
               );
             case FeatureQueryView.ygdkRecords:
             case FeatureQueryView.bykcDetail:
+            case FeatureQueryView.bykcProfile:
+            case FeatureQueryView.bykcChosenCourses:
+            case FeatureQueryView.bykcStatistics:
             case FeatureQueryView.cgyyPurposeTypes:
             case FeatureQueryView.cgyyDayInfo:
             case FeatureQueryView.cgyyOrders:
@@ -812,6 +897,9 @@ class BridgeBackend
               );
             case FeatureQueryView.libbookAreas:
             case FeatureQueryView.bykcDetail:
+            case FeatureQueryView.bykcProfile:
+            case FeatureQueryView.bykcChosenCourses:
+            case FeatureQueryView.bykcStatistics:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
@@ -871,6 +959,9 @@ class BridgeBackend
               );
             case FeatureQueryView.libbookAreas:
             case FeatureQueryView.bykcDetail:
+            case FeatureQueryView.bykcProfile:
+            case FeatureQueryView.bykcChosenCourses:
+            case FeatureQueryView.bykcStatistics:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:

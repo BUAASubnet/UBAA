@@ -168,6 +168,9 @@ ID/分页字段：
 |---|---|---|
 | `summary` | `date?` | `libbookLibraries(day)` |
 | `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
+| `bykcProfile` | 无 | `bykcProfile` |
+| `bykcChosenCourses` | 无 | `bykcChosenCourses` |
+| `bykcStatistics` | 无 | `bykcStatistics` |
 | `libbookAreas` | `premisesId`，`storeyId?`，`date?` | `libbookAreas(premisesId, storeyId?, day)` |
 | `libbookAreaDetail` | `areaId` | `libbookAreaDetail(areaId)` |
 | `libbookSeats` | `areaId`、`startTime`、`endTime`、`date?` | `libbookSeats(areaId, day, startTime, endTime)` |

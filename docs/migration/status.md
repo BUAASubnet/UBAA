@@ -13,6 +13,16 @@
 - 本轮只读，不触发选课、退选或签到；P3/P4 仍未完成，已选课程/统计详情、写入表单、结果核对、
   golden/integration 和六平台真实 App E2E 仍缺证据。
 
+## 2026-09-01 博雅已选课程与修读统计读取增量
+
+- `FeatureQueryView` 继续增加 `bykcProfile`、`bykcChosenCourses` 和 `bykcStatistics`；
+  `BridgeBackend` 直接调用对应 typed facade，展示个人资料、已选课程考勤/成绩状态及分类达标
+  统计，课程附件路径等潜在 URL 不进入 `FeatureDetail`。
+- 博雅控件将课程列表、详情、已选课程、修读统计和个人资料统一置于封闭下拉视图；本轮没有新增
+  未经 Core 证明的参数或接口，也不触发选课、退选、签到。
+- 该增量仍仅覆盖只读映射；P3 的全页面 loading/empty/stale、golden/integration、服务端分页
+  核对和六平台真实 App E2E 尚未闭合。
+
 ## 2026-09-01 SPOC/Judge 作业详情读取增量
 
 - `FeatureQueryView` 增加 `spocDetail` 与 `judgeDetail`；`BridgeBackend` 分别以

@@ -184,6 +184,10 @@
     仅接受正整数并调用已有 `bykcCourseDetail` typed facade，映射课程/教师/地点/时间/容量/状态
     白名单字段。widget 测试先观察缺失视图的预期失败再通过；本轮不触发选课、退选或签到，
     也不代表 P3/P4 的其余详情、表单、核对和六平台 App E2E 已完成。
+42. Bykc 只读视图继续覆盖 `bykcProfile`、`bykcChosenCourses` 和 `bykcStatistics`；
+    BridgeBackend 直接调用 typed facade 并映射个人资料、已选课程考勤/成绩状态及修读统计，
+    不传递课程附件路径等潜在 URL。博雅控件提供封闭下拉选择；本轮无新接口、无真实写操作，
+    P3 的完整状态、分页核对、golden/integration 和六平台 E2E 仍未完成。
 
 ## 4. 安全与架构边界
 
