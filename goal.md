@@ -139,6 +139,9 @@
     `PASS(count=1)`；SPOC/Bykc 详情因同批次父列表为空记 `NOT_APPLICABLE`，Cgyy 用途均明确
     `source=static_fallback`。本次只证明 Core-live 协议矩阵，没有调用真实写接口，也不替代六平台
     Flutter→FRB→Core 的真实设备 E2E。
+27. 远端 CI run `33468279841`（当前文档提交 `530a38e`）已终态成功：`contract-gates`、
+    macOS Rust 和 Windows Rust 三个 job 全部通过；该 run 只覆盖 Rust/合同门禁，不新增
+    OHOS API26、正式签名、实体设备或 Flutter Release 证据。
 
 ## 4. 安全与架构边界
 

@@ -2,6 +2,14 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 最新 CI 终态
+
+- 远端 CI run `33468279841`（提交 `530a38e`）已完成且结论为 success；`contract-gates`、
+  macOS Rust、Windows Rust 三个 job 的 refs、敏感扫描、全 Rust 测试/构建/文档和严格 lint
+  均通过。
+- 该 run 不包含 OHOS API26/DevEco、正式签名、实体设备或 Flutter Release；这些门禁仍按
+  `goal.md` 保持未完成。
+
 ## 2026-09-01 Flutter 六平台 P0 基线
 
 已按新的 `goal.md` 开始 P0。开始时工作树包含用户已有的 Flutter/OHOS 探索骨架、
