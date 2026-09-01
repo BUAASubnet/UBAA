@@ -2,6 +2,18 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 Flutter 宿主集成回归
+
+- 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏集成场景：使用注入的
+  typed fake backend 从登录进入主页、打开课表详情、选择“周课表”、提交学期/周次筛选，最后
+  验证 AppController 将 `FeatureQuery` 原样传给 `FeatureQueryBackend`，并可返回“我的”页。
+- 使用官方 Flutter 3.41.9 在 macOS runner 执行
+  `flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts`，结果为
+  `All tests passed`；`flutter analyze` 与宿主既有 widget test 亦通过。该场景只使用脱敏数据，
+  不访问网络、真实账号或写接口。
+- 这是宿主组合与一条查询链路的确定性集成证据，不替代各领域的 golden/逐领域 integration、
+  六平台真实 App→FRB→Core 读取和写入证据；P3–P6 仍未完成。
+
 ## 2026-09-02 OHOS 无签名 debug HAP 包内容复核
 
 - 在用户确认当前没有实体设备后，使用 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools`

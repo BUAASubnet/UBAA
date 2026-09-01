@@ -358,6 +358,12 @@
     `libs/arm64-v8a/libubaa_bindings.so`。该 HAP 未签名、未安装，不能作为 P0/P6 发布或实体设备
     证据；签名、hdc/设备 FRB hello、HUKS、真实 App smoke 及 P5/P6 仍未完成。
 
+118. 新增 `apps/ubaa_flutter/integration_test/app_flow_test.dart`，以脱敏 typed fake backend 覆盖
+    官方 Flutter 宿主从登录、主页、课表详情到学期/周次查询和“我的”页的组合流程；
+    `flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts`、宿主
+    `flutter analyze` 与既有 widget test 均通过。该证据不访问网络或真实账号，不替代各领域
+    golden/逐领域 integration、六平台真实 App→FRB→Core 读取或写入；P3–P6 仍未完成。
+
 ## 4. 安全与架构边界
 
 - 宿主只能依赖 ubaa-core facade 和专用 bridge DTO，不能访问 upstream、runtime、原始 URL、Cookie、业务 token 或内部 DTO。

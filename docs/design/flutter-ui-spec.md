@@ -63,11 +63,14 @@ Core 明确返回空结果后不保留旧数据；此后刷新失败按首次失
   实际路线展示；`packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不
   伪造 Demo 登录、刷新失败后的 `stale` 数据保留、实际路线投影以及未认证固定路线的安全
   回登录。
+- `apps/ubaa_flutter/integration_test/app_flow_test.dart` 已覆盖官方 Flutter 宿主从登录、主页、
+  课表详情到学期/周次 typed 查询和“我的”页的组合链路；该测试仅使用脱敏 fake backend，不能
+  代替设备上的真实 FRB/上游读取。
 - `BridgeBackend` 已为 12 个只读功能映射白名单详情，并为课表/考试/成绩提供学期（课表另有
   周次）、空教室提供日期/校区及楼层/节次本地过滤的 typed 查询入口；详情页控件只向
   `AppController.refreshFeatureQuery` 传递 `FeatureQuery`，不拼接 URL。上述入口已有 app/widget
   参数传递测试。Judge 另提供批量详情视图，逐行接收公开的 `课程编号/作业编号` 并解析为 typed
   键列表，不接收 raw JSON 或上游正文；课堂签到提供全部/未签到/已签到本地状态视图。
-- 博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/
+- 博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/逐领域
   integration 测试和除博雅选课/退选、博雅签到/签退、课堂签到、图书馆预约/取消、场馆取消、教学评教单课程准备外的领域写入页面仍需按 P3/P4 补齐，故本规格不把当前
   实现标记为完成。
