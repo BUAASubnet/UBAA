@@ -976,7 +976,9 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.bykc ||
     FeatureId.libbook ||
     FeatureId.ygdk ||
-    FeatureId.cgyy => true,
+    FeatureId.cgyy ||
+    FeatureId.spoc ||
+    FeatureId.judge => true,
     _ => false,
   };
 
@@ -1068,10 +1070,15 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _endController;
   late final TextEditingController _siteController;
   late final TextEditingController _orderController;
+  late final TextEditingController _spocAssignmentController;
+  late final TextEditingController _judgeCourseController;
+  late final TextEditingController _judgeAssignmentController;
   int _campus = 1;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
   FeatureQueryView _cgyyView = FeatureQueryView.summary;
+  FeatureQueryView _spocView = FeatureQueryView.summary;
+  FeatureQueryView _judgeView = FeatureQueryView.summary;
   bool _submitting = false;
 
   @override
@@ -1089,6 +1096,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _endController = TextEditingController(text: '22:00');
     _siteController = TextEditingController();
     _orderController = TextEditingController();
+    _spocAssignmentController = TextEditingController();
+    _judgeCourseController = TextEditingController();
+    _judgeAssignmentController = TextEditingController();
   }
 
   @override
@@ -1105,6 +1115,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _endController.dispose();
     _siteController.dispose();
     _orderController.dispose();
+    _spocAssignmentController.dispose();
+    _judgeCourseController.dispose();
+    _judgeAssignmentController.dispose();
     super.dispose();
   }
 
@@ -1481,6 +1494,82 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
           ],
+          if (widget.feature == FeatureId.spoc) ...<Widget>[
+            DropdownButton<FeatureQueryView>(
+              value: _spocView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _spocView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('作业列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.spocDetail,
+                  child: Text('作业详情'),
+                ),
+              ],
+            ),
+            if (_spocView == FeatureQueryView.spocDetail)
+              SizedBox(
+                width: 160,
+                child: TextField(
+                  controller: _spocAssignmentController,
+                  decoration: const InputDecoration(
+                    labelText: '作业编号',
+                    hintText: '从作业列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+          ],
+          if (widget.feature == FeatureId.judge) ...<Widget>[
+            DropdownButton<FeatureQueryView>(
+              value: _judgeView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _judgeView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('作业列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.judgeDetail,
+                  child: Text('作业详情'),
+                ),
+              ],
+            ),
+            if (_judgeView == FeatureQueryView.judgeDetail) ...<Widget>[
+              SizedBox(
+                width: 140,
+                child: TextField(
+                  controller: _judgeCourseController,
+                  decoration: const InputDecoration(
+                    labelText: '课程编号',
+                    hintText: '从作业列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 160,
+                child: TextField(
+                  controller: _judgeAssignmentController,
+                  decoration: const InputDecoration(
+                    labelText: '作业编号',
+                    hintText: '从作业列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ],
           FilledButton.tonal(
             onPressed: _submitting ? null : _apply,
             child: _submitting
@@ -1619,6 +1708,23 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           }
         }
       }
+      if (widget.feature == FeatureId.spoc &&
+          _spocView == FeatureQueryView.spocDetail &&
+          _spocAssignmentController.text.trim().isEmpty) {
+        _showMessage('作业编号不能为空。');
+        return;
+      }
+      if (widget.feature == FeatureId.judge &&
+          _judgeView == FeatureQueryView.judgeDetail) {
+        if (_judgeCourseController.text.trim().isEmpty) {
+          _showMessage('课程编号不能为空。');
+          return;
+        }
+        if (_judgeAssignmentController.text.trim().isEmpty) {
+          _showMessage('作业编号不能为空。');
+          return;
+        }
+      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -1633,6 +1739,10 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ? _ygdkView
               : widget.feature == FeatureId.cgyy
               ? _cgyyView
+              : widget.feature == FeatureId.spoc
+              ? _spocView
+              : widget.feature == FeatureId.judge
+              ? _judgeView
               : _libbookView,
           premisesId: _optionalText(_premisesController),
           storeyId: _optionalText(_storeyController),
@@ -1644,6 +1754,14 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : null,
           orderId: widget.feature == FeatureId.cgyy
               ? int.tryParse(_orderController.text.trim())
+              : null,
+          assignmentId: widget.feature == FeatureId.spoc
+              ? _optionalText(_spocAssignmentController)
+              : widget.feature == FeatureId.judge
+              ? _optionalText(_judgeAssignmentController)
+              : null,
+          courseId: widget.feature == FeatureId.judge
+              ? _optionalText(_judgeCourseController)
               : null,
         ),
       );

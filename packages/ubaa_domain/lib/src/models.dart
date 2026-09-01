@@ -229,6 +229,8 @@ enum FeatureQueryView {
   cgyyOrders,
   cgyyOrderDetail,
   cgyyLockCode,
+  spocDetail,
+  judgeDetail,
 }
 
 @immutable
@@ -327,6 +329,9 @@ class FeatureQuery {
     this.endTime,
     this.siteId,
     this.orderId,
+    this.assignmentId,
+    this.courseId,
+    this.includeExpired = false,
   });
 
   final String? term;
@@ -337,7 +342,7 @@ class FeatureQuery {
   final int size;
   final FeatureQueryView view;
 
-  /// 图书馆楼馆/楼层/分区 ID。它们是用户从读取结果中选择的公开标识，
+  /// 各领域详情查询使用的公开标识。它们由用户从读取结果中选择，
   /// 不包含 Session、Cookie 或 token。
   final String? premisesId;
   final String? storeyId;
@@ -346,6 +351,9 @@ class FeatureQuery {
   final String? endTime;
   final int? siteId;
   final int? orderId;
+  final String? assignmentId;
+  final String? courseId;
+  final bool includeExpired;
 
   FeatureQuery copyWith({
     String? term,
@@ -362,6 +370,9 @@ class FeatureQuery {
     String? endTime,
     int? siteId,
     int? orderId,
+    String? assignmentId,
+    String? courseId,
+    bool? includeExpired,
   }) => FeatureQuery(
     term: term ?? this.term,
     date: date ?? this.date,
@@ -377,6 +388,9 @@ class FeatureQuery {
     endTime: endTime ?? this.endTime,
     siteId: siteId ?? this.siteId,
     orderId: orderId ?? this.orderId,
+    assignmentId: assignmentId ?? this.assignmentId,
+    courseId: courseId ?? this.courseId,
+    includeExpired: includeExpired ?? this.includeExpired,
   );
 }
 

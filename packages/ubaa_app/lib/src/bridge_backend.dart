@@ -300,36 +300,126 @@ class BridgeBackend
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.spoc:
-          final result = await client.spocAssignments();
-          final details = result.data.assignments
-              .map(
-                (item) => FeatureDetail(
-                  title: item.title,
-                  subtitle: item.courseName,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('教师', item.teacherName),
-                    _field('开始', item.startTime),
-                    _field('截止', item.dueTime),
-                    _field('状态', item.submissionStatusText),
-                    _field('得分', item.score),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.assignments.length,
-            '项 SPOC 作业',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+          switch (query.view) {
+            case FeatureQueryView.summary:
+              final result = await client.spocAssignments();
+              final details = result.data.assignments
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.title,
+                      subtitle: item.courseName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('作业编号', item.assignmentId),
+                        _field('教师', item.teacherName),
+                        _field('开始', item.startTime),
+                        _field('截止', item.dueTime),
+                        _field('状态', item.submissionStatusText),
+                        _field('得分', item.score),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.assignments.length,
+                '项 SPOC 作业',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.spocDetail:
+              final assignmentId = _requiredQueryValue(
+                query.assignmentId,
+                '作业编号',
+              );
+              final result = await client.spocAssignment(
+                assignmentId: assignmentId,
+              );
+              final item = result.data;
+              return FeatureResult.success(
+                summary: 'SPOC 作业详情',
+                details: <FeatureDetail>[
+                  FeatureDetail(
+                    title: item.title,
+                    subtitle: item.courseName,
+                    fields: _compactFields(<FeatureField?>[
+                      _field('作业编号', item.assignmentId),
+                      _field('课程编号', item.courseId),
+                      _field('教师', item.teacherName),
+                      _field('开始', item.startTime),
+                      _field('截止', item.dueTime),
+                      _field('状态', item.submissionStatusText),
+                      _field('得分', item.score),
+                      _field('提交时间', item.submittedAt),
+                      _field('作业内容', item.contentPlainText),
+                    ]),
+                  ),
+                ],
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.judge:
-          final result = await client.judgeAssignments(includeExpired: false);
-          final details = result.data
-              .map(
-                (item) => FeatureDetail(
+          switch (query.view) {
+            case FeatureQueryView.summary:
+              final result = await client.judgeAssignments(
+                includeExpired: query.includeExpired,
+              );
+              final details = result.data
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.title,
+                      subtitle: item.courseName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('课程编号', item.courseId),
+                        _field('作业编号', item.assignmentId),
+                        _field('开始', item.startTime),
+                        _field('截止', item.dueTime),
+                        _field('状态', item.submissionStatusText),
+                        _field(
+                          '进度',
+                          '${item.submittedCount}/${item.totalProblems}',
+                        ),
+                        _field('我的得分', item.myScore),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.length,
+                '项希冀作业',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.judgeDetail:
+              final courseId = _requiredQueryValue(query.courseId, '课程编号');
+              final assignmentId = _requiredQueryValue(
+                query.assignmentId,
+                '作业编号',
+              );
+              final result = await client.judgeAssignment(
+                courseId: courseId,
+                assignmentId: assignmentId,
+              );
+              final item = result.data;
+              final problems = item.problems
+                  .map(
+                    (problem) => FeatureDetail(
+                      title: problem.name,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('状态', problem.statusText),
+                        _field('得分', problem.score),
+                        _field('满分', problem.maxScore),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              final details = <FeatureDetail>[
+                FeatureDetail(
                   title: item.title,
                   subtitle: item.courseName,
                   fields: _compactFields(<FeatureField?>[
+                    _field('课程编号', item.courseId),
+                    _field('作业编号', item.assignmentId),
                     _field('开始', item.startTime),
                     _field('截止', item.dueTime),
                     _field('状态', item.submissionStatusText),
@@ -338,16 +428,19 @@ class BridgeBackend
                       '${item.submittedCount}/${item.totalProblems}',
                     ),
                     _field('我的得分', item.myScore),
+                    _field('作业内容', item.contentPlainText),
                   ]),
                 ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.length,
-            '项希冀作业',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+                ...problems,
+              ];
+              return FeatureResult.success(
+                summary: '希冀作业详情',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.libbook:
           switch (query.view) {
             case FeatureQueryView.summary:
@@ -491,6 +584,8 @@ class BridgeBackend
             case FeatureQueryView.cgyyOrders:
             case FeatureQueryView.cgyyOrderDetail:
             case FeatureQueryView.cgyyLockCode:
+            case FeatureQueryView.spocDetail:
+            case FeatureQueryView.judgeDetail:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.signin:
@@ -675,6 +770,8 @@ class BridgeBackend
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
             case FeatureQueryView.ygdkRecords:
+            case FeatureQueryView.spocDetail:
+            case FeatureQueryView.judgeDetail:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.ygdk:
@@ -735,6 +832,8 @@ class BridgeBackend
             case FeatureQueryView.cgyyOrders:
             case FeatureQueryView.cgyyOrderDetail:
             case FeatureQueryView.cgyyLockCode:
+            case FeatureQueryView.spocDetail:
+            case FeatureQueryView.judgeDetail:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.evaluation:

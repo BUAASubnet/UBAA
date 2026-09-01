@@ -176,6 +176,10 @@
     BridgeBackend 与高级功能控件调用已有 typed facade，订单白名单省略手机号/参与人/交易号，
     用途明示 `upstream` 或 `staticFallback`，门锁只展示 `available`。新增日期空间 widget
     回归测试；该只读增量不代表预约写入、权限挑战或 P3 完成。
+40. `FeatureQueryView` 现支持 SPOC/Judge 作业详情；BridgeBackend 以公开作业/课程编号调用
+    typed 详情 facade，并仅映射作业头、题目状态/分数和纯文本内容；高级功能控件与 widget
+    测试已接线，缺少必要编号时返回 `invalid_input`。本轮只读，不代表 P3 的完整详情核对、
+    golden/integration、写入页面或六平台真实 App E2E 已完成。
 
 ## 4. 安全与架构边界
 

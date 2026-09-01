@@ -2,6 +2,17 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 SPOC/Judge 作业详情读取增量
+
+- `FeatureQueryView` 增加 `spocDetail` 与 `judgeDetail`；`BridgeBackend` 分别以
+  `assignmentId`、`courseId + assignmentId` 调用已有 typed facade 详情方法，并在缺少标识时
+  返回稳定的 `invalid_input`，不在 Dart 拼接 URL、JSON 或会话材料。
+- 高级功能页新增“作业列表/作业详情”控件；Judge 详情展示作业头与题目状态/分数，SPOC/Judge
+  内容仅映射白名单纯文本字段，不暴露原始 HTML、链接、Cookie 或业务令牌；新增 widget 测试
+  覆盖 SPOC 作业编号的 typed 传递。
+- 本轮只读，不触发提交或其他写操作；P3 仍未完成，服务端分页/详情逐项核对、golden/
+  integration、完整页面状态和六平台真实 App E2E 仍缺证据。
+
 ## 2026-09-01 场馆预约只读详情增量
 
 - `FeatureQueryView` 现支持 Cgyy 用途类型、日期空间、订单列表、订单详情和门锁状态；
