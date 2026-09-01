@@ -234,6 +234,9 @@
 54. 提交 `e2fdd5a` 的合同 CI run `33490877831` 与 Flutter native run `33490877817` 均已终态成功；
     后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 全部构建并上传 debug 产物。
     该证据不包含 OHOS HAP、正式签名、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未闭合。
+55. 详情页现在按功能保存最近一次 typed `FeatureQuery`；查询后的失败/过期重试会复用相同筛选、分页和
+    公开 ID，不退回摘要查询。新增 widget 回归通过，未新增上游协议或写操作；P3 的逐领域完整状态、服务端
+    分页核对、golden/integration 和真实 Flutter App E2E 仍未闭合。
 
 ## 4. 安全与架构边界
 
