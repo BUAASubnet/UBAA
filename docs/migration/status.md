@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 初始化销毁竞态的异步读取取消
+
+- 新增延迟认证 app 回归：初始化等待 `authStatus` 时销毁 controller，旧实现会继续调用 `userInfo` 并可能启动首页刷新；先观察到该失败后，在路线、认证、用户资料和凭据读取边界加入 `_disposed` guard。
+- 聚焦 `app_controller_test.dart` 修复后 25/25 通过，随后完整 Flutter 检查仍通过；该修复只约束 Dart 生命周期，不改变 Core、路线或上游协议，P1 仍缺真实 isolate/实体平台生命周期证据。
+
 ## 2026-09-02 当前提交远端合同与五平台 native CI
 
 - 提交 `538f57d` 的远端合同 CI `33537041843` 已成功：`contract-gates`、macOS Rust 与 Windows Rust 全部通过；五平台 native debug run `33537041816` 已成功，Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传产物。

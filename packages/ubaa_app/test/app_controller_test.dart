@@ -256,6 +256,20 @@ void main() {
     controller.dispose();
   });
 
+  test('controller 销毁后初始化不会继续读取用户或刷新首页', () async {
+    final backend = _DelayedSignedInInitializeBackend();
+    final controller = AppController(backend: backend);
+    final initializing = controller.initialize();
+    await backend.authStarted.future;
+
+    controller.dispose();
+    backend.releaseAuth.complete();
+    await initializing;
+
+    expect(backend.userInfoCalls, 0);
+    expect(backend.featureLoads, 0);
+  });
+
   test('博雅写意图通过 typed backend 准备且控制器不替换请求参数', () async {
     final backend = _BykcWriteBackend();
     final controller = AppController(backend: backend);
@@ -730,6 +744,45 @@ class _DelayedInitializeBackend
   Future<void> dispose() async {
     disposed = true;
   }
+}
+
+class _DelayedSignedInInitializeBackend
+    implements UbaaBackend, BackendLifecycle {
+  final Completer<void> authStarted = Completer<void>();
+  final Completer<void> releaseAuth = Completer<void>();
+  int userInfoCalls = 0;
+  int featureLoads = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async {
+    authStarted.complete();
+    await releaseAuth.future;
+    return AuthStatus.signedIn;
+  }
+
+  @override
+  Future<UserSummary?> userInfo() async {
+    userInfoCalls++;
+    return const UserSummary(username: 'student');
+  }
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    featureLoads++;
+    return const FeatureResult.empty();
+  }
+
+  @override
+  Future<void> dispose() async {}
 }
 
 class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {

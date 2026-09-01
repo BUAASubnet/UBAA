@@ -96,11 +96,14 @@ class AppController extends ChangeNotifier {
     try {
       if (_backend case final RouteSettingsBackend routeBackend) {
         final settings = await routeBackend.routeSettings();
+        if (_disposed) return;
         _applyRouteSettings(settings);
       }
       final status = await _backend.authStatus();
+      if (_disposed) return;
       if (status == AuthStatus.signedIn) {
         _user = await _backend.userInfo();
+        if (_disposed) return;
         if (_user != null) {
           _setPhase(AppPhase.home);
           await _recordAppOpen();
@@ -109,6 +112,7 @@ class AppController extends ChangeNotifier {
         }
       }
       final saved = await _credentialVault.read();
+      if (_disposed) return;
       if (saved != null && saved.isUsable) {
         _loginForm = _loginForm.copyWith(
           username: saved.username,

@@ -33,6 +33,10 @@ Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disp
 必须安全拒绝，避免旧初始化结果写入新 handle；初始化结束后的下一次生命周期恢复再重建。
 panic 由 FRB 捕获为 `internal_error`，不得把 panic 正文、backtrace 或参数回传 UI。
 
+`AppController.initialize` 在每个异步路线、认证、用户资料和凭据读取边界检查 controller
+生命周期；若宿主已销毁，后续读取和首页刷新立即停止。宿主销毁会尽力释放当前 backend，不能
+让已完成的旧初始化结果重新写入 UI 状态。
+
 ## 3. 错误合同
 
 `Result<T, BridgeError>` 在 Dart 中抛出 typed `BridgeError implements Exception`。字段固定为：
