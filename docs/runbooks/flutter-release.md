@@ -29,8 +29,9 @@ UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 会话目录、构建日志中的凭据或任何原始上游响应加入工件。`ohos-check` 必须先通过锁定的
 DevEco/CLI 26.0.0 Beta2 与 OpenHarmony API26 预检；API21 失败不能降级冒充。
 
-`release-preflight` 只接受绝对报告目录，并要求工作树干净；它生成 Cargo 依赖元数据、Flutter
-锁文件清单、源码 SHA-256 和无签名状态摘要，不读取凭据、不访问真实账号、不签名、不上传。
+`release-preflight` 只接受绝对报告目录，并要求工作树干净；它生成 Cargo 依赖元数据、CycloneDX
+风格 SBOM、Dart/Flutter 锁文件清单、依赖/许可证审计、源码 SHA-256 和无签名状态摘要，不读取
+凭据、不访问真实账号、不签名、不上传。
 报告目录应放在仓库外或 CI 临时目录，完成审计后按项目保留策略归档。
 
 ## 2. 产物与签名隔离

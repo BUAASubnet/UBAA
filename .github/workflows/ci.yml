@@ -19,6 +19,15 @@ jobs:
       - run: just refs
       - run: just check-sensitive
       - run: just check
+      - name: 生成无签名 RC 前置报告
+        run: just release-preflight report_dir="$RUNNER_TEMP/ubaa-release-report"
+      - name: 保存无签名 RC 前置报告
+        uses: actions/upload-artifact@v6
+        with:
+          name: ubaa-release-preflight-${{ github.run_id }}
+          path: ${{ runner.temp }}/ubaa-release-report
+          if-no-files-found: error
+          retention-days: 14
 
   rust-platforms:
     strategy:
