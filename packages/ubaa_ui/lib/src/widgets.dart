@@ -368,6 +368,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onLogoutAndClearAccount,
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
+    this.activeRoutes = const <ConnectionMode>[],
     this.onFeatureQuery,
     super.key,
   });
@@ -382,6 +383,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
+  final List<ConnectionMode> activeRoutes;
   final Future<void> Function(FeatureId feature, FeatureQuery query)?
   onFeatureQuery;
 
@@ -491,6 +493,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onTelemetryChanged: widget.onTelemetryChanged,
       onLogout: widget.onLogout,
       onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
+      activeRoutes: widget.activeRoutes,
     ),
   };
 
@@ -793,6 +796,7 @@ class _ProfileView extends StatelessWidget {
     required this.onTelemetryChanged,
     required this.onLogout,
     required this.onLogoutAndClearAccount,
+    required this.activeRoutes,
   });
 
   final UserSummary? user;
@@ -802,6 +806,7 @@ class _ProfileView extends StatelessWidget {
   final ValueChanged<bool> onTelemetryChanged;
   final Future<void> Function() onLogout;
   final Future<void> Function() onLogoutAndClearAccount;
+  final List<ConnectionMode> activeRoutes;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -839,6 +844,16 @@ class _ProfileView extends StatelessWidget {
                       ),
                     )
                     .toList(),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.verified_user_outlined),
+              title: const Text('已认证路线'),
+              subtitle: Text(
+                activeRoutes.isEmpty
+                    ? '暂无已认证路线'
+                    : activeRoutes.map((route) => route.label).join('、'),
               ),
             ),
             const Divider(height: 1),

@@ -93,6 +93,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> {
       user: _controller.user,
       snapshots: _controller.snapshots,
       routePolicy: _controller.loginForm.routePolicy,
+      activeRoutes: _controller.activeRoutes,
       telemetryEnabled: _controller.telemetryEnabled,
       onRefresh: _controller.refreshHome,
       onRetryFeature: _controller.retryFeature,

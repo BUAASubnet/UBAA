@@ -73,6 +73,7 @@ void main() {
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
+          activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
           telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
@@ -93,6 +94,7 @@ void main() {
     await tester.tap(find.text('返回功能列表'));
     await tester.tap(find.byIcon(Icons.person_outline));
     await tester.pumpAndSettle();
+    expect(find.text('直连'), findsOneWidget);
     await tester.tap(find.text('退出并清除本机账号'));
     await tester.pumpAndSettle();
     expect(find.text('清除本机账号？'), findsOneWidget);

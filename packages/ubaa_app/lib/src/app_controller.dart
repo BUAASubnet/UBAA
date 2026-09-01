@@ -71,6 +71,7 @@ class AppController extends ChangeNotifier {
   bool _initialized = false;
   int _refreshGeneration = 0;
   bool _telemetryEnabled;
+  List<ConnectionMode> _activeRoutes = const <ConnectionMode>[];
 
   AppPhase get phase => _phase;
   LoginFormState get loginForm => _loginForm;
@@ -78,6 +79,8 @@ class AppController extends ChangeNotifier {
   UiError? get error => _error;
   bool get telemetryEnabled => _telemetryEnabled;
   bool get credentialPersistenceAvailable => _credentialVault.isAvailable;
+  List<ConnectionMode> get activeRoutes =>
+      List<ConnectionMode>.unmodifiable(_activeRoutes);
   Map<FeatureId, FeatureSnapshot> get snapshots =>
       Map<FeatureId, FeatureSnapshot>.unmodifiable(_snapshots);
 
@@ -88,7 +91,7 @@ class AppController extends ChangeNotifier {
     try {
       if (_backend case final RouteSettingsBackend routeBackend) {
         final settings = await routeBackend.routeSettings();
-        _loginForm = _loginForm.copyWith(routePolicy: settings.defaultPolicy);
+        _applyRouteSettings(settings);
       }
       final status = await _backend.authStatus();
       if (status == AuthStatus.signedIn) {
@@ -167,9 +170,11 @@ class AppController extends ChangeNotifier {
       if (_backend case final RouteSettingsBackend routeBackend) {
         settings = await routeBackend.routeSettings();
       }
-      _loginForm = _loginForm.copyWith(
-        routePolicy: settings?.defaultPolicy ?? value,
-      );
+      if (settings case final routeSettings?) {
+        _applyRouteSettings(routeSettings);
+      } else {
+        _loginForm = _loginForm.copyWith(routePolicy: value);
+      }
       if (_phase == AppPhase.home &&
           settings != null &&
           !_routePolicyHasSession(value, settings.activeRoutes)) {
@@ -198,6 +203,7 @@ class AppController extends ChangeNotifier {
       return;
     }
     _error = null;
+    _activeRoutes = const <ConnectionMode>[];
     _setPhase(AppPhase.loggingIn);
     try {
       await _backend.login(
@@ -212,6 +218,7 @@ class AppController extends ChangeNotifier {
           routePolicy: _loginForm.routePolicy,
         ),
       );
+      await _refreshRouteSettings();
       _user = await _backend.userInfo() ?? UserSummary(username: username);
       if (_loginForm.rememberPassword && _credentialVault.isAvailable) {
         await _credentialVault.write(
@@ -361,6 +368,7 @@ class AppController extends ChangeNotifier {
     }
     if (clearSavedCredential) await _credentialVault.clear();
     _user = null;
+    _activeRoutes = const <ConnectionMode>[];
     _loginForm = _loginForm.copyWith(password: '');
     _setPhase(AppPhase.login);
   }
@@ -400,6 +408,23 @@ class AppController extends ChangeNotifier {
     _refreshGeneration++;
     for (final feature in FeatureId.values) {
       _snapshots[feature] = FeatureSnapshot(feature: feature);
+    }
+  }
+
+  void _applyRouteSettings(BackendRouteSettings settings) {
+    _activeRoutes = List<ConnectionMode>.unmodifiable(settings.activeRoutes);
+    _loginForm = _loginForm.copyWith(routePolicy: settings.defaultPolicy);
+  }
+
+  Future<void> _refreshRouteSettings() async {
+    if (_backend case final RouteSettingsBackend routeBackend) {
+      try {
+        _applyRouteSettings(await routeBackend.routeSettings());
+      } on Object {
+        // 登录已经成功时，路线状态读取失败不能把账号重新置为失败；清空
+        // 不确定的活动槽位，后续读取仍由 Core 返回实际错误。
+        _activeRoutes = const <ConnectionMode>[];
+      }
     }
   }
 
