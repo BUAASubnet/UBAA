@@ -243,6 +243,9 @@
 57. 共享查询控件现在从当前只读详情白名单提供公开 ID 选择器，覆盖博雅课程、图书馆馆区/分区、场馆站点/订单、
     SPOC 作业和 Judge 课程/作业，并保留手动输入；新增 widget 回归通过，仍只生成 typed `FeatureQuery`，未新增
     上游协议或写操作。P3 的服务端分页核对、完整状态、golden/integration 和真实 Flutter App E2E 仍未闭合。
+58. 博雅课程详情现提供选课/退选 typed 操作入口：共享 UI 仅在白名单课程 ID 为正整数时显示准备按钮，
+    AppController 通过封闭 `BykcWriteBackend` 调用既有 prepare，确认页再单次提交 `intentId`。widget/app 回归证明
+    准备阶段不提交、确认后才提交并拒绝非法操作；本轮无真实账号写入，其他写操作和 P4/P5/P6 门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
