@@ -71,4 +71,12 @@ if [[ -z "$bridge_lib" ]]; then
   printf 'error: HAP 内未包含 arm64 UBAA Rust bridge 动态库\n' >&2
   exit 1
 fi
+bridge_tmp=$(mktemp)
+trap 'rm -f "$bridge_tmp"' EXIT
+unzip -p "$hap_path" "$bridge_lib" >"$bridge_tmp"
+bridge_file=$(file -b "$bridge_tmp")
+if ! grep -Eq 'ELF 64-bit.*ARM aarch64' <<<"$bridge_file"; then
+  printf 'error: HAP 内 bridge 动态库不是 arm64 ELF（%s）\n' "$bridge_file" >&2
+  exit 1
+fi
 printf 'OHOS HAP 与 arm64 Rust 动态库门禁通过（%s）：%s\n' "$bridge_lib" "$hap_path"
