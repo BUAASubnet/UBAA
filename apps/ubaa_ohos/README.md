@@ -18,15 +18,17 @@
 
 ## 当前阻塞
 
-当前机器已有 Flutter OH 固定版本、DevEco Studio 6.0.1、OpenHarmony API
-21、`ohpm`、`hvigor` 和 `hdc`。该组合不是发布基线：当前 fork 的 API 26
-符号不能由 API 21 或公开 API 18 SDK 提供。不能通过改低
-`compatibleSdkVersion`、伪造清单或删除失败代码规避。
+当前机器的 DevEco Studio 与 Command Line Tools 均为 `26.0.0.821`，Hvigor 为
+`6.26.4`，ohpm 为 `26.0.0.630`，Node 为 `24.14.1`，OpenHarmony SDK 为 API
+26。锁定 fork 的 `ohos/` runner、OHOS Dart app 的 pub get、analyze、widget test、
+native 前置和 HAP assemble 前置均已通过。工程使用 API26 要求的
+`compatibleSdkVersion`/`targetSdkVersion: "26.0.0"` 与 `modelVersion: "6.0.0"`。
 
-锁定 fork 已生成 `ohos/` runner，OHOS Dart app 的 pub get、analyze 和 widget test
-通过，`ubaa_bindings` 也已接入 arm64 Cargokit HAR。DevEco/Command Line Tools
-26.0.0 Beta2、OpenHarmony API 26 和可签名设备就绪前，仍不能生成验收 HAP，
-HarmonyOS 状态保持实验支持。
+两种安装布局均受门禁支持：DevEco Studio 的 `Contents/tools/...`，以及
+Command Line Tools 根目录的 `tool/...`。`just ohos-check mode=debug` 已进入 HAP
+构建，但在 DevEco Signing Configs 调试签名配置处停止。当前没有自动签名、签名凭据、
+签名 HAP 或实体设备 FRB hello 证据；不能通过改低 API、伪造清单或删除失败代码规避，
+也不会在未获授权时配置签名。
 
 ## 共享 package 接入
 
@@ -56,14 +58,14 @@ UBAA_DEVECO_HOME=/absolute/path/to/DevEco-Studio.app/Contents \
 ./scripts/check-toolchain.sh
 ```
 
-脚本会核对固定 Flutter commit/tag、DevEco 26、SDK API 26、native SDK、
-Node、`ohpm`、`hvigor`、`hdc`、JDK 17+ 和 Rust
+`UBAA_DEVECO_HOME` 也可以指向 Command Line Tools 根目录。脚本会核对固定 Flutter
+commit/tag、DevEco/CLI 26、SDK API 26、native SDK、Node、`ohpm`、`hvigor`、`hdc`、JDK 17+ 和 Rust
 `aarch64-unknown-linux-ohos` target。任一硬门槛不满足都会非零退出。
 
 ## 可复现检查与构建
 
-runner 已由锁定 fork 生成。工具链不匹配时只允许运行 Dart 检查；HAP 构建必须先
-通过根级预检：
+runner 已由锁定 fork 生成。HAP 构建必须先通过根级预检；当前预检已通过，构建会在
+签名配置处停止：
 
 ```sh
 cd /absolute/path/to/UBAA

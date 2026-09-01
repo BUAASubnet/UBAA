@@ -43,7 +43,16 @@ resolve_flutter_root() {
 flutter_root=$(resolve_flutter_root)
 deveco_home=${UBAA_DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}
 hmos_sdk_home=${UBAA_HMOS_SDK_HOME:-$deveco_home/sdk}
-node_home=${UBAA_OHOS_NODE_HOME:-$deveco_home/tools/node}
+if [[ -d "$deveco_home/tools" ]]; then
+  deveco_node_home="$deveco_home/tools/node"
+  deveco_ohpm="$deveco_home/tools/ohpm/bin/ohpm"
+  deveco_hvigor="$deveco_home/tools/hvigor/bin/hvigorw"
+else
+  deveco_node_home="$deveco_home/tool/node"
+  deveco_ohpm="$deveco_home/ohpm/bin/ohpm"
+  deveco_hvigor="$deveco_home/hvigor/bin/hvigorw"
+fi
+node_home=${UBAA_OHOS_NODE_HOME:-$deveco_node_home}
 ohos_native_home=${OHOS_SDK_HOME:-$hmos_sdk_home/default/openharmony/native}
 
 if [[ -z "$flutter_root" || ! -x "$flutter_root/bin/flutter" ]]; then
@@ -76,6 +85,8 @@ else
   deveco_version=
   if [[ -f "$product_info" && $(uname -s) == Darwin ]] && command -v plutil >/dev/null; then
     deveco_version=$(plutil -extract version raw "$product_info" 2>/dev/null || true)
+  elif [[ -f "$deveco_home/version.txt" ]]; then
+    deveco_version=$(awk -F: '/^# Version:/ { gsub(/[[:space:]]/, "", $2); print $2; exit }' "$deveco_home/version.txt")
   fi
   if [[ "$deveco_version" == 26.* ]]; then
     pass "DevEco Studio 版本为 $deveco_version"
@@ -140,8 +151,8 @@ check_executable() {
   pass "$name 可用：${version:-未报告版本}"
 }
 
-check_executable ohpm "$deveco_home/tools/ohpm/bin/ohpm" --version
-check_executable hvigor "$deveco_home/tools/hvigor/bin/hvigorw" --version
+check_executable ohpm "$deveco_ohpm" --version
+check_executable hvigor "$deveco_hvigor" --version
 check_executable hdc "$hmos_sdk_home/default/openharmony/toolchains/hdc" -v
 
 if command -v java >/dev/null 2>&1; then

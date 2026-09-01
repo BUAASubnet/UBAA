@@ -2,14 +2,22 @@
 
 更新日期：2026-09-01
 
-## 2026-09-01 OHOS 门禁复核
+## 2026-09-01 OHOS API26/Command Line Tools 构建复核
 
-- `just ohos-check mode=debug` 的共享 OHOS `analyze` 与 widget 测试通过，锁定 fork
-  `3.41.10-ohos-1.0.1 @ adaf911c35c9136a7d18fc424d714c9ec7724e60`、native SDK/clang/sysroot、
-  Rust `aarch64-unknown-linux-ohos`、Node/ohpm/hvigor/hdc 均可用。
-- 门禁仍失败两项：本机 DevEco `6.0.1.251` 而发布要求 `26.0.0 Beta2`；OpenHarmony SDK 为
-  API `21` 而合同要求 API `26`。因此没有 HAP、签名或设备 hello 证据；受限工具链更换及
-  华为账号操作仍需项目所有者明确授权。
+- 用户更新后的 Command Line Tools 与 DevEco Studio 均报告 `26.0.0.821`、Hvigor `6.26.4`、
+  ohpm `26.0.0.630`、Node `24.14.1` 和 OpenHarmony SDK API `26`；锁定 fork、native
+  SDK/clang/sysroot、Rust `aarch64-unknown-linux-ohos`、hdc、OHOS `analyze` 与 widget
+  测试均通过。
+- 工程级 `compatibleSdkVersion`/`targetSdkVersion` 已使用 API26 的 `"26.0.0"` 形式，
+  hvigor 与工程 `modelVersion` 已升至 `6.0.0`。门禁脚本支持 DevEco Studio 的
+  `tools/...` 和 Command Line Tools 的 `tool/...` 两种布局，并将匹配的 hvigor、ohpm、Node
+  固定到构建 `PATH`。
+- 默认 Studio 路径和 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools`
+  路径分别执行 `just ohos-check mode=debug`，均通过工具链、Dart、native 前置并进入 HAP
+  assemble，随后在调试签名配置处停止：未打开 DevEco Signing Configs、未自动签名、未连接
+  设备，也没有验收 HAP 或 FRB hello 证据。
+- 这不是工具链缺失；签名材料或自动签名仍需项目所有者单独授权。P0/P6 继续未完成，旧版
+  DevEco/API21 的失败记录仅作为历史证据，不再代表当前机器状态。
 
 ## 2026-09-01 希冀过期作业筛选
 

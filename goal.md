@@ -1,6 +1,6 @@
 # UBAA Flutter 六平台全功能正式版执行计划
 
-状态：P0 受阻；P1 bridge 已实现但验收未闭合；继续 P2/P3（官方五平台 native CI 通过；DevEco/API26/HAP/设备待闭合）
+状态：P0 受阻；P1 bridge 已实现但验收未闭合；继续 P2/P3（官方五平台 native CI 通过；DevEco/API26 已就绪；签名 HAP/设备待闭合）
 计划确认日期：2026-09-01
 项目根目录：/Users/moorefoss/Code/UBAA
 
@@ -71,7 +71,7 @@
    营业窗口内复跑，Direct 与 WebVPN 均为 `PASS(count=1)`。
 4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
 5. HarmonyOS fork 已锁定为 tag 3.41.10-ohos-1.0.1，commit adaf911c35c9136a7d18fc424d714c9ec7724e60。
-6. 当前 OHOS fork 的发布说明要求 DevEco/Command Line Tools 26.0.0 Beta2 与 OpenHarmony API 26 构建。本机现有 API 21 不是发布基线；API 18 公共 SDK 也不能替代完整 API 26 工具链。
+6. 当前 OHOS fork 的发布说明要求 DevEco/Command Line Tools 26.0.0 Beta2 与 OpenHarmony API 26 构建；用户已更新 Command Line Tools，本机 Studio/CLI 均报告 26.0.0.821、Hvigor 6.26.4、ohpm 26.0.0.630 与 SDK API26。旧 API21 仅是历史失败证据，不再代表当前工具链。
 7. 取得匹配 API 26 工具链、构建签名 HAP、打包 FRB arm64 动态库并完成实体机验证，是 HarmonyOS 正式版硬门槛。
 8. 当前 Core-live 真实读取证据中 Direct/WebVPN 必需操作均通过；同批次 SPOC/Bykc 父列表为空，
    对应详情为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，不冒充上游接口成功。
@@ -81,8 +81,8 @@
    iOS simulator 已链接 x86_64+arm64 framework，Android APK 已包含三种 ABI 的
    Rust 动态库；这些证据只覆盖 P0 FFI 链路，不代表业务功能完成。
 10. OHOS runner 与 arm64 Cargokit HAR 已生成，OHOS app 的 pub get、analyze 和
-    widget test 通过；`just ohos-check mode=debug` 仍明确失败于 DevEco
-    `6.0.1.251` 与 API21，不存在 HAP、签名或设备 hello 证据。
+    widget test 通过；当前 `just ohos-check mode=debug` 已通过工具链与 HAP 前置并进入
+    assemble，但在调试签名配置处停止，仍不存在签名 HAP 或设备 hello 证据。
 11. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
     `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。远端 CI
     `33466562627` 与原生构建 `33466562620` 均在提交 `79e8391` 通过；原生构建的
@@ -207,10 +207,15 @@
     `judgeAssignments(includeExpired)` 的既有 typed 参数传递；详情视图不显示该开关，widget
     回归已覆盖，未新增接口或写操作。完整作业状态/分页、golden/integration、真实 Flutter
     E2E 与 P4 写入页面仍未闭合。
-48. 2026-09-01 复跑 `just ohos-check mode=debug`：共享 OHOS analyze/widget 及锁定 fork、native
-    工具可用性通过，但 DevEco `6.0.1.251`（要求 `26.0.0 Beta2`）和 OpenHarmony SDK API `21`
-    （要求 API `26`）两项失败。未下载受限工具链、未登录华为门户、未签名/构建 HAP、未连接
-    设备；P0/P6 继续受阻。
+48. 2026-09-01 初次复核 `just ohos-check mode=debug` 时记录了旧 DevEco `6.0.1.251` 与
+    OpenHarmony SDK API21 的失败；该记录保留为历史证据，随后已由用户更新 Command Line
+    Tools 的当前事实替代。该次未下载受限工具链、未登录华为门户、未签名/构建 HAP、未连接设备。
+49. 用户更新 Command Line Tools 后，`/Users/moorefoss/Code/bin/command-line-tools` 与
+    DevEco Studio 均报告 `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、Node `24.14.1`
+    和 SDK API26。工程 profile 使用 `compatibleSdkVersion`/`targetSdkVersion: "26.0.0"`，
+    hvigor/project `modelVersion: "6.0.0"`；Studio 默认路径和 CLI 根路径执行
+    `just ohos-check mode=debug` 均通过工具链、Dart、native 前置并进入 HAP assemble，随后
+    在调试签名配置处停止。未配置自动签名、未签名/上传 HAP、未连接设备；P0/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
