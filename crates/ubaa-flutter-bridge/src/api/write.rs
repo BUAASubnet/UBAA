@@ -447,7 +447,7 @@ impl BridgeClient {
         let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
         let current_resolution = client
             .resolve_route_for_feature(pending.feature())
-            .map_err(|error| BridgeError::from_core(error, None))?;
+            .map_err(map_resolution_error)?;
         let current_route: BridgeConnectionMode = current_resolution.mode.into();
         if current_route != entry.resolved_route {
             return Err(BridgeError::local(
@@ -565,6 +565,20 @@ impl BridgeClient {
     }
 }
 
+fn map_resolution_error(error: ubaa_core::error::UbaaError) -> BridgeError {
+    // Core 将跨进程会话修订冲突归约为 internal_error；在写 intent 的路线复核边界
+    // 将这个已冻结的稳定消息投影为可行动的 operation_conflict，禁止继续提交旧请求。
+    if error.message == "local session changed in another process" {
+        return BridgeError::local(
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    BridgeError::from_core(error, None)
+}
+
 fn map_evaluation_course(c: BridgeEvaluationCourse) -> domain::EvaluationCourse {
     domain::EvaluationCourse {
         id: c.id,
@@ -673,7 +687,10 @@ fn safe_message(message: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{BridgeBykcCourseRequest, PendingEntry, PendingWrite, digest, random_id};
+    use super::{
+        BridgeBykcCourseRequest, PendingEntry, PendingWrite, digest, map_resolution_error,
+        random_id,
+    };
     use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 
     #[test]
@@ -685,6 +702,18 @@ mod tests {
         assert_ne!(first, second);
         assert_eq!(digest("course_id=7").len(), 64);
         assert_eq!(digest("course_id=7"), digest("course_id=7"));
+    }
+
+    #[test]
+    fn session_revision_conflict_maps_to_operation_conflict_at_write_boundary() {
+        let error = ubaa_core::error::UbaaError::new(
+            ubaa_core::error::ErrorCode::InternalError,
+            ubaa_core::error::ErrorKind::Internal,
+            false,
+            "local session changed in another process",
+        );
+        let mapped = map_resolution_error(error);
+        assert_eq!(mapped.code, BridgeErrorCode::OperationConflict);
     }
 
     #[tokio::test]

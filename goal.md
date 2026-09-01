@@ -107,6 +107,9 @@
     测试。P1 仍缺 FRB panic 归约、真实 isolate 重建和完整逐 DTO/Dart 消费证据。
 18. `891f6e4` 已补齐高级写操作的 app typed prepare 映射；共享详情列表已有本地筛选、20 项分页和
     widget 测试，但这不替代领域 query、服务端分页、写入表单/读取核对或真实矩阵证据。
+19. `60ebb6c` 修复 macOS arm64 native debug 缺失 `SystemConfiguration` 链接并在本机重建通过；
+    写 intent 的跨进程会话修订冲突现已映射为 `operation_conflict`。远端五平台 native CI 仍以
+    最新提交终态为准，OHOS/API26、签名和设备证据仍未闭合。
 
 ## 4. 安全与架构边界
 

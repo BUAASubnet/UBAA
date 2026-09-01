@@ -746,3 +746,11 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   字节进入 bridge DTO，场馆 selection 为封闭 ID 记录，均不接受 raw JSON。
 - 共享详情列表新增每页 20 项的本地分页、上一页/下一页语义和筛选后回到第一页的 widget 测试。
   领域学期/日期/校区查询、服务端分页、真实写入 UI 与读取核对仍未完成。
+
+## 2026-09-01 native 链接修复与会话冲突映射
+
+- `60ebb6c` 在 macOS binding podspec 中显式链接 `SystemConfiguration` 并传递到最终 Runner，
+  修复 arm64 Rust archive 缺少 `SCDynamicStore`/`SCNetworkReachability` 符号导致的本机失败；
+  `just flutter-build` 的 macOS debug 已重新通过，Podfile.lock 校验同步更新。
+- 写 intent 路线复核将 Core 已冻结的跨进程会话修订冲突安全投影为 `operation_conflict`，并有
+  bridge 单元测试；不会继续提交旧请求。
