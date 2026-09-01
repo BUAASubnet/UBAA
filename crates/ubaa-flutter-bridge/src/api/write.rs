@@ -673,8 +673,8 @@ fn safe_message(message: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{digest, random_id};
-    use crate::api::client::{BridgeClient, BridgeErrorCode};
+    use super::{BridgeBykcCourseRequest, PendingEntry, PendingWrite, digest, random_id};
+    use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 
     #[test]
     fn intent_id_and_digest_are_stable_shapes_without_payload_leak() {
@@ -697,6 +697,37 @@ mod tests {
             .await
             .expect_err("missing intent");
         assert_eq!(error.code, BridgeErrorCode::IntentExpired);
+        let _ = std::fs::remove_dir_all(path);
+    }
+
+    #[tokio::test]
+    async fn expired_intent_is_consumed_and_cannot_be_retried() {
+        let path = std::env::temp_dir().join(format!(
+            "ubaa-bridge-expired-intent-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
+        client.write_intents.lock().await.insert(
+            "expired".to_owned(),
+            PendingEntry {
+                request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
+                expires_at: 0,
+                resolved_route: BridgeConnectionMode::Direct,
+            },
+        );
+        let first = client
+            .commit_write("expired".to_owned())
+            .await
+            .expect_err("expired intent");
+        assert_eq!(first.code, BridgeErrorCode::IntentExpired);
+        let second = client
+            .commit_write("expired".to_owned())
+            .await
+            .expect_err("consumed intent cannot be retried");
+        assert_eq!(second.code, BridgeErrorCode::IntentExpired);
+        client.dispose().await.expect("dispose client");
         let _ = std::fs::remove_dir_all(path);
     }
 }

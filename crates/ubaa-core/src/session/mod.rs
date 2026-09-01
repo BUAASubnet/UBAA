@@ -1057,6 +1057,45 @@ mod coordinator_tests {
         let _ = std::fs::remove_dir_all(root);
     }
 
+    #[test]
+    fn independent_store_instances_are_serialized_by_the_session_file_lock() {
+        use std::sync::mpsc;
+        use std::time::Duration;
+
+        let root = std::env::temp_dir().join(format!(
+            "ubaa-independent-session-lock-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let store = FileSessionStore::new(&root).expect("store opens");
+        let (locked_tx, locked_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let holder = store.clone();
+        let holder_thread = std::thread::spawn(move || {
+            let lock = holder.acquire_lock().expect("lock opens");
+            locked_tx.send(()).expect("signal lock");
+            release_rx.recv().expect("release signal");
+            drop(lock);
+        });
+        locked_rx.recv().expect("lock acquired");
+
+        let waiter = store.clone();
+        let (done_tx, done_rx) = mpsc::channel();
+        let waiter_thread = std::thread::spawn(move || {
+            waiter.load_versioned().expect("load after lock");
+            done_tx.send(()).expect("signal load");
+        });
+        assert!(done_rx.recv_timeout(Duration::from_millis(100)).is_err());
+        release_tx.send(()).expect("release lock");
+        done_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("waiter proceeds after release");
+        holder_thread.join().expect("holder exits");
+        waiter_thread.join().expect("waiter exits");
+        let _ = std::fs::remove_dir_all(root);
+    }
+
     #[cfg(unix)]
     #[test]
     fn uncertain_file_cas_error_makes_the_coordinator_terminal() {

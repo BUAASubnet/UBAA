@@ -555,4 +555,29 @@ mod tests {
         assert_eq!(error.code, BridgeErrorCode::ClientDisposed);
         let _ = std::fs::remove_dir_all(path);
     }
+
+    #[tokio::test]
+    async fn disposed_handle_stays_terminal_while_a_rebuilt_client_can_reopen() {
+        let path = std::env::temp_dir().join(format!(
+            "ubaa-bridge-reopen-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        let config_dir = path.to_string_lossy().into_owned();
+        let old = BridgeClient::open(config_dir.clone()).expect("open old client");
+        old.dispose().await.expect("dispose old client");
+
+        let rebuilt = BridgeClient::open(config_dir).expect("reopen after isolate rebuild");
+        assert_eq!(rebuilt.contract_version(), 1);
+        assert_eq!(
+            old.route_settings()
+                .await
+                .expect_err("old handle stays terminal")
+                .code,
+            BridgeErrorCode::ClientDisposed
+        );
+        rebuilt.dispose().await.expect("dispose rebuilt client");
+        let _ = std::fs::remove_dir_all(path);
+    }
 }
