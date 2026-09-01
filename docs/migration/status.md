@@ -2,6 +2,13 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 `5998d6d` 当前提交门禁与实时复核
+
+- 当前 HEAD `5998d6d` 的根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 与 `just flutter-check` 均退出码 0；Flutter UI 全量回归 32 项通过，生成检查报告零漂移。
+- `just verify-live mode=direct` 与 `mode=webvpn` 在当前 HEAD 串行完成，认证、用户资料、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需只读操作均为 `PASS`；SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
+- `/Users/moorefoss/Code/bin/command-line-tools` 上的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug` 通过 API26/工具链、Dart/widget 与 native 前置检查并进入 HAP assemble，在调试签名配置处按门禁停止；退出码 1 为预期签名阻断，未配置签名、未生成可发布 HAP、未连接设备，生成输出已移出工作树。
+- 提交 `85deca3` 的合同 CI `33504585524`（合同门禁、macOS/Windows Rust）与 Flutter 原生五平台 CI `33504585537`（Windows、macOS、Linux、Android APK、iOS simulator）均终态成功；文档提交 `5998d6d` 的 CI `33505133780`（合同门禁、macOS/Windows Rust）亦成功。上述 CI 不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E。
+
 ## 2026-09-01 当前 HEAD 双路线只读复核
 
 - `just verify-live mode=direct` 在当前 HEAD 串行执行：认证、用户资料、课表、考试、成绩、空教室、SPOC、Judge、阳光打卡、图书馆、博雅、场馆和评教读取均按既有矩阵返回；`libbook/area_detail` 为 `PASS(count=1)`，SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途明确为 `PASS source=static_fallback`。

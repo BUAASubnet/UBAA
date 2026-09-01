@@ -298,6 +298,15 @@
 76. 共享阳光打卡详情新增公开项目编号表单、时间/地点/广场选项和宿主内存照片 picker 边界；独立对话框在销毁时释放控制器，
     widget 回归证明照片与时间校验通过后才进入既有 typed `prepareYgdkSubmit` 和一次性确认，确认后只提交一次。
     当前 Flutter/OHOS 宿主尚未接入原生照片选择器与权限流程，未执行真实照片上传；P4/P5/P6 仍未完成。
+77. 当前提交 `5998d6d` 的根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和 `just flutter-check`
+    均退出码 0，Flutter UI 全量回归 32 项通过，FRB 生成零漂移。
+78. 当前提交以 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `just ohos-check mode=debug`：DevEco/SDK API26、Dart/widget、
+    native 前置均通过并进入 HAP assemble，随后在调试签名配置处按门禁停止；退出码 1 为预期签名阻断，未配置签名、未生成可发布 HAP、
+    未连接设备，生成输出已移出工作树。
+79. 当前提交串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅详情
+    因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
+80. 提交 `85deca3` 的合同 CI `33504585524` 与 Flutter 原生五平台 CI `33504585537` 均终态成功；文档提交 `5998d6d` 的 CI `33505133780`
+    也终态成功。CI 证据不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E；P0/P5/P6 及完整 P4 仍未完成。
 
 ## 4. 安全与架构边界
 
