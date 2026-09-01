@@ -253,6 +253,13 @@
     AppController 通过 `CancellationWriteBackend` 严格校验领域和编号后调用既有 typed prepare；确认页二次确认后才单次提交，
     结果不确定时先刷新核对。app/widget 回归覆盖准备不提交、非法编号拒绝和确认后提交，本轮无真实账号写入，其他写操作及
     P4/P5/P6 门禁仍未闭合。
+61. 博雅课程详情现提供签到/签退 typed 入口：UI 仅传公开正整数课程 ID，AppController 严格接受冻结 `signType` 1/2，
+    调用既有 `prepareBykcSignCourse`；位置不在 UI 猜测，Core 在 prepare 阶段判定业务条件。确认页二次确认后才单次提交，
+    app/widget 回归覆盖 signType 校验、取消确认和准备阶段零提交。本轮无真实账号写入，其他五项写操作及 P4/P5/P6 门禁仍未闭合。
+62. 图书馆座位读取详情现保留公开分区/座位 ID、日期、时段、起止时间和可预约状态；共享 UI 对可预约座位提供预约准备入口，
+    AppController 通过 `LibbookWriteBackend` 严格校验完整参数并调用既有 typed `prepareLibbookReserve`，确认页二次确认后才单次提交。
+    bridge/app/widget 回归覆盖字段投影、参数清理和准备阶段零提交，本轮无真实账号写入；场馆预约、阳光打卡、教学评教提交仍缺失，
+    P4/P5/P6 门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
