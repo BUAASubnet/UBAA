@@ -237,6 +237,9 @@
 55. 详情页现在按功能保存最近一次 typed `FeatureQuery`；查询后的失败/过期重试会复用相同筛选、分页和
     公开 ID，不退回摘要查询。新增 widget 回归通过，未新增上游协议或写操作；P3 的逐领域完整状态、服务端
     分页核对、golden/integration 和真实 Flutter App E2E 仍未闭合。
+56. SPOC 作业列表的详情白名单补充冻结 DTO 已证明的 `courseId`（课程编号），与已有 typed 详情调用的公开
+    标识一致；新增 BridgeBackend 脱敏回归通过，未新增上游请求或写操作。P3 的列表选择器、完整状态、服务端
+    分页核对、golden/integration 和真实 Flutter App E2E 仍未闭合。
 
 ## 4. 安全与架构边界
 
