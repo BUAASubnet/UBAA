@@ -2,6 +2,14 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 最新本地/远端门禁复核
+
+- 提交 `3e16d6f` 的远端合同 CI `33496873082` 已成功；Flutter native `33496873088` 的 Windows、macOS、Linux、Android APK
+  和 iOS simulator 五个 job 也全部成功，Android job 最后完成。
+- 该组仍只提供 debug 原生构建与上传产物，不包含 OHOS 签名 HAP、正式签名/公证、实体设备或真实 Flutter→FRB→Core E2E；
+  本地 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check` 通过，OHOS 双布局
+  前置通过但签名处阻断。
+
 ## 2026-09-01 写入成功后只读核对钩子
 
 - 统一确认页在 Core 返回确定成功后调用 `AppController.refreshAfterWrite`，按写操作映射到关联读取领域；刷新失败仅保留

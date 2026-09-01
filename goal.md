@@ -263,6 +263,9 @@
 63. 统一确认页在写入返回确定成功后通过 `AppController.refreshAfterWrite` 只刷新关联读取领域，作为结果核对钩子；刷新失败不重试写请求，
     `outcome_unknown`/commit 异常仍消费 intent 并要求先读取核对。app/widget 回归覆盖成功回调一次调用，本轮无真实账号写入，
     场馆预约、阳光打卡、教学评教提交及 P4/P5/P6 门禁仍未闭合。
+64. 提交 `3e16d6f` 的远端合同 CI `33496873082` 与 Flutter native `33496873088` 均已成功，后者 Windows、macOS、Linux、Android APK、
+    iOS simulator 五个 job 全部通过；本地 refs、敏感扫描、Rust/Flutter 全量门禁也通过，OHOS 双布局仅在调试签名处阻断。
+    该证据不包含 OHOS HAP、正式签名/公证、实体设备或真实 App E2E，场馆预约、阳光打卡、教学评教提交及 P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
