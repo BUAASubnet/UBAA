@@ -12,6 +12,10 @@
 - 合同 CI `33551528661` 已成功，contract-gates、macOS Rust 和 Windows Rust 均通过。
 - Flutter 原生五平台 CI `33551528765` 已成功；Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传 debug 产物。该 CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E。
 
+## 2026-09-02 文档记录提交 CI 终态
+
+- 文档记录提交 `6f7506f` 的合同 CI `33552619888` 已成功；contract-gates、macOS Rust 和 Windows Rust 均通过。
+
 ## 2026-09-02 空结果后的失败状态修复
 
 - 新增 app 回归，先在旧实现上观察到：功能已明确返回空结果后再次刷新失败，控制器仍因 `updatedAt` 被标记为 stale。
