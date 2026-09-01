@@ -270,6 +270,26 @@ void main() {
     expect(backend.featureLoads, 0);
   });
 
+  test('controller 销毁后延迟登录不会继续读取用户或保存凭据', () async {
+    final backend = _DelayedLoginBackend();
+    final vault = MemoryCredentialVault();
+    final controller = AppController(
+      backend: backend,
+      credentialVault: vault,
+    );
+    controller.setUsername('student');
+    controller.setPassword('secret');
+
+    final loggingIn = controller.submitLogin();
+    await backend.loginStarted.future;
+    controller.dispose();
+    backend.releaseLogin.complete();
+    await loggingIn;
+
+    expect(backend.userInfoCalls, 0);
+    expect(vault.saveCount, 0);
+  });
+
   test('controller 销毁后延迟的功能读取不会回写快照', () async {
     final backend = _DelayedFeatureBackend();
     final controller = AppController(backend: backend);
@@ -833,6 +853,40 @@ class _DelayedSignedInInitializeBackend
     featureLoads++;
     return const FeatureResult.empty();
   }
+
+  @override
+  Future<void> dispose() async {}
+}
+
+class _DelayedLoginBackend implements UbaaBackend, BackendLifecycle {
+  final Completer<void> loginStarted = Completer<void>();
+  final Completer<void> releaseLogin = Completer<void>();
+  int userInfoCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async {
+    userInfoCalls++;
+    return const UserSummary(username: 'student');
+  }
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {
+    loginStarted.complete();
+    await releaseLogin.future;
+  }
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
 
   @override
   Future<void> dispose() async {}

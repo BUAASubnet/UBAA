@@ -40,6 +40,9 @@ panic 由 FRB 捕获为 `internal_error`，不得把 panic 正文、backtrace �
 `refreshHome` 与 `refreshFeatureQuery` 在 controller 销毁后立即成为 no-op；已在途的读取只在
 controller 仍存活且代次未变化时写入快照，成功或失败结果都不能回写已销毁状态。
 
+登录提交同样受 controller 生命周期约束：`login`、路线状态和用户资料的在途结果在销毁后
+不再继续读取或写入用户/凭据/UI 状态；安全凭据清理仍可在已开始的失败处理内完成。
+
 ## 3. 错误合同
 
 `Result<T, BridgeError>` 在 Dart 中抛出 typed `BridgeError implements Exception`。字段固定为：

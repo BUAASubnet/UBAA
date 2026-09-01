@@ -330,6 +330,7 @@
 95. 提交 `538f57d` 的合同 CI `33537041843` 与五平台 native debug CI `33537041816` 均成功（Windows、macOS、Linux、Android APK、iOS simulator）；文档提交 `991f090` 的合同 CI `33537405629` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实六平台 App E2E，P0/P5/P6 仍未完成。
 96. 新增延迟认证 app 回归并先在旧实现上观察到 controller 销毁后仍继续 `userInfo`/首页刷新；随后在 `AppController.initialize` 的路线、认证、用户资料和凭据读取边界加入 `_disposed` guard。聚焦 app_controller 25/25 与完整 Flutter 门禁通过；仅改善 Dart 生命周期安全，不改变 Core/上游协议，真实 isolate/平台生命周期及 P1/P5/P6 仍未完成。
 97. 新增延迟功能读取回归并先观察到销毁后的在途成功结果仍回写快照；随后在 `refreshHome`/`refreshFeatureQuery` 入口及 `_loadFeature` 成功、失败边界加入 `_disposed` 与刷新代次检查。app_controller 聚焦测试 26/26 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate/平台生命周期和 P1/P5/P6 仍未完成。
+98. 新增延迟登录回归并先观察到销毁后的在途登录仍读取用户资料；随后在 `submitLogin` 的登录、路线状态、用户资料和凭据/UI 边界加入 `_disposed` guard，并让 `_refreshRouteSettings` 在销毁后不回写。app_controller 聚焦测试 27/27 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台登录生命周期及 P1/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

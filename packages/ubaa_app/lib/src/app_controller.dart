@@ -267,7 +267,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> submitLogin() async {
-    if (_phase == AppPhase.loggingIn) return;
+    if (_disposed || _phase == AppPhase.loggingIn) return;
     final username = _loginForm.username.trim();
     if (username.isEmpty || _loginForm.password.isEmpty) {
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.invalidInput);
@@ -290,8 +290,11 @@ class AppController extends ChangeNotifier {
           routePolicy: _loginForm.routePolicy,
         ),
       );
+      if (_disposed) return;
       await _refreshRouteSettings();
+      if (_disposed) return;
       _user = await _backend.userInfo() ?? UserSummary(username: username);
+      if (_disposed) return;
       if (_loginForm.rememberPassword && _credentialVault.isAvailable) {
         await _credentialVault.write(
           Credential(
@@ -304,6 +307,7 @@ class AppController extends ChangeNotifier {
         await _credentialVault.clear();
       }
       _loginForm = _loginForm.copyWith(password: '', captcha: '');
+      if (_disposed) return;
       _setPhase(AppPhase.home);
       await _recordAppOpen();
       unawaited(refreshHome());
@@ -311,9 +315,11 @@ class AppController extends ChangeNotifier {
       if (exception.code == UbaaErrorCode.invalidCredentials) {
         await _credentialVault.clear();
       }
+      if (_disposed) return;
       _error = UbaaErrorMapper.fromCode(exception.code);
       _setPhase(AppPhase.login);
     } catch (_) {
+      if (_disposed) return;
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
       _setPhase(AppPhase.login);
     }
@@ -808,8 +814,11 @@ class AppController extends ChangeNotifier {
   Future<void> _refreshRouteSettings() async {
     if (_backend case final RouteSettingsBackend routeBackend) {
       try {
-        _applyRouteSettings(await routeBackend.routeSettings());
+        final settings = await routeBackend.routeSettings();
+        if (_disposed) return;
+        _applyRouteSettings(settings);
       } on Object {
+        if (_disposed) return;
         // 登录已经成功时，路线状态读取失败不能把账号重新置为失败；清空
         // 不确定的活动槽位，后续读取仍由 Core 返回实际错误。
         _activeRoutes = const <ConnectionMode>[];
