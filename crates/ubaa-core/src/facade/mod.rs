@@ -163,6 +163,15 @@ impl UbaaClient {
         Ok(())
     }
 
+    /// 为 typed 读取/写入准备解析本次实际路线，不发起业务请求。
+    pub fn resolve_route_for_feature(
+        &mut self,
+        feature: ReadonlyFeature,
+    ) -> Result<RouteResolution> {
+        self.resolve_operation(Operation::Feature(feature))
+            .map_err(|error| error.error)
+    }
+
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
         if let Err(error) = self.guard_latest_session_ownership() {

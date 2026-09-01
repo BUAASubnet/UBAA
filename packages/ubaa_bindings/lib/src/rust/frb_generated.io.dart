@@ -3,7 +3,10 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/client.dart';
+import 'api/read.dart';
 import 'api/simple.dart';
+import 'api/write.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -18,11 +21,736 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     required super.portManager,
   });
 
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeClientPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr;
+
+  @protected
+  BridgeClient
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeClient
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeClient
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  );
+
   @protected
   String dco_decode_String(dynamic raw);
 
   @protected
+  bool dco_decode_bool(dynamic raw);
+
+  @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
+  BridgeBykcCourseCategory dco_decode_box_autoadd_bridge_bykc_course_category(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcCourseRequest dco_decode_box_autoadd_bridge_bykc_course_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcCourseSubCategory
+  dco_decode_box_autoadd_bridge_bykc_course_sub_category(dynamic raw);
+
+  @protected
+  BridgeBykcSignConfig dco_decode_box_autoadd_bridge_bykc_sign_config(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcSignCourseRequest
+  dco_decode_box_autoadd_bridge_bykc_sign_course_request(dynamic raw);
+
+  @protected
+  BridgeCgyyCancelOrderRequest
+  dco_decode_box_autoadd_bridge_cgyy_cancel_order_request(dynamic raw);
+
+  @protected
+  BridgeCgyyOrder dco_decode_box_autoadd_bridge_cgyy_order(dynamic raw);
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  dco_decode_box_autoadd_bridge_cgyy_submit_reservation_request(dynamic raw);
+
+  @protected
+  BridgeConnectionMode dco_decode_box_autoadd_bridge_connection_mode(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  dco_decode_box_autoadd_bridge_evaluation_submit_courses_request(dynamic raw);
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  dco_decode_box_autoadd_bridge_libbook_cancel_booking_request(dynamic raw);
+
+  @protected
+  BridgeLibbookReserveRequest
+  dco_decode_box_autoadd_bridge_libbook_reserve_request(dynamic raw);
+
+  @protected
+  BridgePhotoUpload dco_decode_box_autoadd_bridge_photo_upload(dynamic raw);
+
+  @protected
+  BridgeSafeError dco_decode_box_autoadd_bridge_safe_error(dynamic raw);
+
+  @protected
+  BridgeSigninPerformRequest
+  dco_decode_box_autoadd_bridge_signin_perform_request(dynamic raw);
+
+  @protected
+  BridgeUserProfile dco_decode_box_autoadd_bridge_user_profile(dynamic raw);
+
+  @protected
+  BridgeYgdkSubmitRequest dco_decode_box_autoadd_bridge_ygdk_submit_request(
+    dynamic raw,
+  );
+
+  @protected
+  double dco_decode_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  BridgeBykcChosenCourse dco_decode_bridge_bykc_chosen_course(dynamic raw);
+
+  @protected
+  BridgeBykcCourse dco_decode_bridge_bykc_course(dynamic raw);
+
+  @protected
+  BridgeBykcCourseCategory dco_decode_bridge_bykc_course_category(dynamic raw);
+
+  @protected
+  BridgeBykcCoursePage dco_decode_bridge_bykc_course_page(dynamic raw);
+
+  @protected
+  BridgeBykcCourseRequest dco_decode_bridge_bykc_course_request(dynamic raw);
+
+  @protected
+  BridgeBykcCourseStatus dco_decode_bridge_bykc_course_status(dynamic raw);
+
+  @protected
+  BridgeBykcCourseSubCategory dco_decode_bridge_bykc_course_sub_category(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcSignConfig dco_decode_bridge_bykc_sign_config(dynamic raw);
+
+  @protected
+  BridgeBykcSignCourseRequest dco_decode_bridge_bykc_sign_course_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcSignPoint dco_decode_bridge_bykc_sign_point(dynamic raw);
+
+  @protected
+  BridgeBykcStatistic dco_decode_bridge_bykc_statistic(dynamic raw);
+
+  @protected
+  BridgeBykcStatistics dco_decode_bridge_bykc_statistics(dynamic raw);
+
+  @protected
+  BridgeBykcUserProfile dco_decode_bridge_bykc_user_profile(dynamic raw);
+
+  @protected
+  BridgeCgyyCancelOrderRequest dco_decode_bridge_cgyy_cancel_order_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyDayInfo dco_decode_bridge_cgyy_day_info(dynamic raw);
+
+  @protected
+  BridgeCgyyLockCode dco_decode_bridge_cgyy_lock_code(dynamic raw);
+
+  @protected
+  BridgeCgyyOrder dco_decode_bridge_cgyy_order(dynamic raw);
+
+  @protected
+  BridgeCgyyOrdersPage dco_decode_bridge_cgyy_orders_page(dynamic raw);
+
+  @protected
+  BridgeCgyyPurposeSource dco_decode_bridge_cgyy_purpose_source(dynamic raw);
+
+  @protected
+  BridgeCgyyPurposeType dco_decode_bridge_cgyy_purpose_type(dynamic raw);
+
+  @protected
+  BridgeCgyyPurposeTypes dco_decode_bridge_cgyy_purpose_types(dynamic raw);
+
+  @protected
+  BridgeCgyyReservationSelection dco_decode_bridge_cgyy_reservation_selection(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyySlotStatus dco_decode_bridge_cgyy_slot_status(dynamic raw);
+
+  @protected
+  BridgeCgyySpaceAvailability dco_decode_bridge_cgyy_space_availability(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  dco_decode_bridge_cgyy_submit_reservation_request(dynamic raw);
+
+  @protected
+  BridgeCgyyTimeSlot dco_decode_bridge_cgyy_time_slot(dynamic raw);
+
+  @protected
+  BridgeCgyyVenueSite dco_decode_bridge_cgyy_venue_site(dynamic raw);
+
+  @protected
+  BridgeClassroomFloor dco_decode_bridge_classroom_floor(dynamic raw);
+
+  @protected
+  BridgeClassroomInfo dco_decode_bridge_classroom_info(dynamic raw);
+
+  @protected
+  BridgeClassroomQuery dco_decode_bridge_classroom_query(dynamic raw);
+
+  @protected
+  BridgeConnectionMode dco_decode_bridge_connection_mode(dynamic raw);
+
+  @protected
+  BridgeCourseClass dco_decode_bridge_course_class(dynamic raw);
+
+  @protected
+  BridgeError dco_decode_bridge_error(dynamic raw);
+
+  @protected
+  BridgeErrorCode dco_decode_bridge_error_code(dynamic raw);
+
+  @protected
+  BridgeErrorKind dco_decode_bridge_error_kind(dynamic raw);
+
+  @protected
+  BridgeEvaluationCourse dco_decode_bridge_evaluation_course(dynamic raw);
+
+  @protected
+  BridgeEvaluationCoursesResponse dco_decode_bridge_evaluation_courses_response(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeEvaluationProgress dco_decode_bridge_evaluation_progress(dynamic raw);
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  dco_decode_bridge_evaluation_submit_courses_request(dynamic raw);
+
+  @protected
+  BridgeExam dco_decode_bridge_exam(dynamic raw);
+
+  @protected
+  BridgeExamArrangement dco_decode_bridge_exam_arrangement(dynamic raw);
+
+  @protected
+  BridgeGrade dco_decode_bridge_grade(dynamic raw);
+
+  @protected
+  BridgeGradeData dco_decode_bridge_grade_data(dynamic raw);
+
+  @protected
+  BridgeJudgeAssignmentDetail dco_decode_bridge_judge_assignment_detail(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeAssignmentKey dco_decode_bridge_judge_assignment_key(dynamic raw);
+
+  @protected
+  BridgeJudgeAssignmentSummary dco_decode_bridge_judge_assignment_summary(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeProblem dco_decode_bridge_judge_problem(dynamic raw);
+
+  @protected
+  BridgeJudgeSubmissionStatus dco_decode_bridge_judge_submission_status(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLibBookArea dco_decode_bridge_lib_book_area(dynamic raw);
+
+  @protected
+  BridgeLibBookAreaDetail dco_decode_bridge_lib_book_area_detail(dynamic raw);
+
+  @protected
+  BridgeLibBookBooking dco_decode_bridge_lib_book_booking(dynamic raw);
+
+  @protected
+  BridgeLibBookBookingsPage dco_decode_bridge_lib_book_bookings_page(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLibBookLibrary dco_decode_bridge_lib_book_library(dynamic raw);
+
+  @protected
+  BridgeLibBookSeat dco_decode_bridge_lib_book_seat(dynamic raw);
+
+  @protected
+  BridgeLibBookStorey dco_decode_bridge_lib_book_storey(dynamic raw);
+
+  @protected
+  BridgeLibBookTimeSlot dco_decode_bridge_lib_book_time_slot(dynamic raw);
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  dco_decode_bridge_libbook_cancel_booking_request(dynamic raw);
+
+  @protected
+  BridgeLibbookReserveRequest dco_decode_bridge_libbook_reserve_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLoginOutcome dco_decode_bridge_login_outcome(dynamic raw);
+
+  @protected
+  BridgeLoginPreparation dco_decode_bridge_login_preparation(dynamic raw);
+
+  @protected
+  BridgeLoginReadiness dco_decode_bridge_login_readiness(dynamic raw);
+
+  @protected
+  BridgeNetworkState dco_decode_bridge_network_state(dynamic raw);
+
+  @protected
+  BridgePhotoUpload dco_decode_bridge_photo_upload(dynamic raw);
+
+  @protected
+  BridgeRouteDecision dco_decode_bridge_route_decision(dynamic raw);
+
+  @protected
+  BridgeRouteLoginResult dco_decode_bridge_route_login_result(dynamic raw);
+
+  @protected
+  BridgeRouteLoginState dco_decode_bridge_route_login_state(dynamic raw);
+
+  @protected
+  BridgeRoutePolicy dco_decode_bridge_route_policy(dynamic raw);
+
+  @protected
+  BridgeRouteSettings dco_decode_bridge_route_settings(dynamic raw);
+
+  @protected
+  BridgeRoutedBykcChosenCourses dco_decode_bridge_routed_bykc_chosen_courses(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedBykcCourse dco_decode_bridge_routed_bykc_course(dynamic raw);
+
+  @protected
+  BridgeRoutedBykcCourses dco_decode_bridge_routed_bykc_courses(dynamic raw);
+
+  @protected
+  BridgeRoutedBykcProfile dco_decode_bridge_routed_bykc_profile(dynamic raw);
+
+  @protected
+  BridgeRoutedBykcStatistics dco_decode_bridge_routed_bykc_statistics(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedCgyyDayInfo dco_decode_bridge_routed_cgyy_day_info(dynamic raw);
+
+  @protected
+  BridgeRoutedCgyyLockCode dco_decode_bridge_routed_cgyy_lock_code(dynamic raw);
+
+  @protected
+  BridgeRoutedCgyyOrder dco_decode_bridge_routed_cgyy_order(dynamic raw);
+
+  @protected
+  BridgeRoutedCgyyOrders dco_decode_bridge_routed_cgyy_orders(dynamic raw);
+
+  @protected
+  BridgeRoutedCgyyPurposeTypes dco_decode_bridge_routed_cgyy_purpose_types(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedCgyySites dco_decode_bridge_routed_cgyy_sites(dynamic raw);
+
+  @protected
+  BridgeRoutedClassroomQuery dco_decode_bridge_routed_classroom_query(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedEvaluation dco_decode_bridge_routed_evaluation(dynamic raw);
+
+  @protected
+  BridgeRoutedExamArrangement dco_decode_bridge_routed_exam_arrangement(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedGrades dco_decode_bridge_routed_grades(dynamic raw);
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetail
+  dco_decode_bridge_routed_judge_assignment_detail(dynamic raw);
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetails
+  dco_decode_bridge_routed_judge_assignment_details(dynamic raw);
+
+  @protected
+  BridgeRoutedJudgeSummaries dco_decode_bridge_routed_judge_summaries(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedLibBookAreaDetail dco_decode_bridge_routed_lib_book_area_detail(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedLibBookAreas dco_decode_bridge_routed_lib_book_areas(dynamic raw);
+
+  @protected
+  BridgeRoutedLibBookBookings dco_decode_bridge_routed_lib_book_bookings(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedLibBookLibraries dco_decode_bridge_routed_lib_book_libraries(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedLibBookSeats dco_decode_bridge_routed_lib_book_seats(dynamic raw);
+
+  @protected
+  BridgeRoutedSigninClasses dco_decode_bridge_routed_signin_classes(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedSpocAssignmentDetail
+  dco_decode_bridge_routed_spoc_assignment_detail(dynamic raw);
+
+  @protected
+  BridgeRoutedSpocAssignments dco_decode_bridge_routed_spoc_assignments(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedTerms dco_decode_bridge_routed_terms(dynamic raw);
+
+  @protected
+  BridgeRoutedTodayClasses dco_decode_bridge_routed_today_classes(dynamic raw);
+
+  @protected
+  BridgeRoutedUserProfile dco_decode_bridge_routed_user_profile(dynamic raw);
+
+  @protected
+  BridgeRoutedWeeklySchedule dco_decode_bridge_routed_weekly_schedule(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedWeeks dco_decode_bridge_routed_weeks(dynamic raw);
+
+  @protected
+  BridgeRoutedYgdkOverview dco_decode_bridge_routed_ygdk_overview(dynamic raw);
+
+  @protected
+  BridgeRoutedYgdkRecords dco_decode_bridge_routed_ygdk_records(dynamic raw);
+
+  @protected
+  BridgeSafeError dco_decode_bridge_safe_error(dynamic raw);
+
+  @protected
+  BridgeSigninClass dco_decode_bridge_signin_class(dynamic raw);
+
+  @protected
+  BridgeSigninPerformRequest dco_decode_bridge_signin_perform_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocAssignmentDetail dco_decode_bridge_spoc_assignment_detail(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocAssignmentSummary dco_decode_bridge_spoc_assignment_summary(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocAssignments dco_decode_bridge_spoc_assignments(dynamic raw);
+
+  @protected
+  BridgeSpocSubmissionStatus dco_decode_bridge_spoc_submission_status(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeTerm dco_decode_bridge_term(dynamic raw);
+
+  @protected
+  BridgeTodayClass dco_decode_bridge_today_class(dynamic raw);
+
+  @protected
+  BridgeUserProfile dco_decode_bridge_user_profile(dynamic raw);
+
+  @protected
+  BridgeWeek dco_decode_bridge_week(dynamic raw);
+
+  @protected
+  BridgeWeeklySchedule dco_decode_bridge_weekly_schedule(dynamic raw);
+
+  @protected
+  BridgeWriteCommitResult dco_decode_bridge_write_commit_result(dynamic raw);
+
+  @protected
+  BridgeWriteIntent dco_decode_bridge_write_intent(dynamic raw);
+
+  @protected
+  BridgeWriteOperation dco_decode_bridge_write_operation(dynamic raw);
+
+  @protected
+  BridgeYgdkItem dco_decode_bridge_ygdk_item(dynamic raw);
+
+  @protected
+  BridgeYgdkOverview dco_decode_bridge_ygdk_overview(dynamic raw);
+
+  @protected
+  BridgeYgdkRecord dco_decode_bridge_ygdk_record(dynamic raw);
+
+  @protected
+  BridgeYgdkRecordsPage dco_decode_bridge_ygdk_records_page(dynamic raw);
+
+  @protected
+  BridgeYgdkSubmitRequest dco_decode_bridge_ygdk_submit_request(dynamic raw);
+
+  @protected
+  BridgeYgdkTermSummary dco_decode_bridge_ygdk_term_summary(dynamic raw);
+
+  @protected
+  double dco_decode_f_64(dynamic raw);
+
+  @protected
+  int dco_decode_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<BridgeBykcChosenCourse> dco_decode_list_bridge_bykc_chosen_course(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeBykcCourse> dco_decode_list_bridge_bykc_course(dynamic raw);
+
+  @protected
+  List<BridgeBykcSignPoint> dco_decode_list_bridge_bykc_sign_point(dynamic raw);
+
+  @protected
+  List<BridgeBykcStatistic> dco_decode_list_bridge_bykc_statistic(dynamic raw);
+
+  @protected
+  List<BridgeCgyyOrder> dco_decode_list_bridge_cgyy_order(dynamic raw);
+
+  @protected
+  List<BridgeCgyyPurposeType> dco_decode_list_bridge_cgyy_purpose_type(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeCgyyReservationSelection>
+  dco_decode_list_bridge_cgyy_reservation_selection(dynamic raw);
+
+  @protected
+  List<BridgeCgyySlotStatus> dco_decode_list_bridge_cgyy_slot_status(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeCgyySpaceAvailability>
+  dco_decode_list_bridge_cgyy_space_availability(dynamic raw);
+
+  @protected
+  List<BridgeCgyyTimeSlot> dco_decode_list_bridge_cgyy_time_slot(dynamic raw);
+
+  @protected
+  List<BridgeCgyyVenueSite> dco_decode_list_bridge_cgyy_venue_site(dynamic raw);
+
+  @protected
+  List<BridgeClassroomFloor> dco_decode_list_bridge_classroom_floor(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeClassroomInfo> dco_decode_list_bridge_classroom_info(dynamic raw);
+
+  @protected
+  List<BridgeConnectionMode> dco_decode_list_bridge_connection_mode(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeCourseClass> dco_decode_list_bridge_course_class(dynamic raw);
+
+  @protected
+  List<BridgeEvaluationCourse> dco_decode_list_bridge_evaluation_course(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeExam> dco_decode_list_bridge_exam(dynamic raw);
+
+  @protected
+  List<BridgeGrade> dco_decode_list_bridge_grade(dynamic raw);
+
+  @protected
+  List<BridgeJudgeAssignmentDetail>
+  dco_decode_list_bridge_judge_assignment_detail(dynamic raw);
+
+  @protected
+  List<BridgeJudgeAssignmentKey> dco_decode_list_bridge_judge_assignment_key(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeJudgeAssignmentSummary>
+  dco_decode_list_bridge_judge_assignment_summary(dynamic raw);
+
+  @protected
+  List<BridgeJudgeProblem> dco_decode_list_bridge_judge_problem(dynamic raw);
+
+  @protected
+  List<BridgeLibBookArea> dco_decode_list_bridge_lib_book_area(dynamic raw);
+
+  @protected
+  List<BridgeLibBookBooking> dco_decode_list_bridge_lib_book_booking(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeLibBookLibrary> dco_decode_list_bridge_lib_book_library(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeLibBookSeat> dco_decode_list_bridge_lib_book_seat(dynamic raw);
+
+  @protected
+  List<BridgeLibBookStorey> dco_decode_list_bridge_lib_book_storey(dynamic raw);
+
+  @protected
+  List<BridgeLibBookTimeSlot> dco_decode_list_bridge_lib_book_time_slot(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeRouteLoginResult> dco_decode_list_bridge_route_login_result(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeSigninClass> dco_decode_list_bridge_signin_class(dynamic raw);
+
+  @protected
+  List<BridgeSpocAssignmentSummary>
+  dco_decode_list_bridge_spoc_assignment_summary(dynamic raw);
+
+  @protected
+  List<BridgeTerm> dco_decode_list_bridge_term(dynamic raw);
+
+  @protected
+  List<BridgeTodayClass> dco_decode_list_bridge_today_class(dynamic raw);
+
+  @protected
+  List<BridgeWeek> dco_decode_list_bridge_week(dynamic raw);
+
+  @protected
+  List<BridgeYgdkItem> dco_decode_list_bridge_ygdk_item(dynamic raw);
+
+  @protected
+  List<BridgeYgdkRecord> dco_decode_list_bridge_ygdk_record(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
+
+  @protected
+  BridgeBykcCourseCategory?
+  dco_decode_opt_box_autoadd_bridge_bykc_course_category(dynamic raw);
+
+  @protected
+  BridgeBykcCourseSubCategory?
+  dco_decode_opt_box_autoadd_bridge_bykc_course_sub_category(dynamic raw);
+
+  @protected
+  BridgeBykcSignConfig? dco_decode_opt_box_autoadd_bridge_bykc_sign_config(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyOrder? dco_decode_opt_box_autoadd_bridge_cgyy_order(dynamic raw);
+
+  @protected
+  BridgeConnectionMode? dco_decode_opt_box_autoadd_bridge_connection_mode(
+    dynamic raw,
+  );
+
+  @protected
+  BridgePhotoUpload? dco_decode_opt_box_autoadd_bridge_photo_upload(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw);
+
+  @protected
+  BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
+    dynamic raw,
+  );
+
+  @protected
+  double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -31,10 +759,960 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  BigInt dco_decode_usize(dynamic raw);
+
+  @protected
+  BridgeClient
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClient
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClient
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
+  BridgeBykcCourseCategory sse_decode_box_autoadd_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseRequest sse_decode_box_autoadd_bridge_bykc_course_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseSubCategory
+  sse_decode_box_autoadd_bridge_bykc_course_sub_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignConfig sse_decode_box_autoadd_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignCourseRequest
+  sse_decode_box_autoadd_bridge_bykc_sign_course_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyCancelOrderRequest
+  sse_decode_box_autoadd_bridge_cgyy_cancel_order_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyOrder sse_decode_box_autoadd_bridge_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  sse_decode_box_autoadd_bridge_cgyy_submit_reservation_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeConnectionMode sse_decode_box_autoadd_bridge_connection_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  sse_decode_box_autoadd_bridge_evaluation_submit_courses_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  sse_decode_box_autoadd_bridge_libbook_cancel_booking_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibbookReserveRequest
+  sse_decode_box_autoadd_bridge_libbook_reserve_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePhotoUpload sse_decode_box_autoadd_bridge_photo_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSafeError sse_decode_box_autoadd_bridge_safe_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSigninPerformRequest
+  sse_decode_box_autoadd_bridge_signin_perform_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeUserProfile sse_decode_box_autoadd_bridge_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkSubmitRequest sse_decode_box_autoadd_bridge_ygdk_submit_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  BridgeBykcChosenCourse sse_decode_bridge_bykc_chosen_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourse sse_decode_bridge_bykc_course(SseDeserializer deserializer);
+
+  @protected
+  BridgeBykcCourseCategory sse_decode_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCoursePage sse_decode_bridge_bykc_course_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseRequest sse_decode_bridge_bykc_course_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseStatus sse_decode_bridge_bykc_course_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseSubCategory sse_decode_bridge_bykc_course_sub_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignConfig sse_decode_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignCourseRequest sse_decode_bridge_bykc_sign_course_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignPoint sse_decode_bridge_bykc_sign_point(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcStatistic sse_decode_bridge_bykc_statistic(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcStatistics sse_decode_bridge_bykc_statistics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcUserProfile sse_decode_bridge_bykc_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyCancelOrderRequest sse_decode_bridge_cgyy_cancel_order_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyDayInfo sse_decode_bridge_cgyy_day_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyLockCode sse_decode_bridge_cgyy_lock_code(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyOrder sse_decode_bridge_cgyy_order(SseDeserializer deserializer);
+
+  @protected
+  BridgeCgyyOrdersPage sse_decode_bridge_cgyy_orders_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyPurposeSource sse_decode_bridge_cgyy_purpose_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyPurposeType sse_decode_bridge_cgyy_purpose_type(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyPurposeTypes sse_decode_bridge_cgyy_purpose_types(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyReservationSelection sse_decode_bridge_cgyy_reservation_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyySlotStatus sse_decode_bridge_cgyy_slot_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyySpaceAvailability sse_decode_bridge_cgyy_space_availability(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  sse_decode_bridge_cgyy_submit_reservation_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyTimeSlot sse_decode_bridge_cgyy_time_slot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyVenueSite sse_decode_bridge_cgyy_venue_site(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomFloor sse_decode_bridge_classroom_floor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomInfo sse_decode_bridge_classroom_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeClassroomQuery sse_decode_bridge_classroom_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeConnectionMode sse_decode_bridge_connection_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCourseClass sse_decode_bridge_course_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeError sse_decode_bridge_error(SseDeserializer deserializer);
+
+  @protected
+  BridgeErrorCode sse_decode_bridge_error_code(SseDeserializer deserializer);
+
+  @protected
+  BridgeErrorKind sse_decode_bridge_error_kind(SseDeserializer deserializer);
+
+  @protected
+  BridgeEvaluationCourse sse_decode_bridge_evaluation_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationCoursesResponse sse_decode_bridge_evaluation_courses_response(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationProgress sse_decode_bridge_evaluation_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  sse_decode_bridge_evaluation_submit_courses_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeExam sse_decode_bridge_exam(SseDeserializer deserializer);
+
+  @protected
+  BridgeExamArrangement sse_decode_bridge_exam_arrangement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeGrade sse_decode_bridge_grade(SseDeserializer deserializer);
+
+  @protected
+  BridgeGradeData sse_decode_bridge_grade_data(SseDeserializer deserializer);
+
+  @protected
+  BridgeJudgeAssignmentDetail sse_decode_bridge_judge_assignment_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeAssignmentKey sse_decode_bridge_judge_assignment_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeAssignmentSummary sse_decode_bridge_judge_assignment_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeProblem sse_decode_bridge_judge_problem(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeSubmissionStatus sse_decode_bridge_judge_submission_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookArea sse_decode_bridge_lib_book_area(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookAreaDetail sse_decode_bridge_lib_book_area_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookBooking sse_decode_bridge_lib_book_booking(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookBookingsPage sse_decode_bridge_lib_book_bookings_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookLibrary sse_decode_bridge_lib_book_library(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookSeat sse_decode_bridge_lib_book_seat(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookStorey sse_decode_bridge_lib_book_storey(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookTimeSlot sse_decode_bridge_lib_book_time_slot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  sse_decode_bridge_libbook_cancel_booking_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibbookReserveRequest sse_decode_bridge_libbook_reserve_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLoginOutcome sse_decode_bridge_login_outcome(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLoginPreparation sse_decode_bridge_login_preparation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLoginReadiness sse_decode_bridge_login_readiness(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeNetworkState sse_decode_bridge_network_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePhotoUpload sse_decode_bridge_photo_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRouteDecision sse_decode_bridge_route_decision(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRouteLoginResult sse_decode_bridge_route_login_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRouteLoginState sse_decode_bridge_route_login_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutePolicy sse_decode_bridge_route_policy(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRouteSettings sse_decode_bridge_route_settings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedBykcChosenCourses sse_decode_bridge_routed_bykc_chosen_courses(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedBykcCourse sse_decode_bridge_routed_bykc_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedBykcCourses sse_decode_bridge_routed_bykc_courses(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedBykcProfile sse_decode_bridge_routed_bykc_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedBykcStatistics sse_decode_bridge_routed_bykc_statistics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedCgyyDayInfo sse_decode_bridge_routed_cgyy_day_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedCgyyLockCode sse_decode_bridge_routed_cgyy_lock_code(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedCgyyOrder sse_decode_bridge_routed_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedCgyyOrders sse_decode_bridge_routed_cgyy_orders(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedCgyyPurposeTypes sse_decode_bridge_routed_cgyy_purpose_types(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedCgyySites sse_decode_bridge_routed_cgyy_sites(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedClassroomQuery sse_decode_bridge_routed_classroom_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedEvaluation sse_decode_bridge_routed_evaluation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedExamArrangement sse_decode_bridge_routed_exam_arrangement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedGrades sse_decode_bridge_routed_grades(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetail
+  sse_decode_bridge_routed_judge_assignment_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetails
+  sse_decode_bridge_routed_judge_assignment_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedJudgeSummaries sse_decode_bridge_routed_judge_summaries(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedLibBookAreaDetail sse_decode_bridge_routed_lib_book_area_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedLibBookAreas sse_decode_bridge_routed_lib_book_areas(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedLibBookBookings sse_decode_bridge_routed_lib_book_bookings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedLibBookLibraries sse_decode_bridge_routed_lib_book_libraries(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedLibBookSeats sse_decode_bridge_routed_lib_book_seats(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedSigninClasses sse_decode_bridge_routed_signin_classes(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedSpocAssignmentDetail
+  sse_decode_bridge_routed_spoc_assignment_detail(SseDeserializer deserializer);
+
+  @protected
+  BridgeRoutedSpocAssignments sse_decode_bridge_routed_spoc_assignments(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedTerms sse_decode_bridge_routed_terms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedTodayClasses sse_decode_bridge_routed_today_classes(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedUserProfile sse_decode_bridge_routed_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedWeeklySchedule sse_decode_bridge_routed_weekly_schedule(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedWeeks sse_decode_bridge_routed_weeks(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedYgdkOverview sse_decode_bridge_routed_ygdk_overview(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedYgdkRecords sse_decode_bridge_routed_ygdk_records(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSafeError sse_decode_bridge_safe_error(SseDeserializer deserializer);
+
+  @protected
+  BridgeSigninClass sse_decode_bridge_signin_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSigninPerformRequest sse_decode_bridge_signin_perform_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocAssignmentDetail sse_decode_bridge_spoc_assignment_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocAssignmentSummary sse_decode_bridge_spoc_assignment_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocAssignments sse_decode_bridge_spoc_assignments(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocSubmissionStatus sse_decode_bridge_spoc_submission_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTerm sse_decode_bridge_term(SseDeserializer deserializer);
+
+  @protected
+  BridgeTodayClass sse_decode_bridge_today_class(SseDeserializer deserializer);
+
+  @protected
+  BridgeUserProfile sse_decode_bridge_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeWeek sse_decode_bridge_week(SseDeserializer deserializer);
+
+  @protected
+  BridgeWeeklySchedule sse_decode_bridge_weekly_schedule(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeWriteCommitResult sse_decode_bridge_write_commit_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeWriteIntent sse_decode_bridge_write_intent(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeWriteOperation sse_decode_bridge_write_operation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkItem sse_decode_bridge_ygdk_item(SseDeserializer deserializer);
+
+  @protected
+  BridgeYgdkOverview sse_decode_bridge_ygdk_overview(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkRecord sse_decode_bridge_ygdk_record(SseDeserializer deserializer);
+
+  @protected
+  BridgeYgdkRecordsPage sse_decode_bridge_ygdk_records_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkSubmitRequest sse_decode_bridge_ygdk_submit_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkTermSummary sse_decode_bridge_ygdk_term_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeBykcChosenCourse> sse_decode_list_bridge_bykc_chosen_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeBykcCourse> sse_decode_list_bridge_bykc_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeBykcSignPoint> sse_decode_list_bridge_bykc_sign_point(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeBykcStatistic> sse_decode_list_bridge_bykc_statistic(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCgyyOrder> sse_decode_list_bridge_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCgyyPurposeType> sse_decode_list_bridge_cgyy_purpose_type(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCgyyReservationSelection>
+  sse_decode_list_bridge_cgyy_reservation_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCgyySlotStatus> sse_decode_list_bridge_cgyy_slot_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCgyySpaceAvailability>
+  sse_decode_list_bridge_cgyy_space_availability(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeCgyyTimeSlot> sse_decode_list_bridge_cgyy_time_slot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCgyyVenueSite> sse_decode_list_bridge_cgyy_venue_site(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomFloor> sse_decode_list_bridge_classroom_floor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeClassroomInfo> sse_decode_list_bridge_classroom_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeConnectionMode> sse_decode_list_bridge_connection_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCourseClass> sse_decode_list_bridge_course_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeEvaluationCourse> sse_decode_list_bridge_evaluation_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeExam> sse_decode_list_bridge_exam(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeGrade> sse_decode_list_bridge_grade(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeJudgeAssignmentDetail>
+  sse_decode_list_bridge_judge_assignment_detail(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeJudgeAssignmentKey> sse_decode_list_bridge_judge_assignment_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeJudgeAssignmentSummary>
+  sse_decode_list_bridge_judge_assignment_summary(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeJudgeProblem> sse_decode_list_bridge_judge_problem(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookArea> sse_decode_list_bridge_lib_book_area(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookBooking> sse_decode_list_bridge_lib_book_booking(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookLibrary> sse_decode_list_bridge_lib_book_library(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookSeat> sse_decode_list_bridge_lib_book_seat(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookStorey> sse_decode_list_bridge_lib_book_storey(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookTimeSlot> sse_decode_list_bridge_lib_book_time_slot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeRouteLoginResult> sse_decode_list_bridge_route_login_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeSigninClass> sse_decode_list_bridge_signin_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeSpocAssignmentSummary>
+  sse_decode_list_bridge_spoc_assignment_summary(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeTerm> sse_decode_list_bridge_term(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeTodayClass> sse_decode_list_bridge_today_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeWeek> sse_decode_list_bridge_week(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeYgdkItem> sse_decode_list_bridge_ygdk_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeYgdkRecord> sse_decode_list_bridge_ygdk_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
+  BridgeBykcCourseCategory?
+  sse_decode_opt_box_autoadd_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseSubCategory?
+  sse_decode_opt_box_autoadd_bridge_bykc_course_sub_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignConfig? sse_decode_opt_box_autoadd_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyOrder? sse_decode_opt_box_autoadd_bridge_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeConnectionMode? sse_decode_opt_box_autoadd_bridge_connection_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePhotoUpload? sse_decode_opt_box_autoadd_bridge_photo_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSafeError? sse_decode_opt_box_autoadd_bridge_safe_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeUserProfile? sse_decode_opt_box_autoadd_bridge_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -43,13 +1721,1090 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
+  BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
-  bool sse_decode_bool(SseDeserializer deserializer);
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    BridgeClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    BridgeClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    BridgeClient self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_category(
+    BridgeBykcCourseCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_request(
+    BridgeBykcCourseRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_sub_category(
+    BridgeBykcCourseSubCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_sign_config(
+    BridgeBykcSignConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_sign_course_request(
+    BridgeBykcSignCourseRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_cancel_order_request(
+    BridgeCgyyCancelOrderRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_order(
+    BridgeCgyyOrder self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_submit_reservation_request(
+    BridgeCgyySubmitReservationRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_connection_mode(
+    BridgeConnectionMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_evaluation_submit_courses_request(
+    BridgeEvaluationSubmitCoursesRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_libbook_cancel_booking_request(
+    BridgeLibbookCancelBookingRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_libbook_reserve_request(
+    BridgeLibbookReserveRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_photo_upload(
+    BridgePhotoUpload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_safe_error(
+    BridgeSafeError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_signin_perform_request(
+    BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_user_profile(
+    BridgeUserProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_ygdk_submit_request(
+    BridgeYgdkSubmitRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_bykc_chosen_course(
+    BridgeBykcChosenCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course(
+    BridgeBykcCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_category(
+    BridgeBykcCourseCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_page(
+    BridgeBykcCoursePage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_request(
+    BridgeBykcCourseRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_status(
+    BridgeBykcCourseStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_sub_category(
+    BridgeBykcCourseSubCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_sign_config(
+    BridgeBykcSignConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_sign_course_request(
+    BridgeBykcSignCourseRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_sign_point(
+    BridgeBykcSignPoint self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_statistic(
+    BridgeBykcStatistic self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_statistics(
+    BridgeBykcStatistics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_user_profile(
+    BridgeBykcUserProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_cancel_order_request(
+    BridgeCgyyCancelOrderRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_day_info(
+    BridgeCgyyDayInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_lock_code(
+    BridgeCgyyLockCode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_order(
+    BridgeCgyyOrder self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_orders_page(
+    BridgeCgyyOrdersPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_purpose_source(
+    BridgeCgyyPurposeSource self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_purpose_type(
+    BridgeCgyyPurposeType self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_purpose_types(
+    BridgeCgyyPurposeTypes self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_reservation_selection(
+    BridgeCgyyReservationSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_slot_status(
+    BridgeCgyySlotStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_space_availability(
+    BridgeCgyySpaceAvailability self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_submit_reservation_request(
+    BridgeCgyySubmitReservationRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_time_slot(
+    BridgeCgyyTimeSlot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_venue_site(
+    BridgeCgyyVenueSite self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_floor(
+    BridgeClassroomFloor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_info(
+    BridgeClassroomInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_classroom_query(
+    BridgeClassroomQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_connection_mode(
+    BridgeConnectionMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_course_class(
+    BridgeCourseClass self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_error(BridgeError self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_error_code(
+    BridgeErrorCode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_error_kind(
+    BridgeErrorKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_course(
+    BridgeEvaluationCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_courses_response(
+    BridgeEvaluationCoursesResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_progress(
+    BridgeEvaluationProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_submit_courses_request(
+    BridgeEvaluationSubmitCoursesRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_exam(BridgeExam self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_exam_arrangement(
+    BridgeExamArrangement self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_grade(BridgeGrade self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_grade_data(
+    BridgeGradeData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_assignment_detail(
+    BridgeJudgeAssignmentDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_assignment_key(
+    BridgeJudgeAssignmentKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_assignment_summary(
+    BridgeJudgeAssignmentSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_problem(
+    BridgeJudgeProblem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_submission_status(
+    BridgeJudgeSubmissionStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_area(
+    BridgeLibBookArea self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_area_detail(
+    BridgeLibBookAreaDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_booking(
+    BridgeLibBookBooking self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_bookings_page(
+    BridgeLibBookBookingsPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_library(
+    BridgeLibBookLibrary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_seat(
+    BridgeLibBookSeat self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_storey(
+    BridgeLibBookStorey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_time_slot(
+    BridgeLibBookTimeSlot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_libbook_cancel_booking_request(
+    BridgeLibbookCancelBookingRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_libbook_reserve_request(
+    BridgeLibbookReserveRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_login_outcome(
+    BridgeLoginOutcome self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_login_preparation(
+    BridgeLoginPreparation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_login_readiness(
+    BridgeLoginReadiness self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_network_state(
+    BridgeNetworkState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_photo_upload(
+    BridgePhotoUpload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_route_decision(
+    BridgeRouteDecision self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_route_login_result(
+    BridgeRouteLoginResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_route_login_state(
+    BridgeRouteLoginState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_route_policy(
+    BridgeRoutePolicy self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_route_settings(
+    BridgeRouteSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_bykc_chosen_courses(
+    BridgeRoutedBykcChosenCourses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_bykc_course(
+    BridgeRoutedBykcCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_bykc_courses(
+    BridgeRoutedBykcCourses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_bykc_profile(
+    BridgeRoutedBykcProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_bykc_statistics(
+    BridgeRoutedBykcStatistics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_day_info(
+    BridgeRoutedCgyyDayInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_lock_code(
+    BridgeRoutedCgyyLockCode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_order(
+    BridgeRoutedCgyyOrder self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_orders(
+    BridgeRoutedCgyyOrders self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_purpose_types(
+    BridgeRoutedCgyyPurposeTypes self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_sites(
+    BridgeRoutedCgyySites self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_classroom_query(
+    BridgeRoutedClassroomQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_evaluation(
+    BridgeRoutedEvaluation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_exam_arrangement(
+    BridgeRoutedExamArrangement self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_grades(
+    BridgeRoutedGrades self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_judge_assignment_detail(
+    BridgeRoutedJudgeAssignmentDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_judge_assignment_details(
+    BridgeRoutedJudgeAssignmentDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_judge_summaries(
+    BridgeRoutedJudgeSummaries self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_area_detail(
+    BridgeRoutedLibBookAreaDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_areas(
+    BridgeRoutedLibBookAreas self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_bookings(
+    BridgeRoutedLibBookBookings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_libraries(
+    BridgeRoutedLibBookLibraries self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_seats(
+    BridgeRoutedLibBookSeats self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_signin_classes(
+    BridgeRoutedSigninClasses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_spoc_assignment_detail(
+    BridgeRoutedSpocAssignmentDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_spoc_assignments(
+    BridgeRoutedSpocAssignments self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_terms(
+    BridgeRoutedTerms self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_today_classes(
+    BridgeRoutedTodayClasses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_user_profile(
+    BridgeRoutedUserProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_weekly_schedule(
+    BridgeRoutedWeeklySchedule self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_weeks(
+    BridgeRoutedWeeks self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_ygdk_overview(
+    BridgeRoutedYgdkOverview self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_ygdk_records(
+    BridgeRoutedYgdkRecords self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_safe_error(
+    BridgeSafeError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_signin_class(
+    BridgeSigninClass self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_signin_perform_request(
+    BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_assignment_detail(
+    BridgeSpocAssignmentDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_assignment_summary(
+    BridgeSpocAssignmentSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_assignments(
+    BridgeSpocAssignments self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_spoc_submission_status(
+    BridgeSpocSubmissionStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_term(BridgeTerm self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_today_class(
+    BridgeTodayClass self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_user_profile(
+    BridgeUserProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_week(BridgeWeek self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_weekly_schedule(
+    BridgeWeeklySchedule self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_write_commit_result(
+    BridgeWriteCommitResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_write_intent(
+    BridgeWriteIntent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_write_operation(
+    BridgeWriteOperation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_item(
+    BridgeYgdkItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_overview(
+    BridgeYgdkOverview self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_record(
+    BridgeYgdkRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_records_page(
+    BridgeYgdkRecordsPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_submit_request(
+    BridgeYgdkSubmitRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_term_summary(
+    BridgeYgdkTermSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_bridge_bykc_chosen_course(
+    List<BridgeBykcChosenCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_bykc_course(
+    List<BridgeBykcCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_bykc_sign_point(
+    List<BridgeBykcSignPoint> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_bykc_statistic(
+    List<BridgeBykcStatistic> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_order(
+    List<BridgeCgyyOrder> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_purpose_type(
+    List<BridgeCgyyPurposeType> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_reservation_selection(
+    List<BridgeCgyyReservationSelection> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_slot_status(
+    List<BridgeCgyySlotStatus> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_space_availability(
+    List<BridgeCgyySpaceAvailability> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_time_slot(
+    List<BridgeCgyyTimeSlot> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cgyy_venue_site(
+    List<BridgeCgyyVenueSite> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_floor(
+    List<BridgeClassroomFloor> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_classroom_info(
+    List<BridgeClassroomInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_connection_mode(
+    List<BridgeConnectionMode> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_course_class(
+    List<BridgeCourseClass> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_evaluation_course(
+    List<BridgeEvaluationCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_exam(
+    List<BridgeExam> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_grade(
+    List<BridgeGrade> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_judge_assignment_detail(
+    List<BridgeJudgeAssignmentDetail> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_judge_assignment_key(
+    List<BridgeJudgeAssignmentKey> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_judge_assignment_summary(
+    List<BridgeJudgeAssignmentSummary> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_judge_problem(
+    List<BridgeJudgeProblem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_area(
+    List<BridgeLibBookArea> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_booking(
+    List<BridgeLibBookBooking> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_library(
+    List<BridgeLibBookLibrary> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_seat(
+    List<BridgeLibBookSeat> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_storey(
+    List<BridgeLibBookStorey> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_time_slot(
+    List<BridgeLibBookTimeSlot> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_route_login_result(
+    List<BridgeRouteLoginResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_signin_class(
+    List<BridgeSigninClass> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_spoc_assignment_summary(
+    List<BridgeSpocAssignmentSummary> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_term(
+    List<BridgeTerm> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_today_class(
+    List<BridgeTodayClass> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_week(
+    List<BridgeWeek> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ygdk_item(
+    List<BridgeYgdkItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ygdk_record(
+    List<BridgeYgdkRecord> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_prim_u_8_strict(
@@ -58,16 +2813,76 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_course_category(
+    BridgeBykcCourseCategory? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_course_sub_category(
+    BridgeBykcCourseSubCategory? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_sign_config(
+    BridgeBykcSignConfig? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cgyy_order(
+    BridgeCgyyOrder? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_connection_mode(
+    BridgeConnectionMode? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_photo_upload(
+    BridgePhotoUpload? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_safe_error(
+    BridgeSafeError? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_user_profile(
+    BridgeUserProfile? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
 
   @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer);
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
 }
 
 // Section: wire_class
@@ -83,4 +2898,38 @@ class RustLibWire implements BaseWire {
   /// The symbols are looked up in [dynamicLibrary].
   RustLibWire(ffi.DynamicLibrary dynamicLibrary)
     : _lookup = dynamicLibrary.lookup;
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 }

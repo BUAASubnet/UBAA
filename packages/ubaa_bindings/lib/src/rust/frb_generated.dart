@@ -3,7 +3,10 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/client.dart';
+import 'api/read.dart';
 import 'api/simple.dart';
+import 'api/write.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -66,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1289363268;
+  int get rustContentHash => -1727778880;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,9 +81,278 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<BridgeLoginOutcome> crateApiClientBridgeClientAuthStatus({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedBykcChosenCourses>
+  crateApiClientBridgeClientBykcChosenCourses({required BridgeClient that});
+
+  Future<BridgeRoutedBykcCourse> crateApiClientBridgeClientBykcCourseDetail({
+    required BridgeClient that,
+    required PlatformInt64 id,
+  });
+
+  Future<BridgeRoutedBykcCourses> crateApiClientBridgeClientBykcCourses({
+    required BridgeClient that,
+    required int page,
+    required int size,
+    required bool all,
+  });
+
+  Future<BridgeRoutedBykcProfile> crateApiClientBridgeClientBykcProfile({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedBykcStatistics> crateApiClientBridgeClientBykcStatistics({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedCgyyDayInfo> crateApiClientBridgeClientCgyyDayInfo({
+    required BridgeClient that,
+    required int siteId,
+    required String date,
+  });
+
+  Future<BridgeRoutedCgyyLockCode> crateApiClientBridgeClientCgyyLockCode({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedCgyyOrder> crateApiClientBridgeClientCgyyOrderDetail({
+    required BridgeClient that,
+    required int id,
+  });
+
+  Future<BridgeRoutedCgyyOrders> crateApiClientBridgeClientCgyyOrders({
+    required BridgeClient that,
+    required int page,
+    required int size,
+  });
+
+  Future<BridgeRoutedCgyyPurposeTypes>
+  crateApiClientBridgeClientCgyyPurposeTypes({required BridgeClient that});
+
+  Future<BridgeRoutedCgyySites> crateApiClientBridgeClientCgyySites({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedClassroomQuery> crateApiClientBridgeClientClassroomSearch({
+    required BridgeClient that,
+    required int campus,
+    required String date,
+  });
+
+  Future<BridgeWriteCommitResult> crateApiClientBridgeClientCommitWrite({
+    required BridgeClient that,
+    required String intentId,
+  });
+
+  int crateApiClientBridgeClientContractVersion({required BridgeClient that});
+
+  Future<void> crateApiClientBridgeClientDispose({required BridgeClient that});
+
+  Future<BridgeRoutedEvaluation> crateApiClientBridgeClientEvaluationAll({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedExamArrangement>
+  crateApiClientBridgeClientExamArrangement({
+    required BridgeClient that,
+    required String term,
+  });
+
+  Future<BridgeRoutedGrades> crateApiClientBridgeClientGrades({
+    required BridgeClient that,
+    required String term,
+  });
+
+  Future<BridgeRoutedJudgeAssignmentDetail>
+  crateApiClientBridgeClientJudgeAssignment({
+    required BridgeClient that,
+    required String courseId,
+    required String assignmentId,
+  });
+
+  Future<BridgeRoutedJudgeAssignmentDetails>
+  crateApiClientBridgeClientJudgeAssignmentDetails({
+    required BridgeClient that,
+    required List<BridgeJudgeAssignmentKey> keys,
+  });
+
+  Future<BridgeRoutedJudgeSummaries>
+  crateApiClientBridgeClientJudgeAssignments({
+    required BridgeClient that,
+    required bool includeExpired,
+  });
+
+  Future<BridgeRoutedLibBookAreaDetail>
+  crateApiClientBridgeClientLibbookAreaDetail({
+    required BridgeClient that,
+    required String areaId,
+  });
+
+  Future<BridgeRoutedLibBookAreas> crateApiClientBridgeClientLibbookAreas({
+    required BridgeClient that,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  });
+
+  Future<BridgeRoutedLibBookBookings>
+  crateApiClientBridgeClientLibbookBookings({
+    required BridgeClient that,
+    required int page,
+    required int limit,
+  });
+
+  Future<BridgeRoutedLibBookLibraries>
+  crateApiClientBridgeClientLibbookLibraries({
+    required BridgeClient that,
+    required String day,
+  });
+
+  Future<BridgeRoutedLibBookSeats> crateApiClientBridgeClientLibbookSeats({
+    required BridgeClient that,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  });
+
+  Future<BridgeLoginOutcome> crateApiClientBridgeClientLogin({
+    required BridgeClient that,
+    required String username,
+    required String password,
+  });
+
+  Future<void> crateApiClientBridgeClientLogout({required BridgeClient that});
+
+  BridgeClient crateApiClientBridgeClientOpen({required String configDir});
+
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareBykcDeselectCourse({
+    required BridgeClient that,
+    required BridgeBykcCourseRequest request,
+  });
+
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareBykcSelectCourse({
+    required BridgeClient that,
+    required BridgeBykcCourseRequest request,
+  });
+
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareBykcSignCourse({
+    required BridgeClient that,
+    required BridgeBykcSignCourseRequest request,
+  });
+
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareCgyyCancelOrder({
+    required BridgeClient that,
+    required BridgeCgyyCancelOrderRequest request,
+  });
+
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareCgyySubmitReservation({
+    required BridgeClient that,
+    required BridgeCgyySubmitReservationRequest request,
+  });
+
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareEvaluationSubmitCourses({
+    required BridgeClient that,
+    required BridgeEvaluationSubmitCoursesRequest request,
+  });
+
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareLibbookCancelBooking({
+    required BridgeClient that,
+    required BridgeLibbookCancelBookingRequest request,
+  });
+
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareLibbookReserve({
+    required BridgeClient that,
+    required BridgeLibbookReserveRequest request,
+  });
+
+  Future<BridgeLoginPreparation> crateApiClientBridgeClientPrepareLogin({
+    required BridgeClient that,
+  });
+
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareSigninPerform({
+    required BridgeClient that,
+    required BridgeSigninPerformRequest request,
+  });
+
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareYgdkSubmit({
+    required BridgeClient that,
+    required BridgeYgdkSubmitRequest request,
+  });
+
+  Future<BridgeRouteSettings> crateApiClientBridgeClientRouteSettings({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedTerms> crateApiClientBridgeClientScheduleTerms({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedTodayClasses> crateApiClientBridgeClientScheduleToday({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedWeeklySchedule> crateApiClientBridgeClientScheduleWeek({
+    required BridgeClient that,
+    required String term,
+    required int week,
+  });
+
+  Future<BridgeRoutedWeeks> crateApiClientBridgeClientScheduleWeeks({
+    required BridgeClient that,
+    required String term,
+  });
+
+  Future<BridgeRouteSettings> crateApiClientBridgeClientSetDefaultRoutePolicy({
+    required BridgeClient that,
+    required BridgeRoutePolicy policy,
+  });
+
+  Future<BridgeRoutedSigninClasses> crateApiClientBridgeClientSigninToday({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedSpocAssignmentDetail>
+  crateApiClientBridgeClientSpocAssignment({
+    required BridgeClient that,
+    required String assignmentId,
+  });
+
+  Future<BridgeRoutedSpocAssignments>
+  crateApiClientBridgeClientSpocAssignments({required BridgeClient that});
+
+  Future<BridgeRoutedUserProfile> crateApiClientBridgeClientUserInfo({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedYgdkOverview> crateApiClientBridgeClientYgdkOverview({
+    required BridgeClient that,
+  });
+
+  Future<BridgeRoutedYgdkRecords> crateApiClientBridgeClientYgdkRecords({
+    required BridgeClient that,
+    required int page,
+    required int size,
+  });
+
   String crateApiSimpleBridgeHello();
 
   Future<void> crateApiSimpleInitApp();
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_BridgeClient;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_BridgeClient;
+
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_BridgeClientPtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -92,12 +364,2043 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<BridgeLoginOutcome> crateApiClientBridgeClientAuthStatus({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_login_outcome,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAuthStatusConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientAuthStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_auth_status",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedBykcChosenCourses>
+  crateApiClientBridgeClientBykcChosenCourses({required BridgeClient that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_bykc_chosen_courses,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientBykcChosenCoursesConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientBykcChosenCoursesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_bykc_chosen_courses",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedBykcCourse> crateApiClientBridgeClientBykcCourseDetail({
+    required BridgeClient that,
+    required PlatformInt64 id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_64(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_bykc_course,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientBykcCourseDetailConstMeta,
+        argValues: [that, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientBykcCourseDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_bykc_course_detail",
+        argNames: ["that", "id"],
+      );
+
+  @override
+  Future<BridgeRoutedBykcCourses> crateApiClientBridgeClientBykcCourses({
+    required BridgeClient that,
+    required int page,
+    required int size,
+    required bool all,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(size, serializer);
+          sse_encode_bool(all, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_bykc_courses,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientBykcCoursesConstMeta,
+        argValues: [that, page, size, all],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientBykcCoursesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_bykc_courses",
+        argNames: ["that", "page", "size", "all"],
+      );
+
+  @override
+  Future<BridgeRoutedBykcProfile> crateApiClientBridgeClientBykcProfile({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_bykc_profile,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientBykcProfileConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientBykcProfileConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_bykc_profile",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedBykcStatistics> crateApiClientBridgeClientBykcStatistics({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_bykc_statistics,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientBykcStatisticsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientBykcStatisticsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_bykc_statistics",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedCgyyDayInfo> crateApiClientBridgeClientCgyyDayInfo({
+    required BridgeClient that,
+    required int siteId,
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(siteId, serializer);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_cgyy_day_info,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyDayInfoConstMeta,
+        argValues: [that, siteId, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyDayInfoConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_day_info",
+        argNames: ["that", "siteId", "date"],
+      );
+
+  @override
+  Future<BridgeRoutedCgyyLockCode> crateApiClientBridgeClientCgyyLockCode({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_cgyy_lock_code,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyLockCodeConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyLockCodeConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_lock_code",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedCgyyOrder> crateApiClientBridgeClientCgyyOrderDetail({
+    required BridgeClient that,
+    required int id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_cgyy_order,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyOrderDetailConstMeta,
+        argValues: [that, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyOrderDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_order_detail",
+        argNames: ["that", "id"],
+      );
+
+  @override
+  Future<BridgeRoutedCgyyOrders> crateApiClientBridgeClientCgyyOrders({
+    required BridgeClient that,
+    required int page,
+    required int size,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(size, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_cgyy_orders,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyOrdersConstMeta,
+        argValues: [that, page, size],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyOrdersConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_orders",
+        argNames: ["that", "page", "size"],
+      );
+
+  @override
+  Future<BridgeRoutedCgyyPurposeTypes>
+  crateApiClientBridgeClientCgyyPurposeTypes({required BridgeClient that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_cgyy_purpose_types,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyPurposeTypesConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyPurposeTypesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_purpose_types",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedCgyySites> crateApiClientBridgeClientCgyySites({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_cgyy_sites,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyySitesConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyySitesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_sites",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedClassroomQuery> crateApiClientBridgeClientClassroomSearch({
+    required BridgeClient that,
+    required int campus,
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(campus, serializer);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_classroom_query,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientClassroomSearchConstMeta,
+        argValues: [that, campus, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientClassroomSearchConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_classroom_search",
+        argNames: ["that", "campus", "date"],
+      );
+
+  @override
+  Future<BridgeWriteCommitResult> crateApiClientBridgeClientCommitWrite({
+    required BridgeClient that,
+    required String intentId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(intentId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_commit_result,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCommitWriteConstMeta,
+        argValues: [that, intentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCommitWriteConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_commit_write",
+        argNames: ["that", "intentId"],
+      );
+
+  @override
+  int crateApiClientBridgeClientContractVersion({required BridgeClient that}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiClientBridgeClientContractVersionConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientContractVersionConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_contract_version",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiClientBridgeClientDispose({required BridgeClient that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 16,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientDisposeConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientDisposeConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_dispose",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedEvaluation> crateApiClientBridgeClientEvaluationAll({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_evaluation,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientEvaluationAllConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientEvaluationAllConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_evaluation_all",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedExamArrangement>
+  crateApiClientBridgeClientExamArrangement({
+    required BridgeClient that,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_exam_arrangement,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientExamArrangementConstMeta,
+        argValues: [that, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientExamArrangementConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_exam_arrangement",
+        argNames: ["that", "term"],
+      );
+
+  @override
+  Future<BridgeRoutedGrades> crateApiClientBridgeClientGrades({
+    required BridgeClient that,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_grades,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientGradesConstMeta,
+        argValues: [that, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientGradesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_grades",
+        argNames: ["that", "term"],
+      );
+
+  @override
+  Future<BridgeRoutedJudgeAssignmentDetail>
+  crateApiClientBridgeClientJudgeAssignment({
+    required BridgeClient that,
+    required String courseId,
+    required String assignmentId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(courseId, serializer);
+          sse_encode_String(assignmentId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_judge_assignment_detail,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientJudgeAssignmentConstMeta,
+        argValues: [that, courseId, assignmentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientJudgeAssignmentConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_judge_assignment",
+        argNames: ["that", "courseId", "assignmentId"],
+      );
+
+  @override
+  Future<BridgeRoutedJudgeAssignmentDetails>
+  crateApiClientBridgeClientJudgeAssignmentDetails({
+    required BridgeClient that,
+    required List<BridgeJudgeAssignmentKey> keys,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_list_bridge_judge_assignment_key(keys, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_judge_assignment_details,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientJudgeAssignmentDetailsConstMeta,
+        argValues: [that, keys],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientJudgeAssignmentDetailsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_judge_assignment_details",
+        argNames: ["that", "keys"],
+      );
+
+  @override
+  Future<BridgeRoutedJudgeSummaries>
+  crateApiClientBridgeClientJudgeAssignments({
+    required BridgeClient that,
+    required bool includeExpired,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_bool(includeExpired, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 22,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_judge_summaries,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientJudgeAssignmentsConstMeta,
+        argValues: [that, includeExpired],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientJudgeAssignmentsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_judge_assignments",
+        argNames: ["that", "includeExpired"],
+      );
+
+  @override
+  Future<BridgeRoutedLibBookAreaDetail>
+  crateApiClientBridgeClientLibbookAreaDetail({
+    required BridgeClient that,
+    required String areaId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(areaId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 23,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_lib_book_area_detail,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookAreaDetailConstMeta,
+        argValues: [that, areaId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookAreaDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_area_detail",
+        argNames: ["that", "areaId"],
+      );
+
+  @override
+  Future<BridgeRoutedLibBookAreas> crateApiClientBridgeClientLibbookAreas({
+    required BridgeClient that,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(premisesId, serializer);
+          sse_encode_opt_String(storeyId, serializer);
+          sse_encode_String(day, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 24,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_lib_book_areas,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookAreasConstMeta,
+        argValues: [that, premisesId, storeyId, day],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookAreasConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_areas",
+        argNames: ["that", "premisesId", "storeyId", "day"],
+      );
+
+  @override
+  Future<BridgeRoutedLibBookBookings>
+  crateApiClientBridgeClientLibbookBookings({
+    required BridgeClient that,
+    required int page,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 25,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_lib_book_bookings,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookBookingsConstMeta,
+        argValues: [that, page, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookBookingsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_bookings",
+        argNames: ["that", "page", "limit"],
+      );
+
+  @override
+  Future<BridgeRoutedLibBookLibraries>
+  crateApiClientBridgeClientLibbookLibraries({
+    required BridgeClient that,
+    required String day,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(day, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 26,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_lib_book_libraries,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookLibrariesConstMeta,
+        argValues: [that, day],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookLibrariesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_libraries",
+        argNames: ["that", "day"],
+      );
+
+  @override
+  Future<BridgeRoutedLibBookSeats> crateApiClientBridgeClientLibbookSeats({
+    required BridgeClient that,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(areaId, serializer);
+          sse_encode_String(day, serializer);
+          sse_encode_String(startTime, serializer);
+          sse_encode_String(endTime, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_lib_book_seats,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookSeatsConstMeta,
+        argValues: [that, areaId, day, startTime, endTime],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookSeatsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_seats",
+        argNames: ["that", "areaId", "day", "startTime", "endTime"],
+      );
+
+  @override
+  Future<BridgeLoginOutcome> crateApiClientBridgeClientLogin({
+    required BridgeClient that,
+    required String username,
+    required String password,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(username, serializer);
+          sse_encode_String(password, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_login_outcome,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLoginConstMeta,
+        argValues: [that, username, password],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLoginConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_login",
+        argNames: ["that", "username", "password"],
+      );
+
+  @override
+  Future<void> crateApiClientBridgeClientLogout({required BridgeClient that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLogoutConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLogoutConstMeta =>
+      const TaskConstMeta(debugName: "BridgeClient_logout", argNames: ["that"]);
+
+  @override
+  BridgeClient crateApiClientBridgeClientOpen({required String configDir}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(configDir, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientOpenConstMeta,
+        argValues: [configDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientOpenConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_open",
+        argNames: ["configDir"],
+      );
+
+  @override
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareBykcDeselectCourse({
+    required BridgeClient that,
+    required BridgeBykcCourseRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_bykc_course_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiClientBridgeClientPrepareBykcDeselectCourseConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientPrepareBykcDeselectCourseConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_bykc_deselect_course",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareBykcSelectCourse({
+    required BridgeClient that,
+    required BridgeBykcCourseRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_bykc_course_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareBykcSelectCourseConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientPrepareBykcSelectCourseConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_bykc_select_course",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareBykcSignCourse({
+    required BridgeClient that,
+    required BridgeBykcSignCourseRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_bykc_sign_course_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareBykcSignCourseConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientPrepareBykcSignCourseConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_bykc_sign_course",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareCgyyCancelOrder({
+    required BridgeClient that,
+    required BridgeCgyyCancelOrderRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_cgyy_cancel_order_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 34,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareCgyyCancelOrderConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientPrepareCgyyCancelOrderConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_cgyy_cancel_order",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareCgyySubmitReservation({
+    required BridgeClient that,
+    required BridgeCgyySubmitReservationRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_cgyy_submit_reservation_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 35,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiClientBridgeClientPrepareCgyySubmitReservationConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientPrepareCgyySubmitReservationConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_cgyy_submit_reservation",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareEvaluationSubmitCourses({
+    required BridgeClient that,
+    required BridgeEvaluationSubmitCoursesRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_evaluation_submit_courses_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiClientBridgeClientPrepareEvaluationSubmitCoursesConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientPrepareEvaluationSubmitCoursesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_evaluation_submit_courses",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent>
+  crateApiClientBridgeClientPrepareLibbookCancelBooking({
+    required BridgeClient that,
+    required BridgeLibbookCancelBookingRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_libbook_cancel_booking_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 37,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiClientBridgeClientPrepareLibbookCancelBookingConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientPrepareLibbookCancelBookingConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_libbook_cancel_booking",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareLibbookReserve({
+    required BridgeClient that,
+    required BridgeLibbookReserveRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_libbook_reserve_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareLibbookReserveConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientPrepareLibbookReserveConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_libbook_reserve",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeLoginPreparation> crateApiClientBridgeClientPrepareLogin({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_login_preparation,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareLoginConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientPrepareLoginConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_login",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareSigninPerform({
+    required BridgeClient that,
+    required BridgeSigninPerformRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_signin_perform_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 40,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareSigninPerformConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientPrepareSigninPerformConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_signin_perform",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeWriteIntent> crateApiClientBridgeClientPrepareYgdkSubmit({
+    required BridgeClient that,
+    required BridgeYgdkSubmitRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_ygdk_submit_request(
+            request,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 41,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_write_intent,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientPrepareYgdkSubmitConstMeta,
+        argValues: [that, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientPrepareYgdkSubmitConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_prepare_ygdk_submit",
+        argNames: ["that", "request"],
+      );
+
+  @override
+  Future<BridgeRouteSettings> crateApiClientBridgeClientRouteSettings({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_route_settings,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientRouteSettingsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientRouteSettingsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_route_settings",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedTerms> crateApiClientBridgeClientScheduleTerms({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 43,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_terms,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientScheduleTermsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientScheduleTermsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_schedule_terms",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedTodayClasses> crateApiClientBridgeClientScheduleToday({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_today_classes,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientScheduleTodayConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientScheduleTodayConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_schedule_today",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedWeeklySchedule> crateApiClientBridgeClientScheduleWeek({
+    required BridgeClient that,
+    required String term,
+    required int week,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          sse_encode_i_32(week, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 45,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_weekly_schedule,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientScheduleWeekConstMeta,
+        argValues: [that, term, week],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientScheduleWeekConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_schedule_week",
+        argNames: ["that", "term", "week"],
+      );
+
+  @override
+  Future<BridgeRoutedWeeks> crateApiClientBridgeClientScheduleWeeks({
+    required BridgeClient that,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 46,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_weeks,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientScheduleWeeksConstMeta,
+        argValues: [that, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientScheduleWeeksConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_schedule_weeks",
+        argNames: ["that", "term"],
+      );
+
+  @override
+  Future<BridgeRouteSettings> crateApiClientBridgeClientSetDefaultRoutePolicy({
+    required BridgeClient that,
+    required BridgeRoutePolicy policy,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_route_policy(policy, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 47,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_route_settings,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientSetDefaultRoutePolicyConstMeta,
+        argValues: [that, policy],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientSetDefaultRoutePolicyConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_set_default_route_policy",
+        argNames: ["that", "policy"],
+      );
+
+  @override
+  Future<BridgeRoutedSigninClasses> crateApiClientBridgeClientSigninToday({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 48,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_signin_classes,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientSigninTodayConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientSigninTodayConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_signin_today",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedSpocAssignmentDetail>
+  crateApiClientBridgeClientSpocAssignment({
+    required BridgeClient that,
+    required String assignmentId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_String(assignmentId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 49,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_spoc_assignment_detail,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientSpocAssignmentConstMeta,
+        argValues: [that, assignmentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientSpocAssignmentConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_spoc_assignment",
+        argNames: ["that", "assignmentId"],
+      );
+
+  @override
+  Future<BridgeRoutedSpocAssignments>
+  crateApiClientBridgeClientSpocAssignments({required BridgeClient that}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 50,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_spoc_assignments,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientSpocAssignmentsConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientSpocAssignmentsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_spoc_assignments",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedUserProfile> crateApiClientBridgeClientUserInfo({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 51,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_user_profile,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientUserInfoConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientUserInfoConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_user_info",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedYgdkOverview> crateApiClientBridgeClientYgdkOverview({
+    required BridgeClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 52,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_ygdk_overview,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientYgdkOverviewConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientYgdkOverviewConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_ygdk_overview",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<BridgeRoutedYgdkRecords> crateApiClientBridgeClientYgdkRecords({
+    required BridgeClient that,
+    required int page,
+    required int size,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(size, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 53,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_routed_ygdk_records,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientYgdkRecordsConstMeta,
+        argValues: [that, page, size],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientYgdkRecordsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_ygdk_records",
+        argNames: ["that", "page", "size"],
+      );
+
+  @override
   String crateApiSimpleBridgeHello() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -122,7 +2425,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 55,
             port: port_,
           );
         },
@@ -140,6 +2443,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_BridgeClient => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_BridgeClient => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient;
+
+  @protected
+  BridgeClient
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeClientImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  BridgeClient
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeClientImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  BridgeClient
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeClientImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
   @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -147,9 +2485,2295 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool dco_decode_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
+  BridgeBykcCourseCategory dco_decode_box_autoadd_bridge_bykc_course_category(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_bykc_course_category(raw);
+  }
+
+  @protected
+  BridgeBykcCourseRequest dco_decode_box_autoadd_bridge_bykc_course_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_bykc_course_request(raw);
+  }
+
+  @protected
+  BridgeBykcCourseSubCategory
+  dco_decode_box_autoadd_bridge_bykc_course_sub_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_bykc_course_sub_category(raw);
+  }
+
+  @protected
+  BridgeBykcSignConfig dco_decode_box_autoadd_bridge_bykc_sign_config(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_bykc_sign_config(raw);
+  }
+
+  @protected
+  BridgeBykcSignCourseRequest
+  dco_decode_box_autoadd_bridge_bykc_sign_course_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_bykc_sign_course_request(raw);
+  }
+
+  @protected
+  BridgeCgyyCancelOrderRequest
+  dco_decode_box_autoadd_bridge_cgyy_cancel_order_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cgyy_cancel_order_request(raw);
+  }
+
+  @protected
+  BridgeCgyyOrder dco_decode_box_autoadd_bridge_cgyy_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cgyy_order(raw);
+  }
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  dco_decode_box_autoadd_bridge_cgyy_submit_reservation_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cgyy_submit_reservation_request(raw);
+  }
+
+  @protected
+  BridgeConnectionMode dco_decode_box_autoadd_bridge_connection_mode(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_connection_mode(raw);
+  }
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  dco_decode_box_autoadd_bridge_evaluation_submit_courses_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_evaluation_submit_courses_request(raw);
+  }
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  dco_decode_box_autoadd_bridge_libbook_cancel_booking_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_libbook_cancel_booking_request(raw);
+  }
+
+  @protected
+  BridgeLibbookReserveRequest
+  dco_decode_box_autoadd_bridge_libbook_reserve_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_libbook_reserve_request(raw);
+  }
+
+  @protected
+  BridgePhotoUpload dco_decode_box_autoadd_bridge_photo_upload(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_photo_upload(raw);
+  }
+
+  @protected
+  BridgeSafeError dco_decode_box_autoadd_bridge_safe_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_safe_error(raw);
+  }
+
+  @protected
+  BridgeSigninPerformRequest
+  dco_decode_box_autoadd_bridge_signin_perform_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_signin_perform_request(raw);
+  }
+
+  @protected
+  BridgeUserProfile dco_decode_box_autoadd_bridge_user_profile(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_user_profile(raw);
+  }
+
+  @protected
+  BridgeYgdkSubmitRequest dco_decode_box_autoadd_bridge_ygdk_submit_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_ygdk_submit_request(raw);
+  }
+
+  @protected
+  double dco_decode_box_autoadd_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  BridgeBykcChosenCourse dco_decode_bridge_bykc_chosen_course(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 22)
+      throw Exception('unexpected arr length: expect 22 but see ${arr.length}');
+    return BridgeBykcChosenCourse(
+      id: dco_decode_i_64(arr[0]),
+      courseId: dco_decode_i_64(arr[1]),
+      courseName: dco_decode_String(arr[2]),
+      coursePosition: dco_decode_opt_String(arr[3]),
+      courseTeacher: dco_decode_opt_String(arr[4]),
+      courseStartDate: dco_decode_opt_String(arr[5]),
+      courseEndDate: dco_decode_opt_String(arr[6]),
+      selectDate: dco_decode_opt_String(arr[7]),
+      courseCancelEndDate: dco_decode_opt_String(arr[8]),
+      category: dco_decode_opt_box_autoadd_bridge_bykc_course_category(arr[9]),
+      subCategory: dco_decode_opt_box_autoadd_bridge_bykc_course_sub_category(
+        arr[10],
+      ),
+      checkin: dco_decode_i_32(arr[11]),
+      score: dco_decode_opt_box_autoadd_i_32(arr[12]),
+      pass: dco_decode_opt_box_autoadd_i_32(arr[13]),
+      canSign: dco_decode_bool(arr[14]),
+      canSignOut: dco_decode_bool(arr[15]),
+      signConfig: dco_decode_opt_box_autoadd_bridge_bykc_sign_config(arr[16]),
+      courseSignType: dco_decode_opt_box_autoadd_i_32(arr[17]),
+      homework: dco_decode_opt_String(arr[18]),
+      homeworkAttachmentName: dco_decode_opt_String(arr[19]),
+      homeworkAttachmentPath: dco_decode_opt_String(arr[20]),
+      signInfo: dco_decode_opt_String(arr[21]),
+    );
+  }
+
+  @protected
+  BridgeBykcCourse dco_decode_bridge_bykc_course(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return BridgeBykcCourse(
+      id: dco_decode_i_64(arr[0]),
+      courseName: dco_decode_String(arr[1]),
+      coursePosition: dco_decode_opt_String(arr[2]),
+      courseTeacher: dco_decode_opt_String(arr[3]),
+      courseStartDate: dco_decode_opt_String(arr[4]),
+      courseEndDate: dco_decode_opt_String(arr[5]),
+      courseSelectStartDate: dco_decode_opt_String(arr[6]),
+      courseSelectEndDate: dco_decode_opt_String(arr[7]),
+      courseCancelEndDate: dco_decode_opt_String(arr[8]),
+      courseMaxCount: dco_decode_opt_box_autoadd_i_32(arr[9]),
+      courseCurrentCount: dco_decode_opt_box_autoadd_i_32(arr[10]),
+      status: dco_decode_bridge_bykc_course_status(arr[11]),
+      selected: dco_decode_opt_box_autoadd_bool(arr[12]),
+    );
+  }
+
+  @protected
+  BridgeBykcCourseCategory dco_decode_bridge_bykc_course_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeBykcCourseCategory.values[raw as int];
+  }
+
+  @protected
+  BridgeBykcCoursePage dco_decode_bridge_bykc_course_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeBykcCoursePage(
+      content: dco_decode_list_bridge_bykc_course(arr[0]),
+      totalElements: dco_decode_i_32(arr[1]),
+      totalPages: dco_decode_i_32(arr[2]),
+      size: dco_decode_i_32(arr[3]),
+      number: dco_decode_i_32(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeBykcCourseRequest dco_decode_bridge_bykc_course_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeBykcCourseRequest(courseId: dco_decode_i_64(arr[0]));
+  }
+
+  @protected
+  BridgeBykcCourseStatus dco_decode_bridge_bykc_course_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeBykcCourseStatus.values[raw as int];
+  }
+
+  @protected
+  BridgeBykcCourseSubCategory dco_decode_bridge_bykc_course_sub_category(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeBykcCourseSubCategory.values[raw as int];
+  }
+
+  @protected
+  BridgeBykcSignConfig dco_decode_bridge_bykc_sign_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeBykcSignConfig(
+      signStartDate: dco_decode_opt_String(arr[0]),
+      signEndDate: dco_decode_opt_String(arr[1]),
+      signOutStartDate: dco_decode_opt_String(arr[2]),
+      signOutEndDate: dco_decode_opt_String(arr[3]),
+      signPoints: dco_decode_list_bridge_bykc_sign_point(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeBykcSignCourseRequest dco_decode_bridge_bykc_sign_course_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeBykcSignCourseRequest(
+      courseId: dco_decode_i_64(arr[0]),
+      lat: dco_decode_opt_box_autoadd_f_64(arr[1]),
+      lng: dco_decode_opt_box_autoadd_f_64(arr[2]),
+      signType: dco_decode_i_32(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeBykcSignPoint dco_decode_bridge_bykc_sign_point(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeBykcSignPoint(
+      lat: dco_decode_f_64(arr[0]),
+      lng: dco_decode_f_64(arr[1]),
+      radius: dco_decode_f_64(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeBykcStatistic dco_decode_bridge_bykc_statistic(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeBykcStatistic(
+      categoryName: dco_decode_opt_String(arr[0]),
+      subCategoryName: dco_decode_opt_String(arr[1]),
+      requiredCount: dco_decode_opt_box_autoadd_i_32(arr[2]),
+      passedCount: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      qualified: dco_decode_opt_box_autoadd_bool(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeBykcStatistics dco_decode_bridge_bykc_statistics(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeBykcStatistics(
+      totalValidCount: dco_decode_opt_box_autoadd_i_32(arr[0]),
+      categories: dco_decode_list_bridge_bykc_statistic(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeBykcUserProfile dco_decode_bridge_bykc_user_profile(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeBykcUserProfile(
+      id: dco_decode_i_64(arr[0]),
+      employeeId: dco_decode_opt_String(arr[1]),
+      realName: dco_decode_opt_String(arr[2]),
+      studentNo: dco_decode_opt_String(arr[3]),
+      collegeName: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeCgyyCancelOrderRequest dco_decode_bridge_cgyy_cancel_order_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeCgyyCancelOrderRequest(id: dco_decode_i_32(arr[0]));
+  }
+
+  @protected
+  BridgeCgyyDayInfo dco_decode_bridge_cgyy_day_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeCgyyDayInfo(
+      venueSiteId: dco_decode_i_32(arr[0]),
+      reservationDate: dco_decode_String(arr[1]),
+      availableDates: dco_decode_list_String(arr[2]),
+      timeSlots: dco_decode_list_bridge_cgyy_time_slot(arr[3]),
+      spaces: dco_decode_list_bridge_cgyy_space_availability(arr[4]),
+      reservationTotalNum: dco_decode_opt_box_autoadd_i_32(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeCgyyLockCode dco_decode_bridge_cgyy_lock_code(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeCgyyLockCode(available: dco_decode_bool(arr[0]));
+  }
+
+  @protected
+  BridgeCgyyOrder dco_decode_bridge_cgyy_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 24)
+      throw Exception('unexpected arr length: expect 24 but see ${arr.length}');
+    return BridgeCgyyOrder(
+      id: dco_decode_i_32(arr[0]),
+      tradeNo: dco_decode_opt_String(arr[1]),
+      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[2]),
+      reservationDate: dco_decode_opt_String(arr[3]),
+      reservationDateDetail: dco_decode_opt_String(arr[4]),
+      venueSpaceName: dco_decode_opt_String(arr[5]),
+      campusName: dco_decode_opt_String(arr[6]),
+      venueName: dco_decode_opt_String(arr[7]),
+      siteName: dco_decode_opt_String(arr[8]),
+      reservationStartDate: dco_decode_opt_String(arr[9]),
+      reservationEndDate: dco_decode_opt_String(arr[10]),
+      phone: dco_decode_opt_String(arr[11]),
+      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[12]),
+      payStatus: dco_decode_opt_box_autoadd_i_32(arr[13]),
+      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[14]),
+      theme: dco_decode_opt_String(arr[15]),
+      purposeType: dco_decode_opt_box_autoadd_i_32(arr[16]),
+      purposeTypeName: dco_decode_opt_String(arr[17]),
+      joinerNum: dco_decode_opt_box_autoadd_i_32(arr[18]),
+      activityContent: dco_decode_opt_String(arr[19]),
+      joiners: dco_decode_opt_String(arr[20]),
+      checkContent: dco_decode_opt_String(arr[21]),
+      handleReason: dco_decode_opt_String(arr[22]),
+      remark: dco_decode_opt_String(arr[23]),
+    );
+  }
+
+  @protected
+  BridgeCgyyOrdersPage dco_decode_bridge_cgyy_orders_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeCgyyOrdersPage(
+      content: dco_decode_list_bridge_cgyy_order(arr[0]),
+      totalElements: dco_decode_i_32(arr[1]),
+      totalPages: dco_decode_i_32(arr[2]),
+      size: dco_decode_i_32(arr[3]),
+      number: dco_decode_i_32(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeCgyyPurposeSource dco_decode_bridge_cgyy_purpose_source(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeCgyyPurposeSource.values[raw as int];
+  }
+
+  @protected
+  BridgeCgyyPurposeType dco_decode_bridge_cgyy_purpose_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeCgyyPurposeType(
+      key: dco_decode_i_32(arr[0]),
+      name: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeCgyyPurposeTypes dco_decode_bridge_cgyy_purpose_types(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeCgyyPurposeTypes(
+      items: dco_decode_list_bridge_cgyy_purpose_type(arr[0]),
+      source: dco_decode_bridge_cgyy_purpose_source(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeCgyyReservationSelection dco_decode_bridge_cgyy_reservation_selection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeCgyyReservationSelection(
+      spaceId: dco_decode_i_32(arr[0]),
+      timeId: dco_decode_i_32(arr[1]),
+      venueSpaceGroupId: dco_decode_opt_box_autoadd_i_32(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeCgyySlotStatus dco_decode_bridge_cgyy_slot_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return BridgeCgyySlotStatus(
+      timeId: dco_decode_i_32(arr[0]),
+      reservationStatus: dco_decode_i_32(arr[1]),
+      isReservable: dco_decode_bool(arr[2]),
+      startDate: dco_decode_opt_String(arr[3]),
+      endDate: dco_decode_opt_String(arr[4]),
+      tradeNo: dco_decode_opt_String(arr[5]),
+      orderId: dco_decode_opt_box_autoadd_i_32(arr[6]),
+      useNum: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      alreadyNum: dco_decode_opt_box_autoadd_i_32(arr[8]),
+      takeUp: dco_decode_opt_box_autoadd_bool(arr[9]),
+      takeUpExplain: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  BridgeCgyySpaceAvailability dco_decode_bridge_cgyy_space_availability(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeCgyySpaceAvailability(
+      spaceId: dco_decode_i_32(arr[0]),
+      spaceName: dco_decode_String(arr[1]),
+      venueSiteId: dco_decode_i_32(arr[2]),
+      venueSpaceGroupId: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      slots: dco_decode_list_bridge_cgyy_slot_status(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  dco_decode_bridge_cgyy_submit_reservation_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return BridgeCgyySubmitReservationRequest(
+      venueSiteId: dco_decode_i_32(arr[0]),
+      reservationDate: dco_decode_String(arr[1]),
+      selections: dco_decode_list_bridge_cgyy_reservation_selection(arr[2]),
+      phone: dco_decode_String(arr[3]),
+      theme: dco_decode_String(arr[4]),
+      purposeType: dco_decode_i_32(arr[5]),
+      joinerNum: dco_decode_i_32(arr[6]),
+      activityContent: dco_decode_String(arr[7]),
+      joiners: dco_decode_String(arr[8]),
+      isPhilosophySocialSciences: dco_decode_bool(arr[9]),
+      isOffSchoolJoiner: dco_decode_bool(arr[10]),
+    );
+  }
+
+  @protected
+  BridgeCgyyTimeSlot dco_decode_bridge_cgyy_time_slot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCgyyTimeSlot(
+      id: dco_decode_i_32(arr[0]),
+      beginTime: dco_decode_String(arr[1]),
+      endTime: dco_decode_String(arr[2]),
+      label: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCgyyVenueSite dco_decode_bridge_cgyy_venue_site(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeCgyyVenueSite(
+      id: dco_decode_i_32(arr[0]),
+      siteName: dco_decode_String(arr[1]),
+      venueName: dco_decode_String(arr[2]),
+      campusName: dco_decode_String(arr[3]),
+      seatCount: dco_decode_opt_box_autoadd_i_32(arr[4]),
+      reservationSpaceCount: dco_decode_opt_box_autoadd_i_32(arr[5]),
+      siteTelephone: dco_decode_opt_String(arr[6]),
+      openStartDate: dco_decode_opt_String(arr[7]),
+      openEndDate: dco_decode_opt_String(arr[8]),
+    );
+  }
+
+  @protected
+  BridgeClassroomFloor dco_decode_bridge_classroom_floor(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeClassroomFloor(
+      name: dco_decode_String(arr[0]),
+      rooms: dco_decode_list_bridge_classroom_info(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeClassroomInfo dco_decode_bridge_classroom_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeClassroomInfo(
+      id: dco_decode_String(arr[0]),
+      floorId: dco_decode_String(arr[1]),
+      name: dco_decode_String(arr[2]),
+      availableSections: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeClassroomQuery dco_decode_bridge_classroom_query(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeClassroomQuery(
+      code: dco_decode_i_32(arr[0]),
+      message: dco_decode_String(arr[1]),
+      floors: dco_decode_list_bridge_classroom_floor(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeConnectionMode dco_decode_bridge_connection_mode(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeConnectionMode.values[raw as int];
+  }
+
+  @protected
+  BridgeCourseClass dco_decode_bridge_course_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return BridgeCourseClass(
+      courseCode: dco_decode_String(arr[0]),
+      courseName: dco_decode_String(arr[1]),
+      courseSerialNo: dco_decode_opt_String(arr[2]),
+      credit: dco_decode_opt_String(arr[3]),
+      beginTime: dco_decode_opt_String(arr[4]),
+      endTime: dco_decode_opt_String(arr[5]),
+      beginSection: dco_decode_opt_box_autoadd_i_32(arr[6]),
+      endSection: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      placeName: dco_decode_opt_String(arr[8]),
+      weeksAndTeachers: dco_decode_opt_String(arr[9]),
+      teachingTarget: dco_decode_opt_String(arr[10]),
+      color: dco_decode_opt_String(arr[11]),
+      dayOfWeek: dco_decode_opt_box_autoadd_i_32(arr[12]),
+    );
+  }
+
+  @protected
+  BridgeError dco_decode_bridge_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeError(
+      code: dco_decode_bridge_error_code(arr[0]),
+      kind: dco_decode_bridge_error_kind(arr[1]),
+      retryable: dco_decode_bool(arr[2]),
+      message: dco_decode_String(arr[3]),
+      resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeErrorCode dco_decode_bridge_error_code(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeErrorCode.values[raw as int];
+  }
+
+  @protected
+  BridgeErrorKind dco_decode_bridge_error_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeErrorKind.values[raw as int];
+  }
+
+  @protected
+  BridgeEvaluationCourse dco_decode_bridge_evaluation_course(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 22)
+      throw Exception('unexpected arr length: expect 22 but see ${arr.length}');
+    return BridgeEvaluationCourse(
+      id: dco_decode_String(arr[0]),
+      kcmc: dco_decode_String(arr[1]),
+      bpmc: dco_decode_String(arr[2]),
+      isEvaluated: dco_decode_bool(arr[3]),
+      rwid: dco_decode_String(arr[4]),
+      wjid: dco_decode_String(arr[5]),
+      kcdm: dco_decode_String(arr[6]),
+      bpdm: dco_decode_opt_String(arr[7]),
+      pjrdm: dco_decode_opt_String(arr[8]),
+      pjrmc: dco_decode_opt_String(arr[9]),
+      xnxq: dco_decode_opt_String(arr[10]),
+      msid: dco_decode_String(arr[11]),
+      zdmc: dco_decode_opt_String(arr[12]),
+      ypjcs: dco_decode_opt_box_autoadd_i_32(arr[13]),
+      xypjcs: dco_decode_opt_box_autoadd_i_32(arr[14]),
+      sxz: dco_decode_opt_String(arr[15]),
+      rwh: dco_decode_opt_String(arr[16]),
+      xn: dco_decode_opt_String(arr[17]),
+      xq: dco_decode_opt_String(arr[18]),
+      pjlxid: dco_decode_opt_String(arr[19]),
+      sfksqbpj: dco_decode_opt_String(arr[20]),
+      yxsfktjst: dco_decode_opt_String(arr[21]),
+    );
+  }
+
+  @protected
+  BridgeEvaluationCoursesResponse dco_decode_bridge_evaluation_courses_response(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeEvaluationCoursesResponse(
+      courses: dco_decode_list_bridge_evaluation_course(arr[0]),
+      progress: dco_decode_bridge_evaluation_progress(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeEvaluationProgress dco_decode_bridge_evaluation_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeEvaluationProgress(
+      totalCourses: dco_decode_i_32(arr[0]),
+      evaluatedCourses: dco_decode_i_32(arr[1]),
+      pendingCourses: dco_decode_i_32(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  dco_decode_bridge_evaluation_submit_courses_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeEvaluationSubmitCoursesRequest(
+      courses: dco_decode_list_bridge_evaluation_course(arr[0]),
+    );
+  }
+
+  @protected
+  BridgeExam dco_decode_bridge_exam(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return BridgeExam(
+      courseName: dco_decode_String(arr[0]),
+      courseNo: dco_decode_opt_String(arr[1]),
+      examTimeDescription: dco_decode_opt_String(arr[2]),
+      examDate: dco_decode_opt_String(arr[3]),
+      startTime: dco_decode_opt_String(arr[4]),
+      endTime: dco_decode_opt_String(arr[5]),
+      examPlace: dco_decode_opt_String(arr[6]),
+      examSeatNo: dco_decode_opt_String(arr[7]),
+      week: dco_decode_opt_box_autoadd_i_32(arr[8]),
+      examStatus: dco_decode_opt_box_autoadd_i_32(arr[9]),
+      examType: dco_decode_opt_String(arr[10]),
+      taskId: dco_decode_opt_String(arr[11]),
+    );
+  }
+
+  @protected
+  BridgeExamArrangement dco_decode_bridge_exam_arrangement(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeExamArrangement(
+      arranged: dco_decode_list_bridge_exam(arr[0]),
+      notArranged: dco_decode_list_bridge_exam(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeGrade dco_decode_bridge_grade(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return BridgeGrade(
+      courseName: dco_decode_opt_String(arr[0]),
+      courseCode: dco_decode_opt_String(arr[1]),
+      credit: dco_decode_opt_box_autoadd_f_64(arr[2]),
+      score: dco_decode_opt_String(arr[3]),
+      gradePoint: dco_decode_opt_String(arr[4]),
+      courseType: dco_decode_opt_String(arr[5]),
+      scoreType: dco_decode_opt_String(arr[6]),
+      termCode: dco_decode_opt_String(arr[7]),
+    );
+  }
+
+  @protected
+  BridgeGradeData dco_decode_bridge_grade_data(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeGradeData(
+      termCode: dco_decode_String(arr[0]),
+      grades: dco_decode_list_bridge_grade(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeJudgeAssignmentDetail dco_decode_bridge_judge_assignment_detail(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
+    return BridgeJudgeAssignmentDetail(
+      courseId: dco_decode_String(arr[0]),
+      courseName: dco_decode_String(arr[1]),
+      assignmentId: dco_decode_String(arr[2]),
+      title: dco_decode_String(arr[3]),
+      startTime: dco_decode_opt_String(arr[4]),
+      dueTime: dco_decode_opt_String(arr[5]),
+      maxScore: dco_decode_opt_String(arr[6]),
+      myScore: dco_decode_opt_String(arr[7]),
+      totalProblems: dco_decode_i_32(arr[8]),
+      submittedCount: dco_decode_i_32(arr[9]),
+      submissionStatus: dco_decode_bridge_judge_submission_status(arr[10]),
+      submissionStatusText: dco_decode_String(arr[11]),
+      problems: dco_decode_list_bridge_judge_problem(arr[12]),
+      contentPlainText: dco_decode_opt_String(arr[13]),
+    );
+  }
+
+  @protected
+  BridgeJudgeAssignmentKey dco_decode_bridge_judge_assignment_key(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeJudgeAssignmentKey(
+      courseId: dco_decode_String(arr[0]),
+      assignmentId: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeJudgeAssignmentSummary dco_decode_bridge_judge_assignment_summary(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return BridgeJudgeAssignmentSummary(
+      courseId: dco_decode_String(arr[0]),
+      courseName: dco_decode_String(arr[1]),
+      assignmentId: dco_decode_String(arr[2]),
+      title: dco_decode_String(arr[3]),
+      startTime: dco_decode_opt_String(arr[4]),
+      dueTime: dco_decode_opt_String(arr[5]),
+      maxScore: dco_decode_opt_String(arr[6]),
+      myScore: dco_decode_opt_String(arr[7]),
+      totalProblems: dco_decode_i_32(arr[8]),
+      submittedCount: dco_decode_i_32(arr[9]),
+      submissionStatus: dco_decode_bridge_judge_submission_status(arr[10]),
+      submissionStatusText: dco_decode_String(arr[11]),
+    );
+  }
+
+  @protected
+  BridgeJudgeProblem dco_decode_bridge_judge_problem(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeJudgeProblem(
+      name: dco_decode_String(arr[0]),
+      score: dco_decode_opt_String(arr[1]),
+      maxScore: dco_decode_opt_String(arr[2]),
+      status: dco_decode_bridge_judge_submission_status(arr[3]),
+      statusText: dco_decode_String(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeJudgeSubmissionStatus dco_decode_bridge_judge_submission_status(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeJudgeSubmissionStatus.values[raw as int];
+  }
+
+  @protected
+  BridgeLibBookArea dco_decode_bridge_lib_book_area(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return BridgeLibBookArea(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      areaName: dco_decode_String(arr[2]),
+      premisesId: dco_decode_String(arr[3]),
+      storeyId: dco_decode_String(arr[4]),
+      freeNum: dco_decode_i_32(arr[5]),
+      totalNum: dco_decode_i_32(arr[6]),
+    );
+  }
+
+  @protected
+  BridgeLibBookAreaDetail dco_decode_bridge_lib_book_area_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeLibBookAreaDetail(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      availableDates: dco_decode_list_String(arr[2]),
+      timeSlots: dco_decode_list_bridge_lib_book_time_slot(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeLibBookBooking dco_decode_bridge_lib_book_booking(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeLibBookBooking(
+      id: dco_decode_String(arr[0]),
+      nameMerge: dco_decode_String(arr[1]),
+      areaName: dco_decode_String(arr[2]),
+      seatNo: dco_decode_String(arr[3]),
+      day: dco_decode_String(arr[4]),
+      beginTime: dco_decode_String(arr[5]),
+      endTime: dco_decode_String(arr[6]),
+      status: dco_decode_String(arr[7]),
+      statusName: dco_decode_String(arr[8]),
+    );
+  }
+
+  @protected
+  BridgeLibBookBookingsPage dco_decode_bridge_lib_book_bookings_page(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeLibBookBookingsPage(
+      bookings: dco_decode_list_bridge_lib_book_booking(arr[0]),
+      page: dco_decode_i_32(arr[1]),
+      limit: dco_decode_i_32(arr[2]),
+      total: dco_decode_i_32(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeLibBookLibrary dco_decode_bridge_lib_book_library(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeLibBookLibrary(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      freeNum: dco_decode_i_32(arr[2]),
+      totalNum: dco_decode_i_32(arr[3]),
+      storeys: dco_decode_list_bridge_lib_book_storey(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeLibBookSeat dco_decode_bridge_lib_book_seat(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeLibBookSeat(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      no: dco_decode_String(arr[2]),
+      status: dco_decode_String(arr[3]),
+      statusName: dco_decode_String(arr[4]),
+      isAvailable: dco_decode_bool(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeLibBookStorey dco_decode_bridge_lib_book_storey(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeLibBookStorey(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      freeNum: dco_decode_i_32(arr[2]),
+      totalNum: dco_decode_i_32(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeLibBookTimeSlot dco_decode_bridge_lib_book_time_slot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeLibBookTimeSlot(
+      id: dco_decode_String(arr[0]),
+      start: dco_decode_String(arr[1]),
+      end: dco_decode_String(arr[2]),
+      label: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  dco_decode_bridge_libbook_cancel_booking_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeLibbookCancelBookingRequest(id: dco_decode_String(arr[0]));
+  }
+
+  @protected
+  BridgeLibbookReserveRequest dco_decode_bridge_libbook_reserve_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeLibbookReserveRequest(
+      areaId: dco_decode_String(arr[0]),
+      seatId: dco_decode_String(arr[1]),
+      day: dco_decode_String(arr[2]),
+      segment: dco_decode_String(arr[3]),
+      startTime: dco_decode_String(arr[4]),
+      endTime: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeLoginOutcome dco_decode_bridge_login_outcome(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLoginOutcome(
+      readiness: dco_decode_bridge_login_readiness(arr[0]),
+      routes: dco_decode_list_bridge_route_login_result(arr[1]),
+      profile: dco_decode_opt_box_autoadd_bridge_user_profile(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeLoginPreparation dco_decode_bridge_login_preparation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeLoginPreparation(
+      routes: dco_decode_list_bridge_route_login_result(arr[0]),
+    );
+  }
+
+  @protected
+  BridgeLoginReadiness dco_decode_bridge_login_readiness(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeLoginReadiness.values[raw as int];
+  }
+
+  @protected
+  BridgeNetworkState dco_decode_bridge_network_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeNetworkState.values[raw as int];
+  }
+
+  @protected
+  BridgePhotoUpload dco_decode_bridge_photo_upload(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgePhotoUpload(
+      bytes: dco_decode_list_prim_u_8_strict(arr[0]),
+      fileName: dco_decode_String(arr[1]),
+      mimeType: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeRouteDecision dco_decode_bridge_route_decision(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeRouteDecision(
+      policy: dco_decode_bridge_route_policy(arr[0]),
+      resolvedRoute: dco_decode_bridge_connection_mode(arr[1]),
+      network: dco_decode_bridge_network_state(arr[2]),
+      initialRoute: dco_decode_bridge_connection_mode(arr[3]),
+      usedFallback: dco_decode_bool(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeRouteLoginResult dco_decode_bridge_route_login_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeRouteLoginResult(
+      route: dco_decode_bridge_connection_mode(arr[0]),
+      state: dco_decode_bridge_route_login_state(arr[1]),
+      error: dco_decode_opt_box_autoadd_bridge_safe_error(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeRouteLoginState dco_decode_bridge_route_login_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeRouteLoginState.values[raw as int];
+  }
+
+  @protected
+  BridgeRoutePolicy dco_decode_bridge_route_policy(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeRoutePolicy.values[raw as int];
+  }
+
+  @protected
+  BridgeRouteSettings dco_decode_bridge_route_settings(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRouteSettings(
+      defaultPolicy: dco_decode_bridge_route_policy(arr[0]),
+      activeRoutes: dco_decode_list_bridge_connection_mode(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedBykcChosenCourses dco_decode_bridge_routed_bykc_chosen_courses(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedBykcChosenCourses(
+      data: dco_decode_list_bridge_bykc_chosen_course(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedBykcCourse dco_decode_bridge_routed_bykc_course(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedBykcCourse(
+      data: dco_decode_bridge_bykc_course(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedBykcCourses dco_decode_bridge_routed_bykc_courses(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedBykcCourses(
+      data: dco_decode_bridge_bykc_course_page(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedBykcProfile dco_decode_bridge_routed_bykc_profile(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedBykcProfile(
+      data: dco_decode_bridge_bykc_user_profile(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedBykcStatistics dco_decode_bridge_routed_bykc_statistics(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedBykcStatistics(
+      data: dco_decode_bridge_bykc_statistics(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedCgyyDayInfo dco_decode_bridge_routed_cgyy_day_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedCgyyDayInfo(
+      data: dco_decode_bridge_cgyy_day_info(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedCgyyLockCode dco_decode_bridge_routed_cgyy_lock_code(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedCgyyLockCode(
+      data: dco_decode_bridge_cgyy_lock_code(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedCgyyOrder dco_decode_bridge_routed_cgyy_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedCgyyOrder(
+      data: dco_decode_bridge_cgyy_order(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedCgyyOrders dco_decode_bridge_routed_cgyy_orders(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedCgyyOrders(
+      data: dco_decode_bridge_cgyy_orders_page(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedCgyyPurposeTypes dco_decode_bridge_routed_cgyy_purpose_types(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedCgyyPurposeTypes(
+      data: dco_decode_bridge_cgyy_purpose_types(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedCgyySites dco_decode_bridge_routed_cgyy_sites(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedCgyySites(
+      data: dco_decode_list_bridge_cgyy_venue_site(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedClassroomQuery dco_decode_bridge_routed_classroom_query(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedClassroomQuery(
+      data: dco_decode_bridge_classroom_query(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedEvaluation dco_decode_bridge_routed_evaluation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedEvaluation(
+      data: dco_decode_bridge_evaluation_courses_response(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedExamArrangement dco_decode_bridge_routed_exam_arrangement(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedExamArrangement(
+      data: dco_decode_bridge_exam_arrangement(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedGrades dco_decode_bridge_routed_grades(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedGrades(
+      data: dco_decode_bridge_grade_data(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetail
+  dco_decode_bridge_routed_judge_assignment_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedJudgeAssignmentDetail(
+      data: dco_decode_bridge_judge_assignment_detail(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetails
+  dco_decode_bridge_routed_judge_assignment_details(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedJudgeAssignmentDetails(
+      data: dco_decode_list_bridge_judge_assignment_detail(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedJudgeSummaries dco_decode_bridge_routed_judge_summaries(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedJudgeSummaries(
+      data: dco_decode_list_bridge_judge_assignment_summary(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedLibBookAreaDetail dco_decode_bridge_routed_lib_book_area_detail(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedLibBookAreaDetail(
+      data: dco_decode_bridge_lib_book_area_detail(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedLibBookAreas dco_decode_bridge_routed_lib_book_areas(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedLibBookAreas(
+      data: dco_decode_list_bridge_lib_book_area(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedLibBookBookings dco_decode_bridge_routed_lib_book_bookings(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedLibBookBookings(
+      data: dco_decode_bridge_lib_book_bookings_page(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedLibBookLibraries dco_decode_bridge_routed_lib_book_libraries(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedLibBookLibraries(
+      data: dco_decode_list_bridge_lib_book_library(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedLibBookSeats dco_decode_bridge_routed_lib_book_seats(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedLibBookSeats(
+      data: dco_decode_list_bridge_lib_book_seat(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedSigninClasses dco_decode_bridge_routed_signin_classes(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedSigninClasses(
+      data: dco_decode_list_bridge_signin_class(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedSpocAssignmentDetail
+  dco_decode_bridge_routed_spoc_assignment_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedSpocAssignmentDetail(
+      data: dco_decode_bridge_spoc_assignment_detail(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedSpocAssignments dco_decode_bridge_routed_spoc_assignments(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedSpocAssignments(
+      data: dco_decode_bridge_spoc_assignments(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedTerms dco_decode_bridge_routed_terms(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedTerms(
+      data: dco_decode_list_bridge_term(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedTodayClasses dco_decode_bridge_routed_today_classes(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedTodayClasses(
+      data: dco_decode_list_bridge_today_class(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedUserProfile dco_decode_bridge_routed_user_profile(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedUserProfile(
+      data: dco_decode_bridge_user_profile(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedWeeklySchedule dco_decode_bridge_routed_weekly_schedule(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedWeeklySchedule(
+      data: dco_decode_bridge_weekly_schedule(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedWeeks dco_decode_bridge_routed_weeks(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedWeeks(
+      data: dco_decode_list_bridge_week(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedYgdkOverview dco_decode_bridge_routed_ygdk_overview(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedYgdkOverview(
+      data: dco_decode_bridge_ygdk_overview(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeRoutedYgdkRecords dco_decode_bridge_routed_ygdk_records(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeRoutedYgdkRecords(
+      data: dco_decode_bridge_ygdk_records_page(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeSafeError dco_decode_bridge_safe_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeSafeError(
+      code: dco_decode_String(arr[0]),
+      kind: dco_decode_String(arr[1]),
+      retryable: dco_decode_bool(arr[2]),
+      message: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeSigninClass dco_decode_bridge_signin_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeSigninClass(
+      courseId: dco_decode_String(arr[0]),
+      courseName: dco_decode_String(arr[1]),
+      classBeginTime: dco_decode_String(arr[2]),
+      classEndTime: dco_decode_String(arr[3]),
+      signStatus: dco_decode_i_32(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeSigninPerformRequest dco_decode_bridge_signin_perform_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeSigninPerformRequest(courseId: dco_decode_String(arr[0]));
+  }
+
+  @protected
+  BridgeSpocAssignmentDetail dco_decode_bridge_spoc_assignment_detail(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return BridgeSpocAssignmentDetail(
+      assignmentId: dco_decode_String(arr[0]),
+      courseId: dco_decode_String(arr[1]),
+      courseName: dco_decode_String(arr[2]),
+      teacherName: dco_decode_opt_String(arr[3]),
+      title: dco_decode_String(arr[4]),
+      startTime: dco_decode_opt_String(arr[5]),
+      dueTime: dco_decode_opt_String(arr[6]),
+      score: dco_decode_opt_String(arr[7]),
+      submissionStatus: dco_decode_bridge_spoc_submission_status(arr[8]),
+      submissionStatusText: dco_decode_String(arr[9]),
+      contentPlainText: dco_decode_opt_String(arr[10]),
+      submittedAt: dco_decode_opt_String(arr[11]),
+    );
+  }
+
+  @protected
+  BridgeSpocAssignmentSummary dco_decode_bridge_spoc_assignment_summary(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return BridgeSpocAssignmentSummary(
+      assignmentId: dco_decode_String(arr[0]),
+      courseId: dco_decode_String(arr[1]),
+      courseName: dco_decode_String(arr[2]),
+      teacherName: dco_decode_opt_String(arr[3]),
+      title: dco_decode_String(arr[4]),
+      startTime: dco_decode_opt_String(arr[5]),
+      dueTime: dco_decode_opt_String(arr[6]),
+      score: dco_decode_opt_String(arr[7]),
+      submissionStatus: dco_decode_bridge_spoc_submission_status(arr[8]),
+      submissionStatusText: dco_decode_String(arr[9]),
+    );
+  }
+
+  @protected
+  BridgeSpocAssignments dco_decode_bridge_spoc_assignments(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeSpocAssignments(
+      termCode: dco_decode_String(arr[0]),
+      termName: dco_decode_opt_String(arr[1]),
+      assignments: dco_decode_list_bridge_spoc_assignment_summary(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeSpocSubmissionStatus dco_decode_bridge_spoc_submission_status(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeSpocSubmissionStatus.values[raw as int];
+  }
+
+  @protected
+  BridgeTerm dco_decode_bridge_term(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeTerm(
+      itemCode: dco_decode_String(arr[0]),
+      itemName: dco_decode_String(arr[1]),
+      selected: dco_decode_bool(arr[2]),
+      itemIndex: dco_decode_i_32(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeTodayClass dco_decode_bridge_today_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeTodayClass(
+      bizName: dco_decode_String(arr[0]),
+      place: dco_decode_opt_String(arr[1]),
+      time: dco_decode_opt_String(arr[2]),
+      shortName: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeUserProfile dco_decode_bridge_user_profile(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeUserProfile(
+      username: dco_decode_opt_String(arr[0]),
+      name: dco_decode_opt_String(arr[1]),
+      schoolId: dco_decode_opt_String(arr[2]),
+      email: dco_decode_opt_String(arr[3]),
+      phone: dco_decode_opt_String(arr[4]),
+      idCardTypeName: dco_decode_opt_String(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeWeek dco_decode_bridge_week(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeWeek(
+      startDate: dco_decode_String(arr[0]),
+      endDate: dco_decode_String(arr[1]),
+      term: dco_decode_String(arr[2]),
+      curWeek: dco_decode_bool(arr[3]),
+      serialNumber: dco_decode_i_32(arr[4]),
+      name: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeWeeklySchedule dco_decode_bridge_weekly_schedule(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeWeeklySchedule(
+      arrangedList: dco_decode_list_bridge_course_class(arr[0]),
+      code: dco_decode_String(arr[1]),
+      name: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeWriteCommitResult dco_decode_bridge_write_commit_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeWriteCommitResult(
+      operation: dco_decode_bridge_write_operation(arr[0]),
+      success: dco_decode_bool(arr[1]),
+      message: dco_decode_String(arr[2]),
+      outcomeUnknown: dco_decode_bool(arr[3]),
+      resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[4]),
+      order: dco_decode_opt_box_autoadd_bridge_cgyy_order(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeWriteIntent dco_decode_bridge_write_intent(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return BridgeWriteIntent(
+      intentId: dco_decode_String(arr[0]),
+      operation: dco_decode_bridge_write_operation(arr[1]),
+      targetSummary: dco_decode_String(arr[2]),
+      resolvedRoute: dco_decode_bridge_connection_mode(arr[3]),
+      warnings: dco_decode_list_String(arr[4]),
+      expiresAt: dco_decode_i_64(arr[5]),
+      requestDigest: dco_decode_String(arr[6]),
+    );
+  }
+
+  @protected
+  BridgeWriteOperation dco_decode_bridge_write_operation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeWriteOperation.values[raw as int];
+  }
+
+  @protected
+  BridgeYgdkItem dco_decode_bridge_ygdk_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeYgdkItem(
+      itemId: dco_decode_i_32(arr[0]),
+      name: dco_decode_String(arr[1]),
+      kind: dco_decode_opt_box_autoadd_i_32(arr[2]),
+      sort: dco_decode_opt_box_autoadd_i_32(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeYgdkOverview dco_decode_bridge_ygdk_overview(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeYgdkOverview(
+      summary: dco_decode_bridge_ygdk_term_summary(arr[0]),
+      classifyId: dco_decode_i_32(arr[1]),
+      classifyName: dco_decode_String(arr[2]),
+      defaultItemId: dco_decode_i_32(arr[3]),
+      defaultItemName: dco_decode_String(arr[4]),
+      items: dco_decode_list_bridge_ygdk_item(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeYgdkRecord dco_decode_bridge_ygdk_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return BridgeYgdkRecord(
+      recordId: dco_decode_i_32(arr[0]),
+      itemId: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      itemName: dco_decode_opt_String(arr[2]),
+      startTime: dco_decode_opt_String(arr[3]),
+      endTime: dco_decode_opt_String(arr[4]),
+      place: dco_decode_opt_String(arr[5]),
+      images: dco_decode_list_String(arr[6]),
+      isOpen: dco_decode_bool(arr[7]),
+      state: dco_decode_opt_box_autoadd_i_32(arr[8]),
+      createdAt: dco_decode_opt_String(arr[9]),
+      createdAtLabel: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  BridgeYgdkRecordsPage dco_decode_bridge_ygdk_records_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeYgdkRecordsPage(
+      content: dco_decode_list_bridge_ygdk_record(arr[0]),
+      total: dco_decode_i_32(arr[1]),
+      page: dco_decode_i_32(arr[2]),
+      size: dco_decode_i_32(arr[3]),
+      hasMore: dco_decode_bool(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeYgdkSubmitRequest dco_decode_bridge_ygdk_submit_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeYgdkSubmitRequest(
+      itemId: dco_decode_opt_box_autoadd_i_32(arr[0]),
+      startTime: dco_decode_opt_String(arr[1]),
+      endTime: dco_decode_opt_String(arr[2]),
+      place: dco_decode_opt_String(arr[3]),
+      shareToSquare: dco_decode_opt_box_autoadd_bool(arr[4]),
+      photo: dco_decode_opt_box_autoadd_bridge_photo_upload(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeYgdkTermSummary dco_decode_bridge_ygdk_term_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return BridgeYgdkTermSummary(
+      termId: dco_decode_opt_box_autoadd_i_32(arr[0]),
+      termName: dco_decode_opt_String(arr[1]),
+      termCount: dco_decode_i_32(arr[2]),
+      termTarget: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      weekCount: dco_decode_opt_box_autoadd_i_32(arr[4]),
+      weekTarget: dco_decode_opt_box_autoadd_i_32(arr[5]),
+      monthCount: dco_decode_opt_box_autoadd_i_32(arr[6]),
+      monthTarget: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      dayCount: dco_decode_opt_box_autoadd_i_32(arr[8]),
+      goodCount: dco_decode_opt_box_autoadd_i_32(arr[9]),
+    );
+  }
+
+  @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<BridgeBykcChosenCourse> dco_decode_list_bridge_bykc_chosen_course(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_bykc_chosen_course)
+        .toList();
+  }
+
+  @protected
+  List<BridgeBykcCourse> dco_decode_list_bridge_bykc_course(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_bykc_course).toList();
+  }
+
+  @protected
+  List<BridgeBykcSignPoint> dco_decode_list_bridge_bykc_sign_point(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_bykc_sign_point)
+        .toList();
+  }
+
+  @protected
+  List<BridgeBykcStatistic> dco_decode_list_bridge_bykc_statistic(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_bykc_statistic)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCgyyOrder> dco_decode_list_bridge_cgyy_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_cgyy_order).toList();
+  }
+
+  @protected
+  List<BridgeCgyyPurposeType> dco_decode_list_bridge_cgyy_purpose_type(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cgyy_purpose_type)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCgyyReservationSelection>
+  dco_decode_list_bridge_cgyy_reservation_selection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cgyy_reservation_selection)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCgyySlotStatus> dco_decode_list_bridge_cgyy_slot_status(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cgyy_slot_status)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCgyySpaceAvailability>
+  dco_decode_list_bridge_cgyy_space_availability(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cgyy_space_availability)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCgyyTimeSlot> dco_decode_list_bridge_cgyy_time_slot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cgyy_time_slot)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCgyyVenueSite> dco_decode_list_bridge_cgyy_venue_site(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cgyy_venue_site)
+        .toList();
+  }
+
+  @protected
+  List<BridgeClassroomFloor> dco_decode_list_bridge_classroom_floor(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_classroom_floor)
+        .toList();
+  }
+
+  @protected
+  List<BridgeClassroomInfo> dco_decode_list_bridge_classroom_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_classroom_info)
+        .toList();
+  }
+
+  @protected
+  List<BridgeConnectionMode> dco_decode_list_bridge_connection_mode(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_connection_mode)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCourseClass> dco_decode_list_bridge_course_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_course_class).toList();
+  }
+
+  @protected
+  List<BridgeEvaluationCourse> dco_decode_list_bridge_evaluation_course(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_evaluation_course)
+        .toList();
+  }
+
+  @protected
+  List<BridgeExam> dco_decode_list_bridge_exam(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_exam).toList();
+  }
+
+  @protected
+  List<BridgeGrade> dco_decode_list_bridge_grade(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_grade).toList();
+  }
+
+  @protected
+  List<BridgeJudgeAssignmentDetail>
+  dco_decode_list_bridge_judge_assignment_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_judge_assignment_detail)
+        .toList();
+  }
+
+  @protected
+  List<BridgeJudgeAssignmentKey> dco_decode_list_bridge_judge_assignment_key(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_judge_assignment_key)
+        .toList();
+  }
+
+  @protected
+  List<BridgeJudgeAssignmentSummary>
+  dco_decode_list_bridge_judge_assignment_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_judge_assignment_summary)
+        .toList();
+  }
+
+  @protected
+  List<BridgeJudgeProblem> dco_decode_list_bridge_judge_problem(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_judge_problem).toList();
+  }
+
+  @protected
+  List<BridgeLibBookArea> dco_decode_list_bridge_lib_book_area(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_lib_book_area).toList();
+  }
+
+  @protected
+  List<BridgeLibBookBooking> dco_decode_list_bridge_lib_book_booking(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_lib_book_booking)
+        .toList();
+  }
+
+  @protected
+  List<BridgeLibBookLibrary> dco_decode_list_bridge_lib_book_library(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_lib_book_library)
+        .toList();
+  }
+
+  @protected
+  List<BridgeLibBookSeat> dco_decode_list_bridge_lib_book_seat(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_lib_book_seat).toList();
+  }
+
+  @protected
+  List<BridgeLibBookStorey> dco_decode_list_bridge_lib_book_storey(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_lib_book_storey)
+        .toList();
+  }
+
+  @protected
+  List<BridgeLibBookTimeSlot> dco_decode_list_bridge_lib_book_time_slot(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_lib_book_time_slot)
+        .toList();
+  }
+
+  @protected
+  List<BridgeRouteLoginResult> dco_decode_list_bridge_route_login_result(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_route_login_result)
+        .toList();
+  }
+
+  @protected
+  List<BridgeSigninClass> dco_decode_list_bridge_signin_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_signin_class).toList();
+  }
+
+  @protected
+  List<BridgeSpocAssignmentSummary>
+  dco_decode_list_bridge_spoc_assignment_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_spoc_assignment_summary)
+        .toList();
+  }
+
+  @protected
+  List<BridgeTerm> dco_decode_list_bridge_term(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_term).toList();
+  }
+
+  @protected
+  List<BridgeTodayClass> dco_decode_list_bridge_today_class(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_today_class).toList();
+  }
+
+  @protected
+  List<BridgeWeek> dco_decode_list_bridge_week(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_week).toList();
+  }
+
+  @protected
+  List<BridgeYgdkItem> dco_decode_list_bridge_ygdk_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_ygdk_item).toList();
+  }
+
+  @protected
+  List<BridgeYgdkRecord> dco_decode_list_bridge_ygdk_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_ygdk_record).toList();
+  }
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  String? dco_decode_opt_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
+  BridgeBykcCourseCategory?
+  dco_decode_opt_box_autoadd_bridge_bykc_course_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_bykc_course_category(raw);
+  }
+
+  @protected
+  BridgeBykcCourseSubCategory?
+  dco_decode_opt_box_autoadd_bridge_bykc_course_sub_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_bykc_course_sub_category(raw);
+  }
+
+  @protected
+  BridgeBykcSignConfig? dco_decode_opt_box_autoadd_bridge_bykc_sign_config(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_bykc_sign_config(raw);
+  }
+
+  @protected
+  BridgeCgyyOrder? dco_decode_opt_box_autoadd_bridge_cgyy_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bridge_cgyy_order(raw);
+  }
+
+  @protected
+  BridgeConnectionMode? dco_decode_opt_box_autoadd_bridge_connection_mode(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_connection_mode(raw);
+  }
+
+  @protected
+  BridgePhotoUpload? dco_decode_opt_box_autoadd_bridge_photo_upload(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bridge_photo_upload(raw);
+  }
+
+  @protected
+  BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bridge_safe_error(raw);
+  }
+
+  @protected
+  BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bridge_user_profile(raw);
+  }
+
+  @protected
+  double? dco_decode_opt_box_autoadd_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_f_64(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_32(raw);
+  }
+
+  @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -165,6 +4789,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_usize(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
+  }
+
+  @protected
+  BridgeClient
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return BridgeClientImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  BridgeClient
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return BridgeClientImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  BridgeClient
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return BridgeClientImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
@@ -172,10 +4838,2855 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool sse_decode_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bool(deserializer));
+  }
+
+  @protected
+  BridgeBykcCourseCategory sse_decode_box_autoadd_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_bykc_course_category(deserializer));
+  }
+
+  @protected
+  BridgeBykcCourseRequest sse_decode_box_autoadd_bridge_bykc_course_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_bykc_course_request(deserializer));
+  }
+
+  @protected
+  BridgeBykcCourseSubCategory
+  sse_decode_box_autoadd_bridge_bykc_course_sub_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_bykc_course_sub_category(deserializer));
+  }
+
+  @protected
+  BridgeBykcSignConfig sse_decode_box_autoadd_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_bykc_sign_config(deserializer));
+  }
+
+  @protected
+  BridgeBykcSignCourseRequest
+  sse_decode_box_autoadd_bridge_bykc_sign_course_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_bykc_sign_course_request(deserializer));
+  }
+
+  @protected
+  BridgeCgyyCancelOrderRequest
+  sse_decode_box_autoadd_bridge_cgyy_cancel_order_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cgyy_cancel_order_request(deserializer));
+  }
+
+  @protected
+  BridgeCgyyOrder sse_decode_box_autoadd_bridge_cgyy_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cgyy_order(deserializer));
+  }
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  sse_decode_box_autoadd_bridge_cgyy_submit_reservation_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cgyy_submit_reservation_request(deserializer));
+  }
+
+  @protected
+  BridgeConnectionMode sse_decode_box_autoadd_bridge_connection_mode(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_connection_mode(deserializer));
+  }
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  sse_decode_box_autoadd_bridge_evaluation_submit_courses_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_evaluation_submit_courses_request(deserializer));
+  }
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  sse_decode_box_autoadd_bridge_libbook_cancel_booking_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_libbook_cancel_booking_request(deserializer));
+  }
+
+  @protected
+  BridgeLibbookReserveRequest
+  sse_decode_box_autoadd_bridge_libbook_reserve_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_libbook_reserve_request(deserializer));
+  }
+
+  @protected
+  BridgePhotoUpload sse_decode_box_autoadd_bridge_photo_upload(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_photo_upload(deserializer));
+  }
+
+  @protected
+  BridgeSafeError sse_decode_box_autoadd_bridge_safe_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_safe_error(deserializer));
+  }
+
+  @protected
+  BridgeSigninPerformRequest
+  sse_decode_box_autoadd_bridge_signin_perform_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_signin_perform_request(deserializer));
+  }
+
+  @protected
+  BridgeUserProfile sse_decode_box_autoadd_bridge_user_profile(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_user_profile(deserializer));
+  }
+
+  @protected
+  BridgeYgdkSubmitRequest sse_decode_box_autoadd_bridge_ygdk_submit_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_ygdk_submit_request(deserializer));
+  }
+
+  @protected
+  double sse_decode_box_autoadd_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_f_64(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_32(deserializer));
+  }
+
+  @protected
+  BridgeBykcChosenCourse sse_decode_bridge_bykc_chosen_course(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_courseId = sse_decode_i_64(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_coursePosition = sse_decode_opt_String(deserializer);
+    var var_courseTeacher = sse_decode_opt_String(deserializer);
+    var var_courseStartDate = sse_decode_opt_String(deserializer);
+    var var_courseEndDate = sse_decode_opt_String(deserializer);
+    var var_selectDate = sse_decode_opt_String(deserializer);
+    var var_courseCancelEndDate = sse_decode_opt_String(deserializer);
+    var var_category = sse_decode_opt_box_autoadd_bridge_bykc_course_category(
+      deserializer,
+    );
+    var var_subCategory =
+        sse_decode_opt_box_autoadd_bridge_bykc_course_sub_category(
+          deserializer,
+        );
+    var var_checkin = sse_decode_i_32(deserializer);
+    var var_score = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_pass = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_canSign = sse_decode_bool(deserializer);
+    var var_canSignOut = sse_decode_bool(deserializer);
+    var var_signConfig = sse_decode_opt_box_autoadd_bridge_bykc_sign_config(
+      deserializer,
+    );
+    var var_courseSignType = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_homework = sse_decode_opt_String(deserializer);
+    var var_homeworkAttachmentName = sse_decode_opt_String(deserializer);
+    var var_homeworkAttachmentPath = sse_decode_opt_String(deserializer);
+    var var_signInfo = sse_decode_opt_String(deserializer);
+    return BridgeBykcChosenCourse(
+      id: var_id,
+      courseId: var_courseId,
+      courseName: var_courseName,
+      coursePosition: var_coursePosition,
+      courseTeacher: var_courseTeacher,
+      courseStartDate: var_courseStartDate,
+      courseEndDate: var_courseEndDate,
+      selectDate: var_selectDate,
+      courseCancelEndDate: var_courseCancelEndDate,
+      category: var_category,
+      subCategory: var_subCategory,
+      checkin: var_checkin,
+      score: var_score,
+      pass: var_pass,
+      canSign: var_canSign,
+      canSignOut: var_canSignOut,
+      signConfig: var_signConfig,
+      courseSignType: var_courseSignType,
+      homework: var_homework,
+      homeworkAttachmentName: var_homeworkAttachmentName,
+      homeworkAttachmentPath: var_homeworkAttachmentPath,
+      signInfo: var_signInfo,
+    );
+  }
+
+  @protected
+  BridgeBykcCourse sse_decode_bridge_bykc_course(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_coursePosition = sse_decode_opt_String(deserializer);
+    var var_courseTeacher = sse_decode_opt_String(deserializer);
+    var var_courseStartDate = sse_decode_opt_String(deserializer);
+    var var_courseEndDate = sse_decode_opt_String(deserializer);
+    var var_courseSelectStartDate = sse_decode_opt_String(deserializer);
+    var var_courseSelectEndDate = sse_decode_opt_String(deserializer);
+    var var_courseCancelEndDate = sse_decode_opt_String(deserializer);
+    var var_courseMaxCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_courseCurrentCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_status = sse_decode_bridge_bykc_course_status(deserializer);
+    var var_selected = sse_decode_opt_box_autoadd_bool(deserializer);
+    return BridgeBykcCourse(
+      id: var_id,
+      courseName: var_courseName,
+      coursePosition: var_coursePosition,
+      courseTeacher: var_courseTeacher,
+      courseStartDate: var_courseStartDate,
+      courseEndDate: var_courseEndDate,
+      courseSelectStartDate: var_courseSelectStartDate,
+      courseSelectEndDate: var_courseSelectEndDate,
+      courseCancelEndDate: var_courseCancelEndDate,
+      courseMaxCount: var_courseMaxCount,
+      courseCurrentCount: var_courseCurrentCount,
+      status: var_status,
+      selected: var_selected,
+    );
+  }
+
+  @protected
+  BridgeBykcCourseCategory sse_decode_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeBykcCourseCategory.values[inner];
+  }
+
+  @protected
+  BridgeBykcCoursePage sse_decode_bridge_bykc_course_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_list_bridge_bykc_course(deserializer);
+    var var_totalElements = sse_decode_i_32(deserializer);
+    var var_totalPages = sse_decode_i_32(deserializer);
+    var var_size = sse_decode_i_32(deserializer);
+    var var_number = sse_decode_i_32(deserializer);
+    return BridgeBykcCoursePage(
+      content: var_content,
+      totalElements: var_totalElements,
+      totalPages: var_totalPages,
+      size: var_size,
+      number: var_number,
+    );
+  }
+
+  @protected
+  BridgeBykcCourseRequest sse_decode_bridge_bykc_course_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_i_64(deserializer);
+    return BridgeBykcCourseRequest(courseId: var_courseId);
+  }
+
+  @protected
+  BridgeBykcCourseStatus sse_decode_bridge_bykc_course_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeBykcCourseStatus.values[inner];
+  }
+
+  @protected
+  BridgeBykcCourseSubCategory sse_decode_bridge_bykc_course_sub_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeBykcCourseSubCategory.values[inner];
+  }
+
+  @protected
+  BridgeBykcSignConfig sse_decode_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_signStartDate = sse_decode_opt_String(deserializer);
+    var var_signEndDate = sse_decode_opt_String(deserializer);
+    var var_signOutStartDate = sse_decode_opt_String(deserializer);
+    var var_signOutEndDate = sse_decode_opt_String(deserializer);
+    var var_signPoints = sse_decode_list_bridge_bykc_sign_point(deserializer);
+    return BridgeBykcSignConfig(
+      signStartDate: var_signStartDate,
+      signEndDate: var_signEndDate,
+      signOutStartDate: var_signOutStartDate,
+      signOutEndDate: var_signOutEndDate,
+      signPoints: var_signPoints,
+    );
+  }
+
+  @protected
+  BridgeBykcSignCourseRequest sse_decode_bridge_bykc_sign_course_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_i_64(deserializer);
+    var var_lat = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_lng = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_signType = sse_decode_i_32(deserializer);
+    return BridgeBykcSignCourseRequest(
+      courseId: var_courseId,
+      lat: var_lat,
+      lng: var_lng,
+      signType: var_signType,
+    );
+  }
+
+  @protected
+  BridgeBykcSignPoint sse_decode_bridge_bykc_sign_point(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_lat = sse_decode_f_64(deserializer);
+    var var_lng = sse_decode_f_64(deserializer);
+    var var_radius = sse_decode_f_64(deserializer);
+    return BridgeBykcSignPoint(lat: var_lat, lng: var_lng, radius: var_radius);
+  }
+
+  @protected
+  BridgeBykcStatistic sse_decode_bridge_bykc_statistic(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_categoryName = sse_decode_opt_String(deserializer);
+    var var_subCategoryName = sse_decode_opt_String(deserializer);
+    var var_requiredCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_passedCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_qualified = sse_decode_opt_box_autoadd_bool(deserializer);
+    return BridgeBykcStatistic(
+      categoryName: var_categoryName,
+      subCategoryName: var_subCategoryName,
+      requiredCount: var_requiredCount,
+      passedCount: var_passedCount,
+      qualified: var_qualified,
+    );
+  }
+
+  @protected
+  BridgeBykcStatistics sse_decode_bridge_bykc_statistics(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_totalValidCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_categories = sse_decode_list_bridge_bykc_statistic(deserializer);
+    return BridgeBykcStatistics(
+      totalValidCount: var_totalValidCount,
+      categories: var_categories,
+    );
+  }
+
+  @protected
+  BridgeBykcUserProfile sse_decode_bridge_bykc_user_profile(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_64(deserializer);
+    var var_employeeId = sse_decode_opt_String(deserializer);
+    var var_realName = sse_decode_opt_String(deserializer);
+    var var_studentNo = sse_decode_opt_String(deserializer);
+    var var_collegeName = sse_decode_opt_String(deserializer);
+    return BridgeBykcUserProfile(
+      id: var_id,
+      employeeId: var_employeeId,
+      realName: var_realName,
+      studentNo: var_studentNo,
+      collegeName: var_collegeName,
+    );
+  }
+
+  @protected
+  BridgeCgyyCancelOrderRequest sse_decode_bridge_cgyy_cancel_order_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_32(deserializer);
+    return BridgeCgyyCancelOrderRequest(id: var_id);
+  }
+
+  @protected
+  BridgeCgyyDayInfo sse_decode_bridge_cgyy_day_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_venueSiteId = sse_decode_i_32(deserializer);
+    var var_reservationDate = sse_decode_String(deserializer);
+    var var_availableDates = sse_decode_list_String(deserializer);
+    var var_timeSlots = sse_decode_list_bridge_cgyy_time_slot(deserializer);
+    var var_spaces = sse_decode_list_bridge_cgyy_space_availability(
+      deserializer,
+    );
+    var var_reservationTotalNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeCgyyDayInfo(
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      availableDates: var_availableDates,
+      timeSlots: var_timeSlots,
+      spaces: var_spaces,
+      reservationTotalNum: var_reservationTotalNum,
+    );
+  }
+
+  @protected
+  BridgeCgyyLockCode sse_decode_bridge_cgyy_lock_code(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_available = sse_decode_bool(deserializer);
+    return BridgeCgyyLockCode(available: var_available);
+  }
+
+  @protected
+  BridgeCgyyOrder sse_decode_bridge_cgyy_order(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_32(deserializer);
+    var var_tradeNo = sse_decode_opt_String(deserializer);
+    var var_venueSiteId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_reservationDate = sse_decode_opt_String(deserializer);
+    var var_reservationDateDetail = sse_decode_opt_String(deserializer);
+    var var_venueSpaceName = sse_decode_opt_String(deserializer);
+    var var_campusName = sse_decode_opt_String(deserializer);
+    var var_venueName = sse_decode_opt_String(deserializer);
+    var var_siteName = sse_decode_opt_String(deserializer);
+    var var_reservationStartDate = sse_decode_opt_String(deserializer);
+    var var_reservationEndDate = sse_decode_opt_String(deserializer);
+    var var_phone = sse_decode_opt_String(deserializer);
+    var var_orderStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_payStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_checkStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_theme = sse_decode_opt_String(deserializer);
+    var var_purposeType = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_purposeTypeName = sse_decode_opt_String(deserializer);
+    var var_joinerNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_activityContent = sse_decode_opt_String(deserializer);
+    var var_joiners = sse_decode_opt_String(deserializer);
+    var var_checkContent = sse_decode_opt_String(deserializer);
+    var var_handleReason = sse_decode_opt_String(deserializer);
+    var var_remark = sse_decode_opt_String(deserializer);
+    return BridgeCgyyOrder(
+      id: var_id,
+      tradeNo: var_tradeNo,
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      reservationDateDetail: var_reservationDateDetail,
+      venueSpaceName: var_venueSpaceName,
+      campusName: var_campusName,
+      venueName: var_venueName,
+      siteName: var_siteName,
+      reservationStartDate: var_reservationStartDate,
+      reservationEndDate: var_reservationEndDate,
+      phone: var_phone,
+      orderStatus: var_orderStatus,
+      payStatus: var_payStatus,
+      checkStatus: var_checkStatus,
+      theme: var_theme,
+      purposeType: var_purposeType,
+      purposeTypeName: var_purposeTypeName,
+      joinerNum: var_joinerNum,
+      activityContent: var_activityContent,
+      joiners: var_joiners,
+      checkContent: var_checkContent,
+      handleReason: var_handleReason,
+      remark: var_remark,
+    );
+  }
+
+  @protected
+  BridgeCgyyOrdersPage sse_decode_bridge_cgyy_orders_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_list_bridge_cgyy_order(deserializer);
+    var var_totalElements = sse_decode_i_32(deserializer);
+    var var_totalPages = sse_decode_i_32(deserializer);
+    var var_size = sse_decode_i_32(deserializer);
+    var var_number = sse_decode_i_32(deserializer);
+    return BridgeCgyyOrdersPage(
+      content: var_content,
+      totalElements: var_totalElements,
+      totalPages: var_totalPages,
+      size: var_size,
+      number: var_number,
+    );
+  }
+
+  @protected
+  BridgeCgyyPurposeSource sse_decode_bridge_cgyy_purpose_source(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeCgyyPurposeSource.values[inner];
+  }
+
+  @protected
+  BridgeCgyyPurposeType sse_decode_bridge_cgyy_purpose_type(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_key = sse_decode_i_32(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    return BridgeCgyyPurposeType(key: var_key, name: var_name);
+  }
+
+  @protected
+  BridgeCgyyPurposeTypes sse_decode_bridge_cgyy_purpose_types(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_items = sse_decode_list_bridge_cgyy_purpose_type(deserializer);
+    var var_source = sse_decode_bridge_cgyy_purpose_source(deserializer);
+    return BridgeCgyyPurposeTypes(items: var_items, source: var_source);
+  }
+
+  @protected
+  BridgeCgyyReservationSelection sse_decode_bridge_cgyy_reservation_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_spaceId = sse_decode_i_32(deserializer);
+    var var_timeId = sse_decode_i_32(deserializer);
+    var var_venueSpaceGroupId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeCgyyReservationSelection(
+      spaceId: var_spaceId,
+      timeId: var_timeId,
+      venueSpaceGroupId: var_venueSpaceGroupId,
+    );
+  }
+
+  @protected
+  BridgeCgyySlotStatus sse_decode_bridge_cgyy_slot_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_timeId = sse_decode_i_32(deserializer);
+    var var_reservationStatus = sse_decode_i_32(deserializer);
+    var var_isReservable = sse_decode_bool(deserializer);
+    var var_startDate = sse_decode_opt_String(deserializer);
+    var var_endDate = sse_decode_opt_String(deserializer);
+    var var_tradeNo = sse_decode_opt_String(deserializer);
+    var var_orderId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_useNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_alreadyNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_takeUp = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_takeUpExplain = sse_decode_opt_String(deserializer);
+    return BridgeCgyySlotStatus(
+      timeId: var_timeId,
+      reservationStatus: var_reservationStatus,
+      isReservable: var_isReservable,
+      startDate: var_startDate,
+      endDate: var_endDate,
+      tradeNo: var_tradeNo,
+      orderId: var_orderId,
+      useNum: var_useNum,
+      alreadyNum: var_alreadyNum,
+      takeUp: var_takeUp,
+      takeUpExplain: var_takeUpExplain,
+    );
+  }
+
+  @protected
+  BridgeCgyySpaceAvailability sse_decode_bridge_cgyy_space_availability(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_spaceId = sse_decode_i_32(deserializer);
+    var var_spaceName = sse_decode_String(deserializer);
+    var var_venueSiteId = sse_decode_i_32(deserializer);
+    var var_venueSpaceGroupId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_slots = sse_decode_list_bridge_cgyy_slot_status(deserializer);
+    return BridgeCgyySpaceAvailability(
+      spaceId: var_spaceId,
+      spaceName: var_spaceName,
+      venueSiteId: var_venueSiteId,
+      venueSpaceGroupId: var_venueSpaceGroupId,
+      slots: var_slots,
+    );
+  }
+
+  @protected
+  BridgeCgyySubmitReservationRequest
+  sse_decode_bridge_cgyy_submit_reservation_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_venueSiteId = sse_decode_i_32(deserializer);
+    var var_reservationDate = sse_decode_String(deserializer);
+    var var_selections = sse_decode_list_bridge_cgyy_reservation_selection(
+      deserializer,
+    );
+    var var_phone = sse_decode_String(deserializer);
+    var var_theme = sse_decode_String(deserializer);
+    var var_purposeType = sse_decode_i_32(deserializer);
+    var var_joinerNum = sse_decode_i_32(deserializer);
+    var var_activityContent = sse_decode_String(deserializer);
+    var var_joiners = sse_decode_String(deserializer);
+    var var_isPhilosophySocialSciences = sse_decode_bool(deserializer);
+    var var_isOffSchoolJoiner = sse_decode_bool(deserializer);
+    return BridgeCgyySubmitReservationRequest(
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      selections: var_selections,
+      phone: var_phone,
+      theme: var_theme,
+      purposeType: var_purposeType,
+      joinerNum: var_joinerNum,
+      activityContent: var_activityContent,
+      joiners: var_joiners,
+      isPhilosophySocialSciences: var_isPhilosophySocialSciences,
+      isOffSchoolJoiner: var_isOffSchoolJoiner,
+    );
+  }
+
+  @protected
+  BridgeCgyyTimeSlot sse_decode_bridge_cgyy_time_slot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_32(deserializer);
+    var var_beginTime = sse_decode_String(deserializer);
+    var var_endTime = sse_decode_String(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    return BridgeCgyyTimeSlot(
+      id: var_id,
+      beginTime: var_beginTime,
+      endTime: var_endTime,
+      label: var_label,
+    );
+  }
+
+  @protected
+  BridgeCgyyVenueSite sse_decode_bridge_cgyy_venue_site(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_32(deserializer);
+    var var_siteName = sse_decode_String(deserializer);
+    var var_venueName = sse_decode_String(deserializer);
+    var var_campusName = sse_decode_String(deserializer);
+    var var_seatCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_reservationSpaceCount = sse_decode_opt_box_autoadd_i_32(
+      deserializer,
+    );
+    var var_siteTelephone = sse_decode_opt_String(deserializer);
+    var var_openStartDate = sse_decode_opt_String(deserializer);
+    var var_openEndDate = sse_decode_opt_String(deserializer);
+    return BridgeCgyyVenueSite(
+      id: var_id,
+      siteName: var_siteName,
+      venueName: var_venueName,
+      campusName: var_campusName,
+      seatCount: var_seatCount,
+      reservationSpaceCount: var_reservationSpaceCount,
+      siteTelephone: var_siteTelephone,
+      openStartDate: var_openStartDate,
+      openEndDate: var_openEndDate,
+    );
+  }
+
+  @protected
+  BridgeClassroomFloor sse_decode_bridge_classroom_floor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_rooms = sse_decode_list_bridge_classroom_info(deserializer);
+    return BridgeClassroomFloor(name: var_name, rooms: var_rooms);
+  }
+
+  @protected
+  BridgeClassroomInfo sse_decode_bridge_classroom_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_floorId = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_availableSections = sse_decode_String(deserializer);
+    return BridgeClassroomInfo(
+      id: var_id,
+      floorId: var_floorId,
+      name: var_name,
+      availableSections: var_availableSections,
+    );
+  }
+
+  @protected
+  BridgeClassroomQuery sse_decode_bridge_classroom_query(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_code = sse_decode_i_32(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    var var_floors = sse_decode_list_bridge_classroom_floor(deserializer);
+    return BridgeClassroomQuery(
+      code: var_code,
+      message: var_message,
+      floors: var_floors,
+    );
+  }
+
+  @protected
+  BridgeConnectionMode sse_decode_bridge_connection_mode(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeConnectionMode.values[inner];
+  }
+
+  @protected
+  BridgeCourseClass sse_decode_bridge_course_class(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseCode = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_courseSerialNo = sse_decode_opt_String(deserializer);
+    var var_credit = sse_decode_opt_String(deserializer);
+    var var_beginTime = sse_decode_opt_String(deserializer);
+    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_beginSection = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_endSection = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_placeName = sse_decode_opt_String(deserializer);
+    var var_weeksAndTeachers = sse_decode_opt_String(deserializer);
+    var var_teachingTarget = sse_decode_opt_String(deserializer);
+    var var_color = sse_decode_opt_String(deserializer);
+    var var_dayOfWeek = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeCourseClass(
+      courseCode: var_courseCode,
+      courseName: var_courseName,
+      courseSerialNo: var_courseSerialNo,
+      credit: var_credit,
+      beginTime: var_beginTime,
+      endTime: var_endTime,
+      beginSection: var_beginSection,
+      endSection: var_endSection,
+      placeName: var_placeName,
+      weeksAndTeachers: var_weeksAndTeachers,
+      teachingTarget: var_teachingTarget,
+      color: var_color,
+      dayOfWeek: var_dayOfWeek,
+    );
+  }
+
+  @protected
+  BridgeError sse_decode_bridge_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_code = sse_decode_bridge_error_code(deserializer);
+    var var_kind = sse_decode_bridge_error_kind(deserializer);
+    var var_retryable = sse_decode_bool(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    var var_resolvedRoute = sse_decode_opt_box_autoadd_bridge_connection_mode(
+      deserializer,
+    );
+    return BridgeError(
+      code: var_code,
+      kind: var_kind,
+      retryable: var_retryable,
+      message: var_message,
+      resolvedRoute: var_resolvedRoute,
+    );
+  }
+
+  @protected
+  BridgeErrorCode sse_decode_bridge_error_code(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeErrorCode.values[inner];
+  }
+
+  @protected
+  BridgeErrorKind sse_decode_bridge_error_kind(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeErrorKind.values[inner];
+  }
+
+  @protected
+  BridgeEvaluationCourse sse_decode_bridge_evaluation_course(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_kcmc = sse_decode_String(deserializer);
+    var var_bpmc = sse_decode_String(deserializer);
+    var var_isEvaluated = sse_decode_bool(deserializer);
+    var var_rwid = sse_decode_String(deserializer);
+    var var_wjid = sse_decode_String(deserializer);
+    var var_kcdm = sse_decode_String(deserializer);
+    var var_bpdm = sse_decode_opt_String(deserializer);
+    var var_pjrdm = sse_decode_opt_String(deserializer);
+    var var_pjrmc = sse_decode_opt_String(deserializer);
+    var var_xnxq = sse_decode_opt_String(deserializer);
+    var var_msid = sse_decode_String(deserializer);
+    var var_zdmc = sse_decode_opt_String(deserializer);
+    var var_ypjcs = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_xypjcs = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_sxz = sse_decode_opt_String(deserializer);
+    var var_rwh = sse_decode_opt_String(deserializer);
+    var var_xn = sse_decode_opt_String(deserializer);
+    var var_xq = sse_decode_opt_String(deserializer);
+    var var_pjlxid = sse_decode_opt_String(deserializer);
+    var var_sfksqbpj = sse_decode_opt_String(deserializer);
+    var var_yxsfktjst = sse_decode_opt_String(deserializer);
+    return BridgeEvaluationCourse(
+      id: var_id,
+      kcmc: var_kcmc,
+      bpmc: var_bpmc,
+      isEvaluated: var_isEvaluated,
+      rwid: var_rwid,
+      wjid: var_wjid,
+      kcdm: var_kcdm,
+      bpdm: var_bpdm,
+      pjrdm: var_pjrdm,
+      pjrmc: var_pjrmc,
+      xnxq: var_xnxq,
+      msid: var_msid,
+      zdmc: var_zdmc,
+      ypjcs: var_ypjcs,
+      xypjcs: var_xypjcs,
+      sxz: var_sxz,
+      rwh: var_rwh,
+      xn: var_xn,
+      xq: var_xq,
+      pjlxid: var_pjlxid,
+      sfksqbpj: var_sfksqbpj,
+      yxsfktjst: var_yxsfktjst,
+    );
+  }
+
+  @protected
+  BridgeEvaluationCoursesResponse sse_decode_bridge_evaluation_courses_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courses = sse_decode_list_bridge_evaluation_course(deserializer);
+    var var_progress = sse_decode_bridge_evaluation_progress(deserializer);
+    return BridgeEvaluationCoursesResponse(
+      courses: var_courses,
+      progress: var_progress,
+    );
+  }
+
+  @protected
+  BridgeEvaluationProgress sse_decode_bridge_evaluation_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_totalCourses = sse_decode_i_32(deserializer);
+    var var_evaluatedCourses = sse_decode_i_32(deserializer);
+    var var_pendingCourses = sse_decode_i_32(deserializer);
+    return BridgeEvaluationProgress(
+      totalCourses: var_totalCourses,
+      evaluatedCourses: var_evaluatedCourses,
+      pendingCourses: var_pendingCourses,
+    );
+  }
+
+  @protected
+  BridgeEvaluationSubmitCoursesRequest
+  sse_decode_bridge_evaluation_submit_courses_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courses = sse_decode_list_bridge_evaluation_course(deserializer);
+    return BridgeEvaluationSubmitCoursesRequest(courses: var_courses);
+  }
+
+  @protected
+  BridgeExam sse_decode_bridge_exam(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseName = sse_decode_String(deserializer);
+    var var_courseNo = sse_decode_opt_String(deserializer);
+    var var_examTimeDescription = sse_decode_opt_String(deserializer);
+    var var_examDate = sse_decode_opt_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_examPlace = sse_decode_opt_String(deserializer);
+    var var_examSeatNo = sse_decode_opt_String(deserializer);
+    var var_week = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_examStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_examType = sse_decode_opt_String(deserializer);
+    var var_taskId = sse_decode_opt_String(deserializer);
+    return BridgeExam(
+      courseName: var_courseName,
+      courseNo: var_courseNo,
+      examTimeDescription: var_examTimeDescription,
+      examDate: var_examDate,
+      startTime: var_startTime,
+      endTime: var_endTime,
+      examPlace: var_examPlace,
+      examSeatNo: var_examSeatNo,
+      week: var_week,
+      examStatus: var_examStatus,
+      examType: var_examType,
+      taskId: var_taskId,
+    );
+  }
+
+  @protected
+  BridgeExamArrangement sse_decode_bridge_exam_arrangement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_arranged = sse_decode_list_bridge_exam(deserializer);
+    var var_notArranged = sse_decode_list_bridge_exam(deserializer);
+    return BridgeExamArrangement(
+      arranged: var_arranged,
+      notArranged: var_notArranged,
+    );
+  }
+
+  @protected
+  BridgeGrade sse_decode_bridge_grade(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseName = sse_decode_opt_String(deserializer);
+    var var_courseCode = sse_decode_opt_String(deserializer);
+    var var_credit = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_score = sse_decode_opt_String(deserializer);
+    var var_gradePoint = sse_decode_opt_String(deserializer);
+    var var_courseType = sse_decode_opt_String(deserializer);
+    var var_scoreType = sse_decode_opt_String(deserializer);
+    var var_termCode = sse_decode_opt_String(deserializer);
+    return BridgeGrade(
+      courseName: var_courseName,
+      courseCode: var_courseCode,
+      credit: var_credit,
+      score: var_score,
+      gradePoint: var_gradePoint,
+      courseType: var_courseType,
+      scoreType: var_scoreType,
+      termCode: var_termCode,
+    );
+  }
+
+  @protected
+  BridgeGradeData sse_decode_bridge_grade_data(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_termCode = sse_decode_String(deserializer);
+    var var_grades = sse_decode_list_bridge_grade(deserializer);
+    return BridgeGradeData(termCode: var_termCode, grades: var_grades);
+  }
+
+  @protected
+  BridgeJudgeAssignmentDetail sse_decode_bridge_judge_assignment_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_assignmentId = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_dueTime = sse_decode_opt_String(deserializer);
+    var var_maxScore = sse_decode_opt_String(deserializer);
+    var var_myScore = sse_decode_opt_String(deserializer);
+    var var_totalProblems = sse_decode_i_32(deserializer);
+    var var_submittedCount = sse_decode_i_32(deserializer);
+    var var_submissionStatus = sse_decode_bridge_judge_submission_status(
+      deserializer,
+    );
+    var var_submissionStatusText = sse_decode_String(deserializer);
+    var var_problems = sse_decode_list_bridge_judge_problem(deserializer);
+    var var_contentPlainText = sse_decode_opt_String(deserializer);
+    return BridgeJudgeAssignmentDetail(
+      courseId: var_courseId,
+      courseName: var_courseName,
+      assignmentId: var_assignmentId,
+      title: var_title,
+      startTime: var_startTime,
+      dueTime: var_dueTime,
+      maxScore: var_maxScore,
+      myScore: var_myScore,
+      totalProblems: var_totalProblems,
+      submittedCount: var_submittedCount,
+      submissionStatus: var_submissionStatus,
+      submissionStatusText: var_submissionStatusText,
+      problems: var_problems,
+      contentPlainText: var_contentPlainText,
+    );
+  }
+
+  @protected
+  BridgeJudgeAssignmentKey sse_decode_bridge_judge_assignment_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_String(deserializer);
+    var var_assignmentId = sse_decode_String(deserializer);
+    return BridgeJudgeAssignmentKey(
+      courseId: var_courseId,
+      assignmentId: var_assignmentId,
+    );
+  }
+
+  @protected
+  BridgeJudgeAssignmentSummary sse_decode_bridge_judge_assignment_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_assignmentId = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_dueTime = sse_decode_opt_String(deserializer);
+    var var_maxScore = sse_decode_opt_String(deserializer);
+    var var_myScore = sse_decode_opt_String(deserializer);
+    var var_totalProblems = sse_decode_i_32(deserializer);
+    var var_submittedCount = sse_decode_i_32(deserializer);
+    var var_submissionStatus = sse_decode_bridge_judge_submission_status(
+      deserializer,
+    );
+    var var_submissionStatusText = sse_decode_String(deserializer);
+    return BridgeJudgeAssignmentSummary(
+      courseId: var_courseId,
+      courseName: var_courseName,
+      assignmentId: var_assignmentId,
+      title: var_title,
+      startTime: var_startTime,
+      dueTime: var_dueTime,
+      maxScore: var_maxScore,
+      myScore: var_myScore,
+      totalProblems: var_totalProblems,
+      submittedCount: var_submittedCount,
+      submissionStatus: var_submissionStatus,
+      submissionStatusText: var_submissionStatusText,
+    );
+  }
+
+  @protected
+  BridgeJudgeProblem sse_decode_bridge_judge_problem(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_score = sse_decode_opt_String(deserializer);
+    var var_maxScore = sse_decode_opt_String(deserializer);
+    var var_status = sse_decode_bridge_judge_submission_status(deserializer);
+    var var_statusText = sse_decode_String(deserializer);
+    return BridgeJudgeProblem(
+      name: var_name,
+      score: var_score,
+      maxScore: var_maxScore,
+      status: var_status,
+      statusText: var_statusText,
+    );
+  }
+
+  @protected
+  BridgeJudgeSubmissionStatus sse_decode_bridge_judge_submission_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeJudgeSubmissionStatus.values[inner];
+  }
+
+  @protected
+  BridgeLibBookArea sse_decode_bridge_lib_book_area(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_areaName = sse_decode_String(deserializer);
+    var var_premisesId = sse_decode_String(deserializer);
+    var var_storeyId = sse_decode_String(deserializer);
+    var var_freeNum = sse_decode_i_32(deserializer);
+    var var_totalNum = sse_decode_i_32(deserializer);
+    return BridgeLibBookArea(
+      id: var_id,
+      name: var_name,
+      areaName: var_areaName,
+      premisesId: var_premisesId,
+      storeyId: var_storeyId,
+      freeNum: var_freeNum,
+      totalNum: var_totalNum,
+    );
+  }
+
+  @protected
+  BridgeLibBookAreaDetail sse_decode_bridge_lib_book_area_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_availableDates = sse_decode_list_String(deserializer);
+    var var_timeSlots = sse_decode_list_bridge_lib_book_time_slot(deserializer);
+    return BridgeLibBookAreaDetail(
+      id: var_id,
+      name: var_name,
+      availableDates: var_availableDates,
+      timeSlots: var_timeSlots,
+    );
+  }
+
+  @protected
+  BridgeLibBookBooking sse_decode_bridge_lib_book_booking(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_nameMerge = sse_decode_String(deserializer);
+    var var_areaName = sse_decode_String(deserializer);
+    var var_seatNo = sse_decode_String(deserializer);
+    var var_day = sse_decode_String(deserializer);
+    var var_beginTime = sse_decode_String(deserializer);
+    var var_endTime = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_statusName = sse_decode_String(deserializer);
+    return BridgeLibBookBooking(
+      id: var_id,
+      nameMerge: var_nameMerge,
+      areaName: var_areaName,
+      seatNo: var_seatNo,
+      day: var_day,
+      beginTime: var_beginTime,
+      endTime: var_endTime,
+      status: var_status,
+      statusName: var_statusName,
+    );
+  }
+
+  @protected
+  BridgeLibBookBookingsPage sse_decode_bridge_lib_book_bookings_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_bookings = sse_decode_list_bridge_lib_book_booking(deserializer);
+    var var_page = sse_decode_i_32(deserializer);
+    var var_limit = sse_decode_i_32(deserializer);
+    var var_total = sse_decode_i_32(deserializer);
+    return BridgeLibBookBookingsPage(
+      bookings: var_bookings,
+      page: var_page,
+      limit: var_limit,
+      total: var_total,
+    );
+  }
+
+  @protected
+  BridgeLibBookLibrary sse_decode_bridge_lib_book_library(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_freeNum = sse_decode_i_32(deserializer);
+    var var_totalNum = sse_decode_i_32(deserializer);
+    var var_storeys = sse_decode_list_bridge_lib_book_storey(deserializer);
+    return BridgeLibBookLibrary(
+      id: var_id,
+      name: var_name,
+      freeNum: var_freeNum,
+      totalNum: var_totalNum,
+      storeys: var_storeys,
+    );
+  }
+
+  @protected
+  BridgeLibBookSeat sse_decode_bridge_lib_book_seat(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_no = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_statusName = sse_decode_String(deserializer);
+    var var_isAvailable = sse_decode_bool(deserializer);
+    return BridgeLibBookSeat(
+      id: var_id,
+      name: var_name,
+      no: var_no,
+      status: var_status,
+      statusName: var_statusName,
+      isAvailable: var_isAvailable,
+    );
+  }
+
+  @protected
+  BridgeLibBookStorey sse_decode_bridge_lib_book_storey(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_freeNum = sse_decode_i_32(deserializer);
+    var var_totalNum = sse_decode_i_32(deserializer);
+    return BridgeLibBookStorey(
+      id: var_id,
+      name: var_name,
+      freeNum: var_freeNum,
+      totalNum: var_totalNum,
+    );
+  }
+
+  @protected
+  BridgeLibBookTimeSlot sse_decode_bridge_lib_book_time_slot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_start = sse_decode_String(deserializer);
+    var var_end = sse_decode_String(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    return BridgeLibBookTimeSlot(
+      id: var_id,
+      start: var_start,
+      end: var_end,
+      label: var_label,
+    );
+  }
+
+  @protected
+  BridgeLibbookCancelBookingRequest
+  sse_decode_bridge_libbook_cancel_booking_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    return BridgeLibbookCancelBookingRequest(id: var_id);
+  }
+
+  @protected
+  BridgeLibbookReserveRequest sse_decode_bridge_libbook_reserve_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_areaId = sse_decode_String(deserializer);
+    var var_seatId = sse_decode_String(deserializer);
+    var var_day = sse_decode_String(deserializer);
+    var var_segment = sse_decode_String(deserializer);
+    var var_startTime = sse_decode_String(deserializer);
+    var var_endTime = sse_decode_String(deserializer);
+    return BridgeLibbookReserveRequest(
+      areaId: var_areaId,
+      seatId: var_seatId,
+      day: var_day,
+      segment: var_segment,
+      startTime: var_startTime,
+      endTime: var_endTime,
+    );
+  }
+
+  @protected
+  BridgeLoginOutcome sse_decode_bridge_login_outcome(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_readiness = sse_decode_bridge_login_readiness(deserializer);
+    var var_routes = sse_decode_list_bridge_route_login_result(deserializer);
+    var var_profile = sse_decode_opt_box_autoadd_bridge_user_profile(
+      deserializer,
+    );
+    return BridgeLoginOutcome(
+      readiness: var_readiness,
+      routes: var_routes,
+      profile: var_profile,
+    );
+  }
+
+  @protected
+  BridgeLoginPreparation sse_decode_bridge_login_preparation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_routes = sse_decode_list_bridge_route_login_result(deserializer);
+    return BridgeLoginPreparation(routes: var_routes);
+  }
+
+  @protected
+  BridgeLoginReadiness sse_decode_bridge_login_readiness(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeLoginReadiness.values[inner];
+  }
+
+  @protected
+  BridgeNetworkState sse_decode_bridge_network_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeNetworkState.values[inner];
+  }
+
+  @protected
+  BridgePhotoUpload sse_decode_bridge_photo_upload(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_bytes = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_fileName = sse_decode_String(deserializer);
+    var var_mimeType = sse_decode_String(deserializer);
+    return BridgePhotoUpload(
+      bytes: var_bytes,
+      fileName: var_fileName,
+      mimeType: var_mimeType,
+    );
+  }
+
+  @protected
+  BridgeRouteDecision sse_decode_bridge_route_decision(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_policy = sse_decode_bridge_route_policy(deserializer);
+    var var_resolvedRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_network = sse_decode_bridge_network_state(deserializer);
+    var var_initialRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_usedFallback = sse_decode_bool(deserializer);
+    return BridgeRouteDecision(
+      policy: var_policy,
+      resolvedRoute: var_resolvedRoute,
+      network: var_network,
+      initialRoute: var_initialRoute,
+      usedFallback: var_usedFallback,
+    );
+  }
+
+  @protected
+  BridgeRouteLoginResult sse_decode_bridge_route_login_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_route = sse_decode_bridge_connection_mode(deserializer);
+    var var_state = sse_decode_bridge_route_login_state(deserializer);
+    var var_error = sse_decode_opt_box_autoadd_bridge_safe_error(deserializer);
+    return BridgeRouteLoginResult(
+      route: var_route,
+      state: var_state,
+      error: var_error,
+    );
+  }
+
+  @protected
+  BridgeRouteLoginState sse_decode_bridge_route_login_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeRouteLoginState.values[inner];
+  }
+
+  @protected
+  BridgeRoutePolicy sse_decode_bridge_route_policy(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeRoutePolicy.values[inner];
+  }
+
+  @protected
+  BridgeRouteSettings sse_decode_bridge_route_settings(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_defaultPolicy = sse_decode_bridge_route_policy(deserializer);
+    var var_activeRoutes = sse_decode_list_bridge_connection_mode(deserializer);
+    return BridgeRouteSettings(
+      defaultPolicy: var_defaultPolicy,
+      activeRoutes: var_activeRoutes,
+    );
+  }
+
+  @protected
+  BridgeRoutedBykcChosenCourses sse_decode_bridge_routed_bykc_chosen_courses(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_bykc_chosen_course(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedBykcChosenCourses(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedBykcCourse sse_decode_bridge_routed_bykc_course(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_bykc_course(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedBykcCourse(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedBykcCourses sse_decode_bridge_routed_bykc_courses(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_bykc_course_page(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedBykcCourses(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedBykcProfile sse_decode_bridge_routed_bykc_profile(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_bykc_user_profile(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedBykcProfile(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedBykcStatistics sse_decode_bridge_routed_bykc_statistics(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_bykc_statistics(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedBykcStatistics(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedCgyyDayInfo sse_decode_bridge_routed_cgyy_day_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_day_info(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedCgyyDayInfo(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedCgyyLockCode sse_decode_bridge_routed_cgyy_lock_code(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_lock_code(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedCgyyLockCode(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedCgyyOrder sse_decode_bridge_routed_cgyy_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_order(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedCgyyOrder(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedCgyyOrders sse_decode_bridge_routed_cgyy_orders(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_orders_page(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedCgyyOrders(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedCgyyPurposeTypes sse_decode_bridge_routed_cgyy_purpose_types(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_purpose_types(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedCgyyPurposeTypes(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedCgyySites sse_decode_bridge_routed_cgyy_sites(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_cgyy_venue_site(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedCgyySites(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedClassroomQuery sse_decode_bridge_routed_classroom_query(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_classroom_query(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedClassroomQuery(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedEvaluation sse_decode_bridge_routed_evaluation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_evaluation_courses_response(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedEvaluation(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedExamArrangement sse_decode_bridge_routed_exam_arrangement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_exam_arrangement(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedExamArrangement(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedGrades sse_decode_bridge_routed_grades(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_grade_data(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedGrades(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetail
+  sse_decode_bridge_routed_judge_assignment_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_judge_assignment_detail(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedJudgeAssignmentDetail(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedJudgeAssignmentDetails
+  sse_decode_bridge_routed_judge_assignment_details(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_judge_assignment_detail(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedJudgeAssignmentDetails(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedJudgeSummaries sse_decode_bridge_routed_judge_summaries(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_judge_assignment_summary(
+      deserializer,
+    );
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedJudgeSummaries(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedLibBookAreaDetail sse_decode_bridge_routed_lib_book_area_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_lib_book_area_detail(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedLibBookAreaDetail(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedLibBookAreas sse_decode_bridge_routed_lib_book_areas(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_area(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedLibBookAreas(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedLibBookBookings sse_decode_bridge_routed_lib_book_bookings(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_lib_book_bookings_page(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedLibBookBookings(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedLibBookLibraries sse_decode_bridge_routed_lib_book_libraries(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_library(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedLibBookLibraries(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedLibBookSeats sse_decode_bridge_routed_lib_book_seats(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_seat(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedLibBookSeats(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedSigninClasses sse_decode_bridge_routed_signin_classes(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_signin_class(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedSigninClasses(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedSpocAssignmentDetail
+  sse_decode_bridge_routed_spoc_assignment_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_spoc_assignment_detail(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedSpocAssignmentDetail(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedSpocAssignments sse_decode_bridge_routed_spoc_assignments(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_spoc_assignments(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedSpocAssignments(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedTerms sse_decode_bridge_routed_terms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_term(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedTerms(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedTodayClasses sse_decode_bridge_routed_today_classes(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_today_class(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedTodayClasses(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedUserProfile sse_decode_bridge_routed_user_profile(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_user_profile(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedUserProfile(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedWeeklySchedule sse_decode_bridge_routed_weekly_schedule(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_weekly_schedule(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedWeeklySchedule(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedWeeks sse_decode_bridge_routed_weeks(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_week(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedWeeks(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedYgdkOverview sse_decode_bridge_routed_ygdk_overview(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_ygdk_overview(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedYgdkOverview(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeRoutedYgdkRecords sse_decode_bridge_routed_ygdk_records(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_ygdk_records_page(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    return BridgeRoutedYgdkRecords(data: var_data, route: var_route);
+  }
+
+  @protected
+  BridgeSafeError sse_decode_bridge_safe_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_code = sse_decode_String(deserializer);
+    var var_kind = sse_decode_String(deserializer);
+    var var_retryable = sse_decode_bool(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    return BridgeSafeError(
+      code: var_code,
+      kind: var_kind,
+      retryable: var_retryable,
+      message: var_message,
+    );
+  }
+
+  @protected
+  BridgeSigninClass sse_decode_bridge_signin_class(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_classBeginTime = sse_decode_String(deserializer);
+    var var_classEndTime = sse_decode_String(deserializer);
+    var var_signStatus = sse_decode_i_32(deserializer);
+    return BridgeSigninClass(
+      courseId: var_courseId,
+      courseName: var_courseName,
+      classBeginTime: var_classBeginTime,
+      classEndTime: var_classEndTime,
+      signStatus: var_signStatus,
+    );
+  }
+
+  @protected
+  BridgeSigninPerformRequest sse_decode_bridge_signin_perform_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_courseId = sse_decode_String(deserializer);
+    return BridgeSigninPerformRequest(courseId: var_courseId);
+  }
+
+  @protected
+  BridgeSpocAssignmentDetail sse_decode_bridge_spoc_assignment_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_assignmentId = sse_decode_String(deserializer);
+    var var_courseId = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_teacherName = sse_decode_opt_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_dueTime = sse_decode_opt_String(deserializer);
+    var var_score = sse_decode_opt_String(deserializer);
+    var var_submissionStatus = sse_decode_bridge_spoc_submission_status(
+      deserializer,
+    );
+    var var_submissionStatusText = sse_decode_String(deserializer);
+    var var_contentPlainText = sse_decode_opt_String(deserializer);
+    var var_submittedAt = sse_decode_opt_String(deserializer);
+    return BridgeSpocAssignmentDetail(
+      assignmentId: var_assignmentId,
+      courseId: var_courseId,
+      courseName: var_courseName,
+      teacherName: var_teacherName,
+      title: var_title,
+      startTime: var_startTime,
+      dueTime: var_dueTime,
+      score: var_score,
+      submissionStatus: var_submissionStatus,
+      submissionStatusText: var_submissionStatusText,
+      contentPlainText: var_contentPlainText,
+      submittedAt: var_submittedAt,
+    );
+  }
+
+  @protected
+  BridgeSpocAssignmentSummary sse_decode_bridge_spoc_assignment_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_assignmentId = sse_decode_String(deserializer);
+    var var_courseId = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_String(deserializer);
+    var var_teacherName = sse_decode_opt_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_dueTime = sse_decode_opt_String(deserializer);
+    var var_score = sse_decode_opt_String(deserializer);
+    var var_submissionStatus = sse_decode_bridge_spoc_submission_status(
+      deserializer,
+    );
+    var var_submissionStatusText = sse_decode_String(deserializer);
+    return BridgeSpocAssignmentSummary(
+      assignmentId: var_assignmentId,
+      courseId: var_courseId,
+      courseName: var_courseName,
+      teacherName: var_teacherName,
+      title: var_title,
+      startTime: var_startTime,
+      dueTime: var_dueTime,
+      score: var_score,
+      submissionStatus: var_submissionStatus,
+      submissionStatusText: var_submissionStatusText,
+    );
+  }
+
+  @protected
+  BridgeSpocAssignments sse_decode_bridge_spoc_assignments(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_termCode = sse_decode_String(deserializer);
+    var var_termName = sse_decode_opt_String(deserializer);
+    var var_assignments = sse_decode_list_bridge_spoc_assignment_summary(
+      deserializer,
+    );
+    return BridgeSpocAssignments(
+      termCode: var_termCode,
+      termName: var_termName,
+      assignments: var_assignments,
+    );
+  }
+
+  @protected
+  BridgeSpocSubmissionStatus sse_decode_bridge_spoc_submission_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeSpocSubmissionStatus.values[inner];
+  }
+
+  @protected
+  BridgeTerm sse_decode_bridge_term(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_itemCode = sse_decode_String(deserializer);
+    var var_itemName = sse_decode_String(deserializer);
+    var var_selected = sse_decode_bool(deserializer);
+    var var_itemIndex = sse_decode_i_32(deserializer);
+    return BridgeTerm(
+      itemCode: var_itemCode,
+      itemName: var_itemName,
+      selected: var_selected,
+      itemIndex: var_itemIndex,
+    );
+  }
+
+  @protected
+  BridgeTodayClass sse_decode_bridge_today_class(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_bizName = sse_decode_String(deserializer);
+    var var_place = sse_decode_opt_String(deserializer);
+    var var_time = sse_decode_opt_String(deserializer);
+    var var_shortName = sse_decode_opt_String(deserializer);
+    return BridgeTodayClass(
+      bizName: var_bizName,
+      place: var_place,
+      time: var_time,
+      shortName: var_shortName,
+    );
+  }
+
+  @protected
+  BridgeUserProfile sse_decode_bridge_user_profile(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_username = sse_decode_opt_String(deserializer);
+    var var_name = sse_decode_opt_String(deserializer);
+    var var_schoolId = sse_decode_opt_String(deserializer);
+    var var_email = sse_decode_opt_String(deserializer);
+    var var_phone = sse_decode_opt_String(deserializer);
+    var var_idCardTypeName = sse_decode_opt_String(deserializer);
+    return BridgeUserProfile(
+      username: var_username,
+      name: var_name,
+      schoolId: var_schoolId,
+      email: var_email,
+      phone: var_phone,
+      idCardTypeName: var_idCardTypeName,
+    );
+  }
+
+  @protected
+  BridgeWeek sse_decode_bridge_week(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_startDate = sse_decode_String(deserializer);
+    var var_endDate = sse_decode_String(deserializer);
+    var var_term = sse_decode_String(deserializer);
+    var var_curWeek = sse_decode_bool(deserializer);
+    var var_serialNumber = sse_decode_i_32(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    return BridgeWeek(
+      startDate: var_startDate,
+      endDate: var_endDate,
+      term: var_term,
+      curWeek: var_curWeek,
+      serialNumber: var_serialNumber,
+      name: var_name,
+    );
+  }
+
+  @protected
+  BridgeWeeklySchedule sse_decode_bridge_weekly_schedule(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_arrangedList = sse_decode_list_bridge_course_class(deserializer);
+    var var_code = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    return BridgeWeeklySchedule(
+      arrangedList: var_arrangedList,
+      code: var_code,
+      name: var_name,
+    );
+  }
+
+  @protected
+  BridgeWriteCommitResult sse_decode_bridge_write_commit_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_operation = sse_decode_bridge_write_operation(deserializer);
+    var var_success = sse_decode_bool(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    var var_outcomeUnknown = sse_decode_bool(deserializer);
+    var var_resolvedRoute = sse_decode_opt_box_autoadd_bridge_connection_mode(
+      deserializer,
+    );
+    var var_order = sse_decode_opt_box_autoadd_bridge_cgyy_order(deserializer);
+    return BridgeWriteCommitResult(
+      operation: var_operation,
+      success: var_success,
+      message: var_message,
+      outcomeUnknown: var_outcomeUnknown,
+      resolvedRoute: var_resolvedRoute,
+      order: var_order,
+    );
+  }
+
+  @protected
+  BridgeWriteIntent sse_decode_bridge_write_intent(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_intentId = sse_decode_String(deserializer);
+    var var_operation = sse_decode_bridge_write_operation(deserializer);
+    var var_targetSummary = sse_decode_String(deserializer);
+    var var_resolvedRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_warnings = sse_decode_list_String(deserializer);
+    var var_expiresAt = sse_decode_i_64(deserializer);
+    var var_requestDigest = sse_decode_String(deserializer);
+    return BridgeWriteIntent(
+      intentId: var_intentId,
+      operation: var_operation,
+      targetSummary: var_targetSummary,
+      resolvedRoute: var_resolvedRoute,
+      warnings: var_warnings,
+      expiresAt: var_expiresAt,
+      requestDigest: var_requestDigest,
+    );
+  }
+
+  @protected
+  BridgeWriteOperation sse_decode_bridge_write_operation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeWriteOperation.values[inner];
+  }
+
+  @protected
+  BridgeYgdkItem sse_decode_bridge_ygdk_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_itemId = sse_decode_i_32(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_kind = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_sort = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeYgdkItem(
+      itemId: var_itemId,
+      name: var_name,
+      kind: var_kind,
+      sort: var_sort,
+    );
+  }
+
+  @protected
+  BridgeYgdkOverview sse_decode_bridge_ygdk_overview(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_summary = sse_decode_bridge_ygdk_term_summary(deserializer);
+    var var_classifyId = sse_decode_i_32(deserializer);
+    var var_classifyName = sse_decode_String(deserializer);
+    var var_defaultItemId = sse_decode_i_32(deserializer);
+    var var_defaultItemName = sse_decode_String(deserializer);
+    var var_items = sse_decode_list_bridge_ygdk_item(deserializer);
+    return BridgeYgdkOverview(
+      summary: var_summary,
+      classifyId: var_classifyId,
+      classifyName: var_classifyName,
+      defaultItemId: var_defaultItemId,
+      defaultItemName: var_defaultItemName,
+      items: var_items,
+    );
+  }
+
+  @protected
+  BridgeYgdkRecord sse_decode_bridge_ygdk_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_recordId = sse_decode_i_32(deserializer);
+    var var_itemId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_itemName = sse_decode_opt_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_place = sse_decode_opt_String(deserializer);
+    var var_images = sse_decode_list_String(deserializer);
+    var var_isOpen = sse_decode_bool(deserializer);
+    var var_state = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_createdAt = sse_decode_opt_String(deserializer);
+    var var_createdAtLabel = sse_decode_opt_String(deserializer);
+    return BridgeYgdkRecord(
+      recordId: var_recordId,
+      itemId: var_itemId,
+      itemName: var_itemName,
+      startTime: var_startTime,
+      endTime: var_endTime,
+      place: var_place,
+      images: var_images,
+      isOpen: var_isOpen,
+      state: var_state,
+      createdAt: var_createdAt,
+      createdAtLabel: var_createdAtLabel,
+    );
+  }
+
+  @protected
+  BridgeYgdkRecordsPage sse_decode_bridge_ygdk_records_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_list_bridge_ygdk_record(deserializer);
+    var var_total = sse_decode_i_32(deserializer);
+    var var_page = sse_decode_i_32(deserializer);
+    var var_size = sse_decode_i_32(deserializer);
+    var var_hasMore = sse_decode_bool(deserializer);
+    return BridgeYgdkRecordsPage(
+      content: var_content,
+      total: var_total,
+      page: var_page,
+      size: var_size,
+      hasMore: var_hasMore,
+    );
+  }
+
+  @protected
+  BridgeYgdkSubmitRequest sse_decode_bridge_ygdk_submit_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_itemId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_place = sse_decode_opt_String(deserializer);
+    var var_shareToSquare = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_photo = sse_decode_opt_box_autoadd_bridge_photo_upload(
+      deserializer,
+    );
+    return BridgeYgdkSubmitRequest(
+      itemId: var_itemId,
+      startTime: var_startTime,
+      endTime: var_endTime,
+      place: var_place,
+      shareToSquare: var_shareToSquare,
+      photo: var_photo,
+    );
+  }
+
+  @protected
+  BridgeYgdkTermSummary sse_decode_bridge_ygdk_term_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_termId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_termName = sse_decode_opt_String(deserializer);
+    var var_termCount = sse_decode_i_32(deserializer);
+    var var_termTarget = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_weekCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_weekTarget = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_monthCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_monthTarget = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_dayCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_goodCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeYgdkTermSummary(
+      termId: var_termId,
+      termName: var_termName,
+      termCount: var_termCount,
+      termTarget: var_termTarget,
+      weekCount: var_weekCount,
+      weekTarget: var_weekTarget,
+      monthCount: var_monthCount,
+      monthTarget: var_monthTarget,
+      dayCount: var_dayCount,
+      goodCount: var_goodCount,
+    );
+  }
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeBykcChosenCourse> sse_decode_list_bridge_bykc_chosen_course(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeBykcChosenCourse>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_bykc_chosen_course(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeBykcCourse> sse_decode_list_bridge_bykc_course(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeBykcCourse>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_bykc_course(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeBykcSignPoint> sse_decode_list_bridge_bykc_sign_point(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeBykcSignPoint>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_bykc_sign_point(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeBykcStatistic> sse_decode_list_bridge_bykc_statistic(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeBykcStatistic>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_bykc_statistic(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyyOrder> sse_decode_list_bridge_cgyy_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyyOrder>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_order(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyyPurposeType> sse_decode_list_bridge_cgyy_purpose_type(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyyPurposeType>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_purpose_type(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyyReservationSelection>
+  sse_decode_list_bridge_cgyy_reservation_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyyReservationSelection>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_reservation_selection(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyySlotStatus> sse_decode_list_bridge_cgyy_slot_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyySlotStatus>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_slot_status(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyySpaceAvailability>
+  sse_decode_list_bridge_cgyy_space_availability(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyySpaceAvailability>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_space_availability(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyyTimeSlot> sse_decode_list_bridge_cgyy_time_slot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyyTimeSlot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_time_slot(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCgyyVenueSite> sse_decode_list_bridge_cgyy_venue_site(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCgyyVenueSite>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cgyy_venue_site(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeClassroomFloor> sse_decode_list_bridge_classroom_floor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeClassroomFloor>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_classroom_floor(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeClassroomInfo> sse_decode_list_bridge_classroom_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeClassroomInfo>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_classroom_info(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeConnectionMode> sse_decode_list_bridge_connection_mode(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeConnectionMode>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_connection_mode(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCourseClass> sse_decode_list_bridge_course_class(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCourseClass>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_course_class(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeEvaluationCourse> sse_decode_list_bridge_evaluation_course(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeEvaluationCourse>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_evaluation_course(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeExam> sse_decode_list_bridge_exam(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeExam>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_exam(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeGrade> sse_decode_list_bridge_grade(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeGrade>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_grade(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeJudgeAssignmentDetail>
+  sse_decode_list_bridge_judge_assignment_detail(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeJudgeAssignmentDetail>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_judge_assignment_detail(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeJudgeAssignmentKey> sse_decode_list_bridge_judge_assignment_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeJudgeAssignmentKey>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_judge_assignment_key(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeJudgeAssignmentSummary>
+  sse_decode_list_bridge_judge_assignment_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeJudgeAssignmentSummary>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_judge_assignment_summary(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeJudgeProblem> sse_decode_list_bridge_judge_problem(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeJudgeProblem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_judge_problem(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeLibBookArea> sse_decode_list_bridge_lib_book_area(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeLibBookArea>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_lib_book_area(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeLibBookBooking> sse_decode_list_bridge_lib_book_booking(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeLibBookBooking>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_lib_book_booking(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeLibBookLibrary> sse_decode_list_bridge_lib_book_library(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeLibBookLibrary>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_lib_book_library(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeLibBookSeat> sse_decode_list_bridge_lib_book_seat(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeLibBookSeat>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_lib_book_seat(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeLibBookStorey> sse_decode_list_bridge_lib_book_storey(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeLibBookStorey>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_lib_book_storey(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeLibBookTimeSlot> sse_decode_list_bridge_lib_book_time_slot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeLibBookTimeSlot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_lib_book_time_slot(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeRouteLoginResult> sse_decode_list_bridge_route_login_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeRouteLoginResult>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_route_login_result(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeSigninClass> sse_decode_list_bridge_signin_class(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeSigninClass>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_signin_class(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeSpocAssignmentSummary>
+  sse_decode_list_bridge_spoc_assignment_summary(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeSpocAssignmentSummary>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_spoc_assignment_summary(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeTerm> sse_decode_list_bridge_term(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeTerm>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_term(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeTodayClass> sse_decode_list_bridge_today_class(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeTodayClass>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_today_class(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeWeek> sse_decode_list_bridge_week(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeWeek>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_week(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeYgdkItem> sse_decode_list_bridge_ygdk_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeYgdkItem>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_ygdk_item(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeYgdkRecord> sse_decode_list_bridge_ygdk_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeYgdkRecord>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_ygdk_record(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bool(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeBykcCourseCategory?
+  sse_decode_opt_box_autoadd_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_bykc_course_category(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeBykcCourseSubCategory?
+  sse_decode_opt_box_autoadd_bridge_bykc_course_sub_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_bykc_course_sub_category(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeBykcSignConfig? sse_decode_opt_box_autoadd_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_bykc_sign_config(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCgyyOrder? sse_decode_opt_box_autoadd_bridge_cgyy_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cgyy_order(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeConnectionMode? sse_decode_opt_box_autoadd_bridge_connection_mode(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_connection_mode(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgePhotoUpload? sse_decode_opt_box_autoadd_bridge_photo_upload(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_photo_upload(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeSafeError? sse_decode_opt_box_autoadd_bridge_safe_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_safe_error(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeUserProfile? sse_decode_opt_box_autoadd_bridge_user_profile(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_user_profile(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_f_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected
@@ -190,21 +7701,2199 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
+  BigInt sse_decode_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
+    return deserializer.buffer.getBigUint64();
   }
 
   @protected
-  bool sse_decode_bool(SseDeserializer deserializer) {
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    BridgeClient self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8() != 0;
+    sse_encode_usize(
+      (self as BridgeClientImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    BridgeClient self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as BridgeClientImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    BridgeClient self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as BridgeClientImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
   }
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint8(self ? 1 : 0);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_category(
+    BridgeBykcCourseCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_course_category(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_request(
+    BridgeBykcCourseRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_course_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_sub_category(
+    BridgeBykcCourseSubCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_course_sub_category(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_sign_config(
+    BridgeBykcSignConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_sign_config(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_sign_course_request(
+    BridgeBykcSignCourseRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_sign_course_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_cancel_order_request(
+    BridgeCgyyCancelOrderRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_cancel_order_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_order(
+    BridgeCgyyOrder self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_order(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_submit_reservation_request(
+    BridgeCgyySubmitReservationRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_submit_reservation_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_connection_mode(
+    BridgeConnectionMode self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_connection_mode(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_evaluation_submit_courses_request(
+    BridgeEvaluationSubmitCoursesRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_evaluation_submit_courses_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_libbook_cancel_booking_request(
+    BridgeLibbookCancelBookingRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_libbook_cancel_booking_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_libbook_reserve_request(
+    BridgeLibbookReserveRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_libbook_reserve_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_photo_upload(
+    BridgePhotoUpload self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_photo_upload(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_safe_error(
+    BridgeSafeError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_safe_error(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_signin_perform_request(
+    BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_signin_perform_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_user_profile(
+    BridgeUserProfile self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_user_profile(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_ygdk_submit_request(
+    BridgeYgdkSubmitRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_submit_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_chosen_course(
+    BridgeBykcChosenCourse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_i_64(self.courseId, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_opt_String(self.coursePosition, serializer);
+    sse_encode_opt_String(self.courseTeacher, serializer);
+    sse_encode_opt_String(self.courseStartDate, serializer);
+    sse_encode_opt_String(self.courseEndDate, serializer);
+    sse_encode_opt_String(self.selectDate, serializer);
+    sse_encode_opt_String(self.courseCancelEndDate, serializer);
+    sse_encode_opt_box_autoadd_bridge_bykc_course_category(
+      self.category,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_bridge_bykc_course_sub_category(
+      self.subCategory,
+      serializer,
+    );
+    sse_encode_i_32(self.checkin, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.score, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.pass, serializer);
+    sse_encode_bool(self.canSign, serializer);
+    sse_encode_bool(self.canSignOut, serializer);
+    sse_encode_opt_box_autoadd_bridge_bykc_sign_config(
+      self.signConfig,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_i_32(self.courseSignType, serializer);
+    sse_encode_opt_String(self.homework, serializer);
+    sse_encode_opt_String(self.homeworkAttachmentName, serializer);
+    sse_encode_opt_String(self.homeworkAttachmentPath, serializer);
+    sse_encode_opt_String(self.signInfo, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_course(
+    BridgeBykcCourse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_opt_String(self.coursePosition, serializer);
+    sse_encode_opt_String(self.courseTeacher, serializer);
+    sse_encode_opt_String(self.courseStartDate, serializer);
+    sse_encode_opt_String(self.courseEndDate, serializer);
+    sse_encode_opt_String(self.courseSelectStartDate, serializer);
+    sse_encode_opt_String(self.courseSelectEndDate, serializer);
+    sse_encode_opt_String(self.courseCancelEndDate, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.courseMaxCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.courseCurrentCount, serializer);
+    sse_encode_bridge_bykc_course_status(self.status, serializer);
+    sse_encode_opt_box_autoadd_bool(self.selected, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_course_category(
+    BridgeBykcCourseCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_course_page(
+    BridgeBykcCoursePage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_bykc_course(self.content, serializer);
+    sse_encode_i_32(self.totalElements, serializer);
+    sse_encode_i_32(self.totalPages, serializer);
+    sse_encode_i_32(self.size, serializer);
+    sse_encode_i_32(self.number, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_course_request(
+    BridgeBykcCourseRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.courseId, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_course_status(
+    BridgeBykcCourseStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_course_sub_category(
+    BridgeBykcCourseSubCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_sign_config(
+    BridgeBykcSignConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.signStartDate, serializer);
+    sse_encode_opt_String(self.signEndDate, serializer);
+    sse_encode_opt_String(self.signOutStartDate, serializer);
+    sse_encode_opt_String(self.signOutEndDate, serializer);
+    sse_encode_list_bridge_bykc_sign_point(self.signPoints, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_sign_course_request(
+    BridgeBykcSignCourseRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.courseId, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.lat, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.lng, serializer);
+    sse_encode_i_32(self.signType, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_sign_point(
+    BridgeBykcSignPoint self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self.lat, serializer);
+    sse_encode_f_64(self.lng, serializer);
+    sse_encode_f_64(self.radius, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_statistic(
+    BridgeBykcStatistic self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.categoryName, serializer);
+    sse_encode_opt_String(self.subCategoryName, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.requiredCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.passedCount, serializer);
+    sse_encode_opt_box_autoadd_bool(self.qualified, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_statistics(
+    BridgeBykcStatistics self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_i_32(self.totalValidCount, serializer);
+    sse_encode_list_bridge_bykc_statistic(self.categories, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_bykc_user_profile(
+    BridgeBykcUserProfile self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.id, serializer);
+    sse_encode_opt_String(self.employeeId, serializer);
+    sse_encode_opt_String(self.realName, serializer);
+    sse_encode_opt_String(self.studentNo, serializer);
+    sse_encode_opt_String(self.collegeName, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_cancel_order_request(
+    BridgeCgyyCancelOrderRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.id, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_day_info(
+    BridgeCgyyDayInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.venueSiteId, serializer);
+    sse_encode_String(self.reservationDate, serializer);
+    sse_encode_list_String(self.availableDates, serializer);
+    sse_encode_list_bridge_cgyy_time_slot(self.timeSlots, serializer);
+    sse_encode_list_bridge_cgyy_space_availability(self.spaces, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.reservationTotalNum, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_lock_code(
+    BridgeCgyyLockCode self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.available, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_order(
+    BridgeCgyyOrder self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.id, serializer);
+    sse_encode_opt_String(self.tradeNo, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSiteId, serializer);
+    sse_encode_opt_String(self.reservationDate, serializer);
+    sse_encode_opt_String(self.reservationDateDetail, serializer);
+    sse_encode_opt_String(self.venueSpaceName, serializer);
+    sse_encode_opt_String(self.campusName, serializer);
+    sse_encode_opt_String(self.venueName, serializer);
+    sse_encode_opt_String(self.siteName, serializer);
+    sse_encode_opt_String(self.reservationStartDate, serializer);
+    sse_encode_opt_String(self.reservationEndDate, serializer);
+    sse_encode_opt_String(self.phone, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.orderStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.payStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.checkStatus, serializer);
+    sse_encode_opt_String(self.theme, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.purposeType, serializer);
+    sse_encode_opt_String(self.purposeTypeName, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.joinerNum, serializer);
+    sse_encode_opt_String(self.activityContent, serializer);
+    sse_encode_opt_String(self.joiners, serializer);
+    sse_encode_opt_String(self.checkContent, serializer);
+    sse_encode_opt_String(self.handleReason, serializer);
+    sse_encode_opt_String(self.remark, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_orders_page(
+    BridgeCgyyOrdersPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cgyy_order(self.content, serializer);
+    sse_encode_i_32(self.totalElements, serializer);
+    sse_encode_i_32(self.totalPages, serializer);
+    sse_encode_i_32(self.size, serializer);
+    sse_encode_i_32(self.number, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_purpose_source(
+    BridgeCgyyPurposeSource self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_purpose_type(
+    BridgeCgyyPurposeType self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.key, serializer);
+    sse_encode_String(self.name, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_purpose_types(
+    BridgeCgyyPurposeTypes self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cgyy_purpose_type(self.items, serializer);
+    sse_encode_bridge_cgyy_purpose_source(self.source, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_reservation_selection(
+    BridgeCgyyReservationSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.spaceId, serializer);
+    sse_encode_i_32(self.timeId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSpaceGroupId, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_slot_status(
+    BridgeCgyySlotStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.timeId, serializer);
+    sse_encode_i_32(self.reservationStatus, serializer);
+    sse_encode_bool(self.isReservable, serializer);
+    sse_encode_opt_String(self.startDate, serializer);
+    sse_encode_opt_String(self.endDate, serializer);
+    sse_encode_opt_String(self.tradeNo, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.orderId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.useNum, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.alreadyNum, serializer);
+    sse_encode_opt_box_autoadd_bool(self.takeUp, serializer);
+    sse_encode_opt_String(self.takeUpExplain, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_space_availability(
+    BridgeCgyySpaceAvailability self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.spaceId, serializer);
+    sse_encode_String(self.spaceName, serializer);
+    sse_encode_i_32(self.venueSiteId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSpaceGroupId, serializer);
+    sse_encode_list_bridge_cgyy_slot_status(self.slots, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_submit_reservation_request(
+    BridgeCgyySubmitReservationRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.venueSiteId, serializer);
+    sse_encode_String(self.reservationDate, serializer);
+    sse_encode_list_bridge_cgyy_reservation_selection(
+      self.selections,
+      serializer,
+    );
+    sse_encode_String(self.phone, serializer);
+    sse_encode_String(self.theme, serializer);
+    sse_encode_i_32(self.purposeType, serializer);
+    sse_encode_i_32(self.joinerNum, serializer);
+    sse_encode_String(self.activityContent, serializer);
+    sse_encode_String(self.joiners, serializer);
+    sse_encode_bool(self.isPhilosophySocialSciences, serializer);
+    sse_encode_bool(self.isOffSchoolJoiner, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_time_slot(
+    BridgeCgyyTimeSlot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.id, serializer);
+    sse_encode_String(self.beginTime, serializer);
+    sse_encode_String(self.endTime, serializer);
+    sse_encode_String(self.label, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_venue_site(
+    BridgeCgyyVenueSite self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.id, serializer);
+    sse_encode_String(self.siteName, serializer);
+    sse_encode_String(self.venueName, serializer);
+    sse_encode_String(self.campusName, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.seatCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.reservationSpaceCount, serializer);
+    sse_encode_opt_String(self.siteTelephone, serializer);
+    sse_encode_opt_String(self.openStartDate, serializer);
+    sse_encode_opt_String(self.openEndDate, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_classroom_floor(
+    BridgeClassroomFloor self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_list_bridge_classroom_info(self.rooms, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_classroom_info(
+    BridgeClassroomInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.floorId, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.availableSections, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_classroom_query(
+    BridgeClassroomQuery self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.code, serializer);
+    sse_encode_String(self.message, serializer);
+    sse_encode_list_bridge_classroom_floor(self.floors, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_connection_mode(
+    BridgeConnectionMode self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_course_class(
+    BridgeCourseClass self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseCode, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_opt_String(self.courseSerialNo, serializer);
+    sse_encode_opt_String(self.credit, serializer);
+    sse_encode_opt_String(self.beginTime, serializer);
+    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.beginSection, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.endSection, serializer);
+    sse_encode_opt_String(self.placeName, serializer);
+    sse_encode_opt_String(self.weeksAndTeachers, serializer);
+    sse_encode_opt_String(self.teachingTarget, serializer);
+    sse_encode_opt_String(self.color, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.dayOfWeek, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_error(BridgeError self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_error_code(self.code, serializer);
+    sse_encode_bridge_error_kind(self.kind, serializer);
+    sse_encode_bool(self.retryable, serializer);
+    sse_encode_String(self.message, serializer);
+    sse_encode_opt_box_autoadd_bridge_connection_mode(
+      self.resolvedRoute,
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_bridge_error_code(
+    BridgeErrorCode self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_error_kind(
+    BridgeErrorKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_evaluation_course(
+    BridgeEvaluationCourse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.kcmc, serializer);
+    sse_encode_String(self.bpmc, serializer);
+    sse_encode_bool(self.isEvaluated, serializer);
+    sse_encode_String(self.rwid, serializer);
+    sse_encode_String(self.wjid, serializer);
+    sse_encode_String(self.kcdm, serializer);
+    sse_encode_opt_String(self.bpdm, serializer);
+    sse_encode_opt_String(self.pjrdm, serializer);
+    sse_encode_opt_String(self.pjrmc, serializer);
+    sse_encode_opt_String(self.xnxq, serializer);
+    sse_encode_String(self.msid, serializer);
+    sse_encode_opt_String(self.zdmc, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.ypjcs, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.xypjcs, serializer);
+    sse_encode_opt_String(self.sxz, serializer);
+    sse_encode_opt_String(self.rwh, serializer);
+    sse_encode_opt_String(self.xn, serializer);
+    sse_encode_opt_String(self.xq, serializer);
+    sse_encode_opt_String(self.pjlxid, serializer);
+    sse_encode_opt_String(self.sfksqbpj, serializer);
+    sse_encode_opt_String(self.yxsfktjst, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_evaluation_courses_response(
+    BridgeEvaluationCoursesResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_evaluation_course(self.courses, serializer);
+    sse_encode_bridge_evaluation_progress(self.progress, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_evaluation_progress(
+    BridgeEvaluationProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.totalCourses, serializer);
+    sse_encode_i_32(self.evaluatedCourses, serializer);
+    sse_encode_i_32(self.pendingCourses, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_evaluation_submit_courses_request(
+    BridgeEvaluationSubmitCoursesRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_evaluation_course(self.courses, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_exam(BridgeExam self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_opt_String(self.courseNo, serializer);
+    sse_encode_opt_String(self.examTimeDescription, serializer);
+    sse_encode_opt_String(self.examDate, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_opt_String(self.examPlace, serializer);
+    sse_encode_opt_String(self.examSeatNo, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.week, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.examStatus, serializer);
+    sse_encode_opt_String(self.examType, serializer);
+    sse_encode_opt_String(self.taskId, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_exam_arrangement(
+    BridgeExamArrangement self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_exam(self.arranged, serializer);
+    sse_encode_list_bridge_exam(self.notArranged, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_grade(BridgeGrade self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.courseName, serializer);
+    sse_encode_opt_String(self.courseCode, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.credit, serializer);
+    sse_encode_opt_String(self.score, serializer);
+    sse_encode_opt_String(self.gradePoint, serializer);
+    sse_encode_opt_String(self.courseType, serializer);
+    sse_encode_opt_String(self.scoreType, serializer);
+    sse_encode_opt_String(self.termCode, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_grade_data(
+    BridgeGradeData self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.termCode, serializer);
+    sse_encode_list_bridge_grade(self.grades, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_judge_assignment_detail(
+    BridgeJudgeAssignmentDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseId, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_String(self.assignmentId, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.dueTime, serializer);
+    sse_encode_opt_String(self.maxScore, serializer);
+    sse_encode_opt_String(self.myScore, serializer);
+    sse_encode_i_32(self.totalProblems, serializer);
+    sse_encode_i_32(self.submittedCount, serializer);
+    sse_encode_bridge_judge_submission_status(
+      self.submissionStatus,
+      serializer,
+    );
+    sse_encode_String(self.submissionStatusText, serializer);
+    sse_encode_list_bridge_judge_problem(self.problems, serializer);
+    sse_encode_opt_String(self.contentPlainText, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_judge_assignment_key(
+    BridgeJudgeAssignmentKey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseId, serializer);
+    sse_encode_String(self.assignmentId, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_judge_assignment_summary(
+    BridgeJudgeAssignmentSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseId, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_String(self.assignmentId, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.dueTime, serializer);
+    sse_encode_opt_String(self.maxScore, serializer);
+    sse_encode_opt_String(self.myScore, serializer);
+    sse_encode_i_32(self.totalProblems, serializer);
+    sse_encode_i_32(self.submittedCount, serializer);
+    sse_encode_bridge_judge_submission_status(
+      self.submissionStatus,
+      serializer,
+    );
+    sse_encode_String(self.submissionStatusText, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_judge_problem(
+    BridgeJudgeProblem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.score, serializer);
+    sse_encode_opt_String(self.maxScore, serializer);
+    sse_encode_bridge_judge_submission_status(self.status, serializer);
+    sse_encode_String(self.statusText, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_judge_submission_status(
+    BridgeJudgeSubmissionStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_area(
+    BridgeLibBookArea self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.areaName, serializer);
+    sse_encode_String(self.premisesId, serializer);
+    sse_encode_String(self.storeyId, serializer);
+    sse_encode_i_32(self.freeNum, serializer);
+    sse_encode_i_32(self.totalNum, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_area_detail(
+    BridgeLibBookAreaDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_list_String(self.availableDates, serializer);
+    sse_encode_list_bridge_lib_book_time_slot(self.timeSlots, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_booking(
+    BridgeLibBookBooking self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.nameMerge, serializer);
+    sse_encode_String(self.areaName, serializer);
+    sse_encode_String(self.seatNo, serializer);
+    sse_encode_String(self.day, serializer);
+    sse_encode_String(self.beginTime, serializer);
+    sse_encode_String(self.endTime, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_String(self.statusName, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_bookings_page(
+    BridgeLibBookBookingsPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_booking(self.bookings, serializer);
+    sse_encode_i_32(self.page, serializer);
+    sse_encode_i_32(self.limit, serializer);
+    sse_encode_i_32(self.total, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_library(
+    BridgeLibBookLibrary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_i_32(self.freeNum, serializer);
+    sse_encode_i_32(self.totalNum, serializer);
+    sse_encode_list_bridge_lib_book_storey(self.storeys, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_seat(
+    BridgeLibBookSeat self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.no, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_String(self.statusName, serializer);
+    sse_encode_bool(self.isAvailable, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_storey(
+    BridgeLibBookStorey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_i_32(self.freeNum, serializer);
+    sse_encode_i_32(self.totalNum, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_time_slot(
+    BridgeLibBookTimeSlot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.start, serializer);
+    sse_encode_String(self.end, serializer);
+    sse_encode_String(self.label, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_libbook_cancel_booking_request(
+    BridgeLibbookCancelBookingRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_libbook_reserve_request(
+    BridgeLibbookReserveRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.areaId, serializer);
+    sse_encode_String(self.seatId, serializer);
+    sse_encode_String(self.day, serializer);
+    sse_encode_String(self.segment, serializer);
+    sse_encode_String(self.startTime, serializer);
+    sse_encode_String(self.endTime, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_login_outcome(
+    BridgeLoginOutcome self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_login_readiness(self.readiness, serializer);
+    sse_encode_list_bridge_route_login_result(self.routes, serializer);
+    sse_encode_opt_box_autoadd_bridge_user_profile(self.profile, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_login_preparation(
+    BridgeLoginPreparation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_route_login_result(self.routes, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_login_readiness(
+    BridgeLoginReadiness self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_network_state(
+    BridgeNetworkState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_photo_upload(
+    BridgePhotoUpload self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_u_8_strict(self.bytes, serializer);
+    sse_encode_String(self.fileName, serializer);
+    sse_encode_String(self.mimeType, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_route_decision(
+    BridgeRouteDecision self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_route_policy(self.policy, serializer);
+    sse_encode_bridge_connection_mode(self.resolvedRoute, serializer);
+    sse_encode_bridge_network_state(self.network, serializer);
+    sse_encode_bridge_connection_mode(self.initialRoute, serializer);
+    sse_encode_bool(self.usedFallback, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_route_login_result(
+    BridgeRouteLoginResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_connection_mode(self.route, serializer);
+    sse_encode_bridge_route_login_state(self.state, serializer);
+    sse_encode_opt_box_autoadd_bridge_safe_error(self.error, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_route_login_state(
+    BridgeRouteLoginState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_route_policy(
+    BridgeRoutePolicy self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_route_settings(
+    BridgeRouteSettings self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_route_policy(self.defaultPolicy, serializer);
+    sse_encode_list_bridge_connection_mode(self.activeRoutes, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_bykc_chosen_courses(
+    BridgeRoutedBykcChosenCourses self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_bykc_chosen_course(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_bykc_course(
+    BridgeRoutedBykcCourse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_course(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_bykc_courses(
+    BridgeRoutedBykcCourses self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_course_page(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_bykc_profile(
+    BridgeRoutedBykcProfile self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_user_profile(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_bykc_statistics(
+    BridgeRoutedBykcStatistics self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_bykc_statistics(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_day_info(
+    BridgeRoutedCgyyDayInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_day_info(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_lock_code(
+    BridgeRoutedCgyyLockCode self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_lock_code(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_order(
+    BridgeRoutedCgyyOrder self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_order(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_orders(
+    BridgeRoutedCgyyOrders self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_orders_page(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_purpose_types(
+    BridgeRoutedCgyyPurposeTypes self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_purpose_types(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_cgyy_sites(
+    BridgeRoutedCgyySites self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cgyy_venue_site(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_classroom_query(
+    BridgeRoutedClassroomQuery self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_classroom_query(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_evaluation(
+    BridgeRoutedEvaluation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_evaluation_courses_response(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_exam_arrangement(
+    BridgeRoutedExamArrangement self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_exam_arrangement(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_grades(
+    BridgeRoutedGrades self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_grade_data(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_judge_assignment_detail(
+    BridgeRoutedJudgeAssignmentDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_judge_assignment_detail(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_judge_assignment_details(
+    BridgeRoutedJudgeAssignmentDetails self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_judge_assignment_detail(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_judge_summaries(
+    BridgeRoutedJudgeSummaries self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_judge_assignment_summary(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_area_detail(
+    BridgeRoutedLibBookAreaDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_lib_book_area_detail(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_areas(
+    BridgeRoutedLibBookAreas self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_area(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_bookings(
+    BridgeRoutedLibBookBookings self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_lib_book_bookings_page(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_libraries(
+    BridgeRoutedLibBookLibraries self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_library(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_seats(
+    BridgeRoutedLibBookSeats self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_seat(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_signin_classes(
+    BridgeRoutedSigninClasses self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_signin_class(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_spoc_assignment_detail(
+    BridgeRoutedSpocAssignmentDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_spoc_assignment_detail(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_spoc_assignments(
+    BridgeRoutedSpocAssignments self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_spoc_assignments(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_terms(
+    BridgeRoutedTerms self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_term(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_today_classes(
+    BridgeRoutedTodayClasses self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_today_class(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_user_profile(
+    BridgeRoutedUserProfile self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_user_profile(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_weekly_schedule(
+    BridgeRoutedWeeklySchedule self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_weekly_schedule(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_weeks(
+    BridgeRoutedWeeks self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_week(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_ygdk_overview(
+    BridgeRoutedYgdkOverview self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_overview(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_routed_ygdk_records(
+    BridgeRoutedYgdkRecords self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_records_page(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_safe_error(
+    BridgeSafeError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.code, serializer);
+    sse_encode_String(self.kind, serializer);
+    sse_encode_bool(self.retryable, serializer);
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_signin_class(
+    BridgeSigninClass self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseId, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_String(self.classBeginTime, serializer);
+    sse_encode_String(self.classEndTime, serializer);
+    sse_encode_i_32(self.signStatus, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_signin_perform_request(
+    BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.courseId, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_spoc_assignment_detail(
+    BridgeSpocAssignmentDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.assignmentId, serializer);
+    sse_encode_String(self.courseId, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_opt_String(self.teacherName, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.dueTime, serializer);
+    sse_encode_opt_String(self.score, serializer);
+    sse_encode_bridge_spoc_submission_status(self.submissionStatus, serializer);
+    sse_encode_String(self.submissionStatusText, serializer);
+    sse_encode_opt_String(self.contentPlainText, serializer);
+    sse_encode_opt_String(self.submittedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_spoc_assignment_summary(
+    BridgeSpocAssignmentSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.assignmentId, serializer);
+    sse_encode_String(self.courseId, serializer);
+    sse_encode_String(self.courseName, serializer);
+    sse_encode_opt_String(self.teacherName, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.dueTime, serializer);
+    sse_encode_opt_String(self.score, serializer);
+    sse_encode_bridge_spoc_submission_status(self.submissionStatus, serializer);
+    sse_encode_String(self.submissionStatusText, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_spoc_assignments(
+    BridgeSpocAssignments self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.termCode, serializer);
+    sse_encode_opt_String(self.termName, serializer);
+    sse_encode_list_bridge_spoc_assignment_summary(
+      self.assignments,
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_bridge_spoc_submission_status(
+    BridgeSpocSubmissionStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_term(BridgeTerm self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.itemCode, serializer);
+    sse_encode_String(self.itemName, serializer);
+    sse_encode_bool(self.selected, serializer);
+    sse_encode_i_32(self.itemIndex, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_today_class(
+    BridgeTodayClass self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.bizName, serializer);
+    sse_encode_opt_String(self.place, serializer);
+    sse_encode_opt_String(self.time, serializer);
+    sse_encode_opt_String(self.shortName, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_user_profile(
+    BridgeUserProfile self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.username, serializer);
+    sse_encode_opt_String(self.name, serializer);
+    sse_encode_opt_String(self.schoolId, serializer);
+    sse_encode_opt_String(self.email, serializer);
+    sse_encode_opt_String(self.phone, serializer);
+    sse_encode_opt_String(self.idCardTypeName, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_week(BridgeWeek self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.startDate, serializer);
+    sse_encode_String(self.endDate, serializer);
+    sse_encode_String(self.term, serializer);
+    sse_encode_bool(self.curWeek, serializer);
+    sse_encode_i_32(self.serialNumber, serializer);
+    sse_encode_String(self.name, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_weekly_schedule(
+    BridgeWeeklySchedule self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_course_class(self.arrangedList, serializer);
+    sse_encode_String(self.code, serializer);
+    sse_encode_String(self.name, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_write_commit_result(
+    BridgeWriteCommitResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_write_operation(self.operation, serializer);
+    sse_encode_bool(self.success, serializer);
+    sse_encode_String(self.message, serializer);
+    sse_encode_bool(self.outcomeUnknown, serializer);
+    sse_encode_opt_box_autoadd_bridge_connection_mode(
+      self.resolvedRoute,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_bridge_cgyy_order(self.order, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_write_intent(
+    BridgeWriteIntent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.intentId, serializer);
+    sse_encode_bridge_write_operation(self.operation, serializer);
+    sse_encode_String(self.targetSummary, serializer);
+    sse_encode_bridge_connection_mode(self.resolvedRoute, serializer);
+    sse_encode_list_String(self.warnings, serializer);
+    sse_encode_i_64(self.expiresAt, serializer);
+    sse_encode_String(self.requestDigest, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_write_operation(
+    BridgeWriteOperation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_item(
+    BridgeYgdkItem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.itemId, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.kind, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.sort, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_overview(
+    BridgeYgdkOverview self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_term_summary(self.summary, serializer);
+    sse_encode_i_32(self.classifyId, serializer);
+    sse_encode_String(self.classifyName, serializer);
+    sse_encode_i_32(self.defaultItemId, serializer);
+    sse_encode_String(self.defaultItemName, serializer);
+    sse_encode_list_bridge_ygdk_item(self.items, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_record(
+    BridgeYgdkRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.recordId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.itemId, serializer);
+    sse_encode_opt_String(self.itemName, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_opt_String(self.place, serializer);
+    sse_encode_list_String(self.images, serializer);
+    sse_encode_bool(self.isOpen, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.state, serializer);
+    sse_encode_opt_String(self.createdAt, serializer);
+    sse_encode_opt_String(self.createdAtLabel, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_records_page(
+    BridgeYgdkRecordsPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_ygdk_record(self.content, serializer);
+    sse_encode_i_32(self.total, serializer);
+    sse_encode_i_32(self.page, serializer);
+    sse_encode_i_32(self.size, serializer);
+    sse_encode_bool(self.hasMore, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_submit_request(
+    BridgeYgdkSubmitRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_i_32(self.itemId, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_opt_String(self.place, serializer);
+    sse_encode_opt_box_autoadd_bool(self.shareToSquare, serializer);
+    sse_encode_opt_box_autoadd_bridge_photo_upload(self.photo, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_term_summary(
+    BridgeYgdkTermSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_i_32(self.termId, serializer);
+    sse_encode_opt_String(self.termName, serializer);
+    sse_encode_i_32(self.termCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.termTarget, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.weekCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.weekTarget, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.monthCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.monthTarget, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.dayCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.goodCount, serializer);
+  }
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_bykc_chosen_course(
+    List<BridgeBykcChosenCourse> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_bykc_chosen_course(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_bykc_course(
+    List<BridgeBykcCourse> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_bykc_course(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_bykc_sign_point(
+    List<BridgeBykcSignPoint> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_bykc_sign_point(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_bykc_statistic(
+    List<BridgeBykcStatistic> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_bykc_statistic(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_order(
+    List<BridgeCgyyOrder> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_order(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_purpose_type(
+    List<BridgeCgyyPurposeType> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_purpose_type(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_reservation_selection(
+    List<BridgeCgyyReservationSelection> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_reservation_selection(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_slot_status(
+    List<BridgeCgyySlotStatus> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_slot_status(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_space_availability(
+    List<BridgeCgyySpaceAvailability> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_space_availability(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_time_slot(
+    List<BridgeCgyyTimeSlot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_time_slot(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cgyy_venue_site(
+    List<BridgeCgyyVenueSite> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cgyy_venue_site(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_classroom_floor(
+    List<BridgeClassroomFloor> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_classroom_floor(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_classroom_info(
+    List<BridgeClassroomInfo> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_classroom_info(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_connection_mode(
+    List<BridgeConnectionMode> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_connection_mode(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_course_class(
+    List<BridgeCourseClass> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_course_class(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_evaluation_course(
+    List<BridgeEvaluationCourse> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_evaluation_course(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_exam(
+    List<BridgeExam> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_exam(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_grade(
+    List<BridgeGrade> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_grade(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_judge_assignment_detail(
+    List<BridgeJudgeAssignmentDetail> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_judge_assignment_detail(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_judge_assignment_key(
+    List<BridgeJudgeAssignmentKey> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_judge_assignment_key(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_judge_assignment_summary(
+    List<BridgeJudgeAssignmentSummary> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_judge_assignment_summary(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_judge_problem(
+    List<BridgeJudgeProblem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_judge_problem(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_lib_book_area(
+    List<BridgeLibBookArea> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_lib_book_area(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_lib_book_booking(
+    List<BridgeLibBookBooking> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_lib_book_booking(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_lib_book_library(
+    List<BridgeLibBookLibrary> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_lib_book_library(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_lib_book_seat(
+    List<BridgeLibBookSeat> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_lib_book_seat(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_lib_book_storey(
+    List<BridgeLibBookStorey> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_lib_book_storey(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_lib_book_time_slot(
+    List<BridgeLibBookTimeSlot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_lib_book_time_slot(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_route_login_result(
+    List<BridgeRouteLoginResult> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_route_login_result(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_signin_class(
+    List<BridgeSigninClass> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_signin_class(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_spoc_assignment_summary(
+    List<BridgeSpocAssignmentSummary> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_spoc_assignment_summary(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_term(
+    List<BridgeTerm> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_term(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_today_class(
+    List<BridgeTodayClass> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_today_class(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_week(
+    List<BridgeWeek> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_week(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_ygdk_item(
+    List<BridgeYgdkItem> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_ygdk_item(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_ygdk_record(
+    List<BridgeYgdkRecord> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_ygdk_record(item, serializer);
+    }
   }
 
   @protected
@@ -215,6 +9904,156 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_course_category(
+    BridgeBykcCourseCategory? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_bykc_course_category(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_course_sub_category(
+    BridgeBykcCourseSubCategory? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_bykc_course_sub_category(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_sign_config(
+    BridgeBykcSignConfig? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_bykc_sign_config(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cgyy_order(
+    BridgeCgyyOrder? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cgyy_order(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_connection_mode(
+    BridgeConnectionMode? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_connection_mode(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_photo_upload(
+    BridgePhotoUpload? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_photo_upload(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_safe_error(
+    BridgeSafeError? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_safe_error(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_user_profile(
+    BridgeUserProfile? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_user_profile(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_f_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected
@@ -229,14 +10068,387 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
+  void sse_encode_usize(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
+    serializer.buffer.putBigUint64(self);
   }
+}
 
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self ? 1 : 0);
-  }
+@sealed
+class BridgeClientImpl extends RustOpaque implements BridgeClient {
+  // Not to be used by end users
+  BridgeClientImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  BridgeClientImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_BridgeClient,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_BridgeClient,
+    rustArcDecrementStrongCountPtr:
+        RustLib.instance.api.rust_arc_decrement_strong_count_BridgeClientPtr,
+  );
+
+  /// 校验持久化认证状态。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
+  Future<BridgeLoginOutcome> authStatus() =>
+      RustLib.instance.api.crateApiClientBridgeClientAuthStatus(that: this);
+
+  Future<BridgeRoutedBykcChosenCourses> bykcChosenCourses() => RustLib
+      .instance
+      .api
+      .crateApiClientBridgeClientBykcChosenCourses(that: this);
+
+  Future<BridgeRoutedBykcCourse> bykcCourseDetail({
+    required PlatformInt64 id,
+  }) => RustLib.instance.api.crateApiClientBridgeClientBykcCourseDetail(
+    that: this,
+    id: id,
+  );
+
+  Future<BridgeRoutedBykcCourses> bykcCourses({
+    required int page,
+    required int size,
+    required bool all,
+  }) => RustLib.instance.api.crateApiClientBridgeClientBykcCourses(
+    that: this,
+    page: page,
+    size: size,
+    all: all,
+  );
+
+  Future<BridgeRoutedBykcProfile> bykcProfile() =>
+      RustLib.instance.api.crateApiClientBridgeClientBykcProfile(that: this);
+
+  Future<BridgeRoutedBykcStatistics> bykcStatistics() =>
+      RustLib.instance.api.crateApiClientBridgeClientBykcStatistics(that: this);
+
+  Future<BridgeRoutedCgyyDayInfo> cgyyDayInfo({
+    required int siteId,
+    required String date,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyyDayInfo(
+    that: this,
+    siteId: siteId,
+    date: date,
+  );
+
+  Future<BridgeRoutedCgyyLockCode> cgyyLockCode() =>
+      RustLib.instance.api.crateApiClientBridgeClientCgyyLockCode(that: this);
+
+  Future<BridgeRoutedCgyyOrder> cgyyOrderDetail({required int id}) => RustLib
+      .instance
+      .api
+      .crateApiClientBridgeClientCgyyOrderDetail(that: this, id: id);
+
+  Future<BridgeRoutedCgyyOrders> cgyyOrders({
+    required int page,
+    required int size,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyyOrders(
+    that: this,
+    page: page,
+    size: size,
+  );
+
+  Future<BridgeRoutedCgyyPurposeTypes> cgyyPurposeTypes() => RustLib
+      .instance
+      .api
+      .crateApiClientBridgeClientCgyyPurposeTypes(that: this);
+
+  Future<BridgeRoutedCgyySites> cgyySites() =>
+      RustLib.instance.api.crateApiClientBridgeClientCgyySites(that: this);
+
+  Future<BridgeRoutedClassroomQuery> classroomSearch({
+    required int campus,
+    required String date,
+  }) => RustLib.instance.api.crateApiClientBridgeClientClassroomSearch(
+    that: this,
+    campus: campus,
+    date: date,
+  );
+
+  Future<BridgeWriteCommitResult> commitWrite({required String intentId}) =>
+      RustLib.instance.api.crateApiClientBridgeClientCommitWrite(
+        that: this,
+        intentId: intentId,
+      );
+
+  /// 返回 bridge 合同版本。
+  int contractVersion() => RustLib.instance.api
+      .crateApiClientBridgeClientContractVersion(that: this);
+
+  /// 幂等销毁 Core client。
+  ///
+  /// # Errors
+  ///
+  /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
+  Future<void> dispose() =>
+      RustLib.instance.api.crateApiClientBridgeClientDispose(that: this);
+
+  Future<BridgeRoutedEvaluation> evaluationAll() =>
+      RustLib.instance.api.crateApiClientBridgeClientEvaluationAll(that: this);
+
+  Future<BridgeRoutedExamArrangement> examArrangement({required String term}) =>
+      RustLib.instance.api.crateApiClientBridgeClientExamArrangement(
+        that: this,
+        term: term,
+      );
+
+  Future<BridgeRoutedGrades> grades({required String term}) => RustLib
+      .instance
+      .api
+      .crateApiClientBridgeClientGrades(that: this, term: term);
+
+  Future<BridgeRoutedJudgeAssignmentDetail> judgeAssignment({
+    required String courseId,
+    required String assignmentId,
+  }) => RustLib.instance.api.crateApiClientBridgeClientJudgeAssignment(
+    that: this,
+    courseId: courseId,
+    assignmentId: assignmentId,
+  );
+
+  Future<BridgeRoutedJudgeAssignmentDetails> judgeAssignmentDetails({
+    required List<BridgeJudgeAssignmentKey> keys,
+  }) => RustLib.instance.api.crateApiClientBridgeClientJudgeAssignmentDetails(
+    that: this,
+    keys: keys,
+  );
+
+  Future<BridgeRoutedJudgeSummaries> judgeAssignments({
+    required bool includeExpired,
+  }) => RustLib.instance.api.crateApiClientBridgeClientJudgeAssignments(
+    that: this,
+    includeExpired: includeExpired,
+  );
+
+  Future<BridgeRoutedLibBookAreaDetail> libbookAreaDetail({
+    required String areaId,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookAreaDetail(
+    that: this,
+    areaId: areaId,
+  );
+
+  Future<BridgeRoutedLibBookAreas> libbookAreas({
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookAreas(
+    that: this,
+    premisesId: premisesId,
+    storeyId: storeyId,
+    day: day,
+  );
+
+  Future<BridgeRoutedLibBookBookings> libbookBookings({
+    required int page,
+    required int limit,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookBookings(
+    that: this,
+    page: page,
+    limit: limit,
+  );
+
+  Future<BridgeRoutedLibBookLibraries> libbookLibraries({
+    required String day,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookLibraries(
+    that: this,
+    day: day,
+  );
+
+  Future<BridgeRoutedLibBookSeats> libbookSeats({
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookSeats(
+    that: this,
+    areaId: areaId,
+    day: day,
+    startTime: startTime,
+    endTime: endTime,
+  );
+
+  /// 提交双路线账号密码。
+  ///
+  /// # Errors
+  ///
+  /// 输入为空、客户端已销毁或 Core 登录失败时返回安全错误。
+  Future<BridgeLoginOutcome> login({
+    required String username,
+    required String password,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLogin(
+    that: this,
+    username: username,
+    password: password,
+  );
+
+  /// 清理 Core Session 并执行尽力远端注销。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁或 Core 注销失败时返回安全错误。
+  Future<void> logout() =>
+      RustLib.instance.api.crateApiClientBridgeClientLogout(that: this);
+
+  Future<BridgeWriteIntent> prepareBykcDeselectCourse({
+    required BridgeBykcCourseRequest request,
+  }) =>
+      RustLib.instance.api.crateApiClientBridgeClientPrepareBykcDeselectCourse(
+        that: this,
+        request: request,
+      );
+
+  Future<BridgeWriteIntent> prepareBykcSelectCourse({
+    required BridgeBykcCourseRequest request,
+  }) => RustLib.instance.api.crateApiClientBridgeClientPrepareBykcSelectCourse(
+    that: this,
+    request: request,
+  );
+
+  Future<BridgeWriteIntent> prepareBykcSignCourse({
+    required BridgeBykcSignCourseRequest request,
+  }) => RustLib.instance.api.crateApiClientBridgeClientPrepareBykcSignCourse(
+    that: this,
+    request: request,
+  );
+
+  Future<BridgeWriteIntent> prepareCgyyCancelOrder({
+    required BridgeCgyyCancelOrderRequest request,
+  }) => RustLib.instance.api.crateApiClientBridgeClientPrepareCgyyCancelOrder(
+    that: this,
+    request: request,
+  );
+
+  Future<BridgeWriteIntent> prepareCgyySubmitReservation({
+    required BridgeCgyySubmitReservationRequest request,
+  }) => RustLib.instance.api
+      .crateApiClientBridgeClientPrepareCgyySubmitReservation(
+        that: this,
+        request: request,
+      );
+
+  Future<BridgeWriteIntent> prepareEvaluationSubmitCourses({
+    required BridgeEvaluationSubmitCoursesRequest request,
+  }) => RustLib.instance.api
+      .crateApiClientBridgeClientPrepareEvaluationSubmitCourses(
+        that: this,
+        request: request,
+      );
+
+  Future<BridgeWriteIntent> prepareLibbookCancelBooking({
+    required BridgeLibbookCancelBookingRequest request,
+  }) => RustLib.instance.api
+      .crateApiClientBridgeClientPrepareLibbookCancelBooking(
+        that: this,
+        request: request,
+      );
+
+  Future<BridgeWriteIntent> prepareLibbookReserve({
+    required BridgeLibbookReserveRequest request,
+  }) => RustLib.instance.api.crateApiClientBridgeClientPrepareLibbookReserve(
+    that: this,
+    request: request,
+  );
+
+  /// 准备两条路线的登录页状态。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁或 Core 无法准备路线时返回安全错误。
+  Future<BridgeLoginPreparation> prepareLogin() =>
+      RustLib.instance.api.crateApiClientBridgeClientPrepareLogin(that: this);
+
+  Future<BridgeWriteIntent> prepareSigninPerform({
+    required BridgeSigninPerformRequest request,
+  }) => RustLib.instance.api.crateApiClientBridgeClientPrepareSigninPerform(
+    that: this,
+    request: request,
+  );
+
+  Future<BridgeWriteIntent> prepareYgdkSubmit({
+    required BridgeYgdkSubmitRequest request,
+  }) => RustLib.instance.api.crateApiClientBridgeClientPrepareYgdkSubmit(
+    that: this,
+    request: request,
+  );
+
+  /// 读取全局路线策略与已认证槽位。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁时返回安全错误。
+  Future<BridgeRouteSettings> routeSettings() =>
+      RustLib.instance.api.crateApiClientBridgeClientRouteSettings(that: this);
+
+  Future<BridgeRoutedTerms> scheduleTerms() =>
+      RustLib.instance.api.crateApiClientBridgeClientScheduleTerms(that: this);
+
+  Future<BridgeRoutedTodayClasses> scheduleToday() =>
+      RustLib.instance.api.crateApiClientBridgeClientScheduleToday(that: this);
+
+  Future<BridgeRoutedWeeklySchedule> scheduleWeek({
+    required String term,
+    required int week,
+  }) => RustLib.instance.api.crateApiClientBridgeClientScheduleWeek(
+    that: this,
+    term: term,
+    week: week,
+  );
+
+  Future<BridgeRoutedWeeks> scheduleWeeks({required String term}) => RustLib
+      .instance
+      .api
+      .crateApiClientBridgeClientScheduleWeeks(that: this, term: term);
+
+  /// 保存新的全局策略、清除 feature override 并重开 Core client。
+  ///
+  /// # Errors
+  ///
+  /// 另一个 bridge 操作占用客户端、客户端已销毁、配置保存失败或重开失败时返回安全错误。
+  Future<BridgeRouteSettings> setDefaultRoutePolicy({
+    required BridgeRoutePolicy policy,
+  }) => RustLib.instance.api.crateApiClientBridgeClientSetDefaultRoutePolicy(
+    that: this,
+    policy: policy,
+  );
+
+  Future<BridgeRoutedSigninClasses> signinToday() =>
+      RustLib.instance.api.crateApiClientBridgeClientSigninToday(that: this);
+
+  Future<BridgeRoutedSpocAssignmentDetail> spocAssignment({
+    required String assignmentId,
+  }) => RustLib.instance.api.crateApiClientBridgeClientSpocAssignment(
+    that: this,
+    assignmentId: assignmentId,
+  );
+
+  Future<BridgeRoutedSpocAssignments> spocAssignments() => RustLib.instance.api
+      .crateApiClientBridgeClientSpocAssignments(that: this);
+
+  /// 获取必要的用户资料。
+  ///
+  /// # Errors
+  ///
+  /// 客户端已销毁、未认证或 Core 读取资料失败时返回安全错误。
+  Future<BridgeRoutedUserProfile> userInfo() =>
+      RustLib.instance.api.crateApiClientBridgeClientUserInfo(that: this);
+
+  Future<BridgeRoutedYgdkOverview> ygdkOverview() =>
+      RustLib.instance.api.crateApiClientBridgeClientYgdkOverview(that: this);
+
+  Future<BridgeRoutedYgdkRecords> ygdkRecords({
+    required int page,
+    required int size,
+  }) => RustLib.instance.api.crateApiClientBridgeClientYgdkRecords(
+    that: this,
+    page: page,
+    size: size,
+  );
 }
