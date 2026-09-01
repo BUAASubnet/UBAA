@@ -150,6 +150,9 @@
 30. 当前增量将 Core 返回的 `resolved_route` 从 `FeatureResult`/`BridgeBackend` 保留到
     `FeatureSnapshot`，并在共享卡片与详情页显示“实际路线”；app/widget 回归测试已通过。
     这修复了配置策略与实际路线可能混淆的展示缺口，但不替代六平台真实 App E2E。
+31. 应用层已通过受限 `RouteSettingsBackend` 读取活动路线；切换到未认证的固定路线时清除
+    用户和功能快照并回到登录页，避免旧路线数据残留。Bridge 仍由 Core 执行原子策略保存、
+    重开 client 和 intent 失效；对应 app 回归测试已通过。
 
 ## 4. 安全与架构边界
 

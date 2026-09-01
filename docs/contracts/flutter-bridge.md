@@ -242,5 +242,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 - 读取结果中的 `RouteDecision.resolvedRoute` 现在沿 `FeatureResult`、`FeatureSnapshot` 和
   `BridgeBackend` 传到卡片与详情页；页面显示“实际路线”，不会把 `defaultPolicy` 冒充为本次
   请求路线。app/widget 回归测试固定该投影，刷新失败的 `stale` 数据继续保留上次实际路线。
+- 应用层现在通过受限的 `RouteSettingsBackend` 读取 `defaultPolicy` 与 `activeRoutes`；切换
+  固定路线后若目标槽位未认证，会清除用户与功能快照并回到登录页，避免继续展示旧路线数据。
+  生产 bridge 仍由 Core 完成原子保存、重开和 intent 失效，Dart 不读取 Session 内容。
 - 尚未把这些结果标记为 P1 完成：panic 归约、Dart isolate 重建、跨进程 Session 锁、路线/会话
   失效 intent、完整 schema 快照和每个 DTO 的 Dart domain/UI 消费测试仍需逐项补齐。

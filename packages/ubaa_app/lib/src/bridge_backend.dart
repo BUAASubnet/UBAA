@@ -12,7 +12,11 @@ import 'backend.dart';
 /// Session 和路线选择仍由 Rust Core 管理。测试可以继续显式注入 [DemoBackend]，
 /// 生产宿主不得把 Demo 作为默认实现。
 class BridgeBackend
-    implements UbaaBackend, FeatureQueryBackend, BackendLifecycle {
+    implements
+        UbaaBackend,
+        FeatureQueryBackend,
+        RouteSettingsBackend,
+        BackendLifecycle {
   BridgeBackend(this.client);
 
   /// 从平台已经解析好的应用私有目录打开 Core。
@@ -52,8 +56,39 @@ class BridgeBackend
   @override
   Future<void> prepareLogin(RoutePolicy policy) async {
     try {
-      await client.setDefaultRoutePolicy(policy: _toBridgePolicy(policy));
+      await setDefaultRoutePolicy(policy);
       await client.prepareLogin();
+    } on BridgeError catch (error) {
+      throw _mapError(error);
+    }
+  }
+
+  Future<BackendRouteSettings> setDefaultRoutePolicy(RoutePolicy policy) async {
+    try {
+      final settings = await client.setDefaultRoutePolicy(
+        policy: _toBridgePolicy(policy),
+      );
+      return BackendRouteSettings(
+        defaultPolicy: _toRoutePolicy(settings.defaultPolicy),
+        activeRoutes: List<ConnectionMode>.unmodifiable(
+          settings.activeRoutes.map(_toConnectionMode),
+        ),
+      );
+    } on BridgeError catch (error) {
+      throw _mapError(error);
+    }
+  }
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async {
+    try {
+      final settings = await client.routeSettings();
+      return BackendRouteSettings(
+        defaultPolicy: _toRoutePolicy(settings.defaultPolicy),
+        activeRoutes: List<ConnectionMode>.unmodifiable(
+          settings.activeRoutes.map(_toConnectionMode),
+        ),
+      );
     } on BridgeError catch (error) {
       throw _mapError(error);
     }
@@ -643,6 +678,13 @@ class BridgeBackend
       switch (mode) {
         BridgeConnectionMode.direct => ConnectionMode.direct,
         BridgeConnectionMode.webVpn => ConnectionMode.webvpn,
+      };
+
+  static RoutePolicy _toRoutePolicy(BridgeRoutePolicy policy) =>
+      switch (policy) {
+        BridgeRoutePolicy.auto => RoutePolicy.auto,
+        BridgeRoutePolicy.direct => RoutePolicy.direct,
+        BridgeRoutePolicy.webVpn => RoutePolicy.webvpn,
       };
 
   Future<String?> _selectedTerm() async {

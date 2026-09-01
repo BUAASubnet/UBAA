@@ -154,13 +154,32 @@ class AppController extends ChangeNotifier {
 
   Future<void> setRoutePolicy(RoutePolicy value) async {
     if (_phase == AppPhase.loggingIn) return;
-    _loginForm = _loginForm.copyWith(routePolicy: value);
+    final previousPolicy = _loginForm.routePolicy;
+    if (previousPolicy == value) return;
     _clearError();
     try {
       await _backend.prepareLogin(value);
+      BackendRouteSettings? settings;
+      if (_backend case final RouteSettingsBackend routeBackend) {
+        settings = await routeBackend.routeSettings();
+      }
+      _loginForm = _loginForm.copyWith(
+        routePolicy: settings?.defaultPolicy ?? value,
+      );
+      if (_phase == AppPhase.home &&
+          settings != null &&
+          !_routePolicyHasSession(value, settings.activeRoutes)) {
+        // 切换到尚未认证的固定路线时，不能继续展示旧用户数据；保留用户名和
+        // 用户主动保存的凭据，回到登录页完成目标路线认证。
+        _user = null;
+        _resetFeatureSnapshots();
+        _setPhase(AppPhase.login);
+      }
     } on BackendException catch (exception) {
+      _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
       _error = UbaaErrorMapper.fromCode(exception.code);
     } catch (_) {
+      _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
     }
     _notify();
@@ -362,6 +381,22 @@ class AppController extends ChangeNotifier {
     if (_error == null) return;
     _error = null;
     _notify();
+  }
+
+  bool _routePolicyHasSession(
+    RoutePolicy policy,
+    List<ConnectionMode> activeRoutes,
+  ) => switch (policy) {
+    RoutePolicy.auto => activeRoutes.isNotEmpty,
+    RoutePolicy.direct => activeRoutes.contains(ConnectionMode.direct),
+    RoutePolicy.webvpn => activeRoutes.contains(ConnectionMode.webvpn),
+  };
+
+  void _resetFeatureSnapshots() {
+    _refreshGeneration++;
+    for (final feature in FeatureId.values) {
+      _snapshots[feature] = FeatureSnapshot(feature: feature);
+    }
   }
 
   void _setPhase(AppPhase phase) {

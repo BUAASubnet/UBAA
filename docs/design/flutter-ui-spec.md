@@ -40,7 +40,8 @@
 
 - `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染、本地分页/筛选和
   实际路线展示；`packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不
-  伪造 Demo 登录、刷新失败后的 `stale` 数据保留和实际路线投影。
+  伪造 Demo 登录、刷新失败后的 `stale` 数据保留、实际路线投影以及未认证固定路线的安全
+  回登录。
 - `BridgeBackend` 已为 12 个只读功能映射白名单详情，并为课表/考试/成绩提供学期（课表另有
   周次）、空教室提供日期和校区的 typed 查询入口；详情页控件只向
   `AppController.refreshFeatureQuery` 传递 `FeatureQuery`，不拼接 URL。上述入口已有 app/widget

@@ -129,6 +129,28 @@ void main() {
     controller.dispose();
   });
 
+  test('切换到未认证固定路线时清除用户状态并回到登录页', () async {
+    final backend = _RouteStateBackend(
+      activeRoutes: const <ConnectionMode>[ConnectionMode.webvpn],
+    );
+    final controller = AppController(backend: backend);
+    await controller.initialize();
+    expect(controller.phase, AppPhase.home);
+
+    await controller.setRoutePolicy(RoutePolicy.direct);
+
+    expect(controller.phase, AppPhase.login);
+    expect(controller.user, isNull);
+    expect(controller.loginForm.routePolicy, RoutePolicy.direct);
+    expect(
+      controller.snapshots.values.every(
+        (snapshot) => snapshot.status == FeatureLoadStatus.idle,
+      ),
+      isTrue,
+    );
+    controller.dispose();
+  });
+
   test('领域查询参数通过 FeatureQueryBackend typed 传递', () async {
     FeatureQuery? received;
     final backend = _QueryBackend(
@@ -212,4 +234,36 @@ class _QueryBackend implements UbaaBackend, FeatureQueryBackend {
     FeatureId feature,
     FeatureQuery query,
   ) async => onQuery(feature, query);
+}
+
+class _RouteStateBackend implements UbaaBackend, RouteSettingsBackend {
+  _RouteStateBackend({required this.activeRoutes});
+
+  final List<ConnectionMode> activeRoutes;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
+    defaultPolicy: RoutePolicy.direct,
+    activeRoutes: activeRoutes,
+  );
 }
