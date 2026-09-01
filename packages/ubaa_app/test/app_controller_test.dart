@@ -367,6 +367,14 @@ void main() {
     );
     controller.dispose();
   });
+
+  test('写入成功核对只刷新对应读取领域', () async {
+    final backend = _BykcWriteBackend();
+    final controller = AppController(backend: backend);
+    await controller.refreshAfterWrite(WriteOperation.libbookCancelBooking);
+    expect(backend.loadedFeatures, <FeatureId>[FeatureId.libbook]);
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -505,6 +513,7 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
   int? signCourseId;
   int? signType;
   int commitCalls = 0;
+  final List<FeatureId> loadedFeatures = <FeatureId>[];
 
   @override
   Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
@@ -523,8 +532,10 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
   Future<void> logout() async {}
 
   @override
-  Future<FeatureResult> loadFeature(FeatureId feature) async =>
-      const FeatureResult.empty();
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    loadedFeatures.add(feature);
+    return const FeatureResult.empty();
+  }
 
   @override
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async {
