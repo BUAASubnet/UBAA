@@ -215,6 +215,16 @@ class UserSummary {
 
 enum FeatureLoadStatus { idle, loading, success, empty, stale, failure }
 
+/// 领域详情读取的稳定视图。默认 [summary] 保持首页摘要行为；其余值只对
+/// 对应领域生效，bridge 会拒绝缺少必要 ID 或时段的查询。
+enum FeatureQueryView {
+  summary,
+  libbookAreas,
+  libbookAreaDetail,
+  libbookSeats,
+  libbookBookings,
+}
+
 @immutable
 class FeatureSnapshot {
   const FeatureSnapshot({
@@ -303,6 +313,12 @@ class FeatureQuery {
     this.week,
     this.page = 0,
     this.size = 20,
+    this.view = FeatureQueryView.summary,
+    this.premisesId,
+    this.storeyId,
+    this.areaId,
+    this.startTime,
+    this.endTime,
   });
 
   final String? term;
@@ -311,6 +327,15 @@ class FeatureQuery {
   final int? week;
   final int page;
   final int size;
+  final FeatureQueryView view;
+
+  /// 图书馆楼馆/楼层/分区 ID。它们是用户从读取结果中选择的公开标识，
+  /// 不包含 Session、Cookie 或 token。
+  final String? premisesId;
+  final String? storeyId;
+  final String? areaId;
+  final String? startTime;
+  final String? endTime;
 
   FeatureQuery copyWith({
     String? term,
@@ -319,6 +344,12 @@ class FeatureQuery {
     int? week,
     int? page,
     int? size,
+    FeatureQueryView? view,
+    String? premisesId,
+    String? storeyId,
+    String? areaId,
+    String? startTime,
+    String? endTime,
   }) => FeatureQuery(
     term: term ?? this.term,
     date: date ?? this.date,
@@ -326,6 +357,12 @@ class FeatureQuery {
     week: week ?? this.week,
     page: page ?? this.page,
     size: size ?? this.size,
+    view: view ?? this.view,
+    premisesId: premisesId ?? this.premisesId,
+    storeyId: storeyId ?? this.storeyId,
+    areaId: areaId ?? this.areaId,
+    startTime: startTime ?? this.startTime,
+    endTime: endTime ?? this.endTime,
   );
 }
 

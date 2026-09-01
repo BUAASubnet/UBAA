@@ -165,6 +165,10 @@
     已接入后台→前台恢复回调。该证据仍不替代六平台实体生命周期与内存泄漏测试。
 36. 修正 `docs/contracts/readonly-features.md` 遗留的 `evaluation_pending` 表述：待评列表仅由
     `evaluation_all` 的 `is_evaluated=false` 字段在 CLI/UI 本地派生，未新增未经 Core 证明的接口。
+37. 共享 `FeatureQuery` 已新增封闭的 `FeatureQueryView` 与图书馆公开 ID/时段参数；
+    `BridgeBackend` 和详情控件现可 typed 调用馆区、分区详情、座位及预约记录读取，并以
+    `FeatureDetail` 展示白名单字段。该增量只读且有 widget 回归测试，不替代 P3 的全部领域
+    页面、服务端分页、golden/integration 和六平台真实 App E2E。
 
 ## 4. 安全与架构边界
 

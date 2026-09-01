@@ -973,7 +973,8 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.exam ||
     FeatureId.grades ||
     FeatureId.classroom ||
-    FeatureId.bykc => true,
+    FeatureId.bykc ||
+    FeatureId.libbook => true,
     _ => false,
   };
 
@@ -1058,7 +1059,13 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _weekController;
   late final TextEditingController _pageController;
   late final TextEditingController _sizeController;
+  late final TextEditingController _premisesController;
+  late final TextEditingController _storeyController;
+  late final TextEditingController _areaController;
+  late final TextEditingController _startController;
+  late final TextEditingController _endController;
   int _campus = 1;
+  FeatureQueryView _libbookView = FeatureQueryView.summary;
   bool _submitting = false;
 
   @override
@@ -1069,6 +1076,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _weekController = TextEditingController();
     _pageController = TextEditingController(text: '1');
     _sizeController = TextEditingController(text: '20');
+    _premisesController = TextEditingController();
+    _storeyController = TextEditingController();
+    _areaController = TextEditingController();
+    _startController = TextEditingController(text: '08:00');
+    _endController = TextEditingController(text: '22:00');
   }
 
   @override
@@ -1078,6 +1090,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _weekController.dispose();
     _pageController.dispose();
     _sizeController.dispose();
+    _premisesController.dispose();
+    _storeyController.dispose();
+    _areaController.dispose();
+    _startController.dispose();
+    _endController.dispose();
     super.dispose();
   }
 
@@ -1169,6 +1186,145 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ),
             ),
           ],
+          if (widget.feature == FeatureId.libbook) ...<Widget>[
+            DropdownButton<FeatureQueryView>(
+              value: _libbookView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _libbookView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('馆列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.libbookAreas,
+                  child: Text('馆区列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.libbookAreaDetail,
+                  child: Text('分区详情'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.libbookSeats,
+                  child: Text('座位查询'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.libbookBookings,
+                  child: Text('预约记录'),
+                ),
+              ],
+            ),
+            if (_libbookView == FeatureQueryView.libbookAreas) ...<Widget>[
+              SizedBox(
+                width: 150,
+                child: TextField(
+                  controller: _premisesController,
+                  decoration: const InputDecoration(
+                    labelText: '馆区 ID',
+                    hintText: '从馆列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 130,
+                child: TextField(
+                  controller: _storeyController,
+                  decoration: const InputDecoration(
+                    labelText: '楼层 ID（可选）',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+            if (_libbookView == FeatureQueryView.libbookAreaDetail)
+              SizedBox(
+                width: 150,
+                child: TextField(
+                  controller: _areaController,
+                  decoration: const InputDecoration(
+                    labelText: '分区 ID',
+                    hintText: '从馆区列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            if (_libbookView == FeatureQueryView.libbookSeats) ...<Widget>[
+              SizedBox(
+                width: 150,
+                child: TextField(
+                  controller: _areaController,
+                  decoration: const InputDecoration(
+                    labelText: '分区 ID',
+                    hintText: '从馆区列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 140,
+                child: TextField(
+                  controller: _dateController,
+                  decoration: const InputDecoration(
+                    labelText: '日期',
+                    hintText: 'YYYY-MM-DD',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _startController,
+                  decoration: const InputDecoration(
+                    labelText: '开始时间',
+                    hintText: '08:00',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _endController,
+                  decoration: const InputDecoration(
+                    labelText: '结束时间',
+                    hintText: '22:00',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+            if (_libbookView == FeatureQueryView.libbookBookings) ...<Widget>[
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _pageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '页码',
+                    hintText: '从 1 开始',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _sizeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '每页数量',
+                    hintText: '1–100',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ],
           FilledButton.tonal(
             onPressed: _submitting ? null : _apply,
             child: _submitting
@@ -1230,6 +1386,42 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           return;
         }
       }
+      if (widget.feature == FeatureId.libbook) {
+        if (_libbookView == FeatureQueryView.libbookAreas &&
+            _premisesController.text.trim().isEmpty) {
+          _showMessage('馆区 ID 不能为空。');
+          return;
+        }
+        if ((_libbookView == FeatureQueryView.libbookAreaDetail ||
+                _libbookView == FeatureQueryView.libbookSeats) &&
+            _areaController.text.trim().isEmpty) {
+          _showMessage('分区 ID 不能为空。');
+          return;
+        }
+        if (_libbookView == FeatureQueryView.libbookSeats) {
+          final rawDate = _dateController.text.trim();
+          if (rawDate.isNotEmpty) {
+            date = DateTime.tryParse(rawDate);
+            if (date == null) {
+              _showMessage('日期格式无效，请使用 YYYY-MM-DD。');
+              return;
+            }
+          }
+          if (_startController.text.trim().isEmpty ||
+              _endController.text.trim().isEmpty) {
+            _showMessage('开始和结束时间不能为空。');
+            return;
+          }
+        }
+        if (_libbookView == FeatureQueryView.libbookBookings) {
+          page = int.tryParse(_pageController.text.trim()) ?? 0;
+          size = int.tryParse(_sizeController.text.trim()) ?? 0;
+          if (page <= 0 || size <= 0 || size > 100) {
+            _showMessage('页码必须从 1 开始，每页数量须为 1–100。');
+            return;
+          }
+        }
+      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -1240,6 +1432,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           week: week,
           page: page,
           size: size,
+          view: _libbookView,
+          premisesId: _optionalText(_premisesController),
+          storeyId: _optionalText(_storeyController),
+          areaId: _optionalText(_areaController),
+          startTime: _optionalText(_startController),
+          endTime: _optionalText(_endController),
         ),
       );
     } finally {
@@ -1252,6 +1450,18 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     return '${now.year.toString().padLeft(4, '0')}-'
         '${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  String? _optionalText(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? null : value;
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

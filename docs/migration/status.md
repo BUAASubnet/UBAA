@@ -2,6 +2,16 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 图书馆读取详情闭环增量
+
+- 共享 `FeatureQuery` 新增封闭的 `FeatureQueryView` 及图书馆公开 ID/时段字段；BridgeBackend
+  现在按 typed 视图调用 `libbookLibraries`、`libbookAreas`、`libbookAreaDetail`、
+  `libbookSeats` 和 `libbookBookings`，不在 Dart 拼接 URL、JSON 或会话材料。
+- 图书馆详情控件已支持馆区、分区详情、座位和预约记录读取；结果继续映射为脱敏
+  `FeatureDetail`，新增 widget 测试覆盖馆区 ID 与楼层 ID 的提交。该增量只读，不执行预约或取消。
+- 本轮仍不能将 P3 标记完成：领域下拉选择、服务端分页、逐项详情/写入核对、golden/integration
+  与六平台真实 App E2E 尚未闭合；`libbook_area_detail` 的真实双路线证据仍按营业窗口门禁执行。
+
 ## 2026-09-01 读取实际路线投影
 
 - `FeatureResult`、`FeatureSnapshot` 和 `BridgeBackend` 现在保留 Core 返回的

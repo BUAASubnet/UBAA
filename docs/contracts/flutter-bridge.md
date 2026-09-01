@@ -160,6 +160,21 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 枚举 wire 值固定为 Core serde 值；Dart 不以展示文案替代 wire 值。所有 ID 保持原 Core
 类型，不把字符串 ID 自动转数字，不把可选字段默认成空字符串或零。
 
+共享应用层的 `FeatureQuery` 只携带已证明的 typed 查询参数。除学期、日期、校区、周次和分页
+外，图书馆详情使用封闭的 `FeatureQueryView` 与公开 ID：
+
+| `view` | 必填字段 | bridge 调用 |
+|---|---|---|
+| `summary` | `date?` | `libbookLibraries(day)` |
+| `libbookAreas` | `premisesId`，`storeyId?`，`date?` | `libbookAreas(premisesId, storeyId?, day)` |
+| `libbookAreaDetail` | `areaId` | `libbookAreaDetail(areaId)` |
+| `libbookSeats` | `areaId`、`startTime`、`endTime`、`date?` | `libbookSeats(areaId, day, startTime, endTime)` |
+| `libbookBookings` | `page`、`size` | `libbookBookings(page, limit)` |
+
+缺少必填 ID 或时段时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。查询结果
+仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID 和区域 ID 仅作为用户选择后再次查询的
+公开标识，不进入日志或遥测。
+
 ## 6. 写 intent
 
 Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare，再由同一 client 调用
