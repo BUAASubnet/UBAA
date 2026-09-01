@@ -67,12 +67,15 @@
    六平台门禁、bridge 实现、共享读取状态、macOS 链接修复和查询入口均已形成阶段提交；
    最新提交及远端基线以 `git log` 和 CI 终态为准。
 2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
-3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
+3. Rust Core/CLI 的确定性门禁已通过；图书馆分区详情已在 2026-09-01 11:58（Asia/Shanghai）
+   营业窗口内复跑，Direct 与 WebVPN 均为 `PASS(count=1)`。
 4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
 5. HarmonyOS fork 已锁定为 tag 3.41.10-ohos-1.0.1，commit adaf911c35c9136a7d18fc424d714c9ec7724e60。
 6. 当前 OHOS fork 的发布说明要求 DevEco/Command Line Tools 26.0.0 Beta2 与 OpenHarmony API 26 构建。本机现有 API 21 不是发布基线；API 18 公共 SDK 也不能替代完整 API 26 工具链。
 7. 取得匹配 API 26 工具链、构建签名 HAP、打包 FRB arm64 动态库并完成实体机验证，是 HarmonyOS 正式版硬门槛。
-8. 当前真实读取证据仍有待闭合项：libbook_area_detail 需在营业窗口复跑；Bykc/SPOC 详情可能因父列表无可用 ID 而 N/A；Cgyy 用途可能来自 static_fallback。第 10.3 节规定这些状态能否进入 RC。
+8. 当前 Core-live 真实读取证据中 Direct/WebVPN 必需操作均通过；同批次 SPOC/Bykc 父列表为空，
+   对应详情为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，不冒充上游接口成功。
+   第 10.3 节的 Flutter App 六平台 E2E 与 RC 审查仍未闭合。
 9. FRB Dart/Rust/runtime/codegen 与 Cargokit 已锁定 2.13.0；生成后由锁定 Rust
    toolchain 机械格式化并通过零漂移门禁。macOS App 已实际启动越过 hello 断言，
    iOS simulator 已链接 x86_64+arm64 framework，Android APK 已包含三种 ABI 的
@@ -131,6 +134,11 @@
     但 Flutter 最终 `apkanalyzer` 因 Homebrew command-line tools 的 SDK 目录布局无法定位
     latest build tools，命令按合同失败，不能将该 AAB 记为 Release PASS。未修改 SDK、未签名、
     未上传任何产物；该环境问题与 OHOS/API26、正式签名和设备阻断一并保留。
+26. 2026-09-01 11:58（Asia/Shanghai）以当前提交串行执行 `just verify-live mode=direct` 与
+    `mode=webvpn`，两条路线全部必需只读操作通过，尤其 `libbook/area_detail` 均为
+    `PASS(count=1)`；SPOC/Bykc 详情因同批次父列表为空记 `NOT_APPLICABLE`，Cgyy 用途均明确
+    `source=static_fallback`。本次只证明 Core-live 协议矩阵，没有调用真实写接口，也不替代六平台
+    Flutter→FRB→Core 的真实设备 E2E。
 
 ## 4. 安全与架构边界
 

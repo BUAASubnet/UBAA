@@ -125,6 +125,21 @@
   tools，命令失败。该 AAB 未签名、未上传，不计 Release PASS；应在修复工具链目录布局的受控
   runner 重新执行。
 
+## 2026-09-01 11:58 Core-live 营业窗口复核
+
+在 `Asia/Shanghai` 图书馆营业窗口内，按顺序执行 `just verify-live mode=direct` 与
+`just verify-live mode=webvpn`；凭据仍只经现有安全 stdin 路径传入，没有调用任何写方法。
+
+- Direct：认证准备/登录/状态、用户、全部读取领域均通过；此前营业时间外失败的
+  `libbook/area_detail` 本次为 `PASS(count=1)`。SPOC/Bykc 父列表为 0，因此详情为同批次
+  `NOT_APPLICABLE`；Cgyy 用途为 `PASS(count=10, source=static_fallback)`。
+- WebVPN：同一必需矩阵全部通过，`libbook/area_detail` 为 `PASS(count=1)`；SPOC/Bykc 详情
+  同样因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途同样明确为 `static_fallback`。本次 Judge
+  瞬时计数为 `include_expired=57`、`current=17`，只作为当前安全快照。
+
+该结果闭合 Core-live 的营业窗口协议缺口，但不证明六平台 Flutter App E2E、实体设备、安全
+存储、写入 UI、正式签名或 Release 产物；这些 P3–P6 门禁保持未完成。
+
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`
