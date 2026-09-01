@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 当前提交双路线与 DevEco/CLI API26 复核
+
+- 在当前 HEAD `538f57d` 串行执行 `just verify-live mode=direct` 与 `mode=webvpn`：两条路线的认证、用户资料、课表、考试、成绩、空教室、SPOC/Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`；SPOC/博雅详情因同批次父列表为空记 `NOT_APPLICABLE`，Cgyy 用途为 `source=static_fallback`。本批次没有真实写接口调用。
+- 使用更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：Flutter OH、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64、Dart/widget/native 前置均为 0 失败/0 警告；HAP assemble 仍在调试签名配置处按门禁停止。未配置签名、未生成可发布 HAP、未连接设备，临时输出已移出工作树，P0/P6 继续受阻。
+
 ## 2026-09-02 生成读取 DTO 全量快照覆盖
 
 - 扩展 `packages/ubaa_bindings/test/schema_snapshot_test.dart`，从原先的代表性列表扩展为生成 `read.dart` 中全部公开读取 DTO、嵌套类型和 `Routed<T>` 包装；生成器删除或改名任何公开读取类型都会在 Dart 合同测试中失败。
