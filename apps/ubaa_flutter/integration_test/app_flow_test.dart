@@ -58,6 +58,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsOneWidget);
   });
+
+  testWidgets('宿主集成流程写入只提交一次并刷新签到状态', (tester) async {
+    final backend = _WriteIntegrationBackend();
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '2020000001');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课堂签到'));
+    await tester.pumpAndSettle();
+    expect(find.text('未签到'), findsOneWidget);
+
+    await tester.tap(find.text('准备签到'));
+    await tester.pumpAndSettle();
+    expect(find.text('确认课堂签到'), findsNWidgets(2));
+    expect(backend.commitCalls, 0);
+
+    final confirm = find.widgetWithText(FilledButton, '确认提交');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(backend.commitCalls, 1);
+    expect(backend.preparedCourse, 'course-integration');
+    expect(backend.signinLoads, greaterThanOrEqualTo(2));
+    expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
+    expect(find.text('已签到'), findsOneWidget);
+  });
 }
 
 /// 仅供宿主集成测试使用的脱敏 typed backend；不访问网络或真实账号。
@@ -144,4 +181,119 @@ final class _IntegrationBackend
             ? const <ConnectionMode>[ConnectionMode.direct]
             : const <ConnectionMode>[],
       );
+}
+
+/// 仅供宿主写入组合测试使用的脱敏 backend；提交后模拟只读状态变化。
+final class _WriteIntegrationBackend
+    implements
+        UbaaBackend,
+        FeatureQueryBackend,
+        RouteSettingsBackend,
+        SigninWriteBackend {
+  bool _signedIn = false;
+  bool _completed = false;
+  int signinLoads = 0;
+  int commitCalls = 0;
+  String? preparedCourse;
+
+  @override
+  Future<AuthStatus> authStatus() async =>
+      _signedIn ? AuthStatus.signedIn : AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      _signedIn ? const UserSummary(username: '2020000001') : null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {
+    _signedIn = true;
+  }
+
+  @override
+  Future<void> logout() async {
+    _signedIn = false;
+    _completed = false;
+  }
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    if (!_signedIn) {
+      throw const BackendException(UbaaErrorCode.authenticationRequired);
+    }
+    if (feature == FeatureId.signin) {
+      signinLoads++;
+      return FeatureResult.success(
+        summary: _completed ? '今日签到已完成' : '今日有待签到课程',
+        details: <FeatureDetail>[
+          FeatureDetail(
+            title: '宿主集成签到课程',
+            fields: <FeatureField>[
+              const FeatureField(
+                label: '课程 ID',
+                value: 'course-integration',
+              ),
+              FeatureField(
+                label: '签到状态',
+                value: _completed ? '已签到' : '未签到',
+              ),
+            ],
+          ),
+        ],
+        resolvedRoute: ConnectionMode.direct,
+      );
+    }
+    return FeatureResult.success(
+      summary: feature.title,
+      details: <FeatureDetail>[FeatureDetail(title: feature.title)],
+      resolvedRoute: ConnectionMode.direct,
+    );
+  }
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) =>
+      loadFeature(feature);
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
+    defaultPolicy: RoutePolicy.auto,
+    activeRoutes: _signedIn
+        ? const <ConnectionMode>[ConnectionMode.direct]
+        : const <ConnectionMode>[],
+  );
+
+  @override
+  Future<WriteIntent> prepareSigninPerform({required String courseId}) async {
+    preparedCourse = courseId;
+    return WriteIntent(
+      intentId: 'signin-integration',
+      operation: WriteOperation.signinPerform,
+      targetSummary: '宿主集成签到课程',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>['提交后请刷新今日签到状态确认结果'],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'integration-digest',
+    );
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commitCalls++;
+    if (intentId != 'signin-integration') {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    _completed = true;
+    return const WriteCommitResult(
+      operation: WriteOperation.signinPerform,
+      success: true,
+      message: '签到结果已提交，请刷新确认',
+      outcomeUnknown: false,
+      resolvedRoute: ConnectionMode.direct,
+    );
+  }
 }
