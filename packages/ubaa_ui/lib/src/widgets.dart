@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-typedef LibbookReservePreparer = Future<WriteIntent> Function({
-  required String areaId,
-  required String seatId,
-  required String day,
-  required String segment,
-  required String startTime,
-  required String endTime,
-});
+typedef LibbookReservePreparer =
+    Future<WriteIntent> Function({
+      required String areaId,
+      required String seatId,
+      required String day,
+      required String segment,
+      required String startTime,
+      required String endTime,
+    });
 
-typedef LibbookReserveStarter = Future<void> Function({
-  required String areaId,
-  required String seatId,
-  required String day,
-  required String segment,
-  required String startTime,
-  required String endTime,
-});
+typedef LibbookReserveStarter =
+    Future<void> Function({
+      required String areaId,
+      required String seatId,
+      required String day,
+      required String segment,
+      required String startTime,
+      required String endTime,
+    });
+
+typedef EvaluationSubmitPreparer =
+    Future<WriteIntent> Function(List<EvaluationCourseInput> courses);
+
+typedef EvaluationSubmitStarter =
+    Future<void> Function(List<EvaluationCourseInput> courses);
 
 /// 启动页：保留旧版 UBAA 标题和标语。
 class UbaaSplashView extends StatelessWidget {
@@ -393,6 +401,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareSigninWrite,
     this.onPrepareCancellationWrite,
     this.onPrepareLibbookReserveWrite,
+    this.onPrepareEvaluationWrite,
     this.onCommitWrite,
     this.onWriteSuccess,
     super.key,
@@ -419,6 +428,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
   onPrepareCancellationWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
+  final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final Future<void> Function(WriteOperation operation)? onWriteSuccess;
 
@@ -489,10 +499,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onCancellationWrite: widget.onPrepareCancellationWrite == null
                 ? null
                 : _startCancellationWrite,
-            onLibbookReserveWrite:
-                widget.onPrepareLibbookReserveWrite == null
+            onLibbookReserveWrite: widget.onPrepareLibbookReserveWrite == null
                 ? null
                 : _startLibbookReserveWrite,
+            onEvaluationWrite: widget.onPrepareEvaluationWrite == null
+                ? null
+                : _startEvaluationWrite,
           );
     return Scaffold(
       appBar: AppBar(
@@ -685,9 +697,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _writeSubmitting = false;
         _writeError = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('暂时无法准备博雅签到；尚未提交任何写请求。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备博雅签到；尚未提交任何写请求。')));
     }
   }
 
@@ -740,9 +752,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _writeSubmitting = false;
         _writeError = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('暂时无法准备取消操作；尚未提交任何写请求。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备取消操作；尚未提交任何写请求。')));
     }
   }
 
@@ -780,9 +792,37 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _writeSubmitting = false;
         _writeError = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('暂时无法准备图书馆预约；尚未提交任何写请求。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备图书馆预约；尚未提交任何写请求。')));
+    }
+  }
+
+  Future<void> _startEvaluationWrite(
+    List<EvaluationCourseInput> courses,
+  ) async {
+    final prepare = widget.onPrepareEvaluationWrite;
+    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final intent = await prepare(courses);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = intent;
+        _writeSubmitting = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备教学评教；尚未提交任何写请求。')));
     }
   }
 
@@ -1193,6 +1233,7 @@ class _FeatureDetailView extends StatelessWidget {
     this.onSigninWrite,
     this.onCancellationWrite,
     this.onLibbookReserveWrite,
+    this.onEvaluationWrite,
     this.onQuery,
   });
 
@@ -1207,6 +1248,7 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
+  final EvaluationSubmitStarter? onEvaluationWrite;
   final Future<void> Function(FeatureQuery query)? onQuery;
 
   @override
@@ -1281,6 +1323,7 @@ class _FeatureDetailView extends StatelessWidget {
       onSigninWrite: onSigninWrite,
       onCancellationWrite: onCancellationWrite,
       onLibbookReserveWrite: onLibbookReserveWrite,
+      onEvaluationWrite: onEvaluationWrite,
     );
   }
 
@@ -1304,6 +1347,7 @@ class _FeatureDetailView extends StatelessWidget {
             onSigninWrite: onSigninWrite,
             onCancellationWrite: onCancellationWrite,
             onLibbookReserveWrite: onLibbookReserveWrite,
+            onEvaluationWrite: onEvaluationWrite,
           ),
         ),
       ],
@@ -2542,6 +2586,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onSigninWrite,
     this.onCancellationWrite,
     this.onLibbookReserveWrite,
+    this.onEvaluationWrite,
   });
 
   final FeatureId feature;
@@ -2553,6 +2598,7 @@ class _FeatureDetailList extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
+  final EvaluationSubmitStarter? onEvaluationWrite;
 
   @override
   State<_FeatureDetailList> createState() => _FeatureDetailListState();
@@ -2626,6 +2672,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final signinCourseId = _courseKey(detail);
                     final cancellation = _cancellationTarget(detail);
                     final reservation = _libbookReserveTarget(detail);
+                    final evaluation = _evaluationTarget(detail);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -2689,18 +2736,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 runSpacing: 8,
                                 children: <Widget>[
                                   OutlinedButton.icon(
-                                    onPressed: () => widget.onBykcSignWrite!(
-                                      courseId,
-                                      1,
-                                    ),
+                                    onPressed: () =>
+                                        widget.onBykcSignWrite!(courseId, 1),
                                     icon: const Icon(Icons.login),
                                     label: const Text('准备博雅签到'),
                                   ),
                                   OutlinedButton.icon(
-                                    onPressed: () => widget.onBykcSignWrite!(
-                                      courseId,
-                                      2,
-                                    ),
+                                    onPressed: () =>
+                                        widget.onBykcSignWrite!(courseId, 2),
                                     icon: const Icon(Icons.logout),
                                     label: const Text('准备博雅签退'),
                                   ),
@@ -2737,7 +2780,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                               ),
                             ],
                             if (reservation != null &&
-                                widget.onLibbookReserveWrite != null) ...<Widget>[
+                                widget.onLibbookReserveWrite !=
+                                    null) ...<Widget>[
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
                                 onPressed: () => widget.onLibbookReserveWrite!(
@@ -2750,6 +2794,17 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 ),
                                 icon: const Icon(Icons.event_available),
                                 label: const Text('准备预约此座位'),
+                              ),
+                            ],
+                            if (evaluation != null &&
+                                widget.onEvaluationWrite != null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () => widget.onEvaluationWrite!(
+                                  <EvaluationCourseInput>[evaluation],
+                                ),
+                                icon: const Icon(Icons.rate_review_outlined),
+                                label: const Text('准备提交评教'),
                               ),
                             ],
                           ],
@@ -2834,20 +2889,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     String segment,
     String startTime,
     String endTime,
-  })? _libbookReserveTarget(FeatureDetail detail) {
+  })?
+  _libbookReserveTarget(FeatureDetail detail) {
     if (widget.feature != FeatureId.libbook) return null;
     final values = <String, String>{
       for (final field in detail.fields) field.label: field.value.trim(),
     };
     if (values['可预约'] != '是') return null;
-    const required = <String>[
-      '分区 ID',
-      '座位 ID',
-      '日期',
-      '时段',
-      '开始时间',
-      '结束时间',
-    ];
+    const required = <String>['分区 ID', '座位 ID', '日期', '时段', '开始时间', '结束时间'];
     if (required.any((label) => (values[label] ?? '').isEmpty)) return null;
     return (
       areaId: values['分区 ID']!,
@@ -2856,6 +2905,37 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       segment: values['时段']!,
       startTime: values['开始时间']!,
       endTime: values['结束时间']!,
+    );
+  }
+
+  EvaluationCourseInput? _evaluationTarget(FeatureDetail detail) {
+    if (widget.feature != FeatureId.evaluation) return null;
+    final values = <String, String>{
+      for (final field in detail.fields) field.label: field.value.trim(),
+    };
+    if (values['状态'] != '待评') return null;
+    final id = values['课程 ID'];
+    final rwid = values['任务 ID'];
+    final wjid = values['问卷 ID'];
+    final kcdm = values['课程代码'];
+    final msid = values['模型 ID'];
+    if ([
+      id,
+      rwid,
+      wjid,
+      kcdm,
+      msid,
+    ].any((value) => value == null || value.isEmpty)) {
+      return null;
+    }
+    return EvaluationCourseInput(
+      id: id!,
+      kcmc: detail.title,
+      bpmc: detail.subtitle?.trim() ?? '',
+      rwid: rwid!,
+      wjid: wjid!,
+      kcdm: kcdm!,
+      msid: msid!,
     );
   }
 }

@@ -19,6 +19,9 @@ class BridgeBackend
         SigninWriteBackend,
         CancellationWriteBackend,
         LibbookWriteBackend,
+        YgdkWriteBackend,
+        CgyyWriteBackend,
+        EvaluationWriteBackend,
         RouteSettingsBackend,
         BackendLifecycle {
   BridgeBackend(this.client);
@@ -1241,12 +1244,14 @@ class BridgeBackend
                     (item) => FeatureDetail(
                       title: item.kcmc,
                       subtitle: item.bpmc,
-                      fields: <FeatureField>[
-                        FeatureField(
-                          label: '状态',
-                          value: item.isEvaluated ? '已评' : '待评',
-                        ),
-                      ],
+                      fields: _compactFields(<FeatureField?>[
+                        _field('状态', item.isEvaluated ? '已评' : '待评'),
+                        _field('课程 ID', item.id),
+                        _field('任务 ID', item.rwid),
+                        _field('问卷 ID', item.wjid),
+                        _field('课程代码', item.kcdm),
+                        _field('模型 ID', item.msid),
+                      ]),
                     ),
                   )
                   .toList(growable: false);
@@ -1335,73 +1340,55 @@ class BridgeBackend
       );
 
   /// 准备阳光打卡。照片字节只在本次调用构造 typed DTO，不写入配置或日志。
-  Future<WriteIntent> prepareYgdkSubmit({
-    int? itemId,
-    String? startTime,
-    String? endTime,
-    String? place,
-    bool? shareToSquare,
-    List<int>? photoBytes,
-    String photoFileName = 'upload.jpg',
-    String photoMimeType = 'image/jpeg',
-  }) => _prepareIntent(
-    client.prepareYgdkSubmit(
-      request: BridgeYgdkSubmitRequest(
-        itemId: itemId,
-        startTime: startTime,
-        endTime: endTime,
-        place: place,
-        shareToSquare: shareToSquare,
-        photo: photoBytes == null
-            ? null
-            : BridgePhotoUpload(
-                bytes: Uint8List.fromList(photoBytes),
-                fileName: photoFileName,
-                mimeType: photoMimeType,
-              ),
-      ),
-    ),
-  );
+  @override
+  Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input) =>
+      _prepareIntent(
+        client.prepareYgdkSubmit(
+          request: BridgeYgdkSubmitRequest(
+            itemId: input.itemId,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            place: input.place,
+            shareToSquare: input.shareToSquare,
+            photo: input.photo == null
+                ? null
+                : BridgePhotoUpload(
+                    bytes: Uint8List.fromList(input.photo!.bytes),
+                    fileName: input.photo!.fileName,
+                    mimeType: input.photo!.mimeType,
+                  ),
+          ),
+        ),
+      );
 
   /// 准备场馆预约；selection 只包含经过 UI 选择的 ID，不接受 raw JSON。
-  Future<WriteIntent> prepareCgyySubmitReservation({
-    required int venueSiteId,
-    required String reservationDate,
-    required List<({int spaceId, int timeId, int? venueSpaceGroupId})>
-    selections,
-    required String phone,
-    required String theme,
-    required int purposeType,
-    required int joinerNum,
-    required String activityContent,
-    required String joiners,
-    required bool isPhilosophySocialSciences,
-    required bool isOffSchoolJoiner,
-  }) => _prepareIntent(
-    client.prepareCgyySubmitReservation(
-      request: BridgeCgyySubmitReservationRequest(
-        venueSiteId: venueSiteId,
-        reservationDate: reservationDate,
-        selections: selections
-            .map(
-              (selection) => BridgeCgyyReservationSelection(
-                spaceId: selection.spaceId,
-                timeId: selection.timeId,
-                venueSpaceGroupId: selection.venueSpaceGroupId,
-              ),
-            )
-            .toList(growable: false),
-        phone: phone,
-        theme: theme,
-        purposeType: purposeType,
-        joinerNum: joinerNum,
-        activityContent: activityContent,
-        joiners: joiners,
-        isPhilosophySocialSciences: isPhilosophySocialSciences,
-        isOffSchoolJoiner: isOffSchoolJoiner,
-      ),
-    ),
-  );
+  @override
+  Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input) =>
+      _prepareIntent(
+        client.prepareCgyySubmitReservation(
+          request: BridgeCgyySubmitReservationRequest(
+            venueSiteId: input.venueSiteId,
+            reservationDate: input.reservationDate,
+            selections: input.selections
+                .map(
+                  (selection) => BridgeCgyyReservationSelection(
+                    spaceId: selection.spaceId,
+                    timeId: selection.timeId,
+                    venueSpaceGroupId: selection.venueSpaceGroupId,
+                  ),
+                )
+                .toList(growable: false),
+            phone: input.phone,
+            theme: input.theme,
+            purposeType: input.purposeType,
+            joinerNum: input.joinerNum,
+            activityContent: input.activityContent,
+            joiners: input.joiners,
+            isPhilosophySocialSciences: input.isPhilosophySocialSciences,
+            isOffSchoolJoiner: input.isOffSchoolJoiner,
+          ),
+        ),
+      );
 
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
       _prepareIntent(
@@ -1411,12 +1398,40 @@ class BridgeBackend
       );
 
   /// 评教只接收 bridge 白名单课程 DTO，并在 commit 后由页面重新读取进度。
-  Future<WriteIntent> prepareEvaluationSubmitCourses({
-    required List<BridgeEvaluationCourse> courses,
-  }) => _prepareIntent(
+  @override
+  Future<WriteIntent> prepareEvaluationSubmitCourses(
+    List<EvaluationCourseInput> courses,
+  ) => _prepareIntent(
     client.prepareEvaluationSubmitCourses(
       request: BridgeEvaluationSubmitCoursesRequest(
-        courses: List<BridgeEvaluationCourse>.unmodifiable(courses),
+        courses: courses
+            .map(
+              (course) => BridgeEvaluationCourse(
+                id: course.id,
+                kcmc: course.kcmc,
+                bpmc: course.bpmc,
+                isEvaluated: course.isEvaluated,
+                rwid: course.rwid,
+                wjid: course.wjid,
+                kcdm: course.kcdm,
+                bpdm: course.bpdm,
+                pjrdm: course.pjrdm,
+                pjrmc: course.pjrmc,
+                xnxq: course.xnxq,
+                msid: course.msid,
+                zdmc: course.zdmc,
+                ypjcs: course.ypjcs,
+                xypjcs: course.xypjcs,
+                sxz: course.sxz,
+                rwh: course.rwh,
+                xn: course.xn,
+                xq: course.xq,
+                pjlxid: course.pjlxid,
+                sfksqbpj: course.sfksqbpj,
+                yxsfktjst: course.yxsfktjst,
+              ),
+            )
+            .toList(growable: false),
       ),
     ),
   );

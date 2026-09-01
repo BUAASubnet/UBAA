@@ -236,6 +236,55 @@ void main() {
     expect(fields['时段'], '3');
     expect(fields['可预约'], '是');
   });
+
+  test('BridgeBackend 三类复杂写入保持 typed 字段并不透传 raw payload', () async {
+    final backend = BridgeBackend(_FakeComplexWriteClient());
+    final ygdkIntent = await backend.prepareYgdkSubmit(
+      const YgdkSubmitInput(
+        itemId: 7,
+        place: '校园',
+        photo: YgdkPhotoInput(
+          bytes: <int>[1, 2],
+          fileName: 'safe.jpg',
+          mimeType: 'image/jpeg',
+        ),
+      ),
+    );
+    expect(ygdkIntent.operation, WriteOperation.ygdkSubmit);
+
+    final cgyyIntent = await backend.prepareCgyySubmitReservation(
+      const CgyySubmitInput(
+        venueSiteId: 3,
+        reservationDate: '2026-09-03',
+        selections: <CgyyReservationSelectionInput>[
+          CgyyReservationSelectionInput(spaceId: 4, timeId: 5),
+        ],
+        phone: 'phone-placeholder',
+        theme: '讨论',
+        purposeType: 1,
+        joinerNum: 2,
+        activityContent: '课程讨论',
+        joiners: '张三',
+        isPhilosophySocialSciences: false,
+        isOffSchoolJoiner: false,
+      ),
+    );
+    expect(cgyyIntent.operation, WriteOperation.cgyySubmitReservation);
+
+    final evaluationIntent = await backend
+        .prepareEvaluationSubmitCourses(const <EvaluationCourseInput>[
+          EvaluationCourseInput(
+            id: 'course-1',
+            kcmc: '课程',
+            bpmc: '教师',
+            rwid: 'task-1',
+            wjid: 'questionnaire-1',
+            kcdm: 'K1',
+            msid: 'M1',
+          ),
+        ]);
+    expect(evaluationIntent.operation, WriteOperation.evaluationSubmitCourses);
+  });
 }
 
 class _FakeClassroomClient implements BridgeClient {
@@ -342,3 +391,50 @@ class _FakeLibbookSeatsClient implements BridgeClient {
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }
 }
+
+class _FakeComplexWriteClient implements BridgeClient {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    final method = invocation.memberName;
+    final named = invocation.namedArguments;
+    if (method == #prepareYgdkSubmit) {
+      final request = named[#request] as BridgeYgdkSubmitRequest;
+      expect(request.itemId, 7);
+      expect(request.photo?.bytes, <int>[1, 2]);
+      expect(request.photo?.fileName, 'safe.jpg');
+      return Future<BridgeWriteIntent>.value(
+        _writeIntent(BridgeWriteOperation.ygdkSubmit),
+      );
+    }
+    if (method == #prepareCgyySubmitReservation) {
+      final request = named[#request] as BridgeCgyySubmitReservationRequest;
+      expect(request.venueSiteId, 3);
+      expect(request.selections.single.spaceId, 4);
+      expect(request.selections.single.timeId, 5);
+      expect(request.phone, 'phone-placeholder');
+      return Future<BridgeWriteIntent>.value(
+        _writeIntent(BridgeWriteOperation.cgyySubmitReservation),
+      );
+    }
+    if (method == #prepareEvaluationSubmitCourses) {
+      final request = named[#request] as BridgeEvaluationSubmitCoursesRequest;
+      expect(request.courses.single.id, 'course-1');
+      expect(request.courses.single.rwid, 'task-1');
+      return Future<BridgeWriteIntent>.value(
+        _writeIntent(BridgeWriteOperation.evaluationSubmitCourses),
+      );
+    }
+    throw UnsupportedError('unexpected bridge call: $method');
+  }
+}
+
+BridgeWriteIntent _writeIntent(BridgeWriteOperation operation) =>
+    BridgeWriteIntent(
+      intentId: 'intent',
+      operation: operation,
+      targetSummary: 'typed',
+      resolvedRoute: BridgeConnectionMode.direct,
+      warnings: const <String>[],
+      expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 120,
+      requestDigest: 'digest',
+    );

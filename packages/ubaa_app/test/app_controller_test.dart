@@ -368,6 +368,125 @@ void main() {
     controller.dispose();
   });
 
+  test('阳光打卡写意图只保留内存输入并拒绝空照片', () async {
+    final backend = _YgdkWriteBackend();
+    final controller = AppController(backend: backend);
+    final intent = await controller.prepareYgdkWrite(
+      const YgdkSubmitInput(
+        itemId: 7,
+        startTime: '09:00',
+        endTime: '10:00',
+        place: '校园',
+        shareToSquare: false,
+        photo: YgdkPhotoInput(
+          bytes: <int>[1, 2, 3],
+          fileName: 'safe.jpg',
+          mimeType: 'image/jpeg',
+        ),
+      ),
+    );
+    expect(intent.operation, WriteOperation.ygdkSubmit);
+    expect(backend.input?.itemId, 7);
+    expect(backend.commitCalls, 0);
+    await expectLater(
+      controller.prepareYgdkWrite(
+        const YgdkSubmitInput(
+          photo: YgdkPhotoInput(
+            bytes: <int>[],
+            fileName: 'empty.jpg',
+            mimeType: 'image/jpeg',
+          ),
+        ),
+      ),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
+
+  test('场馆预约写意图校验公开站点、时段和参与信息', () async {
+    final backend = _CgyyWriteBackend();
+    final controller = AppController(backend: backend);
+    final intent = await controller.prepareCgyySubmitWrite(
+      const CgyySubmitInput(
+        venueSiteId: 3,
+        reservationDate: '2026-09-03',
+        selections: <CgyyReservationSelectionInput>[
+          CgyyReservationSelectionInput(spaceId: 4, timeId: 5),
+        ],
+        phone: 'phone-placeholder',
+        theme: '课程讨论',
+        purposeType: 1,
+        joinerNum: 2,
+        activityContent: '讨论',
+        joiners: '张三',
+        isPhilosophySocialSciences: false,
+        isOffSchoolJoiner: false,
+      ),
+    );
+    expect(intent.operation, WriteOperation.cgyySubmitReservation);
+    expect(backend.input?.venueSiteId, 3);
+    expect(backend.commitCalls, 0);
+    await expectLater(
+      controller.prepareCgyySubmitWrite(
+        const CgyySubmitInput(
+          venueSiteId: 3,
+          reservationDate: '2026-09-03',
+          selections: <CgyyReservationSelectionInput>[],
+          phone: 'phone-placeholder',
+          theme: '课程讨论',
+          purposeType: 1,
+          joinerNum: 1,
+          activityContent: '讨论',
+          joiners: '',
+          isPhilosophySocialSciences: false,
+          isOffSchoolJoiner: false,
+        ),
+      ),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
+
+  test('教学评教写意图只接受待评课程且至少一门', () async {
+    final backend = _EvaluationWriteBackend();
+    final controller = AppController(backend: backend);
+    final intent = await controller
+        .prepareEvaluationWrite(const <EvaluationCourseInput>[
+          EvaluationCourseInput(
+            id: 'course-1',
+            kcmc: '课程',
+            bpmc: '教师',
+            rwid: 'task-1',
+            wjid: 'questionnaire-1',
+            kcdm: 'K1',
+            msid: 'M1',
+          ),
+        ]);
+    expect(intent.operation, WriteOperation.evaluationSubmitCourses);
+    expect(backend.courses.single.id, 'course-1');
+    expect(backend.commitCalls, 0);
+    await expectLater(
+      controller.prepareEvaluationWrite(const <EvaluationCourseInput>[]),
+      throwsA(isA<BackendException>()),
+    );
+    await expectLater(
+      controller.prepareEvaluationWrite(const <EvaluationCourseInput>[
+        EvaluationCourseInput(
+          id: 'done',
+          kcmc: '课程',
+          bpmc: '教师',
+          isEvaluated: true,
+          rwid: 'task-1',
+          wjid: 'questionnaire-1',
+          kcdm: 'K1',
+          msid: 'M1',
+        ),
+      ]),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
+
   test('写入成功核对只刷新对应读取领域', () async {
     final backend = _BykcWriteBackend();
     final controller = AppController(backend: backend);
@@ -744,4 +863,164 @@ class _LibbookWriteBackend implements UbaaBackend, LibbookWriteBackend {
         message: 'ok',
         outcomeUnknown: false,
       );
+}
+
+class _YgdkWriteBackend implements UbaaBackend, YgdkWriteBackend {
+  YgdkSubmitInput? input;
+  int commitCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input) async {
+    this.input = input;
+    return _intent();
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commitCalls++;
+    return const WriteCommitResult(
+      operation: WriteOperation.ygdkSubmit,
+      success: true,
+      message: 'ok',
+      outcomeUnknown: false,
+    );
+  }
+
+  WriteIntent _intent() => WriteIntent(
+    intentId: 'ygdk-intent',
+    operation: WriteOperation.ygdkSubmit,
+    targetSummary: '阳光打卡',
+    resolvedRoute: ConnectionMode.direct,
+    warnings: <String>[],
+    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+    requestDigest: 'digest',
+  );
+}
+
+class _CgyyWriteBackend implements UbaaBackend, CgyyWriteBackend {
+  CgyySubmitInput? input;
+  int commitCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareCgyySubmitReservation(
+    CgyySubmitInput input,
+  ) async {
+    this.input = input;
+    return _intent();
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commitCalls++;
+    return const WriteCommitResult(
+      operation: WriteOperation.cgyySubmitReservation,
+      success: true,
+      message: 'ok',
+      outcomeUnknown: false,
+    );
+  }
+
+  WriteIntent _intent() => WriteIntent(
+    intentId: 'cgyy-intent',
+    operation: WriteOperation.cgyySubmitReservation,
+    targetSummary: '场馆预约',
+    resolvedRoute: ConnectionMode.direct,
+    warnings: <String>[],
+    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+    requestDigest: 'digest',
+  );
+}
+
+class _EvaluationWriteBackend implements UbaaBackend, EvaluationWriteBackend {
+  List<EvaluationCourseInput> courses = const <EvaluationCourseInput>[];
+  int commitCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteIntent> prepareEvaluationSubmitCourses(
+    List<EvaluationCourseInput> courses,
+  ) async {
+    this.courses = courses;
+    return _intent();
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    commitCalls++;
+    return const WriteCommitResult(
+      operation: WriteOperation.evaluationSubmitCourses,
+      success: true,
+      message: 'ok',
+      outcomeUnknown: false,
+    );
+  }
+
+  WriteIntent _intent() => WriteIntent(
+    intentId: 'evaluation-intent',
+    operation: WriteOperation.evaluationSubmitCourses,
+    targetSummary: '教学评教',
+    resolvedRoute: ConnectionMode.direct,
+    warnings: <String>[],
+    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+    requestDigest: 'digest',
+  );
 }

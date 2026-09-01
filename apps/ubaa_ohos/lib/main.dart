@@ -117,13 +117,14 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
       onFeatureQuery: (feature, query) {
         return _controller.refreshFeatureQuery(feature, query);
       },
-          onPrepareBykcWrite: (operation, courseId) =>
-              _controller.prepareBykcWrite(operation, courseId),
-          onPrepareBykcSignWrite: _controller.prepareBykcSignWrite,
-          onPrepareSigninWrite: _controller.prepareSigninWrite,
-          onPrepareCancellationWrite: (operation, targetId) =>
-              _controller.prepareCancellationWrite(operation, targetId),
-          onPrepareLibbookReserveWrite: ({
+      onPrepareBykcWrite: (operation, courseId) =>
+          _controller.prepareBykcWrite(operation, courseId),
+      onPrepareBykcSignWrite: _controller.prepareBykcSignWrite,
+      onPrepareSigninWrite: _controller.prepareSigninWrite,
+      onPrepareCancellationWrite: (operation, targetId) =>
+          _controller.prepareCancellationWrite(operation, targetId),
+      onPrepareLibbookReserveWrite:
+          ({
             required areaId,
             required seatId,
             required day,
@@ -138,8 +139,9 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
             startTime: startTime,
             endTime: endTime,
           ),
-          onCommitWrite: _controller.commitWrite,
-          onWriteSuccess: _controller.refreshAfterWrite,
+      onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
+      onCommitWrite: _controller.commitWrite,
+      onWriteSuccess: _controller.refreshAfterWrite,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>
           _controller.logout(clearSavedCredential: true),

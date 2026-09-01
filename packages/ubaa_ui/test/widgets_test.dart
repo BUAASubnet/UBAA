@@ -412,31 +412,32 @@ void main() {
           telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
-          onPrepareLibbookReserveWrite: ({
-            required areaId,
-            required seatId,
-            required day,
-            required segment,
-            required startTime,
-            required endTime,
-          }) async {
-            prepareCalls++;
-            expect(areaId, 'area-1');
-            expect(seatId, 'seat-2');
-            expect(day, '2026-09-02');
-            expect(segment, '3');
-            expect(startTime, '10:00');
-            expect(endTime, '12:00');
-            return WriteIntent(
-              intentId: 'reserve-seat-2',
-              operation: WriteOperation.libbookReserve,
-              targetSummary: 'area-1 / seat-2 / 2026-09-02 3',
-              resolvedRoute: ConnectionMode.direct,
-              warnings: const <String>['请确认座位、日期和时段'],
-              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-              requestDigest: 'digest',
-            );
-          },
+          onPrepareLibbookReserveWrite:
+              ({
+                required areaId,
+                required seatId,
+                required day,
+                required segment,
+                required startTime,
+                required endTime,
+              }) async {
+                prepareCalls++;
+                expect(areaId, 'area-1');
+                expect(seatId, 'seat-2');
+                expect(day, '2026-09-02');
+                expect(segment, '3');
+                expect(startTime, '10:00');
+                expect(endTime, '12:00');
+                return WriteIntent(
+                  intentId: 'reserve-seat-2',
+                  operation: WriteOperation.libbookReserve,
+                  targetSummary: 'area-1 / seat-2 / 2026-09-02 3',
+                  resolvedRoute: ConnectionMode.direct,
+                  warnings: const <String>['请确认座位、日期和时段'],
+                  expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+                  requestDigest: 'digest',
+                );
+              },
           onCommitWrite: (intentId) async {
             commitCalls++;
             expect(intentId, 'reserve-seat-2');
@@ -468,6 +469,89 @@ void main() {
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('预约结果已提交，请刷新预约记录确认'), findsOneWidget);
+  });
+
+  testWidgets('待评课程从公开字段准备评教且确认后才提交', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.evaluation
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '课程 A',
+                    subtitle: '教师 A',
+                    fields: <FeatureField>[
+                      FeatureField(label: '状态', value: '待评'),
+                      FeatureField(label: '课程 ID', value: 'course-1'),
+                      FeatureField(label: '任务 ID', value: 'task-1'),
+                      FeatureField(label: '问卷 ID', value: 'questionnaire-1'),
+                      FeatureField(label: '课程代码', value: 'K1'),
+                      FeatureField(label: '模型 ID', value: 'M1'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareEvaluationWrite: (courses) async {
+            prepareCalls++;
+            expect(courses.single.id, 'course-1');
+            expect(courses.single.rwid, 'task-1');
+            return WriteIntent(
+              intentId: 'evaluation-1',
+              operation: WriteOperation.evaluationSubmitCourses,
+              targetSummary: '提交 1 门课程的教学评教',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['提交后不可撤销'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'evaluation-1');
+            return const WriteCommitResult(
+              operation: WriteOperation.evaluationSubmitCourses,
+              success: true,
+              message: '评教结果已提交，请刷新确认',
+              outcomeUnknown: false,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('教学评教'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备提交评教'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认教学评教'), findsNWidgets(2));
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('评教结果已提交，请刷新确认'), findsOneWidget);
   });
 
   testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {

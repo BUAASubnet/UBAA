@@ -89,7 +89,8 @@ abstract interface class SigninWriteBackend implements WriteCommitBackend {
 }
 
 /// 已接入图书馆/场馆可逆取消的 typed 写意图能力。
-abstract interface class CancellationWriteBackend implements WriteCommitBackend {
+abstract interface class CancellationWriteBackend
+    implements WriteCommitBackend {
   Future<WriteIntent> prepareLibbookCancelBooking({required String id});
 
   Future<WriteIntent> prepareCgyyCancelOrder({required int id});
@@ -105,6 +106,23 @@ abstract interface class LibbookWriteBackend implements WriteCommitBackend {
     required String startTime,
     required String endTime,
   });
+}
+
+/// 已接入 typed 阳光打卡写意图的能力。
+abstract interface class YgdkWriteBackend implements WriteCommitBackend {
+  Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input);
+}
+
+/// 已接入 typed 场馆预约写意图的能力；验证码材料不由宿主构造或保存。
+abstract interface class CgyyWriteBackend implements WriteCommitBackend {
+  Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input);
+}
+
+/// 已接入 typed 教学评教写意图的能力；仅传递冻结课程标识字段。
+abstract interface class EvaluationWriteBackend implements WriteCommitBackend {
+  Future<WriteIntent> prepareEvaluationSubmitCourses(
+    List<EvaluationCourseInput> courses,
+  );
 }
 
 /// 可由应用生命周期关闭的后端资源。

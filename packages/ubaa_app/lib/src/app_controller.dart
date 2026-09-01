@@ -386,10 +386,7 @@ class AppController extends ChangeNotifier {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     final writer = backend as BykcWriteBackend;
-    return writer.prepareBykcSignCourse(
-      courseId: courseId,
-      signType: signType,
-    );
+    return writer.prepareBykcSignCourse(courseId: courseId, signType: signType);
   }
 
   /// 准备课堂签到的 typed 一次性意图；课程编号必须来自读取白名单。
@@ -421,8 +418,9 @@ class AppController extends ChangeNotifier {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     return switch (operation) {
-      WriteOperation.libbookCancelBooking =>
-        writer.prepareLibbookCancelBooking(id: normalized),
+      WriteOperation.libbookCancelBooking => writer.prepareLibbookCancelBooking(
+        id: normalized,
+      ),
       WriteOperation.cgyyCancelOrder => switch (int.tryParse(normalized)) {
         final id? when id > 0 => writer.prepareCgyyCancelOrder(id: id),
         _ => throw const BackendException(UbaaErrorCode.invalidInput),
@@ -444,9 +442,14 @@ class AppController extends ChangeNotifier {
     if (backend is! LibbookWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    final values = <String>[areaId, seatId, day, segment, startTime, endTime]
-        .map((value) => value.trim())
-        .toList(growable: false);
+    final values = <String>[
+      areaId,
+      seatId,
+      day,
+      segment,
+      startTime,
+      endTime,
+    ].map((value) => value.trim()).toList(growable: false);
     if (values.any((value) => value.isEmpty)) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
@@ -460,6 +463,150 @@ class AppController extends ChangeNotifier {
       endTime: values[5],
     );
   }
+
+  /// 准备阳光打卡写意图；照片字节只复制到本次内存请求，不落盘或写日志。
+  Future<WriteIntent> prepareYgdkWrite(YgdkSubmitInput input) async {
+    final backend = _backend;
+    if (backend is! YgdkWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    if (input.itemId != null && input.itemId! <= 0) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final startTime = _trimOptional(input.startTime);
+    final endTime = _trimOptional(input.endTime);
+    final place = _trimOptional(input.place);
+    final photo = input.photo;
+    if (photo != null &&
+        (photo.bytes.isEmpty ||
+            photo.fileName.trim().isEmpty ||
+            photo.mimeType.trim().isEmpty ||
+            !photo.mimeType.trim().toLowerCase().startsWith('image/'))) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return (backend as YgdkWriteBackend).prepareYgdkSubmit(
+      YgdkSubmitInput(
+        itemId: input.itemId,
+        startTime: startTime,
+        endTime: endTime,
+        place: place,
+        shareToSquare: input.shareToSquare,
+        photo: photo == null
+            ? null
+            : YgdkPhotoInput(
+                bytes: List<int>.unmodifiable(photo.bytes),
+                fileName: photo.fileName.trim(),
+                mimeType: photo.mimeType.trim().toLowerCase(),
+              ),
+      ),
+    );
+  }
+
+  /// 准备场馆预约写意图；空间及时段必须来自已读取的公开可预约数据。
+  Future<WriteIntent> prepareCgyySubmitWrite(CgyySubmitInput input) async {
+    final backend = _backend;
+    if (backend is! CgyyWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    if (input.venueSiteId <= 0 ||
+        input.purposeType <= 0 ||
+        input.joinerNum <= 0 ||
+        input.reservationDate.trim().isEmpty ||
+        input.phone.trim().isEmpty ||
+        input.theme.trim().isEmpty ||
+        input.activityContent.trim().isEmpty ||
+        input.selections.isEmpty ||
+        input.selections.any(
+          (selection) =>
+              selection.spaceId <= 0 ||
+              selection.timeId <= 0 ||
+              (selection.venueSpaceGroupId != null &&
+                  selection.venueSpaceGroupId! <= 0),
+        )) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final selections = input.selections
+        .map(
+          (selection) => CgyyReservationSelectionInput(
+            spaceId: selection.spaceId,
+            timeId: selection.timeId,
+            venueSpaceGroupId: selection.venueSpaceGroupId,
+          ),
+        )
+        .toList(growable: false);
+    return (backend as CgyyWriteBackend).prepareCgyySubmitReservation(
+      CgyySubmitInput(
+        venueSiteId: input.venueSiteId,
+        reservationDate: input.reservationDate.trim(),
+        selections: selections,
+        phone: input.phone.trim(),
+        theme: input.theme.trim(),
+        purposeType: input.purposeType,
+        joinerNum: input.joinerNum,
+        activityContent: input.activityContent.trim(),
+        joiners: input.joiners.trim(),
+        isPhilosophySocialSciences: input.isPhilosophySocialSciences,
+        isOffSchoolJoiner: input.isOffSchoolJoiner,
+      ),
+    );
+  }
+
+  /// 准备教学评教写意图；仅接受读取结果中的待评课程稳定字段。
+  Future<WriteIntent> prepareEvaluationWrite(
+    List<EvaluationCourseInput> courses,
+  ) async {
+    final backend = _backend;
+    if (backend is! EvaluationWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    if (courses.isEmpty ||
+        courses.any(
+          (course) =>
+              course.isEvaluated ||
+              course.id.trim().isEmpty ||
+              course.rwid.trim().isEmpty ||
+              course.wjid.trim().isEmpty ||
+              course.kcdm.trim().isEmpty ||
+              course.msid.trim().isEmpty,
+        )) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return (backend as EvaluationWriteBackend).prepareEvaluationSubmitCourses(
+      courses.map(_normalizeEvaluationCourse).toList(growable: false),
+    );
+  }
+
+  static String? _trimOptional(String? value) {
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
+
+  static EvaluationCourseInput _normalizeEvaluationCourse(
+    EvaluationCourseInput course,
+  ) => EvaluationCourseInput(
+    id: course.id.trim(),
+    kcmc: course.kcmc.trim(),
+    bpmc: course.bpmc.trim(),
+    isEvaluated: course.isEvaluated,
+    rwid: course.rwid.trim(),
+    wjid: course.wjid.trim(),
+    kcdm: course.kcdm.trim(),
+    bpdm: _trimOptional(course.bpdm),
+    pjrdm: _trimOptional(course.pjrdm),
+    pjrmc: _trimOptional(course.pjrmc),
+    xnxq: _trimOptional(course.xnxq),
+    msid: course.msid.trim(),
+    zdmc: _trimOptional(course.zdmc),
+    ypjcs: course.ypjcs,
+    xypjcs: course.xypjcs,
+    sxz: _trimOptional(course.sxz),
+    rwh: _trimOptional(course.rwh),
+    xn: _trimOptional(course.xn),
+    xq: _trimOptional(course.xq),
+    pjlxid: _trimOptional(course.pjlxid),
+    sfksqbpj: _trimOptional(course.sfksqbpj),
+    yxsfktjst: _trimOptional(course.yxsfktjst),
+  );
 
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
   Future<WriteCommitResult> commitWrite(String intentId) async {
