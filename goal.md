@@ -93,6 +93,9 @@
 13. `just flutter-codegen-check` 在 `2faa753` 后二次生成报告零漂移；`just flutter-check`、
     `just check-sensitive` 与 `just check` 均通过。官方入口当前创建 `BridgeBackend`，初始化
     失败只进入安全 `unsupported`，测试仍显式注入 `DemoBackend`；没有真实账号写入或签名凭据。
+14. `65b7b48` 已将普通 8 项与高级 4 项只读能力接入共享详情模型和导航，详情页不再是占位文案，
+    并通过 widget/app 测试；P3 的领域筛选、分页、stale 缓存、golden/integration 和完整写入
+    UI 尚未完成，不能勾选 P3。
 
 ## 4. 安全与架构边界
 
