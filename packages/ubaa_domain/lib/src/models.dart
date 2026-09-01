@@ -225,6 +225,8 @@ enum FeatureQueryView {
   scheduleWeek,
   examArranged,
   examNotArranged,
+  gradesScored,
+  gradesMissing,
   evaluationPending,
   bykcDetail,
   bykcProfile,

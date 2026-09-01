@@ -1078,6 +1078,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   int _campus = 1;
   FeatureQueryView _scheduleView = FeatureQueryView.summary;
   FeatureQueryView _examView = FeatureQueryView.summary;
+  FeatureQueryView _gradesView = FeatureQueryView.summary;
   FeatureQueryView _evaluationView = FeatureQueryView.summary;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
   FeatureQueryView _bykcView = FeatureQueryView.summary;
@@ -1186,6 +1187,29 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 DropdownMenuItem(
                   value: FeatureQueryView.examNotArranged,
                   child: Text('未安排'),
+                ),
+              ],
+            ),
+          if (widget.feature == FeatureId.grades)
+            DropdownButton<FeatureQueryView>(
+              value: _gradesView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _gradesView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('全部成绩'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.gradesScored,
+                  child: Text('已出成绩'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.gradesMissing,
+                  child: Text('待出成绩'),
                 ),
               ],
             ),
@@ -1881,6 +1905,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ? _examView
               : widget.feature == FeatureId.schedule
               ? _scheduleView
+              : widget.feature == FeatureId.grades
+              ? _gradesView
               : widget.feature == FeatureId.evaluation
               ? _evaluationView
               : widget.feature == FeatureId.ygdk

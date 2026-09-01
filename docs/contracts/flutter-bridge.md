@@ -174,6 +174,8 @@ ID/分页字段：
 | `evaluationPending` | 无 | `evaluationAll` 后按 `isEvaluated=false` 本地派生 |
 | `examArranged` | `term?` | `examArrangement(term)` 后取 `arranged` |
 | `examNotArranged` | `term?` | `examArrangement(term)` 后取 `notArranged` |
+| `gradesScored` | `term?` | `grades(term)` 后按 `score` 非空本地派生 |
+| `gradesMissing` | `term?` | `grades(term)` 后按 `score` 空值本地派生 |
 | `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
 | `bykcProfile` | 无 | `bykcProfile` |
 | `bykcChosenCourses` | 无 | `bykcChosenCourses` |

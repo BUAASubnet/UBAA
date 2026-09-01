@@ -274,6 +274,51 @@ void main() {
     expect(received?.view, FeatureQueryView.examArranged);
   });
 
+  testWidgets('成绩查询控件提交已出成绩本地派生视图', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.grades
+              ? const <FeatureDetail>[FeatureDetail(title: '成绩')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.grades);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('成绩查询'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('全部成绩'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('已出成绩'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.view, FeatureQueryView.gradesScored);
+  });
+
   testWidgets('博雅查询控件提交课程详情 typed 参数', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

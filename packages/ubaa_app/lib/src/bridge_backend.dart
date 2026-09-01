@@ -315,29 +315,56 @@ class BridgeBackend
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.grades:
-          final term = query.term ?? await _selectedTerm();
-          if (term == null) return const FeatureResult.empty();
-          final result = await client.grades(term: term);
-          final details = result.data.grades
-              .map(
-                (item) => FeatureDetail(
-                  title: item.courseName ?? item.courseCode ?? '课程',
-                  subtitle: item.courseCode,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('成绩', item.score),
-                    _field('绩点', item.gradePoint),
-                    item.credit == null ? null : _field('学分', '${item.credit}'),
-                    _field('课程类型', item.courseType),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.grades.length,
-            '门课程成绩',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+          switch (query.view) {
+            case FeatureQueryView.summary:
+            case FeatureQueryView.gradesScored:
+            case FeatureQueryView.gradesMissing:
+              final term = query.term ?? await _selectedTerm();
+              if (term == null) return const FeatureResult.empty();
+              final result = await client.grades(term: term);
+              final grades = switch (query.view) {
+                FeatureQueryView.gradesScored =>
+                  result.data.grades
+                      .where((item) => item.score?.trim().isNotEmpty ?? false)
+                      .toList(growable: false),
+                FeatureQueryView.gradesMissing =>
+                  result.data.grades
+                      .where(
+                        (item) => !(item.score?.trim().isNotEmpty ?? false),
+                      )
+                      .toList(growable: false),
+                _ => result.data.grades,
+              };
+              final details = grades
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.courseName ?? item.courseCode ?? '课程',
+                      subtitle: item.courseCode,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('成绩', item.score),
+                        _field('绩点', item.gradePoint),
+                        item.credit == null
+                            ? null
+                            : _field('学分', '${item.credit}'),
+                        _field('课程类型', item.courseType),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              final label = switch (query.view) {
+                FeatureQueryView.gradesScored => '门已出成绩课程',
+                FeatureQueryView.gradesMissing => '门待出成绩课程',
+                _ => '门课程成绩',
+              };
+              return _countResult(
+                grades.length,
+                label,
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.bykc:
           switch (query.view) {
             case FeatureQueryView.summary:
@@ -814,6 +841,8 @@ class BridgeBackend
             case FeatureQueryView.scheduleWeek:
             case FeatureQueryView.examArranged:
             case FeatureQueryView.examNotArranged:
+            case FeatureQueryView.gradesScored:
+            case FeatureQueryView.gradesMissing:
             case FeatureQueryView.evaluationPending:
             case FeatureQueryView.cgyyPurposeTypes:
             case FeatureQueryView.cgyyDayInfo:
@@ -1012,6 +1041,8 @@ class BridgeBackend
             case FeatureQueryView.scheduleWeek:
             case FeatureQueryView.examArranged:
             case FeatureQueryView.examNotArranged:
+            case FeatureQueryView.gradesScored:
+            case FeatureQueryView.gradesMissing:
             case FeatureQueryView.evaluationPending:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
@@ -1081,6 +1112,8 @@ class BridgeBackend
             case FeatureQueryView.scheduleWeek:
             case FeatureQueryView.examArranged:
             case FeatureQueryView.examNotArranged:
+            case FeatureQueryView.gradesScored:
+            case FeatureQueryView.gradesMissing:
             case FeatureQueryView.evaluationPending:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
