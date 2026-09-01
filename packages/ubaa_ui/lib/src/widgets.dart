@@ -27,6 +27,13 @@ typedef EvaluationSubmitPreparer =
 typedef EvaluationSubmitStarter =
     Future<void> Function(List<EvaluationCourseInput> courses);
 
+typedef YgdkSubmitPreparer =
+    Future<WriteIntent> Function(YgdkSubmitInput input);
+
+typedef YgdkSubmitStarter = Future<void> Function(YgdkSubmitInput input);
+
+typedef YgdkPhotoPicker = Future<YgdkPhotoInput?> Function();
+
 typedef CgyyReservationPreparer =
     Future<WriteIntent> Function(CgyySubmitInput input);
 
@@ -408,6 +415,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareLibbookReserveWrite,
     this.onPrepareCgyySubmitWrite,
     this.onPrepareEvaluationWrite,
+    this.onPrepareYgdkSubmitWrite,
+    this.onPickYgdkPhoto,
     this.onCommitWrite,
     this.onWriteSuccess,
     super.key,
@@ -436,6 +445,8 @@ class UbaaMainShell extends StatefulWidget {
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
+  final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
+  final YgdkPhotoPicker? onPickYgdkPhoto;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final Future<void> Function(WriteOperation operation)? onWriteSuccess;
 
@@ -515,6 +526,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onCgyySubmitWrite: widget.onPrepareCgyySubmitWrite == null
                 ? null
                 : _startCgyySubmitWrite,
+            onYgdkSubmitWrite: widget.onPrepareYgdkSubmitWrite == null
+                ? null
+                : _startYgdkSubmitWrite,
+            onPickYgdkPhoto: widget.onPickYgdkPhoto,
           );
     return Scaffold(
       appBar: AppBar(
@@ -833,6 +848,32 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('暂时无法准备教学评教；尚未提交任何写请求。')));
+    }
+  }
+
+  Future<void> _startYgdkSubmitWrite(YgdkSubmitInput input) async {
+    final prepare = widget.onPrepareYgdkSubmitWrite;
+    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final intent = await prepare(input);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = intent;
+        _writeSubmitting = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备阳光打卡；尚未提交任何写请求。')));
     }
   }
 
@@ -1271,6 +1312,8 @@ class _FeatureDetailView extends StatelessWidget {
     this.onLibbookReserveWrite,
     this.onCgyySubmitWrite,
     this.onEvaluationWrite,
+    this.onYgdkSubmitWrite,
+    this.onPickYgdkPhoto,
     this.onQuery,
   });
 
@@ -1287,6 +1330,8 @@ class _FeatureDetailView extends StatelessWidget {
   final LibbookReserveStarter? onLibbookReserveWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
+  final YgdkSubmitStarter? onYgdkSubmitWrite;
+  final YgdkPhotoPicker? onPickYgdkPhoto;
   final Future<void> Function(FeatureQuery query)? onQuery;
 
   @override
@@ -1363,6 +1408,8 @@ class _FeatureDetailView extends StatelessWidget {
       onLibbookReserveWrite: onLibbookReserveWrite,
       onCgyySubmitWrite: onCgyySubmitWrite,
       onEvaluationWrite: onEvaluationWrite,
+      onYgdkSubmitWrite: onYgdkSubmitWrite,
+      onPickYgdkPhoto: onPickYgdkPhoto,
     );
   }
 
@@ -1388,6 +1435,8 @@ class _FeatureDetailView extends StatelessWidget {
             onLibbookReserveWrite: onLibbookReserveWrite,
             onCgyySubmitWrite: onCgyySubmitWrite,
             onEvaluationWrite: onEvaluationWrite,
+            onYgdkSubmitWrite: onYgdkSubmitWrite,
+            onPickYgdkPhoto: onPickYgdkPhoto,
           ),
         ),
       ],
@@ -2616,6 +2665,167 @@ class _DetailField extends StatelessWidget {
   );
 }
 
+class _YgdkFormDialog extends StatefulWidget {
+  const _YgdkFormDialog({
+    required this.itemId,
+    required this.title,
+    required this.onPickPhoto,
+  });
+
+  final int itemId;
+  final String title;
+  final YgdkPhotoPicker? onPickPhoto;
+
+  @override
+  State<_YgdkFormDialog> createState() => _YgdkFormDialogState();
+}
+
+class _YgdkFormDialogState extends State<_YgdkFormDialog> {
+  late final TextEditingController _startController;
+  late final TextEditingController _endController;
+  late final TextEditingController _placeController;
+  YgdkPhotoInput? _photo;
+  String? _error;
+  bool _picking = false;
+  bool _shareToSquare = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startController = TextEditingController();
+    _endController = TextEditingController();
+    _placeController = TextEditingController(text: '操场');
+  }
+
+  @override
+  void dispose() {
+    _startController.dispose();
+    _endController.dispose();
+    _placeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('填写阳光打卡信息'),
+    content: SizedBox(
+      width: 420,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('项目：${widget.title}（${widget.itemId}）'),
+            ),
+            TextField(
+              controller: _startController,
+              decoration: const InputDecoration(
+                labelText: '开始时间',
+                hintText: 'YYYY-MM-DD HH:mm',
+              ),
+            ),
+            TextField(
+              controller: _endController,
+              decoration: const InputDecoration(
+                labelText: '结束时间',
+                hintText: 'YYYY-MM-DD HH:mm',
+              ),
+            ),
+            TextField(
+              controller: _placeController,
+              decoration: const InputDecoration(labelText: '打卡地点'),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _picking || widget.onPickPhoto == null
+                    ? null
+                    : _pickPhoto,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: Text(
+                  _photo == null ? '选择照片' : '已选择照片：${_photo!.fileName}',
+                ),
+              ),
+            ),
+            if (widget.onPickPhoto == null)
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('当前平台尚未接入照片选择器，无法提交打卡。'),
+              ),
+            CheckboxListTile(
+              value: _shareToSquare,
+              onChanged: (value) => setState(() {
+                _shareToSquare = value ?? false;
+              }),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('分享到打卡广场'),
+            ),
+            if (_error case final message?)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  message,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+    actions: <Widget>[
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('取消'),
+      ),
+      FilledButton(onPressed: _continue, child: const Text('继续确认')),
+    ],
+  );
+
+  Future<void> _pickPhoto() async {
+    final picker = widget.onPickPhoto;
+    if (picker == null || _picking) return;
+    setState(() {
+      _picking = true;
+      _error = null;
+    });
+    try {
+      final picked = await picker();
+      if (!mounted) return;
+      setState(() {
+        _photo = picked;
+        _error = picked == null ? '未选择照片，阳光打卡必须附带照片。' : null;
+      });
+    } on Object {
+      if (mounted) {
+        setState(() => _error = '照片选择失败，请检查平台权限后重试。');
+      }
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
+  void _continue() {
+    final start = _startController.text.trim();
+    final end = _endController.text.trim();
+    if (start.isEmpty || end.isEmpty || _photo == null) {
+      setState(() => _error = '请填写完整时间并选择照片。');
+      return;
+    }
+    Navigator.of(context).pop(
+      YgdkSubmitInput(
+        itemId: widget.itemId,
+        startTime: start,
+        endTime: end,
+        place: _placeController.text.trim(),
+        shareToSquare: _shareToSquare,
+        photo: _photo,
+      ),
+    );
+  }
+}
+
 /// 详情列表的本地筛选只作用于 bridge 白名单字段。
 class _FeatureDetailList extends StatefulWidget {
   const _FeatureDetailList({
@@ -2628,6 +2838,8 @@ class _FeatureDetailList extends StatefulWidget {
     this.onLibbookReserveWrite,
     this.onCgyySubmitWrite,
     this.onEvaluationWrite,
+    this.onYgdkSubmitWrite,
+    this.onPickYgdkPhoto,
   });
 
   final FeatureId feature;
@@ -2641,6 +2853,8 @@ class _FeatureDetailList extends StatefulWidget {
   final LibbookReserveStarter? onLibbookReserveWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
+  final YgdkSubmitStarter? onYgdkSubmitWrite;
+  final YgdkPhotoPicker? onPickYgdkPhoto;
 
   @override
   State<_FeatureDetailList> createState() => _FeatureDetailListState();
@@ -2775,6 +2989,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final reservation = _libbookReserveTarget(detail);
                     final cgyyReservation = _cgyyReservationTarget(detail);
                     final evaluation = _evaluationTarget(detail);
+                    final ygdk = _ygdkTarget(detail);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -2944,6 +3159,15 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 label: const Text('准备场馆预约'),
                               ),
                             ],
+                            if (ygdk != null &&
+                                widget.onYgdkSubmitWrite != null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () => _showYgdkForm(context, ygdk),
+                                icon: const Icon(Icons.directions_run),
+                                label: const Text('准备阳光打卡'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -3080,6 +3304,35 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
         venueSpaceGroupId: groupId,
       ),
     );
+  }
+
+  ({int itemId, String title})? _ygdkTarget(FeatureDetail detail) {
+    if (widget.feature != FeatureId.ygdk) return null;
+    for (final field in detail.fields) {
+      if (field.label != '项目编号') continue;
+      final itemId = int.tryParse(field.value.trim());
+      if (itemId != null && itemId > 0) {
+        return (itemId: itemId, title: detail.title);
+      }
+    }
+    return null;
+  }
+
+  Future<void> _showYgdkForm(
+    BuildContext context,
+    ({int itemId, String title}) target,
+  ) async {
+    final input = await showDialog<YgdkSubmitInput>(
+      context: context,
+      builder: (_) => _YgdkFormDialog(
+        itemId: target.itemId,
+        title: target.title,
+        onPickPhoto: widget.onPickYgdkPhoto,
+      ),
+    );
+    if (input != null && mounted) {
+      await widget.onYgdkSubmitWrite?.call(input);
+    }
   }
 
   Future<void> _showCgyyReservationForm(

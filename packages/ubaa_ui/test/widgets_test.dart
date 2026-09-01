@@ -469,6 +469,99 @@ void main() {
     expect(find.text('场馆预约结果已提交，请刷新订单确认'), findsOneWidget);
   });
 
+  testWidgets('阳光打卡填写时间并选择内存照片后才进入确认页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.ygdk
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '跑步项目',
+                    fields: <FeatureField>[
+                      FeatureField(label: '项目编号', value: '7'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareYgdkSubmitWrite: (input) async {
+            prepareCalls++;
+            expect(input.itemId, 7);
+            expect(input.startTime, '2026-09-01 08:00');
+            expect(input.endTime, '2026-09-01 09:00');
+            expect(input.photo?.fileName, 'photo-placeholder.jpg');
+            return WriteIntent(
+              intentId: 'ygdk-1',
+              operation: WriteOperation.ygdkSubmit,
+              targetSummary: '提交阳光打卡',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['提交后请刷新记录确认'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'ygdk-digest',
+            );
+          },
+          onPickYgdkPhoto: () async => const YgdkPhotoInput(
+            bytes: <int>[1, 2, 3],
+            fileName: 'photo-placeholder.jpg',
+            mimeType: 'image/jpeg',
+          ),
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'ygdk-1');
+            return const WriteCommitResult(
+              operation: WriteOperation.ygdkSubmit,
+              success: true,
+              message: '阳光打卡结果已提交，请刷新记录确认',
+              outcomeUnknown: false,
+              resolvedRoute: ConnectionMode.direct,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('阳光打卡'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备阳光打卡'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(1), '2026-09-01 08:00');
+    await tester.enterText(fields.at(2), '2026-09-01 09:00');
+    await tester.tap(find.text('选择照片'));
+    await tester.pumpAndSettle();
+    expect(find.text('已选择照片：photo-placeholder.jpg'), findsOneWidget);
+    await tester.tap(find.text('继续确认'));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认阳光打卡'), findsNWidgets(2));
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('阳光打卡结果已提交，请刷新记录确认'), findsOneWidget);
+  });
+
   testWidgets('图书馆可预约座位展示完整时段摘要后再准备写入', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
     final snapshots = <FeatureId, FeatureSnapshot>{
