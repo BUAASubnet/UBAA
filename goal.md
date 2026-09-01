@@ -240,6 +240,9 @@
 56. SPOC 作业列表的详情白名单补充冻结 DTO 已证明的 `courseId`（课程编号），与已有 typed 详情调用的公开
     标识一致；新增 BridgeBackend 脱敏回归通过，未新增上游请求或写操作。P3 的列表选择器、完整状态、服务端
     分页核对、golden/integration 和真实 Flutter App E2E 仍未闭合。
+57. 共享查询控件现在从当前只读详情白名单提供公开 ID 选择器，覆盖博雅课程、图书馆馆区/分区、场馆站点/订单、
+    SPOC 作业和 Judge 课程/作业，并保留手动输入；新增 widget 回归通过，仍只生成 typed `FeatureQuery`，未新增
+    上游协议或写操作。P3 的服务端分页核对、完整状态、golden/integration 和真实 Flutter App E2E 仍未闭合。
 
 ## 4. 安全与架构边界
 
