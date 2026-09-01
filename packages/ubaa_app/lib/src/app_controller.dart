@@ -230,6 +230,7 @@ class AppController extends ChangeNotifier {
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: status,
         summary: result.summary,
+        details: result.details,
         error: result.error,
         updatedAt: DateTime.now(),
         clearError: result.error == null,

@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
-  test('登录后独立加载八个只读功能', () async {
+  test('登录后独立加载普通与高级只读功能', () async {
     final controller = AppController(
       backend: DemoBackend(loginDelay: Duration.zero),
       credentialVault: MemoryCredentialVault(),
@@ -22,6 +22,14 @@ void main() {
       ),
       isTrue,
     );
+    controller.dispose();
+  });
+
+  test('生产能力不可用时不伪造 Demo 登录成功', () async {
+    final controller = AppController(backend: const UnavailableBackend());
+    await controller.initialize();
+    expect(controller.phase, AppPhase.login);
+    expect(controller.error?.code, UbaaErrorCode.unsupported);
     controller.dispose();
   });
 

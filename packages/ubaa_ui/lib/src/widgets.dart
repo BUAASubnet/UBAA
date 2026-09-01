@@ -404,7 +404,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final wide = MediaQuery.sizeOf(context).width >= 800;
     final body = _openedFeature == null
         ? _buildTab(context)
-        : _FeaturePlaceholder(
+        : _FeatureDetailView(
             feature: _openedFeature!,
             snapshot: widget.snapshots[_openedFeature!]!,
             onBack: () => setState(() => _openedFeature = null),
@@ -471,7 +471,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onRetryFeature: widget.onRetryFeature,
     ),
     2 => _AdvancedFeaturesView(
-      onFeatureTap: (title) => _showComingSoon(context, title),
+      snapshots: widget.snapshots,
+      onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+      onRetryFeature: widget.onRetryFeature,
     ),
     _ => _ProfileView(
       user: widget.user,
@@ -544,12 +546,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _selectedIndex = index;
       _openedFeature = null;
     });
-  }
-
-  void _showComingSoon(BuildContext context, String title) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$title将在只读首发后接入。')));
   }
 }
 
@@ -626,11 +622,13 @@ class _FeatureGridSliver extends StatelessWidget {
     required this.snapshots,
     required this.onFeatureTap,
     required this.onRetryFeature,
+    this.features = ordinaryFeatureIds,
   });
 
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
   final Future<void> Function(FeatureId) onRetryFeature;
+  final List<FeatureId> features;
 
   @override
   Widget build(BuildContext context) => SliverGrid.builder(
@@ -640,9 +638,9 @@ class _FeatureGridSliver extends StatelessWidget {
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
     ),
-    itemCount: FeatureId.values.length,
+    itemCount: features.length,
     itemBuilder: (context, index) {
-      final feature = FeatureId.values[index];
+      final feature = features[index];
       return _FeatureCard(
         feature: feature,
         snapshot: snapshots[feature]!,
@@ -740,67 +738,29 @@ class _FeatureCard extends StatelessWidget {
 }
 
 class _AdvancedFeaturesView extends StatelessWidget {
-  const _AdvancedFeaturesView({required this.onFeatureTap});
+  const _AdvancedFeaturesView({
+    required this.snapshots,
+    required this.onFeatureTap,
+    required this.onRetryFeature,
+  });
 
-  final ValueChanged<String> onFeatureTap;
-
-  static const _items = <({String title, String description, IconData icon})>[
-    (title: '研讨室预约', description: '查询、提交和管理研讨室预约', icon: Icons.date_range),
-    (title: '阳光打卡', description: '查看记录并提交体育活动打卡', icon: Icons.wb_sunny),
-    (
-      title: '自动评教',
-      description: '一键完成学期末评教任务',
-      icon: Icons.assignment_turned_in,
-    ),
-    (title: '更多功能', description: '更多高级功能正在开发中…', icon: Icons.more_horiz),
-  ];
+  final Map<FeatureId, FeatureSnapshot> snapshots;
+  final ValueChanged<FeatureId> onFeatureTap;
+  final Future<void> Function(FeatureId) onRetryFeature;
 
   @override
-  Widget build(BuildContext context) => GridView.builder(
-    padding: const EdgeInsets.all(16),
-    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: 360,
-      mainAxisExtent: 160,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-    ),
-    itemCount: _items.length,
-    itemBuilder: (context, index) {
-      final item = _items[index];
-      return Card(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: InkWell(
-          onTap: () => onFeatureTap(item.title),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Icon(
-                  item.icon,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  item.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.description,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
+  Widget build(BuildContext context) => CustomScrollView(
+    slivers: <Widget>[
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: _FeatureGridSliver(
+          features: advancedFeatureIds,
+          snapshots: snapshots,
+          onFeatureTap: onFeatureTap,
+          onRetryFeature: onRetryFeature,
         ),
-      );
-    },
+      ),
+    ],
   );
 }
 
@@ -886,8 +846,8 @@ class _ProfileView extends StatelessWidget {
   );
 }
 
-class _FeaturePlaceholder extends StatelessWidget {
-  const _FeaturePlaceholder({
+class _FeatureDetailView extends StatelessWidget {
+  const _FeatureDetailView({
     required this.feature,
     required this.snapshot,
     required this.onBack,
@@ -900,53 +860,200 @@ class _FeaturePlaceholder extends StatelessWidget {
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 640),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  _featureIcon(feature),
-                  size: 56,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  feature.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  snapshot.status == FeatureLoadStatus.failure
-                      ? snapshot.error?.message ?? '加载失败'
-                      : '只读详情页面将在 FRB DTO 接入后展示。',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                Wrap(
-                  spacing: 12,
-                  children: <Widget>[
-                    OutlinedButton(onPressed: onBack, child: const Text('返回')),
-                    if (snapshot.status == FeatureLoadStatus.failure)
-                      FilledButton(
-                        onPressed: () => onRetry(),
-                        child: const Text('重试'),
-                      ),
-                  ],
-                ),
-              ],
+  Widget build(BuildContext context) {
+    final content = switch (snapshot.status) {
+      FeatureLoadStatus.loading => const Center(
+        child: CircularProgressIndicator(),
+      ),
+      FeatureLoadStatus.failure => _error(context),
+      FeatureLoadStatus.empty => _empty(context),
+      FeatureLoadStatus.idle => _empty(context),
+      FeatureLoadStatus.success => _details(context),
+    };
+    return Column(
+      children: <Widget>[
+        Expanded(child: content),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('返回功能列表'),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _details(BuildContext context) {
+    if (snapshot.details.isEmpty) return _empty(context);
+    return _FeatureDetailList(details: snapshot.details);
+  }
+
+  Widget _empty(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            _featureIcon(feature),
+            size: 56,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 16),
+          Text('暂无${feature.title}数据'),
+          if (snapshot.summary case final summary?
+              when summary.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(summary, textAlign: TextAlign.center),
+          ],
+        ],
+      ),
+    ),
+  );
+
+  Widget _error(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: FriendlyErrorCard(
+          error:
+              snapshot.error ??
+              const UiError(
+                code: UbaaErrorCode.internalError,
+                title: '加载失败',
+                message: '暂时无法加载该功能，请稍后重试。',
+                retryable: true,
+              ),
+          onRetry: () => onRetry(),
         ),
       ),
     ),
   );
+}
+
+class _DetailField extends StatelessWidget {
+  const _DetailField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      SizedBox(
+        width: 88,
+        child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+      ),
+      Expanded(child: Text(value)),
+    ],
+  );
+}
+
+/// 详情列表的本地筛选只作用于 bridge 白名单字段。
+class _FeatureDetailList extends StatefulWidget {
+  const _FeatureDetailList({required this.details});
+
+  final List<FeatureDetail> details;
+
+  @override
+  State<_FeatureDetailList> createState() => _FeatureDetailListState();
+}
+
+class _FeatureDetailListState extends State<_FeatureDetailList> {
+  final TextEditingController _queryController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final details = query.isEmpty
+        ? widget.details
+        : widget.details
+              .where((detail) {
+                final values = <String>[
+                  detail.title,
+                  if (detail.subtitle case final subtitle?) subtitle,
+                  for (final field in detail.fields) ...<String>[
+                    field.label,
+                    field.value,
+                  ],
+                ];
+                return values.any(
+                  (value) => value.toLowerCase().contains(query),
+                );
+              })
+              .toList(growable: false);
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: TextField(
+            controller: _queryController,
+            decoration: const InputDecoration(
+              labelText: '筛选详情',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) => setState(() => _query = value),
+          ),
+        ),
+        Expanded(
+          child: details.isEmpty
+              ? const Center(child: Text('没有匹配的详情'))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: details.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final detail = details[index];
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              detail.title,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            if (detail.subtitle case final subtitle?
+                                when subtitle.trim().isNotEmpty) ...<Widget>[
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                            for (final field in detail.fields) ...<Widget>[
+                              const SizedBox(height: 8),
+                              _DetailField(
+                                label: field.label,
+                                value: field.value,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 /// 统一错误卡片，避免将上游正文、URL 或堆栈直接展示给用户。
@@ -1010,4 +1117,8 @@ IconData _featureIcon(FeatureId feature) => switch (feature) {
   FeatureId.spoc => Icons.assignment_turned_in,
   FeatureId.judge => Icons.code,
   FeatureId.libbook => Icons.event_seat,
+  FeatureId.signin => Icons.how_to_reg,
+  FeatureId.cgyy => Icons.sports_gymnastics,
+  FeatureId.ygdk => Icons.wb_sunny,
+  FeatureId.evaluation => Icons.assignment_turned_in,
 };

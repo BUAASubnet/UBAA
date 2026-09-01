@@ -115,17 +115,25 @@ class DemoBackend implements UbaaBackend {
       throw const BackendException(UbaaErrorCode.authenticationRequired);
     }
     await Future<void>.delayed(const Duration(milliseconds: 180));
+    final summary = switch (feature) {
+      FeatureId.schedule => '今天有 3 节课程',
+      FeatureId.exam => '暂无近期考试',
+      FeatureId.grades => '已加载本学期成绩',
+      FeatureId.bykc => '已选 2 门博雅课程',
+      FeatureId.classroom => '可用教室 18 间',
+      FeatureId.spoc => '待完成作业 2 项',
+      FeatureId.judge => '待提交作业 1 项',
+      FeatureId.libbook => '座位服务已就绪',
+      FeatureId.signin => '今日签到 1 门课程',
+      FeatureId.cgyy => '可预约场馆 2 个',
+      FeatureId.ygdk => '本周打卡进度已加载',
+      FeatureId.evaluation => '待评课程 3 门',
+    };
     return FeatureResult.success(
-      summary: switch (feature) {
-        FeatureId.schedule => '今天有 3 节课程',
-        FeatureId.exam => '暂无近期考试',
-        FeatureId.grades => '已加载本学期成绩',
-        FeatureId.bykc => '已选 2 门博雅课程',
-        FeatureId.classroom => '可用教室 18 间',
-        FeatureId.spoc => '待完成作业 2 项',
-        FeatureId.judge => '待提交作业 1 项',
-        FeatureId.libbook => '座位服务已就绪',
-      },
+      summary: summary,
+      details: <FeatureDetail>[
+        FeatureDetail(title: feature.title, subtitle: summary),
+      ],
     );
   }
 }

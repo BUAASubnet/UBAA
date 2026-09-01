@@ -24,7 +24,40 @@ extension RoutePolicyText on RoutePolicy {
 }
 
 /// 首页和普通功能页中展示的只读功能。
-enum FeatureId { schedule, exam, grades, bykc, classroom, spoc, judge, libbook }
+enum FeatureId {
+  schedule,
+  exam,
+  grades,
+  bykc,
+  classroom,
+  spoc,
+  judge,
+  libbook,
+  signin,
+  cgyy,
+  ygdk,
+  evaluation,
+}
+
+/// 普通功能页的稳定顺序。
+const ordinaryFeatureIds = <FeatureId>[
+  FeatureId.schedule,
+  FeatureId.exam,
+  FeatureId.grades,
+  FeatureId.bykc,
+  FeatureId.classroom,
+  FeatureId.spoc,
+  FeatureId.judge,
+  FeatureId.libbook,
+];
+
+/// 高级功能页的稳定顺序。
+const advancedFeatureIds = <FeatureId>[
+  FeatureId.signin,
+  FeatureId.cgyy,
+  FeatureId.ygdk,
+  FeatureId.evaluation,
+];
 
 extension FeatureIdText on FeatureId {
   String get title => switch (this) {
@@ -36,6 +69,10 @@ extension FeatureIdText on FeatureId {
     FeatureId.spoc => 'SPOC作业',
     FeatureId.judge => '希冀作业',
     FeatureId.libbook => '图书馆座位',
+    FeatureId.signin => '课堂签到',
+    FeatureId.cgyy => '场馆预约',
+    FeatureId.ygdk => '阳光打卡',
+    FeatureId.evaluation => '教学评教',
   };
 
   String get description => switch (this) {
@@ -47,6 +84,10 @@ extension FeatureIdText on FeatureId {
     FeatureId.spoc => '查看当前学期作业与提交状态',
     FeatureId.judge => '聚合希冀平台作业与提交进度',
     FeatureId.libbook => '查看图书馆座位和预约记录',
+    FeatureId.signin => '查看今日课程签到状态',
+    FeatureId.cgyy => '查看场馆站点、日期和预约订单',
+    FeatureId.ygdk => '查看学期进度与打卡记录',
+    FeatureId.evaluation => '查看待评课程和完成进度',
   };
 
   String get wireName => switch (this) {
@@ -58,6 +99,10 @@ extension FeatureIdText on FeatureId {
     FeatureId.spoc => 'spoc',
     FeatureId.judge => 'judge',
     FeatureId.libbook => 'libbook',
+    FeatureId.signin => 'signin',
+    FeatureId.cgyy => 'cgyy',
+    FeatureId.ygdk => 'ygdk',
+    FeatureId.evaluation => 'evaluation',
   };
 }
 
@@ -168,6 +213,7 @@ class FeatureSnapshot {
     required this.feature,
     this.status = FeatureLoadStatus.idle,
     this.summary,
+    this.details = const <FeatureDetail>[],
     this.error,
     this.updatedAt,
   });
@@ -175,12 +221,14 @@ class FeatureSnapshot {
   final FeatureId feature;
   final FeatureLoadStatus status;
   final String? summary;
+  final List<FeatureDetail> details;
   final UiError? error;
   final DateTime? updatedAt;
 
   FeatureSnapshot copyWith({
     FeatureLoadStatus? status,
     String? summary,
+    List<FeatureDetail>? details,
     UiError? error,
     DateTime? updatedAt,
     bool clearError = false,
@@ -188,6 +236,7 @@ class FeatureSnapshot {
     feature: feature,
     status: status ?? this.status,
     summary: summary ?? this.summary,
+    details: details ?? this.details,
     error: clearError ? null : (error ?? this.error),
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -196,13 +245,48 @@ class FeatureSnapshot {
 /// 首页加载结果。每个功能独立返回，避免单个上游故障遮蔽其他卡片。
 @immutable
 class FeatureResult {
-  const FeatureResult.success({this.summary}) : isEmpty = false, error = null;
+  const FeatureResult.success({
+    this.summary,
+    this.details = const <FeatureDetail>[],
+  }) : isEmpty = false,
+       error = null;
 
-  const FeatureResult.empty() : summary = null, isEmpty = true, error = null;
+  const FeatureResult.empty()
+    : summary = null,
+      details = const <FeatureDetail>[],
+      isEmpty = true,
+      error = null;
 
-  const FeatureResult.failure(this.error) : summary = null, isEmpty = false;
+  const FeatureResult.failure(this.error)
+    : summary = null,
+      details = const <FeatureDetail>[],
+      isEmpty = false;
 
   final String? summary;
+  final List<FeatureDetail> details;
   final bool isEmpty;
   final UiError? error;
+}
+
+/// 只读详情页使用的稳定展示模型，不携带原始上游载荷。
+@immutable
+class FeatureDetail {
+  const FeatureDetail({
+    required this.title,
+    this.subtitle,
+    this.fields = const <FeatureField>[],
+  });
+
+  final String title;
+  final String? subtitle;
+  final List<FeatureField> fields;
+}
+
+/// 详情卡片中的标签和值；值必须来自 bridge 白名单 DTO。
+@immutable
+class FeatureField {
+  const FeatureField({required this.label, required this.value});
+
+  final String label;
+  final String value;
 }
