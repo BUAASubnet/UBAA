@@ -394,6 +394,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareCancellationWrite,
     this.onPrepareLibbookReserveWrite,
     this.onCommitWrite,
+    this.onWriteSuccess,
     super.key,
   });
 
@@ -419,6 +420,7 @@ class UbaaMainShell extends StatefulWidget {
   onPrepareCancellationWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
+  final Future<void> Function(WriteOperation operation)? onWriteSuccess;
 
   @override
   State<UbaaMainShell> createState() => _UbaaMainShellState();
@@ -802,6 +804,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     });
     try {
       final result = await commit(intent.intentId);
+      if (result.success && !result.outcomeUnknown) {
+        try {
+          await widget.onWriteSuccess?.call(result.operation);
+        } on Object {
+          // 写入已完成但读取核对失败；结果提示仍保持确定，不重试写请求。
+        }
+      }
       if (!mounted) return;
       setState(() {
         _pendingWrite = null;

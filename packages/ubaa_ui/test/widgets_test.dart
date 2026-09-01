@@ -130,6 +130,7 @@ void main() {
     var prepareCalls = 0;
     var signCalls = 0;
     var commitCalls = 0;
+    var refreshCalls = 0;
     String? committedIntent;
     final intent = WriteIntent(
       intentId: 'intent-42',
@@ -182,6 +183,10 @@ void main() {
               resolvedRoute: ConnectionMode.direct,
             );
           },
+          onWriteSuccess: (operation) async {
+            expect(operation, WriteOperation.bykcSelectCourse);
+            refreshCalls++;
+          },
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},
@@ -207,6 +212,7 @@ void main() {
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
+    expect(refreshCalls, 1);
     expect(committedIntent, 'intent-42');
     expect(find.text('已提交，请刷新已选课程确认'), findsOneWidget);
   });

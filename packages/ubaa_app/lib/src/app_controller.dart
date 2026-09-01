@@ -474,6 +474,23 @@ class AppController extends ChangeNotifier {
     return writer.commitWrite(intentId);
   }
 
+  /// 写入成功后仅刷新关联只读领域，用于结果核对；不会重试写请求。
+  Future<void> refreshAfterWrite(WriteOperation operation) {
+    final feature = switch (operation) {
+      WriteOperation.bykcSelectCourse ||
+      WriteOperation.bykcDeselectCourse ||
+      WriteOperation.bykcSignCourse => FeatureId.bykc,
+      WriteOperation.signinPerform => FeatureId.signin,
+      WriteOperation.libbookReserve ||
+      WriteOperation.libbookCancelBooking => FeatureId.libbook,
+      WriteOperation.ygdkSubmit => FeatureId.ygdk,
+      WriteOperation.cgyySubmitReservation ||
+      WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
+      WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+    };
+    return refreshHome(only: <FeatureId>[feature]);
+  }
+
   Future<void> _loadFeature(
     FeatureId feature,
     int generation, {
