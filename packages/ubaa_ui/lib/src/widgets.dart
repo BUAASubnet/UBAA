@@ -978,7 +978,8 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.ygdk ||
     FeatureId.cgyy ||
     FeatureId.spoc ||
-    FeatureId.judge => true,
+    FeatureId.judge ||
+    FeatureId.evaluation => true,
     _ => false,
   };
 
@@ -1076,6 +1077,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _judgeAssignmentController;
   int _campus = 1;
   FeatureQueryView _scheduleView = FeatureQueryView.summary;
+  FeatureQueryView _evaluationView = FeatureQueryView.summary;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
   FeatureQueryView _bykcView = FeatureQueryView.summary;
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
@@ -1603,6 +1605,25 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
           ],
+          if (widget.feature == FeatureId.evaluation)
+            DropdownButton<FeatureQueryView>(
+              value: _evaluationView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _evaluationView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('全部课程'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.evaluationPending,
+                  child: Text('待评课程'),
+                ),
+              ],
+            ),
           if (widget.feature == FeatureId.judge) ...<Widget>[
             DropdownButton<FeatureQueryView>(
               value: _judgeView,
@@ -1834,6 +1855,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           size: size,
           view: widget.feature == FeatureId.schedule
               ? _scheduleView
+              : widget.feature == FeatureId.evaluation
+              ? _evaluationView
               : widget.feature == FeatureId.ygdk
               ? _ygdkView
               : widget.feature == FeatureId.cgyy

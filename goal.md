@@ -192,6 +192,10 @@
     `scheduleWeek`；BridgeBackend 以 typed facade 映射学期/周次/周课表，控件提供封闭下拉视图
     并对学期、周次做本地必填校验。`summary` 的既有今日/指定周兼容行为保留；本轮只读，P3
     其他领域状态、真实 App E2E 和完整服务端核对仍未闭合。
+44. 评教高级页现提供“全部课程/待评课程”视图；BridgeBackend 两者均调用同一
+    `evaluationAll`，仅按 `isEvaluated=false` 在本地派生待评列表，未新增未经证明的
+    `evaluation_pending` facade。控件/widget 回归已接线且不触发提交；题目选择、批量写入、
+    结果核对及 P3/P4/P5/P6 证据仍未完成。
 
 ## 4. 安全与架构边界
 

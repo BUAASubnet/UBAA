@@ -2,6 +2,16 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 评教待评本地派生视图
+
+- 高级功能页新增“全部课程/待评课程”封闭视图；`BridgeBackend` 两种视图都只调用一次
+  `evaluationAll`，待评列表在本地按 `isEvaluated=false` 派生，未新增或伪造
+  `evaluation_pending` facade 方法。
+- 查询控件和 widget 测试覆盖待评视图 typed 传递；课程状态和进度继续来自同一份 Core 结果，
+  不触发评教提交写操作。
+- P3/P4 仍未完成：评教题目选择/批量提交确认、结果核对、完整页面状态、golden/integration
+  和六平台真实 App E2E 尚缺证据。
+
 ## 2026-09-01 课表学期与周次读取增量
 
 - `FeatureQueryView` 增加 `scheduleToday`、`scheduleTerms`、`scheduleWeeks` 和 `scheduleWeek`；

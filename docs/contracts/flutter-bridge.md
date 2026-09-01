@@ -171,6 +171,7 @@ ID/分页字段：
 | `scheduleTerms` | 无 | `scheduleTerms` |
 | `scheduleWeeks` | `term` | `scheduleWeeks(term)` |
 | `scheduleWeek` | `term`、`week` | `scheduleWeek(term, week)` |
+| `evaluationPending` | 无 | `evaluationAll` 后按 `isEvaluated=false` 本地派生 |
 | `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
 | `bykcProfile` | 无 | `bykcProfile` |
 | `bykcChosenCourses` | 无 | `bykcChosenCourses` |

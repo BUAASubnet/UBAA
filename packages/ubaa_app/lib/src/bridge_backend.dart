@@ -796,6 +796,7 @@ class BridgeBackend
             case FeatureQueryView.scheduleTerms:
             case FeatureQueryView.scheduleWeeks:
             case FeatureQueryView.scheduleWeek:
+            case FeatureQueryView.evaluationPending:
             case FeatureQueryView.cgyyPurposeTypes:
             case FeatureQueryView.cgyyDayInfo:
             case FeatureQueryView.cgyyOrders:
@@ -991,6 +992,7 @@ class BridgeBackend
             case FeatureQueryView.scheduleTerms:
             case FeatureQueryView.scheduleWeeks:
             case FeatureQueryView.scheduleWeek:
+            case FeatureQueryView.evaluationPending:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
@@ -1057,6 +1059,7 @@ class BridgeBackend
             case FeatureQueryView.scheduleTerms:
             case FeatureQueryView.scheduleWeeks:
             case FeatureQueryView.scheduleWeek:
+            case FeatureQueryView.evaluationPending:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
@@ -1070,29 +1073,41 @@ class BridgeBackend
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.evaluation:
-          final result = await client.evaluationAll();
-          final details = result.data.courses
-              .map(
-                (item) => FeatureDetail(
-                  title: item.kcmc,
-                  subtitle: item.bpmc,
-                  fields: <FeatureField>[
-                    FeatureField(
-                      label: '状态',
-                      value: item.isEvaluated ? '已评' : '待评',
+          switch (query.view) {
+            case FeatureQueryView.summary:
+            case FeatureQueryView.evaluationPending:
+              final result = await client.evaluationAll();
+              final courses = query.view == FeatureQueryView.evaluationPending
+                  ? result.data.courses
+                        .where((item) => !item.isEvaluated)
+                        .toList(growable: false)
+                  : result.data.courses;
+              final details = courses
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.kcmc,
+                      subtitle: item.bpmc,
+                      fields: <FeatureField>[
+                        FeatureField(
+                          label: '状态',
+                          value: item.isEvaluated ? '已评' : '待评',
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              )
-              .toList(growable: false);
-          final progress = result.data.progress;
-          final summary =
-              '已评 ${progress.evaluatedCourses}/${progress.totalCourses} 门';
-          return FeatureResult.success(
-            summary: summary,
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+                  )
+                  .toList(growable: false);
+              final progress = result.data.progress;
+              final summary = query.view == FeatureQueryView.evaluationPending
+                  ? '待评 ${progress.pendingCourses} 门'
+                  : '已评 ${progress.evaluatedCourses}/${progress.totalCourses} 门';
+              return FeatureResult.success(
+                summary: summary,
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
       }
     } on BridgeError catch (error) {
       throw _mapError(error);

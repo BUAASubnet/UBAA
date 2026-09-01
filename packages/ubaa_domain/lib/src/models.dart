@@ -223,6 +223,7 @@ enum FeatureQueryView {
   scheduleTerms,
   scheduleWeeks,
   scheduleWeek,
+  evaluationPending,
   bykcDetail,
   bykcProfile,
   bykcChosenCourses,
