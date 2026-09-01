@@ -564,6 +564,7 @@ class BridgeBackend
                       title: item.title,
                       subtitle: item.courseName,
                       fields: _compactFields(<FeatureField?>[
+                        _field('课程编号', item.courseId),
                         _field('作业编号', item.assignmentId),
                         _field('教师', item.teacherName),
                         _field('开始', item.startTime),

@@ -144,6 +144,44 @@ void main() {
     expect(result.details.single.fields.single.value, '未签到');
     expect(result.resolvedRoute, ConnectionMode.direct);
   });
+
+  test('BridgeBackend SPOC 列表保留课程编号供详情选择', () async {
+    final response = BridgeRoutedSpocAssignments(
+      data: const BridgeSpocAssignments(
+        termCode: '2026-spring',
+        assignments: <BridgeSpocAssignmentSummary>[
+          BridgeSpocAssignmentSummary(
+            assignmentId: 'assignment-1',
+            courseId: 'course-1',
+            courseName: '程序设计',
+            title: '第一次作业',
+            submissionStatus: BridgeSpocSubmissionStatus.unsubmitted,
+            submissionStatusText: '未提交',
+          ),
+        ],
+      ),
+      route: const BridgeRouteDecision(
+        policy: BridgeRoutePolicy.direct,
+        resolvedRoute: BridgeConnectionMode.direct,
+        network: BridgeNetworkState.campus,
+        initialRoute: BridgeConnectionMode.direct,
+        usedFallback: false,
+      ),
+    );
+    final backend = BridgeBackend(_FakeSpocClient(response));
+
+    final result = await backend.loadFeatureQuery(
+      FeatureId.spoc,
+      const FeatureQuery(),
+    );
+
+    expect(
+      result.details.single.fields
+          .singleWhere((field) => field.label == '课程编号')
+          .value,
+      'course-1',
+    );
+  });
 }
 
 class _FakeClassroomClient implements BridgeClient {
@@ -213,6 +251,20 @@ class _FakeSigninClient implements BridgeClient {
   dynamic noSuchMethod(Invocation invocation) {
     if (invocation.memberName == #signinToday) {
       return Future<BridgeRoutedSigninClasses>.value(response);
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
+
+class _FakeSpocClient implements BridgeClient {
+  _FakeSpocClient(this.response);
+
+  final BridgeRoutedSpocAssignments response;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #spocAssignments) {
+      return Future<BridgeRoutedSpocAssignments>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }
