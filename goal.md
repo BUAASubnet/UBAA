@@ -119,6 +119,9 @@
 22. bridge 现对 open、认证、路线、读取执行和 typed 写意图统一捕获 Rust panic，并归约为固定
    `internal_error`；panic payload 不进入 Dart。对应单元测试、全 Rust 门禁和 FRB 生成零漂移已
    通过，但 Dart isolate 重建、内存泄漏及六平台生命周期证据仍未完成。
+23. `WriteFlowController.prepare` 与 `BridgeBackend` 十项 typed prepare 已统一接入安全错误映射；
+   prepare 阶段不提交网络，确认页仍只消费一次性 `WriteIntent`。各领域表单、权限/挑战、读后
+   核对、integration 和真实写入授权仍缺失，本轮未产生真实副作用。
 
 ## 4. 安全与架构边界
 

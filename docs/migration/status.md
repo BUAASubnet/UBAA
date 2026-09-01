@@ -93,6 +93,17 @@
 - 该证据覆盖 Rust unwind 边界与 generated API 映射；真实 Dart isolate 重建、内存泄漏和六平台
   生命周期/设备测试仍需 P1/P5/P6 环境，不能据此勾选阶段。
 
+## 2026-09-01 Flutter P4 写入协调入口推进
+
+- `WriteFlowController.prepare` 现在接收一次 typed prepare 回调，在确认前台意图建立期间只更新
+  状态，不触发 commit；已有意图、提交中或已销毁状态均安全拒绝。prepare 失败统一归约为
+  `UiError`，未知异常不向 UI 泄露原文。
+- `BridgeBackend` 的十项 typed prepare 均通过统一错误映射进入 `BackendException`，照片仍只以
+  内存字节传递；现有 `WriteConfirmationView` 可直接消费这些意图。确定性测试覆盖 prepare
+  不提交网络、失败映射和一次性 commit。
+- 各领域选择器、权限/挑战交互、读后核对、六平台 integration 与真实写入仍未完成；本轮没有
+  触发任何真实账号写操作，P4 不能勾选。
+
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`

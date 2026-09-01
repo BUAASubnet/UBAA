@@ -5,6 +5,7 @@ import 'app_controller.dart';
 import 'backend.dart';
 
 typedef WriteCommitter = Future<WriteCommitResult> Function(String intentId);
+typedef WritePreparer = Future<WriteIntent> Function();
 
 /// 写入确认状态机。
 ///
@@ -28,6 +29,31 @@ class WriteFlowController extends ChangeNotifier {
     _intent = intent;
     _error = null;
     _notify();
+  }
+
+  /// 执行一次 typed prepare，并把 bridge 返回的意图交给确认页。
+  ///
+  /// 准备期间不会提交网络写入；已有意图或提交中的流程拒绝并保持原状态。
+  Future<WriteIntent?> prepare(WritePreparer prepare) async {
+    if (_disposed || _submitting || _intent != null) return null;
+    _submitting = true;
+    _error = null;
+    _notify();
+    try {
+      final intent = await prepare();
+      if (_disposed) return null;
+      _intent = intent;
+      return intent;
+    } on BackendException catch (exception) {
+      _error = UbaaErrorMapper.fromCode(exception.code);
+      rethrow;
+    } on Object {
+      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+      throw const BackendException(UbaaErrorCode.internalError);
+    } finally {
+      _submitting = false;
+      _notify();
+    }
   }
 
   void cancel() {

@@ -360,27 +360,26 @@ class BridgeBackend
   Future<void> dispose() => client.dispose();
 
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async =>
-      _mapIntent(
-        await client.prepareBykcSelectCourse(
+      _prepareIntent(
+        client.prepareBykcSelectCourse(
           request: BridgeBykcCourseRequest(courseId: courseId),
         ),
       );
 
-  Future<WriteIntent> prepareBykcDeselectCourse({
-    required int courseId,
-  }) async => _mapIntent(
-    await client.prepareBykcDeselectCourse(
-      request: BridgeBykcCourseRequest(courseId: courseId),
-    ),
-  );
+  Future<WriteIntent> prepareBykcDeselectCourse({required int courseId}) =>
+      _prepareIntent(
+        client.prepareBykcDeselectCourse(
+          request: BridgeBykcCourseRequest(courseId: courseId),
+        ),
+      );
 
   Future<WriteIntent> prepareBykcSignCourse({
     required int courseId,
     double? lat,
     double? lng,
     required int signType,
-  }) async => _mapIntent(
-    await client.prepareBykcSignCourse(
+  }) => _prepareIntent(
+    client.prepareBykcSignCourse(
       request: BridgeBykcSignCourseRequest(
         courseId: courseId,
         lat: lat,
@@ -390,9 +389,9 @@ class BridgeBackend
     ),
   );
 
-  Future<WriteIntent> prepareSigninPerform({required String courseId}) async =>
-      _mapIntent(
-        await client.prepareSigninPerform(
+  Future<WriteIntent> prepareSigninPerform({required String courseId}) =>
+      _prepareIntent(
+        client.prepareSigninPerform(
           request: BridgeSigninPerformRequest(courseId: courseId),
         ),
       );
@@ -404,8 +403,8 @@ class BridgeBackend
     required String segment,
     required String startTime,
     required String endTime,
-  }) async => _mapIntent(
-    await client.prepareLibbookReserve(
+  }) => _prepareIntent(
+    client.prepareLibbookReserve(
       request: BridgeLibbookReserveRequest(
         areaId: areaId,
         seatId: seatId,
@@ -417,9 +416,9 @@ class BridgeBackend
     ),
   );
 
-  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) async =>
-      _mapIntent(
-        await client.prepareLibbookCancelBooking(
+  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) =>
+      _prepareIntent(
+        client.prepareLibbookCancelBooking(
           request: BridgeLibbookCancelBookingRequest(id: id),
         ),
       );
@@ -434,8 +433,8 @@ class BridgeBackend
     List<int>? photoBytes,
     String photoFileName = 'upload.jpg',
     String photoMimeType = 'image/jpeg',
-  }) async => _mapIntent(
-    await client.prepareYgdkSubmit(
+  }) => _prepareIntent(
+    client.prepareYgdkSubmit(
       request: BridgeYgdkSubmitRequest(
         itemId: itemId,
         startTime: startTime,
@@ -467,8 +466,8 @@ class BridgeBackend
     required String joiners,
     required bool isPhilosophySocialSciences,
     required bool isOffSchoolJoiner,
-  }) async => _mapIntent(
-    await client.prepareCgyySubmitReservation(
+  }) => _prepareIntent(
+    client.prepareCgyySubmitReservation(
       request: BridgeCgyySubmitReservationRequest(
         venueSiteId: venueSiteId,
         reservationDate: reservationDate,
@@ -493,9 +492,9 @@ class BridgeBackend
     ),
   );
 
-  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) async =>
-      _mapIntent(
-        await client.prepareCgyyCancelOrder(
+  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
+      _prepareIntent(
+        client.prepareCgyyCancelOrder(
           request: BridgeCgyyCancelOrderRequest(id: id),
         ),
       );
@@ -503,13 +502,21 @@ class BridgeBackend
   /// 评教只接收 bridge 白名单课程 DTO，并在 commit 后由页面重新读取进度。
   Future<WriteIntent> prepareEvaluationSubmitCourses({
     required List<BridgeEvaluationCourse> courses,
-  }) async => _mapIntent(
-    await client.prepareEvaluationSubmitCourses(
+  }) => _prepareIntent(
+    client.prepareEvaluationSubmitCourses(
       request: BridgeEvaluationSubmitCoursesRequest(
         courses: List<BridgeEvaluationCourse>.unmodifiable(courses),
       ),
     ),
   );
+
+  Future<WriteIntent> _prepareIntent(Future<BridgeWriteIntent> pending) async {
+    try {
+      return _mapIntent(await pending);
+    } on BridgeError catch (error) {
+      throw _mapError(error);
+    }
+  }
 
   Future<WriteCommitResult> commitWrite(String intentId) async {
     try {

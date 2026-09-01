@@ -63,4 +63,39 @@ void main() {
     expect(controller.intent, isNull);
     controller.dispose();
   });
+
+  test('prepare 只建立确认意图，不提交写请求且失败映射安全错误', () async {
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    final controller = WriteFlowController(
+      commit: (_) async {
+        commitCalls++;
+        return const WriteCommitResult(
+          operation: WriteOperation.signinPerform,
+          success: true,
+          message: '已提交',
+          outcomeUnknown: false,
+        );
+      },
+    );
+    final prepared = await controller.prepare(() async {
+      prepareCalls++;
+      return intent();
+    });
+    expect(prepared?.intentId, 'intent-1');
+    expect(controller.intent?.intentId, 'intent-1');
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+
+    controller.cancel();
+    await expectLater(
+      controller.prepare(() async {
+        throw const BackendException(UbaaErrorCode.permissionDenied);
+      }),
+      throwsA(isA<BackendException>()),
+    );
+    expect(controller.intent, isNull);
+    expect(controller.error?.code, UbaaErrorCode.permissionDenied);
+    controller.dispose();
+  });
 }
