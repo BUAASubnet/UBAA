@@ -8,6 +8,14 @@
 - 签名 HAP、正式签名 Release、公证、商店上传、实体设备安装/hello、HUKS/硬件安全存储和设备权限验证改列后置 `BLOCKED`，不计入本轮门禁；不得用 Mock 或无签名产物冒充正式发布或设备成功。
 - 真实写入仍遵守逐操作、逐目标、逐路线、逐时间授权；本次目标更新只授权实现和确定性验证，不产生真实账号副作用。
 
+## 2026-09-02 无签名平台能力与宿主全功能 smoke
+
+- 提交 `fba1316` 新增 `PlatformPermissionGateway`、`PlatformPhotoPicker`、不可用实现和内存 fake，覆盖相机、相册、文件、前台位置权限的稳定拒绝/授权状态；照片只以 typed `YgdkPhotoInput` 在内存中传递。权限拒绝回归验证不会调用 picker，原生插件和设备权限仍为后置 `BLOCKED`。
+- 官方 Flutter 与 OHOS 薄宿主新增可选照片 picker 注入点；无注入时不伪造照片。共享导航增加可恢复的初始分组参数，便于宿主恢复和确定性集成验证。
+- `apps/ubaa_flutter/integration_test/app_flow_test.dart` 现覆盖普通 8 项与高级 4 项全部详情入口，登录后逐项打开并返回；官方 Flutter macOS 集成场景 3/3 通过，未访问网络或真实账号。
+- `just flutter-check`、`just check`、`just check-sensitive`、`CARGO_INCREMENTAL=0 just flutter-codegen-check` 均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 的工具链、Dart/widget/native 前置均为 0 失败/0 警告，并生成 `entry-default-unsigned.hap`；实体设备和签名未执行。
+- 提交 `38763f4` 的 `release-preflight` 现生成 Cargo CycloneDX 风格 SBOM、Dart/Flutter 锁文件版本与许可证审计，并由合同 CI 归档；无签名报告仍不等价于正式签名发布。
+
 ## 2026-09-02 当前提交双路线只读复核
 
 - 在提交 `57e928a` 串行执行 `just verify-live mode=direct` 与

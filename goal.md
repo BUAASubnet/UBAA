@@ -387,6 +387,13 @@
      高级功能页进入课堂签到确认，验证 typed `WriteIntent` 只提交一次，并在成功后通过对应只读刷新
      观察到“已签到”状态；集成测试 2/2 通过，随后 `just flutter-check` 全量通过。本轮不访问网络、
      真实账号或真实写接口；十项写操作逐领域核对、六平台真实 App E2E、签名和设备证据仍未完成。
+122. 提交 `fba1316` 新增 `PlatformPermissionGateway`、`PlatformPhotoPicker` 及内存/不可用实现，统一相机、相册、文件、
+     前台位置权限状态和阳光打卡 typed 照片边界；权限拒绝时不会调用 picker，原生插件和设备权限验证仍列为
+     后置 `BLOCKED`。官方 Flutter 与 OHOS 宿主新增可选 picker 注入点，生产默认不伪造照片。
+123. 提交 `fba1316` 将宿主集成回归扩展为普通 8 项与高级 4 项全部详情入口：使用脱敏 backend 从登录打开每项页面并返回，另覆盖
+     启动时选择功能分组；3 个 macOS 集成场景全部通过。该证据仍是确定性 UI/状态链路，不替代真实六平台 App→FRB→Core。
+124. 提交 `38763f4` 使无签名 `release-preflight` 新增 CycloneDX 风格 Cargo SBOM、Dart/Flutter 锁文件版本及许可证审计报告，并在合同
+     CI 生成和上传 14 天 artifact；报告不访问凭据、真实账号、原始响应或签名服务。CI 与无签名 OHOS Debug 复核需以新提交终态为准。
 
 ## 4. 安全与架构边界
 
