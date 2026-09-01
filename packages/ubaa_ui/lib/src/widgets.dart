@@ -1077,6 +1077,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _spocAssignmentController;
   late final TextEditingController _judgeCourseController;
   late final TextEditingController _judgeAssignmentController;
+  late final TextEditingController _judgeBatchController;
   int _campus = 1;
   FeatureQueryView _scheduleView = FeatureQueryView.summary;
   FeatureQueryView _examView = FeatureQueryView.summary;
@@ -1112,6 +1113,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _spocAssignmentController = TextEditingController();
     _judgeCourseController = TextEditingController();
     _judgeAssignmentController = TextEditingController();
+    _judgeBatchController = TextEditingController();
   }
 
   @override
@@ -1134,6 +1136,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _spocAssignmentController.dispose();
     _judgeCourseController.dispose();
     _judgeAssignmentController.dispose();
+    _judgeBatchController.dispose();
     super.dispose();
   }
 
@@ -1718,6 +1721,10 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                   value: FeatureQueryView.judgeDetail,
                   child: Text('作业详情'),
                 ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.judgeBatchDetails,
+                  child: Text('批量详情'),
+                ),
               ],
             ),
             if (_judgeView == FeatureQueryView.judgeDetail) ...<Widget>[
@@ -1744,6 +1751,21 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 ),
               ),
             ],
+            if (_judgeView == FeatureQueryView.judgeBatchDetails)
+              SizedBox(
+                width: 320,
+                child: TextField(
+                  controller: _judgeBatchController,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: '批量作业键',
+                    hintText: '每行：课程编号/作业编号',
+                    helperText: '仅填写作业列表中的公开编号',
+                    isDense: true,
+                  ),
+                ),
+              ),
             if (_judgeView == FeatureQueryView.summary)
               FilterChip(
                 label: const Text('包含已过期作业'),
@@ -1936,6 +1958,18 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           return;
         }
       }
+      List<JudgeAssignmentQueryKey> judgeKeys =
+          const <JudgeAssignmentQueryKey>[];
+      if (widget.feature == FeatureId.judge &&
+          _judgeView == FeatureQueryView.judgeBatchDetails) {
+        final parsedKeys = _parseJudgeBatchKeys();
+        if (parsedKeys == null) return;
+        if (parsedKeys.isEmpty) {
+          _showMessage('请至少填写一项批量作业键，格式为课程编号/作业编号。');
+          return;
+        }
+        judgeKeys = parsedKeys;
+      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -1984,14 +2018,18 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               : null,
           assignmentId: widget.feature == FeatureId.spoc
               ? _optionalText(_spocAssignmentController)
-              : widget.feature == FeatureId.judge
+              : widget.feature == FeatureId.judge &&
+                    _judgeView == FeatureQueryView.judgeDetail
               ? _optionalText(_judgeAssignmentController)
               : null,
-          courseId: widget.feature == FeatureId.judge
+          courseId:
+              widget.feature == FeatureId.judge &&
+                  _judgeView == FeatureQueryView.judgeDetail
               ? _optionalText(_judgeCourseController)
               : widget.feature == FeatureId.bykc
               ? _optionalText(_bykcCourseController)
               : null,
+          judgeKeys: judgeKeys,
           includeExpired:
               widget.feature == FeatureId.judge &&
                   _judgeView == FeatureQueryView.summary
@@ -2014,6 +2052,31 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   String? _optionalText(TextEditingController controller) {
     final value = controller.text.trim();
     return value.isEmpty ? null : value;
+  }
+
+  List<JudgeAssignmentQueryKey>? _parseJudgeBatchKeys() {
+    final keys = <JudgeAssignmentQueryKey>[];
+    for (final rawLine in _judgeBatchController.text.split('\n')) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+      final separator = line.indexOf('/');
+      if (separator <= 0 ||
+          separator == line.length - 1 ||
+          line.indexOf('/', separator + 1) != -1) {
+        _showMessage('批量作业键格式无效，请使用课程编号/作业编号。');
+        return null;
+      }
+      final courseId = line.substring(0, separator).trim();
+      final assignmentId = line.substring(separator + 1).trim();
+      if (courseId.isEmpty || assignmentId.isEmpty) {
+        _showMessage('批量作业键格式无效，请使用课程编号/作业编号。');
+        return null;
+      }
+      keys.add(
+        JudgeAssignmentQueryKey(courseId: courseId, assignmentId: assignmentId),
+      );
+    }
+    return List<JudgeAssignmentQueryKey>.unmodifiable(keys);
   }
 
   void _showMessage(String message) {

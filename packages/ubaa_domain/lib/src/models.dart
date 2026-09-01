@@ -244,6 +244,7 @@ enum FeatureQueryView {
   cgyyLockCode,
   spocDetail,
   judgeDetail,
+  judgeBatchDetails,
 }
 
 @immutable
@@ -323,6 +324,31 @@ class FeatureResult {
   final UiError? error;
 }
 
+/// Judge 批量详情查询使用的公开作业标识。
+///
+/// 该类型只包含用户从作业列表中选择的课程/作业编号，不携带上游载荷或会话材料。
+@immutable
+class JudgeAssignmentQueryKey {
+  const JudgeAssignmentQueryKey({
+    required this.courseId,
+    required this.assignmentId,
+  });
+
+  final String courseId;
+  final String assignmentId;
+
+  @override
+  int get hashCode => courseId.hashCode ^ assignmentId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is JudgeAssignmentQueryKey &&
+          runtimeType == other.runtimeType &&
+          courseId == other.courseId &&
+          assignmentId == other.assignmentId;
+}
+
 /// 领域读取查询参数。未提供的字段由 Core/bridge 采用当前稳定默认值；
 /// UI 不拼接 URL，也不把该对象序列化为 raw payload。
 @immutable
@@ -346,14 +372,17 @@ class FeatureQuery {
     this.orderId,
     this.assignmentId,
     this.courseId,
+    this.judgeKeys = const <JudgeAssignmentQueryKey>[],
     this.includeExpired = false,
   });
 
   final String? term;
   final DateTime? date;
   final int? campus;
+
   /// 空教室结果的本地楼层筛选，不改变 Core 的固定查询参数。
   final String? floorId;
+
   /// 空教室结果的本地节次筛选，按白名单 `availableSections` 文本匹配。
   final String? section;
   final int? week;
@@ -372,6 +401,9 @@ class FeatureQuery {
   final int? orderId;
   final String? assignmentId;
   final String? courseId;
+
+  /// Judge 批量详情的公开键，顺序会传递给 Core 并保持在结果中。
+  final List<JudgeAssignmentQueryKey> judgeKeys;
   final bool includeExpired;
 
   FeatureQuery copyWith({
@@ -393,6 +425,7 @@ class FeatureQuery {
     int? orderId,
     String? assignmentId,
     String? courseId,
+    List<JudgeAssignmentQueryKey>? judgeKeys,
     bool? includeExpired,
   }) => FeatureQuery(
     term: term ?? this.term,
@@ -413,6 +446,7 @@ class FeatureQuery {
     orderId: orderId ?? this.orderId,
     assignmentId: assignmentId ?? this.assignmentId,
     courseId: courseId ?? this.courseId,
+    judgeKeys: judgeKeys ?? this.judgeKeys,
     includeExpired: includeExpired ?? this.includeExpired,
   );
 }

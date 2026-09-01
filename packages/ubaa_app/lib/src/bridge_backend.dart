@@ -540,13 +540,13 @@ class BridgeBackend
                       room.availableSections,
                       sectionFilter,
                     ))
-                FeatureDetail(
-                  title: room.name,
-                  subtitle: floor.name,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('可用节次', room.availableSections),
-                  ]),
-              ),
+                  FeatureDetail(
+                    title: room.name,
+                    subtitle: floor.name,
+                    fields: _compactFields(<FeatureField?>[
+                      _field('可用节次', room.availableSections),
+                    ]),
+                  ),
           ];
           return _countResult(
             details.length,
@@ -690,6 +690,59 @@ class BridgeBackend
               ];
               return FeatureResult.success(
                 summary: '希冀作业详情',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.judgeBatchDetails:
+              if (query.judgeKeys.isEmpty) {
+                throw const BackendException(UbaaErrorCode.invalidInput);
+              }
+              final result = await client.judgeAssignmentDetails(
+                keys: query.judgeKeys
+                    .map(
+                      (key) => BridgeJudgeAssignmentKey(
+                        courseId: key.courseId,
+                        assignmentId: key.assignmentId,
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+              final details = <FeatureDetail>[];
+              for (final item in result.data) {
+                details.add(
+                  FeatureDetail(
+                    title: item.title,
+                    subtitle: item.courseName,
+                    fields: _compactFields(<FeatureField?>[
+                      _field('课程编号', item.courseId),
+                      _field('作业编号', item.assignmentId),
+                      _field('开始', item.startTime),
+                      _field('截止', item.dueTime),
+                      _field('状态', item.submissionStatusText),
+                      _field(
+                        '题目数',
+                        '${item.submittedCount}/${item.totalProblems}',
+                      ),
+                      _field('我的得分', item.myScore),
+                      _field('作业内容', item.contentPlainText),
+                    ]),
+                  ),
+                );
+                details.addAll(
+                  item.problems.map(
+                    (problem) => FeatureDetail(
+                      title: problem.name,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('状态', problem.statusText),
+                        _field('得分', problem.score),
+                        _field('满分', problem.maxScore),
+                      ]),
+                    ),
+                  ),
+                );
+              }
+              return FeatureResult.success(
+                summary: '${result.data.length}项希冀作业详情',
                 details: details,
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
@@ -854,6 +907,7 @@ class BridgeBackend
             case FeatureQueryView.cgyyLockCode:
             case FeatureQueryView.spocDetail:
             case FeatureQueryView.judgeDetail:
+            case FeatureQueryView.judgeBatchDetails:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.signin:
@@ -1053,6 +1107,7 @@ class BridgeBackend
             case FeatureQueryView.ygdkRecords:
             case FeatureQueryView.spocDetail:
             case FeatureQueryView.judgeDetail:
+            case FeatureQueryView.judgeBatchDetails:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.ygdk:
@@ -1128,6 +1183,7 @@ class BridgeBackend
             case FeatureQueryView.cgyyLockCode:
             case FeatureQueryView.spocDetail:
             case FeatureQueryView.judgeDetail:
+            case FeatureQueryView.judgeBatchDetails:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.evaluation:

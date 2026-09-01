@@ -973,4 +973,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(received?.includeExpired, isTrue);
   });
+
+  testWidgets('希冀查询控件提交批量作业详情 typed 键', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.judge
+              ? const <FeatureDetail>[FeatureDetail(title: '作业')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.judge);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('希冀作业'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('希冀作业'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('作业列表'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('批量详情'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).first,
+      'course-2/assignment-2\ncourse-1/assignment-1',
+    );
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.view, FeatureQueryView.judgeBatchDetails);
+    expect(received?.judgeKeys, const <JudgeAssignmentQueryKey>[
+      JudgeAssignmentQueryKey(
+        courseId: 'course-2',
+        assignmentId: 'assignment-2',
+      ),
+      JudgeAssignmentQueryKey(
+        courseId: 'course-1',
+        assignmentId: 'assignment-1',
+      ),
+    ]);
+  });
 }

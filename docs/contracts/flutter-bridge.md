@@ -134,7 +134,8 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `{assignmentId,courseId,courseName,teacherName?,title,startTime?,dueTime?,score?,submissionStatus,submissionStatusText}`；
   详情在摘要字段后增加 `{contentPlainText?,submittedAt?}`。
 - `JudgeAssignmentSummary {courseId,courseName,assignmentId,title,startTime?,dueTime?,maxScore?,myScore?,totalProblems,submittedCount,submissionStatus,submissionStatusText}`；
-  `JudgeAssignmentKey {courseId,assignmentId}`；详情增加 `problems` 与 `contentPlainText?`；
+  `JudgeAssignmentKey {courseId,assignmentId}`；详情增加 `problems` 与 `contentPlainText?`；批量详情保持
+  去重后的输入顺序，逐项使用同一白名单详情结构。
   `JudgeProblem {name,score?,maxScore?,status,statusText}`。
 - `SigninClass {courseId,courseName,classBeginTime,classEndTime,signStatus}`。
 - `BykcUserProfile {id,employeeId?,realName?,studentNo?,collegeName?}`；
@@ -196,8 +197,11 @@ ID/分页字段：
 | `cgyyLockCode` | 无 | `cgyyLockCode`（只含 `available`） |
 | `spocDetail` | `assignmentId` | `spocAssignment(assignmentId)` |
 | `judgeDetail` | `courseId`、`assignmentId` | `judgeAssignment(courseId, assignmentId)` |
+| `judgeBatchDetails` | `judgeKeys: List<{courseId,assignmentId}>`，至少一项 | `judgeAssignmentDetails(keys)` |
 
-缺少必填 ID 或时段时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。查询结果
+缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
+批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw
+payload 传递。查询结果
 仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID、区域 ID、场馆站点 ID 和订单 ID 仅作为
 用户选择后再次查询的公开标识，不进入日志或遥测。Cgyy 用途结果始终携带 `source`，UI 必须
 明示 `staticFallback`，不得将冻结回退伪称为上游成功；门锁结果只允许展示 `available`。

@@ -2,6 +2,15 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 Judge 批量详情读取增量
+
+- `FeatureQueryView.judgeBatchDetails` 与 `JudgeAssignmentQueryKey` 接入共享查询模型；UI 使用每行
+  `课程编号/作业编号` 的公开编号格式，解析后调用已有 `judgeAssignmentDetails(keys)` typed facade。
+- BridgeBackend 拒绝空键列表，按 Core 返回顺序映射作业头、题目状态/分数和纯文本白名单；不新增上游
+  请求或协议字段。app 回归覆盖批量键、路线和题目字段，widget 回归覆盖多行键解析。
+- P3 仍未完成：列表选择器与服务端分页、全部页面状态、golden/integration、真实 Flutter App E2E
+  以及 P4 写入表单和结果核对仍缺证据。
+
 ## 2026-09-01 OHOS API26/Command Line Tools 构建复核
 
 - 用户更新后的 Command Line Tools 与 DevEco Studio 均报告 `26.0.0.821`、Hvigor `6.26.4`、
