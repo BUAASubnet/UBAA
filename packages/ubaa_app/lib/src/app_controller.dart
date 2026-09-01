@@ -320,6 +320,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> refreshHome({Iterable<FeatureId>? only}) async {
+    if (_disposed) return;
     final generation = ++_refreshGeneration;
     final features = (only ?? FeatureId.values).toList(growable: false);
     for (final feature in features) {
@@ -344,6 +345,7 @@ class AppController extends ChangeNotifier {
     FeatureId feature,
     FeatureQuery query,
   ) async {
+    if (_disposed) return;
     if (_backend is! FeatureQueryBackend) {
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: FeatureLoadStatus.failure,
@@ -689,7 +691,7 @@ class AppController extends ChangeNotifier {
           await queryBackend.loadFeatureQuery(feature, value),
         _ => await _backend.loadFeature(feature),
       };
-      if (generation != _refreshGeneration) return;
+      if (_disposed || generation != _refreshGeneration) return;
       final status = result.error != null
           ? FeatureLoadStatus.failure
           : result.isEmpty
@@ -715,7 +717,7 @@ class AppController extends ChangeNotifier {
         latency: DateTime.now().difference(started),
       );
     } on BackendException catch (exception) {
-      if (generation != _refreshGeneration) return;
+      if (_disposed || generation != _refreshGeneration) return;
       final uiError = UbaaErrorMapper.fromCode(exception.code);
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: hadPreviousData
@@ -730,7 +732,7 @@ class AppController extends ChangeNotifier {
         latency: DateTime.now().difference(started),
       );
     } catch (_) {
-      if (generation != _refreshGeneration) return;
+      if (_disposed || generation != _refreshGeneration) return;
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: hadPreviousData
             ? FeatureLoadStatus.stale

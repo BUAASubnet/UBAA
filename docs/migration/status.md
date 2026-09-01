@@ -2,6 +2,11 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 销毁后的在途功能读取不回写快照
+
+- 新增延迟功能读取回归：controller 销毁后，旧实现仍会把在途成功结果写入 loading 快照；修复在 `refreshHome`/`refreshFeatureQuery` 入口及 `_loadFeature` 成功、失败边界检查 `_disposed` 与刷新代次，销毁后不再改变快照。
+- 预期失败已观察，修复后 app_controller 聚焦测试 26/26 通过；该修复只收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台生命周期和内存工具证据仍缺失。
+
 ## 2026-09-02 初始化销毁竞态的异步读取取消
 
 - 新增延迟认证 app 回归：初始化等待 `authStatus` 时销毁 controller，旧实现会继续调用 `userInfo` 并可能启动首页刷新；先观察到该失败后，在路线、认证、用户资料和凭据读取边界加入 `_disposed` guard。

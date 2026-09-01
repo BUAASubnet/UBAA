@@ -270,6 +270,33 @@ void main() {
     expect(backend.featureLoads, 0);
   });
 
+  test('controller 销毁后延迟的功能读取不会回写快照', () async {
+    final backend = _DelayedFeatureBackend();
+    final controller = AppController(backend: backend);
+    final refreshing = controller.refreshHome(
+      only: const <FeatureId>[FeatureId.schedule],
+    );
+    await backend.loadStarted.future;
+
+    expect(
+      controller.snapshots[FeatureId.schedule]!.status,
+      FeatureLoadStatus.loading,
+    );
+    controller.dispose();
+    backend.releaseLoad.complete(
+      const FeatureResult.success(
+        summary: '不应回写',
+        details: <FeatureDetail>[FeatureDetail(title: '不应回写')],
+      ),
+    );
+    await refreshing;
+
+    final snapshot = controller.snapshots[FeatureId.schedule]!;
+    expect(snapshot.status, FeatureLoadStatus.loading);
+    expect(snapshot.summary, isNull);
+    expect(snapshot.details, isEmpty);
+  });
+
   test('博雅写意图通过 typed backend 准备且控制器不替换请求参数', () async {
     final backend = _BykcWriteBackend();
     final controller = AppController(backend: backend);
@@ -602,6 +629,32 @@ class _FlakyBackend implements UbaaBackend {
 
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) => load(feature);
+}
+
+class _DelayedFeatureBackend implements UbaaBackend {
+  final Completer<void> loadStarted = Completer<void>();
+  final Completer<FeatureResult> releaseLoad = Completer<FeatureResult>();
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async => null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    loadStarted.complete();
+    return releaseLoad.future;
+  }
 }
 
 class _QueryBackend implements UbaaBackend, FeatureQueryBackend {

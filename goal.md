@@ -329,6 +329,7 @@
 94. 当前 HEAD `538f57d` 串行复跑 Direct/WebVPN：必需只读操作均为 `PASS`，SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`，未调用真实写接口；随后以更新后的 Command Line Tools API26 路径复跑 OHOS debug，工具链与 native 前置 0 失败/0 警告，HAP 仍在调试签名处停止，未产生签名 HAP 或设备证据。P0/P5/P6 仍未完成。
 95. 提交 `538f57d` 的合同 CI `33537041843` 与五平台 native debug CI `33537041816` 均成功（Windows、macOS、Linux、Android APK、iOS simulator）；文档提交 `991f090` 的合同 CI `33537405629` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实六平台 App E2E，P0/P5/P6 仍未完成。
 96. 新增延迟认证 app 回归并先在旧实现上观察到 controller 销毁后仍继续 `userInfo`/首页刷新；随后在 `AppController.initialize` 的路线、认证、用户资料和凭据读取边界加入 `_disposed` guard。聚焦 app_controller 25/25 与完整 Flutter 门禁通过；仅改善 Dart 生命周期安全，不改变 Core/上游协议，真实 isolate/平台生命周期及 P1/P5/P6 仍未完成。
+97. 新增延迟功能读取回归并先观察到销毁后的在途成功结果仍回写快照；随后在 `refreshHome`/`refreshFeatureQuery` 入口及 `_loadFeature` 成功、失败边界加入 `_disposed` 与刷新代次检查。app_controller 聚焦测试 26/26 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate/平台生命周期和 P1/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 
