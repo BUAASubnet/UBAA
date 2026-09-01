@@ -276,6 +276,39 @@ class FeatureResult {
   final UiError? error;
 }
 
+/// 领域读取查询参数。未提供的字段由 Core/bridge 采用当前稳定默认值；
+/// UI 不拼接 URL，也不把该对象序列化为 raw payload。
+@immutable
+class FeatureQuery {
+  const FeatureQuery({
+    this.term,
+    this.date,
+    this.campus,
+    this.page = 0,
+    this.size = 20,
+  });
+
+  final String? term;
+  final DateTime? date;
+  final int? campus;
+  final int page;
+  final int size;
+
+  FeatureQuery copyWith({
+    String? term,
+    DateTime? date,
+    int? campus,
+    int? page,
+    int? size,
+  }) => FeatureQuery(
+    term: term ?? this.term,
+    date: date ?? this.date,
+    campus: campus ?? this.campus,
+    page: page ?? this.page,
+    size: size ?? this.size,
+  );
+}
+
 /// 只读详情页使用的稳定展示模型，不携带原始上游载荷。
 @immutable
 class FeatureDetail {

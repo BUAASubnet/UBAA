@@ -96,6 +96,9 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> {
       telemetryEnabled: _controller.telemetryEnabled,
       onRefresh: _controller.refreshHome,
       onRetryFeature: _controller.retryFeature,
+      onFeatureQuery: (feature, query) {
+        return _controller.refreshFeatureQuery(feature, query);
+      },
       onLogout: _controller.logout,
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));

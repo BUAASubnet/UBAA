@@ -156,4 +156,51 @@ void main() {
     expect(find.text('1 / 2'), findsNothing);
     expect(find.text('课程 1'), findsNWidgets(2));
   });
+
+  testWidgets('领域查询控件提交日期和校区 typed 参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.classroom);
+            received = query;
+          },
+          onLogout: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('空教室查询'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '2026-09-02');
+    await tester.tap(find.text('校区 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('校区 2'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('应用筛选'));
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.date, DateTime(2026, 9, 2));
+    expect(received?.campus, 2);
+  });
 }

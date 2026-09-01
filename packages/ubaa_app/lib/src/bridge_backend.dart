@@ -11,7 +11,8 @@ import 'backend.dart';
 /// 该适配器只负责把 bridge 的 typed 结果投影到应用层；请求 URL、Cookie、
 /// Session 和路线选择仍由 Rust Core 管理。测试可以继续显式注入 [DemoBackend]，
 /// 生产宿主不得把 Demo 作为默认实现。
-class BridgeBackend implements UbaaBackend, BackendLifecycle {
+class BridgeBackend
+    implements UbaaBackend, FeatureQueryBackend, BackendLifecycle {
   BridgeBackend(this.client);
 
   /// 从平台已经解析好的应用私有目录打开 Core。
@@ -90,9 +91,16 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
   }
 
   @override
-  Future<FeatureResult> loadFeature(FeatureId feature) async {
+  Future<FeatureResult> loadFeature(FeatureId feature) =>
+      loadFeatureQuery(feature, const FeatureQuery());
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async {
     try {
-      final today = _dateOnly(DateTime.now());
+      final today = _dateOnly(query.date ?? DateTime.now());
       switch (feature) {
         case FeatureId.schedule:
           final result = await client.scheduleToday();
@@ -110,7 +118,7 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
               .toList(growable: false);
           return _countResult(result.data.length, '今日课程', details: details);
         case FeatureId.exam:
-          final term = await _selectedTerm();
+          final term = query.term ?? await _selectedTerm();
           if (term == null) return const FeatureResult.empty();
           final result = await client.examArrangement(term: term);
           final exams = <BridgeExam>[
@@ -138,7 +146,7 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
               .toList(growable: false);
           return _countResult(exams.length, '考试安排', details: details);
         case FeatureId.grades:
-          final term = await _selectedTerm();
+          final term = query.term ?? await _selectedTerm();
           if (term == null) return const FeatureResult.empty();
           final result = await client.grades(term: term);
           final details = result.data.grades
@@ -161,7 +169,11 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
             details: details,
           );
         case FeatureId.bykc:
-          final result = await client.bykcCourses(page: 0, size: 20, all: true);
+          final result = await client.bykcCourses(
+            page: query.page < 0 ? 0 : query.page,
+            size: query.size.clamp(1, 100),
+            all: true,
+          );
           final details = result.data.content
               .map(
                 (item) => FeatureDetail(
@@ -188,7 +200,10 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
             details: details,
           );
         case FeatureId.classroom:
-          final result = await client.classroomSearch(campus: 1, date: today);
+          final result = await client.classroomSearch(
+            campus: query.campus ?? 1,
+            date: today,
+          );
           final rooms = result.data.floors.fold<int>(
             0,
             (total, floor) => total + floor.rooms.length,

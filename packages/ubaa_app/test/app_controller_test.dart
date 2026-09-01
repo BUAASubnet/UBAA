@@ -88,6 +88,28 @@ void main() {
     expect(snapshot.error?.code, UbaaErrorCode.networkError);
     controller.dispose();
   });
+
+  test('领域查询参数通过 FeatureQueryBackend typed 传递', () async {
+    FeatureQuery? received;
+    final backend = _QueryBackend(
+      onQuery: (_, query) {
+        received = query;
+        return const FeatureResult.success(
+          summary: '指定查询',
+          details: <FeatureDetail>[FeatureDetail(title: '查询结果')],
+        );
+      },
+    );
+    final controller = AppController(backend: backend);
+    await controller.refreshFeatureQuery(
+      FeatureId.classroom,
+      FeatureQuery(date: DateTime(2026, 9, 2), campus: 2, page: 1, size: 10),
+    );
+    expect(received?.campus, 2);
+    expect(received?.page, 1);
+    expect(controller.snapshots[FeatureId.classroom]!.summary, '指定查询');
+    controller.dispose();
+  });
 }
 
 class _FlakyBackend implements UbaaBackend {
@@ -112,4 +134,35 @@ class _FlakyBackend implements UbaaBackend {
 
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) => load(feature);
+}
+
+class _QueryBackend implements UbaaBackend, FeatureQueryBackend {
+  _QueryBackend({required this.onQuery});
+
+  final FeatureResult Function(FeatureId, FeatureQuery) onQuery;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async => null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async => onQuery(feature, query);
 }

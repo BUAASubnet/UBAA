@@ -235,11 +235,43 @@ class AppController extends ChangeNotifier {
   Future<void> retryFeature(FeatureId feature) =>
       refreshHome(only: <FeatureId>[feature]);
 
-  Future<void> _loadFeature(FeatureId feature, int generation) async {
+  /// 对支持 [FeatureQueryBackend] 的生产实现执行单领域筛选读取。
+  ///
+  /// 不支持查询的 fake backend 明确报 unsupported，不会在 Dart 端拼接请求。
+  Future<void> refreshFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async {
+    if (_backend is! FeatureQueryBackend) {
+      _snapshots[feature] = _snapshots[feature]!.copyWith(
+        status: FeatureLoadStatus.failure,
+        error: UbaaErrorMapper.fromCode(UbaaErrorCode.unsupported),
+      );
+      _notify();
+      return;
+    }
+    final generation = ++_refreshGeneration;
+    _snapshots[feature] = _snapshots[feature]!.copyWith(
+      status: FeatureLoadStatus.loading,
+      clearError: true,
+    );
+    _notify();
+    await _loadFeature(feature, generation, query: query);
+  }
+
+  Future<void> _loadFeature(
+    FeatureId feature,
+    int generation, {
+    FeatureQuery? query,
+  }) async {
     final started = DateTime.now();
     final hadPreviousData = _snapshots[feature]!.updatedAt != null;
     try {
-      final result = await _backend.loadFeature(feature);
+      final result = switch ((_backend, query)) {
+        (FeatureQueryBackend queryBackend, final FeatureQuery value) =>
+          await queryBackend.loadFeatureQuery(feature, value),
+        _ => await _backend.loadFeature(feature),
+      };
       if (generation != _refreshGeneration) return;
       final status = result.error != null
           ? FeatureLoadStatus.failure

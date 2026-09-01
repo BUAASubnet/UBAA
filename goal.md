@@ -64,8 +64,8 @@
 已知事实：
 
 1. 当前分支为 ubaa2 并跟踪 `origin/ubaa2`；合同、探索骨架、FRB 绑定、OHOS runner、
-   六平台门禁、bridge 实现和跨平台修复均已形成阶段提交；本地最新阶段提交为
-   `7bd8fd2`（bridge 实现为 `2faa753`），推送后再更新远端基线。
+   六平台门禁、bridge 实现、共享读取状态和 macOS 链接修复均已形成阶段提交；本地最新
+   阶段提交及远端基线以 `git log` 和 CI 终态为准，本轮新增的查询入口尚待提交。
 2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
 3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
 4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
@@ -111,8 +111,11 @@
     写 intent 的跨进程会话修订冲突现已映射为 `operation_conflict`。远端五平台 native CI 仍以
     最新提交终态为准，OHOS/API26、签名和设备证据仍未闭合。
 20. 当前 `AppController` 仅从可用安全保险箱恢复并执行用户已选择的自动登录，随后清空密码；
-    不可用保险箱会禁用持久化选项。自动登录确定性测试已通过，但六平台原生安全存储插件和
-    生命周期/设备证据仍属于 P5/P6。
+   不可用保险箱会禁用持久化选项。自动登录确定性测试已通过，但六平台原生安全存储插件和
+   生命周期/设备证据仍属于 P5/P6。
+21. `FeatureQuery` 已固定 term/date/campus/page/size 非敏感参数；`FeatureQueryBackend` 将考试/成绩
+   学期、空教室日期/校区和博雅分页以 typed 方式传入 Core，详情页查询控件与 app/widget 测试
+   已接线。其余领域筛选、服务端分页、逐领域详情闭环、golden/integration 和写入页面仍未完成。
 
 ## 4. 安全与架构边界
 

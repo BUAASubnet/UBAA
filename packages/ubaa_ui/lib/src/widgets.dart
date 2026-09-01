@@ -367,6 +367,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onLogout,
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
+    this.onFeatureQuery,
     super.key,
   });
 
@@ -379,6 +380,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onLogout;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
+  final Future<void> Function(FeatureId feature, FeatureQuery query)?
+  onFeatureQuery;
 
   @override
   State<UbaaMainShell> createState() => _UbaaMainShellState();
@@ -409,6 +412,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             snapshot: widget.snapshots[_openedFeature!]!,
             onBack: () => setState(() => _openedFeature = null),
             onRetry: () => widget.onRetryFeature(_openedFeature!),
+            onQuery: widget.onFeatureQuery == null
+                ? null
+                : (query) => widget.onFeatureQuery!(_openedFeature!, query),
           );
     return Scaffold(
       appBar: AppBar(
@@ -736,8 +742,7 @@ class _FeatureCard extends StatelessWidget {
     FeatureLoadStatus.loading => '正在加载…',
     FeatureLoadStatus.success => snapshot.summary ?? '已加载，点击查看详情',
     FeatureLoadStatus.empty => '暂无数据',
-    FeatureLoadStatus.stale =>
-      '${snapshot.summary ?? '已显示上次数据'}（刷新失败，可重试）',
+    FeatureLoadStatus.stale => '${snapshot.summary ?? '已显示上次数据'}（刷新失败，可重试）',
     FeatureLoadStatus.failure => snapshot.error?.message ?? '加载失败，请重试',
   };
 }
@@ -857,12 +862,14 @@ class _FeatureDetailView extends StatelessWidget {
     required this.snapshot,
     required this.onBack,
     required this.onRetry,
+    this.onQuery,
   });
 
   final FeatureId feature;
   final FeatureSnapshot snapshot;
   final VoidCallback onBack;
   final Future<void> Function() onRetry;
+  final Future<void> Function(FeatureQuery query)? onQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -878,6 +885,8 @@ class _FeatureDetailView extends StatelessWidget {
     };
     return Column(
       children: <Widget>[
+        if (onQuery != null && _supportsQuery)
+          _FeatureQueryControls(feature: feature, onApply: onQuery!),
         Expanded(child: content),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -894,6 +903,11 @@ class _FeatureDetailView extends StatelessWidget {
     );
   }
 
+  bool get _supportsQuery => switch (feature) {
+    FeatureId.exam || FeatureId.grades || FeatureId.classroom => true,
+    _ => false,
+  };
+
   Widget _details(BuildContext context) {
     if (snapshot.details.isEmpty) return _empty(context);
     return _FeatureDetailList(details: snapshot.details);
@@ -904,9 +918,7 @@ class _FeatureDetailView extends StatelessWidget {
     return Column(
       children: <Widget>[
         MaterialBanner(
-          content: Text(
-            snapshot.error?.message ?? '刷新失败，以下是上次成功加载的数据。',
-          ),
+          content: Text(snapshot.error?.message ?? '刷新失败，以下是上次成功加载的数据。'),
           leading: const Icon(Icons.sync_problem),
           actions: <Widget>[
             TextButton(onPressed: () => onRetry(), child: const Text('重试')),
@@ -959,6 +971,137 @@ class _FeatureDetailView extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _FeatureQueryControls extends StatefulWidget {
+  const _FeatureQueryControls({required this.feature, required this.onApply});
+
+  final FeatureId feature;
+  final Future<void> Function(FeatureQuery query) onApply;
+
+  @override
+  State<_FeatureQueryControls> createState() => _FeatureQueryControlsState();
+}
+
+class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
+  late final TextEditingController _termController;
+  late final TextEditingController _dateController;
+  int _campus = 1;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _termController = TextEditingController();
+    _dateController = TextEditingController(text: _today());
+  }
+
+  @override
+  void dispose() {
+    _termController.dispose();
+    _dateController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          if (widget.feature == FeatureId.exam ||
+              widget.feature == FeatureId.grades)
+            SizedBox(
+              width: 180,
+              child: TextField(
+                controller: _termController,
+                decoration: const InputDecoration(
+                  labelText: '学期编码（可选）',
+                  hintText: '留空使用当前学期',
+                  isDense: true,
+                ),
+              ),
+            ),
+          if (widget.feature == FeatureId.classroom) ...<Widget>[
+            SizedBox(
+              width: 150,
+              child: TextField(
+                controller: _dateController,
+                decoration: const InputDecoration(
+                  labelText: '日期',
+                  hintText: 'YYYY-MM-DD',
+                  isDense: true,
+                ),
+              ),
+            ),
+            DropdownButton<int>(
+              value: _campus,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(() => _campus = value ?? 1),
+              items: const <DropdownMenuItem<int>>[
+                DropdownMenuItem(value: 1, child: Text('校区 1')),
+                DropdownMenuItem(value: 2, child: Text('校区 2')),
+                DropdownMenuItem(value: 3, child: Text('校区 3')),
+              ],
+            ),
+          ],
+          FilledButton.tonal(
+            onPressed: _submitting ? null : _apply,
+            child: _submitting
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('应用筛选'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _apply() async {
+    setState(() => _submitting = true);
+    try {
+      DateTime? date;
+      if (widget.feature == FeatureId.classroom) {
+        final rawDate = _dateController.text.trim();
+        if (rawDate.isNotEmpty) {
+          date = DateTime.tryParse(rawDate);
+          if (date == null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('日期格式无效，请使用 YYYY-MM-DD。')),
+              );
+            }
+            return;
+          }
+        }
+      }
+      await widget.onApply(
+        FeatureQuery(
+          term: _termController.text.trim().isEmpty
+              ? null
+              : _termController.text.trim(),
+          date: date,
+          campus: widget.feature == FeatureId.classroom ? _campus : null,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _today() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+  }
 }
 
 class _DetailField extends StatelessWidget {
