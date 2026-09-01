@@ -199,6 +199,81 @@ typedef CredentialLoader = Future<Credential?> Function();
 typedef CredentialSaver = Future<void> Function(Credential credential);
 typedef CredentialClearer = Future<void> Function();
 
+/// 由原生插件实现的系统安全存储。
+///
+/// 插件必须把值放入当前平台的 Keychain、Keystore、Credential Manager、
+/// Secret Service 或 HUKS；本接口不提供文件或明文降级实现。
+abstract interface class PlatformSecureCredentialStore {
+  bool get isAvailable;
+
+  Future<Credential?> read(String namespace);
+
+  Future<void> write(String namespace, Credential credential);
+
+  Future<void> clear(String namespace);
+}
+
+/// 版本化命名空间的原生安全存储适配器。
+///
+/// 该类只负责能力检查、输入校验和稳定错误归约；具体平台实现通过
+/// [PlatformSecureCredentialStore] 注入，避免应用层接触平台密钥或密文。
+class PlatformCredentialVault extends CredentialVault {
+  PlatformCredentialVault({
+    required PlatformSecureCredentialStore store,
+    this.namespace = 'com.buaa.ubaa.credentials.v1',
+  }) : _store = store;
+
+  final PlatformSecureCredentialStore _store;
+  final String namespace;
+
+  @override
+  bool get isAvailable => _store.isAvailable;
+
+  @override
+  Future<Credential?> load() async {
+    if (!isAvailable) return null;
+    try {
+      final credential = await _store.read(namespace);
+      if (credential == null) return null;
+      CredentialVault.validate(credential);
+      return credential.copyWith();
+    } catch (_) {
+      throw const CredentialVaultException(
+        CredentialVaultErrorCode.storageFailure,
+      );
+    }
+  }
+
+  @override
+  Future<void> save(Credential credential) async {
+    CredentialVault.validate(credential);
+    if (!isAvailable) {
+      throw const CredentialVaultException(
+        CredentialVaultErrorCode.unavailable,
+      );
+    }
+    try {
+      await _store.write(namespace, credential.copyWith());
+    } catch (_) {
+      throw const CredentialVaultException(
+        CredentialVaultErrorCode.storageFailure,
+      );
+    }
+  }
+
+  @override
+  Future<void> clear() async {
+    if (!isAvailable) return;
+    try {
+      await _store.clear(namespace);
+    } catch (_) {
+      throw const CredentialVaultException(
+        CredentialVaultErrorCode.storageFailure,
+      );
+    }
+  }
+}
+
 /// 由 Flutter 平台插件注入的回调实现。
 ///
 /// 回调内部负责调用 Keychain/Keystore；本类只做输入校验和能力声明，不会
