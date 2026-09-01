@@ -74,13 +74,13 @@
 
 ## 2026-09-01 Flutter P3 查询入口与页面状态推进
 
-- `FeatureQuery` 固定 term/date/campus/page/size 五类非敏感查询参数；`FeatureQueryBackend` 作为
+- `FeatureQuery` 固定 term/date/campus/week/page/size 六类非敏感查询参数；`FeatureQueryBackend` 作为
   可选能力保持旧 fake backend 兼容，`AppController.refreshFeatureQuery` 不支持时返回稳定
   `unsupported`，不会在 Dart 端拼接 URL 或伪造查询成功。
 - `BridgeBackend` 的课表学期/周次、考试/成绩学期和空教室日期/校区参数已 typed 传递到 Core；
   博雅列表的 1-based page/size 也经过 bridge 边界收敛。官方 Flutter 与 OHOS 宿主均把详情页查询回调接到同一
   协调器。
-- 详情页新增课表/考试/成绩学期编码（课表可选周次）、空教室日期/校区控件，非法日期或周次显示
+- 详情页新增课表/考试/成绩学期编码（课表可选周次）、空教室日期/校区及博雅 1-based 页码/每页数量控件，非法日期、周次或分页显示
   可行动中文提示；widget 与 app 测试分别证明控件提交和协调器参数不变形。其余领域筛选、
   真正服务端分页、golden/
   integration 以及写入页面仍未完成，P3/P4 不能勾选。

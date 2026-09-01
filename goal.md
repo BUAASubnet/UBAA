@@ -64,8 +64,8 @@
 已知事实：
 
 1. 当前分支为 ubaa2 并跟踪 `origin/ubaa2`；合同、探索骨架、FRB 绑定、OHOS runner、
-   六平台门禁、bridge 实现、共享读取状态和 macOS 链接修复均已形成阶段提交；本地最新
-   阶段提交及远端基线以 `git log` 和 CI 终态为准，本轮新增的查询入口尚待提交。
+   六平台门禁、bridge 实现、共享读取状态、macOS 链接修复和查询入口均已形成阶段提交；
+   最新提交及远端基线以 `git log` 和 CI 终态为准。
 2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
 3. Rust Core/CLI 的确定性门禁此前通过。图书馆分区详情最近一次真实样本处于营业时间之外，必须在 Asia/Shanghai 08:30–23:00 重新验证。
 4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
@@ -115,7 +115,7 @@
    生命周期/设备证据仍属于 P5/P6。
 21. `FeatureQuery` 已固定 term/date/campus/week/page/size 非敏感参数；`FeatureQueryBackend` 将课表
    学期/周次、考试/成绩学期、空教室日期/校区和博雅分页以 typed 方式传入 Core，详情页查询控件
-   与 app/widget 测试已接线；bridge 将博雅页码明确收敛为 Core 要求的 1-based。其余领域筛选、
+   与 app/widget 测试已接线（博雅页码控件遵循 1-based）；bridge 将博雅页码明确收敛为 Core 要求的 1-based。其余领域筛选、
    服务端分页、逐领域详情闭环、golden/integration 和写入页面仍未完成。
 22. bridge 现对 open、认证、路线、读取执行和 typed 写意图统一捕获 Rust panic，并归约为固定
    `internal_error`；panic payload 不进入 Dart。对应单元测试、全 Rust 门禁和 FRB 生成零漂移已

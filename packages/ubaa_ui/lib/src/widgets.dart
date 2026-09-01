@@ -907,7 +907,8 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.schedule ||
     FeatureId.exam ||
     FeatureId.grades ||
-    FeatureId.classroom => true,
+    FeatureId.classroom ||
+    FeatureId.bykc => true,
     _ => false,
   };
 
@@ -990,6 +991,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _termController;
   late final TextEditingController _dateController;
   late final TextEditingController _weekController;
+  late final TextEditingController _pageController;
+  late final TextEditingController _sizeController;
   int _campus = 1;
   bool _submitting = false;
 
@@ -999,6 +1002,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _termController = TextEditingController();
     _dateController = TextEditingController(text: _today());
     _weekController = TextEditingController();
+    _pageController = TextEditingController(text: '1');
+    _sizeController = TextEditingController(text: '20');
   }
 
   @override
@@ -1006,6 +1011,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _termController.dispose();
     _dateController.dispose();
     _weekController.dispose();
+    _pageController.dispose();
+    _sizeController.dispose();
     super.dispose();
   }
 
@@ -1071,6 +1078,32 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ],
             ),
           ],
+          if (widget.feature == FeatureId.bykc) ...<Widget>[
+            SizedBox(
+              width: 110,
+              child: TextField(
+                controller: _pageController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: '页码',
+                  hintText: '从 1 开始',
+                  isDense: true,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 110,
+              child: TextField(
+                controller: _sizeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: '每页数量',
+                  hintText: '1–100',
+                  isDense: true,
+                ),
+              ),
+            ),
+          ],
           FilledButton.tonal(
             onPressed: _submitting ? null : _apply,
             child: _submitting
@@ -1090,6 +1123,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     try {
       DateTime? date;
       int? week;
+      var page = 0;
+      var size = 20;
       if (widget.feature == FeatureId.schedule) {
         final rawWeek = _weekController.text.trim();
         if (rawWeek.isNotEmpty) {
@@ -1118,6 +1153,18 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           }
         }
       }
+      if (widget.feature == FeatureId.bykc) {
+        page = int.tryParse(_pageController.text.trim()) ?? 0;
+        size = int.tryParse(_sizeController.text.trim()) ?? 0;
+        if (page <= 0 || size <= 0 || size > 100) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('页码必须从 1 开始，每页数量须为 1–100。')),
+            );
+          }
+          return;
+        }
+      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -1126,6 +1173,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           date: date,
           campus: widget.feature == FeatureId.classroom ? _campus : null,
           week: week,
+          page: page,
+          size: size,
         ),
       );
     } finally {
