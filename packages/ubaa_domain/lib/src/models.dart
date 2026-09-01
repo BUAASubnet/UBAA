@@ -224,6 +224,11 @@ enum FeatureQueryView {
   libbookSeats,
   libbookBookings,
   ygdkRecords,
+  cgyyPurposeTypes,
+  cgyyDayInfo,
+  cgyyOrders,
+  cgyyOrderDetail,
+  cgyyLockCode,
 }
 
 @immutable
@@ -320,6 +325,8 @@ class FeatureQuery {
     this.areaId,
     this.startTime,
     this.endTime,
+    this.siteId,
+    this.orderId,
   });
 
   final String? term;
@@ -337,6 +344,8 @@ class FeatureQuery {
   final String? areaId;
   final String? startTime;
   final String? endTime;
+  final int? siteId;
+  final int? orderId;
 
   FeatureQuery copyWith({
     String? term,
@@ -351,6 +360,8 @@ class FeatureQuery {
     String? areaId,
     String? startTime,
     String? endTime,
+    int? siteId,
+    int? orderId,
   }) => FeatureQuery(
     term: term ?? this.term,
     date: date ?? this.date,
@@ -364,6 +375,8 @@ class FeatureQuery {
     areaId: areaId ?? this.areaId,
     startTime: startTime ?? this.startTime,
     endTime: endTime ?? this.endTime,
+    siteId: siteId ?? this.siteId,
+    orderId: orderId ?? this.orderId,
   );
 }
 

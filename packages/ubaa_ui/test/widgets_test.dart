@@ -426,4 +426,61 @@ void main() {
     expect(received?.page, 3);
     expect(received?.size, 15);
   });
+
+  testWidgets('场馆查询控件提交日期空间 typed 参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.cgyy
+              ? const <FeatureDetail>[FeatureDetail(title: '场馆')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.cgyy);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('场馆预约'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('场馆预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('站点列表'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('日期空间'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.first, '17');
+    await tester.enterText(fields.at(1), '2026-09-03');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.view, FeatureQueryView.cgyyDayInfo);
+    expect(received?.siteId, 17);
+    expect(received?.date, DateTime(2026, 9, 3));
+  });
 }

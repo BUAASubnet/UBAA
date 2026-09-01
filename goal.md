@@ -172,6 +172,10 @@
 38. `FeatureQueryView` 现支持 `ygdkRecords`；BridgeBackend 和高级功能控件可 typed 调用
     阳光打卡记录分页，并只展示不含图片地址/业务令牌的白名单字段。新增 widget 回归测试，
     仍不代表阳光打卡提交或 P3 完成。
+39. `FeatureQueryView` 现覆盖 Cgyy 用途类型、日期空间、订单列表/详情和门锁状态；
+    BridgeBackend 与高级功能控件调用已有 typed facade，订单白名单省略手机号/参与人/交易号，
+    用途明示 `upstream` 或 `staticFallback`，门锁只展示 `available`。新增日期空间 widget
+    回归测试；该只读增量不代表预约写入、权限挑战或 P3 完成。
 
 ## 4. 安全与架构边界
 

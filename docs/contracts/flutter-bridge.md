@@ -161,7 +161,7 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 类型，不把字符串 ID 自动转数字，不把可选字段默认成空字符串或零。
 
 共享应用层的 `FeatureQuery` 只携带已证明的 typed 查询参数。除学期、日期、校区、周次和分页
-外，图书馆详情和阳光打卡记录使用封闭的 `FeatureQueryView` 与公开 ID/分页字段：
+外，图书馆、阳光打卡和场馆预约详情使用封闭的 `FeatureQueryView` 与公开 ID/分页字段：
 
 | `view` | 必填字段 | bridge 调用 |
 |---|---|---|
@@ -171,10 +171,16 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 | `libbookSeats` | `areaId`、`startTime`、`endTime`、`date?` | `libbookSeats(areaId, day, startTime, endTime)` |
 | `libbookBookings` | `page`、`size` | `libbookBookings(page, limit)` |
 | `ygdkRecords` | `page`、`size` | `ygdkRecords(page, size)` |
+| `cgyyPurposeTypes` | 无 | `cgyyPurposeTypes`（含 `source`） |
+| `cgyyDayInfo` | `siteId`、`date?` | `cgyyDayInfo(siteId, date)` |
+| `cgyyOrders` | `page`、`size` | `cgyyOrders(page, size)` |
+| `cgyyOrderDetail` | `orderId` | `cgyyOrderDetail(orderId)` |
+| `cgyyLockCode` | 无 | `cgyyLockCode`（只含 `available`） |
 
 缺少必填 ID 或时段时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。查询结果
-仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID 和区域 ID 仅作为用户选择后再次查询的
-公开标识，不进入日志或遥测。
+仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID、区域 ID、场馆站点 ID 和订单 ID 仅作为
+用户选择后再次查询的公开标识，不进入日志或遥测。Cgyy 用途结果始终携带 `source`，UI 必须
+明示 `staticFallback`，不得将冻结回退伪称为上游成功；门锁结果只允许展示 `available`。
 
 ## 6. 写 intent
 

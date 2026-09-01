@@ -975,7 +975,8 @@ class _FeatureDetailView extends StatelessWidget {
     FeatureId.classroom ||
     FeatureId.bykc ||
     FeatureId.libbook ||
-    FeatureId.ygdk => true,
+    FeatureId.ygdk ||
+    FeatureId.cgyy => true,
     _ => false,
   };
 
@@ -1065,9 +1066,12 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _areaController;
   late final TextEditingController _startController;
   late final TextEditingController _endController;
+  late final TextEditingController _siteController;
+  late final TextEditingController _orderController;
   int _campus = 1;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
+  FeatureQueryView _cgyyView = FeatureQueryView.summary;
   bool _submitting = false;
 
   @override
@@ -1083,6 +1087,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _areaController = TextEditingController();
     _startController = TextEditingController(text: '08:00');
     _endController = TextEditingController(text: '22:00');
+    _siteController = TextEditingController();
+    _orderController = TextEditingController();
   }
 
   @override
@@ -1097,6 +1103,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _areaController.dispose();
     _startController.dispose();
     _endController.dispose();
+    _siteController.dispose();
+    _orderController.dispose();
     super.dispose();
   }
 
@@ -1373,6 +1381,106 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ),
             ],
           ],
+          if (widget.feature == FeatureId.cgyy) ...<Widget>[
+            DropdownButton<FeatureQueryView>(
+              value: _cgyyView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _cgyyView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('站点列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.cgyyPurposeTypes,
+                  child: Text('用途类型'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.cgyyDayInfo,
+                  child: Text('日期空间'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.cgyyOrders,
+                  child: Text('订单列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.cgyyOrderDetail,
+                  child: Text('订单详情'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.cgyyLockCode,
+                  child: Text('门锁状态'),
+                ),
+              ],
+            ),
+            if (_cgyyView == FeatureQueryView.cgyyDayInfo) ...<Widget>[
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _siteController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '站点 ID',
+                    hintText: '从站点列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 140,
+                child: TextField(
+                  controller: _dateController,
+                  decoration: const InputDecoration(
+                    labelText: '日期',
+                    hintText: 'YYYY-MM-DD',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+            if (_cgyyView == FeatureQueryView.cgyyOrders) ...<Widget>[
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _pageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '页码',
+                    hintText: '从 1 开始',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _sizeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '每页数量',
+                    hintText: '1–100',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+            if (_cgyyView == FeatureQueryView.cgyyOrderDetail)
+              SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: _orderController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '订单 ID',
+                    hintText: '从订单列表选择',
+                    isDense: true,
+                  ),
+                ),
+              ),
+          ],
           FilledButton.tonal(
             onPressed: _submitting ? null : _apply,
             child: _submitting
@@ -1479,6 +1587,38 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           return;
         }
       }
+      if (widget.feature == FeatureId.cgyy) {
+        if (_cgyyView == FeatureQueryView.cgyyDayInfo) {
+          final site = int.tryParse(_siteController.text.trim());
+          if (site == null || site <= 0) {
+            _showMessage('站点 ID 必须是正整数。');
+            return;
+          }
+          final rawDate = _dateController.text.trim();
+          if (rawDate.isNotEmpty) {
+            date = DateTime.tryParse(rawDate);
+            if (date == null) {
+              _showMessage('日期格式无效，请使用 YYYY-MM-DD。');
+              return;
+            }
+          }
+        }
+        if (_cgyyView == FeatureQueryView.cgyyOrders) {
+          page = int.tryParse(_pageController.text.trim()) ?? 0;
+          size = int.tryParse(_sizeController.text.trim()) ?? 0;
+          if (page <= 0 || size <= 0 || size > 100) {
+            _showMessage('页码必须从 1 开始，每页数量须为 1–100。');
+            return;
+          }
+        }
+        if (_cgyyView == FeatureQueryView.cgyyOrderDetail) {
+          final order = int.tryParse(_orderController.text.trim());
+          if (order == null || order <= 0) {
+            _showMessage('订单 ID 必须是正整数。');
+            return;
+          }
+        }
+      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -1489,12 +1629,22 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           week: week,
           page: page,
           size: size,
-          view: widget.feature == FeatureId.ygdk ? _ygdkView : _libbookView,
+          view: widget.feature == FeatureId.ygdk
+              ? _ygdkView
+              : widget.feature == FeatureId.cgyy
+              ? _cgyyView
+              : _libbookView,
           premisesId: _optionalText(_premisesController),
           storeyId: _optionalText(_storeyController),
           areaId: _optionalText(_areaController),
           startTime: _optionalText(_startController),
           endTime: _optionalText(_endController),
+          siteId: widget.feature == FeatureId.cgyy
+              ? int.tryParse(_siteController.text.trim())
+              : null,
+          orderId: widget.feature == FeatureId.cgyy
+              ? int.tryParse(_orderController.text.trim())
+              : null,
         ),
       );
     } finally {

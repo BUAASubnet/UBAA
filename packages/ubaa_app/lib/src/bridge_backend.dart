@@ -486,6 +486,11 @@ class BridgeBackend
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.ygdkRecords:
+            case FeatureQueryView.cgyyPurposeTypes:
+            case FeatureQueryView.cgyyDayInfo:
+            case FeatureQueryView.cgyyOrders:
+            case FeatureQueryView.cgyyOrderDetail:
+            case FeatureQueryView.cgyyLockCode:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.signin:
@@ -508,32 +513,170 @@ class BridgeBackend
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureId.cgyy:
-          final result = await client.cgyySites();
-          final details = result.data
-              .map(
-                (item) => FeatureDetail(
-                  title: item.siteName,
-                  subtitle: item.venueName,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('校区', item.campusName),
-                    item.seatCount == null
-                        ? null
-                        : _field('座位数', '${item.seatCount}'),
-                    item.reservationSpaceCount == null
-                        ? null
-                        : _field('空间数', '${item.reservationSpaceCount}'),
-                    _field('开放开始', item.openStartDate),
-                    _field('开放结束', item.openEndDate),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.length,
-            '个可预约场馆',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+          switch (query.view) {
+            case FeatureQueryView.summary:
+              final result = await client.cgyySites();
+              final details = result.data
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.siteName,
+                      subtitle: item.venueName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('站点 ID', '${item.id}'),
+                        _field('校区', item.campusName),
+                        item.seatCount == null
+                            ? null
+                            : _field('座位数', '${item.seatCount}'),
+                        item.reservationSpaceCount == null
+                            ? null
+                            : _field('空间数', '${item.reservationSpaceCount}'),
+                        _field('开放开始', item.openStartDate),
+                        _field('开放结束', item.openEndDate),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.length,
+                '个可预约场馆',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.cgyyPurposeTypes:
+              final result = await client.cgyyPurposeTypes();
+              final source =
+                  result.data.source == BridgeCgyyPurposeSource.upstream
+                  ? '上游'
+                  : '本地冻结回退';
+              final details = result.data.items
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.name,
+                      fields: <FeatureField>[
+                        FeatureField(label: '用途编号', value: '${item.key}'),
+                        FeatureField(label: '来源', value: source),
+                      ],
+                    ),
+                  )
+                  .toList(growable: false);
+              return FeatureResult.success(
+                summary: '用途类型（来源：$source）',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.cgyyDayInfo:
+              final siteId = _requiredPositiveInt(query.siteId, '站点 ID');
+              final result = await client.cgyyDayInfo(
+                siteId: siteId,
+                date: today,
+              );
+              final details = result.data.spaces
+                  .map(
+                    (space) => FeatureDetail(
+                      title: space.spaceName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('空间编号', '${space.spaceId}'),
+                        _field('时段数', '${space.slots.length}'),
+                        _field(
+                          '可预约时段',
+                          '${space.slots.where((slot) => slot.isReservable).length}',
+                        ),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.spaces.length,
+                '个可预约空间',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.cgyyOrders:
+              final page = query.page <= 0 ? 1 : query.page;
+              final size = query.size.clamp(1, 100);
+              final result = await client.cgyyOrders(page: page, size: size);
+              final details = result.data.content
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
+                      subtitle: item.venueSpaceName ?? item.venueName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('订单编号', '${item.id}'),
+                        _field(
+                          '日期',
+                          item.reservationDateDetail ?? item.reservationDate,
+                        ),
+                        _field('开始', item.reservationStartDate),
+                        _field('结束', item.reservationEndDate),
+                        _field('用途', item.purposeTypeName),
+                        item.joinerNum == null
+                            ? null
+                            : _field('参与人数', '${item.joinerNum}'),
+                        _field('订单状态', item.orderStatus?.toString()),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.content.length,
+                '条场馆订单',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.cgyyOrderDetail:
+              final orderId = _requiredPositiveInt(query.orderId, '订单 ID');
+              final result = await client.cgyyOrderDetail(id: orderId);
+              final item = result.data;
+              return FeatureResult.success(
+                summary: '订单详情',
+                details: <FeatureDetail>[
+                  FeatureDetail(
+                    title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
+                    subtitle: item.venueSpaceName ?? item.venueName,
+                    fields: _compactFields(<FeatureField?>[
+                      _field('订单编号', '${item.id}'),
+                      _field('校区', item.campusName),
+                      _field(
+                        '日期',
+                        item.reservationDateDetail ?? item.reservationDate,
+                      ),
+                      _field('开始', item.reservationStartDate),
+                      _field('结束', item.reservationEndDate),
+                      _field('用途', item.purposeTypeName),
+                      item.joinerNum == null
+                          ? null
+                          : _field('参与人数', '${item.joinerNum}'),
+                      _field('订单状态', item.orderStatus?.toString()),
+                      _field('审核状态', item.checkStatus?.toString()),
+                    ]),
+                  ),
+                ],
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.cgyyLockCode:
+              final result = await client.cgyyLockCode();
+              return FeatureResult.success(
+                summary: result.data.available ? '门锁可用' : '门锁不可用',
+                details: <FeatureDetail>[
+                  FeatureDetail(
+                    title: '门锁状态',
+                    fields: <FeatureField>[
+                      FeatureField(
+                        label: '可用',
+                        value: result.data.available ? '是' : '否',
+                      ),
+                    ],
+                  ),
+                ],
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.libbookAreas:
+            case FeatureQueryView.libbookAreaDetail:
+            case FeatureQueryView.libbookSeats:
+            case FeatureQueryView.libbookBookings:
+            case FeatureQueryView.ygdkRecords:
+              throw const BackendException(UbaaErrorCode.invalidInput);
+          }
         case FeatureId.ygdk:
           switch (query.view) {
             case FeatureQueryView.summary:
@@ -587,6 +730,11 @@ class BridgeBackend
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
+            case FeatureQueryView.cgyyPurposeTypes:
+            case FeatureQueryView.cgyyDayInfo:
+            case FeatureQueryView.cgyyOrders:
+            case FeatureQueryView.cgyyOrderDetail:
+            case FeatureQueryView.cgyyLockCode:
               throw const BackendException(UbaaErrorCode.invalidInput);
           }
         case FeatureId.evaluation:
@@ -882,6 +1030,16 @@ class BridgeBackend
       throw BackendException(UbaaErrorCode.invalidInput, detail: '$label 不能为空');
     }
     return trimmed;
+  }
+
+  static int _requiredPositiveInt(int? value, String label) {
+    if (value == null || value <= 0) {
+      throw BackendException(
+        UbaaErrorCode.invalidInput,
+        detail: '$label 必须为正整数',
+      );
+    }
+    return value;
   }
 
   static String _dateOnly(DateTime value) {
