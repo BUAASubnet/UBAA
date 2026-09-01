@@ -83,6 +83,16 @@
   app 测试分别证明控件提交和协调器参数不变形。其余领域筛选、真正服务端分页、golden/
   integration 以及写入页面仍未完成，P3/P4 不能勾选。
 
+## 2026-09-01 Flutter P1 panic 归约补强
+
+- bridge 对 `BridgeClient` 的 open、生命周期、认证、路线设置、读取执行和全部 typed 写意图
+  入口统一包裹 panic 捕获；panic 只映射为固定 `internal_error`/`bridge operation failed
+  internally`，不把 panic payload 或上游正文返回给 Dart。
+- 新增 panic payload 不泄露测试，并复跑 `cargo test --locked -p ubaa_flutter_bridge --lib`、
+  `just check-sensitive`、`just check` 和 `just flutter-codegen-check`；生成 Dart API 仍零漂移。
+- 该证据覆盖 Rust unwind 边界与 generated API 映射；真实 Dart isolate 重建、内存泄漏和六平台
+  生命周期/设备测试仍需 P1/P5/P6 环境，不能据此勾选阶段。
+
 ## 2026-08-31 本周期复核结果（最近一次，15:05）
 
 基线命令 `git status --short --branch`、`just refs`、`just check-sensitive`、`just check`
