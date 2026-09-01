@@ -246,6 +246,9 @@
 58. 博雅课程详情现提供选课/退选 typed 操作入口：共享 UI 仅在白名单课程 ID 为正整数时显示准备按钮，
     AppController 通过封闭 `BykcWriteBackend` 调用既有 prepare，确认页再单次提交 `intentId`。widget/app 回归证明
     准备阶段不提交、确认后才提交并拒绝非法操作；本轮无真实账号写入，其他写操作和 P4/P5/P6 门禁仍未闭合。
+59. 课堂签到只读详情现投影冻结 DTO 已证明的公开 `课程 ID`，共享 UI 以该编号触发 typed `signin_perform` prepare，
+    确认页二次确认后才单次提交；app/widget/bridge 回归覆盖编号清理、准备不提交和确认后提交。本轮无真实账号写入，
+    位置/挑战条件仍由 Core 合同判定，其他写操作及 P4/P5/P6 门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
