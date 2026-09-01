@@ -219,6 +219,10 @@ enum FeatureLoadStatus { idle, loading, success, empty, stale, failure }
 /// 对应领域生效，bridge 会拒绝缺少必要 ID 或时段的查询。
 enum FeatureQueryView {
   summary,
+  scheduleToday,
+  scheduleTerms,
+  scheduleWeeks,
+  scheduleWeek,
   bykcDetail,
   bykcProfile,
   bykcChosenCourses,

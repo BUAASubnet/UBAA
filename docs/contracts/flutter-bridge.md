@@ -167,6 +167,10 @@ ID/分页字段：
 | `view` | 必填字段 | bridge 调用 |
 |---|---|---|
 | `summary` | `date?` | `libbookLibraries(day)` |
+| `scheduleToday` | 无 | `scheduleToday` |
+| `scheduleTerms` | 无 | `scheduleTerms` |
+| `scheduleWeeks` | `term` | `scheduleWeeks(term)` |
+| `scheduleWeek` | `term`、`week` | `scheduleWeek(term, week)` |
 | `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
 | `bykcProfile` | 无 | `bykcProfile` |
 | `bykcChosenCourses` | 无 | `bykcChosenCourses` |

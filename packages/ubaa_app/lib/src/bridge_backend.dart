@@ -138,50 +138,133 @@ class BridgeBackend
       final today = _dateOnly(query.date ?? DateTime.now());
       switch (feature) {
         case FeatureId.schedule:
-          if (query.term != null && query.week != null) {
-            final result = await client.scheduleWeek(
-              term: query.term!,
-              week: query.week!,
-            );
-            final details = result.data.arrangedList
-                .map(
-                  (item) => FeatureDetail(
-                    title: item.courseName,
-                    subtitle: item.courseCode,
-                    fields: _compactFields(<FeatureField?>[
-                      _field('时间', item.beginTime),
-                      _field('地点', item.placeName),
-                      _field('周次', item.weeksAndTeachers),
-                    ]),
-                  ),
-                )
-                .toList(growable: false);
-            return _countResult(
-              details.length,
-              '第 ${query.week} 周课表',
-              details: details,
-              resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-            );
+          switch (query.view) {
+            case FeatureQueryView.summary:
+            case FeatureQueryView.scheduleToday:
+              if (query.view == FeatureQueryView.summary &&
+                  query.term != null &&
+                  query.week != null) {
+                final result = await client.scheduleWeek(
+                  term: query.term!,
+                  week: query.week!,
+                );
+                final details = result.data.arrangedList
+                    .map(
+                      (item) => FeatureDetail(
+                        title: item.courseName,
+                        subtitle: item.courseCode,
+                        fields: _compactFields(<FeatureField?>[
+                          _field('时间', item.beginTime),
+                          _field('地点', item.placeName),
+                          _field('周次', item.weeksAndTeachers),
+                        ]),
+                      ),
+                    )
+                    .toList(growable: false);
+                return _countResult(
+                  details.length,
+                  '第 ${query.week} 周课表',
+                  details: details,
+                  resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+                );
+              }
+              final result = await client.scheduleToday();
+              final details = result.data
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.bizName,
+                      subtitle: item.shortName,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('时间', item.time),
+                        _field('地点', item.place),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                result.data.length,
+                '今日课程',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.scheduleTerms:
+              final result = await client.scheduleTerms();
+              final details = result.data
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.itemName,
+                      fields: <FeatureField>[
+                        FeatureField(label: '学期编码', value: item.itemCode),
+                        FeatureField(
+                          label: '当前学期',
+                          value: item.selected ? '是' : '否',
+                        ),
+                      ],
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                details.length,
+                '个学期',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.scheduleWeeks:
+              final term = _requiredQueryValue(query.term, '学期编码');
+              final result = await client.scheduleWeeks(term: term);
+              final details = result.data
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.name,
+                      subtitle: '${item.startDate}–${item.endDate}',
+                      fields: <FeatureField>[
+                        FeatureField(
+                          label: '周次',
+                          value: '${item.serialNumber}',
+                        ),
+                        FeatureField(
+                          label: '当前周',
+                          value: item.curWeek ? '是' : '否',
+                        ),
+                      ],
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                details.length,
+                '个周次',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            case FeatureQueryView.scheduleWeek:
+              final term = _requiredQueryValue(query.term, '学期编码');
+              final week = query.week;
+              if (week == null || week <= 0) {
+                throw const BackendException(UbaaErrorCode.invalidInput);
+              }
+              final result = await client.scheduleWeek(term: term, week: week);
+              final details = result.data.arrangedList
+                  .map(
+                    (item) => FeatureDetail(
+                      title: item.courseName,
+                      subtitle: item.courseCode,
+                      fields: _compactFields(<FeatureField?>[
+                        _field('时间', item.beginTime),
+                        _field('地点', item.placeName),
+                        _field('周次', item.weeksAndTeachers),
+                      ]),
+                    ),
+                  )
+                  .toList(growable: false);
+              return _countResult(
+                details.length,
+                '第 $week 周课表',
+                details: details,
+                resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              );
+            default:
+              throw const BackendException(UbaaErrorCode.invalidInput);
           }
-          final result = await client.scheduleToday();
-          final details = result.data
-              .map(
-                (item) => FeatureDetail(
-                  title: item.bizName,
-                  subtitle: item.shortName,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('时间', item.time),
-                    _field('地点', item.place),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.length,
-            '今日课程',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
         case FeatureId.exam:
           final term = query.term ?? await _selectedTerm();
           if (term == null) return const FeatureResult.empty();
@@ -709,6 +792,10 @@ class BridgeBackend
             case FeatureQueryView.bykcProfile:
             case FeatureQueryView.bykcChosenCourses:
             case FeatureQueryView.bykcStatistics:
+            case FeatureQueryView.scheduleToday:
+            case FeatureQueryView.scheduleTerms:
+            case FeatureQueryView.scheduleWeeks:
+            case FeatureQueryView.scheduleWeek:
             case FeatureQueryView.cgyyPurposeTypes:
             case FeatureQueryView.cgyyDayInfo:
             case FeatureQueryView.cgyyOrders:
@@ -900,6 +987,10 @@ class BridgeBackend
             case FeatureQueryView.bykcProfile:
             case FeatureQueryView.bykcChosenCourses:
             case FeatureQueryView.bykcStatistics:
+            case FeatureQueryView.scheduleToday:
+            case FeatureQueryView.scheduleTerms:
+            case FeatureQueryView.scheduleWeeks:
+            case FeatureQueryView.scheduleWeek:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:
@@ -962,6 +1053,10 @@ class BridgeBackend
             case FeatureQueryView.bykcProfile:
             case FeatureQueryView.bykcChosenCourses:
             case FeatureQueryView.bykcStatistics:
+            case FeatureQueryView.scheduleToday:
+            case FeatureQueryView.scheduleTerms:
+            case FeatureQueryView.scheduleWeeks:
+            case FeatureQueryView.scheduleWeek:
             case FeatureQueryView.libbookAreaDetail:
             case FeatureQueryView.libbookSeats:
             case FeatureQueryView.libbookBookings:

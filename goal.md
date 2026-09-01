@@ -188,6 +188,10 @@
     BridgeBackend 直接调用 typed facade 并映射个人资料、已选课程考勤/成绩状态及修读统计，
     不传递课程附件路径等潜在 URL。博雅控件提供封闭下拉选择；本轮无新接口、无真实写操作，
     P3 的完整状态、分页核对、golden/integration 和六平台 E2E 仍未完成。
+43. `FeatureQueryView` 现覆盖课表 `scheduleToday`、`scheduleTerms`、`scheduleWeeks` 和
+    `scheduleWeek`；BridgeBackend 以 typed facade 映射学期/周次/周课表，控件提供封闭下拉视图
+    并对学期、周次做本地必填校验。`summary` 的既有今日/指定周兼容行为保留；本轮只读，P3
+    其他领域状态、真实 App E2E 和完整服务端核对仍未闭合。
 
 ## 4. 安全与架构边界
 

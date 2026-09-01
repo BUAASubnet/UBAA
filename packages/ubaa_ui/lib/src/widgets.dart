@@ -1075,6 +1075,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _judgeCourseController;
   late final TextEditingController _judgeAssignmentController;
   int _campus = 1;
+  FeatureQueryView _scheduleView = FeatureQueryView.summary;
   FeatureQueryView _libbookView = FeatureQueryView.summary;
   FeatureQueryView _bykcView = FeatureQueryView.summary;
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
@@ -1135,6 +1136,33 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
+          if (widget.feature == FeatureId.schedule)
+            DropdownButton<FeatureQueryView>(
+              value: _scheduleView,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                      () => _scheduleView = value ?? FeatureQueryView.summary,
+                    ),
+              items: const <DropdownMenuItem<FeatureQueryView>>[
+                DropdownMenuItem(
+                  value: FeatureQueryView.summary,
+                  child: Text('今日课程'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.scheduleTerms,
+                  child: Text('学期列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.scheduleWeeks,
+                  child: Text('周次列表'),
+                ),
+                DropdownMenuItem(
+                  value: FeatureQueryView.scheduleWeek,
+                  child: Text('周课表'),
+                ),
+              ],
+            ),
           if (widget.feature == FeatureId.schedule ||
               widget.feature == FeatureId.exam ||
               widget.feature == FeatureId.grades) ...<Widget>[
@@ -1653,6 +1681,17 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
             return;
           }
         }
+        if (_scheduleView == FeatureQueryView.scheduleWeeks ||
+            _scheduleView == FeatureQueryView.scheduleWeek) {
+          if (_termController.text.trim().isEmpty) {
+            _showMessage('学期编码不能为空。');
+            return;
+          }
+        }
+        if (_scheduleView == FeatureQueryView.scheduleWeek && week == null) {
+          _showMessage('周次不能为空。');
+          return;
+        }
       }
       if (widget.feature == FeatureId.classroom) {
         final rawDate = _dateController.text.trim();
@@ -1793,7 +1832,9 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           week: week,
           page: page,
           size: size,
-          view: widget.feature == FeatureId.ygdk
+          view: widget.feature == FeatureId.schedule
+              ? _scheduleView
+              : widget.feature == FeatureId.ygdk
               ? _ygdkView
               : widget.feature == FeatureId.cgyy
               ? _cgyyView

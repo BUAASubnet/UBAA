@@ -2,6 +2,16 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 课表学期与周次读取增量
+
+- `FeatureQueryView` 增加 `scheduleToday`、`scheduleTerms`、`scheduleWeeks` 和 `scheduleWeek`；
+  BridgeBackend 直接调用对应 typed facade，映射学期选择状态、周次日期和周课表课程，不构造
+  上游参数或会话材料。原有 `summary` 查询兼容今日/指定周行为。
+- 课表控件新增今日/学期列表/周次列表/周课表下拉视图；周次与周课表要求学期编码，周课表还
+  要求正周次，widget 测试覆盖学期列表 typed 传递。
+- 本轮只读，不触发任何写操作；P3 仍缺全页面状态、golden/integration、真实 App E2E 和
+  其他领域的逐项服务端核对。
+
 ## 2026-09-01 博雅课程详情读取增量
 
 - `FeatureQueryView` 增加 `bykcDetail`；列表现在展示可再次查询的课程 ID，详情视图将用户选择的

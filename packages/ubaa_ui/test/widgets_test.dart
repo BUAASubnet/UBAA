@@ -377,6 +377,51 @@ void main() {
     expect(received?.week, 3);
   });
 
+  testWidgets('课表查询控件提交学期列表视图', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.schedule
+              ? const <FeatureDetail>[FeatureDetail(title: '课表')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.schedule);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('课表查询'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('今日课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('学期列表'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.view, FeatureQueryView.scheduleTerms);
+  });
+
   testWidgets('博雅查询控件提交 1-based 分页参数', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
