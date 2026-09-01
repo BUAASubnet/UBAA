@@ -304,6 +304,19 @@ void main() {
     expect(controller.loginForm.routePolicy, RoutePolicy.auto);
   });
 
+  test('controller 销毁后延迟注销不会回写登录状态', () async {
+    final backend = _DelayedLogoutBackend();
+    final controller = AppController(backend: backend);
+
+    final loggingOut = controller.logout();
+    await backend.logoutStarted.future;
+    controller.dispose();
+    backend.releaseLogout.complete();
+    await loggingOut;
+
+    expect(controller.phase, AppPhase.splash);
+  });
+
   test('controller 销毁后延迟的功能读取不会回写快照', () async {
     final backend = _DelayedFeatureBackend();
     final controller = AppController(backend: backend);
@@ -942,6 +955,37 @@ class _DelayedRoutePolicyBackend
       activeRoutes: <ConnectionMode>[],
     );
   }
+
+  @override
+  Future<void> dispose() async {}
+}
+
+class _DelayedLogoutBackend implements UbaaBackend, BackendLifecycle {
+  final Completer<void> logoutStarted = Completer<void>();
+  final Completer<void> releaseLogout = Completer<void>();
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {
+    logoutStarted.complete();
+    await releaseLogout.future;
+  }
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
 
   @override
   Future<void> dispose() async {}

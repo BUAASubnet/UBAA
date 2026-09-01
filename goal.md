@@ -332,6 +332,7 @@
 97. 新增延迟功能读取回归并先观察到销毁后的在途成功结果仍回写快照；随后在 `refreshHome`/`refreshFeatureQuery` 入口及 `_loadFeature` 成功、失败边界加入 `_disposed` 与刷新代次检查。app_controller 聚焦测试 26/26 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate/平台生命周期和 P1/P5/P6 仍未完成。
 98. 新增延迟登录回归并先观察到销毁后的在途登录仍读取用户资料；随后在 `submitLogin` 的登录、路线状态、用户资料和凭据/UI 边界加入 `_disposed` guard，并让 `_refreshRouteSettings` 在销毁后不回写。app_controller 聚焦测试 27/27 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台登录生命周期及 P1/P5/P6 仍未完成。
 99. 新增延迟路线切换回归并先观察到销毁后的在途 `setRoutePolicy` 仍读取并应用路线设置；随后在准备、路线读取和错误边界加入 `_disposed` guard。app_controller 聚焦测试 28/28 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台生命周期及 P1/P5/P6 仍未完成。
+100. 新增延迟注销回归并先观察到销毁后的在途 `logout` 仍回写登录阶段；随后在入口和异步注销完成边界加入 `_disposed` no-op 保护，并保留用户明确要求的已保存凭据清理。app_controller 聚焦测试 29/29 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台生命周期及 P1/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

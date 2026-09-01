@@ -760,12 +760,14 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> logout({bool clearSavedCredential = false}) async {
+    if (_disposed) return;
     try {
       await _backend.logout();
     } on Object {
       // 注销失败也回到登录页，避免继续展示可能过期的隐私数据。
     }
     if (clearSavedCredential) await _credentialVault.clear();
+    if (_disposed) return;
     _user = null;
     _activeRoutes = const <ConnectionMode>[];
     _loginForm = _loginForm.copyWith(password: '');

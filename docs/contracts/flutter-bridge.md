@@ -46,6 +46,9 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 路线策略切换在 controller 销毁后也立即停止；延迟的 `prepareLogin` 或路线状态读取不得
 回写默认策略、活动路线或错误状态。
 
+注销调用在 controller 销毁后为 no-op；已在途的注销完成后不得回写用户、活动路线、登录表单
+或阶段状态。若调用方已明确要求清理已保存凭据，清理动作仍按安全边界执行。
+
 ## 3. 错误合同
 
 `Result<T, BridgeError>` 在 Dart 中抛出 typed `BridgeError implements Exception`。字段固定为：
