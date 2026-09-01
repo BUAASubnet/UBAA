@@ -139,6 +139,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
             startTime: startTime,
             endTime: endTime,
           ),
+      onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onCommitWrite: _controller.commitWrite,
       onWriteSuccess: _controller.refreshAfterWrite,

@@ -1026,24 +1026,37 @@ class BridgeBackend
                 siteId: siteId,
                 date: today,
               );
-              final details = result.data.spaces
-                  .map(
-                    (space) => FeatureDetail(
-                      title: space.spaceName,
+              final details = <FeatureDetail>[];
+              for (final space in result.data.spaces) {
+                for (final slot in space.slots) {
+                  if (!slot.isReservable) continue;
+                  final matchingSlots = result.data.timeSlots
+                      .where((item) => item.id == slot.timeId)
+                      .toList(growable: false);
+                  final timeSlot = matchingSlots.isEmpty
+                      ? null
+                      : matchingSlots.first;
+                  details.add(
+                    FeatureDetail(
+                      title:
+                          '${space.spaceName} ${timeSlot?.label ?? '时段 ${slot.timeId}'}',
                       fields: _compactFields(<FeatureField?>[
-                        _field('空间编号', '${space.spaceId}'),
-                        _field('时段数', '${space.slots.length}'),
-                        _field(
-                          '可预约时段',
-                          '${space.slots.where((slot) => slot.isReservable).length}',
-                        ),
+                        _field('站点 ID', '${result.data.venueSiteId}'),
+                        _field('日期', result.data.reservationDate),
+                        _field('空间 ID', '${space.spaceId}'),
+                        _field('空间组 ID', space.venueSpaceGroupId?.toString()),
+                        _field('时段 ID', '${slot.timeId}'),
+                        _field('开始时间', timeSlot?.beginTime),
+                        _field('结束时间', timeSlot?.endTime),
+                        _field('可预约', '是'),
                       ]),
                     ),
-                  )
-                  .toList(growable: false);
+                  );
+                }
+              }
               return _countResult(
-                result.data.spaces.length,
-                '个可预约空间',
+                details.length,
+                '个可预约时段',
                 details: details,
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );

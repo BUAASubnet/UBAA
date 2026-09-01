@@ -139,6 +139,7 @@ class _UbaaFlutterAppState extends State<UbaaFlutterApp>
             startTime: startTime,
             endTime: endTime,
           ),
+      onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onCommitWrite: _controller.commitWrite,
       onWriteSuccess: _controller.refreshAfterWrite,

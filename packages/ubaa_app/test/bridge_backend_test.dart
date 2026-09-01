@@ -285,6 +285,69 @@ void main() {
         ]);
     expect(evaluationIntent.operation, WriteOperation.evaluationSubmitCourses);
   });
+
+  test('BridgeBackend 场馆日期空间只投影可预约时段的公开 ID', () async {
+    final backend = BridgeBackend(
+      _FakeCgyyDayClient(
+        BridgeRoutedCgyyDayInfo(
+          data: const BridgeCgyyDayInfo(
+            venueSiteId: 3,
+            reservationDate: '2026-09-03',
+            availableDates: <String>['2026-09-03'],
+            timeSlots: <BridgeCgyyTimeSlot>[
+              BridgeCgyyTimeSlot(
+                id: 5,
+                beginTime: '10:00',
+                endTime: '11:00',
+                label: '上午',
+              ),
+            ],
+            spaces: <BridgeCgyySpaceAvailability>[
+              BridgeCgyySpaceAvailability(
+                spaceId: 4,
+                spaceName: '讨论室',
+                venueSiteId: 3,
+                venueSpaceGroupId: 9,
+                slots: <BridgeCgyySlotStatus>[
+                  BridgeCgyySlotStatus(
+                    timeId: 5,
+                    reservationStatus: 0,
+                    isReservable: true,
+                  ),
+                  BridgeCgyySlotStatus(
+                    timeId: 6,
+                    reservationStatus: 1,
+                    isReservable: false,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          route: const BridgeRouteDecision(
+            policy: BridgeRoutePolicy.direct,
+            resolvedRoute: BridgeConnectionMode.direct,
+            network: BridgeNetworkState.campus,
+            initialRoute: BridgeConnectionMode.direct,
+            usedFallback: false,
+          ),
+        ),
+      ),
+    );
+    final result = await backend.loadFeatureQuery(
+      FeatureId.cgyy,
+      const FeatureQuery(view: FeatureQueryView.cgyyDayInfo, siteId: 3),
+    );
+    expect(result.details, hasLength(1));
+    final fields = {
+      for (final field in result.details.single.fields)
+        field.label: field.value,
+    };
+    expect(fields['站点 ID'], '3');
+    expect(fields['空间 ID'], '4');
+    expect(fields['时段 ID'], '5');
+    expect(fields['空间组 ID'], '9');
+    expect(fields['可预约'], '是');
+  });
 }
 
 class _FakeClassroomClient implements BridgeClient {
@@ -425,6 +488,22 @@ class _FakeComplexWriteClient implements BridgeClient {
       );
     }
     throw UnsupportedError('unexpected bridge call: $method');
+  }
+}
+
+class _FakeCgyyDayClient implements BridgeClient {
+  _FakeCgyyDayClient(this.response);
+
+  final BridgeRoutedCgyyDayInfo response;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #cgyyDayInfo) {
+      expect(invocation.namedArguments[#siteId], 3);
+      expect(invocation.namedArguments[#date], isNotEmpty);
+      return Future<BridgeRoutedCgyyDayInfo>.value(response);
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }
 }
 

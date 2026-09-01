@@ -27,6 +27,11 @@ typedef EvaluationSubmitPreparer =
 typedef EvaluationSubmitStarter =
     Future<void> Function(List<EvaluationCourseInput> courses);
 
+typedef CgyyReservationPreparer =
+    Future<WriteIntent> Function(CgyySubmitInput input);
+
+typedef CgyyReservationStarter = Future<void> Function(CgyySubmitInput input);
+
 /// 启动页：保留旧版 UBAA 标题和标语。
 class UbaaSplashView extends StatelessWidget {
   const UbaaSplashView({super.key});
@@ -401,6 +406,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareSigninWrite,
     this.onPrepareCancellationWrite,
     this.onPrepareLibbookReserveWrite,
+    this.onPrepareCgyySubmitWrite,
     this.onPrepareEvaluationWrite,
     this.onCommitWrite,
     this.onWriteSuccess,
@@ -428,6 +434,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
   onPrepareCancellationWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
+  final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final Future<void> Function(WriteOperation operation)? onWriteSuccess;
@@ -505,6 +512,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onEvaluationWrite: widget.onPrepareEvaluationWrite == null
                 ? null
                 : _startEvaluationWrite,
+            onCgyySubmitWrite: widget.onPrepareCgyySubmitWrite == null
+                ? null
+                : _startCgyySubmitWrite,
           );
     return Scaffold(
       appBar: AppBar(
@@ -823,6 +833,32 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('暂时无法准备教学评教；尚未提交任何写请求。')));
+    }
+  }
+
+  Future<void> _startCgyySubmitWrite(CgyySubmitInput input) async {
+    final prepare = widget.onPrepareCgyySubmitWrite;
+    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    setState(() {
+      _writeSubmitting = true;
+      _writeError = null;
+    });
+    try {
+      final intent = await prepare(input);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = intent;
+        _writeSubmitting = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法准备场馆预约；尚未提交任何写请求。')));
     }
   }
 
@@ -1233,6 +1269,7 @@ class _FeatureDetailView extends StatelessWidget {
     this.onSigninWrite,
     this.onCancellationWrite,
     this.onLibbookReserveWrite,
+    this.onCgyySubmitWrite,
     this.onEvaluationWrite,
     this.onQuery,
   });
@@ -1248,6 +1285,7 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
+  final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final Future<void> Function(FeatureQuery query)? onQuery;
 
@@ -1323,6 +1361,7 @@ class _FeatureDetailView extends StatelessWidget {
       onSigninWrite: onSigninWrite,
       onCancellationWrite: onCancellationWrite,
       onLibbookReserveWrite: onLibbookReserveWrite,
+      onCgyySubmitWrite: onCgyySubmitWrite,
       onEvaluationWrite: onEvaluationWrite,
     );
   }
@@ -1347,6 +1386,7 @@ class _FeatureDetailView extends StatelessWidget {
             onSigninWrite: onSigninWrite,
             onCancellationWrite: onCancellationWrite,
             onLibbookReserveWrite: onLibbookReserveWrite,
+            onCgyySubmitWrite: onCgyySubmitWrite,
             onEvaluationWrite: onEvaluationWrite,
           ),
         ),
@@ -2586,6 +2626,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onSigninWrite,
     this.onCancellationWrite,
     this.onLibbookReserveWrite,
+    this.onCgyySubmitWrite,
     this.onEvaluationWrite,
   });
 
@@ -2598,6 +2639,7 @@ class _FeatureDetailList extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
+  final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
 
   @override
@@ -2672,6 +2714,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final signinCourseId = _courseKey(detail);
                     final cancellation = _cancellationTarget(detail);
                     final reservation = _libbookReserveTarget(detail);
+                    final cgyyReservation = _cgyyReservationTarget(detail);
                     final evaluation = _evaluationTarget(detail);
                     return Card(
                       child: Padding(
@@ -2807,6 +2850,18 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 label: const Text('准备提交评教'),
                               ),
                             ],
+                            if (cgyyReservation != null &&
+                                widget.onCgyySubmitWrite != null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: () => _showCgyyReservationForm(
+                                  context,
+                                  cgyyReservation,
+                                ),
+                                icon: const Icon(Icons.event_available),
+                                label: const Text('准备场馆预约'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -2906,6 +2961,194 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       startTime: values['开始时间']!,
       endTime: values['结束时间']!,
     );
+  }
+
+  ({
+    int venueSiteId,
+    String reservationDate,
+    CgyyReservationSelectionInput selection,
+  })?
+  _cgyyReservationTarget(FeatureDetail detail) {
+    if (widget.feature != FeatureId.cgyy) return null;
+    final values = <String, String>{
+      for (final field in detail.fields) field.label: field.value.trim(),
+    };
+    if (values['可预约'] != '是') return null;
+    final siteId = int.tryParse(values['站点 ID'] ?? '');
+    final spaceId = int.tryParse(values['空间 ID'] ?? '');
+    final timeId = int.tryParse(values['时段 ID'] ?? '');
+    final date = values['日期'];
+    if (siteId == null ||
+        siteId <= 0 ||
+        spaceId == null ||
+        spaceId <= 0 ||
+        timeId == null ||
+        timeId <= 0 ||
+        date == null ||
+        date.isEmpty) {
+      return null;
+    }
+    final groupId = int.tryParse(values['空间组 ID'] ?? '');
+    return (
+      venueSiteId: siteId,
+      reservationDate: date,
+      selection: CgyyReservationSelectionInput(
+        spaceId: spaceId,
+        timeId: timeId,
+        venueSpaceGroupId: groupId,
+      ),
+    );
+  }
+
+  Future<void> _showCgyyReservationForm(
+    BuildContext context,
+    ({
+      int venueSiteId,
+      String reservationDate,
+      CgyyReservationSelectionInput selection,
+    })
+    target,
+  ) async {
+    final phone = TextEditingController();
+    final theme = TextEditingController();
+    final purpose = TextEditingController();
+    final joinerNum = TextEditingController(text: '1');
+    final content = TextEditingController();
+    final joiners = TextEditingController();
+    final input = await showDialog<CgyySubmitInput>(
+      context: context,
+      builder: (dialogContext) {
+        var philosophy = false;
+        var offSchool = false;
+        String? error;
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('填写场馆预约信息'),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      '站点 ${target.venueSiteId} · ${target.reservationDate}',
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '空间 ${target.selection.spaceId} · 时段 ${target.selection.timeId}',
+                    ),
+                    TextField(
+                      controller: phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: '联系电话'),
+                    ),
+                    TextField(
+                      controller: theme,
+                      decoration: const InputDecoration(labelText: '预约主题'),
+                    ),
+                    TextField(
+                      controller: purpose,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: '用途编号'),
+                    ),
+                    TextField(
+                      controller: joinerNum,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: '参与人数'),
+                    ),
+                    TextField(
+                      controller: content,
+                      decoration: const InputDecoration(labelText: '活动内容'),
+                    ),
+                    TextField(
+                      controller: joiners,
+                      decoration: const InputDecoration(labelText: '参与人说明（可选）'),
+                    ),
+                    CheckboxListTile(
+                      value: philosophy,
+                      onChanged: (value) => setState(() {
+                        philosophy = value ?? false;
+                      }),
+                      title: const Text('哲学社会科学类活动'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    CheckboxListTile(
+                      value: offSchool,
+                      onChanged: (value) => setState(() {
+                        offSchool = value ?? false;
+                      }),
+                      title: const Text('含校外参与人'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    if (error case final message?)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          message,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final parsedPurpose = int.tryParse(purpose.text.trim());
+                  final parsedJoinerNum = int.tryParse(joinerNum.text.trim());
+                  if (phone.text.trim().isEmpty ||
+                      theme.text.trim().isEmpty ||
+                      content.text.trim().isEmpty ||
+                      parsedPurpose == null ||
+                      parsedPurpose <= 0 ||
+                      parsedJoinerNum == null ||
+                      parsedJoinerNum <= 0) {
+                    setState(() => error = '请完整填写联系电话、主题、用途编号、人数和活动内容。');
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(
+                    CgyySubmitInput(
+                      venueSiteId: target.venueSiteId,
+                      reservationDate: target.reservationDate,
+                      selections: <CgyyReservationSelectionInput>[
+                        target.selection,
+                      ],
+                      phone: phone.text.trim(),
+                      theme: theme.text.trim(),
+                      purposeType: parsedPurpose,
+                      joinerNum: parsedJoinerNum,
+                      activityContent: content.text.trim(),
+                      joiners: joiners.text.trim(),
+                      isPhilosophySocialSciences: philosophy,
+                      isOffSchoolJoiner: offSchool,
+                    ),
+                  );
+                },
+                child: const Text('继续确认'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    // 等待对话框退出动画完成后再销毁控制器，避免 TextField 在过渡帧读取已释放的输入。
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    phone.dispose();
+    theme.dispose();
+    purpose.dispose();
+    joinerNum.dispose();
+    content.dispose();
+    joiners.dispose();
+    if (input != null && mounted) {
+      await widget.onCgyySubmitWrite?.call(input);
+    }
   }
 
   EvaluationCourseInput? _evaluationTarget(FeatureDetail detail) {

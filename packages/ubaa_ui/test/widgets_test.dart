@@ -374,6 +374,101 @@ void main() {
     expect(find.text('订单取消结果已提交，请刷新确认'), findsOneWidget);
   });
 
+  testWidgets('场馆可预约时段先填写 typed 信息再进入确认页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.cgyy
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '讨论室 上午',
+                    fields: <FeatureField>[
+                      FeatureField(label: '站点 ID', value: '3'),
+                      FeatureField(label: '日期', value: '2026-09-03'),
+                      FeatureField(label: '空间 ID', value: '4'),
+                      FeatureField(label: '空间组 ID', value: '9'),
+                      FeatureField(label: '时段 ID', value: '5'),
+                      FeatureField(label: '可预约', value: '是'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareCgyySubmitWrite: (input) async {
+            prepareCalls++;
+            expect(input.venueSiteId, 3);
+            expect(input.reservationDate, '2026-09-03');
+            expect(input.selections.single.spaceId, 4);
+            expect(input.selections.single.timeId, 5);
+            expect(input.phone, 'phone-placeholder');
+            expect(input.purposeType, 2);
+            return WriteIntent(
+              intentId: 'cgyy-reserve-1',
+              operation: WriteOperation.cgyySubmitReservation,
+              targetSummary: '提交场馆预约',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['如需验证码，材料只在本次操作内使用'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'cgyy-reserve-1');
+            return const WriteCommitResult(
+              operation: WriteOperation.cgyySubmitReservation,
+              success: true,
+              message: '场馆预约结果已提交，请刷新订单确认',
+              outcomeUnknown: false,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('场馆预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备场馆预约'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(1), 'phone-placeholder');
+    await tester.enterText(fields.at(2), '课程讨论');
+    await tester.enterText(fields.at(3), '2');
+    await tester.enterText(fields.at(4), '3');
+    await tester.enterText(fields.at(5), '讨论');
+    await tester.enterText(fields.at(6), '张三');
+    await tester.tap(find.text('继续确认'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认场馆预约'), findsNWidgets(2));
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('场馆预约结果已提交，请刷新订单确认'), findsOneWidget);
+  });
+
   testWidgets('图书馆可预约座位展示完整时段摘要后再准备写入', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
     final snapshots = <FeatureId, FeatureSnapshot>{
