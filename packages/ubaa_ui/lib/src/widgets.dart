@@ -2649,8 +2649,19 @@ class _FeatureDetailList extends StatefulWidget {
 class _FeatureDetailListState extends State<_FeatureDetailList> {
   static const _pageSize = 20;
   final TextEditingController _queryController = TextEditingController();
+  final Set<String> _selectedEvaluationIds = <String>{};
   String _query = '';
   int _page = 0;
+
+  @override
+  void didUpdateWidget(covariant _FeatureDetailList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final validIds = <String>{
+      for (final detail in widget.details)
+        if (_evaluationTarget(detail) case final course?) course.id,
+    };
+    _selectedEvaluationIds.removeWhere((id) => !validIds.contains(id));
+  }
 
   @override
   void dispose() {
@@ -2684,6 +2695,13 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
     final start = page * _pageSize;
     final visible = details.skip(start).take(_pageSize).toList(growable: false);
+    final pendingEvaluations = widget.details
+        .map(_evaluationTarget)
+        .whereType<EvaluationCourseInput>()
+        .toList(growable: false);
+    final selectedEvaluations = pendingEvaluations
+        .where((course) => _selectedEvaluationIds.contains(course.id))
+        .toList(growable: false);
     return Column(
       children: <Widget>[
         Padding(
@@ -2701,6 +2719,47 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
             }),
           ),
         ),
+        if (widget.feature == FeatureId.evaluation &&
+            widget.onEvaluationWrite != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text('已选择 ${selectedEvaluations.length} 门待评课程'),
+                ),
+                OutlinedButton(
+                  onPressed: pendingEvaluations.isEmpty
+                      ? null
+                      : () => setState(() {
+                          if (selectedEvaluations.length ==
+                              pendingEvaluations.length) {
+                            _selectedEvaluationIds.clear();
+                          } else {
+                            _selectedEvaluationIds
+                              ..clear()
+                              ..addAll(
+                                pendingEvaluations.map((course) => course.id),
+                              );
+                          }
+                        }),
+                  child: Text(
+                    selectedEvaluations.length == pendingEvaluations.length
+                        ? '取消全选'
+                        : '全选待评',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: selectedEvaluations.isEmpty
+                      ? null
+                      : () => widget.onEvaluationWrite!(selectedEvaluations),
+                  icon: const Icon(Icons.rate_review_outlined),
+                  label: const Text('准备批量评教'),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: details.isEmpty
               ? const Center(child: Text('没有匹配的详情'))
@@ -2739,6 +2798,29 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                               _DetailField(
                                 label: field.label,
                                 value: field.value,
+                              ),
+                            ],
+                            if (evaluation != null &&
+                                widget.onEvaluationWrite != null) ...<Widget>[
+                              const SizedBox(height: 8),
+                              CheckboxListTile(
+                                key: ValueKey<String>(
+                                  'evaluation-${evaluation.id}',
+                                ),
+                                value: _selectedEvaluationIds.contains(
+                                  evaluation.id,
+                                ),
+                                onChanged: (selected) => setState(() {
+                                  if (selected == true) {
+                                    _selectedEvaluationIds.add(evaluation.id);
+                                  } else {
+                                    _selectedEvaluationIds.remove(
+                                      evaluation.id,
+                                    );
+                                  }
+                                }),
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('选择此课程进行批量评教'),
                               ),
                             ],
                             if (widget.feature == FeatureId.bykc &&
