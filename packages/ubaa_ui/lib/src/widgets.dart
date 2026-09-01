@@ -991,8 +991,10 @@ class _FeatureDetailList extends StatefulWidget {
 }
 
 class _FeatureDetailListState extends State<_FeatureDetailList> {
+  static const _pageSize = 20;
   final TextEditingController _queryController = TextEditingController();
   String _query = '';
+  int _page = 0;
 
   @override
   void dispose() {
@@ -1020,6 +1022,12 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 );
               })
               .toList(growable: false);
+    final pageCount = details.isEmpty
+        ? 0
+        : (details.length + _pageSize - 1) ~/ _pageSize;
+    final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
+    final start = page * _pageSize;
+    final visible = details.skip(start).take(_pageSize).toList(growable: false);
     return Column(
       children: <Widget>[
         Padding(
@@ -1031,7 +1039,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
               prefixIcon: Icon(Icons.search),
               border: OutlineInputBorder(),
             ),
-            onChanged: (value) => setState(() => _query = value),
+            onChanged: (value) => setState(() {
+              _query = value;
+              _page = 0;
+            }),
           ),
         ),
         Expanded(
@@ -1039,10 +1050,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
               ? const Center(child: Text('没有匹配的详情'))
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: details.length,
+                  itemCount: visible.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final detail = details[index];
+                    final detail = visible[index];
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -1075,6 +1086,33 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                   },
                 ),
         ),
+        if (pageCount > 1)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                IconButton(
+                  tooltip: '上一页',
+                  onPressed: page == 0
+                      ? null
+                      : () => setState(() => _page = page - 1),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Semantics(
+                  label: '详情分页',
+                  child: Text('${page + 1} / $pageCount'),
+                ),
+                IconButton(
+                  tooltip: '下一页',
+                  onPressed: page + 1 >= pageCount
+                      ? null
+                      : () => setState(() => _page = page + 1),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

@@ -19,9 +19,10 @@
 
 ## 功能状态
 
-每张卡片和详情页均支持 `idle`、`loading`、`success`、`empty`、`failure`；刷新时保留上一
-次的详情模型，新的读取结果按 generation 丢弃过期响应。失败仅展示稳定中文错误和重试按钮，
-不渲染上游正文。详情列表提供本地筛选，筛选只匹配 bridge 白名单字段。
+每张卡片和详情页均支持 `idle`、`loading`、`success`、`empty`、`stale`、`failure`；刷新时
+保留上一次的详情模型，新的读取结果按 generation 丢弃过期响应。已有成功数据刷新失败时显示
+`stale` 横幅、旧数据和重试按钮；首次失败只展示稳定中文错误，不渲染上游正文。详情列表提供
+本地筛选和每页 20 项分页，筛选只匹配 bridge 白名单字段并重置到第一页。
 
 写操作的确认页必须在对应领域接入 `WriteIntent` 后单独实现：摘要、实际路线、警告和过期时间
 全部可见，确认按钮一次点击后禁用，结果不确定时只引导读取核对，不自动重试。
@@ -35,8 +36,9 @@
 
 ## 当前证据与剩余范围
 
-- `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示和详情字段渲染；
-  `packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不伪造 Demo 登录。
-- `BridgeBackend` 已为 12 个只读功能映射白名单详情；列表、学期/日期筛选、分页加载、
+- `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染和本地分页/筛选；
+  `packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不伪造 Demo 登录及
+  刷新失败后的 `stale` 数据保留。
+- `BridgeBackend` 已为 12 个只读功能映射白名单详情；领域学期/日期/校区筛选、服务端分页加载、
   领域写入确认页和 golden/integration 测试仍需按 P3/P4 逐领域补齐，故本规格不把当前实现
   标记为完成。

@@ -112,4 +112,48 @@ void main() {
     );
     expect(submit.onPressed, isNull);
   });
+
+  testWidgets('长详情列表分页且筛选会回到第一页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.schedule
+              ? List<FeatureDetail>.generate(
+                  21,
+                  (index) => FeatureDetail(title: '课程 ${index + 1}'),
+                )
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('课表查询'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.text('课程 21'), findsNothing);
+    await tester.tap(find.byTooltip('下一页'));
+    await tester.pumpAndSettle();
+    expect(find.text('课程 21'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '课程 1');
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 2'), findsNothing);
+    expect(find.text('课程 1'), findsNWidgets(2));
+  });
 }
