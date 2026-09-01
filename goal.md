@@ -337,6 +337,7 @@
 102. 在当前 HEAD `62ec048` 以更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 复跑 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS fork、DevEco 26.0.0.821、SDK API26、辅助工具链、Rust arm64、Dart/widget/native 前置均 0 失败/0 警告；HAP assemble 仍在调试签名配置处停止。未配置签名、未生成可发布 HAP、未连接设备，P0/P5/P6 仍未完成。
 103. 提交 `62ec048` 的合同 CI `33541980109` 与 Flutter 原生五平台 CI `33541980112` 均成功，后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传 debug 产物；随后文档提交 `8fd836a` 的合同 CI `33542479679` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未完成。
 104. 提交 `bb51298` 的合同 CI `33543510586` 已终态成功，macOS Rust、Windows Rust 与合同门禁均通过；该文档提交不改变 Flutter/OHOS 产物或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实 Flutter→FRB→Core E2E 仍未完成，P0/P5/P6 仍未完成。
+105. 当前 HEAD `ef83cb9` 的 `just refs`、`just check-sensitive`、`just check`、`just flutter-check` 均通过；随后以 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 成功报告 FRB 零漂移。默认增量 FRB 首次尝试因 `cargo-expand` 长时间无输出被安全中断，重试未产生任何源码改动；OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 
 ## 4. 安全与架构边界
 
