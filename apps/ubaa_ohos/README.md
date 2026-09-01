@@ -25,10 +25,10 @@ native 前置和 HAP assemble 前置均已通过。工程使用 API26 要求的
 `compatibleSdkVersion`/`targetSdkVersion: "26.0.0"` 与 `modelVersion: "6.0.0"`。
 
 两种安装布局均受门禁支持：DevEco Studio 的 `Contents/tools/...`，以及
-Command Line Tools 根目录的 `tool/...`。`just ohos-check mode=debug` 已进入 HAP
-构建，但在 DevEco Signing Configs 调试签名配置处停止。当前没有自动签名、签名凭据、
-签名 HAP 或实体设备 FRB hello 证据；不能通过改低 API、伪造清单或删除失败代码规避，
-也不会在未获授权时配置签名。
+Command Line Tools 根目录的 `tool/...`。当前 DevEco 已启用自动签名配置，但没有实体
+设备时无法生成 profile。可以用 `UBAA_OHOS_NO_CODESIGN=1` 执行 debug 构建，得到只用于
+包内容和 arm64 动态库检查的未签名 HAP；该产物不可安装到实体设备、不可作为发布或 P0
+验收证据。不能通过改低 API、伪造清单或删除失败代码规避签名要求。
 
 ## 共享 package 接入
 
@@ -64,13 +64,21 @@ commit/tag、DevEco/CLI 26、SDK API 26、native SDK、Node、`ohpm`、`hvigor`�
 
 ## 可复现检查与构建
 
-runner 已由锁定 fork 生成。HAP 构建必须先通过根级预检；当前预检已通过，构建会在
-签名配置处停止：
+runner 已由锁定 fork 生成。HAP 构建必须先通过根级预检；正式构建需要签名配置：
 
 ```sh
 cd /absolute/path/to/UBAA
 just ohos-check mode=debug
 ```
+
+无实体设备时的非发布包内容检查：
+
+```sh
+UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
+```
+
+该模式只允许 `debug`，并明确输出 `entry-default-unsigned.hap`；正式
+`just ohos-check mode=release` 仍必须使用受控签名。
 
 `ohos/local.properties` 只保存本机绝对路径，始终忽略且不得提交。设备 FRB smoke 使用
 `ohos/ohos_device_smoke_main.dart`，只在 `bridgeHello` 返回固定值后输出

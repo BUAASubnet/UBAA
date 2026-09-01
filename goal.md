@@ -351,6 +351,12 @@
 115. 当前 HEAD 事实记录提交 `f0cdb62` 的合同 CI `33555799377` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 
 116. 先加入日期查询回归并在旧 UI 实现上观察到：课堂、图书馆座位和场馆日期控件会接受带时间/时区的字符串；随后严格限制为真实日历日期 `YYYY-MM-DD`，非法输入不进入 typed `FeatureQuery`。`ubaa_ui` 聚焦测试 33/33 通过；本轮不改变 Core/路线/协议或真实写入，P3 其余 golden/integration、六平台 App E2E 及 P4/P5/P6 仍未完成。
+117. 用户确认当前没有实体设备后，使用 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 完成
+    DevEco/SDK API26、Dart/widget、Rust arm64 native 前置和 HAP assemble；工具链与前置检查均为
+    0 失败/0 警告。先观察到旧门禁查找 `libubaa_flutter_bridge.so` 与实际打包名称不匹配，随后将
+    `scripts/ohos-check.sh` 收敛为兼容检查并生成 `entry-default-unsigned.hap`，确认其中包含
+    `libs/arm64-v8a/libubaa_bindings.so`。该 HAP 未签名、未安装，不能作为 P0/P6 发布或实体设备
+    证据；签名、hdc/设备 FRB hello、HUKS、真实 App smoke 及 P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

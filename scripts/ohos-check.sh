@@ -48,7 +48,16 @@ fi
 
 (
   cd "$app_root"
-  "$flutter_bin" build hap --"$mode" --target-platform ohos-arm64
+  hap_args=(--"$mode" --target-platform ohos-arm64)
+  if [[ "${UBAA_OHOS_NO_CODESIGN:-0}" == "1" ]]; then
+    if [[ "$mode" != "debug" ]]; then
+      printf 'error: UBAA_OHOS_NO_CODESIGN=1 只允许 debug 构建\n' >&2
+      exit 2
+    fi
+    hap_args+=(--no-codesign)
+    printf 'warning: 以无签名 debug 模式构建 OHOS HAP；该产物不可作为发布或实体设备验收证据\n' >&2
+  fi
+  "$flutter_bin" build hap "${hap_args[@]}"
 )
 
 hap_root=$app_root/build/ohos/hap
@@ -57,8 +66,9 @@ if [[ -z "$hap_path" ]]; then
   printf 'error: 未生成 HAP\n' >&2
   exit 1
 fi
-if ! unzip -Z1 "$hap_path" | grep -Eq '(^|/)libs/arm64-v8a/libubaa_flutter_bridge\.so$'; then
-  printf 'error: HAP 内未包含 libs/arm64-v8a/libubaa_flutter_bridge.so\n' >&2
+bridge_lib=$(unzip -Z1 "$hap_path" | grep -E '(^|/)libs/arm64-v8a/libubaa_(bindings|flutter_bridge)\.so$' | head -n 1 || true)
+if [[ -z "$bridge_lib" ]]; then
+  printf 'error: HAP 内未包含 arm64 UBAA Rust bridge 动态库\n' >&2
   exit 1
 fi
-printf 'OHOS HAP 与 arm64 Rust 动态库门禁通过：%s\n' "$hap_path"
+printf 'OHOS HAP 与 arm64 Rust 动态库门禁通过（%s）：%s\n' "$bridge_lib" "$hap_path"

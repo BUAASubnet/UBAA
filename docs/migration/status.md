@@ -2,6 +2,18 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 OHOS 无签名 debug HAP 包内容复核
+
+- 在用户确认当前没有实体设备后，使用 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools`
+  与 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 完成 OHOS Flutter、DevEco/SDK API26、
+  Dart/widget、Rust arm64 native 前置和 HAP assemble；工具链与前置检查均为 0 失败/0 警告。
+- 旧门禁只查找 `libubaa_flutter_bridge.so`，而当前 Cargokit/模块实际将同一 Rust bridge 打包为
+  `libs/arm64-v8a/libubaa_bindings.so`；先保留该不匹配的失败观察，再将门禁收敛为兼容命名检查。
+  HAP `entry-default-unsigned.hap` 已确认包含 arm64 ELF Rust bridge 动态库，未签名且未安装。
+- `scripts/ohos-check.sh` 现在仅允许 `UBAA_OHOS_NO_CODESIGN=1` 用于 debug，并明确警告该产物
+  不可作为发布或实体设备证据。签名 HAP、hdc 安装、设备 FRB hello、HUKS 和真实 App smoke
+  仍未完成；P0/P5/P6 继续受阻。
+
 ## 2026-09-02 日期查询输入边界修复
 
 - 先加入回归并在旧实现上观察到：课堂、图书馆座位和场馆日期控件会接受带时间/时区的

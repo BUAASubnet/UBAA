@@ -38,7 +38,7 @@
 | Linux | Ubuntu 22.04/24.04、Debian 12 | x64 | Ubuntu 24.04 原生 debug runner 构建与产物上传通过 |
 | Android | API 24+，重点 API29/API35 | arm64-v8a；模拟器 x64 | debug APK 已含三种 ABI 的 FRB 动态库；实体机/签名待验证 |
 | iOS | iOS 15+ | arm64；模拟器 arm64 | simulator debug 已链接 FRB universal framework；签名/真机待验证 |
-| HarmonyOS | build/target API26，理论 runtime API17+ | arm64-v8a | API26 工具链预检通过；调试 HAP 在签名配置处停止，真机待完成 |
+| HarmonyOS | build/target API26，理论 runtime API17+ | arm64-v8a | API26 工具链与无签名 debug HAP 包内容检查通过；签名/真机待完成 |
 
 版本页面展示的区间只用于选择候选。UBAA 的承诺以本表实际通过范围为准。
 
@@ -50,14 +50,17 @@
 匹配安装中的 hvigor、ohpm、Node 和 SDK，兼容 Studio `tools/...` 与 CLI `tool/...` 两种布局。
 
 两种安装路径执行 `just ohos-check mode=debug` 时，锁定 fork、native、Dart、工具链和 HAP
-assemble 前置均通过；构建随后要求在 DevEco Signing Configs 配置调试签名。当前没有自动签名、
-签名凭据、验收 HAP 或实体设备证据，不能把未签名构建称为平台完成。旧 DevEco/API21 的失败
-仅保留在迁移状态中作为历史记录。
+assemble 前置均通过；正式构建需要在 DevEco Signing Configs 配置调试签名。没有实体设备时，
+可用 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 生成并检查
+`entry-default-unsigned.hap`；当前包内实际的 Rust bridge 名称为
+`libs/arm64-v8a/libubaa_bindings.so`。无签名构建不能作为平台完成、发布或实体设备证据。旧
+DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 
 P0 必须完成：
 
 1. 在不暴露凭据的前提下配置受控调试或发布签名，并构建空应用签名 HAP。
-2. 生成 FRB/Cargokit arm64 产物，确认 HAP 包含 `libs/arm64-v8a/librust_*.so`。
+2. 生成 FRB/Cargokit arm64 产物，确认 HAP 包含 `libs/arm64-v8a/libubaa_bindings.so`（或
+   同一 bridge 的兼容命名）且架构为 arm64。
 3. 在实体 HarmonyOS 设备上完成启动、FRB hello、应用私有目录、网络和 HUKS smoke。
 4. 记录 `runtimeOS`、`compatibleSdkVersion`、build/target API 和 SDK 组件版本，防止“SDK component missing”类混配。
 
@@ -74,9 +77,9 @@ cargo test --locked -p ubaa-flutter-bridge
 cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D warnings
 ```
 
-OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前工具链和 Dart/native 前置均已
-通过，但 HAP assemble 在签名配置处停止。完成签名授权并实际生成 HAP 前，不得记录为构建
-通过。
+OHOS 的完整发布门禁命令为 `just ohos-check mode=release`；无设备时可先执行
+`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 进行包内容检查，但该模式只验证未签名
+debug HAP，完成签名并实际生成 HAP 前不得记录为发布构建通过。
 
 ## 5. 验收记录模板
 
@@ -88,7 +91,7 @@ OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前工具链�
 | 2026-09-01 | Android AAB 本机 | 3.41.9/三 ABI | `flutter build appbundle --release` | 不适用 | Gradle bundle 成功；Flutter `apkanalyzer` 终检阻断 | 未验证 | 未验证 | 未验证 | SDK `cmdline-tools/latest` 为 Homebrew symlink，apkanalyzer 无法定位 `build-tools`；临时 SDK 复核含三 ABI debug symbols，但产物未签名/未上传 |
 | 2026-09-01 | Windows GitHub runner | 3.41.9/x64 | `ubaa-windows-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | `windows-2025` 原生构建 |
 | 2026-09-01 | Linux GitHub runner | 3.41.9/x64 | `ubaa-linux-debug-33450597586` | 不适用 | 链接/打包通过 | 未验证 | 未验证 | 未验证 | Ubuntu 24.04 原生构建 |
-| 2026-09-01 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `just ohos-check mode=debug` | 阻断 | 阻断 | 阻断 | 阻断 | 阻断 | API26 工具链/Dart/native 前置通过；HAP 在调试签名处停止 |
+| 2026-09-02 | HarmonyOS | 3.41.10-ohos-1.0.1/arm64 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 未运行 | 包内容通过 | 未验证 | 未验证 | 未验证 | API26 工具链/Dart/native 前置通过；生成 `entry-default-unsigned.hap`，实体机/签名待完成 |
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
