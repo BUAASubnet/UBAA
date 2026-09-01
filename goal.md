@@ -335,6 +335,7 @@
 100. 新增延迟注销回归并先观察到销毁后的在途 `logout` 仍回写登录阶段；随后在入口和异步注销完成边界加入 `_disposed` no-op 保护，并保留用户明确要求的已保存凭据清理。app_controller 聚焦测试 29/29 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台生命周期及 P1/P5/P6 仍未完成。
 101. 在当前 HEAD `62ec048` 串行复跑 `just verify-live mode=direct` 与 `mode=webvpn`：两条路线认证、用户资料和全部必需只读操作均为 `PASS`；图书馆 `area_detail` 均为 `PASS(count=1)`，SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本次未调用真实写接口；该证据仍不替代六平台真实 Flutter→FRB→Core E2E，P0/P3/P4/P5/P6 仍未完成。
 102. 在当前 HEAD `62ec048` 以更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 复跑 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS fork、DevEco 26.0.0.821、SDK API26、辅助工具链、Rust arm64、Dart/widget/native 前置均 0 失败/0 警告；HAP assemble 仍在调试签名配置处停止。未配置签名、未生成可发布 HAP、未连接设备，P0/P5/P6 仍未完成。
+103. 提交 `62ec048` 的合同 CI `33541980109` 与 Flutter 原生五平台 CI `33541980112` 均成功，后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传 debug 产物；随后文档提交 `8fd836a` 的合同 CI `33542479679` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

@@ -12,6 +12,11 @@
 - 以更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS Flutter fork、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 和 native 前置均 0 失败/0 警告。
 - HAP assemble 仍在调试签名配置处按门禁停止；未配置签名、未生成可发布 HAP、未连接设备，临时生成输出已移出工作树。该证据不替代签名 HAP、设备 hello、正式 Release 或 P6 发布证据。
 
+## 2026-09-02 当前提交远端 CI 终态
+
+- 提交 `62ec048` 的合同 CI `33541980109` 与 Flutter 原生五平台 CI `33541980112` 均成功；后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传 debug 产物。
+- 随后的文档提交 `8fd836a` 合同 CI `33542479679` 亦成功。上述 CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E。
+
 ## 2026-09-02 销毁后的在途注销不回写登录状态
 
 - 新增延迟注销回归：controller 销毁后，旧实现仍会回写登录阶段；修复 `logout` 入口和异步注销完成边界的 `_disposed` no-op 保护。

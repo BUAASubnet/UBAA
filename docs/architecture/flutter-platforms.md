@@ -1,7 +1,7 @@
 # Flutter 六平台版本与验收矩阵
 
 状态：P0 进行中
-更新：2026-09-01
+更新：2026-09-02
 
 本文件记录可复现工具链事实和实际验证结果。版本“理论支持”不等于 UBAA 已验证；只有带日期、命令和产物/设备证据的行才能标记通过。
 
@@ -92,8 +92,9 @@ OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前工具链�
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
-最新五平台复核：提交 `e2fdd5a` 的 Flutter native run `33490877817` 已完成 Windows、macOS、Linux、
-Android APK 与 iOS simulator debug 构建并上传产物；这仍不是签名 Release 或实体设备证据。
+最新五平台复核：提交 `62ec048` 的 Flutter native run `33541980112` 已完成 Windows、macOS、Linux、
+Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、Windows、Linux、iOS simulator
+和 Android APK job 均成功。这仍不是签名 Release 或实体设备证据。
 
 ## 6. P0 探索产物审查
 
@@ -138,7 +139,8 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 | 当前 Flutter UI 仍含探索 Demo/占位 | P0 仅验证宿主与 hello | 不能作为 P1 至 P6 功能完成证据 | P1 固定 bridge 合同，P2/P3/P4 逐项移除并以测试闭环 |
 
 当前结论为 **NO-GO（正式发布）/ GO（继续五平台 P1 开发）**。官方 Flutter 五平台
-native debug 矩阵已在 run `33450597586` 全部通过并上传独立产物，合同与 macOS/Windows
-Rust job 也在 run `33450597476` 全部通过；OHOS 签名 HAP 与实体机 hello 仍为
+native debug 矩阵已在 run `33541980112` 全部通过并上传独立产物，提交 `62ec048` 的合同
+run `33541980109` 也全部通过；随后文档提交 `8fd836a` 的合同 run `33542479679` 成功。
+OHOS 签名 HAP 与实体机 hello 仍为
 硬阻断。该结论只允许继续不依赖签名和真实写入的实现、确定性测试及只读验证，不允许将
 任何 debug 产物称为正式版。
