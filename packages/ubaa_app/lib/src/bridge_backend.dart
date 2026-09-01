@@ -932,7 +932,14 @@ class BridgeBackend
                   title: item.courseName,
                   subtitle: '${item.classBeginTime}–${item.classEndTime}',
                   fields: <FeatureField>[
-                    FeatureField(label: '签到状态', value: '${item.signStatus}'),
+                    FeatureField(
+                      label: '签到状态',
+                      value: switch (item.signStatus) {
+                        0 => '未签到',
+                        1 => '已签到',
+                        _ => '状态未知',
+                      },
+                    ),
                   ],
                 ),
               )

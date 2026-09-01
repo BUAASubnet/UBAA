@@ -141,6 +141,7 @@ void main() {
 
     expect(result.summary, '1门未签到课程');
     expect(result.details.single.title, '未签到课程');
+    expect(result.details.single.fields.single.value, '未签到');
     expect(result.resolvedRoute, ConnectionMode.direct);
   });
 }
