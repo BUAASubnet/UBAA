@@ -2396,7 +2396,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
       if (widget.feature == FeatureId.classroom) {
         final rawDate = _dateController.text.trim();
         if (rawDate.isNotEmpty) {
-          date = DateTime.tryParse(rawDate);
+          date = _parseDateOnly(rawDate);
           if (date == null) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -2451,7 +2451,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
         if (_libbookView == FeatureQueryView.libbookSeats) {
           final rawDate = _dateController.text.trim();
           if (rawDate.isNotEmpty) {
-            date = DateTime.tryParse(rawDate);
+            date = _parseDateOnly(rawDate);
             if (date == null) {
               _showMessage('日期格式无效，请使用 YYYY-MM-DD。');
               return;
@@ -2490,7 +2490,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           }
           final rawDate = _dateController.text.trim();
           if (rawDate.isNotEmpty) {
-            date = DateTime.tryParse(rawDate);
+            date = _parseDateOnly(rawDate);
             if (date == null) {
               _showMessage('日期格式无效，请使用 YYYY-MM-DD。');
               return;
@@ -2647,6 +2647,22 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     return '${now.year.toString().padLeft(4, '0')}-'
         '${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  DateTime? _parseDateOnly(String value) {
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+    if (match == null) return null;
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null ||
+        parsed.year != year ||
+        parsed.month != month ||
+        parsed.day != day) {
+      return null;
+    }
+    return parsed;
   }
 
   String? _optionalText(TextEditingController controller) {

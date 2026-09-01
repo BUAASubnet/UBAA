@@ -350,6 +350,8 @@
 114. 当前事实记录提交 `c33c659` 的合同 CI `33554997879` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 115. 当前 HEAD 事实记录提交 `f0cdb62` 的合同 CI `33555799377` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
 
+116. 先加入日期查询回归并在旧 UI 实现上观察到：课堂、图书馆座位和场馆日期控件会接受带时间/时区的字符串；随后严格限制为真实日历日期 `YYYY-MM-DD`，非法输入不进入 typed `FeatureQuery`。`ubaa_ui` 聚焦测试 33/33 通过；本轮不改变 Core/路线/协议或真实写入，P3 其余 golden/integration、六平台 App E2E 及 P4/P5/P6 仍未完成。
+
 ## 4. 安全与架构边界
 
 - 宿主只能依赖 ubaa-core facade 和专用 bridge DTO，不能访问 upstream、runtime、原始 URL、Cookie、业务 token 或内部 DTO。

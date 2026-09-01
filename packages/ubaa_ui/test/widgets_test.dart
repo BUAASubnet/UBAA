@@ -982,6 +982,58 @@ void main() {
     expect(received?.campus, 2);
   });
 
+  testWidgets('日期控件拒绝非日期字符串和不存在的日历日期', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.classroom);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('空教室查询'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).first,
+      '2026-09-02T12:00:00+08:00',
+    );
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+
+    expect(received, isNull);
+    expect(find.text('日期格式无效，请使用 YYYY-MM-DD。'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, '2026-02-30');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received, isNull);
+  });
+
   testWidgets('空教室查询控件提交楼层和节次本地筛选参数', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

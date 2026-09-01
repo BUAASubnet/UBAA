@@ -2,6 +2,15 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 日期查询输入边界修复
+
+- 先加入回归并在旧实现上观察到：课堂、图书馆座位和场馆日期控件会接受带时间/时区的
+  `DateTime` 字符串，可能把不符合 `YYYY-MM-DD` 合同的值传入 typed 查询。
+- `_FeatureQueryControls` 现要求严格的四位年、两位月日形状，并校验真实日历日期；非法值在
+  UI 层显示稳定提示且不调用 `onApply`。`ubaa_ui` 聚焦测试 33 项全部通过。
+- 本修复只收紧 UI 输入，不改变 Core URL、路线、协议或真实写入；P3 其余 golden/integration、
+  六平台 App E2E 及 P4/P5/P6 仍未闭合。
+
 ## 2026-09-02 当前提交状态与 API26 复核
 
 - 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均通过；新增空结果失败状态回归后，Flutter 全量测试仍通过，工作树仅保留本段文档待提交变更。
