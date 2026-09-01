@@ -198,14 +198,18 @@ UiErrorKind _parseKind(String? raw, String code) {
     if (kind.wireName == normalized) return kind;
   }
   return switch (_parseCode(code)) {
-    UbaaErrorCode.invalidInput => UiErrorKind.input,
+    UbaaErrorCode.invalidInput ||
+    UbaaErrorCode.confirmationRequired ||
+    UbaaErrorCode.intentExpired ||
+    UbaaErrorCode.operationConflict => UiErrorKind.input,
     UbaaErrorCode.authenticationRequired ||
     UbaaErrorCode.invalidCredentials ||
     UbaaErrorCode.passwordRiskConfirmationFailed ||
     UbaaErrorCode.permissionDenied => UiErrorKind.authentication,
     UbaaErrorCode.networkError ||
     UbaaErrorCode.timeout ||
-    UbaaErrorCode.upstreamUnavailable => UiErrorKind.network,
+    UbaaErrorCode.upstreamUnavailable ||
+    UbaaErrorCode.outcomeUnknown => UiErrorKind.network,
     UbaaErrorCode.upstreamChanged => UiErrorKind.upstream,
     UbaaErrorCode.parseError => UiErrorKind.parse,
     UbaaErrorCode.internalError ||
@@ -216,7 +220,8 @@ UiErrorKind _parseKind(String? raw, String code) {
 bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.networkError ||
   UbaaErrorCode.timeout ||
-  UbaaErrorCode.upstreamUnavailable => true,
+  UbaaErrorCode.upstreamUnavailable ||
+  UbaaErrorCode.outcomeUnknown => true,
   UbaaErrorCode.invalidInput ||
   UbaaErrorCode.authenticationRequired ||
   UbaaErrorCode.invalidCredentials ||
@@ -225,7 +230,10 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.upstreamChanged ||
   UbaaErrorCode.parseError ||
   UbaaErrorCode.internalError ||
-  UbaaErrorCode.unsupported => false,
+  UbaaErrorCode.unsupported ||
+  UbaaErrorCode.confirmationRequired ||
+  UbaaErrorCode.intentExpired ||
+  UbaaErrorCode.operationConflict => false,
 };
 
 ({String title, String message, String? actionLabel}) _templateFor(
@@ -290,6 +298,26 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
     title: '暂不支持',
     message: '此功能暂不支持',
     actionLabel: null,
+  ),
+  UbaaErrorCode.confirmationRequired => (
+    title: '需要确认',
+    message: '请先查看并确认本次操作的目标与影响。',
+    actionLabel: null,
+  ),
+  UbaaErrorCode.intentExpired => (
+    title: '确认已过期',
+    message: '操作确认已过期，请重新准备。',
+    actionLabel: '重新准备',
+  ),
+  UbaaErrorCode.operationConflict => (
+    title: '操作状态已变化',
+    message: '路线或会话已变化，请重新准备操作。',
+    actionLabel: '重新准备',
+  ),
+  UbaaErrorCode.outcomeUnknown => (
+    title: '结果待核对',
+    message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
+    actionLabel: '刷新状态',
   ),
 };
 

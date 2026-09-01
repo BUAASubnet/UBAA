@@ -342,6 +342,125 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
 
   Future<void> dispose() => client.dispose();
 
+  Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async =>
+      _mapIntent(
+        await client.prepareBykcSelectCourse(
+          request: BridgeBykcCourseRequest(courseId: courseId),
+        ),
+      );
+
+  Future<WriteIntent> prepareBykcDeselectCourse({
+    required int courseId,
+  }) async => _mapIntent(
+    await client.prepareBykcDeselectCourse(
+      request: BridgeBykcCourseRequest(courseId: courseId),
+    ),
+  );
+
+  Future<WriteIntent> prepareBykcSignCourse({
+    required int courseId,
+    double? lat,
+    double? lng,
+    required int signType,
+  }) async => _mapIntent(
+    await client.prepareBykcSignCourse(
+      request: BridgeBykcSignCourseRequest(
+        courseId: courseId,
+        lat: lat,
+        lng: lng,
+        signType: signType,
+      ),
+    ),
+  );
+
+  Future<WriteIntent> prepareSigninPerform({required String courseId}) async =>
+      _mapIntent(
+        await client.prepareSigninPerform(
+          request: BridgeSigninPerformRequest(courseId: courseId),
+        ),
+      );
+
+  Future<WriteIntent> prepareLibbookReserve({
+    required String areaId,
+    required String seatId,
+    required String day,
+    required String segment,
+    required String startTime,
+    required String endTime,
+  }) async => _mapIntent(
+    await client.prepareLibbookReserve(
+      request: BridgeLibbookReserveRequest(
+        areaId: areaId,
+        seatId: seatId,
+        day: day,
+        segment: segment,
+        startTime: startTime,
+        endTime: endTime,
+      ),
+    ),
+  );
+
+  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) async =>
+      _mapIntent(
+        await client.prepareLibbookCancelBooking(
+          request: BridgeLibbookCancelBookingRequest(id: id),
+        ),
+      );
+
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    try {
+      final result = await client.commitWrite(intentId: intentId);
+      return WriteCommitResult(
+        operation: _toWriteOperation(result.operation),
+        success: result.success,
+        message: result.message,
+        outcomeUnknown: result.outcomeUnknown,
+        resolvedRoute: result.resolvedRoute == null
+            ? null
+            : _toConnectionMode(result.resolvedRoute!),
+      );
+    } on BridgeError catch (error) {
+      throw _mapError(error);
+    }
+  }
+
+  static WriteIntent _mapIntent(BridgeWriteIntent intent) => WriteIntent(
+    intentId: intent.intentId,
+    operation: _toWriteOperation(intent.operation),
+    targetSummary: intent.targetSummary,
+    resolvedRoute: _toConnectionMode(intent.resolvedRoute),
+    warnings: List<String>.unmodifiable(intent.warnings),
+    expiresAt: DateTime.fromMillisecondsSinceEpoch(
+      int.parse(intent.expiresAt.toString()) * 1000,
+    ),
+    requestDigest: intent.requestDigest,
+  );
+
+  static WriteOperation _toWriteOperation(BridgeWriteOperation operation) =>
+      switch (operation) {
+        BridgeWriteOperation.bykcSelectCourse =>
+          WriteOperation.bykcSelectCourse,
+        BridgeWriteOperation.bykcDeselectCourse =>
+          WriteOperation.bykcDeselectCourse,
+        BridgeWriteOperation.bykcSignCourse => WriteOperation.bykcSignCourse,
+        BridgeWriteOperation.signinPerform => WriteOperation.signinPerform,
+        BridgeWriteOperation.libbookReserve => WriteOperation.libbookReserve,
+        BridgeWriteOperation.libbookCancelBooking =>
+          WriteOperation.libbookCancelBooking,
+        BridgeWriteOperation.ygdkSubmit => WriteOperation.ygdkSubmit,
+        BridgeWriteOperation.cgyySubmitReservation =>
+          WriteOperation.cgyySubmitReservation,
+        BridgeWriteOperation.cgyyCancelOrder => WriteOperation.cgyyCancelOrder,
+        BridgeWriteOperation.evaluationSubmitCourses =>
+          WriteOperation.evaluationSubmitCourses,
+      };
+
+  static ConnectionMode _toConnectionMode(BridgeConnectionMode mode) =>
+      switch (mode) {
+        BridgeConnectionMode.direct => ConnectionMode.direct,
+        BridgeConnectionMode.webVpn => ConnectionMode.webvpn,
+      };
+
   Future<String?> _selectedTerm() async {
     final result = await client.scheduleTerms();
     for (final term in result.data) {
@@ -408,6 +527,13 @@ class BridgeBackend implements UbaaBackend, BackendLifecycle {
     'upstream_unavailable' => UbaaErrorCode.upstreamUnavailable,
     'upstreamChanged' || 'upstream_changed' => UbaaErrorCode.upstreamChanged,
     'parseError' || 'parse_error' => UbaaErrorCode.parseError,
+    'clientDisposed' || 'client_disposed' => UbaaErrorCode.internalError,
+    'confirmationRequired' ||
+    'confirmation_required' => UbaaErrorCode.confirmationRequired,
+    'intentExpired' || 'intent_expired' => UbaaErrorCode.intentExpired,
+    'operationConflict' ||
+    'operation_conflict' => UbaaErrorCode.operationConflict,
+    'outcomeUnknown' || 'outcome_unknown' => UbaaErrorCode.outcomeUnknown,
     _ => UbaaErrorCode.internalError,
   };
 

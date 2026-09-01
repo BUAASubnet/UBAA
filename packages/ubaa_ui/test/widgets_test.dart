@@ -84,4 +84,32 @@ void main() {
     expect(find.text('主楼 101'), findsOneWidget);
     expect(find.textContaining('只读详情页面将在'), findsNothing);
   });
+
+  testWidgets('写入确认显示实际路线并防止过期提交', (tester) async {
+    final intent = WriteIntent(
+      intentId: 'intent',
+      operation: WriteOperation.libbookCancelBooking,
+      targetSummary: '取消一条图书馆预约',
+      resolvedRoute: ConnectionMode.webvpn,
+      warnings: const <String>['取消操作可能不可恢复'],
+      expiresAt: DateTime.now().subtract(const Duration(minutes: 1)),
+      requestDigest: 'digest',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: WriteConfirmationView(
+          intent: intent,
+          onCancel: () {},
+          onConfirm: () async {},
+        ),
+      ),
+    );
+    expect(find.text('WebVPN'), findsOneWidget);
+    expect(find.text('意图已过期'), findsOneWidget);
+    final submit = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '意图已过期'),
+    );
+    expect(submit.onPressed, isNull);
+  });
 }

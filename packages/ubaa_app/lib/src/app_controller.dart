@@ -435,5 +435,29 @@ class UbaaErrorMapper {
       title: '暂不支持',
       message: '当前平台或版本暂不支持此功能。',
     ),
+    UbaaErrorCode.confirmationRequired => const UiError(
+      code: UbaaErrorCode.confirmationRequired,
+      title: '需要确认',
+      message: '请先查看并确认本次操作的目标与影响。',
+    ),
+    UbaaErrorCode.intentExpired => const UiError(
+      code: UbaaErrorCode.intentExpired,
+      title: '确认已过期',
+      message: '操作确认已过期，请重新准备。',
+      actionLabel: '重新准备',
+    ),
+    UbaaErrorCode.operationConflict => const UiError(
+      code: UbaaErrorCode.operationConflict,
+      title: '操作状态已变化',
+      message: '路线或会话已变化，请重新准备操作。',
+      actionLabel: '重新准备',
+    ),
+    UbaaErrorCode.outcomeUnknown => const UiError(
+      code: UbaaErrorCode.outcomeUnknown,
+      title: '结果待核对',
+      message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
+      actionLabel: '刷新状态',
+      retryable: true,
+    ),
   };
 }

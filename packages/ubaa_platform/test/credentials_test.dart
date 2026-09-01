@@ -104,7 +104,6 @@ void main() {
 class _FakeSecureStore implements PlatformSecureCredentialStore {
   _FakeSecureStore({this.available = true});
 
-  @override
   final bool available;
   Credential? _value;
   String? lastNamespace;
