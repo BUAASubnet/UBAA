@@ -92,6 +92,9 @@ OHOS 的完整门禁命令为 `just ohos-check mode=release`；当前工具链�
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
+最新五平台复核：提交 `e2fdd5a` 的 Flutter native run `33490877817` 已完成 Windows、macOS、Linux、
+Android APK 与 iOS simulator debug 构建并上传产物；这仍不是签名 Release 或实体设备证据。
+
 ## 6. P0 探索产物审查
 
 | 产物 | 采用结论 | P0 证据 | 后续约束 |

@@ -2,6 +2,14 @@
 
 更新日期：2026-09-01
 
+## 2026-09-01 五平台 native/合同 CI 复核
+
+- 提交 `e2fdd5a` 的合同 CI run `33490877831` 已成功：`contract-gates`、macOS Rust 和 Windows Rust
+  三个 job 全部通过。
+- 同提交触发的 Flutter native run `33490877817` 已成功：Windows、macOS、Linux、Android APK 与
+  iOS simulator 五个 job 全部构建并上传 debug 产物。该证据仍不包含 OHOS HAP、正式签名、公证、实体机
+  或真实 Flutter→FRB→Core 读取/写入 E2E。
+
 ## 2026-09-01 Android Release AAB 终检复核
 
 - `just flutter-build platform=android-appbundle mode=release` 的 Gradle `bundleRelease` 成功，生成本地

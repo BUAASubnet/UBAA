@@ -231,6 +231,9 @@
     `bundleRelease` 成功，但 Flutter `apkanalyzer` 因 `cmdline-tools/latest` Homebrew symlink 无法定位
     SDK `build-tools` 而按门禁失败；临时 overlay 仅证明三 ABI AAB 含 debug symbols。产物未签名、未上传，
     Android Release/安装/实体机证据仍未完成。
+54. 提交 `e2fdd5a` 的合同 CI run `33490877831` 与 Flutter native run `33490877817` 均已终态成功；
+    后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 全部构建并上传 debug 产物。
+    该证据不包含 OHOS HAP、正式签名、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未闭合。
 
 ## 4. 安全与架构边界
 
