@@ -103,6 +103,7 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   Debug 产物已上传，仍不替代 OHOS 签名、实体设备或真实写后核对。
 - 当前 HEAD 的 FRB 零漂移重试仍在 `cargo-expand` 的 `rustc -Zunpretty=expanded` 阶段无输出后中断，工作树无漂移；该门禁保持未完成运行，
   不以历史成功或其它 CI 结果冒充通过。
+- 最终审计提交 `7e6a4ea` 的引用、敏感扫描、无签名 RC 前置报告和差异检查均通过，且远端同步、工作树清洁；临时 OHOS 无签名产物已移出仓库。
 - 平台权限和照片选择器通过 `CallbackPermissionGateway`、`CallbackPhotoPicker` 注入原生回调；回调异常
   归约为稳定不可用/能力错误，`PermissionedPhotoPicker` 可按宿主选择相册或桌面文件权限。当前测试覆盖
   权限拒绝不调用 picker、文件权限选择和图书馆取消确认；这仍不是原生插件或实体设备证据。

@@ -60,6 +60,9 @@
 - 当前 HEAD（文档提交 `f67f95f`）以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试 FRB 零漂移，
   `cargo-expand` 调用 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断；进程已清理且工作树无生成漂移，故本次仍记为“未完成运行”，
   不能从其它 CI 或历史成功推导当前本机门禁通过。
+- 最终审计提交 `7e6a4ea` 后，`just refs`、`just check-sensitive`、`just release-preflight /tmp/ubaa-release-preflight-final.qLoG85`
+  与 `git diff --check` 均成功；`HEAD` 与 `origin/ubaa2` 一致，工作树干净。OHOS 无签名 HAP 与 arm64 临时生成物已移出仓库，
+  不含凭据、原始响应或个人数据。
 
 ## 2026-09-02 无签名执行目标更新
 

@@ -436,6 +436,7 @@
 143. 提交 `190f318` 在官方 Flutter macOS 宿主集成中增加 commit 异常场景：脱敏 backend 抛出异常时只显示稳定未知结果提示，不触发写后刷新、不误标记“已签到”、不泄露“相关课程状态”等业务上下文；`flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts` 四个场景 4/4 通过，`just check-sensitive` 与差异检查通过。本轮未访问真实账号或写接口；P4 其他写操作的逐领域 integration/结果核对、P5/P6 其余缺口仍未闭合。
 144. 提交 `190f318` 的合同 CI `33593160544` 与五平台 Flutter Debug CI `33593160580` 均终态成功，随后文档提交 `f7d0015` 的合同 CI `33593227275` 也成功；Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。CI 只证明确定性门禁和无签名宿主构建，不替代 OHOS 签名、实体设备、真实写后核对或正式发布；P3/P4/P5/P6 其余缺口仍未闭合。
 145. 当前 HEAD 文档提交 `f67f95f` 重新以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 尝试 FRB 零漂移；`cargo-expand` 的 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断，进程清理后工作树无生成漂移。本机零漂移门禁仍记为未完成运行，不能由历史成功、无签名 HAP 或其它 CI 推导通过；P3/P4/P5/P6 其余缺口仍未闭合。
+146. 最终审计提交 `7e6a4ea` 后，`just refs`、`just check-sensitive`、`just release-preflight /tmp/ubaa-release-preflight-final.qLoG85`、`git diff --check` 均成功；`HEAD` 与 `origin/ubaa2` 一致、工作树干净，OHOS 无签名 HAP/arm64 临时生成物已移出仓库。该审计未读取或写入凭据、真实账号、原始响应或个人数据；FRB 本机零漂移、逐领域真实写后核对、签名/设备和 P3/P4/P5/P6 其余完成条件仍未闭合。
 
 ## 4. 安全与架构边界
 

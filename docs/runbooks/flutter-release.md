@@ -73,4 +73,6 @@ DevEco/CLI 26.0.0 Beta2 与 OpenHarmony API26 预检；API21 失败不能降级�
 产物均为无签名 Debug，不能替代 OHOS 签名、设备安装或真实写后核对。
 当前 HEAD 再次尝试 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 时，cargo-expand 无输出后被安全中断且无生成漂移；
 FRB 本机零漂移仍需工具链恢复后重试，不能记为通过。
+最终审计提交 `7e6a4ea` 已复核引用、敏感扫描、无签名 RC 前置报告、差异检查以及 `HEAD == origin/ubaa2`；工作树干净，临时 OHOS
+无签名产物已移出仓库。
 六平台正式签名、实体设备、安全存储插件和真实写入矩阵仍未闭合，因此只能执行无签名 RC 流程，不能执行正式发布步骤。
