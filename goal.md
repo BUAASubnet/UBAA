@@ -460,6 +460,7 @@
 167. 继续收紧场馆取消入口：当公开 `审核状态` 字段存在但不是可解析的冻结数值时，UI 现在按默认拒绝处理；缺失该可选字段仍交由订单状态和 Core prepare 判定。新增格式错误状态回归，聚焦测试与 `flutter analyze` 均通过；提交 `48a7cbf` 已推送。本轮未访问上游或执行真实写入，P3/P4/P5/P6 其余门禁仍未闭合。
 168. 提交 `23ec075` 后在 2026-09-02 17 时段（Asia/Shanghai）串行复核真实只读矩阵：第一次 Direct 因图书馆 `libraries=upstream_changed` 且后续 `bookings=timeout` 退出码 5，WebVPN 全部必需读取 exit 0；随后立即重跑 Direct 恢复 exit 0，图书馆 `libraries/areas/area_detail/seats/bookings` 均 PASS(count=3/2/1/175/2)，其余必需读取均 PASS，SPOC/博雅详情因空父列表为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口，首次失败作为瞬时上游证据保留，不能用历史结果覆盖。
 169. 提交 `48a7cbf` 的 Flutter 原生 CI run `33613013808` 已终态成功，Linux、Windows、macOS、iOS simulator、Android APK 五个无签名 Debug job 均通过产物结构检查，macOS 通过宿主 integration smoke；提交 `23ec075` 的合同 CI run `33613046839` 已终态成功。CI 不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后核对或正式发布，P3/P4/P5/P6 其余门禁仍未闭合。
+170. 事实文档提交 `b97a9d9` 的合同 CI run `33614614484` 已终态成功，macOS/Windows Rust 与 contract-gates 均通过；当前 HEAD 与 `origin/ubaa2` 一致且工作树干净。该文档提交不改变代码、产物、签名或设备证据，前述 OHOS 签名、实体设备、原生安全存储、真实写后核对和 P3/P4/P5/P6 其余门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
