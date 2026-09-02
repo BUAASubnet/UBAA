@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：P1 合同与生产绑定已提交；P1 验收仍待补齐平台/并发证据
+状态：P1 无签名验收已完成；实体设备上的原生 isolate/内存观测列为后置发布证据
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -332,5 +332,6 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有
   `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
 - panic 归约、跨进程 Session 锁、路线/会话失效 intent 和场馆订单敏感字段禁曝快照已有实现与
-  回归；尚未把这些结果标记为 P1 完成。Dart isolate 的真实重建/内存泄漏证据、完整逐 DTO
-  domain/UI 消费测试和跨平台生命周期证据仍需逐项补齐。
+  回归；Dart schema 快照覆盖全部公开读取 DTO 和十项写入口，应用层已有 dispose、后台恢复和
+  代次丢弃的确定性测试，`just flutter-codegen-check` 报告零漂移。上述代码/合同门禁满足本轮
+  无签名 P1；原生设备上的 isolate 重建、内存泄漏观测和真实跨平台生命周期仍留待后置设备验证。
