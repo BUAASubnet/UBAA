@@ -1119,74 +1119,81 @@ class _FeatureCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isFailure = snapshot.status == FeatureLoadStatus.failure;
     final isStale = snapshot.status == FeatureLoadStatus.stale;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      color: colorScheme.surfaceContainerHighest,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Icon(
-                    _featureIcon(feature),
-                    size: 40,
-                    color: colorScheme.primary,
-                  ),
-                  const Spacer(),
-                  if (snapshot.status == FeatureLoadStatus.loading)
-                    const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else if (isFailure || isStale)
-                    IconButton(
-                      tooltip: '重试',
-                      onPressed: () => onRetry(),
-                      icon: Icon(Icons.refresh, color: colorScheme.error),
-                    )
-                  else if (snapshot.status == FeatureLoadStatus.success)
-                    Icon(Icons.check_circle, color: colorScheme.primary),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                feature.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: Text(
-                  _statusText(snapshot),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: isFailure
-                        ? colorScheme.error
-                        : isStale
-                        ? colorScheme.tertiary
-                        : colorScheme.onSurfaceVariant,
-                  ),
+    return Semantics(
+      container: true,
+      button: true,
+      label: '$featureLabel：${_statusText(snapshot)}。点击查看详情',
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        color: colorScheme.surfaceContainerHighest,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Icon(
+                      _featureIcon(feature),
+                      size: 40,
+                      color: colorScheme.primary,
+                    ),
+                    const Spacer(),
+                    if (snapshot.status == FeatureLoadStatus.loading)
+                      const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else if (isFailure || isStale)
+                      IconButton(
+                        tooltip: '重试',
+                        onPressed: () => onRetry(),
+                        icon: Icon(Icons.refresh, color: colorScheme.error),
+                      )
+                    else if (snapshot.status == FeatureLoadStatus.success)
+                      Icon(Icons.check_circle, color: colorScheme.primary),
+                  ],
                 ),
-              ),
-              if (snapshot.resolvedRoute case final route?)
+                const SizedBox(height: 10),
                 Text(
-                  '实际路线：${route.label}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  feature.title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: Text(
+                    _statusText(snapshot),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: isFailure
+                          ? colorScheme.error
+                          : isStale
+                          ? colorScheme.tertiary
+                          : colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-            ],
+                if (snapshot.resolvedRoute case final route?)
+                  Text(
+                    '实际路线：${route.label}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  String get featureLabel => feature.title;
 
   String _statusText(FeatureSnapshot snapshot) => switch (snapshot.status) {
     FeatureLoadStatus.idle => feature.description,

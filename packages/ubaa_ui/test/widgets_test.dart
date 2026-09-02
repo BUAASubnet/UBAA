@@ -2374,4 +2374,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(retryCalls, 1);
   });
+
+  testWidgets('功能卡片暴露包含状态和操作提示的无障碍语义', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: feature == FeatureId.schedule
+              ? FeatureLoadStatus.success
+              : FeatureLoadStatus.idle,
+          summary: feature == FeatureId.schedule ? '今日课程' : null,
+          details: const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.bySemanticsLabel('课表查询：今日课程。点击查看详情'),
+      findsOneWidget,
+    );
+  });
 }
