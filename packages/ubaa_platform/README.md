@@ -33,5 +33,7 @@
 `granted`、`denied`、`restricted`、`unavailable` 四种稳定状态。没有原生插件时使用
 `UnavailablePermissionGateway`，安全拒绝而不伪造授权。`PlatformPhotoPicker` 只返回
 typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePhotoPicker` 是无设备
-构建的默认后置能力，`MemoryPhotoPicker` 仅用于脱敏 widget/integration 测试。原生
+构建的默认后置能力，`MemoryPhotoPicker` 仅用于脱敏 widget/integration 测试。官方 Flutter
+与 OHOS 宿主在接收 picker 后会用 `PermissionedPhotoPicker` 包装它；未显式注入权限网关时
+默认使用 `UnavailablePermissionGateway`，因此不会在无权限时调用 picker。原生
 Keychain/Keystore/Secret Service/HUKS 插件接入和设备权限验证仍需在后置发布阶段完成。
