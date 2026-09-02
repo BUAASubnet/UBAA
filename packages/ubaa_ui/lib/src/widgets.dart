@@ -989,6 +989,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     WriteCommitResult result, {
     bool? cgyyReceiptVerified,
   }) {
+    if (result.outcomeUnknown) {
+      return '提交结果不确定，请先刷新相关状态，不要重复提交。';
+    }
     final receipt = result.cgyyReceipt;
     if (result.operation == WriteOperation.cgyySubmitReservation &&
         receipt != null) {

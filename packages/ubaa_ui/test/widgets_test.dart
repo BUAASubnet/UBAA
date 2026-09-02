@@ -2375,6 +2375,73 @@ void main() {
     expect(retryCalls, 1);
   });
 
+  testWidgets('Core 返回未知结果时固定提示核对且不触发写后刷新', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var refreshCalls = 0;
+    final intent = WriteIntent(
+      intentId: 'unknown-intent',
+      operation: WriteOperation.bykcSelectCourse,
+      targetSummary: '选择课程 42',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>[],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (_, __) async => intent,
+          onCommitWrite: (_) async => const WriteCommitResult(
+            operation: WriteOperation.bykcSelectCourse,
+            success: false,
+            message: '上游响应超时',
+            outcomeUnknown: true,
+            resolvedRoute: ConnectionMode.direct,
+          ),
+          onWriteSuccess: (_) async => refreshCalls++,
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备选课'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('上游响应超时'), findsNothing);
+    expect(refreshCalls, 0);
+  });
+
   testWidgets('功能卡片暴露包含状态和操作提示的无障碍语义', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
