@@ -179,3 +179,8 @@ OHOS 签名 HAP 与实体机 hello 是后置发布项而非本轮无签名目标
 iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smoke；合同 run `33600117413`
 （提交 `993f5a2`）的三个 job 全部成功。两条 run 均为无签名确定性证据，不替代 OHOS 签名、实体设备
 或正式发布门禁。
+
+提交 `5dc6dcf` 的 UI 增量保持平台边界不变：博雅状态门禁只消费 bridge 白名单字段，场馆多时段只在
+同站点/日期内组合 typed 选择，最终资格和冲突仍由 Core prepare 校验。该变化由 `ubaa_ui` 42 项测试和
+`just flutter-check` 覆盖，不增加原生 handler、凭据、权限或签名要求；平台矩阵仍按无签名 Debug/静态证据
+与实体设备后置 `BLOCKED` 分开记录。

@@ -1581,3 +1581,15 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - `AppController` 新增十项写操作的读取核对矩阵回归：场馆预约/取消只查询订单列表，其余操作只刷新关联
   业务域；focused app controller suite 31/31、`just flutter-check`、`just check-sensitive` 与 `just check`
   均通过。该测试只使用脱敏 fake backend，不产生真实账号副作用。
+
+## 2026-09-02 博雅状态入口与场馆多时段选择
+
+- 提交 `5dc6dcf` 收紧博雅课程详情中的选课/退选入口：读取字段明确为“已选”或稳定状态枚举时，
+  UI 仅开放对应操作；缺少状态时保留入口但提示最终资格和时间窗由 Core 校验，已选课程视图不再暴露
+  重复选课按钮。新增 widget 回归验证按钮禁用、稳定提示和零回调副作用。
+- 同一提交为场馆预约表单收集当前站点和日期下的全部可预约时段，使用去重的 typed
+  `CgyyReservationSelectionInput` 和 `FilterChip` 允许一次准备中选择多个时段；跨站点/日期的详情不会混入，
+  Core 仍在 prepare 阶段执行最终资格与冲突校验。场馆多时段 widget 回归与 `ubaa_ui` 全量 42 项测试通过，
+  随后的 `just flutter-check`、`just check-sensitive` 和差异检查通过。
+- 本轮只改变确定性 UI 入口和 typed 输入组合，没有调用真实写接口、上游或平台原生 handler；逐领域 golden/
+  integration、真实写后核对、实体设备安全存储和签名发布仍按 `goal.md` 保持未完成或后置 `BLOCKED`。

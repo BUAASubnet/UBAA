@@ -448,6 +448,7 @@
 155. 合同 CI run `33600117413`（提交 `993f5a2`）已终态成功：`contract-gates`、macOS Rust、Windows Rust 三个 job 全部通过，合同门禁与文档差异检查均通过。该 CI 不包含 OHOS 签名 HAP、实体设备、正式发布或真实写入；P3/P4/P5/P6 的逐领域/设备后置缺口仍按本合同保持未完成。
 156. 当前 HEAD `335fb45` 在 2026-09-02 营业窗口内串行复跑 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，空父列表详情为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本次未执行任何真实写接口；该证据仍不替代真实 App→FRB→Core、逐领域设备链路、硬件安全存储或写后核对。
 157. 新增 `AppController` 十项写操作读取核对矩阵：除场馆预约/取消固定查询同路线订单列表外，其余操作只刷新对应业务只读域，防止跨域刷新或重复提交；app controller focused suite 31/31、`just flutter-check` 与 `just check` 均通过。本轮仍未执行真实写接口。
+158. 提交 `5dc6dcf` 收紧博雅详情写入口：读取字段明确为“已选”或稳定状态枚举时仅开放对应的选课/退选操作，已选课程视图禁用重复选课；缺少状态字段时不在 UI 猜测，仍由 Core prepare 做最终校验。新增 widget 回归验证禁用按钮、稳定提示和零回调副作用；同时为场馆预约收集同一站点/日期下去重的全部可预约 typed 时段，表单可在一次准备中选择多个 `CgyyReservationSelectionInput`，跨站点/日期不会混入。`ubaa_ui` 全量 42 项、`just flutter-check`、`just check-sensitive` 与 `git diff --check` 均通过；本轮没有真实写入或原生平台调用，逐领域 golden/integration、真实写后核对、设备安全存储和签名发布仍未闭合。
 
 ## 4. 安全与架构边界
 
