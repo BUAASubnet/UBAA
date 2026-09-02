@@ -181,6 +181,6 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 或正式发布门禁。
 
 提交 `5dc6dcf` 的 UI 增量保持平台边界不变：博雅状态门禁只消费 bridge 白名单字段，场馆多时段只在
-同站点/日期内组合 typed 选择，最终资格和冲突仍由 Core prepare 校验。该变化由 `ubaa_ui` 42 项测试和
+同站点/日期/空间内组合 typed 选择，避免呈现桥接合同必拒绝的跨空间组合，最终资格和冲突仍由 Core prepare 校验。该变化由 `ubaa_ui` 42 项测试和
 `just flutter-check` 覆盖，不增加原生 handler、凭据、权限或签名要求；平台矩阵仍按无签名 Debug/静态证据
 与实体设备后置 `BLOCKED` 分开记录。

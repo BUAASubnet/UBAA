@@ -697,9 +697,20 @@ void main() {
                     fields: <FeatureField>[
                       FeatureField(label: '站点 ID', value: '3'),
                       FeatureField(label: '日期', value: '2026-09-03'),
-                      FeatureField(label: '空间 ID', value: '5'),
+                      FeatureField(label: '空间 ID', value: '4'),
                       FeatureField(label: '空间组 ID', value: '9'),
                       FeatureField(label: '时段 ID', value: '6'),
+                      FeatureField(label: '可预约', value: '是'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '另一空间',
+                    fields: <FeatureField>[
+                      FeatureField(label: '站点 ID', value: '3'),
+                      FeatureField(label: '日期', value: '2026-09-03'),
+                      FeatureField(label: '空间 ID', value: '5'),
+                      FeatureField(label: '空间组 ID', value: '9'),
+                      FeatureField(label: '时段 ID', value: '7'),
                       FeatureField(label: '可预约', value: '是'),
                     ],
                   ),
@@ -725,7 +736,7 @@ void main() {
             expect(input.reservationDate, '2026-09-03');
             expect(
               input.selections.map((selection) => selection.spaceId),
-              <int>[4, 5],
+              <int>[4, 4],
             );
             expect(input.selections.map((selection) => selection.timeId), <int>[
               5,
@@ -777,7 +788,8 @@ void main() {
     await tester.tap(find.text('准备场馆预约').first);
     await tester.pumpAndSettle();
     expect(find.text('选择预约时段（已选 1 个）'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilterChip, '空间 5 · 时段 6'));
+    expect(find.widgetWithText(FilterChip, '空间 5 · 时段 7'), findsNothing);
+    await tester.tap(find.widgetWithText(FilterChip, '空间 4 · 时段 6'));
     await tester.pumpAndSettle();
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(1), 'phone-placeholder');

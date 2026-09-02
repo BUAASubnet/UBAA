@@ -1610,3 +1610,9 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   父列表为空记为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。
 - 本轮只读复核未执行选课、退选、签到、预约、取消、打卡上传或评教提交；该 Core-live 证据证明协议/路线
   读取，不证明真实 Flutter→FRB→Core 写链或真实写后核对。输出未保存凭据、Cookie、令牌或原始响应。
+
+## 2026-09-02 场馆预约同空间时段边界修复
+
+- bridge 写合同要求同一次场馆预约的全部 `CgyyReservationSelectionInput` 使用同一空间；此前 UI 收集同站点、同日期的全部可预约时段，跨空间选项虽然最终会被 Core prepare 拒绝，但仍会被错误呈现。
+- 先在 `packages/ubaa_ui/test/widgets_test.dart` 增加跨空间 `FilterChip` 禁显断言，旧实现按预期失败；随后在 `_cgyyReservationSelections` 增加同空间过滤，并保留同空间多时段选择和去重。聚焦 widget 测试通过，未访问上游或执行真实写入。
+- `docs/design/flutter-ui-spec.md` 与 `docs/architecture/flutter-platforms.md` 已同步该边界；该修复只收紧 UI 输入，不改变 Core 协议、路线或挑战材料处理。

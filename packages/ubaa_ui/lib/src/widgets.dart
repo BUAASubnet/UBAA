@@ -3541,9 +3541,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     );
   }
 
-  /// 收集当前日期空间结果中的全部可预约时段，供用户在一次预约中选择多个
-  /// 不同时间段。重复槽位按空间、时段和空间组去重，仍由 Core 在 prepare
-  /// 阶段执行最终资格与冲突校验。
+  /// 收集当前日期同一空间结果中的全部可预约时段，供用户在一次预约中
+  /// 选择多个不同时间段。桥接合同要求一次预约只能包含同一空间；跨空间
+  /// 结果不展示为可选项，重复槽位按空间、时段和空间组去重，仍由 Core
+  /// 在 prepare 阶段执行最终资格与冲突校验。
   List<CgyyReservationSelectionInput> _cgyyReservationSelections(
     ({
       int venueSiteId,
@@ -3561,7 +3562,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       final candidate = _cgyyReservationTarget(detail);
       if (candidate == null ||
           candidate.venueSiteId != target.venueSiteId ||
-          candidate.reservationDate != target.reservationDate) {
+          candidate.reservationDate != target.reservationDate ||
+          candidate.selection.spaceId != target.selection.spaceId) {
         continue;
       }
       final selection = candidate.selection;
