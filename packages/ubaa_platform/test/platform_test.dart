@@ -35,6 +35,16 @@ void main() {
     ]);
   });
 
+  test('回调权限适配器隐藏异常并返回稳定不可用状态', () async {
+    final gateway = CallbackPermissionGateway(
+      request: (_) async => throw StateError('platform secret: token'),
+    );
+    expect(
+      await gateway.request(PlatformPermission.photos),
+      PlatformPermissionStatus.unavailable,
+    );
+  });
+
   test('照片选择器只返回 typed 内存输入，不持久化原始路径', () async {
     final picker = MemoryPhotoPicker(
       photo: const YgdkPhotoInput(
@@ -85,6 +95,46 @@ void main() {
     );
     expect((await guarded.pickPhoto())?.fileName, 'blocked.jpg');
     expect(picker.pickCount, 1);
+  });
+
+  test('照片适配器可显式使用桌面文件权限', () async {
+    final permissions = MemoryPermissionGateway(
+      initial: <PlatformPermission, PlatformPermissionStatus>{
+        PlatformPermission.files: PlatformPermissionStatus.granted,
+      },
+    );
+    final picker = MemoryPhotoPicker(
+      photo: const YgdkPhotoInput(
+        bytes: <int>[7],
+        fileName: 'desktop.jpg',
+        mimeType: 'image/jpeg',
+      ),
+    );
+    final guarded = PermissionedPhotoPicker(
+      permissions: permissions,
+      picker: picker,
+      permission: PlatformPermission.files,
+    );
+    expect((await guarded.pickPhoto())?.fileName, 'desktop.jpg');
+    expect(permissions.requests, <PlatformPermission>[
+      PlatformPermission.files,
+    ]);
+  });
+
+  test('回调照片适配器在平台异常时返回稳定能力错误', () async {
+    final picker = CallbackPhotoPicker(
+      pick: () async => throw StateError('private path'),
+    );
+    expect(
+      picker.pickPhoto,
+      throwsA(
+        isA<PlatformCapabilityException>().having(
+          (error) => error.status,
+          'status',
+          PlatformPermissionStatus.unavailable,
+        ),
+      ),
+    );
   });
 
   test('内存凭据保险箱支持单账号覆盖和清除', () async {

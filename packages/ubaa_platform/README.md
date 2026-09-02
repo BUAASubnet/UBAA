@@ -31,9 +31,13 @@
 
 `PlatformPermissionGateway` 统一承载相机、相册、文件和前台位置权限申请，并只返回
 `granted`、`denied`、`restricted`、`unavailable` 四种稳定状态。没有原生插件时使用
-`UnavailablePermissionGateway`，安全拒绝而不伪造授权。`PlatformPhotoPicker` 只返回
+`UnavailablePermissionGateway`，安全拒绝而不伪造授权。原生宿主可使用
+`CallbackPermissionGateway` 把 SDK 结果转换为该稳定状态；回调异常会安全归约为
+`unavailable`。`PlatformPhotoPicker` 只返回
 typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePhotoPicker` 是无设备
-构建的默认后置能力，`MemoryPhotoPicker` 仅用于脱敏 widget/integration 测试。官方 Flutter
+构建的默认后置能力，`MemoryPhotoPicker` 仅用于脱敏 widget/integration 测试。原生宿主可
+使用 `CallbackPhotoPicker` 接入系统选择器；异常会转换为稳定的相册能力错误。官方 Flutter
 与 OHOS 宿主在接收 picker 后会用 `PermissionedPhotoPicker` 包装它；未显式注入权限网关时
-默认使用 `UnavailablePermissionGateway`，因此不会在无权限时调用 picker。原生
+默认使用 `UnavailablePermissionGateway`，因此不会在无权限时调用 picker。桌面文件选择器
+可将包装器的 `permission` 显式设为 `PlatformPermission.files`。原生
 Keychain/Keystore/Secret Service/HUKS 插件接入和设备权限验证仍需在后置发布阶段完成。
