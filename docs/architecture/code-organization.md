@@ -193,9 +193,8 @@ UBAA/
 │   │   │       ├── evidence.rs
 │   │   │       └── steps.rs
 │   │   └── tests/
-│   │       ├── common/mod.rs
 │   │       ├── cli_contract.rs             # 薄入口
-│   │       ├── cli_contract/{help,output,routing,writes}.rs
+│   │       ├── cli_contract/{common,help,output,routing,writes,exit}.rs
 │   │       ├── binary_e2e.rs
 │   │       └── core_live_runtime.rs
 │   ├── ubaa_flutter/

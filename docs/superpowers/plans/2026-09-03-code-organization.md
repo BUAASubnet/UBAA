@@ -31,8 +31,11 @@
 | 01 | 当前事实、文档入口与 CI 契约 | CI 缺少 Flutter/codegen；文档范围过期 | `docs(ci): 对齐当前无签名范围与合并门禁` | 已提交：`a6ee746` |
 | 02 | refs 纯校验、脚本分类与 layout 棘轮 | checker 不存在的合同测试失败 | `build: 建立结构棘轮并按副作用整理脚本` | 已提交：`c345f4a` |
 | 03A | Test Support fixture 注册表 | 三个 Cgyy fixture 未注册的 focused test 失败 | `test: 完整登记脱敏只读 fixture` | 已提交：`ce69c26` |
-| 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 已验证待提交 |
-| 04 | CLI 目录、输出与退出策略 | CLI schema/stdout/stderr/exit characterization | `refactor(cli): 拆分命令执行并收回宿主输出策略` | 待执行 |
+| 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 已提交：`8d60bb9` |
+| 04A | CLI 合同测试镜像 | CLI schema/stdout/stderr/exit characterization | `test(cli): 按宿主合同拆分 CLI characterization` | 已验证待提交 |
+| 04B | CLI 命令、backend、执行与 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域拆分命令与执行层` | 待执行 |
+| 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 待执行 |
+| 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 待执行 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
 | 06A | route selector | direct/webvpn/auto 等价矩阵 | `refactor(core): 集中路线解析与 runtime 选择` | 待执行 |
 | 06B | route state | Arc/generation/TTL/fork/concurrency 矩阵 | `refactor(core): 下沉路线状态并消除依赖环` | 待执行 |
@@ -142,24 +145,31 @@ baseline、陈旧 baseline、tracked/staged/untracked、ignored/generated/vendor
 
 focused：`cargo test --locked -p ubaa-test-support --all-targets`，并核对测试名集合前后相同。
 
-### 阶段 04：CLI 与宿主策略
+### 阶段 04A–D：CLI 与宿主策略
 
-先新增/加强测试：
+04A 先拆分并加强测试：
 
 - `tests/cli_contract/output.rs` 固定 JSON schema v2、human、route metadata、stdout/stderr 和敏感遮罩。
 - `tests/cli_contract/exit.rs` 固定全部 `ErrorCode` 到进程退出码矩阵。
 - `tests/cli_contract/help.rs`、`routing.rs`、`writes.rs` 固定 Clap/help、fixed/routed 与写确认阻止。
-- 测试先通过现有实现；再加入 Core 不再公开 output/exit 的源码架构断言，观察预期失败。
+- 保留 23 个测试叶子；退出测试通过公开 renderer 覆盖全部错误码、JSON/human 输出和 writer failure。
 
-机械拆分：
+04B 只执行命令、backend、dispatcher 与现有 IO 的机械拆分：
 
 - 参数移入 `command/` 的 8 个领域文件；`commands.rs` 成为 `command/mod.rs`。
 - 两个 backend trait/adapter 移入 `backend/{mod,fixed,routed}.rs`。
 - dispatcher 移入 `execute/{mod,aggregate,fixed,routed}.rs`；领域 handler 移入明确列出的 7 个文件。
-- 输入、schema、human/error/exit 移入 `io/`；将 Core `output.rs` 与 `ErrorCode::exit_code` 原样迁入 CLI，再删除
-  Core 导出与 Core 中仅为 CLI 存在的测试。
+- 现有输入、渲染与 command output 移入 `io/`；本阶段仍消费 Core 的 output/exit 合同，不夹带所有权变更。
+- `lib.rs` 只保留声明与稳定 CLI 测试入口；从 baseline 删除 `lib.rs`。
+
+04C 先加入 Core 不再公开 output/exit 的源码架构断言并观察预期失败，再把 Core `output.rs` 与
+`ErrorCode::exit_code` 原样迁入 CLI，删除 Core 导出与 Core 中仅为 CLI 存在的测试；不得改变 JSON schema、
+stdout/stderr 或数值退出码。
+
+04D 最后机械拆分验证宿主：
+
 - `core-live.rs` 拆成显式 Cargo binary `bin/core_live/{main,args,evidence,steps}.rs`。
-- `lib.rs` 只保留声明与稳定 CLI 测试入口；从 baseline 删除 `lib.rs` 与 `cli_contract.rs`。
+- 在 Cargo manifest 显式固定 binary 名 `core-live`，保持脚本和产物路径不变。
 
 focused：`cargo test --locked -p ubaa-cli --all-targets`、`cargo test --locked -p ubaa-core --all-targets`。
 

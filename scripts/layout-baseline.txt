@@ -8,7 +8,6 @@ file	packages/ubaa_app/lib/src/bridge_backend.dart	1830
 file	crates/ubaa-core/src/features/cgyy.rs	1700
 file	crates/ubaa-flutter-bridge/src/api/read.rs	1652
 file	packages/ubaa_app/test/app_controller_test.dart	1499
-file	apps/ubaa-cli/tests/cli_contract.rs	1424
 file	crates/ubaa-core/src/features/judge.rs	1423
 file	crates/ubaa-core/src/features/spoc.rs	1417
 file	crates/ubaa-core/src/session/mod.rs	1130
