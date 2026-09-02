@@ -401,6 +401,11 @@
      `just check`、无签名 RC 报告生成和 artifact 上传成功。本次同步修正文档中“生产占位页”和
      OHOS 必须签名的旧表述：十二项功能已有共享 typed 详情入口，当前交付以无签名 HAP/静态检查为准，
      签名、设备、安全存储和逐领域 golden/真实 App 链路仍分别保持后置或未闭合状态。
+127. 当前提交 `2ceda40` 在干净工作树上重新执行 `just release-preflight /tmp/ubaa-release-preflight.ehLJVk`，
+     生成 8 个跟踪 Flutter 锁文件、Cargo SBOM、依赖/许可证审计、源码校验和无签名摘要均成功；随后使用
+     `/Users/moorefoss/Code/bin/command-line-tools` 执行无签名 OHOS Debug 门禁，API26 工具链、Dart/widget/native
+     前置均为 0 失败/0 警告，HAP 包确认含 arm64 `libubaa_bindings.so`。构建输出已移出工作树，未签名 HAP 未安装、
+     未签名、未上传；签名、实体设备和硬件安全存储继续为后置 `BLOCKED`。
 
 ## 4. 安全与架构边界
 

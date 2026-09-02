@@ -22,6 +22,11 @@
 - `docs/architecture/flutter-platforms.md` 与 `docs/design/flutter-ui-spec.md` 已同步无签名合同：无签名
   HAP/静态包检查是当前 OHOS 交付，签名、设备、安全存储和逐领域 golden/真实 App 链路保留为后置或
   未闭合证据；十二项功能的共享详情入口和课堂签到组合回归已明确记录，不再描述为生产占位页。
+- 当前提交 `2ceda40` 在干净工作树上重新执行 `just release-preflight /tmp/ubaa-release-preflight.ehLJVk`：
+  生成 8 个跟踪 Flutter 锁文件、Cargo SBOM、依赖/许可证审计、源码校验和无签名摘要均成功；随后
+  `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`
+  以 0 失败/0 警告完成 API26 工具链和 HAP 包内容检查，确认 arm64 `libubaa_bindings.so`。生成输出已移出工作树，
+  未签名 HAP 未安装、未签名、未上传。
 
 ## 2026-09-02 当前提交双路线只读复核
 

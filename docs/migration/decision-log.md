@@ -10,6 +10,9 @@
 - `9dfe078` 将 `just release-preflight` 的 CI/Runbook 调用统一为绝对报告目录的位置参数；合同 CI
   `33573554458` 已验证 `just check`、无签名报告生成和 artifact 上传成功。后续只有该位置参数形式
   作为发布前置报告的合同调用，错误的 `report_dir=...` 形式不再接受。
+- 当前提交 `2ceda40` 复核确认宿主 picker 必须经 `PlatformPermissionGateway` 包装：未注入权限实现时
+  默认安全拒绝，只有明确注入并获得 `granted` 才能调用 picker。该提交的干净工作树
+  `release-preflight` 与 OHOS API26 无签名 HAP/arm64 包检查均通过；构建输出不进入版本库。
 
 ## 2026-09-02：无签名执行目标取代正式发布门禁（当前有效）
 
