@@ -106,8 +106,8 @@ Debug，结构检查和确定性 smoke 不代表签名、安装、设备或真�
 
 最新无签名执行终态（2026-09-02）：`81dd9d2` 的官方 macOS 宿主十项写入组合回归在预期失败后通过，
 逐操作断言提交后刷新关联只读领域；当前营业窗口内 Direct/WebVPN Core-live 串行复核均 exit code 0。
-Flutter 原生 CI `33620644050`（Linux、Windows、macOS、iOS simulator、Android APK）和合同 CI
-`33620644066` 均终态成功；十二项详情 golden、状态矩阵、typed 查询、十项写入确认/不确定结果、
+Flutter 原生 CI `33625430859`（Linux、Windows、macOS、iOS simulator、Android APK）和合同 CI
+`33625430865` 均终态成功；十二项详情 golden、状态矩阵、typed 查询、十项写入确认/不确定结果、
 API26 无签名 OHOS HAP/arm64、SBOM/依赖审计、敏感扫描、迁移回滚文档与工作树门禁均已复核。因此无签名
 执行目标 P3–P6 可交付部分已完成。该终态不包含真实账号写入、写后上游核对、原生安全存储 handler、
 实体设备权限/生命周期、签名/公证或商店发布；上述事项继续保持后置 `BLOCKED`。

@@ -137,7 +137,7 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
   聚焦场景 1/1 通过。十二项领域详情 golden、共享状态矩阵、typed 查询宿主 smoke 与未知结果/异常边界
   共同覆盖无签名 UI 流程。
 - Core-live 在当前营业窗口内 Direct/WebVPN 串行复跑均 exit code 0；五平台 Flutter native CI
-  `33620644050` 与合同 CI `33620644066` 均终态成功。API26 无签名 OHOS HAP、arm64 bridge、敏感扫描、
+  `33625430859` 与合同 CI `33625430865`（均为提交 `c8bd662`）均终态成功。API26 无签名 OHOS HAP、arm64 bridge、敏感扫描、
   SBOM/依赖审计和回滚 runbook 均有本机或 CI 证据；FRB 零漂移沿用 `94133ae` 前同一生成输入的成功门禁，
   `81dd9d2` 仅改宿主测试且生成目录无差异，本次重复命令无输出中止未被记作成功。
 - 因此 P3（全部读取页面与双路线证据）、P4（十项写入确认/防重复/读后核对与 deterministic/Mock）、

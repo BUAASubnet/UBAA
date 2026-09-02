@@ -496,6 +496,10 @@
      无签名 OHOS API26 HAP/arm64、release-preflight、SBOM/依赖审计、回滚 runbook、十二项 golden/状态矩阵/typed 查询和十项写入确认/读后核对证据，本轮无签名
      执行合同 P3、P4、P5、P6 及第 11 节完成定义已满足。原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备权限/生命周期、
      签名/公证/商店发布继续保持后置 `BLOCKED`，不得改写为正式发布完成。
+177. 提交 `c8bd662` 对应的官方 Flutter 原生 CI run `33625430859` 与合同 CI run `33625430865` 均终态 `success`。原生 run 的 Linux、Windows、macOS、
+     iOS simulator、Android APK 五个 Debug job 均通过无签名产物结构检查并上传产物，合同 run 的 `contract-gates`、macOS Rust 和 Windows Rust 全部通过；
+     本次结果确认文档提交本身未回归无签名跨平台构建或合同门禁。两条 run 均不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后上游核对或正式商店发布，
+     这些后置事项继续保持 `BLOCKED`。
 
 ## 4. 安全与架构边界
 
