@@ -119,6 +119,16 @@
   以 0 失败/0 警告完成 API26 工具链和 HAP 包内容检查，确认 arm64 `libubaa_bindings.so`。生成输出已移出工作树，
   未签名 HAP 未安装、未签名、未上传。
 
+## 2026-09-02 无签名产物结构门禁
+
+- 新增 `scripts/verify-flutter-artifact.sh` 与 `just flutter-artifact-check`，在不签名、不安装、不读取运行时数据的前提下，
+  对 Linux/Windows/macOS/iOS simulator/Android APK Debug 产物检查宿主入口、Flutter 资源、`App.framework` 和 Android 三种
+  ABI 的 FRB 动态库；输出仅含平台、路径、大小和 SHA-256。缺失产物或条目返回非零，当前本机 Android APK、macOS App 和 iOS
+  simulator App 的结构检查通过，缺失路径失败测试也按预期返回非零。
+- `.github/workflows/flutter-platforms.yml` 已在五平台 Debug 产物上传前调用该结构脚本，并纳入 push/pull_request 路径门禁；
+  CI 产物因此具备可复核的包内容证据，不把上传成功误判为可加载或正式发布。该门禁不替代 OHOS 签名 HAP、实体设备安装、
+  安全存储和正式发布验证。
+
 ## 2026-09-02 当前提交双路线只读复核
 
 - 在提交 `57e928a` 串行执行 `just verify-live mode=direct` 与

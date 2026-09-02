@@ -11,6 +11,7 @@ on:
       - 'packages/**'
       - 'scripts/check-flutter-toolchains.sh'
       - 'scripts/flutter-build.sh'
+      - 'scripts/verify-flutter-artifact.sh'
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
@@ -25,6 +26,7 @@ on:
       - 'packages/**'
       - 'scripts/check-flutter-toolchains.sh'
       - 'scripts/flutter-build.sh'
+      - 'scripts/verify-flutter-artifact.sh'
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
@@ -108,6 +110,10 @@ jobs:
           CARGOKIT_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
           UBAA_FLUTTER_VERBOSE: ${{ matrix.platform == 'windows' && '1' || '0' }}
         run: just flutter-build platform=${{ matrix.platform }} mode=debug
+
+      - name: 检查无签名产物结构
+        shell: bash
+        run: ./scripts/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
       - name: 保存可复核产物
         uses: actions/upload-artifact@v6

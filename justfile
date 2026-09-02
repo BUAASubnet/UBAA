@@ -47,6 +47,10 @@ flutter-check:
 flutter-build platform="host" mode="debug":
     ./scripts/flutter-build.sh "{{platform}}" "{{mode}}"
 
+# 检查已构建 Flutter 产物的最小可加载结构，不执行签名或安装。
+flutter-artifact-check platform artifact:
+    ./scripts/verify-flutter-artifact.sh "{{platform}}" "{{artifact}}"
+
 # 固定 OHOS fork、CLI/API26、native SDK 和 HAP 构建门禁。
 ohos-check mode="release":
     ./scripts/ohos-check.sh "{{mode}}"
