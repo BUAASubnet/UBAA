@@ -1562,3 +1562,12 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   保险箱。自动登录偏好随最小凭据对象保存，安全存储不可用时复用本次会话但不宣称持久化。
 - 登录 UI 在安全存储不可用时同时禁用“记住密码”和“自动登录”选项；没有改变 Core 协议或
   真实写入范围，平台原生插件仍待 P5。
+
+## 2026-09-02 无签名 CI 终态证据
+
+- 官方 Flutter 原生 CI run `33599670789`（提交 `1ca6ed8`）已终态 `success`：Windows、Linux、macOS、
+  iOS simulator、Android APK 五个 job 全部通过并上传无签名 Debug 产物；macOS job 在产物结构检查后
+  完成 `integration_test/app_flow_test.dart` 宿主 smoke。该 run 不包含签名、安装、实体设备或真实账号写入。
+- 合同 CI run `33600117413`（提交 `993f5a2`）已终态 `success`：`contract-gates`、macOS Rust 和
+  Windows Rust 三个 job 全部通过；该 run 覆盖合同门禁与文档差异检查，不包含 OHOS 签名 HAP、实体设备或
+  正式商店发布。

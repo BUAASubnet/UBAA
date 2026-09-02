@@ -98,3 +98,8 @@ mode=debug` 使用 API26 工具链生成并检查 `entry-default-unsigned.hap` �
 FRB 零漂移状态已更新：当前 HEAD `1ca6ed8` 执行
 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 成功并报告“FRB 生成零漂移”。
 此前 cargo-expand 无输出并安全中断的记录属于旧次尝试，不应覆盖本次通过证据。
+
+最新 CI 终态：官方 Flutter 原生 run `33599670789`（提交 `1ca6ed8`）的 Windows、Linux、macOS、
+iOS simulator、Android APK 五个 job 全部成功；macOS job 同时通过宿主 integration smoke。合同 run
+`33600117413`（提交 `993f5a2`）的 `contract-gates`、macOS Rust、Windows Rust 全部成功。产物均为无签名
+Debug，结构检查和确定性 smoke 不代表签名、安装、设备或真实账号写入成功。
