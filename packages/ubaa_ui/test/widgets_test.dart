@@ -4,6 +4,65 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('主页和详情页保持稳定视觉基线', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1280, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '样例数据已加载',
+          details: <FeatureDetail>[
+            FeatureDetail(
+              title: '样例${feature.title}',
+              subtitle: '无签名测试数据',
+              fields: const <FeatureField>[
+                FeatureField(label: '状态', value: '可查看'),
+              ],
+            ),
+          ],
+          resolvedRoute: ConnectionMode.direct,
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student', displayName: '测试同学'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(UbaaMainShell),
+      matchesGoldenFile('goldens/main_shell_light.png'),
+    );
+
+    await tester.tap(find.text('课表查询'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(UbaaMainShell),
+      matchesGoldenFile('goldens/feature_detail_light.png'),
+    );
+  });
+
   testWidgets('启动页展示品牌且登录页不猜测验证码流程', (tester) async {
     await tester.pumpWidget(
       MaterialApp(theme: UbaaTheme.light(), home: const UbaaSplashView()),
