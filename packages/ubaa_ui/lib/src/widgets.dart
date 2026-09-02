@@ -980,7 +980,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _writeError = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('提交结果不确定，请先刷新相关课程状态，不要重复提交。')),
+        const SnackBar(content: Text('提交结果不确定，请先刷新相关状态，不要重复提交。')),
       );
     }
   }
