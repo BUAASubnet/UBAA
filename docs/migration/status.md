@@ -2,6 +2,25 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 无签名执行目标 P3–P6 验收复核
+
+- 当前提交 `81dd9d2` 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 为十项写操作逐项增加
+  “提交后刷新关联只读领域”的断言：博雅选课/退选/签到签退、课堂签到、图书馆预约/取消、场馆预约/取消、阳光打卡和教学评教
+  均必须在单次确认提交后进入对应读取核对；场馆预约专门核对订单列表刷新，阳光打卡专门核对记录刷新。先观察到缺少计数器的预期编译失败，
+  再补充仅记录 `FeatureId` 次数的脱敏 fake backend；macOS 宿主聚焦场景通过（1/1），不访问网络、真实账号或写接口。
+- 当前营业窗口内以同一提交串行复核 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两路线 exit code 均为 0；认证、用户、
+  课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆、评教必需读取均为 `PASS`，SPOC/博雅详情因同批次父列表为空为
+  `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮没有执行任何真实写接口，未保留凭据、Cookie、令牌或原始响应。
+- Flutter 原生 CI run `33620644050`（提交 `94133ae`）已终态 `success`：Linux、Windows、macOS、iOS simulator、Android APK 五个平台
+  Debug job 均通过无签名产物结构检查并上传产物；合同 CI run `33620644066` 同样终态 `success`，`contract-gates`、macOS Rust 和 Windows Rust
+  全部通过。两者均不包含 OHOS 签名 HAP、实体设备、原生安全存储或真实写后核对。
+- 结合十二项详情页面与 golden（`c2fed18`）、共享状态矩阵、完整 typed 查询宿主 smoke、十项写入确认/不确定结果回归、当前双路线只读矩阵、
+  API26 无签名 HAP/arm64 检查、SBOM/依赖审计/回滚 runbook 和全部确定性门禁，本轮无签名执行合同的 P3、P4、P5、P6 完成条件已具备可复核证据。
+  FRB 零漂移证据来自 `94133ae` 前同一生成输入的成功门禁；`81dd9d2` 仅修改宿主测试，当前生成目录相对该提交无差异，本次重复命令因
+  `cargo-expand` 四分钟无输出按安全策略中止，不能把中止伪称为新的成功。
+  原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备权限/生命周期、签名/公证/商店发布仍保持后置 `BLOCKED`，不得
+  将无签名 RC 称为正式发布。
+
 ## 2026-09-02 十二项功能详情 golden 基线
 
 - 提交 `c2fed18` 为 `FeatureId.values` 的十二项功能分别建立明亮主题 1280×800 详情 golden：课表、考试、成绩、博雅、空教室、SPOC、

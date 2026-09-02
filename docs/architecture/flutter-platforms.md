@@ -1,6 +1,6 @@
 # Flutter 六平台版本与验收矩阵
 
-状态：P0 无签名目标已完成；P1–P6 持续收敛
+状态：无签名执行目标 P0–P6 已完成；签名、设备和原生安全存储为后置发布条件
 更新：2026-09-02
 
 本文件记录可复现工具链事实和实际验证结果。版本“理论支持”不等于 UBAA 已验证；只有带日期、命令和产物/设备证据的行才能标记通过。
@@ -131,6 +131,20 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
 `aarch64-unknown-linux-ohos` 前置均通过，HAP 内含 `libs/arm64-v8a/libubaa_bindings.so`。HAP 未签名、
 未安装、未上传，生成输出已移出工作树；签名和设备验证仍为后置 `BLOCKED`。
 
+## 5.1 无签名执行目标终态复核（2026-09-02）
+
+- `81dd9d2` 的官方 macOS 宿主写入组合回归为十项写操作逐项断言提交后刷新关联只读领域；预期失败后
+  聚焦场景 1/1 通过。十二项领域详情 golden、共享状态矩阵、typed 查询宿主 smoke 与未知结果/异常边界
+  共同覆盖无签名 UI 流程。
+- Core-live 在当前营业窗口内 Direct/WebVPN 串行复跑均 exit code 0；五平台 Flutter native CI
+  `33620644050` 与合同 CI `33620644066` 均终态成功。API26 无签名 OHOS HAP、arm64 bridge、敏感扫描、
+  SBOM/依赖审计和回滚 runbook 均有本机或 CI 证据；FRB 零漂移沿用 `94133ae` 前同一生成输入的成功门禁，
+  `81dd9d2` 仅改宿主测试且生成目录无差异，本次重复命令无输出中止未被记作成功。
+- 因此 P3（全部读取页面与双路线证据）、P4（十项写入确认/防重复/读后核对与 deterministic/Mock）、
+  P5（平台能力抽象、权限/照片边界、生命周期/长列表/无障碍及无签名静态检查）和 P6（无签名 RC 发布准备）
+  的无签名部分已完成。原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备
+  安装/权限/生命周期、签名/公证/商店发布明确保持后置 `BLOCKED`。
+
 ## 6. P0 探索产物审查
 
 | 产物 | 采用结论 | P0 证据 | 后续约束 |
@@ -138,7 +152,7 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
 | `apps/ubaa_flutter` 五平台官方宿主 | 保留生成宿主与薄入口作为构建起点 | 官方 `3.41.9` analyze/test 通过，五个平台目录齐全 | 默认 Demo backend 仅限测试/预览，Release 前必须由 FRB production backend 替换 |
 | `apps/ubaa_ohos` | 保留共享入口并用锁定 fork 生成官方 runner | fork 提交/Dart 匹配，pub get、analyze、widget test 与 API26 工具链前置通过 | arm64 Cargokit/FRB 已接线；无签名 HAP 包内容检查通过，签名 HAP 与设备证据待完成 |
 | `ubaa_domain`、`ubaa_app`、`ubaa_platform` | 保留为分层骨架 | 官方 SDK analyze/test 通过 | 无签名 RC 已具备完整状态/凭据安全边界与内存/回调适配；原生密钥链插件和设备验证列为 P5/P6 后置 |
-| `ubaa_ui` | 保留主题、响应式导航、共享详情/查询/确认组件 | analyze、widget 以及宿主全功能 smoke 通过 | 十二项功能已有 typed 详情入口和写入确认组件；逐领域 golden、真实设备链路和剩余上游字段仍按 P3/P4 收敛 |
+| `ubaa_ui` | 保留主题、响应式导航、共享详情/查询/确认组件 | analyze、widget、十二项逐领域 golden 以及宿主全功能 smoke 通过 | 十二项功能已有 typed 详情入口和写入确认组件；真实设备链路与原生安全存储仍为后置条件 |
 | Demo backend、交互验证码字段 | 不作为生产合同采用 | Core 当前未证明通用交互验证码；Demo 不访问 Core，生产入口默认 `UnavailableBackend` | Demo 仅限测试/预览；交互挑战继续由 Core 已证明的 typed 流程处理 |
 
 P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goal.md` 的功能、平台或发布完成条件。
@@ -171,7 +185,7 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 | OHOS 调试签名尚未配置 | DevEco/CLI `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、SDK API26 前置通过；无签名 HAP assemble 与包内容检查通过 | 无法生成签名 HAP 或设备 FRB hello，但不阻断本轮无签名 RC | 取得项目所有者逐项授权后配置受控签名并重跑；不得提交签名材料或绕过签名 |
 | OHOS 下载入口需要华为账号 | 未登录、未传输账号信息 | 工具链取得受外部账号与授权约束 | 取得项目所有者明确授权后才登录或使用受限下载 |
 | 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
-| 领域详情与平台能力仍有证据缺口 | 共享详情、查询、确认和无签名平台抽象已有确定性测试；真实设备/签名不可用 | 不能把 Mock 或无签名产物称为正式发布证据 | 继续补逐领域 golden/真实 App 链路；设备、签名、安全存储验证保持后置 `BLOCKED` |
+| 领域详情与平台能力仍有证据缺口 | 十二项详情 golden、查询/确认、十项写入读后核对和无签名平台抽象已有确定性测试；真实设备/签名不可用 | 不能把 Mock 或无签名产物称为正式发布证据 | 无签名执行目标已闭合；设备、签名、安全存储验证保持后置 `BLOCKED` |
 
 当前结论为 **NO-GO（正式签名发布）/ GO（无签名 RC 与跨平台确定性开发）**。官方 Flutter 五平台
 native debug 矩阵已在 run `33541980112` 全部通过并上传独立产物，提交 `62ec048` 的合同
