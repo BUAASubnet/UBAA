@@ -2,6 +2,15 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 十二项功能详情 golden 基线
+
+- 提交 `c2fed18` 为 `FeatureId.values` 的十二项功能分别建立明亮主题 1280×800 详情 golden：课表、考试、成绩、博雅、空教室、SPOC、
+  希冀、图书馆、课堂签到、场馆、阳光打卡和教学评教各自固定领域标题、脱敏字段、实际路线和查询控件渲染；测试通过普通/高级功能页真实导航，
+  不使用生产 backend，不访问网络、账号或写接口。
+- 先在未生成基线时观察到 `feature_schedule_light.png` 缺失的预期失败，再以 `--update-goldens` 生成十二个 PNG，随后在不更新基线模式下复跑通过。
+  `packages/ubaa_ui` `flutter analyze` 无问题、全量 46 项测试通过；`git diff --check` 与敏感扫描均通过。
+- 该提交闭合了 P3 的逐领域视觉基线子门禁；它不替代逐领域 Core-live、六平台真实 App→FRB→Core、设备读屏或 P4 写后核对，P3/P4/P5/P6 仍按合同未勾选。
+
 ## 2026-09-02 无签名 P5 MethodChannel 宿主适配边界
 
 - `packages/ubaa_platform` 新增生产宿主使用的 typed `MethodChannel` 适配器：权限请求只接受

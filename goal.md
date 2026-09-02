@@ -421,18 +421,6 @@
      只留在本次会话，原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件与设备验证
      仍作为 P5/P6 后置 BLOCKED，不作为本轮无签名代码完成的反证。
 
-131. 提交 `68c7d06` 新增 macOS 官方 Flutter 宿主级写入组合回归：脱敏 fake backend 从登录、详情和表单进入
-     typed prepare、一次性确认、单次 commit，并覆盖全部十项 `WriteOperation`（博雅签到/签退分别验证
-     `signType=1/2`），包括课堂签到、图书馆预约/取消、场馆预约/取消、博雅选课/退选、阳光打卡和
-     单课程评教。测试使用内存照片与非网络 backend，不保存请求正文、不访问真实账号；聚焦测试和完整
-     `integration_test/app_flow_test.dart` 均通过（6/6），随后根级 `just check-sensitive`、`just check`、
-     `just flutter-codegen-check`、`just flutter-check`、`just release-preflight` 与无签名 OHOS API26
-     HAP/arm64 门禁均通过。该证据闭合确定性宿主写入 UI 链，但不替代真实写入/写后核对、逐领域 golden、
-     六平台真实 App→FRB→Core、原生安全存储或实体设备证据；P3/P4/P5/P6 队列仍按合同未勾选。
-132. 提交 `68c7d06` 的 Flutter 原生 CI `33617487122` 已终态成功，Linux、macOS、iOS simulator、Windows 和
-     Android APK 五个 job 全部通过，macOS job 执行新增宿主集成 smoke；同提交合同 CI `33617487214` 与文档提交
-     `63a91cc` 的合同 CI `33617727426` 也已终态成功。CI 仍不包含 OHOS 签名、实体设备、原生安全存储、真实写后
-     核对或正式发布；当前 `HEAD` 与 `origin/ubaa2` 一致、工作树干净，P3/P4/P5/P6 及第 11 节完成定义仍未闭合。
 131. P3/P4 读取到写入口的博雅签到边界已收紧：BridgeBackend 从冻结 typed `signConfig` 投影签到/签退
      时间窗、位置点数量和 `courseSignType`，不把经纬度或半径带入 `FeatureDetail`；共享 UI 在读取字段
      明确为“不可签到/签退”时禁用对应按钮并提示时间窗/状态由 Core 判定。bridge 回归和 `ubaa_ui`
@@ -476,6 +464,22 @@
 168. 提交 `23ec075` 后在 2026-09-02 17 时段（Asia/Shanghai）串行复核真实只读矩阵：第一次 Direct 因图书馆 `libraries=upstream_changed` 且后续 `bookings=timeout` 退出码 5，WebVPN 全部必需读取 exit 0；随后立即重跑 Direct 恢复 exit 0，图书馆 `libraries/areas/area_detail/seats/bookings` 均 PASS(count=3/2/1/175/2)，其余必需读取均 PASS，SPOC/博雅详情因空父列表为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口，首次失败作为瞬时上游证据保留，不能用历史结果覆盖。
 169. 提交 `48a7cbf` 的 Flutter 原生 CI run `33613013808` 已终态成功，Linux、Windows、macOS、iOS simulator、Android APK 五个无签名 Debug job 均通过产物结构检查，macOS 通过宿主 integration smoke；提交 `23ec075` 的合同 CI run `33613046839` 已终态成功。CI 不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后核对或正式发布，P3/P4/P5/P6 其余门禁仍未闭合。
 170. 事实文档提交 `b97a9d9` 的合同 CI run `33614614484` 已终态成功，macOS/Windows Rust 与 contract-gates 均通过；当前 HEAD 与 `origin/ubaa2` 一致且工作树干净。该文档提交不改变代码、产物、签名或设备证据，前述 OHOS 签名、实体设备、原生安全存储、真实写后核对和 P3/P4/P5/P6 其余门禁仍未闭合。
+171. 提交 `68c7d06` 新增 macOS 官方 Flutter 宿主级写入组合回归：脱敏 fake backend 从登录、详情和表单进入
+     typed prepare、一次性确认、单次 commit，并覆盖全部十项 `WriteOperation`（博雅签到/签退分别验证
+     `signType=1/2`），包括课堂签到、图书馆预约/取消、场馆预约/取消、博雅选课/退选、阳光打卡和
+     单课程评教。测试使用内存照片与非网络 backend，不保存请求正文、不访问真实账号；聚焦测试和完整
+     `integration_test/app_flow_test.dart` 均通过（6/6），随后根级 `just check-sensitive`、`just check`、
+     `just flutter-codegen-check`、`just flutter-check`、`just release-preflight` 与无签名 OHOS API26
+     HAP/arm64 门禁均通过。该证据闭合确定性宿主写入 UI 链，但不替代真实写入/写后核对、逐领域 golden、
+     六平台真实 App→FRB→Core、原生安全存储或实体设备证据；P3/P4/P5/P6 队列仍按合同未勾选。
+172. 提交 `68c7d06` 的 Flutter 原生 CI `33617487122` 已终态成功，Linux、macOS、iOS simulator、Windows 和
+     Android APK 五个 job 全部通过，macOS job 执行新增宿主集成 smoke；同提交合同 CI `33617487214` 与文档提交
+     `63a91cc` 的合同 CI `33617727426` 也已终态成功。CI 仍不包含 OHOS 签名、实体设备、原生安全存储、真实写后
+     核对或正式发布；当前 `HEAD` 与 `origin/ubaa2` 一致、工作树干净，P3/P4/P5/P6 及第 11 节完成定义仍未闭合。
+173. 提交 `c2fed18` 为十二项 `FeatureId` 分别建立明亮主题 1280×800 详情 golden，覆盖普通/高级功能页导航、领域标题、脱敏字段、实际路线
+     和查询控件；先观察到首个基线缺失的预期失败，再生成十二个 PNG 并在不更新基线模式复跑通过。`ubaa_ui` `flutter analyze` 无问题、全量 46
+     项测试、敏感扫描与差异检查均通过。该提交闭合 P3 逐领域视觉基线子门禁，不替代逐领域 Core-live、六平台真实 App→FRB→Core、设备读屏或
+     P4 写后核对；P3/P4/P5/P6 与第 11 节完成定义仍未闭合。
 
 ## 4. 安全与架构边界
 
