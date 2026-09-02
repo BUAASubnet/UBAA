@@ -431,6 +431,7 @@
 138. 在最终 HEAD `5bd9814` 重新执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：OHOS fork `adaf911c35c9136a7d18fc424d714c9ec7724e60`、DevEco `26.0.0.821`、API26、Node/ohpm/Hvigor/hdc/Java 与 Rust `aarch64-unknown-linux-ohos` 均通过，Dart/widget/native 前置 0 失败/0 警告，生成并检查含 `libs/arm64-v8a/libubaa_bindings.so` 的无签名 HAP。HAP 未签名、未安装、未上传；所有生成输出已移出工作树，签名/设备证据仍后置 `BLOCKED`。
 139. 提交 `35ffb0d` 为共享功能卡片增加容器级无障碍语义，标签固定包含功能名称、当前状态和“点击查看详情”操作提示；失败/过期卡片的子级“重试”按钮仍保持独立 tooltip。先加入缺失语义的 widget 失败回归，再完成最小实现；`ubaa_ui` 全量 39 项、`just flutter-check`、`just check` 与 `just check-sensitive` 均通过。本轮只改共享 UI 语义，不访问网络、真实账号或写接口；逐领域读屏、实体设备辅助功能和 P3/P4/P5/P6 其余门禁仍未闭合。
 140. 提交 `1e3c729` 的合同 CI `33589036008` 与五平台 Flutter Debug CI `33589036000` 均终态成功：contract-gates、Windows/macOS Rust 以及 Android、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。当前 HEAD 的本机 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 两次均在 cargo-expand 的 `rustc -Zunpretty=expanded` 阶段无输出后安全中断，工作树无生成漂移；该本机门禁暂记未完成运行，不冒充通过，待工具链恢复后重试。OHOS 签名、实体设备、真实 App→FRB→Core 和 P3/P4/P5/P6 其余缺口仍未闭合。
+141. 提交 `7bc9c1a` 为共享写入确认结果固定 `outcome_unknown` 安全提示：先加入“未知结果仍沿用普通后端文案”的 widget 失败回归，再以最小改动固定“提交结果不确定，请先刷新相关状态，不要重复提交”，不自动重试或触发写后刷新。`ubaa_ui` 全量 40 项、`just flutter-check`、`just check` 与 `just check-sensitive` 均通过，本轮未调用真实写接口。其合同 CI `33591063958` 与五平台 Flutter Debug CI `33591063833` 均终态成功，Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物；OHOS 签名、实体设备、真实写后核对、本机 FRB 零漂移重试以及 P3/P4/P5/P6 其余缺口仍未闭合。
 
 ## 4. 安全与架构边界
 

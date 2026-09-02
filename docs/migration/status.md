@@ -38,6 +38,13 @@
 - 本机 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 两次在 `cargo-expand` 的 `rustc -Zunpretty=expanded`
   阶段连续无输出并被安全中断，工作树无生成漂移；该次本地零漂移门禁记为“未完成运行”，不冒充通过。此前
   锁定 FRB 版本的零漂移成功证据仍保留，待工具链恢复后需在当前 HEAD 重试。
+- 提交 `7bc9c1a` 为共享写入确认结果固定 `outcome_unknown` 安全提示：明确要求先刷新核对、禁止重复提交，
+  不自动重试或触发写后刷新；先观察旧文案未区分未知结果的 widget 失败，再完成最小实现。`ubaa_ui`
+  全量 40 项、`just flutter-check`、`just check` 与 `just check-sensitive` 均通过，本轮没有真实写入。
+- 提交 `7bc9c1a` 的合同 CI `33591063958` 与五平台 Flutter Debug CI `33591063833` 均终态成功：合同
+  `contract-gates`、Windows/macOS Rust，以及 Android APK、iOS simulator、macOS、Linux、Windows
+  五个平台 job 全部通过并上传无签名 Debug 产物。该批 CI 不包含 OHOS 签名 HAP、实体设备、真实写后核对
+  或正式发布；当前本机 FRB 零漂移仍按上一条记录为未完成运行。
 
 ## 2026-09-02 无签名执行目标更新
 
