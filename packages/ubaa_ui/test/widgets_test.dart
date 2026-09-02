@@ -1432,6 +1432,61 @@ void main() {
     expect(received?.view, FeatureQueryView.signinPending);
   });
 
+  testWidgets('课堂签到已完成时禁用重复签到入口', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.signin
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '已完成签到课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: 'course-done'),
+                      FeatureField(label: '签到状态', value: '已签到'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareSigninWrite: (_) async {
+            prepareCalls++;
+            throw StateError('should not be called');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课堂签到'));
+    await tester.pumpAndSettle();
+
+    final button = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备签到'),
+    );
+    expect(button.onPressed, isNull);
+    expect(find.text('该课程已签到，不能重复提交。'), findsOneWidget);
+    expect(prepareCalls, 0);
+  });
+
   testWidgets('考试查询控件提交已安排本地派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

@@ -3201,11 +3201,24 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 signinCourseId.isNotEmpty) ...<Widget>[
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: () =>
-                                    widget.onSigninWrite!(signinCourseId),
+                                onPressed: _isSigninAvailable(detail)
+                                    ? () => widget.onSigninWrite!(
+                                        signinCourseId,
+                                      )
+                                    : null,
                                 icon: const Icon(Icons.how_to_reg),
                                 label: const Text('准备签到'),
                               ),
+                              if (!_isSigninAvailable(detail))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '该课程已签到，不能重复提交。',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
                             ],
                             if (cancellation != null &&
                                 widget.onCancellationWrite != null) ...<Widget>[
@@ -3375,6 +3388,17 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       if (field.label == label) return field.value.trim() != '否';
     }
     // 旧版读取 DTO 可能没有该字段；交给 Core prepare 再做最终条件校验。
+    return true;
+  }
+
+  bool _isSigninAvailable(FeatureDetail detail) {
+    for (final field in detail.fields) {
+      if (field.label != '签到状态') continue;
+      final status = field.value.trim();
+      if (status.isEmpty) return true;
+      return status == '未签到';
+    }
+    // 旧版读取 DTO 可能没有状态字段；交给 Core prepare 再做最终条件校验。
     return true;
   }
 
