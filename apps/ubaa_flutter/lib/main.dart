@@ -7,9 +7,17 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   assert(bridgeHello() == 'UBAA FRB 2.13.0 ready');
-  runApp(const UbaaFlutterApp());
+  final capabilities = await createDefaultPlatformCapabilities();
+  runApp(
+    UbaaFlutterApp(
+      credentialVault: capabilities.credentialVault,
+      photoPicker: capabilities.photoPicker,
+      permissionGateway: capabilities.permissionGateway,
+    ),
+  );
 }
 
 /// 官方 Flutter 宿主。生产入口只使用 FRB backend；widget 测试可显式注入

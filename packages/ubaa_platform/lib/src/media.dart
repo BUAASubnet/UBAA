@@ -1,4 +1,5 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:flutter/services.dart';
 
 /// 宿主可能需要向系统申请的能力；具体平台插件不得把令牌或原始路径
 /// 暴露给应用层。
@@ -41,6 +42,38 @@ final class CallbackPermissionGateway implements PlatformPermissionGateway {
     try {
       final status = await _request(permission);
       return status;
+    } on Object {
+      return PlatformPermissionStatus.unavailable;
+    }
+  }
+}
+
+/// 生产宿主使用的 MethodChannel 权限适配器。
+///
+/// 原生侧只返回固定状态字符串；缺少插件、方法或返回值异常时一律视为
+/// `unavailable`，不会把平台异常正文带入 Dart。
+final class MethodChannelPermissionGateway
+    implements PlatformPermissionGateway {
+  MethodChannelPermissionGateway({MethodChannel? channel})
+    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
+
+  final MethodChannel _channel;
+
+  @override
+  Future<PlatformPermissionStatus> request(
+    PlatformPermission permission,
+  ) async {
+    try {
+      final result = await _channel.invokeMethod<Object?>(
+        'permission.request',
+        permission.name,
+      );
+      return switch (result) {
+        'granted' => PlatformPermissionStatus.granted,
+        'denied' => PlatformPermissionStatus.denied,
+        'restricted' => PlatformPermissionStatus.restricted,
+        _ => PlatformPermissionStatus.unavailable,
+      };
     } on Object {
       return PlatformPermissionStatus.unavailable;
     }
@@ -116,6 +149,59 @@ final class CallbackPhotoPicker implements PlatformPhotoPicker {
         PlatformPermission.photos,
         PlatformPermissionStatus.unavailable,
       );
+    }
+  }
+}
+
+/// 生产宿主使用的 MethodChannel 照片适配器。
+///
+/// 原生侧返回受限的字节、展示名和 MIME 类型；不会把文件路径或 URL 交给
+/// Dart。必须先成功探测能力，且单张照片最多 10 MiB。
+final class MethodChannelPhotoPicker implements PlatformPhotoPicker {
+  MethodChannelPhotoPicker({MethodChannel? channel})
+    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
+
+  static const maxPhotoBytes = 10 * 1024 * 1024;
+
+  final MethodChannel _channel;
+  bool _available = false;
+
+  @override
+  bool get isAvailable => _available;
+
+  Future<bool> probe() async {
+    try {
+      _available =
+          await _channel.invokeMethod<bool>('photo.capability') ?? false;
+    } on Object {
+      _available = false;
+    }
+    return _available;
+  }
+
+  @override
+  Future<YgdkPhotoInput?> pickPhoto() async {
+    if (!_available) return null;
+    try {
+      final result = await _channel.invokeMethod<Object?>('photo.pick');
+      if (result is! Map) return null;
+      final rawBytes = result['bytes'];
+      final fileName = result['fileName'];
+      final mimeType = result['mimeType'];
+      if (rawBytes is! List || fileName is! String || mimeType is! String) {
+        return null;
+      }
+      if (rawBytes.isEmpty || rawBytes.length > maxPhotoBytes) return null;
+      if (!mimeType.startsWith('image/')) return null;
+      final safeFileName = fileName.split(RegExp(r'[/\\]')).last.trim();
+      if (safeFileName.isEmpty || safeFileName.length > 128) return null;
+      return YgdkPhotoInput(
+        bytes: rawBytes.cast<int>(),
+        fileName: safeFileName,
+        mimeType: mimeType,
+      );
+    } on Object {
+      return null;
     }
   }
 }

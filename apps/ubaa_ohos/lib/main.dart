@@ -7,9 +7,17 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   assert(bridgeHello() == 'UBAA FRB 2.13.0 ready');
-  runApp(const UbaaOhosApp());
+  final capabilities = await createDefaultPlatformCapabilities();
+  runApp(
+    UbaaOhosApp(
+      credentialVault: capabilities.credentialVault,
+      photoPicker: capabilities.photoPicker,
+      permissionGateway: capabilities.permissionGateway,
+    ),
+  );
 }
 
 /// HarmonyOS 的薄宿主入口。

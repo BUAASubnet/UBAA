@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:flutter/services.dart';
 
 /// 一次登录操作使用的账号和密码。
 ///
@@ -15,6 +16,7 @@ class Credential {
 
   final String username;
   final String password;
+
   /// 仅在用户明确开启“自动登录”时保存的非秘密偏好。
   final bool autoLogin;
 
@@ -23,10 +25,10 @@ class Credential {
 
   Credential copyWith({String? username, String? password, bool? autoLogin}) =>
       Credential(
-    username: username ?? this.username,
-    password: password ?? this.password,
-    autoLogin: autoLogin ?? this.autoLogin,
-  );
+        username: username ?? this.username,
+        password: password ?? this.password,
+        autoLogin: autoLogin ?? this.autoLogin,
+      );
 
   @override
   String toString() => 'Credential(username: [REDACTED], password: [REDACTED])';
@@ -223,6 +225,70 @@ abstract interface class PlatformSecureCredentialStore {
   Future<void> write(String namespace, Credential credential);
 
   Future<void> clear(String namespace);
+}
+
+/// 生产宿主使用的 MethodChannel 安全存储适配器。
+///
+/// 原生实现必须使用系统 Keychain、Keystore、Credential Manager、Secret
+/// Service 或 HUKS；Dart 侧只接收 typed 凭据，不提供文件或明文回退。
+final class MethodChannelSecureCredentialStore
+    implements PlatformSecureCredentialStore {
+  MethodChannelSecureCredentialStore({MethodChannel? channel})
+    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
+
+  final MethodChannel _channel;
+  bool _available = false;
+
+  @override
+  bool get isAvailable => _available;
+
+  /// 在构造后显式探测原生安全存储能力；缺少插件时安全返回 false。
+  Future<bool> probe() async {
+    try {
+      _available =
+          await _channel.invokeMethod<bool>('credentials.capability') ?? false;
+    } on Object {
+      _available = false;
+    }
+    return _available;
+  }
+
+  @override
+  Future<Credential?> read(String namespace) async {
+    final result = await _channel.invokeMethod<Object?>(
+      'credentials.read',
+      namespace,
+    );
+    if (result == null) return null;
+    if (result is! Map) throw const FormatException();
+    final username = result['username'];
+    final password = result['password'];
+    final autoLogin = result['autoLogin'];
+    if (username is! String || password is! String || autoLogin is! bool) {
+      throw const FormatException();
+    }
+    return Credential(
+      username: username,
+      password: password,
+      autoLogin: autoLogin,
+    );
+  }
+
+  @override
+  Future<void> write(String namespace, Credential credential) async {
+    CredentialVault.validate(credential);
+    await _channel.invokeMethod<void>('credentials.write', <String, Object?>{
+      'namespace': namespace,
+      'username': credential.username,
+      'password': credential.password,
+      'autoLogin': credential.autoLogin,
+    });
+  }
+
+  @override
+  Future<void> clear(String namespace) async {
+    await _channel.invokeMethod<void>('credentials.clear', namespace);
+  }
 }
 
 /// 版本化命名空间的原生安全存储适配器。
