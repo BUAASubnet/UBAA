@@ -25,6 +25,10 @@
   基线复核模式通过，`ubaa_ui` 全量 38 项与 macOS 宿主集成 3/3 均通过。其合同 CI `33584844827` 与
   Flutter 原生 CI `33584844835` 均终态成功，Windows、Linux、macOS、iOS simulator、Android APK
   job 全部通过并上传 Debug 产物。golden 仍是共享壳/详情代表，不替代实体设备或签名证据。
+- 最终 HEAD `5bd9814` 重新通过 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools
+  UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：DevEco `26.0.0.821`、API26、OHOS fork 与 arm64
+  Rust 动态库检查均通过，Dart/widget/native 前置 0 失败/0 警告，生成无签名 `entry-default-unsigned.hap`
+  并确认 `libs/arm64-v8a/libubaa_bindings.so`。产物未签名、未安装、未上传，生成目录已移出工作树。
 
 ## 2026-09-02 无签名执行目标更新
 

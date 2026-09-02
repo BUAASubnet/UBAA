@@ -111,6 +111,10 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
 五个平台 job（Windows、Linux、macOS、iOS simulator、Android APK）均通过并上传无签名 Debug 产物。
 该证据不包含 OHOS 签名 HAP、实体设备或正式发布。
 
+最终 HEAD `5bd9814` 重新运行 OHOS API26 无签名门禁，DevEco `26.0.0.821`、fork/API26 工具链与
+`aarch64-unknown-linux-ohos` 前置均通过，HAP 内含 `libs/arm64-v8a/libubaa_bindings.so`。HAP 未签名、
+未安装、未上传，生成输出已移出工作树；签名和设备验证仍为后置 `BLOCKED`。
+
 ## 6. P0 探索产物审查
 
 | 产物 | 采用结论 | P0 证据 | 后续约束 |
