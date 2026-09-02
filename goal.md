@@ -418,6 +418,11 @@
      错误/空状态/响应式导航和后台恢复均有实现及 Flutter/Rust 确定性测试。密码在安全存储不可用时
      只留在本次会话，原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件与设备验证
      仍作为 P5/P6 后置 BLOCKED，不作为本轮无签名代码完成的反证。
+131. P3/P4 读取到写入口的博雅签到边界已收紧：BridgeBackend 从冻结 typed `signConfig` 投影签到/签退
+     时间窗、位置点数量和 `courseSignType`，不把经纬度或半径带入 `FeatureDetail`；共享 UI 在读取字段
+     明确为“不可签到/签退”时禁用对应按钮并提示时间窗/状态由 Core 判定。bridge 回归和 `ubaa_ui`
+     widget 35 项测试通过；其余领域 golden、逐领域 integration、服务端分页和最终写后核对仍未闭合。
+132. P3 服务端分页元数据现已沿 typed bridge 投影到 `FeaturePagination`/`FeatureSnapshot`：博雅课程、图书馆预约、阳光打卡记录和场馆订单保留页码、每页数量、总数及总页数/hasMore，详情页在当前 `FeatureQuery` 上下文中提供 1-based 上下页并显示总数。domain、bridge、widget 回归先观察旧映射缺失元数据的失败后通过；全部领域分页实证、golden/integration、六平台 FRB E2E 与 P4/P5/P6 仍未完成。
 
 ## 4. 安全与架构边界
 

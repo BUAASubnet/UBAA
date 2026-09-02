@@ -23,6 +23,20 @@
   Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件及实体设备验证仍为 P5/P6 后置
   `BLOCKED`，本条只关闭无签名代码与合同门禁。
 
+## 2026-09-02 博雅签到时间窗与位置要求投影
+
+- `BridgeBykcChosenCourse.signConfig` 现在由 `BridgeBackend` 投影为非敏感的签到/签退时间窗、位置点数量
+  和签到类型；经纬度与半径不进入共享 `FeatureDetail`，避免把位置细节扩散到普通 UI 或日志。
+- 博雅详情在 Core 返回 `可签到=否` 或 `可签退=否` 时禁用对应写按钮，并显示“当前不在可操作时间窗或状态不允许，具体条件由 Core 判定”；缺少旧字段时仍交给 Core prepare 做最终校验。
+- 新增 bridge 字段白名单回归与 widget 禁用回归；聚焦 bridge、`ubaa_ui` 测试通过。本轮没有真实签到或
+  位置请求，逐领域写后核对、实体设备定位权限和 P4/P5/P6 仍未完成。
+
+## 2026-09-02 服务端分页元数据投影
+
+- `FeatureResult`/`FeatureSnapshot` 新增封闭的 `FeaturePagination`，`BridgeBackend` 对博雅课程、图书馆预约、阳光打卡记录和场馆订单保留 Core 返回的页码、每页数量、总数、总页数/是否还有下一页；异常或非分页视图不伪造元数据。
+- 详情页在 typed 查询上下文中使用 1-based 上下页按钮发起新的 `FeatureQuery`，显示服务端总数；既有本地筛选分页仍用于非服务端详情。新增 domain、bridge、widget 回归，先观察旧映射缺失分页元数据的失败后修复并通过。
+- 该增量没有网络写入或协议变更；逐领域分页真实响应、全部 golden/integration、六平台 FRB E2E 和 P3/P4/P5/P6 仍未完成。
+
 ## 2026-09-02 无签名平台能力与宿主全功能 smoke
 
 - 提交 `fba1316` 新增 `PlatformPermissionGateway`、`PlatformPhotoPicker`、不可用实现和内存 fake，覆盖相机、相册、文件、前台位置权限的稳定拒绝/授权状态；照片只以 typed `YgdkPhotoInput` 在内存中传递。权限拒绝回归验证不会调用 picker，原生插件和设备权限仍为后置 `BLOCKED`。

@@ -193,6 +193,10 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 外，Bykc、图书馆、阳光打卡、场馆预约、SPOC 和 Judge 详情使用封闭的 `FeatureQueryView` 与公开
 ID/分页字段：
 
+支持分页的查询结果在应用层以封闭 `FeaturePagination` 投影 Core 返回的 `page`、`size`、`total`、
+可选 `totalPages`/`hasMore`；展示页码统一采用 1-based 语义。该元数据不改变 bridge 请求参数，
+也不向 UI 暴露原始上游响应。
+
 | `view` | 必填字段 | bridge 调用 |
 |---|---|---|
 | `summary` | `date?` | `libbookLibraries(day)` |
