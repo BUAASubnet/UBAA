@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
@@ -140,6 +141,174 @@ void main() {
     for (final feature in advancedFeatureIds) {
       await capture(feature);
     }
+  });
+
+  testWidgets('共享壳在手机平板桌面与明暗主题下保持响应式视觉基线', (tester) async {
+    const layouts = <({String name, Size size})>[
+      (name: 'phone', size: Size(390, 844)),
+      (name: 'tablet', size: Size(768, 1024)),
+      (name: 'desktop', size: Size(1280, 800)),
+    ];
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '${feature.title}示例已加载',
+          details: <FeatureDetail>[
+            FeatureDetail(
+              title: '${feature.title}详情',
+              subtitle: '响应式脱敏测试数据',
+              fields: const <FeatureField>[
+                FeatureField(label: '状态', value: '可查看'),
+              ],
+            ),
+          ],
+          resolvedRoute: ConnectionMode.direct,
+        ),
+    };
+
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
+
+    for (final layout in layouts) {
+      tester.view
+        ..physicalSize = layout.size
+        ..devicePixelRatio = 1;
+      for (final dark in <bool>[false, true]) {
+        final themeName = dark ? 'dark' : 'light';
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: dark ? UbaaTheme.dark() : UbaaTheme.light(),
+            home: UbaaMainShell(
+              key: ValueKey<String>('${layout.name}-$themeName'),
+              user: const UserSummary(
+                username: 'student',
+                displayName: '测试同学',
+              ),
+              snapshots: snapshots,
+              routePolicy: RoutePolicy.auto,
+              activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+              telemetryEnabled: false,
+              onRefresh: () async {},
+              onRetryFeature: (_) async {},
+              onFeatureQuery: (_, __) async {},
+              onLogout: () async {},
+              onLogoutAndClearAccount: () async {},
+              onRoutePolicyChanged: (_) {},
+              onTelemetryChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(
+          layout.size.width >= 800
+              ? find.byType(NavigationRail)
+              : find.byType(NavigationBar),
+          findsOneWidget,
+        );
+        await expectLater(
+          find.byType(UbaaMainShell),
+          matchesGoldenFile(
+            'goldens/responsive_${layout.name}_${themeName}_main.png',
+          ),
+        );
+
+        await tester.tap(find.text('课表查询').first);
+        await tester.pumpAndSettle();
+        expect(find.text('返回功能列表'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await expectLater(
+          find.byType(UbaaMainShell),
+          matchesGoldenFile(
+            'goldens/responsive_${layout.name}_${themeName}_detail.png',
+          ),
+        );
+      }
+    }
+  });
+
+  testWidgets('窄屏动态字体、键盘焦点和全部卡片语义可用', (tester) async {
+    tester.view
+      ..physicalSize = const Size(390, 844)
+      ..devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '${feature.title}已加载',
+          details: const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.dark(),
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(390, 844),
+            textScaler: TextScaler.linear(1.3),
+          ),
+          child: UbaaMainShell(
+            user: const UserSummary(username: 'student', displayName: '测试同学'),
+            snapshots: snapshots,
+            routePolicy: RoutePolicy.auto,
+            activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+            initialTab: 1,
+            telemetryEnabled: false,
+            onRefresh: () async {},
+            onRetryFeature: (_) async {},
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+            onTelemetryChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    Future<void> checkSemantics(List<FeatureId> features) async {
+      for (final feature in features) {
+        await tester.scrollUntilVisible(
+          find.text(feature.title),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(
+          find.bySemanticsLabel(RegExp('^${feature.title}：')),
+          findsOneWidget,
+        );
+      }
+    }
+    await checkSemantics(ordinaryFeatureIds);
+    await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
+    await tester.pumpAndSettle();
+    await checkSemantics(advancedFeatureIds);
+    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课表查询').first);
+    await tester.pumpAndSettle();
+    expect(find.text('返回功能列表'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    final back = find.widgetWithText(OutlinedButton, '返回功能列表');
+    expect(back, findsOneWidget);
+    await tester.tap(back);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('启动页展示品牌且登录页不猜测验证码流程', (tester) async {
@@ -1521,6 +1690,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 / 2'), findsNothing);
     expect(find.text('课程 1'), findsNWidgets(2));
+  });
+
+  testWidgets('超长详情列表只保留当前分页避免页面节点累积', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.schedule
+              ? List<FeatureDetail>.generate(
+                  1000,
+                  (index) => FeatureDetail(title: '长列表课程 ${index + 1}'),
+                )
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('课表查询'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 50'), findsOneWidget);
+    expect(find.text('长列表课程 1'), findsOneWidget);
+    expect(find.text('长列表课程 21'), findsNothing);
+    for (var page = 2; page <= 6; page++) {
+      await tester.tap(find.byTooltip('下一页'));
+      await tester.pumpAndSettle();
+      expect(find.text('$page / 50'), findsOneWidget);
+      expect(find.text('长列表课程 ${(page - 1) * 20 + 1}'), findsOneWidget);
+      expect(find.text('长列表课程 ${(page - 2) * 20 + 1}'), findsNothing);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('服务端分页使用 Core 元数据并通过 typed 查询翻页', (tester) async {
