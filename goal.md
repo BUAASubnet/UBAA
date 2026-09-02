@@ -429,6 +429,10 @@
      `just flutter-codegen-check`、`just flutter-check`、`just release-preflight` 与无签名 OHOS API26
      HAP/arm64 门禁均通过。该证据闭合确定性宿主写入 UI 链，但不替代真实写入/写后核对、逐领域 golden、
      六平台真实 App→FRB→Core、原生安全存储或实体设备证据；P3/P4/P5/P6 队列仍按合同未勾选。
+132. 提交 `68c7d06` 的 Flutter 原生 CI `33617487122` 已终态成功，Linux、macOS、iOS simulator、Windows 和
+     Android APK 五个 job 全部通过，macOS job 执行新增宿主集成 smoke；同提交合同 CI `33617487214` 与文档提交
+     `63a91cc` 的合同 CI `33617727426` 也已终态成功。CI 仍不包含 OHOS 签名、实体设备、原生安全存储、真实写后
+     核对或正式发布；当前 `HEAD` 与 `origin/ubaa2` 一致、工作树干净，P3/P4/P5/P6 及第 11 节完成定义仍未闭合。
 131. P3/P4 读取到写入口的博雅签到边界已收紧：BridgeBackend 从冻结 typed `signConfig` 投影签到/签退
      时间窗、位置点数量和 `courseSignType`，不把经纬度或半径带入 `FeatureDetail`；共享 UI 在读取字段
      明确为“不可签到/签退”时禁用对应按钮并提示时间窗/状态由 Core 判定。bridge 回归和 `ubaa_ui`

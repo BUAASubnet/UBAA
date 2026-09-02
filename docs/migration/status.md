@@ -1662,3 +1662,6 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   `just flutter-check`、无签名 RC 前置报告和 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 均通过。
   OHOS 产物为未签名 `entry-default-unsigned.hap`，包内含 `libs/arm64-v8a/libubaa_bindings.so`；已清理构建输出，
   未安装、未上传，不能替代真实设备、真实写后核对或签名发布证据。
+- 提交 `68c7d06` 的 Flutter 原生 CI `33617487122` 已成功（Linux、macOS、iOS simulator、Windows、Android APK），
+  macOS job 的宿主 smoke 已执行；同提交合同 CI `33617487214` 和文档提交 `63a91cc` 的合同 CI `33617727426` 均成功。
+  这些 CI 只证明无签名构建与合同门禁，不包含 OHOS 签名/设备、原生安全存储、真实写后核对或正式发布。
