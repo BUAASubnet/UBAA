@@ -36,6 +36,7 @@
 - [开发命令](development/commands.md)
 - [测试策略](development/testing.md)
 - [工程规范](development/engineering-standards.md)
+- [脚本入口与副作用](../scripts/README.md)
 
 ## 迁移、来源与证据
 

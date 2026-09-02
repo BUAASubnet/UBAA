@@ -6,7 +6,10 @@ platform=${1:-host}
 mode=${2:-debug}
 platform=${platform#platform=}
 mode=${mode#mode=}
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 flutter_root=${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}
 flutter_bin=$flutter_root/bin/flutter
 app_root=$repo_root/apps/ubaa_flutter
@@ -19,7 +22,7 @@ flutter_build() {
   fi
 }
 
-"$repo_root/scripts/check-flutter-toolchains.sh" official
+"$repo_root/scripts/check/flutter-toolchains.sh" official
 if [[ "$mode" != debug && "$mode" != release ]]; then
   printf 'error: 构建模式只能是 debug 或 release\n' >&2
   exit 2

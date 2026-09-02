@@ -2,7 +2,10 @@
 # 生成无签名 RC 的可审计依赖和产物前置报告；不签名、不上传、不访问真实账号。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 output_dir=${1:-${UBAA_RELEASE_REPORT_DIR:-}}
 keep_output=1
 if [[ -z "$output_dir" ]]; then
@@ -29,8 +32,8 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-./scripts/ensure-references.sh
-./scripts/check-sensitive.sh
+bash ./scripts/check/references.sh
+bash ./scripts/check/sensitive.sh
 cargo metadata --locked --format-version 1 >"$output_dir/cargo-metadata.json"
 
 # 将 Cargo 解析后的依赖投影为不含路径/凭据的 CycloneDX 风格 SBOM。

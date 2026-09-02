@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 cd "$repo_root"
 
 candidate_files=$(git ls-files --cached --others --exclude-standard)

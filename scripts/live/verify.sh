@@ -3,8 +3,13 @@
 { set +x; } 2>/dev/null
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-core_live=${UBAA_CORE_LIVE_SCRIPT:-$repo_root/scripts/core-live.sh}
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+# shellcheck source=../lib/live-features.sh
+source "$script_dir/../lib/live-features.sh"
+repo_root=$(ubaa_repo_root)
+core_live=${UBAA_CORE_LIVE_SCRIPT:-$repo_root/scripts/live/core-live.sh}
 env_file=${UBAA_ENV_FILE:-$repo_root/.env.local}
 
 read_env_value() {
@@ -55,10 +60,10 @@ case "$route" in
   direct|webvpn) ;;
   *) printf '%s\n' '必须指定 mode=direct 或 mode=webvpn' >&2; exit 2 ;;
 esac
-case "$feature" in
-  all|auth|user|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation) ;;
-  *) printf '不支持 feature=%s\n' "$feature" >&2; exit 2 ;;
-esac
+if ! ubaa_live_feature_supported "$feature"; then
+  printf '不支持 feature=%s\n' "$feature" >&2
+  exit 2
+fi
 
 if [[ ! -f "$env_file" ]]; then
   printf '凭据文件不存在: %s\n' "$env_file" >&2

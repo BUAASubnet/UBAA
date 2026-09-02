@@ -4,3 +4,7 @@
 # Windows 命令解释器脚本保留原生换行。
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# FRB Rust/Dart 机械输出保持可见，但在代码统计与评审界面标记为 generated。
+crates/ubaa-flutter-bridge/src/frb_generated.rs linguist-generated=true
+packages/ubaa_bindings/lib/src/rust/** linguist-generated=true

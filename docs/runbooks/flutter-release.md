@@ -10,8 +10,12 @@ Cookie、token 或签名私钥。没有项目所有者对具体平台账号和�
 
 在发布分支的干净工作树执行无签名 RC 门禁：
 
+首次准备 runner 时可显式运行一次 `just refs-bootstrap`；它不是发布验收门禁。以下流程及
+`release-preflight` 只调用纯只读的 `just refs`。
+
 ```text
 just refs
+just layout-check
 just check-sensitive
 just check
 just flutter-codegen-check
@@ -34,7 +38,7 @@ DevEco/CLI 26.0.0 Beta2 与 OpenHarmony API26 预检；API21 失败不能降级�
 `release-preflight` 只接受绝对报告目录，并要求工作树干净；它生成 Cargo 依赖元数据、CycloneDX
 风格 SBOM、Dart/Flutter 锁文件清单、依赖/许可证审计、源码 SHA-256 和无签名状态摘要，不读取
 凭据、不访问真实账号、不签名、不上传。
-原生 CI 在上传五平台 Debug 产物前调用 `scripts/verify-flutter-artifact.sh`，逐平台确认宿主入口、
+原生 CI 在上传五平台 Debug 产物前调用 `scripts/release/verify-flutter-artifact.sh`，逐平台确认宿主入口、
 Flutter 资源、App.framework 或 Android 三种 ABI 的 FRB 动态库存在，并输出大小和 SHA-256；缺失
 条目会使该平台 job 失败。该检查只验证包结构，不代表签名、安装或设备运行成功。
 报告目录应放在仓库外或 CI 临时目录，完成审计后按项目保留策略归档。

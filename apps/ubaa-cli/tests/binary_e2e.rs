@@ -51,6 +51,9 @@ fn repository_cargo_gates_lock_dependency_resolution() {
         .args([
             "ls-files",
             "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
             "--",
             "justfile",
             "*.md",
@@ -68,6 +71,9 @@ fn repository_cargo_gates_lock_dependency_resolution() {
     );
 
     for source_name in tracked.split('\0').filter(|path| !path.is_empty()) {
+        if !repository_root.join(source_name).is_file() {
+            continue;
+        }
         let source = std::fs::read_to_string(repository_root.join(source_name))
             .unwrap_or_else(|_| panic!("could not read tracked command source {source_name}"));
         for line in source.lines().map(str::trim) {
@@ -164,7 +170,7 @@ fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
             "Core-live contains write call {forbidden}"
         );
     }
-    let verifier = include_str!("../../../scripts/verify-live.sh");
+    let verifier = include_str!("../../../scripts/live/verify.sh");
     for forbidden in ["run_json", "target/debug/ubaa", "jq ", "CLI_OUTPUT"] {
         assert!(
             !verifier.contains(forbidden),

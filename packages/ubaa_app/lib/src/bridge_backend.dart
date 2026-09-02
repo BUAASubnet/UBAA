@@ -1165,12 +1165,12 @@ class BridgeBackend
                       _field('审核状态', item.checkStatus?.toString()),
                       _field(
                         '订单状态说明',
-                        _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
+                        _cgyyOrderStatusText(
+                          item.orderStatus,
+                          item.checkStatus,
+                        ),
                       ),
-                      _field(
-                        '审核状态说明',
-                        _cgyyCheckStatusText(item.checkStatus),
-                      ),
+                      _field('审核状态说明', _cgyyCheckStatusText(item.checkStatus)),
                     ]),
                   ),
                 ],

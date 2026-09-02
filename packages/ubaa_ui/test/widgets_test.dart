@@ -185,10 +185,7 @@ void main() {
             theme: dark ? UbaaTheme.dark() : UbaaTheme.light(),
             home: UbaaMainShell(
               key: ValueKey<String>('${layout.name}-$themeName'),
-              user: const UserSummary(
-                username: 'student',
-                displayName: '测试同学',
-              ),
+              user: const UserSummary(username: 'student', displayName: '测试同学'),
               snapshots: snapshots,
               routePolicy: RoutePolicy.auto,
               activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
@@ -290,6 +287,7 @@ void main() {
         );
       }
     }
+
     await checkSemantics(ordinaryFeatureIds);
     await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
     await tester.pumpAndSettle();
@@ -2995,11 +2993,10 @@ void main() {
             status: status,
             summary: status == FeatureLoadStatus.stale ? '上次成功摘要' : null,
             details: status == FeatureLoadStatus.stale
-                ? const <FeatureDetail>[
-                    FeatureDetail(title: '上次成功详情'),
-                  ]
+                ? const <FeatureDetail>[FeatureDetail(title: '上次成功详情')]
                 : const <FeatureDetail>[],
-            error: status == FeatureLoadStatus.failure ||
+            error:
+                status == FeatureLoadStatus.failure ||
                     status == FeatureLoadStatus.stale
                 ? const UiError(
                     code: UbaaErrorCode.networkError,
@@ -3214,9 +3211,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.bySemanticsLabel('课表查询：今日课程。点击查看详情'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('课表查询：今日课程。点击查看详情'), findsOneWidget);
   });
 }

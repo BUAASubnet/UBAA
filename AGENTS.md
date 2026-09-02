@@ -13,6 +13,9 @@
 
 ## Development loop
 
+首次建立缺失的冻结引用时显式运行 `just refs-bootstrap`；普通开发、验证和发布阶段只运行纯校验的 `just refs`，
+不得让验证命令隐式联网或改写冻结目录。
+
 1. Run `git status --short --branch` and `just refs`.
 2. Update `docs/migration/status.md` and decision records with current facts.
 3. Add one failing behavior test and observe the expected failure.
@@ -27,11 +30,11 @@
 - `fixtures/auth`: sanitized protocol fixtures only.
 - `docs/contracts`: stable public and CLI contracts.
 - `docs/migration`: evidence, status, and decision history.
-- `scripts`: reference and live-verification gates.
+- `scripts`: 按 bootstrap/check/build/live/release/tests 分类的稳定门禁；副作用见 `scripts/README.md`。
 
 ## Completion gate
 
-Run `just refs`, `just check-sensitive`, `just check`, CLI end-to-end tests, `just verify-live mode=direct`, and `just verify-live mode=webvpn`. Fixture or mock success does not establish live protocol success. CI runs the deterministic gates only and never receives live credentials.
+Run `just refs`, `just layout-check`, `just check-sensitive`, `just check`, CLI end-to-end tests, `just verify-live mode=direct`, and `just verify-live mode=webvpn`. Fixture or mock success does not establish live protocol success. CI runs the deterministic gates only and never receives live credentials.
 
 ## Mandatory source-parity gate
 

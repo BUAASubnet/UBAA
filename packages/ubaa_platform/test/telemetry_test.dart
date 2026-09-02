@@ -49,10 +49,7 @@ void main() {
     test('自定义策略只能收窄事件和字段白名单', () async {
       final client = MockTelemetryClient(
         policy: TelemetryPolicy(
-          allowedEvents: const {
-            TelemetryEvents.featureLoaded,
-            'custom_event',
-          },
+          allowedEvents: const {TelemetryEvents.featureLoaded, 'custom_event'},
           allowedFields: const {'feature', 'password', 'safe'},
         ),
       );

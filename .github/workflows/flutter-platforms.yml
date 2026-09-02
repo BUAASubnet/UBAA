@@ -125,7 +125,7 @@ jobs:
 
       - name: 检查无签名产物结构
         shell: bash
-        run: ./scripts/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}"
+        run: bash ./scripts/release/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
       - name: 运行 macOS 宿主集成 smoke
         if: matrix.platform == 'macos'

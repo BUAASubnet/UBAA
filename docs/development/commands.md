@@ -6,17 +6,21 @@
 ## 基线与确定性门禁
 
 ```bash
-just refs                                                   # 当前会校验引用；缺失时会按固定提交克隆，阶段 02 将拆分 bootstrap/check
+just refs-bootstrap                                         # 仅首次缺失时联网建立固定引用；验证阶段不调用
+just refs                                                   # 纯只读校验 remote、HEAD 与干净工作树
+just layout-check                                           # 1000 行/16 文件结构棘轮与当前 baseline
 cargo metadata --locked --no-deps --format-version 1        # 校验 Cargo.lock 与 workspace 元数据
 just check-sensitive                                        # 扫描 tracked 和非 ignored 候选文件中的敏感路径/模式
-just check                                                  # Rust/Cargo/CLI/Shell launcher、构建、文档与 git diff；不含 Flutter
+just shell-check                                             # 全部 Shell 执行 bash -n；可用时再执行 ShellCheck
+just check                                                  # Rust/Cargo/CLI/Shell 合同、构建、文档与 git diff；不含 Flutter
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just flutter-check                                          # 六个 Dart/Flutter package/app 执行 pub get、analyze、test
+just flutter-check                                          # 六个 package/app 执行 pub get、format、analyze、test
 git diff --check
 ```
 
-`just check` 与 Flutter/codegen 是独立证据，任何一个通过都不能推导另一个通过。结构治理阶段还要运行实施计划
-指定的 focused test；阶段 02 落地后再增加 layout 棘轮，不得提前调用尚不存在的 recipe。
+`just check` 内部也运行 layout、refs、live 三类 Shell 合同与 layout checker；独立列出 `just layout-check` 是为了
+让结构错误尽早失败。Rust、Flutter/codegen 仍是独立证据，任何一个通过都不能推导另一个通过；结构治理阶段
+还要运行实施计划指定的 focused test。
 
 常用 focused 命令：
 
@@ -78,7 +82,8 @@ Core/Mock 确定性路由测试。
 
 ## 常见失败边界
 
-- `just refs` 发现冻结引用脏或提交不匹配时立即停止，不要修改、清理或重置冻结目录。
+- `just refs` 发现缺失、错误 remote/HEAD 或脏树时立即停止；缺失时显式运行 `just refs-bootstrap`，其它错误不要
+  修改、清理或重置冻结目录。
 - 锁定元数据/构建失败时不要随意重生成锁文件或放宽 lint。
 - FRB codegen 必须精确为 2.13.0；生成后任何未解释 diff 都阻止提交。
 - `upstream_changed` 只说明当前响应不满足已证明合同；记录安全状态并按条件重跑，不猜测新字段或绕过挑战。

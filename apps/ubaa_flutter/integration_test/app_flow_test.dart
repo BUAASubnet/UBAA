@@ -400,48 +400,24 @@ void main() {
     }
 
     await openFeature(FeatureId.bykc);
-    await confirm(
-      '准备选课',
-      WriteOperation.bykcSelectCourse,
-      FeatureId.bykc,
-    );
+    await confirm('准备选课', WriteOperation.bykcSelectCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm(
-      '准备退选',
-      WriteOperation.bykcDeselectCourse,
-      FeatureId.bykc,
-    );
+    await confirm('准备退选', WriteOperation.bykcDeselectCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm(
-      '准备博雅签到',
-      WriteOperation.bykcSignCourse,
-      FeatureId.bykc,
-    );
+    await confirm('准备博雅签到', WriteOperation.bykcSignCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm(
-      '准备博雅签退',
-      WriteOperation.bykcSignCourse,
-      FeatureId.bykc,
-    );
+    await confirm('准备博雅签退', WriteOperation.bykcSignCourse, FeatureId.bykc);
     await leaveFeature();
 
     await openFeature(FeatureId.signin);
-    await confirm(
-      '准备签到',
-      WriteOperation.signinPerform,
-      FeatureId.signin,
-    );
+    await confirm('准备签到', WriteOperation.signinPerform, FeatureId.signin);
     await leaveFeature();
 
     await openFeature(FeatureId.libbook);
-    await confirm(
-      '准备预约此座位',
-      WriteOperation.libbookReserve,
-      FeatureId.libbook,
-    );
+    await confirm('准备预约此座位', WriteOperation.libbookReserve, FeatureId.libbook);
     await leaveFeature();
     await openFeature(FeatureId.libbook);
     await confirm(
@@ -452,11 +428,7 @@ void main() {
     await leaveFeature();
 
     await openFeature(FeatureId.cgyy);
-    await confirm(
-      '准备取消订单',
-      WriteOperation.cgyyCancelOrder,
-      FeatureId.cgyy,
-    );
+    await confirm('准备取消订单', WriteOperation.cgyyCancelOrder, FeatureId.cgyy);
     await leaveFeature();
     await openFeature(FeatureId.cgyy);
     expect(find.text('准备场馆预约'), findsOneWidget);
@@ -812,11 +784,7 @@ final class _AllWritesIntegrationBackend
     if (!_signedIn) {
       throw const BackendException(UbaaErrorCode.authenticationRequired);
     }
-    featureLoads.update(
-      feature,
-      (count) => count + 1,
-      ifAbsent: () => 1,
-    );
+    featureLoads.update(feature, (count) => count + 1, ifAbsent: () => 1);
     final details = switch (feature) {
       FeatureId.bykc => <FeatureDetail>[
         FeatureDetail(

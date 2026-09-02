@@ -2,13 +2,18 @@
 # verify-live 启动器合同测试，不访问真实上游。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-verify-live-test.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT
 
-mkdir -p "$test_root/scripts"
-cp "$repo_root/scripts/verify-live.sh" "$test_root/scripts/verify-live.sh"
-chmod +x "$test_root/scripts/verify-live.sh"
+mkdir -p "$test_root/scripts/live" "$test_root/scripts/lib"
+cp "$repo_root/scripts/live/verify.sh" "$test_root/scripts/live/verify.sh"
+cp "$repo_root/scripts/lib/repo.sh" "$test_root/scripts/lib/repo.sh"
+cp "$repo_root/scripts/lib/live-features.sh" "$test_root/scripts/lib/live-features.sh"
+chmod +x "$test_root/scripts/live/verify.sh"
 
 cat >"$test_root/scripts/fake-core-live.sh" <<'FAKE'
 #!/usr/bin/env bash
@@ -31,7 +36,7 @@ ENV
 
 output=$(UBAA_ENV_FILE="$test_root/.env.local" \
   UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
-  "$test_root/scripts/verify-live.sh" mode=webvpn feature=cgyy date=2026-08-31 campus-id=2 2>"$test_root/stderr")
+  "$test_root/scripts/live/verify.sh" mode=webvpn feature=cgyy date=2026-08-31 campus-id=2 2>"$test_root/stderr")
 [[ $output == *'route=webvpn feature=cgyy'* ]]
 [[ $output == *'stdin_lines=2'* ]]
 ! grep -F 'test-password' "$test_root/stderr"
@@ -39,7 +44,7 @@ grep -F 'argv=route=webvpn feature=cgyy date=2026-08-31 campus-id=2' "$test_root
 
 if UBAA_ENV_FILE="$test_root/.env.local" \
   UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
-  "$test_root/scripts/verify-live.sh" mode=auto >/dev/null 2>"$test_root/auto.err"; then
+  "$test_root/scripts/live/verify.sh" mode=auto >/dev/null 2>"$test_root/auto.err"; then
   printf '%s\n' 'auto 未被拒绝' >&2
   exit 1
 fi
@@ -47,7 +52,7 @@ grep -F '不执行 auto' "$test_root/auto.err" >/dev/null
 
 if UBAA_ENV_FILE="$test_root/missing.env" \
   UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
-  "$test_root/scripts/verify-live.sh" mode=direct >/dev/null 2>"$test_root/missing.err"; then
+  "$test_root/scripts/live/verify.sh" mode=direct >/dev/null 2>"$test_root/missing.err"; then
   printf '%s\n' '缺少凭据文件时未失败' >&2
   exit 1
 fi
@@ -55,7 +60,7 @@ grep -F '凭据文件不存在' "$test_root/missing.err" >/dev/null
 
 if UBAA_ENV_FILE="$test_root/.env.local" \
   UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
-  "$test_root/scripts/verify-live.sh" mode=direct feature=unknown >/dev/null 2>"$test_root/feature.err"; then
+  "$test_root/scripts/live/verify.sh" mode=direct feature=unknown >/dev/null 2>"$test_root/feature.err"; then
   printf '%s\n' '未知功能未被拒绝' >&2
   exit 1
 fi
@@ -92,7 +97,7 @@ run_core_live() {
   local output status
   set +e
   output=$(UBAA_CORE_LIVE_BINARY="$test_root/scripts/fake-core-live-runtime.sh" UBAA_CORE_LIVE_BUILD=no \
-    "$repo_root/scripts/core-live.sh" "$@" 2>"$test_root/core.err")
+    "$repo_root/scripts/live/core-live.sh" "$@" 2>"$test_root/core.err")
   status=$?
   set -e
   [[ $status -eq $expected ]]
@@ -111,7 +116,7 @@ explicit_dir="$test_root/explicit"
 mkdir -p "$explicit_dir"
 set +e
 UBAA_CORE_LIVE_BINARY="$test_root/scripts/fake-core-live-runtime.sh" UBAA_CORE_LIVE_BUILD=no \
-  "$repo_root/scripts/core-live.sh" route=direct feature=auth config-dir="$explicit_dir" >/dev/null 2>"$test_root/explicit.err"
+  "$repo_root/scripts/live/core-live.sh" route=direct feature=auth config-dir="$explicit_dir" >/dev/null 2>"$test_root/explicit.err"
 explicit_status=$?
 set -e
 [[ $explicit_status -eq 0 ]]
@@ -127,7 +132,7 @@ FAKE_CARGO
 chmod +x "$test_root/fake-bin/cargo"
 set +e
 PATH="$test_root/fake-bin:$PATH" UBAA_CORE_LIVE_BINARY="$test_root/missing-core-live" \
-  UBAA_CORE_LIVE_BUILD=yes "$repo_root/scripts/core-live.sh" route=direct \
+  UBAA_CORE_LIVE_BUILD=yes "$repo_root/scripts/live/core-live.sh" route=direct \
   >/dev/null 2>"$test_root/build.err"
 build_status=$?
 set -e
@@ -138,7 +143,7 @@ automatic_dir=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -type d -name 'ubaa-core-live
 # 中断父进程时，信号陷阱转为退出并触发同一清理路径。
 set +e
 FAKE_CORE_LIVE_SLEEP=yes UBAA_CORE_LIVE_BINARY="$test_root/scripts/fake-core-live-runtime.sh" \
-  UBAA_CORE_LIVE_BUILD=no "$repo_root/scripts/core-live.sh" route=direct \
+  UBAA_CORE_LIVE_BUILD=no "$repo_root/scripts/live/core-live.sh" route=direct \
   >/dev/null 2>"$test_root/signal.err" &
 core_pid=$!
 sleep 0.05

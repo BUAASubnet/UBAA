@@ -10,17 +10,19 @@
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
 | CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v2、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core-live.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
-| Shell launcher | `scripts/test-verify-live.sh` | 凭据只经 stdin、参数白名单、成功/失败/构建失败/信号清理和显式目录语义 |
+| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
 | Widget/golden | `packages/ubaa_ui/test/` | 十二领域页面、loading/empty/failure/stale、查询、写确认、响应式、明暗主题和可访问性 |
 | 宿主 integration | `apps/ubaa_flutter/integration_test/app_flow_test.dart` | 脱敏 backend 下的登录、十二项查询、十项写入 prepare/确认/单次 commit/读取核对 |
 | 原生构建/产物 | Flutter 五平台 CI、本机 artifact check、OHOS API26 无签名门禁 | 宿主可构建及最小包结构；不证明签名、安装、实体设备或真实账号链路 |
-| 真实只读 | `scripts/verify-live.sh` + `scripts/core-live.sh` | Direct/WebVPN 各自单客户端的当前 Core 协议矩阵；只输出安全摘要 |
+| 真实只读 | `scripts/live/verify.sh` + `scripts/live/core-live.sh` | Direct/WebVPN 各自单客户端的当前 Core 协议矩阵；只输出安全摘要 |
 
 ## 确定性门禁
 
 ```bash
+just refs
+just layout-check
 just check-sensitive
 just check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
@@ -28,7 +30,8 @@ just flutter-check
 git diff --check
 ```
 
-`just check` 当前运行锁定 Cargo 元数据、格式、Clippy、workspace 测试、Shell launcher 合同、构建、Rustdoc 与
+`just check` 当前运行 Shell `bash -n`/可用的 ShellCheck、layout/refs/live 合同、layout checker、锁定 Cargo
+元数据、格式、Clippy、workspace 测试、构建、Rustdoc 与
 差异检查；Flutter/codegen 独立运行。focused test 必须先证明本次行为，完整门禁只证明没有发现其它回归。
 
 ## 行为变更与来源对照

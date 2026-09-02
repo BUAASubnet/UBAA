@@ -47,6 +47,7 @@ bridge 使用 Core。
 | `packages/ubaa_platform` | 平台路径、权限、凭据和照片 typed 边界 |
 | `packages/ubaa_ui` | 共享页面、查询、确认、响应式与可访问性 UI |
 | `packages/ubaa_bindings` | FRB 机械生成 Dart 输出和 Cargokit 平台构建支持 |
+| `scripts` | 按副作用分类的 bootstrap、check、build、live、release 与确定性合同入口 |
 | `docs` | 架构、合同、开发命令、迁移证据与运行手册 |
 
 完整文档入口见[文档索引](docs/index.md)。
@@ -54,6 +55,7 @@ bridge 使用 Core。
 ## CLI 快速开始
 
 ```bash
+just refs-bootstrap # 仅首次缺少冻结引用时运行；允许联网创建
 just refs
 cargo build --locked --workspace
 cargo run --locked -p ubaa-cli -- --help
@@ -78,6 +80,7 @@ cargo run --locked -p ubaa-cli -- auth logout
 
 ```bash
 just refs
+just layout-check
 just check-sensitive
 just check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
@@ -85,8 +88,10 @@ just flutter-check
 git diff --check
 ```
 
-`just check` 当前覆盖 Rust/Cargo、CLI、Shell launcher 合同、构建、文档和差异，不包含 Flutter/codegen；
-后两项必须独立运行。平台构建、无签名 OHOS HAP 与发布前置命令见[开发命令](docs/development/commands.md)和
+`just layout-check` 对手写源码执行 1000 行/16 个直属文件的结构棘轮；`just check` 当前覆盖布局/refs/live
+Shell 合同、布局 checker、Rust/Cargo、CLI、构建、文档和差异，不包含 Flutter/codegen，并先对全部 Shell
+执行 `bash -n`，环境有 ShellCheck 时再执行静态检查。后两项必须独立运行。平台构建、
+无签名 OHOS HAP 与发布前置命令见[开发命令](docs/development/commands.md)和
 [Flutter 发布 Runbook](docs/runbooks/flutter-release.md)。
 
 ## 真实只读验证

@@ -23,6 +23,9 @@
 
 ## 开发循环
 
+仅当本机缺少冻结引用时先显式运行一次 `just refs-bootstrap`。该命令允许联网创建引用；普通开发循环、提交门禁
+和发布前置一律只运行纯只读的 `just refs`。
+
 1. 运行 `git status --short --branch` 与 `just refs`，确认冻结引用和现有工作树。
 2. 更新来源对照、合同或当前状态，说明本次事实边界。
 3. 增加 focused 失败测试并保留预期失败证据。
@@ -36,6 +39,7 @@
 
 ```bash
 just refs
+just layout-check
 just check-sensitive
 just check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check

@@ -2,11 +2,14 @@
 # 用锁定 FRB 重新生成绑定，并拒绝任何生成漂移。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 flutter_root=${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}
 codegen=${UBAA_FRB_CODEGEN:-$(command -v flutter_rust_bridge_codegen || true)}
 
-"$repo_root/scripts/check-flutter-toolchains.sh" official
+"$repo_root/scripts/check/flutter-toolchains.sh" official
 if [[ -z "$codegen" || ! -x "$codegen" ]]; then
   printf 'error: 找不到 flutter_rust_bridge_codegen 2.13.0\n' >&2
   exit 1

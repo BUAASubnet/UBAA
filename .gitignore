@@ -2,7 +2,7 @@
 .env.*
 !.env.example
 
-# Frozen local references (managed by scripts/ensure-references.sh)
+# 冻结本地引用（只能由 scripts/bootstrap/references.sh 创建）
 /ubaa_old/
 /examples/
 

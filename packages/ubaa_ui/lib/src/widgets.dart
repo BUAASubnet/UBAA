@@ -979,9 +979,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _writeSubmitting = false;
         _writeError = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('提交结果不确定，请先刷新相关状态，不要重复提交。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('提交结果不确定，请先刷新相关状态，不要重复提交。')));
     }
   }
 
@@ -1162,9 +1162,9 @@ class _FeatureCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   feature.title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Expanded(

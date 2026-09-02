@@ -1,6 +1,6 @@
 # 真实只读验证运行手册
 
-真实验证的唯一网络入口是 Core-live。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/core-live.sh` 只负责启动已构建的二进制。二进制在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
+真实验证的唯一网络入口是 Core-live。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/live/core-live.sh` 只负责启动已构建的二进制。二进制在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
 
 前置条件：`just refs`、`just check-sensitive` 和 `just check` 已通过；`.env.local` 仅包含非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称）。该文件被忽略，凭据不会复制、打印或写入参数。
 

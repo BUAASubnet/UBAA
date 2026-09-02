@@ -3,7 +3,12 @@
 { set +x; } 2>/dev/null
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+# shellcheck source=../lib/live-features.sh
+source "$script_dir/../lib/live-features.sh"
+repo_root=$(ubaa_repo_root)
 binary=${UBAA_CORE_LIVE_BINARY:-$repo_root/target/debug/core-live}
 
 route=
@@ -38,10 +43,10 @@ case "$route" in
   *) printf '%s\n' 'Core-live 必须指定 route=direct 或 route=webvpn' >&2; exit 2 ;;
 esac
 
-case "$feature" in
-  all|auth|user|schedule|exam|grades|classroom|spoc|judge|signin|ygdk|libbook|bykc|cgyy|evaluation) ;;
-  *) printf 'Core-live 不支持 feature=%s\n' "$feature" >&2; exit 2 ;;
-esac
+if ! ubaa_live_feature_supported "$feature"; then
+  printf 'Core-live 不支持 feature=%s\n' "$feature" >&2
+  exit 2
+fi
 
 if [[ ! -d "$repo_root" ]]; then
   printf '%s\n' '仓库目录不可用' >&2

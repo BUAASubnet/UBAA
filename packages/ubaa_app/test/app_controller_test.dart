@@ -293,10 +293,7 @@ void main() {
   test('controller 销毁后延迟登录不会继续读取用户或保存凭据', () async {
     final backend = _DelayedLoginBackend();
     final vault = MemoryCredentialVault();
-    final controller = AppController(
-      backend: backend,
-      credentialVault: vault,
-    );
+    final controller = AppController(backend: backend, credentialVault: vault);
     controller.setUsername('student');
     controller.setPassword('secret');
 
@@ -642,10 +639,7 @@ void main() {
         expect(backend.loadedFeatures, isEmpty);
         expect(backend.queries, hasLength(1));
         expect(backend.queries.single.$1, FeatureId.cgyy);
-        expect(
-          backend.queries.single.$2.view,
-          FeatureQueryView.cgyyOrders,
-        );
+        expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
       } else {
         expect(backend.queries, isEmpty);
         expect(backend.loadedFeatures, hasLength(1));
@@ -673,9 +667,7 @@ void main() {
         details: <FeatureDetail>[
           FeatureDetail(
             title: '场馆订单',
-            fields: <FeatureField>[
-              FeatureField(label: '订单编号', value: '42'),
-            ],
+            fields: <FeatureField>[FeatureField(label: '订单编号', value: '42')],
           ),
         ],
       ),
@@ -713,11 +705,9 @@ FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
   WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
 };
 
-final class _RefreshMatrixBackend
-    implements UbaaBackend, FeatureQueryBackend {
+final class _RefreshMatrixBackend implements UbaaBackend, FeatureQueryBackend {
   final List<FeatureId> loadedFeatures = <FeatureId>[];
-  final List<(FeatureId, FeatureQuery)> queries =
-      <(FeatureId, FeatureQuery)>[];
+  final List<(FeatureId, FeatureQuery)> queries = <(FeatureId, FeatureQuery)>[];
 
   @override
   Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
@@ -914,8 +904,7 @@ class _RebuildBackend
   }
 }
 
-class _DelayedInitializeBackend
-    implements UbaaBackend, BackendLifecycle {
+class _DelayedInitializeBackend implements UbaaBackend, BackendLifecycle {
   final Completer<void> authStarted = Completer<void>();
   final Completer<void> releaseAuth = Completer<void>();
   bool disposed = false;

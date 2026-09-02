@@ -17,6 +17,25 @@ jobs:
           components: clippy,rustfmt
       - uses: taiki-e/install-action@just
 
+      - name: 安装固定 ShellCheck
+        shell: bash
+        run: |
+          shellcheck_version=0.11.0
+          archive="$RUNNER_TEMP/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
+          bin_dir="$RUNNER_TEMP/shellcheck-bin"
+          curl -fsSLo "$archive" \
+            "https://github.com/koalaman/shellcheck/releases/download/v${shellcheck_version}/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
+          printf '%s  %s\n' \
+            '8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198' \
+            "$archive" | sha256sum -c -
+          mkdir -p "$bin_dir"
+          tar -xJf "$archive" -C "$RUNNER_TEMP"
+          install -m 0755 \
+            "$RUNNER_TEMP/shellcheck-v${shellcheck_version}/shellcheck" \
+            "$bin_dir/shellcheck"
+          test "$("$bin_dir/shellcheck" --version | awk '/^version:/ { print $2 }')" = "$shellcheck_version"
+          printf '%s\n' "$bin_dir" >> "$GITHUB_PATH"
+
       - name: 安装固定官方 Flutter SDK
         shell: bash
         run: |
@@ -28,7 +47,7 @@ jobs:
           printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
           printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
           export UBAA_FLUTTER_HOME="$flutter_root"
-          ./scripts/check-flutter-toolchains.sh official
+          bash ./scripts/check/flutter-toolchains.sh official
 
       - name: 安装固定 FRB codegen
         shell: bash
@@ -40,8 +59,12 @@ jobs:
           test "$("$codegen" --version)" = 'flutter_rust_bridge_codegen 2.13.0'
           printf 'UBAA_FRB_CODEGEN=%s\n' "$codegen" >> "$GITHUB_ENV"
 
-      - name: 验证冻结引用
+      - name: 建立缺失的冻结引用
+        run: just refs-bootstrap
+      - name: 纯校验冻结引用
         run: just refs
+      - name: 检查代码与目录布局
+        run: just layout-check
       - name: 扫描敏感材料
         run: just check-sensitive
       - name: 运行 Rust 与 Shell 确定性门禁

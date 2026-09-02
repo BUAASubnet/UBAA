@@ -4,7 +4,10 @@ set -euo pipefail
 
 mode=${1:-release}
 mode=${mode#mode=}
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/repo.sh
+source "$script_dir/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 flutter_root=${UBAA_OHOS_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-ohos-3.41.10}
 flutter_bin=$flutter_root/bin/flutter
 app_root=$repo_root/apps/ubaa_ohos
@@ -32,7 +35,7 @@ if [[ "$mode" != debug && "$mode" != release ]]; then
   exit 2
 fi
 
-"$repo_root/scripts/check-flutter-toolchains.sh" ohos
+"$repo_root/scripts/check/flutter-toolchains.sh" ohos
 (
   cd "$app_root"
   "$flutter_bin" pub get --enforce-lockfile
