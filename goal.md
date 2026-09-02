@@ -452,6 +452,7 @@
 159. 提交 `4938a61` 的合同 CI run `33605940388` 与 Flutter 原生 CI run `33605940357` 均已终态 `success`。合同 run 的 `contract-gates`、Windows Rust、macOS Rust 全部通过；原生 run 的 Android APK、iOS simulator、macOS、Linux、Windows Debug 全部通过无签名产物结构检查，macOS 另通过宿主 integration smoke。此前本机 `just refs`、`just check-sensitive`、`just check`、FRB 零漂移、`just flutter-check`、无签名 RC 前置报告和 API26 无签名 OHOS HAP 均已通过且生成物已清理；本轮仍无签名、实体设备、原生安全存储或真实账号写入证据，P3/P4/P5/P6 逐领域与设备后置缺口未闭合。
 160. 当前 HEAD 在 2026-09-02 营业窗口内串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮没有执行任何真实写接口；该证据仍不替代 Flutter→FRB→Core 写链、真实写后核对、实体设备或签名发布。
 161. 修复场馆预约 UI 与 bridge 合同的不一致：一次预约只能选择同一空间的多个时段，跨空间详情不再生成可选 `FilterChip`，避免把必然在 Core prepare 阶段拒绝的组合呈现给用户。先将跨空间禁显断言加入 `ubaa_ui` 回归并观察到旧实现失败，再完成最小过滤；聚焦测试通过，未产生网络或真实写入副作用。
+162. 新增 `ubaa_ui` 十二项功能状态矩阵回归，逐项覆盖 `loading`、`empty`、`failure`、`stale` 的详情呈现与失败/过期重试入口（共 48 个状态断言，重试回调 24 次）；全量 UI 测试 43 项通过。该证据补齐共享状态组件的逐领域覆盖，不替代真实 App→FRB→Core、逐领域真实写后核对或设备验证。
 
 ## 4. 安全与架构边界
 

@@ -1616,3 +1616,8 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - bridge 写合同要求同一次场馆预约的全部 `CgyyReservationSelectionInput` 使用同一空间；此前 UI 收集同站点、同日期的全部可预约时段，跨空间选项虽然最终会被 Core prepare 拒绝，但仍会被错误呈现。
 - 先在 `packages/ubaa_ui/test/widgets_test.dart` 增加跨空间 `FilterChip` 禁显断言，旧实现按预期失败；随后在 `_cgyyReservationSelections` 增加同空间过滤，并保留同空间多时段选择和去重。聚焦 widget 测试通过，未访问上游或执行真实写入。
 - `docs/design/flutter-ui-spec.md` 与 `docs/architecture/flutter-platforms.md` 已同步该边界；该修复只收紧 UI 输入，不改变 Core 协议、路线或挑战材料处理。
+
+## 2026-09-02 十二项功能状态矩阵回归
+
+- 共享详情组件新增逐领域状态矩阵测试，针对十二项普通/高级功能分别验证 `loading`、`empty`、`failure` 和 `stale` 呈现；失败与过期状态均验证稳定错误文案和重试入口，`stale` 另验证保留上次成功详情。
+- 该测试共覆盖 48 个状态断言、24 次重试回调，`ubaa_ui` 全量测试现为 43 项通过。它证明共享状态组件没有按功能遗漏，不替代各领域真实上游/App→FRB→Core 或设备证据。

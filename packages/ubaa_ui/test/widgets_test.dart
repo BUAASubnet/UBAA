@@ -2479,6 +2479,107 @@ void main() {
     expect(retryCalls, 1);
   });
 
+  testWidgets('十二项功能共享 loading、empty、failure、stale 状态矩阵', (tester) async {
+    var retryCalls = 0;
+    final statuses = <FeatureLoadStatus>[
+      FeatureLoadStatus.loading,
+      FeatureLoadStatus.empty,
+      FeatureLoadStatus.failure,
+      FeatureLoadStatus.stale,
+    ];
+
+    Future<void> openFeature(FeatureId feature) async {
+      final ordinary = ordinaryFeatureIds.contains(feature);
+      final selectedIcon = ordinary ? Icons.apps : Icons.auto_awesome;
+      final unselectedIcon = ordinary
+          ? Icons.apps_outlined
+          : Icons.auto_awesome_outlined;
+      final selectedFinder = find.byIcon(selectedIcon);
+      final tabFinder = selectedFinder.evaluate().isNotEmpty
+          ? selectedFinder
+          : find.byIcon(unselectedIcon);
+      await tester.tap(tabFinder.first);
+      await tester.pump();
+      final target = find.text(feature.title).first;
+      await tester.scrollUntilVisible(
+        target,
+        240,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+      await tester.tap(target);
+      await tester.pump();
+      expect(find.text('返回功能列表'), findsOneWidget);
+    }
+
+    for (final status in statuses) {
+      final snapshots = <FeatureId, FeatureSnapshot>{
+        for (final feature in FeatureId.values)
+          feature: FeatureSnapshot(
+            feature: feature,
+            status: status,
+            summary: status == FeatureLoadStatus.stale ? '上次成功摘要' : null,
+            details: status == FeatureLoadStatus.stale
+                ? const <FeatureDetail>[
+                    FeatureDetail(title: '上次成功详情'),
+                  ]
+                : const <FeatureDetail>[],
+            error: status == FeatureLoadStatus.failure ||
+                    status == FeatureLoadStatus.stale
+                ? const UiError(
+                    code: UbaaErrorCode.networkError,
+                    title: '读取失败',
+                    message: '测试读取失败',
+                    retryable: true,
+                  )
+                : null,
+          ),
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: UbaaTheme.light(),
+          home: UbaaMainShell(
+            user: const UserSummary(username: 'student'),
+            snapshots: snapshots,
+            routePolicy: RoutePolicy.auto,
+            telemetryEnabled: false,
+            onRefresh: () async {},
+            onRetryFeature: (_) async => retryCalls++,
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+            onTelemetryChanged: (_) {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      for (final feature in FeatureId.values) {
+        await openFeature(feature);
+        switch (status) {
+          case FeatureLoadStatus.loading:
+            expect(find.byType(CircularProgressIndicator), findsOneWidget);
+          case FeatureLoadStatus.empty:
+            expect(find.text('暂无${feature.title}数据'), findsOneWidget);
+          case FeatureLoadStatus.failure:
+            expect(find.text('测试读取失败'), findsOneWidget);
+            await tester.tap(find.text('重试').last);
+            await tester.pump();
+          case FeatureLoadStatus.stale:
+            expect(find.text('测试读取失败'), findsOneWidget);
+            expect(find.text('上次成功详情'), findsOneWidget);
+            await tester.tap(find.text('重试').last);
+            await tester.pump();
+          case FeatureLoadStatus.idle || FeatureLoadStatus.success:
+            fail('状态矩阵不应包含 ${status.name}');
+        }
+        await tester.tap(find.text('返回功能列表'));
+        await tester.pump();
+      }
+    }
+    expect(retryCalls, 24);
+  });
+
   testWidgets('Core 返回未知结果时固定提示核对且不触发写后刷新', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
