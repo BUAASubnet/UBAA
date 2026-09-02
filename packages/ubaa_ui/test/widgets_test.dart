@@ -296,6 +296,58 @@ void main() {
     expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
   });
 
+  testWidgets('博雅签到状态明确不可用时禁用写入口并提示由 Core 判定', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                      FeatureField(label: '可签到', value: '否'),
+                      FeatureField(label: '可签退', value: '否'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcSignWrite: (_, __) async {
+            prepareCalls++;
+            throw StateError('should not be called');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+    expect(find.text('当前不在可操作时间窗或状态不允许，具体条件由 Core 判定。'), findsOneWidget);
+    await tester.tap(find.text('准备博雅签到'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 0);
+    expect(find.text('确认博雅签到'), findsNothing);
+  });
+
   testWidgets('场馆订单取消只从公开订单编号进入确认页', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
@@ -932,6 +984,57 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 / 2'), findsNothing);
     expect(find.text('课程 1'), findsNWidgets(2));
+  });
+
+  testWidgets('服务端分页使用 Core 元数据并通过 typed 查询翻页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[FeatureDetail(title: '第一页课程')]
+              : const <FeatureDetail>[],
+          pagination: feature == FeatureId.bykc
+              ? const FeaturePagination(
+                  page: 1,
+                  size: 20,
+                  total: 41,
+                  totalPages: 3,
+                  hasMore: true,
+                )
+              : null,
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.bykc);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+    expect(find.text('第 1 / 3 页（共 41 条）'), findsOneWidget);
+    await tester.tap(find.byTooltip('下一页').last);
+    await tester.pumpAndSettle();
+    expect(received?.page, 2);
   });
 
   testWidgets('领域查询控件提交日期和校区 typed 参数', (tester) async {
@@ -1988,9 +2091,7 @@ void main() {
     ]);
   });
 
-  testWidgets('已有摘要但详情为空的 stale 状态保留摘要并提供重试', (
-    tester,
-  ) async {
+  testWidgets('已有摘要但详情为空的 stale 状态保留摘要并提供重试', (tester) async {
     var retryCalls = 0;
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)

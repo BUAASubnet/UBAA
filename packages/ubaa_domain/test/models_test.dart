@@ -47,4 +47,18 @@ void main() {
     expect(copied.view, FeatureQueryView.bykcDetail);
     expect(copied.courseId, '12345');
   });
+
+  test('服务端分页元数据按 1-based 页码计算总页数', () {
+    const pagination = FeaturePagination(page: 2, size: 20, total: 41);
+    expect(pagination.effectiveTotalPages, 3);
+    const explicit = FeaturePagination(
+      page: 1,
+      size: 20,
+      total: 41,
+      totalPages: 5,
+      hasMore: true,
+    );
+    expect(explicit.effectiveTotalPages, 5);
+    expect(explicit.hasMore, isTrue);
+  });
 }

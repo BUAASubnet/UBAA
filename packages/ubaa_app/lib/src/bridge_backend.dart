@@ -407,6 +407,12 @@ class BridgeBackend
                 result.data.content.length,
                 '门博雅课程',
                 details: details,
+                pagination: _pagination(
+                  page: result.data.number,
+                  size: result.data.size,
+                  total: result.data.totalElements,
+                  totalPages: result.data.totalPages,
+                ),
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.bykcDetail:
@@ -489,6 +495,22 @@ class BridgeBackend
                         ),
                         _field('可签到', item.canSign ? '是' : '否'),
                         _field('可签退', item.canSignOut ? '是' : '否'),
+                        _field(
+                          '签到时间',
+                          _timeWindow(
+                            item.signConfig?.signStartDate,
+                            item.signConfig?.signEndDate,
+                          ),
+                        ),
+                        _field(
+                          '签退时间',
+                          _timeWindow(
+                            item.signConfig?.signOutStartDate,
+                            item.signConfig?.signOutEndDate,
+                          ),
+                        ),
+                        _field('位置要求', _locationRequirement(item.signConfig)),
+                        _field('签到类型', item.courseSignType?.toString()),
                       ]),
                     ),
                   )
@@ -897,6 +919,11 @@ class BridgeBackend
                 result.data.bookings.length,
                 '条预约记录',
                 details: details,
+                pagination: _pagination(
+                  page: result.data.page,
+                  size: result.data.limit,
+                  total: result.data.total,
+                ),
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.ygdkRecords:
@@ -1090,6 +1117,12 @@ class BridgeBackend
                 result.data.content.length,
                 '条场馆订单',
                 details: details,
+                pagination: _pagination(
+                  page: result.data.number,
+                  size: result.data.size,
+                  total: result.data.totalElements,
+                  totalPages: result.data.totalPages,
+                ),
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.cgyyOrderDetail:
@@ -1211,6 +1244,12 @@ class BridgeBackend
                 result.data.content.length,
                 '条打卡记录',
                 details: details,
+                pagination: _pagination(
+                  page: result.data.page,
+                  size: result.data.size,
+                  total: result.data.total,
+                  hasMore: result.data.hasMore,
+                ),
                 resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
               );
             case FeatureQueryView.libbookAreas:
@@ -1550,14 +1589,44 @@ class BridgeBackend
     int count,
     String unit, {
     List<FeatureDetail> details = const <FeatureDetail>[],
+    FeaturePagination? pagination,
     ConnectionMode? resolvedRoute,
   }) => count == 0
-      ? FeatureResult.empty(resolvedRoute: resolvedRoute)
+      ? FeatureResult.empty(
+          resolvedRoute: resolvedRoute,
+          pagination: pagination,
+        )
       : FeatureResult.success(
           summary: '$count$unit',
           details: details,
+          pagination: pagination,
           resolvedRoute: resolvedRoute,
         );
+
+  static FeaturePagination _pagination({
+    required int page,
+    required int size,
+    required int total,
+    int? totalPages,
+    bool? hasMore,
+  }) {
+    final normalizedSize = size <= 0 ? 1 : size;
+    final normalizedTotal = total < 0 ? 0 : total;
+    final normalizedTotalPages = totalPages != null && totalPages > 0
+        ? totalPages
+        : null;
+    return FeaturePagination(
+      page: page <= 0 ? 1 : page,
+      size: normalizedSize,
+      total: normalizedTotal,
+      totalPages: normalizedTotalPages,
+      hasMore:
+          hasMore ??
+          (normalizedTotalPages == null
+              ? null
+              : (page <= 0 ? 1 : page) < normalizedTotalPages),
+    );
+  }
 
   static FeatureField? _field(String label, String? value) {
     final trimmed = value?.trim();
@@ -1615,6 +1684,20 @@ class BridgeBackend
   static String? _nonBlank(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  static String? _timeWindow(String? start, String? end) {
+    final normalizedStart = start?.trim();
+    final normalizedEnd = end?.trim();
+    if (normalizedStart == null || normalizedStart.isEmpty) return null;
+    if (normalizedEnd == null || normalizedEnd.isEmpty) return normalizedStart;
+    return '$normalizedStart–$normalizedEnd';
+  }
+
+  static String? _locationRequirement(BridgeBykcSignConfig? config) {
+    if (config == null) return null;
+    if (config.signPoints.isEmpty) return '无需定位';
+    return '指定位置（${config.signPoints.length} 处）';
   }
 
   static bool _matchesClassroomFloor(

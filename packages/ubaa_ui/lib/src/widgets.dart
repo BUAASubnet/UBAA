@@ -434,6 +434,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
+
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final int initialTab;
   final List<ConnectionMode> activeRoutes;
@@ -453,6 +454,7 @@ class UbaaMainShell extends StatefulWidget {
   final YgdkPhotoPicker? onPickYgdkPhoto;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final Future<void> Function(WriteOperation operation)? onWriteSuccess;
+
   /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
   final Future<bool> Function(CgyyReservationReceipt receipt)?
   onVerifyCgyyReceipt;
@@ -503,6 +505,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         : _FeatureDetailView(
             feature: _openedFeature!,
             snapshot: widget.snapshots[_openedFeature!]!,
+            query: _featureQueries[_openedFeature!] ?? const FeatureQuery(),
             onBack: () => setState(() => _openedFeature = null),
             onRetry: () {
               final feature = _openedFeature!;
@@ -959,9 +962,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _pendingWrite = null;
         _writeSubmitting = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             _writeResultMessage(
@@ -991,9 +992,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final receipt = result.cgyyReceipt;
     if (result.operation == WriteOperation.cgyySubmitReservation &&
         receipt != null) {
-      final hint = cgyyReceiptVerified == true
-          ? '订单列表已核对'
-          : '请在订单列表核对';
+      final hint = cgyyReceiptVerified == true ? '订单列表已核对' : '请在订单列表核对';
       return '${result.message}（订单编号 ${receipt.orderId}，$hint）';
     }
     return result.message;
@@ -1353,6 +1352,7 @@ class _FeatureDetailView extends StatelessWidget {
   const _FeatureDetailView({
     required this.feature,
     required this.snapshot,
+    this.query,
     required this.onBack,
     required this.onRetry,
     this.onBykcWrite,
@@ -1369,6 +1369,7 @@ class _FeatureDetailView extends StatelessWidget {
 
   final FeatureId feature;
   final FeatureSnapshot snapshot;
+  final FeatureQuery? query;
   final VoidCallback onBack;
   final Future<void> Function() onRetry;
   final Future<void> Function(WriteOperation operation, int courseId)?
@@ -1451,6 +1452,9 @@ class _FeatureDetailView extends StatelessWidget {
     return _FeatureDetailList(
       feature: feature,
       details: snapshot.details,
+      pagination: snapshot.pagination,
+      query: query,
+      onQuery: onQuery,
       onBykcWrite: onBykcWrite,
       onBykcSignWrite: onBykcSignWrite,
       onSigninWrite: onSigninWrite,
@@ -1479,6 +1483,9 @@ class _FeatureDetailView extends StatelessWidget {
               : _FeatureDetailList(
                   feature: feature,
                   details: snapshot.details,
+                  pagination: snapshot.pagination,
+                  query: query,
+                  onQuery: onQuery,
                   onBykcWrite: onBykcWrite,
                   onBykcSignWrite: onBykcSignWrite,
                   onSigninWrite: onSigninWrite,
@@ -2898,6 +2905,9 @@ class _FeatureDetailList extends StatefulWidget {
   const _FeatureDetailList({
     required this.feature,
     required this.details,
+    this.pagination,
+    this.query,
+    this.onQuery,
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
@@ -2911,6 +2921,9 @@ class _FeatureDetailList extends StatefulWidget {
 
   final FeatureId feature;
   final List<FeatureDetail> details;
+  final FeaturePagination? pagination;
+  final FeatureQuery? query;
+  final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final Future<void> Function(int courseId, int signType)? onBykcSignWrite;
@@ -2970,12 +2983,17 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 );
               })
               .toList(growable: false);
-    final pageCount = details.isEmpty
-        ? 0
-        : (details.length + _pageSize - 1) ~/ _pageSize;
+    final serverPagination = widget.pagination;
+    final pageCount = serverPagination == null
+        ? details.isEmpty
+              ? 0
+              : (details.length + _pageSize - 1) ~/ _pageSize
+        : 1;
     final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
     final start = page * _pageSize;
-    final visible = details.skip(start).take(_pageSize).toList(growable: false);
+    final visible = serverPagination == null
+        ? details.skip(start).take(_pageSize).toList(growable: false)
+        : details;
     final pendingEvaluations = widget.details
         .map(_evaluationTarget)
         .whereType<EvaluationCourseInput>()
@@ -3057,6 +3075,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final cgyyReservation = _cgyyReservationTarget(detail);
                     final evaluation = _evaluationTarget(detail);
                     final ygdk = _ygdkTarget(detail);
+                    final canBykcSign = _isAllowed(detail, '可签到');
+                    final canBykcSignOut = _isAllowed(detail, '可签退');
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -3143,19 +3163,37 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 runSpacing: 8,
                                 children: <Widget>[
                                   OutlinedButton.icon(
-                                    onPressed: () =>
-                                        widget.onBykcSignWrite!(courseId, 1),
+                                    onPressed: canBykcSign
+                                        ? () => widget.onBykcSignWrite!(
+                                            courseId,
+                                            1,
+                                          )
+                                        : null,
                                     icon: const Icon(Icons.login),
                                     label: const Text('准备博雅签到'),
                                   ),
                                   OutlinedButton.icon(
-                                    onPressed: () =>
-                                        widget.onBykcSignWrite!(courseId, 2),
+                                    onPressed: canBykcSignOut
+                                        ? () => widget.onBykcSignWrite!(
+                                            courseId,
+                                            2,
+                                          )
+                                        : null,
                                     icon: const Icon(Icons.logout),
                                     label: const Text('准备博雅签退'),
                                   ),
                                 ],
                               ),
+                              if (!canBykcSign || !canBykcSignOut)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '当前不在可操作时间窗或状态不允许，具体条件由 Core 判定。',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
                             ],
                             if (widget.feature == FeatureId.signin &&
                                 widget.onSigninWrite != null &&
@@ -3242,7 +3280,52 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                   },
                 ),
         ),
-        if (pageCount > 1)
+        if (serverPagination != null &&
+            widget.onQuery != null &&
+            widget.query != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                IconButton(
+                  tooltip: '上一页',
+                  onPressed: serverPagination.page <= 1
+                      ? null
+                      : () => widget.onQuery!(
+                          widget.query!.copyWith(
+                            page: serverPagination.page - 1,
+                          ),
+                        ),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Semantics(
+                  label: '服务端分页',
+                  child: Text(
+                    serverPagination.effectiveTotalPages > 0
+                        ? '第 ${serverPagination.page} / ${serverPagination.effectiveTotalPages} 页（共 ${serverPagination.total} 条）'
+                        : '第 ${serverPagination.page} 页（共 ${serverPagination.total} 条）',
+                  ),
+                ),
+                IconButton(
+                  tooltip: '下一页',
+                  onPressed:
+                      !(serverPagination.hasMore ??
+                          (serverPagination.effectiveTotalPages > 0 &&
+                              serverPagination.page <
+                                  serverPagination.effectiveTotalPages))
+                      ? null
+                      : () => widget.onQuery!(
+                          widget.query!.copyWith(
+                            page: serverPagination.page + 1,
+                          ),
+                        ),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          )
+        else if (pageCount > 1)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
@@ -3285,6 +3368,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       if (field.label == '课程 ID') return field.value.trim();
     }
     return null;
+  }
+
+  bool _isAllowed(FeatureDetail detail, String label) {
+    for (final field in detail.fields) {
+      if (field.label == label) return field.value.trim() != '否';
+    }
+    // 旧版读取 DTO 可能没有该字段；交给 Core prepare 再做最终条件校验。
+    return true;
   }
 
   ({WriteOperation operation, String targetId})? _cancellationTarget(

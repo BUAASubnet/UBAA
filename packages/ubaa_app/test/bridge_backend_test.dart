@@ -237,6 +237,60 @@ void main() {
     expect(fields['可预约'], '是');
   });
 
+  test('BridgeBackend 博雅已选课程投影签到时间和位置要求但不暴露坐标', () async {
+    final response = BridgeRoutedBykcChosenCourses(
+      data: const <BridgeBykcChosenCourse>[
+        BridgeBykcChosenCourse(
+          id: 1,
+          courseId: 42,
+          courseName: '课程 A',
+          coursePosition: '校本部',
+          checkin: 0,
+          canSign: true,
+          canSignOut: false,
+          signConfig: BridgeBykcSignConfig(
+            signStartDate: '2026-09-02 08:00',
+            signEndDate: '2026-09-02 10:00',
+            signOutStartDate: '2026-09-02 11:00',
+            signOutEndDate: '2026-09-02 12:00',
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(lat: 39.99, lng: 116.31, radius: 100),
+              BridgeBykcSignPoint(lat: 40.00, lng: 116.32, radius: 80),
+            ],
+          ),
+          courseSignType: 1,
+        ),
+      ],
+      route: const BridgeRouteDecision(
+        policy: BridgeRoutePolicy.direct,
+        resolvedRoute: BridgeConnectionMode.direct,
+        network: BridgeNetworkState.campus,
+        initialRoute: BridgeConnectionMode.direct,
+        usedFallback: false,
+      ),
+    );
+    final result = await BridgeBackend(_FakeBykcChosenCoursesClient(response))
+        .loadFeatureQuery(
+          FeatureId.bykc,
+          const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+        );
+    final fields = {
+      for (final field in result.details.single.fields)
+        field.label: field.value,
+    };
+    expect(fields['签到时间'], '2026-09-02 08:00–2026-09-02 10:00');
+    expect(fields['签退时间'], '2026-09-02 11:00–2026-09-02 12:00');
+    expect(fields['位置要求'], '指定位置（2 处）');
+    expect(fields['签到类型'], '1');
+    expect(
+      result.details.single.fields.any(
+        (field) =>
+            field.value.contains('39.99') || field.value.contains('116.31'),
+      ),
+      isFalse,
+    );
+  });
+
   test('BridgeBackend 三类复杂写入保持 typed 字段并不透传 raw payload', () async {
     final backend = BridgeBackend(_FakeComplexWriteClient());
     final ygdkIntent = await backend.prepareYgdkSubmit(
@@ -400,6 +454,10 @@ void main() {
         field.label: field.value,
     };
     expect(fields['图片数量'], '2');
+    expect(result.pagination?.page, 1);
+    expect(result.pagination?.size, 20);
+    expect(result.pagination?.total, 1);
+    expect(result.pagination?.hasMore, isFalse);
     expect(
       result.details.single.fields.any((field) => field.value.contains('http')),
       isFalse,
@@ -507,6 +565,20 @@ class _FakeLibbookSeatsClient implements BridgeClient {
       expect(named[#startTime], '10:00');
       expect(named[#endTime], '12:00');
       return Future<BridgeRoutedLibBookSeats>.value(response);
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
+
+class _FakeBykcChosenCoursesClient implements BridgeClient {
+  _FakeBykcChosenCoursesClient(this.response);
+
+  final BridgeRoutedBykcChosenCourses response;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #bykcChosenCourses) {
+      return Future<BridgeRoutedBykcChosenCourses>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }

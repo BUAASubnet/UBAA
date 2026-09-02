@@ -258,6 +258,7 @@ class FeatureSnapshot {
     this.details = const <FeatureDetail>[],
     this.error,
     this.resolvedRoute,
+    this.pagination,
     this.updatedAt,
   });
 
@@ -269,6 +270,9 @@ class FeatureSnapshot {
 
   /// Core 对本次读取实际解析出的路线；不能用配置策略替代。
   final ConnectionMode? resolvedRoute;
+
+  /// Core 返回的服务端分页元数据；只对支持分页的 typed 查询存在。
+  final FeaturePagination? pagination;
   final DateTime? updatedAt;
 
   FeatureSnapshot copyWith({
@@ -277,11 +281,13 @@ class FeatureSnapshot {
     List<FeatureDetail>? details,
     UiError? error,
     ConnectionMode? resolvedRoute,
+    FeaturePagination? pagination,
     DateTime? updatedAt,
     bool clearError = false,
     bool clearSummary = false,
     bool clearDetails = false,
     bool clearResolvedRoute = false,
+    bool clearPagination = false,
   }) => FeatureSnapshot(
     feature: feature,
     status: status ?? this.status,
@@ -291,8 +297,33 @@ class FeatureSnapshot {
     resolvedRoute: clearResolvedRoute
         ? null
         : (resolvedRoute ?? this.resolvedRoute),
+    pagination: clearPagination ? null : (pagination ?? this.pagination),
     updatedAt: updatedAt ?? this.updatedAt,
   );
+}
+
+/// 服务端分页的稳定展示元数据。页码按用户可见的 1-based 语义表达。
+@immutable
+class FeaturePagination {
+  const FeaturePagination({
+    required this.page,
+    required this.size,
+    required this.total,
+    this.totalPages,
+    this.hasMore,
+  });
+
+  final int page;
+  final int size;
+  final int total;
+  final int? totalPages;
+  final bool? hasMore;
+
+  int get effectiveTotalPages {
+    if (totalPages case final value? when value > 0) return value;
+    if (size <= 0 || total <= 0) return 0;
+    return (total + size - 1) ~/ size;
+  }
 }
 
 /// 首页加载结果。每个功能独立返回，避免单个上游故障遮蔽其他卡片。
@@ -302,10 +333,11 @@ class FeatureResult {
     this.summary,
     this.details = const <FeatureDetail>[],
     this.resolvedRoute,
+    this.pagination,
   }) : isEmpty = false,
        error = null;
 
-  const FeatureResult.empty({this.resolvedRoute})
+  const FeatureResult.empty({this.resolvedRoute, this.pagination})
     : summary = null,
       details = const <FeatureDetail>[],
       isEmpty = true,
@@ -315,6 +347,7 @@ class FeatureResult {
     : summary = null,
       details = const <FeatureDetail>[],
       resolvedRoute = null,
+      pagination = null,
       isEmpty = false;
 
   final String? summary;
@@ -322,6 +355,7 @@ class FeatureResult {
 
   /// Core 对本次读取实际解析出的路线；失败或未执行时可以为空。
   final ConnectionMode? resolvedRoute;
+  final FeaturePagination? pagination;
   final bool isEmpty;
   final UiError? error;
 }
