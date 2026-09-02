@@ -458,6 +458,8 @@
 165. 提交 `f711f02` 后复核：`just refs`、`just check-sensitive`、`just check`、`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、无签名 RC 前置报告、macOS Debug 构建及产物结构摘要均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 通过 API26/arm64 无签名 HAP 门禁，HAP 未签名、未安装、未上传且生成输出已清理。工作树与远端 `origin/ubaa2` 一致；本轮仍无真实账号写入、原生安全存储、实体设备或签名发布证据。
 166. bridge 场馆订单状态说明现按冻结 `displayStatus` 映射为“已取消/审批通过/待审批/占用/正常/未知”，审核状态说明覆盖冻结正负审批码；UI 仍使用原始公开码执行取消门禁并展示说明。新增 bridge 字段断言与全量 app/UI 测试通过，不改变上游协议、写入次数或真实副作用；P3/P4/P5/P6 仍未完成。
 167. 继续收紧场馆取消入口：当公开 `审核状态` 字段存在但不是可解析的冻结数值时，UI 现在按默认拒绝处理；缺失该可选字段仍交由订单状态和 Core prepare 判定。新增格式错误状态回归，聚焦测试与 `flutter analyze` 均通过；提交 `48a7cbf` 已推送。本轮未访问上游或执行真实写入，P3/P4/P5/P6 其余门禁仍未闭合。
+168. 提交 `23ec075` 后在 2026-09-02 17 时段（Asia/Shanghai）串行复核真实只读矩阵：第一次 Direct 因图书馆 `libraries=upstream_changed` 且后续 `bookings=timeout` 退出码 5，WebVPN 全部必需读取 exit 0；随后立即重跑 Direct 恢复 exit 0，图书馆 `libraries/areas/area_detail/seats/bookings` 均 PASS(count=3/2/1/175/2)，其余必需读取均 PASS，SPOC/博雅详情因空父列表为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口，首次失败作为瞬时上游证据保留，不能用历史结果覆盖。
+169. 提交 `48a7cbf` 的 Flutter 原生 CI run `33613013808` 已终态成功，Linux、Windows、macOS、iOS simulator、Android APK 五个无签名 Debug job 均通过产物结构检查，macOS 通过宿主 integration smoke；提交 `23ec075` 的合同 CI run `33613046839` 已终态成功。CI 不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后核对或正式发布，P3/P4/P5/P6 其余门禁仍未闭合。
 
 ## 4. 安全与架构边界
 

@@ -1644,3 +1644,9 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 
 - 场馆取消入口现在区分“审核状态缺失”和“审核状态存在但格式错误”：后者不再按可取消处理，避免非数值公开字段绕过冻结状态门禁；缺失字段仍保留订单状态/时间门禁并交由 Core prepare 做最终校验。
 - 新增格式错误审核状态 widget 回归，聚焦测试与 `flutter analyze` 通过；提交 `48a7cbf` 已推送。本轮未访问上游、未执行真实取消或其它账号写入，P3/P4/P5/P6 其余门禁仍未闭合。
+
+## 2026-09-02 `23ec075` 最终只读与 CI 复核
+
+- 本轮第一次 `just verify-live mode=direct` 受瞬时上游影响：图书馆 `libraries` 返回 `upstream_changed`，后续依赖项被阻断且 `bookings` 超时，退出码 5；串行 WebVPN 复核全部必需读取 exit 0。
+- 随后立即重跑 Direct 恢复 exit 0：认证、用户及课表/考试/成绩/空教室/SPOC/Judge/签到/阳光打卡/图书馆/博雅/场馆/评教必需读取均为 `PASS`，图书馆关键计数为 `libraries=3`、`areas=2`、`area_detail=1`、`seats=175`、`bookings=2`；SPOC/博雅详情因空父列表记 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`。两次均未调用真实写接口，首次失败按事实保留为瞬时上游记录。
+- 提交 `48a7cbf` 的 Flutter 原生 CI `33613013808` 已成功：Linux、Windows、macOS、iOS simulator、Android APK 无签名 Debug 产物结构均通过，macOS 宿主 integration smoke 通过；提交 `23ec075` 的合同 CI `33613046839` 已成功。CI 不包含 OHOS 签名、实体设备、原生安全存储、真实写后核对或正式发布，P3/P4/P5/P6 仍未闭合。
