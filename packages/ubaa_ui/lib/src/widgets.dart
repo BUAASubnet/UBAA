@@ -3492,8 +3492,12 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
 
   bool _isCgyyCancellationAllowed(Map<String, String> values) {
     final orderStatus = int.tryParse(values['订单状态'] ?? '');
-    final checkStatus = int.tryParse(values['审核状态'] ?? '');
-    if (orderStatus == null) return false;
+    final rawCheckStatus = values['审核状态'];
+    final checkStatus = int.tryParse(rawCheckStatus ?? '');
+    if (orderStatus == null ||
+        (rawCheckStatus != null && checkStatus == null)) {
+      return false;
+    }
     if ((checkStatus != null && checkStatus < 0) || orderStatus == 2) {
       return false;
     }

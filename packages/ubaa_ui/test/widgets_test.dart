@@ -656,6 +656,14 @@ void main() {
                       FeatureField(label: '审核状态', value: '1'),
                     ],
                   ),
+                  FeatureDetail(
+                    title: '审核状态格式错误订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '23'),
+                      FeatureField(label: '订单状态', value: '1'),
+                      FeatureField(label: '审核状态', value: '待审核'),
+                    ],
+                  ),
                 ]
               : const <FeatureDetail>[],
         ),
