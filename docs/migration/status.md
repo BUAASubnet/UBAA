@@ -16,6 +16,12 @@
 - `just flutter-check`、`just check`、`just check-sensitive`、`CARGO_INCREMENTAL=0 just flutter-codegen-check` 均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 的工具链、Dart/widget/native 前置均为 0 失败/0 警告，并生成 `entry-default-unsigned.hap`；实体设备和签名未执行。
 - 提交 `38763f4` 的 `release-preflight` 现生成 Cargo CycloneDX 风格 SBOM、Dart/Flutter 锁文件版本与许可证审计，并由合同 CI 归档；无签名报告仍不等价于正式签名发布。
 - 提交 `a7d4ac0` 将报告锁文件来源收敛为 Git 跟踪清单，排除构建目录临时文件；干净工作树复跑成功，报告列出 8 个锁文件并生成 SBOM、许可证审计、源码校验和无签名摘要。
+- 提交 `9dfe078` 修正 `just release-preflight` 的合同调用方式，统一使用绝对报告目录的位置参数；合同
+  CI `33573554458` 已终态成功，`contract-gates`、macOS Rust 和 Windows Rust 三个 job 均通过，且
+  `just check`、无签名 RC 报告生成和 artifact 上传均成功。
+- `docs/architecture/flutter-platforms.md` 与 `docs/design/flutter-ui-spec.md` 已同步无签名合同：无签名
+  HAP/静态包检查是当前 OHOS 交付，签名、设备、安全存储和逐领域 golden/真实 App 链路保留为后置或
+  未闭合证据；十二项功能的共享详情入口和课堂签到组合回归已明确记录，不再描述为生产占位页。
 
 ## 2026-09-02 当前提交双路线只读复核
 

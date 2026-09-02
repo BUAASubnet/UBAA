@@ -56,13 +56,16 @@ assemble 前置均通过；正式构建需要在 DevEco Signing Configs 配置�
 `libs/arm64-v8a/libubaa_bindings.so`。无签名构建不能作为平台完成、发布或实体设备证据。旧
 DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 
-P0 必须完成：
+本轮无签名目标必须完成：
 
-1. 在不暴露凭据的前提下配置受控调试或发布签名，并构建空应用签名 HAP。
-2. 生成 FRB/Cargokit arm64 产物，确认 HAP 包含 `libs/arm64-v8a/libubaa_bindings.so`（或
-   同一 bridge 的兼容命名）且架构为 arm64。
-3. 在实体 HarmonyOS 设备上完成启动、FRB hello、应用私有目录、网络和 HUKS smoke。
+1. 在不读取或写入签名凭据的前提下，完成匹配的 DevEco/CLI、API26 SDK 和工程配置预检。
+2. 生成 FRB/Cargokit arm64 产物，确认无签名 HAP 包含
+   `libs/arm64-v8a/libubaa_bindings.so`（或同一 bridge 的兼容命名）且架构为 arm64。
+3. 对无签名 HAP 执行包结构、动态库和加载前置静态检查，并保留可复核命令输出。
 4. 记录 `runtimeOS`、`compatibleSdkVersion`、build/target API 和 SDK 组件版本，防止“SDK component missing”类混配。
+
+签名 HAP、实体 HarmonyOS 设备上的启动/FRB hello、应用私有目录、网络、权限和 HUKS smoke
+均为后置发布条件；没有证书或设备时必须记录为 `BLOCKED`，不得把无签名包标为平台正式完成。
 
 ## 4. 可复现命令
 
@@ -105,9 +108,9 @@ Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、
 | 产物 | 采用结论 | P0 证据 | 后续约束 |
 |---|---|---|---|
 | `apps/ubaa_flutter` 五平台官方宿主 | 保留生成宿主与薄入口作为构建起点 | 官方 `3.41.9` analyze/test 通过，五个平台目录齐全 | 默认 Demo backend 仅限测试/预览，Release 前必须由 FRB production backend 替换 |
-| `apps/ubaa_ohos` | 保留共享入口并用锁定 fork 生成官方 runner | fork 提交/Dart 匹配，pub get、analyze、widget test 与 API26 工具链前置通过 | arm64 Cargokit/FRB 已接线；签名 HAP 与设备证据待完成 |
+| `apps/ubaa_ohos` | 保留共享入口并用锁定 fork 生成官方 runner | fork 提交/Dart 匹配，pub get、analyze、widget test 与 API26 工具链前置通过 | arm64 Cargokit/FRB 已接线；无签名 HAP 包内容检查通过，签名 HAP 与设备证据待完成 |
 | `ubaa_domain`、`ubaa_app`、`ubaa_platform` | 保留为分层骨架 | 官方 SDK analyze/test 通过 | 当前仅有摘要模型与内存/回调适配，不能作为完整功能或安全存储实现 |
-| `ubaa_ui` | 保留主题、响应式导航和基础状态组件 | analyze 通过；P0 补充 widget 基线测试 | 摘要卡片、占位详情和“即将接入”均明确未验收，P3/P4 必须逐领域替换 |
+| `ubaa_ui` | 保留主题、响应式导航、共享详情/查询/确认组件 | analyze、widget 以及宿主全功能 smoke 通过 | 十二项功能已有 typed 详情入口和写入确认组件；逐领域 golden、真实设备链路和剩余上游字段仍按 P3/P4 收敛 |
 | Demo backend、交互验证码字段 | 不作为生产合同采用 | Core 当前未证明通用交互验证码；Demo 不访问 Core | P1/P2 移除生产默认 Demo，并按稳定 bridge 合同收敛登录状态 |
 
 P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goal.md` 的功能、平台或发布完成条件。
@@ -125,8 +128,8 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 
 | 依赖 | 固定版本 | 用途 | 许可证 | 五平台状态 | OHOS 状态 |
 |---|---|---|---|---|---|
-| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | Windows、Linux、macOS、iOS simulator、Android 原生 runner 均已实际链接 | Dart API/HAR 已接线，HAP assemble 已到签名配置 |
-| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定 Rust crate | MIT/Apache-2.0 | 五平台均通过；Windows 使用 app `CMAKE_SOURCE_DIR` 计算绝对 manifest，避免 plugin junction 的父目录语义差异 | arm64 HAR/CMake 已接线，HAP assemble 已到签名配置 |
+| `flutter_rust_bridge` | `2.13.0` | 生成 Dart/Rust FFI codec 与 runtime | MIT | Windows、Linux、macOS、iOS simulator、Android 原生 runner 均已实际链接 | Dart API/HAR 已接线，无签名 HAP assemble 与 arm64 包内容检查通过 |
+| Cargokit | FRB `2.13.0` 随附快照 | 从 Flutter native build 驱动固定 Rust crate | MIT/Apache-2.0 | 五平台均通过；Windows 使用 app `CMAKE_SOURCE_DIR` 计算绝对 manifest，避免 plugin junction 的父目录语义差异 | arm64 HAR/CMake 已接线，无签名 HAP assemble 已通过 |
 
 两项依赖都不拥有协议、Cookie、路线或业务 DTO；它们只负责 FFI 生成与 native library
 构建。版本升级必须同时更新 Rust crate、Dart package、codegen、Cargokit 快照和六平台
@@ -137,10 +140,10 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 | 风险 | 当前证据 | 影响 | 处置与门禁 |
 |---|---|---|---|
 | GitHub Actions Node.js 20 运行时进入弃用迁移 | 成功 run `33450597586` 对 `checkout@v4`、`upload-artifact@v4` 给出强制 Node.js 24 警告 | 当前不影响产物，但后续 runner 可能停止兼容旧 action runtime | P1 前期按官方 action 版本说明升级并以完整 CI/native run 复验 |
-| OHOS 调试签名尚未配置 | DevEco/CLI `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、SDK API26 前置通过；HAP assemble 停在 Signing Configs | 无法生成可验收 HAP 或设备 FRB hello | 取得项目所有者逐项授权后配置受控签名并重跑；不得提交签名材料或绕过签名 |
+| OHOS 调试签名尚未配置 | DevEco/CLI `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、SDK API26 前置通过；无签名 HAP assemble 与包内容检查通过 | 无法生成签名 HAP 或设备 FRB hello，但不阻断本轮无签名 RC | 取得项目所有者逐项授权后配置受控签名并重跑；不得提交签名材料或绕过签名 |
 | OHOS 下载入口需要华为账号 | 未登录、未传输账号信息 | 工具链取得受外部账号与授权约束 | 取得项目所有者明确授权后才登录或使用受限下载 |
 | 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
-| 当前 Flutter UI 仍含探索 Demo/占位 | P0 仅验证宿主与 hello | 不能作为 P1 至 P6 功能完成证据 | P1 固定 bridge 合同，P2/P3/P4 逐项移除并以测试闭环 |
+| 领域详情与平台能力仍有证据缺口 | 共享详情、查询、确认和无签名平台抽象已有确定性测试；真实设备/签名不可用 | 不能把 Mock 或无签名产物称为正式发布证据 | 继续补逐领域 golden/真实 App 链路；设备、签名、安全存储验证保持后置 `BLOCKED` |
 
 当前结论为 **NO-GO（正式签名发布）/ GO（无签名 RC 与跨平台确定性开发）**。官方 Flutter 五平台
 native debug 矩阵已在 run `33541980112` 全部通过并上传独立产物，提交 `62ec048` 的合同

@@ -22,6 +22,7 @@ class UbaaOhosApp extends StatefulWidget {
     this.backend,
     this.credentialVault,
     this.photoPicker,
+    this.permissionGateway,
     this.initialTab = 0,
     this.telemetry,
     super.key,
@@ -30,6 +31,7 @@ class UbaaOhosApp extends StatefulWidget {
   final UbaaBackend? backend;
   final CredentialVault? credentialVault;
   final PlatformPhotoPicker? photoPicker;
+  final PlatformPermissionGateway? permissionGateway;
   final int initialTab;
   final TelemetryClient? telemetry;
 
@@ -40,6 +42,16 @@ class UbaaOhosApp extends StatefulWidget {
 class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
   late final AppController _controller;
   bool _wasBackgrounded = false;
+
+  PlatformPhotoPicker? get _photoPicker {
+    final picker = widget.photoPicker;
+    if (picker == null) return null;
+    return PermissionedPhotoPicker(
+      permissions:
+          widget.permissionGateway ?? const UnavailablePermissionGateway(),
+      picker: picker,
+    );
+  }
 
   @override
   void initState() {
@@ -146,7 +158,7 @@ class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
           ),
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
-      onPickYgdkPhoto: widget.photoPicker?.pickPhoto,
+      onPickYgdkPhoto: _photoPicker?.pickPhoto,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onCommitWrite: _controller.commitWrite,
       onWriteSuccess: _controller.refreshAfterWrite,
