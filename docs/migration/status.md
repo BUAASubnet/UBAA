@@ -1593,3 +1593,11 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   随后的 `just flutter-check`、`just check-sensitive` 和差异检查通过。
 - 本轮只改变确定性 UI 入口和 typed 输入组合，没有调用真实写接口、上游或平台原生 handler；逐领域 golden/
   integration、真实写后核对、实体设备安全存储和签名发布仍按 `goal.md` 保持未完成或后置 `BLOCKED`。
+
+## 2026-09-02 `4938a61` CI 终态
+
+- 合同 CI run `33605940388` 已终态 `success`：`contract-gates`、Windows Rust 和 macOS Rust 三个 job
+  全部成功，覆盖 `just refs`、敏感扫描、Rust 全量检查、无签名 RC 前置报告与文档门禁。
+- Flutter 原生 CI run `33605940357` 已终态 `success`：Android APK、iOS simulator、macOS、Linux、
+  Windows Debug 五个 job 全部成功并完成无签名产物结构检查；macOS job 还完成官方宿主 integration smoke。
+  两个 run 均不包含签名、实体设备安装、原生安全存储或真实账号写入。
