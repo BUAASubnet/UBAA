@@ -427,6 +427,7 @@
 134. 当前 HEAD `0fa5ec0` 已复核：`just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、`just release-preflight`、macOS 宿主集成（3/3）和 API26 无签名 OHOS HAP（arm64 `libubaa_bindings.so`）均通过；OHOS 仅以 `UBAA_OHOS_NO_CODESIGN=1` 生成 `entry-default-unsigned.hap`，未签名、未安装、未上传。远端合同 CI `33581588034` 与五平台 Flutter 原生 CI `33581587938` 均已终态成功；五平台 Windows、Linux、macOS、iOS simulator、Android APK job 全部成功并上传无签名 Debug 产物，签名/设备证据不在其中。
 135. 2026-09-02 营业窗口内串行复核当前 Core-live 只读矩阵：Direct 与 WebVPN 均 exit code 0；认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，空父列表详情按同批次证据为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮未调用任何真实写接口；这仍不替代六平台真实 App→FRB→Core、逐领域 golden/integration 和真实写后核对。
 136. 提交 `b0c4a77` 收紧课堂签到 UI：读取字段明确为“已签到”时，重复签到按钮禁用并显示稳定说明；旧 DTO 缺少状态字段时仍交给 Core prepare 做最终校验。先观察到旧实现按钮仍可用的失败回归，修复后 `ubaa_ui` 全量 37 项通过；`just check-sensitive`、`just check`、FRB 零漂移均通过。该提交的合同 CI `33583052957` 与五平台 Flutter 原生 CI `33583052953` 均终态成功，五平台 Debug job 全部通过并上传产物；不包含签名、实体设备或真实写入证据。
+137. 提交 `777261f` 新增主页与共享详情页的稳定 Flutter golden 基线（明亮主题、1280×800），先观察到基线文件缺失的预期失败，再生成并在不更新基线模式下通过；当前 `ubaa_ui` 全量 38 项通过，macOS 宿主集成 3/3 通过。该提交的合同 CI `33584844827` 与五平台 Flutter 原生 CI `33584844835` 均终态成功，五个平台 Debug job 全部通过并上传产物；golden 代表共享壳/详情渲染，实体设备和签名证据仍后置。
 
 ## 4. 安全与架构边界
 
