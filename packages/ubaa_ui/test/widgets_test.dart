@@ -442,6 +442,78 @@ void main() {
     expect(find.text('确认博雅签到'), findsNothing);
   });
 
+  testWidgets('博雅课程状态收紧选课和退选入口', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '已选课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                      FeatureField(label: '状态', value: 'selected'),
+                      FeatureField(label: '已选', value: '是'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var selectCalls = 0;
+    var deselectCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (operation, courseId) async {
+            if (operation == WriteOperation.bykcSelectCourse) {
+              selectCalls++;
+            } else if (operation == WriteOperation.bykcDeselectCourse) {
+              deselectCalls++;
+            }
+            return WriteIntent(
+              intentId: 'status-${operation.name}',
+              operation: operation,
+              targetSummary: '课程 $courseId',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>[],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+
+    final select = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备选课'),
+    );
+    final deselect = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备退选'),
+    );
+    expect(select.onPressed, isNull);
+    expect(deselect.onPressed, isNotNull);
+    expect(find.text('当前课程状态不支持该操作；最终资格和时间窗仍由 Core 校验。'), findsOneWidget);
+    expect(selectCalls, 0);
+    expect(deselectCalls, 0);
+  });
+
   testWidgets('场馆订单取消只从公开订单编号进入确认页', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
@@ -620,6 +692,17 @@ void main() {
                       FeatureField(label: '可预约', value: '是'),
                     ],
                   ),
+                  FeatureDetail(
+                    title: '讨论室 下午',
+                    fields: <FeatureField>[
+                      FeatureField(label: '站点 ID', value: '3'),
+                      FeatureField(label: '日期', value: '2026-09-03'),
+                      FeatureField(label: '空间 ID', value: '5'),
+                      FeatureField(label: '空间组 ID', value: '9'),
+                      FeatureField(label: '时段 ID', value: '6'),
+                      FeatureField(label: '可预约', value: '是'),
+                    ],
+                  ),
                 ]
               : const <FeatureDetail>[],
         ),
@@ -640,8 +723,14 @@ void main() {
             prepareCalls++;
             expect(input.venueSiteId, 3);
             expect(input.reservationDate, '2026-09-03');
-            expect(input.selections.single.spaceId, 4);
-            expect(input.selections.single.timeId, 5);
+            expect(
+              input.selections.map((selection) => selection.spaceId),
+              <int>[4, 5],
+            );
+            expect(input.selections.map((selection) => selection.timeId), <int>[
+              5,
+              6,
+            ]);
             expect(input.phone, 'phone-placeholder');
             expect(input.purposeType, 2);
             return WriteIntent(
@@ -685,7 +774,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('场馆预约'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备场馆预约'));
+    await tester.tap(find.text('准备场馆预约').first);
+    await tester.pumpAndSettle();
+    expect(find.text('选择预约时段（已选 1 个）'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, '空间 5 · 时段 6'));
     await tester.pumpAndSettle();
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(1), 'phone-placeholder');

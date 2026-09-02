@@ -3087,6 +3087,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final ygdk = _ygdkTarget(detail);
                     final canBykcSign = _isAllowed(detail, '可签到');
                     final canBykcSignOut = _isAllowed(detail, '可签退');
+                    final canBykcSelect = _isBykcSelectAllowed(detail);
+                    final canBykcDeselect = _isBykcDeselectAllowed(detail);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -3144,18 +3146,22 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 runSpacing: 8,
                                 children: <Widget>[
                                   OutlinedButton.icon(
-                                    onPressed: () => widget.onBykcWrite!(
-                                      WriteOperation.bykcSelectCourse,
-                                      courseId,
-                                    ),
+                                    onPressed: canBykcSelect
+                                        ? () => widget.onBykcWrite!(
+                                            WriteOperation.bykcSelectCourse,
+                                            courseId,
+                                          )
+                                        : null,
                                     icon: const Icon(Icons.add_circle_outline),
                                     label: const Text('准备选课'),
                                   ),
                                   OutlinedButton.icon(
-                                    onPressed: () => widget.onBykcWrite!(
-                                      WriteOperation.bykcDeselectCourse,
-                                      courseId,
-                                    ),
+                                    onPressed: canBykcDeselect
+                                        ? () => widget.onBykcWrite!(
+                                            WriteOperation.bykcDeselectCourse,
+                                            courseId,
+                                          )
+                                        : null,
                                     icon: const Icon(
                                       Icons.remove_circle_outline,
                                     ),
@@ -3163,6 +3169,16 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                   ),
                                 ],
                               ),
+                              if (!canBykcSelect || !canBykcDeselect)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '当前课程状态不支持该操作；最终资格和时间窗仍由 Core 校验。',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
                             ],
                             if (widget.feature == FeatureId.bykc &&
                                 widget.onBykcSignWrite != null &&
@@ -3212,9 +3228,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
                                 onPressed: _isSigninAvailable(detail)
-                                    ? () => widget.onSigninWrite!(
-                                        signinCourseId,
-                                      )
+                                    ? () =>
+                                          widget.onSigninWrite!(signinCourseId)
                                     : null,
                                 icon: const Icon(Icons.how_to_reg),
                                 label: const Text('准备签到'),
@@ -3282,6 +3297,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 onPressed: () => _showCgyyReservationForm(
                                   context,
                                   cgyyReservation,
+                                  _cgyyReservationSelections(cgyyReservation),
                                 ),
                                 icon: const Icon(Icons.event_available),
                                 label: const Text('准备场馆预约'),
@@ -3401,6 +3417,33 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     return true;
   }
 
+  /// 根据读取白名单中的状态收紧博雅选课入口。
+  ///
+  /// 状态枚举来自 bridge 的 [BykcCourseStatus]；缺失状态时不在 UI 猜测，
+  /// 仍让 Core prepare 做最终校验。已选课程视图只允许退选，避免把已选
+  /// 记录误显示为可再次选课。
+  bool _isBykcSelectAllowed(FeatureDetail detail) {
+    if (widget.query?.view == FeatureQueryView.bykcChosenCourses) return false;
+    final values = <String, String>{
+      for (final field in detail.fields) field.label: field.value.trim(),
+    };
+    if (values['已选'] == '是') return false;
+    final status = values['状态'];
+    if (status == null || status.isEmpty) return true;
+    return status == 'available' || status == '可选';
+  }
+
+  bool _isBykcDeselectAllowed(FeatureDetail detail) {
+    if (widget.query?.view == FeatureQueryView.bykcChosenCourses) return true;
+    final values = <String, String>{
+      for (final field in detail.fields) field.label: field.value.trim(),
+    };
+    if (values['已选'] == '否') return false;
+    final status = values['状态'];
+    if (status == null || status.isEmpty) return true;
+    return status == 'selected' || status == '已选';
+  }
+
   bool _isSigninAvailable(FeatureDetail detail) {
     for (final field in detail.fields) {
       if (field.label != '签到状态') continue;
@@ -3498,6 +3541,37 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     );
   }
 
+  /// 收集当前日期空间结果中的全部可预约时段，供用户在一次预约中选择多个
+  /// 不同时间段。重复槽位按空间、时段和空间组去重，仍由 Core 在 prepare
+  /// 阶段执行最终资格与冲突校验。
+  List<CgyyReservationSelectionInput> _cgyyReservationSelections(
+    ({
+      int venueSiteId,
+      String reservationDate,
+      CgyyReservationSelectionInput selection,
+    })
+    target,
+  ) {
+    if (widget.feature != FeatureId.cgyy) {
+      return const <CgyyReservationSelectionInput>[];
+    }
+    final seen = <String>{};
+    final selections = <CgyyReservationSelectionInput>[];
+    for (final detail in widget.details) {
+      final candidate = _cgyyReservationTarget(detail);
+      if (candidate == null ||
+          candidate.venueSiteId != target.venueSiteId ||
+          candidate.reservationDate != target.reservationDate) {
+        continue;
+      }
+      final selection = candidate.selection;
+      final key =
+          '${selection.spaceId}:${selection.timeId}:${selection.venueSpaceGroupId ?? ''}';
+      if (seen.add(key)) selections.add(selection);
+    }
+    return List<CgyyReservationSelectionInput>.unmodifiable(selections);
+  }
+
   ({int itemId, String title})? _ygdkTarget(FeatureDetail detail) {
     if (widget.feature != FeatureId.ygdk) return null;
     for (final field in detail.fields) {
@@ -3535,6 +3609,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       CgyyReservationSelectionInput selection,
     })
     target,
+    List<CgyyReservationSelectionInput> availableSelections,
   ) async {
     final phone = TextEditingController();
     final theme = TextEditingController();
@@ -3542,6 +3617,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     final joinerNum = TextEditingController(text: '1');
     final content = TextEditingController();
     final joiners = TextEditingController();
+    final selectedKeys = <String>{_cgyySelectionKey(target.selection)};
+    final selectionsByKey = <String, CgyyReservationSelectionInput>{
+      for (final selection in <CgyyReservationSelectionInput>[
+        target.selection,
+        ...availableSelections,
+      ])
+        _cgyySelectionKey(selection): selection,
+    };
     final input = await showDialog<CgyySubmitInput>(
       context: context,
       builder: (dialogContext) {
@@ -3564,6 +3647,39 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     Text(
                       '空间 ${target.selection.spaceId} · 时段 ${target.selection.timeId}',
                     ),
+                    if (selectionsByKey.length > 1) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '选择预约时段（已选 ${selectedKeys.length} 个）',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: selectionsByKey.entries
+                            .map((entry) {
+                              final selection = entry.value;
+                              return FilterChip(
+                                label: Text(
+                                  '空间 ${selection.spaceId} · 时段 ${selection.timeId}',
+                                ),
+                                selected: selectedKeys.contains(entry.key),
+                                onSelected: (selected) => setState(() {
+                                  if (selected) {
+                                    selectedKeys.add(entry.key);
+                                  } else if (selectedKeys.length > 1) {
+                                    selectedKeys.remove(entry.key);
+                                  }
+                                }),
+                              );
+                            })
+                            .toList(growable: false),
+                      ),
+                    ],
                     TextField(
                       controller: phone,
                       keyboardType: TextInputType.phone,
@@ -3644,9 +3760,9 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     CgyySubmitInput(
                       venueSiteId: target.venueSiteId,
                       reservationDate: target.reservationDate,
-                      selections: <CgyyReservationSelectionInput>[
-                        target.selection,
-                      ],
+                      selections: selectedKeys
+                          .map((key) => selectionsByKey[key]!)
+                          .toList(growable: false),
                       phone: phone.text.trim(),
                       theme: theme.text.trim(),
                       purposeType: parsedPurpose,
@@ -3677,6 +3793,9 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       await widget.onCgyySubmitWrite?.call(input);
     }
   }
+
+  String _cgyySelectionKey(CgyyReservationSelectionInput selection) =>
+      '${selection.spaceId}:${selection.timeId}:${selection.venueSpaceGroupId ?? ''}';
 
   EvaluationCourseInput? _evaluationTarget(FeatureDetail detail) {
     if (widget.feature != FeatureId.evaluation) return null;
