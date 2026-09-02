@@ -446,6 +446,7 @@
 153. 当前 HEAD `1ca6ed8` 以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试成功，`cargo-expand`/Rust 展开完成且 FRB 生成目录零漂移；此前无输出中断仅是旧次尝试，当前本机零漂移门禁恢复为通过。
 154. 官方 Flutter 原生 CI run `33599670789`（提交 `1ca6ed8`）已终态成功：Windows、Linux、macOS、iOS simulator、Android APK 五个平台 job 全部通过并上传无签名 Debug 产物；macOS job 另通过 `integration_test/app_flow_test.dart` 宿主 smoke。该证据只覆盖无签名包结构和脱敏确定性流程，不包含签名、安装、实体设备或真实账号写入。
 155. 合同 CI run `33600117413`（提交 `993f5a2`）已终态成功：`contract-gates`、macOS Rust、Windows Rust 三个 job 全部通过，合同门禁与文档差异检查均通过。该 CI 不包含 OHOS 签名 HAP、实体设备、正式发布或真实写入；P3/P4/P5/P6 的逐领域/设备后置缺口仍按本合同保持未完成。
+156. 当前 HEAD `335fb45` 在 2026-09-02 营业窗口内串行复跑 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，空父列表详情为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本次未执行任何真实写接口；该证据仍不替代真实 App→FRB→Core、逐领域设备链路、硬件安全存储或写后核对。
 
 ## 4. 安全与架构边界
 

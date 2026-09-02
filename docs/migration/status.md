@@ -1571,3 +1571,10 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - 合同 CI run `33600117413`（提交 `993f5a2`）已终态 `success`：`contract-gates`、macOS Rust 和
   Windows Rust 三个 job 全部通过；该 run 覆盖合同门禁与文档差异检查，不包含 OHOS 签名 HAP、实体设备或
   正式商店发布。
+
+## 2026-09-02 当前 HEAD 只读终态复核
+
+- 当前 HEAD `335fb45` 在营业窗口内串行执行 `just verify-live mode=direct` 和 `mode=webvpn`，两条路线
+  均 exit code 0；认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、
+  场馆和评教必需读取均为 `PASS`，空父列表详情为 `NOT_APPLICABLE`，Cgyy 用途为
+  `PASS source=static_fallback`。本次未执行真实写接口，也未把静态回退或 Mock 结果冒充上游成功。
