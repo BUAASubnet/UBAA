@@ -1111,6 +1111,17 @@ class BridgeBackend
                             : _field('参与人数', '${item.joinerNum}'),
                         _field('订单状态', item.orderStatus?.toString()),
                         _field('审核状态', item.checkStatus?.toString()),
+                        _field(
+                          '订单状态说明',
+                          _cgyyOrderStatusText(
+                            item.orderStatus,
+                            item.checkStatus,
+                          ),
+                        ),
+                        _field(
+                          '审核状态说明',
+                          _cgyyCheckStatusText(item.checkStatus),
+                        ),
                       ]),
                     ),
                   )
@@ -1152,6 +1163,14 @@ class BridgeBackend
                           : _field('参与人数', '${item.joinerNum}'),
                       _field('订单状态', item.orderStatus?.toString()),
                       _field('审核状态', item.checkStatus?.toString()),
+                      _field(
+                        '订单状态说明',
+                        _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
+                      ),
+                      _field(
+                        '审核状态说明',
+                        _cgyyCheckStatusText(item.checkStatus),
+                      ),
                     ]),
                   ),
                 ],
@@ -1635,6 +1654,35 @@ class BridgeBackend
     return trimmed == null || trimmed.isEmpty
         ? null
         : FeatureField(label: label, value: trimmed);
+  }
+
+  static String? _cgyyCheckStatusText(int? status) => switch (status) {
+    1 => '审批通过',
+    2 => '待辅导员审批',
+    -2 => '辅导员审批驳回',
+    3 => '待副书记/副处长审批',
+    -3 => '副书记/副处长审批驳回',
+    4 => '待宣传部审批',
+    -4 => '宣传部审批驳回',
+    5 => '待国交处备案',
+    -5 => '国交处备案驳回',
+    6 => '待教务处审批',
+    -6 => '教务处驳回',
+    _ => null,
+  };
+
+  static String _cgyyOrderStatusText(int? orderStatus, int? checkStatus) {
+    if ((checkStatus ?? 0) < 0) {
+      return _cgyyCheckStatusText(checkStatus) ?? '审批驳回';
+    }
+    return switch (orderStatus) {
+      2 => '已取消',
+      1 when checkStatus == 1 => '审批通过',
+      1 when (checkStatus ?? 0) > 0 => '待审批',
+      3 => '占用',
+      1 => '正常',
+      final value => value == null ? '未知' : '未知($value)',
+    };
   }
 
   static List<FeatureField> _compactFields(Iterable<FeatureField?> fields) =>

@@ -480,6 +480,8 @@ void main() {
     };
     expect(cgyyFields['订单状态'], '1');
     expect(cgyyFields['审核状态'], '2');
+    expect(cgyyFields['订单状态说明'], '待审批');
+    expect(cgyyFields['审核状态说明'], '待辅导员审批');
   });
 
   test('BridgeBackend 阳光打卡记录只投影图片数量而不传递地址', () async {
