@@ -455,6 +455,7 @@
 162. 新增 `ubaa_ui` 十二项功能状态矩阵回归，逐项覆盖 `loading`、`empty`、`failure`、`stale` 的详情呈现与失败/过期重试入口（共 48 个状态断言，重试回调 24 次）；全量 UI 测试 43 项通过。该证据补齐共享状态组件的逐领域覆盖，不替代真实 App→FRB→Core、逐领域真实写后核对或设备验证。
 163. 扩展博雅写入 widget 回归，同时验证同一正式页面传递 `signType=1`（签到）和 `signType=2`（签退），并确认两次均只进入一次性确认页、未在取消时提交；全量 UI 测试保持通过。本轮仍未执行真实签到或其它账号写入。
 164. 依据冻结 `CgyyOrderDto.displayStatus`/`canCancelAt` 与 `LibBookBookingDto.cancelBlockedMessage` 收紧取消入口：场馆订单列表补充公开审核状态，图书馆预约补充状态码；UI 隐藏已取消、审批驳回、未知状态、预约开始前四小时内/结束后的场馆订单，以及状态码 6/8 或状态名含取消/结束/完成/过期/失效的图书馆记录。先加入场馆状态/截止回归并观察旧实现错误展示四个按钮，随后最小修复通过聚焦和全量 widget 测试；本轮未访问上游或执行真实写入，P3/P4/P5/P6 仍未完成。
+165. 提交 `f711f02` 后复核：`just refs`、`just check-sensitive`、`just check`、`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、无签名 RC 前置报告、macOS Debug 构建及产物结构摘要均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 通过 API26/arm64 无签名 HAP 门禁，HAP 未签名、未安装、未上传且生成输出已清理。工作树与远端 `origin/ubaa2` 一致；本轮仍无真实账号写入、原生安全存储、实体设备或签名发布证据。
 
 ## 4. 安全与架构边界
 
