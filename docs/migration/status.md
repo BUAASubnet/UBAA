@@ -29,6 +29,9 @@
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：DevEco `26.0.0.821`、API26、OHOS fork 与 arm64
   Rust 动态库检查均通过，Dart/widget/native 前置 0 失败/0 警告，生成无签名 `entry-default-unsigned.hap`
   并确认 `libs/arm64-v8a/libubaa_bindings.so`。产物未签名、未安装、未上传，生成目录已移出工作树。
+- 提交 `35ffb0d` 为共享功能卡片增加容器级无障碍语义：屏幕阅读器可一次读取功能名称、当前状态和“点击查看详情”
+  操作提示，失败/过期状态仍保留子级“重试”按钮语义。先观察缺失语义的 widget 失败，再完成最小实现；`ubaa_ui`
+  全量 39 项、`just flutter-check`、`just check` 和 `just check-sensitive` 均通过。本轮只改 UI 语义，不访问网络、真实账号或写接口。
 
 ## 2026-09-02 无签名执行目标更新
 

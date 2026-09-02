@@ -429,6 +429,7 @@
 136. 提交 `b0c4a77` 收紧课堂签到 UI：读取字段明确为“已签到”时，重复签到按钮禁用并显示稳定说明；旧 DTO 缺少状态字段时仍交给 Core prepare 做最终校验。先观察到旧实现按钮仍可用的失败回归，修复后 `ubaa_ui` 全量 37 项通过；`just check-sensitive`、`just check`、FRB 零漂移均通过。该提交的合同 CI `33583052957` 与五平台 Flutter 原生 CI `33583052953` 均终态成功，五平台 Debug job 全部通过并上传产物；不包含签名、实体设备或真实写入证据。
 137. 提交 `777261f` 新增主页与共享详情页的稳定 Flutter golden 基线（明亮主题、1280×800），先观察到基线文件缺失的预期失败，再生成并在不更新基线模式下通过；当前 `ubaa_ui` 全量 38 项通过，macOS 宿主集成 3/3 通过。该提交的合同 CI `33584844827` 与五平台 Flutter 原生 CI `33584844835` 均终态成功，五个平台 Debug job 全部通过并上传产物；golden 代表共享壳/详情渲染，实体设备和签名证据仍后置。
 138. 在最终 HEAD `5bd9814` 重新执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：OHOS fork `adaf911c35c9136a7d18fc424d714c9ec7724e60`、DevEco `26.0.0.821`、API26、Node/ohpm/Hvigor/hdc/Java 与 Rust `aarch64-unknown-linux-ohos` 均通过，Dart/widget/native 前置 0 失败/0 警告，生成并检查含 `libs/arm64-v8a/libubaa_bindings.so` 的无签名 HAP。HAP 未签名、未安装、未上传；所有生成输出已移出工作树，签名/设备证据仍后置 `BLOCKED`。
+139. 提交 `35ffb0d` 为共享功能卡片增加容器级无障碍语义，标签固定包含功能名称、当前状态和“点击查看详情”操作提示；失败/过期卡片的子级“重试”按钮仍保持独立 tooltip。先加入缺失语义的 widget 失败回归，再完成最小实现；`ubaa_ui` 全量 39 项、`just flutter-check`、`just check` 与 `just check-sensitive` 均通过。本轮只改共享 UI 语义，不访问网络、真实账号或写接口；逐领域读屏、实体设备辅助功能和 P3/P4/P5/P6 其余门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
