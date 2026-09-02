@@ -629,6 +629,32 @@ void main() {
     controller.dispose();
   });
 
+  test('十项写操作成功后都只进入对应读取核对入口', () async {
+    final backend = _RefreshMatrixBackend();
+    final controller = AppController(backend: backend);
+
+    for (final operation in WriteOperation.values) {
+      backend.loadedFeatures.clear();
+      backend.queries.clear();
+      await controller.refreshAfterWrite(operation);
+      if (operation == WriteOperation.cgyySubmitReservation ||
+          operation == WriteOperation.cgyyCancelOrder) {
+        expect(backend.loadedFeatures, isEmpty);
+        expect(backend.queries, hasLength(1));
+        expect(backend.queries.single.$1, FeatureId.cgyy);
+        expect(
+          backend.queries.single.$2.view,
+          FeatureQueryView.cgyyOrders,
+        );
+      } else {
+        expect(backend.queries, isEmpty);
+        expect(backend.loadedFeatures, hasLength(1));
+        expect(backend.loadedFeatures.single, _expectedFeature(operation));
+      }
+    }
+    controller.dispose();
+  });
+
   test('场馆写入成功优先刷新订单列表用于核对', () async {
     final backend = _CgyyQueryWriteBackend();
     final controller = AppController(backend: backend);
@@ -672,6 +698,63 @@ void main() {
     );
     controller.dispose();
   });
+}
+
+FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
+  WriteOperation.bykcSelectCourse ||
+  WriteOperation.bykcDeselectCourse ||
+  WriteOperation.bykcSignCourse => FeatureId.bykc,
+  WriteOperation.signinPerform => FeatureId.signin,
+  WriteOperation.libbookReserve ||
+  WriteOperation.libbookCancelBooking => FeatureId.libbook,
+  WriteOperation.ygdkSubmit => FeatureId.ygdk,
+  WriteOperation.cgyySubmitReservation ||
+  WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
+  WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+};
+
+final class _RefreshMatrixBackend
+    implements UbaaBackend, FeatureQueryBackend {
+  final List<FeatureId> loadedFeatures = <FeatureId>[];
+  final List<(FeatureId, FeatureQuery)> queries =
+      <(FeatureId, FeatureQuery)>[];
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    loadedFeatures.add(feature);
+    return FeatureResult.success(
+      summary: feature.title,
+      details: <FeatureDetail>[FeatureDetail(title: feature.title)],
+    );
+  }
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async {
+    queries.add((feature, query));
+    return FeatureResult.success(
+      summary: feature.title,
+      details: <FeatureDetail>[FeatureDetail(title: feature.title)],
+    );
+  }
 }
 
 class _FlakyBackend implements UbaaBackend {

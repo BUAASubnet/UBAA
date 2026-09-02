@@ -1578,3 +1578,6 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
   均 exit code 0；认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、
   场馆和评教必需读取均为 `PASS`，空父列表详情为 `NOT_APPLICABLE`，Cgyy 用途为
   `PASS source=static_fallback`。本次未执行真实写接口，也未把静态回退或 Mock 结果冒充上游成功。
+- `AppController` 新增十项写操作的读取核对矩阵回归：场馆预约/取消只查询订单列表，其余操作只刷新关联
+  业务域；focused app controller suite 31/31、`just flutter-check`、`just check-sensitive` 与 `just check`
+  均通过。该测试只使用脱敏 fake backend，不产生真实账号副作用。
