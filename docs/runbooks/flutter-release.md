@@ -71,4 +71,6 @@ DevEco/CLI 26.0.0 Beta2 与 OpenHarmony API26 预检；API21 失败不能降级�
 提交 `190f318` 的官方 Flutter macOS 宿主集成 4/4 通过，额外覆盖 commit 异常不刷新、不误报成功的安全边界。
 该提交的合同 CI `33593160544` 与五平台 Debug CI `33593160580` 均成功，文档提交 `f7d0015` 的合同 CI `33593227275` 亦成功；
 产物均为无签名 Debug，不能替代 OHOS 签名、设备安装或真实写后核对。
+当前 HEAD 再次尝试 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 时，cargo-expand 无输出后被安全中断且无生成漂移；
+FRB 本机零漂移仍需工具链恢复后重试，不能记为通过。
 六平台正式签名、实体设备、安全存储插件和真实写入矩阵仍未闭合，因此只能执行无签名 RC 流程，不能执行正式发布步骤。

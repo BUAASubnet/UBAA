@@ -435,6 +435,7 @@
 142. 提交 `f46c65c` 将共享确认壳的提交异常与显式 `outcome_unknown` 统一为“提交结果不确定，请先刷新相关状态，不要重复提交”，先加入异常路径失败回归并确认旧实现会暴露“相关课程状态”，再完成最小修复；`ubaa_ui` 全量 41 项、`just flutter-check`、`just check-sensitive`、`just check`、`just release-preflight` 和 API26 无签名 OHOS HAP/arm64 动态库复核均通过。其合同 CI `33592184452` 与五平台 Flutter Debug CI `33592184458` 均终态成功，Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物；本轮未调用真实写接口，OHOS 签名、实体设备、真实写后核对、本机 FRB 零漂移重试以及 P3/P4/P5/P6 其余缺口仍未闭合。
 143. 提交 `190f318` 在官方 Flutter macOS 宿主集成中增加 commit 异常场景：脱敏 backend 抛出异常时只显示稳定未知结果提示，不触发写后刷新、不误标记“已签到”、不泄露“相关课程状态”等业务上下文；`flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts` 四个场景 4/4 通过，`just check-sensitive` 与差异检查通过。本轮未访问真实账号或写接口；P4 其他写操作的逐领域 integration/结果核对、P5/P6 其余缺口仍未闭合。
 144. 提交 `190f318` 的合同 CI `33593160544` 与五平台 Flutter Debug CI `33593160580` 均终态成功，随后文档提交 `f7d0015` 的合同 CI `33593227275` 也成功；Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。CI 只证明确定性门禁和无签名宿主构建，不替代 OHOS 签名、实体设备、真实写后核对或正式发布；P3/P4/P5/P6 其余缺口仍未闭合。
+145. 当前 HEAD 文档提交 `f67f95f` 重新以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 尝试 FRB 零漂移；`cargo-expand` 的 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断，进程清理后工作树无生成漂移。本机零漂移门禁仍记为未完成运行，不能由历史成功、无签名 HAP 或其它 CI 推导通过；P3/P4/P5/P6 其余缺口仍未闭合。
 
 ## 4. 安全与架构边界
 

@@ -57,6 +57,9 @@
 - 提交 `190f318` 的合同 CI `33593160544` 与五平台 Flutter Debug CI `33593160580` 均终态成功；随后文档提交 `f7d0015` 的合同 CI
   `33593227275` 也成功。五平台 Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物；这些 CI
   不包含 OHOS 签名、实体设备或真实写后核对。
+- 当前 HEAD（文档提交 `f67f95f`）以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试 FRB 零漂移，
+  `cargo-expand` 调用 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断；进程已清理且工作树无生成漂移，故本次仍记为“未完成运行”，
+  不能从其它 CI 或历史成功推导当前本机门禁通过。
 
 ## 2026-09-02 无签名执行目标更新
 
