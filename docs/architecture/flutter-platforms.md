@@ -107,9 +107,9 @@ Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、
 异常归约为稳定的 `unavailable`，`CallbackPhotoPicker` 将选择器异常归约为稳定能力错误，
 `PermissionedPhotoPicker` 可显式使用相册或桌面文件权限。该适配器只负责 typed 边界，不伪造任何
 Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件与实体设备验证继续保持后置
-`BLOCKED`。当前提交的合同 CI `33581588034` 与五平台 native CI `33581587938` 均已终态成功；五个平台 job
-（Windows、Linux、macOS、iOS simulator、Android APK）均通过并上传无签名 Debug 产物。该证据不包含
-OHOS 签名 HAP、实体设备或正式发布。
+`BLOCKED`。当前提交 `b0c4a77` 的合同 CI `33583052957` 与五平台 native CI `33583052953` 均已终态成功；
+五个平台 job（Windows、Linux、macOS、iOS simulator、Android APK）均通过并上传无签名 Debug 产物。
+该证据不包含 OHOS 签名 HAP、实体设备或正式发布。
 
 ## 6. P0 探索产物审查
 
