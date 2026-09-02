@@ -20,6 +20,8 @@
 - 修复无签名产物结构脚本的跨平台摘要逻辑：目录产物现在先选择环境中可用的 `shasum` 或
   `sha256sum`，不会在 Windows Git Bash 因缺少 `shasum` 误报失败；macOS 的 macOS/iOS simulator/
   Android APK 结构检查与摘要复跑通过，Windows/Linux 结构检查由对应 CI runner 验证。
+- Flutter 原生 CI 的 macOS job 新增 `integration_test/app_flow_test.dart` 宿主 smoke，在包结构检查后
+  复跑登录、全领域详情/查询与写确认组合；它仍只使用脱敏 fake backend，不访问真实账号或上游。
 
 ## 2026-09-02 无签名 P5 回调边界与当前复核
 

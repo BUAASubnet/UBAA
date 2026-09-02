@@ -115,6 +115,13 @@ jobs:
         shell: bash
         run: ./scripts/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
+      - name: 运行 macOS 宿主集成 smoke
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          cd apps/ubaa_flutter
+          "$UBAA_FLUTTER_HOME/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+
       - name: 保存可复核产物
         uses: actions/upload-artifact@v6
         with:

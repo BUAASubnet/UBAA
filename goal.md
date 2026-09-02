@@ -442,6 +442,7 @@
 149. 无签名 P5 平台通道增量：`ubaa_platform` 新增 `MethodChannelPermissionGateway`、`MethodChannelSecureCredentialStore`、`MethodChannelPhotoPicker` 和默认能力组合，官方 Flutter/OHOS 入口在启动时先探测；权限状态、凭据探测/读写/清除、无效凭据拒绝和照片 10 MiB/类型/文件名边界均有 Mock 合同测试，`just flutter-check` 通过。缺少原生 handler 时安全返回不可用，不冒充 Keychain/Keystore/Secret Service/Credential Manager/HUKS；原生实现、实体设备权限/生命周期和硬件安全存储仍为后置 `BLOCKED`，P3/P4/P6 其余门禁仍未闭合。
 150. 提交 `30297a5` 后再次执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：DevEco/API26、OHOS fork、Dart/widget/native 前置为 0 失败/0 警告，生成并检查含 `libs/arm64-v8a/libubaa_bindings.so` 的无签名 HAP；HAP 未签名、未安装、未上传，生成输出已移出工作树。
 151. 修复 `scripts/verify-flutter-artifact.sh` 的目录摘要跨平台兼容性：按环境选择 `shasum` 或 `sha256sum`，避免 Windows Git Bash 缺少 `shasum` 时在产物结构门禁误报失败；`bash -n` 及本机 macOS/iOS simulator/Android APK 结构摘要复跑通过，Windows/Linux 由对应 CI runner 验证。
+152. Flutter 原生 CI 的 macOS job 已加入 `integration_test/app_flow_test.dart` 宿主 smoke，在无签名包结构检查后验证脱敏登录、十二项详情入口、typed 查询和课堂签到确认组合；测试不访问真实账号或上游，CI 终态需以提交后的运行记录为准。
 
 ## 4. 安全与架构边界
 
