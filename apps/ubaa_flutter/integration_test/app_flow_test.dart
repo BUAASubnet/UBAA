@@ -97,6 +97,38 @@ void main() {
     expect(find.text('已签到'), findsOneWidget);
   });
 
+  testWidgets('宿主集成流程提交异常时不刷新也不暴露业务上下文', (tester) async {
+    final backend = _WriteIntegrationBackend(throwOnCommit: true);
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '2020000004');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课堂签到'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备签到'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+
+    expect(backend.commitCalls, 1);
+    expect(backend.signinLoads, 1);
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('相关课程状态'), findsNothing);
+    expect(find.text('已签到'), findsNothing);
+  });
+
   testWidgets('宿主集成流程可打开全部十二项功能详情', (tester) async {
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -250,6 +282,9 @@ final class _WriteIntegrationBackend
         FeatureQueryBackend,
         RouteSettingsBackend,
         SigninWriteBackend {
+  _WriteIntegrationBackend({this.throwOnCommit = false});
+
+  final bool throwOnCommit;
   bool _signedIn = false;
   bool _completed = false;
   int signinLoads = 0;
@@ -346,6 +381,9 @@ final class _WriteIntegrationBackend
     commitCalls++;
     if (intentId != 'signin-integration') {
       throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    if (throwOnCommit) {
+      throw Exception('测试提交传输失败');
     }
     _completed = true;
     return const WriteCommitResult(
