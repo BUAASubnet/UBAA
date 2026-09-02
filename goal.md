@@ -73,7 +73,7 @@
 
 已知事实：
 
-> 下列编号 1–173 保留各次提交的历史快照；其中“未完成/待补齐”只描述当时的阶段状态。当前终态以事实 174–179、执行队列和第 11 节为准，
+> 下列编号 1–173 保留各次提交的历史快照；其中“未完成/待补齐”只描述当时的阶段状态。当前终态以事实 174–180、执行队列和第 11 节为准，
 > 后续不得用历史快照覆盖当前已验证的无签名完成结论。
 
 1. 当前分支为 ubaa2 并跟踪 `origin/ubaa2`；合同、探索骨架、FRB 绑定、OHOS runner、
@@ -505,6 +505,12 @@
      先观察到响应式 golden 缺失的预期失败，再生成基线；`ubaa_ui` analyze 与全量 49 项测试通过。该提交只涉及脱敏测试和图片基线，不访问网络、真实账号或写接口。
 179. 当前 HEAD `0a0bb71` 重新执行 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`，约 84.9 秒完成 `cargo-expand`、FRB 生成、Dart/Rust 格式化并报告“FRB 生成零漂移”；
      生成目录相对执行前无差异。此前无输出后安全中止的重试记录保留为历史过程，本次成功证据恢复了当前提交的 FRB 零漂移门禁。
+180. 最终文档提交 `4eaf1dd` 后，`just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、`just release-preflight`、
+     `git diff --check` 均通过；`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 通过 API26/DevEco 26.0.0.821、arm64 bridge 和无签名 HAP 结构检查。
+     当前营业窗口内串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0，认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为
+     `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未执行真实写接口。
+     提交 `4eaf1dd` 对应官方 Flutter 原生 CI run `33628444289` 和合同 CI run `33628444204` 均终态 `success`：Linux、Windows、macOS、iOS simulator、Android APK
+     无签名 Debug job 通过结构检查并上传产物，合同 `contract-gates`、macOS Rust、Windows Rust 亦通过。以上不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后上游核对或正式发布，继续保持后置 `BLOCKED`。
 
 ## 4. 安全与架构边界
 

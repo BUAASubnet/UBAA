@@ -110,8 +110,8 @@ Debug，结构检查和确定性 smoke 不代表签名、安装、设备或真�
 键盘焦点、十二项卡片语义和 1000 条详情分页回归；`ubaa_ui` analyze 与全量 49 项测试通过。
 同一 HEAD 以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 约 84.9 秒完成并报告
 FRB 生成零漂移，未产生生成目录差异。
-Flutter 原生 CI `33625430859`（Linux、Windows、macOS、iOS simulator、Android APK）和合同 CI
-`33625430865` 均终态成功；十二项详情 golden、状态矩阵、typed 查询、十项写入确认/不确定结果、
+Flutter 原生 CI `33628444289`（Linux、Windows、macOS、iOS simulator、Android APK）和合同 CI
+`33628444204` 均终态成功；十二项详情 golden、状态矩阵、typed 查询、十项写入确认/不确定结果、
 API26 无签名 OHOS HAP/arm64、SBOM/依赖审计、敏感扫描、迁移回滚文档与工作树门禁均已复核。因此无签名
 执行目标 P3–P6 可交付部分已完成。该终态不包含真实账号写入、写后上游核对、原生安全存储 handler、
 实体设备权限/生命周期、签名/公证或商店发布；上述事项继续保持后置 `BLOCKED`。
