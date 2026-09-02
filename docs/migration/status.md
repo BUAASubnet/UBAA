@@ -17,6 +17,9 @@
 - 提交 `30297a5` 后，`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 再次通过：工具链/Dart/widget/native 前置为
   0 失败/0 警告，生成并检查无签名 `entry-default-unsigned.hap` 及 arm64 bridge；生成文件已移出工作树。
+- 修复无签名产物结构脚本的跨平台摘要逻辑：目录产物现在先选择环境中可用的 `shasum` 或
+  `sha256sum`，不会在 Windows Git Bash 因缺少 `shasum` 误报失败；macOS 的 macOS/iOS simulator/
+  Android APK 结构检查与摘要复跑通过，Windows/Linux 结构检查由对应 CI runner 验证。
 
 ## 2026-09-02 无签名 P5 回调边界与当前复核
 
