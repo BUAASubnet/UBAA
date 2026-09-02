@@ -94,3 +94,7 @@ Secret Service 或 HUKS。原生 handler、实体设备权限/生命周期和硬
 提交 `30297a5` 后的 OHOS 无签名复核同样通过：`UBAA_OHOS_NO_CODESIGN=1 just ohos-check
 mode=debug` 使用 API26 工具链生成并检查 `entry-default-unsigned.hap` 和 arm64 Rust bridge；
 产物未签名、未安装、未上传，生成输出已移出工作树。
+
+FRB 零漂移状态已更新：当前 HEAD `1ca6ed8` 执行
+`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 成功并报告“FRB 生成零漂移”。
+此前 cargo-expand 无输出并安全中断的记录属于旧次尝试，不应覆盖本次通过证据。

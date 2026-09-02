@@ -22,6 +22,9 @@
   Android APK 结构检查与摘要复跑通过，Windows/Linux 结构检查由对应 CI runner 验证。
 - Flutter 原生 CI 的 macOS job 新增 `integration_test/app_flow_test.dart` 宿主 smoke，在包结构检查后
   复跑登录、全领域详情/查询与写确认组合；它仍只使用脱敏 fake backend，不访问真实账号或上游。
+- 当前 HEAD `1ca6ed8` 以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试成功，
+  `cargo-expand`/Rust 展开完成且生成目录零漂移；此前无输出中断的记录仅适用于旧次尝试，不再阻塞本机
+  FRB 零漂移门禁。
 
 ## 2026-09-02 无签名 P5 回调边界与当前复核
 
