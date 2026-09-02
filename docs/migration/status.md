@@ -129,6 +129,15 @@
   CI 产物因此具备可复核的包内容证据，不把上传成功误判为可加载或正式发布。该门禁不替代 OHOS 签名 HAP、实体设备安装、
   安全存储和正式发布验证。
 
+## 2026-09-02 全领域查询与写意图矩阵回归
+
+- `apps/ubaa_flutter/integration_test/app_flow_test.dart` 新增官方 macOS 宿主的全领域 typed 查询组合回归：登录后逐项覆盖课表、考试、
+  成绩、博雅、空教室、SPOC、希冀、图书馆、课堂签到、场馆、阳光打卡和评教的查询控件，验证学期/周次、公开编号、日期、服务端
+  分页和本地派生视图均通过 `FeatureQuery` 传递；循环中只使用脱敏 fake backend，不访问真实账号或上游。完整宿主集成测试 5/5 通过。
+- `packages/ubaa_app/test/write_controller_test.dart` 新增十项 `WriteOperation` 确认矩阵：每项 prepare 阶段提交计数为 0，确认只调用一次
+  typed commit，确认后重复调用保持 0 次追加提交。`just flutter-check` 的应用测试与既有 41 项 UI 回归全部通过；该证据不替代真实
+  写入、逐领域读后核对、实体设备和签名发布。
+
 ## 2026-09-02 当前提交双路线只读复核
 
 - 在提交 `57e928a` 串行执行 `just verify-live mode=direct` 与
