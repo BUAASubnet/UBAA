@@ -457,6 +457,7 @@
 164. 依据冻结 `CgyyOrderDto.displayStatus`/`canCancelAt` 与 `LibBookBookingDto.cancelBlockedMessage` 收紧取消入口：场馆订单列表补充公开审核状态，图书馆预约补充状态码；UI 隐藏已取消、审批驳回、未知状态、预约开始前四小时内/结束后的场馆订单，以及状态码 6/8 或状态名含取消/结束/完成/过期/失效的图书馆记录。先加入场馆状态/截止回归并观察旧实现错误展示四个按钮，随后最小修复通过聚焦和全量 widget 测试；本轮未访问上游或执行真实写入，P3/P4/P5/P6 仍未完成。
 165. 提交 `f711f02` 后复核：`just refs`、`just check-sensitive`、`just check`、`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、无签名 RC 前置报告、macOS Debug 构建及产物结构摘要均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 通过 API26/arm64 无签名 HAP 门禁，HAP 未签名、未安装、未上传且生成输出已清理。工作树与远端 `origin/ubaa2` 一致；本轮仍无真实账号写入、原生安全存储、实体设备或签名发布证据。
 166. bridge 场馆订单状态说明现按冻结 `displayStatus` 映射为“已取消/审批通过/待审批/占用/正常/未知”，审核状态说明覆盖冻结正负审批码；UI 仍使用原始公开码执行取消门禁并展示说明。新增 bridge 字段断言与全量 app/UI 测试通过，不改变上游协议、写入次数或真实副作用；P3/P4/P5/P6 仍未完成。
+167. 继续收紧场馆取消入口：当公开 `审核状态` 字段存在但不是可解析的冻结数值时，UI 现在按默认拒绝处理；缺失该可选字段仍交由订单状态和 Core prepare 判定。新增格式错误状态回归，聚焦测试与 `flutter analyze` 均通过；提交 `48a7cbf` 已推送。本轮未访问上游或执行真实写入，P3/P4/P5/P6 其余门禁仍未闭合。
 
 ## 4. 安全与架构边界
 
