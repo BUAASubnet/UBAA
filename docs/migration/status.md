@@ -32,6 +32,12 @@
 - 提交 `35ffb0d` 为共享功能卡片增加容器级无障碍语义：屏幕阅读器可一次读取功能名称、当前状态和“点击查看详情”
   操作提示，失败/过期状态仍保留子级“重试”按钮语义。先观察缺失语义的 widget 失败，再完成最小实现；`ubaa_ui`
   全量 39 项、`just flutter-check`、`just check` 和 `just check-sensitive` 均通过。本轮只改 UI 语义，不访问网络、真实账号或写接口。
+- 提交 `1e3c729` 触发的合同 CI `33589036008` 与五平台 Flutter Debug CI `33589036000` 均终态成功：合同
+  `contract-gates`、Windows/macOS Rust 以及 Android、iOS simulator、macOS、Linux、Windows 五个平台
+  job 全部通过并上传无签名 Debug 产物。该批 CI 不包含 OHOS 签名 HAP、实体设备或真实写入。
+- 本机 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 两次在 `cargo-expand` 的 `rustc -Zunpretty=expanded`
+  阶段连续无输出并被安全中断，工作树无生成漂移；该次本地零漂移门禁记为“未完成运行”，不冒充通过。此前
+  锁定 FRB 版本的零漂移成功证据仍保留，待工具链恢复后需在当前 HEAD 重试。
 
 ## 2026-09-02 无签名执行目标更新
 

@@ -64,8 +64,8 @@ DevEco/CLI 26.0.0 Beta2 与 OpenHarmony API26 预检；API21 失败不能降级�
 记录。升级失败时先停止分发，再使用上一份已验证产物回滚；回滚不删除用户 Core Session，除非
 迁移合同明确要求清理。发布记录不得包含原始响应、个人资料或凭据。
 
-当前状态：提交 `35ffb0d` 的本地 `just flutter-check`、`just check`、`just check-sensitive` 均通过；
-其前置提交 `777261f` 的合同 CI `33584844827` 与官方 Flutter 五平台 Debug 原生 CI `33584844835`
-已终态成功，OHOS API26 无签名 Debug HAP 复核也已通过。`35ffb0d` 的 CI 终态与无签名 RC 报告待本次
-提交后复核；六平台正式签名、实体设备、安全存储插件和真实写入矩阵仍未闭合，因此只能执行无签名 RC
-流程，不能执行正式发布步骤。
+当前状态：提交 `35ffb0d` 的本地 `just flutter-check`、`just check`、`just check-sensitive` 和 API26
+无签名 OHOS HAP 复核均通过；提交 `1e3c729` 的合同 CI `33589036008` 与官方 Flutter 五平台 Debug
+原生 CI `33589036000` 已终态成功并上传无签名产物。FRB 零漂移本机复核因 cargo-expand 无输出被安全中断，
+需恢复工具链后重试，不能记为通过。六平台正式签名、实体设备、安全存储插件和真实写入矩阵仍未闭合，因此
+只能执行无签名 RC 流程，不能执行正式发布步骤。
