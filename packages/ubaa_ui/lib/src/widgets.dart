@@ -3458,24 +3458,68 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   ({WriteOperation operation, String targetId})? _cancellationTarget(
     FeatureDetail detail,
   ) {
-    final label = switch (widget.feature) {
-      FeatureId.libbook => '预约 ID',
-      FeatureId.cgyy => '订单编号',
+    final values = <String, String>{
+      for (final field in detail.fields) field.label: field.value.trim(),
+    };
+    final targetId = switch (widget.feature) {
+      FeatureId.libbook => values['预约 ID'],
+      FeatureId.cgyy => values['订单编号'],
       _ => null,
     };
-    if (label == null) return null;
-    for (final field in detail.fields) {
-      final value = field.value.trim();
-      if (field.label == label && value.isNotEmpty) {
-        return (
-          operation: widget.feature == FeatureId.libbook
-              ? WriteOperation.libbookCancelBooking
-              : WriteOperation.cgyyCancelOrder,
-          targetId: value,
-        );
-      }
+    if (targetId == null || targetId.isEmpty) return null;
+
+    final allowed = switch (widget.feature) {
+      FeatureId.libbook => _isLibbookCancellationAllowed(values),
+      FeatureId.cgyy => _isCgyyCancellationAllowed(values),
+      _ => false,
+    };
+    if (!allowed) return null;
+    return (
+      operation: widget.feature == FeatureId.libbook
+          ? WriteOperation.libbookCancelBooking
+          : WriteOperation.cgyyCancelOrder,
+      targetId: targetId,
+    );
+  }
+
+  bool _isLibbookCancellationAllowed(Map<String, String> values) {
+    final statusCode = values['状态码'];
+    if (statusCode == '6' || statusCode == '8') return false;
+    final statusName = values['状态'] ?? '';
+    const blockedKeywords = <String>['取消', '结束', '已完成', '过期', '失效'];
+    return !blockedKeywords.any(statusName.contains);
+  }
+
+  bool _isCgyyCancellationAllowed(Map<String, String> values) {
+    final orderStatus = int.tryParse(values['订单状态'] ?? '');
+    final checkStatus = int.tryParse(values['审核状态'] ?? '');
+    if (orderStatus == null) return false;
+    if ((checkStatus != null && checkStatus < 0) || orderStatus == 2) {
+      return false;
     }
-    return null;
+    if (orderStatus != 1 && orderStatus != 3) return false;
+
+    final now = DateTime.now();
+    final start = _parseCgyyDateTime(values['开始']);
+    if (start != null &&
+        !now.isBefore(start.subtract(const Duration(hours: 4)))) {
+      return false;
+    }
+    final end = _parseCgyyDateTime(values['结束']);
+    if (start == null && end != null && !now.isBefore(end)) return false;
+    return true;
+  }
+
+  DateTime? _parseCgyyDateTime(String? value) {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) return null;
+    final normalized = text.replaceFirst(' ', 'T');
+    if (!RegExp(
+      r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(?:\.\d+)?)?$',
+    ).hasMatch(normalized)) {
+      return null;
+    }
+    return DateTime.tryParse(normalized);
   }
 
   ({

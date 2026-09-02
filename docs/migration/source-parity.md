@@ -413,4 +413,11 @@ Evaluation 任务身份参数补充：冻结 `LocalEvaluationService.fetchTasks`
 
 Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使用 `jsonPrimitive.contentOrNull`，记录的 `item_name`、`place`、`create_time_fmt` 等文本字段可由数字或布尔原语映射为文本。Core `string` 现统一支持字符串、数字和布尔原语，空文本仍按旧版回退为空。
 
+2026-09-02 取消入口状态对照补充：冻结 `CgyyOrderDto.displayStatus`/`canCancelAt` 将取消状态码
+`orderStatus=2`、任一负 `checkStatus` 和未知订单状态视为不可取消；可取消订单还必须早于预约开始前四小时，
+若无开始时间则以结束时间作为兜底截止。`LibBookBookingDto.cancelBlockedMessage` 将状态码 `6`/`8` 及状态名包含
+“取消”“结束”“已完成”“过期”“失效”的记录视为不可取消。Flutter 详情页现在只从 bridge 白名单字段读取这些状态，
+订单列表补充 `审核状态`，图书馆预约补充 `状态码`，并在展示取消按钮前执行同等状态/截止判断；不改变 Core 最终校验、
+取消 URL、签名、会话或写入次数。`examples/buaa-api` 没有等价的 Cgyy/LibBook 取消协议，未借用其字段或错误语义。
+
 Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimitive.contentOrNull` 读取文本字段；Core `string` 现支持字符串、整数、浮点和布尔原语，避免合法的非字符串课程/问卷字段被误判为缺失。

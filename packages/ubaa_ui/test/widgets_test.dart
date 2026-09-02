@@ -537,7 +537,8 @@ void main() {
                     title: '羽毛球馆订单',
                     fields: <FeatureField>[
                       FeatureField(label: '订单编号', value: '17'),
-                      FeatureField(label: '订单状态', value: '待审核'),
+                      FeatureField(label: '订单状态', value: '1'),
+                      FeatureField(label: '审核状态', value: '2'),
                     ],
                   ),
                 ]
@@ -600,6 +601,91 @@ void main() {
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('订单取消结果已提交，请刷新确认'), findsOneWidget);
+  });
+
+  testWidgets('场馆取消入口遵守冻结状态和四小时前截止时间', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.cgyy
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '已取消订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '18'),
+                      FeatureField(label: '订单状态', value: '2'),
+                      FeatureField(label: '审核状态', value: '1'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '审批驳回订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '19'),
+                      FeatureField(label: '订单状态', value: '1'),
+                      FeatureField(label: '审核状态', value: '-2'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '待审核订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '20'),
+                      FeatureField(label: '订单状态', value: '1'),
+                      FeatureField(label: '审核状态', value: '2'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '已过截止时间订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '21'),
+                      FeatureField(label: '订单状态', value: '1'),
+                      FeatureField(label: '审核状态', value: '1'),
+                      FeatureField(label: '开始', value: '2020-01-01 10:00:00'),
+                      FeatureField(label: '结束', value: '2020-01-01 11:00:00'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '未知状态订单',
+                    fields: <FeatureField>[
+                      FeatureField(label: '订单编号', value: '22'),
+                      FeatureField(label: '订单状态', value: '9'),
+                      FeatureField(label: '审核状态', value: '1'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareCancellationWrite: (_, __) async {
+            fail('状态不可取消的订单不应触发准备回调');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('场馆预约'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('准备取消订单'), findsOneWidget);
   });
 
   testWidgets('图书馆预约取消只从公开预约 ID 进入确认页', (tester) async {
@@ -680,6 +766,82 @@ void main() {
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('预约取消结果已提交，请刷新确认'), findsOneWidget);
+  });
+
+  testWidgets('图书馆预约取消入口遵守冻结状态码和状态名称', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.libbook
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '状态码已结束',
+                    fields: <FeatureField>[
+                      FeatureField(label: '预约 ID', value: 'booking-6'),
+                      FeatureField(label: '状态码', value: '6'),
+                      FeatureField(label: '状态', value: '有效'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '状态码已取消',
+                    fields: <FeatureField>[
+                      FeatureField(label: '预约 ID', value: 'booking-8'),
+                      FeatureField(label: '状态码', value: '8'),
+                      FeatureField(label: '状态', value: '有效'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '名称已取消',
+                    fields: <FeatureField>[
+                      FeatureField(label: '预约 ID', value: 'booking-name'),
+                      FeatureField(label: '状态码', value: '1'),
+                      FeatureField(label: '状态', value: '用户取消'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '有效预约',
+                    fields: <FeatureField>[
+                      FeatureField(label: '预约 ID', value: 'booking-ok'),
+                      FeatureField(label: '状态码', value: '1'),
+                      FeatureField(label: '状态', value: '有效'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareCancellationWrite: (_, __) async {
+            fail('已结束或已取消的预约不应触发准备回调');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('图书馆座位'));
+    await tester.tap(find.text('图书馆座位'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('准备取消预约'), findsOneWidget);
   });
 
   testWidgets('场馆可预约时段先填写 typed 信息再进入确认页', (tester) async {

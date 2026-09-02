@@ -111,6 +111,10 @@ cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D 
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
+取消写入口的跨层边界：`BridgeBackend` 仅把图书馆状态码/状态名和场馆订单/审核状态作为公开详情字段投影；共享 UI
+按冻结 DTO 的状态和时间截止规则隐藏明显不可取消的记录，Core 仍负责最终资格、会话和上游错误判定。状态缺失或格式未知
+不由宿主猜测协议，场馆入口默认关闭；取消仍沿用一次性 `WriteIntent`，不增加后台重试或跨路线切换。
+
 最新五平台复核：提交 `62ec048` 的 Flutter native run `33541980112` 已完成 Windows、macOS、Linux、
 Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、Windows、Linux、iOS simulator
 和 Android APK job 均成功。这仍不是签名 Release 或实体设备证据。

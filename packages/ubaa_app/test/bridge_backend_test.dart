@@ -415,6 +415,73 @@ void main() {
     expect(fields['可预约'], '是');
   });
 
+  test('BridgeBackend 取消入口状态字段保持公开且可供 UI 门禁使用', () async {
+    final route = const BridgeRouteDecision(
+      policy: BridgeRoutePolicy.direct,
+      resolvedRoute: BridgeConnectionMode.direct,
+      network: BridgeNetworkState.campus,
+      initialRoute: BridgeConnectionMode.direct,
+      usedFallback: false,
+    );
+    final backend = BridgeBackend(
+      _FakeCancellationProjectionClient(
+        libbook: BridgeRoutedLibBookBookings(
+          data: const BridgeLibBookBookingsPage(
+            bookings: <BridgeLibBookBooking>[
+              BridgeLibBookBooking(
+                id: 'booking-6',
+                nameMerge: '预约',
+                areaName: '馆区',
+                seatNo: 'A-01',
+                day: '2026-09-02',
+                beginTime: '10:00',
+                endTime: '12:00',
+                status: '6',
+                statusName: '有效',
+              ),
+            ],
+            page: 1,
+            limit: 20,
+            total: 1,
+          ),
+          route: route,
+        ),
+        cgyy: BridgeRoutedCgyyOrders(
+          data: const BridgeCgyyOrdersPage(
+            content: <BridgeCgyyOrder>[
+              BridgeCgyyOrder(id: 17, orderStatus: 1, checkStatus: 2),
+            ],
+            totalElements: 1,
+            totalPages: 1,
+            size: 20,
+            number: 0,
+          ),
+          route: route,
+        ),
+      ),
+    );
+    final libbook = await backend.loadFeatureQuery(
+      FeatureId.libbook,
+      const FeatureQuery(view: FeatureQueryView.libbookBookings),
+    );
+    final libbookFields = {
+      for (final field in libbook.details.single.fields)
+        field.label: field.value,
+    };
+    expect(libbookFields['状态码'], '6');
+    expect(libbookFields['状态'], '有效');
+
+    final cgyy = await backend.loadFeatureQuery(
+      FeatureId.cgyy,
+      const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+    );
+    final cgyyFields = {
+      for (final field in cgyy.details.single.fields) field.label: field.value,
+    };
+    expect(cgyyFields['订单状态'], '1');
+    expect(cgyyFields['审核状态'], '2');
+  });
+
   test('BridgeBackend 阳光打卡记录只投影图片数量而不传递地址', () async {
     final response = BridgeRoutedYgdkRecords(
       data: const BridgeYgdkRecordsPage(
@@ -656,6 +723,27 @@ class _FakeCgyyDayClient implements BridgeClient {
       expect(invocation.namedArguments[#siteId], 3);
       expect(invocation.namedArguments[#date], isNotEmpty);
       return Future<BridgeRoutedCgyyDayInfo>.value(response);
+    }
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
+
+class _FakeCancellationProjectionClient implements BridgeClient {
+  _FakeCancellationProjectionClient({
+    required this.libbook,
+    required this.cgyy,
+  });
+
+  final BridgeRoutedLibBookBookings libbook;
+  final BridgeRoutedCgyyOrders cgyy;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #libbookBookings) {
+      return Future<BridgeRoutedLibBookBookings>.value(libbook);
+    }
+    if (invocation.memberName == #cgyyOrders) {
+      return Future<BridgeRoutedCgyyOrders>.value(cgyy);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }

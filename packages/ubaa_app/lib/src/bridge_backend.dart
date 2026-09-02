@@ -910,6 +910,7 @@ class BridgeBackend
                         _field('座位', item.seatNo),
                         _field('日期', item.day),
                         _field('时段', '${item.beginTime}–${item.endTime}'),
+                        _field('状态码', item.status),
                         _field('状态', item.statusName),
                       ]),
                     ),
@@ -1109,6 +1110,7 @@ class BridgeBackend
                             ? null
                             : _field('参与人数', '${item.joinerNum}'),
                         _field('订单状态', item.orderStatus?.toString()),
+                        _field('审核状态', item.checkStatus?.toString()),
                       ]),
                     ),
                   )
