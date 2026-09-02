@@ -27,8 +27,8 @@
 
 | 阶段 | 主题 | RED/前置证据 | 目标提交 | 状态 |
 |---|---|---|---|---|
-| 00 | 审查、设计与实施计划 | 15 个超千行、2 个拥挤目录；设计与计划复审 GO | `docs: 固化代码组织审查与实施计划` | 已验证待提交 |
-| 01 | 当前事实、文档入口与 CI 契约 | CI 缺少 Flutter/codegen；文档范围过期 | `docs(ci): 对齐当前无签名范围与合并门禁` | 待执行 |
+| 00 | 审查、设计与实施计划 | 15 个超千行、2 个拥挤目录；设计与计划复审 GO | `docs: 固化代码组织审查与实施计划` | 已提交：`6a1c8be` |
+| 01 | 当前事实、文档入口与 CI 契约 | CI 缺少 Flutter/codegen；文档范围过期 | `docs(ci): 对齐当前无签名范围与合并门禁` | 已验证待提交 |
 | 02 | refs 纯校验、脚本分类与 layout 棘轮 | checker 不存在的合同测试失败 | `build: 建立结构棘轮并按副作用整理脚本` | 待执行 |
 | 03 | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 待执行 |
 | 04 | CLI 目录、输出与退出策略 | CLI schema/stdout/stderr/exit characterization | `refactor(cli): 拆分命令执行并收回宿主输出策略` | 待执行 |

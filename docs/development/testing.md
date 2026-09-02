@@ -1,23 +1,59 @@
 # 测试策略
 
-测试按证据等级明确分层：
+测试按证据层级组织；不同层级不能互相冒充。当前结构治理会逐步让测试目录镜像生产领域，但在对应阶段提交前，
+下表使用当前 HEAD 的真实路径。
 
-| 层级 | 位置 | 证明内容 |
+| 层级 | 当前位置 | 证明内容 |
 |---|---|---|
-| 单元/合同 | `crates/ubaa-core/tests/` | DTO、错误、URL 转换、Cookie、no-follow/revision 持久化和稳定 JSON 结构 |
-| 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/` | 仅使用合成值的解析器行为和请求脚本 |
-| Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 无网络时的认证顺序，以及精确只读 URL、表单、Header、分页和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | 人工/JSON 渲染、脱敏、不支持交互步骤处理、序列化 envelope Schema 校验和稳定退出码 |
-| CLI 二进制 | `apps/ubaa-cli/tests/binary_e2e.rs` | 帮助/JSON 参数面、facade-only 宿主访问、锁定 Cargo 门禁、缺少会话和真实宿主注销已保存会话 |
-| Shell 合同与运行时 | `scripts/test-verify-live.sh` | verify-live 凭据只经 stdin、不会进入参数或 xtrace；core-live 启动器成功、失败、构建失败、信号清理、显式目录保留和参数转发；拒绝 `auto`/未知功能 |
-| Core-live 入口 | `apps/ubaa-cli/src/bin/core-live.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`scripts/test-verify-live.sh` | 单个固定路线客户端的一次准备/登录、逐操作只读调用、依赖状态、SPOC/Judge 诊断复用行和安全摘要；周次无有效 ID 时输出 `NOT_APPLICABLE`，不猜测默认周次。二进制运行时测试覆盖 auto/凭据失败、敏感输入和会话材料清理，启动器合同覆盖成功、认证/网络非零退出、依赖参数转发、自动与显式目录、信号和构建失败；其它认证失败、网络失败、依赖阻断、无 ID、单客户端 Cgyy 业务令牌复用及写操作阻止由 `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs`、`crates/ubaa-core/tests/facade.rs` 和 CLI 合同测试提供等价 Mock/Fixture 证据，源码不包含任何写操作调用 |
-| 真实集成 | `scripts/verify-live.sh` + `scripts/core-live.sh` | Direct/WebVPN 各自一次 Core-live 批次；每项输出 `PASS/FAIL/BLOCKED/NOT_APPLICABLE`，不在 Shell 重复网络或 DTO 解析 |
+| Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
+| 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
+| Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
+| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v2、路线诊断、脱敏、写确认和退出语义 |
+| CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core-live.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
+| Shell launcher | `scripts/test-verify-live.sh` | 凭据只经 stdin、参数白名单、成功/失败/构建失败/信号清理和显式目录语义 |
+| FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
+| Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
+| Widget/golden | `packages/ubaa_ui/test/` | 十二领域页面、loading/empty/failure/stale、查询、写确认、响应式、明暗主题和可访问性 |
+| 宿主 integration | `apps/ubaa_flutter/integration_test/app_flow_test.dart` | 脱敏 backend 下的登录、十二项查询、十项写入 prepare/确认/单次 commit/读取核对 |
+| 原生构建/产物 | Flutter 五平台 CI、本机 artifact check、OHOS API26 无签名门禁 | 宿主可构建及最小包结构；不证明签名、安装、实体设备或真实账号链路 |
+| 真实只读 | `scripts/verify-live.sh` + `scripts/core-live.sh` | Direct/WebVPN 各自单客户端的当前 Core 协议矩阵；只输出安全摘要 |
 
-运行确定性测试使用 `cargo test --locked --workspace --all-targets` 或 `just check`。`just check` 先用无依赖元数据校验 `Cargo.lock`，所有依赖解析命令都带 `--locked`。CI 不执行真实认证；仅在安全凭据存在时，人工分别运行 Direct 与 WebVPN 的 `feature=all`，并把逐操作结果写入 `docs/migration/status.md`。`auto` 只有 Mock/确定性路由证据，Fixture 或 Mock 通过不能建立真实协议成功。
+## 确定性门禁
 
-每个新行为都从失败的 focused 测试开始。Fixture 必须使用合成值，断言敏感值不在输出中，
-上游事实变化时增加迁移或合同记录。
+```bash
+just check-sensitive
+just check
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
+just flutter-check
+git diff --check
+```
 
-认证失败、网络/协议失败、依赖阻断、无 ID、单客户端业务登录复用和真实写操作默认拒绝
-由 `ubaa-core` Mock/Fixture 集成测试与 CLI 合同测试覆盖；Core-live 本身只接受真实只读
-路线，不能用测试运行替代实时证据。
+`just check` 当前运行锁定 Cargo 元数据、格式、Clippy、workspace 测试、Shell launcher 合同、构建、Rustdoc 与
+差异检查；Flutter/codegen 独立运行。focused test 必须先证明本次行为，完整门禁只证明没有发现其它回归。
+
+## 行为变更与来源对照
+
+每个认证、读取或写入行为先在两个冻结来源和安全实时证据中确认事实，再增加会失败的脱敏 Fixture/Mock/解析
+测试。无等价协议时记录“不适用”；来源冲突时停止具体边界并写 decision log。纯文件移动不得修改测试名称、
+数量、golden 字节、公开 schema、文案、key、semantics 或调用顺序。
+
+## 写入测试边界
+
+十项用户写入已有确定性闭环，但这不授权真实操作：
+
+1. Core/CLI 证明精确请求、默认拒绝和 `--confirm-write`；
+2. bridge/app/UI 证明 typed prepare 不提交、取消无副作用、确认只提交一次；
+3. `outcome_unknown` 或 commit 异常不自动重试，要求先读取核对；
+4. 宿主 integration 使用脱敏 fake backend，不访问真实账号；
+5. 每次真实写入仍需具体操作、目标、路线和时间授权，并立即使用读取接口核对。
+
+历史单次授权写探针不自动证明当前提交、另一条路线或另一项操作。
+
+## 真实只读与发布证据
+
+CI 不接收真实凭据。Direct 与 WebVPN 必须人工串行运行，按“操作 × 路线”记录 PASS/FAIL/BLOCKED/
+NOT_APPLICABLE；父集合为空且有同批次证据时才允许 N/A。`auto` 只有 Mock 路由证据。Cgyy 的
+`static_fallback` 必须明确来源，不能计作上游接口成功。
+
+Fixture/Mock、Flutter build、simulator、golden、无签名 HAP 和产物上传分别证明不同层级；都不能替代实体
+设备、硬件安全存储、签名、公证、商店发布或真实写后核对。

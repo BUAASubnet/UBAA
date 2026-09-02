@@ -16,9 +16,43 @@ jobs:
         with:
           components: clippy,rustfmt
       - uses: taiki-e/install-action@just
-      - run: just refs
-      - run: just check-sensitive
-      - run: just check
+
+      - name: 安装固定官方 Flutter SDK
+        shell: bash
+        run: |
+          flutter_root="$RUNNER_TEMP/flutter"
+          git init "$flutter_root"
+          git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
+          git -C "$flutter_root" fetch --depth=1 origin refs/tags/3.41.9:refs/tags/3.41.9
+          git -C "$flutter_root" checkout --detach 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
+          printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
+          printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
+          export UBAA_FLUTTER_HOME="$flutter_root"
+          ./scripts/check-flutter-toolchains.sh official
+
+      - name: 安装固定 FRB codegen
+        shell: bash
+        run: |
+          cargo install --locked cargo-expand --version '=1.0.126'
+          test "$(cargo-expand --version)" = 'cargo-expand 1.0.126'
+          cargo install --locked flutter_rust_bridge_codegen --version '=2.13.0'
+          codegen=$(command -v flutter_rust_bridge_codegen)
+          test "$("$codegen" --version)" = 'flutter_rust_bridge_codegen 2.13.0'
+          printf 'UBAA_FRB_CODEGEN=%s\n' "$codegen" >> "$GITHUB_ENV"
+
+      - name: 验证冻结引用
+        run: just refs
+      - name: 扫描敏感材料
+        run: just check-sensitive
+      - name: 运行 Rust 与 Shell 确定性门禁
+        run: just check
+      - name: 检查官方 Flutter packages 与 app
+        run: just flutter-check
+      - name: 检查 FRB 生成零漂移
+        env:
+          CARGO_INCREMENTAL: 0
+          CARGO_BUILD_JOBS: 1
+        run: just flutter-codegen-check
       - name: 生成无签名 RC 前置报告
         run: just release-preflight "$RUNNER_TEMP/ubaa-release-report"
       - name: 保存无签名 RC 前置报告

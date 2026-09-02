@@ -1,37 +1,85 @@
 # 开发命令
 
-工作区使用 `rust-toolchain.toml` 中的 Rust 1.95.0，并通过 `just` 固化可重复检查。
+工作区使用 `rust-toolchain.toml` 锁定 Rust 1.95.0；官方 Flutter、OHOS fork、FRB 与平台工具版本见
+[Flutter 平台矩阵](../architecture/flutter-platforms.md)。当前 recipe 由根 `justfile` 提供。
+
+## 基线与确定性门禁
 
 ```bash
-just refs                                                   # 校验或克隆固定的忽略参考仓库
-cargo metadata --locked --no-deps --format-version 1        # 不拉取目标专用 crate，校验 Cargo.lock
-just check                                                  # 锁定元数据、格式、Clippy、测试、构建、文档和差异
-just check-sensitive                                        # 扫描受跟踪路径和明显的秘密格式
-cargo test --locked -p ubaa-cli --all-targets               # CLI 单元、合同和二进制测试
-just verify-live mode=direct                                 # Core-live 的 Direct 真实只读矩阵
-just verify-live mode=webvpn                                 # Core-live 的 WebVPN 真实只读矩阵
-just verify-live feature=auth route=direct                   # Core-live 单项认证只读证据
-just verify-live feature=all route=webvpn                    # 一个 Core-live client 的全量只读证据
-just core-live route=direct feature=cgyy                      # 已有凭据 stdin 的 Core-live 启动器
+just refs                                                   # 当前会校验引用；缺失时会按固定提交克隆，阶段 02 将拆分 bootstrap/check
+cargo metadata --locked --no-deps --format-version 1        # 校验 Cargo.lock 与 workspace 元数据
+just check-sensitive                                        # 扫描 tracked 和非 ignored 候选文件中的敏感路径/模式
+just check                                                  # Rust/Cargo/CLI/Shell launcher、构建、文档与 git diff；不含 Flutter
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
+just flutter-check                                          # 六个 Dart/Flutter package/app 执行 pub get、analyze、test
+git diff --check
 ```
 
-排查 Cgyy 时只打开窄范围的 stderr 诊断日志；JSON/摘要仍写 stdout，便于单独解析：
+`just check` 与 Flutter/codegen 是独立证据，任何一个通过都不能推导另一个通过。结构治理阶段还要运行实施计划
+指定的 focused test；阶段 02 落地后再增加 layout 棘轮，不得提前调用尚不存在的 recipe。
+
+常用 focused 命令：
 
 ```bash
-RUST_LOG='ubaa::cgyy=debug' \
-  just verify-live feature=cgyy route=direct
+cargo test --locked -p ubaa-cli --all-targets
+cargo test --locked -p ubaa-core --all-targets
+cargo test --locked -p ubaa-test-support --all-targets
 ```
 
-`RUST_LOG=ubaa::cgyy=debug` 将 Cgyy 的 `info`/`debug`/`warn` 事件发送到 stderr；事件只含操作名、方法和路径、脱敏参数键/长度、HTTP 状态、最终主机和路径、响应长度/哈希、耗时及稳定错误码。认证材料、Cookie、令牌、签名、验证码、表单值、查询字符串和原始响应正文禁止进入日志。不要使用全局 `trace` 过滤器，也不要将用户名或密码放在命令参数中。
+## Flutter 与无签名平台构建
 
-实时排查顺序建议为 `feature=cgyy route=direct` 和 `feature=cgyy route=webvpn`；`auto` 只运行确定性 Mock 路由测试。每次只读运行都应保留路线、操作、状态、错误码和安全计数，失败时记录到 `docs/migration/status.md`，而不是复制 stderr 或上游响应。需要复现日期时可临时设置 `UBAA_VERIFY_DATE=YYYY-MM-DD`；该值不包含凭据，测试后应取消设置。
+```bash
+just flutter-build platform=macos mode=debug
+just flutter-build platform=linux mode=debug
+just flutter-build platform=windows mode=debug
+just flutter-build platform=android-apk mode=debug
+just flutter-build platform=ios-simulator mode=debug
 
-`just verify-live` 接受 `mode=direct|webvpn` 和 `feature=<name> route=direct|webvpn` 形式，拒绝真实 `auto`。它安全读取被忽略的 `.env.local` 中非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称），构建 `core-live` 后一次性经 stdin 注入；凭据不会出现在参数、日志或文件中。Core-live 在一个固定路线 `RouteClient` 内顺序执行只读 facade，认证交互页面直接报告 `upstream_changed`，不保存验证码材料。
+just flutter-artifact-check macos /绝对路径/ubaa_flutter.app
+just flutter-artifact-check android-apk /绝对路径/app-debug.apk
 
-CI 运行 `just refs`、`scripts/check-sensitive.sh` 和 `just check`；CI 从不执行真实认证，因此不需要 `.env.local`。
+UBAA_DEVECO_HOME=/绝对路径/DevEco或命令行工具 \
+  UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
+```
 
-常见失败：
+这些命令只证明相应无签名构建或产物结构。`UBAA_OHOS_NO_CODESIGN=1` 只允许 Debug；生成的 HAP 不得用于发布
+或实体设备验收。签名、安装、设备和安全存储证据必须单独记录。
 
-- `ubaa_old/` 或 `examples/buaa-api/` 脏或不在固定提交会使 `just refs` 停止；只读检查引用目录，不要修改。
-- 锁定元数据或构建失败表示依赖/工具链问题，不要随意重生成锁文件。
-- 真实 `upstream_changed` 且安全消息指出交互验证时，记录路线、操作、状态和重跑条件；不要添加验证码绕过或保存上游验证材料。
+## 发布前置
+
+```bash
+just release-preflight /绝对路径/ubaa-release-report
+```
+
+该命令要求工作树干净，生成 Cargo 元数据、CycloneDX 风格 SBOM、Dart/Flutter 锁文件与许可证清单、源码摘要
+和安全状态；不签名、不上传、不访问真实账号。完整流程见[Flutter 发布 Runbook](../runbooks/flutter-release.md)。
+
+## 真实只读验证
+
+```bash
+just verify-live mode=direct
+just verify-live mode=webvpn
+just verify-live feature=auth route=direct
+just verify-live feature=cgyy route=webvpn
+```
+
+真实验证只接受 Direct/WebVPN，拒绝 `auto`。它从被忽略的 `.env.local` 读取非空测试凭据，经 stdin 一次注入
+Core-live；每条路线使用一个固定 `RouteClient` 串行执行。只保留路线、操作、状态、错误码、耗时和安全计数，
+不得复制 stderr、URL 查询、上游正文或个人数据到文档。
+
+排查 Cgyy 时只打开窄范围日志：
+
+```bash
+RUST_LOG='ubaa::cgyy=debug' just verify-live feature=cgyy route=direct
+```
+
+禁止全局 `trace`。日志不得含凭据、Cookie、Token、签名、验证码、表单值、查询值或原始响应。`auto` 只运行
+Core/Mock 确定性路由测试。
+
+## 常见失败边界
+
+- `just refs` 发现冻结引用脏或提交不匹配时立即停止，不要修改、清理或重置冻结目录。
+- 锁定元数据/构建失败时不要随意重生成锁文件或放宽 lint。
+- FRB codegen 必须精确为 2.13.0；生成后任何未解释 diff 都阻止提交。
+- `upstream_changed` 只说明当前响应不满足已证明合同；记录安全状态并按条件重跑，不猜测新字段或绕过挑战。
+- 真实写入没有逐操作授权时保持 BLOCKED，不用 CLI/Flutter 的确认参数绕过授权边界。

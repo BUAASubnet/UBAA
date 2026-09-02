@@ -1,67 +1,107 @@
 # UBAA 2
 
-UBAA 2 是面向北京航空航天大学服务的 Rust Core 与宿主应用。本阶段提供自动直连/WebVPN 路由、双路线认证、用户中心以及十三类校园只读功能。
+UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 是唯一协议、认证、路线、Cookie、Session、
+加密、解析和业务规则实现。当前 CLI 与 Rust bridge 的业务调用经 facade，但仍直接依赖部分 Core 公共类型和
+CLI 输出策略；结构治理阶段 04、06C 将把它们收口为 facade 重导出和 CLI 自有策略。Dart 与平台宿主只经
+bridge 使用 Core。
 
 ## 当前状态
 
-认证、Core 管理的路由策略、原子双会话协调器、CLI schema v2 及十三类只读实现均有确定性测试覆盖。Direct/WebVPN 的当前逐操作真实证据记录于 `docs/migration/status.md`；fixture、Mock 或脚本门禁通过不等于真实协议通过。
+当前已完成“无签名执行目标”，但**没有完成正式发布**：
 
-## 使用准备
+- Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
+- Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
+- 十二项读取页面、typed 查询、十项写入的 prepare→确认→单次 commit→读取核对流程已有 Fixture/Mock、
+  Rust、Dart、widget/golden 与脱敏宿主 integration 证据；
+- Direct 与 WebVPN 的当前真实证据只覆盖 Core-live 只读矩阵，不代表真实 App 账号链路或真实写入；
+- 正式签名、证书、公证、商店上传、实体设备、原生安全存储 handler 和真实写入核对仍是后置条件。
+
+当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
+[代码与目录组织设计](docs/architecture/code-organization.md)和
+[实施计划](docs/superpowers/plans/2026-09-03-code-organization.md)。
+
+## 能力范围
+
+用户中心之外，当前业务域包括：
+
+- 课表、考试、成绩、空闲教室；
+- SPOC、希冀作业、课堂签到；
+- 阳光打卡、图书馆座位、博雅课程、场馆预约、教学评教。
+
+读取能力由 Core/CLI/FRB/Flutter typed 链路消费。写入能力包括博雅选课/退选/签到签退、课堂签到、图书馆
+预约/取消、场馆预约/取消、阳光打卡和教学评教。真实写入默认不执行；每次必须由用户对具体操作、目标、
+路线和时间单独授权，结果不确定时禁止自动重试。
+
+## 仓库结构
+
+| 位置 | 职责 |
+|---|---|
+| `crates/ubaa-core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
+| `crates/ubaa-flutter-bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
+| `crates/ubaa-test-support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
+| `apps/ubaa-cli` | human/JSON schema v2 命令行宿主与只读 Core-live 入口 |
+| `apps/ubaa_flutter` | Windows/macOS/Linux/Android/iOS 官方 Flutter 薄宿主 |
+| `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
+| `packages/ubaa_domain` | Dart 稳定领域模型 |
+| `packages/ubaa_app` | 应用状态、bridge adapter 与写入协调 |
+| `packages/ubaa_platform` | 平台路径、权限、凭据和照片 typed 边界 |
+| `packages/ubaa_ui` | 共享页面、查询、确认、响应式与可访问性 UI |
+| `packages/ubaa_bindings` | FRB 机械生成 Dart 输出和 Cargokit 平台构建支持 |
+| `docs` | 架构、合同、开发命令、迁移证据与运行手册 |
+
+完整文档入口见[文档索引](docs/index.md)。
+
+## CLI 快速开始
 
 ```bash
 just refs
 cargo build --locked --workspace
-cargo install --locked --path apps/ubaa-cli
+cargo run --locked -p ubaa-cli -- --help
 ```
 
-开发期间可用 `cargo run --locked -p ubaa-cli -- --help` 运行 CLI。
+普通登录会同时准备内部 Direct 与 WebVPN 路线；密码只通过不回显输入或 stdin 读取，不能放入 argv。
 
 ```bash
-# 交互输入密码；普通登录会同时准备两条内部路线。
 cargo run --locked -p ubaa-cli -- auth login --username YOUR_USERNAME
-
-# 复用并验证已持久化会话。
 cargo run --locked -p ubaa-cli -- auth status
 cargo run --locked -p ubaa-cli -- user show
-cargo run --locked -p ubaa-cli -- auth logout
-
-# 自动化流程从标准输入读取一行密码，并输出一个 JSON 信封。
-printf '%s\n' "$UBAA_TEST_PASSWORD" |
-  cargo run --locked -p ubaa-cli -- --json auth login \
-    --username "$UBAA_TEST_USERNAME" --password-stdin
-```
-
-默认会话位置是操作系统的用户配置目录。隔离测试可使用 `--config-dir <path>`。输出合同见 `docs/contracts/auth-and-user.md` 和 `docs/contracts/cli-json.schema.json`。
-
-`config.toml` 为每项功能配置 `auto|direct|webvpn` 策略。使用 `auto` 时，Core facade 会在 500 毫秒总预算内探测 `gw.buaa.edu.cn:80` 的 TCP 可达性，并在进程内缓存结果；校园网解析为 Direct，校外网解析为 WebVPN。普通用户无需选择内部连接模式；测试和真实验证器使用隐藏的诊断命令及路线覆盖参数。
-
-每次 JSON 成功或失败都只输出一个 schema-v2 信封。`config.toml` 格式版本 1 和 `session.json` 格式版本 2 是相互独立的磁盘合同，不是 CLI schema 版本。
-
-只读命令示例：
-
-```bash
 cargo run --locked -p ubaa-cli -- schedule terms
 cargo run --locked -p ubaa-cli -- grades list --term 2025-2026-1
-cargo run --locked -p ubaa-cli -- classroom search --campus 1 --date 2026-09-01
-cargo run --locked -p ubaa-cli -- judge assignments
+cargo run --locked -p ubaa-cli -- auth logout
 ```
 
-## 验证
+默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
+失败只输出一个 schema-v2 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
+[CLI JSON Schema](docs/contracts/cli-json.schema.json)。
+
+## 确定性验证
 
 ```bash
 just refs
 just check-sensitive
 just check
-just verify-live feature=auth route=direct
-just verify-live feature=auth route=webvpn
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
+just flutter-check
+git diff --check
+```
 
-# 真实验证只允许显式 Direct 和 WebVPN；每条路线在单个 Core-live 批次中复用一个客户端。
+`just check` 当前覆盖 Rust/Cargo、CLI、Shell launcher 合同、构建、文档和差异，不包含 Flutter/codegen；
+后两项必须独立运行。平台构建、无签名 OHOS HAP 与发布前置命令见[开发命令](docs/development/commands.md)和
+[Flutter 发布 Runbook](docs/runbooks/flutter-release.md)。
+
+## 真实只读验证
+
+```bash
 just verify-live mode=direct
 just verify-live mode=webvpn
 ```
 
-真实验证需要在已忽略的 `.env.local` 中配置 `UBAA_TEST_USERNAME` 和 `UBAA_TEST_PASSWORD`。CLI 从不接受命令行明文密码，Core-live 只输出路线、操作、状态、稳定错误码、耗时、数量和依赖原因等安全摘要。`auto` 仅通过 Core/Mock 确定性测试验证，不执行真实登录矩阵。
+真实验证只允许显式 Direct 或 WebVPN，并在一个固定路线 `RouteClient` 中串行执行。凭据来自被忽略的
+`.env.local`，只经 stdin 使用；Core-live 只输出路线、操作、状态、稳定错误码、耗时、数量和依赖原因等
+安全摘要。`auto` 只保留 Core/Mock 确定性证据。Fixture、Mock、CI 或历史成功都不能替代当前真实协议结果。
 
-## 范围
+## 安全边界
 
-本阶段覆盖认证、会话管理、用户中心，以及课表、考试、成绩、空教室、SPOC、希冀、签到状态、阳光打卡、图书馆、博雅课程、场馆和评教读取。人类输出和 JSON 输出都会遮盖手机号及证件号码。Flutter、MCP、服务器中转和所有真实写操作仍不在范围内。
+`ubaa_old/`、`examples/`、`.env.local`、运行时 Session、验证码、真实响应和凭据始终只读且不得提交。
+宿主不得调用 Core 私有协议模块、拼接上游 URL、读取 Cookie/Token 或关闭 TLS 校验。无签名构建不能称为
+正式发布，确定性写入流程不能称为真实写入成功。
