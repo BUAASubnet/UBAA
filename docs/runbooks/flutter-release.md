@@ -84,3 +84,13 @@ FRB 本机零漂移仍需工具链恢复后重试，不能记为通过。
 
 最新无签名确定性证据：提交 `949d7eb` 的官方 macOS 宿主集成测试 5/5 通过，覆盖十二个功能的 typed 查询入口；`WriteFlowController`
 的十项写操作矩阵验证每项只提交一次并拒绝重复确认。该证据不包含真实写请求、写后上游核对、签名、设备或系统安全存储。
+
+当前无签名平台能力证据：`ubaa_platform` 的 `MethodChannelPermissionGateway`、
+`MethodChannelSecureCredentialStore` 和 `MethodChannelPhotoPicker` 已接入官方 Flutter 与 OHOS
+宿主默认组合，并以 Mock 覆盖权限状态、凭据探测/读写/清除、无效凭据拒绝和照片字节边界；
+`just flutter-check` 通过。未注册原生 handler 时能力保持不可用，不会伪造 Keychain、Keystore、
+Secret Service 或 HUKS。原生 handler、实体设备权限/生命周期和硬件安全存储仍为后置 `BLOCKED`。
+
+提交 `30297a5` 后的 OHOS 无签名复核同样通过：`UBAA_OHOS_NO_CODESIGN=1 just ohos-check
+mode=debug` 使用 API26 工具链生成并检查 `entry-default-unsigned.hap` 和 arm64 Rust bridge；
+产物未签名、未安装、未上传，生成输出已移出工作树。

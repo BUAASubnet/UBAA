@@ -67,6 +67,18 @@ DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 签名 HAP、实体 HarmonyOS 设备上的启动/FRB hello、应用私有目录、网络、权限和 HUKS smoke
 均为后置发布条件；没有证书或设备时必须记录为 `BLOCKED`，不得把无签名包标为平台正式完成。
 
+## 3.1 无签名平台能力适配
+
+共享 `ubaa_platform` 通过 `cn.edu.buaa.ubaa/platform` MethodChannel 暴露三类稳定边界：
+`permission.request` 返回固定权限状态，`credentials.capability/read/write/clear` 访问
+版本化安全存储 namespace，`photo.capability/pick` 只传递受限的图片字节、展示名和 MIME。
+`createDefaultPlatformCapabilities()` 在两个 Flutter 宿主启动时先探测凭据和照片能力；缺少
+原生 handler 或返回值不符合合同会安全归约为不可用，不会回退到明文文件、内存凭据或原始路径。
+
+当前已完成 Dart typed 适配器、输入校验和 MethodChannel Mock 合同测试；Android Keystore、
+iOS/macOS Keychain、Linux Secret Service、Windows 安全存储和 HarmonyOS HUKS 的原生 handler
+尚未接入，实体设备权限、生命周期和硬件安全存储验证继续记录为后置 `BLOCKED`。
+
 ## 4. 可复现命令
 
 ```sh

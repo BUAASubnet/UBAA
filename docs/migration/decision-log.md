@@ -1,5 +1,18 @@
 # 决策记录
 
+## 2026-09-02：MethodChannel 平台能力合同（当前有效）
+
+- 生产宿主统一使用 `cn.edu.buaa.ubaa/platform` 的 typed MethodChannel：权限通过
+  `permission.request` 返回固定状态，安全凭据通过 `credentials.capability/read/write/clear`
+  使用版本化 namespace，照片通过 `photo.capability/pick` 传递有界字节、文件名和 MIME。
+- Dart 适配器在能力探测失败、原生异常或返回值不符合合同（无效凭据、非图片、文件名越界、照片
+  超过 10 MiB）时安全拒绝；不把原始路径、URL、Cookie、令牌或平台异常正文带入 UI、日志或 Core。
+- `createDefaultPlatformCapabilities()` 已接入官方 Flutter 与 OHOS 薄宿主；无原生 handler 时保持
+  `isAvailable=false`，不能把内存/Noop 实现描述为系统安全存储。Android/iOS/macOS/Linux/Windows
+  的原生安全存储和 HarmonyOS HUKS handler、设备权限/生命周期 smoke 仍是后置 `BLOCKED`。
+- 该决策只确定 Dart/原生边界，不引入任何上游协议字段或真实账号副作用；行为由
+  `packages/ubaa_platform/test/method_channel_adapters_test.dart` 的 Mock 合同测试覆盖。
+
 ## 2026-09-02：无签名平台能力边界与宿主全功能 smoke（当前有效）
 
 - 采用 `PlatformPermissionGateway` 和 `PlatformPhotoPicker` 作为相机、相册、文件、前台位置及照片输入的唯一宿主边界；不可用实现安全拒绝，内存实现仅用于脱敏测试。照片不以路径或原始文件元数据跨入业务层。

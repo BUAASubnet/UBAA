@@ -11,6 +11,12 @@
 暂存，`CredentialVault.noop()` 是完全不保存的安全默认值。凭据对象的 `toString`
 始终遮盖账号和密码。
 
+生产宿主可使用 `MethodChannelSecureCredentialStore`；它只通过
+`cn.edu.buaa.ubaa/platform` 的 typed 方法探测和访问原生安全存储，写入前校验凭据，
+不会提供文件或明文回退。原生 handler 缺失时 `probe()` 返回不可用，应用继续使用安全的
+session-only/Noop 语义；各平台 Keychain、Keystore、Secret Service、Credential Manager
+和 HUKS handler 仍需在后置设备阶段实现与验证。
+
 ## 遥测
 
 `TelemetryClient()` 和 `TelemetryClient.noop()` 默认关闭遥测。只有显式传入
@@ -41,3 +47,8 @@ typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePho
 默认使用 `UnavailablePermissionGateway`，因此不会在无权限时调用 picker。桌面文件选择器
 可将包装器的 `permission` 显式设为 `PlatformPermission.files`。原生
 Keychain/Keystore/Secret Service/HUKS 插件接入和设备权限验证仍需在后置发布阶段完成。
+
+生产宿主的默认组合由 `createDefaultPlatformCapabilities()` 创建：权限请求使用
+`MethodChannelPermissionGateway`，照片使用 `MethodChannelPhotoPicker`，二者在插件缺失或
+返回值不符合合同（照片为空、非图片、文件名不安全或超过 10 MiB）时安全拒绝。MethodChannel
+只定义 Dart/原生的稳定边界，不等价于已完成任一平台的原生权限或安全存储实现。

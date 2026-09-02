@@ -2,6 +2,22 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 无签名 P5 MethodChannel 宿主适配边界
+
+- `packages/ubaa_platform` 新增生产宿主使用的 typed `MethodChannel` 适配器：权限请求只接受
+  `granted`/`denied`/`restricted`/`unavailable`，凭据能力通过 `credentials.capability` 探测并以
+  版本化 namespace 读写，照片选择只接收受限字节、文件名和 MIME；缺少插件、异常、畸形或超过
+  10 MiB 的照片均安全归约，不把路径、URL、Cookie、令牌或平台异常正文带入 Dart。
+- 官方 Flutter 与 OHOS 入口在 `RustLib.init` 后组合默认能力并先探测；无原生 handler 时能力保持
+  不可用，UI 不会把 Noop/session-only 或内存实现宣称为系统安全存储。新增 MethodChannel 测试覆盖
+  状态映射、凭据读写/清除、无效凭据拒绝和照片大小边界；`just flutter-check` 已通过。
+- 本增量只完成可无签名验证的平台通道和宿主接线，不声称已经实现 Android Keystore、iOS/macOS
+  Keychain、Linux Secret Service 或 HarmonyOS HUKS 原生 handler；实体设备权限、硬件安全存储和
+  真机生命周期仍保持后置 `BLOCKED`，不得用 MethodChannel fake 或无签名产物替代。
+- 提交 `30297a5` 后，`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools
+  UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 再次通过：工具链/Dart/widget/native 前置为
+  0 失败/0 警告，生成并检查无签名 `entry-default-unsigned.hap` 及 arm64 bridge；生成文件已移出工作树。
+
 ## 2026-09-02 无签名 P5 回调边界与当前复核
 
 - 提交 `0fa5ec0` 新增 `CallbackPermissionGateway` 与 `CallbackPhotoPicker`，把原生权限/照片 SDK 回调
