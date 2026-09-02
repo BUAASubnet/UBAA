@@ -11,6 +11,18 @@
   包内容、FRB 零漂移、根级检查配方和架构风险记录均有可复核证据；签名 HAP、实体设备和硬件安全存储
   继续保持后置 `BLOCKED`，不影响后续 P1–P6 的无签名实现工作。
 
+## 2026-09-02 P2 无签名代码门禁闭合
+
+- 共享应用壳、Splash/登录/主页/我的/设置、会话恢复、自动登录、路线策略读取与切换、退出分层和
+  后台恢复均已在官方 Flutter 与 OHOS 薄宿主接线；生产入口只创建 FRB backend，失败时安全进入
+  `unsupported`，不以 Demo 数据冒充登录或业务成功。
+- `CredentialVault` 的 Noop、session-only、版本化 `PlatformCredentialVault` 和稳定错误边界已实现；
+  应用在安全存储不可用时只使用本次会话并禁用持久化选项。应用私有配置目录解析、Core Session
+  清理/迁移/文件锁和注销语义由 Core 与平台测试覆盖，密码、Cookie 和 token 不进入 Dart 日志或文件。
+- `just check-sensitive`、`just check`、`just flutter-check` 和相关 app/platform 测试均通过；原生
+  Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件及实体设备验证仍为 P5/P6 后置
+  `BLOCKED`，本条只关闭无签名代码与合同门禁。
+
 ## 2026-09-02 无签名平台能力与宿主全功能 smoke
 
 - 提交 `fba1316` 新增 `PlatformPermissionGateway`、`PlatformPhotoPicker`、不可用实现和内存 fake，覆盖相机、相册、文件、前台位置权限的稳定拒绝/授权状态；照片只以 typed `YgdkPhotoInput` 在内存中传递。权限拒绝回归验证不会调用 picker，原生插件和设备权限仍为后置 `BLOCKED`。
