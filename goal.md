@@ -450,6 +450,7 @@
 157. 新增 `AppController` 十项写操作读取核对矩阵：除场馆预约/取消固定查询同路线订单列表外，其余操作只刷新对应业务只读域，防止跨域刷新或重复提交；app controller focused suite 31/31、`just flutter-check` 与 `just check` 均通过。本轮仍未执行真实写接口。
 158. 提交 `5dc6dcf` 收紧博雅详情写入口：读取字段明确为“已选”或稳定状态枚举时仅开放对应的选课/退选操作，已选课程视图禁用重复选课；缺少状态字段时不在 UI 猜测，仍由 Core prepare 做最终校验。新增 widget 回归验证禁用按钮、稳定提示和零回调副作用；同时为场馆预约收集同一站点/日期下去重的全部可预约 typed 时段，表单可在一次准备中选择多个 `CgyyReservationSelectionInput`，跨站点/日期不会混入。`ubaa_ui` 全量 42 项、`just flutter-check`、`just check-sensitive` 与 `git diff --check` 均通过；本轮没有真实写入或原生平台调用，逐领域 golden/integration、真实写后核对、设备安全存储和签名发布仍未闭合。
 159. 提交 `4938a61` 的合同 CI run `33605940388` 与 Flutter 原生 CI run `33605940357` 均已终态 `success`。合同 run 的 `contract-gates`、Windows Rust、macOS Rust 全部通过；原生 run 的 Android APK、iOS simulator、macOS、Linux、Windows Debug 全部通过无签名产物结构检查，macOS 另通过宿主 integration smoke。此前本机 `just refs`、`just check-sensitive`、`just check`、FRB 零漂移、`just flutter-check`、无签名 RC 前置报告和 API26 无签名 OHOS HAP 均已通过且生成物已清理；本轮仍无签名、实体设备、原生安全存储或真实账号写入证据，P3/P4/P5/P6 逐领域与设备后置缺口未闭合。
+160. 当前 HEAD 在 2026-09-02 营业窗口内串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮没有执行任何真实写接口；该证据仍不替代 Flutter→FRB→Core 写链、真实写后核对、实体设备或签名发布。
 
 ## 4. 安全与架构边界
 

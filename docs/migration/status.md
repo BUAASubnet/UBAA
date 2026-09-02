@@ -1601,3 +1601,12 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - Flutter 原生 CI run `33605940357` 已终态 `success`：Android APK、iOS simulator、macOS、Linux、
   Windows Debug 五个 job 全部成功并完成无签名产物结构检查；macOS job 还完成官方宿主 integration smoke。
   两个 run 均不包含签名、实体设备安装、原生安全存储或真实账号写入。
+
+## 2026-09-02 当前 HEAD 只读矩阵复核
+
+- 当前 HEAD 的 Core-live 在营业窗口内串行执行 `just verify-live mode=direct` 与
+  `just verify-live mode=webvpn` 均 exit code 0。两条路线的认证、用户、课表、考试、成绩、空教室、
+  SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`；SPOC/博雅详情因同批次
+  父列表为空记为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。
+- 本轮只读复核未执行选课、退选、签到、预约、取消、打卡上传或评教提交；该 Core-live 证据证明协议/路线
+  读取，不证明真实 Flutter→FRB→Core 写链或真实写后核对。输出未保存凭据、Cookie、令牌或原始响应。
