@@ -63,6 +63,85 @@ void main() {
     );
   });
 
+  testWidgets('十二项功能详情分别保持视觉基线', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1280, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '${feature.title}样例已加载',
+          details: <FeatureDetail>[
+            FeatureDetail(
+              title: '${feature.title}样例',
+              subtitle: '无签名测试数据',
+              fields: <FeatureField>[
+                FeatureField(label: '领域', value: feature.name),
+                const FeatureField(label: '状态', value: '可查看'),
+              ],
+            ),
+          ],
+          resolvedRoute: ConnectionMode.direct,
+        ),
+    };
+
+    Future<void> pumpShell({required int initialTab}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: UbaaTheme.light(),
+          home: UbaaMainShell(
+            key: ValueKey<int>(initialTab),
+            user: const UserSummary(username: 'student', displayName: '测试同学'),
+            snapshots: snapshots,
+            routePolicy: RoutePolicy.auto,
+            telemetryEnabled: false,
+            activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+            initialTab: initialTab,
+            onRefresh: () async {},
+            onRetryFeature: (_) async {},
+            onFeatureQuery: (_, __) async {},
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+            onTelemetryChanged: (_) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> capture(FeatureId feature) async {
+      final target = find.text(feature.title).first;
+      await tester.ensureVisible(target);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(find.text('返回功能列表'), findsOneWidget);
+      await expectLater(
+        find.byType(UbaaMainShell),
+        matchesGoldenFile('goldens/feature_${feature.name}_light.png'),
+      );
+      await tester.tap(find.text('返回功能列表'));
+      await tester.pumpAndSettle();
+    }
+
+    await pumpShell(initialTab: 1);
+    for (final feature in ordinaryFeatureIds) {
+      await capture(feature);
+    }
+
+    await pumpShell(initialTab: 2);
+    for (final feature in advancedFeatureIds) {
+      await capture(feature);
+    }
+  });
+
   testWidgets('启动页展示品牌且登录页不猜测验证码流程', (tester) async {
     await tester.pumpWidget(
       MaterialApp(theme: UbaaTheme.light(), home: const UbaaSplashView()),
