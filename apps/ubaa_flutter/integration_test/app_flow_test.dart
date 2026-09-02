@@ -377,44 +377,86 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> confirm(String label, WriteOperation operation) async {
+    Future<void> confirm(
+      String label,
+      WriteOperation operation,
+      FeatureId readbackFeature,
+    ) async {
       await tester.ensureVisible(find.text(label).first);
       await tester.tap(find.text(label).first);
       await tester.pumpAndSettle();
       expect(find.text('确认${operation.title}'), findsAtLeastNWidgets(1));
       final before = backend.commitCalls;
+      final beforeReadback = backend.featureLoads[readbackFeature] ?? 0;
       await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
       await tester.pumpAndSettle();
       expect(backend.commitCalls, before + 1);
       expect(backend.committedOperations.last, operation);
+      expect(
+        backend.featureLoads[readbackFeature],
+        greaterThan(beforeReadback),
+        reason: '${operation.title}提交后必须刷新${readbackFeature.title}核对',
+      );
     }
 
     await openFeature(FeatureId.bykc);
-    await confirm('准备选课', WriteOperation.bykcSelectCourse);
+    await confirm(
+      '准备选课',
+      WriteOperation.bykcSelectCourse,
+      FeatureId.bykc,
+    );
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm('准备退选', WriteOperation.bykcDeselectCourse);
+    await confirm(
+      '准备退选',
+      WriteOperation.bykcDeselectCourse,
+      FeatureId.bykc,
+    );
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm('准备博雅签到', WriteOperation.bykcSignCourse);
+    await confirm(
+      '准备博雅签到',
+      WriteOperation.bykcSignCourse,
+      FeatureId.bykc,
+    );
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm('准备博雅签退', WriteOperation.bykcSignCourse);
+    await confirm(
+      '准备博雅签退',
+      WriteOperation.bykcSignCourse,
+      FeatureId.bykc,
+    );
     await leaveFeature();
 
     await openFeature(FeatureId.signin);
-    await confirm('准备签到', WriteOperation.signinPerform);
+    await confirm(
+      '准备签到',
+      WriteOperation.signinPerform,
+      FeatureId.signin,
+    );
     await leaveFeature();
 
     await openFeature(FeatureId.libbook);
-    await confirm('准备预约此座位', WriteOperation.libbookReserve);
+    await confirm(
+      '准备预约此座位',
+      WriteOperation.libbookReserve,
+      FeatureId.libbook,
+    );
     await leaveFeature();
     await openFeature(FeatureId.libbook);
-    await confirm('准备取消预约', WriteOperation.libbookCancelBooking);
+    await confirm(
+      '准备取消预约',
+      WriteOperation.libbookCancelBooking,
+      FeatureId.libbook,
+    );
     await leaveFeature();
 
     await openFeature(FeatureId.cgyy);
-    await confirm('准备取消订单', WriteOperation.cgyyCancelOrder);
+    await confirm(
+      '准备取消订单',
+      WriteOperation.cgyyCancelOrder,
+      FeatureId.cgyy,
+    );
     await leaveFeature();
     await openFeature(FeatureId.cgyy);
     expect(find.text('准备场馆预约'), findsOneWidget);
@@ -434,12 +476,18 @@ void main() {
     expect(find.text('填写场馆预约信息'), findsNothing);
     expect(find.text('确认场馆预约'), findsAtLeastNWidgets(1));
     final beforeCgyy = backend.commitCalls;
+    final beforeCgyyReadback = backend.featureLoads[FeatureId.cgyy] ?? 0;
     await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
     await tester.pumpAndSettle();
     expect(backend.commitCalls, beforeCgyy + 1);
     expect(
       backend.committedOperations.last,
       WriteOperation.cgyySubmitReservation,
+    );
+    expect(
+      backend.featureLoads[FeatureId.cgyy],
+      greaterThan(beforeCgyyReadback),
+      reason: '场馆预约提交后必须刷新场馆订单核对',
     );
     await leaveFeature();
 
@@ -460,14 +508,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('确认阳光打卡'), findsAtLeastNWidgets(1));
     final beforeYgdk = backend.commitCalls;
+    final beforeYgdkReadback = backend.featureLoads[FeatureId.ygdk] ?? 0;
     await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
     await tester.pumpAndSettle();
     expect(backend.commitCalls, beforeYgdk + 1);
     expect(backend.committedOperations.last, WriteOperation.ygdkSubmit);
+    expect(
+      backend.featureLoads[FeatureId.ygdk],
+      greaterThan(beforeYgdkReadback),
+      reason: '阳光打卡提交后必须刷新打卡记录核对',
+    );
     await leaveFeature();
 
     await openFeature(FeatureId.evaluation);
-    await confirm('准备提交评教', WriteOperation.evaluationSubmitCourses);
+    await confirm(
+      '准备提交评教',
+      WriteOperation.evaluationSubmitCourses,
+      FeatureId.evaluation,
+    );
 
     expect(backend.committedOperations, <WriteOperation>[
       WriteOperation.bykcSelectCourse,
@@ -716,6 +774,7 @@ final class _AllWritesIntegrationBackend
   int _nextIntent = 0;
   final Map<String, WriteOperation> _pending = <String, WriteOperation>{};
   final List<WriteOperation> committedOperations = <WriteOperation>[];
+  final Map<FeatureId, int> featureLoads = <FeatureId, int>{};
   int commitCalls = 0;
 
   @override
@@ -753,6 +812,11 @@ final class _AllWritesIntegrationBackend
     if (!_signedIn) {
       throw const BackendException(UbaaErrorCode.authenticationRequired);
     }
+    featureLoads.update(
+      feature,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
     final details = switch (feature) {
       FeatureId.bykc => <FeatureDetail>[
         FeatureDetail(
