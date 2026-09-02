@@ -72,12 +72,28 @@ case "$platform" in
     ;;
 esac
 
+hash_file() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$@"
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$@"
+  else
+    printf 'error: 当前环境缺少 shasum 或 sha256sum，无法生成产物摘要\n' >&2
+    return 1
+  fi
+}
+
 if [[ -f "$artifact" ]]; then
   size=$(stat -f '%z' "$artifact" 2>/dev/null || stat -c '%s' "$artifact")
-  digest=$(shasum -a 256 "$artifact" 2>/dev/null | awk '{print $1}' || sha256sum "$artifact" | awk '{print $1}')
+  digest=$(hash_file "$artifact" | awk '{print $1}')
 else
   size=$(du -sk "$artifact" | awk '{print $1 * 1024}')
-  digest=$(find "$artifact" -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')
+  digest_input=$(mktemp)
+  trap 'rm -f "$digest_input"' EXIT
+  while IFS= read -r -d '' file; do
+    hash_file "$file" >>"$digest_input"
+  done < <(find "$artifact" -type f -print0 | sort -z)
+  digest=$(hash_file "$digest_input" | awk '{print $1}')
 fi
 printf 'Flutter 产物结构通过：平台=%s 路径=%s 大小=%s 字节 sha256=%s\n' \
   "$platform" "$artifact" "$size" "$digest"
