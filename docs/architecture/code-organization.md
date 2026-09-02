@@ -255,9 +255,11 @@ UBAA/
 │       ├── src/{lib,fixtures,http,session}.rs
 │       └── tests/
 │           ├── auth.rs                     # 薄入口
-│           ├── auth/{login,lifecycle,conflict}.rs
+│           ├── auth/{common,login,lifecycle,conflict}.rs
 │           ├── readonly.rs                 # 薄入口
-│           ├── readonly/{academic,classroom,spoc,judge,cgyy}.rs
+│           ├── readonly/{common,academic,classroom,cgyy,spoc,judge}.rs
+│           ├── readonly/spoc/{list,auth,detail}.rs
+│           ├── readonly/judge/{read,isolation,concurrency,retry}.rs
 │           └── support.rs
 ├── packages/
 │   ├── ubaa_domain/lib/src/

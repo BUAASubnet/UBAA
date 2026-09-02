@@ -30,8 +30,8 @@
 | 00 | 审查、设计与实施计划 | 15 个超千行、2 个拥挤目录；设计与计划复审 GO | `docs: 固化代码组织审查与实施计划` | 已提交：`6a1c8be` |
 | 01 | 当前事实、文档入口与 CI 契约 | CI 缺少 Flutter/codegen；文档范围过期 | `docs(ci): 对齐当前无签名范围与合并门禁` | 已提交：`a6ee746` |
 | 02 | refs 纯校验、脚本分类与 layout 棘轮 | checker 不存在的合同测试失败 | `build: 建立结构棘轮并按副作用整理脚本` | 已提交：`c345f4a` |
-| 03A | Test Support fixture 注册表 | 三个 Cgyy fixture 未注册的 focused test 失败 | `test: 完整登记脱敏只读 fixture` | 已验证待提交 |
-| 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 待执行 |
+| 03A | Test Support fixture 注册表 | 三个 Cgyy fixture 未注册的 focused test 失败 | `test: 完整登记脱敏只读 fixture` | 已提交：`ce69c26` |
+| 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 已验证待提交 |
 | 04 | CLI 目录、输出与退出策略 | CLI schema/stdout/stderr/exit characterization | `refactor(cli): 拆分命令执行并收回宿主输出策略` | 待执行 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
 | 06A | route selector | direct/webvpn/auto 等价矩阵 | `refactor(core): 集中路线解析与 runtime 选择` | 待执行 |
@@ -131,9 +131,11 @@ baseline、陈旧 baseline、tracked/staged/untracked、ignored/generated/vendor
 
 03B 再执行以下机械移动：
 
-- `tests/auth.rs` 保留显式 `#[path]` 入口，移动为 `auth/login.rs`、`auth/lifecycle.rs`、`auth/conflict.rs`。
-- `tests/readonly.rs` 保留显式入口，移动为 `readonly/academic.rs`、`classroom.rs`、`spoc.rs`、`judge.rs`、
-  `cgyy.rs`；共享 transport/helper 放入 `tests/common/mod.rs`，不创建多余测试 binary。
+- `tests/auth.rs` 保留显式 `#[path]` 入口，移动为 `auth/common.rs`、`login.rs`、`lifecycle.rs`、`conflict.rs`。
+- `tests/readonly.rs` 保留显式入口，移动为 `readonly/common.rs`、`academic.rs`、`classroom.rs`、`cgyy.rs`、
+  `spoc.rs`、`judge.rs`；SPOC 再按 list/auth/detail、Judge 再按 read/isolation/concurrency/retry 拆分，不创建
+  多余测试 binary。common 只保留同一 integration target 内被多个 leaf 真实共享的 helper/transport；leaf
+  显式导入自身依赖，不使用 glob prelude。
 - `src/lib.rs` 拆为 `fixtures.rs`、`http.rs`、`session.rs`；fixture registry 覆盖现有 18 个受跟踪 fixture，并
   对最小化、消费者和禁止字段做测试。
 - 从 layout baseline 删除 auth/readonly 两项。
