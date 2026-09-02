@@ -1651,3 +1651,14 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - 随后立即重跑 Direct 恢复 exit 0：认证、用户及课表/考试/成绩/空教室/SPOC/Judge/签到/阳光打卡/图书馆/博雅/场馆/评教必需读取均为 `PASS`，图书馆关键计数为 `libraries=3`、`areas=2`、`area_detail=1`、`seats=175`、`bookings=2`；SPOC/博雅详情因空父列表记 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`。两次均未调用真实写接口，首次失败按事实保留为瞬时上游记录。
 - 提交 `48a7cbf` 的 Flutter 原生 CI `33613013808` 已成功：Linux、Windows、macOS、iOS simulator、Android APK 无签名 Debug 产物结构均通过，macOS 宿主 integration smoke 通过；提交 `23ec075` 的合同 CI `33613046839` 已成功。CI 不包含 OHOS 签名、实体设备、原生安全存储、真实写后核对或正式发布，P3/P4/P5/P6 仍未闭合。
 - 事实文档提交 `b97a9d9` 的合同 CI `33614614484` 也已成功，macOS/Windows Rust 与 contract-gates 全部通过；当前 HEAD 与 `origin/ubaa2` 一致、工作树干净。该提交不改变代码、产物、签名或设备证据，前述设备/签名/真实写后核对及 P3/P4/P5/P6 其余门禁仍未闭合。
+
+## 2026-09-02 macOS 宿主十项写入组合回归
+
+- 提交 `68c7d06` 新增脱敏 macOS 宿主集成场景，使用内存照片 picker、已授权的内存权限网关和 fake backend，
+  从登录进入各领域页面，逐项覆盖 typed prepare、确认页、单次 commit 与结果后的只读状态刷新。全部十项
+  `WriteOperation` 均有路径证据；博雅选课/退选和签到/签退分别覆盖，签到分支断言 `signType=1/2`。
+- 场景不发起网络请求、不写真实账号、不保留请求正文或照片内容；聚焦场景及完整 `app_flow_test.dart` 六个场景
+  均通过（`6/6`）。随后根级 `just check-sensitive`、`just check`、`just flutter-codegen-check`、
+  `just flutter-check`、无签名 RC 前置报告和 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 均通过。
+  OHOS 产物为未签名 `entry-default-unsigned.hap`，包内含 `libs/arm64-v8a/libubaa_bindings.so`；已清理构建输出，
+  未安装、未上传，不能替代真实设备、真实写后核对或签名发布证据。

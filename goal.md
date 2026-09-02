@@ -91,8 +91,10 @@
    iOS simulator 已链接 x86_64+arm64 framework，Android APK 已包含三种 ABI 的
    Rust 动态库；这些证据只覆盖 P0 FFI 链路，不代表业务功能完成。
 10. OHOS runner 与 arm64 Cargokit HAR 已生成，OHOS app 的 pub get、analyze 和
-    widget test 通过；当前 `just ohos-check mode=debug` 已通过工具链与 HAP 前置并进入
-    assemble，但在调试签名配置处停止，仍不存在签名 HAP 或设备 hello 证据。
+    widget test 通过；在用户更新的 `/Users/moorefoss/Code/bin/command-line-tools` 上，
+    `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 已通过工具链、Dart、native 前置，
+    生成并检查 `entry-default-unsigned.hap` 及其中的 `libs/arm64-v8a/libubaa_bindings.so`。
+    该产物未签名、未安装、未上传，设备 hello、HUKS 和正式发布证据仍为后置 `BLOCKED`。
 11. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
     `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。远端 CI
     `33466562627` 与原生构建 `33466562620` 均在提交 `79e8391` 通过；原生构建的
@@ -418,6 +420,15 @@
      错误/空状态/响应式导航和后台恢复均有实现及 Flutter/Rust 确定性测试。密码在安全存储不可用时
      只留在本次会话，原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件与设备验证
      仍作为 P5/P6 后置 BLOCKED，不作为本轮无签名代码完成的反证。
+
+131. 提交 `68c7d06` 新增 macOS 官方 Flutter 宿主级写入组合回归：脱敏 fake backend 从登录、详情和表单进入
+     typed prepare、一次性确认、单次 commit，并覆盖全部十项 `WriteOperation`（博雅签到/签退分别验证
+     `signType=1/2`），包括课堂签到、图书馆预约/取消、场馆预约/取消、博雅选课/退选、阳光打卡和
+     单课程评教。测试使用内存照片与非网络 backend，不保存请求正文、不访问真实账号；聚焦测试和完整
+     `integration_test/app_flow_test.dart` 均通过（6/6），随后根级 `just check-sensitive`、`just check`、
+     `just flutter-codegen-check`、`just flutter-check`、`just release-preflight` 与无签名 OHOS API26
+     HAP/arm64 门禁均通过。该证据闭合确定性宿主写入 UI 链，但不替代真实写入/写后核对、逐领域 golden、
+     六平台真实 App→FRB→Core、原生安全存储或实体设备证据；P3/P4/P5/P6 队列仍按合同未勾选。
 131. P3/P4 读取到写入口的博雅签到边界已收紧：BridgeBackend 从冻结 typed `signConfig` 投影签到/签退
      时间窗、位置点数量和 `courseSignType`，不把经纬度或半径带入 `FeatureDetail`；共享 UI 在读取字段
      明确为“不可签到/签退”时禁用对应按钮并提示时间窗/状态由 Core 判定。bridge 回归和 `ubaa_ui`
