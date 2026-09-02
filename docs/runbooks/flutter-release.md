@@ -16,7 +16,7 @@ just check-sensitive
 just check
 just flutter-codegen-check
 just flutter-check
-just release-preflight report_dir=/绝对路径/ubaa-release-report
+just release-preflight /绝对路径/ubaa-release-report
 just flutter-build platform=linux mode=debug
 just flutter-build platform=macos mode=debug
 just flutter-build platform=windows mode=debug
