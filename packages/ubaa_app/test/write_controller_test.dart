@@ -3,9 +3,13 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
-  WriteIntent intent({Duration age = Duration.zero}) => WriteIntent(
-    intentId: 'intent-1',
-    operation: WriteOperation.bykcSelectCourse,
+  WriteIntent intent({
+    Duration age = Duration.zero,
+    String id = 'intent-1',
+    WriteOperation operation = WriteOperation.bykcSelectCourse,
+  }) => WriteIntent(
+    intentId: id,
+    operation: operation,
     targetSummary: '选择一门博雅课程',
     resolvedRoute: ConnectionMode.direct,
     warnings: const <String>['提交后请刷新已选课程确认结果'],
@@ -35,6 +39,36 @@ void main() {
     expect(await controller.confirm(), isNull);
     expect(calls, 1);
     controller.dispose();
+  });
+
+  test('十项写操作均经过一次性确认且不会自动重复提交', () async {
+    for (final operation in WriteOperation.values) {
+      var calls = 0;
+      final id = 'intent-${operation.name}';
+      final controller = WriteFlowController(
+        commit: (intentId) async {
+          calls++;
+          expect(intentId, id);
+          return WriteCommitResult(
+            operation: operation,
+            success: true,
+            message: '${operation.title}已提交，请刷新核对',
+            outcomeUnknown: false,
+          );
+        },
+      );
+      final prepared = await controller.prepare(
+        () async => intent(id: id, operation: operation),
+      );
+      expect(prepared?.operation, operation);
+      expect(calls, 0);
+      final result = await controller.confirm();
+      expect(result?.operation, operation);
+      expect(calls, 1);
+      expect(await controller.confirm(), isNull);
+      expect(calls, 1);
+      controller.dispose();
+    }
   });
 
   test('过期 intent 不调用提交器', () async {

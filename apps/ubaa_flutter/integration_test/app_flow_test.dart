@@ -26,6 +26,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
+    expect(find.byType(UbaaMainShell), findsOneWidget);
 
     expect(find.text('课表查询'), findsOneWidget);
     await tester.tap(find.text('课表查询'));
@@ -187,6 +188,136 @@ void main() {
       await tester.pumpAndSettle();
     }
   });
+
+  testWidgets('宿主集成流程覆盖全部领域的 typed 查询入口', (tester) async {
+    final backend = _IntegrationBackend();
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        key: const ValueKey<String>('query-matrix'),
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '2020000005');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(UbaaMainShell), findsOneWidget);
+
+    Future<void> openFeature(FeatureId feature) async {
+      final selectedIcon = ordinaryFeatureIds.contains(feature)
+          ? Icons.apps
+          : Icons.auto_awesome;
+      final unselectedIcon = ordinaryFeatureIds.contains(feature)
+          ? Icons.apps_outlined
+          : Icons.auto_awesome_outlined;
+      final selectedFinder = find.byIcon(selectedIcon);
+      final tabFinder = selectedFinder.evaluate().isNotEmpty
+          ? selectedFinder
+          : find.byIcon(unselectedIcon);
+      await tester.tap(tabFinder.first);
+      await tester.pumpAndSettle();
+      final target = find.text(feature.title).first;
+      final viewportHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      for (var attempt = 0; attempt < 8; attempt++) {
+        final rect = tester.getRect(target);
+        if (rect.top >= 0 && rect.bottom <= viewportHeight) break;
+        final delta = rect.bottom > viewportHeight ? -240.0 : 240.0;
+        await tester.drag(find.byType(CustomScrollView), Offset(0, delta));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(find.text('返回功能列表'), findsOneWidget);
+    }
+
+    Future<void> chooseView(String label) async {
+      final menu = find.byType(DropdownButton<FeatureQueryView>);
+      expect(menu, findsOneWidget);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> apply() async {
+      await tester.tap(find.text('应用筛选'));
+      await tester.pumpAndSettle();
+      expect(backend.lastQuery, isNotNull);
+    }
+
+    await openFeature(FeatureId.schedule);
+    await chooseView('周课表');
+    await tester.enterText(
+      find.widgetWithText(TextField, '学期编码（可选）'),
+      '2026-2027-1',
+    );
+    await tester.enterText(find.widgetWithText(TextField, '周次（可选）'), '3');
+    await apply();
+    expect(backend.lastQuery?.view, FeatureQueryView.scheduleWeek);
+    await tester.tap(find.text('返回功能列表'));
+    await tester.pumpAndSettle();
+
+    final queryCases =
+        <(FeatureId, String, FeatureQueryView, Map<String, String>)>[
+          (FeatureId.exam, '已安排', FeatureQueryView.examArranged, const {}),
+          (FeatureId.grades, '已出成绩', FeatureQueryView.gradesScored, const {}),
+          (
+            FeatureId.bykc,
+            '课程详情',
+            FeatureQueryView.bykcDetail,
+            const {'课程 ID': '42'},
+          ),
+          (FeatureId.classroom, '', FeatureQueryView.summary, const {}),
+          (
+            FeatureId.spoc,
+            '作业详情',
+            FeatureQueryView.spocDetail,
+            const {'作业编号': 'assignment-1'},
+          ),
+          (
+            FeatureId.judge,
+            '作业详情',
+            FeatureQueryView.judgeDetail,
+            const {'课程编号': 'course-1', '作业编号': 'assignment-1'},
+          ),
+          (
+            FeatureId.libbook,
+            '预约记录',
+            FeatureQueryView.libbookBookings,
+            const {},
+          ),
+          (FeatureId.signin, '未签到', FeatureQueryView.signinPending, const {}),
+          (
+            FeatureId.cgyy,
+            '日期空间',
+            FeatureQueryView.cgyyDayInfo,
+            const {'站点 ID': '7'},
+          ),
+          (FeatureId.ygdk, '记录列表', FeatureQueryView.ygdkRecords, const {}),
+          (
+            FeatureId.evaluation,
+            '待评课程',
+            FeatureQueryView.evaluationPending,
+            const {},
+          ),
+        ];
+    for (final (feature, option, expectedView, fields) in queryCases) {
+      await openFeature(feature);
+      if (option.isNotEmpty) await chooseView(option);
+      for (final MapEntry(key: label, value: value) in fields.entries) {
+        await tester.enterText(find.widgetWithText(TextField, label), value);
+      }
+      await apply();
+      expect(backend.lastQuery?.view, expectedView);
+      await tester.tap(find.text('返回功能列表'));
+      await tester.pumpAndSettle();
+    }
+  });
 }
 
 /// 仅供宿主集成测试使用的脱敏 typed backend；不访问网络或真实账号。
@@ -236,10 +367,26 @@ final class _IntegrationBackend
         resolvedRoute: ConnectionMode.direct,
       );
     }
+    final fields = switch (feature) {
+      FeatureId.bykc => const <FeatureField>[
+        FeatureField(label: '课程 ID', value: '42'),
+      ],
+      FeatureId.spoc => const <FeatureField>[
+        FeatureField(label: '作业编号', value: 'assignment-1'),
+      ],
+      FeatureId.judge => const <FeatureField>[
+        FeatureField(label: '课程编号', value: 'course-1'),
+        FeatureField(label: '作业编号', value: 'assignment-1'),
+      ],
+      FeatureId.cgyy => const <FeatureField>[
+        FeatureField(label: '站点 ID', value: '7'),
+      ],
+      _ => const <FeatureField>[],
+    };
     return FeatureResult.success(
       summary: feature.title,
       details: <FeatureDetail>[
-        FeatureDetail(title: feature.title),
+        FeatureDetail(title: feature.title, fields: fields),
       ],
       resolvedRoute: ConnectionMode.direct,
     );
@@ -256,9 +403,7 @@ final class _IntegrationBackend
       details: <FeatureDetail>[
         FeatureDetail(
           title: '查询后的课程',
-          fields: <FeatureField>[
-            FeatureField(label: '周次', value: '3'),
-          ],
+          fields: <FeatureField>[FeatureField(label: '周次', value: '3')],
         ),
       ],
       resolvedRoute: ConnectionMode.direct,
@@ -266,13 +411,12 @@ final class _IntegrationBackend
   }
 
   @override
-  Future<BackendRouteSettings> routeSettings() async =>
-      BackendRouteSettings(
-        defaultPolicy: RoutePolicy.auto,
-        activeRoutes: _signedIn
-            ? const <ConnectionMode>[ConnectionMode.direct]
-            : const <ConnectionMode>[],
-      );
+  Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
+    defaultPolicy: RoutePolicy.auto,
+    activeRoutes: _signedIn
+        ? const <ConnectionMode>[ConnectionMode.direct]
+        : const <ConnectionMode>[],
+  );
 }
 
 /// 仅供宿主写入组合测试使用的脱敏 backend；提交后模拟只读状态变化。
@@ -326,14 +470,8 @@ final class _WriteIntegrationBackend
           FeatureDetail(
             title: '宿主集成签到课程',
             fields: <FeatureField>[
-              const FeatureField(
-                label: '课程 ID',
-                value: 'course-integration',
-              ),
-              FeatureField(
-                label: '签到状态',
-                value: _completed ? '已签到' : '未签到',
-              ),
+              const FeatureField(label: '课程 ID', value: 'course-integration'),
+              FeatureField(label: '签到状态', value: _completed ? '已签到' : '未签到'),
             ],
           ),
         ],
@@ -351,8 +489,7 @@ final class _WriteIntegrationBackend
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
-  ) =>
-      loadFeature(feature);
+  ) => loadFeature(feature);
 
   @override
   Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
