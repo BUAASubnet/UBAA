@@ -8,6 +8,8 @@
   “提交后刷新关联只读领域”的断言：博雅选课/退选/签到签退、课堂签到、图书馆预约/取消、场馆预约/取消、阳光打卡和教学评教
   均必须在单次确认提交后进入对应读取核对；场馆预约专门核对订单列表刷新，阳光打卡专门核对记录刷新。先观察到缺少计数器的预期编译失败，
   再补充仅记录 `FeatureId` 次数的脱敏 fake backend；macOS 宿主聚焦场景通过（1/1），不访问网络、真实账号或写接口。
+- 提交 `0a0bb71` 补齐共享 UI 的手机 `390×844`、平板 `768×1024`、桌面 `1280×800` 三种窗口和明暗主题主页/课表详情 golden（12 个），并以动态字体 1.3 倍覆盖十二项卡片
+  语义、键盘焦点和窄屏导航；1000 条详情数据的回归确认当前分页只保留 20 条节点，连续翻页不累积旧节点。先观察到响应式 golden 缺失的预期失败，再生成基线；`ubaa_ui` analyze 与全量 49 项测试通过。
 - 当前营业窗口内以同一提交串行复核 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两路线 exit code 均为 0；认证、用户、
   课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆、评教必需读取均为 `PASS`，SPOC/博雅详情因同批次父列表为空为
   `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮没有执行任何真实写接口，未保留凭据、Cookie、令牌或原始响应。
@@ -16,8 +18,8 @@
   全部通过。两者均不包含 OHOS 签名 HAP、实体设备、原生安全存储或真实写后核对。
 - 结合十二项详情页面与 golden（`c2fed18`）、共享状态矩阵、完整 typed 查询宿主 smoke、十项写入确认/不确定结果回归、当前双路线只读矩阵、
   API26 无签名 HAP/arm64 检查、SBOM/依赖审计/回滚 runbook 和全部确定性门禁，本轮无签名执行合同的 P3、P4、P5、P6 完成条件已具备可复核证据。
-  FRB 零漂移证据来自 `94133ae` 前同一生成输入的成功门禁；`81dd9d2` 仅修改宿主测试，当前生成目录相对该提交无差异，本次重复命令因
-  `cargo-expand` 四分钟无输出按安全策略中止，不能把中止伪称为新的成功。
+  当前 HEAD `0a0bb71` 已以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 约 84.9 秒完成并报告 FRB 生成零漂移，生成目录无差异；此前
+  `cargo-expand` 无输出后安全中止的过程记录保留为历史，不再作为当前门禁结论。
   原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备权限/生命周期、签名/公证/商店发布仍保持后置 `BLOCKED`，不得
   将无签名 RC 称为正式发布。
 

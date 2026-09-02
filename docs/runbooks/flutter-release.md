@@ -106,6 +106,10 @@ Debug，结构检查和确定性 smoke 不代表签名、安装、设备或真�
 
 最新无签名执行终态（2026-09-02）：`81dd9d2` 的官方 macOS 宿主十项写入组合回归在预期失败后通过，
 逐操作断言提交后刷新关联只读领域；当前营业窗口内 Direct/WebVPN Core-live 串行复核均 exit code 0。
+随后提交 `0a0bb71` 补齐手机/平板/桌面三种窗口和明/暗主题的 12 个主页/详情 golden，并通过动态字体、
+键盘焦点、十二项卡片语义和 1000 条详情分页回归；`ubaa_ui` analyze 与全量 49 项测试通过。
+同一 HEAD 以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 约 84.9 秒完成并报告
+FRB 生成零漂移，未产生生成目录差异。
 Flutter 原生 CI `33625430859`（Linux、Windows、macOS、iOS simulator、Android APK）和合同 CI
 `33625430865` 均终态成功；十二项详情 golden、状态矩阵、typed 查询、十项写入确认/不确定结果、
 API26 无签名 OHOS HAP/arm64、SBOM/依赖审计、敏感扫描、迁移回滚文档与工作树门禁均已复核。因此无签名

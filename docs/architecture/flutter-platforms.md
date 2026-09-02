@@ -136,10 +136,12 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
 - `81dd9d2` 的官方 macOS 宿主写入组合回归为十项写操作逐项断言提交后刷新关联只读领域；预期失败后
   聚焦场景 1/1 通过。十二项领域详情 golden、共享状态矩阵、typed 查询宿主 smoke 与未知结果/异常边界
   共同覆盖无签名 UI 流程。
+- `0a0bb71` 进一步以手机/平板/桌面三种尺寸和明/暗主题建立主页与课表详情响应式 golden（12 个），并以动态字体、键盘焦点、十二项卡片语义和 1000 条详情分页回归覆盖
+  无障碍与长列表边界；`ubaa_ui` 全量 49 项测试通过。
 - Core-live 在当前营业窗口内 Direct/WebVPN 串行复跑均 exit code 0；五平台 Flutter native CI
   `33625430859` 与合同 CI `33625430865`（均为提交 `c8bd662`）均终态成功。API26 无签名 OHOS HAP、arm64 bridge、敏感扫描、
   SBOM/依赖审计和回滚 runbook 均有本机或 CI 证据；FRB 零漂移沿用 `94133ae` 前同一生成输入的成功门禁，
-  `81dd9d2` 仅改宿主测试且生成目录无差异，本次重复命令无输出中止未被记作成功。
+  `81dd9d2` 仅改宿主测试且生成目录无差异；当前 HEAD `0a0bb71` 再次运行 codegen 约 84.9 秒成功报告零漂移。
 - 因此 P3（全部读取页面与双路线证据）、P4（十项写入确认/防重复/读后核对与 deterministic/Mock）、
   P5（平台能力抽象、权限/照片边界、生命周期/长列表/无障碍及无签名静态检查）和 P6（无签名 RC 发布准备）
   的无签名部分已完成。原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备

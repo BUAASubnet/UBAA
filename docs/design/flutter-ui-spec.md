@@ -74,8 +74,8 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
 ## 当前证据与剩余范围
 
 - `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染、本地/服务端分页与筛选、
-  日期格式/日历校验、摘要-only stale 保留和
-  实际路线展示；`packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不
+  日期格式/日历校验、摘要-only stale 保留、实际路线展示、手机/平板/桌面明暗主题响应式 golden、
+  动态字体、键盘焦点、十二项卡片语义和 1000 条长列表分页；`packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不
   伪造 Demo 登录、刷新失败后的 `stale` 数据保留、实际路线投影以及未认证固定路线的安全
   回登录。
 - `apps/ubaa_flutter/integration_test/app_flow_test.dart` 已覆盖官方 Flutter 宿主从登录、主页、
@@ -100,8 +100,8 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   widget 回归证明未知结果不会沿用普通后端消息，也不会自动触发重试或写后刷新。该证据覆盖共享确认壳，
   不替代逐领域真实写后核对。
 - `1e3c729` 的合同 CI `33589036008` 与五平台 Debug CI `33589036000` 已终态成功；CI 只证明无签名构建和
-  确定性门禁，不替代 OHOS 签名、实体设备读屏或真实 App→FRB→Core 链路。FRB 零漂移本机复核因 cargo-expand
-  工具链无输出暂记未完成运行，不能从 CI 成功推导该本机门禁已通过。
+  确定性门禁，不替代 OHOS 签名、实体设备读屏或真实 App→FRB→Core 链路。当前 HEAD `0a0bb71` 的
+  `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 已完成并报告 FRB 零漂移。
 - `7bc9c1a` 的合同 CI `33591063958` 与五平台 Debug CI `33591063833` 已终态成功；Android APK、iOS simulator、
   macOS、Linux、Windows 均上传无签名 Debug 产物。CI 不替代 OHOS 签名、实体设备读屏、真实写后核对或当前本机
   FRB 零漂移重试。
@@ -116,8 +116,7 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   状态机，不证明任何真实账号副作用或写后上游核对。
 - `190f318` 的合同 CI `33593160544` 与五平台 Debug CI `33593160580`，以及后续文档 CI `33593227275` 均终态成功；五平台
   Debug 产物已上传，仍不替代 OHOS 签名、实体设备或真实写后核对。
-- 当前 HEAD 的 FRB 零漂移重试仍在 `cargo-expand` 的 `rustc -Zunpretty=expanded` 阶段无输出后中断，工作树无漂移；该门禁保持未完成运行，
-  不以历史成功或其它 CI 结果冒充通过。
+- 当前 HEAD `0a0bb71` 的 FRB 零漂移重试已完成，`cargo-expand`、生成、格式化和生成目录差异检查均通过；此前无输出后中断的尝试仅作为过程记录保留。
 - 最终审计提交 `7e6a4ea` 的引用、敏感扫描、无签名 RC 前置报告和差异检查均通过，且远端同步、工作树清洁；临时 OHOS 无签名产物已移出仓库。
 - 平台权限和照片选择器通过 `CallbackPermissionGateway`、`CallbackPhotoPicker` 注入原生回调；回调异常
   归约为稳定不可用/能力错误，`PermissionedPhotoPicker` 可按宿主选择相册或桌面文件权限。当前测试覆盖
