@@ -79,6 +79,9 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   键列表，不接收 raw JSON 或上游正文；课堂签到提供全部/未签到/已签到本地状态视图。
 - 博雅已选课程的签到时间窗、位置点数量和签到类型现有 bridge 白名单与 widget 覆盖；位置坐标不跨入
   `FeatureDetail`，不可操作状态的签到/签退按钮会禁用并说明由 Core 判定。
+- 平台权限和照片选择器通过 `CallbackPermissionGateway`、`CallbackPhotoPicker` 注入原生回调；回调异常
+  归约为稳定不可用/能力错误，`PermissionedPhotoPicker` 可按宿主选择相册或桌面文件权限。当前测试覆盖
+  权限拒绝不调用 picker、文件权限选择和图书馆取消确认；这仍不是原生插件或实体设备证据。
 - 十二项功能均已通过共享详情页提供正式导航入口，不再使用生产 Demo backend 或“即将接入”占位页。
   博雅/SPOC/Judge/图书馆的领域筛选、服务端分页加载、逐领域详情状态、golden/逐领域
   integration 证据，以及写入流程的逐领域结果核对和权限/挑战交互，仍需按 P3/P4 继续补齐；

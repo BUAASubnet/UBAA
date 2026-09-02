@@ -2,6 +2,22 @@
 
 更新日期：2026-09-02
 
+## 2026-09-02 无签名 P5 回调边界与当前复核
+
+- 提交 `0fa5ec0` 新增 `CallbackPermissionGateway` 与 `CallbackPhotoPicker`，把原生权限/照片 SDK 回调
+  收敛为稳定 typed 状态；异常不会把平台正文、路径或令牌带入 Dart。`PermissionedPhotoPicker` 现可
+  显式选择相册或桌面文件权限，平台回调、文件权限和图书馆预约取消 widget 回归均已通过。
+- 当前 HEAD 已通过 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
+  `just flutter-check`、`just release-preflight` 和 macOS 宿主集成 3/3；API26 无签名 OHOS 门禁在
+  `UBAA_OHOS_NO_CODESIGN=1` 下通过并确认 HAP 含 arm64 `libubaa_bindings.so`。OHOS HAP 未签名、未安装、
+  未上传，原生安全存储插件和设备权限仍为后置 `BLOCKED`。
+- 2026-09-02 营业窗口内串行复核 Direct/WebVPN Core-live：两路线 exit code 0，全部必需只读操作为
+  `PASS`；SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途明确为
+  `PASS source=static_fallback`。本轮未调用真实写接口，不能替代真实 App→FRB→Core 或写后核对。
+- 提交 `0fa5ec0` 的远端合同 CI `33581588034` 与 Flutter 原生五平台 CI `33581587938` 均已终态成功；
+  Windows、Linux、macOS、iOS simulator、Android APK job 全部成功并上传无签名 Debug 产物。两者不包含
+  OHOS 签名 HAP、实体设备或正式发布。
+
 ## 2026-09-02 无签名执行目标更新
 
 - 用户明确要求在没有签名证书、签名账号和实体设备的前提下继续完成可由代码、确定性测试、无签名构建、静态检查和文档证明的任务。`goal.md` 已将本轮完成定义切换为“无签名执行目标完成”：P1–P4 的生产实现与测试、P5 的平台代码/权限/生命周期/安全存储边界、P6 的无签名 RC/产物审计/SBOM/发布文档仍必须完成。

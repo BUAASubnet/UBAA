@@ -423,6 +423,9 @@
      明确为“不可签到/签退”时禁用对应按钮并提示时间窗/状态由 Core 判定。bridge 回归和 `ubaa_ui`
      widget 35 项测试通过；其余领域 golden、逐领域 integration、服务端分页和最终写后核对仍未闭合。
 132. P3 服务端分页元数据现已沿 typed bridge 投影到 `FeaturePagination`/`FeatureSnapshot`：博雅课程、图书馆预约、阳光打卡记录和场馆订单保留页码、每页数量、总数及总页数/hasMore，详情页在当前 `FeatureQuery` 上下文中提供 1-based 上下页并显示总数。domain、bridge、widget 回归先观察旧映射缺失元数据的失败后通过；全部领域分页实证、golden/integration、六平台 FRB E2E 与 P4/P5/P6 仍未完成。
+133. 提交 `0fa5ec0` 继续完成无签名 P5 边界：新增 `CallbackPermissionGateway` 与 `CallbackPhotoPicker`，将原生 SDK 回调收敛为稳定权限/照片类型，异常不携带平台正文；`PermissionedPhotoPicker` 支持显式选择相册或桌面文件权限。新增平台回调、文件权限和图书馆取消 UI 回归，`ubaa_platform`、`ubaa_ui` 全量测试与分析通过；该提交不伪造原生插件，Keychain/Keystore/Credential Manager/Secret Service/HUKS、设备权限和实体生命周期仍为后置 `BLOCKED`。
+134. 当前 HEAD `0fa5ec0` 已复核：`just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、`just release-preflight`、macOS 宿主集成（3/3）和 API26 无签名 OHOS HAP（arm64 `libubaa_bindings.so`）均通过；OHOS 仅以 `UBAA_OHOS_NO_CODESIGN=1` 生成 `entry-default-unsigned.hap`，未签名、未安装、未上传。远端合同 CI `33581588034` 与五平台 Flutter 原生 CI `33581587938` 均已终态成功；五平台 Windows、Linux、macOS、iOS simulator、Android APK job 全部成功并上传无签名 Debug 产物，签名/设备证据不在其中。
+135. 2026-09-02 营业窗口内串行复核当前 Core-live 只读矩阵：Direct 与 WebVPN 均 exit code 0；认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，空父列表详情按同批次证据为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮未调用任何真实写接口；这仍不替代六平台真实 App→FRB→Core、逐领域 golden/integration 和真实写后核对。
 
 ## 4. 安全与架构边界
 

@@ -103,6 +103,14 @@ cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D 
 Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、Windows、Linux、iOS simulator
 和 Android APK job 均成功。这仍不是签名 Release 或实体设备证据。
 
+提交 `0fa5ec0` 的本机无签名复核补充了平台回调边界：`CallbackPermissionGateway` 将原生权限 SDK
+异常归约为稳定的 `unavailable`，`CallbackPhotoPicker` 将选择器异常归约为稳定能力错误，
+`PermissionedPhotoPicker` 可显式使用相册或桌面文件权限。该适配器只负责 typed 边界，不伪造任何
+Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件与实体设备验证继续保持后置
+`BLOCKED`。当前提交的合同 CI `33581588034` 与五平台 native CI `33581587938` 均已终态成功；五个平台 job
+（Windows、Linux、macOS、iOS simulator、Android APK）均通过并上传无签名 Debug 产物。该证据不包含
+OHOS 签名 HAP、实体设备或正式发布。
+
 ## 6. P0 探索产物审查
 
 | 产物 | 采用结论 | P0 证据 | 后续约束 |
