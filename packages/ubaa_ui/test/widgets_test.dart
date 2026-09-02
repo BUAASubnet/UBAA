@@ -189,6 +189,7 @@ void main() {
     var prepareCalls = 0;
     var deselectCalls = 0;
     var signCalls = 0;
+    final signTypes = <int>[];
     var commitCalls = 0;
     var refreshCalls = 0;
     String? committedIntent;
@@ -242,7 +243,8 @@ void main() {
           onPrepareBykcSignWrite: (courseId, signType) async {
             signCalls++;
             expect(courseId, 42);
-            expect(signType, 1);
+            signTypes.add(signType);
+            expect(signType, anyOf(1, 2));
             return signIntent;
           },
           onCommitWrite: (intentId) async {
@@ -283,7 +285,15 @@ void main() {
     await tester.tap(find.text('准备博雅签到'));
     await tester.pumpAndSettle();
     expect(signCalls, 1);
+    expect(signTypes, <int>[1]);
     expect(commitCalls, 0);
+    expect(find.text('确认博雅签到'), findsNWidgets(2));
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备博雅签退'));
+    await tester.pumpAndSettle();
+    expect(signCalls, 2);
+    expect(signTypes, <int>[1, 2]);
     expect(find.text('确认博雅签到'), findsNWidgets(2));
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
