@@ -52,6 +52,8 @@
 - 提交 `f46c65c` 的合同 CI `33592184452` 与五平台 Flutter Debug CI `33592184458` 均终态成功：contract-gates、Windows/macOS
   Rust 以及 Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。OHOS 仍仅为无签名
   HAP，签名、实体设备、真实写后核对和正式发布不在本批证据中；本机 FRB 零漂移重试仍待工具链恢复。
+- 提交 `190f318` 将官方 Flutter macOS 宿主集成回归扩展为提交异常场景：脱敏 backend 抛出 commit 异常时只显示稳定的未知结果提示，
+  不触发写后刷新、不把状态误标为已签到，也不泄露业务上下文；`app_flow_test.dart` 四个场景全部通过（4/4）。本轮仍未访问真实账号或写接口。
 
 ## 2026-09-02 无签名执行目标更新
 
