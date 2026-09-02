@@ -49,6 +49,9 @@ pub fn readonly_fixture(name: &str) -> Option<&'static str> {
             "../../../fixtures/readonly/judge-assignments.html"
         )),
         "judge-detail.html" => Some(include_str!("../../../fixtures/readonly/judge-detail.html")),
+        "cgyy-sites.json" => Some(include_str!("../../../fixtures/readonly/cgyy-sites.json")),
+        "cgyy-day.json" => Some(include_str!("../../../fixtures/readonly/cgyy-day.json")),
+        "cgyy-orders.json" => Some(include_str!("../../../fixtures/readonly/cgyy-orders.json")),
         _ => None,
     }
 }

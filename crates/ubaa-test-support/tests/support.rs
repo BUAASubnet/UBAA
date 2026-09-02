@@ -1,5 +1,8 @@
+use std::collections::BTreeSet;
+use std::fs;
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::path::Path;
 
 use ubaa_core::domain::ConnectionMode;
 use ubaa_core::error::{ErrorCode, ErrorKind};
@@ -10,17 +13,70 @@ use ubaa_test_support::{
     readonly_fixture,
 };
 
+fn has_fixture_extension(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some("html" | "json")
+    )
+}
+
+fn is_fixture_entry(is_regular_file: bool, name: &str) -> bool {
+    is_regular_file && has_fixture_extension(Path::new(name))
+}
+
+fn fixture_names_on_disk(directory: &str) -> BTreeSet<String> {
+    fs::read_dir(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures")
+            .join(directory),
+    )
+    .unwrap_or_else(|error| panic!("{directory} fixture directory is unreadable: {error}"))
+    .filter_map(|entry| {
+        let entry = entry
+            .unwrap_or_else(|error| panic!("{directory} fixture entry is unreadable: {error}"));
+        let file_type = entry.file_type().unwrap_or_else(|error| {
+            panic!("{directory} fixture entry type is unreadable: {error}")
+        });
+        if !file_type.is_file() || !has_fixture_extension(&entry.path()) {
+            return None;
+        }
+        let name = entry
+            .file_name()
+            .into_string()
+            .unwrap_or_else(|_| panic!("{directory} fixture file name must be valid UTF-8"));
+        debug_assert!(is_fixture_entry(true, &name));
+        Some(name)
+    })
+    .collect()
+}
+
 #[test]
 fn auth_fixtures_are_synthetic_and_sanitized() {
-    for name in ["login-page.html", "userinfo-success.json"] {
-        let fixture = auth_fixture(name).expect("known fixture exists");
+    assert!(is_fixture_entry(true, "login-page.html"));
+    assert!(is_fixture_entry(true, "userinfo-success.json"));
+    assert!(!is_fixture_entry(true, ".DS_Store"));
+    assert!(!is_fixture_entry(true, ".fixture.json.swp"));
+    assert!(!is_fixture_entry(true, "README.txt"));
+    assert!(!is_fixture_entry(false, "nested.json"));
+
+    let names = ["login-page.html", "userinfo-success.json"];
+    let expected = names
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect::<BTreeSet<_>>();
+    let on_disk = fixture_names_on_disk("auth");
+    assert_eq!(on_disk, expected, "auth fixture registry must match disk");
+
+    for name in names {
+        let fixture =
+            auth_fixture(name).unwrap_or_else(|| panic!("known auth fixture exists: {name}"));
         assert_fixture_is_sanitized(fixture).expect("fixture contains no forbidden material");
     }
 }
 
 #[test]
 fn readonly_fixtures_are_synthetic_and_sanitized() {
-    for name in [
+    let names = [
         "schedule-terms.json",
         "schedule-weeks.json",
         "schedule-week.json",
@@ -34,8 +90,23 @@ fn readonly_fixtures_are_synthetic_and_sanitized() {
         "judge-courses.html",
         "judge-assignments.html",
         "judge-detail.html",
-    ] {
-        let fixture = readonly_fixture(name).expect("known fixture exists");
+        "cgyy-sites.json",
+        "cgyy-day.json",
+        "cgyy-orders.json",
+    ];
+    let expected = names
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect::<BTreeSet<_>>();
+    let on_disk = fixture_names_on_disk("readonly");
+    assert_eq!(
+        on_disk, expected,
+        "readonly fixture registry must match disk"
+    );
+
+    for name in names {
+        let fixture = readonly_fixture(name)
+            .unwrap_or_else(|| panic!("known readonly fixture exists: {name}"));
         assert_fixture_is_sanitized(fixture).expect("fixture contains no forbidden material");
     }
 }

@@ -206,7 +206,7 @@ impl HttpTransport for CgyyTransport {
                 response(
                     200,
                     &request.url,
-                    include_str!("../../../fixtures/readonly/cgyy-sites.json"),
+                    readonly_fixture("cgyy-sites.json").unwrap(),
                 )
             }
             _ => panic!("场馆请求超出脚本"),

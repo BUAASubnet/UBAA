@@ -29,8 +29,9 @@
 |---|---|---|---|---|
 | 00 | 审查、设计与实施计划 | 15 个超千行、2 个拥挤目录；设计与计划复审 GO | `docs: 固化代码组织审查与实施计划` | 已提交：`6a1c8be` |
 | 01 | 当前事实、文档入口与 CI 契约 | CI 缺少 Flutter/codegen；文档范围过期 | `docs(ci): 对齐当前无签名范围与合并门禁` | 已提交：`a6ee746` |
-| 02 | refs 纯校验、脚本分类与 layout 棘轮 | checker 不存在的合同测试失败 | `build: 建立结构棘轮并按副作用整理脚本` | 已验证待提交 |
-| 03 | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 待执行 |
+| 02 | refs 纯校验、脚本分类与 layout 棘轮 | checker 不存在的合同测试失败 | `build: 建立结构棘轮并按副作用整理脚本` | 已提交：`c345f4a` |
+| 03A | Test Support fixture 注册表 | 三个 Cgyy fixture 未注册的 focused test 失败 | `test: 完整登记脱敏只读 fixture` | 已验证待提交 |
+| 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 待执行 |
 | 04 | CLI 目录、输出与退出策略 | CLI schema/stdout/stderr/exit characterization | `refactor(cli): 拆分命令执行并收回宿主输出策略` | 待执行 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
 | 06A | route selector | direct/webvpn/auto 等价矩阵 | `refactor(core): 集中路线解析与 runtime 选择` | 待执行 |
@@ -123,9 +124,12 @@ baseline、陈旧 baseline、tracked/staged/untracked、ignored/generated/vendor
 
 验收：layout 合同测试全绿，所有现有 recipe 从任意 cwd 的行为与副作用说明一致；baseline 没有未知项。
 
-### 阶段 03：Rust Test Support 镜像
+### 阶段 03A–B：Rust Test Support fixture 与测试镜像
 
-机械移动：
+03A 先独立修复 fixture 注册表：在不修改 fixture 内容的前提下，让现有脱敏测试精确覆盖普通
+`.html`/`.json` fixture，登记全部 2 个认证与 16 个只读 fixture；该行为修复不得与物理拆分混入同一提交。
+
+03B 再执行以下机械移动：
 
 - `tests/auth.rs` 保留显式 `#[path]` 入口，移动为 `auth/login.rs`、`auth/lifecycle.rs`、`auth/conflict.rs`。
 - `tests/readonly.rs` 保留显式入口，移动为 `readonly/academic.rs`、`classroom.rs`、`spoc.rs`、`judge.rs`、
