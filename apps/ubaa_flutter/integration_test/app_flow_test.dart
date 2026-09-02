@@ -318,6 +318,171 @@ void main() {
       await tester.pumpAndSettle();
     }
   });
+
+  testWidgets('宿主集成流程覆盖十项写操作并验证签到签退分支', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final backend = _AllWritesIntegrationBackend();
+    final permissionGateway = MemoryPermissionGateway(
+      initial: <PlatformPermission, PlatformPermissionStatus>{
+        PlatformPermission.photos: PlatformPermissionStatus.granted,
+      },
+    );
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        key: const ValueKey<String>('all-writes-smoke'),
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+        photoPicker: MemoryPhotoPicker(
+          photo: const YgdkPhotoInput(
+            bytes: <int>[1, 2, 3],
+            fileName: 'integration.jpg',
+            mimeType: 'image/jpeg',
+          ),
+        ),
+        permissionGateway: permissionGateway,
+        initialTab: 1,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '2020000099');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(UbaaMainShell), findsOneWidget);
+
+    Future<void> openFeature(FeatureId feature) async {
+      final selectedIcon = ordinaryFeatureIds.contains(feature)
+          ? Icons.apps
+          : Icons.auto_awesome;
+      final unselectedIcon = ordinaryFeatureIds.contains(feature)
+          ? Icons.apps_outlined
+          : Icons.auto_awesome_outlined;
+      final tab = find.byIcon(selectedIcon).evaluate().isNotEmpty
+          ? find.byIcon(selectedIcon)
+          : find.byIcon(unselectedIcon);
+      await tester.tap(tab.first);
+      await tester.pumpAndSettle();
+      final target = find.text(feature.title).first;
+      await tester.ensureVisible(target);
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(find.text('返回功能列表'), findsOneWidget);
+    }
+
+    Future<void> leaveFeature() async {
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> confirm(String label, WriteOperation operation) async {
+      await tester.ensureVisible(find.text(label).first);
+      await tester.tap(find.text(label).first);
+      await tester.pumpAndSettle();
+      expect(find.text('确认${operation.title}'), findsAtLeastNWidgets(1));
+      final before = backend.commitCalls;
+      await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
+      await tester.pumpAndSettle();
+      expect(backend.commitCalls, before + 1);
+      expect(backend.committedOperations.last, operation);
+    }
+
+    await openFeature(FeatureId.bykc);
+    await confirm('准备选课', WriteOperation.bykcSelectCourse);
+    await leaveFeature();
+    await openFeature(FeatureId.bykc);
+    await confirm('准备退选', WriteOperation.bykcDeselectCourse);
+    await leaveFeature();
+    await openFeature(FeatureId.bykc);
+    await confirm('准备博雅签到', WriteOperation.bykcSignCourse);
+    await leaveFeature();
+    await openFeature(FeatureId.bykc);
+    await confirm('准备博雅签退', WriteOperation.bykcSignCourse);
+    await leaveFeature();
+
+    await openFeature(FeatureId.signin);
+    await confirm('准备签到', WriteOperation.signinPerform);
+    await leaveFeature();
+
+    await openFeature(FeatureId.libbook);
+    await confirm('准备预约此座位', WriteOperation.libbookReserve);
+    await leaveFeature();
+    await openFeature(FeatureId.libbook);
+    await confirm('准备取消预约', WriteOperation.libbookCancelBooking);
+    await leaveFeature();
+
+    await openFeature(FeatureId.cgyy);
+    await confirm('准备取消订单', WriteOperation.cgyyCancelOrder);
+    await leaveFeature();
+    await openFeature(FeatureId.cgyy);
+    expect(find.text('准备场馆预约'), findsOneWidget);
+    await tester.tap(find.text('准备场馆预约').first);
+    await tester.pumpAndSettle();
+    expect(find.text('填写场馆预约信息'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, '联系电话'),
+      '010-00000000',
+    );
+    await tester.enterText(find.widgetWithText(TextField, '预约主题'), '集成测试');
+    await tester.enterText(find.widgetWithText(TextField, '用途编号'), '2');
+    await tester.enterText(find.widgetWithText(TextField, '参与人数'), '2');
+    await tester.enterText(find.widgetWithText(TextField, '活动内容'), '脱敏集成验证');
+    await tester.tap(find.text('继续确认'));
+    await tester.pumpAndSettle();
+    expect(find.text('填写场馆预约信息'), findsNothing);
+    expect(find.text('确认场馆预约'), findsAtLeastNWidgets(1));
+    final beforeCgyy = backend.commitCalls;
+    await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
+    await tester.pumpAndSettle();
+    expect(backend.commitCalls, beforeCgyy + 1);
+    expect(
+      backend.committedOperations.last,
+      WriteOperation.cgyySubmitReservation,
+    );
+    await leaveFeature();
+
+    await openFeature(FeatureId.ygdk);
+    await tester.tap(find.text('准备阳光打卡').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, '开始时间'),
+      '2026-09-02 08:00',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '结束时间'),
+      '2026-09-02 09:00',
+    );
+    await tester.tap(find.text('选择照片'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续确认'));
+    await tester.pumpAndSettle();
+    expect(find.text('确认阳光打卡'), findsAtLeastNWidgets(1));
+    final beforeYgdk = backend.commitCalls;
+    await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
+    await tester.pumpAndSettle();
+    expect(backend.commitCalls, beforeYgdk + 1);
+    expect(backend.committedOperations.last, WriteOperation.ygdkSubmit);
+    await leaveFeature();
+
+    await openFeature(FeatureId.evaluation);
+    await confirm('准备提交评教', WriteOperation.evaluationSubmitCourses);
+
+    expect(backend.committedOperations, <WriteOperation>[
+      WriteOperation.bykcSelectCourse,
+      WriteOperation.bykcDeselectCourse,
+      WriteOperation.bykcSignCourse,
+      WriteOperation.bykcSignCourse,
+      WriteOperation.signinPerform,
+      WriteOperation.libbookReserve,
+      WriteOperation.libbookCancelBooking,
+      WriteOperation.cgyyCancelOrder,
+      WriteOperation.cgyySubmitReservation,
+      WriteOperation.ygdkSubmit,
+      WriteOperation.evaluationSubmitCourses,
+    ]);
+  });
 }
 
 /// 仅供宿主集成测试使用的脱敏 typed backend；不访问网络或真实账号。
@@ -527,6 +692,244 @@ final class _WriteIntegrationBackend
       operation: WriteOperation.signinPerform,
       success: true,
       message: '签到结果已提交，请刷新确认',
+      outcomeUnknown: false,
+      resolvedRoute: ConnectionMode.direct,
+    );
+  }
+}
+
+/// 覆盖全部写入口的脱敏宿主后端；只记录操作枚举，不保存请求正文。
+final class _AllWritesIntegrationBackend
+    implements
+        UbaaBackend,
+        FeatureQueryBackend,
+        RouteSettingsBackend,
+        BykcWriteBackend,
+        SigninWriteBackend,
+        CancellationWriteBackend,
+        LibbookWriteBackend,
+        YgdkWriteBackend,
+        CgyyWriteBackend,
+        EvaluationWriteBackend {
+  bool _signedIn = false;
+  bool _bykcSelected = false;
+  int _nextIntent = 0;
+  final Map<String, WriteOperation> _pending = <String, WriteOperation>{};
+  final List<WriteOperation> committedOperations = <WriteOperation>[];
+  int commitCalls = 0;
+
+  @override
+  Future<AuthStatus> authStatus() async =>
+      _signedIn ? AuthStatus.signedIn : AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      _signedIn ? const UserSummary(username: '2020000099') : null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {
+    _signedIn = true;
+  }
+
+  @override
+  Future<void> logout() async {
+    _signedIn = false;
+    _pending.clear();
+  }
+
+  @override
+  Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
+    defaultPolicy: RoutePolicy.auto,
+    activeRoutes: _signedIn
+        ? const <ConnectionMode>[ConnectionMode.direct]
+        : const <ConnectionMode>[],
+  );
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    if (!_signedIn) {
+      throw const BackendException(UbaaErrorCode.authenticationRequired);
+    }
+    final details = switch (feature) {
+      FeatureId.bykc => <FeatureDetail>[
+        FeatureDetail(
+          title: '集成课程',
+          fields: <FeatureField>[
+            const FeatureField(label: '课程 ID', value: '42'),
+            FeatureField(label: '已选', value: _bykcSelected ? '是' : '否'),
+            FeatureField(label: '状态', value: _bykcSelected ? '已选' : '可选'),
+            const FeatureField(label: '可签到', value: '是'),
+            const FeatureField(label: '可签退', value: '是'),
+          ],
+        ),
+      ],
+      FeatureId.signin => const <FeatureDetail>[
+        FeatureDetail(
+          title: '课堂集成课程',
+          fields: <FeatureField>[
+            FeatureField(label: '课程 ID', value: 'signin-course'),
+            FeatureField(label: '签到状态', value: '未签到'),
+          ],
+        ),
+      ],
+      FeatureId.libbook => const <FeatureDetail>[
+        FeatureDetail(
+          title: '集成座位',
+          fields: <FeatureField>[
+            FeatureField(label: '分区 ID', value: 'area-1'),
+            FeatureField(label: '座位 ID', value: 'seat-1'),
+            FeatureField(label: '日期', value: '2026-09-02'),
+            FeatureField(label: '时段', value: '3'),
+            FeatureField(label: '开始时间', value: '10:00'),
+            FeatureField(label: '结束时间', value: '12:00'),
+            FeatureField(label: '可预约', value: '是'),
+            FeatureField(label: '预约 ID', value: 'booking-1'),
+            FeatureField(label: '状态码', value: '1'),
+            FeatureField(label: '状态', value: '有效'),
+          ],
+        ),
+      ],
+      FeatureId.cgyy => const <FeatureDetail>[
+        FeatureDetail(
+          title: '集成场馆时段',
+          fields: <FeatureField>[
+            FeatureField(label: '站点 ID', value: '3'),
+            FeatureField(label: '日期', value: '2026-09-03'),
+            FeatureField(label: '空间 ID', value: '4'),
+            FeatureField(label: '空间组 ID', value: '9'),
+            FeatureField(label: '时段 ID', value: '5'),
+            FeatureField(label: '可预约', value: '是'),
+          ],
+        ),
+        FeatureDetail(
+          title: '集成场馆订单',
+          fields: <FeatureField>[
+            FeatureField(label: '订单编号', value: '17'),
+            FeatureField(label: '订单状态', value: '1'),
+            FeatureField(label: '审核状态', value: '1'),
+            FeatureField(label: '开始', value: '2099-01-01 10:00:00'),
+            FeatureField(label: '结束', value: '2099-01-01 11:00:00'),
+          ],
+        ),
+      ],
+      FeatureId.ygdk => const <FeatureDetail>[
+        FeatureDetail(
+          title: '集成跑步项目',
+          fields: <FeatureField>[FeatureField(label: '项目编号', value: '7')],
+        ),
+      ],
+      FeatureId.evaluation => const <FeatureDetail>[
+        FeatureDetail(
+          title: '集成评教课程',
+          fields: <FeatureField>[
+            FeatureField(label: '状态', value: '待评'),
+            FeatureField(label: '课程 ID', value: 'course-evaluation'),
+            FeatureField(label: '任务 ID', value: 'task-evaluation'),
+            FeatureField(label: '问卷 ID', value: 'questionnaire-evaluation'),
+            FeatureField(label: '课程代码', value: 'K-EVAL'),
+            FeatureField(label: '模型 ID', value: 'M-EVAL'),
+          ],
+        ),
+      ],
+      _ => <FeatureDetail>[FeatureDetail(title: feature.title)],
+    };
+    return FeatureResult.success(
+      summary: feature.title,
+      details: details,
+      resolvedRoute: ConnectionMode.direct,
+    );
+  }
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) => loadFeature(feature);
+
+  @override
+  Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) =>
+      _prepare(WriteOperation.bykcSelectCourse);
+
+  @override
+  Future<WriteIntent> prepareBykcDeselectCourse({required int courseId}) =>
+      _prepare(WriteOperation.bykcDeselectCourse);
+
+  @override
+  Future<WriteIntent> prepareBykcSignCourse({
+    required int courseId,
+    double? lat,
+    double? lng,
+    required int signType,
+  }) => _prepare(WriteOperation.bykcSignCourse);
+
+  @override
+  Future<WriteIntent> prepareSigninPerform({required String courseId}) =>
+      _prepare(WriteOperation.signinPerform);
+
+  @override
+  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) =>
+      _prepare(WriteOperation.libbookCancelBooking);
+
+  @override
+  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
+      _prepare(WriteOperation.cgyyCancelOrder);
+
+  @override
+  Future<WriteIntent> prepareLibbookReserve({
+    required String areaId,
+    required String seatId,
+    required String day,
+    required String segment,
+    required String startTime,
+    required String endTime,
+  }) => _prepare(WriteOperation.libbookReserve);
+
+  @override
+  Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input) =>
+      _prepare(WriteOperation.ygdkSubmit);
+
+  @override
+  Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input) =>
+      _prepare(WriteOperation.cgyySubmitReservation);
+
+  @override
+  Future<WriteIntent> prepareEvaluationSubmitCourses(
+    List<EvaluationCourseInput> courses,
+  ) => _prepare(WriteOperation.evaluationSubmitCourses);
+
+  Future<WriteIntent> _prepare(WriteOperation operation) {
+    final intentId = 'all-writes-${_nextIntent++}';
+    _pending[intentId] = operation;
+    return Future<WriteIntent>.value(
+      WriteIntent(
+        intentId: intentId,
+        operation: operation,
+        targetSummary: '脱敏集成测试目标',
+        resolvedRoute: ConnectionMode.direct,
+        warnings: const <String>['集成测试不访问真实账号'],
+        expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+        requestDigest: 'all-writes-digest',
+      ),
+    );
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    final operation = _pending.remove(intentId);
+    if (operation == null) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    commitCalls++;
+    committedOperations.add(operation);
+    if (operation == WriteOperation.bykcSelectCourse) _bykcSelected = true;
+    if (operation == WriteOperation.bykcDeselectCourse) _bykcSelected = false;
+    return WriteCommitResult(
+      operation: operation,
+      success: true,
+      message: '${operation.title}结果已提交，请刷新确认',
       outcomeUnknown: false,
       resolvedRoute: ConnectionMode.direct,
     );
