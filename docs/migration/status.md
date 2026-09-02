@@ -45,6 +45,13 @@
   `contract-gates`、Windows/macOS Rust，以及 Android APK、iOS simulator、macOS、Linux、Windows
   五个平台 job 全部通过并上传无签名 Debug 产物。该批 CI 不包含 OHOS 签名 HAP、实体设备、真实写后核对
   或正式发布；当前本机 FRB 零漂移仍按上一条记录为未完成运行。
+- 提交 `f46c65c` 将提交异常（transport/commit 抛错）与显式 `outcome_unknown` 统一为“提交结果不确定，请先刷新相关状态，
+  不要重复提交”，并以 widget 失败回归证明不暴露“相关课程状态”等业务上下文。`ubaa_ui` 全量 41 项、`just flutter-check`、
+  `just check`、`just check-sensitive`、`just release-preflight` 和 API26 无签名 OHOS HAP/arm64 动态库复核均通过；
+  本轮未调用真实写接口。
+- 提交 `f46c65c` 的合同 CI `33592184452` 与五平台 Flutter Debug CI `33592184458` 均终态成功：contract-gates、Windows/macOS
+  Rust 以及 Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。OHOS 仍仅为无签名
+  HAP，签名、实体设备、真实写后核对和正式发布不在本批证据中；本机 FRB 零漂移重试仍待工具链恢复。
 
 ## 2026-09-02 无签名执行目标更新
 

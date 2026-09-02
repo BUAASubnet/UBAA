@@ -94,6 +94,9 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
 - `7bc9c1a` 的合同 CI `33591063958` 与五平台 Debug CI `33591063833` 已终态成功；Android APK、iOS simulator、
   macOS、Linux、Windows 均上传无签名 Debug 产物。CI 不替代 OHOS 签名、实体设备读屏、真实写后核对或当前本机
   FRB 零漂移重试。
+- `f46c65c` 将提交异常与显式 `outcome_unknown` 统一为稳定的“提交结果不确定，请先刷新相关状态，不要重复提交”提示；
+  widget 回归证明异常路径不泄露具体业务上下文。该提交的本地 Flutter/根级门禁、无签名 RC 前置与 API26 HAP 复核均通过，
+  合同 CI `33592184452` 与五平台 CI `33592184458` 也已终态成功；这些证据仍不替代真实写后核对、实体设备或签名。
 - 平台权限和照片选择器通过 `CallbackPermissionGateway`、`CallbackPhotoPicker` 注入原生回调；回调异常
   归约为稳定不可用/能力错误，`PermissionedPhotoPicker` 可按宿主选择相册或桌面文件权限。当前测试覆盖
   权限拒绝不调用 picker、文件权限选择和图书馆取消确认；这仍不是原生插件或实体设备证据。
