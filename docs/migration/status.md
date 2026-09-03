@@ -10,7 +10,7 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| implementation HEAD | `c76a81a` | 代码组织阶段 11A：博雅选课资格由 Core typed action 贯通 Bridge/Domain/App/UI，prepare/commit 均 fail-closed 复核目标、路线与资格 |
+| implementation HEAD | `0a16276` | 代码组织阶段 11B：博雅退选资格由 Core typed action 贯通 Bridge/Domain/App/UI，并以课程本体 ID 在 prepare/commit fail-closed 复核目标、路线与资格 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -47,6 +47,13 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   binary E2E 16 项、CLI contract 32 项、只读 61 项、认证 28 项、Bridge 19 项、Flutter Domain 9 项、App 55
   项、UI 51 项、Host 10 项、官方 App 2 项、macOS integration 6 项、FRB 零漂移、`just check`、refs、layout、
   sensitive 与独立复审均通过；这是本地确定性阶段证据，不是新的 live/签名/设备证据。
+- `0a16276` 上的阶段 11B 以已选课程的内层 `courseInfo.id` 作为退选目标，拒绝误用外层选择记录 ID；
+  `selected=false`、缺失/非法开课时间、目标错配及提交前资格漂移均按已记录来源 fail-closed。Core 163 项
+  双配置测试、CLI binary E2E 16 项、CLI contract 32 项、只读 61 项、认证 28 项、Bridge 24 项、Flutter
+  Domain 9 项、App 55 项、UI 51 项、Bindings 11 项、Host 10 项与官方 App 2 项通过；refs、layout、682 文件
+  sensitive、完整 `just check`、完整 `just flutter-check`、FRB 零漂移和两侧独立复审均通过。macOS integration
+  首轮课表 typed 查询出现一次不可复现的 `null`，同一单例随后 1/1、完整套件随后 6/6 通过；没有证据把该
+  波动归因于本阶段 Bykc 变更。这仍只是本地确定性阶段证据，不是新的 live、签名或设备证据。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -63,7 +70,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11B–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11C–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。
