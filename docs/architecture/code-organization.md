@@ -248,9 +248,15 @@ UBAA/
 │   │   │   ├── mod.rs                      # DTO 继续保有 api::read 路径
 │   │   │   ├── methods.rs
 │   │   │   └── mappers.rs
+│   │   ├── write/
+│   │   │   ├── mod.rs                      # DTO 与 pending 类型保持 api::write 路径
+│   │   │   ├── prepare.rs                  # 意图建立与各领域 prepare
+│   │   │   ├── commit.rs                   # 一次性消费、复核与提交
+│   │   │   ├── support.rs                  # 验证、canonical digest 与安全映射
+│   │   │   ├── tests.rs                    # cfg(test) 根与唯一测试注入 helper
+│   │   │   └── tests/{contract,bykc,lifecycle,validation}.rs
 │   │   ├── client.rs
-│   │   ├── simple.rs
-│   │   └── write.rs
+│   │   └── simple.rs
 │   └── ubaa-test-support/
 │       ├── src/{lib,fixtures,http,session}.rs
 │       └── tests/
@@ -374,6 +380,10 @@ platform`，`ubaa_ui → domain`，`bindings → FRB`。
 - `.gitattributes` 标记 FRB 输出为 generated，降低语言统计与评审噪声。
 - 手写 Rust `api/read` 拆分时，公开 DTO 继续定义在 `read/mod.rs`；只把 inherent methods 和 private mapper
   移到子模块，确保 FRB 类型路径不漂移。
+- 手写 Rust `api/write` 同样把公开 DTO 定义留在 `write/mod.rs`，把 prepare、commit 与私有 support 分开；
+  `tests/` 按合同、Bykc、intent 生命周期和输入验证分组；因 facade 架构门禁只豁免 `tests.rs`，所有
+  `with_routing` 测试注入只留在该根文件，叶测试仅调用封装 helper。公开 `crate::api::write::*` 路径和测试
+  叶名称不得变化。
 - 每个 bridge 结构阶段都运行 `just flutter-codegen-check`；出现生成 diff 时停止并按 API 变更处理。
 
 ## 7. 结构棘轮

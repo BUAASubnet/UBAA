@@ -54,6 +54,7 @@
 | 10B | ubaa_host package | 宿主 wiring 一致性测试 RED | `refactor(flutter): 抽取共享宿主组合根` | 已提交：`324979e`；共享入口、完整 callback、生命周期竞态、三平台产物与 OHOS API26 门禁通过 |
 | 11A | Bykc 选课资格 | 缺字段、目标错配、提交前资格漂移与展示字符串漂移 RED | `refactor(flutter): typed 化博雅选课资格` | 已提交：`c76a81a`；Core/Bridge typed 资格、prepare/commit fail-closed、FRB/Domain/App/UI 映射、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B | Bykc 退选资格 | 操作级来源对照与未知状态 RED | `refactor(flutter): typed 化博雅退选资格` | 已提交：`0a16276`；inner course ID、Core/Bridge 双复核、FRB/Domain/App/UI typed action、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
+| 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 待执行 |
 | 11C | Bykc 签到资格 | 操作级来源对照与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 待执行 |
 | 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 待执行 |
 | 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 待执行 |
@@ -357,6 +358,14 @@ CAS/bootstrap URL 与 service、redirect/final URL、Cookie/session/token 作用
 每个操作有自己的 sanitized RED 和 focused test，不以领域组级测试代替；从 Core facade DTO → bridge DTO →
 domain action/eligibility → app mapping → UI 消费完整迁移，并在同一操作提交删除其旧字符串/时间解析，不移动
 UI 文件。
+
+### 阶段 11B2：Bridge write 目录化
+
+在 11C 继续扩展资格复核前，先把接近结构上限的 `api/write.rs` 与 `api/write/tests.rs` 机械拆分。公开 DTO 与
+pending 类型留在 `write/mod.rs`，prepare、commit、验证/映射 helper 分别进入具名子模块；`write/tests.rs`
+保留 facade 测试注入并向 contract、Bykc、intent 生命周期与输入验证叶模块提供封装 helper。不得改变
+`crate::api::write::*` 公共路径、函数签名、错误语义、20 个写测试叶名称或生成绑定；以 Bridge 全部 24 项
+测试、严格 Clippy、完整 `just check` 和 FRB 二次生成零漂移验收。
 
 ### 阶段 11K：唯一 WriteCoordinator
 
