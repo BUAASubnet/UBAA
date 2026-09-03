@@ -1,12 +1,17 @@
 # 协议来源对照矩阵
 
-更新日期：2026-09-01
+更新日期：2026-09-03
 
 本文件逐操作审计行为。`旧版` 指冻结的 `ubaa_old/` 提交
 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`示例` 指固定的
 `examples/buaa-api/` 提交 `efb7976bf513f38364b88aeb83d704586cff9b2a`。每个单元格均记录两份
 来源与 UBAA 2 决策。标记为不等价的来源不得通过类比提供 URL、字段、加密或错误语义。只有在
 决策日志记录脱敏观察后，实时证据才可以取代冻结协议事实。
+
+2026-09-03 的复杂业务模块目录化另见
+[`source-parity-code-organization.md`](source-parity-code-organization.md)。该记录只授权在现有逐操作
+九列矩阵内移动 Cgyy、Judge、SPOC、Bykc、LibBook 与 Ygdk 符号；任一协议列变化仍须回到本文件
+重新取证和执行 TDD，不得以结构整理为由推断行为。
 
 历史记录（2026-08-29）：当时的 `verify-live` 曾按独立 CLI 子操作执行，并有一笔单独授权的
 Cgyy Direct 写探针。本记录仅保留来源证据，不属于当前执行合同；当前唯一真实网络入口是
