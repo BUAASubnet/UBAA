@@ -1439,6 +1439,7 @@ mod tests {
         build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
         check_business_response, parse_action_result, parse_captcha_challenge, parse_sites,
         safe_parameter_summary, safe_url, sign, signed_request, validate_submit_request,
+        CgyyCaptchaChallenge,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
     use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
@@ -1593,6 +1594,21 @@ mod tests {
         assert_eq!(challenge.token, "token");
         assert_eq!(challenge.original_image_base64, "bg");
         assert_eq!(challenge.jigsaw_image_base64, "piece");
+    }
+
+    #[test]
+    fn 验证码挑战调试输出不泄露密钥令牌和图像() {
+        let challenge = CgyyCaptchaChallenge {
+            secret_key: "captcha-secret-key".into(),
+            token: "captcha-session-token".into(),
+            original_image_base64: "original-image-secret".into(),
+            jigsaw_image_base64: "jigsaw-image-secret".into(),
+        };
+        let rendered = format!("{challenge:?}");
+        assert!(!rendered.contains("captcha-secret-key"));
+        assert!(!rendered.contains("captcha-session-token"));
+        assert!(!rendered.contains("original-image-secret"));
+        assert!(!rendered.contains("jigsaw-image-secret"));
     }
 
     #[test]

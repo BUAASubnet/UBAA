@@ -658,6 +658,16 @@ mod tests {
     }
 
     #[test]
+    fn 阳光打卡凭据调试输出不泄露令牌() {
+        let credential = YgdkCredential {
+            uid: 42,
+            token: "ygdk-secret-token".into(),
+        };
+        let rendered = format!("{credential:?}");
+        assert!(!rendered.contains("ygdk-secret-token"));
+    }
+
+    #[test]
     fn 记录时间戳按冻结东八区格式化() {
         let body = serde_json::json!({
             "code": 1,

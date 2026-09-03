@@ -6,6 +6,9 @@ use std::sync::Mutex as SyncMutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+#[cfg(test)]
+use std::sync::{Arc, Condvar, Mutex as TestMutex};
+
 use tokio::sync::Mutex;
 
 use super::state_cache::{TimedEntry, insert_bounded, is_fresh};
@@ -179,12 +182,61 @@ impl YgdkState {
 }
 
 /// 路线内存中的 iClass 业务会话，不写入主认证会话文件。
+#[cfg(test)]
+#[derive(Default)]
+struct StoreCredentialHook {
+    flags: TestMutex<(bool, bool)>,
+    signal: Condvar,
+}
+
+#[cfg(test)]
+impl StoreCredentialHook {
+    fn pause(&self) {
+        let mut flags = self
+            .flags
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        flags.0 = true;
+        self.signal.notify_all();
+        while !flags.1 {
+            flags = self
+                .signal
+                .wait(flags)
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+        }
+    }
+
+    fn wait_until_paused(&self) {
+        let mut flags = self
+            .flags
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        while !flags.0 {
+            flags = self
+                .signal
+                .wait(flags)
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+        }
+    }
+
+    fn release(&self) {
+        let mut flags = self
+            .flags
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        flags.1 = true;
+        self.signal.notify_all();
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Default)]
 pub(crate) struct SigninState {
     invalidations: AtomicU64,
     login: Mutex<()>,
     credential: SyncMutex<Option<crate::features::signin::SigninCredential>>,
+    #[cfg(test)]
+    store_hook: TestMutex<Option<Arc<StoreCredentialHook>>>,
 }
 
 impl SigninState {
@@ -211,11 +263,33 @@ impl SigninState {
         if self.generation() != generation {
             return false;
         }
+        #[cfg(test)]
+        self.pause_after_generation_check();
         *self
             .credential
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(credential);
         true
+    }
+
+    #[cfg(test)]
+    fn set_store_hook(&self, hook: Arc<StoreCredentialHook>) {
+        *self
+            .store_hook
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(hook);
+    }
+
+    #[cfg(test)]
+    fn pause_after_generation_check(&self) {
+        let hook = self
+            .store_hook
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        if let Some(hook) = hook {
+            hook.pause();
+        }
     }
 
     pub(crate) fn clear_credential(&self) {
@@ -566,6 +640,7 @@ impl std::fmt::Debug for JudgeState {
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
+    use std::thread;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{Duration, Instant};
 
@@ -573,7 +648,40 @@ mod tests {
     use crate::features::bykc::BykcCredential;
     use crate::features::judge::{Assignment, AssignmentList, Course};
 
-    use super::{BykcState, ClassroomState, JudgeState};
+    use super::{
+        BykcState, ClassroomState, JudgeState, SigninState, StoreCredentialHook,
+    };
+
+    #[test]
+    fn 清除不能让旧签到凭据越过失效代数回写() {
+        let state = Arc::new(SigninState::default());
+        let hook = Arc::new(StoreCredentialHook::default());
+        state.set_store_hook(Arc::clone(&hook));
+        let generation = state.generation();
+
+        let writer_state = Arc::clone(&state);
+        let writer = thread::spawn(move || {
+            writer_state.store_credential(
+                generation,
+                crate::features::signin::SigninCredential {
+                    user_id: "test-user".into(),
+                    session_id: "stale-session".into(),
+                },
+            )
+        });
+
+        hook.wait_until_paused();
+        let clearer_state = Arc::clone(&state);
+        let clearer = thread::spawn(move || clearer_state.clear());
+        while state.generation() == generation {
+            thread::yield_now();
+        }
+        hook.release();
+
+        assert!(!writer.join().unwrap());
+        clearer.join().unwrap();
+        assert!(state.credential().is_none());
+    }
 
     #[test]
     fn 博雅凭据仅驻留路线状态且调试输出脱敏() {
