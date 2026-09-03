@@ -7,7 +7,6 @@ pub mod evaluation;
 pub mod grades;
 pub mod judge;
 pub mod libbook;
-pub(crate) mod libbook_crypto;
 pub mod schedule;
 pub mod signin;
 pub mod spoc;

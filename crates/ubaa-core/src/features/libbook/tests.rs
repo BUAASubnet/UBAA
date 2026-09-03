@@ -1,4 +1,8 @@
+//! 图书馆 parser 与冻结加密向量单元合同。
+
+use super::crypto::encrypt_reserve_request;
 use super::{parse_area_detail_for, parse_bookings, parse_libraries, parse_seats};
+use crate::domain::LibBookReserveRequest;
 
 #[test]
 fn 解析图书馆楼层和座位状态() {
@@ -55,4 +59,35 @@ fn 解析区域时段并补充标签() {
     )
     .unwrap();
     assert_eq!(detail.time_slots[0].label, "08:00-10:00");
+}
+
+#[test]
+fn reserve_request_matches_frozen_golden_vector() {
+    let encrypted = encrypt_reserve_request(&LibBookReserveRequest {
+        area_id: "8".into(),
+        seat_id: "101".into(),
+        day: "2026-05-08".into(),
+        segment: "seg-1".into(),
+        start_time: String::new(),
+        end_time: String::new(),
+    })
+    .expect("vector should encrypt");
+    assert_eq!(
+        encrypted,
+        "lGWxL9YCYE0sXIQzPsUCs3jfaFPunT/NyR93uF2nVP1OQPYYihpMRBvm7jxYdUZNTMCyIRtdY8d3DgCNz8G3lmeWmPjvy6jV2KeuJXR8nrOmk26JK+ATZB1VXBNOFebA"
+    );
+}
+
+#[test]
+fn 座位数字原语按冻结实现转为文本() {
+    let body = serde_json::json!({
+        "code": 0,
+        "data": [{"id": 101, "name": 7, "no": 12, "status": 1}]
+    })
+    .to_string();
+    let seats = parse_seats(&body).expect("解析座位");
+    assert_eq!(seats[0].id, "101");
+    assert_eq!(seats[0].no, "12");
+    assert_eq!(seats[0].status, "1");
+    assert!(seats[0].is_available);
 }

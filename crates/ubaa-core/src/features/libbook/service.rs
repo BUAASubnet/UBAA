@@ -1,271 +1,25 @@
-//! 图书馆座位只读响应解析与业务查询。
-#![allow(clippy::missing_errors_doc)]
+//! 图书馆 CAS/token 生命周期、业务请求与读写操作。
 
-use crate::domain::{
-    LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage, LibBookLibrary,
-    LibBookSeat, LibBookStorey, LibBookTimeSlot,
-};
-use crate::domain::{LibBookCancelResult, LibBookReserveRequest, LibBookReserveResult};
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use crate::ports::HttpRequest;
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 use tracing::debug;
 
-use super::libbook_crypto::encrypt_reserve_request;
+use crate::domain::{
+    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
+};
+use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::ports::HttpRequest;
 
-pub(crate) use crate::internal::route_state::LibBookCredential;
+use super::LibBookCredential;
+use super::crypto::encrypt_reserve_request;
+use super::parser::{
+    envelope, error, is_expired_body, parse_area_detail_for, parse_areas, parse_bookings,
+    parse_libraries, parse_seats,
+};
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
 const CAS_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbooking.lib.buaa.edu.cn%2Fv4%2Flogin%2Fcas";
 const REDIRECT_LIMIT: usize = 8;
-
-fn error(message: impl Into<String>) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
-}
-
-fn text(map: &Map<String, Value>, keys: &[&str]) -> String {
-    keys.iter()
-        .find_map(|key| {
-            let value = map.get(*key)?;
-            value
-                .as_str()
-                .map(str::to_owned)
-                .or_else(|| value.as_i64().map(|number| number.to_string()))
-                .or_else(|| value.as_u64().map(|number| number.to_string()))
-                .or_else(|| value.as_f64().map(|number| number.to_string()))
-                .or_else(|| value.as_bool().map(|boolean| boolean.to_string()))
-        })
-        .unwrap_or_default()
-}
-
-fn number(map: &Map<String, Value>, keys: &[&str]) -> i32 {
-    keys.iter()
-        .find_map(|key| {
-            map.get(*key)
-                .and_then(Value::as_i64)
-                .and_then(|v| i32::try_from(v).ok())
-                .or_else(|| {
-                    map.get(*key)
-                        .and_then(Value::as_str)
-                        .and_then(|v| v.parse().ok())
-                })
-        })
-        .unwrap_or_default()
-}
-
-fn array<'a>(map: &'a Map<String, Value>, keys: &[&str]) -> &'a [Value] {
-    keys.iter()
-        .find_map(|key| map.get(*key).and_then(Value::as_array).map(Vec::as_slice))
-        .unwrap_or(&[])
-}
-
-fn envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("图书馆响应无法解析"))?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| error("图书馆响应结构无效"))?;
-    let code = object.get("code").and_then(|v| {
-        v.as_i64()
-            .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
-    });
-    if matches!(code, Some(0 | 1)) {
-        Ok(object
-            .get("data")
-            .or_else(|| object.get("result"))
-            .cloned()
-            .unwrap_or(Value::Null))
-    } else {
-        let message = text(object, &["message", "msg"]);
-        if is_expired_message(&message) {
-            return Err(UbaaError::new(
-                ErrorCode::AuthenticationRequired,
-                ErrorKind::Authentication,
-                false,
-                "图书馆业务会话已失效",
-            ));
-        }
-        Err(error(if message.is_empty() {
-            "图书馆请求失败".to_owned()
-        } else {
-            message
-        }))
-    }
-}
-
-fn list_value<'a>(value: &'a Value, keys: &[&str]) -> &'a [Value] {
-    value
-        .as_array()
-        .map(Vec::as_slice)
-        .or_else(|| value.as_object().map(|o| array(o, keys)))
-        .unwrap_or(&[])
-}
-
-/// 解析图书馆与楼层列表。
-pub fn parse_libraries(body: &str) -> Result<Vec<LibBookLibrary>> {
-    let value = envelope(body)?;
-    Ok(list_value(&value, &["list", "libraries"])
-        .iter()
-        .filter_map(Value::as_object)
-        .map(|object| LibBookLibrary {
-            id: text(object, &["id"]),
-            name: text(object, &["name"]),
-            free_num: number(object, &["free_num", "freeNum"]),
-            total_num: number(object, &["total_num", "totalNum"]),
-            storeys: array(object, &["children", "storeys"])
-                .iter()
-                .filter_map(Value::as_object)
-                .map(|storey| LibBookStorey {
-                    id: text(storey, &["id"]),
-                    name: text(storey, &["name"]),
-                    free_num: number(storey, &["free_num", "freeNum"]),
-                    total_num: number(storey, &["total_num", "totalNum"]),
-                })
-                .collect(),
-        })
-        .collect())
-}
-
-/// 解析图书馆分区列表。
-pub fn parse_areas(body: &str) -> Result<Vec<LibBookArea>> {
-    let value = envelope(body)?;
-    Ok(list_value(&value, &["area", "areas", "list"])
-        .iter()
-        .filter_map(Value::as_object)
-        .map(|object| LibBookArea {
-            id: text(object, &["id"]),
-            name: text(object, &["name"]),
-            area_name: text(object, &["area", "areaName"]),
-            premises_id: text(object, &["premises_id", "premisesId"]),
-            storey_id: text(object, &["storey_id", "storeyId"]),
-            free_num: number(object, &["free_num", "freeNum"]),
-            total_num: number(object, &["total_num", "totalNum"]),
-        })
-        .collect())
-}
-
-/// 解析分区详情，并在上游缺少区域 ID 时使用请求 ID 回退。
-pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDetail> {
-    let value = envelope(body)?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| error("图书馆分区响应结构无效"))?;
-    let area = object
-        .get("area")
-        .and_then(Value::as_object)
-        .unwrap_or(object);
-    let dates = object.get("date").and_then(Value::as_object).map_or_else(
-        || array(object, &["availableDates", "available_dates"]),
-        |date| array(date, &["list"]),
-    );
-    let available_dates = dates
-        .iter()
-        .filter_map(|entry| {
-            entry
-                .as_str()
-                .map(str::to_owned)
-                .or_else(|| entry.as_object().map(|o| text(o, &["day", "date"])))
-        })
-        .filter(|date| !date.is_empty())
-        .collect();
-    let slots = dates.first().and_then(Value::as_object).map_or_else(
-        || array(object, &["timeSlots", "time_slots"]),
-        |date| array(date, &["times", "timeSlots"]),
-    );
-    let time_slots = slots
-        .iter()
-        .filter_map(Value::as_object)
-        .map(|slot| {
-            let start = text(slot, &["start"]);
-            let end = text(slot, &["end"]);
-            let mut value = LibBookTimeSlot {
-                id: text(slot, &["id"]),
-                start,
-                end,
-                label: text(slot, &["label"]),
-            };
-            if value.label.is_empty() {
-                value.label = format!("{}-{}", value.start, value.end);
-            }
-            value
-        })
-        .collect();
-    let id = text(area, &["id"]);
-    Ok(LibBookAreaDetail {
-        id: if id.is_empty() {
-            area_id.to_owned()
-        } else {
-            id
-        },
-        name: text(area, &["name"]),
-        available_dates,
-        time_slots,
-    })
-}
-
-/// 解析座位列表，并将状态 `1` 映射为可用。
-pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
-    let value = envelope(body)?;
-    let mut seats: Vec<_> = list_value(&value, &["list", "seats"])
-        .iter()
-        .filter_map(Value::as_object)
-        .map(|object| {
-            let status = text(object, &["status"]);
-            LibBookSeat {
-                id: text(object, &["id"]),
-                name: text(object, &["name"]),
-                no: text(object, &["no", "seat_no"]),
-                status: status.clone(),
-                status_name: text(object, &["status_name", "statusName"]),
-                is_available: status == "1",
-            }
-        })
-        .collect();
-    seats.sort_by(|left, right| left.no.cmp(&right.no));
-    Ok(seats)
-}
-
-/// 解析当前用户的图书馆预约分页。
-pub fn parse_bookings(body: &str) -> Result<LibBookBookingsPage> {
-    let value = envelope(body)?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| error("图书馆预约响应结构无效"))?;
-    let bookings = array(object, &["data", "bookings", "list"])
-        .iter()
-        .filter_map(Value::as_object)
-        .map(|booking| LibBookBooking {
-            id: text(booking, &["id"]),
-            name_merge: text(booking, &["nameMerge", "name_merge"]),
-            area_name: text(booking, &["name", "area_name", "areaName"]),
-            seat_no: text(booking, &["no", "seat_no", "seatNo"]),
-            day: text(booking, &["day", "date"]),
-            begin_time: text(booking, &["beginTime", "begin_time"]),
-            end_time: text(booking, &["endTime", "end_time"]),
-            status: text(booking, &["status"]),
-            status_name: text(booking, &["status_name", "statusName"]),
-        })
-        .collect::<Vec<_>>();
-    let total = object
-        .get("total")
-        .and_then(|value| {
-            value
-                .as_i64()
-                .and_then(|value| i32::try_from(value).ok())
-                .or_else(|| value.as_str().and_then(|value| value.parse().ok()))
-        })
-        .unwrap_or_else(|| i32::try_from(bookings.len()).unwrap_or(i32::MAX));
-    Ok(LibBookBookingsPage {
-        bookings,
-        page: number(object, &["current_page", "page"]).max(1),
-        limit: number(object, &["per_page", "limit"]).max(1),
-        total,
-    })
-}
 
 /// 查询图书馆楼馆列表。
 pub(crate) async fn get_libraries(
@@ -422,13 +176,13 @@ async fn request_json(
     body: Value,
     allow_retry: bool,
 ) -> Result<String> {
-    super::require_session(runtime)?;
+    crate::features::require_session(runtime)?;
     let credential = current_credential(runtime).await?;
     let url = runtime.url(&format!("{BASE_URL}/v4/{path}"))?;
     let request_body = serde_json::to_vec(&body).map_err(|_| error("图书馆请求参数无效"))?;
     let authorization = format!("bearer{}", credential.token);
     let referer = format!("{BASE_URL}/");
-    let response = super::post_json(
+    let response = crate::features::post_json(
         runtime,
         url,
         request_body,
@@ -450,7 +204,8 @@ async fn request_json(
         body_shape = %safe_body_shape(&response.body),
         "图书馆业务响应摘要"
     );
-    if response.status == 401 || (allow_retry && is_expired_body(&super::body(&response))) {
+    if response.status == 401 || (allow_retry && is_expired_body(&crate::features::body(&response)))
+    {
         if allow_retry {
             runtime.feature_state().libbook.clear_credential();
             return Box::pin(request_json(runtime, path, body, false)).await;
@@ -470,7 +225,7 @@ async fn request_json(
             "图书馆服务暂时不可用",
         ));
     }
-    Ok(super::body(&response))
+    Ok(crate::features::body(&response))
 }
 
 fn safe_url(value: &str) -> String {
@@ -541,7 +296,7 @@ async fn current_credential(
     let cas = fetch_cas(runtime).await?;
     let body = serde_json::to_vec(&json!({"cas": cas})).map_err(|_| error("图书馆登录参数无效"))?;
     let url = runtime.url(&format!("{BASE_URL}/v4/login/user"))?;
-    let response = super::post_json(runtime, url, body, &[("Origin", BASE_URL)]).await?;
+    let response = crate::features::post_json(runtime, url, body, &[("Origin", BASE_URL)]).await?;
     if response.status != 200 {
         return Err(UbaaError::new(
             ErrorCode::AuthenticationRequired,
@@ -622,57 +377,4 @@ fn cas_from_url(raw: &str) -> Option<String> {
                     .map(|(_, value)| value.into_owned())
             })
         })
-}
-
-fn is_expired_message(message: &str) -> bool {
-    ["登录失效", "请重新登录", "未登录", "登录状态"]
-        .iter()
-        .any(|part| message.contains(part))
-}
-fn is_expired_body(body: &str) -> bool {
-    serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|value| value.as_object().cloned())
-        .is_some_and(|object| is_expired_message(&text(&object, &["message", "msg"])))
-}
-
-#[cfg(test)]
-#[path = "libbook/contract_tests.rs"]
-mod contract_tests;
-
-#[cfg(test)]
-mod crypto_tests {
-    use super::{encrypt_reserve_request, parse_seats};
-    use crate::domain::LibBookReserveRequest;
-
-    #[test]
-    fn reserve_request_matches_frozen_golden_vector() {
-        let encrypted = encrypt_reserve_request(&LibBookReserveRequest {
-            area_id: "8".into(),
-            seat_id: "101".into(),
-            day: "2026-05-08".into(),
-            segment: "seg-1".into(),
-            start_time: String::new(),
-            end_time: String::new(),
-        })
-        .expect("vector should encrypt");
-        assert_eq!(
-            encrypted,
-            "lGWxL9YCYE0sXIQzPsUCs3jfaFPunT/NyR93uF2nVP1OQPYYihpMRBvm7jxYdUZNTMCyIRtdY8d3DgCNz8G3lmeWmPjvy6jV2KeuJXR8nrOmk26JK+ATZB1VXBNOFebA"
-        );
-    }
-
-    #[test]
-    fn 座位数字原语按冻结实现转为文本() {
-        let body = serde_json::json!({
-            "code": 0,
-            "data": [{"id": 101, "name": 7, "no": 12, "status": 1}]
-        })
-        .to_string();
-        let seats = parse_seats(&body).expect("解析座位");
-        assert_eq!(seats[0].id, "101");
-        assert_eq!(seats[0].no, "12");
-        assert_eq!(seats[0].status, "1");
-        assert!(seats[0].is_available);
-    }
 }
