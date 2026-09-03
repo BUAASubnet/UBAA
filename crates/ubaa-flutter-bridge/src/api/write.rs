@@ -399,6 +399,9 @@ impl BridgeClient {
             if intent_id.trim().is_empty() {
                 return Err(invalid_input("intent id is required"));
             }
+            // 所有会清理写意图的路径都先持有 Core 锁；这样重新登录或重开路线
+            // 不会在本次提交等待 Core 锁时失效后，仍让旧意图继续执行。
+            let mut guard = self.inner.lock().await;
             let entry = {
                 let mut intents = self.write_intents.lock().await;
                 intents.remove(&intent_id).ok_or_else(|| {
@@ -420,7 +423,6 @@ impl BridgeClient {
             }
             let pending = entry.request;
             let operation = pending.operation();
-            let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
             let current_resolution = client
                 .resolve_route_for_feature(pending.feature())

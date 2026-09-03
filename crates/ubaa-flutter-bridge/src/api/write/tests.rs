@@ -1,5 +1,7 @@
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::task::{Context, Poll};
 use std::time::Duration;
 
 use super::{
@@ -246,6 +248,43 @@ async fn 准备后会话修订过期在零请求下归约为操作冲突() {
     assert_eq!(reused.code, BridgeErrorCode::IntentExpired);
     assert_no_requests(&direct, &webvpn);
     client.dispose().await.expect("销毁 bridge");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn 重新登录在提交等待_core_锁时仍能失效旧意图() {
+    let root = test_root("intent-lock-order");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = seed_sessions(&root, true, false);
+    let direct = MockTransport::new([]);
+    let webvpn = MockTransport::new([]);
+    let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
+    install_core(
+        &client,
+        store,
+        "[route]\ndefault = \"direct\"\n",
+        direct.clone(),
+        webvpn.clone(),
+    )
+    .await;
+    let intent = client
+        .prepare_bykc_select_course(BridgeBykcCourseRequest { course_id: 42 })
+        .await
+        .expect("准备写入");
+
+    let inner_guard = client.inner.lock().await;
+    let mut commit = Box::pin(client.commit_write(intent.intent_id.clone()));
+    let waker = futures_util::task::noop_waker();
+    let mut context = Context::from_waker(&waker);
+    assert!(matches!(commit.as_mut().poll(&mut context), Poll::Pending));
+
+    // 模拟重新登录/路线重开在同一 Core 锁内使全部旧意图失效。
+    client.write_intents.lock().await.clear();
+    drop(inner_guard);
+
+    let error = commit.await.expect_err("被并发失效的旧意图不得继续提交");
+    assert_eq!(error.code, BridgeErrorCode::IntentExpired);
+    assert_no_requests(&direct, &webvpn);
     let _ = std::fs::remove_dir_all(root);
 }
 
