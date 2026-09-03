@@ -252,3 +252,76 @@ fn session_conflict() -> UbaaError {
         "local session changed in another process",
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    };
+
+    use async_trait::async_trait;
+
+    use super::ClientRuntime;
+    use crate::domain::ConnectionMode;
+    use crate::error::Result;
+    use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
+    use crate::session::{FileSessionStore, StoredCookie};
+
+    #[derive(Clone, Default)]
+    struct NoopTransport;
+
+    #[async_trait]
+    impl HttpTransport for NoopTransport {
+        async fn execute(&self, _request: HttpRequest) -> Result<HttpResponse> {
+            unreachable!("运行时所有权测试不应发出 HTTP 请求")
+        }
+    }
+
+    #[test]
+    fn fork_shares_immutable_handles_and_feature_state_but_isolates_cookies() {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        let root = std::env::temp_dir().join(format!(
+            "ubaa-runtime-fork-{}-{}",
+            std::process::id(),
+            NEXT_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let store = FileSessionStore::new(&root).expect("创建运行时测试存储");
+        let mut parent =
+            ClientRuntime::new(ConnectionMode::WebVpn, NoopTransport, store).expect("创建父运行时");
+        parent.jar.replace(vec![
+            StoredCookie::fixture("KEEP", "keep-value"),
+            StoredCookie::fixture("DROP", "drop-value"),
+        ]);
+        parent.authenticated_at = Some(101);
+        parent.last_activity = Some(202);
+        parent.account_name = Some("account-safe".to_owned());
+        parent.session_revision = 303;
+
+        let mut child = parent.fork_for_readonly_with_cookie_filter(|cookie| cookie.name == "KEEP");
+        assert!(Arc::ptr_eq(&parent.transport, &child.transport));
+        assert!(Arc::ptr_eq(&parent.store, &child.store));
+        assert!(Arc::ptr_eq(&parent.feature_state, &child.feature_state));
+        assert_eq!(child.mode, parent.mode);
+        assert_eq!(child.authenticated_at, parent.authenticated_at);
+        assert_eq!(child.last_activity, parent.last_activity);
+        assert_eq!(child.account_name, parent.account_name);
+        assert_eq!(child.session_revision, parent.session_revision);
+        assert_eq!(child.jar.cookies().len(), 1);
+        assert_eq!(child.jar.cookies()[0].name, "KEEP");
+
+        child
+            .jar
+            .replace(vec![StoredCookie::fixture("CHILD", "child-value")]);
+        assert_eq!(parent.jar.cookies().len(), 2);
+        assert_eq!(parent.jar.cookies()[0].name, "KEEP");
+
+        let other_store = FileSessionStore::new(&root).expect("创建独立运行时存储");
+        let other = ClientRuntime::new(ConnectionMode::Direct, NoopTransport, other_store)
+            .expect("创建独立运行时");
+        assert!(!Arc::ptr_eq(&parent.feature_state, &other.feature_state));
+
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
