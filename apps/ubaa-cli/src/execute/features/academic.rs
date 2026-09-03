@@ -1,7 +1,7 @@
 //! 课表、考试、成绩与空闲教室 handler。
 
 use crate::io::schema::CliFeature;
-use ubaa_core::error::Result;
+use ubaa_core::facade::Result;
 use ubaa_core::facade::RoutedResult;
 
 use crate::backend::{CliBackend, RoutedCliBackend};

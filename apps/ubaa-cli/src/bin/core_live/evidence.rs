@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 
-use ubaa_core::error::ErrorCode;
+use ubaa_core::facade::ErrorCode;
 
 pub(crate) struct Evidence {
     route: &'static str,

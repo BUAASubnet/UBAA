@@ -1,11 +1,11 @@
 use ubaa_cli::{CliFeature, ResolvedRoutedJsonMeta, RoutedJsonEnvelope};
-use ubaa_core::connection::RouteResolution;
-use ubaa_core::domain::{
+use ubaa_core::facade::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcSignConfig, BykcSignPoint, BykcUserProfile,
     CgyyActionResult, ClassroomInfo, ClassroomQuery, CourseClass, Exam, ExamArrangement, Grade,
     GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    JudgeProblem, SpocAssignmentDetail, SpocAssignmentSummary, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, Week, WeeklySchedule,
+    JudgeProblem, JudgeSubmissionStatus, RouteResolution, SpocAssignmentDetail,
+    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
+    TodayClass, Week, WeeklySchedule,
 };
 
 use super::masked_profile;
@@ -168,7 +168,7 @@ fn routed_assignment_success_representatives() -> Vec<(CliFeature, serde_json::V
         start_time: None,
         due_time: None,
         score: None,
-        submission_status: ubaa_core::domain::SpocSubmissionStatus::default(),
+        submission_status: SpocSubmissionStatus::default(),
         submission_status_text: "未知状态(9)".into(),
     };
     let spoc_assignments = SpocAssignments {
@@ -201,7 +201,7 @@ fn routed_assignment_success_representatives() -> Vec<(CliFeature, serde_json::V
                 start_time: None,
                 due_time: None,
                 score: None,
-                submission_status: ubaa_core::domain::SpocSubmissionStatus::Unknown,
+                submission_status: SpocSubmissionStatus::Unknown,
                 submission_status_text: "未知状态".into(),
                 content_plain_text: None,
                 submitted_at: None,
@@ -242,7 +242,7 @@ fn judge_summary() -> JudgeAssignmentSummary {
         my_score: Some("7.00".into()),
         total_problems: 1,
         submitted_count: 1,
-        submission_status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
+        submission_status: JudgeSubmissionStatus::Submitted,
         submission_status_text: "已完成 7.00/10.00".into(),
     }
 }
@@ -259,13 +259,13 @@ fn judge_detail() -> JudgeAssignmentDetail {
         my_score: None,
         total_problems: 1,
         submitted_count: 1,
-        submission_status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
+        submission_status: JudgeSubmissionStatus::Submitted,
         submission_status_text: "已完成".into(),
         problems: vec![JudgeProblem {
             name: "Problem".into(),
             score: None,
             max_score: None,
-            status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
+            status: JudgeSubmissionStatus::Submitted,
             status_text: "已提交".into(),
         }],
         content_plain_text: None,

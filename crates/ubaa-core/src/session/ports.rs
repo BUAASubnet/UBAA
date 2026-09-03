@@ -38,6 +38,7 @@ pub trait SessionStore: Send + Sync {
     /// # Errors
     ///
     /// 底层存储无法安全加载会话时返回错误。
+    #[cfg(any(test, feature = "test-contract"))]
     fn load(&self) -> Result<Option<SessionSnapshot>> {
         self.load_versioned().map(|state| state.snapshot)
     }
@@ -47,6 +48,7 @@ pub trait SessionStore: Send + Sync {
     /// # Errors
     ///
     /// 底层存储无法安全加载或替换会话时返回错误。
+    #[cfg(feature = "test-contract")]
     fn save(&self, snapshot: &SessionSnapshot) -> Result<()> {
         loop {
             let current = self.load_versioned()?;
@@ -64,6 +66,7 @@ pub trait SessionStore: Send + Sync {
     /// # Errors
     ///
     /// 底层存储无法安全加载或清除会话时返回错误。
+    #[cfg(feature = "test-contract")]
     fn clear(&self) -> Result<()> {
         loop {
             let current = self.load_versioned()?;

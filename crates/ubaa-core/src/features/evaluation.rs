@@ -548,16 +548,9 @@ async fn fetch_optional(
     }
 }
 
-/// 仅用于测试和宿主校验的待评教过滤。
-#[must_use]
-pub fn pending(response: &EvaluationCoursesResponse) -> Vec<EvaluationCourse> {
-    response
-        .courses
-        .iter()
-        .filter(|course| !course.is_evaluated)
-        .cloned()
-        .collect()
-}
+#[cfg(test)]
+#[path = "evaluation/contract_tests.rs"]
+mod contract_tests;
 
 #[cfg(test)]
 mod tests {

@@ -10,7 +10,7 @@ version.workspace = true
 
 [dependencies]
 async-trait = "0.1.89"
-ubaa-core = { path = "../ubaa-core" }
+ubaa-core = { path = "../ubaa-core", features = ["test-contract"] }
 
 [dev-dependencies]
 aes = "0.8.4"

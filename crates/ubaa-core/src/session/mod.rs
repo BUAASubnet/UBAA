@@ -10,9 +10,11 @@ mod types;
 
 pub use cookies::{CookieJar, StoredCookie};
 pub(crate) use coordinator::DualSessionCoordinator;
-pub use file_store::{FileSessionStore, RouteSessionStore};
+pub use file_store::FileSessionStore;
 pub use ports::SessionStore;
+#[cfg(feature = "test-contract")]
 pub use types::{
-    DualSessionMutation, DualSessionSnapshot, RouteSessionSnapshot, RouteSessions, SessionMutation,
-    SessionSnapshot, SessionValidation, VersionedDualSession, VersionedSession,
+    DualSessionMutation, DualSessionSnapshot, RouteSessionSnapshot, RouteSessions,
+    VersionedDualSession,
 };
+pub use types::{SessionMutation, SessionSnapshot, VersionedSession};

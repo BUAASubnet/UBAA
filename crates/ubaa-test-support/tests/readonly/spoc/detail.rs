@@ -1,5 +1,4 @@
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::facade::RouteClient;
+use ubaa_core::facade::{ConnectionMode, RouteClient, SpocSubmissionStatus};
 use ubaa_test_support::readonly_fixture;
 
 use crate::common::{SpocTransport, redirect, response, session_store, session_store_with};
@@ -277,7 +276,7 @@ async fn spoc_optional_submission_failure_preserves_summary_fallbacks() {
     assert_eq!(result.data.due_time.as_deref(), Some("2026-03-31 23:59:59"));
     assert_eq!(
         result.data.submission_status,
-        ubaa_core::domain::SpocSubmissionStatus::Unsubmitted
+        SpocSubmissionStatus::Unsubmitted
     );
     observed.assert_exhausted();
 }

@@ -22,6 +22,22 @@ const TEST_CONSTRUCTORS: [(&str, &str); 3] = [
     ("src/facade/client.rs", "with_routing"),
 ];
 
+const FEATURE_TEST_TARGETS: [(&str, &str); 13] = [
+    ("bykc", "tests/bykc.rs"),
+    ("cgyy", "tests/cgyy.rs"),
+    ("config_security", "tests/config_security.rs"),
+    ("connection", "tests/connection.rs"),
+    ("contracts", "tests/contracts.rs"),
+    ("evaluation", "tests/evaluation.rs"),
+    ("facade", "tests/facade.rs"),
+    ("libbook", "tests/libbook.rs"),
+    ("route_matrix", "tests/route_matrix.rs"),
+    ("route_policy", "tests/route_policy.rs"),
+    ("session", "tests/session.rs"),
+    ("signin", "tests/signin.rs"),
+    ("ygdk", "tests/ygdk.rs"),
+];
+
 #[test]
 fn cli_与_bridge_生产源码只能通过_facade_引用_core() {
     let repository = repository_root();
@@ -51,12 +67,43 @@ fn cli_与_bridge_生产源码只能通过_facade_引用_core() {
                     relative_to_repository(&path).display()
                 ));
             }
+            for (_, constructor) in TEST_CONSTRUCTORS {
+                if count_sequence(&tokens, &[constructor, "("]) > 0 {
+                    violations.push(format!(
+                        "{host} 的 {} 在生产源码调用测试构造器 {constructor}",
+                        relative_to_repository(&path).display()
+                    ));
+                }
+            }
         }
     }
 
     assert!(
         violations.is_empty(),
         "生产宿主只能引用 ubaa_core::facade（共 {} 项）：\n{}",
+        violations.len(),
+        violations.join("\n")
+    );
+}
+
+#[test]
+fn core_外部测试也只能通过_facade_验证公开合同() {
+    let tests = manifest_dir().join("tests");
+    let mut violations = Vec::new();
+
+    for path in rust_files_below(&tests) {
+        let tokens = rust_tokens(&read(&path));
+        for reference in non_facade_core_references(&tokens) {
+            violations.push(format!(
+                "{} 绕过 facade：{reference}",
+                relative_to_repository(&path).display()
+            ));
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "Core integration tests 只能验证公开 facade 合同；白盒测试应归属实现模块（共 {} 项）：\n{}",
         violations.len(),
         violations.join("\n")
     );
@@ -145,6 +192,56 @@ fn test_contract_是关闭默认值且仅由测试支持显式启用() {
         violations.len(),
         violations.join("\n")
     );
+}
+
+#[test]
+fn 需要注入的行为测试显式登记且不能被源码_cfg_静默删除() {
+    let manifest = parse_manifest(&manifest_dir().join("Cargo.toml"));
+    let declarations = manifest
+        .get("test")
+        .and_then(toml::Value::as_array)
+        .expect("ubaa-core 必须显式登记 test-contract 测试目标");
+    let mut actual = BTreeSet::new();
+
+    for declaration in declarations {
+        let table = declaration.as_table().expect("[[test]] 必须是 TOML table");
+        let name = table
+            .get("name")
+            .and_then(toml::Value::as_str)
+            .expect("[[test]] 必须声明 name");
+        let path = table
+            .get("path")
+            .and_then(toml::Value::as_str)
+            .expect("[[test]] 必须声明 path");
+        let required = string_array(table.get("required-features"))
+            .expect("[[test]] 必须声明 required-features");
+        assert_eq!(
+            required,
+            vec!["test-contract".to_owned()],
+            "测试目标 {name} 必须且只能要求 test-contract"
+        );
+        assert!(
+            actual.insert((name.to_owned(), path.to_owned())),
+            "测试目标 {name} 重复登记"
+        );
+
+        let source = read(&manifest_dir().join(path));
+        let compact = source.split_whitespace().collect::<String>();
+        assert!(
+            !compact.contains("#![cfg(feature"),
+            "测试目标 {name} 不得用 crate 级 feature cfg 静默删除全部测试"
+        );
+        let tokens = rust_tokens(&source);
+        let has_test = count_sequence(&tokens, &["#", "[", "test", "]"]) > 0
+            || count_sequence(&tokens, &["#", "[", "tokio", ":", ":", "test"]) > 0;
+        assert!(has_test, "测试目标 {name} 必须至少保留一个可执行测试");
+    }
+
+    let expected = FEATURE_TEST_TARGETS
+        .into_iter()
+        .map(|(name, path)| (name.to_owned(), path.to_owned()))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual, expected, "test-contract 测试目标清单发生未审查漂移");
 }
 
 #[test]

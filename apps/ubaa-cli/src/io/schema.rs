@@ -5,12 +5,12 @@ use std::fmt;
 use serde::Serialize;
 
 use serde_json::Value;
-use ubaa_core::domain::{
+use ubaa_core::facade::{
     AuthStatus, ConnectionMode, FeatureResult, LoginOutcome, LoginReadiness, RouteLoginState,
     RoutePolicy, SafeError, UserProfile,
 };
-use ubaa_core::error::{Result as CoreResult, UbaaError};
 use ubaa_core::facade::{NetworkState, RouteResolution};
+use ubaa_core::facade::{Result as CoreResult, UbaaError};
 
 use crate::io::error::{CliJsonError, output_invariant_error};
 use crate::io::input::internal_error;

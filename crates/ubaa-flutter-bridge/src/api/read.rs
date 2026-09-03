@@ -11,7 +11,7 @@
 use std::future::Future;
 use std::pin::Pin;
 
-use ubaa_core::domain;
+use ubaa_core::facade as domain;
 use ubaa_core::facade::{RoutedResult, UbaaClient};
 
 use super::client::{BridgeClient, BridgeError, BridgeRouteDecision, catch_panic, map_route};

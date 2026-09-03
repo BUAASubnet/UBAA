@@ -58,11 +58,6 @@ pub fn parse_courses(html: &str) -> Vec<Course> {
     courses
 }
 
-/// 从选定课程页面提取作业链接。
-pub fn parse_assignments(html: &str, course: &Course) -> Vec<Assignment> {
-    parse_assignment_list(html, course).assignments
-}
-
 fn parse_assignment_list(html: &str, course: &Course) -> AssignmentList {
     let document = Html::parse_document(html);
     let anchors = selector("a[href]");
@@ -107,6 +102,8 @@ fn parse_assignment_list(html: &str, course: &Course) -> AssignmentList {
 }
 
 /// 从有证据支持的作业详情页面解析摘要字段。
+// 冻结合同保留 Result 形状，目录收口不顺带改变调用方错误边界。
+#[allow(clippy::unnecessary_wraps)]
 pub fn parse_detail(
     html: &str,
     course_id: &str,
@@ -1143,6 +1140,10 @@ fn normalize_text(value: &str) -> String {
         .collect::<Vec<_>>()
         .join(" ")
 }
+
+#[cfg(test)]
+#[path = "judge/contract_tests.rs"]
+mod contract_tests;
 
 #[cfg(test)]
 mod tests {

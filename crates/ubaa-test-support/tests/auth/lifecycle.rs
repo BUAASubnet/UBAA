@@ -1,12 +1,11 @@
 use async_trait::async_trait;
-use ubaa_core::domain::{
-    ConnectionMode, DualLoginInput, LoginReadiness, RouteLoginState, SecretValue,
+use ubaa_core::facade::testing::{
+    FileSessionStore, HttpMethod, HttpRequest, HttpResponse, HttpTransport, SessionMutation,
+    SessionSnapshot, SessionStore, VersionedSession,
 };
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::{RouteClient, UbaaClient};
-use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{
-    FileSessionStore, SessionMutation, SessionSnapshot, SessionStore, VersionedSession,
+use ubaa_core::facade::{
+    ConnectionMode, DualLoginInput, ErrorCode, ErrorKind, LoginReadiness, Result, RouteClient,
+    RouteLoginState, SecretValue, UbaaClient, UbaaError,
 };
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
 
@@ -263,7 +262,7 @@ struct TimeoutTransport;
 struct FailingMutationStore;
 
 impl SessionStore for FailingMutationStore {
-    fn load_versioned(&self) -> ubaa_core::error::Result<VersionedSession> {
+    fn load_versioned(&self) -> Result<VersionedSession> {
         Ok(VersionedSession {
             snapshot: None,
             revision: 0,
@@ -274,10 +273,10 @@ impl SessionStore for FailingMutationStore {
         &self,
         _expected_revision: u64,
         _replacement: Option<&SessionSnapshot>,
-    ) -> ubaa_core::error::Result<SessionMutation> {
-        Err(ubaa_core::error::UbaaError::new(
+    ) -> Result<SessionMutation> {
+        Err(UbaaError::new(
             ErrorCode::InternalError,
-            ubaa_core::error::ErrorKind::Internal,
+            ErrorKind::Internal,
             true,
             "fixture persistence failure",
         ))
@@ -286,10 +285,10 @@ impl SessionStore for FailingMutationStore {
 
 #[async_trait]
 impl HttpTransport for TimeoutTransport {
-    async fn execute(&self, _request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
-        Err(ubaa_core::error::UbaaError::new(
+    async fn execute(&self, _request: HttpRequest) -> Result<HttpResponse> {
+        Err(UbaaError::new(
             ErrorCode::Timeout,
-            ubaa_core::error::ErrorKind::Network,
+            ErrorKind::Network,
             true,
             "fixture timeout",
         ))

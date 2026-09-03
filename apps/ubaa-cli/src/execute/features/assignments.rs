@@ -1,8 +1,8 @@
 //! SPOC、希冀与课堂签到 handler。
 
 use crate::io::schema::CliFeature;
-use ubaa_core::domain::JudgeAssignmentKey;
-use ubaa_core::error::Result;
+use ubaa_core::facade::JudgeAssignmentKey;
+use ubaa_core::facade::Result;
 use ubaa_core::facade::{RoutedError, RoutedResult};
 
 use crate::backend::{CliBackend, RoutedCliBackend};

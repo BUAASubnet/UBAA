@@ -2,17 +2,18 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use ubaa_core::config::RouteConfig;
-use ubaa_core::domain::{ConnectionMode, DualLoginInput, LoginInput, SecretValue};
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::{RouteClient, UbaaClient};
-use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{
-    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionMutation, SessionSnapshot,
-    SessionStore, StoredCookie, VersionedSession,
+use ubaa_core::facade::testing::{
+    DualSessionSnapshot, FileSessionStore, HttpMethod, HttpRequest, HttpResponse, HttpTransport,
+    RouteConfig, RouteSessionSnapshot, SessionMutation, SessionSnapshot, SessionStore,
+    StoredCookie, VersionedSession, to_webvpn_url,
+};
+use ubaa_core::facade::{
+    ConnectionMode, DualLoginInput, ErrorCode, ErrorKind, LoginInput, Result, RouteClient,
+    RouteLoginState, SecretValue, UbaaClient, UbaaError,
 };
 use ubaa_test_support::MemorySessionStore;
 
+use super::{JUDGE_LOGIN_URL, UnknownGatewayProbe};
 use crate::common::{SpocTransport, redirect_from, response, session_store_with};
 
 const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
@@ -47,7 +48,7 @@ impl JudgeRetryTransport {
 #[async_trait]
 impl HttpTransport for JudgeRetryTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        if request.url == ubaa_core::features::judge::LOGIN_URL {
+        if request.url == JUDGE_LOGIN_URL {
             self.activation_requests.fetch_add(1, Ordering::SeqCst);
             return Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"));
         }
@@ -128,8 +129,7 @@ impl HttpTransport for AggregateJudgeInvalidationTransport {
         let sso_url = match self.mode {
             ConnectionMode::Direct => "https://sso.buaa.edu.cn/login".to_string(),
             ConnectionMode::WebVpn => {
-                ubaa_core::connection::to_webvpn_url("https://sso.buaa.edu.cn/login")
-                    .expect("WebVPN SSO URL")
+                to_webvpn_url("https://sso.buaa.edu.cn/login").expect("WebVPN SSO URL")
             }
         };
         if request.url == sso_url {
@@ -149,9 +149,7 @@ impl HttpTransport for AggregateJudgeInvalidationTransport {
                 }
             };
         }
-        if self.mode == ConnectionMode::Direct
-            && request.url == ubaa_core::features::judge::LOGIN_URL
-        {
+        if self.mode == ConnectionMode::Direct && request.url == JUDGE_LOGIN_URL {
             return Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"));
         }
         if self.mode == ConnectionMode::Direct && request.url == "https://judge.buaa.edu.cn/" {
@@ -356,7 +354,7 @@ async fn judge_invalid_primary_session_clears_only_the_selected_route_slot() {
         JudgeRetryTransport::new(Some(4)),
         store.clone(),
         config,
-        ubaa_core::connection::SystemGatewayProbe,
+        UnknownGatewayProbe,
     )
     .expect("aggregate client");
 
@@ -402,21 +400,15 @@ async fn aggregate_judge_invalidation_clears_the_selected_pending_login_workflow
     let observed_direct = direct.clone();
     let webvpn = AggregateJudgeInvalidationTransport::new(ConnectionMode::WebVpn);
     let config = RouteConfig::parse("[route]\ndefault = 'direct'\n").expect("route config");
-    let mut client = UbaaClient::with_routing(
-        direct,
-        webvpn,
-        store,
-        config,
-        ubaa_core::connection::SystemGatewayProbe,
-    )
-    .expect("aggregate client");
+    let mut client = UbaaClient::with_routing(direct, webvpn, store, config, UnknownGatewayProbe)
+        .expect("aggregate client");
 
     let preparation = client.prepare_login().await;
     assert!(
         preparation
             .routes
             .iter()
-            .all(|route| { route.state == ubaa_core::domain::RouteLoginState::Ready })
+            .all(|route| { route.state == RouteLoginState::Ready })
     );
     let error = client
         .judge_assignments(false)
@@ -447,7 +439,7 @@ async fn aggregate_judge_invalidation_clears_the_selected_pending_login_workflow
 
 #[tokio::test]
 async fn successful_primary_login_invalidates_route_owned_judge_caches() {
-    let judge_login = ubaa_core::features::judge::LOGIN_URL;
+    let judge_login = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";

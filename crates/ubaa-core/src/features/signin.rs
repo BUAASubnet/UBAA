@@ -395,6 +395,10 @@ fn parse_error() -> UbaaError {
 }
 
 #[cfg(test)]
+#[path = "signin/contract_tests.rs"]
+mod contract_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{
         SIGNIN_LOGIN_URL, build_signin_form, build_today_request, integer_value,

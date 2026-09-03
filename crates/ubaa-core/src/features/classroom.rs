@@ -244,3 +244,7 @@ fn valid_iso_date(date: &str) -> bool {
     };
     day <= days_in_month
 }
+
+#[cfg(test)]
+#[path = "classroom/contract_tests.rs"]
+mod contract_tests;

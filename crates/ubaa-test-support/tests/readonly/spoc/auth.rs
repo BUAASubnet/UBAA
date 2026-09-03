@@ -1,12 +1,21 @@
-use ubaa_core::config::RouteConfig;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::{RouteClient, UbaaClient};
-use ubaa_core::session::{
-    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionSnapshot, StoredCookie,
+use std::time::Duration;
+
+use ubaa_core::facade::testing::{
+    DualSessionSnapshot, FileSessionStore, GatewayProbe, RouteConfig, RouteSessionSnapshot,
+    SessionSnapshot, StoredCookie,
 };
+use ubaa_core::facade::{ConnectionMode, ErrorCode, NetworkState, RouteClient, UbaaClient};
 
 use crate::common::{SpocTransport, redirect, redirect_from, response, session_store_with};
+
+#[derive(Clone, Copy)]
+struct UnknownGatewayProbe;
+
+impl GatewayProbe for UnknownGatewayProbe {
+    fn probe(&self, _budget: Duration) -> NetworkState {
+        NetworkState::Unknown
+    }
+}
 
 #[tokio::test]
 async fn spoc_business_authentication_failure_refreshes_login_once() {
@@ -458,7 +467,7 @@ async fn spoc_invalid_primary_session_clears_only_the_selected_route_slot() {
         SpocTransport::new([]),
         store.clone(),
         config,
-        ubaa_core::connection::SystemGatewayProbe,
+        UnknownGatewayProbe,
     )
     .unwrap();
 

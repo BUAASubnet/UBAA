@@ -10,11 +10,11 @@ use super::{
     cgyy_canonical, digest, map_resolution_error, random_id, ygdk_canonical,
 };
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
-use ubaa_core::config::RouteConfig;
-use ubaa_core::connection::{GatewayProbe, NetworkState};
-use ubaa_core::facade::UbaaClient;
-use ubaa_core::ports::{HttpMethod, HttpResponse};
-use ubaa_core::session::{DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot};
+use ubaa_core::facade::testing::{
+    DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, RouteConfig,
+    RouteSessionSnapshot,
+};
+use ubaa_core::facade::{ErrorCode, ErrorKind, NetworkState, UbaaClient, UbaaError};
 use ubaa_test_support::{ExpectedRequest, MockTransport};
 
 #[test]
@@ -79,9 +79,9 @@ fn write_digest_shapes_do_not_include_sensitive_text_or_photo_bytes() {
 
 #[test]
 fn session_revision_conflict_maps_to_operation_conflict_at_write_boundary() {
-    let error = ubaa_core::error::UbaaError::new(
-        ubaa_core::error::ErrorCode::InternalError,
-        ubaa_core::error::ErrorKind::Internal,
+    let error = UbaaError::new(
+        ErrorCode::InternalError,
+        ErrorKind::Internal,
         false,
         "local session changed in another process",
     );

@@ -7,13 +7,14 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use ubaa_core::config::RouteConfig;
-use ubaa_core::connection::GatewayProbe;
-use ubaa_core::domain::{ConnectionMode, RoutePolicy};
-use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::facade::{NetworkState, RouteDiagnostic, RouteResolution, UbaaClient};
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot};
+use ubaa_core::facade::testing::{
+    DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpRequest, HttpResponse, HttpTransport,
+    RouteConfig, RouteSessionSnapshot,
+};
+use ubaa_core::facade::{
+    ConnectionMode, ErrorCode, ErrorKind, NetworkState, Result, RouteDiagnostic, RoutePolicy,
+    RouteResolution, UbaaClient, UbaaError,
+};
 
 use support::source_tokens::{count_sequence, function_body, rust_files_below, rust_tokens};
 
@@ -369,7 +370,7 @@ struct MatrixTransport {
 
 #[async_trait]
 impl HttpTransport for MatrixTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.events
             .lock()
             .expect("路线矩阵事件锁")
@@ -503,32 +504,6 @@ fn assert_route_slot_boundaries(facade_dir: &std::path::Path) {
 
 fn assert_route_algorithm_is_unique(manifest_dir: &std::path::Path) {
     let connection_tokens = rust_tokens(&source(&manifest_dir.join("src/connection.rs")));
-    let compatibility =
-        function_body(&connection_tokens, "resolve_feature_route").expect("定位公开兼容 resolver");
-    assert_eq!(
-        count_sequence(compatibility, &["resolve_route", "("]),
-        1,
-        "公开兼容 resolver 必须且只能委托一次共享算法"
-    );
-    assert_eq!(
-        count_sequence(
-            compatibility,
-            &[
-                "RoutePolicy",
-                ":",
-                ":",
-                "Direct",
-                "=",
-                ">",
-                "ConnectionMode",
-                ":",
-                ":",
-                "Direct",
-            ],
-        ),
-        0
-    );
-
     let policy_mapping = [
         "RoutePolicy",
         ":",

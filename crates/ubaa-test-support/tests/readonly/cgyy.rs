@@ -2,10 +2,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::Result;
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::testing::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::{ConnectionMode, Result, RouteClient};
 use ubaa_test_support::readonly_fixture;
 
 use crate::common::{response, session_store_with};

@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use ubaa_core::domain::{ConnectionMode, LoginInput, SecretValue};
-use ubaa_core::ports::{HttpMethod, HttpResponse};
-use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
+use ubaa_core::facade::testing::{
+    HttpMethod, HttpResponse, SessionSnapshot, SessionStore, StoredCookie,
+};
+use ubaa_core::facade::{ConnectionMode, LoginInput, SecretValue};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
 
 pub(crate) fn response(status: u16, url: &str, body: impl Into<Vec<u8>>) -> HttpResponse {

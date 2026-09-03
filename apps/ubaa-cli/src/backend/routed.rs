@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use serde_json::Value;
-use ubaa_core::domain::{
+use ubaa_core::facade::{
     BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
     CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
@@ -26,13 +26,13 @@ impl RoutedCliBackend for UbaaClient {
     async fn evaluation_submit(
         &mut self,
         payload: Vec<Value>,
-    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
         UbaaClient::evaluation_submit(self, payload).await
     }
     async fn evaluation_submit_courses(
         &mut self,
-        courses: Vec<ubaa_core::domain::EvaluationCourse>,
-    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+        courses: Vec<ubaa_core::facade::EvaluationCourse>,
+    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
         UbaaClient::evaluation_submit_courses(self, courses).await
     }
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {

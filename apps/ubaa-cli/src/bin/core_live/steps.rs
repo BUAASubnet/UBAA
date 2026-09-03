@@ -3,9 +3,9 @@
 use std::io::{self, Read as _};
 
 use clap::Parser;
-use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue, Week};
-use ubaa_core::error::{ErrorCode, Result};
 use ubaa_core::facade::RouteClient;
+use ubaa_core::facade::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue, Week};
+use ubaa_core::facade::{ErrorCode, Result};
 
 use crate::args::{Args, FEATURES};
 use crate::evidence::{Evidence, error_code};
@@ -176,9 +176,9 @@ fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
 fn read_credentials() -> Result<(String, String)> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).map_err(|_| {
-        ubaa_core::error::UbaaError::new(
+        ubaa_core::facade::UbaaError::new(
             ErrorCode::InvalidInput,
-            ubaa_core::error::ErrorKind::Input,
+            ubaa_core::facade::ErrorKind::Input,
             false,
             "无法读取凭据",
         )
@@ -187,9 +187,9 @@ fn read_credentials() -> Result<(String, String)> {
     let username = lines.next().unwrap_or_default().to_owned();
     let password = lines.next().unwrap_or_default().to_owned();
     if username.is_empty() || password.is_empty() {
-        return Err(ubaa_core::error::UbaaError::new(
+        return Err(ubaa_core::facade::UbaaError::new(
             ErrorCode::InvalidInput,
-            ubaa_core::error::ErrorKind::Input,
+            ubaa_core::facade::ErrorKind::Input,
             false,
             "凭据输入不完整",
         ));
@@ -519,7 +519,7 @@ async fn run_bykc(client: &mut RouteClient, evidence: &mut Evidence) {
             evidence.fail("bykc", "courses", error.code);
             evidence.blocked("bykc", "course_detail", "courses_failed");
             courses_failed = true;
-            ubaa_core::domain::BykcCoursePage::default()
+            ubaa_core::facade::BykcCoursePage::default()
         }
     };
     if let Some(course) = courses.content.first() {
@@ -584,7 +584,7 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
         Err(error) => {
             evidence.fail("cgyy", "orders", error.code);
             orders_failed = true;
-            ubaa_core::domain::CgyyOrdersPage::default()
+            ubaa_core::facade::CgyyOrdersPage::default()
         }
     };
     if let Some(order) = orders.content.first() {
@@ -607,10 +607,10 @@ async fn run_cgyy(client: &mut RouteClient, evidence: &mut Evidence, date: &str)
     }
 }
 
-fn purpose_source_name(source: ubaa_core::domain::CgyyPurposeSource) -> &'static str {
+fn purpose_source_name(source: ubaa_core::facade::CgyyPurposeSource) -> &'static str {
     match source {
-        ubaa_core::domain::CgyyPurposeSource::Upstream => "upstream",
-        ubaa_core::domain::CgyyPurposeSource::StaticFallback => "static_fallback",
+        ubaa_core::facade::CgyyPurposeSource::Upstream => "upstream",
+        ubaa_core::facade::CgyyPurposeSource::StaticFallback => "static_fallback",
     }
 }
 
@@ -636,7 +636,7 @@ async fn run_evaluation(client: &mut RouteClient, evidence: &mut Evidence) {
 #[cfg(test)]
 mod tests {
     use super::select_valid_week;
-    use ubaa_core::domain::Week;
+    use ubaa_core::facade::Week;
 
     fn week(serial_number: i32, cur_week: bool) -> Week {
         Week {

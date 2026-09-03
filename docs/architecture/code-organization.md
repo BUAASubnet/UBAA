@@ -338,11 +338,14 @@ Cargo 会从 `tests/auth.rs` 自动解析 `tests/auth/mod.rs`。Dart 测试拆�
 
 - `upstream` 与 `runtime` 继续 crate-private。
 - CLI 与 Rust bridge 的生产源码只从 `facade` 及其稳定 DTO 出口调用 Core；需要的 route/error/domain 类型
-  由 `facade` 重导出，类型身份不改变。
+  由 `facade` 重导出，类型身份不改变。crate 根的 `domain`/`error` 只保留稳定基础类型旧路径兼容，
+  不提供 transport、session、route resolver、feature 实现或任何协议操作；生产宿主仍禁止使用这两个旧路径。
 - `facade::testing` 仅在非默认 Cargo feature `test-contract` 下编译并标记 `#[doc(hidden)]`；只有
   `ubaa-test-support` 与专用测试目标可以启用。CLI、Flutter bridge 和发布构建不得启用该 feature。增加 Cargo
   metadata/源码架构测试，证明生产宿主不能导入 transport、session store 或测试构造器。完成迁移后，
   `auth/features/ports/session/config/connection` 均收窄为 crate-private，不保留“双入口”兼容层。
+- 测试迁移不得为保留测试数量而复制或复活已淘汰的 resolver、会话适配器或错误分类器。白盒测试必须直接
+  命中生产模块的真实私有实现；测试注入面只提供构造生产对象所需的类型闭包，不拥有第二套业务语义。
 - `OutputEnvelope`、human/JSON 渲染和 exit code 完整迁入 CLI；Core 错误只表达领域/协议事实，不表达进程退出。
 - facade 拆分允许多个 `impl UbaaClient`/`impl RouteClient`，字段所有权和网络调用顺序不变。
 - 所有 facade 操作使用一个 `runtime_for(route)`；所有自动路线使用一个 `resolve_route`，路线等价矩阵是删除

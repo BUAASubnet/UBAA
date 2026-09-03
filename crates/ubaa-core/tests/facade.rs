@@ -3,15 +3,11 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use ubaa_core::config::RouteConfig;
-use ubaa_core::connection::{GatewayProbe, NetworkState};
-use ubaa_core::domain::{ConnectionMode, RoutePolicy};
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::UbaaClient;
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{
-    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionSnapshot, SessionStore,
+use ubaa_core::facade::testing::{
+    DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpRequest, HttpResponse, HttpTransport,
+    RouteConfig, RouteSessionSnapshot, SessionSnapshot, SessionStore,
 };
+use ubaa_core::facade::{ConnectionMode, ErrorCode, NetworkState, Result, RoutePolicy, UbaaClient};
 
 #[test]
 fn aggregate_facade_opens_saved_routes_without_host_session_inspection() {
@@ -594,7 +590,7 @@ struct CgyyWebVpnTransport {
 
 #[async_trait]
 impl HttpTransport for CgyyWebVpnTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.requests.lock().unwrap().push(request.clone());
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
         let mut response = match path.as_str() {
@@ -635,7 +631,7 @@ impl HttpTransport for CgyyWebVpnTransport {
 
 #[async_trait]
 impl HttpTransport for TaggedTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Ok(HttpResponse::new(self.status, request.url, Vec::new()))
     }
@@ -643,7 +639,7 @@ impl HttpTransport for TaggedTransport {
 
 #[async_trait]
 impl HttpTransport for CountingTransport {
-    async fn execute(&self, _request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, _request: HttpRequest) -> Result<HttpResponse> {
         self.0.fetch_add(1, Ordering::SeqCst);
         panic!("route readiness preflight must run before HTTP")
     }
@@ -654,7 +650,7 @@ struct StaticTransport(HttpResponse);
 
 #[async_trait]
 impl HttpTransport for StaticTransport {
-    async fn execute(&self, _request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, _request: HttpRequest) -> Result<HttpResponse> {
         Ok(self.0.clone())
     }
 }
@@ -664,9 +660,10 @@ struct EmptyJudgeTransport(Arc<AtomicUsize>);
 
 #[async_trait]
 impl HttpTransport for EmptyJudgeTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.0.fetch_add(1, Ordering::SeqCst);
-        if request.url == ubaa_core::features::judge::LOGIN_URL {
+        if request.url == "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F"
+        {
             let mut response = HttpResponse::new(302, request.url, Vec::new());
             response
                 .headers

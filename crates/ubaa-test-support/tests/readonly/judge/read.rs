@@ -1,9 +1,8 @@
-use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey};
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::HttpMethod;
+use ubaa_core::facade::testing::{HttpMethod, to_webvpn_url};
+use ubaa_core::facade::{ConnectionMode, ErrorCode, JudgeAssignmentKey, RouteClient};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, readonly_fixture};
 
+use super::JUDGE_LOGIN_URL;
 use crate::common::{
     SpocTransport, expected_get, redirect_from, response, session_store_for, session_store_with,
 };
@@ -65,7 +64,7 @@ async fn judge_selects_courses_before_reading_assignment_details() {
 
 #[tokio::test]
 async fn judge_diagnostics_reuse_the_list_chain_and_report_safe_parser_counts() {
-    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
@@ -133,7 +132,7 @@ async fn judge_diagnostics_reuse_the_list_chain_and_report_safe_parser_counts() 
 
 #[tokio::test]
 async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
-    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
@@ -199,7 +198,7 @@ async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
 
 #[tokio::test]
 async fn judge_follows_business_redirects_before_parsing() {
-    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let courses_redirect_target = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0&from=home";
@@ -259,7 +258,7 @@ async fn judge_empty_batch_and_missing_course_have_stable_semantics() {
     transport.assert_exhausted().unwrap();
     assert!(transport.requests().unwrap().is_empty());
 
-    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let transport = MockTransport::new([
@@ -316,7 +315,7 @@ async fn judge_empty_batches_require_a_local_session_before_zero_network_short_c
 
 #[tokio::test]
 async fn judge_historical_courses_are_skipped_by_default_but_includable() {
-    let login_url = ubaa_core::features::judge::LOGIN_URL;
+    let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
@@ -367,13 +366,11 @@ async fn judge_historical_courses_are_skipped_by_default_but_includable() {
 
 #[tokio::test]
 async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
-    use ubaa_core::connection::to_webvpn_url;
-
     let direct_urls = [
-        ubaa_core::features::judge::LOGIN_URL.to_string(),
+        JUDGE_LOGIN_URL.to_string(),
         "https://judge.buaa.edu.cn/".into(),
         "https://judge.buaa.edu.cn/courselist.jsp?courseID=0".into(),
-        ubaa_core::features::judge::LOGIN_URL.to_string(),
+        JUDGE_LOGIN_URL.to_string(),
         "https://judge.buaa.edu.cn/".into(),
         "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
         "https://judge.buaa.edu.cn/assignment/index.jsp".into(),

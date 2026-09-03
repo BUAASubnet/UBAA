@@ -3,11 +3,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::testing::{
+    HttpRequest, HttpResponse, HttpTransport, from_webvpn_url, to_webvpn_url,
+};
+use ubaa_core::facade::{ConnectionMode, ErrorCode, ErrorKind, Result, RouteClient, UbaaError};
 
+use super::JUDGE_LOGIN_URL;
 use crate::common::{redirect_from, response, session_store_for, session_store_with};
 
 #[derive(Clone)]
@@ -42,14 +43,14 @@ impl IsolatedJudgeSessionTransport {
     fn direct_url(&self, url: &str) -> String {
         match self.mode {
             ConnectionMode::Direct => url.into(),
-            ConnectionMode::WebVpn => ubaa_core::connection::from_webvpn_url(url).unwrap(),
+            ConnectionMode::WebVpn => from_webvpn_url(url).unwrap(),
         }
     }
 
     fn routed_url(&self, url: &str) -> String {
         match self.mode {
             ConnectionMode::Direct => url.into(),
-            ConnectionMode::WebVpn => ubaa_core::connection::to_webvpn_url(url).unwrap(),
+            ConnectionMode::WebVpn => to_webvpn_url(url).unwrap(),
         }
     }
 }
@@ -57,7 +58,7 @@ impl IsolatedJudgeSessionTransport {
 #[async_trait]
 impl HttpTransport for IsolatedJudgeSessionTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        let login_url = ubaa_core::features::judge::LOGIN_URL;
+        let login_url = JUDGE_LOGIN_URL;
         let judge_home = "https://judge.buaa.edu.cn/";
         let direct_url = self.direct_url(&request.url);
         if direct_url == login_url {

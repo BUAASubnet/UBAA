@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use ubaa_cli::{CliBackend, RoutedCliBackend};
-use ubaa_core::connection::{NetworkState, RouteDiagnostic, RouteResolution};
-use ubaa_core::domain::{
-    AuthStatus, CgyyActionResult, ConnectionMode, FeatureResult, JudgeAssignmentsDiagnostics,
-    LoginInput, RoutePolicy, SpocAssignments, SpocAssignmentsDiagnostics, Term, UserProfile,
+use ubaa_core::facade::{
+    AuthStatus, CgyyActionResult, ConnectionMode, ErrorCode, ErrorKind, FeatureResult,
+    JudgeAssignmentsDiagnostics, LoginInput, NetworkState, Result, RouteDiagnostic, RoutePolicy,
+    RouteResolution, Routed, RoutedError, RoutedResult, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, UbaaError, UserProfile,
 };
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::{Routed, RoutedError, RoutedResult};
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
     let schema: serde_json::Value = serde_json::from_str(include_str!(

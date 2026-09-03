@@ -3,8 +3,8 @@ use std::net::TcpListener;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
+use ubaa_core::facade::ConnectionMode;
+use ubaa_core::facade::testing::{FileSessionStore, SessionSnapshot, SessionStore};
 
 fn assert_cli_schema(value: &serde_json::Value) {
     let schema: serde_json::Value =
@@ -87,12 +87,12 @@ fn core_live_source_bundle() -> String {
     assert!(!args.contains("crate::"));
     assert!(!args.contains("ubaa_core::"));
     let evidence = &sources["evidence.rs"];
-    assert!(evidence.contains("ubaa_core::error::ErrorCode"));
+    assert!(evidence.contains("ubaa_core::facade::ErrorCode"));
     for forbidden in [
         "crate::args",
         "crate::steps",
-        "ubaa_core::facade",
         "ubaa_core::domain",
+        "ubaa_core::error",
     ] {
         assert!(!evidence.contains(forbidden));
     }
@@ -237,6 +237,8 @@ fn cli_production_sources_use_only_facade_for_core_internals() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let forbidden = [
         "ubaa_core::connection",
+        "ubaa_core::domain",
+        "ubaa_core::error",
         "ubaa_core::session",
         "ubaa_core::features",
         "ubaa_core::runtime",

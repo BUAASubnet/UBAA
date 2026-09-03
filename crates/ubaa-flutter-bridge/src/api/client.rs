@@ -5,13 +5,13 @@ use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 
 use futures_util::FutureExt;
-use ubaa_core::connection::{NetworkState, RouteResolution};
-use ubaa_core::domain::{
+use ubaa_core::facade::{
     ConnectionMode, DualLoginPreparation, LoginOutcome, RouteLoginResult, RouteLoginState,
     RoutePolicy, SafeError, UserProfile,
 };
-use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::facade::{RoutedError, UbaaClient};
+use ubaa_core::facade::{
+    ErrorCode, ErrorKind, NetworkState, RouteResolution, RoutedError, UbaaClient, UbaaError,
+};
 
 /// FRB 合同版本。
 pub const BRIDGE_CONTRACT_VERSION: u32 = 1;
@@ -323,9 +323,9 @@ impl BridgeClient {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
-            let input = ubaa_core::domain::DualLoginInput {
+            let input = ubaa_core::facade::DualLoginInput {
                 username: username.trim().to_owned(),
-                password: ubaa_core::domain::SecretValue::new(password),
+                password: ubaa_core::facade::SecretValue::new(password),
             };
             let result = client
                 .login(input)
@@ -496,9 +496,9 @@ fn map_preparation(preparation: DualLoginPreparation) -> BridgeLoginPreparation 
 fn map_login_outcome(outcome: LoginOutcome) -> BridgeLoginOutcome {
     BridgeLoginOutcome {
         readiness: match outcome.readiness {
-            ubaa_core::domain::LoginReadiness::AllReady => BridgeLoginReadiness::AllReady,
-            ubaa_core::domain::LoginReadiness::Partial => BridgeLoginReadiness::Partial,
-            ubaa_core::domain::LoginReadiness::NoneReady => BridgeLoginReadiness::NoneReady,
+            ubaa_core::facade::LoginReadiness::AllReady => BridgeLoginReadiness::AllReady,
+            ubaa_core::facade::LoginReadiness::Partial => BridgeLoginReadiness::Partial,
+            ubaa_core::facade::LoginReadiness::NoneReady => BridgeLoginReadiness::NoneReady,
         },
         routes: outcome.routes.into_iter().map(map_route_login).collect(),
         profile: outcome.profile.map(map_profile),

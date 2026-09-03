@@ -1194,11 +1194,6 @@ pub fn parse_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
         .collect())
 }
 
-/// 解析用途类型；上游未返回有效类型时使用冻结实现中的静态定义。
-pub fn parse_purpose_types(body: &str) -> Result<Vec<CgyyPurposeType>> {
-    Ok(parse_purpose_types_with_source(body)?.0)
-}
-
 fn parse_purpose_types_with_source(
     body: &str,
 ) -> Result<(Vec<CgyyPurposeType>, CgyyPurposeSource)> {
@@ -1256,15 +1251,6 @@ fn fallback_purpose_types() -> Vec<CgyyPurposeType> {
         name: name.into(),
     })
     .collect()
-}
-
-/// 解析指定站点和日期的可预约信息。
-pub fn parse_day_info(
-    body: &str,
-    venue_site_id: i32,
-    reservation_date: &str,
-) -> Result<CgyyDayInfo> {
-    Ok(parse_day_context(body, venue_site_id, reservation_date)?.info)
 }
 
 fn parse_day_context(
@@ -1447,6 +1433,10 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
         remark: string(raw, "remark"),
     }
 }
+
+#[cfg(test)]
+#[path = "cgyy/contract_tests.rs"]
+mod contract_tests;
 
 #[cfg(test)]
 mod tests {

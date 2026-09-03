@@ -14,7 +14,15 @@ fmt:
     cargo fmt --all -- --check
 
 test:
-    cargo test --locked --workspace
+    just core-test-contract
+    cargo test --locked --workspace --exclude ubaa-core
+
+# 分别验证 Core 默认单元/文档合同、显式测试注入合同和关闭态编译失败。
+core-test-contract:
+    cargo test --locked -p ubaa-core --no-default-features --lib --tests
+    cargo test --locked -p ubaa-core --no-default-features --doc
+    cargo test --locked -p ubaa-core --features test-contract --all-targets
+    bash ./scripts/tests/facade-test-contract.sh
 
 check:
     just shell-check
@@ -24,7 +32,8 @@ check:
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-    cargo test --locked --workspace
+    just core-test-contract
+    cargo test --locked --workspace --exclude ubaa-core
     bash ./scripts/tests/live-launchers.sh
     cargo build --locked --workspace
     cargo doc --locked --workspace --no-deps

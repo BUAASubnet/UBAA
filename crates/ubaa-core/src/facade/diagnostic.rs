@@ -51,11 +51,7 @@ impl RouteClient {
             return Ok(None);
         };
         let route_store = sessions.route_store(mode);
-        Ok(Some(Self {
-            runtime: ClientRuntime::new(mode, ReqwestTransport::new()?, route_store)?,
-            auth: AuthWorkflow::default(),
-            sessions: Some(sessions),
-        }))
+        Self::build(mode, ReqwestTransport::new()?, route_store, Some(sessions)).map(Some)
     }
 
     /// 在宿主选定的配置目录下构造生产客户端。
@@ -67,11 +63,7 @@ impl RouteClient {
         let store = FileSessionStore::new(config_dir)?;
         let sessions = DualSessionCoordinator::new(store)?;
         let route_store = sessions.route_store(mode);
-        Ok(Self {
-            runtime: ClientRuntime::new(mode, ReqwestTransport::new()?, route_store)?,
-            auth: AuthWorkflow::default(),
-            sessions: Some(sessions),
-        })
+        Self::build(mode, ReqwestTransport::new()?, route_store, Some(sessions))
     }
 
     /// 使用注入的传输和持久化端口构造客户端。
@@ -79,7 +71,22 @@ impl RouteClient {
     /// # Errors
     ///
     /// 当无法加载已有会话时返回安全的持久化错误。
+    #[cfg(feature = "test-contract")]
+    #[doc(hidden)]
     pub fn with_transport<T, S>(mode: ConnectionMode, transport: T, store: S) -> Result<Self>
+    where
+        T: HttpTransport + 'static,
+        S: SessionStore + 'static,
+    {
+        Self::build(mode, transport, store, None)
+    }
+
+    fn build<T, S>(
+        mode: ConnectionMode,
+        transport: T,
+        store: S,
+        sessions: Option<DualSessionCoordinator>,
+    ) -> Result<Self>
     where
         T: HttpTransport + 'static,
         S: SessionStore + 'static,
@@ -87,7 +94,7 @@ impl RouteClient {
         Ok(Self {
             runtime: ClientRuntime::new(mode, transport, store)?,
             auth: AuthWorkflow::default(),
-            sessions: None,
+            sessions,
         })
     }
 

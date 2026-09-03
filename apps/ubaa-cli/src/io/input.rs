@@ -4,8 +4,8 @@ use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 
 use serde_json::Value;
-use ubaa_core::domain::{CgyyReservationSubmitRequest, YgdkClockinSubmitRequest, YgdkPhotoUpload};
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use ubaa_core::facade::{CgyyReservationSubmitRequest, YgdkClockinSubmitRequest, YgdkPhotoUpload};
+use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 
 pub(crate) fn prompt_line<R: BufRead, E: Write>(
     input: &mut R,

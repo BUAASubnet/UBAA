@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 
-use ubaa_core::ports::HttpResponse;
-use ubaa_core::session::CookieJar;
+use super::CookieJar;
+use crate::ports::HttpResponse;
 
 fn response(set_cookie: &str) -> HttpResponse {
     let mut headers = BTreeMap::new();

@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "facade_testing_feature_off",
+  "facade_testing_feature_on",
+]
+resolver = "3"

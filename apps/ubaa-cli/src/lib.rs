@@ -29,7 +29,7 @@ pub use routing::ReadonlyRouteContext;
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use ubaa_core::domain::CgyyLockCode;
+    use ubaa_core::facade::CgyyLockCode;
 
     use crate::io::human::{mask_sensitive, safe_lock_code_value};
 

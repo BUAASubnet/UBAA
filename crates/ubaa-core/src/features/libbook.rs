@@ -148,11 +148,6 @@ pub fn parse_areas(body: &str) -> Result<Vec<LibBookArea>> {
         .collect())
 }
 
-/// 解析分区详情、可用日期和时段。
-pub fn parse_area_detail(body: &str) -> Result<LibBookAreaDetail> {
-    parse_area_detail_for("", body)
-}
-
 /// 解析分区详情，并在上游缺少区域 ID 时使用请求 ID 回退。
 pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDetail> {
     let value = envelope(body)?;
@@ -640,6 +635,10 @@ fn is_expired_body(body: &str) -> bool {
         .and_then(|value| value.as_object().cloned())
         .is_some_and(|object| is_expired_message(&text(&object, &["message", "msg"])))
 }
+
+#[cfg(test)]
+#[path = "libbook/contract_tests.rs"]
+mod contract_tests;
 
 #[cfg(test)]
 mod crypto_tests {

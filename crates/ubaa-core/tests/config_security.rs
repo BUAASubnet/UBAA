@@ -5,7 +5,7 @@ use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Barrier};
 
-use ubaa_core::config::RouteConfig;
+use ubaa_core::facade::testing::RouteConfig;
 
 struct TestDir(PathBuf);
 

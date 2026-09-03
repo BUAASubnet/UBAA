@@ -1076,9 +1076,10 @@ mod tests {
 
     use super::{
         AssignmentPage, AssignmentPageRequest, DetailRaw, encrypt_param, extract_login_token,
-        merge_detail, normalize_datetime, normalize_score, parse_envelope, resolve_role_code,
-        summary,
+        map_submission_status, merge_detail, normalize_datetime, normalize_score, parse_envelope,
+        resolve_role_code, summary,
     };
+    use crate::domain::SpocSubmissionStatus;
 
     #[test]
     fn frozen_crypto_and_mapping_vectors_are_preserved() {
@@ -1108,6 +1109,14 @@ mod tests {
             None,
         );
         assert_eq!(unknown.submission_status_text, "未知状态(9)");
+        assert_eq!(
+            map_submission_status(Some("已提交"), true),
+            SpocSubmissionStatus::Submitted
+        );
+        assert_eq!(
+            map_submission_status(Some("未提交"), true),
+            SpocSubmissionStatus::Unsubmitted
+        );
     }
 
     #[test]

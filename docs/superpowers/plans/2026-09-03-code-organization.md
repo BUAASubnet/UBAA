@@ -248,7 +248,9 @@ RED/characterization：
   `#[doc(hidden)] facade::testing`；用 manifest 检查、生产源码递归扫描及 feature-on/off compile fixtures 三重
   证明 CLI/bridge 不启用测试入口且只导入 facade 重导出的同一稳定类型。Test Support 明确启用该 feature，最后
   把 auth/features/ports/session/config/connection 收窄为 crate-private。该收口只声明并验证 workspace 内部兼容，
-  不宣称未知仓外消费者的 semver 兼容。
+  不宣称未知仓外消费者的 semver 兼容。复审还必须逐项确认测试命中真实生产 resolver、双路线协调器、失效
+  分类器与 parser；删除任何只为测试保留且语义已经淘汰的替身。`facade::testing` 暴露的公开签名必须类型闭合，
+  同时默认 feature 构建不得因测试便利方法产生 dead-code 告警。
 
 每个行为差异必须独立提交；若来源冲突，写 decision log 后停止该边界，不以猜测通过。
 

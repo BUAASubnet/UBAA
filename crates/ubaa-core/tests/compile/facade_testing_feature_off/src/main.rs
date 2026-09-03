@@ -1,7 +1,7 @@
 use ubaa_core::facade::testing::{
-    ConnectionMode, FileSessionStore, GatewayProbe, HttpTransport, RouteConfig, SessionStore,
+    FileSessionStore, GatewayProbe, HttpTransport, RouteConfig, SessionStore,
 };
-use ubaa_core::facade::{RouteClient, UbaaClient};
+use ubaa_core::facade::{ConnectionMode, RouteClient, UbaaClient};
 
 #[allow(dead_code)]
 fn route_client_with_transport<T, S>(mode: ConnectionMode, transport: T, store: S)

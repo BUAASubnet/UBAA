@@ -3,8 +3,8 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::testing::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 
 /// 一条期望请求及其确定性响应。
 #[derive(Clone)]

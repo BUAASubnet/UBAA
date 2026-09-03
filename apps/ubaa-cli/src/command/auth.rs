@@ -1,7 +1,7 @@
 //! 认证、连接模式与用户中心命令参数。
 
 use clap::{Args, Subcommand, ValueEnum};
-use ubaa_core::domain::ConnectionMode;
+use ubaa_core::facade::ConnectionMode;
 
 /// CLI 中的连接模式写法。
 #[derive(Clone, Copy, Debug, ValueEnum)]

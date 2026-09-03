@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use serde_json::Value;
-use ubaa_core::domain::{
+use ubaa_core::facade::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
     CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
@@ -14,7 +14,7 @@ use ubaa_core::domain::{
     SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
     YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
-use ubaa_core::error::{Result, UbaaError};
+use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RoutedError, RoutedResult};
 
 use crate::io::input::internal_error;
@@ -202,13 +202,13 @@ pub trait CliBackend {
     async fn evaluation_submit(
         &mut self,
         _payload: Vec<Value>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
         Err(unavailable("评教写功能不可用"))
     }
     async fn evaluation_submit_courses(
         &mut self,
-        _courses: Vec<ubaa_core::domain::EvaluationCourse>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+        _courses: Vec<ubaa_core::facade::EvaluationCourse>,
+    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
         Err(unavailable("评教写功能不可用"))
     }
 
@@ -306,13 +306,13 @@ pub trait RoutedCliBackend {
     async fn evaluation_submit(
         &mut self,
         _payload: Vec<Value>,
-    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
         Err(routed_unavailable("评教写功能不可用"))
     }
     async fn evaluation_submit_courses(
         &mut self,
-        _courses: Vec<ubaa_core::domain::EvaluationCourse>,
-    ) -> RoutedResult<Vec<ubaa_core::domain::EvaluationResult>> {
+        _courses: Vec<ubaa_core::facade::EvaluationCourse>,
+    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
         Err(routed_unavailable("评教写功能不可用"))
     }
     /// 查询今日课堂签到状态。

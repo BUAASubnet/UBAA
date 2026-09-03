@@ -1,8 +1,5 @@
-use ubaa_core::connection::{from_webvpn_url, to_webvpn_url};
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::HttpMethod;
+use ubaa_core::facade::testing::{HttpMethod, from_webvpn_url, to_webvpn_url};
+use ubaa_core::facade::{ConnectionMode, ErrorCode, RouteClient};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
 
 use crate::common::{

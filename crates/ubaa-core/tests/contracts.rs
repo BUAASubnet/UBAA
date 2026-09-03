@@ -1,12 +1,12 @@
 use serde_json::json;
-use ubaa_core::domain::{
-    AuthStatus, CgyyReservationSubmitRequest, ConnectionMode, DualLoginPreparation, LoginInput,
-    LoginOutcome, LoginReadiness, RouteLoginResult, RouteLoginState, SecretValue, UserInfoResponse,
-    UserProfile,
+use ubaa_core::facade::testing::{
+    HttpRequest, HttpResponse, SessionSnapshot, StoredCookie, VersionedSession,
 };
-use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::ports::{HttpRequest, HttpResponse};
-use ubaa_core::session::{SessionSnapshot, StoredCookie, VersionedSession};
+use ubaa_core::facade::{
+    AuthStatus, CgyyReservationSubmitRequest, ConnectionMode, DualLoginPreparation, ErrorCode,
+    ErrorKind, LoginInput, LoginOutcome, LoginReadiness, RouteLoginResult, RouteLoginState,
+    SecretValue, UbaaError, UserInfoResponse, UserProfile,
+};
 
 #[test]
 fn user_info_response_maps_legacy_camel_case_fields() {

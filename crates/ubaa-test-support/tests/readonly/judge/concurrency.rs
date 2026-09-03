@@ -4,11 +4,12 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey};
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::testing::{HttpRequest, HttpResponse, HttpTransport};
+use ubaa_core::facade::{
+    ConnectionMode, ErrorCode, ErrorKind, JudgeAssignmentKey, Result, RouteClient, UbaaError,
+};
 
+use super::JUDGE_LOGIN_URL;
 use crate::common::{redirect_from, response, session_store_with};
 
 #[derive(Clone)]
@@ -164,7 +165,7 @@ impl HttpTransport for JudgeGroupedBatchTransport {
             .expect("Judge grouped request log")
             .push(request.url.clone());
         let body = match request.url.as_str() {
-            url if url == ubaa_core::features::judge::LOGIN_URL => {
+            url if url == JUDGE_LOGIN_URL => {
                 return Ok(redirect_from(url, "https://judge.buaa.edu.cn/"));
             }
             "https://judge.buaa.edu.cn/" => "judge ready",

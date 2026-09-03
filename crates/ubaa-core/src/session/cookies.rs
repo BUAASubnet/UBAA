@@ -142,6 +142,7 @@ impl std::fmt::Debug for StoredCookie {
 
 impl StoredCookie {
     /// 构造确定性测试使用的 Cookie fixture。
+    #[cfg(any(test, feature = "test-contract"))]
     pub fn fixture(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -254,3 +255,7 @@ impl CookieJar {
         self.cookies.retain(|cookie| !is_expired(cookie, now));
     }
 }
+
+#[cfg(test)]
+#[path = "cookies/tests.rs"]
+mod tests;

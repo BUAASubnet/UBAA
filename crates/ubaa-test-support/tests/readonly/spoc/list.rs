@@ -1,9 +1,8 @@
 use aes::Aes128;
 use aes::cipher::{BlockDecrypt, KeyInit, generic_array::GenericArray};
 use base64::Engine as _;
-use ubaa_core::domain::{ConnectionMode, LoginInput, SecretValue};
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::HttpRequest;
+use ubaa_core::facade::testing::{HttpRequest, to_webvpn_url};
+use ubaa_core::facade::{ConnectionMode, LoginInput, RouteClient, SecretValue};
 use ubaa_test_support::readonly_fixture;
 
 use crate::common::{
@@ -332,8 +331,6 @@ async fn spoc_login_follows_the_bounded_direct_cas_chain() {
 
 #[tokio::test]
 async fn spoc_webvpn_login_resolves_gateway_relative_redirects_without_double_encoding() {
-    use ubaa_core::connection::to_webvpn_url;
-
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let sso = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fspoc.buaa.edu.cn";
     let token = "https://spoc.buaa.edu.cn/spocnew/cas?token=webvpn-chain-token";
@@ -410,8 +407,6 @@ async fn spoc_webvpn_login_resolves_gateway_relative_redirects_without_double_en
 
 #[tokio::test]
 async fn direct_and_webvpn_clients_do_not_share_spoc_credentials() {
-    use ubaa_core::connection::to_webvpn_url;
-
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";

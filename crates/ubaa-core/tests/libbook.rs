@@ -1,103 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::{ConnectionMode, LibBookReserveRequest};
-use ubaa_core::facade::RouteClient;
-use ubaa_core::features::bykc::{
-    parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
+use ubaa_core::facade::testing::{
+    FileSessionStore, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
 };
-use ubaa_core::features::libbook::{
-    parse_area_detail, parse_area_detail_for, parse_bookings, parse_libraries, parse_seats,
-};
-
-#[test]
-fn 博雅解析五类只读响应并拒绝失败包装() {
-    let profile =
-        parse_profile(r#"{"status":"0","data":{"id":7,"employeeId":"e","realName":"张三"}}"#)
-            .unwrap();
-    assert_eq!(profile.id, 7);
-    let courses = parse_courses(r#"{"status":"0","data":{"content":[{"id":9,"courseName":"课程"}],"totalElements":1,"totalPages":1,"size":20,"number":0}}"#).unwrap();
-    assert_eq!(courses.content[0].course_name, "课程");
-    assert_eq!(
-        parse_course_detail(r#"{"status":"0","data":{"id":9,"courseName":"课程"}}"#)
-            .unwrap()
-            .id,
-        9
-    );
-    assert_eq!(
-        parse_chosen_courses(
-            r#"{"status":"0","data":[{"id":1,"courseInfo":{"id":9,"courseName":"课程"}}]}"#
-        )
-        .unwrap()[0]
-            .course_id,
-        9
-    );
-    assert_eq!(
-        parse_statistics(r#"{"status":"0","data":{"totalValidCount":2,"categories":[]}}"#)
-            .unwrap()
-            .total_valid_count,
-        Some(2)
-    );
-    assert!(parse_profile(r#"{"status":"1","msg":"失败"}"#).is_err());
-}
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
-
-#[test]
-fn 解析图书馆楼层和座位状态() {
-    let libraries = parse_libraries(
-        r#"{"code":0,"data":[{"id":"a","name":"图书馆","freeNum":3,"totalNum":10,"storeys":[{"id":"1","name":"一层","freeNum":3,"totalNum":10}]}]}"#,
-    )
-    .unwrap();
-    assert_eq!(libraries[0].storeys[0].name, "一层");
-
-    let seats = parse_seats(
-        r#"{"code":1,"data":[{"id":"s","name":"座位","no":"001","status":"1","statusName":"可用"}]}"#,
-    )
-    .unwrap();
-    assert!(seats[0].is_available);
-}
-
-#[test]
-fn 座位列表按冻结实现的座位号升序输出() {
-    let seats = parse_seats(
-        r#"{"code":1,"data":[{"id":"s2","name":"座位2","no":"010","status":"1"},{"id":"s1","name":"座位1","no":"002","status":"1"}]}"#,
-    )
-    .unwrap();
-    assert_eq!(
-        seats
-            .iter()
-            .map(|seat| seat.no.as_str())
-            .collect::<Vec<_>>(),
-        vec!["002", "010"]
-    );
-}
-
-#[test]
-fn 预约分页缺少总数时回退为当前条数() {
-    let page = parse_bookings(r#"{"code":0,"data":{"data":[{"id":"b1","no":"001"}]}}"#).unwrap();
-    assert_eq!(page.bookings.len(), 1);
-    assert_eq!(page.total, 1);
-}
-
-#[test]
-fn 分区详情缺少区域编号时回退请求编号() {
-    let detail = parse_area_detail_for(
-        "area-42",
-        r#"{"code":0,"data":{"area":{"name":"自习区"},"date":{"list":[]}}}"#,
-    )
-    .unwrap();
-    assert_eq!(detail.id, "area-42");
-}
-
-#[test]
-fn 解析区域时段并补充标签() {
-    let detail = parse_area_detail(
-        r#"{"code":0,"data":{"id":"a","name":"自习区","availableDates":["2026-08-27"],"timeSlots":[{"id":"t","start":"08:00","end":"10:00"}]}}"#,
-    )
-    .unwrap();
-    assert_eq!(detail.time_slots[0].label, "08:00-10:00");
-}
+use ubaa_core::facade::{ConnectionMode, LibBookReserveRequest, Result, RouteClient};
 
 #[test]
 fn 图书馆查询完成八跳内的_cas_换票并复用独立令牌() {
@@ -242,7 +149,7 @@ struct MockLibBookTransport {
 
 #[async_trait]
 impl HttpTransport for MockLibBookTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.requests.lock().unwrap().push(request.clone());
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
         let response = match path.as_str() {

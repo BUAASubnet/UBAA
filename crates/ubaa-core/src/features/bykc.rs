@@ -747,6 +747,10 @@ pub fn parse_statistics(body: &str) -> Result<BykcStatistics> {
 }
 
 #[cfg(test)]
+#[path = "bykc/contract_tests.rs"]
+mod contract_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::connection::to_webvpn_url;

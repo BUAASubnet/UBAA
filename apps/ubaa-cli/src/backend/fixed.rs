@@ -2,7 +2,9 @@
 
 use async_trait::async_trait;
 use serde_json::Value;
-use ubaa_core::domain::{
+use ubaa_core::facade::Result;
+use ubaa_core::facade::RouteClient;
+use ubaa_core::facade::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
     CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
@@ -14,8 +16,6 @@ use ubaa_core::domain::{
     SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
     YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
-use ubaa_core::error::Result;
-use ubaa_core::facade::RouteClient;
 
 use super::CliBackend;
 
@@ -182,13 +182,13 @@ impl CliBackend for RouteClient {
     async fn evaluation_submit(
         &mut self,
         payload: Vec<Value>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
         self.evaluation_submit(payload).await
     }
     async fn evaluation_submit_courses(
         &mut self,
-        courses: Vec<ubaa_core::domain::EvaluationCourse>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::domain::EvaluationResult>>> {
+        courses: Vec<ubaa_core::facade::EvaluationCourse>,
+    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
         self.evaluation_submit_courses(courses).await
     }
 

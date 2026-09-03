@@ -2,9 +2,9 @@
 
 use std::io::{BufRead, Write};
 
-use ubaa_core::domain::{DualLoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue};
-use ubaa_core::error::{Result, UbaaError};
 use ubaa_core::facade::UbaaClient;
+use ubaa_core::facade::{DualLoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue};
+use ubaa_core::facade::{Result, UbaaError};
 
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs};
 use crate::io::exit_code::{ExitCode, safe_error_exit_code};
@@ -145,7 +145,7 @@ fn read_dual_credentials<R: BufRead, E: Write>(
 
 fn render_dual_outcome<O: Write, E: Write>(
     json_mode: bool,
-    outcome: ubaa_core::domain::LoginOutcome,
+    outcome: ubaa_core::facade::LoginOutcome,
     route_policy: RoutePolicy,
     stdout: &mut O,
     stderr: &mut E,
@@ -184,7 +184,7 @@ fn render_dual_outcome<O: Write, E: Write>(
     exit_code
 }
 
-fn aggregate_error(outcome: &ubaa_core::domain::LoginOutcome) -> Option<SafeError> {
+fn aggregate_error(outcome: &ubaa_core::facade::LoginOutcome) -> Option<SafeError> {
     if outcome.readiness == LoginReadiness::NoneReady {
         Some(
             outcome
@@ -204,7 +204,7 @@ fn aggregate_error(outcome: &ubaa_core::domain::LoginOutcome) -> Option<SafeErro
 }
 
 fn aggregate_exit_code(
-    outcome: &ubaa_core::domain::LoginOutcome,
+    outcome: &ubaa_core::facade::LoginOutcome,
     error: Option<&SafeError>,
 ) -> i32 {
     if outcome.readiness == LoginReadiness::NoneReady {

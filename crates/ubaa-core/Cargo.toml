@@ -7,6 +7,10 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+[features]
+default = []
+test-contract = []
+
 [dependencies]
 async-trait = "0.1.89"
 aes = "0.8.4"
@@ -31,6 +35,71 @@ url = "2.5.7"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.189"
+
+[[test]]
+name = "bykc"
+path = "tests/bykc.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "cgyy"
+path = "tests/cgyy.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "config_security"
+path = "tests/config_security.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "connection"
+path = "tests/connection.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "contracts"
+path = "tests/contracts.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "evaluation"
+path = "tests/evaluation.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "facade"
+path = "tests/facade.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "libbook"
+path = "tests/libbook.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "route_matrix"
+path = "tests/route_matrix.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "route_policy"
+path = "tests/route_policy.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "session"
+path = "tests/session.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "signin"
+path = "tests/signin.rs"
+required-features = ["test-contract"]
+
+[[test]]
+name = "ygdk"
+path = "tests/ygdk.rs"
+required-features = ["test-contract"]
 
 [lints]
 workspace = true

@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use ubaa_core::error::Result;
+use ubaa_core::facade::Result;
+use ubaa_core::facade::testing::{
+    SessionMutation, SessionSnapshot, SessionStore, VersionedSession,
+};
 
 use crate::http::mock_error;
 
@@ -12,7 +15,7 @@ pub struct MemorySessionStore {
 
 #[derive(Debug, Default)]
 struct MemorySessionState {
-    snapshot: Option<ubaa_core::session::SessionSnapshot>,
+    snapshot: Option<SessionSnapshot>,
     revision: u64,
 }
 
@@ -28,9 +31,7 @@ impl MemorySessionStore {
     /// # Errors
     ///
     /// 当存储锁中毒时返回提示信息。
-    pub fn snapshot(
-        &self,
-    ) -> std::result::Result<Option<ubaa_core::session::SessionSnapshot>, String> {
+    pub fn snapshot(&self) -> std::result::Result<Option<SessionSnapshot>, String> {
         self.state
             .lock()
             .map(|state| state.snapshot.clone())
@@ -38,13 +39,13 @@ impl MemorySessionStore {
     }
 }
 
-impl ubaa_core::session::SessionStore for MemorySessionStore {
-    fn load_versioned(&self) -> Result<ubaa_core::session::VersionedSession> {
+impl SessionStore for MemorySessionStore {
+    fn load_versioned(&self) -> Result<VersionedSession> {
         let state = self
             .state
             .lock()
             .map_err(|_| mock_error("memory store lock poisoned"))?;
-        Ok(ubaa_core::session::VersionedSession {
+        Ok(VersionedSession {
             snapshot: state.snapshot.clone(),
             revision: state.revision,
         })
@@ -53,21 +54,21 @@ impl ubaa_core::session::SessionStore for MemorySessionStore {
     fn compare_exchange(
         &self,
         expected_revision: u64,
-        replacement: Option<&ubaa_core::session::SessionSnapshot>,
-    ) -> Result<ubaa_core::session::SessionMutation> {
+        replacement: Option<&SessionSnapshot>,
+    ) -> Result<SessionMutation> {
         let mut state = self
             .state
             .lock()
             .map_err(|_| mock_error("memory store lock poisoned"))?;
         if state.revision != expected_revision {
-            return Ok(ubaa_core::session::SessionMutation::Conflict);
+            return Ok(SessionMutation::Conflict);
         }
         state.revision = state
             .revision
             .checked_add(1)
             .ok_or_else(|| mock_error("memory session revision is exhausted"))?;
         state.snapshot = replacement.cloned();
-        Ok(ubaa_core::session::SessionMutation::Applied {
+        Ok(SessionMutation::Applied {
             revision: state.revision,
         })
     }

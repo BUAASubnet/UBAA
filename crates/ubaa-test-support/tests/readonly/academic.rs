@@ -1,29 +1,30 @@
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::{HttpMethod, HttpResponse};
+use ubaa_core::facade::testing::{HttpMethod, HttpResponse, to_webvpn_url};
+use ubaa_core::facade::{ConnectionMode, ErrorCode, RouteClient};
 use ubaa_test_support::{ExpectedRequest, MockTransport, readonly_fixture};
 
 use crate::common::{expected_get, redirect_from, response, session_store, session_store_for};
 
+const CURRENT_USER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do";
+const TERMS_URL: &str =
+    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do";
+const WEEKS_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/getTermWeeks.do";
+const WEEK_URL: &str =
+    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do";
+const TODAY_URL: &str =
+    "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/teachingSchedule/detail.do";
+const EXAM_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/exams.do";
+const GRADES_URL: &str = "https://app.buaa.edu.cn/buaascore/wap/default/index";
+const CLASSROOM_URL: &str = "https://app.buaa.edu.cn/buaafreeclass/wap/default/search1";
+const CLASSROOM_SYNC_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn%2Fa_buaa%2Fapi%2Fcas%2Findex%3Fredirect%3Dhttps%253A%252F%252Fapp.buaa.edu.cn%252Fsite%252FclassRoomQuery%252Findex%26from%3Dwap%26login_from%3D&noAutoRedirect=1";
+
 #[tokio::test]
 async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
-    let current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
-    let terms_url = ubaa_core::features::schedule::TERMS_URL;
-    let weeks_url = format!(
-        "{}?termCode=2025-2026-1",
-        ubaa_core::features::schedule::WEEKS_URL
-    );
-    let weekly_schedule_url = ubaa_core::features::schedule::WEEK_URL;
-    let today_url = format!(
-        "{}?rq={}&lxdm=student",
-        ubaa_core::features::schedule::TODAY_URL,
-        shanghai_date()
-    );
-    let exam_url = format!(
-        "{}?termCode=2025-2026-1",
-        ubaa_core::features::schedule::EXAM_URL
-    );
+    let current_user = CURRENT_USER_URL;
+    let terms_url = TERMS_URL;
+    let weeks_url = format!("{WEEKS_URL}?termCode=2025-2026-1");
+    let weekly_schedule_url = WEEK_URL;
+    let today_url = format!("{TODAY_URL}?rq={}&lxdm=student", shanghai_date());
+    let exam_url = format!("{EXAM_URL}?termCode=2025-2026-1");
     let transport = MockTransport::new([
         expected_get(current_user, r#"{"user":"ok"}"#),
         expected_get(terms_url, readonly_fixture("schedule-terms.json").unwrap()),
@@ -111,8 +112,8 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
 
 #[tokio::test]
 async fn route_client_readonly_authentication_required_clears_the_selected_session() {
-    let current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
-    let terms = ubaa_core::features::schedule::TERMS_URL;
+    let current_user = CURRENT_USER_URL;
+    let terms = TERMS_URL;
     let transport = MockTransport::new([
         expected_get(current_user, r#"{"user":"ok"}"#),
         ExpectedRequest::new(HttpMethod::Get, terms, response(401, terms, "")),
@@ -134,8 +135,8 @@ async fn route_client_readonly_authentication_required_clears_the_selected_sessi
 
 #[tokio::test]
 async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
-    let current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
-    let terms = ubaa_core::features::schedule::TERMS_URL;
+    let current_user = CURRENT_USER_URL;
+    let terms = TERMS_URL;
     let aas_login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
     let aas_verify = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
     let transport = MockTransport::new([
@@ -169,10 +170,8 @@ async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
 
 #[tokio::test]
 async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
-    use ubaa_core::connection::to_webvpn_url;
-
-    let direct_current_user = ubaa_core::features::schedule::CURRENT_USER_URL;
-    let direct_terms = ubaa_core::features::schedule::TERMS_URL;
+    let direct_current_user = CURRENT_USER_URL;
+    let direct_terms = TERMS_URL;
     let direct_aas_login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
     let direct_aas_verify =
         "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
@@ -222,7 +221,7 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
 
 #[tokio::test]
 async fn grades_use_verified_activation_form_and_sanitized_fixture() {
-    let url = ubaa_core::features::grades::GRADES_URL;
+    let url = GRADES_URL;
     let transport = MockTransport::new([
         expected_get(url, readonly_fixture("grades-page.html").unwrap()),
         ExpectedRequest::new(
@@ -266,11 +265,8 @@ async fn grades_use_verified_activation_form_and_sanitized_fixture() {
 
 #[tokio::test]
 async fn readonly_sso_final_url_is_classified_as_authentication_required() {
-    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let query_url = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync_url = CLASSROOM_SYNC_URL;
+    let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let transport = MockTransport::new([
         expected_get(sync_url, ""),
         ExpectedRequest::new(
@@ -321,10 +317,8 @@ async fn readonly_input_validation_rejects_blank_terms_and_invalid_dates_before_
 
 #[tokio::test]
 async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
-    use ubaa_core::connection::to_webvpn_url;
-
-    let current_user = to_webvpn_url(ubaa_core::features::schedule::CURRENT_USER_URL).unwrap();
-    let terms = to_webvpn_url(ubaa_core::features::schedule::TERMS_URL).unwrap();
+    let current_user = to_webvpn_url(CURRENT_USER_URL).unwrap();
+    let terms = to_webvpn_url(TERMS_URL).unwrap();
     let schedule_referer =
         to_webvpn_url("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html").unwrap();
     let schedule_transport = MockTransport::new([
@@ -358,11 +352,8 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         Some(schedule_referer.as_str())
     );
 
-    let sync = to_webvpn_url(ubaa_core::features::classroom::CLASSROOM_SYNC_URL).unwrap();
-    let direct_query = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync = to_webvpn_url(CLASSROOM_SYNC_URL).unwrap();
+    let direct_query = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let query = to_webvpn_url(&direct_query).unwrap();
     let classroom_referer =
         to_webvpn_url("https://app.buaa.edu.cn/site/classRoomQuery/index").unwrap();
@@ -393,7 +384,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         Some(classroom_referer.as_str())
     );
 
-    let grades_url = to_webvpn_url(ubaa_core::features::grades::GRADES_URL).unwrap();
+    let grades_url = to_webvpn_url(GRADES_URL).unwrap();
     let grades_transport = MockTransport::new([
         expected_get(&grades_url, readonly_fixture("grades-page.html").unwrap()),
         ExpectedRequest::new(

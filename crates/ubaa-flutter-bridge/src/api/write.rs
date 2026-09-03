@@ -15,7 +15,7 @@ use super::client::{
 use super::read::{BridgeCgyyOrder, BridgeEvaluationCourse};
 use rand::random;
 use sha2::{Digest, Sha256};
-use ubaa_core::domain::{self, ReadonlyFeature};
+use ubaa_core::facade::{self as domain, ReadonlyFeature};
 
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeWriteOperation {
@@ -525,9 +525,9 @@ impl BridgeClient {
                 Err(error) => {
                     let unknown = matches!(
                         error.error.code,
-                        ubaa_core::error::ErrorCode::NetworkError
-                            | ubaa_core::error::ErrorCode::Timeout
-                            | ubaa_core::error::ErrorCode::UpstreamUnavailable
+                        ubaa_core::facade::ErrorCode::NetworkError
+                            | ubaa_core::facade::ErrorCode::Timeout
+                            | ubaa_core::facade::ErrorCode::UpstreamUnavailable
                     );
                     if unknown {
                         Err(BridgeError::local(
@@ -546,7 +546,7 @@ impl BridgeClient {
     }
 }
 
-fn map_resolution_error(error: ubaa_core::error::UbaaError) -> BridgeError {
+fn map_resolution_error(error: ubaa_core::facade::UbaaError) -> BridgeError {
     // Core 将跨进程会话修订冲突归约为 internal_error；在写 intent 的路线复核边界
     // 将这个已冻结的稳定消息投影为可行动的 operation_conflict，禁止继续提交旧请求。
     if error.message == "local session changed in another process" {

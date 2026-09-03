@@ -1,10 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
+use ubaa_core::facade::testing::{
+    FileSessionStore, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
+};
+use ubaa_core::facade::{
+    ConnectionMode, ErrorCode, ErrorKind, EvaluationCourse, Result, RouteClient, UbaaError,
+};
 
 #[test]
 fn 评教提交通过路线客户端发送冻结_json信封() {
@@ -113,7 +115,7 @@ fn 自动评教按冻结顺序读取题目并提交课程结果() {
         store,
     )
     .unwrap();
-    let course = ubaa_core::domain::EvaluationCourse {
+    let course = EvaluationCourse {
         rwid: "rw-safe".into(),
         wjid: "wj-safe".into(),
         kcdm: "kc-safe".into(),
@@ -164,7 +166,7 @@ struct EvaluationFallbackTransport;
 
 #[async_trait]
 impl HttpTransport for EvaluationFallbackTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let path = url::Url::parse(&request.url)
             .map_err(|_| test_error("invalid test URL"))?
             .path()
@@ -178,7 +180,7 @@ impl HttpTransport for EvaluationFallbackTransport {
 
 #[async_trait]
 impl HttpTransport for EvaluationAutoTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let path = url::Url::parse(&request.url)
             .map_err(|_| test_error("invalid test URL"))?
             .path()
@@ -204,7 +206,7 @@ struct EvaluationWriteTransport {
 
 #[async_trait]
 impl HttpTransport for EvaluationWriteTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.requests.lock().unwrap().push(request.clone());
         let path = url::Url::parse(&request.url)
             .map_err(|_| test_error("invalid test URL"))?
@@ -221,10 +223,10 @@ impl HttpTransport for EvaluationWriteTransport {
     }
 }
 
-fn test_error(message: &'static str) -> ubaa_core::error::UbaaError {
-    ubaa_core::error::UbaaError::new(
-        ubaa_core::error::ErrorCode::InternalError,
-        ubaa_core::error::ErrorKind::Internal,
+fn test_error(message: &'static str) -> UbaaError {
+    UbaaError::new(
+        ErrorCode::InternalError,
+        ErrorKind::Internal,
         false,
         message,
     )

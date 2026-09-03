@@ -10,8 +10,8 @@ use crate::io::render::render_result;
 use crate::io::schema::CommandOutput;
 use crate::routing::ReadonlyRouteContext;
 use serde_json::json;
-use ubaa_core::domain::{LoginInput, SecretValue};
-use ubaa_core::error::Result;
+use ubaa_core::facade::Result;
+use ubaa_core::facade::{LoginInput, SecretValue};
 
 use super::command_feature;
 use super::features::academic::{run_classroom, run_exam, run_grades, run_schedule};

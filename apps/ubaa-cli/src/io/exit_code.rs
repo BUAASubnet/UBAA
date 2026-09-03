@@ -1,7 +1,7 @@
 //! CLI 进程退出码及错误到退出策略的映射。
 
-use ubaa_core::domain::SafeError;
-use ubaa_core::error::ErrorCode;
+use ubaa_core::facade::ErrorCode;
+use ubaa_core::facade::SafeError;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(i32)]

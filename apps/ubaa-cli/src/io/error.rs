@@ -3,8 +3,8 @@
 use std::fmt;
 
 use serde::Serialize;
-use ubaa_core::domain::SafeError;
-use ubaa_core::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use ubaa_core::facade::SafeError;
+use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 
 /// 安全的 CLI 错误载荷。
 #[derive(Clone, Eq, PartialEq, Serialize)]

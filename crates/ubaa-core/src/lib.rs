@@ -6,18 +6,18 @@
 //! use ubaa_core::upstream::SSO_LOGIN_URL;
 //! ```
 
-pub mod auth;
-pub mod config;
-pub mod connection;
+mod auth;
+mod config;
+mod connection;
 pub(crate) mod connection_codec;
 pub mod domain;
 pub mod error;
 pub mod facade;
-pub mod features;
+mod features;
 mod internal;
-pub mod ports;
+mod ports;
 pub(crate) use internal::runtime;
-pub mod session;
+mod session;
 mod upstream;
 
 /// 当前 Core 包版本。

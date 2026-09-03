@@ -2,10 +2,11 @@ use std::collections::{BTreeMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::Result;
-use ubaa_core::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{SessionSnapshot, SessionStore, StoredCookie};
+use ubaa_core::facade::testing::{
+    HttpMethod, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
+    StoredCookie,
+};
+use ubaa_core::facade::{ConnectionMode, Result};
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore};
 #[derive(Clone)]
 pub(crate) struct SpocTransport {

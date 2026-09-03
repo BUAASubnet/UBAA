@@ -6,12 +6,11 @@ use ubaa_cli::{
     ResolvedRoutedJsonMeta, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta, run_with_backend,
     run_with_routed_backend,
 };
-use ubaa_core::connection::NetworkState;
-use ubaa_core::domain::{
-    ConnectionMode, LoginOutcome, LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy,
-    SafeError, SpocAssignmentDetail, UserProfile,
+use ubaa_core::facade::{
+    ConnectionMode, ErrorCode, ErrorKind, LoginOutcome, LoginReadiness, NetworkState,
+    RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SpocAssignmentDetail, UbaaError,
+    UserProfile,
 };
-use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 
 use crate::common::{FakeBackend, FakeRoutedBackend, assert_cli_schema, profile, route_resolution};
 

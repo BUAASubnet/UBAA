@@ -3,7 +3,7 @@
 use std::io::{self, Write};
 
 use serde_json::{Value, json};
-use ubaa_core::domain::{AuthStatus, CgyyLockCode, UserProfile};
+use ubaa_core::facade::{AuthStatus, CgyyLockCode, UserProfile};
 
 use super::schema::CommandOutput;
 

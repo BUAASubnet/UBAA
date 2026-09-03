@@ -31,7 +31,7 @@ impl UbaaClient {
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self> {
         let config_dir = config_dir.as_ref();
         let config = RouteConfig::load(config_dir)?;
-        let mut client = Self::with_routing(
+        let mut client = Self::build_with_routing(
             ReqwestTransport::new()?,
             ReqwestTransport::new()?,
             FileSessionStore::new(config_dir)?,
@@ -47,6 +47,8 @@ impl UbaaClient {
     /// # Errors
     ///
     /// 双路线会话协调器或任一路线运行时无法初始化时返回错误。
+    #[cfg(feature = "test-contract")]
+    #[doc(hidden)]
     pub fn with_transports<TDirect, TWebVpn>(
         direct_transport: TDirect,
         webvpn_transport: TWebVpn,
@@ -56,7 +58,7 @@ impl UbaaClient {
         TDirect: HttpTransport + 'static,
         TWebVpn: HttpTransport + 'static,
     {
-        Self::with_routing(
+        Self::build_with_routing(
             direct_transport,
             webvpn_transport,
             store,
@@ -70,7 +72,24 @@ impl UbaaClient {
     /// # Errors
     ///
     /// 双路线会话协调器或任一路线运行时无法初始化时返回错误。
+    #[cfg(feature = "test-contract")]
+    #[doc(hidden)]
     pub fn with_routing<TDirect, TWebVpn, P>(
+        direct_transport: TDirect,
+        webvpn_transport: TWebVpn,
+        store: FileSessionStore,
+        config: RouteConfig,
+        probe: P,
+    ) -> Result<Self>
+    where
+        TDirect: HttpTransport + 'static,
+        TWebVpn: HttpTransport + 'static,
+        P: GatewayProbe + 'static,
+    {
+        Self::build_with_routing(direct_transport, webvpn_transport, store, config, probe)
+    }
+
+    fn build_with_routing<TDirect, TWebVpn, P>(
         direct_transport: TDirect,
         webvpn_transport: TWebVpn,
         store: FileSessionStore,

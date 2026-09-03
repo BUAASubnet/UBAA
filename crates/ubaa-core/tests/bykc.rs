@@ -1,10 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use ubaa_core::domain::{BykcSignRequest, ConnectionMode};
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
-use ubaa_core::session::{FileSessionStore, SessionSnapshot, SessionStore};
+use ubaa_core::facade::testing::{
+    FileSessionStore, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
+};
+use ubaa_core::facade::{
+    BykcSignRequest, ConnectionMode, ErrorCode, ErrorKind, Result, RouteClient, UbaaError,
+};
 
 #[test]
 fn 博雅选课写链发送加密正文和双令牌头() {
@@ -93,7 +95,7 @@ struct BykcWriteTransport {
 
 #[async_trait]
 impl HttpTransport for BykcWriteTransport {
-    async fn execute(&self, request: HttpRequest) -> ubaa_core::error::Result<HttpResponse> {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let path = url::Url::parse(&request.url)
             .map_err(|_| test_error("invalid test URL"))?
             .path()
@@ -117,10 +119,10 @@ impl HttpTransport for BykcWriteTransport {
     }
 }
 
-fn test_error(message: &'static str) -> ubaa_core::error::UbaaError {
-    ubaa_core::error::UbaaError::new(
-        ubaa_core::error::ErrorCode::InternalError,
-        ubaa_core::error::ErrorKind::Internal,
+fn test_error(message: &'static str) -> UbaaError {
+    UbaaError::new(
+        ErrorCode::InternalError,
+        ErrorKind::Internal,
         false,
         message,
     )

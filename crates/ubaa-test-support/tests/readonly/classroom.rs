@@ -1,21 +1,17 @@
-use ubaa_core::domain::{ConnectionMode, LoginInput, SecretValue};
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::RouteClient;
-use ubaa_core::ports::HttpMethod;
+use ubaa_core::facade::testing::{HttpMethod, to_webvpn_url};
+use ubaa_core::facade::{ConnectionMode, ErrorCode, LoginInput, RouteClient, SecretValue};
 use ubaa_test_support::{ExpectedRequest, MockTransport, readonly_fixture};
 
 use crate::common::{expected_get, redirect_from, response, session_store, session_store_for};
 
 const FROZEN_CLASSROOM_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 16; 24031PN0DC Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.180 Mobile Safari/537.36 XWEB/1380275 MMWEBSDK/20230806 MMWEBID/4102 wxworklocal/3.2.200 wwlocal/3.2.200 wxwork/4.0.0 appname/wxworklocal-customized wxworklocal-device-code/195ef5586d7d3c2808fcbea32d77c0d4 MicroMessenger/7.0.1 appScheme/wxworklocalcustomized Language/zh_CN ColorScheme/Light WXWorklocalClientType/Android Brand/xiaomi";
+const CLASSROOM_URL: &str = "https://app.buaa.edu.cn/buaafreeclass/wap/default/search1";
+const CLASSROOM_SYNC_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn%2Fa_buaa%2Fapi%2Fcas%2Findex%3Fredirect%3Dhttps%253A%252F%252Fapp.buaa.edu.cn%252Fsite%252FclassRoomQuery%252Findex%26from%3Dwap%26login_from%3D&noAutoRedirect=1";
+
 #[tokio::test]
 async fn direct_and_webvpn_classroom_sync_state_is_route_local() {
-    use ubaa_core::connection::to_webvpn_url;
-
-    let direct_sync = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let direct_query = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let direct_sync = CLASSROOM_SYNC_URL;
+    let direct_query = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let webvpn_sync = to_webvpn_url(direct_sync).unwrap();
     let webvpn_query = to_webvpn_url(&direct_query).unwrap();
     let direct_transport = MockTransport::new([
@@ -72,11 +68,8 @@ async fn direct_and_webvpn_classroom_sync_state_is_route_local() {
 
 #[tokio::test]
 async fn successful_login_replacement_clears_classroom_sync_state() {
-    let sync = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let query = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync = CLASSROOM_SYNC_URL;
+    let query = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let login = "https://sso.buaa.edu.cn/login";
     let activate =
         "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
@@ -127,11 +120,8 @@ async fn successful_login_replacement_clears_classroom_sync_state() {
 
 #[tokio::test]
 async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
-    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let query_url = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync_url = CLASSROOM_SYNC_URL;
+    let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let transport = MockTransport::new([
         expected_get(sync_url, ""),
         expected_get(&query_url, readonly_fixture("classroom.json").unwrap()),
@@ -176,11 +166,8 @@ async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
 
 #[tokio::test]
 async fn classroom_sync_failure_is_best_effort_and_retried_later() {
-    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let query_url = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync_url = CLASSROOM_SYNC_URL;
+    let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let transport = MockTransport::new([
         ExpectedRequest::new(HttpMethod::Get, sync_url, response(503, sync_url, "")),
         expected_get(&query_url, readonly_fixture("classroom.json").unwrap()),
@@ -209,11 +196,8 @@ async fn classroom_sync_failure_is_best_effort_and_retried_later() {
 
 #[tokio::test]
 async fn classroom_query_does_not_follow_sso_redirect_and_clears_the_route_session() {
-    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let query_url = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync_url = CLASSROOM_SYNC_URL;
+    let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let transport = MockTransport::new([
         expected_get(sync_url, ""),
         ExpectedRequest::new(
@@ -243,11 +227,8 @@ async fn classroom_query_does_not_follow_sso_redirect_and_clears_the_route_sessi
 
 #[tokio::test]
 async fn classroom_unauthorized_and_login_html_clear_the_route_session() {
-    let sync_url = ubaa_core::features::classroom::CLASSROOM_SYNC_URL;
-    let query_url = format!(
-        "{}?xqid=1&floorid=&date=2026-04-20",
-        ubaa_core::features::classroom::CLASSROOM_URL
-    );
+    let sync_url = CLASSROOM_SYNC_URL;
+    let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     for query_response in [
         response(401, &query_url, ""),
         response(

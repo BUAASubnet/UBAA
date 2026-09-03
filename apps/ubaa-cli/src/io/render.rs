@@ -3,8 +3,8 @@
 use std::io::Write;
 
 use serde_json::Value;
-use ubaa_core::domain::ConnectionMode;
-use ubaa_core::error::{Result, UbaaError};
+use ubaa_core::facade::ConnectionMode;
+use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RouteResolution, Routed, RoutedError, RoutedResult};
 
 use crate::io::error::CliJsonError;

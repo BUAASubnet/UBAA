@@ -126,10 +126,7 @@ impl UbaaClient {
         resolution: RouteResolution,
         result: Result<T>,
     ) -> RoutedResult<T> {
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
-        {
+        if should_clear_invalidated_route(&result) {
             if self.route_is_ready(resolution.mode) {
                 if let Err(error) = self.clear_invalidated_route(resolution.mode) {
                     return Err(routed_error(error, resolution));
@@ -171,6 +168,13 @@ impl UbaaClient {
         self.webvpn_auth.clear();
     }
 }
+
+fn should_clear_invalidated_route<T>(result: &Result<T>) -> bool {
+    result
+        .as_ref()
+        .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
+}
+
 fn authentication_required() -> UbaaError {
     UbaaError::new(
         ErrorCode::AuthenticationRequired,
@@ -195,5 +199,38 @@ const fn alternate_route(route: ConnectionMode) -> ConnectionMode {
     match route {
         ConnectionMode::Direct => ConnectionMode::WebVpn,
         ConnectionMode::WebVpn => ConnectionMode::Direct,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn explicit_invalidation_clears_but_timeout_and_server_errors_preserve_session() {
+        let valid: Result<()> = Ok(());
+        let invalid: Result<()> = Err(UbaaError::new(
+            ErrorCode::AuthenticationRequired,
+            ErrorKind::Authentication,
+            false,
+            "需要认证",
+        ));
+        let timeout: Result<()> = Err(UbaaError::new(
+            ErrorCode::Timeout,
+            ErrorKind::Network,
+            true,
+            "请求超时",
+        ));
+        let server_error: Result<()> = Err(UbaaError::new(
+            ErrorCode::UpstreamUnavailable,
+            ErrorKind::Upstream,
+            true,
+            "上游服务暂时不可用",
+        ));
+
+        assert!(!should_clear_invalidated_route(&valid));
+        assert!(should_clear_invalidated_route(&invalid));
+        assert!(!should_clear_invalidated_route(&timeout));
+        assert!(!should_clear_invalidated_route(&server_error));
     }
 }

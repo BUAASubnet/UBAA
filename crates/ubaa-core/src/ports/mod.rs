@@ -105,6 +105,7 @@ impl fmt::Debug for HttpResponse {
 
 impl HttpResponse {
     /// 构造不含响应头的响应。
+    #[cfg(any(test, feature = "test-contract"))]
     pub fn new(status: u16, final_url: impl Into<String>, body: Vec<u8>) -> Self {
         Self {
             status,
@@ -259,7 +260,11 @@ fn redacted_header_names_vec(headers: &BTreeMap<String, Vec<String>>) -> Vec<&st
 
 #[cfg(test)]
 mod tests {
-    use super::append_bounded;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    use super::{HttpRequest, HttpTransport, ReqwestTransport, append_bounded};
+    use crate::error::{ErrorCode, ErrorKind};
 
     #[test]
     fn bounded_append_accepts_exact_limit_and_rejects_without_copying() {
@@ -278,5 +283,51 @@ mod tests {
         let mut body = Vec::new();
         let error = append_bounded(&mut body, &[0; 4], 3).expect_err("over-limit chunk fails");
         assert_eq!(error.message, "上游响应体超过允许大小");
+    }
+
+    #[test]
+    fn reqwest_transport_rejects_oversized_chunked_response() {
+        const LIMIT: usize = 8 * 1024 * 1024;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0_u8; 4096];
+            let _ = stream.read(&mut request);
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n",
+                )
+                .unwrap();
+            let chunk = vec![b'x'; 64 * 1024];
+            let mut remaining = LIMIT + 1;
+            while remaining > 0 {
+                let length = remaining.min(chunk.len());
+                if write!(stream, "{length:X}\r\n")
+                    .and_then(|()| stream.write_all(&chunk[..length]))
+                    .and_then(|()| stream.write_all(b"\r\n"))
+                    .is_err()
+                {
+                    return;
+                }
+                remaining -= length;
+            }
+            let _ = stream.write_all(b"0\r\n\r\n");
+        });
+        let transport = ReqwestTransport::new().unwrap();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
+        let error = runtime
+            .block_on(transport.execute(HttpRequest::get(format!("http://{address}/oversized"))))
+            .expect_err("an oversized streamed response must be rejected");
+
+        assert_eq!(error.code, ErrorCode::UpstreamChanged);
+        assert_eq!(error.kind, ErrorKind::Upstream);
+        assert!(!error.retryable);
+        assert_eq!(error.message, "上游响应体超过允许大小");
+        server.join().unwrap();
     }
 }

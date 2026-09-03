@@ -1,8 +1,8 @@
 //! 博雅课程 handler。
 
 use crate::io::schema::CliFeature;
-use ubaa_core::domain::BykcSignRequest;
-use ubaa_core::error::Result;
+use ubaa_core::facade::BykcSignRequest;
+use ubaa_core::facade::Result;
 use ubaa_core::facade::{RoutedError, RoutedResult};
 
 use crate::backend::{CliBackend, RoutedCliBackend};

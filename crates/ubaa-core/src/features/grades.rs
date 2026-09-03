@@ -166,3 +166,7 @@ fn parse_error() -> UbaaError {
         "grades response is not valid JSON",
     )
 }
+
+#[cfg(test)]
+#[path = "grades/contract_tests.rs"]
+mod contract_tests;

@@ -1,11 +1,10 @@
-use ubaa_core::connection::to_webvpn_url;
-use ubaa_core::domain::{ConnectionMode, DualLoginInput, LoginReadiness, SecretValue};
-use ubaa_core::error::ErrorCode;
-use ubaa_core::facade::{RouteClient, UbaaClient};
-use ubaa_core::ports::HttpMethod;
-use ubaa_core::session::{
-    DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot, SessionMutation, SessionSnapshot,
-    SessionStore, StoredCookie, VersionedSession,
+use ubaa_core::facade::testing::{
+    DualSessionSnapshot, FileSessionStore, HttpMethod, RouteSessionSnapshot, SessionMutation,
+    SessionSnapshot, SessionStore, StoredCookie, VersionedSession, to_webvpn_url,
+};
+use ubaa_core::facade::{
+    ConnectionMode, DualLoginInput, ErrorCode, LoginReadiness, Result, RouteClient,
+    RouteLoginState, SecretValue, UbaaClient,
 };
 use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
 
@@ -117,15 +116,9 @@ async fn dual_login_keeps_direct_slot_when_webvpn_route_fails() {
     assert_eq!(outcome.readiness, LoginReadiness::Partial);
     assert_eq!(outcome.routes.len(), 2);
     assert_eq!(outcome.routes[0].route, ConnectionMode::Direct);
-    assert_eq!(
-        outcome.routes[0].state,
-        ubaa_core::domain::RouteLoginState::Ready
-    );
+    assert_eq!(outcome.routes[0].state, RouteLoginState::Ready);
     assert_eq!(outcome.routes[1].route, ConnectionMode::WebVpn);
-    assert_eq!(
-        outcome.routes[1].state,
-        ubaa_core::domain::RouteLoginState::Failed
-    );
+    assert_eq!(outcome.routes[1].state, RouteLoginState::Failed);
     let dual = file_store.load_dual().unwrap().unwrap();
     assert!(dual.direct.is_some());
     assert!(dual.webvpn.is_none());
@@ -337,7 +330,7 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
         preparation
             .routes
             .iter()
-            .all(|route| route.state == ubaa_core::domain::RouteLoginState::Failed)
+            .all(|route| route.state == RouteLoginState::Failed)
     );
     let repeated_login = client
         .login(DualLoginInput {
@@ -460,7 +453,7 @@ struct ReplaceAfterLoadStore {
 }
 
 impl SessionStore for ReplaceAfterLoadStore {
-    fn load_versioned(&self) -> ubaa_core::error::Result<VersionedSession> {
+    fn load_versioned(&self) -> Result<VersionedSession> {
         let loaded = self.inner.load_versioned()?;
         self.inner.save(&self.replacement)?;
         Ok(loaded)
@@ -470,7 +463,7 @@ impl SessionStore for ReplaceAfterLoadStore {
         &self,
         expected_revision: u64,
         replacement: Option<&SessionSnapshot>,
-    ) -> ubaa_core::error::Result<SessionMutation> {
+    ) -> Result<SessionMutation> {
         self.inner.compare_exchange(expected_revision, replacement)
     }
 }

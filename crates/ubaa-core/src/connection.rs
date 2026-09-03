@@ -12,9 +12,9 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use url::Url;
 
-use crate::config::{FeatureRouteConfig, RouteConfig};
+use crate::config::FeatureRouteConfig;
 use crate::connection_codec::{decrypt_host, encrypt_host};
-use crate::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
+use crate::domain::{ConnectionMode, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 const WEBVPN_HOST: &str = "d.buaa.edu.cn";
@@ -192,25 +192,6 @@ pub struct RouteResolution {
     pub policy: RoutePolicy,
     /// 安全决策元数据。
     pub diagnostic: RouteDiagnostic,
-}
-
-/// 根据当前网关状态解析一个功能的用户策略。
-pub fn resolve_feature_route<P: GatewayProbe + ?Sized>(
-    feature: ReadonlyFeature,
-    requested: RoutePolicy,
-    config: &RouteConfig,
-    probe: &P,
-) -> crate::error::Result<RouteResolution> {
-    let policy = if requested == RoutePolicy::Auto {
-        config.feature(feature)
-    } else {
-        requested
-    };
-    Ok(resolve_route(
-        policy,
-        FeatureRouteConfig::for_feature(feature),
-        probe,
-    ))
 }
 
 /// 根据有效策略和矩阵行解析唯一初始路线。
@@ -440,6 +421,10 @@ fn protocol_error(message: impl Into<String>) -> UbaaError {
         message,
     )
 }
+
+#[cfg(test)]
+#[path = "connection/contract_tests.rs"]
+mod contract_tests;
 
 #[cfg(test)]
 mod gateway_probe_tests {

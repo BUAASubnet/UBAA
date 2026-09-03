@@ -30,83 +30,6 @@ pub struct FileSessionStore {
     process_lock: Arc<Mutex<()>>,
 }
 
-/// schema-v2 双路线会话文件的路线范围视图。
-///
-/// 该视图实现旧版 `SessionStore` 端口，使现有运行时保持路线局部；读取和比较交换仍针对
-/// 共享的双路线文件及其单一修订锁执行。
-#[derive(Clone)]
-pub struct RouteSessionStore {
-    inner: FileSessionStore,
-    mode: ConnectionMode,
-}
-
-impl std::fmt::Debug for RouteSessionStore {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("RouteSessionStore")
-            .field("mode", &self.mode)
-            .field("inner", &self.inner)
-            .finish()
-    }
-}
-
-impl RouteSessionStore {
-    /// 基于已有双文件存储构造路线作用域存储。
-    #[must_use]
-    pub const fn new(inner: FileSessionStore, mode: ConnectionMode) -> Self {
-        Self { inner, mode }
-    }
-}
-
-impl SessionStore for RouteSessionStore {
-    fn load_versioned(&self) -> Result<VersionedSession> {
-        let current = self.inner.load_dual_versioned()?;
-        let snapshot = current.snapshot.and_then(|dual| match self.mode {
-            ConnectionMode::Direct => dual.sessions.direct,
-            ConnectionMode::WebVpn => dual.sessions.webvpn,
-        });
-        Ok(VersionedSession {
-            revision: current.revision,
-            snapshot: snapshot.map(|slot| slot.into_legacy(self.mode)),
-        })
-    }
-
-    fn compare_exchange(
-        &self,
-        expected_revision: u64,
-        replacement: Option<&SessionSnapshot>,
-    ) -> Result<SessionMutation> {
-        let current = self.inner.load_dual_versioned()?;
-        if current.revision != expected_revision {
-            return Ok(SessionMutation::Conflict);
-        }
-        let mut dual = current
-            .snapshot
-            .unwrap_or_else(|| DualSessionSnapshot::new(None, None));
-        let slot = replacement.map(RouteSessionSnapshot::from_legacy);
-        match self.mode {
-            ConnectionMode::Direct => dual.sessions.direct = slot,
-            ConnectionMode::WebVpn => dual.sessions.webvpn = slot,
-        }
-        let replacement = if dual.sessions.direct.is_none() && dual.sessions.webvpn.is_none() {
-            None
-        } else {
-            Some(&dual)
-        };
-        match self
-            .inner
-            .compare_exchange_dual(expected_revision, replacement)?
-        {
-            DualSessionMutation::Applied { revision } => Ok(SessionMutation::Applied { revision }),
-            DualSessionMutation::Conflict => Ok(SessionMutation::Conflict),
-        }
-    }
-
-    fn is_revision_current(&self, expected_revision: u64) -> Result<bool> {
-        Ok(self.inner.load_dual_versioned()?.revision == expected_revision)
-    }
-}
-
 impl std::fmt::Debug for FileSessionStore {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
@@ -138,6 +61,7 @@ impl FileSessionStore {
 
     /// 返回用于诊断和测试的准确会话路径。
     #[must_use]
+    #[cfg(any(test, feature = "test-contract"))]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -147,6 +71,7 @@ impl FileSessionStore {
     /// # Errors
     ///
     /// 会话文件、修订锁或序列化数据不可安全读取或迁移时返回错误。
+    #[cfg(feature = "test-contract")]
     pub fn load_dual(&self) -> Result<Option<DualSessionSnapshot>> {
         self.load_dual_versioned().map(|current| current.snapshot)
     }
@@ -192,6 +117,7 @@ impl FileSessionStore {
     /// # Errors
     ///
     /// 无法读取、编码或原子替换会话文件时返回错误。
+    #[cfg(feature = "test-contract")]
     pub fn save_dual(&self, snapshot: &DualSessionSnapshot) -> Result<DualSessionSnapshot> {
         loop {
             let current = self.load_dual_versioned()?;
@@ -418,6 +344,10 @@ fn write_revision(file: &mut File, revision: u64) -> Result<()> {
         .and_then(|()| file.sync_all())
         .map_err(|_| session_error("could not sync session revision"))
 }
+
+#[cfg(test)]
+#[path = "file_store/contract_tests.rs"]
+mod contract_tests;
 
 #[cfg(test)]
 mod tests {

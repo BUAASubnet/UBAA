@@ -341,6 +341,55 @@ mod tests {
     }
 
     #[test]
+    fn coordinated_route_stores_preserve_the_other_slot_and_independent_revisions() {
+        let root = std::env::temp_dir().join(format!(
+            "ubaa-coordinated-route-isolation-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let coordinator = DualSessionCoordinator::new(FileSessionStore::new(&root).unwrap())
+            .expect("coordinator opens");
+        let direct = coordinator.route_store(ConnectionMode::Direct);
+        let webvpn = coordinator.route_store(ConnectionMode::WebVpn);
+        let direct_snapshot = snapshot(ConnectionMode::Direct, "DIRECT");
+        let webvpn_snapshot = snapshot(ConnectionMode::WebVpn, "WEBVPN");
+
+        let initial_direct = direct.load_versioned().unwrap().revision;
+        assert_eq!(
+            direct
+                .compare_exchange(initial_direct, Some(&direct_snapshot))
+                .unwrap(),
+            SessionMutation::Applied {
+                revision: initial_direct + 1
+            }
+        );
+        let stable_direct = direct.load_versioned().unwrap();
+        let initial_webvpn = webvpn.load_versioned().unwrap().revision;
+        assert_eq!(
+            webvpn
+                .compare_exchange(initial_webvpn, Some(&webvpn_snapshot))
+                .unwrap(),
+            SessionMutation::Applied {
+                revision: initial_webvpn + 1
+            }
+        );
+
+        assert!(direct.is_revision_current(stable_direct.revision).unwrap());
+        assert_eq!(direct.load().unwrap(), Some(direct_snapshot));
+        assert_eq!(webvpn.load().unwrap(), Some(webvpn_snapshot.clone()));
+        assert!(matches!(
+            direct
+                .compare_exchange(stable_direct.revision, None)
+                .unwrap(),
+            SessionMutation::Applied { .. }
+        ));
+        assert!(direct.load().unwrap().is_none());
+        assert_eq!(webvpn.load().unwrap(), Some(webvpn_snapshot));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn aggregate_clear_returns_route_revisions_that_allow_safe_client_reuse() {
         let root = std::env::temp_dir().join(format!(
             "ubaa-coordinated-clear-revisions-{}-{:?}",
@@ -369,6 +418,15 @@ mod tests {
             SessionMutation::Applied { .. }
         ));
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    fn snapshot(mode: ConnectionMode, name: &str) -> SessionSnapshot {
+        SessionSnapshot {
+            mode,
+            cookies: vec![StoredCookie::fixture(name, "fixture-cookie")],
+            authenticated_at: 1,
+            last_activity: 1,
+        }
     }
 
     #[cfg(unix)]

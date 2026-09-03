@@ -640,6 +640,10 @@ async fn post_request(
 }
 
 #[cfg(test)]
+#[path = "ygdk/contract_tests.rs"]
+mod contract_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{YgdkCredential, build_upload_body, code_from_url, parse_records, percent_decode};
     use crate::domain::{ConnectionMode, YgdkClockinSubmitRequest, YgdkPhotoUpload};

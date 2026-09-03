@@ -101,12 +101,14 @@ impl DualSessionSnapshot {
 
     /// Direct 路线槽位。
     #[must_use]
+    #[cfg(any(test, feature = "test-contract"))]
     pub fn direct(&self) -> Option<&RouteSessionSnapshot> {
         self.sessions.direct.as_ref()
     }
 
     /// `WebVPN` 路线槽位。
     #[must_use]
+    #[cfg(feature = "test-contract")]
     pub fn webvpn(&self) -> Option<&RouteSessionSnapshot> {
         self.sessions.webvpn.as_ref()
     }
@@ -129,27 +131,6 @@ impl std::fmt::Debug for SessionSnapshot {
             .field("authenticated_at", &self.authenticated_at)
             .field("last_activity", &self.last_activity)
             .finish()
-    }
-}
-
-/// 校验持久化会话的结果。
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SessionValidation {
-    /// 上游确认会话有效。
-    Valid,
-    /// 上游明确拒绝会话或将其重定向。
-    Invalid,
-    /// 上游返回临时服务器错误。
-    ServerError,
-    /// 请求超时，尚未得出结论。
-    Timeout,
-}
-
-impl SessionValidation {
-    /// 是否必须清理本地认证状态。
-    #[must_use]
-    pub const fn should_clear(self) -> bool {
-        matches!(self, Self::Invalid)
     }
 }
 
