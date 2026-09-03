@@ -1,8 +1,8 @@
 //! 评教、博雅、签到与阳光打卡写入口。
 
 use crate::domain::{
-    BykcActionResult, BykcSignRequest, ConnectionMode, EvaluationCourse, EvaluationResult,
-    ReadonlyFeature, SigninActionResult, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
+    BykcActionResult, BykcSignRequest, EvaluationCourse, EvaluationResult, ReadonlyFeature,
+    SigninActionResult, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
 };
 
 use super::super::client::UbaaClient;
@@ -20,19 +20,11 @@ impl UbaaClient {
     ) -> RoutedResult<Vec<EvaluationResult>> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::evaluation::submit_payload(
-                    &mut self.direct_runtime,
-                    pjjglist.clone(),
-                )
-                .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::evaluation::submit_payload(&mut self.webvpn_runtime, pjjglist)
-                    .await
-            }
-        };
+        let result = crate::features::evaluation::submit_payload(
+            self.runtime_for(resolution.mode),
+            pjjglist,
+        )
+        .await;
         self.finish_routed(resolution, result)
     }
 
@@ -47,18 +39,9 @@ impl UbaaClient {
     ) -> RoutedResult<Vec<EvaluationResult>> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::evaluation::submit_courses(
-                    &mut self.direct_runtime,
-                    courses.clone(),
-                )
-                .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::evaluation::submit_courses(&mut self.webvpn_runtime, courses).await
-            }
-        };
+        let result =
+            crate::features::evaluation::submit_courses(self.runtime_for(resolution.mode), courses)
+                .await;
         self.finish_routed(resolution, result)
     }
 
@@ -70,14 +53,9 @@ impl UbaaClient {
     pub async fn bykc_select_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::bykc::select_course(&mut self.direct_runtime, course_id).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::bykc::select_course(&mut self.webvpn_runtime, course_id).await
-            }
-        };
+        let result =
+            crate::features::bykc::select_course(self.runtime_for(resolution.mode), course_id)
+                .await;
         self.finish_routed(resolution, result)
     }
 
@@ -89,14 +67,9 @@ impl UbaaClient {
     pub async fn bykc_deselect_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::bykc::deselect_course(&mut self.direct_runtime, course_id).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::bykc::deselect_course(&mut self.webvpn_runtime, course_id).await
-            }
-        };
+        let result =
+            crate::features::bykc::deselect_course(self.runtime_for(resolution.mode), course_id)
+                .await;
         self.finish_routed(resolution, result)
     }
 
@@ -111,14 +84,8 @@ impl UbaaClient {
     ) -> RoutedResult<BykcActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::bykc::sign_course(&mut self.direct_runtime, request.clone()).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::bykc::sign_course(&mut self.webvpn_runtime, request).await
-            }
-        };
+        let result =
+            crate::features::bykc::sign_course(self.runtime_for(resolution.mode), request).await;
         self.finish_routed(resolution, result)
     }
 
@@ -130,14 +97,9 @@ impl UbaaClient {
     pub async fn signin_perform(&mut self, course_id: &str) -> RoutedResult<SigninActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::signin::perform_signin(&mut self.direct_runtime, course_id).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::signin::perform_signin(&mut self.webvpn_runtime, course_id).await
-            }
-        };
+        let result =
+            crate::features::signin::perform_signin(self.runtime_for(resolution.mode), course_id)
+                .await;
         self.finish_routed(resolution, result)
     }
 
@@ -152,15 +114,8 @@ impl UbaaClient {
     ) -> RoutedResult<YgdkClockinSubmitResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::ygdk::submit_clockin(&mut self.direct_runtime, request.clone())
-                    .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::ygdk::submit_clockin(&mut self.webvpn_runtime, request).await
-            }
-        };
+        let result =
+            crate::features::ygdk::submit_clockin(self.runtime_for(resolution.mode), request).await;
         self.finish_routed(resolution, result)
     }
 }

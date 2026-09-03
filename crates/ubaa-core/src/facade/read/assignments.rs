@@ -1,9 +1,9 @@
 //! 签到、SPOC 与希冀作业只读入口。
 
 use crate::domain::{
-    ConnectionMode, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, ReadonlyFeature, SigninClass, SpocAssignmentDetail,
-    SpocAssignments, SpocAssignmentsDiagnostics,
+    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
+    ReadonlyFeature, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics,
 };
 
 use super::super::client::UbaaClient;
@@ -17,14 +17,7 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::signin::get_today(&mut self.direct_runtime).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::signin::get_today(&mut self.webvpn_runtime).await
-            }
-        };
+        let result = crate::features::signin::get_today(self.runtime_for(resolution.mode)).await;
         self.finish_routed(resolution, result)
     }
 
@@ -35,14 +28,8 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::spoc::get_assignments(&mut self.direct_runtime).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::spoc::get_assignments(&mut self.webvpn_runtime).await
-            }
-        };
+        let result =
+            crate::features::spoc::get_assignments(self.runtime_for(resolution.mode)).await;
         self.finish_routed(resolution, result)
     }
 
@@ -55,14 +42,9 @@ impl UbaaClient {
         &mut self,
     ) -> RoutedResult<SpocAssignmentsDiagnostics> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::spoc::get_assignments_diagnostics(&mut self.direct_runtime).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::spoc::get_assignments_diagnostics(&mut self.webvpn_runtime).await
-            }
-        };
+        let result =
+            crate::features::spoc::get_assignments_diagnostics(self.runtime_for(resolution.mode))
+                .await;
         self.finish_routed(resolution, result)
     }
 
@@ -76,22 +58,11 @@ impl UbaaClient {
         assignment_id: &str,
     ) -> RoutedResult<SpocAssignmentDetail> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::spoc::get_assignment_detail(
-                    &mut self.direct_runtime,
-                    assignment_id,
-                )
-                .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::spoc::get_assignment_detail(
-                    &mut self.webvpn_runtime,
-                    assignment_id,
-                )
-                .await
-            }
-        };
+        let result = crate::features::spoc::get_assignment_detail(
+            self.runtime_for(resolution.mode),
+            assignment_id,
+        )
+        .await;
         self.finish_routed(resolution, result)
     }
 
@@ -105,16 +76,11 @@ impl UbaaClient {
         include_expired: bool,
     ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::judge::get_assignments(&mut self.direct_runtime, include_expired)
-                    .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::judge::get_assignments(&mut self.webvpn_runtime, include_expired)
-                    .await
-            }
-        };
+        let result = crate::features::judge::get_assignments(
+            self.runtime_for(resolution.mode),
+            include_expired,
+        )
+        .await;
         self.finish_routed(resolution, result)
     }
 
@@ -128,22 +94,11 @@ impl UbaaClient {
         include_expired: bool,
     ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::judge::get_assignments_diagnostics(
-                    &mut self.direct_runtime,
-                    include_expired,
-                )
-                .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::judge::get_assignments_diagnostics(
-                    &mut self.webvpn_runtime,
-                    include_expired,
-                )
-                .await
-            }
-        };
+        let result = crate::features::judge::get_assignments_diagnostics(
+            self.runtime_for(resolution.mode),
+            include_expired,
+        )
+        .await;
         self.finish_routed(resolution, result)
     }
 
@@ -158,24 +113,12 @@ impl UbaaClient {
         assignment_id: &str,
     ) -> RoutedResult<JudgeAssignmentDetail> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::judge::get_assignment_detail(
-                    &mut self.direct_runtime,
-                    course_id,
-                    assignment_id,
-                )
-                .await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::judge::get_assignment_detail(
-                    &mut self.webvpn_runtime,
-                    course_id,
-                    assignment_id,
-                )
-                .await
-            }
-        };
+        let result = crate::features::judge::get_assignment_detail(
+            self.runtime_for(resolution.mode),
+            course_id,
+            assignment_id,
+        )
+        .await;
         self.finish_routed(resolution, result)
     }
 
@@ -189,14 +132,9 @@ impl UbaaClient {
         keys: &[JudgeAssignmentKey],
     ) -> RoutedResult<Vec<JudgeAssignmentDetail>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::judge::get_assignment_details(&mut self.direct_runtime, keys).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::judge::get_assignment_details(&mut self.webvpn_runtime, keys).await
-            }
-        };
+        let result =
+            crate::features::judge::get_assignment_details(self.runtime_for(resolution.mode), keys)
+                .await;
         self.finish_routed(resolution, result)
     }
 }

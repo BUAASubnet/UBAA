@@ -206,13 +206,26 @@ pub fn resolve_feature_route<P: GatewayProbe + ?Sized>(
     } else {
         requested
     };
-    let network = if policy == RoutePolicy::Auto {
+    Ok(resolve_route(
+        policy,
+        FeatureRouteConfig::for_feature(feature),
+        probe,
+    ))
+}
+
+/// 根据有效策略和矩阵行解析唯一初始路线。
+#[must_use]
+pub(crate) fn resolve_route<P: GatewayProbe + ?Sized>(
+    effective_policy: RoutePolicy,
+    row: FeatureRouteConfig,
+    probe: &P,
+) -> RouteResolution {
+    let network = if effective_policy == RoutePolicy::Auto {
         probe.probe(Duration::from_millis(500))
     } else {
         NetworkState::Unknown
     };
-    let row = FeatureRouteConfig::for_feature(feature);
-    let mode = match policy {
+    let mode = match effective_policy {
         RoutePolicy::Direct => ConnectionMode::Direct,
         RoutePolicy::WebVpn => ConnectionMode::WebVpn,
         RoutePolicy::Auto => row.auto_route_override.unwrap_or(match network {
@@ -221,11 +234,11 @@ pub fn resolve_feature_route<P: GatewayProbe + ?Sized>(
             NetworkState::Unknown => row.unknown_default,
         }),
     };
-    Ok(RouteResolution {
+    RouteResolution {
         mode,
-        policy,
+        policy: effective_policy,
         diagnostic: RouteDiagnostic::new(network, mode),
-    })
+    }
 }
 
 /// 冻结 SSO/用户中心认证流程中观察到的主机。

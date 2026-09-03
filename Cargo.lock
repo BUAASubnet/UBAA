@@ -3121,6 +3121,7 @@ dependencies = [
  "sha2",
  "tokio",
  "ubaa-core",
+ "ubaa-test-support",
 ]
 
 [[package]]

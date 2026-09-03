@@ -494,13 +494,14 @@ fn stale_writer_is_rejected_before_any_write_request() {
         ))
         .unwrap();
     let writes = Arc::new(AtomicUsize::new(0));
-    let config = RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap();
+    let probes = Arc::new(AtomicUsize::new(0));
+    let config = RouteConfig::parse("[route]\ndefault = \"auto\"\n").unwrap();
     let mut client = UbaaClient::with_routing(
         CountingTransport(writes.clone()),
         CountingTransport(writes.clone()),
         FileSessionStore::new(&root).unwrap(),
         config,
-        NeverProbe,
+        CountingProbe(probes.clone()),
     )
     .unwrap();
 
@@ -522,6 +523,8 @@ fn stale_writer_is_rejected_before_any_write_request() {
     let error = runtime.block_on(client.bykc_select_course(42)).unwrap_err();
 
     assert_eq!(error.error.code, ErrorCode::InternalError);
+    assert!(error.resolution.is_none());
+    assert_eq!(probes.load(Ordering::SeqCst), 0);
     assert_eq!(writes.load(Ordering::SeqCst), 0);
     let _ = std::fs::remove_dir_all(root);
 }

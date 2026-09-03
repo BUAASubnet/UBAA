@@ -1,8 +1,8 @@
 //! 场馆与图书馆预约写入口。
 
 use crate::domain::{
-    CgyyActionResult, CgyyReservationResult, CgyyReservationSubmitRequest, ConnectionMode,
-    LibBookCancelResult, LibBookReserveRequest, LibBookReserveResult, ReadonlyFeature,
+    CgyyActionResult, CgyyReservationResult, CgyyReservationSubmitRequest, LibBookCancelResult,
+    LibBookReserveRequest, LibBookReserveResult, ReadonlyFeature,
 };
 
 use super::super::client::UbaaClient;
@@ -25,14 +25,8 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::cgyy::cancel_order(&mut self.direct_runtime, id).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::cancel_order(&mut self.webvpn_runtime, id).await
-            }
-        };
+        let result =
+            crate::features::cgyy::cancel_order(self.runtime_for(resolution.mode), id).await;
         self.finish_routed(resolution, result)
     }
 
@@ -48,14 +42,9 @@ impl UbaaClient {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "reservation.submit");
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::cgyy::submit_reservation(&mut self.direct_runtime, request).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::cgyy::submit_reservation(&mut self.webvpn_runtime, request).await
-            }
-        };
+        let result =
+            crate::features::cgyy::submit_reservation(self.runtime_for(resolution.mode), request)
+                .await;
         self.finish_routed(resolution, result)
     }
 
@@ -70,14 +59,8 @@ impl UbaaClient {
     ) -> RoutedResult<LibBookReserveResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::libbook::reserve(&mut self.direct_runtime, request.clone()).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::libbook::reserve(&mut self.webvpn_runtime, request).await
-            }
-        };
+        let result =
+            crate::features::libbook::reserve(self.runtime_for(resolution.mode), request).await;
         self.finish_routed(resolution, result)
     }
 
@@ -89,14 +72,8 @@ impl UbaaClient {
     pub async fn libbook_cancel_booking(&mut self, id: &str) -> RoutedResult<LibBookCancelResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result = match resolution.mode {
-            ConnectionMode::Direct => {
-                crate::features::libbook::cancel_booking(&mut self.direct_runtime, id).await
-            }
-            ConnectionMode::WebVpn => {
-                crate::features::libbook::cancel_booking(&mut self.webvpn_runtime, id).await
-            }
-        };
+        let result =
+            crate::features::libbook::cancel_booking(self.runtime_for(resolution.mode), id).await;
         self.finish_routed(resolution, result)
     }
 }

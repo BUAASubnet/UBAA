@@ -1,5 +1,7 @@
 //! 聚合门面的路线选择、诊断和禁止跨路线回退合同。
 
+mod support;
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -12,6 +14,8 @@ use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::{NetworkState, RouteDiagnostic, RouteResolution, UbaaClient};
 use ubaa_core::ports::{HttpRequest, HttpResponse, HttpTransport};
 use ubaa_core::session::{DualSessionSnapshot, FileSessionStore, RouteSessionSnapshot};
+
+use support::source_tokens::{count_sequence, function_body, rust_files_below, rust_tokens};
 
 const DIRECT_RESOLUTION: RouteResolution = RouteResolution {
     mode: ConnectionMode::Direct,
@@ -46,6 +50,28 @@ const AUTO_OFF_CAMPUS_RESOLUTION: RouteResolution = RouteResolution {
     },
 };
 
+const AUTO_CAMPUS_RESOLUTION: RouteResolution = RouteResolution {
+    mode: ConnectionMode::Direct,
+    policy: RoutePolicy::Auto,
+    diagnostic: RouteDiagnostic {
+        network: NetworkState::Campus,
+        initial_route: ConnectionMode::Direct,
+        mode: ConnectionMode::Direct,
+        used_fallback: false,
+    },
+};
+
+const AUTO_UNKNOWN_RESOLUTION: RouteResolution = RouteResolution {
+    mode: ConnectionMode::Direct,
+    policy: RoutePolicy::Auto,
+    diagnostic: RouteDiagnostic {
+        network: NetworkState::Unknown,
+        initial_route: ConnectionMode::Direct,
+        mode: ConnectionMode::Direct,
+        used_fallback: false,
+    },
+};
+
 const NO_EVENTS: &[MatrixEvent] = &[];
 const DIRECT_REQUEST: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::Direct)];
 const WEBVPN_REQUEST: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::WebVpn)];
@@ -53,9 +79,20 @@ const AUTO_WEBVPN_REQUEST: &[MatrixEvent] = &[
     MatrixEvent::Probe(NetworkState::OffCampus),
     MatrixEvent::Http(ConnectionMode::WebVpn),
 ];
-const AUTO_WITHOUT_REQUEST: &[MatrixEvent] = &[MatrixEvent::Probe(NetworkState::OffCampus)];
+const AUTO_OFF_CAMPUS_WITHOUT_REQUEST: &[MatrixEvent] =
+    &[MatrixEvent::Probe(NetworkState::OffCampus)];
+const AUTO_CAMPUS_REQUEST: &[MatrixEvent] = &[
+    MatrixEvent::Probe(NetworkState::Campus),
+    MatrixEvent::Http(ConnectionMode::Direct),
+];
+const AUTO_CAMPUS_WITHOUT_REQUEST: &[MatrixEvent] = &[MatrixEvent::Probe(NetworkState::Campus)];
+const AUTO_UNKNOWN_REQUEST: &[MatrixEvent] = &[
+    MatrixEvent::Probe(NetworkState::Unknown),
+    MatrixEvent::Http(ConnectionMode::Direct),
+];
+const AUTO_UNKNOWN_WITHOUT_REQUEST: &[MatrixEvent] = &[MatrixEvent::Probe(NetworkState::Unknown)];
 
-const CASES: [RouteMatrixCase; 12] = [
+const CASES: [RouteMatrixCase; 20] = [
     RouteMatrixCase {
         name: "direct-ready-success",
         config: "[route]\ndefault = \"direct\"\n",
@@ -145,7 +182,7 @@ const CASES: [RouteMatrixCase; 12] = [
         expected_events: NO_EVENTS,
     },
     RouteMatrixCase {
-        name: "auto-ready-success",
+        name: "auto-off-campus-ready-success",
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::OffCampus,
         direct_ready: true,
@@ -156,7 +193,7 @@ const CASES: [RouteMatrixCase; 12] = [
         expected_events: AUTO_WEBVPN_REQUEST,
     },
     RouteMatrixCase {
-        name: "auto-ready-failure",
+        name: "auto-off-campus-ready-failure",
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::OffCampus,
         direct_ready: true,
@@ -167,7 +204,7 @@ const CASES: [RouteMatrixCase; 12] = [
         expected_events: AUTO_WEBVPN_REQUEST,
     },
     RouteMatrixCase {
-        name: "auto-not-ready-success",
+        name: "auto-off-campus-not-ready-success",
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::OffCampus,
         direct_ready: true,
@@ -175,10 +212,10 @@ const CASES: [RouteMatrixCase; 12] = [
         scripted_outcome: ScriptedOutcome::Success,
         expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
         expected_resolution: AUTO_OFF_CAMPUS_RESOLUTION,
-        expected_events: AUTO_WITHOUT_REQUEST,
+        expected_events: AUTO_OFF_CAMPUS_WITHOUT_REQUEST,
     },
     RouteMatrixCase {
-        name: "auto-not-ready-failure",
+        name: "auto-off-campus-not-ready-failure",
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::OffCampus,
         direct_ready: true,
@@ -186,7 +223,95 @@ const CASES: [RouteMatrixCase; 12] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
         expected_resolution: AUTO_OFF_CAMPUS_RESOLUTION,
-        expected_events: AUTO_WITHOUT_REQUEST,
+        expected_events: AUTO_OFF_CAMPUS_WITHOUT_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-campus-ready-success",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Campus,
+        direct_ready: true,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::Success,
+        expected_result: ExpectedResult::Success,
+        expected_resolution: AUTO_CAMPUS_RESOLUTION,
+        expected_events: AUTO_CAMPUS_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-campus-ready-failure",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Campus,
+        direct_ready: true,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::NetworkFailure,
+        expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
+        expected_resolution: AUTO_CAMPUS_RESOLUTION,
+        expected_events: AUTO_CAMPUS_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-campus-not-ready-success",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Campus,
+        direct_ready: false,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::Success,
+        expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
+        expected_resolution: AUTO_CAMPUS_RESOLUTION,
+        expected_events: AUTO_CAMPUS_WITHOUT_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-campus-not-ready-failure",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Campus,
+        direct_ready: false,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::NetworkFailure,
+        expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
+        expected_resolution: AUTO_CAMPUS_RESOLUTION,
+        expected_events: AUTO_CAMPUS_WITHOUT_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-unknown-ready-success",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Unknown,
+        direct_ready: true,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::Success,
+        expected_result: ExpectedResult::Success,
+        expected_resolution: AUTO_UNKNOWN_RESOLUTION,
+        expected_events: AUTO_UNKNOWN_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-unknown-ready-failure",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Unknown,
+        direct_ready: true,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::NetworkFailure,
+        expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
+        expected_resolution: AUTO_UNKNOWN_RESOLUTION,
+        expected_events: AUTO_UNKNOWN_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-unknown-not-ready-success",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Unknown,
+        direct_ready: false,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::Success,
+        expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
+        expected_resolution: AUTO_UNKNOWN_RESOLUTION,
+        expected_events: AUTO_UNKNOWN_WITHOUT_REQUEST,
+    },
+    RouteMatrixCase {
+        name: "auto-unknown-not-ready-failure",
+        config: "[route]\ndefault = \"auto\"\n",
+        probe_state: NetworkState::Unknown,
+        direct_ready: false,
+        webvpn_ready: true,
+        scripted_outcome: ScriptedOutcome::NetworkFailure,
+        expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
+        expected_resolution: AUTO_UNKNOWN_RESOLUTION,
+        expected_events: AUTO_UNKNOWN_WITHOUT_REQUEST,
     },
 ];
 
@@ -277,6 +402,196 @@ fn 聚合门面路线矩阵保持调用顺序完整诊断且禁止跨路线回�
     }
 }
 
+#[test]
+fn 聚合门面只保留唯一运行时选择器和路线算法() {
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let facade_dir = manifest_dir.join("src/facade");
+
+    let observed = audited_route_usage(&facade_dir);
+    assert!(observed.entry_points > 0, "必须发现 facade 业务入口");
+    assert_eq!(
+        observed.entry_points, observed.resolve_operation,
+        "每个公开异步业务入口必须解析一次路线"
+    );
+    assert_eq!(
+        observed.resolve_operation,
+        observed.runtime_for + observed.route_parts_for,
+        "每个业务入口必须只取得一次已解析路线槽位"
+    );
+    assert_eq!(
+        observed.entry_points, observed.finish_routed,
+        "每个公开异步业务入口都必须经过统一收尾"
+    );
+    assert_route_slot_boundaries(&facade_dir);
+    assert_route_algorithm_is_unique(manifest_dir);
+}
+
+fn audited_route_usage(facade_dir: &std::path::Path) -> RouteUsage {
+    let mut observed = RouteUsage::default();
+    for path in ["read", "write"]
+        .into_iter()
+        .flat_map(|name| rust_files_below(&facade_dir.join(name)))
+    {
+        let tokens = rust_tokens(&source(&path));
+        let relative = path.strip_prefix(facade_dir).unwrap_or(&path).display();
+        assert!(
+            count_sequence(&tokens, &["match", "resolution", ".", "mode"]) == 0,
+            "{relative} 不得自行选择路线 runtime"
+        );
+        for field in [
+            "direct_runtime",
+            "direct_auth",
+            "webvpn_runtime",
+            "webvpn_auth",
+        ] {
+            assert_eq!(
+                count_sequence(&tokens, &[field]),
+                0,
+                "{relative} 不得绕过唯一路线槽位访问 {field}"
+            );
+        }
+        observed.add(route_usage(&tokens));
+    }
+    observed
+}
+
+fn assert_route_slot_boundaries(facade_dir: &std::path::Path) {
+    let routing_tokens = rust_tokens(&source(&facade_dir.join("routing.rs")));
+    let runtime_for = function_body(&routing_tokens, "runtime_for").expect("定位 runtime_for");
+    assert_eq!(
+        count_sequence(runtime_for, &["self", ".", "route_parts_for", "("]),
+        1
+    );
+    let route_parts =
+        function_body(&routing_tokens, "route_parts_for").expect("定位 route_parts_for");
+    for field in [
+        "direct_runtime",
+        "direct_auth",
+        "webvpn_runtime",
+        "webvpn_auth",
+    ] {
+        assert_eq!(
+            count_sequence(route_parts, &["self", ".", field]),
+            1,
+            "route_parts_for 必须且只能映射一次 {field}"
+        );
+    }
+
+    let auth_tokens = rust_tokens(&source(&facade_dir.join("auth.rs")));
+    for helper in ["prepare_route", "login_route", "auth_status_route"] {
+        let body = function_body(&auth_tokens, helper)
+            .unwrap_or_else(|| panic!("定位认证路线 helper：{helper}"));
+        assert_eq!(
+            count_sequence(body, &["self", ".", "route_parts_for", "("]),
+            1,
+            "{helper} 必须委托唯一 runtime/auth 槽位选择器"
+        );
+        for field in [
+            "direct_runtime",
+            "direct_auth",
+            "webvpn_runtime",
+            "webvpn_auth",
+        ] {
+            assert_eq!(
+                count_sequence(body, &[field]),
+                0,
+                "{helper} 不得绕过 route_parts_for 访问 {field}"
+            );
+        }
+    }
+}
+
+fn assert_route_algorithm_is_unique(manifest_dir: &std::path::Path) {
+    let connection_tokens = rust_tokens(&source(&manifest_dir.join("src/connection.rs")));
+    let compatibility =
+        function_body(&connection_tokens, "resolve_feature_route").expect("定位公开兼容 resolver");
+    assert_eq!(
+        count_sequence(compatibility, &["resolve_route", "("]),
+        1,
+        "公开兼容 resolver 必须且只能委托一次共享算法"
+    );
+    assert_eq!(
+        count_sequence(
+            compatibility,
+            &[
+                "RoutePolicy",
+                ":",
+                ":",
+                "Direct",
+                "=",
+                ">",
+                "ConnectionMode",
+                ":",
+                ":",
+                "Direct",
+            ],
+        ),
+        0
+    );
+
+    let policy_mapping = [
+        "RoutePolicy",
+        ":",
+        ":",
+        "Direct",
+        "=",
+        ">",
+        "ConnectionMode",
+        ":",
+        ":",
+        "Direct",
+    ];
+    let auto_mapping = ["auto_route_override", ".", "unwrap_or", "("];
+    let shared_resolver =
+        function_body(&connection_tokens, "resolve_route").expect("定位共享路线算法");
+    assert_eq!(count_sequence(shared_resolver, &policy_mapping), 1);
+    assert_eq!(count_sequence(shared_resolver, &auto_mapping), 1);
+
+    let (policy_mapping_count, auto_mapping_count) = rust_files_below(&manifest_dir.join("src"))
+        .into_iter()
+        .fold((0, 0), |(policy_total, auto_total), path| {
+            let tokens = rust_tokens(&source(&path));
+            (
+                policy_total + count_sequence(&tokens, &policy_mapping),
+                auto_total + count_sequence(&tokens, &auto_mapping),
+            )
+        });
+    assert_eq!(
+        policy_mapping_count, 1,
+        "RoutePolicy 只能由 connection::resolve_route 解释一次"
+    );
+    assert_eq!(auto_mapping_count, 1, "Auto 三态算法只能有一个物理实现");
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct RouteUsage {
+    entry_points: usize,
+    resolve_operation: usize,
+    runtime_for: usize,
+    route_parts_for: usize,
+    finish_routed: usize,
+}
+
+impl RouteUsage {
+    fn add(&mut self, other: Self) {
+        self.entry_points += other.entry_points;
+        self.resolve_operation += other.resolve_operation;
+        self.runtime_for += other.runtime_for;
+        self.route_parts_for += other.route_parts_for;
+        self.finish_routed += other.finish_routed;
+    }
+}
+
+fn route_usage(tokens: &[String]) -> RouteUsage {
+    RouteUsage {
+        entry_points: count_sequence(tokens, &["pub", "async", "fn"]),
+        resolve_operation: count_sequence(tokens, &["resolve_operation", "("]),
+        runtime_for: count_sequence(tokens, &["runtime_for", "("]),
+        route_parts_for: count_sequence(tokens, &["route_parts_for", "("]),
+        finish_routed: count_sequence(tokens, &["finish_routed", "("]),
+    }
+}
+
 fn assert_route_case(runtime: &tokio::runtime::Runtime, case: &RouteMatrixCase) {
     let case_name = case.name;
     let root = test_root(case.name);
@@ -352,6 +667,10 @@ fn ready_slot() -> RouteSessionSnapshot {
         authenticated_at: 1_000,
         last_activity: 1_001,
     }
+}
+
+fn source(path: &std::path::Path) -> String {
+    std::fs::read_to_string(path).unwrap_or_else(|error| panic!("读取 {}: {error}", path.display()))
 }
 
 fn test_root(label: &str) -> std::path::PathBuf {

@@ -55,6 +55,61 @@ fn auto_route_maps_three_gateway_states_and_exposes_diagnostic() {
 }
 
 #[test]
+fn requested_策略覆盖功能配置且_auto_只采用功能策略() {
+    struct CountingStateProbe {
+        calls: Arc<AtomicUsize>,
+        state: NetworkState,
+    }
+
+    impl GatewayProbe for CountingStateProbe {
+        fn probe(&self, _budget: Duration) -> NetworkState {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            self.state
+        }
+    }
+
+    for configured in [RoutePolicy::Direct, RoutePolicy::WebVpn, RoutePolicy::Auto] {
+        for requested in [RoutePolicy::Direct, RoutePolicy::WebVpn, RoutePolicy::Auto] {
+            let configured_value = match configured {
+                RoutePolicy::Direct => "direct",
+                RoutePolicy::WebVpn => "webvpn",
+                RoutePolicy::Auto => "auto",
+            };
+            let config = RouteConfig::parse(&format!(
+                "[route]\ndefault = \"webvpn\"\n[route.features]\nschedule = \"{configured_value}\"\n"
+            ))
+            .expect("解析冲突路线配置");
+            let calls = Arc::new(AtomicUsize::new(0));
+            let resolved = resolve_feature_route(
+                ReadonlyFeature::Schedule,
+                requested,
+                &config,
+                &CountingStateProbe {
+                    calls: calls.clone(),
+                    state: NetworkState::OffCampus,
+                },
+            )
+            .expect("解析 requested 与功能策略");
+
+            let effective = if requested == RoutePolicy::Auto {
+                configured
+            } else {
+                requested
+            };
+            let (mode, network, expected_calls) = match effective {
+                RoutePolicy::Direct => (ConnectionMode::Direct, NetworkState::Unknown, 0),
+                RoutePolicy::WebVpn => (ConnectionMode::WebVpn, NetworkState::Unknown, 0),
+                RoutePolicy::Auto => (ConnectionMode::WebVpn, NetworkState::OffCampus, 1),
+            };
+            assert_eq!(resolved.policy, effective);
+            assert_eq!(resolved.mode, mode);
+            assert_eq!(resolved.diagnostic, RouteDiagnostic::new(network, mode));
+            assert_eq!(calls.load(Ordering::SeqCst), expected_calls);
+        }
+    }
+}
+
+#[test]
 fn auto_route_gives_the_gateway_probe_one_500ms_total_budget() {
     struct BudgetProbe(Arc<std::sync::Mutex<Option<Duration>>>);
 

@@ -38,7 +38,8 @@
 | 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 已提交：`0f0dde1` |
 | 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 已提交：`e6b0459` |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 已提交：`60b210b` |
-| 06A | route selector | direct/webvpn/auto 等价矩阵 | `refactor(core): 集中路线解析与 runtime 选择` | characterization 已验证待提交 |
+| 06A | route selector | 20 格路线矩阵、9 格优先级、Bridge prepare/commit | `refactor(core): 集中路线解析与 runtime 选择` | characterization `0fcf8d5` 已提交；重构与补强门禁已验证，待提交 |
+| 06A2 | Bridge intent 锁序 | 重新登录失效旧 intent 的并发 RED | `fix(bridge): 原子失效并发写入意图` | 待执行 |
 | 06B | route state | Arc/generation/TTL/fork/concurrency 矩阵 | `refactor(core): 下沉路线状态并消除依赖环` | 待执行 |
 | 06C | facade/test-contract | 生产宿主旁路 compile-fail RED | `refactor(core): 用 facade 封闭宿主与测试边界` | 待执行 |
 | 07A | Cgyy 目录化 | Cgyy parser/request/cache tests | `refactor(core): 按职责拆分 Cgyy` | 待执行 |
@@ -235,6 +236,9 @@ RED/characterization：
 
 - 06A 先提交等价 characterization，再集中所有 facade 路线选择到 `runtime_for(route)` 与唯一
   `resolve_route`，逐项删除重复 match；旧 pure resolver 必须委托同一权威实现或内部化，不得保留第二套算法。
+- 06A2 单独修复 Bridge write intent 的既有并发锁序：先用确定性 RED 证明 commit 等待 Core 锁期间，重新登录或
+  路线重开必须仍能失效该 intent 且业务 HTTP 为零；再统一为 `inner → write_intents` 锁序，取出 intent 后立即
+  释放 map 锁、持有 Core 锁完成提交。该行为修复不得混入 06A 的机械路线重构。
 - 06B 先提交状态 characterization。`features/state.rs` 直接持有多种 feature credential/list 类型，故需先把
   state-owned payload 迁入低层 `internal/route_state/{credentials,cache}.rs`，再移动
   `state.rs/state_cache.rs` 并以源码门禁证明 `internal/**` 不依赖 `crate::features`。若确定性测试证实 Signin

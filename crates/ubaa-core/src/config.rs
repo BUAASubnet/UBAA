@@ -424,15 +424,18 @@ pub struct FeatureRouteConfig {
 }
 
 impl FeatureRouteConfig {
+    /// 禁止跨路线回退的统一默认矩阵行。
+    pub(crate) const SAFE_DEFAULT: Self = Self {
+        auto_route_override: None,
+        unknown_default: crate::domain::ConnectionMode::Direct,
+        allow_ready_route_fallback: false,
+        allow_network_fallback: false,
+    };
+
     /// 返回只读功能有证据支持的初始矩阵行。
     #[must_use]
     pub const fn for_feature(_feature: ReadonlyFeature) -> Self {
-        Self {
-            auto_route_override: None,
-            unknown_default: crate::domain::ConnectionMode::Direct,
-            allow_ready_route_fallback: false,
-            allow_network_fallback: false,
-        }
+        Self::SAFE_DEFAULT
     }
 }
 

@@ -1,11 +1,11 @@
 //! 聚合客户端的唯一路线解析、运行时选择与操作收尾。
 
-use std::time::Duration;
-
+use crate::auth::AuthWorkflow;
 use crate::config::FeatureRouteConfig;
-use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
+use crate::connection::{RouteResolution, resolve_route};
 use crate::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::runtime::ClientRuntime;
 
 use super::client::UbaaClient;
 use super::types::{Operation, Routed, RoutedError, RoutedResult};
@@ -24,11 +24,8 @@ impl UbaaClient {
             .map_err(|error| error.error)
     }
 
-    pub(super) fn log_cgyy_route(&self, resolution: RouteResolution, operation: &str) {
-        let runtime_mode = match resolution.mode {
-            ConnectionMode::Direct => self.direct_runtime.mode(),
-            ConnectionMode::WebVpn => self.webvpn_runtime.mode(),
-        };
+    pub(super) fn log_cgyy_route(&mut self, resolution: RouteResolution, operation: &str) {
+        let runtime_mode = self.runtime_for(resolution.mode).mode();
         tracing::debug!(
             target: "ubaa::cgyy",
             feature = "cgyy",
@@ -39,6 +36,7 @@ impl UbaaClient {
             "Cgyy 门面完成路线解析"
         );
     }
+
     pub(super) fn resolve_operation(
         &mut self,
         operation: Operation,
@@ -49,39 +47,14 @@ impl UbaaClient {
                 resolution: None,
             })?;
         let (policy, row) = match operation {
-            Operation::User => (
-                self.config.default,
-                FeatureRouteConfig {
-                    auto_route_override: None,
-                    unknown_default: ConnectionMode::Direct,
-                    allow_ready_route_fallback: false,
-                    allow_network_fallback: false,
-                },
-            ),
+            Operation::User => (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
             Operation::Feature(feature) => (
                 self.config.feature(feature),
                 FeatureRouteConfig::for_feature(feature),
             ),
         };
-        let network = if policy == RoutePolicy::Auto {
-            self.probe.probe(Duration::from_millis(500))
-        } else {
-            NetworkState::Unknown
-        };
-        let initial_route = match policy {
-            RoutePolicy::Direct => ConnectionMode::Direct,
-            RoutePolicy::WebVpn => ConnectionMode::WebVpn,
-            RoutePolicy::Auto => row.auto_route_override.unwrap_or(match network {
-                NetworkState::Campus => ConnectionMode::Direct,
-                NetworkState::OffCampus => ConnectionMode::WebVpn,
-                NetworkState::Unknown => row.unknown_default,
-            }),
-        };
-        let mut resolution = RouteResolution {
-            mode: initial_route,
-            policy,
-            diagnostic: RouteDiagnostic::new(network, initial_route),
-        };
+        let mut resolution = resolve_route(policy, row, self.probe.as_ref());
+        let initial_route = resolution.mode;
         if !self.route_is_ready(initial_route)
             && policy == RoutePolicy::Auto
             && row.allow_ready_route_fallback
@@ -130,11 +103,22 @@ impl UbaaClient {
             })
     }
 
-    fn route_is_ready(&self, route: ConnectionMode) -> bool {
+    pub(super) fn runtime_for(&mut self, route: ConnectionMode) -> &mut ClientRuntime {
+        self.route_parts_for(route).0
+    }
+
+    pub(super) fn route_parts_for(
+        &mut self,
+        route: ConnectionMode,
+    ) -> (&mut ClientRuntime, &mut AuthWorkflow) {
         match route {
-            ConnectionMode::Direct => self.direct_runtime.has_local_session(),
-            ConnectionMode::WebVpn => self.webvpn_runtime.has_local_session(),
+            ConnectionMode::Direct => (&mut self.direct_runtime, &mut self.direct_auth),
+            ConnectionMode::WebVpn => (&mut self.webvpn_runtime, &mut self.webvpn_auth),
         }
+    }
+
+    fn route_is_ready(&mut self, route: ConnectionMode) -> bool {
+        self.runtime_for(route).has_local_session()
     }
 
     pub(super) fn finish_routed<T>(
@@ -170,29 +154,14 @@ impl UbaaClient {
     }
 
     fn clear_invalidated_route(&mut self, route: ConnectionMode) -> Result<()> {
-        match route {
-            ConnectionMode::Direct => {
-                let auth = &mut self.direct_auth;
-                self.direct_runtime.clear_with(|| auth.clear())
-            }
-            ConnectionMode::WebVpn => {
-                let auth = &mut self.webvpn_auth;
-                self.webvpn_runtime.clear_with(|| auth.clear())
-            }
-        }
+        let (runtime, auth) = self.route_parts_for(route);
+        runtime.clear_with(|| auth.clear())
     }
 
     fn clear_invalidated_route_memory(&mut self, route: ConnectionMode) {
-        match route {
-            ConnectionMode::Direct => {
-                self.direct_runtime.clear_memory();
-                self.direct_auth.clear();
-            }
-            ConnectionMode::WebVpn => {
-                self.webvpn_runtime.clear_memory();
-                self.webvpn_auth.clear();
-            }
-        }
+        let (runtime, auth) = self.route_parts_for(route);
+        runtime.clear_memory();
+        auth.clear();
     }
 
     pub(super) fn clear_all_memory(&mut self) {

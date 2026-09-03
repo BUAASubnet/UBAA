@@ -17,6 +17,9 @@ sha2 = "=0.10.9"
 tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
 ubaa-core = { path = "../ubaa-core" }
 
+[dev-dependencies]
+ubaa-test-support = { path = "../ubaa-test-support" }
+
 [lints.rust]
 unsafe_code = "deny"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

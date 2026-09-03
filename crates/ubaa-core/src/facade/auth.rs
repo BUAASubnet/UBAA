@@ -151,18 +151,8 @@ impl UbaaClient {
     }
 
     async fn prepare_route(&mut self, route: ConnectionMode) -> Result<()> {
-        match route {
-            ConnectionMode::Direct => {
-                self.direct_auth
-                    .prepare_login(&mut self.direct_runtime)
-                    .await
-            }
-            ConnectionMode::WebVpn => {
-                self.webvpn_auth
-                    .prepare_login(&mut self.webvpn_runtime)
-                    .await
-            }
-        }
+        let (runtime, auth) = self.route_parts_for(route);
+        auth.prepare_login(runtime).await
     }
 
     fn finish_route_login(
@@ -187,31 +177,14 @@ impl UbaaClient {
         route: ConnectionMode,
         input: LoginInput,
     ) -> Result<UserProfile> {
-        match route {
-            ConnectionMode::Direct => {
-                self.direct_auth
-                    .login(&mut self.direct_runtime, input)
-                    .await
-            }
-            ConnectionMode::WebVpn => {
-                self.webvpn_auth
-                    .login(&mut self.webvpn_runtime, input)
-                    .await
-            }
-        }
+        let (runtime, auth) = self.route_parts_for(route);
+        auth.login(runtime, input).await
     }
 
     async fn auth_status_route(&mut self, route: ConnectionMode) -> Result<AuthStatus> {
-        match route {
-            ConnectionMode::Direct => {
-                let mut clear_workflow = || self.direct_auth.clear();
-                user::auth_status(&mut self.direct_runtime, &mut clear_workflow).await
-            }
-            ConnectionMode::WebVpn => {
-                let mut clear_workflow = || self.webvpn_auth.clear();
-                user::auth_status(&mut self.webvpn_runtime, &mut clear_workflow).await
-            }
-        }
+        let (runtime, auth) = self.route_parts_for(route);
+        let mut clear_workflow = || auth.clear();
+        user::auth_status(runtime, &mut clear_workflow).await
     }
 
     pub(super) fn clear_on_session_conflict(&mut self) -> Result<()> {
