@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-import 'app_controller.dart';
-import 'backend.dart';
+import 'contracts/backend.dart';
+import 'controller/error_mapper.dart';
 
 typedef WriteCommitter = Future<WriteCommitResult> Function(String intentId);
 typedef WritePreparer = Future<WriteIntent> Function();
