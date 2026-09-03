@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::ConnectionMode;
 
-use super::StoredCookie;
+use super::cookies::StoredCookie;
 
 /// 可跨 CLI 进程持久化的会话快照。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]

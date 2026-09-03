@@ -1,0 +1,477 @@
+//! 用户、博雅、场馆、评教、图书馆与阳光打卡只读入口。
+
+use crate::domain::{
+    BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CgyyDayInfo,
+    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes, CgyyVenueSite,
+    ConnectionMode, EvaluationCoursesResponse, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookLibrary, LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
+};
+use crate::features::user;
+
+use super::super::client::UbaaClient;
+use super::super::routing::{invalid_input, routed_error};
+use super::super::types::{Operation, RoutedResult};
+
+impl UbaaClient {
+    /// 通过默认路线策略获取用户中心资料。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
+        let resolution = self.resolve_operation(Operation::User)?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                let mut clear_workflow = || self.direct_auth.clear();
+                user::get_user_info(&mut self.direct_runtime, &mut clear_workflow).await
+            }
+            ConnectionMode::WebVpn => {
+                let mut clear_workflow = || self.webvpn_auth.clear();
+                user::get_user_info(&mut self.webvpn_runtime, &mut clear_workflow).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅用户资料。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_profile(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_profile(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅课程分页。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效，或路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn bykc_courses(
+        &mut self,
+        page: i32,
+        size: i32,
+        all: bool,
+    ) -> RoutedResult<BykcCoursePage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        if page <= 0 || size <= 0 {
+            return Err(routed_error(
+                invalid_input("页码和每页数量必须为正数"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_courses(&mut self.direct_runtime, page, size, all).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_courses(&mut self.webvpn_runtime, page, size, all).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅课程详情。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效，或路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn bykc_course_detail(&mut self, id: i64) -> RoutedResult<BykcCourse> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        if id <= 0 {
+            return Err(routed_error(
+                invalid_input("课程标识必须为正数"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_course_detail(&mut self.direct_runtime, id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_course_detail(&mut self.webvpn_runtime, id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅已选课程。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn bykc_chosen_courses(&mut self) -> RoutedResult<Vec<BykcChosenCourse>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_chosen_courses(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_chosen_courses(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询博雅修读统计。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::bykc::get_statistics(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::bykc::get_statistics(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询全部评教课程。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::evaluation::get_all(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::evaluation::get_all(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆站点。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "sites.list");
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_sites(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_sites(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆用途类型。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_purpose_types(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "purposes.list");
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_purpose_types(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_purpose_types(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆用途并保留上游或静态回退来源诊断。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_purpose_types_diagnostics(&mut self) -> RoutedResult<CgyyPurposeTypes> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_purpose_types_with_source(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_purpose_types_with_source(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(
+            resolution,
+            result.map(|(items, source)| CgyyPurposeTypes { items, source }),
+        )
+    }
+
+    /// 查询场馆日期可用性。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效，或路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_day_info(&mut self, site_id: i32, date: &str) -> RoutedResult<CgyyDayInfo> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "day.info");
+        if site_id <= 0 || date.trim().is_empty() {
+            return Err(routed_error(
+                invalid_input("场馆站点和日期不能为空"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_day_info(&mut self.direct_runtime, site_id, date).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_day_info(&mut self.webvpn_runtime, site_id, date).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询我的场馆订单。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效，或路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_orders(&mut self, page: i32, size: i32) -> RoutedResult<CgyyOrdersPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.list");
+        if page < 0 || size <= 0 {
+            return Err(routed_error(invalid_input("分页参数无效"), resolution));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_orders(&mut self.direct_runtime, page, size).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_orders(&mut self.webvpn_runtime, page, size).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆订单详情。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效，或路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.detail");
+        if id <= 0 {
+            return Err(routed_error(
+                invalid_input("订单标识必须为正数"),
+                resolution,
+            ));
+        }
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_order_detail(&mut self.direct_runtime, id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_order_detail(&mut self.webvpn_runtime, id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询场馆订单锁码。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.lock_code");
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::cgyy::get_lock_code(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::cgyy::get_lock_code(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆楼馆列表。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn libbook_libraries(&mut self, day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_libraries(&mut self.direct_runtime, day).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_libraries(&mut self.webvpn_runtime, day).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆分区列表。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn libbook_areas(
+        &mut self,
+        premises_id: &str,
+        storey_id: Option<&str>,
+        day: &str,
+    ) -> RoutedResult<Vec<LibBookArea>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_areas(
+                    &mut self.direct_runtime,
+                    premises_id,
+                    storey_id,
+                    day,
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_areas(
+                    &mut self.webvpn_runtime,
+                    premises_id,
+                    storey_id,
+                    day,
+                )
+                .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆分区详情。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn libbook_area_detail(&mut self, area_id: &str) -> RoutedResult<LibBookAreaDetail> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_area_detail(&mut self.direct_runtime, area_id).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_area_detail(&mut self.webvpn_runtime, area_id).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆座位列表。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn libbook_seats(
+        &mut self,
+        area_id: &str,
+        day: &str,
+        start_time: &str,
+        end_time: &str,
+    ) -> RoutedResult<Vec<LibBookSeat>> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_seats(
+                    &mut self.direct_runtime,
+                    area_id,
+                    day,
+                    start_time,
+                    end_time,
+                )
+                .await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_seats(
+                    &mut self.webvpn_runtime,
+                    area_id,
+                    day,
+                    start_time,
+                    end_time,
+                )
+                .await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询当前用户的图书馆预约记录。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn libbook_bookings(
+        &mut self,
+        page: i32,
+        limit: i32,
+    ) -> RoutedResult<LibBookBookingsPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::libbook::get_bookings(&mut self.direct_runtime, page, limit).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::libbook::get_bookings(&mut self.webvpn_runtime, page, limit).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询阳光打卡概览。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::ygdk::get_overview(&mut self.direct_runtime).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::ygdk::get_overview(&mut self.webvpn_runtime).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询阳光打卡历史记录。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn ygdk_records(&mut self, page: i32, size: i32) -> RoutedResult<YgdkRecordsPage> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
+        let result = match resolution.mode {
+            ConnectionMode::Direct => {
+                crate::features::ygdk::get_records(&mut self.direct_runtime, page, size).await
+            }
+            ConnectionMode::WebVpn => {
+                crate::features::ygdk::get_records(&mut self.webvpn_runtime, page, size).await
+            }
+        };
+        self.finish_routed(resolution, result)
+    }
+}

@@ -4,9 +4,9 @@ use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::sync::MutexGuard;
 
-pub(crate) struct SessionFileLock<'a> {
-    pub(crate) _process_guard: MutexGuard<'a, ()>,
-    pub(crate) file: File,
+pub(super) struct SessionFileLock<'a> {
+    pub(super) _process_guard: MutexGuard<'a, ()>,
+    pub(super) file: File,
 }
 
 impl Drop for SessionFileLock<'_> {
@@ -15,24 +15,24 @@ impl Drop for SessionFileLock<'_> {
     }
 }
 
-pub(crate) struct TemporaryFile {
+pub(super) struct TemporaryFile {
     path: PathBuf,
     remove_on_drop: bool,
 }
 
 impl TemporaryFile {
-    pub(crate) fn new(path: PathBuf) -> Self {
+    pub(super) fn new(path: PathBuf) -> Self {
         Self {
             path,
             remove_on_drop: true,
         }
     }
 
-    pub(crate) fn path(&self) -> &Path {
+    pub(super) fn path(&self) -> &Path {
         &self.path
     }
 
-    pub(crate) fn persisted(&mut self) {
+    pub(super) fn persisted(&mut self) {
         self.remove_on_drop = false;
     }
 }

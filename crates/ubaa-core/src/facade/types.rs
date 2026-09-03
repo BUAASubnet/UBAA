@@ -4,6 +4,9 @@ use crate::connection::RouteResolution;
 use crate::domain::ReadonlyFeature;
 use crate::error::UbaaError;
 
+/// 普通路由 facade 操作返回的结果。
+pub type RoutedResult<T> = std::result::Result<Routed<T>, RoutedError>;
+
 /// 普通操作成功结果及 Core 作出的路线决策。
 #[derive(Clone, Debug)]
 pub struct Routed<T> {
@@ -43,7 +46,7 @@ impl std::error::Error for RoutedError {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) enum Operation {
+pub(super) enum Operation {
     User,
     Feature(ReadonlyFeature),
 }
