@@ -264,7 +264,7 @@ packages:
     source: hosted
     version: "0.7.10"
   ubaa_app:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       path: "../../packages/ubaa_app"
       relative: true
@@ -278,9 +278,16 @@ packages:
     source: path
     version: "0.1.0"
   ubaa_domain:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       path: "../../packages/ubaa_domain"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ubaa_host:
+    dependency: "direct main"
+    description:
+      path: "../../packages/ubaa_host"
       relative: true
     source: path
     version: "0.1.0"
@@ -292,7 +299,7 @@ packages:
     source: path
     version: "0.1.0"
   ubaa_ui:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       path: "../../packages/ubaa_ui"
       relative: true

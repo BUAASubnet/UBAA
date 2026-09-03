@@ -1,185 +1,27 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
-import 'package:ubaa_app/ubaa_app.dart';
+import 'package:flutter/widgets.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
+import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import 'package:ubaa_ui/ubaa_ui.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await RustLib.init();
-  assert(bridgeHello() == 'UBAA FRB 2.13.0 ready');
-  final capabilities = await createDefaultPlatformCapabilities();
-  runApp(
-    UbaaOhosApp(
-      credentialVault: capabilities.credentialVault,
-      photoPicker: capabilities.photoPicker,
-      permissionGateway: capabilities.permissionGateway,
-    ),
-  );
-}
+/// 保留 HarmonyOS 宿主的既有公开名称。
+typedef UbaaOhosApp = UbaaAppHost;
 
-/// HarmonyOS 的薄宿主入口。
+Future<void> main() => bootstrapUbaaOhosApp();
+
+/// 按固定顺序完成 HarmonyOS 宿主装配。
 ///
-/// 页面、主题与应用状态均来自共享 package；这里只负责组合平台实现。P0 已接通
-/// FRB hello，HUKS 凭据库和平台差异通过共享 package 注入，禁止在宿主复制协议
-/// 逻辑。生产入口不使用 Demo backend；初始化失败时显示安全的不可用状态。
-class UbaaOhosApp extends StatefulWidget {
-  const UbaaOhosApp({
-    this.backend,
-    this.credentialVault,
-    this.photoPicker,
-    this.permissionGateway,
-    this.initialTab = 0,
-    this.telemetry,
-    super.key,
-  });
-
-  final UbaaBackend? backend;
-  final CredentialVault? credentialVault;
-  final PlatformPhotoPicker? photoPicker;
-  final PlatformPermissionGateway? permissionGateway;
-  final int initialTab;
-  final TelemetryClient? telemetry;
-
-  @override
-  State<UbaaOhosApp> createState() => _UbaaOhosAppState();
-}
-
-class _UbaaOhosAppState extends State<UbaaOhosApp> with WidgetsBindingObserver {
-  late final AppController _controller;
-  bool _wasBackgrounded = false;
-
-  PlatformPhotoPicker? get _photoPicker {
-    final picker = widget.photoPicker;
-    if (picker == null) return null;
-    return PermissionedPhotoPicker(
-      permissions:
-          widget.permissionGateway ?? const UnavailablePermissionGateway(),
-      picker: picker,
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _controller = AppController(
-      backend: widget.backend ?? createProductionBackend(),
-      backendFactory: widget.backend == null ? createProductionBackend : null,
-      credentialVault: widget.credentialVault,
-      telemetry: widget.telemetry,
-    );
-    unawaited(_controller.initialize());
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      _wasBackgrounded = true;
-      return;
-    }
-    if (state == AppLifecycleState.resumed && _wasBackgrounded) {
-      _wasBackgrounded = false;
-      unawaited(_controller.rebuildBackend());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _controller,
-    builder: (context, _) => MaterialApp(
-      title: 'UBAA',
-      debugShowCheckedModeBanner: false,
-      theme: UbaaTheme.light(),
-      darkTheme: UbaaTheme.dark(),
-      themeMode: ThemeMode.system,
-      home: _buildHome(),
-    ),
-  );
-
-  Widget _buildHome() => switch (_controller.phase) {
-    AppPhase.splash || AppPhase.checkingSession => const UbaaSplashView(),
-    AppPhase.login || AppPhase.loggingIn => UbaaLoginView(
-      username: _controller.loginForm.username,
-      password: _controller.loginForm.password,
-      captcha: _controller.loginForm.captcha,
-      rememberPassword: _controller.loginForm.rememberPassword,
-      autoLogin: _controller.loginForm.autoLogin,
-      routePolicy: _controller.loginForm.routePolicy,
-      error: _controller.error,
-      isLoading: _controller.phase == AppPhase.loggingIn,
-      credentialPersistenceAvailable:
-          _controller.credentialPersistenceAvailable,
-      onUsernameChanged: _controller.setUsername,
-      onPasswordChanged: _controller.setPassword,
-      onCaptchaChanged: _controller.setCaptcha,
-      onRememberPasswordChanged: _controller.setRememberPassword,
-      onAutoLoginChanged: _controller.setAutoLogin,
-      onRoutePolicyChanged: (value) {
-        unawaited(_controller.setRoutePolicy(value));
-      },
-      onSubmit: () => unawaited(_controller.submitLogin()),
-    ),
-    AppPhase.home => UbaaMainShell(
-      user: _controller.user,
-      snapshots: _controller.snapshots,
-      routePolicy: _controller.loginForm.routePolicy,
-      activeRoutes: _controller.activeRoutes,
-      initialTab: widget.initialTab,
-      telemetryEnabled: _controller.telemetryEnabled,
-      onRefresh: _controller.refreshHome,
-      onRetryFeature: _controller.retryFeature,
-      onFeatureQuery: (feature, query) {
-        return _controller.refreshFeatureQuery(feature, query);
-      },
-      onPrepareBykcWrite: (operation, courseId) =>
-          _controller.prepareBykcWrite(operation, courseId),
-      onPrepareBykcSignWrite: _controller.prepareBykcSignWrite,
-      onPrepareSigninWrite: _controller.prepareSigninWrite,
-      onPrepareCancellationWrite: (operation, targetId) =>
-          _controller.prepareCancellationWrite(operation, targetId),
-      onPrepareLibbookReserveWrite:
-          ({
-            required areaId,
-            required seatId,
-            required day,
-            required segment,
-            required startTime,
-            required endTime,
-          }) => _controller.prepareLibbookReserveWrite(
-            areaId: areaId,
-            seatId: seatId,
-            day: day,
-            segment: segment,
-            startTime: startTime,
-            endTime: endTime,
-          ),
-      onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
-      onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
-      onPickYgdkPhoto: _photoPicker?.pickPhoto,
-      onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
-      onCommitWrite: _controller.commitWrite,
-      onWriteSuccess: _controller.refreshAfterWrite,
-      onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
-      onLogout: _controller.logout,
-      onLogoutAndClearAccount: () =>
-          _controller.logout(clearSavedCredential: true),
-      onRoutePolicyChanged: (value) {
-        unawaited(_controller.setRoutePolicy(value));
-      },
-      onTelemetryChanged: (value) {
-        unawaited(_controller.setTelemetryEnabled(value));
-      },
-    ),
-  };
-}
+/// 可注入的边界只用于验证入口 wiring；生产调用不传参数，始终使用真实平台实现。
+Future<void> bootstrapUbaaOhosApp({
+  void Function()? ensureInitialized,
+  Future<void> Function()? initializeRust,
+  String Function()? debugHello,
+  Future<PlatformCapabilities> Function()? createCapabilities,
+  void Function(Widget)? runApplication,
+}) => bootstrapUbaaHost(
+  ensureFlutterInitialized:
+      ensureInitialized ?? WidgetsFlutterBinding.ensureInitialized,
+  initializeSdk: initializeRust ?? RustLib.init,
+  debugHello: debugHello ?? bridgeHello,
+  createCapabilities: createCapabilities ?? createDefaultPlatformCapabilities,
+  runApplication: runApplication ?? runApp,
+);

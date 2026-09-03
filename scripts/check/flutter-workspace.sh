@@ -18,6 +18,7 @@ packages=(
   packages/ubaa_app
   packages/ubaa_ui
   packages/ubaa_bindings
+  packages/ubaa_host
   apps/ubaa_flutter
 )
 

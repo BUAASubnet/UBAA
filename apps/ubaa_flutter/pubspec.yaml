@@ -11,14 +11,10 @@ dependencies:
     sdk: flutter
   ubaa_bindings:
     path: ../../packages/ubaa_bindings
-  ubaa_app:
-    path: ../../packages/ubaa_app
-  ubaa_domain:
-    path: ../../packages/ubaa_domain
+  ubaa_host:
+    path: ../../packages/ubaa_host
   ubaa_platform:
     path: ../../packages/ubaa_platform
-  ubaa_ui:
-    path: ../../packages/ubaa_ui
 
 dev_dependencies:
   flutter_test:
@@ -26,6 +22,12 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  ubaa_app:
+    path: ../../packages/ubaa_app
+  ubaa_domain:
+    path: ../../packages/ubaa_domain
+  ubaa_ui:
+    path: ../../packages/ubaa_ui
 
 flutter:
   uses-material-design: true

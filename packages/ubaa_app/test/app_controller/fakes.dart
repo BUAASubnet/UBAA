@@ -165,6 +165,7 @@ class _RebuildBackend
   final bool signedIn;
   final List<ConnectionMode> activeRoutes;
   bool disposed = false;
+  int disposeCalls = 0;
 
   @override
   Future<AuthStatus> authStatus() async =>
@@ -195,7 +196,24 @@ class _RebuildBackend
 
   @override
   Future<void> dispose() async {
+    disposeCalls++;
     disposed = true;
+  }
+}
+
+class _BlockingDisposeBackend extends _RebuildBackend {
+  _BlockingDisposeBackend()
+    : super(signedIn: false, activeRoutes: const <ConnectionMode>[]);
+
+  final Completer<void> disposeStarted = Completer<void>();
+  final Completer<void> releaseDispose = Completer<void>();
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls++;
+    disposed = true;
+    if (!disposeStarted.isCompleted) disposeStarted.complete();
+    await releaseDispose.future;
   }
 }
 

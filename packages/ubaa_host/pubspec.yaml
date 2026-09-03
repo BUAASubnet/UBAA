@@ -1,0 +1,24 @@
+name: ubaa_host
+description: UBAA Flutter 与 HarmonyOS 共用的宿主组合层。
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.5
+  flutter: '>=3.41.9'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ubaa_app:
+    path: ../ubaa_app
+  ubaa_platform:
+    path: ../ubaa_platform
+  ubaa_ui:
+    path: ../ubaa_ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  ubaa_domain:
+    path: ../ubaa_domain

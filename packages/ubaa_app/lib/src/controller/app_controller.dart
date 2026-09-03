@@ -82,6 +82,10 @@ class AppController extends ChangeNotifier {
   List<ConnectionMode> _activeRoutes = const <ConnectionMode>[];
   bool _rebuildingBackend = false;
 
+  /// Expando 按实例身份关联释放 Future，且不会因去重表阻止已释放
+  /// backend 被回收。
+  final Expando<Future<void>> _backendDisposals = Expando<Future<void>>();
+
   AppPhase get phase => _phase;
   LoginFormState get loginForm => _loginForm;
   UserSummary? get user => _user;
@@ -167,20 +171,16 @@ class AppController extends ChangeNotifier {
         return false;
       }
       final previous = _backend;
-      if (previous case final BackendLifecycle lifecycle) {
-        try {
-          await lifecycle.dispose();
-        } on Object {
-          // 新实例已经创建；旧实例清理失败不能让新实例继续持有旧状态。
-        }
+      try {
+        await _disposeBackendOnce(previous);
+      } on Object {
+        // 新实例已经创建；旧实例清理失败不能让新实例继续持有旧状态。
       }
       if (_disposed) {
-        if (replacement case final BackendLifecycle lifecycle) {
-          try {
-            await lifecycle.dispose();
-          } on Object {
-            // controller 已销毁时尽力释放新实例，不能向 UI 抛出异常。
-          }
+        try {
+          await _disposeBackendOnce(replacement);
+        } on Object {
+          // controller 已销毁时尽力释放新实例，不能向 UI 抛出异常。
         }
         return false;
       }
@@ -892,12 +892,31 @@ class AppController extends ChangeNotifier {
     return 'gte_5s';
   }
 
+  Future<void> _disposeBackendOnce(UbaaBackend backend) {
+    final existing = _backendDisposals[backend];
+    if (existing != null) return existing;
+    if (backend is! BackendLifecycle) return Future<void>.value();
+    final lifecycle = backend as BackendLifecycle;
+
+    final completer = Completer<void>();
+    _backendDisposals[backend] = completer.future;
+    try {
+      lifecycle.dispose().then<void>(
+        (_) => completer.complete(),
+        onError: (Object error, StackTrace stackTrace) {
+          completer.completeError(error, stackTrace);
+        },
+      );
+    } on Object catch (error, stackTrace) {
+      completer.completeError(error, stackTrace);
+    }
+    return completer.future;
+  }
+
   @override
   void dispose() {
     _disposed = true;
-    if (_backend case final BackendLifecycle lifecycle) {
-      unawaited(lifecycle.dispose().catchError((_) {}));
-    }
+    unawaited(_disposeBackendOnce(_backend).catchError((_) {}));
     super.dispose();
   }
 }

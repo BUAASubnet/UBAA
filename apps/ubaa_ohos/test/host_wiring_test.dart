@@ -1,0 +1,49 @@
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_ohos/main.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
+
+void main() {
+  test('OHOS 入口按固定顺序委托共享宿主', () async {
+    final events = <String>[];
+    final capabilities = PlatformCapabilities(
+      credentialVault: MemoryCredentialVault(),
+      photoPicker: MemoryPhotoPicker(),
+      permissionGateway: MemoryPermissionGateway(),
+    );
+    Widget? launchedApp;
+
+    await bootstrapUbaaOhosApp(
+      ensureInitialized: () {
+        events.add('ensureInitialized');
+      },
+      initializeRust: () async {
+        events.add('RustLib.init');
+      },
+      debugHello: () {
+        events.add('bridgeHello');
+        return 'UBAA FRB 2.13.0 ready';
+      },
+      createCapabilities: () async {
+        events.add('createCapabilities');
+        return capabilities;
+      },
+      runApplication: (app) {
+        events.add('runApp');
+        launchedApp = app;
+      },
+    );
+
+    expect(events, <String>[
+      'ensureInitialized',
+      'RustLib.init',
+      'bridgeHello',
+      'createCapabilities',
+      'runApp',
+    ]);
+    final host = launchedApp! as UbaaOhosApp;
+    expect(host.credentialVault, same(capabilities.credentialVault));
+    expect(host.photoPicker, same(capabilities.photoPicker));
+    expect(host.permissionGateway, same(capabilities.permissionGateway));
+  });
+}

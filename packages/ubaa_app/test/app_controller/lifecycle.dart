@@ -53,4 +53,29 @@ void _registerLifecycleTests() {
     expect(controller.phase, AppPhase.login);
     controller.dispose();
   });
+
+  test('controller 销毁与 backend 重建并发时每个 backend 只释放一次', () async {
+    final first = _BlockingDisposeBackend();
+    final replacement = _RebuildBackend(
+      signedIn: false,
+      activeRoutes: const <ConnectionMode>[],
+    );
+    final controller = AppController(
+      backend: first,
+      backendFactory: () => replacement,
+    );
+    await controller.initialize();
+
+    final rebuilding = controller.rebuildBackend();
+    await first.disposeStarted.future;
+    controller.dispose();
+    await Future<void>.delayed(Duration.zero);
+    final firstCallsWhileBlocked = first.disposeCalls;
+
+    first.releaseDispose.complete();
+    expect(await rebuilding, isFalse);
+    expect(firstCallsWhileBlocked, 1);
+    expect(first.disposeCalls, 1);
+    expect(replacement.disposeCalls, 1);
+  });
 }

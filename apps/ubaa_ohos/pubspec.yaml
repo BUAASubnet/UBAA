@@ -12,17 +12,17 @@ dependencies:
     sdk: flutter
   ubaa_bindings:
     path: ../../packages/ubaa_bindings
-  ubaa_app:
-    path: ../../packages/ubaa_app
+  ubaa_host:
+    path: ../../packages/ubaa_host
   ubaa_platform:
     path: ../../packages/ubaa_platform
-  ubaa_ui:
-    path: ../../packages/ubaa_ui
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  ubaa_app:
+    path: ../../packages/ubaa_app
 
 flutter:
   uses-material-design: true
