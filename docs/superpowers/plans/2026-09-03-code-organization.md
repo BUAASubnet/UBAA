@@ -32,8 +32,9 @@
 | 02 | refs 纯校验、脚本分类与 layout 棘轮 | checker 不存在的合同测试失败 | `build: 建立结构棘轮并按副作用整理脚本` | 已提交：`c345f4a` |
 | 03A | Test Support fixture 注册表 | 三个 Cgyy fixture 未注册的 focused test 失败 | `test: 完整登记脱敏只读 fixture` | 已提交：`ce69c26` |
 | 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 已提交：`8d60bb9` |
-| 04A | CLI 合同测试镜像 | CLI schema/stdout/stderr/exit characterization | `test(cli): 按宿主合同拆分 CLI characterization` | 已验证待提交 |
-| 04B | CLI 命令、backend、执行与 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域拆分命令与执行层` | 待执行 |
+| 04A | CLI 合同测试镜像 | CLI schema/stdout/stderr/exit characterization | `test(cli): 按宿主合同拆分 CLI characterization` | 已提交：`60fe3e3` |
+| 04B1 | CLI 命令参数与现有 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域归档命令与 IO` | 已验证待提交 |
+| 04B2 | CLI backend 与执行层 | 04B1 行为基线及公开 API 集合 | `refactor(cli): 按领域拆分 backend 与执行层` | 待执行 |
 | 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 待执行 |
 | 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 待执行 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
@@ -154,13 +155,22 @@ focused：`cargo test --locked -p ubaa-test-support --all-targets`，并核对�
 - `tests/cli_contract/help.rs`、`routing.rs`、`writes.rs` 固定 Clap/help、fixed/routed 与写确认阻止。
 - 保留 23 个测试叶子；退出测试通过公开 renderer 覆盖全部错误码、JSON/human 输出和 writer failure。
 
-04B 只执行命令、backend、dispatcher 与现有 IO 的机械拆分：
+04B 只执行命令、backend、dispatcher 与现有 IO 的机械拆分。为避免把参数归档与 2598 行执行器迁移放入同一
+审查单元，拆为两个连续提交：
 
-- 参数移入 `command/` 的 8 个领域文件；`commands.rs` 成为 `command/mod.rs`。
-- 两个 backend trait/adapter 移入 `backend/{mod,fixed,routed}.rs`。
-- dispatcher 移入 `execute/{mod,aggregate,fixed,routed}.rs`；领域 handler 移入明确列出的 7 个文件。
-- 现有输入、渲染与 command output 移入 `io/`；本阶段仍消费 Core 的 output/exit 合同，不夹带所有权变更。
-- `lib.rs` 只保留声明与稳定 CLI 测试入口；从 baseline 删除 `lib.rs`。
+- 04B1：参数移入 `command/` 的 8 个领域文件，`commands.rs` 成为 `command/mod.rs`；现有输入、渲染与 command
+  output 移入 `io/`。本阶段仍消费 Core 的 output/exit 合同，不夹带所有权变更。
+- 04B2：两个 backend trait 与默认不可用错误构造归 `backend/mod.rs`，`fixed.rs`、`routed.rs` 只保留对应
+  Core adapter；renderer 与错误投影归 `io/error.rs`；dispatcher 移入
+  `execute/{mod,aggregate,fixed,routed}.rs`，共享只读投影归 `execute/mod.rs`，领域 handler 移入明确列出的 7 个
+  文件。七个领域文件同时容纳 fixed/routed handler，Auth/User 留在 dispatcher，双路线认证/状态/注销归
+  `aggregate.rs`。`lib.rs` 只保留声明与稳定 CLI 测试入口，并从 baseline 删除 `lib.rs`。
+
+04B2 的依赖方向固定为：`command`、`routing`、`io` 是基础层；`backend` 只依赖 Core 与 `io`，禁止依赖
+`execute`；`execute/features` 依赖 `backend`、`command` 与 `io`；fixed/routed/aggregate dispatcher 依赖
+features；`io` 禁止反向依赖 backend/execute。内部代码直接使用真实模块路径，不得经 crate 根 re-export
+回指。根级全部公开参数类型、两个 backend trait、`ReadonlyRouteContext`、六个执行入口及
+`render_startup_error` 保持原路径和可见性，`CommandOutput` 仍仅为 `pub(crate)`，领域 handler 不扩大到 crate 根。
 
 04C 先加入 Core 不再公开 output/exit 的源码架构断言并观察预期失败，再把 Core `output.rs` 与
 `ErrorCode::exit_code` 原样迁入 CLI，删除 Core 导出与 Core 中仅为 CLI 存在的测试；不得改变 JSON schema、

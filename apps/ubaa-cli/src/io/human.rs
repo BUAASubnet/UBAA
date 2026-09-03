@@ -5,7 +5,7 @@ use std::io::{self, Write};
 use serde_json::{Value, json};
 use ubaa_core::domain::{AuthStatus, CgyyLockCode, UserProfile};
 
-use crate::CommandOutput;
+use super::schema::CommandOutput;
 
 pub(crate) fn safe_lock_code_value(data: &CgyyLockCode) -> Value {
     json!({"available": data.available})

@@ -6,7 +6,7 @@ use ubaa_core::domain::{AuthStatus, ConnectionMode, FeatureResult, UserProfile};
 use ubaa_core::error::Result;
 use ubaa_core::output::CliFeature;
 
-use crate::input::internal_error;
+use crate::io::input::internal_error;
 
 pub(crate) fn readonly<T: Serialize>(
     result: FeatureResult<T>,

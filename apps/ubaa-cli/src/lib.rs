@@ -29,55 +29,28 @@ use ubaa_core::output::{
 
 mod routing;
 pub use routing::ReadonlyRouteContext;
-mod login_args;
-pub use login_args::LoginArgs;
-mod render;
-use render::{
+mod command;
+use command::command_feature;
+pub use command::{
+    AuthArgs, AuthCommand, BykcArgs, BykcCommand, CgyyArgs, CgyyCommand, ClassroomArgs,
+    ClassroomCommand, Cli, CliConnectionMode, Command, EvaluationArgs, EvaluationCommand, ExamArgs,
+    ExamCommand, GradesArgs, GradesCommand, JudgeArgs, JudgeAssignmentCommand, JudgeCommand,
+    LibBookArgs, LibBookCommand, LoginArgs, ScheduleArgs, ScheduleCommand, SigninArgs,
+    SigninCommand, SpocArgs, SpocAssignmentCommand, SpocCommand, UserArgs, UserCommand, YgdkArgs,
+    YgdkCommand,
+};
+mod io;
+use io::human::{
     redacted_profile, redacted_status, render_human, safe_lock_code_value, write_profile,
 };
-mod input;
-use input::{
+use io::input::{
     build_ygdk_request, internal_error, invalid_input, prompt_line, read_cgyy_request_stdin,
     read_evaluation_payload, read_secret_line, write_json,
 };
-mod connection_mode;
-pub use connection_mode::CliConnectionMode;
-mod commands;
-pub use commands::{Cli, Command};
+pub(crate) use io::schema::CommandOutput;
+use io::schema::{command_output_value, readonly};
 mod execution;
-use execution::command_feature;
 pub use execution::run_with_backend;
-mod command_output;
-pub(crate) use command_output::CommandOutput;
-use command_output::{command_output_value, readonly};
-mod cgyy_args;
-pub use cgyy_args::{CgyyArgs, CgyyCommand};
-mod bykc_args;
-pub use bykc_args::{BykcArgs, BykcCommand};
-mod evaluation_args;
-pub use evaluation_args::{EvaluationArgs, EvaluationCommand};
-mod libbook_args;
-pub use libbook_args::{LibBookArgs, LibBookCommand};
-mod ygdk_args;
-pub use ygdk_args::{YgdkArgs, YgdkCommand};
-mod signin_args;
-pub use signin_args::{SigninArgs, SigninCommand};
-mod auth_args;
-pub use auth_args::{AuthArgs, AuthCommand};
-mod schedule_args;
-pub use schedule_args::{ScheduleArgs, ScheduleCommand};
-mod user_args;
-pub use user_args::{UserArgs, UserCommand};
-mod exam_args;
-pub use exam_args::{ExamArgs, ExamCommand};
-mod grades_args;
-pub use grades_args::{GradesArgs, GradesCommand};
-mod classroom_args;
-pub use classroom_args::{ClassroomArgs, ClassroomCommand};
-mod spoc_args;
-pub use spoc_args::{SpocArgs, SpocAssignmentCommand, SpocCommand};
-mod judge_args;
-pub use judge_args::{JudgeArgs, JudgeAssignmentCommand, JudgeCommand};
 
 /// 命令执行所需的认证门面。
 #[async_trait]
@@ -2582,12 +2555,16 @@ pub fn render_startup_error<O: Write, E: Write>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CgyyLockCode, safe_lock_code_value};
+    use serde_json::json;
 
     #[test]
     fn sensitive_mask_handles_unicode_without_byte_slicing() {
-        assert_eq!(crate::render::mask_sensitive("ABCD1234"), "AB****34");
-        assert_eq!(crate::render::mask_sensitive("北航用户甲乙"), "北航**甲乙");
+        assert_eq!(crate::io::human::mask_sensitive("ABCD1234"), "AB****34");
+        assert_eq!(
+            crate::io::human::mask_sensitive("北航用户甲乙"),
+            "北航**甲乙"
+        );
     }
 
     #[test]

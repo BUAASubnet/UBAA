@@ -1,13 +1,34 @@
+//! CLI 命令树与领域参数。
+
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+use ubaa_core::domain::ConnectionMode;
+use ubaa_core::output::CliFeature;
 
-use super::execution::command_feature;
-use super::{
-    AuthArgs, BykcArgs, CgyyArgs, ClassroomArgs, EvaluationArgs, ExamArgs, GradesArgs, JudgeArgs,
-    LibBookArgs, ScheduleArgs, SigninArgs, SpocArgs, UserArgs, YgdkArgs,
+mod academic;
+mod assignments;
+mod auth;
+mod bykc;
+mod cgyy;
+mod evaluation;
+mod libbook;
+mod ygdk;
+
+pub use academic::{
+    ClassroomArgs, ClassroomCommand, ExamArgs, ExamCommand, GradesArgs, GradesCommand,
+    ScheduleArgs, ScheduleCommand,
 };
-use super::{AuthCommand, CliFeature, ConnectionMode, UserCommand};
+pub use assignments::{
+    JudgeArgs, JudgeAssignmentCommand, JudgeCommand, SigninArgs, SigninCommand, SpocArgs,
+    SpocAssignmentCommand, SpocCommand,
+};
+pub use auth::{AuthArgs, AuthCommand, CliConnectionMode, LoginArgs, UserArgs, UserCommand};
+pub use bykc::{BykcArgs, BykcCommand};
+pub use cgyy::{CgyyArgs, CgyyCommand};
+pub use evaluation::{EvaluationArgs, EvaluationCommand};
+pub use libbook::{LibBookArgs, LibBookCommand};
+pub use ygdk::{YgdkArgs, YgdkCommand};
 
 /// UBAA 命令行接口。
 #[derive(Debug, Parser)]
@@ -136,5 +157,24 @@ impl Cli {
     #[must_use]
     pub const fn feature(&self) -> CliFeature {
         command_feature(&self.command)
+    }
+}
+
+pub(crate) const fn command_feature(command: &Command) -> CliFeature {
+    match command {
+        Command::Auth(_) => CliFeature::Auth,
+        Command::User(_) => CliFeature::User,
+        Command::Schedule(_) => CliFeature::Schedule,
+        Command::Exam(_) => CliFeature::Exam,
+        Command::Grades(_) => CliFeature::Grades,
+        Command::Classroom(_) => CliFeature::Classroom,
+        Command::Spoc(_) => CliFeature::Spoc,
+        Command::Judge(_) => CliFeature::Judge,
+        Command::Signin(_) => CliFeature::Signin,
+        Command::Libbook(_) => CliFeature::LibBook,
+        Command::Bykc(_) => CliFeature::Bykc,
+        Command::Cgyy(_) => CliFeature::Cgyy,
+        Command::Ygdk(_) => CliFeature::Ygdk,
+        Command::Evaluation(_) => CliFeature::Evaluation,
     }
 }
