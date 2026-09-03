@@ -3,9 +3,9 @@
 file	packages/ubaa_ui/lib/src/widgets.dart	4046
 file	packages/ubaa_ui/test/widgets_test.dart	3216
 file	packages/ubaa_app/lib/src/bridge_backend.dart	1830
-file	crates/ubaa-core/src/features/cgyy.rs	1700
+file	crates/ubaa-core/src/features/cgyy.rs	1731
 file	crates/ubaa-flutter-bridge/src/api/read.rs	1652
 file	packages/ubaa_app/test/app_controller_test.dart	1499
-file	crates/ubaa-core/src/features/judge.rs	1423
-file	crates/ubaa-core/src/features/spoc.rs	1417
-dir	crates/ubaa-core/src/features	20
+file	crates/ubaa-core/src/features/judge.rs	1391
+file	crates/ubaa-core/src/features/spoc.rs	1407
+dir	crates/ubaa-core/src/features	18

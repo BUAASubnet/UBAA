@@ -40,7 +40,7 @@
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 已提交：`60b210b` |
 | 06A | route selector | 20 格路线矩阵、9 格优先级、Bridge prepare/commit | `refactor(core): 集中路线解析与 runtime 选择` | characterization `0fcf8d5`、实现 `397bbc8` 已提交；结构棘轮与全量门禁通过 |
 | 06A2 | Bridge intent 锁序 | 重新登录失效旧 intent 的并发 RED | `fix(bridge): 原子失效并发写入意图` | 已提交：`5117eb6`；11 个 bridge 写测试与严格 Clippy 通过 |
-| 06B | route state | Arc/generation/TTL/fork/concurrency 矩阵 | `refactor(core): 下沉路线状态并消除依赖环` | characterization 已提交：`941eb16`；并发修复与机械下沉待执行 |
+| 06B | route state | Arc/generation/TTL/fork/concurrency 矩阵 | `refactor(core): 下沉路线状态并消除依赖环` | 已完成：`941eb16`、`1a096a6`、`df589f2`、`62d33fe`、`74328e9`、`b110827`、`e769ec8`、`0c6273d`；108 个 Core 单元测试与严格全目标 Clippy 通过 |
 | 06C | facade/test-contract | 生产宿主旁路 compile-fail RED | `refactor(core): 用 facade 封闭宿主与测试边界` | 待执行 |
 | 07A | Cgyy 目录化 | Cgyy parser/request/cache tests | `refactor(core): 按职责拆分 Cgyy` | 待执行 |
 | 07B | Judge 目录化 | batch/cache/calendar tests | `refactor(core): 按职责拆分 Judge` | 待执行 |
