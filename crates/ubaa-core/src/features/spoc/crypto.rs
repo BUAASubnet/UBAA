@@ -4,7 +4,7 @@ use aes::Aes128;
 use aes::cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
 use base64::Engine as _;
 
-pub(crate) fn encrypt_param(plain: &str) -> String {
+pub(super) fn encrypt_param(plain: &str) -> String {
     let mut bytes = plain.as_bytes().to_vec();
     let padding = (16 - bytes.len() % 16) % 16;
     bytes.resize(bytes.len() + padding, 0);

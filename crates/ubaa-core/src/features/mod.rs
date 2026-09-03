@@ -11,7 +11,6 @@ pub(crate) mod libbook_crypto;
 pub mod schedule;
 pub mod signin;
 pub mod spoc;
-pub(crate) mod spoc_crypto;
 pub(crate) use crate::internal::route_state as state;
 pub(crate) mod user;
 pub mod ygdk;
