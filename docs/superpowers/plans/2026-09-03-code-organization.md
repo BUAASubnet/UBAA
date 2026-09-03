@@ -48,8 +48,8 @@
 | 07D | Bykc 目录化 | crypto/request/semester tests | `refactor(core): 按职责拆分 Bykc` | 已提交：`4e358b4` |
 | 07E | Libbook 目录化 | parser/crypto/request tests | `refactor(core): 归档 Libbook 服务与算法` | 已提交：`f1abc7c` |
 | 07F | Ygdk 目录化 | parser/upload/request tests | `refactor(core): 归档 Ygdk 服务与上传` | 已提交：`d1741f0`；结构基线 `c42ffe4` |
-| 08 | FRB 手写 read API | schema snapshot、解释后的首次生成差异与二次零漂移 | `refactor(bridge): 分离读取 DTO 方法与映射` | 待执行 |
-| 09 | Flutter 测试镜像 | 三个超千行测试入口 baseline | `test(flutter): 按领域拆分应用与宿主测试` | 待执行 |
+| 08 | FRB 手写 read API | schema snapshot、解释后的首次生成差异与二次零漂移 | `refactor(bridge): 分离读取 DTO 方法与映射` | 已提交：`2cc1745`；Cargo/Clippy、11 项 Dart schema/API、两次 codegen 零漂移、独立复审通过 |
+| 09 | Flutter 测试镜像 | 三个超千行测试入口 baseline | `test(flutter): 按领域拆分应用与宿主测试` | 已提交：`6e66a41`；UI 49、App 31、macOS integration 6，26 个 golden 零变化，独立复审通过 |
 | 10A | domain/app/bridge 拆分 | package focused tests 绿色 | `refactor(flutter): 建立领域与应用所有权` | 待执行 |
 | 10B | ubaa_host package | 宿主 wiring 一致性测试 RED | `refactor(flutter): 抽取共享宿主组合根` | 待执行 |
 | 11A | Bykc 选课资格 | 操作级来源对照与字符串漂移 RED | `refactor(flutter): typed 化博雅选课资格` | 待执行 |
