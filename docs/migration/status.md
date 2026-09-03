@@ -10,7 +10,7 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| implementation HEAD | `0a16276` | 代码组织阶段 11B：博雅退选资格由 Core typed action 贯通 Bridge/Domain/App/UI，并以课程本体 ID 在 prepare/commit fail-closed 复核目标、路线与资格 |
+| implementation HEAD | `a147132` | 代码组织阶段 11B2：Bridge 写入层按 DTO/pending、prepare、commit、support 与领域测试完成目录化，公开 `api::write` 合同不变 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -54,6 +54,10 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   sensitive、完整 `just check`、完整 `just flutter-check`、FRB 零漂移和两侧独立复审均通过。macOS integration
   首轮课表 typed 查询出现一次不可复现的 `null`，同一单例随后 1/1、完整套件随后 6/6 通过；没有证据把该
   波动归因于本阶段 Bykc 变更。这仍只是本地确定性阶段证据，不是新的 live、签名或设备证据。
+- `a147132` 上的阶段 11B2 将 Bridge 写入层从 893 行生产文件与 925 行测试文件拆为职责模块；最大生产文件
+  294 行、最大测试叶 425 行。14 个公开类型、11 个公开异步方法、20 个写测试叶及其行为集合保持不变，
+  Bridge 24 项、完整 `just check`、完整 `just flutter-check`、连续两次 FRB 零漂移、refs、layout、689 文件
+  sensitive 与两侧独立复审均通过；生成绑定只发生一行私有 helper 忽略注释的可解释变化。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -70,7 +74,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11B2、11C–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11C–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

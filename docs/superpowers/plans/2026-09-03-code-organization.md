@@ -54,7 +54,7 @@
 | 10B | ubaa_host package | 宿主 wiring 一致性测试 RED | `refactor(flutter): 抽取共享宿主组合根` | 已提交：`324979e`；共享入口、完整 callback、生命周期竞态、三平台产物与 OHOS API26 门禁通过 |
 | 11A | Bykc 选课资格 | 缺字段、目标错配、提交前资格漂移与展示字符串漂移 RED | `refactor(flutter): typed 化博雅选课资格` | 已提交：`c76a81a`；Core/Bridge typed 资格、prepare/commit fail-closed、FRB/Domain/App/UI 映射、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B | Bykc 退选资格 | 操作级来源对照与未知状态 RED | `refactor(flutter): typed 化博雅退选资格` | 已提交：`0a16276`；inner course ID、Core/Bridge 双复核、FRB/Domain/App/UI typed action、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
-| 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 待执行 |
+| 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 已提交：`a147132`；最大生产文件 294 行、最大测试叶 425 行，完整 Rust/Flutter 门禁与双重独立复审通过 |
 | 11C | Bykc 签到资格 | 操作级来源对照与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 待执行 |
 | 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 待执行 |
 | 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 待执行 |
