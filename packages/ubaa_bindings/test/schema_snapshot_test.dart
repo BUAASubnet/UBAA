@@ -11,6 +11,26 @@ void main() {
   final read = File('lib/src/rust/api/read.dart').readAsStringSync();
   final write = File('lib/src/rust/api/write.dart').readAsStringSync();
 
+  test('生成读取 API 保持单一 canonical 输出文件', () {
+    const apiRoot = 'lib/src/rust/api/';
+    final readArtifacts =
+        Directory(apiRoot)
+            .listSync(recursive: true, followLinks: false)
+            .whereType<File>()
+            .map((file) => file.path.replaceAll('\\', '/'))
+            .map((path) {
+              final rootIndex = path.lastIndexOf(apiRoot);
+              return rootIndex == -1
+                  ? path
+                  : path.substring(rootIndex + apiRoot.length);
+            })
+            .where((path) => path == 'read.dart' || path.startsWith('read/'))
+            .toList()
+          ..sort();
+
+    expect(readArtifacts, const <String>['read.dart']);
+  });
+
   test('BridgeClient 暴露认证、路线、全部读取和写入入口', () {
     const methods = <String>[
       'authStatus',
@@ -192,6 +212,60 @@ void main() {
     ];
     for (final name in allDtoNames) {
       expect(read, contains('class $name'), reason: '生成 DTO 缺少 $name');
+    }
+  });
+
+  test('生成 DTO 快照固定全部公开读取枚举', () {
+    const enums = <String, List<String>>{
+      'BridgeBykcCourseCategory': <String>['boya', 'unknown'],
+      'BridgeBykcCourseStatus': <String>[
+        'expired',
+        'selected',
+        'preview',
+        'ended',
+        'full',
+        'available',
+      ],
+      'BridgeBykcCourseSubCategory': <String>[
+        'moral',
+        'aesthetic',
+        'labor',
+        'safetyHealth',
+        'other',
+        'unknown',
+      ],
+      'BridgeCgyyPurposeSource': <String>['upstream', 'staticFallback'],
+      'BridgeJudgeSubmissionStatus': <String>[
+        'submitted',
+        'partial',
+        'unsubmitted',
+        'unknown',
+      ],
+      'BridgeSpocSubmissionStatus': <String>[
+        'submitted',
+        'unsubmitted',
+        'unknown',
+      ],
+    };
+    final enumNames = RegExp(
+      r'^enum (Bridge[A-Za-z0-9]+)\b',
+      multiLine: true,
+    ).allMatches(read).map((match) => match.group(1)!).toSet();
+
+    expect(enumNames, enums.keys.toSet());
+    for (final entry in enums.entries) {
+      final declaration = RegExp(
+        'enum ${RegExp.escape(entry.key)}\\s*\\{(?<body>[^}]*)\\}',
+        dotAll: true,
+      ).firstMatch(read);
+      expect(declaration, isNotNull, reason: '生成 DTO 缺少 ${entry.key}');
+      final values = declaration!
+          .namedGroup('body')!
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+      expect(values, entry.value, reason: '${entry.key} 成员发生漂移');
     }
   });
 

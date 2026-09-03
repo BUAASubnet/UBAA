@@ -1,0 +1,662 @@
+//! Core 读取 DTO 到稳定 FRB 投影的显式字段映射。
+
+use ubaa_core::facade as domain;
+
+use super::{
+    BridgeBykcChosenCourse, BridgeBykcCourse, BridgeBykcCourseCategory, BridgeBykcCoursePage,
+    BridgeBykcCourseStatus, BridgeBykcCourseSubCategory, BridgeBykcSignConfig, BridgeBykcSignPoint,
+    BridgeBykcStatistic, BridgeBykcStatistics, BridgeBykcUserProfile, BridgeCgyyDayInfo,
+    BridgeCgyyLockCode, BridgeCgyyOrder, BridgeCgyyOrdersPage, BridgeCgyyPurposeSource,
+    BridgeCgyyPurposeType, BridgeCgyyPurposeTypes, BridgeCgyySlotStatus,
+    BridgeCgyySpaceAvailability, BridgeCgyyTimeSlot, BridgeCgyyVenueSite, BridgeClassroomFloor,
+    BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeEvaluationCourse,
+    BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam, BridgeExamArrangement,
+    BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail, BridgeJudgeAssignmentSummary,
+    BridgeJudgeProblem, BridgeJudgeSubmissionStatus, BridgeLibBookArea, BridgeLibBookAreaDetail,
+    BridgeLibBookBooking, BridgeLibBookBookingsPage, BridgeLibBookLibrary, BridgeLibBookSeat,
+    BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
+    BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
+    BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
+    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkTermSummary,
+};
+
+// 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
+pub(super) fn map_terms(values: Vec<domain::Term>) -> Vec<BridgeTerm> {
+    values
+        .into_iter()
+        .map(|v| BridgeTerm {
+            item_code: v.item_code,
+            item_name: v.item_name,
+            selected: v.selected,
+            item_index: v.item_index,
+        })
+        .collect()
+}
+pub(super) fn map_weeks(values: Vec<domain::Week>) -> Vec<BridgeWeek> {
+    values
+        .into_iter()
+        .map(|v| BridgeWeek {
+            start_date: v.start_date,
+            end_date: v.end_date,
+            term: v.term,
+            cur_week: v.cur_week,
+            serial_number: v.serial_number,
+            name: v.name,
+        })
+        .collect()
+}
+fn map_course(v: domain::CourseClass) -> BridgeCourseClass {
+    BridgeCourseClass {
+        course_code: v.course_code,
+        course_name: v.course_name,
+        course_serial_no: v.course_serial_no,
+        credit: v.credit,
+        begin_time: v.begin_time,
+        end_time: v.end_time,
+        begin_section: v.begin_section,
+        end_section: v.end_section,
+        place_name: v.place_name,
+        weeks_and_teachers: v.weeks_and_teachers,
+        teaching_target: v.teaching_target,
+        color: v.color,
+        day_of_week: v.day_of_week,
+    }
+}
+pub(super) fn map_weekly_schedule(v: domain::WeeklySchedule) -> BridgeWeeklySchedule {
+    BridgeWeeklySchedule {
+        arranged_list: v.arranged_list.into_iter().map(map_course).collect(),
+        code: v.code,
+        name: v.name,
+    }
+}
+pub(super) fn map_today_classes(values: Vec<domain::TodayClass>) -> Vec<BridgeTodayClass> {
+    values
+        .into_iter()
+        .map(|v| BridgeTodayClass {
+            biz_name: v.biz_name,
+            place: v.place,
+            time: v.time,
+            short_name: v.short_name,
+        })
+        .collect()
+}
+fn map_exam(v: domain::Exam) -> BridgeExam {
+    BridgeExam {
+        course_name: v.course_name,
+        course_no: v.course_no,
+        exam_time_description: v.exam_time_description,
+        exam_date: v.exam_date,
+        start_time: v.start_time,
+        end_time: v.end_time,
+        exam_place: v.exam_place,
+        exam_seat_no: v.exam_seat_no,
+        week: v.week,
+        exam_status: v.exam_status,
+        exam_type: v.exam_type,
+        task_id: v.task_id,
+    }
+}
+pub(super) fn map_exam_arrangement(v: domain::ExamArrangement) -> BridgeExamArrangement {
+    BridgeExamArrangement {
+        arranged: v.arranged.into_iter().map(map_exam).collect(),
+        not_arranged: v.not_arranged.into_iter().map(map_exam).collect(),
+    }
+}
+fn map_grade(v: domain::Grade) -> BridgeGrade {
+    BridgeGrade {
+        course_name: v.course_name,
+        course_code: v.course_code,
+        credit: v.credit,
+        score: v.score,
+        grade_point: v.grade_point,
+        course_type: v.course_type,
+        score_type: v.score_type,
+        term_code: v.term_code,
+    }
+}
+pub(super) fn map_grade_data(v: domain::GradeData) -> BridgeGradeData {
+    BridgeGradeData {
+        term_code: v.term_code,
+        grades: v.grades.into_iter().map(map_grade).collect(),
+    }
+}
+pub(super) fn map_classroom_query(v: domain::ClassroomQuery) -> BridgeClassroomQuery {
+    BridgeClassroomQuery {
+        code: v.code,
+        message: v.message,
+        floors: v
+            .floors
+            .into_iter()
+            .map(|(name, rooms)| BridgeClassroomFloor {
+                name,
+                rooms: rooms
+                    .into_iter()
+                    .map(|r| BridgeClassroomInfo {
+                        id: r.id,
+                        floor_id: r.floor_id,
+                        name: r.name,
+                        available_sections: r.available_sections,
+                    })
+                    .collect(),
+            })
+            .collect(),
+    }
+}
+pub(super) fn map_signin_classes(values: Vec<domain::SigninClass>) -> Vec<BridgeSigninClass> {
+    values
+        .into_iter()
+        .map(|v| BridgeSigninClass {
+            course_id: v.course_id,
+            course_name: v.course_name,
+            class_begin_time: v.class_begin_time,
+            class_end_time: v.class_end_time,
+            sign_status: v.sign_status,
+        })
+        .collect()
+}
+fn map_spoc_status(v: domain::SpocSubmissionStatus) -> BridgeSpocSubmissionStatus {
+    match v {
+        domain::SpocSubmissionStatus::Submitted => BridgeSpocSubmissionStatus::Submitted,
+        domain::SpocSubmissionStatus::Unsubmitted => BridgeSpocSubmissionStatus::Unsubmitted,
+        domain::SpocSubmissionStatus::Unknown => BridgeSpocSubmissionStatus::Unknown,
+    }
+}
+fn map_spoc_summary(v: domain::SpocAssignmentSummary) -> BridgeSpocAssignmentSummary {
+    BridgeSpocAssignmentSummary {
+        assignment_id: v.assignment_id,
+        course_id: v.course_id,
+        course_name: v.course_name,
+        teacher_name: v.teacher_name,
+        title: v.title,
+        start_time: v.start_time,
+        due_time: v.due_time,
+        score: v.score,
+        submission_status: map_spoc_status(v.submission_status),
+        submission_status_text: v.submission_status_text,
+    }
+}
+pub(super) fn map_spoc_assignments(v: domain::SpocAssignments) -> BridgeSpocAssignments {
+    BridgeSpocAssignments {
+        term_code: v.term_code,
+        term_name: v.term_name,
+        assignments: v.assignments.into_iter().map(map_spoc_summary).collect(),
+    }
+}
+pub(super) fn map_spoc_detail(v: domain::SpocAssignmentDetail) -> BridgeSpocAssignmentDetail {
+    BridgeSpocAssignmentDetail {
+        assignment_id: v.assignment_id,
+        course_id: v.course_id,
+        course_name: v.course_name,
+        teacher_name: v.teacher_name,
+        title: v.title,
+        start_time: v.start_time,
+        due_time: v.due_time,
+        score: v.score,
+        submission_status: map_spoc_status(v.submission_status),
+        submission_status_text: v.submission_status_text,
+        content_plain_text: v.content_plain_text,
+        submitted_at: v.submitted_at,
+    }
+}
+fn map_judge_status(v: domain::JudgeSubmissionStatus) -> BridgeJudgeSubmissionStatus {
+    match v {
+        domain::JudgeSubmissionStatus::Submitted => BridgeJudgeSubmissionStatus::Submitted,
+        domain::JudgeSubmissionStatus::Partial => BridgeJudgeSubmissionStatus::Partial,
+        domain::JudgeSubmissionStatus::Unsubmitted => BridgeJudgeSubmissionStatus::Unsubmitted,
+        domain::JudgeSubmissionStatus::Unknown => BridgeJudgeSubmissionStatus::Unknown,
+    }
+}
+fn map_judge_summary(v: domain::JudgeAssignmentSummary) -> BridgeJudgeAssignmentSummary {
+    BridgeJudgeAssignmentSummary {
+        course_id: v.course_id,
+        course_name: v.course_name,
+        assignment_id: v.assignment_id,
+        title: v.title,
+        start_time: v.start_time,
+        due_time: v.due_time,
+        max_score: v.max_score,
+        my_score: v.my_score,
+        total_problems: v.total_problems,
+        submitted_count: v.submitted_count,
+        submission_status: map_judge_status(v.submission_status),
+        submission_status_text: v.submission_status_text,
+    }
+}
+fn map_judge_problem(v: domain::JudgeProblem) -> BridgeJudgeProblem {
+    BridgeJudgeProblem {
+        name: v.name,
+        score: v.score,
+        max_score: v.max_score,
+        status: map_judge_status(v.status),
+        status_text: v.status_text,
+    }
+}
+pub(super) fn map_judge_detail(v: domain::JudgeAssignmentDetail) -> BridgeJudgeAssignmentDetail {
+    BridgeJudgeAssignmentDetail {
+        course_id: v.course_id,
+        course_name: v.course_name,
+        assignment_id: v.assignment_id,
+        title: v.title,
+        start_time: v.start_time,
+        due_time: v.due_time,
+        max_score: v.max_score,
+        my_score: v.my_score,
+        total_problems: v.total_problems,
+        submitted_count: v.submitted_count,
+        submission_status: map_judge_status(v.submission_status),
+        submission_status_text: v.submission_status_text,
+        problems: v.problems.into_iter().map(map_judge_problem).collect(),
+        content_plain_text: v.content_plain_text,
+    }
+}
+pub(super) fn map_judge_summaries(
+    v: Vec<domain::JudgeAssignmentSummary>,
+) -> Vec<BridgeJudgeAssignmentSummary> {
+    v.into_iter().map(map_judge_summary).collect()
+}
+pub(super) fn map_judge_details(
+    v: Vec<domain::JudgeAssignmentDetail>,
+) -> Vec<BridgeJudgeAssignmentDetail> {
+    v.into_iter().map(map_judge_detail).collect()
+}
+fn map_bykc_status(v: domain::BykcCourseStatus) -> BridgeBykcCourseStatus {
+    match v {
+        domain::BykcCourseStatus::Expired => BridgeBykcCourseStatus::Expired,
+        domain::BykcCourseStatus::Selected => BridgeBykcCourseStatus::Selected,
+        domain::BykcCourseStatus::Preview => BridgeBykcCourseStatus::Preview,
+        domain::BykcCourseStatus::Ended => BridgeBykcCourseStatus::Ended,
+        domain::BykcCourseStatus::Full => BridgeBykcCourseStatus::Full,
+        domain::BykcCourseStatus::Available => BridgeBykcCourseStatus::Available,
+    }
+}
+pub(super) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
+    BridgeBykcCourse {
+        id: v.id,
+        course_name: v.course_name,
+        course_position: v.course_position,
+        course_teacher: v.course_teacher,
+        course_start_date: v.course_start_date,
+        course_end_date: v.course_end_date,
+        course_select_start_date: v.course_select_start_date,
+        course_select_end_date: v.course_select_end_date,
+        course_cancel_end_date: v.course_cancel_end_date,
+        course_max_count: v.course_max_count,
+        course_current_count: v.course_current_count,
+        status: map_bykc_status(v.status),
+        selected: v.selected,
+    }
+}
+pub(super) fn map_bykc_profile(v: domain::BykcUserProfile) -> BridgeBykcUserProfile {
+    BridgeBykcUserProfile {
+        id: v.id,
+        employee_id: v.employee_id,
+        real_name: v.real_name,
+        student_no: v.student_no,
+        college_name: v.college_name,
+    }
+}
+pub(super) fn map_bykc_course_page(v: domain::BykcCoursePage) -> BridgeBykcCoursePage {
+    BridgeBykcCoursePage {
+        content: v.content.into_iter().map(map_bykc_course).collect(),
+        total_elements: v.total_elements,
+        total_pages: v.total_pages,
+        size: v.size,
+        number: v.number,
+    }
+}
+fn map_bykc_category(v: domain::BykcCourseCategory) -> BridgeBykcCourseCategory {
+    match v {
+        domain::BykcCourseCategory::Boya => BridgeBykcCourseCategory::Boya,
+        domain::BykcCourseCategory::Unknown => BridgeBykcCourseCategory::Unknown,
+    }
+}
+fn map_bykc_subcategory(v: domain::BykcCourseSubCategory) -> BridgeBykcCourseSubCategory {
+    match v {
+        domain::BykcCourseSubCategory::Moral => BridgeBykcCourseSubCategory::Moral,
+        domain::BykcCourseSubCategory::Aesthetic => BridgeBykcCourseSubCategory::Aesthetic,
+        domain::BykcCourseSubCategory::Labor => BridgeBykcCourseSubCategory::Labor,
+        domain::BykcCourseSubCategory::SafetyHealth => BridgeBykcCourseSubCategory::SafetyHealth,
+        domain::BykcCourseSubCategory::Other => BridgeBykcCourseSubCategory::Other,
+        domain::BykcCourseSubCategory::Unknown => BridgeBykcCourseSubCategory::Unknown,
+    }
+}
+fn map_bykc_sign_config(v: domain::BykcSignConfig) -> BridgeBykcSignConfig {
+    BridgeBykcSignConfig {
+        sign_start_date: v.sign_start_date,
+        sign_end_date: v.sign_end_date,
+        sign_out_start_date: v.sign_out_start_date,
+        sign_out_end_date: v.sign_out_end_date,
+        sign_points: v
+            .sign_points
+            .into_iter()
+            .map(|p| BridgeBykcSignPoint {
+                lat: p.lat,
+                lng: p.lng,
+                radius: p.radius,
+            })
+            .collect(),
+    }
+}
+fn map_bykc_chosen(v: domain::BykcChosenCourse) -> BridgeBykcChosenCourse {
+    BridgeBykcChosenCourse {
+        id: v.id,
+        course_id: v.course_id,
+        course_name: v.course_name,
+        course_position: v.course_position,
+        course_teacher: v.course_teacher,
+        course_start_date: v.course_start_date,
+        course_end_date: v.course_end_date,
+        select_date: v.select_date,
+        course_cancel_end_date: v.course_cancel_end_date,
+        category: v.category.map(map_bykc_category),
+        sub_category: v.sub_category.map(map_bykc_subcategory),
+        checkin: v.checkin,
+        score: v.score,
+        pass: v.pass,
+        can_sign: v.can_sign,
+        can_sign_out: v.can_sign_out,
+        sign_config: v.sign_config.map(map_bykc_sign_config),
+        course_sign_type: v.course_sign_type,
+    }
+}
+pub(super) fn map_bykc_chosen_courses(
+    v: Vec<domain::BykcChosenCourse>,
+) -> Vec<BridgeBykcChosenCourse> {
+    v.into_iter().map(map_bykc_chosen).collect()
+}
+pub(super) fn map_bykc_statistics(v: domain::BykcStatistics) -> BridgeBykcStatistics {
+    BridgeBykcStatistics {
+        total_valid_count: v.total_valid_count,
+        categories: v
+            .categories
+            .into_iter()
+            .map(|s| BridgeBykcStatistic {
+                category_name: s.category_name,
+                sub_category_name: s.sub_category_name,
+                required_count: s.required_count,
+                passed_count: s.passed_count,
+                qualified: s.qualified,
+            })
+            .collect(),
+    }
+}
+fn map_libbook_storey(v: domain::LibBookStorey) -> BridgeLibBookStorey {
+    BridgeLibBookStorey {
+        id: v.id,
+        name: v.name,
+        free_num: v.free_num,
+        total_num: v.total_num,
+    }
+}
+pub(super) fn map_libbook_libraries(v: Vec<domain::LibBookLibrary>) -> Vec<BridgeLibBookLibrary> {
+    v.into_iter()
+        .map(|l| BridgeLibBookLibrary {
+            id: l.id,
+            name: l.name,
+            free_num: l.free_num,
+            total_num: l.total_num,
+            storeys: l.storeys.into_iter().map(map_libbook_storey).collect(),
+        })
+        .collect()
+}
+pub(super) fn map_libbook_areas(v: Vec<domain::LibBookArea>) -> Vec<BridgeLibBookArea> {
+    v.into_iter()
+        .map(|a| BridgeLibBookArea {
+            id: a.id,
+            name: a.name,
+            area_name: a.area_name,
+            premises_id: a.premises_id,
+            storey_id: a.storey_id,
+            free_num: a.free_num,
+            total_num: a.total_num,
+        })
+        .collect()
+}
+pub(super) fn map_libbook_area_detail(v: domain::LibBookAreaDetail) -> BridgeLibBookAreaDetail {
+    BridgeLibBookAreaDetail {
+        id: v.id,
+        name: v.name,
+        available_dates: v.available_dates,
+        time_slots: v
+            .time_slots
+            .into_iter()
+            .map(|s| BridgeLibBookTimeSlot {
+                id: s.id,
+                start: s.start,
+                end: s.end,
+                label: s.label,
+            })
+            .collect(),
+    }
+}
+pub(super) fn map_libbook_seats(v: Vec<domain::LibBookSeat>) -> Vec<BridgeLibBookSeat> {
+    v.into_iter()
+        .map(|s| BridgeLibBookSeat {
+            id: s.id,
+            name: s.name,
+            no: s.no,
+            status: s.status,
+            status_name: s.status_name,
+            is_available: s.is_available,
+        })
+        .collect()
+}
+fn map_libbook_booking(v: domain::LibBookBooking) -> BridgeLibBookBooking {
+    BridgeLibBookBooking {
+        id: v.id,
+        name_merge: v.name_merge,
+        area_name: v.area_name,
+        seat_no: v.seat_no,
+        day: v.day,
+        begin_time: v.begin_time,
+        end_time: v.end_time,
+        status: v.status,
+        status_name: v.status_name,
+    }
+}
+pub(super) fn map_libbook_bookings(v: domain::LibBookBookingsPage) -> BridgeLibBookBookingsPage {
+    BridgeLibBookBookingsPage {
+        bookings: v.bookings.into_iter().map(map_libbook_booking).collect(),
+        page: v.page,
+        limit: v.limit,
+        total: v.total,
+    }
+}
+fn map_ygdk_summary(v: domain::YgdkTermSummary) -> BridgeYgdkTermSummary {
+    BridgeYgdkTermSummary {
+        term_id: v.term_id,
+        term_name: v.term_name,
+        term_count: v.term_count,
+        term_target: v.term_target,
+        week_count: v.week_count,
+        week_target: v.week_target,
+        month_count: v.month_count,
+        month_target: v.month_target,
+        day_count: v.day_count,
+        good_count: v.good_count,
+    }
+}
+pub(super) fn map_ygdk_overview(v: domain::YgdkOverview) -> BridgeYgdkOverview {
+    BridgeYgdkOverview {
+        summary: map_ygdk_summary(v.summary),
+        classify_id: v.classify_id,
+        classify_name: v.classify_name,
+        default_item_id: v.default_item_id,
+        default_item_name: v.default_item_name,
+        items: v
+            .items
+            .into_iter()
+            .map(|i| BridgeYgdkItem {
+                item_id: i.item_id,
+                name: i.name,
+                kind: i.kind,
+                sort: i.sort,
+            })
+            .collect(),
+    }
+}
+pub(super) fn map_ygdk_records(v: domain::YgdkRecordsPage) -> BridgeYgdkRecordsPage {
+    BridgeYgdkRecordsPage {
+        content: v
+            .content
+            .into_iter()
+            .map(|r| BridgeYgdkRecord {
+                record_id: r.record_id,
+                item_id: r.item_id,
+                item_name: r.item_name,
+                start_time: r.start_time,
+                end_time: r.end_time,
+                place: r.place,
+                image_count: i32::try_from(r.images.len()).unwrap_or(i32::MAX),
+                is_open: r.is_open,
+                state: r.state,
+                created_at: r.created_at,
+                created_at_label: r.created_at_label,
+            })
+            .collect(),
+        total: v.total,
+        page: v.page,
+        size: v.size,
+        has_more: v.has_more,
+    }
+}
+pub(super) fn map_cgyy_sites(v: Vec<domain::CgyyVenueSite>) -> Vec<BridgeCgyyVenueSite> {
+    v.into_iter()
+        .map(|s| BridgeCgyyVenueSite {
+            id: s.id,
+            site_name: s.site_name,
+            venue_name: s.venue_name,
+            campus_name: s.campus_name,
+            seat_count: s.seat_count,
+            reservation_space_count: s.reservation_space_count,
+            site_telephone: s.site_telephone,
+            open_start_date: s.open_start_date,
+            open_end_date: s.open_end_date,
+        })
+        .collect()
+}
+pub(super) fn map_cgyy_purpose_types(v: domain::CgyyPurposeTypes) -> BridgeCgyyPurposeTypes {
+    BridgeCgyyPurposeTypes {
+        items: v
+            .items
+            .into_iter()
+            .map(|p| BridgeCgyyPurposeType {
+                key: p.key,
+                name: p.name,
+            })
+            .collect(),
+        source: match v.source {
+            domain::CgyyPurposeSource::Upstream => BridgeCgyyPurposeSource::Upstream,
+            domain::CgyyPurposeSource::StaticFallback => BridgeCgyyPurposeSource::StaticFallback,
+        },
+    }
+}
+fn map_cgyy_time_slot(v: domain::CgyyTimeSlot) -> BridgeCgyyTimeSlot {
+    BridgeCgyyTimeSlot {
+        id: v.id,
+        begin_time: v.begin_time,
+        end_time: v.end_time,
+        label: v.label,
+    }
+}
+fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
+    BridgeCgyySlotStatus {
+        time_id: v.time_id,
+        reservation_status: v.reservation_status,
+        is_reservable: v.is_reservable,
+        start_date: v.start_date,
+        end_date: v.end_date,
+    }
+}
+pub(super) fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
+    BridgeCgyyDayInfo {
+        venue_site_id: v.venue_site_id,
+        reservation_date: v.reservation_date,
+        available_dates: v.available_dates,
+        time_slots: v.time_slots.into_iter().map(map_cgyy_time_slot).collect(),
+        spaces: v
+            .spaces
+            .into_iter()
+            .map(|s| BridgeCgyySpaceAvailability {
+                space_id: s.space_id,
+                space_name: s.space_name,
+                venue_site_id: s.venue_site_id,
+                venue_space_group_id: s.venue_space_group_id,
+                slots: s.slots.into_iter().map(map_cgyy_slot).collect(),
+            })
+            .collect(),
+        reservation_total_num: v.reservation_total_num,
+    }
+}
+pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
+    BridgeCgyyOrder {
+        id: v.id,
+        venue_site_id: v.venue_site_id,
+        reservation_date: v.reservation_date,
+        reservation_date_detail: v.reservation_date_detail,
+        venue_space_name: v.venue_space_name,
+        campus_name: v.campus_name,
+        venue_name: v.venue_name,
+        site_name: v.site_name,
+        reservation_start_date: v.reservation_start_date,
+        reservation_end_date: v.reservation_end_date,
+        order_status: v.order_status,
+        check_status: v.check_status,
+        theme: v.theme,
+        purpose_type_name: v.purpose_type_name,
+        joiner_num: v.joiner_num,
+    }
+}
+pub(super) fn map_cgyy_orders(v: domain::CgyyOrdersPage) -> BridgeCgyyOrdersPage {
+    BridgeCgyyOrdersPage {
+        content: v.content.into_iter().map(map_cgyy_order).collect(),
+        total_elements: v.total_elements,
+        total_pages: v.total_pages,
+        size: v.size,
+        number: v.number,
+    }
+}
+pub(super) fn map_cgyy_lock_code(v: domain::CgyyLockCode) -> BridgeCgyyLockCode {
+    BridgeCgyyLockCode {
+        available: v.available,
+    }
+}
+pub(super) fn map_evaluation(
+    v: domain::EvaluationCoursesResponse,
+) -> BridgeEvaluationCoursesResponse {
+    BridgeEvaluationCoursesResponse {
+        courses: v
+            .courses
+            .into_iter()
+            .map(|c| BridgeEvaluationCourse {
+                id: c.id,
+                kcmc: c.kcmc,
+                bpmc: c.bpmc,
+                is_evaluated: c.is_evaluated,
+                rwid: c.rwid,
+                wjid: c.wjid,
+                kcdm: c.kcdm,
+                bpdm: c.bpdm,
+                pjrdm: c.pjrdm,
+                pjrmc: c.pjrmc,
+                xnxq: c.xnxq,
+                msid: c.msid,
+                zdmc: c.zdmc,
+                ypjcs: c.ypjcs,
+                xypjcs: c.xypjcs,
+                sxz: c.sxz,
+                rwh: c.rwh,
+                xn: c.xn,
+                xq: c.xq,
+                pjlxid: c.pjlxid,
+                sfksqbpj: c.sfksqbpj,
+                yxsfktjst: c.yxsfktjst,
+            })
+            .collect(),
+        progress: BridgeEvaluationProgress {
+            total_courses: v.progress.total_courses,
+            evaluated_courses: v.progress.evaluated_courses,
+            pending_courses: v.progress.pending_courses,
+        },
+    }
+}

@@ -3,5 +3,4 @@
 file	packages/ubaa_ui/lib/src/widgets.dart	4046
 file	packages/ubaa_ui/test/widgets_test.dart	3216
 file	packages/ubaa_app/lib/src/bridge_backend.dart	1830
-file	crates/ubaa-flutter-bridge/src/api/read.rs	1652
 file	packages/ubaa_app/test/app_controller_test.dart	1499
