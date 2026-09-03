@@ -42,12 +42,12 @@
 | 06A2 | Bridge intent 锁序 | 重新登录失效旧 intent 的并发 RED | `fix(bridge): 原子失效并发写入意图` | 已提交：`5117eb6`；11 个 bridge 写测试与严格 Clippy 通过 |
 | 06B | route state | Arc/generation/TTL/fork/concurrency 矩阵 | `refactor(core): 下沉路线状态并消除依赖环` | 已完成：`941eb16`、`1a096a6`、`df589f2`、`62d33fe`、`74328e9`、`b110827`、`e769ec8`、`0c6273d`；108 个 Core 单元测试与严格全目标 Clippy 通过 |
 | 06C | facade/test-contract | 生产宿主旁路 compile-fail RED | `refactor(core): 用 facade 封闭宿主与测试边界` | 已提交：`2c940c8`；159 项 Core 单测、56 项显式 integration/架构测试、feature on/off 编译夹具、全 workspace、Flutter/FRB 与独立复审通过 |
-| 07A | Cgyy 目录化 | Cgyy parser/request/cache tests | `refactor(core): 按职责拆分 Cgyy` | 待执行 |
-| 07B | Judge 目录化 | batch/cache/calendar tests | `refactor(core): 按职责拆分 Judge` | 待执行 |
-| 07C | SPOC 目录化 | auth/paging/detail/calendar tests | `refactor(core): 按职责拆分 SPOC` | 待执行 |
-| 07D | Bykc 目录化 | crypto/request/semester tests | `refactor(core): 按职责拆分 Bykc` | 待执行 |
-| 07E | Libbook 目录化 | parser/crypto/request tests | `refactor(core): 归档 Libbook 服务与算法` | 待执行 |
-| 07F | Ygdk 目录化 | parser/upload/request tests | `refactor(core): 归档 Ygdk 服务与上传` | 待执行 |
+| 07A | Cgyy 目录化 | Cgyy parser/request/cache tests | `refactor(core): 按职责拆分 Cgyy` | 已提交：`425ecaa` |
+| 07B | Judge 目录化 | batch/cache/calendar tests | `refactor(core): 按职责拆分 Judge` | 已提交：`93a3210` |
+| 07C | SPOC 目录化 | auth/paging/detail/calendar tests | `refactor(core): 按职责拆分 SPOC` | 已提交：`29e7a93` |
+| 07D | Bykc 目录化 | crypto/request/semester tests | `refactor(core): 按职责拆分 Bykc` | 已提交：`4e358b4` |
+| 07E | Libbook 目录化 | parser/crypto/request tests | `refactor(core): 归档 Libbook 服务与算法` | 已提交：`f1abc7c` |
+| 07F | Ygdk 目录化 | parser/upload/request tests | `refactor(core): 归档 Ygdk 服务与上传` | 已提交：`d1741f0`；结构基线 `c42ffe4` |
 | 08 | FRB 手写 read API | schema snapshot、解释后的首次生成差异与二次零漂移 | `refactor(bridge): 分离读取 DTO 方法与映射` | 待执行 |
 | 09 | Flutter 测试镜像 | 三个超千行测试入口 baseline | `test(flutter): 按领域拆分应用与宿主测试` | 待执行 |
 | 10A | domain/app/bridge 拆分 | package focused tests 绿色 | `refactor(flutter): 建立领域与应用所有权` | 待执行 |
@@ -263,7 +263,7 @@ RED/characterization：
 - 07C SPOC：`auth/list/detail/parser/crypto/calendar/tests`；不改分页、提交绑定或认证重试。
 - 07D Bykc：`auth/read/write/parser/tests`；不改 AES/RSA/SHA-1、随机 key 或当前学期选择。
 - 07E Libbook：`service/parser/crypto`；不改 AES 请求向量或状态解析。
-- 07F Ygdk：`service/parser/upload`；不改 multipart、图片限制或上传顺序。
+- 07F Ygdk：`auth/http/read/write/parser/upload/tests`；不改 multipart、图片限制或上传顺序。
 
 07B 在 06B/06C 后按新 route-state 与可见性基线复核，再执行。先补 source-parity 中“当前 Rust 符号 →
 `LocalJudgeApi.kt/JudgeApi.kt/Judge.kt` 及测试 → examples 不适用”的机械映射，并在旧实现上增加四项全绿
@@ -280,7 +280,8 @@ characterization：根公开面与 5m/2m/4 worker/3 reactivation 预算、冻结
 
 - `api/read.rs` 改为 `api/read/mod.rs`；全部 92 个公开 Rust DTO/Routed 类型继续物理定义在该模块，保持
   `api::read` canonical namespace，不以跨模块 re-export 改变 FRB 类型归属。
-- 32 个 `BridgeClient` inherent method 移到 `methods.rs`，50 个 private DTO mapper 移到 `mappers.rs`；
+- 32 个公开读取 method 连同私有 `execute_read` helper 移到 `methods.rs`，50 个 DTO mapper 移到
+  `mappers.rs`；
   `map_cgyy_order` 通过 crate-private re-export 保持 write API 消费路径，其余 mapper 使用最窄可见性。
 - 先扩充 schema characterization，固定 6 个 enum、32 个读取方法和单一 `api/read.dart` 路径。FRB 2.13.0 会按
   私有函数定义 namespace 生成 skip 注释，因此纯移动预计只会删除现有 `api/read.dart` 中列出

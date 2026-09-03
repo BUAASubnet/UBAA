@@ -180,7 +180,8 @@
 | 缓存/并发 | 路线内登录单飞与失效代数保持 2026-09-03 决策；旧登录结果不得越过 `clear` 回写。 |
 | 错误/退出语义 | `code=1`、`-98`、非法分页/输入、可选统计和写失败分类与一次认证重试不改。 |
 
-目标：`ygdk/{mod,service,parser,upload,tests}.rs`。
+目标：`ygdk/{mod,auth,http,read,write,parser,upload,tests}.rs`；认证、底层请求、读取编排与写入编排保持
+单向依赖，不把所有网络职责重新堆回一个 `service.rs`。
 
 ## 每个物理拆分提交的验收
 
