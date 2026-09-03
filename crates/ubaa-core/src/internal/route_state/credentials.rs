@@ -341,15 +341,16 @@ impl SigninState {
     }
 
     pub(crate) fn store_credential(&self, generation: u64, credential: SigninCredential) -> bool {
+        let mut cached = self
+            .credential
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         if self.generation() != generation {
             return false;
         }
         #[cfg(test)]
         self.pause_after_generation_check();
-        *self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(credential);
+        *cached = Some(credential);
         true
     }
 
