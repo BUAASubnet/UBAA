@@ -507,3 +507,9 @@
 - 固定提交的 `examples/buaa-api` 没有 Ygdk 等价实现，不能据此类比 URL、字段、令牌流程或错误语义。
 - 当前 `source-parity.md` 已明确决定使用路线内单飞登录与失效代数，使清理前启动的旧登录不能在清理后重新填充凭据；这是 Core 进程内缓存的本地并发合同，不是从冻结实现补出的上游协议字段，也不改变请求 URL、参数、请求头、正文编码、DTO 或错误分类。
 - 当前 Rust 状态的无条件 `set` 可与 `clear` 交错，使清理前启动的旧登录在清理后回写凭据。本轮先增加确定性竞态测试与仅测试暂停点，要求失效后旧结果不得重新填充；生产修复必须沿用既有路线隔离与脱敏边界。
+
+## 2026-09-03 Ygdk OAuth 跳转主机约束冲突
+
+- 冻结 `LocalYgdkApi.kt` 的 `fetchOauthCode` 最多跟随十次 `Location`，会从 query 或 fragment query 提取 code，但没有逐跳 host 校验；固定 `examples/buaa-api` 没有 Ygdk 等价实现。
+- 当前 Core `features/ygdk.rs::oauth_code` 与 `code_from_url` 同样接受任意 host 的绝对/相对跳转。原 `source-parity.md` 曾写“仅允许已记录的 BUAA 主机”，但没有给出完整允许集合对应的冻结实现、测试或安全实时观察，因此该表述不能作为已实现事实。
+- 决策：把主机限制明确标为既有未决 parity gap。2026-09-03 的目录整理只原样移动当前跳转逻辑，不借结构提交增加猜测白名单；后续必须先取得适用冻结实现或脱敏实时跳转链证据，记录具体 host 集合并增加未知 host 的 RED 测试，才能单独收紧生产行为。
