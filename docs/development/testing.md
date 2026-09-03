@@ -9,7 +9,7 @@
 | 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
 | CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v2、路线诊断、脱敏、写确认和退出语义 |
-| CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core-live.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
+| CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
 | 结构与 Shell 合同 | `scripts/tests/layout.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |

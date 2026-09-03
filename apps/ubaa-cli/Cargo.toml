@@ -1,5 +1,6 @@
 [package]
 name = "ubaa-cli"
+autobins = false
 description = "Command-line host for UBAA Core"
 edition.workspace = true
 license.workspace = true
@@ -26,6 +27,10 @@ ubaa-test-support = { path = "../../crates/ubaa-test-support" }
 [[bin]]
 name = "ubaa"
 path = "src/main.rs"
+
+[[bin]]
+name = "core-live"
+path = "src/bin/core_live/main.rs"
 
 [lints]
 workspace = true

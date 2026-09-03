@@ -35,8 +35,8 @@
 | 04A | CLI 合同测试镜像 | CLI schema/stdout/stderr/exit characterization | `test(cli): 按宿主合同拆分 CLI characterization` | 已提交：`60fe3e3` |
 | 04B1 | CLI 命令参数与现有 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域归档命令与 IO` | 已提交：`837da26` |
 | 04B2 | CLI backend 与执行层 | 04B1 行为基线及公开 API 集合 | `refactor(cli): 按领域拆分 backend 与执行层` | 已提交：`81e4cdb` |
-| 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 已验证待提交 |
-| 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 待执行 |
+| 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 已提交：`0f0dde1` |
+| 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 已验证待提交 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
 | 06A | route selector | direct/webvpn/auto 等价矩阵 | `refactor(core): 集中路线解析与 runtime 选择` | 待执行 |
 | 06B | route state | Arc/generation/TTL/fork/concurrency 矩阵 | `refactor(core): 下沉路线状态并消除依赖环` | 待执行 |
@@ -259,6 +259,15 @@ RED/characterization：
 - 07E Libbook：`service/parser/crypto`；不改 AES 请求向量或状态解析。
 - 07F Ygdk：`service/parser/upload`；不改 multipart、图片限制或上传顺序。
 
+07B 在 06B/06C 后按新 route-state 与可见性基线复核，再执行。先补 source-parity 中“当前 Rust 符号 →
+`LocalJudgeApi.kt/JudgeApi.kt/Judge.kt` 及测试 → examples 不适用”的机械映射，并在旧实现上增加四项全绿
+characterization：根公开面与 5m/2m/4 worker/3 reactivation 预算、冻结 header 与 GET 空 body、完整排序键、
+乱序完成时返回最早规范化输入失败。然后以 `mod` 为组合点拆 `parser/calendar/service/batch/tests`：parser/calendar
+不得依赖 service，service 不依赖 batch，batch 依赖 service/parser/calendar/route-state，低层 route-state 不得
+反向依赖 feature。保持 8 个 Core unit、26 个 Test Support 及其余 6 个相关测试叶，在新增后共 44 个；所有
+缓存容量/generation、空列表不缓存、隔离 Cookie、懒激活、四 worker、首次失败/最小输入索引、三次重激活、
+上海六个月截止与 UC 仲裁逐句等价。06C 已收窄的 `features` 不得为兼容旧仓外路径重新公开。
+
 每个领域独立 focused test、敏感扫描与提交；依次删除 cgyy/judge/spoc baseline，features 根直属文件降至预算内。
 
 ### 阶段 08：FRB 手写读取 API
@@ -293,19 +302,34 @@ root；根文件只保留 imports、相对 URI `part` 声明、`main`/binding �
 
 ### 阶段 10A：Dart domain/app/bridge
 
-- `models.dart` 迁入 `common/`、`feature/`、`write/`，barrel 保持旧公开导入可用。
-- `backend.dart` 拆 `contracts/`、Unavailable/Demo 实现；`app_controller.dart` 拆 controller/error mapper。
-- `bridge_backend.dart` 成为组合文件，read mapper 按 academic/assignments/bykc/libbook/cgyy/ygdk/evaluation，write
-  按 prepare/commit；仅 BridgeBackend 依赖 bindings。
-- 从 baseline 删除 bridge_backend；每个 package 执行 format/analyze/test。
+- 先新增 domain/app 公共面编译 characterization 和五项 BridgeBackend 行为 characterization：分别固定
+  32/27 个 barrel 名字、BridgeBackend 的构造/open/client/route 签名、认证与路线调用顺序、全部读取参数与
+  白名单投影、summary/view 归约、十项 prepare/commit 及稳定错误脱敏。它们在旧结构上应先 GREEN；结构 RED
+  仍由 layout baseline 移除表达，不伪造业务失败。
+- `models.dart` 作为薄兼容入口显式 export `common/{route,error,auth}`、`feature/{catalog,query,result}` 和
+  `write/{inputs,intent}`；`ubaa_domain.dart` 继续导出该入口，类型身份与 32 个公开名字不变。
+- `backend.dart` 作为薄兼容入口显式 export `contracts/{backend,routing,query,write,lifecycle}` 和
+  `backend/{unavailable,demo}`；`app_controller.dart` 作为薄兼容入口显式 export
+  `controller/{app_controller,error_mapper}`。`write_controller.dart` 本阶段不拆，也不提前实施 11K。
+- Bridge 保持一个 Dart library：`bridge/bridge_backend.dart` 保留 imports、全部 implements、公开构造/open/client、
+  route setter、factory 与薄委托；library-private 实现按 `common`、`read/{academic,assignments,bykc,libbook,cgyy,
+  ygdk,evaluation}`、`write/{prepare,commit}` 使用 `part` 拆分，leaf 间不得反向调用。旧 `bridge_backend.dart` 只
+  export 新入口；不得用 extension/mixin 改变接口满足关系，仅该 bridge library 可直接依赖 bindings。
+- 原 4 个 domain、47 个 app 测试的名称和顺序不变，新增 characterization 后 app 为 53 个；逐步跑 focused，
+  最后删除 bridge baseline，执行各 package format/analyze/test、全 Flutter 与 FRB generated 零 diff。
 
 ### 阶段 10B：共享宿主
 
-RED：新增 `ubaa_host` 测试，证明 SDK 初始化成功/失败、backend factory、平台能力、controller dispose、callback
-wiring 在官方 Flutter 与 OHOS 组合根等价；测试初始因 package 不存在而失败。
+RED：新增 `ubaa_host` package 内测试，仅证明共享 bootstrap、widget/callback wiring、backend factory、生命周期、
+controller/backend 单次 dispose。官方 Flutter 与 OHOS 各自在自己的 `test/host_wiring_test.dart` 验证入口把 SDK、
+平台能力与 `runApp` 委托给同一 `UbaaAppHost`；`ubaa_host` 不得依赖或 dev-depend 任一 app，避免测试依赖环。
 
-实现：创建完整 `packages/ubaa_host` package、barrel、source、tests；接入两个 app pubspec/lock、workspace 检查、
-release-preflight 与 CI。两个 `main.dart` 只保留各自 SDK/平台注入和 `runApp`。
+实现：创建 `packages/ubaa_host` 的独立 `pubspec.yaml`/lock、barrel、source 与 tests；不新建根 Pub workspace。
+两个 app 各自以 path dependency 接入并更新自己的 lock，host 加入官方 SDK 的 `flutter-workspace` package 清单。
+共享包仅依赖 Flutter、app、UI、domain/platform，不依赖 bindings、原生插件或协议；两个 `main.dart` 保留各自
+实际 `RustLib.init`/`bridgeHello`、平台能力工厂和 `runApp` 注入。严格保持
+`ensureInitialized → RustLib.init → debug hello → create capabilities → runApp` 顺序；SDK 初始化或 debug hello
+失败时不创建能力、不调用 `runApp` 且错误继续传播，“失败仍启动不可用 UI”不在本结构阶段。
 
 额外门禁：macOS integration、本机 macOS/Android APK/iOS simulator build+artifact、OHOS API26 无签名 HAP。
 

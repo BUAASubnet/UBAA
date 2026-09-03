@@ -263,10 +263,16 @@ UBAA/
 │           └── support.rs
 ├── packages/
 │   ├── ubaa_domain/lib/src/
-│   │   ├── common/{route,error}.dart
+│   │   ├── models.dart                     # 旧路径的显式兼容 export
+│   │   ├── common/{route,error,auth}.dart
 │   │   ├── feature/{catalog,query,result}.dart
 │   │   └── write/{intent,inputs}.dart
 │   ├── ubaa_app/lib/src/
+│   │   ├── backend.dart                    # 旧路径的显式兼容 export
+│   │   ├── app_controller.dart             # 旧路径的显式兼容 export
+│   │   ├── bridge_backend.dart             # 旧路径的显式兼容 export
+│   │   ├── backend/{unavailable,demo}.dart
+│   │   ├── contracts/{backend,routing,query,write,lifecycle}.dart
 │   │   ├── controller/{app_controller,error_mapper}.dart
 │   │   ├── bridge/
 │   │   │   ├── bridge_backend.dart         # 组合与接口实现
@@ -353,9 +359,10 @@ platform`，`ubaa_ui → domain`，`bindings → FRB`。
 - `BridgeBackend` 仍是唯一共享手写 Dart 代码中直接依赖 `ubaa_bindings` 的生产 adapter。
 - `ubaa_domain` 定义 typed action/eligibility；bridge 只映射 Core DTO，UI 不读取 label/value/status/time 决定写权限。
 - `WriteCoordinator` 是唯一生产写状态机；AppController 和 UI 均不保存第二套 pending intent/receipt 状态。
-- `ubaa_host` 是 workspace 成员，具有独立 `pubspec.yaml`、barrel 与测试；只抽取两个宿主逐字重复的 controller
+- `ubaa_host` 具有独立 `pubspec.yaml`、lock、barrel 与测试；只抽取两个宿主逐字重复的 controller
   生命周期和 callback wiring，不拥有协议、凭据或平台实现。两个宿主只保留 SDK/平台能力注入和 `runApp`。
-- 新 package 必须同时接入 workspace dependency override、lockfile、`flutter-check`、`release-preflight` 和五平台 CI。
+- 不新建根 Pub workspace；两个 app 以各自的 path dependency/lock 接入新 package。新 package 必须同时接入
+  `flutter-check`、`release-preflight` 和五平台 CI 的现有 package 路径触发面。
 - golden 文件不改名、不重录；结构提交中任何 PNG diff 都视为失败。
 
 ### 6.3 生成边界

@@ -28,6 +28,99 @@ fn collect_source_files(root: &std::path::Path, files: &mut Vec<std::path::PathB
     }
 }
 
+fn core_live_source_bundle() -> String {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let source_root = manifest_root.join("src/bin/core_live");
+    assert!(
+        source_root.is_dir(),
+        "Core-live must use the explicit src/bin/core_live module tree"
+    );
+    assert!(
+        !manifest_root.join("src/bin/core-live.rs").exists(),
+        "legacy auto-discovered Core-live source must be removed"
+    );
+
+    let mut files = Vec::new();
+    collect_source_files(&source_root, &mut files);
+    files.sort();
+    let relative_files: Vec<_> = files
+        .iter()
+        .map(|path| {
+            path.strip_prefix(&source_root)
+                .expect("Core-live source stays below its module root")
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+    assert_eq!(
+        relative_files,
+        ["args.rs", "evidence.rs", "main.rs", "steps.rs"]
+    );
+
+    let manifest = include_str!("../Cargo.toml");
+    assert!(manifest.contains("autobins = false"));
+    assert!(manifest.contains("name = \"ubaa\"\npath = \"src/main.rs\""));
+    assert!(manifest.contains("name = \"core-live\"\npath = \"src/bin/core_live/main.rs\""));
+
+    let sources: std::collections::BTreeMap<_, _> = files
+        .iter()
+        .map(|path| {
+            let name = path
+                .file_name()
+                .expect("Core-live source has a file name")
+                .to_string_lossy()
+                .into_owned();
+            let source = std::fs::read_to_string(path)
+                .unwrap_or_else(|_| panic!("could not read Core-live source {}", path.display()));
+            (name, source)
+        })
+        .collect();
+    let main = &sources["main.rs"];
+    assert!(main.contains("steps::process().await"));
+    for forbidden in ["Args::", "Evidence", "ubaa_core::"] {
+        assert!(
+            !main.contains(forbidden),
+            "main bypasses steps via {forbidden}"
+        );
+    }
+    let args = &sources["args.rs"];
+    assert!(!args.contains("crate::"));
+    assert!(!args.contains("ubaa_core::"));
+    let evidence = &sources["evidence.rs"];
+    assert!(evidence.contains("ubaa_core::error::ErrorCode"));
+    for forbidden in [
+        "crate::args",
+        "crate::steps",
+        "ubaa_core::facade",
+        "ubaa_core::domain",
+    ] {
+        assert!(!evidence.contains(forbidden));
+    }
+    let steps = &sources["steps.rs"];
+    for dependency in [
+        "crate::args",
+        "crate::evidence",
+        "ubaa_core::facade::RouteClient",
+    ] {
+        assert!(
+            steps.contains(dependency),
+            "steps misses dependency {dependency}"
+        );
+    }
+
+    sources.into_values().collect::<Vec<_>>().join("\n")
+}
+
+fn assert_ordered_fragments(source: &str, fragments: &[&str], context: &str) {
+    let mut cursor = 0;
+    for fragment in fragments {
+        let offset = source[cursor..]
+            .find(fragment)
+            .unwrap_or_else(|| panic!("{context} 顺序缺少 {fragment}"));
+        cursor += offset + fragment.len();
+    }
+}
+
 fn contains_directory_named(root: &std::path::Path, name: &str) -> bool {
     std::fs::read_dir(root)
         .expect("could not enumerate source tree")
@@ -288,7 +381,7 @@ fn binary_host_does_not_own_route_resolution() {
 
 #[test]
 fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
-    let core_live = include_str!("../src/bin/core-live.rs");
+    let core_live = core_live_source_bundle();
     assert_eq!(core_live.matches("RouteClient::new").count(), 1);
     for forbidden in [
         "cgyy_cancel_order",
@@ -301,12 +394,23 @@ fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
         "libbook_cancel_booking",
         "evaluation_submit",
         "evaluation_submit_courses",
+        "commit_write",
     ] {
         assert!(
             !core_live.contains(forbidden),
             "Core-live contains write call {forbidden}"
         );
     }
+    let compact_core_live: String = core_live
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    assert!(
+        !compact_core_live
+            .replace(".prepare_login(", "")
+            .contains(".prepare_"),
+        "Core-live contains a generic write preparation call"
+    );
     let verifier = include_str!("../../../scripts/live/verify.sh");
     for forbidden in ["run_json", "target/debug/ubaa", "jq ", "CLI_OUTPUT"] {
         assert!(
@@ -319,7 +423,7 @@ fn core_live_is_single_route_read_only_and_verify_live_is_thin() {
 
 #[test]
 fn core_live_matrix_contains_shared_diagnostic_rows_and_no_guessed_week() {
-    let core_live = include_str!("../src/bin/core-live.rs");
+    let core_live = core_live_source_bundle();
     for label in [
         "\"spoc\",\n                \"diagnostics\"",
         "\"judge\",\n                \"diagnostics\"",
@@ -331,6 +435,91 @@ fn core_live_matrix_contains_shared_diagnostic_rows_and_no_guessed_week() {
     }
     assert!(core_live.contains("no_valid_week_id"));
     assert!(!core_live.contains("map_or(1"));
+
+    let feature_list = core_live
+        .split_once("pub(crate) const FEATURES")
+        .expect("Core-live keeps the explicit feature matrix")
+        .1;
+    assert_ordered_fragments(
+        feature_list,
+        &[
+            "\"all\"",
+            "\"auth\"",
+            "\"user\"",
+            "\"schedule\"",
+            "\"exam\"",
+            "\"grades\"",
+            "\"classroom\"",
+            "\"spoc\"",
+            "\"judge\"",
+            "\"signin\"",
+            "\"ygdk\"",
+            "\"libbook\"",
+            "\"bykc\"",
+            "\"cgyy\"",
+            "\"evaluation\"",
+        ],
+        "Core-live feature",
+    );
+
+    let runner = &core_live[core_live
+        .find("async fn run(args")
+        .expect("Core-live keeps one sequential runner")..];
+    assert_ordered_fragments(
+        runner,
+        &[
+            "prepare_login",
+            ".login(",
+            "run_auth_status",
+            "run_user",
+            "run_schedule",
+            "run_classroom",
+            "run_spoc",
+            "run_judge",
+            "signin_today",
+            "run_ygdk",
+            "run_libbook",
+            "run_bykc",
+            "run_cgyy",
+            "run_evaluation",
+        ],
+        "Core-live operation",
+    );
+
+    for error_name in [
+        "invalid_input",
+        "authentication_required",
+        "invalid_credentials",
+        "password_risk_confirmation_failed",
+        "permission_denied",
+        "network_error",
+        "timeout",
+        "upstream_unavailable",
+        "upstream_changed",
+        "parse_error",
+        "internal_error",
+    ] {
+        assert!(core_live.contains(error_name));
+    }
+    assert_eq!(core_live.matches("self.failed = true").count(), 2);
+    assert_eq!(core_live.matches("self.failed = false").count(), 0);
+    assert_ordered_fragments(
+        &core_live,
+        &[
+            "route={route}",
+            "feature={feature}",
+            "stage={feature}",
+            "operation={operation}",
+            "status={status}",
+            "elapsed_ms={elapsed_ms}",
+        ],
+        "Core-live evidence field",
+    );
+    assert!(core_live.contains("let username = lines.next()"));
+    assert!(core_live.contains("let password = lines.next()"));
+    assert!(core_live.contains("std::process::exit(2)"));
+    assert!(core_live.contains("Ok(evidence) if evidence.failed() => 5"));
+    assert!(core_live.contains("Ok(_) => 0"));
 }
 
 #[test]

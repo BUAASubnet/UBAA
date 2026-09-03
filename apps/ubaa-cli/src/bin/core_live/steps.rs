@@ -1,191 +1,16 @@
-//! Core-live 真实只读验证入口。
-//!
-//! 该二进制在一个 `RouteClient` 生命周期内完成一条路线的登录和逐操作读取，
-//! 只向 stdout 输出安全摘要；凭据仅从 stdin 读取并只在内存中使用。
+//! Core-live 单路线只读执行步骤。
 
 use std::io::{self, Read as _};
-use std::path::PathBuf;
-use std::time::Instant;
 
 use clap::Parser;
 use ubaa_core::domain::{ConnectionMode, JudgeAssignmentKey, LoginInput, SecretValue, Week};
 use ubaa_core::error::{ErrorCode, Result};
 use ubaa_core::facade::RouteClient;
 
-#[derive(Debug, Parser)]
-#[command(name = "ubaa-core-live", about = "Core 单路线真实只读验证")]
-struct Args {
-    /// 只允许显式 Direct 或 WebVPN，真实验证不执行 auto。
-    #[arg(long)]
-    route: String,
-    /// 要验证的功能，或 all。
-    #[arg(long, default_value = "all")]
-    feature: String,
-    /// 临时会话目录。
-    #[arg(long)]
-    config_dir: PathBuf,
-    /// 从 stdin 读取用户名第一行。
-    #[arg(long)]
-    username_stdin: bool,
-    /// 从 stdin 读取密码第二行。
-    #[arg(long)]
-    password_stdin: bool,
-    /// 只读日期参数，由外层安全入口提供。
-    #[arg(long)]
-    date: String,
-    /// 空教室校区编号。
-    #[arg(long, default_value_t = 1)]
-    campus_id: i32,
-}
+use crate::args::{Args, FEATURES};
+use crate::evidence::{Evidence, error_code};
 
-const FEATURES: &[&str] = &[
-    "all",
-    "auth",
-    "user",
-    "schedule",
-    "exam",
-    "grades",
-    "classroom",
-    "spoc",
-    "judge",
-    "signin",
-    "ygdk",
-    "libbook",
-    "bykc",
-    "cgyy",
-    "evaluation",
-];
-
-struct Evidence {
-    route: &'static str,
-    started: Instant,
-    failed: bool,
-}
-
-impl Evidence {
-    fn pass(&self, feature: &str, operation: &str, count: Option<usize>) {
-        self.pass_with_fields(feature, operation, count, &[]);
-    }
-
-    fn pass_with_fields(
-        &self,
-        feature: &str,
-        operation: &str,
-        count: Option<usize>,
-        extra_fields: &[(&str, String)],
-    ) {
-        emit(
-            self.route,
-            feature,
-            operation,
-            "PASS",
-            None,
-            count,
-            None,
-            self.started.elapsed().as_millis(),
-            extra_fields,
-        );
-    }
-
-    fn fail(&mut self, feature: &str, operation: &str, code: ErrorCode) {
-        self.failed = true;
-        emit(
-            self.route,
-            feature,
-            operation,
-            "FAIL",
-            Some(code),
-            None,
-            None,
-            self.started.elapsed().as_millis(),
-            &[],
-        );
-    }
-
-    fn blocked(&mut self, feature: &str, operation: &str, reason: &str) {
-        self.failed = true;
-        emit(
-            self.route,
-            feature,
-            operation,
-            "BLOCKED",
-            None,
-            None,
-            Some(reason),
-            self.started.elapsed().as_millis(),
-            &[],
-        );
-    }
-
-    fn not_applicable(&self, feature: &str, operation: &str, reason: &str) {
-        emit(
-            self.route,
-            feature,
-            operation,
-            "NOT_APPLICABLE",
-            None,
-            None,
-            Some(reason),
-            self.started.elapsed().as_millis(),
-            &[],
-        );
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn emit(
-    route: &str,
-    feature: &str,
-    operation: &str,
-    status: &str,
-    code: Option<ErrorCode>,
-    count: Option<usize>,
-    reason: Option<&str>,
-    elapsed_ms: u128,
-    extra_fields: &[(&str, String)],
-) {
-    let mut fields = vec![
-        format!("route={route}"),
-        format!("feature={feature}"),
-        format!("stage={feature}"),
-        format!("operation={operation}"),
-        format!("status={status}"),
-        format!("elapsed_ms={elapsed_ms}"),
-    ];
-    if let Some(code) = code {
-        fields.push(format!("error={}", error_code(code)));
-    }
-    if let Some(count) = count {
-        fields.push(format!("count={count}"));
-    }
-    if let Some(reason) = reason {
-        fields.push(format!("reason={reason}"));
-    }
-    for (key, value) in extra_fields {
-        fields.push(format!("{key}={value}"));
-    }
-    println!("{}", fields.join(" "));
-}
-
-fn error_code(code: ErrorCode) -> &'static str {
-    match code {
-        ErrorCode::InvalidInput => "invalid_input",
-        ErrorCode::AuthenticationRequired => "authentication_required",
-        ErrorCode::InvalidCredentials => "invalid_credentials",
-        ErrorCode::PasswordRiskConfirmationFailed => "password_risk_confirmation_failed",
-        ErrorCode::PermissionDenied => "permission_denied",
-        ErrorCode::NetworkError => "network_error",
-        ErrorCode::Timeout => "timeout",
-        ErrorCode::UpstreamUnavailable => "upstream_unavailable",
-        ErrorCode::UpstreamChanged => "upstream_changed",
-        ErrorCode::ParseError => "parse_error",
-        ErrorCode::InternalError => "internal_error",
-    }
-}
-
-#[tokio::main]
-async fn main() {
-    init_logging();
+pub(crate) async fn process() -> i32 {
     let args = match Args::try_parse() {
         Ok(args) => args,
         Err(error) => {
@@ -193,26 +18,14 @@ async fn main() {
             std::process::exit(2);
         }
     };
-    let code = match run(args).await {
-        Ok(evidence) if evidence.failed => 5,
+    match run(args).await {
+        Ok(evidence) if evidence.failed() => 5,
         Ok(_) => 0,
         Err(error) => {
             eprintln!("core-live 启动失败: {}", error_code(error.code));
             5
         }
-    };
-    std::process::exit(code);
-}
-
-fn init_logging() {
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn"));
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .with_writer(std::io::stderr)
-        .with_target(true)
-        .with_ansi(false)
-        .try_init();
+    }
 }
 
 async fn run(args: Args) -> Result<Evidence> {
@@ -234,11 +47,7 @@ async fn run(args: Args) -> Result<Evidence> {
     }
     let (username, password) = read_credentials()?;
     let mut client = RouteClient::new(mode, &args.config_dir)?;
-    let mut evidence = Evidence {
-        route: route_name,
-        started: Instant::now(),
-        failed: false,
-    };
+    let mut evidence = Evidence::new(route_name);
     match client.prepare_login().await {
         Ok(()) => evidence.pass_with_fields(
             "auth",

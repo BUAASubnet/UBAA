@@ -9,12 +9,7 @@ fn temp_dir(label: &str) -> std::path::PathBuf {
 }
 
 fn core_live_binary() -> std::path::PathBuf {
-    std::env::current_exe()
-        .expect("test executable path is available")
-        .parent()
-        .and_then(std::path::Path::parent)
-        .expect("workspace target directory is available")
-        .join("core-live")
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_core-live"))
 }
 
 #[test]
