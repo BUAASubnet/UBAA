@@ -33,8 +33,8 @@
 | 03A | Test Support fixture 注册表 | 三个 Cgyy fixture 未注册的 focused test 失败 | `test: 完整登记脱敏只读 fixture` | 已提交：`ce69c26` |
 | 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 已提交：`8d60bb9` |
 | 04A | CLI 合同测试镜像 | CLI schema/stdout/stderr/exit characterization | `test(cli): 按宿主合同拆分 CLI characterization` | 已提交：`60fe3e3` |
-| 04B1 | CLI 命令参数与现有 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域归档命令与 IO` | 已验证待提交 |
-| 04B2 | CLI backend 与执行层 | 04B1 行为基线及公开 API 集合 | `refactor(cli): 按领域拆分 backend 与执行层` | 待执行 |
+| 04B1 | CLI 命令参数与现有 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域归档命令与 IO` | 已提交：`837da26` |
+| 04B2 | CLI backend 与执行层 | 04B1 行为基线及公开 API 集合 | `refactor(cli): 按领域拆分 backend 与执行层` | 已验证待提交 |
 | 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 待执行 |
 | 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 待执行 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
@@ -172,14 +172,25 @@ features；`io` 禁止反向依赖 backend/execute。内部代码直接使用真
 回指。根级全部公开参数类型、两个 backend trait、`ReadonlyRouteContext`、六个执行入口及
 `render_startup_error` 保持原路径和可见性，`CommandOutput` 仍仅为 `pub(crate)`，领域 handler 不扩大到 crate 根。
 
-04C 先加入 Core 不再公开 output/exit 的源码架构断言并观察预期失败，再把 Core `output.rs` 与
-`ErrorCode::exit_code` 原样迁入 CLI，删除 Core 导出与 Core 中仅为 CLI 存在的测试；不得改变 JSON schema、
-stdout/stderr 或数值退出码。
+04C 先在 CLI binary 架构测试中加入聚合断言并观察预期失败：Core 不再导出/持有 `output.rs`，Core
+`ErrorCode` 不再定义 CLI 退出映射，且 CLI 生产源码不再引用 `ubaa_core::output`。随后把 Core `output.rs` 的
+schema/envelope 迁入 CLI `io/schema.rs`，把 `CliJsonError` 与名称投影迁入 `io/error.rs`，把 `ExitCode` 和映射迁入
+`io/exit_code.rs`。Rust 的外部类型规则不允许 CLI 继续为 Core `ErrorCode` 提供 inherent method，因此改用
+`pub(crate) const fn exit_code(ErrorCode) -> ExitCode`；`main.rs` 中 Clap Error 自身的 `.exit_code()` 保持不变。
+`CliFeature` 及现有 CLI 合同测试直接构造的 envelope/meta 类型由 `ubaa-cli` crate 根稳定重导出，避免私有类型
+出现在公开签名。把 Core 中 10 项 CLI-only 合同测试和 envelope Debug 脱敏断言迁到现有 CLI 合同测试后，才
+删除 Core 导出、文件与对应测试；不得改变 JSON schema、stdout/stderr 或数值退出码，bridge/Test Support 的
+Core 结构化错误消费也不得改变。
 
 04D 最后机械拆分验证宿主：
 
 - `core-live.rs` 拆成显式 Cargo binary `bin/core_live/{main,args,evidence,steps}.rs`。
-- 在 Cargo manifest 显式固定 binary 名 `core-live`，保持脚本和产物路径不变。
+- 在 Cargo manifest 设置 `autobins = false`，显式固定 `ubaa → src/main.rs` 与
+  `core-live → src/bin/core_live/main.rs` 两个 binary，保持脚本和产物路径不变。
+- `binary_e2e.rs` 以排序后的精确文件集合聚合检查 `core_live/**/*.rs`，`core_live_runtime.rs` 使用 Cargo 提供的
+  `CARGO_BIN_EXE_core-live`，不再猜测 target 目录或 Windows 扩展名。
+- `main → steps → {args,evidence,Core}`，`evidence → Core error`，`args` 独立；15 项只读功能顺序、单一路线、
+  stdin 两行凭据、证据字段/脱敏、0/2/5 退出语义和三个 week 测试叶保持不变。
 
 focused：`cargo test --locked -p ubaa-cli --all-targets`、`cargo test --locked -p ubaa-core --all-targets`。
 
@@ -190,27 +201,45 @@ focused：`cargo test --locked -p ubaa-cli --all-targets`、`cargo test --locked
 - `facade/mod.rs` → `client.rs`、`auth.rs`、`routing.rs`、`read/*`、`write/*`、`diagnostic.rs`、`types.rs`。
 - `session/mod.rs` → `coordinator.rs`、`file_store.rs`、`file_safety.rs`；消除 `cookies.rs` 对父模块私有 helper 的
   反向路径，但保持 helper 逻辑逐字等价。
+- `UbaaClient` 的字段及跨兄弟模块调用的 route guard/finish/clear helper 仅提升为 `pub(super)`，不扩大到
+  crate 或外部；`RouteClient` 与其 impl 同驻 `diagnostic.rs`，保持字段私有。`facade/mod.rs` 继续稳定重导出
+  `RouteClient/UbaaClient/Routed/RoutedError/RoutedResult/NetworkState/RouteDiagnostic/RouteResolution`，本阶段不提前
+  创建 06C 的 `testing` 接口。
+- session 依赖方向固定为 `file_safety → error`、`cookies → file_safety`、`types → cookies`、
+  `file_store → {file_safety,storage,types,ports}`、`coordinator → {file_store,file_safety,types,ports}`；父 `mod.rs`
+  仅声明和重导出，`session_error` 只为 `pub(super)`，不得复制 helper。
 - 缩小文件级 Clippy allow，只保留确有必要的函数级例外。
 - 从 baseline 删除 facade/session 两项。
 
-focused：auth、route matrix、session CAS/permission/symlink/lock/fork tests；随后 Core/Test Support 全目标。
+focused：auth、route matrix、session CAS/permission/symlink/lock 以及现有 Judge worker isolation/concurrency；直接
+runtime fork-sharing characterization 属于 06B，不在本机械阶段提前实现。随后运行 Core/Test Support 全目标。
 
 ### 阶段 06A–C：Core 路线、state 与 facade 边界
 
 RED/characterization：
 
 - 增加 direct/webvpn/auto × ready/not-ready × success/failure/fallback 路线等价矩阵；记录每项调用序列与错误。
-- 增加 `Arc` 身份、generation、lock、TTL、capacity、fork-sharing 和并发竞态测试。
+  当前合同明确禁用跨路线 fallback，因此矩阵中的 fallback 场景必须证明另一槽位即使 ready 也不会被调用，
+  `usedFallback=false`；本轮不得借重构启用回退或网络错误重放。
+- 增加 parent/fork 的 transport/store/feature-state `Arc` 身份、Cookie 复制与隔离、独立 runtime state、generation、
+  lock、TTL 精确边界、capacity/oldest eviction 和并发竞态测试。
 - 增加架构测试：CLI/bridge manifest 不得启用 `test-contract`；生产源码不得导入非 facade 模块；禁用 feature
   的 compile-fail fixture 不能访问测试构造器。
 
 实现并分别提交：
 
-- 06A 只集中所有 facade 路线选择到 `runtime_for(route)` 与唯一 `resolve_route`，逐项删除重复 match。
-- 06B 只移动 `features/state.rs`、`state_cache.rs` 到 `internal/route_state`，让 internal 不再依赖 feature。
-- 06C 添加非默认 `test-contract` feature 和 `#[doc(hidden)] facade::testing`；仅 Test Support/专用测试启用；
-  CLI/bridge 只导入 facade 重导出的稳定类型；把 auth/features/ports/session/config/connection 收窄为
-  crate-private。
+- 06A 先提交等价 characterization，再集中所有 facade 路线选择到 `runtime_for(route)` 与唯一
+  `resolve_route`，逐项删除重复 match；旧 pure resolver 必须委托同一权威实现或内部化，不得保留第二套算法。
+- 06B 先提交状态 characterization。`features/state.rs` 直接持有多种 feature credential/list 类型，故需先把
+  state-owned payload 迁入低层 `internal/route_state/{credentials,cache}.rs`，再移动
+  `state.rs/state_cache.rs` 并以源码门禁证明 `internal/**` 不依赖 `crate::features`。若确定性测试证实 Signin
+  generation check 与 credential lock 间的 TOCTOU，必须先以独立 RED/修复提交解决，不得夹入机械移动。
+- 06C 先迁移 Core integration tests：facade 行为测试使用 `facade::testing`，其余白盒测试成为 crate unit test
+  或进入显式 `--features test-contract` 门禁，测试集合不得静默减少。随后添加非默认 `test-contract` feature 和
+  `#[doc(hidden)] facade::testing`；用 manifest 检查、生产源码递归扫描及 feature-on/off compile fixtures 三重
+  证明 CLI/bridge 不启用测试入口且只导入 facade 重导出的同一稳定类型。Test Support 明确启用该 feature，最后
+  把 auth/features/ports/session/config/connection 收窄为 crate-private。该收口只声明并验证 workspace 内部兼容，
+  不宣称未知仓外消费者的 semver 兼容。
 
 每个行为差异必须独立提交；若来源冲突，写 decision log 后停止该边界，不以猜测通过。
 
