@@ -1,0 +1,10 @@
+[package]
+name = "facade-testing-feature-off"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+ubaa-core = { path = "../../.." }
+
+[workspace]
