@@ -1,6 +1,6 @@
 # 当前迁移与交付状态
 
-更新日期：2026-09-03
+更新日期：2026-09-04
 
 本页只呈现当前有效结论。2026-09-02 及以前的逐次修复、失败、重跑与 CI 流水已原样归档到
 [历史状态流水](history/status-through-2026-09-02.md)；不得用历史阶段中的“未完成”覆盖本页终态，也不得用
@@ -10,7 +10,7 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| implementation HEAD | `324979e` | 代码组织阶段 10B：Domain/App/Bridge 分层，并由独立 `ubaa_host` 统一官方 Flutter 与 HarmonyOS 组合根和生命周期 |
+| implementation HEAD | `c76a81a` | 代码组织阶段 11A：博雅选课资格由 Core typed action 贯通 Bridge/Domain/App/UI，prepare/commit 均 fail-closed 复核目标、路线与资格 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -42,6 +42,11 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   FRB 零漂移、完整 Flutter 工作区、`just check`、macOS integration 6 项、macOS/Android APK/iOS simulator
   Debug 构建与产物结构检查、OHOS API26 arm64 无签名 HAP，并经两轮独立复审给出 Ready。该 HAP 仍不是签名或
   实体设备证据。
+- `c76a81a` 上的阶段 11A 将博雅选课资格固化为 `allowed/denied/unknown` typed contract；缺少可解析开课时间、
+  详情目标错配或提交前资格变化均 fail-closed，且 intent 被消费后不发送写请求。Core 162 项双配置测试、CLI
+  binary E2E 16 项、CLI contract 32 项、只读 61 项、认证 28 项、Bridge 19 项、Flutter Domain 9 项、App 55
+  项、UI 51 项、Host 10 项、官方 App 2 项、macOS integration 6 项、FRB 零漂移、`just check`、refs、layout、
+  sensitive 与独立复审均通过；这是本地确定性阶段证据，不是新的 live/签名/设备证据。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -58,7 +63,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11A–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11B–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。
