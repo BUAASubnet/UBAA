@@ -1802,11 +1802,11 @@ class BridgeBackend
   static String? _safeDetail(BridgeError error) {
     final value = error.message.trim();
     if (value.isEmpty || value.length > 160) return null;
-    if (value.contains(
-      RegExp(r'(?i)(password|cookie|token|authorization|https?://)'),
-    )) {
-      return null;
-    }
+    final unsafeDetail = RegExp(
+      r'(password|cookie|token|authorization|https?://)',
+      caseSensitive: false,
+    );
+    if (value.contains(unsafeDetail)) return null;
     return value;
   }
 }
