@@ -1,5 +1,32 @@
 # 决策记录
 
+## 2026-09-03：Phase 11 typed 写资格的来源边界（当前有效）
+
+本轮在把 Flutter 写入口从中文展示字段迁移到 typed action eligibility 前，重新逐操作核对了
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。审查发现既有
+`source-parity.md` 把固定示例中的 Bykc、Class/Signin 和 Evaluation 等价实现误记为不适用，并有若干
+合成测试固定了错误字段。处理原则如下：
+
+- 对两份冻结来源一致的事实先补脱敏 RED，再修正生产实现：Signin 今日课程字段为 `signStatus`、签到结果为
+  `result.stuSignStatus`；Bykc 签到正文坐标键为 `signLat/signLng`；Ygdk 提交时间为上海时区 Unix 秒；
+  LibBook AES 明文不包含 `areaId`，且 `start_time/end_time` 固定为空字符串。
+- Signin 的业务登录端点、业务会话头身份、时间戳请求方法、`id` 参数位置以及 Direct/WebVPN 端口在两份
+  冻结来源之间冲突。当前周期没有逐目标真实签到授权，既有只读成功也不能证明写协议。因此该冲突边界保持
+  未决，不以结构整理改动登录、会话头、方法或端口；只修复两份来源一致的 DTO/结果层级，并以适用的冻结
+  本地实现修正当前明确错误的用户 ID 值。任何进一步改动必须先取得脱敏实时写链证据或新的逐操作授权。
+- Bykc 签到位置算法采用被迁移产品的冻结本地实现：每次提交前重读已选课程和签到配置；存在正半径签到点时
+  在圆内生成坐标，否则要求调用方提供完整坐标。固定示例的 `±1e-5` 偏移只记录为冲突证据，不混入实现。
+- Cgyy 一次预约采用冻结 ViewModel 的产品限制：只能选择同一空间、最多两个且相邻的可预约时段；
+  `joiners` 与冻结提交合同一致，作为必填输入。固定示例没有等价 Cgyy 协议，不能覆盖该规则。
+- Cgyy 取消资格由 Core 使用 `Asia/Shanghai` 解释上游无时区时间，并在 prepare 与 commit 前复核；开始时间
+  存在时严格要求当前时刻早于“开始前四小时”，否则回退结束时间。状态未知时拒绝；仅在冻结规则允许且
+  两个时间都不可解析时不额外增加时间限制。
+- Evaluation 的答案选择和请求顺序采用适用的冻结本地实现；固定示例的首题策略及提交后的额外探测请求仅作
+  冲突记录，不拼接为新协议。读取结果必须保留提交所需的完整课程 DTO，逐课程失败不得被 bridge 投影成整体成功。
+- UI action 缺失或 eligibility 未知时一律拒绝。中文 label/value 只用于展示；Core prepare/commit 的重新读取
+  与资格复核仍是最终权威。以上确定性开发不授权真实选课、退选、签到、预约、取消、上传或评教提交。
+
 ## 2026-09-02：MethodChannel 平台能力合同（当前有效）
 
 - 生产宿主统一使用 `cn.edu.buaa.ubaa/platform` 的 typed MethodChannel：权限通过

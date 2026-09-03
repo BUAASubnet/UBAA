@@ -273,36 +273,56 @@ DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。
 
 冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `submitReservation` 要求先读取 `/api/reservation/day/info`，取得预约上下文 `token`，校验所有选择属于同一空间且时段可预约，再以表单 POST `/api/reservation/order/info` 创建订单上下文。验证码获取与校验分别使用 `/api/captcha/get`、`/api/captcha/check`，旧实现由注入的验证码求解器提供 `pointJson` 和 `captchaVerification`，失败最多重试三次。最终表单 POST `/api/reservation/order/submit`，字段为 `venueSiteId`、`reservationDate`、`reservationOrderJson`、`weekStartDate`、`phone`、`theme`、`purposeType`、`joinerNum`、`activityContent`、`joiners`、`isPhilosophySocialSciences`、`isOffSchoolJoiner`、`captchaVerification`、`token`。Rust Core 已实现上下文创建、选择校验、受控图片求解和最终表单构造；CLI 默认禁止写操作，`verify-live` 永远只读，独立用户授权例外另行记录。`examples/buaa-api` 未提供同一场馆预约协议，未借用其 URL、字段或错误语义。
 
-Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时满足冻结成功状态和 `result.stuSignStatus=1`；畸形或非成功响应映射为稳定的上游错误。
+Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带用户 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时满足冻结成功状态和 `result.stuSignStatus=1`；畸形或非成功响应映射为稳定的上游错误。2026-09-03 审查确认当时 Core 错把 course ID 放入表单并读取顶层 `stuSignStatus`，既有合成测试也固定了错误形状；这些内容只算待修 parity gap，不能继续作为通过证据。
 
-补充证据：`crates/ubaa-core/tests/signin.rs` 的合成传输按上述四步顺序返回脱敏响应，并断言最终 URL、表单和会话头；测试不会访问真实 iClass，也不持久化业务会话材料。
+补充证据：`crates/ubaa-core/tests/signin.rs` 使用脱敏合成传输且不会访问真实 iClass 或持久化业务会话材料；但 2026-09-03 审查确认旧断言使用了错误的表单值和响应层级。只有改为冻结形状并观察 RED、修复后重新通过，才能恢复为协议证据。
 
 Ygdk 写入口的输入边界也已固定：照片必须存在且非空，开始和结束时间必须同时提供；这些检查发生在 OAuth/业务令牌请求之前。`features/ygdk.rs` 单元测试使用禁止网络的传输验证无效请求直接返回 `invalid_input`。
 
-`crates/ubaa-core/tests/ygdk.rs` 进一步以合成传输验证完整写链顺序：OAuth code、`campusAppLogin`、分类/项目/统计/学期概览、`Upload/File/post` multipart 和 `Clockin/clockin` 表单；断言 `uid`、业务 token、文件元数据及打卡字段均按冻结协议发送，且不产生真实副作用。
+`crates/ubaa-core/tests/ygdk.rs` 以合成传输覆盖完整写链顺序且不产生真实副作用；2026-09-03 审查确认旧测试把用户输入的时分文本原样固定为 `start_time/end_time`，与冻结上海时区 Unix 秒协议冲突。该断言必须先作为 RED 校正后才能重新称为协议证据。
 
-下表是其余直连上游操作的必填对照边界。`ubaa_old` 以 `references.md` 记录的提交为准；除
-Evaluation 的 SPOC 端点外，`examples/buaa-api` 对所有行均明确不等价。除非决策日志记录了独立的
+下表是其余直连上游操作的必填对照边界。`ubaa_old` 以 `references.md` 记录的提交为准；固定
+`examples/buaa-api` 对 Bykc、Class/Signin 和 Evaluation 提供等价或部分等价实现，对 Ygdk、LibBook 与
+Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等价”写成“不适用”。除非决策日志记录了独立的
 用户授权和脱敏结果，否则任何一行都不授权在迁移验证期间执行真实写操作。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密/签名常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|---|
-| Bykc 选课 | CAS `bykc.buaa.edu.cn/sscv/cas/login`，API `/sscv/choseCourse` | 与读取相同的 CAS 令牌跳转和路线封装 | 路线内 BYKC 令牌 | POST 加密 JSON `{courseId}` | 加密正文、`auth_token`/`authtoken`、`ak`、`sk`、`ts`、JSON 类型 | AES-128-ECB PKCS7；RSA PKCS#1 v1.5；SHA-1 摘要；冻结公钥见 `LocalBykcCrypto.kt` | 从信封读取 `BykcSuccessResponse.message` | 登录单飞；令牌过期后重试 | 输入错误在本地返回；上游非成功映射为稳定写错误 |
-| Bykc 退选 | 同上 | 同上 | 同上 | POST 加密 JSON `{id}` 到 `/sscv/delChosenCourse` | 同上 | 同上 | 成功消息 | 同上 | 同上 |
-| Bykc 签到/签退 | 同上 | 同上 | 同上 | POST 加密 JSON `{courseId,lat,lng,signType}` 到 `/sscv/signCourseByUser`；`signType` 为 1 或 2 | 同上 | 同上 | 成功消息 | 写入前查询已选课程和签到配置；不使用全局缓存 | 缺少课程/位置或不在可用时间窗映射为输入/上游错误 |
-| Signin 执行签到 | iClass 中心 `?type=jumpMyCenter`；业务登录 `8347/app/user/login.action` | 有界白名单跳转；提取解码后的 `loginName` | 路线内 `{userId,sessionId}`；登录过期后重试一次 | GET 时间戳 `app/common/get_timestamp.action`，再 POST 表单 `app/course/stu_scan_sign.action`，正文含 `id`，查询含 `courseSchedId`、`timestamp` | `sessionId` 请求头；URL 编码表单 | 无 | `{code,success,message}`；成功要求 `STATUS` 成功且 `result.stuSignStatus=1` | 按学生单飞业务会话 | 绝不静默成功；失败状态映射为稳定写结果/错误 |
-| Ygdk 提交打卡 | OAuth 首页后调用 `campusAppLogin` | 从查询串/片段有界提取 code | 路线内 `{uid,token}` | multipart `Upload/File/post`（`uid`、`token`、`file`），再提交 `Clockin/clockin` 表单（`start_time`、`end_time`、`place_type`、`place`、`isopen`、`form_time_fmt`、`images`、`classify_id`、`item_id`、`item_name`、`uid`、`token`） | 先发照片 multipart，再发带 `X-Requested-With` 的 `application/x-www-form-urlencoded` | 无 | `{success,message,recordId,summary}` | 会话单飞；令牌不持久化 | `-98` 清理并重试一次；上传/打卡失败为写失败 |
-| LibBook 预约 | CAS 服务 `booking.lib.buaa.edu.cn/v4/login/cas` 后调用 `/v4/login/user` | 有界 SSO 跳转并提取 `cas` | 路线内 bearer 令牌 | POST JSON `{aesjson}` 到 `/v4/space/confirm`；AES 明文为预约请求 `{areaId,seatId,day,segment,startTime,endTime}` | `Authorization: bearer<token>`、Origin/Referer/X-Requested-With | 冻结 `LocalLibBookCrypto.encryptReserveRequest` 的 AES 常量 | `{success,message,booking?}` | 令牌单飞；过期后清理并重试一次 | 非成功信封映射为稳定写错误 |
+| Bykc 选课 | CAS `bykc.buaa.edu.cn/sscv/cas/login`，API `/sscv/choseCourse`；示例为同一业务端点 | 旧版读取 final URL/`Location`，示例依赖自动跳转；均提取 `/cas-login?token=` | 旧版按用户缓存 client token；示例为 Boya credential；当前仅路线内存 | POST 加密 JSON `{courseId}` | 加密正文、`auth_token`/`authtoken`、`ak`、`sk`、`ts`、JSON 类型 | AES-128-ECB PKCS7；RSA PKCS#1 v1.5；SHA-1 摘要；冻结公钥见 `LocalBykcCrypto.kt` | 旧版要求成功信封且 `data.courseCurrentCount` 可解析；示例丢弃业务正文 | 旧版登录单飞并在认证失效后至多刷新一次；示例使用凭据期限 | 未选、未满、处于选课窗且 typed 状态为 `available` 才允许；未知状态拒绝 |
+| Bykc 退选 | 同上；API `/sscv/delChosenCourse` | 同上 | 同上 | POST 加密 JSON `{id}`；`id` 为课程本体 ID | 同上 | 同上 | 旧版同样要求可解析的 `courseCurrentCount`；示例丢弃正文 | 同上 | 已选且未过期才允许；冻结 UI 未把退选截止字段另设为硬条件，不自行增加规则 |
+| Bykc 签到/签退 | 同上；API `/sscv/signCourseByUser` | 同上 | 同上 | POST 加密 JSON `{courseId,signLat,signLng,signType}`；坐标为数值，`signType` 为 1 或 2 | 同上 | 同上；位置算法冲突按决策日志采用冻结本地圆内算法 | `selected/checkin/pass/signConfig/canSign/canSignOut` 决定资格 | 每次写前重读当前学期、已选课程和签到配置；认证失效最多重放一次 | 缺少课程、完整坐标、配置或不在对应时间窗时写前拒绝；未知状态拒绝 |
+| Signin 执行签到 | iClass 中心 `?type=jumpMyCenter`；旧版登录 `8347/app/user/login.action`，示例登录 `8346/eschool/app/user/login_buaa.do` | 旧版有界读取 final URL/`Location`，示例读取自动跳转 final URL；均提取 `loginName` | 旧版使用返回的 `{userId,sessionId}`；示例使用 `loginName@id`，该冲突未决 | 旧版 GET 时间戳、POST 签到，query=`courseSchedId,timestamp`、form=`id=userId`；示例全部 POST 且参数在 query，该冲突未决 | 旧版 `sessionId` 头和 URL 编码表单；示例 `Sessionid=loginName` 且空正文，该冲突未决 | 无 | 今日课程字段为 `signStatus`；成功要求 `STATUS` 成功且 `result.stuSignStatus=1`，两源一致 | 旧版按学生单飞且明确登录失效时最多重试一次；示例使用凭据期限 | 只允许 `signStatus=0`；`1`、缺失和其它值拒绝；bridge 不得把 Core `success=false` 改成成功 |
+| Ygdk 提交打卡 | OAuth 首页后调用 `campusAppLogin`；示例无等价协议 | 从查询串/片段有界提取 code；逐跳 host 白名单仍是已记录 parity gap | 路线内 `{uid,token}` | multipart `Upload/File/post`，再提交 `Clockin/clockin` 表单；`start_time/end_time` 必须为用户输入按 `Asia/Shanghai` 转换的 Unix 秒 | 先发照片 multipart，再发带 `X-Requested-With` 的 `application/x-www-form-urlencoded` | 无 | 项目 ID/名称来自 overview typed DTO；时间格式 `yyyy-MM-dd HH:mm`、同日且结束晚于开始 | 会话单飞；最终写不自动重放 | 项目、完整时间和照片均必需；非法时间在任何网络前拒绝，上传/提交失败不得伪装成功 |
+| LibBook 预约 | CAS 服务 `booking.lib.buaa.edu.cn/v4/login/cas` 后调用 `/v4/login/user`；示例无等价协议 | 有界 SSO 跳转并提取 `cas` | 路线内 bearer 令牌 | POST JSON `{aesjson}` 到 `/v4/space/confirm`；AES 明文仅为 `{seat_id,segment,day,start_time:"",end_time:""}` | `Authorization: bearer<token>`、Origin/Referer/X-Requested-With | AES-128-CBC、PKCS7、IV=`ZZWBKJ_ZHIHUAWEI`，key 为日期八位数字加其逆序 | 座位 `status="1"` 可预约；`2/3` 不可预约；缺失/未知拒绝 | 令牌单飞；过期后清理并重试一次 | 只有 typed available 且目标字段完整才允许；业务 `success=false` 不得被 bridge 覆盖 |
 | LibBook 取消预约 | 同上 | 同上 | 同上 | POST JSON `{id}` 到 `/v4/space/cancel` | 同上 | 请求封装外无额外加密 | `{success,message}` | 同上 | 无效预约和过期会话保持可区分 |
 | Cgyy 锁码 | SSO `manageLogin`，再调用 `/api/login` | 路线内有界跳转 | 路线内 `cgAuthorization` 业务令牌 | GET `/api/orders/lock/code` | 使用现有 Cgyy 客户端的签名查询/请求头 | 现有 Cgyy MD5 签名常量 | 不透明锁码 JSON 数据 | 令牌单飞 | 信封 code/message 决定稳定错误 |
-| Cgyy 预约提交 | 同上 | 同上 | 同上 | POST `/api/reservation/order/info`；验证码 GET `/api/captcha/get`、POST `/api/captcha/check`；再 POST 表单 `/api/reservation/order/submit`，字段为 `venueSiteId,reservationDate,reservationOrderJson,weekStartDate,phone,theme,purposeType,joinerNum,activityContent,joiners,isPhilosophySocialSciences,isOffSchoolJoiner,captchaVerification,token` | URL 编码表单和 JSON 选项列表 | 现有 Cgyy 请求签名；验证码求解输入不持久化 | `{success,message,order?}` | 不缓存写操作；验证码最多重试 3 次 | 槽位/输入错误在本地返回；验证码耗尽和上游失败映射为稳定写错误；CLI 可省略验证码材料，由 Core 完成挑战获取、求解和校验 |
-| Cgyy 取消预约 | 同上 | 同上 | 同上 | POST `/api/orders/new/cancel/{id}` | 签名请求，空正文 | 现有签名 | 操作消息/订单 | 令牌单飞 | CLI 必须显式确认；提交后等待旧版要求的落库窗口，订单列表状态 2 才是最终取消证据 |
+| Cgyy 预约提交 | 同上；示例无等价协议 | 同上 | `cgAuthorization` 只使用业务 access token；预约上下文 token 只进入表单 | POST 上下文、验证码获取/校验，再 POST 含冻结 14 字段的最终表单 | URL 编码表单和 JSON 选项列表 | 现有 Cgyy MD5 签名与 captcha AES；挑战最多三轮 | 槽位仅在 `reservationStatus=1` 且无 trade/order 占用、`takeUp!=true` 时可预约 | 写前重读 day info；同空间、最多两个相邻时段，不缓存写操作 | `phone/theme/joinerNum/activityContent/joiners` 均必填；typed 未知或验证码耗尽时拒绝 |
+| Cgyy 取消预约 | 同上；示例无等价协议 | 同上 | 同上 | POST `/api/orders/new/cancel/{id}` | 签名请求，空正文 | 现有签名 | `id/orderStatus/checkStatus/start/end`；未知订单状态拒绝 | prepare/commit 都按上海时区复核开始前四小时截止；令牌单飞 | 负审核、已取消、未知或到达截止点均拒绝；最终以订单列表状态 2 作为取消证据 |
 | Evaluation 列表/待评 | GET `spoc/pjxt/cas`，再读取任务、问卷列表和待评课程 | 路线内有界 SPOC 跳转 | 路线内 SPOC Cookie/会话 | GET 任务参数 `yhdm,pageNum=1,pageSize=10`；问卷 `rwid`；课程 `wjid`；题目字段严格来自 `EvaluationCourse` | JSON 信封和 GET 查询；问卷模式更新为尽力 JSON POST | 无 | 任务/问卷/课程字段来自冻结 `EvaluationModel.kt`；待评筛选 `!isEvaluated` | 激活互斥锁；课程键 `${rwid}_${wjid}_${kcdm}_${bpdm}` | 信封畸形/认证失败为稳定错误；只有上游明确成功时空结果才有效 |
-| Evaluation 提交评教 | 同上 | 同上 | 同上 | 尽力 POST `/reviseQuestionnairePattern` `{rwid,wjid,msid}`，GET 题目，再 POST `/submitSaveEvaluation` `{pjidlist:[],pjjglist:[...],pjzt:"1"}` | JSON | 无额外加密；正文遵循冻结 `LocalEvaluationService.kt` | 每课程 `EvaluationResult`；正文保留 `pjdf=93`、题目 ID/选项和教师/课程 ID | 按课程有界串行提交；不缓存 | 提交响应 code/message 映射每课程成功/失败；CLI 必须显式确认 |
+| Evaluation 提交评教 | 同上；示例 `api/tes` 为部分等价实现 | 旧版复用激活会话；示例只确认最终 URL 离开 SSO | 路线内 SPOC Cookie；不跨路线 | 旧版尽力 revise、GET 题目、POST submit；示例无 revise 且提交后另有探测请求，按决策日志不拼接 | JSON | 无额外加密；正文遵循冻结 `LocalEvaluationService.kt` | 完整 `EvaluationCourse` 必须贯穿读取到提交；状态为 pending 且必填 ID 完整 | 按课程有界串行；答案策略采用冻结本地实现 | 每课程 code/message 决定结果；任一失败不得被投影成整体成功；unknown/evaluated 拒绝 |
 
-固定的 `examples/buaa-api` 中，Evaluation 模块（`src/api/tes`）确认相同的 SPOC 任务/表单/提交
-URL，但不能作为其它功能 URL、字段或加密的证据。旧版本地代码使用随机答案时，Core 为测试提供
+固定的 `examples/buaa-api` 中，`api/boya`、`api/class` 与 `api/tes` 分别为 Bykc、Signin 与 Evaluation
+提供交叉证据；它们不能作为 Ygdk、LibBook、Cgyy 或其它功能 URL、字段和加密的证据。旧版本地代码使用随机答案时，Core 为测试提供
 显式确定性答案策略，验证过程中从不执行真实提交。
+
+### Phase 11 typed action eligibility 对照（2026-09-03）
+
+下表把每个写入口的九列协议证据与产品资格单独固定。`eligibility=unknown`、typed action 缺失或目标字段
+不完整一律禁止创建 intent；展示 label/value 不参与资格。Core 在 prepare 读取当前状态，并在可能跨越时间窗或
+状态变化的操作上于 commit 前再次复核。真实写仍需逐操作、逐目标授权。
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文 | 加密/签名 | DTO/缺失值 | 缓存/并发 | 错误/产品资格 |
+|---|---|---|---|---|---|---|---|---|---|
+| 11A Bykc 选课 | `/sscv/cas/login` → `/sscv/choseCourse`；两源等价 | final/Location 提 token，限 `sso/bykc` | 路线内 token | POST `{courseId}` | JSON 密文及双 token/`ak/sk/ts` | AES/RSA/SHA-1 | `status/selected/capacity/window`；缺失为 unknown | 登录单飞、认证失效最多一次刷新 | 仅未选、未满、选课窗内 `available`；其它拒绝 |
+| 11B Bykc 退选 | 同 11A，端点 `/delChosenCourse` | 同 11A | 同 11A | POST `{id}` | 同 11A | 同 11A | `selected/status/courseId` | 同 11A | 仅已选且未过期；不臆加退选截止硬规则 |
+| 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser` | 同 11A | 同 11A | POST `{courseId,signLat,signLng,signType}` | 同 11A | 同 11A；采用冻结本地位置算法 | `checkin/pass/signConfig/canSign/canSignOut` | 每次重读配置，不缓存资格 | 对应布尔明确为 true 且坐标完整；unknown 拒绝 |
+| 11D Signin 签到 | iClass bootstrap；登录端点冲突见决策日志 | 两源均提 `loginName`，细节冲突保留 | `{userId,sessionId}` 形状；头身份冲突保留 | 时间戳/签到方法与参数位置冲突保留 | 两源均有 session 头但值来源冲突 | 无 | 今日 `signStatus`，结果 `result.stuSignStatus` | 按学生单飞；不新增写重放 | 仅状态 0；状态 1/缺失/其它拒绝；业务 false 原样返回 |
+| 11E LibBook 预约 | CAS/login → `/space/confirm`；示例不适用 | 最多 8 跳提 cas | 路线内 bearer | POST `{aesjson}` | JSON + bearer/Origin/Referer | AES-CBC 冻结常量 | seat `status/isAvailable` 与完整目标 | token 单飞、失效最多重试一次 | 仅明确 available；unknown 拒绝 |
+| 11F LibBook 取消 | 同 11E，端点 `/space/cancel` | 同 11E | 同 11E | POST `{id}` | 同 11E | 无额外加密 | booking `id/status/statusName` | 同 11E | 仅明确 active；6/8、结束类状态、unknown 拒绝 |
+| 11G Cgyy 预约 | `manageLogin` → `/api/login` → 预约链；示例不适用 | 有界 SSO/WebVPN Cookie 同步 | access token 与 reservation token 分离 | day/context/captcha/submit 冻结字段 | signed form | MD5 + captcha AES | slot typed reservable、站点/空间/时段 ID | 单飞；最多两个相邻时段；captcha 3 次 | 完整必填字段且全部槽位明确可约；unknown 拒绝 |
+| 11H Cgyy 取消 | 同 11G，端点 `/orders/new/cancel/{id}` | 同 11G | 同 11G | POST 空表单 | signed form | MD5 | order/review 状态、开始/结束 | 上海时区 clock；prepare/commit 双复核 | 状态允许且严格早于 deadline；unknown 拒绝 |
+| 11I Ygdk 提交 | OAuth → upload → clockin；示例不适用 | 最多 10 跳提 code，host gap 保留 | 路线内 uid/token | multipart 后 form，时间为上海 epoch 秒 | multipart + URL encoded | 无 | overview item、完整日期时间、图片 | 登录单飞；最终写不重放 | ID 正数、同日 end>start、图片有效；unknown 拒绝 |
+| 11J Evaluation 提交 | SPOC pjxt；两源部分等价 | 有界激活，示例 final 交叉证据 | 路线内 SPOC Cookie | revise/topic/submit；示例差异不拼接 | JSON | 无 | 完整 course DTO 与 pending 状态 | 逐课程串行；冻结本地答案策略 | evaluated/unknown/缺字段拒绝；逐项失败决定整体失败 |
 
 ## 博雅课程只读查询
 
@@ -380,19 +400,19 @@ URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求�
 
 ### Signin 时间戳解析校正
 
-冻结 `LocalSigninApi.kt` 在 GET `app/common/get_timestamp.action` 响应 JSON 中读取字符串字段 `timestamp`；空字段或非 JSON 响应均映射为上游错误，随后将该值作为签到请求查询参数。Rust Core 已严格解析该字段，并以脱敏测试覆盖非 JSON 拒绝。`examples/buaa-api` 未实现 iClass 签到协议，因此未借用其响应结构。
+冻结 `LocalSigninApi.kt` 在 GET `app/common/get_timestamp.action` 响应 JSON 中读取字符串字段 `timestamp`；空字段或非 JSON 响应均映射为上游错误，随后将该值作为签到请求查询参数。Rust Core 已严格解析该字段，并以脱敏测试覆盖非 JSON 拒绝。固定 `examples/buaa-api/src/api/class` 实现等价签到能力，但时间戳方法和参数载体与旧版本地实现冲突；该边界按决策日志保持未决。
 
 Signin 提交请求的表单构造已单独覆盖：冻结 `stu_scan_sign.action` 只发送 `id` 用户标识，`courseSchedId` 与 `timestamp` 位于查询参数，`sessionId` 位于请求头；测试断言表单不会增加其他字段。
 
 ### Evaluation 评教提交信封
 
-冻结 `LocalEvaluationService.kt` 最终向 `evaluationMethodSix/submitSaveEvaluation` 发送 JSON 正文：`pjidlist` 固定为空数组、`pjjglist` 为逐课程结果列表、`pjzt` 固定为字符串 `"1"`，响应按业务 `code` 和消息字段判定成功。Rust Core 已迁移该 URL、JSON 编码、请求头和非空列表校验，并提供 `build_submit_body` 脱敏向量测试。自动提交链会按旧版顺序对每门待评课程执行 `reviseQuestionnairePattern`（失败按冻结实现继续）、读取问卷题目、展开 `wjzblist[].tklist[]`，按题型构造答案后提交最终信封；选择题的第二个选项只在随机选中的一题使用，随机源保留在 Core 内且不写入日志。CLI 提供 `evaluation submit-pending --confirm-write`，未确认时在读取课程前拒绝；实时验证永不调用写操作。`examples/buaa-api` 无等价评教提交协议。
+冻结 `LocalEvaluationService.kt` 最终向 `evaluationMethodSix/submitSaveEvaluation` 发送 JSON 正文：`pjidlist` 固定为空数组、`pjjglist` 为逐课程结果列表、`pjzt` 固定为字符串 `"1"`，响应按业务 `code` 和消息字段判定成功。Rust Core 已迁移该 URL、JSON 编码、请求头和非空列表校验，并提供 `build_submit_body` 脱敏向量测试。自动提交链会按旧版顺序对每门待评课程执行 `reviseQuestionnairePattern`（失败按冻结实现继续）、读取问卷题目、展开 `wjzblist[].tklist[]`，按题型构造答案后提交最终信封；选择题的第二个选项只在随机选中的一题使用，随机源保留在 Core 内且不写入日志。CLI 提供 `evaluation submit-pending --confirm-write`，未确认时在读取课程前拒绝；实时验证永不调用写操作。固定 `examples/buaa-api/src/api/tes` 有部分等价提交协议，其请求顺序和答案策略差异按决策日志处理。2026-09-03 审查另确认生产读取曾丢弃部分课程字段且 bridge 会把逐课程失败投影为整体成功；修复前不得把自动链描述为端到端通过。
 
 空 `pjjglist` 现在在会话建立前返回 `invalid_input`；单元测试使用禁止网络的传输验证该边界，确保无效评教提交不会访问上游。
 
 逐请求证据：`crates/ubaa-core/tests/evaluation.rs` 通过 `RouteClient::evaluation_submit` 使用合成会话调用冻结 `submitSaveEvaluation`，断言 JSON 信封中的空 `pjidlist`、`pjzt="1"` 和课程结果字段，以及固定请求头；不记录原始响应或个人数据。
 
-自动链证据：同一测试文件以单门脱敏课程调用 `evaluation_submit_courses`，严格断言 CAS 激活、revise（`rwid/wjid/msid`）、题目 GET 和最终提交四步顺序，并校验最终结果保留 `pjdf=93`。Mock 响应不包含真实课程或人员数据。
+自动链证据：同一测试文件以单门脱敏课程调用 `evaluation_submit_courses`，严格断言 CAS 激活、revise（`rwid/wjid/msid`）、题目 GET 和最终提交四步顺序，并校验最终结果保留 `pjdf=93`。Mock 响应不包含真实课程或人员数据。固定 `examples/buaa-api/src/api/tes` 有部分等价提交协议；其缺少 revise、提交后额外探测和答案选择策略差异均已记录，不能与冻结本地顺序拼接。
 
 LibBook 座位排序补充：冻结 `LocalLibBookApi.getSeats` 在 DTO 映射后执行 `sortedBy { it.no }`；Core `parse_seats` 同样按座位号字符串升序输出，并由逆序脱敏测试固定该行为。
 
