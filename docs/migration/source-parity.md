@@ -324,6 +324,11 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 | 11I Ygdk 提交 | OAuth → upload → clockin；示例不适用 | 最多 10 跳提 code，host gap 保留 | 路线内 uid/token | multipart 后 form，时间为上海 epoch 秒 | multipart + URL encoded | 无 | overview item、完整日期时间、图片 | 登录单飞；最终写不重放 | ID 正数、同日 end>start、图片有效；unknown 拒绝 |
 | 11J Evaluation 提交 | SPOC pjxt；两源部分等价 | 有界激活，示例 final 交叉证据 | 路线内 SPOC Cookie | revise/topic/submit；示例差异不拼接 | JSON | 无 | 完整 course DTO 与 pending 状态 | 逐课程串行；冻结本地答案策略 | evaluated/unknown/缺字段拒绝；逐项失败决定整体失败 |
 
+11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
+`courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程
+ID。因此任何 UI 展示字段或外层记录 ID 都不得成为退选目标。冻结详情页只以“已选且课程未开始”控制退选，
+`courseCancelEndDate` 仅展示；示例写入口也不做该截止时间判断，所以本阶段不得按字段名臆加本地硬截止规则。
+
 ## 博雅课程只读查询
 
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
