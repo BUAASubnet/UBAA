@@ -224,6 +224,8 @@ impl LibBookState {
 pub(crate) struct YgdkState {
     credential: SyncMutex<Option<YgdkCredential>>,
     login: Mutex<()>,
+    #[cfg(test)]
+    store_hook: TestMutex<Option<Arc<StoreCredentialHook>>>,
 }
 
 impl std::fmt::Debug for YgdkState {
@@ -247,10 +249,32 @@ impl YgdkState {
 
     #[allow(dead_code)]
     pub(crate) fn set(&self, value: YgdkCredential) {
+        #[cfg(test)]
+        self.pause_before_store();
         *self
             .credential
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_store_hook(&self, hook: Arc<StoreCredentialHook>) {
+        *self
+            .store_hook
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(hook);
+    }
+
+    #[cfg(test)]
+    fn pause_before_store(&self) {
+        let hook = self
+            .store_hook
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        if let Some(hook) = hook {
+            hook.pause();
+        }
     }
 
     pub(crate) fn clear(&self) {

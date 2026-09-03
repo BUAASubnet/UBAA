@@ -500,3 +500,10 @@
 - WebVPN 全量逐操作：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 与 Cgyy 站点成功；Cgyy 日期阶段返回 `invalid_semantics`，依赖订单/锁码未调用。
 - auto 全量解析到 Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin 成功；Ygdk 阶段返回 `timeout`，后续功能未调用。
 - 失败项没有提供新的 URL、参数、字段或加密证据；按冻结实现保留现状并记录实时上游不稳定性。全程未调用真实业务写接口。
+
+## 2026-09-03 Ygdk 路线状态失效代数
+
+- 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt` 以独立 `sessionCache` 保存业务会话，并用同一个 `sessionMutex` 保护缓存读取、认证失效删除和 `currentSession` 的最终 `getOrPut`；但会话创建发生在最终锁外，`clearCache` 也没有加锁，因此冻结实现本身不能证明失效代数语义。
+- 固定提交的 `examples/buaa-api` 没有 Ygdk 等价实现，不能据此类比 URL、字段、令牌流程或错误语义。
+- 当前 `source-parity.md` 已明确决定使用路线内单飞登录与失效代数，使清理前启动的旧登录不能在清理后重新填充凭据；这是 Core 进程内缓存的本地并发合同，不是从冻结实现补出的上游协议字段，也不改变请求 URL、参数、请求头、正文编码、DTO 或错误分类。
+- 当前 Rust 状态的无条件 `set` 可与 `clear` 交错，使清理前启动的旧登录在清理后回写凭据。本轮先增加确定性竞态测试与仅测试暂停点，要求失效后旧结果不得重新填充；生产修复必须沿用既有路线隔离与脱敏边界。

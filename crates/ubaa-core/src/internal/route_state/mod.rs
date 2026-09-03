@@ -52,7 +52,7 @@ mod tests {
 
     use super::{
         AssignmentList, BykcCredential, BykcState, ClassroomState, JudgeState, RouteFeatureState,
-        SigninCredential, SigninState, StoreCredentialHook, YgdkCredential,
+        SigninCredential, SigninState, StoreCredentialHook, YgdkCredential, YgdkState,
     };
 
     #[test]
@@ -97,6 +97,28 @@ mod tests {
 
         assert!(writer.join().unwrap());
         clearer.join().unwrap();
+        assert!(state.credential().is_none());
+    }
+
+    #[test]
+    fn 清除不能让旧阳光打卡登录重新写入凭据() {
+        let state = Arc::new(YgdkState::default());
+        let hook = Arc::new(StoreCredentialHook::default());
+        state.set_store_hook(Arc::clone(&hook));
+
+        let writer_state = Arc::clone(&state);
+        let writer = thread::spawn(move || {
+            writer_state.set(YgdkCredential {
+                uid: 42,
+                token: "旧登录返回的测试令牌".into(),
+            });
+        });
+
+        hook.wait_until_paused();
+        state.clear();
+        hook.release();
+        writer.join().unwrap();
+
         assert!(state.credential().is_none());
     }
 
