@@ -15,8 +15,10 @@
 
 - 本阶段允许移动函数、类型、常量和原有单元测试，允许为兄弟模块调用把私有项最小提升为
   `pub(super)`；禁止扩大到 crate 或外部公开面。
-- 每个领域的现有 `pub`/`pub(crate)` 符号集合、请求顺序、重试次数、缓存所有权和 facade 调用路径
-  必须保持不变。
+- 六个领域入口模块对 crate 内其它调用者提供的现有 `pub`/`pub(crate)` 符号集合、请求顺序、重试次数、
+  缓存所有权和 facade 调用路径必须保持不变。原 `cgyy_crypto`、`cgyy_sign`、`spoc_crypto`、
+  `libbook_crypto`、`ygdk_upload` 辅助模块只供所属领域使用，迁入领域目录后允许旧模块路径消失；
+  不得借此扩大可见性或新增跨领域调用。
 - 任一请求字面量、表单键、Header、密码学常量、DTO 字段、解析回退、缓存代数或错误分类发生变化，
   都不再是物理拆分；必须停止并另立来源对照、RED 测试与行为提交。
 - `examples/buaa-api` 有 SPOC 等价模块；其 `src/api/boya` 还为 Bykc 的同一业务端点提供交叉证据，
@@ -29,8 +31,8 @@
 操作范围：站点、用途、日期与时段、订单列表、订单详情、锁码、预约、取消，以及预约内部使用的
 验证码挑战/求解/校验。
 
-冻结实现与测试：`LocalCgyyApi.kt`、`LocalCgyyCaptchaSupport.kt`、`LocalCgyySigner.kt`、
-`model/dto/Cgyy.kt`、`LocalCgyyApiBackendTest.kt`、`LocalCgyyCaptchaSolverTest.kt`、
+冻结实现与测试：`api/feature/CgyyApi.kt`、`LocalCgyyApi.kt`、`LocalCgyyCaptchaSupport.kt`、
+`LocalCgyySigner.kt`、`model/dto/Cgyy.kt`、`CgyyApiTest.kt`、`LocalCgyyApiBackendTest.kt`、`LocalCgyyCaptchaSolverTest.kt`、
 `LocalCgyySignerTest.kt`。固定示例没有等价 Cgyy 协议。
 
 逐操作权威段落：[`场馆预约只读查询`](source-parity.md#场馆预约只读查询) 与
@@ -54,7 +56,8 @@
 
 操作范围：课程列表、课程作业列表、单项详情、批量详情、历史课程筛选、worker 隔离与缓存。
 
-冻结实现与测试：`LocalJudgeApi.kt`、`model/dto/Judge.kt`、`LocalJudgeApiBackendTest.kt`。
+冻结实现与测试：`api/feature/JudgeApi.kt`、`LocalJudgeApi.kt`、`model/dto/Judge.kt`、
+`JudgeApiTest.kt`、`LocalJudgeApiBackendTest.kt`。
 固定示例没有等价 Judge 协议。
 
 逐操作权威段落：[`Judge 列表`](source-parity.md#judge-列表)、
@@ -79,9 +82,10 @@
 
 操作范围：CAS/SPOC 登录、当前学期、课程列表、作业分页、作业详情、可选提交内容与安全诊断。
 
-冻结实现与测试：`LocalSpocApi.kt`、`LocalSpocSupport.kt`、`model/dto/Spoc.kt`、
-`LocalSpocApiBackendTest.kt`、`LocalSpocSupportTest.kt`。固定示例的等价补充为
-`src/api/spoc/{core,data,mod,opt}.rs`；发生冲突时仍以实时证据或适用冻结本地实现为准。
+冻结实现与测试：`api/feature/SpocApi.kt`、`LocalSpocApi.kt`、`LocalSpocSupport.kt`、
+`model/dto/Spoc.kt`、`SpocApiTest.kt`、`LocalSpocApiBackendTest.kt`、
+`LocalSpocSupportTest.kt`。固定示例的最近交叉来源为 `src/api/spoc/{core,data,mod,opt}.rs`，
+但逐操作行为存在差异；发生冲突时仍以实时证据或适用冻结本地实现为准。
 
 逐操作权威段落：[`SPOC 认证`](source-parity.md#spoc-认证)、
 [`SPOC 列表`](source-parity.md#spoc-列表)、[`SPOC 安全诊断`](source-parity.md#spoc-安全诊断)
@@ -105,7 +109,7 @@
 
 操作范围：登录、用户资料、学期/课程列表、课程详情、已选课程、统计、选课、退选和签到。
 
-冻结实现与测试：`LocalBykcApi.kt`、`LocalBykcCrypto.kt`、`model/dto/Bykc.kt`、
+冻结实现与测试：`api/feature/BykcApi.kt`、`LocalBykcApi.kt`、`LocalBykcCrypto.kt`、`model/dto/Bykc.kt`、
 `model/dto/BykcSerialization.kt`、`LocalBykcApiBackendTest.kt`、`LocalBykcCryptoTest.kt`。
 固定示例 `src/api/boya/{core,data,mod,opt}.rs` 提供同一业务端点的交叉证据，但其包装和加密不能
 替代冻结旧版决定。
@@ -115,7 +119,7 @@
 
 | 行为列 | 目录化决定 |
 |---|---|
-| 启动/服务 URL | OAuth/业务 API 及选课、退选、签到端点保持原常量和路线转换。 |
+| 启动/服务 URL | CAS/业务 API 及选课、退选、签到端点保持原常量和路线转换。 |
 | 重定向/最终 URL | token 提取、Direct/WebVPN 还原和相对 Location 解析整体归入 `auth.rs`。 |
 | Cookie/会话范围 | 独立业务 token 继续挂在路线状态，不进入 session 文件。 |
 | HTTP 方法与精确参数 | profile/course/chosen/statistics 与三项写操作的 encrypted request 内容不改。 |
@@ -125,13 +129,13 @@
 | 缓存/并发 | token 登录锁和路线清理语义不改；UI eligibility 不在本机械阶段实现。 |
 | 错误/退出语义 | envelope、非法响应、输入和业务失败分类不改，写操作仍需 facade/宿主确认。 |
 
-目标：`bykc/{mod,auth,read,write,parser,tests}.rs`。
+目标：`bykc/{mod,auth,crypto,read,write,parser,tests}.rs`。
 
 ## LibBook
 
 操作范围：馆区、区域、区域详情、座位、预约列表、预约和取消。
 
-冻结实现与测试：`LocalLibBookApi.kt`、`LocalLibBookCrypto.kt`、`LocalLibBookHttpClient.kt`
+冻结实现与测试：`api/feature/LibBookApi.kt`、`LocalLibBookApi.kt`、`LocalLibBookCrypto.kt`、`LocalLibBookHttpClient.kt`
 及各平台 actual、`model/dto/LibBook.kt`、`LocalLibBookApiBackendTest.kt`、
 `LocalLibBookCryptoTest.kt`。固定示例没有等价 LibBook 协议。
 
@@ -157,7 +161,8 @@
 
 操作范围：OAuth/业务登录、分类/项目/统计/学期概览、记录分页、照片上传和打卡提交。
 
-冻结实现与测试：`LocalYgdkApi.kt`、`model/dto/Ygdk.kt`、`LocalYgdkApiBackendTest.kt`。
+冻结实现与测试：`api/feature/YgdkApi.kt`、`LocalYgdkApi.kt`、`model/dto/Ygdk.kt`、
+`YgdkApiTest.kt`、`LocalYgdkApiBackendTest.kt`。
 固定示例没有等价 Ygdk 协议。
 
 逐操作权威段落：[`阳光打卡只读查询`](source-parity.md#阳光打卡只读查询) 与

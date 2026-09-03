@@ -1,4 +1,4 @@
-//! SPOC 参数的冻结 AES-CFB/Base64 编码。
+//! SPOC 参数的冻结 AES-128-CBC/NoPadding、零填充与 Base64 编码。
 
 use aes::Aes128;
 use aes::cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};

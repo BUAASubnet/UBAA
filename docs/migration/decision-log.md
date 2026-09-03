@@ -513,3 +513,9 @@
 - 冻结 `LocalYgdkApi.kt` 的 `fetchOauthCode` 最多跟随十次 `Location`，会从 query 或 fragment query 提取 code，但没有逐跳 host 校验；固定 `examples/buaa-api` 没有 Ygdk 等价实现。
 - 当前 Core `features/ygdk.rs::oauth_code` 与 `code_from_url` 同样接受任意 host 的绝对/相对跳转。原 `source-parity.md` 曾写“仅允许已记录的 BUAA 主机”，但没有给出完整允许集合对应的冻结实现、测试或安全实时观察，因此该表述不能作为已实现事实。
 - 决策：把主机限制明确标为既有未决 parity gap。2026-09-03 的目录整理只原样移动当前跳转逻辑，不借结构提交增加猜测白名单；后续必须先取得适用冻结实现或脱敏实时跳转链证据，记录具体 host 集合并增加未知 host 的 RED 测试，才能单独收紧生产行为。
+
+## 2026-09-03 Bykc 认证失效重试差异
+
+- 冻结 `LocalBykcApi.kt` 的 `doCallApiRaw` 会识别登录重定向，以及解密正文中的“会话已失效”或“未登录”；后者先清空业务令牌，再由 `callApiRaw` 强制刷新登录并最多重试一次。固定 `examples/buaa-api/src/api/boya` 只能作为同一业务端点的交叉证据，不能替代该冻结错误与重试语义。
+- 当前 Core `features/bykc.rs::request_api` 只处理非 200 状态与响应 envelope，没有识别上述确定性认证失效，也不会清理路线凭据并重试，与主来源矩阵中“CAS/令牌失效清理业务状态并最多刷新一次”的既有要求不一致。
+- 决策：2026-09-03 的目录化提交仍只移动现有行为；该差异另立脱敏 Mock RED 测试与行为提交。修复只允许对有冻结证据的认证失效信号清理并重试一次，不得把网络异常、任意非 200 或不明确业务失败纳入重试，尤其不得冒险重复真实写操作。
