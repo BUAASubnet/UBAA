@@ -3,14 +3,15 @@
 use std::io::{BufRead, Write};
 
 use ubaa_core::domain::{DualLoginInput, LoginReadiness, RoutePolicy, SafeError, SecretValue};
-use ubaa_core::error::{ExitCode, Result, UbaaError};
+use ubaa_core::error::{Result, UbaaError};
 use ubaa_core::facade::UbaaClient;
-use ubaa_core::output::{AggregateJsonEnvelope, CliFeature};
 
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs};
-use crate::io::error::render_startup_error;
+use crate::io::exit_code::{ExitCode, safe_error_exit_code};
 use crate::io::human::{redacted_profile, write_profile};
 use crate::io::input::{internal_error, invalid_input, prompt_line, read_secret_line, write_json};
+use crate::io::render::render_startup_error;
+use crate::io::schema::{AggregateJsonEnvelope, CliFeature};
 
 /// 通过双路门面执行普通聚合登录流程。
 pub async fn run_dual_login<R, O, E>(
@@ -210,19 +211,6 @@ fn aggregate_exit_code(
         error.map_or(ExitCode::Internal as i32, safe_error_exit_code)
     } else {
         ExitCode::Success as i32
-    }
-}
-
-fn safe_error_exit_code(error: &SafeError) -> i32 {
-    match error.code.as_str() {
-        "invalid_input" => ExitCode::InvalidInput as i32,
-        "authentication_required"
-        | "invalid_credentials"
-        | "password_risk_confirmation_failed"
-        | "permission_denied" => ExitCode::Authentication as i32,
-        "network_error" | "timeout" | "upstream_unavailable" => ExitCode::Network as i32,
-        "upstream_changed" | "parse_error" => ExitCode::Upstream as i32,
-        _ => ExitCode::Internal as i32,
     }
 }
 

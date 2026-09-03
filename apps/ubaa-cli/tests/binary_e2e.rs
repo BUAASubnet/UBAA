@@ -28,6 +28,44 @@ fn collect_source_files(root: &std::path::Path, files: &mut Vec<std::path::PathB
     }
 }
 
+fn contains_directory_named(root: &std::path::Path, name: &str) -> bool {
+    std::fs::read_dir(root)
+        .expect("could not enumerate source tree")
+        .filter_map(Result::ok)
+        .any(|entry| {
+            let path = entry.path();
+            path.is_dir()
+                && (path.file_name().is_some_and(|file_name| file_name == name)
+                    || contains_directory_named(&path, name))
+        })
+}
+
+fn imports_core_output(source: &str) -> bool {
+    let compact: String = source
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    if compact.contains("ubaa_core::output")
+        || compact.split(';').any(|statement| {
+            statement.starts_with("useubaa_core::{") && statement.contains("output")
+        })
+    {
+        return true;
+    }
+
+    let aliases = compact.split(';').filter_map(|statement| {
+        statement
+            .strip_prefix("useubaa_coreas")
+            .or_else(|| statement.strip_prefix("useubaa_core::{selfas"))
+            .and_then(|alias| alias.split([',', '}']).next())
+            .filter(|alias| !alias.is_empty())
+    });
+    aliases.into_iter().any(|alias| {
+        compact.contains(&format!("use{alias}::output"))
+            || compact.contains(&format!("{alias}::output::"))
+    })
+}
+
 #[test]
 fn repository_gate_include_uses_tracked_justfile_case() {
     let source = include_str!("binary_e2e.rs");
@@ -127,6 +165,105 @@ fn cli_production_sources_use_only_facade_for_core_internals() {
             );
         }
     }
+}
+
+#[test]
+fn core_does_not_own_cli_output_or_exit_policy() {
+    let repository_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let core_root = repository_root.join("crates/ubaa-core");
+    let core_source_root = core_root.join("src");
+    let mut core_sources = Vec::new();
+    collect_source_files(&core_source_root, &mut core_sources);
+    let mut cli_sources = Vec::new();
+    collect_source_files(
+        &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+        &mut cli_sources,
+    );
+
+    let mut violations = Vec::new();
+    for source in [
+        "use ubaa_core::output::CliFeature;",
+        "use ubaa_core::{output::{CliFeature}};",
+        "use ubaa_core::output as cli_output;",
+        "use ubaa_core as core; use core::output::CliFeature;",
+        "use ubaa_core::{self as core}; use core::output::CliFeature;",
+        "use ubaa_core::{self as core, facade::UbaaClient}; use core::output::CliFeature;",
+    ] {
+        assert!(
+            imports_core_output(source),
+            "missed forbidden import: {source}"
+        );
+    }
+    for source in [
+        "use ubaa_core::facade::UbaaClient;",
+        "let output = command_output_value(value);",
+    ] {
+        assert!(
+            !imports_core_output(source),
+            "false positive import: {source}"
+        );
+    }
+    if contains_directory_named(&core_source_root, "output") {
+        violations.push("Core still owns an output source directory".to_owned());
+    }
+    for path in core_sources {
+        if path
+            .file_name()
+            .is_some_and(|file_name| file_name == "output.rs")
+        {
+            violations.push(format!("Core still owns {}", path.display()));
+        }
+        let source = std::fs::read_to_string(&path).expect("could not read Core production source");
+        let compact: String = source
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect();
+        for symbol in [
+            "CLI_JSON_SCHEMA_VERSION",
+            "CliFeature",
+            "ResolvedRoutedJsonMeta",
+            "UnresolvedRoutedJsonMeta",
+            "RoutedJsonMeta",
+            "CliJsonError",
+            "RoutedJsonEnvelope",
+            "AggregateJsonMeta",
+            "AggregateJsonEnvelope",
+            "AggregateLogoutRouteState",
+            "AggregateLogoutRoute",
+            "AggregateLogoutData",
+            "validate_auth_outcome",
+            "output_invariant_error",
+            "error_code_name",
+            "error_kind_name",
+            "is_error_code",
+            "is_error_kind",
+            "ExitCode",
+            "exit_code(",
+        ] {
+            if compact.contains(symbol) {
+                violations.push(format!(
+                    "Core production source {} still owns CLI symbol {symbol}",
+                    path.display()
+                ));
+            }
+        }
+    }
+    for path in cli_sources {
+        let source = std::fs::read_to_string(&path).expect("could not read CLI production source");
+        if imports_core_output(&source) {
+            violations.push(format!(
+                "CLI production source {} still imports Core output",
+                path.display()
+            ));
+        }
+    }
+
+    assert!(
+        violations.is_empty(),
+        "CLI output ownership violations ({}):\n{}",
+        violations.len(),
+        violations.join("\n")
+    );
 }
 
 #[test]

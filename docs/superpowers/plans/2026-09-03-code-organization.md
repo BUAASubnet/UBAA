@@ -34,8 +34,8 @@
 | 03B | Rust Test Support 测试镜像 | layout baseline 的 auth/readonly 违例 | `test: 按领域拆分 Core 集成证据` | 已提交：`8d60bb9` |
 | 04A | CLI 合同测试镜像 | CLI schema/stdout/stderr/exit characterization | `test(cli): 按宿主合同拆分 CLI characterization` | 已提交：`60fe3e3` |
 | 04B1 | CLI 命令参数与现有 IO 目录 | 23 个合同测试与 46 个 CLI all-targets | `refactor(cli): 按领域归档命令与 IO` | 已提交：`837da26` |
-| 04B2 | CLI backend 与执行层 | 04B1 行为基线及公开 API 集合 | `refactor(cli): 按领域拆分 backend 与执行层` | 已验证待提交 |
-| 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 待执行 |
+| 04B2 | CLI backend 与执行层 | 04B1 行为基线及公开 API 集合 | `refactor(cli): 按领域拆分 backend 与执行层` | 已提交：`81e4cdb` |
+| 04C | Core 输出与退出策略迁入 CLI | Core 不再拥有 output/exit 的架构 RED | `refactor(cli): 将输出与退出策略收回宿主` | 已验证待提交 |
 | 04D | core-live 验证宿主 | Cargo target 名与 runtime characterization | `refactor(cli): 显式拆分 core-live 验证宿主` | 待执行 |
 | 05 | facade/session 机械拆分 | facade/session focused tests 绿色 | `refactor(core): 拆分 facade 与 session 所有权` | 待执行 |
 | 06A | route selector | direct/webvpn/auto 等价矩阵 | `refactor(core): 集中路线解析与 runtime 选择` | 待执行 |
@@ -47,7 +47,7 @@
 | 07D | Bykc 目录化 | crypto/request/semester tests | `refactor(core): 按职责拆分 Bykc` | 待执行 |
 | 07E | Libbook 目录化 | parser/crypto/request tests | `refactor(core): 归档 Libbook 服务与算法` | 待执行 |
 | 07F | Ygdk 目录化 | parser/upload/request tests | `refactor(core): 归档 Ygdk 服务与上传` | 待执行 |
-| 08 | FRB 手写 read API | schema snapshot 与 codegen 零漂移 | `refactor(bridge): 分离读取 DTO 方法与映射` | 待执行 |
+| 08 | FRB 手写 read API | schema snapshot、解释后的首次生成差异与二次零漂移 | `refactor(bridge): 分离读取 DTO 方法与映射` | 待执行 |
 | 09 | Flutter 测试镜像 | 三个超千行测试入口 baseline | `test(flutter): 按领域拆分应用与宿主测试` | 待执行 |
 | 10A | domain/app/bridge 拆分 | package focused tests 绿色 | `refactor(flutter): 建立领域与应用所有权` | 待执行 |
 | 10B | ubaa_host package | 宿主 wiring 一致性测试 RED | `refactor(flutter): 抽取共享宿主组合根` | 待执行 |
@@ -174,11 +174,16 @@ features；`io` 禁止反向依赖 backend/execute。内部代码直接使用真
 
 04C 先在 CLI binary 架构测试中加入聚合断言并观察预期失败：Core 不再导出/持有 `output.rs`，Core
 `ErrorCode` 不再定义 CLI 退出映射，且 CLI 生产源码不再引用 `ubaa_core::output`。随后把 Core `output.rs` 的
-schema/envelope 迁入 CLI `io/schema.rs`，把 `CliJsonError` 与名称投影迁入 `io/error.rs`，把 `ExitCode` 和映射迁入
-`io/exit_code.rs`。Rust 的外部类型规则不允许 CLI 继续为 Core `ErrorCode` 提供 inherent method，因此改用
+schema/envelope 迁入 CLI `io/schema.rs`，把 `CliJsonError`、名称投影和错误 payload 构造迁入 `io/error.rs`，把
+stdout/stderr renderer 与 Core 错误投影迁入单向依赖 `schema + error + exit_code` 的 `io/render.rs`，把
+`ExitCode` 和映射迁入 `io/exit_code.rs`。`schema` 只依赖 `error`，不得由 `error` 反向导入 `schema`；执行层只调用
+`render`，避免 IO 子模块形成循环。Rust 的外部类型规则不允许 CLI 继续为 Core `ErrorCode` 提供 inherent method，因此改用
 `pub(crate) const fn exit_code(ErrorCode) -> ExitCode`；`main.rs` 中 Clap Error 自身的 `.exit_code()` 保持不变。
 `CliFeature` 及现有 CLI 合同测试直接构造的 envelope/meta 类型由 `ubaa-cli` crate 根稳定重导出，避免私有类型
-出现在公开签名。把 Core 中 10 项 CLI-only 合同测试和 envelope Debug 脱敏断言迁到现有 CLI 合同测试后，才
+出现在公开签名。Core 中九项 output/envelope 合同必须以原测试名、独立 `#[test]` 叶子和完整精确断言迁到
+CLI output 合同；Core 的一项退出码矩阵由已加强的 CLI exit 合同接管，迁移前后测试叶总量不得净减少。架构
+测试需递归扫描 Core/CLI 全部 Rust 源码，同时拒绝 Core 中 output 文件/目录、CLI 专属稳定符号和 CLI 对
+`ubaa_core::output` 的直接、花括号或别名导入，不能只匹配一个固定文件或字面量。完成这些迁移后，才
 删除 Core 导出、文件与对应测试；不得改变 JSON schema、stdout/stderr 或数值退出码，bridge/Test Support 的
 Core 结构化错误消费也不得改变。
 
@@ -258,18 +263,33 @@ RED/characterization：
 
 ### 阶段 08：FRB 手写读取 API
 
-- `api/read.rs` 改为 `api/read/mod.rs`，公开 DTO 仍在该模块定义，类型路径不变。
-- inherent method 移到 `methods.rs`，private DTO mapper 移到 `mappers.rs`。
-- 运行 schema snapshot、bridge unit、FRB codegen 两次并要求生成目录零 diff。
+- `api/read.rs` 改为 `api/read/mod.rs`；全部 92 个公开 Rust DTO/Routed 类型继续物理定义在该模块，保持
+  `api::read` canonical namespace，不以跨模块 re-export 改变 FRB 类型归属。
+- 32 个 `BridgeClient` inherent method 移到 `methods.rs`，50 个 private DTO mapper 移到 `mappers.rs`；
+  `map_cgyy_order` 通过 crate-private re-export 保持 write API 消费路径，其余 mapper 使用最窄可见性。
+- 先扩充 schema characterization，固定 6 个 enum、32 个读取方法和单一 `api/read.dart` 路径。FRB 2.13.0 会按
+  私有函数定义 namespace 生成 skip 注释，因此纯移动预计只会删除现有 `api/read.dart` 中列出
+  `execute_read`/mapper 的一行机械注释；“相对阶段前 HEAD 字节零差异”与真实子模块化不可同时满足。实施时必须
+  由锁定 generator 首次生成并审查完整 diff，仅接受这项已解释的 skip 注释变化，不得手改生成文件；随后把
+  source 与生成结果精确暂存，再运行 codegen 两次，均要求相对暂存结果零漂移。公开 wire 名、方法、DTO、
+  import/export、schema snapshot 与其它生成文件必须无差异。
 - 从 baseline 删除 read.rs。
 
 ### 阶段 09：Flutter 测试镜像
 
-- `widgets_test.dart` 为唯一 root test，使用非 `_test.dart` part 拆为 shell、feature details、queries、writes、states、
-  accessibility、goldens 和 fakes。
-- `app_controller_test.dart` 拆为 lifecycle、auth、read、write、race、fakes parts。
-- `integration_test/app_flow_test.dart` 拆为 auth、query、write、support parts。
-- 保持测试名称、数量、fake 行为和 26 个 golden 字节不变；从 baseline 删除三个测试违例。
+`widgets_test.dart`、`app_controller_test.dart` 和 `app_flow_test.dart` 继续作为各自唯一的 `_test.dart` library
+root；根文件只保留 imports、相对 URI `part` 声明、`main`/binding 初始化和按原顺序调用的私有同步注册函数，
+领域实现放入不以 `_test.dart` 结尾的 part。不得新增 `group`，现有 49/31/6 个测试名称、注册顺序与测试函数体
+必须保持不变。
+
+- UI 拆为 `goldens/accessibility/shell/feature_details/writes/queries/states`；当前没有真正跨 leaf 的 UI fake，
+  因此不创建空 `fakes.dart`。
+- App 拆为 `auth/lifecycle/read/write/race/fakes`，其中全部现有私有 test double 连同继承关系整体进入 `fakes`。
+- integration 拆为 `auth/query/write/support`，三个私有 backend fake 整体进入 `support`。
+- 拆分前后机械比较完整有序测试 ID；同时对 26 个 golden 固定相对文件名、字节长度与 SHA-256 manifest，并
+  执行 golden 目录零 diff。禁止 `--update-goldens`、移动、重命名或重录 PNG。
+- 当前源文件精确基线为 3216/1499/969 行；精确暂存并验证后删除三个对应 layout baseline 项。若产生任何
+  FRB generated/codegen diff，直接判为 NO-GO。
 
 ### 阶段 10A：Dart domain/app/bridge
 

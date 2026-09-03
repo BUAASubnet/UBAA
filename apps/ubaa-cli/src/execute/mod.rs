@@ -2,11 +2,10 @@
 
 use serde::Serialize;
 use ubaa_core::facade::{Routed, RoutedError, RoutedResult};
-use ubaa_core::output::CliFeature;
 
 use crate::command::command_feature;
 use crate::io::input::internal_error;
-use crate::io::schema::CommandOutput;
+use crate::io::schema::{CliFeature, CommandOutput};
 
 mod aggregate;
 mod features;

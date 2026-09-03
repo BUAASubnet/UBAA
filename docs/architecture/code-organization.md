@@ -185,7 +185,8 @@ UBAA/
 │   │   │   │   ├── input.rs
 │   │   │   │   ├── schema.rs               # 原 Core OutputEnvelope/JSON schema v2
 │   │   │   │   ├── human.rs
-│   │   │   │   ├── error.rs
+│   │   │   │   ├── error.rs                # 稳定错误 payload 与名称投影
+│   │   │   │   ├── render.rs               # stdout/stderr 渲染与 Core 错误投影
 │   │   │   │   └── exit_code.rs            # 进程退出策略只属于 CLI
 │   │   │   └── bin/core_live/
 │   │   │       ├── main.rs

@@ -32,23 +32,6 @@ pub enum ErrorCode {
     InternalError,
 }
 
-impl ErrorCode {
-    /// CLI 宿主使用的稳定进程退出类别。
-    #[must_use]
-    pub const fn exit_code(self) -> ExitCode {
-        match self {
-            Self::InvalidInput => ExitCode::InvalidInput,
-            Self::AuthenticationRequired
-            | Self::InvalidCredentials
-            | Self::PasswordRiskConfirmationFailed
-            | Self::PermissionDenied => ExitCode::Authentication,
-            Self::NetworkError | Self::Timeout | Self::UpstreamUnavailable => ExitCode::Network,
-            Self::UpstreamChanged | Self::ParseError => ExitCode::Upstream,
-            Self::InternalError => ExitCode::Internal,
-        }
-    }
-}
-
 /// 适合宿主展示的宽泛错误类别。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -65,24 +48,6 @@ pub enum ErrorKind {
     Parse,
     /// 内部不变量失败。
     Internal,
-}
-
-/// 公共合同固定的 CLI 退出码。
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(i32)]
-pub enum ExitCode {
-    /// 命令成功。
-    Success = 0,
-    /// 命令参数或输入无效。
-    InvalidInput = 2,
-    /// 缺少认证或认证失败。
-    Authentication = 3,
-    /// 网络、超时或上游临时失败。
-    Network = 5,
-    /// 上游结构或解析失败。
-    Upstream = 6,
-    /// 内部失败。
-    Internal = 7,
 }
 
 /// Core 返回的安全错误载荷。

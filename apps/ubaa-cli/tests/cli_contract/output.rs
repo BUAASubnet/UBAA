@@ -1,24 +1,27 @@
 use std::io::Cursor;
 
 use clap::Parser;
-use ubaa_cli::{Cli, run_with_backend, run_with_routed_backend};
-use ubaa_core::connection::{NetworkState, RouteResolution};
+use ubaa_cli::{
+    AggregateJsonEnvelope, AggregateLogoutData, CLI_JSON_SCHEMA_VERSION, Cli, CliFeature,
+    ResolvedRoutedJsonMeta, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta, run_with_backend,
+    run_with_routed_backend,
+};
+use ubaa_core::connection::NetworkState;
 use ubaa_core::domain::{
-    AuthStatus, BykcChosenCourse, BykcCourse, BykcSignConfig, BykcSignPoint, BykcUserProfile,
-    CgyyActionResult, ClassroomInfo, ClassroomQuery, ConnectionMode, CourseClass, Exam,
-    ExamArrangement, Grade, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, JudgeProblem, LoginOutcome, LoginReadiness, RouteLoginResult,
-    RouteLoginState, RoutePolicy, SafeError, SpocAssignmentDetail, SpocAssignmentSummary,
-    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
-    WeeklySchedule,
+    ConnectionMode, LoginOutcome, LoginReadiness, RouteLoginResult, RouteLoginState, RoutePolicy,
+    SafeError, SpocAssignmentDetail, UserProfile,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::output::{
-    AggregateJsonEnvelope, CliFeature, ResolvedRoutedJsonMeta, RoutedJsonEnvelope,
-    UnresolvedRoutedJsonMeta,
-};
 
 use crate::common::{FakeBackend, FakeRoutedBackend, assert_cli_schema, profile, route_resolution};
+
+#[path = "output_helpers.rs"]
+mod output_helpers;
+
+use output_helpers::{
+    assert_all_routed_features_validate, assert_schema_rejects_invalid_envelopes,
+    assert_schema_rejects_invalid_routed_data,
+};
 
 fn masked_profile() -> UserProfile {
     UserProfile {
@@ -264,510 +267,322 @@ fn serialized_envelopes_match_the_cli_json_schema() {
     assert_eq!(failure["error"]["code"], "network_error");
 }
 
-fn assert_all_routed_features_validate(
-    validator: &jsonschema::Validator,
-    resolution: RouteResolution,
-) {
-    for (feature, data) in routed_success_representatives() {
-        let envelope = RoutedJsonEnvelope::success(
-            data,
-            ResolvedRoutedJsonMeta::from_resolution(feature, resolution),
-        );
-        let value = serde_json::to_value(envelope).unwrap();
-        assert!(
-            validator.is_valid(&value),
-            "schema rejected {feature:?} representative: {value}"
-        );
-    }
-}
+#[test]
+fn cli_json_contract_has_one_schema_version_and_closed_feature_names() {
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 2);
 
-fn routed_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
-    let mut representatives = routed_primary_success_representatives();
-    representatives.extend(routed_assignment_success_representatives());
-    representatives
-}
-
-#[allow(clippy::too_many_lines)]
-fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
-    let profile = masked_profile();
-
-    vec![
-        (CliFeature::Auth, serde_json::to_value(&profile).unwrap()),
-        (
-            CliFeature::Auth,
-            serde_json::to_value(AuthStatus {
-                user: profile.clone(),
-                authenticated_at: 1,
-                last_activity: 2,
-            })
-            .unwrap(),
-        ),
-        (CliFeature::Auth, serde_json::json!({"loggedOut": true})),
-        (CliFeature::User, serde_json::to_value(profile).unwrap()),
-        (
-            CliFeature::Schedule,
-            serde_json::to_value(vec![Term {
-                item_code: "2025-2026-1".into(),
-                item_name: "Term".into(),
-                selected: true,
-                item_index: 1,
-            }])
-            .unwrap(),
-        ),
-        (
-            CliFeature::Schedule,
-            serde_json::to_value(vec![Week {
-                start_date: "2025-09-01".into(),
-                end_date: "2025-09-07".into(),
-                term: "2025-2026-1".into(),
-                cur_week: true,
-                serial_number: 1,
-                name: "Week 1".into(),
-            }])
-            .unwrap(),
-        ),
-        (
-            CliFeature::Schedule,
-            serde_json::to_value(WeeklySchedule {
-                arranged_list: vec![CourseClass::default()],
-                code: "2025-2026-1".into(),
-                name: "Term".into(),
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Schedule,
-            serde_json::to_value(vec![TodayClass::default()]).unwrap(),
-        ),
-        (
-            CliFeature::Exam,
-            serde_json::to_value(ExamArrangement {
-                arranged: vec![Exam::default()],
-                not_arranged: Vec::new(),
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Grades,
-            serde_json::to_value(GradeData {
-                term_code: "2025-2026-1".into(),
-                grades: vec![Grade {
-                    term_code: Some("2025-2026-1".into()),
-                    ..Grade::default()
-                }],
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Grades,
-            serde_json::to_value(GradeData {
-                term_code: "2025-2026-1".into(),
-                grades: vec![Grade::default()],
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Classroom,
-            serde_json::to_value(ClassroomQuery {
-                code: 0,
-                message: "ok".into(),
-                floors: [("1".into(), vec![ClassroomInfo::default()])]
-                    .into_iter()
-                    .collect(),
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Bykc,
-            serde_json::to_value(BykcUserProfile::default()).unwrap(),
-        ),
-        (
-            CliFeature::Bykc,
-            serde_json::to_value(BykcCourse::default()).unwrap(),
-        ),
-        (
-            CliFeature::Bykc,
-            serde_json::to_value(vec![BykcChosenCourse {
-                sign_config: Some(BykcSignConfig {
-                    sign_points: vec![BykcSignPoint {
-                        lat: 39.9,
-                        lng: 116.3,
-                        radius: 100.0,
-                    }],
-                    ..BykcSignConfig::default()
-                }),
-                ..BykcChosenCourse::default()
-            }])
-            .unwrap(),
-        ),
-        (CliFeature::Bykc, serde_json::json!([])),
-        (CliFeature::Cgyy, serde_json::json!([])),
-        (CliFeature::Cgyy, serde_json::json!({"available": true})),
-        (
-            CliFeature::Cgyy,
-            serde_json::to_value(CgyyActionResult::default()).unwrap(),
-        ),
-    ]
-}
-
-fn routed_assignment_success_representatives() -> Vec<(CliFeature, serde_json::Value)> {
-    let summary = judge_summary();
-    let detail = judge_detail();
-    let spoc_summary = SpocAssignmentSummary {
-        assignment_id: "spoc-assignment".into(),
-        course_id: String::new(),
-        course_name: "Course".into(),
-        teacher_name: None,
-        title: "Assignment".into(),
-        start_time: None,
-        due_time: None,
-        score: None,
-        submission_status: ubaa_core::domain::SpocSubmissionStatus::default(),
-        submission_status_text: "未知状态(9)".into(),
-    };
-    let spoc_assignments = SpocAssignments {
-        term_code: "2025-2026-1".into(),
-        term_name: None,
-        assignments: vec![spoc_summary],
-    };
-
-    vec![
-        (
-            CliFeature::Spoc,
-            serde_json::to_value(&spoc_assignments).unwrap(),
-        ),
-        (
-            CliFeature::Spoc,
-            serde_json::to_value(SpocAssignmentsDiagnostics {
-                global_page_count: 1,
-                result: spoc_assignments,
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Spoc,
-            serde_json::to_value(SpocAssignmentDetail {
-                assignment_id: "spoc-assignment".into(),
-                course_id: String::new(),
-                course_name: "Course".into(),
-                teacher_name: None,
-                title: "Assignment".into(),
-                start_time: None,
-                due_time: None,
-                score: None,
-                submission_status: ubaa_core::domain::SpocSubmissionStatus::Unknown,
-                submission_status_text: "未知状态".into(),
-                content_plain_text: None,
-                submitted_at: None,
-            })
-            .unwrap(),
-        ),
-        (
-            CliFeature::Judge,
-            serde_json::to_value(vec![summary.clone()]).unwrap(),
-        ),
-        (
-            CliFeature::Judge,
-            serde_json::to_value(JudgeAssignmentsDiagnostics {
-                course_count: 1,
-                raw_anchor_count: 1,
-                filtered_unique_count: 1,
-                summaries: vec![summary],
-            })
-            .unwrap(),
-        ),
-        (CliFeature::Judge, serde_json::to_value(&detail).unwrap()),
-        (
-            CliFeature::Judge,
-            serde_json::to_value(vec![detail]).unwrap(),
-        ),
-    ]
-}
-
-fn judge_summary() -> JudgeAssignmentSummary {
-    JudgeAssignmentSummary {
-        course_id: "12".into(),
-        course_name: "Course".into(),
-        assignment_id: "34".into(),
-        title: "Assignment".into(),
-        start_time: None,
-        due_time: None,
-        max_score: Some("10.00".into()),
-        my_score: Some("7.00".into()),
-        total_problems: 1,
-        submitted_count: 1,
-        submission_status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
-        submission_status_text: "已完成 7.00/10.00".into(),
-    }
-}
-
-fn judge_detail() -> JudgeAssignmentDetail {
-    JudgeAssignmentDetail {
-        course_id: "12".into(),
-        course_name: "Course".into(),
-        assignment_id: "34".into(),
-        title: "Assignment".into(),
-        start_time: None,
-        due_time: None,
-        max_score: None,
-        my_score: None,
-        total_problems: 1,
-        submitted_count: 1,
-        submission_status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
-        submission_status_text: "已完成".into(),
-        problems: vec![JudgeProblem {
-            name: "Problem".into(),
-            score: None,
-            max_score: None,
-            status: ubaa_core::domain::JudgeSubmissionStatus::Submitted,
-            status_text: "已提交".into(),
-        }],
-        content_plain_text: None,
-    }
-}
-
-fn assert_schema_rejects_invalid_envelopes(
-    validator: &jsonschema::Validator,
-    success: &serde_json::Value,
-    failure: &serde_json::Value,
-    unresolved: &serde_json::Value,
-    aggregate: &serde_json::Value,
-) {
-    let mut schema_v1 = unresolved.clone();
-    schema_v1["schemaVersion"] = serde_json::json!(1);
-    assert!(!validator.is_valid(&schema_v1));
-
-    let mut invented_route = unresolved.clone();
-    invented_route["meta"]["resolvedRoute"] = serde_json::json!("direct");
-    assert!(!validator.is_valid(&invented_route));
-
-    let mut one_route = aggregate.clone();
-    one_route["data"]["routes"].as_array_mut().unwrap().pop();
-    assert!(!validator.is_valid(&one_route));
-
-    let mut three_routes = aggregate.clone();
-    let extra_route = three_routes["data"]["routes"][1].clone();
-    three_routes["data"]["routes"]
-        .as_array_mut()
-        .unwrap()
-        .push(extra_route);
-    assert!(!validator.is_valid(&three_routes));
-
-    let mut reversed_routes = aggregate.clone();
-    reversed_routes["data"]["routes"]
-        .as_array_mut()
-        .unwrap()
-        .swap(0, 1);
-    assert!(!validator.is_valid(&reversed_routes));
-
-    let mut duplicate_routes = aggregate.clone();
-    duplicate_routes["data"]["routes"][1]["route"] = serde_json::json!("direct");
-    assert!(!validator.is_valid(&duplicate_routes));
-
-    assert_schema_rejects_invalid_aggregate_states(validator, aggregate);
-
-    let mut legacy_mode = unresolved.clone();
-    legacy_mode["meta"]["connectionMode"] = serde_json::json!("direct");
-    assert!(!validator.is_valid(&legacy_mode));
-
-    let mut success_with_error = success.clone();
-    success_with_error["error"] = failure["error"].clone();
-    assert!(!validator.is_valid(&success_with_error));
-
-    let mut failure_with_data = failure.clone();
-    failure_with_data["data"] = serde_json::json!({});
-    assert!(!validator.is_valid(&failure_with_data));
-}
-
-fn assert_schema_rejects_invalid_aggregate_states(
-    validator: &jsonschema::Validator,
-    aggregate: &serde_json::Value,
-) {
-    let mut ready_without_profile = aggregate.clone();
-    ready_without_profile["data"]
-        .as_object_mut()
-        .unwrap()
-        .remove("profile");
-    assert!(!validator.is_valid(&ready_without_profile));
-
-    let mut none_ready_with_profile = aggregate.clone();
-    none_ready_with_profile["ok"] = serde_json::json!(false);
-    none_ready_with_profile["error"] = serde_json::json!({
-        "code": "authentication_required",
-        "kind": "authentication",
-        "message": "authentication is required",
-        "retryable": false
-    });
-    none_ready_with_profile["data"]["readiness"] = serde_json::json!("none_ready");
-    for route in none_ready_with_profile["data"]["routes"]
-        .as_array_mut()
-        .unwrap()
-    {
-        route["state"] = serde_json::json!("failed");
-        route["error"] = serde_json::json!({
-            "code": "authentication_required",
-            "kind": "authentication",
-            "message": "authentication is required",
-            "retryable": false
-        });
-    }
-    assert!(!validator.is_valid(&none_ready_with_profile));
-
-    let mut mixed_route_meta = aggregate.clone();
-    mixed_route_meta["meta"]["resolvedRoute"] = serde_json::json!("direct");
-    assert!(!validator.is_valid(&mixed_route_meta));
-}
-
-fn routed_envelope(
-    feature: CliFeature,
-    data: serde_json::Value,
-    resolution: RouteResolution,
-) -> serde_json::Value {
-    serde_json::to_value(RoutedJsonEnvelope::success(
-        data,
-        ResolvedRoutedJsonMeta::from_resolution(feature, resolution),
-    ))
-    .unwrap()
-}
-
-fn assert_schema_rejects_invalid_profile_and_sensitive_data(
-    validator: &jsonschema::Validator,
-    resolution: RouteResolution,
-) {
-    let empty_schedule = routed_envelope(CliFeature::Schedule, serde_json::json!({}), resolution);
-    assert!(!validator.is_valid(&empty_schedule));
-
-    let wrong_user_dto = routed_envelope(
+    let features = [
+        CliFeature::Cli,
+        CliFeature::Auth,
         CliFeature::User,
-        serde_json::to_value(vec![Term::default()]).unwrap(),
-        resolution,
-    );
-    assert!(!validator.is_valid(&wrong_user_dto));
-
-    let mut unmasked_phone = routed_envelope(
-        CliFeature::User,
-        serde_json::to_value(masked_profile()).unwrap(),
-        resolution,
-    );
-    unmasked_phone["data"]["phone"] = serde_json::json!("UNMASKED-PHONE");
-    assert!(!validator.is_valid(&unmasked_phone));
-
-    let mut unmasked_identity = routed_envelope(
-        CliFeature::User,
-        serde_json::to_value(masked_profile()).unwrap(),
-        resolution,
-    );
-    unmasked_identity["data"]["idCardNumber"] = serde_json::json!("UNMASKED-ID");
-    assert!(!validator.is_valid(&unmasked_identity));
-
-    let mut raw_html = routed_envelope(
+        CliFeature::Signin,
+        CliFeature::Schedule,
+        CliFeature::Exam,
+        CliFeature::Grades,
+        CliFeature::Classroom,
+        CliFeature::Spoc,
         CliFeature::Judge,
-        serde_json::to_value(JudgeAssignmentsDiagnostics {
-            course_count: 0,
-            raw_anchor_count: 0,
-            filtered_unique_count: 0,
-            summaries: Vec::new(),
-        })
-        .unwrap(),
-        resolution,
+    ];
+    assert_eq!(
+        serde_json::to_value(features).unwrap(),
+        serde_json::json!([
+            "cli",
+            "auth",
+            "user",
+            "signin",
+            "schedule",
+            "exam",
+            "grades",
+            "classroom",
+            "spoc",
+            "judge"
+        ])
     );
-    raw_html["data"]["rawHtml"] = serde_json::json!("<html>private</html>");
-    assert!(!validator.is_valid(&raw_html));
-
-    let mut cookie = routed_envelope(
-        CliFeature::Spoc,
-        serde_json::to_value(SpocAssignmentsDiagnostics {
-            global_page_count: 1,
-            result: SpocAssignments::default(),
-        })
-        .unwrap(),
-        resolution,
-    );
-    cookie["data"]["cookie"] = serde_json::json!("private");
-    assert!(!validator.is_valid(&cookie));
-
-    let zero_page_count = routed_envelope(
-        CliFeature::Spoc,
-        serde_json::to_value(SpocAssignmentsDiagnostics {
-            global_page_count: 0,
-            result: SpocAssignments::default(),
-        })
-        .unwrap(),
-        resolution,
-    );
-    assert!(!validator.is_valid(&zero_page_count));
 }
 
-fn assert_schema_rejects_invalid_judge_data(
-    validator: &jsonschema::Validator,
-    resolution: RouteResolution,
-) {
-    let mut nonnumeric_judge_id = routed_envelope(
-        CliFeature::Judge,
-        serde_json::to_value(vec![judge_summary()]).unwrap(),
-        resolution,
+#[test]
+fn success_json_envelope_has_version_data_and_resolved_route_metadata() {
+    let envelope = RoutedJsonEnvelope::success(
+        serde_json::json!({"name": "Fixture User"}),
+        ResolvedRoutedJsonMeta::explicit(CliFeature::User, ConnectionMode::Direct),
     );
-    nonnumeric_judge_id["data"][0]["assignmentId"] = serde_json::json!("not-numeric");
-    assert!(!validator.is_valid(&nonnumeric_judge_id));
-
-    let mut malformed_judge_score = routed_envelope(
-        CliFeature::Judge,
-        serde_json::to_value(vec![judge_summary()]).unwrap(),
-        resolution,
+    let success_debug = format!(
+        "{:?}",
+        RoutedJsonEnvelope::success(
+            serde_json::json!({"secret": "ENVELOPE-DATA-SENTINEL"}),
+            ResolvedRoutedJsonMeta::explicit(CliFeature::Auth, ConnectionMode::Direct),
+        )
     );
-    malformed_judge_score["data"][0]["maxScore"] = serde_json::json!("1..2");
-    assert!(!validator.is_valid(&malformed_judge_score));
+    let value = serde_json::to_value(envelope).expect("envelope serializes");
 
-    let mut impossible_problem_status = routed_envelope(
-        CliFeature::Judge,
-        serde_json::to_value(judge_detail()).unwrap(),
-        resolution,
-    );
-    impossible_problem_status["data"]["problems"][0]["status"] = serde_json::json!("PARTIAL");
-    impossible_problem_status["data"]["problems"][0]["statusText"] = serde_json::json!("部分提交");
-    assert!(!validator.is_valid(&impossible_problem_status));
-
-    let mut malformed_problem_score = routed_envelope(
-        CliFeature::Judge,
-        serde_json::to_value(judge_detail()).unwrap(),
-        resolution,
-    );
-    malformed_problem_score["data"]["problems"][0]["score"] = serde_json::json!(".");
-    assert!(!validator.is_valid(&malformed_problem_score));
-}
-
-fn assert_schema_rejects_invalid_spoc_data(
-    validator: &jsonschema::Validator,
-    resolution: RouteResolution,
-) {
-    let invalid_spoc_unknown = routed_envelope(
-        CliFeature::Spoc,
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["name"], "Fixture User");
+    assert_eq!(
+        value["meta"],
         serde_json::json!({
-            "termCode": "2025-2026-1",
-            "termName": null,
-            "assignments": [{
-                "assignmentId": "spoc-assignment",
-                "courseId": "",
-                "courseName": "Course",
-                "teacherName": null,
-                "title": "Assignment",
-                "startTime": null,
-                "dueTime": null,
-                "score": null,
-                "submissionStatus": "UNKNOWN",
-                "submissionStatusText": "未知状态"
-            }]
-        }),
-        resolution,
+            "routePolicy": "direct",
+            "networkState": "unknown",
+            "initialRoute": "direct",
+            "resolvedRoute": "direct",
+            "usedFallback": false,
+            "feature": "user"
+        })
     );
-    assert!(!validator.is_valid(&invalid_spoc_unknown));
+    assert!(value.get("error").is_none());
+    assert!(!success_debug.contains("ENVELOPE-DATA-SENTINEL"));
+
+    let failure = RoutedJsonEnvelope::<serde_json::Value>::resolved_failure(
+        UbaaError::new(
+            ErrorCode::NetworkError,
+            ErrorKind::Network,
+            true,
+            "ERROR-MESSAGE-SENTINEL",
+        ),
+        ResolvedRoutedJsonMeta::explicit(CliFeature::User, ConnectionMode::Direct),
+    );
+    assert!(!format!("{failure:?}").contains("ERROR-MESSAGE-SENTINEL"));
 }
 
-fn assert_schema_rejects_invalid_routed_data(
-    validator: &jsonschema::Validator,
-    resolution: RouteResolution,
-) {
-    assert_schema_rejects_invalid_profile_and_sensitive_data(validator, resolution);
-    assert_schema_rejects_invalid_judge_data(validator, resolution);
-    assert_schema_rejects_invalid_spoc_data(validator, resolution);
+#[test]
+fn unresolved_routed_failure_has_only_feature_metadata() {
+    let error = UbaaError::new(
+        ErrorCode::InvalidInput,
+        ErrorKind::Input,
+        false,
+        "missing argument",
+    );
+    let envelope: RoutedJsonEnvelope<serde_json::Value> = RoutedJsonEnvelope::unresolved_failure(
+        error,
+        UnresolvedRoutedJsonMeta::new(CliFeature::Cli),
+    );
+
+    let value = serde_json::to_value(envelope).unwrap();
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], false);
+    assert_eq!(value["meta"], serde_json::json!({"feature": "cli"}));
+    assert!(value.get("data").is_none());
+    assert_eq!(value["error"]["code"], "invalid_input");
+}
+
+#[test]
+fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes() {
+    let direct = RouteLoginResult {
+        route: ConnectionMode::Direct,
+        state: RouteLoginState::Ready,
+        error: None,
+    };
+    let webvpn = RouteLoginResult {
+        route: ConnectionMode::WebVpn,
+        state: RouteLoginState::Ready,
+        error: None,
+    };
+    let valid = LoginOutcome {
+        readiness: LoginReadiness::AllReady,
+        routes: [direct.clone(), webvpn.clone()],
+        profile: Some(masked_profile()),
+    };
+    let value = serde_json::to_value(
+        AggregateJsonEnvelope::auth_success(valid, RoutePolicy::Auto).unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(value["schemaVersion"], 2);
+    assert_eq!(value["ok"], true);
+    assert_eq!(
+        value["data"]["routes"],
+        serde_json::json!([
+            {"route": "direct", "state": "ready"},
+            {"route": "webvpn", "state": "ready"}
+        ])
+    );
+    assert_eq!(
+        value["meta"],
+        serde_json::json!({
+            "routePolicy": "auto",
+            "resolvedRoutes": ["direct", "webvpn"],
+            "feature": "auth"
+        })
+    );
+    assert!(value.get("error").is_none());
+
+    let reversed = LoginOutcome {
+        readiness: LoginReadiness::AllReady,
+        routes: [webvpn, direct],
+        profile: None,
+    };
+    assert!(AggregateJsonEnvelope::auth_success(reversed, RoutePolicy::Auto).is_err());
+}
+
+#[test]
+fn aggregate_failure_constructor_keeps_ok_data_error_consistent() {
+    let route_error = SafeError {
+        code: "authentication_required".into(),
+        kind: "authentication".into(),
+        retryable: false,
+        message: "authentication is required".into(),
+    };
+    let failed_route = |route| RouteLoginResult {
+        route,
+        state: RouteLoginState::Failed,
+        error: Some(route_error.clone()),
+    };
+    let outcome = LoginOutcome {
+        readiness: LoginReadiness::NoneReady,
+        routes: [
+            failed_route(ConnectionMode::Direct),
+            failed_route(ConnectionMode::WebVpn),
+        ],
+        profile: None,
+    };
+    let error = route_error;
+    assert!(
+        AggregateJsonEnvelope::auth_success(outcome.clone(), RoutePolicy::Direct).is_err(),
+        "none_ready must not be emitted with ok=true"
+    );
+    let failure = serde_json::to_value(
+        AggregateJsonEnvelope::auth_failure(outcome, error, RoutePolicy::Direct).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(failure["ok"], false);
+    assert!(failure.get("data").is_some());
+    assert_eq!(failure["error"]["code"], "authentication_required");
+}
+
+#[test]
+fn aggregate_logout_constructor_names_both_routes() {
+    let logout = serde_json::to_value(
+        AggregateJsonEnvelope::<AggregateLogoutData>::logout_success(RoutePolicy::WebVpn),
+    )
+    .unwrap();
+    assert_eq!(logout["ok"], true);
+    assert!(logout.get("error").is_none());
+    assert_eq!(
+        logout["data"],
+        serde_json::json!({
+            "loggedOut": true,
+            "routes": [
+                {"route": "direct", "state": "logged_out"},
+                {"route": "webvpn", "state": "logged_out"}
+            ]
+        })
+    );
+    assert_eq!(
+        logout["meta"]["resolvedRoutes"],
+        serde_json::json!(["direct", "webvpn"])
+    );
+}
+
+#[test]
+fn aggregate_auth_constructors_reject_inconsistent_route_states() {
+    let ready_route = |route| RouteLoginResult {
+        route,
+        state: RouteLoginState::Ready,
+        error: None,
+    };
+    let ready = LoginOutcome {
+        readiness: LoginReadiness::AllReady,
+        routes: [
+            ready_route(ConnectionMode::Direct),
+            ready_route(ConnectionMode::WebVpn),
+        ],
+        profile: None,
+    };
+    let impossible_error = SafeError {
+        code: "internal_error".into(),
+        kind: "internal".into(),
+        retryable: false,
+        message: "should not be emitted".into(),
+    };
+    assert!(
+        AggregateJsonEnvelope::auth_failure(ready, impossible_error, RoutePolicy::Auto).is_err(),
+        "all_ready must not be emitted with ok=false"
+    );
+
+    let missing_route_error = LoginOutcome {
+        readiness: LoginReadiness::NoneReady,
+        routes: [
+            RouteLoginResult {
+                route: ConnectionMode::Direct,
+                state: RouteLoginState::Failed,
+                error: None,
+            },
+            RouteLoginResult {
+                route: ConnectionMode::WebVpn,
+                state: RouteLoginState::Failed,
+                error: None,
+            },
+        ],
+        profile: None,
+    };
+    let top_error = SafeError {
+        code: "internal_error".into(),
+        kind: "internal".into(),
+        retryable: false,
+        message: "route error is missing".into(),
+    };
+    assert!(
+        AggregateJsonEnvelope::auth_failure(missing_route_error, top_error, RoutePolicy::Auto)
+            .is_err(),
+        "failed routes must carry a safe error"
+    );
+}
+
+#[test]
+fn aggregate_auth_constructors_bind_profile_presence_to_route_readiness() {
+    let ready_route = |route| RouteLoginResult {
+        route,
+        state: RouteLoginState::Ready,
+        error: None,
+    };
+    let ready_without_profile = LoginOutcome {
+        readiness: LoginReadiness::AllReady,
+        routes: [
+            ready_route(ConnectionMode::Direct),
+            ready_route(ConnectionMode::WebVpn),
+        ],
+        profile: None,
+    };
+    assert!(
+        AggregateJsonEnvelope::auth_success(ready_without_profile, RoutePolicy::Auto).is_err(),
+        "ready routes must carry the profile returned by authentication"
+    );
+
+    let route_error = SafeError {
+        code: "authentication_required".into(),
+        kind: "authentication".into(),
+        retryable: false,
+        message: "authentication is required".into(),
+    };
+    let failed_route = |route| RouteLoginResult {
+        route,
+        state: RouteLoginState::Failed,
+        error: Some(route_error.clone()),
+    };
+    let none_ready_with_profile = LoginOutcome {
+        readiness: LoginReadiness::NoneReady,
+        routes: [
+            failed_route(ConnectionMode::Direct),
+            failed_route(ConnectionMode::WebVpn),
+        ],
+        profile: Some(masked_profile()),
+    };
+    assert!(
+        AggregateJsonEnvelope::auth_failure(
+            none_ready_with_profile,
+            route_error,
+            RoutePolicy::Auto,
+        )
+        .is_err(),
+        "a profile must not be emitted when no route is ready"
+    );
+}
+
+#[test]
+fn cli_json_schema_contains_no_v1_or_legacy_route_contract() {
+    let schema = include_str!("../../../../docs/contracts/cli-json.schema.json");
+
+    assert!(!schema.contains("\"const\": 1"));
+    assert!(!schema.contains("connectionMode"));
+    assert!(!schema.contains("legacyError"));
 }

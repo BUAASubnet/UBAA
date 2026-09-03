@@ -2,9 +2,9 @@
 
 use std::path::PathBuf;
 
+use crate::io::schema::CliFeature;
 use clap::{Parser, Subcommand};
 use ubaa_core::domain::ConnectionMode;
-use ubaa_core::output::CliFeature;
 
 mod academic;
 mod assignments;

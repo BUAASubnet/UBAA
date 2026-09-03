@@ -1,8 +1,8 @@
 //! CLI 对 Core 路由决策的安全上下文投影。
 
+use crate::io::schema::{CliFeature, ResolvedRoutedJsonMeta};
 use ubaa_core::domain::{ConnectionMode, RoutePolicy};
 use ubaa_core::facade::{NetworkState, RouteDiagnostic, RouteResolution};
-use ubaa_core::output::{CliFeature, ResolvedRoutedJsonMeta};
 
 /// Core 门面完成路由解析后返回的安全路由决策上下文。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -1,8 +1,7 @@
 use std::io::{self, Write};
 
-use ubaa_cli::render_startup_error;
+use ubaa_cli::{CliFeature, render_startup_error};
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
-use ubaa_core::output::CliFeature;
 
 use crate::common::assert_cli_schema;
 

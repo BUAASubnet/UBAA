@@ -4,9 +4,9 @@ use std::io::{BufRead, Write};
 
 use crate::backend::CliBackend;
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs, UserArgs, UserCommand};
-use crate::io::error::render_result;
 use crate::io::human::{redacted_profile, redacted_status};
 use crate::io::input::{internal_error, invalid_input, prompt_line, read_secret_line};
+use crate::io::render::render_result;
 use crate::io::schema::CommandOutput;
 use crate::routing::ReadonlyRouteContext;
 use serde_json::json;

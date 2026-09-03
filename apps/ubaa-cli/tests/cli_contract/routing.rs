@@ -1,10 +1,11 @@
 use std::io::Cursor;
 
 use clap::Parser;
-use ubaa_cli::{Cli, ReadonlyRouteContext, run_with_backend_with_route, run_with_routed_backend};
+use ubaa_cli::{
+    Cli, CliFeature, ReadonlyRouteContext, run_with_backend_with_route, run_with_routed_backend,
+};
 use ubaa_core::connection::NetworkState;
 use ubaa_core::domain::{ConnectionMode, RoutePolicy};
-use ubaa_core::output::CliFeature;
 
 use crate::common::{FakeBackend, FakeRoutedBackend};
 

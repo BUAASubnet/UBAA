@@ -4,12 +4,11 @@ use std::path::PathBuf;
 use clap::Parser;
 use directories::ProjectDirs;
 use ubaa_cli::{
-    Cli, render_startup_error, run_dual_login, run_dual_logout, run_dual_status, run_with_backend,
-    run_with_routed_backend,
+    Cli, CliFeature, render_startup_error, run_dual_login, run_dual_logout, run_dual_status,
+    run_with_backend, run_with_routed_backend,
 };
 use ubaa_core::error::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::{RouteClient, UbaaClient};
-use ubaa_core::output::CliFeature;
 
 #[tokio::main]
 async fn main() {

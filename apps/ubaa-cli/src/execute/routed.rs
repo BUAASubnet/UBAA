@@ -2,14 +2,14 @@
 
 use std::io::Write;
 
+use crate::io::schema::CliFeature;
 use ubaa_core::facade::RoutedError;
-use ubaa_core::output::CliFeature;
 
 use crate::backend::RoutedCliBackend;
 use crate::command::{Cli, Command, UserArgs, UserCommand};
-use crate::io::error::render_routed_result;
 use crate::io::human::redacted_profile;
 use crate::io::input::invalid_input;
+use crate::io::render::render_routed_result;
 use crate::io::schema::CommandOutput;
 
 use super::features::academic::{

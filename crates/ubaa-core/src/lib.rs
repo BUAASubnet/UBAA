@@ -14,7 +14,6 @@ pub mod domain;
 pub mod error;
 pub mod facade;
 pub mod features;
-pub mod output;
 pub mod ports;
 mod runtime;
 pub mod session;

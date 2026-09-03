@@ -1,8 +1,8 @@
 //! 场馆预约 handler。
 
+use crate::io::schema::CliFeature;
 use ubaa_core::error::Result;
 use ubaa_core::facade::{Routed, RoutedError, RoutedResult};
-use ubaa_core::output::CliFeature;
 
 use crate::backend::{CliBackend, RoutedCliBackend};
 use crate::command::{CgyyArgs, CgyyCommand};

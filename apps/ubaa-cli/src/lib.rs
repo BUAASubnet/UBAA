@@ -17,7 +17,12 @@ pub use execute::{
     run_with_backend_with_route, run_with_routed_backend,
 };
 mod io;
-pub use io::error::render_startup_error;
+pub use io::error::CliJsonError;
+pub use io::render::render_startup_error;
+pub use io::schema::{
+    AggregateJsonEnvelope, AggregateJsonMeta, AggregateLogoutData, CLI_JSON_SCHEMA_VERSION,
+    CliFeature, ResolvedRoutedJsonMeta, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta,
+};
 mod routing;
 pub use routing::ReadonlyRouteContext;
 
