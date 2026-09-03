@@ -542,12 +542,13 @@ fn stale_reader_is_rejected_before_any_read_request() {
         ))
         .unwrap();
     let reads = Arc::new(AtomicUsize::new(0));
+    let probes = Arc::new(AtomicUsize::new(0));
     let mut client = UbaaClient::with_routing(
         CountingTransport(reads.clone()),
         CountingTransport(reads.clone()),
         FileSessionStore::new(&root).unwrap(),
-        RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
-        NeverProbe,
+        RouteConfig::parse("[route]\ndefault = \"auto\"\n").unwrap(),
+        CountingProbe(probes.clone()),
     )
     .unwrap();
     store
@@ -568,6 +569,8 @@ fn stale_reader_is_rejected_before_any_read_request() {
     let error = runtime.block_on(client.get_user_info()).unwrap_err();
 
     assert_eq!(error.error.code, ErrorCode::InternalError);
+    assert!(error.resolution.is_none());
+    assert_eq!(probes.load(Ordering::SeqCst), 0);
     assert_eq!(reads.load(Ordering::SeqCst), 0);
     let _ = std::fs::remove_dir_all(root);
 }
