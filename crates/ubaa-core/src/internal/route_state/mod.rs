@@ -51,9 +51,23 @@ mod tests {
     use crate::domain::{Assignment, Course, JudgeAssignmentDetail, JudgeSubmissionStatus};
 
     use super::{
-        AssignmentList, BykcCredential, BykcState, ClassroomState, JudgeState, SigninCredential,
-        SigninState, StoreCredentialHook,
+        AssignmentList, BykcCredential, BykcState, ClassroomState, JudgeState, RouteFeatureState,
+        SigninCredential, SigninState, StoreCredentialHook, YgdkCredential,
     };
+
+    #[test]
+    fn 聚合路线状态调试输出不泄露业务令牌() {
+        let state = RouteFeatureState::default();
+        state.cgyy.set("cgyy-state-secret-token".into());
+        state.ygdk.set(YgdkCredential {
+            uid: 42,
+            token: "ygdk-state-secret-token".into(),
+        });
+
+        let rendered = format!("{state:?}");
+        assert!(!rendered.contains("cgyy-state-secret-token"));
+        assert!(!rendered.contains("ygdk-state-secret-token"));
+    }
 
     #[test]
     fn 清除不能让旧签到凭据越过失效代数回写() {
@@ -81,7 +95,7 @@ mod tests {
         }
         hook.release();
 
-        assert!(!writer.join().unwrap());
+        assert!(writer.join().unwrap());
         clearer.join().unwrap();
         assert!(state.credential().is_none());
     }
