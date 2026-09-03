@@ -20,6 +20,10 @@ void _registerInitialWriteTests() {
                         courseId: 42,
                         eligibility: ActionEligibility.allowed,
                       ),
+                      BykcDeselectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                 ]

@@ -3316,6 +3316,8 @@ impl SseDecode for crate::api::read::BridgeBykcChosenCourse {
         let mut var_pass = <Option<i32>>::sse_decode(deserializer);
         let mut var_canSign = <bool>::sse_decode(deserializer);
         let mut var_canSignOut = <bool>::sse_decode(deserializer);
+        let mut var_deselectEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
         let mut var_signConfig =
             <Option<crate::api::read::BridgeBykcSignConfig>>::sse_decode(deserializer);
         let mut var_courseSignType = <Option<i32>>::sse_decode(deserializer);
@@ -3336,6 +3338,7 @@ impl SseDecode for crate::api::read::BridgeBykcChosenCourse {
             pass: var_pass,
             can_sign: var_canSign,
             can_sign_out: var_canSignOut,
+            deselect_eligibility: var_deselectEligibility,
             sign_config: var_signConfig,
             course_sign_type: var_courseSignType,
         };
@@ -3360,6 +3363,8 @@ impl SseDecode for crate::api::read::BridgeBykcCourse {
         let mut var_selected = <Option<bool>>::sse_decode(deserializer);
         let mut var_selectEligibility =
             <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
+        let mut var_deselectEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
         return crate::api::read::BridgeBykcCourse {
             id: var_id,
             course_name: var_courseName,
@@ -3375,6 +3380,7 @@ impl SseDecode for crate::api::read::BridgeBykcCourse {
             status: var_status,
             selected: var_selected,
             select_eligibility: var_selectEligibility,
+            deselect_eligibility: var_deselectEligibility,
         };
     }
 }
@@ -6469,6 +6475,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeBykcChosenCourse 
             self.pass.into_into_dart().into_dart(),
             self.can_sign.into_into_dart().into_dart(),
             self.can_sign_out.into_into_dart().into_dart(),
+            self.deselect_eligibility.into_into_dart().into_dart(),
             self.sign_config.into_into_dart().into_dart(),
             self.course_sign_type.into_into_dart().into_dart(),
         ]
@@ -6504,6 +6511,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeBykcCourse {
             self.status.into_into_dart().into_dart(),
             self.selected.into_into_dart().into_dart(),
             self.select_eligibility.into_into_dart().into_dart(),
+            self.deselect_eligibility.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9365,6 +9373,10 @@ impl SseEncode for crate::api::read::BridgeBykcChosenCourse {
         <Option<i32>>::sse_encode(self.pass, serializer);
         <bool>::sse_encode(self.can_sign, serializer);
         <bool>::sse_encode(self.can_sign_out, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.deselect_eligibility,
+            serializer,
+        );
         <Option<crate::api::read::BridgeBykcSignConfig>>::sse_encode(self.sign_config, serializer);
         <Option<i32>>::sse_encode(self.course_sign_type, serializer);
     }
@@ -9388,6 +9400,10 @@ impl SseEncode for crate::api::read::BridgeBykcCourse {
         <Option<bool>>::sse_encode(self.selected, serializer);
         <crate::api::read::BridgeActionEligibility>::sse_encode(
             self.select_eligibility,
+            serializer,
+        );
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.deselect_eligibility,
             serializer,
         );
     }

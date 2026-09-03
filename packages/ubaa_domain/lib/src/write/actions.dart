@@ -30,3 +30,18 @@ class BykcSelectAction extends FeatureAction {
   @override
   WriteOperation get operation => WriteOperation.bykcSelectCourse;
 }
+
+/// 单门博雅课程的退选能力。
+@immutable
+class BykcDeselectAction extends FeatureAction {
+  const BykcDeselectAction({required this.courseId, required this.eligibility});
+
+  /// `/delChosenCourse` 使用的课程本体标识，不是已选记录标识。
+  final int courseId;
+
+  @override
+  final ActionEligibility eligibility;
+
+  @override
+  WriteOperation get operation => WriteOperation.bykcDeselectCourse;
+}

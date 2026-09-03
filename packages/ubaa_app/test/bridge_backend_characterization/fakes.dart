@@ -117,12 +117,13 @@ class _CharacterizationBridgeClient implements BridgeClient {
                 ? const <BridgeBykcChosenCourse>[]
                 : const <BridgeBykcChosenCourse>[
                     BridgeBykcChosenCourse(
-                      id: 1,
-                      courseId: 42,
+                      id: 9001,
+                      courseId: 9527,
                       courseName: '已选课程',
                       checkin: 0,
                       canSign: true,
                       canSignOut: false,
+                      deselectEligibility: BridgeActionEligibility.allowed,
                       signConfig: BridgeBykcSignConfig(
                         signPoints: <BridgeBykcSignPoint>[
                           BridgeBykcSignPoint(
@@ -145,6 +146,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
               courseName: '课程详情',
               status: BridgeBykcCourseStatus.available,
               selectEligibility: BridgeActionEligibility.denied,
+              deselectEligibility: BridgeActionEligibility.allowed,
             ),
             route: _webVpnRoute,
           ),
@@ -163,6 +165,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
                         courseName: '课程分页',
                         status: BridgeBykcCourseStatus.available,
                         selectEligibility: BridgeActionEligibility.allowed,
+                        deselectEligibility: BridgeActionEligibility.denied,
                       ),
                     ],
               totalElements: emptyReads ? 0 : 201,

@@ -248,6 +248,7 @@ void main() {
           checkin: 0,
           canSign: true,
           canSignOut: false,
+          deselectEligibility: BridgeActionEligibility.unknown,
           signConfig: BridgeBykcSignConfig(
             signStartDate: '2026-09-02 08:00',
             signEndDate: '2026-09-02 10:00',

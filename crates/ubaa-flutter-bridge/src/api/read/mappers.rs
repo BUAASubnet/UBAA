@@ -293,6 +293,7 @@ pub(super) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
         status: map_bykc_status(v.status),
         selected: v.selected,
         select_eligibility: map_action_eligibility(v.select_eligibility),
+        deselect_eligibility: map_action_eligibility(v.deselect_eligibility),
     }
 }
 pub(super) fn map_bykc_profile(v: domain::BykcUserProfile) -> BridgeBykcUserProfile {
@@ -364,6 +365,7 @@ fn map_bykc_chosen(v: domain::BykcChosenCourse) -> BridgeBykcChosenCourse {
         pass: v.pass,
         can_sign: v.can_sign,
         can_sign_out: v.can_sign_out,
+        deselect_eligibility: map_action_eligibility(v.deselect_eligibility),
         sign_config: v.sign_config.map(map_bykc_sign_config),
         course_sign_type: v.course_sign_type,
     }

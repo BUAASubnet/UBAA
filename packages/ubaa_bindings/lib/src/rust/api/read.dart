@@ -28,6 +28,7 @@ class BridgeBykcChosenCourse {
   final int? pass;
   final bool canSign;
   final bool canSignOut;
+  final BridgeActionEligibility deselectEligibility;
   final BridgeBykcSignConfig? signConfig;
   final int? courseSignType;
 
@@ -48,6 +49,7 @@ class BridgeBykcChosenCourse {
     this.pass,
     required this.canSign,
     required this.canSignOut,
+    required this.deselectEligibility,
     this.signConfig,
     this.courseSignType,
   });
@@ -70,6 +72,7 @@ class BridgeBykcChosenCourse {
       pass.hashCode ^
       canSign.hashCode ^
       canSignOut.hashCode ^
+      deselectEligibility.hashCode ^
       signConfig.hashCode ^
       courseSignType.hashCode;
 
@@ -94,6 +97,7 @@ class BridgeBykcChosenCourse {
           pass == other.pass &&
           canSign == other.canSign &&
           canSignOut == other.canSignOut &&
+          deselectEligibility == other.deselectEligibility &&
           signConfig == other.signConfig &&
           courseSignType == other.courseSignType;
 }
@@ -113,6 +117,7 @@ class BridgeBykcCourse {
   final BridgeBykcCourseStatus status;
   final bool? selected;
   final BridgeActionEligibility selectEligibility;
+  final BridgeActionEligibility deselectEligibility;
 
   const BridgeBykcCourse({
     required this.id,
@@ -129,6 +134,7 @@ class BridgeBykcCourse {
     required this.status,
     this.selected,
     required this.selectEligibility,
+    required this.deselectEligibility,
   });
 
   @override
@@ -146,7 +152,8 @@ class BridgeBykcCourse {
       courseCurrentCount.hashCode ^
       status.hashCode ^
       selected.hashCode ^
-      selectEligibility.hashCode;
+      selectEligibility.hashCode ^
+      deselectEligibility.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -166,7 +173,8 @@ class BridgeBykcCourse {
           courseCurrentCount == other.courseCurrentCount &&
           status == other.status &&
           selected == other.selected &&
-          selectEligibility == other.selectEligibility;
+          selectEligibility == other.selectEligibility &&
+          deselectEligibility == other.deselectEligibility;
 }
 
 enum BridgeBykcCourseCategory { boya, unknown }

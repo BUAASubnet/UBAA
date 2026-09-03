@@ -71,6 +71,13 @@ void main() {
     expect(action.courseId, 42);
     expect(action.operation, WriteOperation.bykcSelectCourse);
     expect(action.eligibility, ActionEligibility.allowed);
+    const deselect = BykcDeselectAction(
+      courseId: 9527,
+      eligibility: ActionEligibility.allowed,
+    );
+    expect(deselect.courseId, 9527);
+    expect(deselect.operation, WriteOperation.bykcDeselectCourse);
+    expect(deselect.eligibility, ActionEligibility.allowed);
     expect(ActionEligibility.values, <ActionEligibility>[
       ActionEligibility.allowed,
       ActionEligibility.denied,

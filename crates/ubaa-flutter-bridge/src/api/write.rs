@@ -246,7 +246,7 @@ impl BridgeClient {
                 .bykc_course_detail(request.course_id)
                 .await
                 .map_err(BridgeError::from_routed)?;
-            ensure_bykc_select_target(request.course_id, current.data.id)?;
+            ensure_bykc_course_target(request.course_id, current.data.id)?;
             ensure_bykc_select_allowed(current.data.select_eligibility)?;
             Ok(self
                 .store_write_intent(
@@ -266,14 +266,26 @@ impl BridgeClient {
         request: BridgeBykcCourseRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
         validate_id(request.course_id)?;
-        self.prepare_write(
-            ReadonlyFeature::Bykc,
-            BridgeWriteOperation::BykcDeselectCourse,
-            format!("course_id={}", request.course_id),
-            "退选一门博雅课程".to_owned(),
-            vec!["请确认课程与退选截止时间".to_owned()],
-            PendingWrite::BykcDeselect(request),
-        )
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
+            let current = client
+                .bykc_course_detail(request.course_id)
+                .await
+                .map_err(BridgeError::from_routed)?;
+            ensure_bykc_course_target(request.course_id, current.data.id)?;
+            ensure_bykc_deselect_allowed(current.data.deselect_eligibility)?;
+            Ok(self
+                .store_write_intent(
+                    BridgeWriteOperation::BykcDeselectCourse,
+                    format!("course_id={}", request.course_id),
+                    "退选一门博雅课程".to_owned(),
+                    vec!["请确认课程与退选截止时间".to_owned()],
+                    PendingWrite::BykcDeselect(request),
+                    current.resolution.mode.into(),
+                )
+                .await)
+        })
         .await
     }
     pub async fn prepare_bykc_sign_course(
@@ -469,22 +481,32 @@ impl BridgeClient {
                     "route changed; prepare the write again",
                 ));
             }
-            if let PendingWrite::BykcSelect(request) = &pending {
-                let current = client
-                    .bykc_course_detail(request.course_id)
-                    .await
-                    .map_err(BridgeError::from_routed)?;
-                ensure_bykc_select_target(request.course_id, current.data.id)?;
-                let preflight_route: BridgeConnectionMode = current.resolution.mode.into();
-                if preflight_route != entry.resolved_route {
-                    return Err(BridgeError::local(
-                        BridgeErrorCode::OperationConflict,
-                        BridgeErrorKind::Input,
-                        true,
-                        "route changed during preflight; prepare the write again",
-                    ));
+            match &pending {
+                PendingWrite::BykcSelect(request) => {
+                    let current = client
+                        .bykc_course_detail(request.course_id)
+                        .await
+                        .map_err(BridgeError::from_routed)?;
+                    ensure_bykc_course_target(request.course_id, current.data.id)?;
+                    ensure_bykc_preflight_route(
+                        entry.resolved_route,
+                        current.resolution.mode.into(),
+                    )?;
+                    ensure_bykc_select_allowed(current.data.select_eligibility)?;
                 }
-                ensure_bykc_select_allowed(current.data.select_eligibility)?;
+                PendingWrite::BykcDeselect(request) => {
+                    let current = client
+                        .bykc_course_detail(request.course_id)
+                        .await
+                        .map_err(BridgeError::from_routed)?;
+                    ensure_bykc_course_target(request.course_id, current.data.id)?;
+                    ensure_bykc_preflight_route(
+                        entry.resolved_route,
+                        current.resolution.mode.into(),
+                    )?;
+                    ensure_bykc_deselect_allowed(current.data.deselect_eligibility)?;
+                }
+                _ => {}
             }
             let result = match pending {
                 PendingWrite::BykcSelect(request) => client
@@ -628,7 +650,25 @@ fn ensure_bykc_select_allowed(eligibility: domain::ActionEligibility) -> Result<
     }
 }
 
-fn ensure_bykc_select_target(requested_id: i64, actual_id: i64) -> Result<(), BridgeError> {
+fn ensure_bykc_deselect_allowed(eligibility: domain::ActionEligibility) -> Result<(), BridgeError> {
+    match eligibility {
+        domain::ActionEligibility::Allowed => Ok(()),
+        domain::ActionEligibility::Denied => Err(BridgeError::local(
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "课程当前不可退选，请刷新课程详情后重试",
+        )),
+        domain::ActionEligibility::Unknown => Err(BridgeError::local(
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "课程退选资格缺少必要字段",
+        )),
+    }
+}
+
+fn ensure_bykc_course_target(requested_id: i64, actual_id: i64) -> Result<(), BridgeError> {
     if requested_id == actual_id {
         return Ok(());
     }
@@ -637,6 +677,21 @@ fn ensure_bykc_select_target(requested_id: i64, actual_id: i64) -> Result<(), Br
         BridgeErrorKind::Upstream,
         false,
         "课程详情标识与请求不一致",
+    ))
+}
+
+fn ensure_bykc_preflight_route(
+    expected: BridgeConnectionMode,
+    actual: BridgeConnectionMode,
+) -> Result<(), BridgeError> {
+    if expected == actual {
+        return Ok(());
+    }
+    Err(BridgeError::local(
+        BridgeErrorCode::OperationConflict,
+        BridgeErrorKind::Input,
+        true,
+        "route changed during preflight; prepare the write again",
     ))
 }
 

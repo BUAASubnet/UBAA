@@ -41,7 +41,7 @@ Flutter 测试通过；该结果不包含宿主 integration、原生构建、签
 
 | 行数 | 文件 | 混合职责 |
 |---:|---|---|
-| 4035 | `packages/ubaa_ui/lib/src/widgets.dart` | 登录、壳、十二领域、查询、写确认和错误 UI；Phase 11A 已删除博雅选课字符串资格推断 |
+| 4030 | `packages/ubaa_ui/lib/src/widgets.dart` | 登录、壳、十二领域、查询、写确认和错误 UI；Phase 11A–B 已删除博雅选课与退选的字符串资格推断 |
 | 3747 | `crates/ubaa-test-support/tests/readonly.rs` | 多领域请求序列、解析、缓存和路由测试 |
 | 3222 | `packages/ubaa_ui/test/widgets_test.dart` | UI、查询、写入、golden、响应式和无障碍测试 |
 | 2598 | `apps/ubaa-cli/src/lib.rs` | 两套 backend、adapter、执行器和渲染器 |

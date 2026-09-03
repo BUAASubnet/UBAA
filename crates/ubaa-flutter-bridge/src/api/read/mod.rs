@@ -266,6 +266,7 @@ pub struct BridgeBykcCourse {
     pub status: BridgeBykcCourseStatus,
     pub selected: Option<bool>,
     pub select_eligibility: BridgeActionEligibility,
+    pub deselect_eligibility: BridgeActionEligibility,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeBykcCoursePage {
@@ -321,6 +322,7 @@ pub struct BridgeBykcChosenCourse {
     pub pass: Option<i32>,
     pub can_sign: bool,
     pub can_sign_out: bool,
+    pub deselect_eligibility: BridgeActionEligibility,
     pub sign_config: Option<BridgeBykcSignConfig>,
     pub course_sign_type: Option<i32>,
 }

@@ -3080,6 +3080,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final detail = visible[index];
                     final courseId = _courseId(detail);
                     final bykcSelectAction = detail.action<BykcSelectAction>();
+                    final bykcDeselectAction = detail
+                        .action<BykcDeselectAction>();
                     final signinCourseId = _courseKey(detail);
                     final cancellation = _cancellationTarget(detail);
                     final reservation = _libbookReserveTarget(detail);
@@ -3091,7 +3093,9 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final canBykcSelect =
                         bykcSelectAction?.eligibility ==
                         ActionEligibility.allowed;
-                    final canBykcDeselect = _isBykcDeselectAllowed(detail);
+                    final canBykcDeselect =
+                        bykcDeselectAction?.eligibility ==
+                        ActionEligibility.allowed;
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -3143,6 +3147,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                             if (widget.feature == FeatureId.bykc &&
                                 widget.onBykcWrite != null &&
                                 (bykcSelectAction != null ||
+                                    bykcDeselectAction != null ||
                                     courseId != null)) ...<Widget>[
                               const SizedBox(height: 12),
                               Wrap(
@@ -3159,12 +3164,13 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                     icon: const Icon(Icons.add_circle_outline),
                                     label: const Text('准备选课'),
                                   ),
-                                  if (courseId != null)
+                                  if (bykcDeselectAction != null ||
+                                      courseId != null)
                                     OutlinedButton.icon(
                                       onPressed: canBykcDeselect
                                           ? () => widget.onBykcWrite!(
-                                              WriteOperation.bykcDeselectCourse,
-                                              courseId,
+                                              bykcDeselectAction!.operation,
+                                              bykcDeselectAction.courseId,
                                             )
                                           : null,
                                       icon: const Icon(
@@ -3420,17 +3426,6 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     }
     // 旧版读取 DTO 可能没有该字段；交给 Core prepare 再做最终条件校验。
     return true;
-  }
-
-  bool _isBykcDeselectAllowed(FeatureDetail detail) {
-    if (widget.query?.view == FeatureQueryView.bykcChosenCourses) return true;
-    final values = <String, String>{
-      for (final field in detail.fields) field.label: field.value.trim(),
-    };
-    if (values['已选'] == '否') return false;
-    final status = values['状态'];
-    if (status == null || status.isEmpty) return true;
-    return status == 'selected' || status == '已选';
   }
 
   bool _isSigninAvailable(FeatureDetail detail) {

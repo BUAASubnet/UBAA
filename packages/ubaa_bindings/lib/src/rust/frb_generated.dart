@@ -2638,8 +2638,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeBykcChosenCourse dco_decode_bridge_bykc_chosen_course(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 18)
-      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
+    if (arr.length != 19)
+      throw Exception('unexpected arr length: expect 19 but see ${arr.length}');
     return BridgeBykcChosenCourse(
       id: dco_decode_i_64(arr[0]),
       courseId: dco_decode_i_64(arr[1]),
@@ -2659,8 +2659,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pass: dco_decode_opt_box_autoadd_i_32(arr[13]),
       canSign: dco_decode_bool(arr[14]),
       canSignOut: dco_decode_bool(arr[15]),
-      signConfig: dco_decode_opt_box_autoadd_bridge_bykc_sign_config(arr[16]),
-      courseSignType: dco_decode_opt_box_autoadd_i_32(arr[17]),
+      deselectEligibility: dco_decode_bridge_action_eligibility(arr[16]),
+      signConfig: dco_decode_opt_box_autoadd_bridge_bykc_sign_config(arr[17]),
+      courseSignType: dco_decode_opt_box_autoadd_i_32(arr[18]),
     );
   }
 
@@ -2668,8 +2669,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeBykcCourse dco_decode_bridge_bykc_course(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 14)
-      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
+    if (arr.length != 15)
+      throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
     return BridgeBykcCourse(
       id: dco_decode_i_64(arr[0]),
       courseName: dco_decode_String(arr[1]),
@@ -2685,6 +2686,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       status: dco_decode_bridge_bykc_course_status(arr[11]),
       selected: dco_decode_opt_box_autoadd_bool(arr[12]),
       selectEligibility: dco_decode_bridge_action_eligibility(arr[13]),
+      deselectEligibility: dco_decode_bridge_action_eligibility(arr[14]),
     );
   }
 
@@ -5028,6 +5030,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_pass = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_canSign = sse_decode_bool(deserializer);
     var var_canSignOut = sse_decode_bool(deserializer);
+    var var_deselectEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
     var var_signConfig = sse_decode_opt_box_autoadd_bridge_bykc_sign_config(
       deserializer,
     );
@@ -5049,6 +5054,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pass: var_pass,
       canSign: var_canSign,
       canSignOut: var_canSignOut,
+      deselectEligibility: var_deselectEligibility,
       signConfig: var_signConfig,
       courseSignType: var_courseSignType,
     );
@@ -5073,6 +5079,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_selectEligibility = sse_decode_bridge_action_eligibility(
       deserializer,
     );
+    var var_deselectEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
     return BridgeBykcCourse(
       id: var_id,
       courseName: var_courseName,
@@ -5088,6 +5097,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       status: var_status,
       selected: var_selected,
       selectEligibility: var_selectEligibility,
+      deselectEligibility: var_deselectEligibility,
     );
   }
 
@@ -7928,6 +7938,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_i_32(self.pass, serializer);
     sse_encode_bool(self.canSign, serializer);
     sse_encode_bool(self.canSignOut, serializer);
+    sse_encode_bridge_action_eligibility(self.deselectEligibility, serializer);
     sse_encode_opt_box_autoadd_bridge_bykc_sign_config(
       self.signConfig,
       serializer,
@@ -7955,6 +7966,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bridge_bykc_course_status(self.status, serializer);
     sse_encode_opt_box_autoadd_bool(self.selected, serializer);
     sse_encode_bridge_action_eligibility(self.selectEligibility, serializer);
+    sse_encode_bridge_action_eligibility(self.deselectEligibility, serializer);
   }
 
   @protected

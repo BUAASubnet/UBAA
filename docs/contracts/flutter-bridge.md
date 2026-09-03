@@ -156,11 +156,11 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `JudgeProblem {name,score?,maxScore?,status,statusText}`。
 - `SigninClass {courseId,courseName,classBeginTime,classEndTime,signStatus}`。
 - `BykcUserProfile {id,employeeId?,realName?,studentNo?,collegeName?}`；
-  `BykcCourse {id,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,courseSelectStartDate?,courseSelectEndDate?,courseCancelEndDate?,courseMaxCount?,courseCurrentCount?,status,selected?,selectEligibility}`；
-  `selectEligibility` 是 `allowed/denied/unknown` 的封闭枚举，缺失 action 或 `unknown` 均必须按拒绝处理；
+  `BykcCourse {id,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,courseSelectStartDate?,courseSelectEndDate?,courseCancelEndDate?,courseMaxCount?,courseCurrentCount?,status,selected?,selectEligibility,deselectEligibility}`；
+  两项 eligibility 都是 `allowed/denied/unknown` 的封闭枚举，缺失 action 或 `unknown` 均必须按拒绝处理；
   `BykcCoursePage {content,totalElements,totalPages,size,number}`。
 - `BykcChosenCourse` 仅保留课程/签到所需的公开字段
-  `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin,score?,pass?,canSign,canSignOut,signConfig?,courseSignType?}`；`signConfig` 仅含四个时间字段与
+  `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin,score?,pass?,canSign,canSignOut,deselectEligibility,signConfig?,courseSignType?}`；`signConfig` 仅含四个时间字段与
   `signPoints {lat,lng,radius}`。作业正文、附件名称/路径和签到附注属于内部材料，均不得跨 FFI。
   `BykcStatistics {totalValidCount?,categories}`，分类项为
   `{categoryName?,subCategoryName?,requiredCount?,passedCount?,qualified?}`。

@@ -285,7 +285,7 @@
     },
     "bykcCourse": {
       "type": "object",
-      "required": ["id", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "courseSelectStartDate", "courseSelectEndDate", "courseCancelEndDate", "courseMaxCount", "courseCurrentCount", "status", "selected", "selectEligibility"],
+      "required": ["id", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "courseSelectStartDate", "courseSelectEndDate", "courseCancelEndDate", "courseMaxCount", "courseCurrentCount", "status", "selected", "selectEligibility", "deselectEligibility"],
       "properties": {
         "id": { "$ref": "#/$defs/i64" }, "courseName": { "type": "string" },
         "coursePosition": { "$ref": "#/$defs/nullableString" }, "courseTeacher": { "$ref": "#/$defs/nullableString" },
@@ -296,7 +296,8 @@
         "courseCurrentCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
         "status": { "$ref": "#/$defs/bykcCourseStatus" },
         "selected": { "type": ["boolean", "null"] },
-        "selectEligibility": { "$ref": "#/$defs/actionEligibility" }
+        "selectEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "deselectEligibility": { "$ref": "#/$defs/actionEligibility" }
       },
       "additionalProperties": false
     },
@@ -311,7 +312,7 @@
       }, "additionalProperties": false
     },
     "bykcChosenCourse": {
-      "type": "object", "required": ["id", "courseId", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "selectDate", "courseCancelEndDate", "category", "subCategory", "checkin", "score", "pass", "canSign", "canSignOut", "signConfig", "courseSignType", "homework", "homeworkAttachmentName", "homeworkAttachmentPath", "signInfo"],
+      "type": "object", "required": ["id", "courseId", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "selectDate", "courseCancelEndDate", "category", "subCategory", "checkin", "score", "pass", "canSign", "canSignOut", "deselectEligibility", "signConfig", "courseSignType", "homework", "homeworkAttachmentName", "homeworkAttachmentPath", "signInfo"],
       "properties": {
         "id": { "$ref": "#/$defs/i64" }, "courseId": { "$ref": "#/$defs/i64" },
         "courseName": { "type": "string" }, "coursePosition": { "$ref": "#/$defs/nullableString" }, "courseTeacher": { "$ref": "#/$defs/nullableString" },
@@ -320,6 +321,7 @@
         "subCategory": { "anyOf": [{ "$ref": "#/$defs/bykcCourseSubCategory" }, { "type": "null" }] },
         "checkin": { "$ref": "#/$defs/i32" }, "score": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
         "pass": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "canSign": { "type": "boolean" }, "canSignOut": { "type": "boolean" },
+        "deselectEligibility": { "$ref": "#/$defs/actionEligibility" },
         "signConfig": { "anyOf": [{ "$ref": "#/$defs/bykcSignConfig" }, { "type": "null" }] }, "courseSignType": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
         "homework": { "$ref": "#/$defs/nullableString" }, "homeworkAttachmentName": { "$ref": "#/$defs/nullableString" },
         "homeworkAttachmentPath": { "$ref": "#/$defs/nullableString" }, "signInfo": { "$ref": "#/$defs/nullableString" }

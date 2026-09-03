@@ -51,6 +51,10 @@ fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
 
 fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
     let m = value.as_object().ok_or_else(|| error("博雅课程字段无效"))?;
+    let id = m
+        .get("id")
+        .and_then(Value::as_i64)
+        .ok_or_else(|| error("博雅课程缺少标识"))?;
     let course_start_date = string(m, "courseStartDate");
     let course_select_start_date = string(m, "courseSelectStartDate");
     let course_select_end_date = string(m, "courseSelectEndDate");
@@ -76,11 +80,10 @@ fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         status,
         now,
     );
+    let deselect_eligibility =
+        deselect_eligibility(id, selected, course_start_date.as_deref(), now);
     Ok(BykcCourse {
-        id: m
-            .get("id")
-            .and_then(Value::as_i64)
-            .ok_or_else(|| error("博雅课程缺少标识"))?,
+        id,
         course_name: string(m, "courseName").ok_or_else(|| error("博雅课程缺少名称"))?,
         course_position: string(m, "coursePosition"),
         course_teacher: string(m, "courseTeacher"),
@@ -94,6 +97,7 @@ fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         status,
         selected,
         select_eligibility,
+        deselect_eligibility,
     })
 }
 
@@ -172,6 +176,26 @@ fn select_eligibility(
         ActionEligibility::Denied
     } else {
         ActionEligibility::Allowed
+    }
+}
+
+fn deselect_eligibility(
+    course_id: i64,
+    selected: Option<bool>,
+    course_start: Option<&str>,
+    now: NaiveDateTime,
+) -> ActionEligibility {
+    if course_id <= 0 {
+        return ActionEligibility::Unknown;
+    }
+    match selected {
+        None => ActionEligibility::Unknown,
+        Some(false) => ActionEligibility::Denied,
+        Some(true) => match parse_datetime(course_start) {
+            None => ActionEligibility::Unknown,
+            Some(start) if now > start => ActionEligibility::Denied,
+            Some(_) => ActionEligibility::Allowed,
+        },
     }
 }
 
@@ -259,6 +283,13 @@ pub(super) fn parse_chosen_courses_at(
         .map(|v| {
             let m = v.as_object().ok_or_else(|| error("博雅已选课程字段无效"))?;
             let course = m.get("courseInfo").and_then(Value::as_object);
+            let course_id = course
+                .and_then(|course| course.get("id"))
+                .and_then(Value::as_i64)
+                .unwrap_or_default();
+            let course_start_date = course.and_then(|course| string(course, "courseStartDate"));
+            let deselect_eligibility =
+                deselect_eligibility(course_id, Some(true), course_start_date.as_deref(), now);
             let sign_config = course
                 .and_then(|course| string(course, "courseSignConfig"))
                 .as_deref()
@@ -288,10 +319,7 @@ pub(super) fn parse_chosen_courses_at(
                     .get("id")
                     .and_then(Value::as_i64)
                     .ok_or_else(|| error("博雅选课记录缺少标识"))?,
-                course_id: course
-                    .and_then(|course| course.get("id"))
-                    .and_then(Value::as_i64)
-                    .unwrap_or_default(),
+                course_id,
                 course_name: course
                     .and_then(|course| string(course, "courseName"))
                     .unwrap_or_else(|| "未知课程".to_owned()),
@@ -299,7 +327,7 @@ pub(super) fn parse_chosen_courses_at(
                     .and_then(|course| normalized_string(course, "coursePosition")),
                 course_teacher: course
                     .and_then(|course| normalized_string(course, "courseTeacher")),
-                course_start_date: course.and_then(|course| string(course, "courseStartDate")),
+                course_start_date,
                 course_end_date: course.and_then(|course| string(course, "courseEndDate")),
                 select_date: string(m, "selectDate"),
                 course_cancel_end_date: course
@@ -315,6 +343,7 @@ pub(super) fn parse_chosen_courses_at(
                 pass,
                 can_sign,
                 can_sign_out,
+                deselect_eligibility,
                 sign_config,
                 course_sign_type: course.and_then(|course| int(course, "courseSignType")),
                 homework: normalized_string(m, "homework"),

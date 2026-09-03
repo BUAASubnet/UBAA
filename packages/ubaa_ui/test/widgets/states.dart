@@ -72,7 +72,7 @@ void _registerBykcStateTests() {
     expect(find.text('选择课程 73'), findsOneWidget);
   });
 
-  testWidgets('博雅选课 action 缺失或资格非 allowed 时统一禁用', (tester) async {
+  testWidgets('博雅选退课 action 缺失或资格非 allowed 时统一禁用', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final snapshots = <FeatureId, FeatureSnapshot>{
@@ -87,17 +87,23 @@ void _registerBykcStateTests() {
                     title: '缺失 action',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '41'),
-                      FeatureField(label: '状态', value: '可选'),
+                      FeatureField(label: '状态', value: 'selected'),
+                      FeatureField(label: '已选', value: '是'),
                     ],
                   ),
                   FeatureDetail(
                     title: '资格未知',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '42'),
-                      FeatureField(label: '状态', value: '可选'),
+                      FeatureField(label: '状态', value: 'selected'),
+                      FeatureField(label: '已选', value: '是'),
                     ],
                     actions: <FeatureAction>[
                       BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                      BykcDeselectAction(
                         courseId: 42,
                         eligibility: ActionEligibility.unknown,
                       ),
@@ -107,10 +113,15 @@ void _registerBykcStateTests() {
                     title: '明确拒绝',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '43'),
-                      FeatureField(label: '状态', value: '可选'),
+                      FeatureField(label: '状态', value: '已选'),
+                      FeatureField(label: '已选', value: '是'),
                     ],
                     actions: <FeatureAction>[
                       BykcSelectAction(
+                        courseId: 43,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                      BykcDeselectAction(
                         courseId: 43,
                         eligibility: ActionEligibility.denied,
                       ),
@@ -150,6 +161,11 @@ void _registerBykcStateTests() {
     );
     expect(selects, hasLength(3));
     expect(selects.every((button) => button.onPressed == null), isTrue);
+    final deselects = tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备退选'),
+    );
+    expect(deselects, hasLength(3));
+    expect(deselects.every((button) => button.onPressed == null), isTrue);
     expect(prepareCalls, 0);
   });
 
@@ -205,7 +221,7 @@ void _registerBykcStateTests() {
     expect(find.text('确认博雅签到'), findsNothing);
   });
 
-  testWidgets('博雅课程状态收紧选课和退选入口', (tester) async {
+  testWidgets('博雅课程写入口只服从 typed 资格且退选目标不依赖展示字段', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -217,14 +233,17 @@ void _registerBykcStateTests() {
                   FeatureDetail(
                     title: '已选课程',
                     fields: <FeatureField>[
-                      FeatureField(label: '课程 ID', value: '42'),
-                      FeatureField(label: '状态', value: 'selected'),
-                      FeatureField(label: '已选', value: '是'),
+                      FeatureField(label: '展示记录', value: '9001'),
+                      FeatureField(label: '已选', value: '否'),
                     ],
                     actions: <FeatureAction>[
                       BykcSelectAction(
                         courseId: 42,
                         eligibility: ActionEligibility.denied,
+                      ),
+                      BykcDeselectAction(
+                        courseId: 9527,
+                        eligibility: ActionEligibility.allowed,
                       ),
                     ],
                   ),
@@ -234,6 +253,7 @@ void _registerBykcStateTests() {
     };
     var selectCalls = 0;
     var deselectCalls = 0;
+    final deselectCourseIds = <int>[];
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
@@ -249,6 +269,7 @@ void _registerBykcStateTests() {
               selectCalls++;
             } else if (operation == WriteOperation.bykcDeselectCourse) {
               deselectCalls++;
+              deselectCourseIds.add(courseId);
             }
             return WriteIntent(
               intentId: 'status-${operation.name}',
@@ -279,8 +300,11 @@ void _registerBykcStateTests() {
     expect(select.onPressed, isNull);
     expect(deselect.onPressed, isNotNull);
     expect(find.text('当前课程状态不支持该操作；最终资格和时间窗仍由 Core 校验。'), findsOneWidget);
+    await tester.tap(find.text('准备退选'));
+    await tester.pumpAndSettle();
+    expect(deselectCalls, 1);
+    expect(deselectCourseIds, <int>[9527]);
     expect(selectCalls, 0);
-    expect(deselectCalls, 0);
   });
 }
 

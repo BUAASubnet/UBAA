@@ -252,6 +252,72 @@ fn 博雅选课资格无法证明课程未开课时为_unknown() {
 }
 
 #[test]
+fn 博雅退选资格仅在已选且课程尚未开始时为_allowed() {
+    let now = NaiveDateTime::parse_from_str("2026-09-04 12:00:00", "%Y-%m-%d %H:%M:%S")
+        .expect("解析固定时间");
+    let parse = |course: serde_json::Value| {
+        let body = serde_json::json!({
+            "status": "0",
+            "data": {
+                "content": [course],
+                "totalElements": 1,
+                "totalPages": 1,
+                "size": 20,
+                "number": 1
+            }
+        })
+        .to_string();
+        let course = parse_courses_at(&body, true, now)
+            .expect("解析课程")
+            .content
+            .remove(0);
+        serde_json::to_value(course).expect("序列化稳定 DTO")
+    };
+    let course = |id: i64, selected: Option<bool>, start: Option<&str>| {
+        let mut value = serde_json::json!({"id": id, "courseName": "退选资格课程"});
+        let object = value.as_object_mut().expect("课程对象");
+        if let Some(selected) = selected {
+            object.insert("selected".to_owned(), serde_json::json!(selected));
+        }
+        if let Some(start) = start {
+            object.insert("courseStartDate".to_owned(), serde_json::json!(start));
+        }
+        value
+    };
+
+    assert_eq!(
+        parse(course(42, Some(true), Some("2026-09-05 00:00:00")))["deselectEligibility"],
+        "allowed"
+    );
+    assert_eq!(
+        parse(course(42, Some(true), Some("2026-09-04 12:00:00")))["deselectEligibility"],
+        "allowed"
+    );
+    assert_eq!(
+        parse(course(42, Some(false), None))["deselectEligibility"],
+        "denied"
+    );
+    assert_eq!(
+        parse(course(42, Some(true), Some("2026-09-04 11:59:59")))["deselectEligibility"],
+        "denied"
+    );
+    for unknown in [
+        course(42, Some(true), None),
+        course(42, Some(true), Some("无法解析")),
+        course(42, None, Some("2026-09-05 00:00:00")),
+        course(0, Some(true), Some("2026-09-05 00:00:00")),
+    ] {
+        assert_eq!(parse(unknown)["deselectEligibility"], "unknown");
+    }
+    let mut expired_cancel = course(42, Some(true), Some("2026-09-05 00:00:00"));
+    expired_cancel.as_object_mut().expect("课程对象").insert(
+        "courseCancelEndDate".to_owned(),
+        serde_json::json!("2026-09-01 00:00:00"),
+    );
+    assert_eq!(parse(expired_cancel)["deselectEligibility"], "allowed");
+}
+
+#[test]
 fn 已选课程自动选择当前学期并回退到最新学期() {
     let config = serde_json::json!({
         "semester": [
@@ -342,15 +408,25 @@ fn 已选课程接受冻结的_course_list_响应包装() {
         "data": {
             "courseList": [{
                 "id": 9001,
-                "courseInfo": {"id": 9527, "courseName": "耕趣农场劳动课"}
+                "courseInfo": {
+                    "id": 9527,
+                    "courseName": "耕趣农场劳动课",
+                    "courseStartDate": "2999-01-01 08:00:00"
+                }
+            }, {
+                "id": 9002,
+                "courseInfo": {"courseName": "缺少课程标识"}
             }]
         }
     })
     .to_string();
     let result = parse_chosen_courses(&body).expect("冻结 courseList 包装应可解析");
-    assert_eq!(result.len(), 1);
+    assert_eq!(result.len(), 2);
     assert_eq!(result[0].id, 9001);
     assert_eq!(result[0].course_id, 9527);
+    assert_eq!(result[0].deselect_eligibility, ActionEligibility::Allowed);
+    assert_eq!(result[1].course_id, 0);
+    assert_eq!(result[1].deselect_eligibility, ActionEligibility::Unknown);
 }
 
 #[test]

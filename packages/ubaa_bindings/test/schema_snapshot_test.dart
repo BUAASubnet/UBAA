@@ -118,6 +118,12 @@ void main() {
     }
     expect(read, contains('enum BridgeCgyyPurposeSource'));
     expect(read, contains('final BridgeActionEligibility selectEligibility;'));
+    expect(
+      RegExp(
+        r'final BridgeActionEligibility deselectEligibility;',
+      ).allMatches(read),
+      hasLength(2),
+    );
     expect(read, contains('staticFallback'));
     expect(read, contains('available'));
   });

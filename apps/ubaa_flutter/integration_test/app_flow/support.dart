@@ -288,6 +288,12 @@ final class _AllWritesIntegrationBackend
                   ? ActionEligibility.denied
                   : ActionEligibility.allowed,
             ),
+            BykcDeselectAction(
+              courseId: 42,
+              eligibility: _bykcSelected
+                  ? ActionEligibility.allowed
+                  : ActionEligibility.denied,
+            ),
           ],
         ),
       ],

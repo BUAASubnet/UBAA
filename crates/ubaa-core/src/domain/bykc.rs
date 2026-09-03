@@ -32,6 +32,8 @@ pub struct BykcCourse {
     pub selected: Option<bool>,
     /// 当前课程的选课资格；`Unknown` 必须按拒绝处理。
     pub select_eligibility: ActionEligibility,
+    /// 当前课程的退选资格；`Unknown` 必须按拒绝处理。
+    pub deselect_eligibility: ActionEligibility,
 }
 
 /// 博雅课程状态。
@@ -84,6 +86,8 @@ pub struct BykcChosenCourse {
     pub pass: Option<i32>,
     pub can_sign: bool,
     pub can_sign_out: bool,
+    /// 当前已选课程的退选资格；目标始终是内层课程标识。
+    pub deselect_eligibility: ActionEligibility,
     pub sign_config: Option<BykcSignConfig>,
     pub course_sign_type: Option<i32>,
     pub homework: Option<String>,

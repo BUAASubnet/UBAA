@@ -29,6 +29,12 @@ Future<FeatureResult> _loadBykcFeature(
                         item.selectEligibility,
                       ),
                     ),
+                    BykcDeselectAction(
+                      courseId: item.id,
+                      eligibility: _toBykcActionEligibility(
+                        item.deselectEligibility,
+                      ),
+                    ),
                   ],
                   fields: _compactFields(<FeatureField?>[
                     _field('课程 ID', item.id.toString()),
@@ -73,6 +79,12 @@ Future<FeatureResult> _loadBykcFeature(
                     courseId: item.id,
                     eligibility: _toBykcActionEligibility(
                       item.selectEligibility,
+                    ),
+                  ),
+                  BykcDeselectAction(
+                    courseId: item.id,
+                    eligibility: _toBykcActionEligibility(
+                      item.deselectEligibility,
                     ),
                   ),
                 ],
@@ -129,6 +141,14 @@ Future<FeatureResult> _loadBykcFeature(
                 (item) => FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
+                  actions: <FeatureAction>[
+                    BykcDeselectAction(
+                      courseId: item.courseId,
+                      eligibility: _toBykcActionEligibility(
+                        item.deselectEligibility,
+                      ),
+                    ),
+                  ],
                   fields: _compactFields(<FeatureField?>[
                     _field('课程 ID', item.courseId.toString()),
                     _field('地点', item.coursePosition),

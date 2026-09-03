@@ -1,7 +1,7 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendReadCharacterization() {
-  test('博雅摘要和详情投影不依赖展示字段的 typed 选课能力', () async {
+  test('博雅摘要详情和已选记录投影 typed 选退课能力', () async {
     final backend = BridgeBackend(_CharacterizationBridgeClient());
 
     final summary = await backend.loadFeatureQuery(
@@ -12,6 +12,10 @@ void registerBridgeBackendReadCharacterization() {
       FeatureId.bykc,
       const FeatureQuery(view: FeatureQueryView.bykcDetail, courseId: '42'),
     );
+    final chosen = await backend.loadFeatureQuery(
+      FeatureId.bykc,
+      const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+    );
 
     final summaryAction = summary.details.single.action<BykcSelectAction>();
     expect(summaryAction?.courseId, 101);
@@ -20,6 +24,27 @@ void registerBridgeBackendReadCharacterization() {
     final detailAction = detail.details.single.action<BykcSelectAction>();
     expect(detailAction?.courseId, 42);
     expect(detailAction?.eligibility, ActionEligibility.denied);
+    final detailDeselectAction = detail.details.single
+        .action<BykcDeselectAction>();
+    expect(detailDeselectAction?.courseId, 42);
+    expect(detailDeselectAction?.eligibility, ActionEligibility.allowed);
+
+    final chosenAction = chosen.details.single.action<BykcDeselectAction>();
+    expect(chosenAction?.courseId, 9527);
+    expect(chosenAction?.eligibility, ActionEligibility.allowed);
+    final renamedChosen = FeatureDetail(
+      title: chosen.details.single.title,
+      fields: chosen.details.single.fields
+          .map(
+            (field) => FeatureField(
+              label: '展示名-${field.label}',
+              value: '展示值-${field.value}',
+            ),
+          )
+          .toList(growable: false),
+      actions: chosen.details.single.actions,
+    );
+    expect(renamedChosen.action<BykcDeselectAction>()?.courseId, 9527);
 
     final renamedDisplayDetail = FeatureDetail(
       title: detail.details.single.title,
@@ -36,6 +61,7 @@ void registerBridgeBackendReadCharacterization() {
       renamedDisplayDetail.action<BykcSelectAction>()?.eligibility,
       ActionEligibility.denied,
     );
+    expect(renamedDisplayDetail.action<BykcDeselectAction>()?.courseId, 42);
   });
 
   test('三十二项读取完整转发参数路线分页并仅投影白名单字段', () async {
@@ -312,7 +338,7 @@ void registerBridgeBackendReadCharacterization() {
       <ConnectionMode?>{ConnectionMode.webvpn},
     );
     const expectedProjectionFragments = <String>[
-      '课程 ID|42',
+      '课程 ID|9527',
       '状态|available',
       '课程分页',
       '学号|student-placeholder',
