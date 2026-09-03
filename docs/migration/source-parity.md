@@ -328,6 +328,9 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 `courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程
 ID。因此任何 UI 展示字段或外层记录 ID 都不得成为退选目标。冻结详情页只以“已选且课程未开始”控制退选，
 `courseCancelEndDate` 仅展示；示例写入口也不做该截止时间判断，所以本阶段不得按字段名臆加本地硬截止规则。
+非正课程 ID 或 `selected` 缺失为 unknown；明确 `selected=false` 已足以确定拒绝，不再要求无关时间字段；只有
+`selected=true` 时才要求 `courseStartDate` 可解析，`now > courseStartDate` 为 denied，恰好等于开课时刻仍为
+allowed。
 
 ## 博雅课程只读查询
 
