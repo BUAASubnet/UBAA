@@ -12,11 +12,7 @@ use serde_json::{Map, Value};
 
 use super::ygdk_upload::build_upload_body;
 
-#[derive(Clone, Debug)]
-pub(crate) struct YgdkCredential {
-    pub(crate) uid: i32,
-    pub(crate) token: String,
-}
+pub(crate) use crate::internal::route_state::YgdkCredential;
 
 const FRONT_BASE: &str = "https://ygdk.buaa.edu.cn";
 const EMPTY_SUCCESS_ENVELOPE: &str = r#"{"code":1,"result":{}}"#;

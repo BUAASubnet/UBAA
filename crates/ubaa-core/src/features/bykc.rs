@@ -23,20 +23,7 @@ const KEY_CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678";
 const BASE_URL: &str = "https://bykc.buaa.edu.cn";
 const LOGIN_URL: &str = "https://bykc.buaa.edu.cn/sscv/cas/login";
 
-/// 路线内存中的博雅业务令牌。
-#[derive(Clone)]
-pub(crate) struct BykcCredential {
-    pub(crate) token: String,
-}
-
-impl std::fmt::Debug for BykcCredential {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("BykcCredential")
-            .field("token", &"[已隐藏]")
-            .finish()
-    }
-}
+pub(crate) use crate::internal::route_state::BykcCredential;
 
 pub(crate) struct EncryptedRequest {
     pub(crate) encrypted_data: String,

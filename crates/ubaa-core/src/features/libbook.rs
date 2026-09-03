@@ -13,20 +13,7 @@ use tracing::debug;
 
 use super::libbook_crypto::encrypt_reserve_request;
 
-/// 图书馆查询所需的路线内业务凭据。
-#[derive(Clone)]
-pub(crate) struct LibBookCredential {
-    pub(crate) token: String,
-}
-
-impl std::fmt::Debug for LibBookCredential {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("LibBookCredential")
-            .field("token", &"[已隐藏]")
-            .finish()
-    }
-}
+pub(crate) use crate::internal::route_state::LibBookCredential;
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
 const CAS_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbooking.lib.buaa.edu.cn%2Fv4%2Flogin%2Fcas";

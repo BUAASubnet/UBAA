@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::connection::to_webvpn_url;
 use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use crate::features::state::RouteFeatureState;
+use crate::internal::route_state::RouteFeatureState;
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
 use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, VersionedSession};
 

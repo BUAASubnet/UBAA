@@ -14,13 +14,7 @@ const SIGNIN_TODAY_URL: &str =
     "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action";
 const REDIRECT_LIMIT: usize = 8;
 
-/// iClass 查询所需的路线内业务凭据。
-#[allow(dead_code)]
-#[derive(Clone)]
-pub(crate) struct SigninCredential {
-    pub(crate) user_id: String,
-    pub(crate) session_id: String,
-}
+pub(crate) use crate::internal::route_state::SigninCredential;
 
 #[derive(Deserialize)]
 struct LoginResponse {

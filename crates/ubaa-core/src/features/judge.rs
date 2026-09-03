@@ -5,9 +5,11 @@
     clippy::must_use_candidate
 )]
 
+pub use crate::domain::{Assignment, Course};
 use crate::domain::{
     JudgeAssignmentDetail, JudgeAssignmentSummary, JudgeProblem, JudgeSubmissionStatus,
 };
+pub(crate) use crate::internal::route_state::AssignmentList;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -26,40 +28,6 @@ const LIST_TTL: Duration = Duration::from_mins(5);
 const DETAIL_TTL: Duration = Duration::from_mins(2);
 const ASSIGNMENT_QUERY_CONCURRENCY: usize = 4;
 const BUSINESS_REACTIVATION_LIMIT: usize = 3;
-
-/// 解析后的课程链接。
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Course {
-    /// 课程标识。
-    pub course_id: String,
-    /// 课程名称。
-    pub course_name: String,
-}
-
-/// 解析后的作业链接。
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Assignment {
-    /// 作业标识。
-    pub assignment_id: String,
-    /// 课程标识。
-    pub course_id: String,
-    /// 课程名称。
-    pub course_name: String,
-    /// 作业标题。
-    pub title: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct AssignmentList {
-    pub(crate) assignments: Vec<Assignment>,
-    pub(crate) raw_anchor_count: usize,
-}
-
-impl AssignmentList {
-    fn filtered_unique_count(&self) -> usize {
-        self.assignments.len()
-    }
-}
 
 /// 提取课程链接，并排除虚构的课程 0 条目。
 pub fn parse_courses(html: &str) -> Vec<Course> {

@@ -2,6 +2,30 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Judge 课程链接的解析结果。
+///
+/// 该类型同时作为 Core 内部缓存的稳定载荷，避免缓存层反向依赖具体协议模块。
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Course {
+    /// 课程标识。
+    pub course_id: String,
+    /// 课程名称。
+    pub course_name: String,
+}
+
+/// Judge 作业链接的解析结果。
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Assignment {
+    /// 作业标识。
+    pub assignment_id: String,
+    /// 课程标识。
+    pub course_id: String,
+    /// 课程名称。
+    pub course_name: String,
+    /// 作业标题。
+    pub title: String,
+}
+
 /// 希冀提交状态。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

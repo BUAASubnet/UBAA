@@ -25,12 +25,27 @@ const WEBVPN_COOKIE_PATH: &str = "/venue-zhjs";
 
 /// 验证码挑战的脱敏结构；图像求解过程仅在 Core 内部流转。
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub(crate) struct CgyyCaptchaChallenge {
     pub(crate) secret_key: String,
     pub(crate) token: String,
     pub(crate) original_image_base64: String,
     pub(crate) jigsaw_image_base64: String,
+}
+
+impl std::fmt::Debug for CgyyCaptchaChallenge {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("CgyyCaptchaChallenge")
+            .field("secret_key", &"[已隐藏]")
+            .field("token", &"[已隐藏]")
+            .field(
+                "original_image_base64_len",
+                &self.original_image_base64.len(),
+            )
+            .field("jigsaw_image_base64_len", &self.jigsaw_image_base64.len())
+            .finish()
+    }
 }
 
 /// 使用冻结验证码密钥生成校验点和预约提交凭据。
@@ -1436,10 +1451,10 @@ fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_captcha_check_form, build_captcha_params, build_captcha_solution, build_submit_form,
-        check_business_response, parse_action_result, parse_captcha_challenge, parse_sites,
-        safe_parameter_summary, safe_url, sign, signed_request, validate_submit_request,
-        CgyyCaptchaChallenge,
+        CgyyCaptchaChallenge, build_captcha_check_form, build_captcha_params,
+        build_captcha_solution, build_submit_form, check_business_response, parse_action_result,
+        parse_captcha_challenge, parse_sites, safe_parameter_summary, safe_url, sign,
+        signed_request, validate_submit_request,
     };
     use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
     use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};

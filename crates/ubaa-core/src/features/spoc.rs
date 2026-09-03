@@ -525,17 +525,7 @@ struct AssignmentRaw {
     zyjzsj: Option<String>,
 }
 
-#[derive(Clone, Eq, PartialEq)]
-pub(super) struct SpocCredential {
-    token: String,
-    role: String,
-}
-
-impl SpocCredential {
-    fn token_header(&self) -> String {
-        format!("Inco-{}", self.token)
-    }
-}
+pub(super) use crate::internal::route_state::SpocCredential;
 
 async fn login(
     runtime: &mut crate::runtime::ClientRuntime,
@@ -558,7 +548,7 @@ async fn login(
     let content: Value =
         parse_optional_envelope(&super::body(&cas))?.ok_or_else(spoc_auth_error)?;
     let role = resolve_role_code(&content).ok_or_else(spoc_auth_error)?;
-    Ok(SpocCredential { token, role })
+    Ok(SpocCredential::new(token, role))
 }
 
 async fn ensure_credential(
