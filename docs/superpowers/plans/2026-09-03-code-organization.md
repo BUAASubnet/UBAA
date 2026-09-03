@@ -51,7 +51,7 @@
 | 08 | FRB 手写 read API | schema snapshot、解释后的首次生成差异与二次零漂移 | `refactor(bridge): 分离读取 DTO 方法与映射` | 已提交：`2cc1745`；Cargo/Clippy、11 项 Dart schema/API、两次 codegen 零漂移、独立复审通过 |
 | 09 | Flutter 测试镜像 | 三个超千行测试入口 baseline | `test(flutter): 按领域拆分应用与宿主测试` | 已提交：`6e66a41`；UI 49、App 31、macOS integration 6，26 个 golden 零变化，独立复审通过 |
 | 10A | domain/app/bridge 拆分 | package focused tests 绿色 | `refactor(flutter): 建立领域与应用所有权` | 已完成：公共面 `3cd2ad5`、错误过滤 `8a28016`、Domain `ebda967`、Bridge 护栏 `cd4ab7e`、App `ba633ac`、Bridge `9fbb83a`；全 Flutter、FRB 零漂移与 `just check` 通过 |
-| 10B | ubaa_host package | 宿主 wiring 一致性测试 RED | `refactor(flutter): 抽取共享宿主组合根` | 待执行 |
+| 10B | ubaa_host package | 宿主 wiring 一致性测试 RED | `refactor(flutter): 抽取共享宿主组合根` | 已提交：`324979e`；共享入口、完整 callback、生命周期竞态、三平台产物与 OHOS API26 门禁通过 |
 | 11A | Bykc 选课资格 | 操作级来源对照与字符串漂移 RED | `refactor(flutter): typed 化博雅选课资格` | 待执行 |
 | 11B | Bykc 退选资格 | 操作级来源对照与未知状态 RED | `refactor(flutter): typed 化博雅退选资格` | 待执行 |
 | 11C | Bykc 签到资格 | 操作级来源对照与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 待执行 |

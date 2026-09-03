@@ -10,7 +10,7 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| implementation HEAD | `9fbb83a` | 代码组织阶段 10A：Domain/App 合同与实现分层、Bridge 按领域拆分；公开 API、FRB schema 与行为护栏保持稳定 |
+| implementation HEAD | `324979e` | 代码组织阶段 10B：Domain/App/Bridge 分层，并由独立 `ubaa_host` 统一官方 Flutter 与 HarmonyOS 组合根和生命周期 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -38,6 +38,10 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 - `9fbb83a` 上的阶段 10A 已通过 `just refs`、`just layout-check`、`just check-sensitive`、
   `just flutter-codegen-check`、`just flutter-check`、完整 `just check` 与独立代码审查；结构 baseline 只剩
   `packages/ubaa_ui/lib/src/widgets.dart`。该结果是当前本地确定性证据，不等同于阶段 14 的最终候选验证。
+- `324979e` 上的阶段 10B 新增共享宿主、两个 27 行平台入口及完整 callback/lifecycle 竞态测试；本机重新通过
+  FRB 零漂移、完整 Flutter 工作区、`just check`、macOS integration 6 项、macOS/Android APK/iOS simulator
+  Debug 构建与产物结构检查、OHOS API26 arm64 无签名 HAP，并经两轮独立复审给出 Ready。该 HAP 仍不是签名或
+  实体设备证据。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -54,7 +58,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 10B–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11A–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。
