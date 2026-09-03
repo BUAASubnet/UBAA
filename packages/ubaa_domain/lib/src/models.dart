@@ -4,5 +4,6 @@ export 'common/route.dart';
 export 'feature/catalog.dart';
 export 'feature/query.dart';
 export 'feature/result.dart';
+export 'write/actions.dart';
 export 'write/inputs.dart';
 export 'write/intent.dart';

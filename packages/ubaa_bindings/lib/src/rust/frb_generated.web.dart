@@ -130,6 +130,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_i_32(dynamic raw);
 
   @protected
+  BridgeActionEligibility dco_decode_bridge_action_eligibility(dynamic raw);
+
+  @protected
   BridgeBykcChosenCourse dco_decode_bridge_bykc_chosen_course(dynamic raw);
 
   @protected
@@ -888,6 +891,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  BridgeActionEligibility sse_decode_bridge_action_eligibility(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BridgeBykcChosenCourse sse_decode_bridge_bykc_chosen_course(
@@ -1862,6 +1870,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bridge_action_eligibility(
+    BridgeActionEligibility self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_bridge_bykc_chosen_course(

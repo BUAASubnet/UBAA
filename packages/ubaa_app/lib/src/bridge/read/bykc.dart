@@ -22,6 +22,14 @@ Future<FeatureResult> _loadBykcFeature(
                 (item) => FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
+                  actions: <FeatureAction>[
+                    BykcSelectAction(
+                      courseId: item.id,
+                      eligibility: _toBykcActionEligibility(
+                        item.selectEligibility,
+                      ),
+                    ),
+                  ],
                   fields: _compactFields(<FeatureField?>[
                     _field('课程 ID', item.id.toString()),
                     _field('地点', item.coursePosition),
@@ -60,6 +68,14 @@ Future<FeatureResult> _loadBykcFeature(
               FeatureDetail(
                 title: item.courseName,
                 subtitle: item.courseTeacher,
+                actions: <FeatureAction>[
+                  BykcSelectAction(
+                    courseId: item.id,
+                    eligibility: _toBykcActionEligibility(
+                      item.selectEligibility,
+                    ),
+                  ),
+                ],
                 fields: _compactFields(<FeatureField?>[
                   _field('课程 ID', item.id.toString()),
                   _field('地点', item.coursePosition),
@@ -193,6 +209,14 @@ Future<FeatureResult> _loadBykcFeature(
       throw StateError('unexpected feature: $feature');
   }
 }
+
+ActionEligibility _toBykcActionEligibility(
+  BridgeActionEligibility eligibility,
+) => switch (eligibility) {
+  BridgeActionEligibility.allowed => ActionEligibility.allowed,
+  BridgeActionEligibility.denied => ActionEligibility.denied,
+  BridgeActionEligibility.unknown => ActionEligibility.unknown,
+};
 
 String? _timeWindow(String? start, String? end) {
   final normalizedStart = start?.trim();

@@ -61,4 +61,34 @@ void main() {
     expect(explicit.effectiveTotalPages, 5);
     expect(explicit.hasMore, isTrue);
   });
+
+  test('typed action 保留目标、写操作与资格', () {
+    const action = BykcSelectAction(
+      courseId: 42,
+      eligibility: ActionEligibility.allowed,
+    );
+
+    expect(action.courseId, 42);
+    expect(action.operation, WriteOperation.bykcSelectCourse);
+    expect(action.eligibility, ActionEligibility.allowed);
+    expect(ActionEligibility.values, <ActionEligibility>[
+      ActionEligibility.allowed,
+      ActionEligibility.denied,
+      ActionEligibility.unknown,
+    ]);
+  });
+
+  test('详情可按类型稳定查找 action，缺失时默认为空', () {
+    const action = BykcSelectAction(
+      courseId: 42,
+      eligibility: ActionEligibility.denied,
+    );
+    const detail = FeatureDetail(title: '课程', actions: <FeatureAction>[action]);
+    const detailWithoutActions = FeatureDetail(title: '无写入能力的详情');
+
+    expect(detail.action<BykcSelectAction>(), same(action));
+    expect(detail.action<FeatureAction>(), same(action));
+    expect(detailWithoutActions.actions, isEmpty);
+    expect(detailWithoutActions.action<BykcSelectAction>(), isNull);
+  });
 }

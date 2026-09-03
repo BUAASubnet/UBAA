@@ -244,6 +244,12 @@ pub enum BridgeBykcCourseStatus {
     Full,
     Available,
 }
+#[derive(Clone, Copy, Debug)]
+pub enum BridgeActionEligibility {
+    Allowed,
+    Denied,
+    Unknown,
+}
 #[derive(Clone, Debug)]
 pub struct BridgeBykcCourse {
     pub id: i64,
@@ -259,6 +265,7 @@ pub struct BridgeBykcCourse {
     pub course_current_count: Option<i32>,
     pub status: BridgeBykcCourseStatus,
     pub selected: Option<bool>,
+    pub select_eligibility: BridgeActionEligibility,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeBykcCoursePage {

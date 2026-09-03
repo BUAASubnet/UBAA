@@ -1,6 +1,43 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendReadCharacterization() {
+  test('博雅摘要和详情投影不依赖展示字段的 typed 选课能力', () async {
+    final backend = BridgeBackend(_CharacterizationBridgeClient());
+
+    final summary = await backend.loadFeatureQuery(
+      FeatureId.bykc,
+      const FeatureQuery(),
+    );
+    final detail = await backend.loadFeatureQuery(
+      FeatureId.bykc,
+      const FeatureQuery(view: FeatureQueryView.bykcDetail, courseId: '42'),
+    );
+
+    final summaryAction = summary.details.single.action<BykcSelectAction>();
+    expect(summaryAction?.courseId, 101);
+    expect(summaryAction?.eligibility, ActionEligibility.allowed);
+
+    final detailAction = detail.details.single.action<BykcSelectAction>();
+    expect(detailAction?.courseId, 42);
+    expect(detailAction?.eligibility, ActionEligibility.denied);
+
+    final renamedDisplayDetail = FeatureDetail(
+      title: detail.details.single.title,
+      fields: detail.details.single.fields
+          .map(
+            (field) =>
+                FeatureField(label: '展示名-${field.label}', value: field.value),
+          )
+          .toList(growable: false),
+      actions: detail.details.single.actions,
+    );
+    expect(renamedDisplayDetail.action<BykcSelectAction>()?.courseId, 42);
+    expect(
+      renamedDisplayDetail.action<BykcSelectAction>()?.eligibility,
+      ActionEligibility.denied,
+    );
+  });
+
   test('三十二项读取完整转发参数路线分页并仅投影白名单字段', () async {
     final client = _CharacterizationBridgeClient();
     final backend = BridgeBackend(client);

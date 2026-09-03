@@ -3282,6 +3282,19 @@ impl SseDecode for bool {
     }
 }
 
+impl SseDecode for crate::api::read::BridgeActionEligibility {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::read::BridgeActionEligibility::Allowed,
+            1 => crate::api::read::BridgeActionEligibility::Denied,
+            2 => crate::api::read::BridgeActionEligibility::Unknown,
+            _ => unreachable!("Invalid variant for BridgeActionEligibility: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeBykcChosenCourse {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3345,6 +3358,8 @@ impl SseDecode for crate::api::read::BridgeBykcCourse {
         let mut var_courseCurrentCount = <Option<i32>>::sse_decode(deserializer);
         let mut var_status = <crate::api::read::BridgeBykcCourseStatus>::sse_decode(deserializer);
         let mut var_selected = <Option<bool>>::sse_decode(deserializer);
+        let mut var_selectEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
         return crate::api::read::BridgeBykcCourse {
             id: var_id,
             course_name: var_courseName,
@@ -3359,6 +3374,7 @@ impl SseDecode for crate::api::read::BridgeBykcCourse {
             course_current_count: var_courseCurrentCount,
             status: var_status,
             selected: var_selected,
+            select_eligibility: var_selectEligibility,
         };
     }
 }
@@ -6412,6 +6428,28 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<BridgeClient>> for BridgeClien
 }
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeActionEligibility {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Allowed => 0.into_dart(),
+            Self::Denied => 1.into_dart(),
+            Self::Unknown => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeActionEligibility
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeActionEligibility>
+    for crate::api::read::BridgeActionEligibility
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeActionEligibility {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeBykcChosenCourse {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -6465,6 +6503,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeBykcCourse {
             self.course_current_count.into_into_dart().into_dart(),
             self.status.into_into_dart().into_dart(),
             self.selected.into_into_dart().into_dart(),
+            self.select_eligibility.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9287,6 +9326,23 @@ impl SseEncode for bool {
     }
 }
 
+impl SseEncode for crate::api::read::BridgeActionEligibility {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::read::BridgeActionEligibility::Allowed => 0,
+                crate::api::read::BridgeActionEligibility::Denied => 1,
+                crate::api::read::BridgeActionEligibility::Unknown => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeBykcChosenCourse {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -9330,6 +9386,10 @@ impl SseEncode for crate::api::read::BridgeBykcCourse {
         <Option<i32>>::sse_encode(self.course_current_count, serializer);
         <crate::api::read::BridgeBykcCourseStatus>::sse_encode(self.status, serializer);
         <Option<bool>>::sse_encode(self.selected, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.select_eligibility,
+            serializer,
+        );
     }
 }
 

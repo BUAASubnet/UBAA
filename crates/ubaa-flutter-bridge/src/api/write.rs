@@ -174,6 +174,37 @@ impl PendingWrite {
 }
 
 impl BridgeClient {
+    async fn store_write_intent(
+        &self,
+        operation: BridgeWriteOperation,
+        canonical: String,
+        target_summary: String,
+        warnings: Vec<String>,
+        pending: PendingWrite,
+        resolved_route: BridgeConnectionMode,
+    ) -> BridgeWriteIntent {
+        let intent_id = random_id();
+        let request_digest = digest(&canonical);
+        let expires_at = now_seconds().saturating_add(120);
+        self.write_intents.lock().await.insert(
+            intent_id.clone(),
+            PendingEntry {
+                request: pending,
+                expires_at,
+                resolved_route,
+            },
+        );
+        BridgeWriteIntent {
+            intent_id,
+            operation,
+            target_summary,
+            resolved_route,
+            warnings,
+            expires_at,
+            request_digest,
+        }
+    }
+
     async fn prepare_write(
         &self,
         feature: ReadonlyFeature,
@@ -189,26 +220,16 @@ impl BridgeClient {
             let resolution = client
                 .resolve_route_for_feature(feature)
                 .map_err(|error| BridgeError::from_core(error, None))?;
-            let intent_id = random_id();
-            let digest = digest(&canonical);
-            let expires_at = now_seconds().saturating_add(120);
-            self.write_intents.lock().await.insert(
-                intent_id.clone(),
-                PendingEntry {
-                    request: pending,
-                    expires_at,
-                    resolved_route: resolution.mode.into(),
-                },
-            );
-            Ok(BridgeWriteIntent {
-                intent_id,
-                operation,
-                target_summary,
-                resolved_route: resolution.mode.into(),
-                warnings,
-                expires_at,
-                request_digest: digest,
-            })
+            Ok(self
+                .store_write_intent(
+                    operation,
+                    canonical,
+                    target_summary,
+                    warnings,
+                    pending,
+                    resolution.mode.into(),
+                )
+                .await)
         })
         .await
     }
@@ -218,14 +239,26 @@ impl BridgeClient {
         request: BridgeBykcCourseRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
         validate_id(request.course_id)?;
-        self.prepare_write(
-            ReadonlyFeature::Bykc,
-            BridgeWriteOperation::BykcSelectCourse,
-            format!("course_id={}", request.course_id),
-            "选择一门博雅课程".to_owned(),
-            vec!["提交后请刷新已选课程确认结果".to_owned()],
-            PendingWrite::BykcSelect(request),
-        )
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(super::client::disposed_error)?;
+            let current = client
+                .bykc_course_detail(request.course_id)
+                .await
+                .map_err(BridgeError::from_routed)?;
+            ensure_bykc_select_target(request.course_id, current.data.id)?;
+            ensure_bykc_select_allowed(current.data.select_eligibility)?;
+            Ok(self
+                .store_write_intent(
+                    BridgeWriteOperation::BykcSelectCourse,
+                    format!("course_id={}", request.course_id),
+                    "选择一门博雅课程".to_owned(),
+                    vec!["提交后请刷新已选课程确认结果".to_owned()],
+                    PendingWrite::BykcSelect(request),
+                    current.resolution.mode.into(),
+                )
+                .await)
+        })
         .await
     }
     pub async fn prepare_bykc_deselect_course(
@@ -436,6 +469,23 @@ impl BridgeClient {
                     "route changed; prepare the write again",
                 ));
             }
+            if let PendingWrite::BykcSelect(request) = &pending {
+                let current = client
+                    .bykc_course_detail(request.course_id)
+                    .await
+                    .map_err(BridgeError::from_routed)?;
+                ensure_bykc_select_target(request.course_id, current.data.id)?;
+                let preflight_route: BridgeConnectionMode = current.resolution.mode.into();
+                if preflight_route != entry.resolved_route {
+                    return Err(BridgeError::local(
+                        BridgeErrorCode::OperationConflict,
+                        BridgeErrorKind::Input,
+                        true,
+                        "route changed during preflight; prepare the write again",
+                    ));
+                }
+                ensure_bykc_select_allowed(current.data.select_eligibility)?;
+            }
             let result = match pending {
                 PendingWrite::BykcSelect(request) => client
                     .bykc_select_course(request.course_id)
@@ -558,6 +608,36 @@ fn map_resolution_error(error: ubaa_core::facade::UbaaError) -> BridgeError {
         );
     }
     BridgeError::from_core(error, None)
+}
+
+fn ensure_bykc_select_allowed(eligibility: domain::ActionEligibility) -> Result<(), BridgeError> {
+    match eligibility {
+        domain::ActionEligibility::Allowed => Ok(()),
+        domain::ActionEligibility::Denied => Err(BridgeError::local(
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "课程当前不可选，请刷新课程详情后重试",
+        )),
+        domain::ActionEligibility::Unknown => Err(BridgeError::local(
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "课程选课资格缺少必要字段",
+        )),
+    }
+}
+
+fn ensure_bykc_select_target(requested_id: i64, actual_id: i64) -> Result<(), BridgeError> {
+    if requested_id == actual_id {
+        return Ok(());
+    }
+    Err(BridgeError::local(
+        BridgeErrorCode::UpstreamChanged,
+        BridgeErrorKind::Upstream,
+        false,
+        "课程详情标识与请求不一致",
+    ))
 }
 
 fn map_evaluation_course(c: BridgeEvaluationCourse) -> domain::EvaluationCourse {

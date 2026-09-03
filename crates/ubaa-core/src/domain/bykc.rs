@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::ActionEligibility;
+
 /// 博雅用户资料。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,6 +30,8 @@ pub struct BykcCourse {
     pub course_current_count: Option<i32>,
     pub status: BykcCourseStatus,
     pub selected: Option<bool>,
+    /// 当前课程的选课资格；`Unknown` 必须按拒绝处理。
+    pub select_eligibility: ActionEligibility,
 }
 
 /// 博雅课程状态。

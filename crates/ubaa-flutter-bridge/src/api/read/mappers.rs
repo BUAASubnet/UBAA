@@ -3,21 +3,22 @@
 use ubaa_core::facade as domain;
 
 use super::{
-    BridgeBykcChosenCourse, BridgeBykcCourse, BridgeBykcCourseCategory, BridgeBykcCoursePage,
-    BridgeBykcCourseStatus, BridgeBykcCourseSubCategory, BridgeBykcSignConfig, BridgeBykcSignPoint,
-    BridgeBykcStatistic, BridgeBykcStatistics, BridgeBykcUserProfile, BridgeCgyyDayInfo,
-    BridgeCgyyLockCode, BridgeCgyyOrder, BridgeCgyyOrdersPage, BridgeCgyyPurposeSource,
-    BridgeCgyyPurposeType, BridgeCgyyPurposeTypes, BridgeCgyySlotStatus,
-    BridgeCgyySpaceAvailability, BridgeCgyyTimeSlot, BridgeCgyyVenueSite, BridgeClassroomFloor,
-    BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeEvaluationCourse,
-    BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam, BridgeExamArrangement,
-    BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail, BridgeJudgeAssignmentSummary,
-    BridgeJudgeProblem, BridgeJudgeSubmissionStatus, BridgeLibBookArea, BridgeLibBookAreaDetail,
-    BridgeLibBookBooking, BridgeLibBookBookingsPage, BridgeLibBookLibrary, BridgeLibBookSeat,
-    BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
-    BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
-    BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
-    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkTermSummary,
+    BridgeActionEligibility, BridgeBykcChosenCourse, BridgeBykcCourse, BridgeBykcCourseCategory,
+    BridgeBykcCoursePage, BridgeBykcCourseStatus, BridgeBykcCourseSubCategory,
+    BridgeBykcSignConfig, BridgeBykcSignPoint, BridgeBykcStatistic, BridgeBykcStatistics,
+    BridgeBykcUserProfile, BridgeCgyyDayInfo, BridgeCgyyLockCode, BridgeCgyyOrder,
+    BridgeCgyyOrdersPage, BridgeCgyyPurposeSource, BridgeCgyyPurposeType, BridgeCgyyPurposeTypes,
+    BridgeCgyySlotStatus, BridgeCgyySpaceAvailability, BridgeCgyyTimeSlot, BridgeCgyyVenueSite,
+    BridgeClassroomFloor, BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass,
+    BridgeEvaluationCourse, BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam,
+    BridgeExamArrangement, BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail,
+    BridgeJudgeAssignmentSummary, BridgeJudgeProblem, BridgeJudgeSubmissionStatus,
+    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookBooking, BridgeLibBookBookingsPage,
+    BridgeLibBookLibrary, BridgeLibBookSeat, BridgeLibBookStorey, BridgeLibBookTimeSlot,
+    BridgeSigninClass, BridgeSpocAssignmentDetail, BridgeSpocAssignmentSummary,
+    BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm, BridgeTodayClass, BridgeWeek,
+    BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview, BridgeYgdkRecord,
+    BridgeYgdkRecordsPage, BridgeYgdkTermSummary,
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
@@ -269,6 +270,13 @@ fn map_bykc_status(v: domain::BykcCourseStatus) -> BridgeBykcCourseStatus {
         domain::BykcCourseStatus::Available => BridgeBykcCourseStatus::Available,
     }
 }
+fn map_action_eligibility(v: domain::ActionEligibility) -> BridgeActionEligibility {
+    match v {
+        domain::ActionEligibility::Allowed => BridgeActionEligibility::Allowed,
+        domain::ActionEligibility::Denied => BridgeActionEligibility::Denied,
+        domain::ActionEligibility::Unknown => BridgeActionEligibility::Unknown,
+    }
+}
 pub(super) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
     BridgeBykcCourse {
         id: v.id,
@@ -284,6 +292,7 @@ pub(super) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
         course_current_count: v.course_current_count,
         status: map_bykc_status(v.status),
         selected: v.selected,
+        select_eligibility: map_action_eligibility(v.select_eligibility),
     }
 }
 pub(super) fn map_bykc_profile(v: domain::BykcUserProfile) -> BridgeBykcUserProfile {

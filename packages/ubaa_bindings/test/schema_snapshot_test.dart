@@ -117,6 +117,7 @@ void main() {
       expect(read, contains('class $name'), reason: '生成 DTO 缺少 $name');
     }
     expect(read, contains('enum BridgeCgyyPurposeSource'));
+    expect(read, contains('final BridgeActionEligibility selectEligibility;'));
     expect(read, contains('staticFallback'));
     expect(read, contains('available'));
   });
@@ -217,6 +218,7 @@ void main() {
 
   test('生成 DTO 快照固定全部公开读取枚举', () {
     const enums = <String, List<String>>{
+      'BridgeActionEligibility': <String>['allowed', 'denied', 'unknown'],
       'BridgeBykcCourseCategory': <String>['boya', 'unknown'],
       'BridgeBykcCourseStatus': <String>[
         'expired',

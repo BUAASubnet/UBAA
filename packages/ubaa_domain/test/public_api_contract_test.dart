@@ -2,8 +2,8 @@ import 'package:test/test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
-  test('公共 barrel 保持三十二个稳定名字', () {
-    // 公开面精确由 25 个类型、5 个 named extension 和 2 个常量组成。
+  test('公共 barrel 保持三十五个稳定名字', () {
+    // 公开面精确由 28 个类型、5 个 named extension 和 2 个常量组成。
     final publicTypes = <Type>{
       RoutePolicy,
       FeatureId,
@@ -20,6 +20,9 @@ void main() {
       FeatureQuery,
       FeatureDetail,
       FeatureField,
+      ActionEligibility,
+      FeatureAction,
+      BykcSelectAction,
       YgdkPhotoInput,
       YgdkSubmitInput,
       CgyyReservationSelectionInput,
@@ -31,7 +34,7 @@ void main() {
       CgyyReservationReceipt,
       WriteCommitResult,
     };
-    expect(publicTypes, hasLength(25));
+    expect(publicTypes, hasLength(28));
 
     expect(RoutePolicyText(RoutePolicy.direct).wireName, 'direct');
     expect(FeatureIdText(FeatureId.schedule).title, '课表查询');

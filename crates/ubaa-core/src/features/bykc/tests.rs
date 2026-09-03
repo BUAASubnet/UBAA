@@ -10,7 +10,9 @@ use super::parser::{
     resolve_current_semester,
 };
 use crate::connection::to_webvpn_url;
-use crate::domain::{BykcCourseCategory, BykcCourseStatus, BykcCourseSubCategory};
+use crate::domain::{
+    ActionEligibility, BykcCourseCategory, BykcCourseStatus, BykcCourseSubCategory,
+};
 
 #[test]
 fn webvpn_绝对跳转先还原为直连目标() {
@@ -94,6 +96,159 @@ fn 课程分页默认过滤已过期和选课结束项目() {
     assert_eq!(filtered.content[0].status, BykcCourseStatus::Available);
     assert_eq!(filtered.total_elements, 3);
     assert_eq!(all.content.len(), 3);
+}
+
+#[test]
+fn 博雅选课资格缺失关键字段时为_unknown() {
+    let body = serde_json::json!({
+        "status": "0",
+        "data": {
+            "content": [{"id": 9, "courseName": "字段不完整的课程"}],
+            "totalElements": 1,
+            "totalPages": 1,
+            "size": 20,
+            "number": 1
+        }
+    })
+    .to_string();
+    let now = NaiveDateTime::parse_from_str("2026-09-03 12:00:00", "%Y-%m-%d %H:%M:%S")
+        .expect("解析固定时间");
+
+    let course = parse_courses_at(&body, true, now)
+        .expect("解析课程")
+        .content
+        .remove(0);
+    let value = serde_json::to_value(course).expect("序列化稳定 DTO");
+
+    assert_eq!(value["selectEligibility"], "unknown");
+}
+
+#[test]
+fn 博雅选课资格仅在完整且当前可选时为_allowed() {
+    let now = NaiveDateTime::parse_from_str("2026-09-03 12:00:00", "%Y-%m-%d %H:%M:%S")
+        .expect("解析固定时间");
+    let parse = |course: serde_json::Value| {
+        let body = serde_json::json!({
+            "status": "0",
+            "data": {
+                "content": [course],
+                "totalElements": 1,
+                "totalPages": 1,
+                "size": 20,
+                "number": 1
+            }
+        })
+        .to_string();
+        parse_courses_at(&body, true, now)
+            .expect("解析课程")
+            .content
+            .remove(0)
+            .select_eligibility
+    };
+    let course = |selected: bool, current: i32, start: &str, end: &str, course_start: &str| {
+        serde_json::json!({
+            "id": 9,
+            "courseName": "选课资格课程",
+            "courseStartDate": course_start,
+            "courseSelectStartDate": start,
+            "courseSelectEndDate": end,
+            "courseMaxCount": 10,
+            "courseCurrentCount": current,
+            "selected": selected
+        })
+    };
+
+    assert_eq!(
+        parse(course(
+            false,
+            5,
+            "2026-09-01 00:00:00",
+            "2026-09-05 00:00:00",
+            "2026-10-01 00:00:00"
+        )),
+        ActionEligibility::Allowed
+    );
+    for denied in [
+        course(
+            true,
+            5,
+            "2026-09-01 00:00:00",
+            "2026-09-05 00:00:00",
+            "2026-10-01 00:00:00",
+        ),
+        course(
+            false,
+            10,
+            "2026-09-01 00:00:00",
+            "2026-09-05 00:00:00",
+            "2026-10-01 00:00:00",
+        ),
+        course(
+            false,
+            5,
+            "2026-09-04 00:00:00",
+            "2026-09-05 00:00:00",
+            "2026-10-01 00:00:00",
+        ),
+        course(
+            false,
+            5,
+            "2026-09-01 00:00:00",
+            "2026-09-02 00:00:00",
+            "2026-10-01 00:00:00",
+        ),
+        course(
+            false,
+            5,
+            "2026-09-01 00:00:00",
+            "2026-09-05 00:00:00",
+            "2026-09-02 00:00:00",
+        ),
+    ] {
+        assert_eq!(parse(denied), ActionEligibility::Denied);
+    }
+    assert_eq!(
+        parse(course(
+            false,
+            5,
+            "无法解析",
+            "2026-09-05 00:00:00",
+            "2026-10-01 00:00:00",
+        )),
+        ActionEligibility::Unknown
+    );
+}
+
+#[test]
+fn 博雅选课资格无法证明课程未开课时为_unknown() {
+    let body = serde_json::json!({
+        "status": "0",
+        "data": {
+            "content": [{
+                "id": 9,
+                "courseName": "缺少开课时间",
+                "courseSelectStartDate": "2026-09-01 00:00:00",
+                "courseSelectEndDate": "2026-09-05 00:00:00",
+                "courseMaxCount": 10,
+                "courseCurrentCount": 5,
+                "selected": false
+            }],
+            "totalElements": 1,
+            "totalPages": 1,
+            "size": 20,
+            "number": 1
+        }
+    })
+    .to_string();
+    let now = NaiveDateTime::parse_from_str("2026-09-03 12:00:00", "%Y-%m-%d %H:%M:%S")
+        .expect("解析固定时间");
+
+    let course = parse_courses_at(&body, true, now)
+        .expect("解析课程")
+        .content
+        .remove(0);
+
+    assert_eq!(course.select_eligibility, ActionEligibility::Unknown);
 }
 
 #[test]

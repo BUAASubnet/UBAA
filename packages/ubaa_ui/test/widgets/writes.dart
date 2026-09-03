@@ -15,6 +15,12 @@ void _registerInitialWriteTests() {
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '42'),
                     ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
                   ),
                 ]
               : const <FeatureDetail>[],

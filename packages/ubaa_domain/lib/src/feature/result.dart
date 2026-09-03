@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../common/error.dart';
 import '../common/route.dart';
+import '../write/actions.dart';
 import 'catalog.dart';
 
 enum FeatureLoadStatus { idle, loading, success, empty, stale, failure }
@@ -124,11 +125,23 @@ class FeatureDetail {
     required this.title,
     this.subtitle,
     this.fields = const <FeatureField>[],
+    this.actions = const <FeatureAction>[],
   });
 
   final String title;
   final String? subtitle;
   final List<FeatureField> fields;
+  final List<FeatureAction> actions;
+
+  /// 返回该详情中首个与 [T] 匹配的 typed action。
+  ///
+  /// 缺失时返回 `null`，由消费端按不可操作处理。
+  T? action<T extends FeatureAction>() {
+    for (final action in actions) {
+      if (action is T) return action;
+    }
+    return null;
+  }
 }
 
 /// 详情卡片中的标签和值；值必须来自 bridge 白名单 DTO。

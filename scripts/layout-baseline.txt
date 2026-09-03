@@ -1,3 +1,3 @@
 # 格式：kind<TAB>仓库相对路径<TAB>精确当前数量。kind 只能是 file 或 dir。
 # 每次结构拆分都必须同步删除已修复项或更新经审查的精确数量；最终只保留说明。
-file	packages/ubaa_ui/lib/src/widgets.dart	4046
+file	packages/ubaa_ui/lib/src/widgets.dart	4035

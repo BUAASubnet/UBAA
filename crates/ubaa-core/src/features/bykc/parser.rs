@@ -6,9 +6,9 @@ use serde_json::{Map, Value};
 
 use super::error;
 use crate::domain::{
-    BykcChosenCourse, BykcCourse, BykcCourseCategory, BykcCoursePage, BykcCourseStatus,
-    BykcCourseSubCategory, BykcSignConfig, BykcSignPoint, BykcStatistic, BykcStatistics,
-    BykcUserProfile,
+    ActionEligibility, BykcChosenCourse, BykcCourse, BykcCourseCategory, BykcCoursePage,
+    BykcCourseStatus, BykcCourseSubCategory, BykcSignConfig, BykcSignPoint, BykcStatistic,
+    BykcStatistics, BykcUserProfile,
 };
 use crate::error::Result;
 
@@ -66,6 +66,16 @@ fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         course_max_count,
         now,
     );
+    let select_eligibility = select_eligibility(
+        course_start_date.as_deref(),
+        course_select_start_date.as_deref(),
+        course_select_end_date.as_deref(),
+        selected,
+        course_current_count,
+        course_max_count,
+        status,
+        now,
+    );
     Ok(BykcCourse {
         id: m
             .get("id")
@@ -83,6 +93,7 @@ fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         course_current_count,
         status,
         selected,
+        select_eligibility,
     })
 }
 
@@ -123,6 +134,44 @@ fn course_status(
         BykcCourseStatus::Preview
     } else {
         BykcCourseStatus::Available
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn select_eligibility(
+    course_start: Option<&str>,
+    select_start: Option<&str>,
+    select_end: Option<&str>,
+    selected: Option<bool>,
+    current_count: Option<i32>,
+    max_count: Option<i32>,
+    status: BykcCourseStatus,
+    now: NaiveDateTime,
+) -> ActionEligibility {
+    if parse_datetime(course_start).is_none() {
+        return ActionEligibility::Unknown;
+    }
+    let Some(selected) = selected else {
+        return ActionEligibility::Unknown;
+    };
+    let (Some(current_count), Some(max_count)) = (current_count, max_count) else {
+        return ActionEligibility::Unknown;
+    };
+    let (Some(select_start), Some(select_end)) =
+        (parse_datetime(select_start), parse_datetime(select_end))
+    else {
+        return ActionEligibility::Unknown;
+    };
+
+    if selected
+        || (max_count > 0 && current_count >= max_count)
+        || now < select_start
+        || now > select_end
+        || status != BykcCourseStatus::Available
+    {
+        ActionEligibility::Denied
+    } else {
+        ActionEligibility::Allowed
     }
 }
 

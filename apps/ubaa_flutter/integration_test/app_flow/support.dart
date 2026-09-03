@@ -281,6 +281,14 @@ final class _AllWritesIntegrationBackend
             const FeatureField(label: '可签到', value: '是'),
             const FeatureField(label: '可签退', value: '是'),
           ],
+          actions: <FeatureAction>[
+            BykcSelectAction(
+              courseId: 42,
+              eligibility: _bykcSelected
+                  ? ActionEligibility.denied
+                  : ActionEligibility.allowed,
+            ),
+          ],
         ),
       ],
       FeatureId.signin => const <FeatureDetail>[

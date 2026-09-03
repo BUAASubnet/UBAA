@@ -1,6 +1,158 @@
 part of '../widgets_test.dart';
 
 void _registerBykcStateTests() {
+  testWidgets('博雅选课只使用 typed action 且不依赖展示字段名称和值', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '展示字段已改名的课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '任意展示编号', value: '不是操作参数'),
+                      FeatureField(label: '任意展示状态', value: '看起来不可选'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 73,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (operation, courseId) async {
+            prepareCalls++;
+            expect(operation, WriteOperation.bykcSelectCourse);
+            expect(courseId, 73);
+            return WriteIntent(
+              intentId: 'typed-select-73',
+              operation: operation,
+              targetSummary: '选择课程 73',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>[],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+
+    final select = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备选课'),
+    );
+    expect(select.onPressed, isNotNull);
+    await tester.tap(find.text('准备选课'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(find.text('选择课程 73'), findsOneWidget);
+  });
+
+  testWidgets('博雅选课 action 缺失或资格非 allowed 时统一禁用', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '缺失 action',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '41'),
+                      FeatureField(label: '状态', value: '可选'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '资格未知',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                      FeatureField(label: '状态', value: '可选'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '明确拒绝',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '43'),
+                      FeatureField(label: '状态', value: '可选'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 43,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (_, __) async {
+            prepareCalls++;
+            throw StateError('不可选课程不应触发准备回调');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.text('博雅课程'));
+    await tester.pumpAndSettle();
+
+    final selects = tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备选课'),
+    );
+    expect(selects, hasLength(3));
+    expect(selects.every((button) => button.onPressed == null), isTrue);
+    expect(prepareCalls, 0);
+  });
+
   testWidgets('博雅签到状态明确不可用时禁用写入口并提示由 Core 判定', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
@@ -68,6 +220,12 @@ void _registerBykcStateTests() {
                       FeatureField(label: '课程 ID', value: '42'),
                       FeatureField(label: '状态', value: 'selected'),
                       FeatureField(label: '已选', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.denied,
+                      ),
                     ],
                   ),
                 ]
@@ -469,6 +627,12 @@ void _registerSharedStateTests() {
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '42'),
                     ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
                   ),
                 ]
               : const <FeatureDetail>[],
@@ -535,6 +699,12 @@ void _registerSharedStateTests() {
                     title: '课程',
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '42'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                 ]
