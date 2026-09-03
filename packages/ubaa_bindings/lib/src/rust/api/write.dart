@@ -8,7 +8,7 @@ import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
-// These functions are ignored because they are not marked as `pub`: `cgyy_canonical`, `digest_bytes`, `digest`, `ensure_bykc_course_target`, `ensure_bykc_deselect_allowed`, `ensure_bykc_preflight_route`, `ensure_bykc_select_allowed`, `feature`, `invalid_input`, `map_cgyy_request`, `map_evaluation_course`, `map_resolution_error`, `now_seconds`, `operation`, `prepare_write`, `random_id`, `safe_message`, `store_write_intent`, `text_shape`, `validate_cgyy_request`, `validate_id_i32`, `validate_id`, `validate_text`, `validate_ygdk_request`, `ygdk_canonical`
+// These functions are ignored because they are not marked as `pub`: `feature`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
