@@ -13,7 +13,6 @@ pub mod spoc;
 pub(crate) use crate::internal::route_state as state;
 pub(crate) mod user;
 pub mod ygdk;
-pub(crate) mod ygdk_upload;
 
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpRequest, HttpResponse};
