@@ -505,6 +505,7 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Ygd
     if let Some(value) = state.ygdk.credential() {
         return Ok(value);
     }
+    let generation = state.ygdk.generation();
     let code = oauth_code(runtime).await?;
     let mut url =
         url::Url::parse(&runtime.url(LOGIN_URL)?).map_err(|_| error("阳光打卡登录地址无效"))?;
@@ -525,7 +526,14 @@ async fn ensure_login(runtime: &mut crate::runtime::ClientRuntime) -> Result<Ygd
         uid,
         token: percent_decode(&token),
     };
-    state.ygdk.set(credential.clone());
+    if !state.ygdk.store_credential(generation, credential.clone()) {
+        return Err(UbaaError::new(
+            ErrorCode::InternalError,
+            ErrorKind::Internal,
+            true,
+            "阳光打卡业务会话在登录期间已失效",
+        ));
+    }
     Ok(credential)
 }
 

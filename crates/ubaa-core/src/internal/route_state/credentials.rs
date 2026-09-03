@@ -222,6 +222,7 @@ impl LibBookState {
 #[allow(dead_code)]
 #[derive(Default)]
 pub(crate) struct YgdkState {
+    invalidations: AtomicU64,
     credential: SyncMutex<Option<YgdkCredential>>,
     login: Mutex<()>,
     #[cfg(test)]
@@ -232,6 +233,7 @@ impl std::fmt::Debug for YgdkState {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("YgdkState")
+            .field("generation", &self.generation())
             .field("credential", &"[已隐藏]")
             .field("login", &"[已隐藏]")
             .finish()
@@ -239,6 +241,10 @@ impl std::fmt::Debug for YgdkState {
 }
 
 impl YgdkState {
+    pub(crate) fn generation(&self) -> u64 {
+        self.invalidations.load(Ordering::Acquire)
+    }
+
     #[allow(dead_code)]
     pub(crate) fn credential(&self) -> Option<YgdkCredential> {
         self.credential
@@ -247,14 +253,24 @@ impl YgdkState {
             .clone()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn set(&self, value: YgdkCredential) {
+        let generation = self.generation();
+        let _ = self.store_credential(generation, value);
+    }
+
+    pub(crate) fn store_credential(&self, generation: u64, value: YgdkCredential) -> bool {
         #[cfg(test)]
         self.pause_before_store();
-        *self
+        let mut cached = self
             .credential
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if self.generation() != generation {
+            return false;
+        }
+        *cached = Some(value);
+        true
     }
 
     #[cfg(test)]
@@ -278,6 +294,7 @@ impl YgdkState {
     }
 
     pub(crate) fn clear(&self) {
+        self.invalidations.fetch_add(1, Ordering::AcqRel);
         *self
             .credential
             .lock()
