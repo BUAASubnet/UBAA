@@ -53,6 +53,68 @@ async fn 场馆取消显式确认后才调用后端() {
 }
 
 #[tokio::test]
+async fn 博雅三类写操作确认后输出均符合_schema_v3() {
+    let cases = [
+        (
+            vec![
+                "ubaa",
+                "--json",
+                "bykc",
+                "select",
+                "--course-id",
+                "11",
+                "--confirm-write",
+            ],
+            "fixture select",
+        ),
+        (
+            vec![
+                "ubaa",
+                "--json",
+                "bykc",
+                "deselect",
+                "--course-id",
+                "11",
+                "--confirm-write",
+            ],
+            "fixture deselect",
+        ),
+        (
+            vec![
+                "ubaa",
+                "--json",
+                "bykc",
+                "sign",
+                "--course-id",
+                "11",
+                "--sign-type",
+                "1",
+                "--confirm-write",
+            ],
+            "fixture sign",
+        ),
+    ];
+
+    for (arguments, expected_message) in cases {
+        let cli = Cli::try_parse_from(arguments).unwrap();
+        let mut backend = FakeRoutedBackend::default();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+
+        let code = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
+
+        assert_eq!(code, 0);
+        let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+        assert_cli_schema(&value);
+        assert_eq!(value["schemaVersion"], 3);
+        assert_eq!(value["ok"], true);
+        assert_eq!(value["data"]["message"], expected_message);
+        assert_eq!(value["meta"]["feature"], "bykc");
+        assert!(stderr.is_empty());
+    }
+}
+
+#[tokio::test]
 async fn 评教提交默认拒绝且不读取后端() {
     let cli = Cli::try_parse_from([
         "ubaa",

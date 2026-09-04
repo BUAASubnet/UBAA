@@ -126,11 +126,44 @@ impl UbaaClient {
         resolution: RouteResolution,
         result: Result<T>,
     ) -> RoutedResult<T> {
-        if should_clear_invalidated_route(&result) {
+        if let Err(error) = self.cleanup_routed_result(resolution, &result) {
+            return Err(routed_error(error, resolution));
+        }
+        if let Err(error) = self.clear_on_session_conflict() {
+            return Err(routed_error(error, resolution));
+        }
+        result
+            .map(|data| Routed { data, resolution })
+            .map_err(|error| routed_error(error, resolution))
+    }
+
+    /// 写请求跨越发送边界后，收尾检查只清理失效状态，不得覆盖确定或未知结果。
+    pub(super) fn finish_routed_write<T>(
+        &mut self,
+        resolution: RouteResolution,
+        result: Result<T>,
+    ) -> RoutedResult<T> {
+        if !self
+            .runtime_for(resolution.mode)
+            .take_non_idempotent_boundary_crossed()
+        {
+            return self.finish_routed(resolution, result);
+        }
+        let _ = self.cleanup_routed_result(resolution, &result);
+        let _ = self.guard_latest_session_ownership();
+        result
+            .map(|data| Routed { data, resolution })
+            .map_err(|error| routed_error(error, resolution))
+    }
+
+    fn cleanup_routed_result<T>(
+        &mut self,
+        resolution: RouteResolution,
+        result: &Result<T>,
+    ) -> Result<()> {
+        if should_clear_invalidated_route(result) {
             if self.route_is_ready(resolution.mode) {
-                if let Err(error) = self.clear_invalidated_route(resolution.mode) {
-                    return Err(routed_error(error, resolution));
-                }
+                self.clear_invalidated_route(resolution.mode)?;
             } else {
                 self.clear_invalidated_route_memory(resolution.mode);
             }
@@ -142,12 +175,7 @@ impl UbaaClient {
         {
             self.clear_invalidated_route_memory(resolution.mode);
         }
-        if let Err(error) = self.clear_on_session_conflict() {
-            return Err(routed_error(error, resolution));
-        }
-        result
-            .map(|data| Routed { data, resolution })
-            .map_err(|error| routed_error(error, resolution))
+        Ok(())
     }
 
     fn clear_invalidated_route(&mut self, route: ConnectionMode) -> Result<()> {

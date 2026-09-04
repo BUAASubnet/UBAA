@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/write_controller.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
@@ -94,13 +97,34 @@ void main() {
     controller.setIntent(intent());
     await expectLater(controller.confirm(), throwsA(isA<BackendException>()));
     expect(controller.error?.code, UbaaErrorCode.outcomeUnknown);
+    expect(controller.error?.retryable, isFalse);
     expect(controller.intent, isNull);
     controller.dispose();
+  });
+
+  test('prepare 在控制器销毁后返回时 best-effort 释放晚到的 intent', () async {
+    final prepared = Completer<WriteIntent>();
+    final discardedIntentIds = <String>[];
+    final controller = WriteFlowController(
+      commit: (_) async => throw StateError('不应提交'),
+      discard: (intentId) async {
+        discardedIntentIds.add(intentId);
+        throw StateError('释放失败不应逃逸销毁边界');
+      },
+    );
+
+    final preparing = controller.prepare(() => prepared.future);
+    controller.dispose();
+    prepared.complete(intent(id: 'intent-after-dispose'));
+
+    expect(await preparing, isNull);
+    expect(discardedIntentIds, <String>['intent-after-dispose']);
   });
 
   test('prepare 只建立确认意图，不提交写请求且失败映射安全错误', () async {
     var prepareCalls = 0;
     var commitCalls = 0;
+    final discardedIntentIds = <String>[];
     final controller = WriteFlowController(
       commit: (_) async {
         commitCalls++;
@@ -111,6 +135,7 @@ void main() {
           outcomeUnknown: false,
         );
       },
+      discard: (intentId) async => discardedIntentIds.add(intentId),
     );
     final prepared = await controller.prepare(() async {
       prepareCalls++;
@@ -121,7 +146,8 @@ void main() {
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
 
-    controller.cancel();
+    await controller.cancel();
+    expect(discardedIntentIds, <String>['intent-1']);
     await expectLater(
       controller.prepare(() async {
         throw const BackendException(UbaaErrorCode.permissionDenied);
@@ -131,5 +157,117 @@ void main() {
     expect(controller.intent, isNull);
     expect(controller.error?.code, UbaaErrorCode.permissionDenied);
     controller.dispose();
+  });
+
+  test('取消必须等待后端释放 intent，成功后才清理本地状态', () async {
+    final discardStarted = Completer<void>();
+    final allowDiscard = Completer<void>();
+    final controller = WriteFlowController(
+      commit: (_) async => throw StateError('不应提交'),
+      discard: (intentId) async {
+        expect(intentId, 'intent-await-discard');
+        discardStarted.complete();
+        await allowDiscard.future;
+      },
+    );
+    controller.setIntent(intent(id: 'intent-await-discard'));
+
+    final cancel = controller.cancel();
+    await discardStarted.future;
+    expect(controller.isSubmitting, isTrue);
+    expect(controller.intent?.intentId, 'intent-await-discard');
+    controller.setIntent(intent(id: 'intent-must-not-replace'));
+    expect(controller.intent?.intentId, 'intent-await-discard');
+
+    allowDiscard.complete();
+    await cancel;
+    expect(controller.isSubmitting, isFalse);
+    expect(controller.intent, isNull);
+    expect(controller.error, isNull);
+    controller.dispose();
+  });
+
+  test('未消费的 intent 不能被后到的 setIntent 覆盖', () {
+    final controller = WriteFlowController(
+      commit: (_) async => throw StateError('不应提交'),
+    );
+    controller.setIntent(intent(id: 'intent-original'));
+
+    controller.setIntent(intent(id: 'intent-replacement'));
+
+    expect(controller.intent?.intentId, 'intent-original');
+    controller.dispose();
+  });
+
+  test('取消首次失败保留 intent，第二次成功后清理', () async {
+    var discardCalls = 0;
+    final controller = WriteFlowController(
+      commit: (_) async => throw StateError('不应提交'),
+      discard: (_) async {
+        discardCalls++;
+        if (discardCalls == 1) {
+          throw const BackendException(
+            UbaaErrorCode.networkError,
+            detail: '/private/session?token=secret',
+          );
+        }
+      },
+    );
+    controller.setIntent(intent(id: 'intent-retained'));
+
+    await expectLater(
+      controller.cancel(),
+      throwsA(
+        isA<BackendException>()
+            .having((error) => error.code, 'code', UbaaErrorCode.networkError)
+            .having((error) => error.detail, 'detail', isNull),
+      ),
+    );
+    expect(controller.intent?.intentId, 'intent-retained');
+    expect(controller.error?.code, UbaaErrorCode.networkError);
+    expect(controller.error.toString(), isNot(contains('secret')));
+
+    await controller.cancel();
+    expect(discardCalls, 2);
+    expect(controller.intent, isNull);
+    expect(controller.error, isNull);
+    controller.dispose();
+  });
+
+  test('未配置释放器或未知异常均安全失败且保留 intent', () async {
+    final unsupportedController = WriteFlowController(
+      commit: (_) async => throw StateError('不应提交'),
+    );
+    unsupportedController.setIntent(intent(id: 'intent-no-discarder'));
+    await expectLater(
+      unsupportedController.cancel(),
+      throwsA(
+        isA<BackendException>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.unsupported,
+        ),
+      ),
+    );
+    expect(unsupportedController.intent?.intentId, 'intent-no-discarder');
+    expect(unsupportedController.error?.code, UbaaErrorCode.unsupported);
+    unsupportedController.dispose();
+
+    final internalErrorController = WriteFlowController(
+      commit: (_) async => throw StateError('不应提交'),
+      discard: (_) async => throw StateError('/private/token=secret'),
+    );
+    internalErrorController.setIntent(intent(id: 'intent-internal-error'));
+    await expectLater(
+      internalErrorController.cancel(),
+      throwsA(
+        isA<BackendException>()
+            .having((error) => error.code, 'code', UbaaErrorCode.internalError)
+            .having((error) => error.detail, 'detail', isNull),
+      ),
+    );
+    expect(internalErrorController.intent?.intentId, 'intent-internal-error');
+    expect(internalErrorController.error?.code, UbaaErrorCode.internalError);
+    internalErrorController.dispose();
   });
 }

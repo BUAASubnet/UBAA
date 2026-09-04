@@ -1,43 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-typedef LibbookReservePreparer =
-    Future<WriteIntent> Function({
-      required String areaId,
-      required String seatId,
-      required String day,
-      required String segment,
-      required String startTime,
-      required String endTime,
-    });
-
-typedef LibbookReserveStarter =
-    Future<void> Function({
-      required String areaId,
-      required String seatId,
-      required String day,
-      required String segment,
-      required String startTime,
-      required String endTime,
-    });
-
-typedef EvaluationSubmitPreparer =
-    Future<WriteIntent> Function(List<EvaluationCourseInput> courses);
-
-typedef EvaluationSubmitStarter =
-    Future<void> Function(List<EvaluationCourseInput> courses);
-
-typedef YgdkSubmitPreparer =
-    Future<WriteIntent> Function(YgdkSubmitInput input);
-
-typedef YgdkSubmitStarter = Future<void> Function(YgdkSubmitInput input);
-
-typedef YgdkPhotoPicker = Future<YgdkPhotoInput?> Function();
-
-typedef CgyyReservationPreparer =
-    Future<WriteIntent> Function(CgyySubmitInput input);
-
-typedef CgyyReservationStarter = Future<void> Function(CgyySubmitInput input);
+import 'write_callbacks.dart';
 
 /// 启动页：保留旧版 UBAA 标题和标语。
 class UbaaSplashView extends StatelessWidget {
@@ -418,6 +382,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
     this.onPickYgdkPhoto,
+    this.onDiscardWriteIntent,
     this.onCommitWrite,
     this.onWriteSuccess,
     this.onVerifyCgyyReceipt,
@@ -442,8 +407,7 @@ class UbaaMainShell extends StatefulWidget {
   onFeatureQuery;
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
   onPrepareBykcWrite;
-  final Future<WriteIntent> Function(int courseId, int signType)?
-  onPrepareBykcSignWrite;
+  final BykcSignPreparer? onPrepareBykcSignWrite;
   final Future<WriteIntent> Function(String courseId)? onPrepareSigninWrite;
   final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
   onPrepareCancellationWrite;
@@ -452,6 +416,7 @@ class UbaaMainShell extends StatefulWidget {
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;
+  final WriteIntentDiscarder? onDiscardWriteIntent;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final Future<void> Function(WriteOperation operation)? onWriteSuccess;
 
@@ -471,6 +436,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   WriteIntent? _pendingWrite;
   UiError? _writeError;
   bool _writeSubmitting = false;
+  bool _writeDiscarding = false;
 
   @override
   void initState() {
@@ -498,6 +464,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onCancel: _cancelWrite,
             onConfirm: _confirmWrite,
             isSubmitting: _writeSubmitting,
+            isDiscarding: _writeDiscarding,
             error: _writeError,
           )
         : _openedFeature == null
@@ -695,80 +662,29 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
     final prepare = widget.onPrepareBykcWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(operation, courseId);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备操作；尚未提交任何写请求。')));
-    }
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(operation, courseId),
+      failureMessage: '暂时无法准备操作；尚未提交任何写请求。',
+    );
   }
 
-  Future<void> _startBykcSignWrite(int courseId, int signType) async {
+  Future<void> _startBykcSignWrite(BykcSignAction action) async {
     final prepare = widget.onPrepareBykcSignWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(courseId, signType);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备博雅签到；尚未提交任何写请求。')));
-    }
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(action),
+      failureMessage: '暂时无法准备博雅签到；尚未提交任何写请求。',
+    );
   }
 
   Future<void> _startSigninWrite(String courseId) async {
     final prepare = widget.onPrepareSigninWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(courseId);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备签到；尚未提交任何写请求。')));
-    }
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(courseId),
+      failureMessage: '暂时无法准备签到；尚未提交任何写请求。',
+    );
   }
 
   Future<void> _startCancellationWrite(
@@ -776,28 +692,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     String targetId,
   ) async {
     final prepare = widget.onPrepareCancellationWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(operation, targetId);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备取消操作；尚未提交任何写请求。')));
-    }
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(operation, targetId),
+      failureMessage: '暂时无法准备取消操作；尚未提交任何写请求。',
+    );
   }
 
   Future<void> _startLibbookReserveWrite({
@@ -809,101 +708,65 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     required String endTime,
   }) async {
     final prepare = widget.onPrepareLibbookReserveWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(
         areaId: areaId,
         seatId: seatId,
         day: day,
         segment: segment,
         startTime: startTime,
         endTime: endTime,
-      );
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备图书馆预约；尚未提交任何写请求。')));
-    }
+      ),
+      failureMessage: '暂时无法准备图书馆预约；尚未提交任何写请求。',
+    );
   }
 
   Future<void> _startEvaluationWrite(
     List<EvaluationCourseInput> courses,
   ) async {
     final prepare = widget.onPrepareEvaluationWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(courses);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备教学评教；尚未提交任何写请求。')));
-    }
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(courses),
+      failureMessage: '暂时无法准备教学评教；尚未提交任何写请求。',
+    );
   }
 
   Future<void> _startYgdkSubmitWrite(YgdkSubmitInput input) async {
     final prepare = widget.onPrepareYgdkSubmitWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final intent = await prepare(input);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备阳光打卡；尚未提交任何写请求。')));
-    }
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(input),
+      failureMessage: '暂时无法准备阳光打卡；尚未提交任何写请求。',
+    );
   }
 
   Future<void> _startCgyySubmitWrite(CgyySubmitInput input) async {
     final prepare = widget.onPrepareCgyySubmitWrite;
-    if (prepare == null || _pendingWrite != null || _writeSubmitting) return;
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(input),
+      failureMessage: '暂时无法准备场馆预约；尚未提交任何写请求。',
+    );
+  }
+
+  Future<void> _prepareWrite({
+    required Future<WriteIntent> Function() prepare,
+    required String failureMessage,
+  }) async {
+    if (_pendingWrite != null || _writeSubmitting) return;
+    final discard = widget.onDiscardWriteIntent;
     setState(() {
       _writeSubmitting = true;
       _writeError = null;
     });
     try {
-      final intent = await prepare(input);
-      if (!mounted) return;
+      final intent = await prepare();
+      if (!mounted) {
+        await _discardPreparedIntentBestEffort(discard, intent.intentId);
+        return;
+      }
       setState(() {
         _pendingWrite = intent;
         _writeSubmitting = false;
@@ -916,16 +779,50 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法准备场馆预约；尚未提交任何写请求。')));
+      ).showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
-  void _cancelWrite() {
-    if (_writeSubmitting) return;
+  Future<void> _discardPreparedIntentBestEffort(
+    WriteIntentDiscarder? discard,
+    String intentId,
+  ) async {
+    try {
+      await discard?.call(intentId);
+    } on Object {
+      // 页面已卸载，无可用 UI 承载错误；Bridge 会自行过期清理。
+    }
+  }
+
+  Future<void> _cancelWrite() async {
+    final intent = _pendingWrite;
+    final discard = widget.onDiscardWriteIntent;
+    if (intent == null || _writeSubmitting) return;
     setState(() {
-      _pendingWrite = null;
+      _writeSubmitting = true;
+      _writeDiscarding = true;
       _writeError = null;
     });
+    try {
+      if (discard == null) throw StateError('未提供意图丢弃能力');
+      await discard(intent.intentId);
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = null;
+        _writeSubmitting = false;
+        _writeDiscarding = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _writeSubmitting = false;
+        _writeDiscarding = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('暂时无法取消待确认操作，请重试。')));
+    }
   }
 
   Future<void> _confirmWrite() async {
@@ -939,12 +836,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     });
     try {
       final result = await commit(intent.intentId);
+      if (result.success || result.outcomeUnknown) {
+        await _refreshAfterWrite(result.operation);
+      }
       if (result.success && !result.outcomeUnknown) {
-        try {
-          await widget.onWriteSuccess?.call(result.operation);
-        } on Object {
-          // 写入已完成但读取核对失败；结果提示仍保持确定，不重试写请求。
-        }
         final receipt = result.cgyyReceipt;
         if (result.operation == WriteOperation.cgyySubmitReservation &&
             receipt != null) {
@@ -972,6 +867,19 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
         ),
       );
+    } on UiError catch (error) {
+      if (error.code == UbaaErrorCode.outcomeUnknown) {
+        await _refreshAfterWrite(intent.operation);
+      }
+      if (!mounted) return;
+      setState(() {
+        _pendingWrite = null;
+        _writeSubmitting = false;
+        _writeError = null;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_writeErrorMessage(error))));
     } on Object {
       if (!mounted) return;
       setState(() {
@@ -981,9 +889,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('提交结果不确定，请先刷新相关状态，不要重复提交。')));
+      ).showSnackBar(const SnackBar(content: Text('应用内部错误，请返回后刷新相关状态。')));
     }
   }
+
+  Future<void> _refreshAfterWrite(WriteOperation operation) async {
+    try {
+      await widget.onWriteSuccess?.call(operation);
+    } on Object {
+      // 写请求不会重试；读取核对失败由现有提示引导用户稍后手动刷新。
+    }
+  }
+
+  String _writeErrorMessage(UiError error) =>
+      error.code == UbaaErrorCode.outcomeUnknown
+      ? '提交结果不确定，请先刷新相关状态，不要重复提交。'
+      : error.message;
 
   String _writeResultMessage(
     WriteCommitResult result, {
@@ -1384,7 +1305,7 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function() onRetry;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
-  final Future<void> Function(int courseId, int signType)? onBykcSignWrite;
+  final BykcSignStarter? onBykcSignWrite;
   final Future<void> Function(String courseId)? onSigninWrite;
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
@@ -2936,7 +2857,7 @@ class _FeatureDetailList extends StatefulWidget {
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
-  final Future<void> Function(int courseId, int signType)? onBykcSignWrite;
+  final BykcSignStarter? onBykcSignWrite;
   final Future<void> Function(String courseId)? onSigninWrite;
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
@@ -3082,14 +3003,26 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final bykcSelectAction = detail.action<BykcSelectAction>();
                     final bykcDeselectAction = detail
                         .action<BykcDeselectAction>();
+                    final bykcSignInAction = _bykcSignAction(
+                      detail,
+                      BykcSignKind.signIn,
+                    );
+                    final bykcSignOutAction = _bykcSignAction(
+                      detail,
+                      BykcSignKind.signOut,
+                    );
                     final signinCourseId = _courseKey(detail);
                     final cancellation = _cancellationTarget(detail);
                     final reservation = _libbookReserveTarget(detail);
                     final cgyyReservation = _cgyyReservationTarget(detail);
                     final evaluation = _evaluationTarget(detail);
                     final ygdk = _ygdkTarget(detail);
-                    final canBykcSign = _isAllowed(detail, '可签到');
-                    final canBykcSignOut = _isAllowed(detail, '可签退');
+                    final canBykcSign =
+                        bykcSignInAction?.eligibility ==
+                        ActionEligibility.allowed;
+                    final canBykcSignOut =
+                        bykcSignOutAction?.eligibility ==
+                        ActionEligibility.allowed;
                     final canBykcSelect =
                         bykcSelectAction?.eligibility ==
                         ActionEligibility.allowed;
@@ -3193,35 +3126,38 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                             ],
                             if (widget.feature == FeatureId.bykc &&
                                 widget.onBykcSignWrite != null &&
-                                courseId != null) ...<Widget>[
+                                (bykcSignInAction != null ||
+                                    bykcSignOutAction != null)) ...<Widget>[
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: <Widget>[
-                                  OutlinedButton.icon(
-                                    onPressed: canBykcSign
-                                        ? () => widget.onBykcSignWrite!(
-                                            courseId,
-                                            1,
-                                          )
-                                        : null,
-                                    icon: const Icon(Icons.login),
-                                    label: const Text('准备博雅签到'),
-                                  ),
-                                  OutlinedButton.icon(
-                                    onPressed: canBykcSignOut
-                                        ? () => widget.onBykcSignWrite!(
-                                            courseId,
-                                            2,
-                                          )
-                                        : null,
-                                    icon: const Icon(Icons.logout),
-                                    label: const Text('准备博雅签退'),
-                                  ),
+                                  if (bykcSignInAction != null)
+                                    OutlinedButton.icon(
+                                      onPressed: canBykcSign
+                                          ? () => widget.onBykcSignWrite!(
+                                              bykcSignInAction,
+                                            )
+                                          : null,
+                                      icon: const Icon(Icons.login),
+                                      label: const Text('准备博雅签到'),
+                                    ),
+                                  if (bykcSignOutAction != null)
+                                    OutlinedButton.icon(
+                                      onPressed: canBykcSignOut
+                                          ? () => widget.onBykcSignWrite!(
+                                              bykcSignOutAction,
+                                            )
+                                          : null,
+                                      icon: const Icon(Icons.logout),
+                                      label: const Text('准备博雅签退'),
+                                    ),
                                 ],
                               ),
-                              if (!canBykcSign || !canBykcSignOut)
+                              if ((bykcSignInAction != null && !canBykcSign) ||
+                                  (bykcSignOutAction != null &&
+                                      !canBykcSignOut))
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
@@ -3420,12 +3356,11 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     return null;
   }
 
-  bool _isAllowed(FeatureDetail detail, String label) {
-    for (final field in detail.fields) {
-      if (field.label == label) return field.value.trim() != '否';
+  BykcSignAction? _bykcSignAction(FeatureDetail detail, BykcSignKind kind) {
+    for (final action in detail.actions) {
+      if (action is BykcSignAction && action.kind == kind) return action;
     }
-    // 旧版读取 DTO 可能没有该字段；交给 Core prepare 再做最终条件校验。
-    return true;
+    return null;
   }
 
   bool _isSigninAvailable(FeatureDetail detail) {
@@ -3873,6 +3808,7 @@ class WriteConfirmationView extends StatelessWidget {
     required this.onCancel,
     required this.onConfirm,
     this.isSubmitting = false,
+    this.isDiscarding = false,
     this.error,
     super.key,
   });
@@ -3881,6 +3817,7 @@ class WriteConfirmationView extends StatelessWidget {
   final VoidCallback onCancel;
   final Future<void> Function() onConfirm;
   final bool isSubmitting;
+  final bool isDiscarding;
   final UiError? error;
 
   @override
@@ -3928,13 +3865,27 @@ class WriteConfirmationView extends StatelessWidget {
                   children: <Widget>[
                     OutlinedButton(
                       onPressed: isSubmitting ? null : onCancel,
-                      child: const Text('取消'),
+                      child: isDiscarding
+                          ? const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                SizedBox.square(
+                                  dimension: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text('正在取消'),
+                              ],
+                            )
+                          : const Text('取消'),
                     ),
                     FilledButton.icon(
                       onPressed: expired || isSubmitting
                           ? null
                           : () => onConfirm(),
-                      icon: isSubmitting
+                      icon: isSubmitting && !isDiscarding
                           ? const SizedBox.square(
                               dimension: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),

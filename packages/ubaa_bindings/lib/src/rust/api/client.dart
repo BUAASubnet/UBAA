@@ -62,6 +62,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 返回 bridge 合同版本。
   int contractVersion();
 
+  /// 放弃一个尚未提交的写入意图。
+  ///
+  /// 已不存在的标识按幂等成功处理；已经进入 commit 的请求不会被异步中断。
+  Future<void> discardWriteIntent({required String intentId});
+
   /// 幂等销毁 Core client。
   ///
   /// # Errors

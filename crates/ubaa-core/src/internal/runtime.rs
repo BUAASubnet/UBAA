@@ -20,6 +20,7 @@ pub(crate) struct ClientRuntime {
     account_name: Option<String>,
     session_revision: u64,
     feature_state: Arc<RouteFeatureState>,
+    non_idempotent_boundary_crossed: bool,
 }
 
 impl ClientRuntime {
@@ -66,6 +67,7 @@ impl ClientRuntime {
             account_name: None,
             session_revision,
             feature_state: Arc::new(RouteFeatureState::default()),
+            non_idempotent_boundary_crossed: false,
         })
     }
 
@@ -100,7 +102,18 @@ impl ClientRuntime {
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
             feature_state: Arc::clone(&self.feature_state),
+            non_idempotent_boundary_crossed: false,
         }
+    }
+
+    /// 开始一个不可重放的写操作作用域，并清除上一次操作留下的边界状态。
+    pub(crate) fn begin_non_idempotent_operation(&mut self) {
+        self.non_idempotent_boundary_crossed = false;
+    }
+
+    /// 取走本次写操作的发送边界状态，确保后续操作不会读到陈旧标记。
+    pub(crate) fn take_non_idempotent_boundary_crossed(&mut self) -> bool {
+        std::mem::take(&mut self.non_idempotent_boundary_crossed)
     }
 
     pub(crate) fn feature_state(&self) -> Arc<RouteFeatureState> {
@@ -165,6 +178,34 @@ impl ClientRuntime {
         let request_url = request.url.clone();
         let response = self.transport.execute(request).await?;
         self.jar.store_response(&response, &request_url, now)?;
+        Ok(response)
+    }
+
+    /// 执行不可自动重放的非幂等请求，并明确区分发送边界。
+    ///
+    /// Cookie 构造与 Session 修订检查发生在传输调用之前，失败时保留原始错误；
+    /// 一旦把请求交给 transport，任何传输、响应体或响应 Cookie 处理失败都只能
+    /// 归约为结果未知，调用方必须先读取核对，不能自动重试。
+    pub(crate) async fn request_non_idempotent(
+        &mut self,
+        mut request: HttpRequest,
+    ) -> Result<HttpResponse> {
+        let now = SystemTime::now();
+        let cookie = self.jar.cookie_header(&request.url, now)?;
+        if !cookie.is_empty() {
+            request.headers.insert("Cookie".into(), cookie);
+        }
+        self.ensure_session_revision()?;
+        let request_url = request.url.clone();
+        self.non_idempotent_boundary_crossed = true;
+        let response = self
+            .transport
+            .execute(request)
+            .await
+            .map_err(|_| write_outcome_unknown())?;
+        self.jar
+            .store_response(&response, &request_url, now)
+            .map_err(|_| write_outcome_unknown())?;
         Ok(response)
     }
 
@@ -253,6 +294,15 @@ fn session_conflict() -> UbaaError {
     )
 }
 
+fn write_outcome_unknown() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        "写入结果未知，请先刷新状态再决定是否重试",
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::{
@@ -264,9 +314,11 @@ mod tests {
 
     use super::ClientRuntime;
     use crate::domain::ConnectionMode;
-    use crate::error::Result;
+    use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
     use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
-    use crate::session::{FileSessionStore, StoredCookie};
+    use crate::session::{
+        FileSessionStore, SessionMutation, SessionSnapshot, SessionStore, StoredCookie,
+    };
 
     #[derive(Clone, Default)]
     struct NoopTransport;
@@ -276,6 +328,178 @@ mod tests {
         async fn execute(&self, _request: HttpRequest) -> Result<HttpResponse> {
             unreachable!("运行时所有权测试不应发出 HTTP 请求")
         }
+    }
+
+    #[derive(Clone)]
+    struct FailingTransport {
+        calls: Arc<AtomicU64>,
+    }
+
+    #[async_trait]
+    impl HttpTransport for FailingTransport {
+        async fn execute(&self, _request: HttpRequest) -> Result<HttpResponse> {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            Err(UbaaError::new(
+                ErrorCode::UpstreamChanged,
+                ErrorKind::Upstream,
+                false,
+                "fixture response collection failed",
+            ))
+        }
+    }
+
+    #[derive(Clone)]
+    struct InvalidCookieTransport {
+        calls: Arc<AtomicU64>,
+    }
+
+    #[async_trait]
+    impl HttpTransport for InvalidCookieTransport {
+        async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            let mut response = HttpResponse::new(200, request.url, b"{}".to_vec());
+            response
+                .headers
+                .insert("Set-Cookie".to_owned(), vec!["invalid-cookie".to_owned()]);
+            Ok(response)
+        }
+    }
+
+    #[test]
+    fn 非幂等请求越过传输边界后的任何失败都归为结果未知() {
+        let executor = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .expect("创建测试运行时");
+        executor.block_on(async {
+            static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+            let root = std::env::temp_dir().join(format!(
+                "ubaa-runtime-write-boundary-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
+            let _ = std::fs::remove_dir_all(&root);
+
+            let transport_calls = Arc::new(AtomicU64::new(0));
+            let store = FileSessionStore::new(root.join("transport")).expect("创建传输测试存储");
+            let mut runtime = ClientRuntime::new(
+                ConnectionMode::Direct,
+                FailingTransport {
+                    calls: Arc::clone(&transport_calls),
+                },
+                store,
+            )
+            .expect("创建传输失败运行时");
+            runtime.begin_non_idempotent_operation();
+            let transport_error = runtime
+                .request_non_idempotent(HttpRequest::post("https://example.test/write", Vec::new()))
+                .await
+                .expect_err("进入 transport 后失败必须为结果未知");
+            assert_eq!(transport_error.code, ErrorCode::OutcomeUnknown);
+            assert_eq!(transport_calls.load(Ordering::Relaxed), 1);
+            assert!(runtime.take_non_idempotent_boundary_crossed());
+            assert!(!runtime.take_non_idempotent_boundary_crossed());
+
+            let cookie_calls = Arc::new(AtomicU64::new(0));
+            let store = FileSessionStore::new(root.join("cookie")).expect("创建 Cookie 测试存储");
+            let mut runtime = ClientRuntime::new(
+                ConnectionMode::Direct,
+                InvalidCookieTransport {
+                    calls: Arc::clone(&cookie_calls),
+                },
+                store,
+            )
+            .expect("创建响应 Cookie 失败运行时");
+            runtime.begin_non_idempotent_operation();
+            let cookie_error = runtime
+                .request_non_idempotent(HttpRequest::post("https://example.test/write", Vec::new()))
+                .await
+                .expect_err("收到响应后的 Cookie 失败必须为结果未知");
+            assert_eq!(cookie_error.code, ErrorCode::OutcomeUnknown);
+            assert_eq!(cookie_calls.load(Ordering::Relaxed), 1);
+            assert!(runtime.take_non_idempotent_boundary_crossed());
+
+            let _ = std::fs::remove_dir_all(root);
+        });
+    }
+
+    #[test]
+    fn 非幂等请求发送前失败保留原错误且不调用传输() {
+        let executor = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .expect("创建测试运行时");
+        executor.block_on(async {
+            static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+            let root = std::env::temp_dir().join(format!(
+                "ubaa-runtime-write-before-send-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
+            let _ = std::fs::remove_dir_all(&root);
+            let calls = Arc::new(AtomicU64::new(0));
+            let store = FileSessionStore::new(&root).expect("创建发送前测试存储");
+            let mut runtime = ClientRuntime::new(
+                ConnectionMode::Direct,
+                FailingTransport {
+                    calls: Arc::clone(&calls),
+                },
+                store,
+            )
+            .expect("创建发送前失败运行时");
+
+            runtime.begin_non_idempotent_operation();
+            let error = runtime
+                .request_non_idempotent(HttpRequest::post("not-a-url", Vec::new()))
+                .await
+                .expect_err("无效 URL 必须在发送前拒绝");
+
+            assert_ne!(error.code, ErrorCode::OutcomeUnknown);
+            assert_eq!(calls.load(Ordering::Relaxed), 0);
+            assert!(!runtime.take_non_idempotent_boundary_crossed());
+
+            let revision_root = root.join("revision");
+            let revision_store =
+                FileSessionStore::new(&revision_root).expect("创建修订冲突测试存储");
+            let mut revision_runtime = ClientRuntime::new(
+                ConnectionMode::Direct,
+                FailingTransport {
+                    calls: Arc::clone(&calls),
+                },
+                revision_store.clone(),
+            )
+            .expect("创建修订冲突运行时");
+            let revision = revision_store
+                .load_versioned()
+                .expect("读取外部更新前修订")
+                .revision;
+            let mutation = revision_store
+                .compare_exchange(
+                    revision,
+                    Some(&SessionSnapshot {
+                        mode: ConnectionMode::Direct,
+                        cookies: Vec::new(),
+                        authenticated_at: 1_000,
+                        last_activity: 1_001,
+                    }),
+                )
+                .expect("外部更新测试会话");
+            assert!(matches!(mutation, SessionMutation::Applied { .. }));
+            revision_runtime.begin_non_idempotent_operation();
+
+            let revision_error = revision_runtime
+                .request_non_idempotent(HttpRequest::post("https://example.test/write", Vec::new()))
+                .await
+                .expect_err("发送前修订变化必须拒绝写请求");
+
+            assert_eq!(
+                (revision_error.code, revision_error.retryable),
+                (ErrorCode::InternalError, true)
+            );
+            assert_eq!(calls.load(Ordering::Relaxed), 0);
+            assert!(!revision_runtime.take_non_idempotent_boundary_crossed());
+            let _ = std::fs::remove_dir_all(root);
+        });
     }
 
     #[test]
@@ -298,6 +522,7 @@ mod tests {
         parent.last_activity = Some(202);
         parent.account_name = Some("account-safe".to_owned());
         parent.session_revision = 303;
+        parent.non_idempotent_boundary_crossed = true;
 
         let mut child = parent.fork_for_readonly_with_cookie_filter(|cookie| cookie.name == "KEEP");
         assert!(Arc::ptr_eq(&parent.transport, &child.transport));
@@ -308,6 +533,8 @@ mod tests {
         assert_eq!(child.last_activity, parent.last_activity);
         assert_eq!(child.account_name, parent.account_name);
         assert_eq!(child.session_revision, parent.session_revision);
+        assert!(!child.take_non_idempotent_boundary_crossed());
+        assert!(parent.take_non_idempotent_boundary_crossed());
         assert_eq!(child.jar.cookies().len(), 1);
         assert_eq!(child.jar.cookies()[0].name, "KEEP");
 

@@ -396,10 +396,14 @@ class _DelayedLogoutBackend implements UbaaBackend, BackendLifecycle {
   Future<void> dispose() async {}
 }
 
-class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
+class _BykcWriteBackend
+    implements UbaaBackend, BykcWriteBackend, WriteIntentDiscardBackend {
   int? selectedCourseId;
   int? signCourseId;
   int? signType;
+  double? signLat;
+  double? signLng;
+  String? discardedIntentId;
   int commitCalls = 0;
   final List<FeatureId> loadedFeatures = <FeatureId>[];
 
@@ -446,6 +450,8 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
   }) async {
     this.signCourseId = courseId;
     this.signType = signType;
+    signLat = lat;
+    signLng = lng;
     return _intent(WriteOperation.bykcSignCourse);
   }
 
@@ -460,6 +466,11 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
     );
   }
 
+  @override
+  Future<void> discardWriteIntent(String intentId) async {
+    discardedIntentId = intentId;
+  }
+
   WriteIntent _intent(WriteOperation operation) => WriteIntent(
     intentId: 'intent-${selectedCourseId ?? 0}',
     operation: operation,
@@ -471,7 +482,52 @@ class _BykcWriteBackend implements UbaaBackend, BykcWriteBackend {
   );
 }
 
-class _SigninWriteBackend implements UbaaBackend, SigninWriteBackend {
+class _CommitCapabilityBackend implements UbaaBackend, WriteCommitBackend {
+  String? discardedIntentId;
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async =>
+      const WriteCommitResult(
+        operation: WriteOperation.bykcSelectCourse,
+        success: true,
+        message: 'ok',
+        outcomeUnknown: false,
+      );
+
+  @override
+  Future<void> discardWriteIntent(String intentId) async {
+    discardedIntentId = intentId;
+  }
+}
+
+mixin _DiscardingWriteBackendFake implements WriteIntentDiscardBackend {
+  @override
+  Future<void> discardWriteIntent(String intentId) async {}
+}
+
+class _SigninWriteBackend
+    with _DiscardingWriteBackendFake
+    implements UbaaBackend, SigninWriteBackend {
   String? courseId;
   int commitCalls = 0;
 
@@ -524,6 +580,7 @@ class _SigninWriteBackend implements UbaaBackend, SigninWriteBackend {
 }
 
 class _CancellationWriteBackend
+    with _DiscardingWriteBackendFake
     implements UbaaBackend, CancellationWriteBackend {
   String? bookingId;
   int? orderId;
@@ -580,7 +637,9 @@ class _CancellationWriteBackend
   );
 }
 
-class _LibbookWriteBackend implements UbaaBackend, LibbookWriteBackend {
+class _LibbookWriteBackend
+    with _DiscardingWriteBackendFake
+    implements UbaaBackend, LibbookWriteBackend {
   String? seatId;
 
   @override
@@ -634,7 +693,9 @@ class _LibbookWriteBackend implements UbaaBackend, LibbookWriteBackend {
       );
 }
 
-class _YgdkWriteBackend implements UbaaBackend, YgdkWriteBackend {
+class _YgdkWriteBackend
+    with _DiscardingWriteBackendFake
+    implements UbaaBackend, YgdkWriteBackend {
   YgdkSubmitInput? input;
   int commitCalls = 0;
 
@@ -686,7 +747,9 @@ class _YgdkWriteBackend implements UbaaBackend, YgdkWriteBackend {
   );
 }
 
-class _CgyyWriteBackend implements UbaaBackend, CgyyWriteBackend {
+class _CgyyWriteBackend
+    with _DiscardingWriteBackendFake
+    implements UbaaBackend, CgyyWriteBackend {
   CgyySubmitInput? input;
   int commitCalls = 0;
 
@@ -757,7 +820,9 @@ class _CgyyQueryWriteBackend extends _CgyyWriteBackend
   }
 }
 
-class _EvaluationWriteBackend implements UbaaBackend, EvaluationWriteBackend {
+class _EvaluationWriteBackend
+    with _DiscardingWriteBackendFake
+    implements UbaaBackend, EvaluationWriteBackend {
   List<EvaluationCourseInput> courses = const <EvaluationCourseInput>[];
   int commitCalls = 0;
 

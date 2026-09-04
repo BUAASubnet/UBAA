@@ -1,7 +1,7 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendSignatureCharacterization() {
-  test('公开构造入口和十一项后端能力保持静态签名且不触发原生调用', () {
+  test('公开构造入口和十二项后端能力保持静态签名且不触发原生调用', () {
     final fake = _CharacterizationBridgeClient();
     final BridgeBackend Function(BridgeClient) constructor = BridgeBackend.new;
     final BridgeBackend Function(String) open = BridgeBackend.open;
@@ -39,6 +39,8 @@ void registerBridgeBackendSignatureCharacterization() {
         (backend as RouteSettingsBackend).routeSettings;
     final Future<void> Function() lifecycleSignature =
         (backend as BackendLifecycle).dispose;
+    final Future<void> Function(String) discardSignature =
+        (backend as WriteIntentDiscardBackend).discardWriteIntent;
     final Future<BackendRouteSettings> Function(RoutePolicy) setterSignature =
         backend.setDefaultRoutePolicy;
 
@@ -57,8 +59,9 @@ void registerBridgeBackendSignatureCharacterization() {
       evaluationSignature,
       routeSignature,
       lifecycleSignature,
+      discardSignature,
       setterSignature,
-    ], hasLength(14));
+    ], hasLength(15));
     expect(fake.calls, isEmpty);
   });
 }

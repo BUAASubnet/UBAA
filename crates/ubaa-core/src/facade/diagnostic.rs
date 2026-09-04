@@ -424,8 +424,9 @@ impl RouteClient {
         course_id: i64,
     ) -> Result<FeatureResult<BykcActionResult>> {
         self.guard_latest_session_ownership()?;
+        self.runtime.begin_non_idempotent_operation();
         let result = crate::features::bykc::select_course(&mut self.runtime, course_id).await;
-        let data = self.finish_readonly_operation(result)?;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
     /// 退选一门博雅课程。
@@ -438,8 +439,9 @@ impl RouteClient {
         course_id: i64,
     ) -> Result<FeatureResult<BykcActionResult>> {
         self.guard_latest_session_ownership()?;
+        self.runtime.begin_non_idempotent_operation();
         let result = crate::features::bykc::deselect_course(&mut self.runtime, course_id).await;
-        let data = self.finish_readonly_operation(result)?;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
     /// 提交博雅课程签到。
@@ -452,8 +454,9 @@ impl RouteClient {
         request: BykcSignRequest,
     ) -> Result<FeatureResult<BykcActionResult>> {
         self.guard_latest_session_ownership()?;
+        self.runtime.begin_non_idempotent_operation();
         let result = crate::features::bykc::sign_course(&mut self.runtime, request).await;
-        let data = self.finish_readonly_operation(result)?;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
@@ -913,7 +916,7 @@ impl RouteClient {
         result
     }
 
-    fn finish_readonly_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+    fn cleanup_operation_result<T>(&mut self, result: &Result<T>) -> Result<()> {
         if result
             .as_ref()
             .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
@@ -932,6 +935,21 @@ impl RouteClient {
         {
             self.auth.clear();
         }
+        Ok(())
+    }
+
+    fn finish_readonly_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+        self.cleanup_operation_result(&result)?;
         self.finish_session_operation(result)
+    }
+
+    /// 写请求跨越发送边界后，收尾检查只负责使失效会话进入安全状态，不能覆盖写结果。
+    fn finish_write_operation<T>(&mut self, result: Result<T>) -> Result<T> {
+        if !self.runtime.take_non_idempotent_boundary_crossed() {
+            return self.finish_readonly_operation(result);
+        }
+        let _ = self.cleanup_operation_result(&result);
+        let _ = self.guard_session_ownership();
+        result
     }
 }

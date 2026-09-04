@@ -18,7 +18,7 @@ pub(crate) use parser::{
 pub(crate) use read::{
     get_chosen_courses, get_course_detail, get_courses, get_profile, get_statistics,
 };
-pub(crate) use write::{deselect_course, select_course, sign_course};
+pub(crate) use write::{deselect_course, preflight_sign_course, select_course, sign_course};
 
 use crate::error::{ErrorCode, ErrorKind, UbaaError};
 

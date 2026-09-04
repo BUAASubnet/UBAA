@@ -16,7 +16,7 @@ struct ExitCase {
     exit: i32,
 }
 
-const CASES: [ExitCase; 11] = [
+const CASES: [ExitCase; 12] = [
     ExitCase {
         error_code: ErrorCode::InvalidInput,
         error_kind: ErrorKind::Input,
@@ -70,6 +70,13 @@ const CASES: [ExitCase; 11] = [
         error_code: ErrorCode::UpstreamUnavailable,
         error_kind: ErrorKind::Upstream,
         wire_code: "upstream_unavailable",
+        wire_kind: "upstream",
+        exit: 5,
+    },
+    ExitCase {
+        error_code: ErrorCode::OutcomeUnknown,
+        error_kind: ErrorKind::Upstream,
+        wire_code: "outcome_unknown",
         wire_kind: "upstream",
         exit: 5,
     },
@@ -135,7 +142,7 @@ fn assert_json_and_human_streams(case: ExitCase) {
         "stdout contains multiple JSON values"
     );
     assert_cli_schema(&envelope);
-    assert_eq!(envelope["schemaVersion"], 2);
+    assert_eq!(envelope["schemaVersion"], 3);
     assert_eq!(envelope["ok"], false);
     assert!(envelope.get("data").is_none());
     assert_eq!(envelope["error"]["code"], case.wire_code);

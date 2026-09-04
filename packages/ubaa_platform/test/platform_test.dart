@@ -3,6 +3,102 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('平台坐标只接受有限且位于经纬度范围内的数值', () {
+    final location = PlatformLocation(lat: 39.9, lng: 116.3);
+
+    expect(location.lat, 39.9);
+    expect(location.lng, 116.3);
+    expect(location.toString(), isNot(contains('39.9')));
+    expect(location.toString(), isNot(contains('116.3')));
+    expect(PlatformLocation(lat: -90, lng: -180).lat, -90);
+    expect(PlatformLocation(lat: 90, lng: 180).lng, 180);
+    expect(
+      () => PlatformLocation(lat: double.nan, lng: 116.3),
+      throwsArgumentError,
+    );
+    expect(() => PlatformLocation(lat: 91, lng: 116.3), throwsArgumentError);
+    expect(() => PlatformLocation(lat: -91, lng: 116.3), throwsArgumentError);
+    expect(
+      () => PlatformLocation(lat: 39.9, lng: double.infinity),
+      throwsArgumentError,
+    );
+    expect(() => PlatformLocation(lat: 39.9, lng: -181), throwsArgumentError);
+    expect(() => PlatformLocation(lat: 39.9, lng: 181), throwsArgumentError);
+  });
+
+  test('位置权限包装器拒绝时不读取位置，允许后只返回 typed 坐标', () async {
+    final permissions = MemoryPermissionGateway(
+      initial: <PlatformPermission, PlatformPermissionStatus>{
+        PlatformPermission.foregroundLocation: PlatformPermissionStatus.denied,
+      },
+    );
+    final provider = MemoryLocationProvider(
+      location: PlatformLocation(lat: 39.9, lng: 116.3),
+    );
+    final guarded = PermissionedLocationProvider(
+      permissions: permissions,
+      provider: provider,
+    );
+
+    await expectLater(
+      guarded.currentLocation(),
+      throwsA(
+        isA<PlatformCapabilityException>().having(
+          (error) => error.status,
+          'status',
+          PlatformPermissionStatus.denied,
+        ),
+      ),
+    );
+    expect(provider.requestCount, 0);
+
+    permissions.setStatus(
+      PlatformPermission.foregroundLocation,
+      PlatformPermissionStatus.granted,
+    );
+    final location = await guarded.currentLocation();
+    expect(location?.lat, 39.9);
+    expect(location?.lng, 116.3);
+    expect(provider.requestCount, 1);
+    expect(permissions.requests, <PlatformPermission>[
+      PlatformPermission.foregroundLocation,
+      PlatformPermission.foregroundLocation,
+    ]);
+  });
+
+  test('位置权限包装器不透传权限网关的路径或令牌异常', () async {
+    final guarded = PermissionedLocationProvider(
+      permissions: _ThrowingPermissionGateway(),
+      provider: MemoryLocationProvider(
+        location: PlatformLocation(lat: 39.9, lng: 116.3),
+      ),
+    );
+
+    await expectLater(
+      guarded.currentLocation(),
+      throwsA(
+        isA<PlatformCapabilityException>()
+            .having(
+              (error) => error.status,
+              'status',
+              PlatformPermissionStatus.unavailable,
+            )
+            .having(
+              (error) => error.toString(),
+              'safe message',
+              allOf(isNot(contains('/private')), isNot(contains('token'))),
+            ),
+      ),
+    );
+  });
+
+  test('不可用位置实现安全返回空值且不伪造坐标', () async {
+    const provider = UnavailableLocationProvider();
+
+    expect(provider.isAvailable, isFalse);
+    expect(await provider.currentLocation(), isNull);
+  });
+
   test('无原生权限实现安全拒绝，不伪造授权', () async {
     const gateway = UnavailablePermissionGateway();
     expect(
@@ -163,4 +259,11 @@ void main() {
     await telemetry.setEnabled(false);
     expect(telemetry.events, isEmpty);
   });
+}
+
+final class _ThrowingPermissionGateway implements PlatformPermissionGateway {
+  @override
+  Future<PlatformPermissionStatus> request(
+    PlatformPermission permission,
+  ) async => throw StateError('/private/location token=secret');
 }

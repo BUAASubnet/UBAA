@@ -29,7 +29,7 @@ session-only/Noop 语义；各平台 Keychain、Keystore、Secret Service、Cred
 ## UI 错误映射
 
 `UiErrorMapper`/`mapCoreErrorJson` 接受 Rust Core 的稳定 `code`、`kind`、`retryable`
-字段以及 CLI schema-v2 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
+字段以及 CLI schema-v3 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
 安全中文文案。未知或畸形载荷统一归约为 `internal_error`；上游 message 默认不会展示，
 只有显式请求且通过脱敏检查的短诊断文本才进入 `technicalDetail`。
 
@@ -48,7 +48,15 @@ typed 的 `YgdkPhotoInput`，不向业务层暴露文件路径；`UnavailablePho
 可将包装器的 `permission` 显式设为 `PlatformPermission.files`。原生
 Keychain/Keystore/Secret Service/HUKS 插件接入和设备权限验证仍需在后置发布阶段完成。
 
+博雅签到需要调用方坐标时，宿主通过 `PermissionedLocationProvider` 先申请
+`foregroundLocation`，再读取一次 `PlatformLocation`；不需要坐标的 action 不会触发权限
+申请。`MethodChannelLocationProvider` 只接受 `location.capability` 与 `location.current` 两个
+typed 方法，并只读取有限且位于合法范围内的 `lat`、`lng`。插件异常、畸形返回、额外路径
+或令牌字段均不会进入业务层；`UnavailableLocationProvider` 和 `MemoryLocationProvider`
+分别用于安全拒绝与脱敏测试。
+
 生产宿主的默认组合由 `createDefaultPlatformCapabilities()` 创建：权限请求使用
-`MethodChannelPermissionGateway`，照片使用 `MethodChannelPhotoPicker`，二者在插件缺失或
-返回值不符合合同（照片为空、非图片、文件名不安全或超过 10 MiB）时安全拒绝。MethodChannel
-只定义 Dart/原生的稳定边界，不等价于已完成任一平台的原生权限或安全存储实现。
+`MethodChannelPermissionGateway`，照片使用 `MethodChannelPhotoPicker`，位置使用
+`MethodChannelLocationProvider`；它们在插件缺失或返回值不符合合同时安全拒绝。
+MethodChannel 只定义 Dart/原生的稳定边界，不等价于已完成任一平台的原生权限、安全存储或
+定位实现。

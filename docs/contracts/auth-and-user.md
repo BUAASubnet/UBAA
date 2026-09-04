@@ -12,8 +12,9 @@
 `upstream_changed`，绝不下载、提示或提交验证材料。Core 会拒绝破坏这些关系的聚合 envelope。
 
 稳定 DTO 和错误码由 `goal.md` 第 6 节定义。每个 CLI 成功、失败、参数错误、聚合认证结果和
-隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的 schema 版本 2；CLI 不再
-输出 schema-v1。这不改变 `config.toml` 或 `session.json` 的版本化迁移读取器。密码绝不会
+隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的 schema 版本 3；CLI 不再
+输出 schema-v2。这不改变 `config.toml` 或 `session.json` 的版本化迁移读取器，磁盘
+`session.json` 仍为 schema v2。密码绝不会
 进入持久化会话或普通输出。
 
 公共 facade 暴露认证、标准只读功能和扩展功能，同时将传输、会话存储、单路线客户端及上游解析器保持在 Core 内部。`open` 负责加载配置；每个普通方法都在 Core 内解析策略和路线，并返回安全路线诊断及稳定 DTO。宿主不得检查存储细节、运行探测或自行计算路线。SPOC/Judge 诊断 facade 方法仅供确定性测试和实时验证使用，复用普通读取链，只附带安全的页数/数量元数据。`RouteClient` 仅用于 core-live 和测试，已标记为隐藏文档 API，不属于 SDK 或普通宿主的稳定边界。`auth` 模块负责 CAS 表单、一次性密码风险继续、激活、重定向、不支持交互式验证的拒绝和远程注销；`features/user` 负责用户中心状态/资料及失效分类。各功能模块负责其冻结协议要求的额外 CAS/引导激活，例如本科课表读取前的 AAS 服务激活。`WebVPN` 模式会把所有认证请求和重定向转换到 WebVPN 路线。

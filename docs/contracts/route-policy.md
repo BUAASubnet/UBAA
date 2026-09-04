@@ -51,7 +51,7 @@ judge = "auto"
 证据证明操作幂等且可安全重放后，功能才可在另一条路线重试。修正后的 2026-08-26 实时矩阵
 通过了当时的完整聚合，但不足以证明跨路线重放安全，因此不授权任何回退或功能覆盖。
 
-Schema-v2 只读 CLI 成功结果和路线解析后的错误都暴露相同的安全诊断元数据：`routePolicy`、
+Schema-v3 只读 CLI 成功结果和路线解析后的错误都暴露相同的安全诊断元数据：`routePolicy`、
 `networkState`、`initialRoute`、`resolvedRoute`、`usedFallback` 和 `feature`。显式 Direct/WebVPN
 策略不会运行网关探测，因此其 `networkState` 为 `unknown`；这表示“未探测或不确定”，不等于
 校外。宿主将 facade 返回的不可变诊断直接交给渲染层。Core facade 负责配置加载、探测缓存、

@@ -1,5 +1,17 @@
 # 决策记录
 
+## 2026-09-04：CLI JSON envelope 显式升级为 schema v3（当前有效）
+
+Phase 11C 将 Bykc 已选课程的 `checkin` 从必填整数改为可空，把 `canSign`/`canSignOut` 两个布尔字段替换为
+含 `unknown` 的 `signEligibility`/`signOutEligibility`，并把写请求越过发送边界后的不确定结果公开为
+`outcome_unknown`。字段删除、类型放宽、三态资格和封闭错误集合扩展都会破坏严格的 schema v2 消费者，
+因此不得继续标记为 v2：CLI 的全部成功、失败、参数错误、聚合认证/注销和隐藏诊断 envelope 统一显式升级
+为 schema v3，JSON Schema 与真实序列化合同只接受版本 3，并明确拒绝旧 v2 envelope。
+
+这个版本只属于 CLI stdout 公开合同。`session.json` 继续使用 schema v2 双路线快照，`config.toml` 继续使用
+版本 1；本决策不迁移、不重写会话存储，也不改变 revision CAS。Phase 11C 之前绑定 schema v2 的历史提交、
+测试结果与验证记录保持原样，不回写为 v3；从当前候选开始，CLI/Core-live/实时验证器一律按 v3 校验。
+
 ## 2026-09-03：Phase 11 typed 写资格的来源边界（当前有效）
 
 本轮在把 Flutter 写入口从中文展示字段迁移到 typed action eligibility 前，重新逐操作核对了

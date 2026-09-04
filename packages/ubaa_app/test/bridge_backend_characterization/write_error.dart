@@ -278,6 +278,23 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       <Object?>[42, 7, '2026-09-04', 1],
     );
 
+    await backend.discardWriteIntent('intent-discard-2');
+    expect(client.calls.last, 'discardWriteIntent:intentId=intent-discard-2');
+    client.discardError = const BridgeError(
+      code: BridgeErrorCode.networkError,
+      kind: BridgeErrorKind.network,
+      retryable: true,
+      message: 'https://private.invalid/session?token=secret',
+    );
+    await expectLater(
+      backend.discardWriteIntent('intent-discard-error'),
+      throwsA(
+        isA<BackendException>()
+            .having((error) => error.code, 'code', UbaaErrorCode.networkError)
+            .having((error) => error.detail, 'detail', isNull),
+      ),
+    );
+
     const expectedCodes = <BridgeErrorCode, UbaaErrorCode>{
       BridgeErrorCode.invalidInput: UbaaErrorCode.invalidInput,
       BridgeErrorCode.authenticationRequired:

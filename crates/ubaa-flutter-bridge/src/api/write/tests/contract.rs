@@ -13,6 +13,17 @@ fn intent_id_and_digest_are_stable_shapes_without_payload_leak() {
 
 #[test]
 fn write_digest_shapes_do_not_include_sensitive_text_or_photo_bytes() {
+    let bykc = BridgeBykcSignCourseRequest {
+        course_id: 7,
+        lat: Some(39.990_123),
+        lng: Some(116.310_456),
+        sign_type: 1,
+    };
+    let bykc_shape = bykc_sign_canonical(&bykc);
+    assert_eq!(bykc_shape, "course_id=7;coordinates=present;sign_type=1");
+    assert!(!bykc_shape.contains("39.990123"));
+    assert!(!bykc_shape.contains("116.310456"));
+
     let cgyy = BridgeCgyySubmitReservationRequest {
         venue_site_id: 4,
         reservation_date: "2026-09-02".to_owned(),
@@ -70,4 +81,67 @@ fn session_revision_conflict_maps_to_operation_conflict_at_write_boundary() {
     );
     let mapped = map_resolution_error(error);
     assert_eq!(mapped.code, BridgeErrorCode::OperationConflict);
+}
+
+#[test]
+fn 博雅签到提交错误按写请求是否已发送区分() {
+    let preflight_timeout = map_commit_error(
+        BridgeWriteOperation::BykcSignCourse,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::Timeout,
+                ErrorKind::Network,
+                true,
+                "fixture preflight timeout",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(preflight_timeout.code, BridgeErrorCode::Timeout);
+
+    let preflight_unavailable = map_commit_error(
+        BridgeWriteOperation::BykcSignCourse,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::UpstreamUnavailable,
+                ErrorKind::Upstream,
+                true,
+                "fixture preflight unavailable",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(
+        preflight_unavailable.code,
+        BridgeErrorCode::UpstreamUnavailable
+    );
+
+    let sent_but_unknown = map_commit_error(
+        BridgeWriteOperation::BykcSignCourse,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+                true,
+                "fixture write outcome unknown",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(sent_but_unknown.code, BridgeErrorCode::OutcomeUnknown);
+    assert!(!sent_but_unknown.retryable);
+
+    let session_changed = map_commit_error(
+        BridgeWriteOperation::BykcSignCourse,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "local session changed in another process",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(session_changed.code, BridgeErrorCode::OperationConflict);
 }

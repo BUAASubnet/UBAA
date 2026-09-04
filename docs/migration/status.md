@@ -23,7 +23,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 | 能力 | 实现状态 | 当前证据 | 结论 |
 |---|---|---|---|
 | Rust Core/facade | 认证、路线、双会话、读取与写入协议已实现 | Rust/Test Support 确定性测试；`4eaf1dd` 门禁 | 已实现并通过确定性验证 |
-| CLI | schema v2、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现 | CLI contract、binary E2E、Core-live/Shell 合同 | 已实现并通过确定性验证 |
+| CLI | schema v3 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | CLI contract、binary E2E、Core-live/Shell 合同 | 已实现；v3 当前候选仍待阶段门禁绑定 |
 | 用户中心与十二项业务读取 | Core/CLI/FRB/Flutter typed 链路与页面已实现 | `4eaf1dd` 的 Direct/WebVPN Core-live 全量读取均退出码 0；页面/查询/widget/integration 使用脱敏 backend 验证 | Core 实时只读已验证；真实 App 账号链路未验证 |
 | 十项用户可见写入 | Core/CLI 协议、typed bridge、一次性确认、防重复、未知结果和读取核对流程已实现 | Fixture/Mock/向量、Dart/app/widget、macOS 脱敏宿主 integration | 无签名确定性闭环已验证；本周期未执行真实写入 |
 | Windows/Linux/macOS/Android/iOS | 官方 Flutter 共享应用与原生宿主已实现 | Flutter CI `33628444289` 的五个无签名 Debug job；合同 CI `33628444204` | 无签名构建/结构证据通过，不是签名或设备证据 |

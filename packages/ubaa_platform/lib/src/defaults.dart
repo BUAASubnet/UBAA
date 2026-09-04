@@ -1,4 +1,5 @@
 import 'credentials.dart';
+import 'location.dart';
 import 'media.dart';
 
 /// 生产宿主的默认平台能力组合。
@@ -10,11 +11,13 @@ final class PlatformCapabilities {
     required this.credentialVault,
     required this.photoPicker,
     required this.permissionGateway,
+    required this.locationProvider,
   });
 
   final CredentialVault credentialVault;
   final PlatformPhotoPicker photoPicker;
   final PlatformPermissionGateway permissionGateway;
+  final PlatformLocationProvider locationProvider;
 }
 
 Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
@@ -22,9 +25,12 @@ Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
   await credentialStore.probe();
   final photoPicker = MethodChannelPhotoPicker();
   await photoPicker.probe();
+  final locationProvider = MethodChannelLocationProvider();
+  await locationProvider.probe();
   return PlatformCapabilities(
     credentialVault: PlatformCredentialVault(store: credentialStore),
     photoPicker: photoPicker,
     permissionGateway: MethodChannelPermissionGateway(),
+    locationProvider: locationProvider,
   );
 }

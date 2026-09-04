@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
@@ -30,6 +31,7 @@ Future<void> bootstrapUbaaHost({
       credentialVault: capabilities.credentialVault,
       photoPicker: capabilities.photoPicker,
       permissionGateway: capabilities.permissionGateway,
+      locationProvider: capabilities.locationProvider,
     ),
   );
 }
@@ -45,6 +47,7 @@ class UbaaAppHost extends StatefulWidget {
     this.credentialVault,
     this.photoPicker,
     this.permissionGateway,
+    this.locationProvider,
     this.initialTab = 0,
     this.telemetry,
     super.key,
@@ -59,6 +62,7 @@ class UbaaAppHost extends StatefulWidget {
   final CredentialVault? credentialVault;
   final PlatformPhotoPicker? photoPicker;
   final PlatformPermissionGateway? permissionGateway;
+  final PlatformLocationProvider? locationProvider;
   final int initialTab;
   final TelemetryClient? telemetry;
 

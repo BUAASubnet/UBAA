@@ -9,7 +9,8 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `1`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。
+- 合同版本为 `2`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。版本 2 首次将
+  博雅签到资格收敛为三态枚举，并把缺失考勤状态保留为可空值；它不与版本 1 的旧生成绑定混用。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -25,7 +26,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=1` | sync、无 I/O |
+| `contractVersion` | 无 | `u32=2` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -63,9 +64,12 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 
 Core 错误码逐一映射：`invalid_input`、`authentication_required`、`invalid_credentials`、
 `password_risk_confirmation_failed`、`permission_denied`、`network_error`、`timeout`、
-`upstream_unavailable`、`upstream_changed`、`parse_error`、`internal_error`。bridge 新增且只用于
-本地状态的错误码为 `client_disposed`、`confirmation_required`、`intent_expired`、
-`operation_conflict`、`outcome_unknown`。未知 Core 码必须失败关闭为 `internal_error`。
+`upstream_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
+Phase 11C 已收口的博雅签到链只允许在非幂等写请求越过发送边界后产生 `outcome_unknown`；其余写操作
+暂时保留既有的 commit 阶段保守映射，可能把业务登录或预检中的网络类失败也归入结果未知，必须在各自
+11D–J 来源对照阶段逐项收窄。无论来源如何，宿主都必须禁止自动重试并先执行只读核对。bridge 新增且
+只用于本地状态的错误码为 `client_disposed`、`confirmation_required`、`intent_expired`、
+`operation_conflict`。未知 Core 码必须失败关闭为 `internal_error`。
 
 ## 4. 认证、会话与路线
 
@@ -160,7 +164,8 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   两项 eligibility 都是 `allowed/denied/unknown` 的封闭枚举，缺失 action 或 `unknown` 均必须按拒绝处理；
   `BykcCoursePage {content,totalElements,totalPages,size,number}`。
 - `BykcChosenCourse` 仅保留课程/签到所需的公开字段
-  `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin,score?,pass?,canSign,canSignOut,deselectEligibility,signConfig?,courseSignType?}`；`signConfig` 仅含四个时间字段与
+  `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin?,score?,pass?,signEligibility,signOutEligibility,deselectEligibility,signConfig?,courseSignType?}`；
+  三项 eligibility 均为 `allowed/denied/unknown` 的封闭枚举，`checkin` 缺失时保持 `null`；`signConfig` 仅含四个时间字段与
   `signPoints {lat,lng,radius}`。作业正文、附件名称/路径和签到附注属于内部材料，均不得跨 FFI。
   `BykcStatistics {totalValidCount?,categories}`，分类项为
   `{categoryName?,subCategoryName?,requiredCount?,passedCount?,qualified?}`。
@@ -245,7 +250,8 @@ payload 传递。查询结果
 ## 6. 写 intent
 
 Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare，再由同一 client 调用
-`commitWrite(intentId)`：
+`commitWrite(intentId)`；用户取消确认时调用 `discardWriteIntent(intentId)`，在 Bridge 内显式释放
+待确认意图：
 
 | prepare 方法 | typed 请求 | commit 结果 variant |
 |---|---|---|
@@ -283,6 +289,16 @@ challenge 图片或外部验证码三元组。commit 原子取出 intent 后再�
 Core。过期、已消费、client 重开、策略改变、Session 改变、同目标冲突或摘要不一致均不得执行
 网络写入。写请求可能到达上游后出现 timeout/连接中断时返回 `outcome_unknown`，intent 仍视为已
 消费，Flutter 必须调用合同指定的读取方法核对，禁止自动重试。
+
+`discardWriteIntent` 只接受当前 client 的 opaque intent ID，删除操作幂等且不执行网络请求。正式
+确认页只有在 discard 成功后才能清除本地待确认状态；若 commit 已先开始，discard 不负责中断已进入
+Core 的操作。
+
+博雅签到 prepare 必须先由 Core 重读当前学期、目标课程、三态资格、时间窗和位置配置；确认摘要
+必须包含脱敏课程名称、课程标识、签到或签退类型、有效时间窗以及位置来源。若已有同一课程和
+签到类型的未过期 intent，第二次 prepare 返回 `operation_conflict`。commit 消费 intent 后再次
+执行相同预检，并在最终 POST 前复核 Session 修订；预检失败不得误报为结果不确定，只有最终写请求
+可能已到达上游后仍无法得到确定结果时才返回 `outcome_unknown`。
 
 照片通过 `BridgePhoto {bytes,fileName,mimeType}` 一次传入；Debug 只记录字节数与 MIME 类型。
 场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token

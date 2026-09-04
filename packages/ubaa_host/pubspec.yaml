@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   ubaa_app:
     path: ../ubaa_app
+  ubaa_domain:
+    path: ../ubaa_domain
   ubaa_platform:
     path: ../ubaa_platform
   ubaa_ui:
@@ -20,5 +22,3 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  ubaa_domain:
-    path: ../ubaa_domain

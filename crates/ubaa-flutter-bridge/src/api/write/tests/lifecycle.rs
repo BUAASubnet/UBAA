@@ -164,6 +164,7 @@ async fn expired_intent_is_consumed_and_cannot_be_retried() {
             request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
             expires_at: 0,
             resolved_route: BridgeConnectionMode::Direct,
+            conflict_key: "bykc-select:1".to_owned(),
         },
     );
     let first = client

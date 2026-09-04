@@ -81,11 +81,14 @@ pub struct BykcChosenCourse {
     pub course_cancel_end_date: Option<String>,
     pub category: Option<BykcCourseCategory>,
     pub sub_category: Option<BykcCourseSubCategory>,
-    pub checkin: i32,
+    /// 原始考勤状态；缺失时不得推断为未签到。
+    pub checkin: Option<i32>,
     pub score: Option<i32>,
     pub pass: Option<i32>,
-    pub can_sign: bool,
-    pub can_sign_out: bool,
+    /// 当前课程的签到资格；`Unknown` 必须按拒绝处理。
+    pub sign_eligibility: ActionEligibility,
+    /// 当前课程的签退资格；`Unknown` 必须按拒绝处理。
+    pub sign_out_eligibility: ActionEligibility,
     /// 当前已选课程的退选资格；目标始终是内层课程标识。
     pub deselect_eligibility: ActionEligibility,
     pub sign_config: Option<BykcSignConfig>,
@@ -183,4 +186,26 @@ pub struct BykcSignRequest {
     pub lat: Option<f64>,
     pub lng: Option<f64>,
     pub sign_type: i32,
+}
+
+/// 博雅签到预检确认摘要。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcSignPreflight {
+    pub course_id: i64,
+    pub course_name: String,
+    pub sign_type: i32,
+    pub window_start: String,
+    pub window_end: String,
+    pub location_requirement: BykcSignLocationRequirement,
+}
+
+/// 博雅签到本次提交使用的位置来源。
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BykcSignLocationRequirement {
+    /// Core 将从上游给出的签到范围生成本次坐标。
+    ConfiguredRange,
+    /// 上游完整签到点列表不能保证每次都可生成坐标，调用方已提供安全回退坐标。
+    ProvidedCoordinates,
 }

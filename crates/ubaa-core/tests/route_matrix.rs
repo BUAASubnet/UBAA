@@ -563,7 +563,8 @@ fn route_usage(tokens: &[String]) -> RouteUsage {
         resolve_operation: count_sequence(tokens, &["resolve_operation", "("]),
         runtime_for: count_sequence(tokens, &["runtime_for", "("]),
         route_parts_for: count_sequence(tokens, &["route_parts_for", "("]),
-        finish_routed: count_sequence(tokens, &["finish_routed", "("]),
+        finish_routed: count_sequence(tokens, &["finish_routed", "("])
+            + count_sequence(tokens, &["finish_routed_write", "("]),
     }
 }
 

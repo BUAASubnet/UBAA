@@ -11,8 +11,10 @@
 ## 1. 不可变条件
 
 - `ubaa_old/`、`examples/`、`.env.local`、运行会话、验证码、真实响应与凭据只读且不得暂存。
-- 上游协议、公开 DTO、CLI schema v2、FRB schema、golden、用户文案、key、semantics 和网络调用顺序不得因
-  文件移动而改变。
+- 上游协议、公开 DTO、CLI schema、FRB schema、golden、用户文案、key、semantics 和网络调用顺序不得因
+  文件移动而改变。本轮已登记例外是 Phase 11C 的行为合同：Bykc 未知签到状态需要破坏性 typed 表达，故
+  CLI envelope 从 v2 显式升为 v3、bridge contract 从 v1 显式升为 v2；不得在旧版本号下静默改变字段，且
+  磁盘 `session.json` 仍保持 schema v2。
 - 机械结构提交与行为敏感提交严格分开；行为阶段必须先有来源对照和预期失败测试。
 - 真实写入不属于本计划；Direct/WebVPN 只读验证串行执行并只保留安全摘要。
 - 阶段 00–01 使用当前已有门禁；从阶段 02 checker 在同一提交中落地后，每个阶段提交前均运行：`just refs`、
@@ -55,7 +57,7 @@
 | 11A | Bykc 选课资格 | 缺字段、目标错配、提交前资格漂移与展示字符串漂移 RED | `refactor(flutter): typed 化博雅选课资格` | 已提交：`c76a81a`；Core/Bridge typed 资格、prepare/commit fail-closed、FRB/Domain/App/UI 映射、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B | Bykc 退选资格 | 操作级来源对照与未知状态 RED | `refactor(flutter): typed 化博雅退选资格` | 已提交：`0a16276`；inner course ID、Core/Bridge 双复核、FRB/Domain/App/UI typed action、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 已提交：`a147132`；最大生产文件 294 行、最大测试叶 425 行，完整 Rust/Flutter 门禁与双重独立复审通过 |
-| 11C | Bykc 签到资格 | 操作级来源对照与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 待执行 |
+| 11C | Bykc 签到资格 | 操作级来源对照、unknown fail-closed 与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 执行中：CLI envelope 已因破坏性 typed 合同显式升为 schema v3，完整门禁与提交待闭合 |
 | 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 待执行 |
 | 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 待执行 |
 | 11F | Libbook 取消资格 | 操作级来源对照与目标状态 RED | `refactor(flutter): typed 化图书馆取消资格` | 待执行 |
@@ -152,7 +154,8 @@ focused：`cargo test --locked -p ubaa-test-support --all-targets`，并核对�
 
 04A 先拆分并加强测试：
 
-- `tests/cli_contract/output.rs` 固定 JSON schema v2、human、route metadata、stdout/stderr 和敏感遮罩。
+- `tests/cli_contract/output.rs` 固定阶段 04 当时的 JSON schema v2、human、route metadata、stdout/stderr 和
+  敏感遮罩；Phase 11C 的 v3 升级必须独立更新真实序列化、JSON Schema 与旧 v2 拒绝测试。
 - `tests/cli_contract/exit.rs` 固定全部 `ErrorCode` 到进程退出码矩阵。
 - `tests/cli_contract/help.rs`、`routing.rs`、`writes.rs` 固定 Clap/help、fixed/routed 与写确认阻止。
 - 保留 23 个测试叶子；退出测试通过公开 renderer 覆盖全部错误码、JSON/human 输出和 writer failure。
@@ -358,6 +361,11 @@ CAS/bootstrap URL 与 service、redirect/final URL、Cookie/session/token 作用
 每个操作有自己的 sanitized RED 和 focused test，不以领域组级测试代替；从 Core facade DTO → bridge DTO →
 domain action/eligibility → app mapping → UI 消费完整迁移，并在同一操作提交删除其旧字符串/时间解析，不移动
 UI 文件。
+
+11C 额外固定 CLI 版本边界：`checkin` 缺失不得再伪装为整数默认值，`canSign`/`canSignOut` 被含
+`unknown` 的 `signEligibility`/`signOutEligibility` 取代，写请求到达边界后的不确定结果使用
+`outcome_unknown`。这些变化会破坏 schema v2 消费者，因此所有 CLI 成功、失败、参数错误、聚合和诊断
+envelope 统一显式升级为 schema v3，合同测试拒绝旧 v2；`session.json` schema v2 不在此次变更范围。
 
 ### 阶段 11B2：Bridge write 目录化
 

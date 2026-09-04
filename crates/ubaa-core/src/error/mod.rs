@@ -24,6 +24,8 @@ pub enum ErrorCode {
     Timeout,
     /// 上游服务暂时不可用。
     UpstreamUnavailable,
+    /// 非幂等写请求可能已到达上游，但无法确定最终业务结果。
+    OutcomeUnknown,
     /// 上游协议不再符合已验证合同。
     UpstreamChanged,
     /// 无法安全解析响应。

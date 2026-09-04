@@ -53,10 +53,12 @@ impl UbaaClient {
     pub async fn bykc_select_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result =
-            crate::features::bykc::select_course(self.runtime_for(resolution.mode), course_id)
-                .await;
-        self.finish_routed(resolution, result)
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::bykc::select_course(runtime, course_id).await
+        };
+        self.finish_routed_write(resolution, result)
     }
 
     /// 退选一门博雅课程。
@@ -67,10 +69,12 @@ impl UbaaClient {
     pub async fn bykc_deselect_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result =
-            crate::features::bykc::deselect_course(self.runtime_for(resolution.mode), course_id)
-                .await;
-        self.finish_routed(resolution, result)
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::bykc::deselect_course(runtime, course_id).await
+        };
+        self.finish_routed_write(resolution, result)
     }
 
     /// 执行博雅课程签到或签退。
@@ -84,8 +88,31 @@ impl UbaaClient {
     ) -> RoutedResult<BykcActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result =
-            crate::features::bykc::sign_course(self.runtime_for(resolution.mode), request).await;
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::bykc::sign_course(runtime, request).await
+        };
+        self.finish_routed_write(resolution, result)
+    }
+
+    /// 只读复核博雅签到或签退资格，不发送写请求。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、路线不可用、资格不足或输入无效时返回带路线信息的错误。
+    pub async fn preflight_bykc_sign_course(
+        &mut self,
+        request: &BykcSignRequest,
+    ) -> RoutedResult<crate::domain::BykcSignPreflight> {
+        self.guard_latest_routed()?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let result = crate::features::bykc::preflight_sign_course(
+            self.runtime_for(resolution.mode),
+            request,
+        )
+        .await
+        .map(|(preflight, _)| preflight);
         self.finish_routed(resolution, result)
     }
 

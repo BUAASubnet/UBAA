@@ -4,17 +4,21 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
-use super::support::{cgyy_canonical, digest, map_resolution_error, random_id, ygdk_canonical};
+use super::support::{
+    bykc_sign_canonical, cgyy_canonical, digest, map_commit_error, map_resolution_error, random_id,
+    ygdk_canonical,
+};
 use super::{
-    BridgeBykcCourseRequest, BridgeCgyyReservationSelection, BridgeCgyySubmitReservationRequest,
-    BridgePhotoUpload, BridgeWriteOperation, BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
+    BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyReservationSelection,
+    BridgeCgyySubmitReservationRequest, BridgePhotoUpload, BridgeWriteOperation,
+    BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
 };
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 use ubaa_core::facade::testing::{
     DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, RouteConfig,
     RouteSessionSnapshot,
 };
-use ubaa_core::facade::{ErrorCode, ErrorKind, NetworkState, UbaaClient, UbaaError};
+use ubaa_core::facade::{ErrorCode, ErrorKind, NetworkState, RoutedError, UbaaClient, UbaaError};
 use ubaa_test_support::{ExpectedRequest, MockTransport};
 
 mod bykc;
@@ -40,6 +44,36 @@ fn eligible_bykc_detail_request() -> ExpectedRequest {
             200,
             url,
             r#"{"status":"0","data":{"id":42,"courseName":"可选课程","courseStartDate":"2999-01-01 08:00:00","courseSelectStartDate":"2000-01-01 00:00:00","courseSelectEndDate":"2998-12-31 23:59:59","courseMaxCount":10,"courseCurrentCount":0,"selected":false}}"#
+                .as_bytes()
+                .to_vec(),
+        ),
+    )
+}
+
+fn summarized_selectable_bykc_detail_request() -> ExpectedRequest {
+    let url = "https://bykc.buaa.edu.cn/sscv/queryCourseById";
+    ExpectedRequest::new(
+        HttpMethod::Post,
+        url,
+        HttpResponse::new(
+            200,
+            url,
+            r#"{"status":"0","data":{"id":42,"courseName":"安全\n课程\u0000","courseStartDate":"2999-01-01 08:00:00","courseSelectStartDate":"2000-01-01 00:00:00","courseSelectEndDate":"2998-12-31 23:59:59","courseMaxCount":10,"courseCurrentCount":0,"selected":false}}"#
+                .as_bytes()
+                .to_vec(),
+        ),
+    )
+}
+
+fn summarized_deselectable_bykc_detail_request() -> ExpectedRequest {
+    let url = "https://bykc.buaa.edu.cn/sscv/queryCourseById";
+    ExpectedRequest::new(
+        HttpMethod::Post,
+        url,
+        HttpResponse::new(
+            200,
+            url,
+            r#"{"status":"0","data":{"id":42,"courseName":"已选\n课程\u0000","courseStartDate":"2999-01-01 08:00:00","courseCancelEndDate":"2998-11-30 23:59:59","selected":true}}"#
                 .as_bytes()
                 .to_vec(),
         ),
@@ -118,6 +152,55 @@ fn unknown_deselect_bykc_detail_request() -> ExpectedRequest {
                 .as_bytes()
                 .to_vec(),
         ),
+    )
+}
+
+fn bykc_all_config_request() -> ExpectedRequest {
+    let url = "https://bykc.buaa.edu.cn/sscv/getAllConfig";
+    ExpectedRequest::new(
+        HttpMethod::Post,
+        url,
+        HttpResponse::new(
+            200,
+            url,
+            br#"{"status":"0","data":{"semester":[{"semesterStartDate":"2000-01-01 00:00:00","semesterEndDate":"2999-12-31 23:59:59"}]}}"#.to_vec(),
+        ),
+    )
+}
+
+fn signable_bykc_chosen_request() -> ExpectedRequest {
+    bykc_chosen_sign_request(
+        r#"{"status":"0","data":{"courseList":[{"id":9,"checkin":0,"pass":0,"courseInfo":{"id":42,"courseName":"脱敏资格课程","courseSignConfig":"{\"signStartDate\":\"2000-01-01 00:00:00\",\"signEndDate\":\"2999-12-31 23:59:59\",\"signOutStartDate\":\"2000-01-01 00:00:00\",\"signOutEndDate\":\"2999-12-31 23:59:59\",\"signPointList\":[{\"lat\":39.9,\"lng\":116.3,\"radius\":100.0}]}"}}]}}"#,
+    )
+}
+
+fn denied_bykc_chosen_sign_request() -> ExpectedRequest {
+    bykc_chosen_sign_request(
+        r#"{"status":"0","data":{"courseList":[{"id":9,"checkin":1,"pass":0,"courseInfo":{"id":42,"courseName":"脱敏资格课程","courseSignConfig":"{\"signStartDate\":\"2000-01-01 00:00:00\",\"signEndDate\":\"2999-12-31 23:59:59\",\"signOutStartDate\":\"2000-01-01 00:00:00\",\"signOutEndDate\":\"2999-12-31 23:59:59\",\"signPointList\":[{\"lat\":39.9,\"lng\":116.3,\"radius\":100.0}]}"}}]}}"#,
+    )
+}
+
+fn unknown_bykc_chosen_sign_request() -> ExpectedRequest {
+    bykc_chosen_sign_request(
+        r#"{"status":"0","data":{"courseList":[{"id":9,"checkin":0,"courseInfo":{"id":42,"courseName":"脱敏资格课程","courseSignConfig":"{\"signStartDate\":\"2000-01-01 00:00:00\",\"signEndDate\":\"2999-12-31 23:59:59\",\"signOutStartDate\":\"2000-01-01 00:00:00\",\"signOutEndDate\":\"2999-12-31 23:59:59\",\"signPointList\":[{\"lat\":39.9,\"lng\":116.3,\"radius\":100.0}]}"}}]}}"#,
+    )
+}
+
+fn bykc_chosen_sign_request(body: &'static str) -> ExpectedRequest {
+    let url = "https://bykc.buaa.edu.cn/sscv/queryChosenCourse";
+    ExpectedRequest::new(
+        HttpMethod::Post,
+        url,
+        HttpResponse::new(200, url, body.as_bytes().to_vec()),
+    )
+}
+
+fn bykc_sign_write_request(status: u16, body: &'static str) -> ExpectedRequest {
+    let url = "https://bykc.buaa.edu.cn/sscv/signCourseByUser";
+    ExpectedRequest::new(
+        HttpMethod::Post,
+        url,
+        HttpResponse::new(status, url, body.as_bytes().to_vec()),
     )
 }
 

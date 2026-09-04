@@ -1,7 +1,7 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendReadCharacterization() {
-  test('博雅摘要详情和已选记录投影 typed 选退课能力', () async {
+  test('博雅摘要详情和已选记录只投影各自 typed 写能力', () async {
     final backend = BridgeBackend(_CharacterizationBridgeClient());
 
     final summary = await backend.loadFeatureQuery(
@@ -20,6 +20,7 @@ void registerBridgeBackendReadCharacterization() {
     final summaryAction = summary.details.single.action<BykcSelectAction>();
     expect(summaryAction?.courseId, 101);
     expect(summaryAction?.eligibility, ActionEligibility.allowed);
+    expect(summary.details.single.actions.whereType<BykcSignAction>(), isEmpty);
 
     final detailAction = detail.details.single.action<BykcSelectAction>();
     expect(detailAction?.courseId, 42);
@@ -28,10 +29,27 @@ void registerBridgeBackendReadCharacterization() {
         .action<BykcDeselectAction>();
     expect(detailDeselectAction?.courseId, 42);
     expect(detailDeselectAction?.eligibility, ActionEligibility.allowed);
+    expect(detail.details.single.actions.whereType<BykcSignAction>(), isEmpty);
 
     final chosenAction = chosen.details.single.action<BykcDeselectAction>();
     expect(chosenAction?.courseId, 9527);
     expect(chosenAction?.eligibility, ActionEligibility.allowed);
+    final chosenSignActions = chosen.details.single.actions
+        .whereType<BykcSignAction>()
+        .toList(growable: false);
+    expect(chosenSignActions, hasLength(2));
+    expect(chosenSignActions.map((action) => action.courseId), <int>[
+      9527,
+      9527,
+    ]);
+    expect(chosenSignActions.map((action) => action.kind), <BykcSignKind>[
+      BykcSignKind.signIn,
+      BykcSignKind.signOut,
+    ]);
+    expect(
+      chosenSignActions.map((action) => action.eligibility),
+      <ActionEligibility>[ActionEligibility.allowed, ActionEligibility.denied],
+    );
     final renamedChosen = FeatureDetail(
       title: chosen.details.single.title,
       fields: chosen.details.single.fields
@@ -45,6 +63,12 @@ void registerBridgeBackendReadCharacterization() {
       actions: chosen.details.single.actions,
     );
     expect(renamedChosen.action<BykcDeselectAction>()?.courseId, 9527);
+    expect(
+      renamedChosen.actions.whereType<BykcSignAction>().map(
+        (action) => (action.courseId, action.signType),
+      ),
+      <(int, int)>[(9527, 1), (9527, 2)],
+    );
 
     final renamedDisplayDetail = FeatureDetail(
       title: detail.details.single.title,

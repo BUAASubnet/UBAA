@@ -93,7 +93,6 @@ class UbaaErrorMapper {
       title: '结果待核对',
       message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
       actionLabel: '刷新状态',
-      retryable: true,
     ),
   };
 }

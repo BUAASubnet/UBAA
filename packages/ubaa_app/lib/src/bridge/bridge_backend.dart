@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ubaa_bindings/ubaa_bindings.dart';
@@ -15,7 +16,10 @@ part 'read/evaluation.dart';
 part 'read/libbook.dart';
 part 'read/ygdk.dart';
 part 'write/commit.dart';
+part 'write/lifecycle.dart';
 part 'write/prepare.dart';
+
+const _supportedBridgeContractVersion = 2;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -35,7 +39,13 @@ class BridgeBackend
         EvaluationWriteBackend,
         RouteSettingsBackend,
         BackendLifecycle {
-  BridgeBackend(this.client);
+  BridgeBackend(this.client) {
+    final contractVersion = client.contractVersion();
+    if (contractVersion != _supportedBridgeContractVersion) {
+      _disposeIncompatibleBridgeClient(client);
+      throw StateError('Bridge 合同版本不兼容。');
+    }
+  }
 
   /// 从平台已经解析好的应用私有目录打开 Core。
   factory BridgeBackend.open(String configDirectory) =>
@@ -148,6 +158,18 @@ class BridgeBackend
   @override
   Future<WriteCommitResult> commitWrite(String intentId) =>
       _commitWrite(this, intentId);
+
+  @override
+  Future<void> discardWriteIntent(String intentId) =>
+      _discardWriteIntent(this, intentId);
+}
+
+void _disposeIncompatibleBridgeClient(BridgeClient client) {
+  try {
+    unawaited(client.dispose().catchError((Object _) {}));
+  } on Object {
+    // 合同已不兼容，释放失败也不能继续启动该 backend。
+  }
 }
 
 /// 创建生产后端；任何初始化失败都保持明确的不可用状态，不回退到 Demo。

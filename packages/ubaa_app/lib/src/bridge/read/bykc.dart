@@ -137,8 +137,17 @@ Future<FeatureResult> _loadBykcFeature(
         case FeatureQueryView.bykcChosenCourses:
           final result = await client.bykcChosenCourses();
           final details = result.data
-              .map(
-                (item) => FeatureDetail(
+              .map((item) {
+                final signEligibility = _toBykcActionEligibility(
+                  item.signEligibility,
+                );
+                final signOutEligibility = _toBykcActionEligibility(
+                  item.signOutEligibility,
+                );
+                final requiresCoordinates = _requiresBykcCoordinates(
+                  item.signConfig,
+                );
+                return FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
                   actions: <FeatureAction>[
@@ -148,13 +157,25 @@ Future<FeatureResult> _loadBykcFeature(
                         item.deselectEligibility,
                       ),
                     ),
+                    BykcSignAction(
+                      courseId: item.courseId,
+                      kind: BykcSignKind.signIn,
+                      eligibility: signEligibility,
+                      requiresCoordinates: requiresCoordinates,
+                    ),
+                    BykcSignAction(
+                      courseId: item.courseId,
+                      kind: BykcSignKind.signOut,
+                      eligibility: signOutEligibility,
+                      requiresCoordinates: requiresCoordinates,
+                    ),
                   ],
                   fields: _compactFields(<FeatureField?>[
                     _field('课程 ID', item.courseId.toString()),
                     _field('地点', item.coursePosition),
                     _field('开始', item.courseStartDate),
                     _field('结束', item.courseEndDate),
-                    _field('签到状态', '${item.checkin}'),
+                    _field('签到状态', item.checkin?.toString()),
                     _field('成绩', item.score?.toString()),
                     _field(
                       '通过',
@@ -164,8 +185,8 @@ Future<FeatureResult> _loadBykcFeature(
                           ? '是'
                           : '否',
                     ),
-                    _field('可签到', item.canSign ? '是' : '否'),
-                    _field('可签退', item.canSignOut ? '是' : '否'),
+                    _field('可签到', _bykcEligibilityLabel(signEligibility)),
+                    _field('可签退', _bykcEligibilityLabel(signOutEligibility)),
                     _field(
                       '签到时间',
                       _timeWindow(
@@ -183,8 +204,8 @@ Future<FeatureResult> _loadBykcFeature(
                     _field('位置要求', _locationRequirement(item.signConfig)),
                     _field('签到类型', item.courseSignType?.toString()),
                   ]),
-                ),
-              )
+                );
+              })
               .toList(growable: false);
           return _countResult(
             details.length,
@@ -238,6 +259,13 @@ ActionEligibility _toBykcActionEligibility(
   BridgeActionEligibility.unknown => ActionEligibility.unknown,
 };
 
+String _bykcEligibilityLabel(ActionEligibility eligibility) =>
+    switch (eligibility) {
+      ActionEligibility.allowed => '是',
+      ActionEligibility.denied => '否',
+      ActionEligibility.unknown => '未知',
+    };
+
 String? _timeWindow(String? start, String? end) {
   final normalizedStart = start?.trim();
   final normalizedEnd = end?.trim();
@@ -247,7 +275,23 @@ String? _timeWindow(String? start, String? end) {
 }
 
 String? _locationRequirement(BridgeBykcSignConfig? config) {
-  if (config == null) return null;
-  if (config.signPoints.isEmpty) return '无需定位';
+  if (config == null) return '位置配置未知（需获取当前位置）';
+  if (config.signPoints.isEmpty) return '需获取当前位置（未返回可用签到范围）';
+  if (_requiresBykcCoordinates(config)) return '需获取当前位置（签到范围不完整）';
   return '指定位置（${config.signPoints.length} 处）';
+}
+
+bool _requiresBykcCoordinates(BridgeBykcSignConfig? config) {
+  if (config == null || config.signPoints.isEmpty) return true;
+  return config.signPoints.any(
+    (point) =>
+        !point.lat.isFinite ||
+        !point.lng.isFinite ||
+        !point.radius.isFinite ||
+        point.lat < -90 ||
+        point.lat > 90 ||
+        point.lng < -180 ||
+        point.lng > 180 ||
+        point.radius <= 0,
+  );
 }

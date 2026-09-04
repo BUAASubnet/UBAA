@@ -1,9 +1,11 @@
 //! 写入意图的准备、路线解析与一次性保存。
 
 use super::support::{
-    cgyy_canonical, digest, ensure_bykc_course_target, ensure_bykc_deselect_allowed,
-    ensure_bykc_select_allowed, invalid_input, now_seconds, random_id, validate_cgyy_request,
-    validate_id, validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
+    bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
+    ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
+    map_bykc_sign_preflight_error, now_seconds, random_id, safe_summary_label,
+    validate_bykc_sign_request, validate_cgyy_request, validate_id, validate_id_i32, validate_text,
+    validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
@@ -14,7 +16,7 @@ use super::{
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, catch_panic, disposed_error,
 };
-use ubaa_core::facade::ReadonlyFeature;
+use ubaa_core::facade::{self as domain, ReadonlyFeature};
 
 impl BridgeClient {
     async fn store_write_intent(
@@ -25,19 +27,35 @@ impl BridgeClient {
         warnings: Vec<String>,
         pending: PendingWrite,
         resolved_route: BridgeConnectionMode,
-    ) -> BridgeWriteIntent {
+    ) -> Result<BridgeWriteIntent, BridgeError> {
         let intent_id = random_id();
         let request_digest = digest(&canonical);
-        let expires_at = now_seconds().saturating_add(120);
-        self.write_intents.lock().await.insert(
+        let now = now_seconds();
+        let expires_at = now.saturating_add(120);
+        let conflict_key = pending.conflict_key();
+        let mut intents = self.write_intents.lock().await;
+        intents.retain(|_, entry| entry.expires_at > now);
+        if intents
+            .values()
+            .any(|entry| entry.conflict_key == conflict_key)
+        {
+            return Err(BridgeError::local(
+                crate::api::client::BridgeErrorCode::OperationConflict,
+                crate::api::client::BridgeErrorKind::Input,
+                true,
+                "an equivalent write is already awaiting confirmation",
+            ));
+        }
+        intents.insert(
             intent_id.clone(),
             PendingEntry {
                 request: pending,
                 expires_at,
                 resolved_route,
+                conflict_key,
             },
         );
-        BridgeWriteIntent {
+        Ok(BridgeWriteIntent {
             intent_id,
             operation,
             target_summary,
@@ -45,7 +63,7 @@ impl BridgeClient {
             warnings,
             expires_at,
             request_digest,
-        }
+        })
     }
 
     async fn prepare_write(
@@ -63,16 +81,15 @@ impl BridgeClient {
             let resolution = client
                 .resolve_route_for_feature(feature)
                 .map_err(|error| BridgeError::from_core(error, None))?;
-            Ok(self
-                .store_write_intent(
-                    operation,
-                    canonical,
-                    target_summary,
-                    warnings,
-                    pending,
-                    resolution.mode.into(),
-                )
-                .await)
+            self.store_write_intent(
+                operation,
+                canonical,
+                target_summary,
+                warnings,
+                pending,
+                resolution.mode.into(),
+            )
+            .await
         })
         .await
     }
@@ -91,16 +108,16 @@ impl BridgeClient {
                 .map_err(BridgeError::from_routed)?;
             ensure_bykc_course_target(request.course_id, current.data.id)?;
             ensure_bykc_select_allowed(current.data.select_eligibility)?;
-            Ok(self
-                .store_write_intent(
-                    BridgeWriteOperation::BykcSelectCourse,
-                    format!("course_id={}", request.course_id),
-                    "选择一门博雅课程".to_owned(),
-                    vec!["提交后请刷新已选课程确认结果".to_owned()],
-                    PendingWrite::BykcSelect(request),
-                    current.resolution.mode.into(),
-                )
-                .await)
+            let target_summary = bykc_select_summary(&current.data);
+            self.store_write_intent(
+                BridgeWriteOperation::BykcSelectCourse,
+                format!("course_id={}", request.course_id),
+                target_summary,
+                vec!["提交后请刷新已选课程确认结果".to_owned()],
+                PendingWrite::BykcSelect(request),
+                current.resolution.mode.into(),
+            )
+            .await
         })
         .await
     }
@@ -118,16 +135,16 @@ impl BridgeClient {
                 .map_err(BridgeError::from_routed)?;
             ensure_bykc_course_target(request.course_id, current.data.id)?;
             ensure_bykc_deselect_allowed(current.data.deselect_eligibility)?;
-            Ok(self
-                .store_write_intent(
-                    BridgeWriteOperation::BykcDeselectCourse,
-                    format!("course_id={}", request.course_id),
-                    "退选一门博雅课程".to_owned(),
-                    vec!["请确认课程与退选截止时间".to_owned()],
-                    PendingWrite::BykcDeselect(request),
-                    current.resolution.mode.into(),
-                )
-                .await)
+            let target_summary = bykc_deselect_summary(&current.data);
+            self.store_write_intent(
+                BridgeWriteOperation::BykcDeselectCourse,
+                format!("course_id={}", request.course_id),
+                target_summary,
+                vec!["请确认课程与退选截止时间".to_owned()],
+                PendingWrite::BykcDeselect(request),
+                current.resolution.mode.into(),
+            )
+            .await
         })
         .await
     }
@@ -135,18 +152,49 @@ impl BridgeClient {
         &self,
         request: BridgeBykcSignCourseRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
-        validate_id(request.course_id)?;
-        self.prepare_write(
-            ReadonlyFeature::Bykc,
-            BridgeWriteOperation::BykcSignCourse,
-            format!(
-                "course_id={};lat={:?};lng={:?};sign_type={}",
-                request.course_id, request.lat, request.lng, request.sign_type
-            ),
-            "提交博雅课程签到".to_owned(),
-            vec!["位置只在本次请求中使用".to_owned()],
-            PendingWrite::BykcSign(request),
-        )
+        validate_bykc_sign_request(&request)?;
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_bykc_sign_course(&domain::BykcSignRequest {
+                    course_id: request.course_id,
+                    lat: request.lat,
+                    lng: request.lng,
+                    sign_type: request.sign_type,
+                })
+                .await
+                .map_err(map_bykc_sign_preflight_error)?;
+            let action = if request.sign_type == 1 {
+                "签到"
+            } else {
+                "签退"
+            };
+            let course_name = safe_summary_label(&current.data.course_name, "博雅课程");
+            let location_warning = match current.data.location_requirement {
+                domain::BykcSignLocationRequirement::ConfiguredRange => {
+                    "位置要求：由 Core 在已验证签到范围内生成本次坐标"
+                }
+                domain::BykcSignLocationRequirement::ProvidedCoordinates => {
+                    "位置要求：本次已提供并校验经纬度；Core 将按完整签到点配置生成或回退"
+                }
+            };
+            self.store_write_intent(
+                BridgeWriteOperation::BykcSignCourse,
+                bykc_sign_canonical(&request),
+                format!(
+                    "{course_name}（课程 {}）·{action}·{} 至 {}",
+                    current.data.course_id, current.data.window_start, current.data.window_end,
+                ),
+                vec![
+                    location_warning.to_owned(),
+                    "提交前将再次复核当前学期、考勤状态与时间窗".to_owned(),
+                ],
+                PendingWrite::BykcSign(request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_signin_perform(
@@ -278,4 +326,33 @@ impl BridgeClient {
         )
         .await
     }
+}
+
+fn bykc_select_summary(course: &domain::BykcCourse) -> String {
+    let name = safe_summary_label(&course.course_name, "博雅课程");
+    let select_start = safe_optional_summary(course.course_select_start_date.as_deref());
+    let select_end = safe_optional_summary(course.course_select_end_date.as_deref());
+    let current = course
+        .course_current_count
+        .map_or_else(|| "未知".to_owned(), |value| value.to_string());
+    let maximum = course
+        .course_max_count
+        .map_or_else(|| "未知".to_owned(), |value| value.to_string());
+    format!(
+        "{name}（课程 {}）·选课期 {select_start} 至 {select_end}·容量 {current}/{maximum}",
+        course.id
+    )
+}
+
+fn bykc_deselect_summary(course: &domain::BykcCourse) -> String {
+    let name = safe_summary_label(&course.course_name, "博雅课程");
+    let cancel_end = safe_optional_summary(course.course_cancel_end_date.as_deref());
+    format!("{name}（课程 {}）·退选截止 {cancel_end}", course.id)
+}
+
+fn safe_optional_summary(value: Option<&str>) -> String {
+    value.map_or_else(
+        || "未知".to_owned(),
+        |value| safe_summary_label(value, "未知"),
+    )
 }

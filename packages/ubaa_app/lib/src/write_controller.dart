@@ -6,15 +6,19 @@ import 'controller/error_mapper.dart';
 
 typedef WriteCommitter = Future<WriteCommitResult> Function(String intentId);
 typedef WritePreparer = Future<WriteIntent> Function();
+typedef WriteDiscarder = Future<void> Function(String intentId);
 
 /// 写入确认状态机。
 ///
 /// intent 由 bridge typed prepare 方法产生；控制器只允许同一 intent 成功提交一次，
 /// 不自动重试，也不在后台发起网络请求。
 class WriteFlowController extends ChangeNotifier {
-  WriteFlowController({required WriteCommitter commit}) : _commit = commit;
+  WriteFlowController({required WriteCommitter commit, WriteDiscarder? discard})
+    : _commit = commit,
+      _discard = discard;
 
   final WriteCommitter _commit;
+  final WriteDiscarder? _discard;
   WriteIntent? _intent;
   UiError? _error;
   bool _submitting = false;
@@ -25,7 +29,7 @@ class WriteFlowController extends ChangeNotifier {
   bool get isSubmitting => _submitting;
 
   void setIntent(WriteIntent intent) {
-    if (_disposed) return;
+    if (_disposed || _submitting || _intent != null) return;
     _intent = intent;
     _error = null;
     _notify();
@@ -41,7 +45,10 @@ class WriteFlowController extends ChangeNotifier {
     _notify();
     try {
       final intent = await prepare();
-      if (_disposed) return null;
+      if (_disposed) {
+        await _discardBestEffort(intent);
+        return null;
+      }
       _intent = intent;
       return intent;
     } on BackendException catch (exception) {
@@ -56,11 +63,41 @@ class WriteFlowController extends ChangeNotifier {
     }
   }
 
-  void cancel() {
-    if (_disposed || _submitting) return;
-    _intent = null;
+  /// 释放 Core 中待确认的 intent，成功后才清理本地状态。
+  ///
+  /// 释放失败时保留 intent，便于用户重试；原始异常详情不会透传到 UI。
+  Future<void> cancel() async {
+    final intent = _intent;
+    if (_disposed || _submitting || intent == null) return;
+    final discard = _discard;
+    if (discard == null) {
+      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.unsupported);
+      _notify();
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+
+    _submitting = true;
     _error = null;
     _notify();
+    try {
+      await discard(intent.intentId);
+      if (!_disposed && _intent?.intentId == intent.intentId) {
+        _intent = null;
+      }
+    } on BackendException catch (exception) {
+      if (!_disposed) {
+        _error = UbaaErrorMapper.fromCode(exception.code);
+      }
+      throw BackendException(exception.code);
+    } on Object {
+      if (!_disposed) {
+        _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+      }
+      throw const BackendException(UbaaErrorCode.internalError);
+    } finally {
+      _submitting = false;
+      _notify();
+    }
   }
 
   Future<WriteCommitResult?> confirm() async {
@@ -93,6 +130,14 @@ class WriteFlowController extends ChangeNotifier {
 
   void _notify() {
     if (!_disposed) notifyListeners();
+  }
+
+  Future<void> _discardBestEffort(WriteIntent intent) async {
+    try {
+      await _discard?.call(intent.intentId);
+    } on Object {
+      // State 已销毁，没有可安全承载错误的 UI；Bridge 会自行过期清理。
+    }
   }
 
   @override

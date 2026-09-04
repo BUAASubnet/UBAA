@@ -11,6 +11,37 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     );
   }
 
+  PlatformLocationProvider get _locationProvider =>
+      PermissionedLocationProvider(
+        permissions:
+            widget.permissionGateway ?? const UnavailablePermissionGateway(),
+        provider:
+            widget.locationProvider ?? const UnavailableLocationProvider(),
+      );
+
+  Future<WriteIntent> _prepareBykcSignWrite(BykcSignAction action) async {
+    PlatformLocation? location;
+    if (action.requiresCoordinates) {
+      location = await _locationProvider.currentLocation();
+    }
+    return _controller.prepareBykcSignWrite(
+      action.courseId,
+      action.signType,
+      lat: location?.lat,
+      lng: location?.lng,
+    );
+  }
+
+  Future<WriteCommitResult> _commitWrite(String intentId) async {
+    try {
+      return await _controller.commitWrite(intentId);
+    } on BackendException catch (exception) {
+      throw UbaaErrorMapper.fromCode(exception.code);
+    } on Object {
+      throw UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+    }
+  }
+
   Widget _buildApplication() => AnimatedBuilder(
     animation: _controller,
     builder: (context, _) => MaterialApp(
@@ -60,7 +91,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       },
       onPrepareBykcWrite: (operation, courseId) =>
           _controller.prepareBykcWrite(operation, courseId),
-      onPrepareBykcSignWrite: _controller.prepareBykcSignWrite,
+      onPrepareBykcSignWrite: _prepareBykcSignWrite,
       onPrepareSigninWrite: _controller.prepareSigninWrite,
       onPrepareCancellationWrite: (operation, targetId) =>
           _controller.prepareCancellationWrite(operation, targetId),
@@ -84,7 +115,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
       onPickYgdkPhoto: _photoPicker?.pickPhoto,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
-      onCommitWrite: _controller.commitWrite,
+      onDiscardWriteIntent: _controller.discardWriteIntent,
+      onCommitWrite: _commitWrite,
       onWriteSuccess: _controller.refreshAfterWrite,
       onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
       onLogout: _controller.logout,

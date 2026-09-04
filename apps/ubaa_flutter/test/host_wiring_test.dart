@@ -10,6 +10,7 @@ void main() {
       credentialVault: MemoryCredentialVault(),
       photoPicker: MemoryPhotoPicker(),
       permissionGateway: MemoryPermissionGateway(),
+      locationProvider: const UnavailableLocationProvider(),
     );
     Widget? launchedApp;
 
@@ -45,5 +46,6 @@ void main() {
     expect(host.credentialVault, same(capabilities.credentialVault));
     expect(host.photoPicker, same(capabilities.photoPicker));
     expect(host.permissionGateway, same(capabilities.permissionGateway));
+    expect(host.locationProvider, same(capabilities.locationProvider));
   });
 }

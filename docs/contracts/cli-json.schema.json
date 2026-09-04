@@ -31,6 +31,7 @@
         "network_error",
         "timeout",
         "upstream_unavailable",
+        "outcome_unknown",
         "upstream_changed",
         "parse_error",
         "internal_error"
@@ -312,15 +313,16 @@
       }, "additionalProperties": false
     },
     "bykcChosenCourse": {
-      "type": "object", "required": ["id", "courseId", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "selectDate", "courseCancelEndDate", "category", "subCategory", "checkin", "score", "pass", "canSign", "canSignOut", "deselectEligibility", "signConfig", "courseSignType", "homework", "homeworkAttachmentName", "homeworkAttachmentPath", "signInfo"],
+      "type": "object", "required": ["id", "courseId", "courseName", "coursePosition", "courseTeacher", "courseStartDate", "courseEndDate", "selectDate", "courseCancelEndDate", "category", "subCategory", "checkin", "score", "pass", "signEligibility", "signOutEligibility", "deselectEligibility", "signConfig", "courseSignType", "homework", "homeworkAttachmentName", "homeworkAttachmentPath", "signInfo"],
       "properties": {
         "id": { "$ref": "#/$defs/i64" }, "courseId": { "$ref": "#/$defs/i64" },
         "courseName": { "type": "string" }, "coursePosition": { "$ref": "#/$defs/nullableString" }, "courseTeacher": { "$ref": "#/$defs/nullableString" },
         "courseStartDate": { "$ref": "#/$defs/nullableString" }, "courseEndDate": { "$ref": "#/$defs/nullableString" }, "selectDate": { "$ref": "#/$defs/nullableString" },
         "courseCancelEndDate": { "$ref": "#/$defs/nullableString" }, "category": { "anyOf": [{ "$ref": "#/$defs/bykcCourseCategory" }, { "type": "null" }] },
         "subCategory": { "anyOf": [{ "$ref": "#/$defs/bykcCourseSubCategory" }, { "type": "null" }] },
-        "checkin": { "$ref": "#/$defs/i32" }, "score": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
-        "pass": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "canSign": { "type": "boolean" }, "canSignOut": { "type": "boolean" },
+        "checkin": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "score": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "pass": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "signEligibility": { "$ref": "#/$defs/actionEligibility" }, "signOutEligibility": { "$ref": "#/$defs/actionEligibility" },
         "deselectEligibility": { "$ref": "#/$defs/actionEligibility" },
         "signConfig": { "anyOf": [{ "$ref": "#/$defs/bykcSignConfig" }, { "type": "null" }] }, "courseSignType": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
         "homework": { "$ref": "#/$defs/nullableString" }, "homeworkAttachmentName": { "$ref": "#/$defs/nullableString" },
@@ -352,11 +354,16 @@
       "properties": { "categoryName": { "$ref": "#/$defs/nullableString" }, "subCategoryName": { "$ref": "#/$defs/nullableString" }, "requiredCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "passedCount": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "qualified": { "type": ["boolean", "null"] } },
       "additionalProperties": false
     },
+    "bykcActionResult": {
+      "type": "object", "required": ["message"],
+      "properties": { "message": { "type": "string" } },
+      "additionalProperties": false
+    },
     "bykcRoutedData": {
       "anyOf": [
         { "$ref": "#/$defs/bykcUserProfile" }, { "$ref": "#/$defs/bykcCoursePage" },
         { "$ref": "#/$defs/bykcCourse" }, { "type": "array", "items": { "$ref": "#/$defs/bykcChosenCourse" } },
-        { "$ref": "#/$defs/bykcStatistics" }
+        { "$ref": "#/$defs/bykcStatistics" }, { "$ref": "#/$defs/bykcActionResult" }
       ]
     },
     "evaluationCourse": {
@@ -794,7 +801,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 2 },
+        "schemaVersion": { "const": 3 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -944,7 +951,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 2 },
+        "schemaVersion": { "const": 3 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1100,7 +1107,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 2 },
+        "schemaVersion": { "const": 3 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1176,7 +1183,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 2 },
+        "schemaVersion": { "const": 3 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

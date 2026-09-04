@@ -7,6 +7,7 @@
 )]
 
 mod commit;
+mod lifecycle;
 mod prepare;
 mod support;
 
@@ -138,6 +139,7 @@ pub(crate) struct PendingEntry {
     pub request: PendingWrite,
     pub expires_at: i64,
     pub resolved_route: BridgeConnectionMode,
+    pub conflict_key: String,
 }
 
 impl PendingWrite {
@@ -166,6 +168,63 @@ impl PendingWrite {
             Self::Ygdk(_) => ReadonlyFeature::Ygdk,
             Self::CgyyReserve(_) | Self::CgyyCancel(_) => ReadonlyFeature::Cgyy,
             Self::Evaluation(_) => ReadonlyFeature::Evaluation,
+        }
+    }
+
+    fn conflict_key(&self) -> String {
+        match self {
+            Self::BykcSelect(request) => format!("bykc-select:{}", request.course_id),
+            Self::BykcDeselect(request) => format!("bykc-deselect:{}", request.course_id),
+            Self::BykcSign(request) => {
+                format!("bykc-sign:{}:{}", request.course_id, request.sign_type)
+            }
+            Self::Signin(request) => format!("signin:{}", request.course_id.trim()),
+            Self::LibbookReserve(request) => format!(
+                "libbook-reserve:{}:{}:{}:{}:{}:{}",
+                request.area_id,
+                request.seat_id,
+                request.day,
+                request.segment,
+                request.start_time,
+                request.end_time,
+            ),
+            Self::LibbookCancel(request) => format!("libbook-cancel:{}", request.id.trim()),
+            Self::Ygdk(request) => format!(
+                "ygdk:{:?}:{}:{}",
+                request.item_id,
+                request.start_time.as_deref().unwrap_or_default(),
+                request.end_time.as_deref().unwrap_or_default(),
+            ),
+            Self::CgyyReserve(request) => {
+                let mut selections = request
+                    .selections
+                    .iter()
+                    .map(|value| {
+                        format!(
+                            "{}:{}:{:?}",
+                            value.space_id, value.time_id, value.venue_space_group_id
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                selections.sort();
+                format!(
+                    "cgyy-reserve:{}:{}:{}",
+                    request.venue_site_id,
+                    request.reservation_date,
+                    selections.join("|")
+                )
+            }
+            Self::CgyyCancel(request) => format!("cgyy-cancel:{}", request.id),
+            Self::Evaluation(request) => {
+                let mut ids = request
+                    .courses
+                    .iter()
+                    .map(|course| course.id.trim())
+                    .collect::<Vec<_>>();
+                ids.sort_unstable();
+                ids.dedup();
+                format!("evaluation:{}", ids.join("|"))
+            }
         }
     }
 }

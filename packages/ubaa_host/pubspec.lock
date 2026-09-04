@@ -215,7 +215,7 @@ packages:
     source: path
     version: "0.1.0"
   ubaa_domain:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       path: "../ubaa_domain"
       relative: true

@@ -21,9 +21,17 @@ void main() {
       expect(error.technicalDetail, isNull);
     });
 
-    test('从 schema-v2 envelope 读取嵌套 error', () {
+    test('结果未知缺少重试标记时仍默认禁止重试', () {
+      final error = mapCoreError(code: 'outcome_unknown');
+
+      expect(error.code, UbaaErrorCode.outcomeUnknown);
+      expect(error.retryable, isFalse);
+      expect(error.actionLabel, '刷新状态');
+    });
+
+    test('从 schema-v3 envelope 读取嵌套 error', () {
       final error = mapCoreErrorJson({
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'ok': false,
         'error': {
           'code': 'timeout',

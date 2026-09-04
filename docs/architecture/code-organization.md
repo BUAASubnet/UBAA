@@ -1,6 +1,6 @@
 # 代码与目录组织设计
 
-状态：2026-09-03 已批准执行
+状态：2026-09-03 已批准执行；2026-09-04 登记 CLI envelope schema v3 合同升级
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
@@ -21,10 +21,17 @@ UI 与测试，不必在数千行聚合文件中搜索。
 3. `lib.rs`、`mod.rs` 与 Dart package 入口只承担声明、组合和稳定导出，不继续承载跨领域实现。
 4. 大型协议按认证、传输、读取、写入、解析、算法和测试拆分，但不合并不同协议的同名 helper。
 5. 测试目录镜像生产领域；一个失败测试可从文件路径判断所属领域和证据层级。
-6. FRB 生成路径、公开 DTO 名、schema、CLI JSON schema v2、golden 文件名和宿主入口行为保持稳定。
+6. FRB 生成路径、公开 DTO 名、schema、golden 文件名和宿主入口行为默认保持稳定；公开合同确需破坏性
+   变更时必须显式提升版本并记录原因，不得沿用旧版本号静默改变字段。
 7. `just check`、Flutter/FRB 门禁、CLI E2E、敏感扫描和两条真实只读路线继续独立提供证据。
 8. 生产宿主只依赖 Core `facade`；Core 不拥有 CLI 输出/退出策略，路线选择和 route state 各只有一个权威实现。
 9. Flutter 生产写入只有一个状态机；UI 只消费 typed action eligibility，不从中文文案或展示字段反推资格。
+
+设计批准时冻结的 CLI JSON schema v2 已完成阶段 04 的机械所有权迁移。Phase 11C 随后把 Bykc
+`checkin` 从必填整数改为可空，并以含 `unknown` 的 `signEligibility`/`signOutEligibility` 取代两个布尔字段，
+同时加入 `outcome_unknown` 封闭错误码；这些是有意且经来源/TDD 支持的破坏性合同变化。因此 CLI envelope
+显式升级为 schema v3，bridge contract 同步从 v1 升为 v2，旧版本只作为历史证据保留。该版本升级不涉及
+本地持久化，`session.json` 继续使用 schema v2。
 
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。
@@ -112,8 +119,9 @@ FRB 生成 Dart/Rust 合计超过三万行，但每个文件都有生成标记�
 - facade 有 48 处 runtime 选择且存在两套路线解析。先建立 direct/webvpn/auto、session ready/not-ready、成功/
   失败/回退的等价矩阵，随后集中为唯一 runtime selector 和 route resolver；网络调用顺序、错误码和退出语义
   必须逐项等价。
-- Core `output.rs` 与 `ErrorCode::exit_code` 把 CLI 展示/进程策略放在领域库。先锁定 JSON schema v2、human
-  输出、stdout/stderr 与 exit matrix，再将策略整体迁入 CLI `io`，Core 只保留结构化错误。
+- Core `output.rs` 与 `ErrorCode::exit_code` 把 CLI 展示/进程策略放在领域库。阶段 04 先锁定当时的 JSON
+  schema v2、human 输出、stdout/stderr 与 exit matrix，再将策略整体迁入 CLI `io`，Core 只保留结构化错误；
+  Phase 11C 的 schema v3 是后续独立记录的行为合同升级，不改写该迁移事实。
 
 任何阶段一旦出现来源不一致或未被测试解释的语义差异，立即停止实现，在 decision log 记录具体文件、锁定
 提交和安全的实时观察；只有实时证据或适用冻结实现支持的行为可以进入生产代码。
@@ -183,7 +191,7 @@ UBAA/
 │   │   │   ├── io/
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── input.rs
-│   │   │   │   ├── schema.rs               # 原 Core OutputEnvelope/JSON schema v2
+│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v3
 │   │   │   │   ├── human.rs
 │   │   │   │   ├── error.rs                # 稳定错误 payload 与名称投影
 │   │   │   │   ├── render.rs               # stdout/stderr 渲染与 Core 错误投影

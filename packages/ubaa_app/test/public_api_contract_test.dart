@@ -11,6 +11,7 @@ const _publicNames = <String>[
   'RouteSettingsBackend',
   'FeatureQueryBackend',
   'WriteCommitBackend',
+  'WriteIntentDiscardBackend',
   'BykcWriteBackend',
   'SigninWriteBackend',
   'CancellationWriteBackend',
@@ -28,15 +29,16 @@ const _publicNames = <String>[
   'UbaaErrorMapper',
   'WriteCommitter',
   'WritePreparer',
+  'WriteDiscarder',
   'WriteFlowController',
   'BridgeBackend',
   'createProductionBackend',
 ];
 
 void main() {
-  test('ubaa_app barrel 保持二十七个公开名字和稳定签名', () {
-    expect(_publicNames, hasLength(27));
-    expect(_publicNames.toSet(), hasLength(27));
+  test('ubaa_app barrel 保持二十九个公开名字和稳定签名', () {
+    expect(_publicNames, hasLength(29));
+    expect(_publicNames.toSet(), hasLength(29));
 
     // 这些函数只作为编译期合同被引用，不会构造或打开原生 Bridge。
     expect(<Object>[
@@ -54,6 +56,7 @@ List<Object?> _backendInterfaceSignatures(
   RouteSettingsBackend routeSettingsBackend,
   FeatureQueryBackend featureQueryBackend,
   WriteCommitBackend writeCommitBackend,
+  WriteIntentDiscardBackend writeIntentDiscardBackend,
   BykcWriteBackend bykcWriteBackend,
   SigninWriteBackend signinWriteBackend,
   CancellationWriteBackend cancellationWriteBackend,
@@ -76,6 +79,18 @@ List<Object?> _backendInterfaceSignatures(
   loadFeatureQuery = featureQueryBackend.loadFeatureQuery;
   final Future<WriteCommitResult> Function(String) commitWrite =
       writeCommitBackend.commitWrite;
+  final Future<void> Function(String) discardWriteIntent =
+      writeIntentDiscardBackend.discardWriteIntent;
+  final WriteIntentDiscardBackend commitDiscardBackend = writeCommitBackend;
+  final WriteIntentDiscardBackend bykcDiscardBackend = bykcWriteBackend;
+  final WriteIntentDiscardBackend signinDiscardBackend = signinWriteBackend;
+  final WriteIntentDiscardBackend cancellationDiscardBackend =
+      cancellationWriteBackend;
+  final WriteIntentDiscardBackend libbookDiscardBackend = libbookWriteBackend;
+  final WriteIntentDiscardBackend ygdkDiscardBackend = ygdkWriteBackend;
+  final WriteIntentDiscardBackend cgyyDiscardBackend = cgyyWriteBackend;
+  final WriteIntentDiscardBackend evaluationDiscardBackend =
+      evaluationWriteBackend;
   final Future<WriteIntent> Function({required int courseId})
   prepareBykcSelectCourse = bykcWriteBackend.prepareBykcSelectCourse;
   final Future<WriteIntent> Function({required int courseId})
@@ -122,6 +137,15 @@ List<Object?> _backendInterfaceSignatures(
     routeSettings,
     loadFeatureQuery,
     commitWrite,
+    discardWriteIntent,
+    commitDiscardBackend,
+    bykcDiscardBackend,
+    signinDiscardBackend,
+    cancellationDiscardBackend,
+    libbookDiscardBackend,
+    ygdkDiscardBackend,
+    cgyyDiscardBackend,
+    evaluationDiscardBackend,
     prepareBykcSelectCourse,
     prepareBykcDeselectCourse,
     prepareBykcSignCourse,
@@ -220,22 +244,28 @@ List<Object?> _controllerSignatures(
 List<Object?> _writeControllerSignatures(
   WriteCommitter writeCommitter,
   WritePreparer writePreparer,
+  WriteDiscarder writeDiscarder,
   WriteFlowController writeFlowController,
 ) {
   final Future<WriteCommitResult> Function(String) commit = writeCommitter;
   final Future<WriteIntent> Function() prepareIntent = writePreparer;
-  final WriteFlowController Function({required WriteCommitter commit})
+  final Future<void> Function(String) discard = writeDiscarder;
+  final WriteFlowController Function({
+    required WriteCommitter commit,
+    WriteDiscarder? discard,
+  })
   controllerConstructor = WriteFlowController.new;
   final void Function(WriteIntent) setIntent = writeFlowController.setIntent;
   final Future<WriteIntent?> Function(WritePreparer) prepare =
       writeFlowController.prepare;
-  final void Function() cancel = writeFlowController.cancel;
+  final Future<void> Function() cancel = writeFlowController.cancel;
   final Future<WriteCommitResult?> Function() confirm =
       writeFlowController.confirm;
 
   return <Object?>[
     commit,
     prepareIntent,
+    discard,
     controllerConstructor,
     setIntent,
     prepare,
@@ -256,6 +286,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
   final RouteSettingsBackend routeBackend = bridgeBackend;
   final FeatureQueryBackend queryBackend = bridgeBackend;
   final WriteCommitBackend commitBackend = bridgeBackend;
+  final WriteIntentDiscardBackend discardBackend = bridgeBackend;
   final BykcWriteBackend bykcBackend = bridgeBackend;
   final SigninWriteBackend signinBackend = bridgeBackend;
   final CancellationWriteBackend cancellationBackend = bridgeBackend;
@@ -274,6 +305,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
     routeBackend,
     queryBackend,
     commitBackend,
+    discardBackend,
     bykcBackend,
     signinBackend,
     cancellationBackend,

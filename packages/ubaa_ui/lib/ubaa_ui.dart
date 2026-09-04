@@ -2,4 +2,5 @@
 library;
 
 export 'src/theme.dart';
+export 'src/write_callbacks.dart';
 export 'src/widgets.dart';

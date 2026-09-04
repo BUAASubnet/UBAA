@@ -1,13 +1,25 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-/// 已接入 typed 写意图的博雅课程能力。
+/// 可释放尚未提交的一次性意图。
 ///
-/// 该接口只暴露公开课程 ID 和一次性意图；确认提交仍需单独调用
-/// [commitWrite]，测试后端可以不实现它而安全保持只读。
-abstract interface class WriteCommitBackend {
+/// 丢弃只删除 Bridge 内存中的 pending intent，不发送上游写请求。
+abstract interface class WriteIntentDiscardBackend {
+  Future<void> discardWriteIntent(String intentId);
+}
+
+/// 生产写入的统一确认能力。
+///
+/// 任何可提交或准备 typed 写意图的 backend 都必须同时提供
+/// [discardWriteIntent]，保证宿主在展示确认页前已具备完整生命周期能力。
+abstract interface class WriteCommitBackend
+    implements WriteIntentDiscardBackend {
   Future<WriteCommitResult> commitWrite(String intentId);
 }
 
+/// 已接入 typed 写意图的博雅课程能力。
+///
+/// 该接口只暴露公开课程 ID 和一次性意图；确认提交仍需单独调用
+/// [commitWrite]。未实现本能力的测试 backend 仍可安全保持只读。
 abstract interface class BykcWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId});
 

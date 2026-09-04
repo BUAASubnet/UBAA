@@ -402,17 +402,39 @@ class AppController extends ChangeNotifier {
     };
   }
 
-  /// 准备博雅签到/签退；仅接受冻结合同的 signType 1/2，不伪造位置。
-  Future<WriteIntent> prepareBykcSignWrite(int courseId, int signType) async {
+  /// 准备博雅签到/签退；仅接受冻结合同的 signType 1/2 和完整有效坐标对。
+  Future<WriteIntent> prepareBykcSignWrite(
+    int courseId,
+    int signType, {
+    double? lat,
+    double? lng,
+  }) async {
     final backend = _backend;
     if (backend is! BykcWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    if (courseId <= 0 || (signType != 1 && signType != 2)) {
+    final hasNoCoordinates = lat == null && lng == null;
+    final hasValidCoordinates =
+        lat != null &&
+        lng != null &&
+        lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180;
+    if (courseId <= 0 ||
+        (signType != 1 && signType != 2) ||
+        (!hasNoCoordinates && !hasValidCoordinates)) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     final writer = backend as BykcWriteBackend;
-    return writer.prepareBykcSignCourse(courseId: courseId, signType: signType);
+    return writer.prepareBykcSignCourse(
+      courseId: courseId,
+      lat: lat,
+      lng: lng,
+      signType: signType,
+    );
   }
 
   /// 准备课堂签到的 typed 一次性意图；课程编号必须来自读取白名单。
@@ -645,6 +667,20 @@ class AppController extends ChangeNotifier {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     return writer.commitWrite(intentId);
+  }
+
+  /// 释放尚未确认的一次性意图；该操作不提交任何上游写请求。
+  Future<void> discardWriteIntent(String intentId) async {
+    final backend = _backend;
+    if (backend is! WriteCommitBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final writer = backend as WriteCommitBackend;
+    final normalized = intentId.trim();
+    if (normalized.isEmpty) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return writer.discardWriteIntent(normalized);
   }
 
   /// 写入成功后仅刷新关联只读领域，用于结果核对；不会重试写请求。

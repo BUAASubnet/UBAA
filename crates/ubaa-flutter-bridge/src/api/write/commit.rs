@@ -2,8 +2,8 @@
 
 use super::support::{
     ensure_bykc_course_target, ensure_bykc_deselect_allowed, ensure_bykc_preflight_route,
-    ensure_bykc_select_allowed, invalid_input, map_cgyy_request, map_evaluation_course,
-    map_resolution_error, now_seconds, safe_message,
+    ensure_bykc_select_allowed, invalid_input, map_cgyy_request, map_commit_error,
+    map_evaluation_course, map_resolution_error, now_seconds, safe_message,
 };
 use super::{BridgeWriteCommitResult, PendingWrite};
 use crate::api::client::{
@@ -36,7 +36,7 @@ impl BridgeClient {
                     )
                 })?
             };
-            if now_seconds() > entry.expires_at {
+            if now_seconds() >= entry.expires_at {
                 return Err(BridgeError::local(
                     BridgeErrorCode::IntentExpired,
                     BridgeErrorKind::Input,
@@ -95,15 +95,22 @@ impl BridgeClient {
                     .bykc_deselect_course(request.course_id)
                     .await
                     .map(|r| (r.resolution, safe_message("博雅退选已提交"), None)),
-                PendingWrite::BykcSign(request) => client
-                    .bykc_sign_course(domain::BykcSignRequest {
-                        course_id: request.course_id,
-                        lat: request.lat,
-                        lng: request.lng,
-                        sign_type: request.sign_type,
-                    })
-                    .await
-                    .map(|r| (r.resolution, safe_message("博雅签到已提交"), None)),
+                PendingWrite::BykcSign(request) => {
+                    let message = if request.sign_type == 1 {
+                        "博雅签到已提交"
+                    } else {
+                        "博雅签退已提交"
+                    };
+                    client
+                        .bykc_sign_course(domain::BykcSignRequest {
+                            course_id: request.course_id,
+                            lat: request.lat,
+                            lng: request.lng,
+                            sign_type: request.sign_type,
+                        })
+                        .await
+                        .map(|r| (r.resolution, safe_message(message), None))
+                }
                 PendingWrite::Signin(request) => client
                     .signin_perform(&request.course_id)
                     .await
@@ -172,24 +179,7 @@ impl BridgeClient {
                     resolved_route: Some(resolution.mode.into()),
                     order,
                 }),
-                Err(error) => {
-                    let unknown = matches!(
-                        error.error.code,
-                        ubaa_core::facade::ErrorCode::NetworkError
-                            | ubaa_core::facade::ErrorCode::Timeout
-                            | ubaa_core::facade::ErrorCode::UpstreamUnavailable
-                    );
-                    if unknown {
-                        Err(BridgeError::local(
-                            BridgeErrorCode::OutcomeUnknown,
-                            BridgeErrorKind::Network,
-                            true,
-                            "write outcome is unknown; refresh status before retrying",
-                        ))
-                    } else {
-                        Err(BridgeError::from_routed(error))
-                    }
-                }
+                Err(error) => Err(map_commit_error(operation, error)),
             }
         })
         .await

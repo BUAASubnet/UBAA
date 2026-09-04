@@ -7,7 +7,7 @@ use super::crypto::{decrypt_response, encrypt_request};
 use super::parser::envelope;
 use super::{BykcCredential, error};
 use crate::connection::from_webvpn_url;
-use crate::error::Result;
+use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
 pub(super) const BASE_URL: &str = "https://bykc.buaa.edu.cn";
@@ -87,6 +87,38 @@ pub(super) async fn request_api(
     api_name: &str,
     payload: Value,
 ) -> Result<Value> {
+    request_api_inner(runtime, api_name, payload, ApiRequestKind::Read).await
+}
+
+pub(super) async fn request_preflight_api(
+    runtime: &mut crate::runtime::ClientRuntime,
+    api_name: &str,
+    payload: Value,
+) -> Result<Value> {
+    request_api_inner(runtime, api_name, payload, ApiRequestKind::WritePreflight).await
+}
+
+pub(super) async fn request_write_api(
+    runtime: &mut crate::runtime::ClientRuntime,
+    api_name: &str,
+    payload: Value,
+) -> Result<Value> {
+    request_api_inner(runtime, api_name, payload, ApiRequestKind::Write).await
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ApiRequestKind {
+    Read,
+    WritePreflight,
+    Write,
+}
+
+async fn request_api_inner(
+    runtime: &mut crate::runtime::ClientRuntime,
+    api_name: &str,
+    payload: Value,
+    kind: ApiRequestKind,
+) -> Result<Value> {
     let credential = ensure_login(runtime).await?;
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -119,11 +151,117 @@ pub(super) async fn request_api(
     request.headers.insert("ak".into(), encrypted.ak);
     request.headers.insert("sk".into(), encrypted.sk);
     request.headers.insert("ts".into(), encrypted.ts);
-    let response = runtime.request(request).await?;
+    let response = if kind == ApiRequestKind::Write {
+        runtime.request_non_idempotent(request).await?
+    } else {
+        runtime.request(request).await?
+    };
     if response.status != 200 {
-        return Err(error("博雅服务暂时不可用"));
+        return Err(if kind == ApiRequestKind::Write {
+            write_outcome_unknown()
+        } else {
+            error("博雅服务暂时不可用")
+        });
     }
     let text = super::super::body(&response);
     let plain = decrypt_response(&text, &encrypted.aes_key).unwrap_or(text);
-    envelope(&plain)
+    match kind {
+        ApiRequestKind::Read => envelope(&plain),
+        ApiRequestKind::WritePreflight => preflight_envelope(&plain),
+        ApiRequestKind::Write => write_envelope(&plain),
+    }
+}
+
+fn preflight_envelope(body: &str) -> Result<Value> {
+    let value: Value = serde_json::from_str(body).map_err(|_| error("博雅预检响应无法解析"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| error("博雅预检响应结构无效"))?;
+    let status = object
+        .get("status")
+        .and_then(Value::as_str)
+        .ok_or_else(|| error("博雅预检响应缺少有效状态"))?;
+    if status != "0" {
+        return Err(error(
+            object
+                .get("errmsg")
+                .or_else(|| object.get("msg"))
+                .and_then(Value::as_str)
+                .unwrap_or("博雅预检请求失败"),
+        ));
+    }
+    object
+        .get("data")
+        .filter(|value| !value.is_null())
+        .cloned()
+        .ok_or_else(|| error("博雅预检响应缺少数据"))
+}
+
+fn write_envelope(body: &str) -> Result<Value> {
+    let value: Value = serde_json::from_str(body).map_err(|_| write_outcome_unknown())?;
+    let object = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let status = object
+        .get("status")
+        .and_then(Value::as_str)
+        .ok_or_else(write_outcome_unknown)?;
+    if status != "0" {
+        return Err(error(
+            object
+                .get("errmsg")
+                .or_else(|| object.get("msg"))
+                .and_then(Value::as_str)
+                .unwrap_or("博雅请求失败"),
+        ));
+    }
+    Ok(object.get("data").cloned().unwrap_or(Value::Null))
+}
+
+pub(super) fn write_outcome_unknown() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        "博雅写入结果未知，请先刷新状态再决定是否重试",
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::write_envelope;
+    use crate::error::ErrorCode;
+
+    fn assert_outcome_unknown(body: &str) {
+        let error = write_envelope(body).expect_err("不能确认写入结果时必须返回结果未知");
+        assert_eq!(error.code, ErrorCode::OutcomeUnknown);
+        assert!(!error.retryable);
+    }
+
+    #[test]
+    fn 写入响应缺少_status_时结果未知且不可自动重试() {
+        assert_outcome_unknown(r#"{"data":{"message":"不可确认"}}"#);
+    }
+
+    #[test]
+    fn 写入响应_status_不是字符串时结果未知且不可自动重试() {
+        assert_outcome_unknown(r#"{"status":0,"data":{"message":"不可确认"}}"#);
+    }
+
+    #[test]
+    fn 非零写入状态即使_success_为真也按冻结错误字段返回确定失败() {
+        for (body, expected_message) in [
+            (
+                r#"{"status":"1","success":true,"errmsg":"冻结业务失败","msg":"备用错误","data":{"message":"不得返回"}}"#,
+                "冻结业务失败",
+            ),
+            (
+                r#"{"status":"2","success":true,"msg":"冻结备用错误","data":{"message":"不得返回"}}"#,
+                "冻结备用错误",
+            ),
+        ] {
+            let error = write_envelope(body).expect_err("非零 status 不得被 success=true 覆盖");
+            assert_eq!(error.code, ErrorCode::UpstreamChanged);
+            assert_eq!(error.message, expected_message);
+            assert!(!error.retryable);
+        }
+    }
 }

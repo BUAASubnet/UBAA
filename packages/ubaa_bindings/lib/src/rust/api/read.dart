@@ -23,11 +23,11 @@ class BridgeBykcChosenCourse {
   final String? courseCancelEndDate;
   final BridgeBykcCourseCategory? category;
   final BridgeBykcCourseSubCategory? subCategory;
-  final int checkin;
+  final int? checkin;
   final int? score;
   final int? pass;
-  final bool canSign;
-  final bool canSignOut;
+  final BridgeActionEligibility signEligibility;
+  final BridgeActionEligibility signOutEligibility;
   final BridgeActionEligibility deselectEligibility;
   final BridgeBykcSignConfig? signConfig;
   final int? courseSignType;
@@ -44,11 +44,11 @@ class BridgeBykcChosenCourse {
     this.courseCancelEndDate,
     this.category,
     this.subCategory,
-    required this.checkin,
+    this.checkin,
     this.score,
     this.pass,
-    required this.canSign,
-    required this.canSignOut,
+    required this.signEligibility,
+    required this.signOutEligibility,
     required this.deselectEligibility,
     this.signConfig,
     this.courseSignType,
@@ -70,8 +70,8 @@ class BridgeBykcChosenCourse {
       checkin.hashCode ^
       score.hashCode ^
       pass.hashCode ^
-      canSign.hashCode ^
-      canSignOut.hashCode ^
+      signEligibility.hashCode ^
+      signOutEligibility.hashCode ^
       deselectEligibility.hashCode ^
       signConfig.hashCode ^
       courseSignType.hashCode;
@@ -95,8 +95,8 @@ class BridgeBykcChosenCourse {
           checkin == other.checkin &&
           score == other.score &&
           pass == other.pass &&
-          canSign == other.canSign &&
-          canSignOut == other.canSignOut &&
+          signEligibility == other.signEligibility &&
+          signOutEligibility == other.signOutEligibility &&
           deselectEligibility == other.deselectEligibility &&
           signConfig == other.signConfig &&
           courseSignType == other.courseSignType;

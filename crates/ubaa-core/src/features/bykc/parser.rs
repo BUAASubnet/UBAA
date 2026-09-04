@@ -265,23 +265,54 @@ pub(crate) fn parse_course_detail(body: &str) -> Result<BykcCourse> {
     course(&envelope(body)?, Local::now().naive_local())
 }
 
+pub(super) fn parse_course_detail_for_write(body: &str) -> Result<BykcCourse> {
+    let value = envelope(body)?;
+    let map = value
+        .as_object()
+        .ok_or_else(|| error("博雅课程详情结构无效"))?;
+    ensure_optional_i32(map, "courseCurrentCount")?;
+    ensure_optional_i32(map, "courseMaxCount")?;
+    course(&value, Local::now().naive_local())
+}
+
 /// 解析已选课程列表。
 pub(crate) fn parse_chosen_courses(body: &str) -> Result<Vec<BykcChosenCourse>> {
     parse_chosen_courses_at(body, Local::now().naive_local())
+}
+
+pub(super) fn parse_chosen_courses_for_write(body: &str) -> Result<Vec<BykcChosenCourse>> {
+    parse_chosen_courses_at_for_purpose(body, Local::now().naive_local(), true)
 }
 
 pub(super) fn parse_chosen_courses_at(
     body: &str,
     now: NaiveDateTime,
 ) -> Result<Vec<BykcChosenCourse>> {
+    parse_chosen_courses_at_for_purpose(body, now, false)
+}
+
+fn parse_chosen_courses_at_for_purpose(
+    body: &str,
+    now: NaiveDateTime,
+    write_preflight: bool,
+) -> Result<Vec<BykcChosenCourse>> {
     let payload = envelope(body)?;
-    payload
-        .as_array()
-        .or_else(|| payload.get("courseList").and_then(Value::as_array))
+    let courses = if write_preflight {
+        payload.get("courseList").and_then(Value::as_array)
+    } else {
+        payload
+            .as_array()
+            .or_else(|| payload.get("courseList").and_then(Value::as_array))
+    };
+    courses
         .ok_or_else(|| error("博雅已选课程结构无效"))?
         .iter()
         .map(|v| {
             let m = v.as_object().ok_or_else(|| error("博雅已选课程字段无效"))?;
+            if write_preflight {
+                ensure_optional_i32(m, "checkin")?;
+                ensure_optional_i32(m, "pass")?;
+            }
             let course = m.get("courseInfo").and_then(Value::as_object);
             let course_id = course
                 .and_then(|course| course.get("id"))
@@ -294,26 +325,10 @@ pub(super) fn parse_chosen_courses_at(
                 .and_then(|course| string(course, "courseSignConfig"))
                 .as_deref()
                 .and_then(parse_sign_config);
-            let checkin = int(m, "checkin").unwrap_or_default();
+            let checkin = int(m, "checkin");
             let pass = int(m, "pass");
-            let can_sign = pass != Some(1)
-                && matches!(checkin, 0)
-                && sign_config.as_ref().is_some_and(|config| {
-                    is_within_window(
-                        config.sign_start_date.as_deref(),
-                        config.sign_end_date.as_deref(),
-                        now,
-                    )
-                });
-            let can_sign_out = pass != Some(1)
-                && matches!(checkin, 0 | 5 | 6)
-                && sign_config.as_ref().is_some_and(|config| {
-                    is_within_window(
-                        config.sign_out_start_date.as_deref(),
-                        config.sign_out_end_date.as_deref(),
-                        now,
-                    )
-                });
+            let (sign_eligibility, sign_out_eligibility) =
+                sign_eligibilities(course_id, checkin, pass, sign_config.as_ref(), now);
             Ok(BykcChosenCourse {
                 id: m
                     .get("id")
@@ -341,8 +356,8 @@ pub(super) fn parse_chosen_courses_at(
                 checkin,
                 score: int(m, "score"),
                 pass,
-                can_sign,
-                can_sign_out,
+                sign_eligibility,
+                sign_out_eligibility,
                 deselect_eligibility,
                 sign_config,
                 course_sign_type: course.and_then(|course| int(course, "courseSignType")),
@@ -353,6 +368,21 @@ pub(super) fn parse_chosen_courses_at(
             })
         })
         .collect()
+}
+
+fn ensure_optional_i32(map: &Map<String, Value>, key: &str) -> Result<()> {
+    let Some(value) = map.get(key) else {
+        return Ok(());
+    };
+    if value.is_null()
+        || value
+            .as_i64()
+            .and_then(|value| i32::try_from(value).ok())
+            .is_some()
+    {
+        return Ok(());
+    }
+    Err(error("博雅写前资格字段类型无效"))
 }
 
 fn normalized_string(map: &Map<String, Value>, key: &str) -> Option<String> {
@@ -415,11 +445,60 @@ pub(super) fn parse_sign_config(raw: &str) -> Option<BykcSignConfig> {
     })
 }
 
-fn is_within_window(start: Option<&str>, end: Option<&str>, now: NaiveDateTime) -> bool {
-    start
-        .and_then(|start| parse_datetime(Some(start)))
-        .zip(end.and_then(|end| parse_datetime(Some(end))))
-        .is_some_and(|(start, end)| start <= now && now <= end)
+pub(super) fn sign_eligibilities(
+    course_id: i64,
+    checkin: Option<i32>,
+    pass: Option<i32>,
+    config: Option<&BykcSignConfig>,
+    now: NaiveDateTime,
+) -> (ActionEligibility, ActionEligibility) {
+    if course_id <= 0 || checkin.is_none() || pass.is_none() {
+        return (ActionEligibility::Unknown, ActionEligibility::Unknown);
+    }
+    if pass == Some(1) {
+        return (ActionEligibility::Denied, ActionEligibility::Denied);
+    }
+    let checkin = checkin.expect("已校验考勤状态存在");
+    let sign = if checkin == 0 {
+        window_eligibility(
+            config.and_then(|value| value.sign_start_date.as_deref()),
+            config.and_then(|value| value.sign_end_date.as_deref()),
+            now,
+        )
+    } else {
+        ActionEligibility::Denied
+    };
+    let sign_out = if matches!(checkin, 0 | 5 | 6) {
+        window_eligibility(
+            config.and_then(|value| value.sign_out_start_date.as_deref()),
+            config.and_then(|value| value.sign_out_end_date.as_deref()),
+            now,
+        )
+    } else {
+        ActionEligibility::Denied
+    };
+    (sign, sign_out)
+}
+
+fn window_eligibility(
+    start: Option<&str>,
+    end: Option<&str>,
+    now: NaiveDateTime,
+) -> ActionEligibility {
+    let Some((start, end)) = start
+        .and_then(|value| parse_datetime(Some(value)))
+        .zip(end.and_then(|value| parse_datetime(Some(value))))
+    else {
+        return ActionEligibility::Unknown;
+    };
+    if start > end {
+        return ActionEligibility::Unknown;
+    }
+    if start <= now && now <= end {
+        ActionEligibility::Allowed
+    } else {
+        ActionEligibility::Denied
+    }
 }
 
 pub(super) fn resolve_current_semester(

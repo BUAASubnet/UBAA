@@ -28,6 +28,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   final List<String> calls;
   final Map<Symbol, Object> writeRequests = <Symbol, Object>{};
   BridgeError? authError;
+  BridgeError? discardError;
   BridgeLoginOutcome loginOutcome = _readyLoginOutcome;
   BridgeWriteCommitResult commitResult = const BridgeWriteCommitResult(
     operation: BridgeWriteOperation.bykcSelectCourse,
@@ -36,6 +37,9 @@ class _CharacterizationBridgeClient implements BridgeClient {
     outcomeUnknown: false,
     resolvedRoute: BridgeConnectionMode.webVpn,
   );
+
+  @override
+  int contractVersion() => 2;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -102,6 +106,14 @@ class _CharacterizationBridgeClient implements BridgeClient {
           'commitWrite:intentId=${invocation.namedArguments[#intentId]}',
         );
         return Future<BridgeWriteCommitResult>.value(commitResult);
+      case #discardWriteIntent:
+        calls.add(
+          'discardWriteIntent:intentId=${invocation.namedArguments[#intentId]}',
+        );
+        final error = discardError;
+        discardError = null;
+        if (error != null) return Future<void>.error(error);
+        return Future<void>.value();
       default:
         throw UnsupportedError('unexpected bridge call: $member');
     }
@@ -121,8 +133,8 @@ class _CharacterizationBridgeClient implements BridgeClient {
                       courseId: 9527,
                       courseName: '已选课程',
                       checkin: 0,
-                      canSign: true,
-                      canSignOut: false,
+                      signEligibility: BridgeActionEligibility.allowed,
+                      signOutEligibility: BridgeActionEligibility.denied,
                       deselectEligibility: BridgeActionEligibility.allowed,
                       signConfig: BridgeBykcSignConfig(
                         signPoints: <BridgeBykcSignPoint>[

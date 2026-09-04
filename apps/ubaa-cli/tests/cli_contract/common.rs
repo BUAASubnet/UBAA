@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use ubaa_cli::{CliBackend, RoutedCliBackend};
 use ubaa_core::facade::{
-    AuthStatus, CgyyActionResult, ConnectionMode, ErrorCode, ErrorKind, FeatureResult,
-    JudgeAssignmentsDiagnostics, LoginInput, NetworkState, Result, RouteDiagnostic, RoutePolicy,
-    RouteResolution, Routed, RoutedError, RoutedResult, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, UbaaError, UserProfile,
+    AuthStatus, BykcActionResult, BykcSignRequest, CgyyActionResult, ConnectionMode, ErrorCode,
+    ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics, LoginInput, NetworkState, Result,
+    RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError, RoutedResult,
+    SpocAssignments, SpocAssignmentsDiagnostics, Term, UbaaError, UserProfile,
 };
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
@@ -30,6 +30,21 @@ pub(crate) struct FakeRoutedBackend {
 
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn bykc_select_course(&mut self, _course_id: i64) -> RoutedResult<BykcActionResult> {
+        Ok(bykc_action("fixture select"))
+    }
+
+    async fn bykc_deselect_course(&mut self, _course_id: i64) -> RoutedResult<BykcActionResult> {
+        Ok(bykc_action("fixture deselect"))
+    }
+
+    async fn bykc_sign_course(
+        &mut self,
+        _request: BykcSignRequest,
+    ) -> RoutedResult<BykcActionResult> {
+        Ok(bykc_action("fixture sign"))
+    }
+
     async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
         self.cgyy_cancel_calls += 1;
         Ok(Routed {
@@ -115,6 +130,19 @@ impl RoutedCliBackend for FakeRoutedBackend {
                 ConnectionMode::Direct,
             ),
         })
+    }
+}
+
+fn bykc_action(message: &str) -> Routed<BykcActionResult> {
+    Routed {
+        data: BykcActionResult {
+            message: message.into(),
+        },
+        resolution: route_resolution(
+            RoutePolicy::Direct,
+            NetworkState::Unknown,
+            ConnectionMode::Direct,
+        ),
     }
 }
 

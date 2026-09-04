@@ -9,9 +9,10 @@ use super::parser::{
     parse_chosen_courses, parse_chosen_courses_at, parse_courses_at, parse_sign_config,
     resolve_current_semester,
 };
+use super::write::{resolve_sign_location, sign_location_requires_fallback, sign_payload};
 use crate::connection::to_webvpn_url;
 use crate::domain::{
-    ActionEligibility, BykcCourseCategory, BykcCourseStatus, BykcCourseSubCategory,
+    ActionEligibility, BykcCourseCategory, BykcCourseStatus, BykcCourseSubCategory, BykcSignRequest,
 };
 
 #[test]
@@ -392,13 +393,191 @@ fn 已选课程展开课程签到和作业字段() {
     assert_eq!(record.course_name, "艺术鉴赏");
     assert_eq!(record.category, Some(BykcCourseCategory::Boya));
     assert_eq!(record.sub_category, Some(BykcCourseSubCategory::Aesthetic));
-    assert_eq!(record.checkin, 5);
+    assert_eq!(record.checkin, Some(5));
     assert_eq!(record.pass, Some(0));
-    assert!(!record.can_sign);
-    assert!(record.can_sign_out);
+    assert_eq!(record.sign_eligibility, ActionEligibility::Denied);
+    assert_eq!(record.sign_out_eligibility, ActionEligibility::Allowed);
     assert_eq!(record.sign_config.expect("签到配置").sign_points.len(), 1);
     assert_eq!(record.homework.as_deref(), Some("提交学习报告"));
     assert_eq!(record.sign_info.as_deref(), Some("已签到"));
+}
+
+#[test]
+fn 博雅签到与签退资格区分允许拒绝和未知() {
+    let parse = |checkin: Option<i32>, pass: Option<i32>, config: Option<&str>, now: &str| {
+        let mut chosen = serde_json::json!({
+            "id": 9,
+            "courseInfo": {"id": 42, "courseName": "资格课程"}
+        });
+        let object = chosen.as_object_mut().expect("已选课程对象");
+        if let Some(checkin) = checkin {
+            object.insert("checkin".to_owned(), serde_json::json!(checkin));
+        }
+        if let Some(pass) = pass {
+            object.insert("pass".to_owned(), serde_json::json!(pass));
+        }
+        if let Some(config) = config {
+            object
+                .get_mut("courseInfo")
+                .and_then(serde_json::Value::as_object_mut)
+                .expect("课程对象")
+                .insert("courseSignConfig".to_owned(), serde_json::json!(config));
+        }
+        let body = serde_json::json!({"status":"0", "data":[chosen]}).to_string();
+        parse_chosen_courses_at(
+            &body,
+            NaiveDateTime::parse_from_str(now, "%Y-%m-%d %H:%M:%S").expect("固定时间"),
+        )
+        .expect("解析已选课程")
+        .remove(0)
+    };
+    let config = serde_json::json!({
+        "signStartDate": "2026-09-04 08:50:00",
+        "signEndDate": "2026-09-04 09:10:00",
+        "signOutStartDate": "2026-09-04 09:50:00",
+        "signOutEndDate": "2026-09-04 10:10:00",
+        "signPointList": [{"lat": 39.9, "lng": 116.3, "radius": 100.0}]
+    })
+    .to_string();
+    let inverted_config = serde_json::json!({
+        "signStartDate": "2026-09-04 09:10:00",
+        "signEndDate": "2026-09-04 08:50:00",
+        "signOutStartDate": "2026-09-04 10:10:00",
+        "signOutEndDate": "2026-09-04 09:50:00",
+        "signPointList": [{"lat": 39.9, "lng": 116.3, "radius": 100.0}]
+    })
+    .to_string();
+
+    let signing = parse(Some(0), Some(0), Some(&config), "2026-09-04 08:50:00");
+    assert_eq!(signing.sign_eligibility, ActionEligibility::Allowed);
+    assert_eq!(signing.sign_out_eligibility, ActionEligibility::Denied);
+
+    let signing_out = parse(Some(5), Some(0), Some(&config), "2026-09-04 10:10:00");
+    assert_eq!(signing_out.sign_eligibility, ActionEligibility::Denied);
+    assert_eq!(signing_out.sign_out_eligibility, ActionEligibility::Allowed);
+
+    let outside = parse(Some(0), Some(0), Some(&config), "2026-09-04 12:00:00");
+    assert_eq!(outside.sign_eligibility, ActionEligibility::Denied);
+    assert_eq!(outside.sign_out_eligibility, ActionEligibility::Denied);
+
+    let passed = parse(Some(0), Some(1), Some(&config), "2026-09-04 09:00:00");
+    assert_eq!(passed.sign_eligibility, ActionEligibility::Denied);
+    assert_eq!(passed.sign_out_eligibility, ActionEligibility::Denied);
+
+    for unknown in [
+        parse(None, Some(0), Some(&config), "2026-09-04 09:00:00"),
+        parse(Some(0), None, Some(&config), "2026-09-04 09:00:00"),
+        parse(Some(0), Some(0), None, "2026-09-04 09:00:00"),
+        parse(Some(0), Some(0), Some("{not-json"), "2026-09-04 09:00:00"),
+        parse(
+            Some(0),
+            Some(0),
+            Some(&inverted_config),
+            "2026-09-04 09:00:00",
+        ),
+    ] {
+        assert_eq!(unknown.sign_eligibility, ActionEligibility::Unknown);
+        assert_eq!(unknown.sign_out_eligibility, ActionEligibility::Unknown);
+    }
+}
+
+#[test]
+fn 博雅签到坐标遵循圆内算法并在无正半径点时回退输入() {
+    let config = crate::domain::BykcSignConfig {
+        sign_points: vec![crate::domain::BykcSignPoint {
+            lat: 39.9,
+            lng: 116.3,
+            radius: 100.0,
+        }],
+        ..crate::domain::BykcSignConfig::default()
+    };
+    for _ in 0..32 {
+        let (lat, lng) = resolve_sign_location(&config, None, None).expect("生成圆内坐标");
+        let north_meters = (lat - 39.9) * 111_320.0;
+        let east_meters = (lng - 116.3) * 111_320.0 * 39.9_f64.to_radians().cos();
+        assert!(north_meters.hypot(east_meters) <= 100.1);
+    }
+
+    let no_radius = crate::domain::BykcSignConfig {
+        sign_points: vec![crate::domain::BykcSignPoint {
+            lat: 39.9,
+            lng: 116.3,
+            radius: 0.0,
+        }],
+        ..crate::domain::BykcSignConfig::default()
+    };
+    assert_eq!(
+        resolve_sign_location(&no_radius, Some(40.0), Some(116.4)).expect("使用完整回退坐标"),
+        (40.0, 116.4)
+    );
+    assert!(resolve_sign_location(&no_radius, None, None).is_err());
+
+    let mixed = crate::domain::BykcSignConfig {
+        sign_points: vec![
+            config.sign_points[0].clone(),
+            no_radius.sign_points[0].clone(),
+        ],
+        ..crate::domain::BykcSignConfig::default()
+    };
+    assert!(!sign_location_requires_fallback(&config));
+    assert!(sign_location_requires_fallback(&no_radius));
+    assert!(sign_location_requires_fallback(&mixed));
+
+    for invalid_point in [
+        crate::domain::BykcSignPoint {
+            lat: 39.9,
+            lng: 116.3,
+            radius: f64::NAN,
+        },
+        crate::domain::BykcSignPoint {
+            lat: 39.9,
+            lng: 116.3,
+            radius: f64::INFINITY,
+        },
+        crate::domain::BykcSignPoint {
+            lat: f64::NAN,
+            lng: 116.3,
+            radius: 100.0,
+        },
+        crate::domain::BykcSignPoint {
+            lat: 39.9,
+            lng: 181.0,
+            radius: 100.0,
+        },
+    ] {
+        let invalid = crate::domain::BykcSignConfig {
+            sign_points: vec![invalid_point],
+            ..crate::domain::BykcSignConfig::default()
+        };
+        assert!(sign_location_requires_fallback(&invalid));
+        assert_eq!(
+            resolve_sign_location(&invalid, Some(40.0), Some(116.4))
+                .expect("非法签到点必须使用完整回退坐标"),
+            (40.0, 116.4)
+        );
+    }
+}
+
+#[test]
+fn 博雅签到请求使用冻结的坐标字段名() {
+    let request = BykcSignRequest {
+        course_id: 42,
+        lat: Some(39.9),
+        lng: Some(116.3),
+        sign_type: 1,
+    };
+    let host_value = serde_json::to_value(&request).expect("序列化宿主请求");
+    assert_eq!(host_value["lat"], 39.9);
+    assert_eq!(host_value["lng"], 116.3);
+
+    let value = sign_payload(&request, 39.9, 116.3);
+
+    assert_eq!(value["courseId"], 42);
+    assert_eq!(value["signLat"], 39.9);
+    assert_eq!(value["signLng"], 116.3);
+    assert_eq!(value["signType"], 1);
+    assert!(value.get("lat").is_none());
+    assert!(value.get("lng").is_none());
 }
 
 #[test]

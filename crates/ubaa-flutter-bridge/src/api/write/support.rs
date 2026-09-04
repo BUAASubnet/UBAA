@@ -7,7 +7,10 @@ use rand::random;
 use sha2::{Digest, Sha256};
 use ubaa_core::facade as domain;
 
-use super::{BridgeCgyySubmitReservationRequest, BridgeYgdkSubmitRequest};
+use super::{
+    BridgeBykcSignCourseRequest, BridgeCgyySubmitReservationRequest, BridgeWriteOperation,
+    BridgeYgdkSubmitRequest,
+};
 use crate::api::client::{BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind};
 use crate::api::read::BridgeEvaluationCourse;
 
@@ -23,6 +26,93 @@ pub(super) fn map_resolution_error(error: ubaa_core::facade::UbaaError) -> Bridg
         );
     }
     BridgeError::from_core(error, None)
+}
+
+pub(super) fn map_bykc_sign_preflight_error(error: domain::RoutedError) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if error.error.code == domain::ErrorCode::InvalidInput && error.error.retryable {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "课程签到资格已变化，请刷新后重新准备",
+        );
+    }
+    BridgeError::from_routed(error)
+}
+
+pub(super) fn map_commit_error(
+    operation: BridgeWriteOperation,
+    error: domain::RoutedError,
+) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if matches!(operation, BridgeWriteOperation::BykcSignCourse)
+        && error.error.code == domain::ErrorCode::InvalidInput
+        && error.error.retryable
+    {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "课程签到资格已变化，请刷新后重新准备",
+        );
+    }
+    let outcome_unknown = if error.error.code == domain::ErrorCode::OutcomeUnknown {
+        true
+    } else if matches!(operation, BridgeWriteOperation::BykcSignCourse) {
+        false
+    } else {
+        matches!(
+            error.error.code,
+            domain::ErrorCode::NetworkError
+                | domain::ErrorCode::Timeout
+                | domain::ErrorCode::UpstreamUnavailable
+        )
+    };
+    if outcome_unknown {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OutcomeUnknown,
+            BridgeErrorKind::Network,
+            false,
+            "write outcome is unknown; refresh status before retrying",
+        );
+    }
+    BridgeError::from_routed(error)
+}
+
+fn routed_local_error(
+    error: &domain::RoutedError,
+    code: BridgeErrorCode,
+    kind: BridgeErrorKind,
+    retryable: bool,
+    message: &str,
+) -> BridgeError {
+    BridgeError {
+        code,
+        kind,
+        retryable,
+        message: message.to_owned(),
+        resolved_route: error.resolution().map(|value| value.mode.into()),
+    }
 }
 
 pub(super) fn ensure_bykc_select_allowed(
@@ -93,6 +183,42 @@ pub(super) fn ensure_bykc_preflight_route(
         true,
         "route changed during preflight; prepare the write again",
     ))
+}
+
+pub(super) fn validate_bykc_sign_request(
+    request: &BridgeBykcSignCourseRequest,
+) -> Result<(), BridgeError> {
+    validate_id(request.course_id)?;
+    if !matches!(request.sign_type, 1 | 2) {
+        return Err(invalid_input("sign type must be 1 or 2"));
+    }
+    match (request.lat, request.lng) {
+        (None, None) => Ok(()),
+        (Some(lat), Some(lng))
+            if lat.is_finite()
+                && lng.is_finite()
+                && (-90.0..=90.0).contains(&lat)
+                && (-180.0..=180.0).contains(&lng) =>
+        {
+            Ok(())
+        }
+        _ => Err(invalid_input(
+            "latitude and longitude must be supplied together and be valid",
+        )),
+    }
+}
+
+pub(super) fn bykc_sign_canonical(request: &BridgeBykcSignCourseRequest) -> String {
+    format!(
+        "course_id={};coordinates={};sign_type={}",
+        request.course_id,
+        if request.lat.is_some() && request.lng.is_some() {
+            "present"
+        } else {
+            "absent"
+        },
+        request.sign_type,
+    )
 }
 
 pub(super) fn map_evaluation_course(c: BridgeEvaluationCourse) -> domain::EvaluationCourse {
@@ -291,4 +417,18 @@ pub(super) fn invalid_input(message: &str) -> BridgeError {
 }
 pub(super) fn safe_message(message: &str) -> String {
     message.to_owned()
+}
+
+pub(super) fn safe_summary_label(value: &str, fallback: &str) -> String {
+    let sanitized = value
+        .trim()
+        .chars()
+        .filter(|value| !value.is_control())
+        .take(80)
+        .collect::<String>();
+    if sanitized.is_empty() {
+        fallback.to_owned()
+    } else {
+        sanitized
+    }
 }

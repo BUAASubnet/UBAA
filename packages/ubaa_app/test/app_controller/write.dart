@@ -19,6 +19,33 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
+  test('丢弃待确认意图只调用可选 backend 且校验意图编号', () async {
+    final backend = _BykcWriteBackend();
+    final controller = AppController(backend: backend);
+    final intent = await controller.prepareBykcWrite(
+      WriteOperation.bykcSelectCourse,
+      42,
+    );
+
+    await controller.discardWriteIntent(' ${intent.intentId} ');
+    expect(backend.discardedIntentId, intent.intentId);
+    await expectLater(
+      controller.discardWriteIntent('  '),
+      throwsA(isA<BackendException>()),
+    );
+    controller.dispose();
+  });
+
+  test('统一写提交能力在确认阶段已可丢弃意图', () async {
+    final backend = _CommitCapabilityBackend();
+    final controller = AppController(backend: backend);
+
+    await controller.discardWriteIntent(' intent-42 ');
+
+    expect(backend.discardedIntentId, 'intent-42');
+    controller.dispose();
+  });
+
   test('博雅写意图拒绝非正课程 ID 和未接入的操作', () async {
     final controller = AppController(backend: _BykcWriteBackend());
     await expectLater(
@@ -96,17 +123,32 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('博雅签到写意图只接受冻结 signType 1 或 2', () async {
+  test('博雅签到写意图只接受冻结类型并完整转发有效坐标', () async {
     final backend = _BykcWriteBackend();
     final controller = AppController(backend: backend);
 
-    final intent = await controller.prepareBykcSignWrite(42, 1);
+    final intent = await controller.prepareBykcSignWrite(
+      42,
+      1,
+      lat: 39.9,
+      lng: 116.3,
+    );
     expect(intent.operation, WriteOperation.bykcSignCourse);
     expect(backend.signCourseId, 42);
     expect(backend.signType, 1);
+    expect(backend.signLat, 39.9);
+    expect(backend.signLng, 116.3);
 
     await expectLater(
       controller.prepareBykcSignWrite(42, 3),
+      throwsA(isA<BackendException>()),
+    );
+    await expectLater(
+      controller.prepareBykcSignWrite(42, 1, lat: 39.9),
+      throwsA(isA<BackendException>()),
+    );
+    await expectLater(
+      controller.prepareBykcSignWrite(42, 1, lat: double.nan, lng: 116.3),
       throwsA(isA<BackendException>()),
     );
     controller.dispose();

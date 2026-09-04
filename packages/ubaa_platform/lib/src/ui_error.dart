@@ -23,7 +23,7 @@ class CoreErrorPayload {
   final String? message;
   final String? issueId;
 
-  /// 从 Core 错误对象或 CLI schema-v2 envelope 中解析。
+  /// 从 Core 错误对象或 CLI schema-v3 envelope 中解析。
   factory CoreErrorPayload.fromJson(Object? value) {
     final parsed = tryParse(value);
     return parsed ?? const CoreErrorPayload(code: 'internal_error');
@@ -113,7 +113,7 @@ class UiErrorMapper {
     );
   }
 
-  /// 解析 Core 错误对象或 schema-v2 envelope。
+  /// 解析 Core 错误对象或 schema-v3 envelope。
   UiError fromJson(
     Object? value, {
     String? feature,
@@ -220,8 +220,7 @@ UiErrorKind _parseKind(String? raw, String code) {
 bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.networkError ||
   UbaaErrorCode.timeout ||
-  UbaaErrorCode.upstreamUnavailable ||
-  UbaaErrorCode.outcomeUnknown => true,
+  UbaaErrorCode.upstreamUnavailable => true,
   UbaaErrorCode.invalidInput ||
   UbaaErrorCode.authenticationRequired ||
   UbaaErrorCode.invalidCredentials ||
@@ -233,7 +232,8 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.unsupported ||
   UbaaErrorCode.confirmationRequired ||
   UbaaErrorCode.intentExpired ||
-  UbaaErrorCode.operationConflict => false,
+  UbaaErrorCode.operationConflict ||
+  UbaaErrorCode.outcomeUnknown => false,
 };
 
 ({String title, String message, String? actionLabel}) _templateFor(

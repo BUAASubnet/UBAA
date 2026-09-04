@@ -36,7 +36,7 @@ class BykcSelectAction extends FeatureAction {
 class BykcDeselectAction extends FeatureAction {
   const BykcDeselectAction({required this.courseId, required this.eligibility});
 
-  /// `/delChosenCourse` 使用的课程本体标识，不是已选记录标识。
+  /// Core 写入合同使用的课程本体标识，不是已选记录标识。
   final int courseId;
 
   @override
@@ -44,4 +44,43 @@ class BykcDeselectAction extends FeatureAction {
 
   @override
   WriteOperation get operation => WriteOperation.bykcDeselectCourse;
+}
+
+/// 博雅课程签到动作的封闭类型。
+enum BykcSignKind {
+  signIn(1),
+  signOut(2);
+
+  const BykcSignKind(this.signType);
+
+  /// Core 写入合同中的签到类型：`1` 为签到，`2` 为签退。
+  final int signType;
+}
+
+/// 单门已选博雅课程的签到或签退能力。
+@immutable
+class BykcSignAction extends FeatureAction {
+  const BykcSignAction({
+    required this.courseId,
+    required this.kind,
+    required this.eligibility,
+    required this.requiresCoordinates,
+  });
+
+  /// Core 写入合同使用的课程本体标识，不是已选记录标识。
+  final int courseId;
+
+  final BykcSignKind kind;
+
+  /// `true` 表示 Core 无法仅靠完整的正半径签到范围生成坐标，宿主必须在
+  /// prepare 前取得一次前台位置；该字段只来自读取 DTO，不由展示文案推测。
+  final bool requiresCoordinates;
+
+  int get signType => kind.signType;
+
+  @override
+  final ActionEligibility eligibility;
+
+  @override
+  WriteOperation get operation => WriteOperation.bykcSignCourse;
 }

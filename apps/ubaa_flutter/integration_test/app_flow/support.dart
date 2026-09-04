@@ -211,6 +211,13 @@ final class _WriteIntegrationBackend
       resolvedRoute: ConnectionMode.direct,
     );
   }
+
+  @override
+  Future<void> discardWriteIntent(String intentId) async {
+    if (intentId != 'signin-integration') {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+  }
 }
 
 /// 覆盖全部写入口的脱敏宿主后端；只记录操作枚举，不保存请求正文。
@@ -464,5 +471,10 @@ final class _AllWritesIntegrationBackend
       outcomeUnknown: false,
       resolvedRoute: ConnectionMode.direct,
     );
+  }
+
+  @override
+  Future<void> discardWriteIntent(String intentId) async {
+    _pending.remove(intentId);
   }
 }

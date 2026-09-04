@@ -29,6 +29,53 @@ void main() {
     );
   });
 
+  test('MethodChannel 位置适配器只接收有效坐标并丢弃额外敏感字段', () async {
+    final channel = const MethodChannel('cn.edu.buaa.ubaa/platform');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          if (call.method == 'location.capability') return true;
+          if (call.method == 'location.current') {
+            return <String, Object?>{
+              'lat': 39.9,
+              'lng': 116.3,
+              'path': '/private/location/cache',
+              'token': 'sensitive-token',
+            };
+          }
+          return null;
+        });
+
+    final provider = MethodChannelLocationProvider(channel: channel);
+    expect(await provider.probe(), isTrue);
+    final location = await provider.currentLocation();
+    expect(location?.lat, 39.9);
+    expect(location?.lng, 116.3);
+    expect(location.toString(), isNot(contains('/private/location/cache')));
+    expect(location.toString(), isNot(contains('sensitive-token')));
+    expect(calls.map((call) => call.method), <String>[
+      'location.capability',
+      'location.current',
+    ]);
+  });
+
+  test('MethodChannel 位置适配器拒绝越界和畸形坐标', () async {
+    final channel = const MethodChannel('cn.edu.buaa.ubaa/platform');
+    var response = <String, Object?>{'lat': 91, 'lng': 116.3};
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'location.capability') return true;
+          return response;
+        });
+    final provider = MethodChannelLocationProvider(channel: channel);
+
+    expect(await provider.probe(), isTrue);
+    expect(await provider.currentLocation(), isNull);
+    response = <String, Object?>{'lat': '39.9', 'lng': 116.3};
+    expect(await provider.currentLocation(), isNull);
+  });
+
   test('MethodChannel 凭据适配器探测失败时保持不可用且不降级明文', () async {
     final channel = const MethodChannel('cn.edu.buaa.ubaa/platform');
     final calls = <MethodCall>[];

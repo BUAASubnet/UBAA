@@ -4,6 +4,21 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  test('BridgeBackend 接受当前合同版本', () {
+    final client = _ContractVersionClient(2);
+
+    final backend = BridgeBackend(client);
+
+    expect(backend.client, same(client));
+  });
+
+  test('BridgeBackend 在 release 可执行路径拒绝不匹配合同版本', () {
+    final client = _ContractVersionClient(1);
+
+    expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
+    expect(client.disposeCalls, 1);
+  });
+
   test('BridgeBackend 空教室楼层和节次筛选只投影白名单结果', () async {
     final response = BridgeRoutedClassroomQuery(
       data: const BridgeClassroomQuery(
@@ -245,9 +260,9 @@ void main() {
           courseId: 42,
           courseName: '课程 A',
           coursePosition: '校本部',
-          checkin: 0,
-          canSign: true,
-          canSignOut: false,
+          checkin: null,
+          signEligibility: BridgeActionEligibility.allowed,
+          signOutEligibility: BridgeActionEligibility.unknown,
           deselectEligibility: BridgeActionEligibility.unknown,
           signConfig: BridgeBykcSignConfig(
             signStartDate: '2026-09-02 08:00',
@@ -281,14 +296,187 @@ void main() {
     };
     expect(fields['签到时间'], '2026-09-02 08:00–2026-09-02 10:00');
     expect(fields['签退时间'], '2026-09-02 11:00–2026-09-02 12:00');
+    expect(fields['可签到'], '是');
+    expect(fields['可签退'], '未知');
+    expect(fields.containsKey('签到状态'), isFalse);
     expect(fields['位置要求'], '指定位置（2 处）');
     expect(fields['签到类型'], '1');
+    final actions = result.details.single.actions
+        .whereType<BykcSignAction>()
+        .toList(growable: false);
+    expect(
+      actions.map(
+        (action) => (
+          action.courseId,
+          action.kind,
+          action.eligibility,
+          action.requiresCoordinates,
+        ),
+      ),
+      <(int, BykcSignKind, ActionEligibility, bool)>[
+        (42, BykcSignKind.signIn, ActionEligibility.allowed, false),
+        (42, BykcSignKind.signOut, ActionEligibility.unknown, false),
+      ],
+    );
     expect(
       result.details.single.fields.any(
         (field) =>
             field.value.contains('39.99') || field.value.contains('116.31'),
       ),
       isFalse,
+    );
+  });
+
+  test('BridgeBackend 仅在全部签到点坐标有效且半径有限为正时不要求调用方坐标', () async {
+    const eligibility = BridgeActionEligibility.allowed;
+    const unknown = BridgeActionEligibility.unknown;
+    final response = BridgeRoutedBykcChosenCourses(
+      data: const <BridgeBykcChosenCourse>[
+        BridgeBykcChosenCourse(
+          id: 1,
+          courseId: 101,
+          courseName: '完整范围',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(lat: 39.9, lng: 116.3, radius: 1),
+            ],
+          ),
+        ),
+        BridgeBykcChosenCourse(
+          id: 2,
+          courseId: 102,
+          courseName: '空范围',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(signPoints: <BridgeBykcSignPoint>[]),
+        ),
+        BridgeBykcChosenCourse(
+          id: 3,
+          courseId: 103,
+          courseName: '零半径',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(lat: 39.9, lng: 116.3, radius: 0),
+            ],
+          ),
+        ),
+        BridgeBykcChosenCourse(
+          id: 4,
+          courseId: 104,
+          courseName: '无限半径',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(
+                lat: 39.9,
+                lng: 116.3,
+                radius: double.infinity,
+              ),
+            ],
+          ),
+        ),
+        BridgeBykcChosenCourse(
+          id: 5,
+          courseId: 105,
+          courseName: '缺失配置',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+        ),
+        BridgeBykcChosenCourse(
+          id: 6,
+          courseId: 106,
+          courseName: '混合完整与不完整范围',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(lat: 39.9, lng: 116.3, radius: 1),
+              BridgeBykcSignPoint(lat: 39.91, lng: 116.31, radius: 0),
+            ],
+          ),
+        ),
+        BridgeBykcChosenCourse(
+          id: 7,
+          courseId: 107,
+          courseName: '非法纬度',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(lat: double.nan, lng: 116.3, radius: 1),
+            ],
+          ),
+        ),
+        BridgeBykcChosenCourse(
+          id: 8,
+          courseId: 108,
+          courseName: '越界经度',
+          signEligibility: eligibility,
+          signOutEligibility: eligibility,
+          deselectEligibility: unknown,
+          signConfig: BridgeBykcSignConfig(
+            signPoints: <BridgeBykcSignPoint>[
+              BridgeBykcSignPoint(lat: 39.9, lng: 181, radius: 1),
+            ],
+          ),
+        ),
+      ],
+      route: const BridgeRouteDecision(
+        policy: BridgeRoutePolicy.direct,
+        resolvedRoute: BridgeConnectionMode.direct,
+        network: BridgeNetworkState.campus,
+        initialRoute: BridgeConnectionMode.direct,
+        usedFallback: false,
+      ),
+    );
+
+    final result = await BridgeBackend(_FakeBykcChosenCoursesClient(response))
+        .loadFeatureQuery(
+          FeatureId.bykc,
+          const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+        );
+    final requirements = <int, bool>{
+      for (final detail in result.details)
+        for (final action in detail.actions.whereType<BykcSignAction>())
+          action.courseId: action.requiresCoordinates,
+    };
+    expect(requirements, <int, bool>{
+      101: false,
+      102: true,
+      103: true,
+      104: true,
+      105: true,
+      106: true,
+      107: true,
+      108: true,
+    });
+    expect(
+      result.details
+          .singleWhere((detail) => detail.title == '空范围')
+          .fields
+          .singleWhere((field) => field.label == '位置要求')
+          .value,
+      '需获取当前位置（未返回可用签到范围）',
+    );
+    expect(
+      result.details
+          .singleWhere((detail) => detail.title == '缺失配置')
+          .fields
+          .singleWhere((field) => field.label == '位置要求')
+          .value,
+      '位置配置未知（需获取当前位置）',
     );
   });
 
@@ -535,7 +723,32 @@ void main() {
   });
 }
 
-class _FakeClassroomClient implements BridgeClient {
+class _ContractVersionClient implements BridgeClient {
+  _ContractVersionClient(this.version);
+
+  final int version;
+  int disposeCalls = 0;
+
+  @override
+  int contractVersion() => version;
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls++;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
+  }
+}
+
+abstract class _CompatibleBridgeClient implements BridgeClient {
+  @override
+  int contractVersion() => 2;
+}
+
+class _FakeClassroomClient extends _CompatibleBridgeClient {
   _FakeClassroomClient(this.response);
 
   final BridgeRoutedClassroomQuery response;
@@ -573,7 +786,7 @@ BridgeJudgeAssignmentDetail _judgeDetail(
   ],
 );
 
-class _FakeJudgeBatchClient implements BridgeClient {
+class _FakeJudgeBatchClient extends _CompatibleBridgeClient {
   _FakeJudgeBatchClient(this.response);
 
   final BridgeRoutedJudgeAssignmentDetails response;
@@ -593,7 +806,7 @@ class _FakeJudgeBatchClient implements BridgeClient {
   }
 }
 
-class _FakeSigninClient implements BridgeClient {
+class _FakeSigninClient extends _CompatibleBridgeClient {
   _FakeSigninClient(this.response);
 
   final BridgeRoutedSigninClasses response;
@@ -607,7 +820,7 @@ class _FakeSigninClient implements BridgeClient {
   }
 }
 
-class _FakeSpocClient implements BridgeClient {
+class _FakeSpocClient extends _CompatibleBridgeClient {
   _FakeSpocClient(this.response);
 
   final BridgeRoutedSpocAssignments response;
@@ -621,7 +834,7 @@ class _FakeSpocClient implements BridgeClient {
   }
 }
 
-class _FakeLibbookSeatsClient implements BridgeClient {
+class _FakeLibbookSeatsClient extends _CompatibleBridgeClient {
   _FakeLibbookSeatsClient(this.response);
 
   final BridgeRoutedLibBookSeats response;
@@ -640,7 +853,7 @@ class _FakeLibbookSeatsClient implements BridgeClient {
   }
 }
 
-class _FakeBykcChosenCoursesClient implements BridgeClient {
+class _FakeBykcChosenCoursesClient extends _CompatibleBridgeClient {
   _FakeBykcChosenCoursesClient(this.response);
 
   final BridgeRoutedBykcChosenCourses response;
@@ -654,7 +867,7 @@ class _FakeBykcChosenCoursesClient implements BridgeClient {
   }
 }
 
-class _FakeComplexWriteClient implements BridgeClient {
+class _FakeComplexWriteClient extends _CompatibleBridgeClient {
   @override
   dynamic noSuchMethod(Invocation invocation) {
     final method = invocation.memberName;
@@ -690,7 +903,7 @@ class _FakeComplexWriteClient implements BridgeClient {
   }
 }
 
-class _FakeCgyyCommitClient implements BridgeClient {
+class _FakeCgyyCommitClient extends _CompatibleBridgeClient {
   @override
   dynamic noSuchMethod(Invocation invocation) {
     if (invocation.memberName == #commitWrite) {
@@ -715,7 +928,7 @@ class _FakeCgyyCommitClient implements BridgeClient {
   }
 }
 
-class _FakeCgyyDayClient implements BridgeClient {
+class _FakeCgyyDayClient extends _CompatibleBridgeClient {
   _FakeCgyyDayClient(this.response);
 
   final BridgeRoutedCgyyDayInfo response;
@@ -731,7 +944,7 @@ class _FakeCgyyDayClient implements BridgeClient {
   }
 }
 
-class _FakeCancellationProjectionClient implements BridgeClient {
+class _FakeCancellationProjectionClient extends _CompatibleBridgeClient {
   _FakeCancellationProjectionClient({
     required this.libbook,
     required this.cgyy,
@@ -752,7 +965,7 @@ class _FakeCancellationProjectionClient implements BridgeClient {
   }
 }
 
-class _FakeYgdkRecordsClient implements BridgeClient {
+class _FakeYgdkRecordsClient extends _CompatibleBridgeClient {
   _FakeYgdkRecordsClient(this.response);
 
   final BridgeRoutedYgdkRecords response;

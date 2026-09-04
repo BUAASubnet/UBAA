@@ -84,6 +84,7 @@ const fn error_code_name(code: ErrorCode) -> &'static str {
         ErrorCode::NetworkError => "network_error",
         ErrorCode::Timeout => "timeout",
         ErrorCode::UpstreamUnavailable => "upstream_unavailable",
+        ErrorCode::OutcomeUnknown => "outcome_unknown",
         ErrorCode::UpstreamChanged => "upstream_changed",
         ErrorCode::ParseError => "parse_error",
         ErrorCode::InternalError => "internal_error",
@@ -112,6 +113,7 @@ fn is_error_code(code: &str) -> bool {
             | "network_error"
             | "timeout"
             | "upstream_unavailable"
+            | "outcome_unknown"
             | "upstream_changed"
             | "parse_error"
             | "internal_error"

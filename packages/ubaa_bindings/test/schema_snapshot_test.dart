@@ -33,6 +33,7 @@ void main() {
 
   test('BridgeClient 暴露认证、路线、全部读取和写入入口', () {
     const methods = <String>[
+      'contractVersion',
       'authStatus',
       'prepareLogin',
       'login',
@@ -83,6 +84,7 @@ void main() {
       'prepareCgyyCancelOrder',
       'prepareEvaluationSubmitCourses',
       'commitWrite',
+      'discardWriteIntent',
     ];
     for (final method in methods) {
       expect(
@@ -118,6 +120,8 @@ void main() {
     }
     expect(read, contains('enum BridgeCgyyPurposeSource'));
     expect(read, contains('final BridgeActionEligibility selectEligibility;'));
+    expect(read, contains('final BridgeActionEligibility signEligibility;'));
+    expect(read, contains('final BridgeActionEligibility signOutEligibility;'));
     expect(
       RegExp(
         r'final BridgeActionEligibility deselectEligibility;',
@@ -309,11 +313,18 @@ void main() {
     ).firstMatch(read);
     expect(chosen, isNotNull);
     final chosenBody = chosen!.namedGroup('body')!;
+    expect(
+      chosenBody,
+      contains('final int? checkin;'),
+      reason: '缺失考勤状态必须跨 Bridge 保留为 null',
+    );
     for (final forbidden in <String>[
       'homework',
       'homeworkAttachmentName',
       'homeworkAttachmentPath',
       'signInfo',
+      'final bool canSign',
+      'final bool canSignOut',
     ]) {
       expect(
         chosenBody,

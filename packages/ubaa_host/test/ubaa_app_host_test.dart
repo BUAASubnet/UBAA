@@ -12,6 +12,7 @@ void main() {
     final vault = MemoryCredentialVault();
     final picker = MemoryPhotoPicker();
     final permissions = MemoryPermissionGateway();
+    final locations = MemoryLocationProvider();
     Widget? launched;
 
     await bootstrapUbaaHost(
@@ -33,6 +34,7 @@ void main() {
           credentialVault: vault,
           photoPicker: picker,
           permissionGateway: permissions,
+          locationProvider: locations,
         );
       },
       runApplication: (app) {
@@ -54,6 +56,7 @@ void main() {
     expect(host.credentialVault, same(vault));
     expect(host.photoPicker, same(picker));
     expect(host.permissionGateway, same(permissions));
+    expect(host.locationProvider, same(locations));
   });
 
   test('SDK 初始化失败时不探测 hello、不创建能力也不运行应用', () async {
@@ -116,7 +119,11 @@ void main() {
     final permissions = MemoryPermissionGateway(
       initial: <PlatformPermission, PlatformPermissionStatus>{
         PlatformPermission.photos: PlatformPermissionStatus.granted,
+        PlatformPermission.foregroundLocation: PlatformPermissionStatus.granted,
       },
+    );
+    final locations = MemoryLocationProvider(
+      location: PlatformLocation(lat: 39.9, lng: 116.3),
     );
 
     await tester.pumpWidget(
@@ -125,6 +132,7 @@ void main() {
         credentialVault: vault,
         photoPicker: picker,
         permissionGateway: permissions,
+        locationProvider: locations,
         initialTab: 2,
       ),
     );
@@ -194,13 +202,45 @@ void main() {
     expect(deselectIntent.intentId, 'intent-bykc-deselect');
     expect(backend.bykcDeselectCourseId, 41002);
 
-    final signIntent = await shell.onPrepareBykcSignWrite!(41003, 2);
+    final signIntent = await shell.onPrepareBykcSignWrite!(
+      const BykcSignAction(
+        courseId: 41003,
+        kind: BykcSignKind.signIn,
+        eligibility: ActionEligibility.allowed,
+        requiresCoordinates: false,
+      ),
+    );
     expect(signIntent.operation, WriteOperation.bykcSignCourse);
     expect(signIntent.intentId, 'intent-bykc-sign');
     expect(backend.bykcSign?.courseId, 41003);
-    expect(backend.bykcSign?.signType, 2);
+    expect(backend.bykcSign?.signType, 1);
     expect(backend.bykcSign?.lat, isNull);
     expect(backend.bykcSign?.lng, isNull);
+    expect(locations.requestCount, 0);
+    expect(
+      permissions.requests,
+      isNot(contains(PlatformPermission.foregroundLocation)),
+    );
+
+    await shell.onPrepareBykcSignWrite!(
+      const BykcSignAction(
+        courseId: 41003,
+        kind: BykcSignKind.signOut,
+        eligibility: ActionEligibility.allowed,
+        requiresCoordinates: true,
+      ),
+    );
+    expect(backend.bykcSign?.signType, 2);
+    expect(backend.bykcSign?.lat, 39.9);
+    expect(backend.bykcSign?.lng, 116.3);
+    expect(locations.requestCount, 1);
+    expect(
+      permissions.requests,
+      contains(PlatformPermission.foregroundLocation),
+    );
+
+    await shell.onDiscardWriteIntent!(' intent-bykc-sign ');
+    expect(backend.discardedIntentId, 'intent-bykc-sign');
 
     final signinIntent = await shell.onPrepareSigninWrite!(
       ' signin-course-41004 ',
@@ -362,6 +402,7 @@ void main() {
 
     expect(await shell.onPickYgdkPhoto!(), same(photo));
     expect(permissions.requests, <PlatformPermission>[
+      PlatformPermission.foregroundLocation,
       PlatformPermission.photos,
     ]);
 
@@ -422,12 +463,44 @@ void main() {
     expect(backend.logoutCalls, 2);
     expect(find.byType(UbaaLoginView), findsOneWidget);
   });
+
+  testWidgets('共享宿主把提交异常隔离为 domain UiError', (tester) async {
+    final backend = _RecordingBackend()..signedIn = true;
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpAndSettle();
+    final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+
+    backend.commitFailure = const BackendException(UbaaErrorCode.networkError);
+    await expectLater(
+      shell.onCommitWrite!('intent-network-error'),
+      throwsA(
+        isA<UiError>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.networkError,
+        ),
+      ),
+    );
+
+    backend.commitFailure = StateError('/private/token=secret');
+    await expectLater(
+      shell.onCommitWrite!('intent-internal-error'),
+      throwsA(
+        isA<UiError>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.internalError,
+        ),
+      ),
+    );
+  });
 }
 
 PlatformCapabilities _capabilities() => PlatformCapabilities(
   credentialVault: MemoryCredentialVault(),
   photoPicker: MemoryPhotoPicker(),
   permissionGateway: MemoryPermissionGateway(),
+  locationProvider: const UnavailableLocationProvider(),
 );
 
 final class _RecordingBackend
@@ -442,6 +515,7 @@ final class _RecordingBackend
         YgdkWriteBackend,
         CgyyWriteBackend,
         EvaluationWriteBackend,
+        WriteIntentDiscardBackend,
         BackendLifecycle {
   static const commitResult = WriteCommitResult(
     operation: WriteOperation.cgyySubmitReservation,
@@ -477,6 +551,8 @@ final class _RecordingBackend
   CgyySubmitInput? cgyyInput;
   List<EvaluationCourseInput>? evaluationCourses;
   String? committedIntentId;
+  String? discardedIntentId;
+  Object? commitFailure;
   int logoutCalls = 0;
   int disposeCalls = 0;
 
@@ -624,7 +700,14 @@ final class _RecordingBackend
   @override
   Future<WriteCommitResult> commitWrite(String intentId) async {
     committedIntentId = intentId;
+    final failure = commitFailure;
+    if (failure != null) throw failure;
     return commitResult;
+  }
+
+  @override
+  Future<void> discardWriteIntent(String intentId) async {
+    discardedIntentId = intentId;
   }
 
   @override

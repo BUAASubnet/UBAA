@@ -85,6 +85,38 @@ void main() {
     ]);
   });
 
+  test('博雅签到 action 固定映射协议类型并保留 typed 目标资格', () {
+    const signIn = BykcSignAction(
+      courseId: 9527,
+      kind: BykcSignKind.signIn,
+      eligibility: ActionEligibility.allowed,
+      requiresCoordinates: false,
+    );
+    const signOut = BykcSignAction(
+      courseId: 9527,
+      kind: BykcSignKind.signOut,
+      eligibility: ActionEligibility.unknown,
+      requiresCoordinates: true,
+    );
+
+    expect(signIn.courseId, 9527);
+    expect(signIn.kind, BykcSignKind.signIn);
+    expect(signIn.signType, 1);
+    expect(signIn.operation, WriteOperation.bykcSignCourse);
+    expect(signIn.eligibility, ActionEligibility.allowed);
+    expect(signIn.requiresCoordinates, isFalse);
+    expect(signOut.courseId, 9527);
+    expect(signOut.kind, BykcSignKind.signOut);
+    expect(signOut.signType, 2);
+    expect(signOut.operation, WriteOperation.bykcSignCourse);
+    expect(signOut.eligibility, ActionEligibility.unknown);
+    expect(signOut.requiresCoordinates, isTrue);
+    expect(BykcSignKind.values, <BykcSignKind>[
+      BykcSignKind.signIn,
+      BykcSignKind.signOut,
+    ]);
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,
