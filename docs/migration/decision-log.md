@@ -1,5 +1,21 @@
 # 决策记录
 
+## 2026-09-04：Phase 11D 课堂签到 typed 资格与发送边界（当前有效）
+
+课堂签到的生产修复只采用两份冻结来源一致的事实和适用冻结本地实现：今日课程使用 `signStatus`，值 `0`
+表示可签到、`1` 表示已签到，缺失、畸形或其它值为 `unknown` 并安全拒绝；写目标是今日列表中唯一匹配的
+课程安排 ID。prepare 与最终提交均须重新读取今日课程，不能信任宿主回传的展示字段或旧状态。
+
+最终请求按冻结本地实现使用 `courseSchedId=<课程安排 ID>`、form `id=<业务登录返回的用户 ID>` 和
+`sessionId` 请求头；三个值使用不同脱敏向量测试，防止再次混淆。响应同时解析顶层 `STATUS/ERRMSG` 与嵌套
+`result.stuSignStatus`；明确的业务 false 保持 `SigninActionResult.success=false`，Bridge 不得无条件改成成功。
+最终 POST 通过 `request_non_idempotent` 且只发送一次，发送后的 transport、Cookie、认证跳转、非 JSON 或
+结构不完整响应归为 `outcome_unknown`、禁止自动重放；发送前读取失败保持原错误分类。
+
+冻结本地与固定示例在登录 URL、端口、时间戳方法、参数载体及会话头身份上仍有冲突。本阶段保持当前已有、
+由 Direct/WebVPN 只读证据支持的登录/读取路径，不借结构治理改写这些未决项；也不执行真实签到。UI 只消费
+Core→Bridge→Domain 的 typed action，中文状态文案只用于展示。
+
 ## 2026-09-04：CLI JSON envelope 显式升级为 schema v3（当前有效）
 
 Phase 11C 将 Bykc 已选课程的 `checkin` 从必填整数改为可空，把 `canSign`/`canSignOut` 两个布尔字段替换为

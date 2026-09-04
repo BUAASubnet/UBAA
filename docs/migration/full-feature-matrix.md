@@ -61,6 +61,8 @@
 `loginName`；再调用 8347 的业务登录取得 `id` 与 `sessionId`；最后按 `yyyyMMdd` 日期读取课程。业务会话按
 学生标识缓存，失效后最多重试一次。
 
-UBAA 2 已完成响应 DTO/解析器、独立业务会话、路线转换、facade/CLI/FRB/Flutter 接入，并有脱敏 Fixture、
-Mock 与 Direct/WebVPN 只读证据。`examples/buaa-api` 没有等价 iClass 协议，不得借用其字段或错误语义。
-签到提交属于已实现的写操作，当前只有确定性安全证据；没有单次真实授权时保持不执行。
+UBAA 2 已完成基础响应 DTO/解析器、独立业务会话、路线转换、facade/CLI/FRB/Flutter 接入，并有脱敏 Fixture、
+Mock 与 Direct/WebVPN 只读证据。固定 `examples/buaa-api/src/api/class` 提供部分等价 iClass 实现，但其查询方法、
+会话头身份、端口和参数载体与冻结本地实现冲突，只能交叉证明一致字段，不能拼接协议。2026-09-03 审查确认
+今日状态字段、form 用户 ID 和嵌套提交结果仍有待修 parity gap；修复并通过 typed 资格门禁前不得把签到写闭环
+标为完成。没有单次真实授权时保持不执行。
