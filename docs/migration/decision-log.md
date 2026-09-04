@@ -1,5 +1,85 @@
 # 决策记录
 
+## 2026-09-05：Phase 11I 阳光打卡 typed 资格与单次最终提交边界（来源合同，尚未实施）
+
+本条只固定下一实现阶段的来源与安全合同；完整逐操作九列见
+[source-parity.md 的 Phase 11I 表](source-parity.md#phase-11i-ygdk-提交逐操作九列2026-09-05)。适用来源为
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `YgdkApi.kt`、
+`LocalYgdkApi.kt`、`Ygdk.kt`、API/backend 测试、Ygdk ViewModel 与旧 server client/service/tests。
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的固定模块清单没有 Ygdk、Clockin、
+`campusAppLogin` 或照片上传等价协议，URL、跳转、Cookie/会话、请求参数、Header/编码、加密、DTO、并发和
+错误九列全部 N/A 且不等价；不得从示例的通用 SSO、credential、上传或其它业务错误类比补值。
+
+OAuth 入口固定为 GET
+`https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1`；
+关闭自动跳转后最多处理 10 次，每跳依次检查实际请求 URL 和解析后的 `Location`，只从普通 query 或 fragment
+内 query 提取并 URL-decode 非空 `code`。业务交换固定 GET
+`https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin?code=...`，`code=1` 时从
+`result.data` object 或 `result` object 取得 `uid/token`，token 再 URL-decode。冻结实现没有逐跳 host
+allowlist，仓库也没有完整允许集合的适用实时证据；这个边界继续标为 parity gap，绝不凭 BUAA 域名、当前实现或
+记忆猜测白名单。旧 relay `/api/v1/ygdk/*` 不是上游地址。
+
+业务 `{uid,token}` 必须绑定当前用户、intent 路线与活跃 Session generation，只驻留对应 Core runtime 内存，
+不落盘、不跨用户、路线或失效代次。commit 开始时可以在 final 写边界前建立当前 generation 的 credential；
+一旦 fresh authority 已用某一 credential generation 完成并进入 upload 链，就不得中途刷新、替换或用旧异步任务
+回填 credential。任何请求前发现 owner/session/credential generation 已变化都失败关闭。旧本地 session 创建在
+最终 mutex 外、旧 server 60 秒 context cache 及 `withFreshClientRetry` 重放 upload/final 的行为都不复制。
+
+写资格不再由可空 primitive `itemId`、默认项目、名称、UI label 或缓存 overview 推断。Core 在 `YgdkItem` 上
+公开三态 `submitEligibility` 和可空 `YgdkSubmitTarget(classifyId,itemId)`：冻结分类仍按首个名称含“体育”、
+否则首个 ID 1、否则首项选择，但被选 classify ID 与 item ID 都必须是 canonical 正整数并各自在原 fresh 响应
+唯一，分类/项目名称必须非空；只有 target 与父 DTO 严格一致时 allowed/Some，其余缺失、畸形、零、负数、重复、
+冲突均 unknown/None。prepare 与 commit 分别 POST fresh classify 和 item；item 请求的
+`page=1/limit=1000/classify_id` 同时进入 query 与 form，form 另有本次 credential 的 `uid/token`。commit 的
+`item_name` 只取本次 fresh item，调用方不得提供。
+
+时间输入改为完整必填且只接受精确 `yyyy-MM-dd HH:mm`，按命名时区 `Asia/Shanghai` 有检查地解析；start/end
+须在同一上海自然日且 end 严格晚于 start。wire 的 `start_time/end_time` 是十进制 Unix epoch 秒；固定向量
+`2026-04-01 08:00`/`09:00` 对应 `1775001600`/`1775005200`，`form_time_fmt` 精确为
+`2026-04-01 08:00-09:00`。冻结错误文字虽含“一小时”，实现没有一小时长度判断，故不臆加时长限制。ISO `T`、
+秒、offset、跨日、缺一端、歧义/溢出在路线解析和任何 HTTP 前返回固定 `invalid_input`。地点 trim 后为空时采用
+冻结默认“操场”，公开开关默认 false；照片必须由用户提供，不能复制冻结透明 PNG fallback。
+
+照片字节只能在一次 opaque intent 的内存中存在，大小固定为 1..10 MiB。filename 必须已经是 trim 后的单一
+basename、1..128 字符，并拒绝正反斜杠、引号及任意 Unicode 控制字符（含 CR/LF/NUL/DEL）；MIME 必须是 `image/` 加
+非空 ASCII HTTP token，不接受参数、空白、控制字符、多层斜杠或 `application/octet-stream`。这是防止
+`Content-Disposition`/`Content-Type` header injection 的本地安全收紧，不等同于猜测上游图片 subtype
+allowlist。multipart 固定 parts 为 `uid/token/file`，file disposition name 固定 `file`；只有 `code=1`
+object 的非空 `file_name` 能以 JSON 数组进入 final `images`，`file_url` 不公开。照片 `Debug` 仅允许 byte
+count 与规范化 MIME，filename 固定脱敏，绝不输出 bytes、路径或 URL；公开 intent/digest 同样不得保存或哈希
+filename、照片 bytes、地点正文或 credential。
+
+prepare 只做本地输入与 fresh target authority，不上传；用户确认后 commit 单次消费 intent。Core 必须提供一个
+expected-route 原子 facade 入口，在同一调用中按顺序完成“全部 pre-route 校验、恰好一次路线解析、与 intent
+expected route 比较、取得 active credential、fresh classify/item、单次 upload、单次 final”。Bridge 不得先
+解析一次路线再调用会重新解析的普通 facade。路线不匹配、过时 owner/session generation、fresh target 冲突或
+上传失败都不得发送 final；upload 自身也不自动重传。final 固定 URL encoded 十二字段：上海 epoch
+`start_time/end_time`、`place_type=1`、place、`isopen=1/0`、精确 `form_time_fmt`、单元素 `images`、fresh
+`classify_id/item_id/item_name` 及 route-local `uid/token`，并带
+`X-Requested-With: XMLHttpRequest`。没有 Ygdk 业务加密/签名，WebVPN 转换只属于路线层。
+
+最终 POST 只通过 non-idempotent transport 恰好发送一次，不跟随跳转、不认证重放、不切换路线。只有 final
+`code=1` 且 `result` 为 object 才是确定成功；公开结果固定为
+`{success:true,message:"阳光打卡已提交",recordId?}`，recordId 仅 canonical 正整数时出现，summary、raw
+message/body、文件信息、时间、地点与 credential 全部排除。一旦 final 开始发送，HTTP、401、`-98`、其它
+code、认证/业务跳转、final URL 异常、transport/timeout、Cookie、非 JSON、非 object 或 envelope 结构歧义
+都固定为不可重试 `outcome_unknown`；CLI exit 5，任何宿主都不能按 raw message 推断成功或自动再提交。
+
+确定成功和 `outcome_unknown` 都必须使用 commit 返回的原路线，分别 best-effort 刷新一次 overview 与 records
+首页；records 固定 1-based `page=1,size=20`，wire 使用 `limit=20`。两次读取 caller-pinned、彼此独立，不重新
+Auto 探测、不 fallback、不复用旧 snapshot，任何读取失败都不得触发写重放。冻结本地 records 把分页、分类、
+用户字段同时放 query+form，而旧 server 只放 form；按被迁移的本地产品实现采用 query+form 并保留该差异记录。
+冻结来源没有足以把某条记录与本次 target、时间、照片唯一关联的严格证明，因此 count 增长、首条、文案、近似
+时间、空结果或旧 snapshot 都不能把 unknown 升级为 success；未来“已核对”状态必须先取得新的来源或脱敏实时证据。
+
+`YgdkItem` eligibility/target、typed prepare request 和固定安全结果会改变公开读取与写入形状，所以实施提交必须
+把 CLI JSON schema 从 v8 升为 **v9**、Flutter Bridge contract 从 v7 升为 **v8**，同步生成绑定与闭合 schema，
+并显式拒绝旧 v8/v7。当前生产实现仍接受可空 primitive item ID、直接发送字符串时间并拼接错误
+`form_time_fmt`、按名称选择默认项目，multipart filename/MIME 缺 Core 防注入门禁，且没有上述 expected-route
+原子入口、active-generation 写链、final `outcome_unknown` 或 caller-pinned Ygdk 双刷新 facade。因此本条状态是
+“来源合同已固定、生产尚未实施”，不是 Phase 11I 完成证据。本次只读核对冻结来源并修改文档，没有联网、上传
+照片或执行真实账号写入，也不授权实现阶段进行真实写测试。
+
 ## 2026-09-04：Phase 11H 场馆取消双 fresh authority 与最终单次发送边界（当前有效）
 
 本条先固定 Phase 11H 的来源与实施合同；来源提交 `c2e07ae` 与实现提交 `f4e3137` 已使当前生产实现和
