@@ -17,7 +17,8 @@
   磁盘 `session.json` 仍保持 schema v2。Phase 11D 的 Signin 可空状态与 typed 资格再次显式把 CLI
   envelope/schema 从 v3 升为 v4、bridge contract 从 v2 升为 v3；Phase 11E 的 LibBook 可空座位状态、
   typed 预约资格与稳定目标再分别升为 CLI schema v5 和 bridge contract v4；Phase 11F 的 LibBook 可空
-  booking 状态、typed 取消资格与同页 authority 再升为 CLI schema v6 和 bridge contract v5；磁盘 session
+  booking 状态、typed 取消资格与同页 authority 再升为 CLI schema v6 和 bridge contract v5；Phase 11G
+  的 Cgyy canonical 状态、typed 预约资格/目标和安全收据继续升为 CLI schema v7 和 bridge contract v6；磁盘 session
   版本始终不变。
 - 机械结构提交与行为敏感提交严格分开；行为阶段必须先有来源对照和预期失败测试。
 - 真实写入不属于本计划；Direct/WebVPN 只读验证串行执行并只保留安全摘要。
@@ -65,7 +66,7 @@
 | 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 已提交：来源 `39dd438`、公开合同 `48444fd`、实现 `b988ae1`；Core 双复核、单次发送、typed action、schema v4/bridge v3、全量门禁、macOS integration 7 项与独立终审通过 |
 | 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 已提交：来源 `61f8f99`、实现 `445240d`；日期/时段/座位唯一 fresh authority、冻结请求头、单次发送、typed action、schema v5/bridge v4、全量门禁、macOS integration 7 项与独立终审通过 |
 | 11F | Libbook 取消资格 | 操作级来源对照与目标状态 RED | `refactor(flutter): typed 化图书馆取消资格` | 已提交：来源 `3e35b75`、实现 `ef63d0a`；同页唯一 fresh authority、严格分页、固定安全结果、单次发送、typed action、schema v6/bridge v5、全量门禁、macOS integration 7 项与独立复核通过 |
-| 11G | Cgyy 预约资格 | 操作级来源对照与可预约 RED | `refactor(flutter): typed 化场馆预约资格` | 待执行 |
+| 11G | Cgyy 预约资格 | 操作级来源对照与可预约 RED | `refactor(flutter): typed 化场馆预约资格` | 已提交：来源 `187097c`、实现 `40b7b4e`；canonical 身份/三态资格、prepare/commit 双 fresh authority、发送前最多三轮 captcha、最终 submit 单次 non-idempotent 边界、安全收据、action-only 公开入口、schema v7/bridge v6、全量门禁、macOS integration 7 项与独立终审通过；不包含真实写入 |
 | 11H | Cgyy 取消资格 | 操作级来源对照与截止时间 RED | `refactor(flutter): typed 化场馆取消资格` | 待执行 |
 | 11I | Ygdk 提交资格 | 操作级来源对照与输入完整性 RED | `refactor(flutter): typed 化阳光打卡资格` | 待执行 |
 | 11J | Evaluation 提交资格 | 操作级来源对照与待评状态 RED | `refactor(flutter): typed 化评教提交资格` | 待执行 |
