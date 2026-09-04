@@ -10,7 +10,7 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| implementation HEAD | `0a110b5` | 代码组织阶段 11C：Bykc 签到/签退资格、最终写前复核、单次发送边界、typed 位置能力与 schema v3 已实现 |
+| implementation HEAD | `b988ae1` | 代码组织阶段 11D：Signin 三态资格、稳定目标、最终写前复核、单次发送边界、typed action、CLI schema v4 与 bridge v3 已实现 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -23,7 +23,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 | 能力 | 实现状态 | 当前证据 | 结论 |
 |---|---|---|---|
 | Rust Core/facade | 认证、路线、双会话、读取与写入协议已实现 | Rust/Test Support 确定性测试；`4eaf1dd` 门禁 | 已实现并通过确定性验证 |
-| CLI | schema v3 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | CLI contract、binary E2E、Core-live/Shell 合同 | 已实现；v3 当前候选仍待阶段门禁绑定 |
+| CLI | schema v4 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | CLI contract、binary E2E、Core-live/Shell 合同 | 已实现；v4 已通过阶段 11D 本地门禁，最终候选绑定仍待阶段 14 |
 | 用户中心与十二项业务读取 | Core/CLI/FRB/Flutter typed 链路与页面已实现 | `4eaf1dd` 的 Direct/WebVPN Core-live 全量读取均退出码 0；页面/查询/widget/integration 使用脱敏 backend 验证 | Core 实时只读已验证；真实 App 账号链路未验证 |
 | 十项用户可见写入 | Core/CLI 协议、typed bridge、一次性确认、防重复、未知结果和读取核对流程已实现 | Fixture/Mock/向量、Dart/app/widget、macOS 脱敏宿主 integration | 无签名确定性闭环已验证；本周期未执行真实写入 |
 | Windows/Linux/macOS/Android/iOS | 官方 Flutter 共享应用与原生宿主已实现 | Flutter CI `33628444289` 的五个无签名 Debug job；合同 CI `33628444204` | 无签名构建/结构证据通过，不是签名或设备证据 |
@@ -65,6 +65,14 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   Platform 37 项、App 65 项、UI 58 项、Bindings 11 项、Host 11 项与官方 App 2 项通过；`just refs`、
   `just layout-check`、694 文件敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 和独立
   Rust/Dart 复审均通过。该证据不包含原生位置 handler、真实签到、签名或设备验证。
+- `b988ae1` 上的阶段 11D 将 Signin `signStatus` 显式建模为可空 `i32`，由 Core 统一映射
+  `allowed/denied/unknown`、稳定安排目标和确定业务结果；prepare/commit 均重读当天唯一目标，最终 POST
+  只越过一次不可重放发送边界。Flutter 只消费 typed action，CLI envelope 升为 schema v4，bridge contract
+  升为 v3，磁盘 session 仍为 schema v2。Core 默认模式 173 项、Signin integration 9 项、Bridge 42 项、
+  CLI binary E2E 16 项、CLI contract 38 项、Flutter Domain 11 项、Platform 38 项、App 65 项、UI 61 项、
+  Bindings 11 项、Host 11 项、官方 App 2 项及 macOS 宿主 integration 7 项通过；`just refs`、
+  `just layout-check`、697 文件敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 和独立
+  终审均通过。该证据未执行真实账号写入，不包含签名、实体设备或真实写后核对。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -81,7 +89,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11D–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11E–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

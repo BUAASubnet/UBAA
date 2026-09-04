@@ -89,8 +89,9 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   键列表，不接收 raw JSON 或上游正文；课堂签到提供全部/未签到/已签到本地状态视图。
 - 博雅已选课程的签到时间窗、位置点数量和签到类型现有 bridge 白名单与 widget 覆盖；位置坐标不跨入
   `FeatureDetail`，不可操作状态的签到/签退按钮会禁用并说明由 Core 判定。
-- 课堂签到读取状态为“已签到”时，详情页禁用重复签到入口并显示稳定说明；状态缺失时不在 UI 猜测，
-  仍由 Core prepare 做最终校验。
+- 课堂签到详情只消费 Core/bridge 输出的 typed action；action 缺失、目标为空或资格为 `unknown/denied`
+  时默认拒绝且不调用 prepare。只有稳定目标和 `allowed` 同时成立时才开放入口，prepare/commit 仍由 Core
+  重读当天唯一安排做最终校验。
 - `777261f` 固定了主页与共享详情页明亮主题 1280×800 golden 基线；随后 `c2fed18` 为十二项
   `FeatureId` 分别固定同一详情渲染器在领域标题、脱敏字段、实际路线和查询控件下的 1280×800
   明亮主题输出（`test/goldens/feature_<id>_light.png`）。这些基线不代表实体设备字体、权限或安全存储能力。

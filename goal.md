@@ -519,6 +519,12 @@
      `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未执行真实写接口。
      提交 `4eaf1dd` 对应官方 Flutter 原生 CI run `33628444289` 和合同 CI run `33628444204` 均终态 `success`：Linux、Windows、macOS、iOS simulator、Android APK
      无签名 Debug job 通过结构检查并上传产物，合同 `contract-gates`、macOS Rust、Windows Rust 亦通过。以上不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后上游核对或正式发布，继续保持后置 `BLOCKED`。
+181. 代码组织 Phase 11D 实现提交 `b988ae1` 将课堂签到改为 Core 所有的三态 typed 资格与稳定安排目标：
+     `signStatus` 可空且只由 Core 解释，prepare/commit 重读当天唯一目标，最终 POST 使用单次不可重放发送边界；
+     Flutter 不再从展示字段反推资格，CLI envelope 显式升为 schema v4，bridge contract 升为 v3。完整
+     `just check`、`just flutter-check`、`just refs`、`just layout-check`、697 文件敏感扫描、FRB 零漂移、
+     CLI binary E2E 16 项、macOS 脱敏宿主 integration 7 项及独立终审均通过。本阶段未联网执行真实签到，
+     不包含签名、实体设备或真实写后核对证据；Phase 11E–14 继续按代码组织计划执行。
 
 ## 4. 安全与架构边界
 

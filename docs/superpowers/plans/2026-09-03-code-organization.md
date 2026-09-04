@@ -59,7 +59,7 @@
 | 11B | Bykc 退选资格 | 操作级来源对照与未知状态 RED | `refactor(flutter): typed 化博雅退选资格` | 已提交：`0a16276`；inner course ID、Core/Bridge 双复核、FRB/Domain/App/UI typed action、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 已提交：`a147132`；最大生产文件 294 行、最大测试叶 425 行，完整 Rust/Flutter 门禁与双重独立复审通过 |
 | 11C | Bykc 签到资格 | 操作级来源对照、unknown fail-closed 与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 已提交：来源 `a17bda4`、实现 `0a110b5`；Core 最终资格、单次发送边界、typed action、位置能力、schema v3、全量门禁与独立复审通过 |
-| 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 待执行 |
+| 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 已提交：来源 `39dd438`、公开合同 `48444fd`、实现 `b988ae1`；Core 双复核、单次发送、typed action、schema v4/bridge v3、全量门禁、macOS integration 7 项与独立终审通过 |
 | 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 待执行 |
 | 11F | Libbook 取消资格 | 操作级来源对照与目标状态 RED | `refactor(flutter): typed 化图书馆取消资格` | 待执行 |
 | 11G | Cgyy 预约资格 | 操作级来源对照与可预约 RED | `refactor(flutter): typed 化场馆预约资格` | 待执行 |
