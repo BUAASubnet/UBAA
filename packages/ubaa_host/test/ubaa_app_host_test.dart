@@ -242,9 +242,11 @@ void main() {
     await shell.onDiscardWriteIntent!(' intent-bykc-sign ');
     expect(backend.discardedIntentId, 'intent-bykc-sign');
 
-    final signinIntent = await shell.onPrepareSigninWrite!(
-      ' signin-course-41004 ',
+    const signinAction = SigninPerformAction(
+      scheduleId: ' signin-course-41004 ',
+      eligibility: ActionEligibility.allowed,
     );
+    final signinIntent = await shell.onPrepareSigninWrite!(signinAction);
     expect(signinIntent.operation, WriteOperation.signinPerform);
     expect(signinIntent.intentId, 'intent-signin');
     expect(backend.signinCourseId, 'signin-course-41004');

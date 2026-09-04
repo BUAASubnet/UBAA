@@ -63,21 +63,31 @@ pub(super) fn map_commit_error(
             "session changed; prepare the write again",
         );
     }
-    if matches!(operation, BridgeWriteOperation::BykcSignCourse)
-        && error.error.code == domain::ErrorCode::InvalidInput
+    if matches!(
+        operation,
+        BridgeWriteOperation::BykcSignCourse | BridgeWriteOperation::SigninPerform
+    ) && error.error.code == domain::ErrorCode::InvalidInput
         && error.error.retryable
     {
+        let message = if matches!(operation, BridgeWriteOperation::SigninPerform) {
+            "课堂签到资格已变化，请刷新后重新准备"
+        } else {
+            "课程签到资格已变化，请刷新后重新准备"
+        };
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
             BridgeErrorKind::Input,
             true,
-            "课程签到资格已变化，请刷新后重新准备",
+            message,
         );
     }
     let outcome_unknown = if error.error.code == domain::ErrorCode::OutcomeUnknown {
         true
-    } else if matches!(operation, BridgeWriteOperation::BykcSignCourse) {
+    } else if matches!(
+        operation,
+        BridgeWriteOperation::BykcSignCourse | BridgeWriteOperation::SigninPerform
+    ) {
         false
     } else {
         matches!(

@@ -11,6 +11,7 @@ part 'widgets/feature_details.dart';
 part 'widgets/goldens.dart';
 part 'widgets/queries.dart';
 part 'widgets/shell.dart';
+part 'widgets/signin_writes.dart';
 part 'widgets/states.dart';
 part 'widgets/writes.dart';
 
@@ -20,6 +21,7 @@ void main() {
   _registerShellTests();
   _registerFeatureRenderingTests();
   _registerInitialWriteTests();
+  _registerSigninWriteResultTests();
   _registerBykcStateTests();
   _registerCgyyCancellationWriteTest();
   _registerCgyyStateTest();

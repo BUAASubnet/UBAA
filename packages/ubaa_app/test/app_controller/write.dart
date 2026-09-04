@@ -71,27 +71,47 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('课堂签到写意图只接受读取结果中的非空课程编号', () async {
+  test('课堂签到写意图只接受 typed Allowed action 并在末端提取目标', () async {
     final backend = _SigninWriteBackend();
     final controller = AppController(backend: backend);
+    const allowed = SigninPerformAction(
+      scheduleId: ' course-7 ',
+      eligibility: ActionEligibility.allowed,
+    );
 
-    final intent = await controller.prepareSigninWrite(' course-7 ');
+    final intent = await controller.prepareSigninWrite(allowed);
     expect(intent.operation, WriteOperation.signinPerform);
     expect(backend.courseId, 'course-7');
     expect(backend.commitCalls, 0);
     await controller.commitWrite(intent.intentId);
     expect(backend.commitCalls, 1);
 
-    await expectLater(
-      controller.prepareSigninWrite('  '),
-      throwsA(
-        isA<BackendException>().having(
-          (error) => error.code,
-          'code',
-          UbaaErrorCode.invalidInput,
-        ),
+    for (final action in const <SigninPerformAction>[
+      SigninPerformAction(
+        scheduleId: 'course-denied',
+        eligibility: ActionEligibility.denied,
       ),
-    );
+      SigninPerformAction(
+        scheduleId: 'course-unknown',
+        eligibility: ActionEligibility.unknown,
+      ),
+      SigninPerformAction(
+        scheduleId: '  ',
+        eligibility: ActionEligibility.allowed,
+      ),
+    ]) {
+      await expectLater(
+        controller.prepareSigninWrite(action),
+        throwsA(
+          isA<BackendException>().having(
+            (error) => error.code,
+            'code',
+            UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+    }
+    expect(backend.courseId, 'course-7');
     controller.dispose();
   });
 

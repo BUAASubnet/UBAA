@@ -28,12 +28,12 @@ CLI                  Flutter/OHOS
 
 CLI 与 Rust bridge 的生产业务调用只经 facade；CLI 在自身 `command/backend/execute/io` 边界拥有参数解析、
 JSON/human 渲染和退出策略。Dart 与平台宿主只经 bridge 使用 Core，不处理 URL、Cookie、Session、加密或
-上游正文；`upstream` 解析/URL 模块为 crate-private。实际 envelope 的 JSON Schema 校验、schema-v3 聚合
+上游正文；`upstream` 解析/URL 模块为 crate-private。实际 envelope 的 JSON Schema 校验、schema-v4 聚合
 登录输出、参数错误 envelope、不支持交互式登录步骤的显式
 拒绝、脱敏展示、带 revision 的原子双路线会话、Core 所有的 TCP 路由诊断和非交互式本地验证器
 均已实现。Flutter 侧的 typed bridge、共享 domain/app/UI、十二项读取页面、十项写入确认和无签名
 六平台宿主也已实现并有确定性证据。Direct/WebVPN 的真实 Core-live 只读验证、无签名平台构建、
 实体设备、签名发布和真实写入是彼此独立的证据层级；当前不包含服务器中继，真实写入仍须逐操作授权。
 
-CLI envelope 的 schema v3 与磁盘 Session 版本相互独立：前者描述 stdout 的封闭公开合同，后者仍是
+CLI envelope 的 schema v4 与磁盘 Session 版本相互独立：前者描述 stdout 的封闭公开合同，后者仍是
 `session.json` schema v2 双路线快照；本次 CLI 升级不迁移或改写会话文件。

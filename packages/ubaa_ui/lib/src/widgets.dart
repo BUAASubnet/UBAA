@@ -408,7 +408,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
   onPrepareBykcWrite;
   final BykcSignPreparer? onPrepareBykcSignWrite;
-  final Future<WriteIntent> Function(String courseId)? onPrepareSigninWrite;
+  final SigninPreparer? onPrepareSigninWrite;
   final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
   onPrepareCancellationWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
@@ -678,11 +678,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
-  Future<void> _startSigninWrite(String courseId) async {
+  Future<void> _startSigninWrite(SigninPerformAction action) async {
     final prepare = widget.onPrepareSigninWrite;
     if (prepare == null) return;
     await _prepareWrite(
-      prepare: () => prepare(courseId),
+      prepare: () => prepare(action),
       failureMessage: '暂时无法准备签到；尚未提交任何写请求。',
     );
   }
@@ -1306,7 +1306,7 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
-  final Future<void> Function(String courseId)? onSigninWrite;
+  final SigninStarter? onSigninWrite;
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
@@ -2858,7 +2858,7 @@ class _FeatureDetailList extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
-  final Future<void> Function(String courseId)? onSigninWrite;
+  final SigninStarter? onSigninWrite;
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
@@ -3011,7 +3011,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                       detail,
                       BykcSignKind.signOut,
                     );
-                    final signinCourseId = _courseKey(detail);
+                    final signinAction = detail.action<SigninPerformAction>();
                     final cancellation = _cancellationTarget(detail);
                     final reservation = _libbookReserveTarget(detail);
                     final cgyyReservation = _cgyyReservationTarget(detail);
@@ -3029,6 +3029,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final canBykcDeselect =
                         bykcDeselectAction?.eligibility ==
                         ActionEligibility.allowed;
+                    final canSignin =
+                        signinAction?.eligibility ==
+                            ActionEligibility.allowed &&
+                        signinAction!.scheduleId.trim().isNotEmpty;
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -3170,22 +3174,23 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                             ],
                             if (widget.feature == FeatureId.signin &&
                                 widget.onSigninWrite != null &&
-                                signinCourseId != null &&
-                                signinCourseId.isNotEmpty) ...<Widget>[
+                                signinAction != null) ...<Widget>[
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: _isSigninAvailable(detail)
-                                    ? () =>
-                                          widget.onSigninWrite!(signinCourseId)
+                                onPressed: canSignin
+                                    ? () => widget.onSigninWrite!(signinAction)
                                     : null,
                                 icon: const Icon(Icons.how_to_reg),
                                 label: const Text('准备签到'),
                               ),
-                              if (!_isSigninAvailable(detail))
+                              if (!canSignin)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
-                                    '该课程已签到，不能重复提交。',
+                                    signinAction.eligibility ==
+                                            ActionEligibility.denied
+                                        ? '该课程已签到，不能重复提交。'
+                                        : '当前签到资格无法确认，请刷新后重试。',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodySmall,
@@ -3349,29 +3354,11 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     return null;
   }
 
-  String? _courseKey(FeatureDetail detail) {
-    for (final field in detail.fields) {
-      if (field.label == '课程 ID') return field.value.trim();
-    }
-    return null;
-  }
-
   BykcSignAction? _bykcSignAction(FeatureDetail detail, BykcSignKind kind) {
     for (final action in detail.actions) {
       if (action is BykcSignAction && action.kind == kind) return action;
     }
     return null;
-  }
-
-  bool _isSigninAvailable(FeatureDetail detail) {
-    for (final field in detail.fields) {
-      if (field.label != '签到状态') continue;
-      final status = field.value.trim();
-      if (status.isEmpty) return true;
-      return status == '未签到';
-    }
-    // 旧版读取 DTO 可能没有状态字段；交给 Core prepare 再做最终条件校验。
-    return true;
   }
 
   ({WriteOperation operation, String targetId})? _cancellationTarget(

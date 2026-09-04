@@ -199,17 +199,33 @@ impl BridgeClient {
     }
     pub async fn prepare_signin_perform(
         &self,
-        request: BridgeSigninPerformRequest,
+        mut request: BridgeSigninPerformRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        request.course_id = request.course_id.trim().to_owned();
         validate_text(&request.course_id)?;
-        self.prepare_write(
-            ReadonlyFeature::Signin,
-            BridgeWriteOperation::SigninPerform,
-            format!("course_id={}", request.course_id),
-            "提交课堂签到".to_owned(),
-            vec!["请确认课程和当前签到窗口".to_owned()],
-            PendingWrite::Signin(request),
-        )
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_signin_perform(&request.course_id)
+                .await
+                .map_err(BridgeError::from_routed)?;
+            let course_name = safe_summary_label(&current.data.course_name, "课堂签到课程");
+            let schedule_id = safe_summary_label(&request.course_id, "未知安排");
+            let begin = safe_summary_label(&current.data.class_begin_time, "时间未知");
+            let end = safe_summary_label(&current.data.class_end_time, "时间未知");
+            let target_summary =
+                format!("{course_name}（安排 {schedule_id}）·{begin} 至 {end}·可签到");
+            self.store_write_intent(
+                BridgeWriteOperation::SigninPerform,
+                format!("course_id={}", request.course_id),
+                target_summary,
+                vec!["提交后请刷新今日签到状态确认结果".to_owned()],
+                PendingWrite::Signin(request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_libbook_reserve(

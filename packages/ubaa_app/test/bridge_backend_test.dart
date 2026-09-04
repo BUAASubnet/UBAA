@@ -5,7 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(2);
+    final client = _ContractVersionClient(3);
 
     final backend = BridgeBackend(client);
 
@@ -13,7 +13,7 @@ void main() {
   });
 
   test('BridgeBackend 在 release 可执行路径拒绝不匹配合同版本', () {
-    final client = _ContractVersionClient(1);
+    final client = _ContractVersionClient(2);
 
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
@@ -121,7 +121,7 @@ void main() {
     expect(result.resolvedRoute, ConnectionMode.webvpn);
   });
 
-  test('BridgeBackend 课堂签到按冻结状态本地派生筛选', () async {
+  test('BridgeBackend 课堂签到只按 typed 资格筛选并构造 typed action', () async {
     final response = BridgeRoutedSigninClasses(
       data: const <BridgeSigninClass>[
         BridgeSigninClass(
@@ -129,14 +129,18 @@ void main() {
           courseName: '已签到课程',
           classBeginTime: '08:00',
           classEndTime: '09:00',
-          signStatus: 1,
+          signStatus: 0,
+          signinEligibility: BridgeActionEligibility.denied,
+          signinTarget: 'denied-target-safe',
         ),
         BridgeSigninClass(
           courseId: 'course-2',
           courseName: '未签到课程',
           classBeginTime: '10:00',
           classEndTime: '11:00',
-          signStatus: 0,
+          signStatus: 1,
+          signinEligibility: BridgeActionEligibility.allowed,
+          signinTarget: 'allowed-target-safe',
         ),
       ],
       route: const BridgeRouteDecision(
@@ -157,16 +161,12 @@ void main() {
     expect(result.summary, '1门未签到课程');
     expect(result.details.single.title, '未签到课程');
     expect(
-      result.details.single.fields
-          .singleWhere((field) => field.label == '课程 ID')
-          .value,
-      'course-2',
+      result.details.single.action<SigninPerformAction>()?.scheduleId,
+      'allowed-target-safe',
     );
     expect(
-      result.details.single.fields
-          .singleWhere((field) => field.label == '签到状态')
-          .value,
-      '未签到',
+      result.details.single.action<SigninPerformAction>()?.eligibility,
+      ActionEligibility.allowed,
     );
     expect(result.resolvedRoute, ConnectionMode.direct);
   });
@@ -745,7 +745,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 2;
+  int contractVersion() => 3;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {

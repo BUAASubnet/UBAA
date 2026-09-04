@@ -39,7 +39,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 2;
+  int contractVersion() => 3;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -642,6 +642,8 @@ class _CharacterizationBridgeClient implements BridgeClient {
                       classBeginTime: '08:00',
                       classEndTime: '10:00',
                       signStatus: 0,
+                      signinEligibility: BridgeActionEligibility.allowed,
+                      signinTarget: 'signin-read-1',
                     ),
                   ],
             route: _webVpnRoute,

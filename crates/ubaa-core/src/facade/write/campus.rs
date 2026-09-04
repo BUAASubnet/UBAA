@@ -124,8 +124,27 @@ impl UbaaClient {
     pub async fn signin_perform(&mut self, course_id: &str) -> RoutedResult<SigninActionResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::signin::perform_signin(runtime, course_id).await
+        };
+        self.finish_routed_write(resolution, result)
+    }
+
+    /// 只读复核指定课堂签到目标的当前资格。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、路线不可用、目标不唯一或资格不足时返回带路线信息的错误。
+    pub async fn preflight_signin_perform(
+        &mut self,
+        course_id: &str,
+    ) -> RoutedResult<crate::domain::SigninClass> {
+        self.guard_latest_routed()?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
         let result =
-            crate::features::signin::perform_signin(self.runtime_for(resolution.mode), course_id)
+            crate::features::signin::preflight_signin(self.runtime_for(resolution.mode), course_id)
                 .await;
         self.finish_routed(resolution, result)
     }

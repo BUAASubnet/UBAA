@@ -440,6 +440,10 @@ void _registerInitialWriteTests() {
   });
 
   testWidgets('课堂签到从公开课程编号准备并在确认后提交', (tester) async {
+    const expectedAction = SigninPerformAction(
+      scheduleId: 'schedule-7',
+      eligibility: ActionEligibility.allowed,
+    );
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -451,9 +455,10 @@ void _registerInitialWriteTests() {
                   FeatureDetail(
                     title: '课堂签到课程',
                     fields: <FeatureField>[
-                      FeatureField(label: '课程 ID', value: 'course-7'),
-                      FeatureField(label: '签到状态', value: '未签到'),
+                      FeatureField(label: '课程 ID', value: '误导目标'),
+                      FeatureField(label: '签到状态', value: '已签到'),
                     ],
+                    actions: <FeatureAction>[expectedAction],
                   ),
                 ]
               : const <FeatureDetail>[],
@@ -461,6 +466,7 @@ void _registerInitialWriteTests() {
     };
     var prepareCalls = 0;
     var commitCalls = 0;
+    var refreshCalls = 0;
     final intent = WriteIntent(
       intentId: 'signin-intent',
       operation: WriteOperation.signinPerform,
@@ -480,9 +486,11 @@ void _registerInitialWriteTests() {
           telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
-          onPrepareSigninWrite: (courseId) async {
+          onPrepareSigninWrite: (action) async {
             prepareCalls++;
-            expect(courseId, 'course-7');
+            expect(identical(action, expectedAction), isTrue);
+            expect(action.scheduleId, 'schedule-7');
+            expect(action.eligibility, ActionEligibility.allowed);
             return intent;
           },
           onCommitWrite: (intentId) async {
@@ -494,6 +502,10 @@ void _registerInitialWriteTests() {
               message: '签到结果已提交，请刷新确认',
               outcomeUnknown: false,
             );
+          },
+          onWriteSuccess: (operation) async {
+            expect(operation, WriteOperation.signinPerform);
+            refreshCalls++;
           },
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
@@ -515,6 +527,7 @@ void _registerInitialWriteTests() {
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
+    expect(refreshCalls, 1);
     expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
   });
 }

@@ -90,11 +90,11 @@ impl BridgeClient {
                 PendingWrite::BykcSelect(request) => client
                     .bykc_select_course(request.course_id)
                     .await
-                    .map(|r| (r.resolution, safe_message("博雅选课已提交"), None)),
+                    .map(|r| (r.resolution, true, safe_message("博雅选课已提交"), None)),
                 PendingWrite::BykcDeselect(request) => client
                     .bykc_deselect_course(request.course_id)
                     .await
-                    .map(|r| (r.resolution, safe_message("博雅退选已提交"), None)),
+                    .map(|r| (r.resolution, true, safe_message("博雅退选已提交"), None)),
                 PendingWrite::BykcSign(request) => {
                     let message = if request.sign_type == 1 {
                         "博雅签到已提交"
@@ -109,12 +109,19 @@ impl BridgeClient {
                             sign_type: request.sign_type,
                         })
                         .await
-                        .map(|r| (r.resolution, safe_message(message), None))
+                        .map(|r| (r.resolution, true, safe_message(message), None))
                 }
-                PendingWrite::Signin(request) => client
-                    .signin_perform(&request.course_id)
-                    .await
-                    .map(|r| (r.resolution, safe_message("课堂签到已提交"), None)),
+                PendingWrite::Signin(request) => {
+                    client.signin_perform(&request.course_id).await.map(|r| {
+                        let success = r.data.success;
+                        let message = if success {
+                            safe_message("签到成功")
+                        } else {
+                            safe_message("签到未完成")
+                        };
+                        (r.resolution, success, message, None)
+                    })
+                }
                 PendingWrite::LibbookReserve(request) => client
                     .libbook_reserve(domain::LibBookReserveRequest {
                         area_id: request.area_id,
@@ -125,11 +132,11 @@ impl BridgeClient {
                         end_time: request.end_time,
                     })
                     .await
-                    .map(|r| (r.resolution, safe_message("图书馆预约已提交"), None)),
+                    .map(|r| (r.resolution, true, safe_message("图书馆预约已提交"), None)),
                 PendingWrite::LibbookCancel(request) => client
                     .libbook_cancel_booking(&request.id)
                     .await
-                    .map(|r| (r.resolution, safe_message("图书馆预约已取消"), None)),
+                    .map(|r| (r.resolution, true, safe_message("图书馆预约已取消"), None)),
                 PendingWrite::Ygdk(request) => client
                     .ygdk_submit(domain::YgdkClockinSubmitRequest {
                         item_id: request.item_id,
@@ -144,13 +151,14 @@ impl BridgeClient {
                         }),
                     })
                     .await
-                    .map(|r| (r.resolution, safe_message("阳光打卡已提交"), None)),
+                    .map(|r| (r.resolution, true, safe_message("阳光打卡已提交"), None)),
                 PendingWrite::CgyyReserve(request) => client
                     .cgyy_submit_reservation(map_cgyy_request(request))
                     .await
                     .map(|r| {
                         (
                             r.resolution,
+                            true,
                             safe_message("场馆预约已提交"),
                             r.data.order.map(map_cgyy_order),
                         )
@@ -158,7 +166,7 @@ impl BridgeClient {
                 PendingWrite::CgyyCancel(request) => client
                     .cgyy_cancel_order(request.id)
                     .await
-                    .map(|r| (r.resolution, safe_message("场馆订单已取消"), None)),
+                    .map(|r| (r.resolution, true, safe_message("场馆订单已取消"), None)),
                 PendingWrite::Evaluation(request) => client
                     .evaluation_submit_courses(
                         request
@@ -168,12 +176,12 @@ impl BridgeClient {
                             .collect(),
                     )
                     .await
-                    .map(|r| (r.resolution, safe_message("教学评教已提交"), None)),
+                    .map(|r| (r.resolution, true, safe_message("教学评教已提交"), None)),
             };
             match result {
-                Ok((resolution, message, order)) => Ok(BridgeWriteCommitResult {
+                Ok((resolution, success, message, order)) => Ok(BridgeWriteCommitResult {
                     operation,
-                    success: true,
+                    success,
                     message,
                     outcome_unknown: false,
                     resolved_route: Some(resolution.mode.into()),

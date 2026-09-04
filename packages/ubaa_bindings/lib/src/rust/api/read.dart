@@ -2242,14 +2242,18 @@ class BridgeSigninClass {
   final String courseName;
   final String classBeginTime;
   final String classEndTime;
-  final int signStatus;
+  final int? signStatus;
+  final BridgeActionEligibility signinEligibility;
+  final String? signinTarget;
 
   const BridgeSigninClass({
     required this.courseId,
     required this.courseName,
     required this.classBeginTime,
     required this.classEndTime,
-    required this.signStatus,
+    this.signStatus,
+    required this.signinEligibility,
+    this.signinTarget,
   });
 
   @override
@@ -2258,7 +2262,9 @@ class BridgeSigninClass {
       courseName.hashCode ^
       classBeginTime.hashCode ^
       classEndTime.hashCode ^
-      signStatus.hashCode;
+      signStatus.hashCode ^
+      signinEligibility.hashCode ^
+      signinTarget.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -2269,7 +2275,9 @@ class BridgeSigninClass {
           courseName == other.courseName &&
           classBeginTime == other.classBeginTime &&
           classEndTime == other.classEndTime &&
-          signStatus == other.signStatus;
+          signStatus == other.signStatus &&
+          signinEligibility == other.signinEligibility &&
+          signinTarget == other.signinTarget;
 }
 
 class BridgeSpocAssignmentDetail {

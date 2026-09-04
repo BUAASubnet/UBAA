@@ -6,6 +6,13 @@ typedef BykcSignPreparer = Future<WriteIntent> Function(BykcSignAction action);
 /// 博雅签到/签退启动回调；不得把是否需要调用方坐标降级为展示字段推测。
 typedef BykcSignStarter = Future<void> Function(BykcSignAction action);
 
+/// 课堂签到准备回调；保留 Core 核对的安排目标和 typed 资格。
+typedef SigninPreparer =
+    Future<WriteIntent> Function(SigninPerformAction action);
+
+/// 课堂签到启动回调；不得从展示字段重建目标或资格。
+typedef SigninStarter = Future<void> Function(SigninPerformAction action);
+
 /// 释放尚未提交的一次性意图；成功表示 Bridge 已移除对应 pending 状态。
 typedef WriteIntentDiscarder = Future<void> Function(String intentId);
 

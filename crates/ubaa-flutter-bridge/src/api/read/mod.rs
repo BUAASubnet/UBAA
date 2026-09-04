@@ -130,7 +130,9 @@ pub struct BridgeSigninClass {
     pub course_name: String,
     pub class_begin_time: String,
     pub class_end_time: String,
-    pub sign_status: i32,
+    pub sign_status: Option<i32>,
+    pub signin_eligibility: BridgeActionEligibility,
+    pub signin_target: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -24,6 +24,7 @@ use ubaa_test_support::{ExpectedRequest, MockTransport};
 mod bykc;
 mod contract;
 mod lifecycle;
+mod signin;
 mod validation;
 
 fn bykc_login_request() -> ExpectedRequest {

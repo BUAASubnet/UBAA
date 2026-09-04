@@ -8,7 +8,7 @@
 | Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
 | 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v3、旧 v2 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
+| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v4、旧 v3 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
 | 结构与 Shell 合同 | `scripts/tests/layout.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
@@ -42,7 +42,9 @@ git diff --check
 
 公开 DTO 出现破坏性类型变化时不得沿用旧版本号静默输出：Phase 11C 将 Bykc 未知签到状态显式建模后，
 CLI envelope 从 schema v2 升为 v3，合同测试要求全部成功、失败、参数错误、聚合和诊断输出使用 v3，并拒绝
-旧 v2 envelope。该测试范围不包含磁盘 `session.json`；其 schema v2 由 Session/CAS 测试独立保护。
+旧 v2 envelope。Phase 11D 又将 Signin 原始状态改为可空、加入 typed 资格/目标和写结果分支，因此当前公开
+envelope 显式升为 schema v4，真实 dispatcher 合同覆盖确定 true/false 与 `outcome_unknown` 并拒绝旧 v3。
+该测试范围不包含磁盘 `session.json`；其 schema v2 由 Session/CAS 测试独立保护。
 
 ## 写入测试边界
 

@@ -590,8 +590,9 @@ impl RouteClient {
         course_id: &str,
     ) -> Result<FeatureResult<SigninActionResult>> {
         self.guard_latest_session_ownership()?;
+        self.runtime.begin_non_idempotent_operation();
         let result = crate::features::signin::perform_signin(&mut self.runtime, course_id).await;
-        let data = self.finish_readonly_operation(result)?;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 

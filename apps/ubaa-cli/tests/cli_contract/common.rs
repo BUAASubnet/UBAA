@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use ubaa_cli::{CliBackend, RoutedCliBackend};
 use ubaa_core::facade::{
-    AuthStatus, BykcActionResult, BykcSignRequest, CgyyActionResult, ConnectionMode, ErrorCode,
-    ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics, LoginInput, NetworkState, Result,
-    RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError, RoutedResult,
-    SpocAssignments, SpocAssignmentsDiagnostics, Term, UbaaError, UserProfile,
+    ActionEligibility, AuthStatus, BykcActionResult, BykcSignRequest, CgyyActionResult,
+    ConnectionMode, ErrorCode, ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics, LoginInput,
+    NetworkState, Result, RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError,
+    RoutedResult, SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics,
+    Term, UbaaError, UserProfile,
 };
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
@@ -20,16 +21,82 @@ pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
 pub(crate) struct FakeBackend {
     pub(crate) login_calls: usize,
     pub(crate) schedule_success: bool,
+    pub(crate) signin_perform_calls: usize,
+}
+
+#[derive(Clone, Copy, Default)]
+pub(crate) enum SigninFixtureResult {
+    #[default]
+    Success,
+    BusinessFalse,
+    OutcomeUnknown,
+    PreSendTimeout,
 }
 
 #[derive(Default)]
 pub(crate) struct FakeRoutedBackend {
     pub(crate) fail_schedule: bool,
     pub(crate) cgyy_cancel_calls: usize,
+    pub(crate) signin_today_calls: usize,
+    pub(crate) signin_perform_calls: usize,
+    pub(crate) signin_result: SigninFixtureResult,
 }
 
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
+        self.signin_today_calls += 1;
+        Ok(Routed {
+            data: vec![
+                signin_class("schedule-allowed", Some(0), ActionEligibility::Allowed),
+                signin_class("schedule-denied", Some(1), ActionEligibility::Denied),
+                signin_class("schedule-missing", None, ActionEligibility::Unknown),
+                signin_class("schedule-other", Some(2), ActionEligibility::Unknown),
+            ],
+            resolution: direct_resolution(),
+        })
+    }
+
+    async fn signin_perform(&mut self, _course_id: &str) -> RoutedResult<SigninActionResult> {
+        self.signin_perform_calls += 1;
+        match self.signin_result {
+            SigninFixtureResult::Success => Ok(Routed {
+                data: SigninActionResult {
+                    code: 200,
+                    success: true,
+                    message: "签到成功".into(),
+                },
+                resolution: direct_resolution(),
+            }),
+            SigninFixtureResult::BusinessFalse => Ok(Routed {
+                data: SigninActionResult {
+                    code: 400,
+                    success: false,
+                    message: "签到未完成".into(),
+                },
+                resolution: direct_resolution(),
+            }),
+            SigninFixtureResult::OutcomeUnknown => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::OutcomeUnknown,
+                    ErrorKind::Upstream,
+                    false,
+                    "fixture outcome unknown",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+            SigninFixtureResult::PreSendTimeout => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::Timeout,
+                    ErrorKind::Network,
+                    true,
+                    "fixture pre-send timeout",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+        }
+    }
+
     async fn bykc_select_course(&mut self, _course_id: i64) -> RoutedResult<BykcActionResult> {
         Ok(bykc_action("fixture select"))
     }
@@ -133,6 +200,30 @@ impl RoutedCliBackend for FakeRoutedBackend {
     }
 }
 
+fn direct_resolution() -> RouteResolution {
+    route_resolution(
+        RoutePolicy::Direct,
+        NetworkState::Unknown,
+        ConnectionMode::Direct,
+    )
+}
+
+fn signin_class(
+    course_id: &str,
+    sign_status: Option<i32>,
+    signin_eligibility: ActionEligibility,
+) -> SigninClass {
+    SigninClass {
+        course_id: course_id.into(),
+        course_name: "脱敏课堂".into(),
+        class_begin_time: "08:00".into(),
+        class_end_time: "09:40".into(),
+        sign_status,
+        signin_eligibility,
+        signin_target: Some(course_id.into()),
+    }
+}
+
 fn bykc_action(message: &str) -> Routed<BykcActionResult> {
     Routed {
         data: BykcActionResult {
@@ -186,6 +277,21 @@ impl CliBackend for FakeBackend {
             false,
             "fixture schedule authentication required",
         ))
+    }
+
+    async fn signin_perform(
+        &mut self,
+        _course_id: &str,
+    ) -> Result<FeatureResult<SigninActionResult>> {
+        self.signin_perform_calls += 1;
+        Ok(FeatureResult {
+            data: SigninActionResult {
+                code: 200,
+                success: true,
+                message: "签到成功".into(),
+            },
+            resolved_route: ConnectionMode::Direct,
+        })
     }
 }
 

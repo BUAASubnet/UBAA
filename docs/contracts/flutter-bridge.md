@@ -9,8 +9,8 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `2`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。版本 2 首次将
-  博雅签到资格收敛为三态枚举，并把缺失考勤状态保留为可空值；它不与版本 1 的旧生成绑定混用。
+- 合同版本为 `3`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。版本 3 将课堂签到
+  `signStatus` 改为可空，并新增 typed eligibility/target；它不与版本 2 的旧生成绑定混用。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -26,7 +26,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=2` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=3` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -158,7 +158,9 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `JudgeAssignmentKey {courseId,assignmentId}`；详情增加 `problems` 与 `contentPlainText?`；批量详情保持
   去重后的输入顺序，逐项使用同一白名单详情结构。
   `JudgeProblem {name,score?,maxScore?,status,statusText}`。
-- `SigninClass {courseId,courseName,classBeginTime,classEndTime,signStatus}`。
+- `SigninClass {courseId,courseName,classBeginTime,classEndTime,signStatus?,signinEligibility,signinTarget?}`；
+  `signStatus=0/1` 分别映射 `allowed/denied`，缺失、畸形或其它值映射 `unknown`。宿主只消费
+  typed eligibility/target 决定操作，action 缺失、`unknown`、`denied` 或空目标都必须拒绝。
 - `BykcUserProfile {id,employeeId?,realName?,studentNo?,collegeName?}`；
   `BykcCourse {id,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,courseSelectStartDate?,courseSelectEndDate?,courseCancelEndDate?,courseMaxCount?,courseCurrentCount?,status,selected?,selectEligibility,deselectEligibility}`；
   两项 eligibility 都是 `allowed/denied/unknown` 的封闭枚举，缺失 action 或 `unknown` 均必须按拒绝处理；
@@ -232,8 +234,8 @@ ID/分页字段：
 | `spocDetail` | `assignmentId` | `spocAssignment(assignmentId)` |
 | `judgeDetail` | `courseId`、`assignmentId` | `judgeAssignment(courseId, assignmentId)` |
 | `judgeBatchDetails` | `judgeKeys: List<{courseId,assignmentId}>`，至少一项 | `judgeAssignmentDetails(keys)` |
-| `signinPending` | 无 | `signinToday` 后按 `signStatus == 0` 本地派生 |
-| `signinCompleted` | 无 | `signinToday` 后按 `signStatus == 1` 本地派生 |
+| `signinPending` | 无 | `signinToday` 后按 `signinEligibility == allowed` 本地派生 |
+| `signinCompleted` | 无 | `signinToday` 后按 `signinEligibility == denied` 本地派生 |
 
 缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
 批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw
@@ -299,6 +301,12 @@ Core 的操作。
 签到类型的未过期 intent，第二次 prepare 返回 `operation_conflict`。commit 消费 intent 后再次
 执行相同预检，并在最终 POST 前复核 Session 修订；预检失败不得误报为结果不确定，只有最终写请求
 可能已到达上游后仍无法得到确定结果时才返回 `outcome_unknown`。
+
+课堂签到 prepare 必须调用 Core 只读 preflight，确认摘要逐项清理课程名、安排 ID、起止时间并显示
+当前可签到状态；UI 将完整 `SigninPerformAction` 传给共享 Host/AppController，只有最末 Bridge request
+构造才提取 `scheduleId`。commit 消费 intent 后由 Core 再 fresh 查询今日课程，要求唯一精确目标且
+eligibility 为 `allowed` 后才可发送。确定业务拒绝保持 commit `success=false`，不显示成功且不触发
+成功刷新；确定成功刷新今日签到一次，`outcome_unknown` 也只刷新一次并禁止自动重放。
 
 照片通过 `BridgePhoto {bytes,fileName,mimeType}` 一次传入；Debug 只记录字节数与 MIME 类型。
 场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token

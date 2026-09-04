@@ -84,3 +84,21 @@ class BykcSignAction extends FeatureAction {
   @override
   WriteOperation get operation => WriteOperation.bykcSignCourse;
 }
+
+/// 单门课堂签到的 Core 已核对安排目标。
+@immutable
+class SigninPerformAction extends FeatureAction {
+  const SigninPerformAction({
+    required this.scheduleId,
+    required this.eligibility,
+  });
+
+  /// Core 从今日课程响应核对出的课程安排标识。
+  final String scheduleId;
+
+  @override
+  final ActionEligibility eligibility;
+
+  @override
+  WriteOperation get operation => WriteOperation.signinPerform;
+}

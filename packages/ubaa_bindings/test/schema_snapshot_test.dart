@@ -122,6 +122,9 @@ void main() {
     expect(read, contains('final BridgeActionEligibility selectEligibility;'));
     expect(read, contains('final BridgeActionEligibility signEligibility;'));
     expect(read, contains('final BridgeActionEligibility signOutEligibility;'));
+    expect(read, contains('final int? signStatus;'));
+    expect(read, contains('final BridgeActionEligibility signinEligibility;'));
+    expect(read, contains('final String? signinTarget;'));
     expect(
       RegExp(
         r'final BridgeActionEligibility deselectEligibility;',

@@ -106,9 +106,9 @@ final class _WriteIntegrationBackend
         FeatureQueryBackend,
         RouteSettingsBackend,
         SigninWriteBackend {
-  _WriteIntegrationBackend({this.throwOnCommit = false});
+  _WriteIntegrationBackend({this.commitFixture = _SigninCommitFixture.success});
 
-  final bool throwOnCommit;
+  final _SigninCommitFixture commitFixture;
   bool _signedIn = false;
   bool _completed = false;
   int signinLoads = 0;
@@ -152,6 +152,14 @@ final class _WriteIntegrationBackend
             fields: <FeatureField>[
               const FeatureField(label: '课程 ID', value: 'course-integration'),
               FeatureField(label: '签到状态', value: _completed ? '已签到' : '未签到'),
+            ],
+            actions: <FeatureAction>[
+              SigninPerformAction(
+                scheduleId: 'course-integration',
+                eligibility: _completed
+                    ? ActionEligibility.denied
+                    : ActionEligibility.allowed,
+              ),
             ],
           ),
         ],
@@ -199,17 +207,28 @@ final class _WriteIntegrationBackend
     if (intentId != 'signin-integration') {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
-    if (throwOnCommit) {
-      throw Exception('测试提交传输失败');
-    }
-    _completed = true;
-    return const WriteCommitResult(
-      operation: WriteOperation.signinPerform,
-      success: true,
-      message: '签到结果已提交，请刷新确认',
-      outcomeUnknown: false,
-      resolvedRoute: ConnectionMode.direct,
-    );
+    return switch (commitFixture) {
+      _SigninCommitFixture.success => () {
+        _completed = true;
+        return const WriteCommitResult(
+          operation: WriteOperation.signinPerform,
+          success: true,
+          message: '签到结果已提交，请刷新确认',
+          outcomeUnknown: false,
+          resolvedRoute: ConnectionMode.direct,
+        );
+      }(),
+      _SigninCommitFixture.businessFalse => const WriteCommitResult(
+        operation: WriteOperation.signinPerform,
+        success: false,
+        message: '签到未完成',
+        outcomeUnknown: false,
+        resolvedRoute: ConnectionMode.direct,
+      ),
+      _SigninCommitFixture.outcomeUnknown => throw const BackendException(
+        UbaaErrorCode.outcomeUnknown,
+      ),
+    };
   }
 
   @override
@@ -219,6 +238,8 @@ final class _WriteIntegrationBackend
     }
   }
 }
+
+enum _SigninCommitFixture { success, businessFalse, outcomeUnknown }
 
 /// 覆盖全部写入口的脱敏宿主后端；只记录操作枚举，不保存请求正文。
 final class _AllWritesIntegrationBackend
@@ -301,6 +322,18 @@ final class _AllWritesIntegrationBackend
                   ? ActionEligibility.allowed
                   : ActionEligibility.denied,
             ),
+            const BykcSignAction(
+              courseId: 42,
+              kind: BykcSignKind.signIn,
+              eligibility: ActionEligibility.allowed,
+              requiresCoordinates: false,
+            ),
+            const BykcSignAction(
+              courseId: 42,
+              kind: BykcSignKind.signOut,
+              eligibility: ActionEligibility.allowed,
+              requiresCoordinates: false,
+            ),
           ],
         ),
       ],
@@ -310,6 +343,12 @@ final class _AllWritesIntegrationBackend
           fields: <FeatureField>[
             FeatureField(label: '课程 ID', value: 'signin-course'),
             FeatureField(label: '签到状态', value: '未签到'),
+          ],
+          actions: <FeatureAction>[
+            SigninPerformAction(
+              scheduleId: 'signin-course',
+              eligibility: ActionEligibility.allowed,
+            ),
           ],
         ),
       ],

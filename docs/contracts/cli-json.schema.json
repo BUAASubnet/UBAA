@@ -175,13 +175,30 @@
     },
     "signinClass": {
       "type": "object",
-      "required": ["courseId", "courseName", "classBeginTime", "classEndTime", "signStatus"],
+      "required": ["courseId", "courseName", "classBeginTime", "classEndTime", "signStatus", "signinEligibility", "signinTarget"],
       "properties": {
         "courseId": { "type": "string" },
         "courseName": { "type": "string" },
         "classBeginTime": { "type": "string" },
         "classEndTime": { "type": "string" },
-        "signStatus": { "type": "integer" }
+        "signStatus": {
+          "anyOf": [
+            { "$ref": "#/$defs/i32" },
+            { "type": "null" }
+          ]
+        },
+        "signinEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "signinTarget": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
+    },
+    "signinActionResult": {
+      "type": "object",
+      "required": ["code", "success", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/i32" },
+        "success": { "type": "boolean" },
+        "message": { "type": "string" }
       },
       "additionalProperties": false
     },
@@ -801,7 +818,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 3 },
+        "schemaVersion": { "const": 4 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -880,7 +897,12 @@
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "signin" } }, "required": ["feature"] },
-                  "data": { "type": "array", "items": { "$ref": "#/$defs/signinClass" } }
+                  "data": {
+                    "oneOf": [
+                      { "type": "array", "items": { "$ref": "#/$defs/signinClass" } },
+                      { "$ref": "#/$defs/signinActionResult" }
+                    ]
+                  }
                 }
               },
               {
@@ -951,7 +973,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 3 },
+        "schemaVersion": { "const": 4 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1107,7 +1129,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 3 },
+        "schemaVersion": { "const": 4 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1183,7 +1205,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 3 },
+        "schemaVersion": { "const": 4 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

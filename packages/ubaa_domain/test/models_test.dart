@@ -117,6 +117,17 @@ void main() {
     ]);
   });
 
+  test('课堂签到 action 只保留 Core 核对的安排目标与资格', () {
+    const action = SigninPerformAction(
+      scheduleId: 'schedule-safe',
+      eligibility: ActionEligibility.allowed,
+    );
+
+    expect(action.scheduleId, 'schedule-safe');
+    expect(action.operation, WriteOperation.signinPerform);
+    expect(action.eligibility, ActionEligibility.allowed);
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

@@ -29,9 +29,9 @@ void main() {
       expect(error.actionLabel, '刷新状态');
     });
 
-    test('从 schema-v3 envelope 读取嵌套 error', () {
+    test('从当前 schema-v4 envelope 读取嵌套 error', () {
       final error = mapCoreErrorJson({
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'ok': false,
         'error': {
           'code': 'timeout',
@@ -44,6 +44,17 @@ void main() {
       expect(error.code, UbaaErrorCode.timeout);
       expect(error.retryable, isTrue);
       expect(error.actionLabel, '重试');
+    });
+
+    test('历史 schema-v3 error envelope 保持安全兼容', () {
+      final error = mapCoreErrorJson({
+        'schemaVersion': 3,
+        'ok': false,
+        'error': {'code': 'timeout', 'kind': 'network', 'retryable': true},
+      });
+
+      expect(error.code, UbaaErrorCode.timeout);
+      expect(error.retryable, isTrue);
     });
 
     test('未知或畸形载荷归约为内部错误', () {

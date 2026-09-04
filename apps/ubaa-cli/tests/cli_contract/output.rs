@@ -62,7 +62,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["ok"], true);
-    assert_eq!(value["schemaVersion"], 3);
+    assert_eq!(value["schemaVersion"], 4);
     assert_eq!(value["meta"]["feature"], "auth");
     assert_eq!(value["meta"]["routePolicy"], "direct");
     assert_eq!(value["data"]["schoolId"], "TEST-0001");
@@ -268,7 +268,7 @@ fn serialized_envelopes_match_the_cli_json_schema() {
 
 #[test]
 fn cli_json_contract_has_one_schema_version_and_closed_feature_names() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 3);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 4);
 
     let features = [
         CliFeature::Cli,
@@ -314,7 +314,7 @@ fn success_json_envelope_has_version_data_and_resolved_route_metadata() {
     );
     let value = serde_json::to_value(envelope).expect("envelope serializes");
 
-    assert_eq!(value["schemaVersion"], 3);
+    assert_eq!(value["schemaVersion"], 4);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["name"], "Fixture User");
     assert_eq!(
@@ -357,7 +357,7 @@ fn unresolved_routed_failure_has_only_feature_metadata() {
     );
 
     let value = serde_json::to_value(envelope).unwrap();
-    assert_eq!(value["schemaVersion"], 3);
+    assert_eq!(value["schemaVersion"], 4);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"], serde_json::json!({"feature": "cli"}));
     assert!(value.get("data").is_none());
@@ -386,7 +386,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
     )
     .unwrap();
 
-    assert_eq!(value["schemaVersion"], 3);
+    assert_eq!(value["schemaVersion"], 4);
     assert_eq!(value["ok"], true);
     assert_eq!(
         value["data"]["routes"],

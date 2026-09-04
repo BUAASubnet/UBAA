@@ -152,6 +152,8 @@ pub(super) fn map_signin_classes(values: Vec<domain::SigninClass>) -> Vec<Bridge
             class_begin_time: v.class_begin_time,
             class_end_time: v.class_end_time,
             sign_status: v.sign_status,
+            signin_eligibility: map_action_eligibility(v.signin_eligibility),
+            signin_target: v.signin_target,
         })
         .collect()
 }

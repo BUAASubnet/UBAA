@@ -38,8 +38,10 @@ void _registerPrimaryWriteFlowTests() {
     expect(find.text('已签到'), findsOneWidget);
   });
 
-  testWidgets('宿主集成流程提交异常时不刷新也不暴露业务上下文', (tester) async {
-    final backend = _WriteIntegrationBackend(throwOnCommit: true);
+  testWidgets('宿主集成流程课堂签到结果未知时只读刷新一次且不暴露业务上下文', (tester) async {
+    final backend = _WriteIntegrationBackend(
+      commitFixture: _SigninCommitFixture.outcomeUnknown,
+    );
     await tester.pumpWidget(
       UbaaFlutterApp(
         backend: backend,
@@ -64,9 +66,43 @@ void _registerPrimaryWriteFlowTests() {
     await tester.pumpAndSettle();
 
     expect(backend.commitCalls, 1);
-    expect(backend.signinLoads, 1);
+    expect(backend.signinLoads, 2);
     expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
     expect(find.text('相关课程状态'), findsNothing);
+    expect(find.text('已签到'), findsNothing);
+  });
+
+  testWidgets('宿主集成流程课堂签到业务 false 不显示成功且不刷新', (tester) async {
+    final backend = _WriteIntegrationBackend(
+      commitFixture: _SigninCommitFixture.businessFalse,
+    );
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '2020000005');
+    await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课堂签到'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备签到'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+
+    expect(backend.commitCalls, 1);
+    expect(backend.signinLoads, 1);
+    expect(find.text('签到未完成'), findsOneWidget);
+    expect(find.text('签到结果已提交，请刷新确认'), findsNothing);
     expect(find.text('已签到'), findsNothing);
   });
 }
@@ -197,6 +233,9 @@ void _registerWriteMatrixFlowTest() {
     await tester.enterText(find.widgetWithText(TextField, '参与人数'), '2');
     await tester.enterText(find.widgetWithText(TextField, '活动内容'), '脱敏集成验证');
     await tester.tap(find.text('继续确认'));
+    // 场馆表单在退出动画后延迟释放输入控制器；普通 Timer 不会让
+    // pumpAndSettle 主动继续推进时间，因此这里显式越过该安全窗口。
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(find.text('填写场馆预约信息'), findsNothing);
     expect(find.text('确认场馆预约'), findsAtLeastNWidgets(1));

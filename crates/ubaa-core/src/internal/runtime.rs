@@ -399,6 +399,12 @@ mod tests {
             assert_eq!(transport_calls.load(Ordering::Relaxed), 1);
             assert!(runtime.take_non_idempotent_boundary_crossed());
             assert!(!runtime.take_non_idempotent_boundary_crossed());
+            runtime.non_idempotent_boundary_crossed = true;
+            runtime.begin_non_idempotent_operation();
+            assert!(
+                !runtime.take_non_idempotent_boundary_crossed(),
+                "上一操作的发送标记不得污染下一操作"
+            );
 
             let cookie_calls = Arc::new(AtomicU64::new(0));
             let store = FileSessionStore::new(root.join("cookie")).expect("创建 Cookie 测试存储");

@@ -437,15 +437,15 @@ class AppController extends ChangeNotifier {
     );
   }
 
-  /// 准备课堂签到的 typed 一次性意图；课程编号必须来自读取白名单。
-  Future<WriteIntent> prepareSigninWrite(String courseId) async {
+  /// 准备课堂签到的 typed 一次性意图；目标和资格必须来自读取白名单。
+  Future<WriteIntent> prepareSigninWrite(SigninPerformAction action) async {
     final backend = _backend;
     if (backend is! SigninWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
     final writer = backend as SigninWriteBackend;
-    final normalized = courseId.trim();
-    if (normalized.isEmpty) {
+    final normalized = action.scheduleId.trim();
+    if (normalized.isEmpty || action.eligibility != ActionEligibility.allowed) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     return writer.prepareSigninPerform(courseId: normalized);

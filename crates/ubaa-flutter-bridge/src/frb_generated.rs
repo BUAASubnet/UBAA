@@ -5054,13 +5054,18 @@ impl SseDecode for crate::api::read::BridgeSigninClass {
         let mut var_courseName = <String>::sse_decode(deserializer);
         let mut var_classBeginTime = <String>::sse_decode(deserializer);
         let mut var_classEndTime = <String>::sse_decode(deserializer);
-        let mut var_signStatus = <i32>::sse_decode(deserializer);
+        let mut var_signStatus = <Option<i32>>::sse_decode(deserializer);
+        let mut var_signinEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
+        let mut var_signinTarget = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeSigninClass {
             course_id: var_courseId,
             course_name: var_courseName,
             class_begin_time: var_classBeginTime,
             class_end_time: var_classEndTime,
             sign_status: var_signStatus,
+            signin_eligibility: var_signinEligibility,
+            signin_target: var_signinTarget,
         };
     }
 }
@@ -8885,6 +8890,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeSigninClass {
             self.class_begin_time.into_into_dart().into_dart(),
             self.class_end_time.into_into_dart().into_dart(),
             self.sign_status.into_into_dart().into_dart(),
+            self.signin_eligibility.into_into_dart().into_dart(),
+            self.signin_target.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -10598,7 +10605,12 @@ impl SseEncode for crate::api::read::BridgeSigninClass {
         <String>::sse_encode(self.course_name, serializer);
         <String>::sse_encode(self.class_begin_time, serializer);
         <String>::sse_encode(self.class_end_time, serializer);
-        <i32>::sse_encode(self.sign_status, serializer);
+        <Option<i32>>::sse_encode(self.sign_status, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.signin_eligibility,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.signin_target, serializer);
     }
 }
 

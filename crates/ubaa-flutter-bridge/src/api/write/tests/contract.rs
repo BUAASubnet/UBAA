@@ -145,3 +145,36 @@ fn 博雅签到提交错误按写请求是否已发送区分() {
     );
     assert_eq!(session_changed.code, BridgeErrorCode::OperationConflict);
 }
+
+#[test]
+fn 课堂签到提交只信任_core_的显式发送边界分类() {
+    let pre_send = map_commit_error(
+        BridgeWriteOperation::SigninPerform,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::NetworkError,
+                ErrorKind::Network,
+                true,
+                "fixture preflight network error",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(pre_send.code, BridgeErrorCode::NetworkError);
+    assert!(pre_send.retryable);
+
+    let post_send = map_commit_error(
+        BridgeWriteOperation::SigninPerform,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+                false,
+                "fixture outcome unknown",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(post_send.code, BridgeErrorCode::OutcomeUnknown);
+    assert!(!post_send.retryable);
+}

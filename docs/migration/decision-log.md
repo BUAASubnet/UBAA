@@ -23,7 +23,7 @@
 由 Direct/WebVPN 只读证据支持的登录/读取路径，不借结构治理改写这些未决项；也不执行真实签到。UI 只消费
 Core→Bridge→Domain 的 typed action，中文状态文案只用于展示。
 
-## 2026-09-04：CLI JSON envelope 显式升级为 schema v3（当前有效）
+## 2026-09-04：CLI JSON envelope 显式升级为 schema v3（Phase 11C 历史决策；已由 v4 取代）
 
 Phase 11C 将 Bykc 已选课程的 `checkin` 从必填整数改为可空，把 `canSign`/`canSignOut` 两个布尔字段替换为
 含 `unknown` 的 `signEligibility`/`signOutEligibility`，并把写请求越过发送边界后的不确定结果公开为
@@ -33,7 +33,8 @@ Phase 11C 将 Bykc 已选课程的 `checkin` 从必填整数改为可空，把 `
 
 这个版本只属于 CLI stdout 公开合同。`session.json` 继续使用 schema v2 双路线快照，`config.toml` 继续使用
 版本 1；本决策不迁移、不重写会话存储，也不改变 revision CAS。Phase 11C 之前绑定 schema v2 的历史提交、
-测试结果与验证记录保持原样，不回写为 v3；从当前候选开始，CLI/Core-live/实时验证器一律按 v3 校验。
+测试结果与验证记录保持原样，不回写为 v3；Phase 11C 的实现证据仍按 v3 解释。Phase 11D 起当前
+CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
 
 ## 2026-09-03：Phase 11 typed 写资格的来源边界（当前有效）
 

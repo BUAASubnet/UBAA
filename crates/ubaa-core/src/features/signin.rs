@@ -4,7 +4,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::domain::{SigninActionResult, SigninClass};
+use crate::domain::{ActionEligibility, SigninActionResult, SigninClass};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
@@ -45,7 +45,7 @@ struct Row {
     class_begin_time: String,
     #[serde(rename = "classEndTime")]
     class_end_time: String,
-    #[serde(rename = "stuSignStatus")]
+    #[serde(default, rename = "signStatus")]
     sign_status: Value,
 }
 
@@ -63,7 +63,7 @@ pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
             "签到响应返回了非成功状态",
         ));
     }
-    response.result.into_iter().map(map_row).collect()
+    Ok(response.result.into_iter().map(map_row).collect())
 }
 
 /// 使用当前路线查询今日课堂签到状态。
@@ -73,20 +73,38 @@ pub(crate) async fn get_today(
     get_today_once(runtime, true).await
 }
 
+/// 只读复核唯一课程安排及其当前签到资格。
+pub(crate) async fn preflight_signin(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course_id: &str,
+) -> Result<SigninClass> {
+    validate_course_id(course_id)?;
+    let matches = get_today(runtime)
+        .await?
+        .into_iter()
+        .filter(|class| class.signin_target.as_deref() == Some(course_id))
+        .collect::<Vec<_>>();
+    let [class] = matches.as_slice() else {
+        return if matches.is_empty() {
+            Err(unavailable("今日签到目标已变化，请刷新后重新准备"))
+        } else {
+            Err(upstream_error("今日签到响应包含重复课程安排标识"))
+        };
+    };
+    match class.signin_eligibility {
+        ActionEligibility::Allowed => Ok(class.clone()),
+        ActionEligibility::Denied => Err(unavailable("该课程当前不可重复签到")),
+        ActionEligibility::Unknown => Err(upstream_error("课堂签到资格缺少必要字段")),
+    }
+}
+
 /// 提交课堂签到请求。该接口有意保持低层；宿主调用前必须要求显式写操作确认。
 #[allow(dead_code)]
 pub(crate) async fn perform_signin(
     runtime: &mut crate::runtime::ClientRuntime,
     course_id: &str,
 ) -> Result<SigninActionResult> {
-    if course_id.trim().is_empty() {
-        return Err(UbaaError::new(
-            ErrorCode::InvalidInput,
-            ErrorKind::Input,
-            false,
-            "课程编号不能为空",
-        ));
-    }
+    preflight_signin(runtime, course_id).await?;
     let credential = current_credential(runtime).await?;
     let timestamp_url =
         runtime.url("https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action")?;
@@ -96,40 +114,11 @@ pub(crate) async fn perform_signin(
     }
     let timestamp = parse_timestamp(&timestamp.body)?;
     let url = build_signin_url(runtime, course_id, &timestamp)?;
-    let response = super::post_form(
-        runtime,
-        url,
-        &build_signin_form(course_id),
-        &[("sessionId", &credential.session_id)],
-    )
-    .await?;
-    if response.status != 200 {
-        return Err(upstream_error("签到请求失败"));
+    let response = submit_signin(runtime, url, &credential).await?;
+    if response.status != 200 || final_url_is_authentication(&response.final_url) {
+        return Err(write_outcome_unknown());
     }
-    let object: Value =
-        serde_json::from_slice(&response.body).map_err(|_| upstream_error("签到响应格式无效"))?;
-    let status = object
-        .get("STATUS")
-        .and_then(integer_value)
-        .unwrap_or_default();
-    let signed = object
-        .get("stuSignStatus")
-        .and_then(integer_value)
-        .unwrap_or_default()
-        == 1;
-    Ok(SigninActionResult {
-        code: i32::try_from(status).unwrap_or_default(),
-        success: signed,
-        message: object
-            .get("message")
-            .and_then(Value::as_str)
-            .unwrap_or(if signed {
-                "签到成功"
-            } else {
-                "签到未完成"
-            })
-            .to_owned(),
-    })
+    parse_action_response(&response.body)
 }
 
 fn build_signin_url(
@@ -148,8 +137,79 @@ fn build_signin_url(
 }
 
 #[must_use]
-fn build_signin_form(course_id: &str) -> Vec<(&'static str, String)> {
-    vec![("id", course_id.into())]
+fn build_signin_form(user_id: &str) -> Vec<(&'static str, String)> {
+    vec![("id", user_id.into())]
+}
+
+async fn submit_signin(
+    runtime: &mut crate::runtime::ClientRuntime,
+    url: String,
+    credential: &SigninCredential,
+) -> Result<crate::ports::HttpResponse> {
+    super::require_session(runtime)?;
+    let body = url::form_urlencoded::Serializer::new(String::new())
+        .extend_pairs(build_signin_form(&credential.user_id))
+        .finish()
+        .into_bytes();
+    let mut request = HttpRequest::post(url, body);
+    request.headers.insert(
+        "Content-Type".into(),
+        "application/x-www-form-urlencoded".into(),
+    );
+    request
+        .headers
+        .insert("sessionId".into(), credential.session_id.clone());
+    runtime.request_non_idempotent(request).await
+}
+
+fn parse_action_response(body: &[u8]) -> Result<SigninActionResult> {
+    let value: Value = serde_json::from_slice(body).map_err(|_| write_outcome_unknown())?;
+    let object = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let status = object
+        .get("STATUS")
+        .and_then(action_status)
+        .ok_or_else(write_outcome_unknown)?;
+    let success = if matches!(status, 0 | 200) {
+        match object
+            .get("result")
+            .and_then(Value::as_object)
+            .and_then(|result| result.get("stuSignStatus"))
+            .and_then(integer_value)
+            .ok_or_else(write_outcome_unknown)?
+        {
+            1 => true,
+            0 => false,
+            _ => return Err(write_outcome_unknown()),
+        }
+    } else {
+        false
+    };
+    Ok(SigninActionResult {
+        code: if success { 200 } else { 400 },
+        success,
+        message: if success {
+            "签到成功"
+        } else {
+            "签到未完成"
+        }
+        .to_owned(),
+    })
+}
+
+fn action_status(value: &Value) -> Option<i64> {
+    if value.as_str() == Some("success") {
+        Some(0)
+    } else {
+        integer_value(value)
+    }
+}
+
+fn final_url_is_authentication(value: &str) -> bool {
+    let direct = crate::connection::from_webvpn_url(value).unwrap_or_else(|_| value.to_owned());
+    url::Url::parse(&direct).is_ok_and(|url| {
+        url.host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case("sso.buaa.edu.cn"))
+    })
 }
 
 fn parse_timestamp(body: &[u8]) -> Result<String> {
@@ -352,6 +412,31 @@ fn upstream_error(message: &'static str) -> UbaaError {
     )
 }
 
+fn validate_course_id(course_id: &str) -> Result<()> {
+    if course_id.trim().is_empty() {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "课程编号不能为空",
+        ));
+    }
+    Ok(())
+}
+
+fn unavailable(message: &'static str) -> UbaaError {
+    UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
+}
+
+fn write_outcome_unknown() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        "签到结果未知，请刷新今日状态后再决定是否重试",
+    )
+}
+
 fn success(value: &Value) -> bool {
     matches!(value, Value::Number(number) if number.as_i64() == Some(0) || number.as_i64() == Some(200))
         || matches!(value, Value::String(text) if matches!(text.as_str(), "0" | "200" | "success"))
@@ -368,21 +453,28 @@ fn empty_result(value: &Value) -> bool {
         || matches!(value, Value::String(text) if text == "2")
 }
 
-fn map_row(row: Row) -> Result<SigninClass> {
+fn map_row(row: Row) -> SigninClass {
     let sign_status = match row.sign_status {
         Value::Number(number) => number.as_i64(),
         Value::String(text) => text.parse::<i64>().ok(),
         _ => None,
     }
-    .and_then(|value| i32::try_from(value).ok())
-    .ok_or_else(parse_error)?;
-    Ok(SigninClass {
+    .and_then(|value| i32::try_from(value).ok());
+    let signin_target = (!row.id.trim().is_empty()).then(|| row.id.clone());
+    let signin_eligibility = match (signin_target.as_ref(), sign_status) {
+        (Some(_), Some(0)) => ActionEligibility::Allowed,
+        (Some(_), Some(1)) => ActionEligibility::Denied,
+        _ => ActionEligibility::Unknown,
+    };
+    SigninClass {
         course_id: row.id,
         course_name: row.course_name,
         class_begin_time: row.class_begin_time,
         class_end_time: row.class_end_time,
         sign_status,
-    })
+        signin_eligibility,
+        signin_target,
+    }
 }
 
 fn parse_error() -> UbaaError {
@@ -450,9 +542,9 @@ mod tests {
 
     #[test]
     fn 签到提交表单只发送冻结的用户标识字段() {
-        let form = build_signin_form("course-safe");
+        let form = build_signin_form("user-safe");
         assert_eq!(form.len(), 1);
-        assert_eq!(form[0], ("id", "course-safe".to_owned()));
+        assert_eq!(form[0], ("id", "user-safe".to_owned()));
     }
 
     #[test]

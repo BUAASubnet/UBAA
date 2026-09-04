@@ -4087,14 +4087,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeSigninClass dco_decode_bridge_signin_class(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return BridgeSigninClass(
       courseId: dco_decode_String(arr[0]),
       courseName: dco_decode_String(arr[1]),
       classBeginTime: dco_decode_String(arr[2]),
       classEndTime: dco_decode_String(arr[3]),
-      signStatus: dco_decode_i_32(arr[4]),
+      signStatus: dco_decode_opt_box_autoadd_i_32(arr[4]),
+      signinEligibility: dco_decode_bridge_action_eligibility(arr[5]),
+      signinTarget: dco_decode_opt_String(arr[6]),
     );
   }
 
@@ -6632,13 +6634,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_courseName = sse_decode_String(deserializer);
     var var_classBeginTime = sse_decode_String(deserializer);
     var var_classEndTime = sse_decode_String(deserializer);
-    var var_signStatus = sse_decode_i_32(deserializer);
+    var var_signStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_signinEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
+    var var_signinTarget = sse_decode_opt_String(deserializer);
     return BridgeSigninClass(
       courseId: var_courseId,
       courseName: var_courseName,
       classBeginTime: var_classBeginTime,
       classEndTime: var_classEndTime,
       signStatus: var_signStatus,
+      signinEligibility: var_signinEligibility,
+      signinTarget: var_signinTarget,
     );
   }
 
@@ -9189,7 +9197,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.courseName, serializer);
     sse_encode_String(self.classBeginTime, serializer);
     sse_encode_String(self.classEndTime, serializer);
-    sse_encode_i_32(self.signStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.signStatus, serializer);
+    sse_encode_bridge_action_eligibility(self.signinEligibility, serializer);
+    sse_encode_opt_String(self.signinTarget, serializer);
   }
 
   @protected

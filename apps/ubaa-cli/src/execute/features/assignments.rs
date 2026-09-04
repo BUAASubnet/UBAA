@@ -96,9 +96,10 @@ pub(in crate::execute) async fn run_signin<B: CliBackend + Send>(
             course_id,
             confirm_write,
         } => {
+            let course_id = normalize_signin_course_id(&course_id)?;
             if confirm_write {
                 backend
-                    .signin_perform(&course_id)
+                    .signin_perform(course_id)
                     .await
                     .and_then(|data| readonly(data, CliFeature::Signin))
             } else {
@@ -187,15 +188,27 @@ pub(in crate::execute) async fn run_routed_signin<B: RoutedCliBackend + Send>(
             course_id,
             confirm_write,
         } => {
-            let result = if confirm_write {
-                backend.signin_perform(&course_id).await
-            } else {
-                Err(RoutedError {
+            let result = match normalize_signin_course_id(&course_id) {
+                Ok(course_id) if confirm_write => backend.signin_perform(course_id).await,
+                Ok(_) => Err(RoutedError {
                     error: invalid_input("签到是写操作，必须显式指定 --confirm-write"),
                     resolution: None,
-                })
+                }),
+                Err(error) => Err(RoutedError {
+                    error,
+                    resolution: None,
+                }),
             };
             routed_readonly(result, CliFeature::Signin)
         }
+    }
+}
+
+fn normalize_signin_course_id(course_id: &str) -> Result<&str> {
+    let normalized = course_id.trim();
+    if normalized.is_empty() {
+        Err(invalid_input("课程编号不能为空"))
+    } else {
+        Ok(normalized)
     }
 }

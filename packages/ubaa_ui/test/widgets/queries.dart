@@ -60,8 +60,14 @@ void _registerQueryTests() {
                   FeatureDetail(
                     title: '已完成签到课程',
                     fields: <FeatureField>[
-                      FeatureField(label: '课程 ID', value: 'course-done'),
-                      FeatureField(label: '签到状态', value: '已签到'),
+                      FeatureField(label: '课程 ID', value: '误导目标'),
+                      FeatureField(label: '签到状态', value: '未签到'),
+                    ],
+                    actions: <FeatureAction>[
+                      SigninPerformAction(
+                        scheduleId: 'schedule-done',
+                        eligibility: ActionEligibility.denied,
+                      ),
                     ],
                   ),
                 ]
@@ -100,6 +106,70 @@ void _registerQueryTests() {
     );
     expect(button.onPressed, isNull);
     expect(find.text('该课程已签到，不能重复提交。'), findsOneWidget);
+    expect(prepareCalls, 0);
+  });
+
+  testWidgets('课堂签到 action 缺失或 unknown 时默认拒绝', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.signin
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '缺失 action',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: 'legacy-target'),
+                      FeatureField(label: '签到状态', value: '未签到'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '未知资格',
+                    actions: <FeatureAction>[
+                      SigninPerformAction(
+                        scheduleId: 'unknown-target',
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareSigninWrite: (_) async {
+            prepareCalls++;
+            throw StateError('unknown action must not be called');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课堂签到'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(OutlinedButton, '准备签到'), findsOneWidget);
+    final button = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备签到'),
+    );
+    expect(button.onPressed, isNull);
     expect(prepareCalls, 0);
   });
 
