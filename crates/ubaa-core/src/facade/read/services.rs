@@ -3,14 +3,14 @@
 use crate::domain::{
     BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes, CgyyVenueSite,
-    EvaluationCoursesResponse, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary,
-    LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
+    ConnectionMode, EvaluationCoursesResponse, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookLibrary, LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
 };
 use crate::features::user;
 
 use super::super::client::UbaaClient;
 use super::super::routing::{invalid_input, routed_error};
-use super::super::types::{Operation, RoutedResult};
+use super::super::types::{CallerPinned, Operation, RoutedResult};
 
 impl UbaaClient {
     /// 通过默认路线策略获取用户中心资料。
@@ -192,6 +192,26 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 在调用方显式固定的已认证路线查询我的场馆订单，不执行策略解析或 Auto 回退。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、指定路线未认证、参数无效或上游请求失败时返回错误。
+    pub async fn cgyy_orders_on_route(
+        &mut self,
+        route: ConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> crate::error::Result<CallerPinned<CgyyOrdersPage>> {
+        self.guard_caller_pinned_route(route)?;
+        self.log_cgyy_pinned_route(route, "orders.list");
+        if page < 0 || size <= 0 {
+            return Err(invalid_input("分页参数无效"));
+        }
+        let result = crate::features::cgyy::get_orders(self.runtime_for(route), page, size).await;
+        self.finish_caller_pinned(route, result)
+    }
+
     /// 查询场馆订单详情。
     ///
     /// # Errors
@@ -209,6 +229,25 @@ impl UbaaClient {
         let result =
             crate::features::cgyy::get_order_detail(self.runtime_for(resolution.mode), id).await;
         self.finish_routed(resolution, result)
+    }
+
+    /// 在调用方显式固定的已认证路线查询场馆订单详情，不执行策略解析或 Auto 回退。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、指定路线未认证、参数无效或上游请求失败时返回错误。
+    pub async fn cgyy_order_detail_on_route(
+        &mut self,
+        route: ConnectionMode,
+        id: i32,
+    ) -> crate::error::Result<CallerPinned<CgyyOrder>> {
+        self.guard_caller_pinned_route(route)?;
+        self.log_cgyy_pinned_route(route, "orders.detail");
+        if id <= 0 {
+            return Err(invalid_input("订单标识必须为正数"));
+        }
+        let result = crate::features::cgyy::get_order_detail(self.runtime_for(route), id).await;
+        self.finish_caller_pinned(route, result)
     }
 
     /// 查询场馆订单锁码。

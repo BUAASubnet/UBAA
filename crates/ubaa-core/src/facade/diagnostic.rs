@@ -1,6 +1,8 @@
 //! 单路线诊断、测试与真实只读验证客户端。
 
 use std::path::Path;
+#[cfg(feature = "test-contract")]
+use std::time::SystemTime;
 
 use crate::auth::AuthWorkflow;
 use crate::domain::{
@@ -80,6 +82,30 @@ impl RouteClient {
         S: SessionStore + 'static,
     {
         Self::build(mode, transport, store, None)
+    }
+
+    /// 使用注入的固定时钟构造测试客户端。
+    ///
+    /// # Errors
+    ///
+    /// 当无法加载已有会话时返回安全的持久化错误。
+    #[cfg(feature = "test-contract")]
+    #[doc(hidden)]
+    pub fn with_transport_at<T, S>(
+        mode: ConnectionMode,
+        transport: T,
+        store: S,
+        now: SystemTime,
+    ) -> Result<Self>
+    where
+        T: HttpTransport + 'static,
+        S: SessionStore + 'static,
+    {
+        Ok(Self {
+            runtime: ClientRuntime::new_at(mode, transport, store, now)?,
+            auth: AuthWorkflow::default(),
+            sessions: None,
+        })
     }
 
     fn build<T, S>(

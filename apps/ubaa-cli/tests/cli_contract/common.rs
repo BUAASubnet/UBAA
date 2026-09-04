@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 use ubaa_cli::{CliBackend, RoutedCliBackend};
 use ubaa_core::facade::{
-    ActionEligibility, AuthStatus, BykcActionResult, BykcSignRequest, CgyyActionResult,
-    ConnectionMode, ErrorCode, ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics,
-    LibBookBooking, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, NetworkState, Result,
-    RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError, RoutedResult,
-    SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics, Term, UbaaError,
-    UserProfile,
+    ActionEligibility, AuthStatus, BykcActionResult, BykcSignRequest, CgyyCancelOrderRequest,
+    CgyyCancelOrderResult, ConnectionMode, ErrorCode, ErrorKind, FeatureResult,
+    JudgeAssignmentsDiagnostics, LibBookBooking, LibBookBookingsPage, LibBookCancelRequest,
+    LibBookCancelResult, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
+    NetworkState, Result, RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError,
+    RoutedResult, SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics,
+    Term, UbaaError, UserProfile,
 };
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
@@ -28,6 +28,9 @@ pub(crate) struct FakeBackend {
     pub(crate) libbook_cancel_calls: usize,
     pub(crate) libbook_last_cancel_request: Option<LibBookCancelRequest>,
     pub(crate) libbook_cancel_error: Option<UbaaError>,
+    pub(crate) cgyy_cancel_calls: usize,
+    pub(crate) cgyy_last_cancel_request: Option<CgyyCancelOrderRequest>,
+    pub(crate) cgyy_cancel_result: CgyyCancelFixtureResult,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -48,10 +51,20 @@ pub(crate) enum LibBookFixtureResult {
     PreSendTimeout,
 }
 
+#[derive(Clone, Copy, Default)]
+pub(crate) enum CgyyCancelFixtureResult {
+    #[default]
+    Success,
+    OutcomeUnknown,
+    PreSendChanged,
+}
+
 #[derive(Default)]
 pub(crate) struct FakeRoutedBackend {
     pub(crate) fail_schedule: bool,
     pub(crate) cgyy_cancel_calls: usize,
+    pub(crate) cgyy_last_cancel_request: Option<CgyyCancelOrderRequest>,
+    pub(crate) cgyy_cancel_result: CgyyCancelFixtureResult,
     pub(crate) signin_today_calls: usize,
     pub(crate) signin_perform_calls: usize,
     pub(crate) signin_result: SigninFixtureResult,
@@ -246,19 +259,39 @@ impl RoutedCliBackend for FakeRoutedBackend {
         Ok(bykc_action("fixture sign"))
     }
 
-    async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
+    async fn cgyy_cancel_order(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+    ) -> RoutedResult<CgyyCancelOrderResult> {
         self.cgyy_cancel_calls += 1;
-        Ok(Routed {
-            data: CgyyActionResult {
-                message: "fixture cancellation".into(),
-                order: None,
-            },
-            resolution: route_resolution(
-                RoutePolicy::Direct,
-                NetworkState::Unknown,
-                ConnectionMode::Direct,
-            ),
-        })
+        self.cgyy_last_cancel_request = Some(request);
+        match self.cgyy_cancel_result {
+            CgyyCancelFixtureResult::Success => Ok(Routed {
+                data: CgyyCancelOrderResult {
+                    success: true,
+                    message: "RAW-UPSTREAM phone=PRIVATE token=PRIVATE".into(),
+                },
+                resolution: direct_resolution(),
+            }),
+            CgyyCancelFixtureResult::OutcomeUnknown => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::OutcomeUnknown,
+                    ErrorKind::Upstream,
+                    false,
+                    "RAW-UPSTREAM phone=PRIVATE token=PRIVATE\nSet-Cookie=PRIVATE",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+            CgyyCancelFixtureResult::PreSendChanged => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::UpstreamChanged,
+                    ErrorKind::Upstream,
+                    false,
+                    "RAW-UPSTREAM phone=PRIVATE token=PRIVATE",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+        }
     }
 
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
@@ -497,6 +530,35 @@ impl CliBackend for FakeBackend {
             },
             resolved_route: ConnectionMode::Direct,
         })
+    }
+
+    async fn cgyy_cancel_order(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+    ) -> Result<FeatureResult<CgyyCancelOrderResult>> {
+        self.cgyy_cancel_calls += 1;
+        self.cgyy_last_cancel_request = Some(request);
+        match self.cgyy_cancel_result {
+            CgyyCancelFixtureResult::Success => Ok(FeatureResult {
+                data: CgyyCancelOrderResult {
+                    success: true,
+                    message: "RAW-UPSTREAM phone=PRIVATE token=PRIVATE".into(),
+                },
+                resolved_route: ConnectionMode::Direct,
+            }),
+            CgyyCancelFixtureResult::OutcomeUnknown => Err(UbaaError::new(
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+                false,
+                "RAW-UPSTREAM phone=PRIVATE token=PRIVATE\nSet-Cookie=PRIVATE",
+            )),
+            CgyyCancelFixtureResult::PreSendChanged => Err(UbaaError::new(
+                ErrorCode::UpstreamChanged,
+                ErrorKind::Upstream,
+                false,
+                "RAW-UPSTREAM phone=PRIVATE token=PRIVATE",
+            )),
+        }
     }
 }
 

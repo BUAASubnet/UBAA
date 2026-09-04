@@ -1,3 +1,5 @@
+use std::time::{Duration, SystemTime};
+
 use ubaa_core::facade::testing::{
     FileSessionStore, GatewayProbe, HttpTransport, RouteConfig, SessionStore,
 };
@@ -10,6 +12,15 @@ where
     S: SessionStore + 'static,
 {
     let _ = RouteClient::with_transport(mode, transport, store);
+}
+
+#[allow(dead_code)]
+fn route_client_with_transport_at<T, S>(mode: ConnectionMode, transport: T, store: S)
+where
+    T: HttpTransport + 'static,
+    S: SessionStore + 'static,
+{
+    let _ = RouteClient::with_transport_at(mode, transport, store, SystemTime::UNIX_EPOCH);
 }
 
 #[allow(dead_code)]
@@ -37,6 +48,28 @@ fn ubaa_client_with_routing<TDirect, TWebVpn, P>(
     P: GatewayProbe + 'static,
 {
     let _ = UbaaClient::with_routing(direct, webvpn, store, config, probe);
+}
+
+#[allow(dead_code)]
+fn ubaa_client_with_routing_and_probe_ttl<TDirect, TWebVpn, P>(
+    direct: TDirect,
+    webvpn: TWebVpn,
+    store: FileSessionStore,
+    config: RouteConfig,
+    probe: P,
+) where
+    TDirect: HttpTransport + 'static,
+    TWebVpn: HttpTransport + 'static,
+    P: GatewayProbe + 'static,
+{
+    let _ = UbaaClient::with_routing_and_probe_ttl(
+        direct,
+        webvpn,
+        store,
+        config,
+        probe,
+        Duration::ZERO,
+    );
 }
 
 fn main() {}

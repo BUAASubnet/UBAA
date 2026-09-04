@@ -107,7 +107,7 @@ pub struct BridgeCgyySubmitReservationRequest {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyCancelOrderRequest {
-    pub id: i32,
+    pub order_id: i32,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyReservationReceipt {
@@ -217,7 +217,7 @@ impl PendingWrite {
                     first.venue_space_group_id,
                 )
             }
-            Self::CgyyCancel(request) => format!("cgyy-cancel:{}", request.id),
+            Self::CgyyCancel(request) => format!("cgyy-cancel:{}", request.order_id),
             Self::Evaluation(request) => {
                 let mut ids = request
                     .courses

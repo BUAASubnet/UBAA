@@ -3,9 +3,9 @@
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
     ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
-    map_bykc_sign_preflight_error, map_cgyy_preflight_error, map_cgyy_request,
-    map_libbook_cancel_preflight_error, map_libbook_preflight_error, now_seconds, random_id,
-    safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
+    map_bykc_sign_preflight_error, map_cgyy_cancel_preflight_error, map_cgyy_preflight_error,
+    map_cgyy_request, map_libbook_cancel_preflight_error, map_libbook_preflight_error, now_seconds,
+    random_id, safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
     validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
 };
 use super::{
@@ -430,15 +430,46 @@ impl BridgeClient {
         &self,
         request: BridgeCgyyCancelOrderRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
-        validate_id_i32(request.id)?;
-        self.prepare_write(
-            ReadonlyFeature::Cgyy,
-            BridgeWriteOperation::CgyyCancelOrder,
-            format!("id={}", request.id),
-            "取消一笔场馆预约订单".to_owned(),
-            vec!["取消操作可能不可恢复".to_owned()],
-            PendingWrite::CgyyCancel(request),
-        )
+        validate_id_i32(request.order_id)?;
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_cgyy_cancel(&domain::CgyyCancelOrderRequest {
+                    order_id: request.order_id,
+                })
+                .await
+                .map_err(map_cgyy_cancel_preflight_error)?;
+            if current.data.target.order_id != request.order_id {
+                return Err(BridgeError::local(
+                    crate::api::client::BridgeErrorCode::UpstreamChanged,
+                    crate::api::client::BridgeErrorKind::Upstream,
+                    false,
+                    "场馆订单取消目标与请求不一致",
+                ));
+            }
+            let start = safe_optional_summary(current.data.reservation_start_date.as_deref());
+            let end = safe_optional_summary(current.data.reservation_end_date.as_deref());
+            self.store_write_intent(
+                BridgeWriteOperation::CgyyCancelOrder,
+                format!("order_id={}", request.order_id),
+                format!(
+                    "场馆订单 {} · 状态 {}/{} · 预约 {} 至 {}",
+                    request.order_id,
+                    current.data.order_status,
+                    current.data.check_status,
+                    start,
+                    end,
+                ),
+                vec![
+                    "取消操作可能不可恢复".to_owned(),
+                    "提交后请刷新订单列表与详情核对结果".to_owned(),
+                ],
+                PendingWrite::CgyyCancel(request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_evaluation_submit_courses(

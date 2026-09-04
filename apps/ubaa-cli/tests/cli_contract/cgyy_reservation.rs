@@ -2,20 +2,16 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use async_trait::async_trait;
-use clap::Parser;
 use serde_json::{Value, json};
 use ubaa_cli::{
-    AggregateJsonEnvelope, AggregateLogoutData, CLI_JSON_SCHEMA_VERSION, Cli, CliFeature,
-    ResolvedRoutedJsonMeta, RoutedCliBackend, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta,
-    run_with_routed_backend,
+    AggregateJsonEnvelope, AggregateLogoutData, CLI_JSON_SCHEMA_VERSION, CliFeature,
+    ResolvedRoutedJsonMeta, RoutedJsonEnvelope, UnresolvedRoutedJsonMeta,
 };
 use ubaa_core::facade::{
-    ActionEligibility, CgyyActionResult, CgyyDayInfo, CgyyReservationReceipt,
-    CgyyReservationResult, CgyyReservationTarget, CgyySlotStatus, CgyySpaceAvailability,
-    CgyyTimeSlot, ConnectionMode, ErrorCode, ErrorKind, LoginOutcome, LoginReadiness, NetworkState,
-    RouteDiagnostic, RouteLoginResult, RouteLoginState, RoutePolicy, RouteResolution, RoutedError,
-    RoutedResult, SafeError, UbaaError,
+    ActionEligibility, CgyyDayInfo, CgyyReservationReceipt, CgyyReservationResult,
+    CgyyReservationTarget, CgyySlotStatus, CgyySpaceAvailability, CgyyTimeSlot, ConnectionMode,
+    ErrorCode, ErrorKind, LoginOutcome, LoginReadiness, RouteLoginResult, RouteLoginState,
+    RoutePolicy, SafeError, UbaaError,
 };
 
 fn contract_schema() -> Value {
@@ -106,14 +102,6 @@ fn cgyy_day_data() -> Value {
     .unwrap()
 }
 
-fn direct_resolution() -> RouteResolution {
-    RouteResolution {
-        policy: RoutePolicy::Direct,
-        mode: ConnectionMode::Direct,
-        diagnostic: RouteDiagnostic::new(NetworkState::Unknown, ConnectionMode::Direct),
-    }
-}
-
 fn safe_error(message: &str) -> SafeError {
     SafeError {
         code: "authentication_required".into(),
@@ -157,12 +145,12 @@ fn with_schema_version(mut value: Value, version: u32) -> Value {
 }
 
 #[test]
-fn cli_唯一_json_schema_版本为_7() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 7);
+fn cli_唯一_json_schema_版本为_8() {
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 8);
 }
 
 #[test]
-fn 四类_cli_信封只接受_schema_v7_并拒绝旧_v6() {
+fn 四类_cli_信封只接受_schema_v8_并拒绝旧_v7() {
     let meta = ResolvedRoutedJsonMeta::explicit(CliFeature::Cgyy, ConnectionMode::Direct);
     let envelopes = [
         (
@@ -197,16 +185,16 @@ fn 四类_cli_信封只接受_schema_v7_并拒绝旧_v6() {
     let validator = contract_validator();
 
     for (kind, envelope) in envelopes {
-        let current = with_schema_version(envelope, 7);
+        let current = with_schema_version(envelope, 8);
         assert!(
             validator.is_valid(&current),
-            "schema v7 应接受 {kind} 信封：{current}"
+            "schema v8 应接受 {kind} 信封：{current}"
         );
 
-        let old = with_schema_version(current, 6);
+        let old = with_schema_version(current, 7);
         assert!(
             !validator.is_valid(&old),
-            "schema v7 必须拒绝旧 v6 {kind} 信封：{old}"
+            "schema v8 必须拒绝旧 v7 {kind} 信封：{old}"
         );
     }
 }
@@ -359,75 +347,6 @@ fn 场馆提交结果只允许安全收据且不接受完整订单与敏感字�
     let mut nullable_site = success;
     nullable_site["receipt"]["venueSiteId"] = Value::Null;
     assert!(validator.is_valid(&nullable_site));
-}
-
-#[derive(Default)]
-struct OutcomeUnknownBackend {
-    calls: usize,
-}
-
-#[async_trait]
-impl RoutedCliBackend for OutcomeUnknownBackend {
-    async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
-        self.calls += 1;
-        Err(RoutedError {
-            error: UbaaError::new(
-                ErrorCode::OutcomeUnknown,
-                ErrorKind::Upstream,
-                false,
-                "UPSTREAM-RAW phone=010-00000000 token=PRIVATE-TOKEN\nSet-Cookie=PRIVATE-COOKIE",
-            ),
-            resolution: Some(direct_resolution()),
-        })
-    }
-}
-
-#[tokio::test]
-async fn 场馆写入结果未知退出_5_且不输出上游正文个人信息或_token() {
-    let cli = Cli::try_parse_from([
-        "ubaa",
-        "--json",
-        "cgyy",
-        "cancel",
-        "--id",
-        "42",
-        "--confirm-write",
-    ])
-    .unwrap();
-    let mut backend = OutcomeUnknownBackend::default();
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-
-    let exit = run_with_routed_backend(cli, &mut backend, &mut stdout, &mut stderr).await;
-    let value: Value = serde_json::from_slice(&stdout).unwrap();
-    let message = value["error"]["message"].as_str().unwrap();
-
-    assert_eq!(exit, 5);
-    assert_eq!(backend.calls, 1);
-    assert!(stderr.is_empty());
-    assert_eq!(value["error"]["code"], "outcome_unknown");
-    for forbidden in [
-        "UPSTREAM-RAW",
-        "010-00000000",
-        "PRIVATE-TOKEN",
-        "PRIVATE-COOKIE",
-        "Set-Cookie",
-    ] {
-        assert!(
-            !message.contains(forbidden),
-            "错误消息泄漏 {forbidden}：{message:?}"
-        );
-        assert!(
-            !String::from_utf8_lossy(&stdout).contains(forbidden),
-            "JSON 输出泄漏 {forbidden}"
-        );
-    }
-    assert!(
-        !message.chars().any(char::is_control),
-        "错误消息不得包含控制字符：{message:?}"
-    );
-    assert_eq!(value["schemaVersion"], 7);
-    assert!(contract_validator().is_valid(&value));
 }
 
 #[test]

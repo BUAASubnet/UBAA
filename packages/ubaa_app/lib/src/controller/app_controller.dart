@@ -12,6 +12,8 @@ import '../contracts/write.dart';
 import '../write/cgyy_validation.dart';
 import 'error_mapper.dart';
 
+part 'app_controller/cgyy_readback.dart';
+
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
 
 @immutable
@@ -452,27 +454,18 @@ class AppController extends ChangeNotifier {
     return writer.prepareSigninPerform(courseId: normalized);
   }
 
-  /// 准备场馆取消的一次性意图；Phase 11H 前仍只接受读取结果中的公开编号。
-  Future<WriteIntent> prepareCancellationWrite(
-    WriteOperation operation,
-    String targetId,
-  ) async {
+  /// 准备场馆取消的一次性意图；只接受 Core 给出的 typed 目标。
+  Future<WriteIntent> prepareCgyyCancelWrite(CgyyCancelAction action) async {
     final backend = _backend;
     if (backend is! CancellationWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    final writer = backend as CancellationWriteBackend;
-    final normalized = targetId.trim();
-    if (normalized.isEmpty) {
+    if (!action.hasCanonicalTarget) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
-    return switch (operation) {
-      WriteOperation.cgyyCancelOrder => switch (int.tryParse(normalized)) {
-        final id? when id > 0 => writer.prepareCgyyCancelOrder(id: id),
-        _ => throw const BackendException(UbaaErrorCode.invalidInput),
-      },
-      _ => throw const BackendException(UbaaErrorCode.invalidInput),
-    };
+    return (backend as CancellationWriteBackend).prepareCgyyCancelOrder(
+      id: action.orderId,
+    );
   }
 
   /// 准备图书馆取消意图；目标、资格与分页上下文全部来自 Core typed 读取。
@@ -677,8 +670,7 @@ class AppController extends ChangeNotifier {
         );
       }
     }
-    if (operation == WriteOperation.cgyySubmitReservation ||
-        operation == WriteOperation.cgyyCancelOrder) {
+    if (operation == WriteOperation.cgyySubmitReservation) {
       // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，
       // 保留旧的领域刷新兼容路径，不伪造核对成功。
       if (_backend is FeatureQueryBackend) {
@@ -687,6 +679,11 @@ class AppController extends ChangeNotifier {
           const FeatureQuery(view: FeatureQueryView.cgyyOrders),
         );
       }
+    }
+    if (operation == WriteOperation.cgyyCancelOrder) {
+      // 场馆取消必须由 verifyCgyyCancellation 独占执行列表+详情双回读；
+      // 此通用入口不做单列表降级，也不会触发写入重试。
+      return Future<void>.value();
     }
     final feature = switch (operation) {
       WriteOperation.bykcSelectCourse ||
@@ -721,6 +718,16 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  /// 在 intent 的实际路线上执行场馆取消列表+详情双回读。
+  Future<bool> verifyCgyyCancellation({
+    required int orderId,
+    required ConnectionMode expectedRoute,
+  }) => _verifyCgyyCancellation(
+    this,
+    orderId: orderId,
+    expectedRoute: expectedRoute,
+  );
+
   Future<void> _loadFeature(
     FeatureId feature,
     int generation, {
@@ -738,26 +745,7 @@ class AppController extends ChangeNotifier {
           await queryBackend.loadFeatureQuery(feature, value),
         _ => await _backend.loadFeature(feature),
       };
-      if (_disposed || generation != _refreshGeneration) return;
-      final status = result.error != null
-          ? FeatureLoadStatus.failure
-          : result.isEmpty
-          ? FeatureLoadStatus.empty
-          : FeatureLoadStatus.success;
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: status,
-        summary: result.summary,
-        details: result.details,
-        error: result.error,
-        resolvedRoute: result.resolvedRoute,
-        pagination: result.pagination,
-        updatedAt: DateTime.now(),
-        clearError: result.error == null,
-        clearSummary: result.summary == null,
-        clearDetails: result.details.isEmpty,
-        clearResolvedRoute: result.resolvedRoute == null,
-        clearPagination: result.pagination == null,
-      );
+      if (!_applyFeatureResultIfCurrent(feature, result, generation)) return;
       await _recordFeature(
         feature,
         success: result.error == null && !result.isEmpty,
@@ -796,6 +784,34 @@ class AppController extends ChangeNotifier {
       );
     }
     _notify();
+  }
+
+  bool _applyFeatureResultIfCurrent(
+    FeatureId feature,
+    FeatureResult result,
+    int generation,
+  ) {
+    if (_disposed || generation != _refreshGeneration) return false;
+    final status = result.error != null
+        ? FeatureLoadStatus.failure
+        : result.isEmpty
+        ? FeatureLoadStatus.empty
+        : FeatureLoadStatus.success;
+    _snapshots[feature] = _snapshots[feature]!.copyWith(
+      status: status,
+      summary: result.summary,
+      details: result.details,
+      error: result.error,
+      resolvedRoute: result.resolvedRoute,
+      pagination: result.pagination,
+      updatedAt: DateTime.now(),
+      clearError: result.error == null,
+      clearSummary: result.summary == null,
+      clearDetails: result.details.isEmpty,
+      clearResolvedRoute: result.resolvedRoute == null,
+      clearPagination: result.pagination == null,
+    );
+    return true;
   }
 
   Future<void> logout({bool clearSavedCredential = false}) async {

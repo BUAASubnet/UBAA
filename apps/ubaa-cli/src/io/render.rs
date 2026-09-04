@@ -4,7 +4,7 @@ use std::io::Write;
 
 use serde_json::Value;
 use ubaa_core::facade::ConnectionMode;
-use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
+use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RouteResolution, Routed, RoutedError, RoutedResult};
 
 use crate::io::error::CliJsonError;
@@ -136,7 +136,6 @@ fn render_resolved_error<O: Write, E: Write>(
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    let error = project_host_error(error, feature);
     let exit_code = exit_code(error.code) as i32;
     if json_mode {
         let error = CliJsonError::from_core(error);
@@ -151,18 +150,6 @@ fn render_resolved_error<O: Write, E: Write>(
     exit_code
 }
 
-fn project_host_error(error: UbaaError, feature: CliFeature) -> UbaaError {
-    if feature == CliFeature::Cgyy && error.code == ErrorCode::OutcomeUnknown {
-        return UbaaError::new(
-            ErrorCode::OutcomeUnknown,
-            ErrorKind::Upstream,
-            false,
-            "场馆写入结果未知，请稍后查询预约记录确认",
-        );
-    }
-    error
-}
-
 /// 在后端构造前展示错误，并保持 JSON 标准输出约束。
 pub fn render_startup_error<O: Write, E: Write>(
     json_mode: bool,
@@ -171,7 +158,6 @@ pub fn render_startup_error<O: Write, E: Write>(
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
-    let error = project_host_error(error, feature);
     let exit_code = exit_code(error.code) as i32;
     if json_mode {
         let envelope = RoutedJsonEnvelope::<Value>::unresolved_failure(

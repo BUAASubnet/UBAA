@@ -6,11 +6,11 @@ use super::{
     BridgeActionEligibility, BridgeBykcChosenCourse, BridgeBykcCourse, BridgeBykcCourseCategory,
     BridgeBykcCoursePage, BridgeBykcCourseStatus, BridgeBykcCourseSubCategory,
     BridgeBykcSignConfig, BridgeBykcSignPoint, BridgeBykcStatistic, BridgeBykcStatistics,
-    BridgeBykcUserProfile, BridgeCgyyDayInfo, BridgeCgyyLockCode, BridgeCgyyOrder,
-    BridgeCgyyOrdersPage, BridgeCgyyPurposeSource, BridgeCgyyPurposeType, BridgeCgyyPurposeTypes,
-    BridgeCgyyReservationTarget, BridgeCgyySlotStatus, BridgeCgyySpaceAvailability,
-    BridgeCgyyTimeSlot, BridgeCgyyVenueSite, BridgeClassroomFloor, BridgeClassroomInfo,
-    BridgeClassroomQuery, BridgeCourseClass, BridgeEvaluationCourse,
+    BridgeBykcUserProfile, BridgeCgyyCancelOrderTarget, BridgeCgyyDayInfo, BridgeCgyyLockCode,
+    BridgeCgyyOrder, BridgeCgyyOrdersPage, BridgeCgyyPurposeSource, BridgeCgyyPurposeType,
+    BridgeCgyyPurposeTypes, BridgeCgyyReservationTarget, BridgeCgyySlotStatus,
+    BridgeCgyySpaceAvailability, BridgeCgyyTimeSlot, BridgeCgyyVenueSite, BridgeClassroomFloor,
+    BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeEvaluationCourse,
     BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam, BridgeExamArrangement,
     BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail, BridgeJudgeAssignmentSummary,
     BridgeJudgeProblem, BridgeJudgeSubmissionStatus, BridgeLibBookArea, BridgeLibBookAreaDetail,
@@ -615,6 +615,34 @@ pub(super) fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
     }
 }
 pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
+    let core_cancel_target_is_none = v.cancel_target.is_none();
+    let (cancel_eligibility, cancel_target) = match (v.cancel_eligibility, v.cancel_target) {
+        (domain::ActionEligibility::Allowed, Some(target))
+            if v.id > 0 && target.order_id == v.id =>
+        {
+            (
+                BridgeActionEligibility::Allowed,
+                Some(BridgeCgyyCancelOrderTarget {
+                    order_id: target.order_id,
+                }),
+            )
+        }
+        (domain::ActionEligibility::Denied, _) => (BridgeActionEligibility::Denied, None),
+        _ => (BridgeActionEligibility::Unknown, None),
+    };
+    let cancelled_target = v
+        .cancelled_target
+        .filter(|target| {
+            target.order_id > 0
+                && target.order_id == v.id
+                && matches!(cancel_eligibility, BridgeActionEligibility::Denied)
+                && v.order_status == Some(2)
+                && core_cancel_target_is_none
+                && cancel_target.is_none()
+        })
+        .map(|target| BridgeCgyyCancelOrderTarget {
+            order_id: target.order_id,
+        });
     BridgeCgyyOrder {
         id: v.id,
         venue_site_id: v.venue_site_id,
@@ -631,6 +659,9 @@ pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
         theme: v.theme,
         purpose_type_name: v.purpose_type_name,
         joiner_num: v.joiner_num,
+        cancel_eligibility,
+        cancel_target,
+        cancelled_target,
     }
 }
 pub(super) fn map_cgyy_orders(v: domain::CgyyOrdersPage) -> BridgeCgyyOrdersPage {
@@ -684,5 +715,124 @@ pub(super) fn map_evaluation(
             evaluated_courses: v.progress.evaluated_courses,
             pending_courses: v.progress.pending_courses,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn 场馆订单读取只投影typed取消资格与canonical目标() {
+        let allowed = map_cgyy_order(domain::CgyyOrder {
+            id: 42,
+            cancel_eligibility: domain::ActionEligibility::Allowed,
+            cancel_target: Some(domain::CgyyCancelOrderTarget { order_id: 42 }),
+            ..domain::CgyyOrder::default()
+        });
+        assert!(matches!(
+            allowed.cancel_eligibility,
+            BridgeActionEligibility::Allowed
+        ));
+        assert_eq!(
+            allowed.cancel_target.expect("Allowed 必须有目标").order_id,
+            42
+        );
+        assert!(allowed.cancelled_target.is_none());
+
+        for eligibility in [
+            domain::ActionEligibility::Denied,
+            domain::ActionEligibility::Unknown,
+        ] {
+            let projected = map_cgyy_order(domain::CgyyOrder {
+                id: 42,
+                cancel_eligibility: eligibility,
+                cancel_target: None,
+                ..domain::CgyyOrder::default()
+            });
+            assert!(projected.cancel_target.is_none());
+        }
+
+        for (id, target_id) in [(42, 41), (0, 0), (-1, -1)] {
+            let projected = map_cgyy_order(domain::CgyyOrder {
+                id,
+                cancel_eligibility: domain::ActionEligibility::Allowed,
+                cancel_target: Some(domain::CgyyCancelOrderTarget {
+                    order_id: target_id,
+                }),
+                ..domain::CgyyOrder::default()
+            });
+            assert!(matches!(
+                projected.cancel_eligibility,
+                BridgeActionEligibility::Unknown
+            ));
+            assert!(projected.cancel_target.is_none());
+        }
+    }
+
+    #[test]
+    fn 场馆订单读取只投影一致的strict已取消证明() {
+        let cancelled = map_cgyy_order(domain::CgyyOrder {
+            id: 42,
+            order_status: Some(2),
+            cancel_eligibility: domain::ActionEligibility::Denied,
+            cancel_target: None,
+            cancelled_target: Some(domain::CgyyCancelOrderTarget { order_id: 42 }),
+            ..domain::CgyyOrder::default()
+        });
+        assert!(cancelled.cancel_target.is_none());
+        assert_eq!(
+            cancelled
+                .cancelled_target
+                .expect("Core strict 已取消证明必须透传")
+                .order_id,
+            42
+        );
+
+        let compatible_but_unproven = map_cgyy_order(domain::CgyyOrder {
+            id: 42,
+            order_status: Some(2),
+            cancel_eligibility: domain::ActionEligibility::Unknown,
+            cancel_target: None,
+            cancelled_target: None,
+            ..domain::CgyyOrder::default()
+        });
+        assert!(compatible_but_unproven.cancelled_target.is_none());
+
+        for (id, proof_id) in [(42, 41), (42, 0), (42, -1), (0, 0), (-1, -1)] {
+            let invalid_proof = map_cgyy_order(domain::CgyyOrder {
+                id,
+                order_status: Some(2),
+                cancel_eligibility: domain::ActionEligibility::Denied,
+                cancel_target: None,
+                cancelled_target: Some(domain::CgyyCancelOrderTarget { order_id: proof_id }),
+                ..domain::CgyyOrder::default()
+            });
+            assert!(
+                invalid_proof.cancelled_target.is_none(),
+                "Bridge 不得投影非正数或与兼容 id 不一致的 Core proof：id={id}, proof={proof_id}",
+            );
+        }
+
+        for (eligibility, order_status, has_cancel_target) in [
+            (domain::ActionEligibility::Allowed, Some(2), true),
+            (domain::ActionEligibility::Unknown, Some(2), false),
+            (domain::ActionEligibility::Denied, Some(1), false),
+            (domain::ActionEligibility::Denied, Some(2), true),
+        ] {
+            let contradictory = map_cgyy_order(domain::CgyyOrder {
+                id: 42,
+                order_status,
+                cancel_eligibility: eligibility,
+                cancel_target: has_cancel_target
+                    .then_some(domain::CgyyCancelOrderTarget { order_id: 42 }),
+                cancelled_target: Some(domain::CgyyCancelOrderTarget { order_id: 42 }),
+                ..domain::CgyyOrder::default()
+            });
+            assert!(
+                contradictory.cancelled_target.is_none(),
+                "Bridge 不得投影与取消资格、状态或待取消目标矛盾的 proof",
+            );
+        }
     }
 }

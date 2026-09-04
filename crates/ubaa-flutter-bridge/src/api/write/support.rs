@@ -134,6 +134,37 @@ pub(super) fn map_cgyy_preflight_error(error: domain::RoutedError) -> BridgeErro
     BridgeError::from_routed(error)
 }
 
+pub(super) fn map_cgyy_cancel_preflight_error(error: domain::RoutedError) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if error.error.code == domain::ErrorCode::InvalidInput && error.error.retryable {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "场馆订单取消资格已变化，请刷新后重新准备",
+        );
+    }
+    if error.error.code == domain::ErrorCode::UpstreamChanged {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "场馆订单取消资格核对响应无效",
+        );
+    }
+    BridgeError::from_routed(error)
+}
+
 pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
@@ -154,6 +185,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
             | BridgeWriteOperation::CgyySubmitReservation
+            | BridgeWriteOperation::CgyyCancelOrder
     ) && error.error.code == domain::ErrorCode::InvalidInput
         && error.error.retryable
     {
@@ -164,6 +196,7 @@ pub(super) fn map_commit_error(
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
             BridgeWriteOperation::CgyySubmitReservation => "场馆预约资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::CgyyCancelOrder => "场馆订单取消资格已变化，请刷新后重新准备",
             _ => "课程签到资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
@@ -185,9 +218,24 @@ pub(super) fn map_commit_error(
             "图书馆预约取消资格核对响应无效",
         );
     }
+    if matches!(operation, BridgeWriteOperation::CgyyCancelOrder)
+        && error.error.code == domain::ErrorCode::UpstreamChanged
+    {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "场馆订单取消资格核对响应无效",
+        );
+    }
     if error.error.code == domain::ErrorCode::OutcomeUnknown {
         let kind = error.error.kind.into();
-        let message = error.error.message.clone();
+        let message = if matches!(operation, BridgeWriteOperation::CgyyCancelOrder) {
+            "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作".to_owned()
+        } else {
+            error.error.message.clone()
+        };
         return routed_local_error(
             &error,
             BridgeErrorCode::OutcomeUnknown,
@@ -203,6 +251,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
             | BridgeWriteOperation::CgyySubmitReservation
+            | BridgeWriteOperation::CgyyCancelOrder
     ) {
         false
     } else {

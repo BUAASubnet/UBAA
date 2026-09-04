@@ -4,15 +4,16 @@ use async_trait::async_trait;
 use serde_json::Value;
 use ubaa_core::facade::{
     BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
-    BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
-    CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
-    CgyyVenueSite, ClassroomQuery, EvaluationCoursesResponse, ExamArrangement, GradeData,
-    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
-    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, SigninActionResult,
-    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
-    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
-    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
+    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
+    CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, EvaluationCoursesResponse,
+    ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
+    LibBookReserveResult, LibBookSeat, SigninActionResult, SigninClass, SpocAssignmentDetail,
+    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
+    WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
+    YgdkRecordsPage,
 };
 use ubaa_core::facade::{RoutedResult, UbaaClient};
 
@@ -101,8 +102,11 @@ impl RoutedCliBackend for UbaaClient {
     async fn cgyy_order_detail(&mut self, id: i32) -> RoutedResult<CgyyOrder> {
         UbaaClient::cgyy_order_detail(self, id).await
     }
-    async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
-        UbaaClient::cgyy_cancel_order(self, id).await
+    async fn cgyy_cancel_order(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+    ) -> RoutedResult<CgyyCancelOrderResult> {
+        UbaaClient::cgyy_cancel_order(self, request).await
     }
     async fn cgyy_submit_reservation(
         &mut self,

@@ -8,7 +8,7 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::runtime::ClientRuntime;
 
 use super::client::UbaaClient;
-use super::types::{Operation, Routed, RoutedError, RoutedResult};
+use super::types::{CallerPinned, Operation, Routed, RoutedError, RoutedResult};
 
 impl UbaaClient {
     /// 为 typed 读取/写入准备解析本次实际路线，不发起业务请求。
@@ -34,6 +34,19 @@ impl UbaaClient {
             resolved_route = ?resolution.mode,
             selected_runtime = ?runtime_mode,
             "Cgyy 门面完成路线解析"
+        );
+    }
+
+    pub(super) fn log_cgyy_pinned_route(&mut self, pinned_route: ConnectionMode, operation: &str) {
+        let runtime_mode = self.runtime_for(pinned_route).mode();
+        tracing::debug!(
+            target: "ubaa::cgyy",
+            feature = "cgyy",
+            operation,
+            route_source = "caller_pinned",
+            ?pinned_route,
+            selected_runtime = ?runtime_mode,
+            "Cgyy 门面使用调用方固定路线"
         );
     }
 
@@ -103,6 +116,14 @@ impl UbaaClient {
             })
     }
 
+    pub(super) fn guard_caller_pinned_route(&mut self, route: ConnectionMode) -> Result<()> {
+        self.guard_latest_session_ownership()?;
+        if !self.route_is_ready(route) {
+            return Err(authentication_required());
+        }
+        Ok(())
+    }
+
     pub(super) fn runtime_for(&mut self, route: ConnectionMode) -> &mut ClientRuntime {
         self.route_parts_for(route).0
     }
@@ -126,7 +147,7 @@ impl UbaaClient {
         resolution: RouteResolution,
         result: Result<T>,
     ) -> RoutedResult<T> {
-        if let Err(error) = self.cleanup_routed_result(resolution, &result) {
+        if let Err(error) = self.cleanup_route_result(resolution.mode, &result) {
             return Err(routed_error(error, resolution));
         }
         if let Err(error) = self.clear_on_session_conflict() {
@@ -135,6 +156,16 @@ impl UbaaClient {
         result
             .map(|data| Routed { data, resolution })
             .map_err(|error| routed_error(error, resolution))
+    }
+
+    pub(super) fn finish_caller_pinned<T>(
+        &mut self,
+        pinned_route: ConnectionMode,
+        result: Result<T>,
+    ) -> Result<CallerPinned<T>> {
+        self.cleanup_route_result(pinned_route, &result)?;
+        self.clear_on_session_conflict()?;
+        result.map(|data| CallerPinned { data, pinned_route })
     }
 
     /// 写请求跨越发送边界后，收尾检查只清理失效状态，不得覆盖确定或未知结果。
@@ -149,31 +180,27 @@ impl UbaaClient {
         {
             return self.finish_routed(resolution, result);
         }
-        let _ = self.cleanup_routed_result(resolution, &result);
+        let _ = self.cleanup_route_result(resolution.mode, &result);
         let _ = self.guard_latest_session_ownership();
         result
             .map(|data| Routed { data, resolution })
             .map_err(|error| routed_error(error, resolution))
     }
 
-    fn cleanup_routed_result<T>(
-        &mut self,
-        resolution: RouteResolution,
-        result: &Result<T>,
-    ) -> Result<()> {
+    fn cleanup_route_result<T>(&mut self, route: ConnectionMode, result: &Result<T>) -> Result<()> {
         if should_clear_invalidated_route(result) {
-            if self.route_is_ready(resolution.mode) {
-                self.clear_invalidated_route(resolution.mode)?;
+            if self.route_is_ready(route) {
+                self.clear_invalidated_route(route)?;
             } else {
-                self.clear_invalidated_route_memory(resolution.mode);
+                self.clear_invalidated_route_memory(route);
             }
         }
         if result
             .as_ref()
             .is_err_and(|error| error.code == ErrorCode::InternalError)
-            && !self.route_is_ready(resolution.mode)
+            && !self.route_is_ready(route)
         {
-            self.clear_invalidated_route_memory(resolution.mode);
+            self.clear_invalidated_route_memory(route);
         }
         Ok(())
     }

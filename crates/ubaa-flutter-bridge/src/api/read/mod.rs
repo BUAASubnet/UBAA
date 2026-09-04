@@ -533,6 +533,10 @@ pub struct BridgeCgyyDayInfo {
     pub reservation_total_num: Option<i32>,
 }
 #[derive(Clone, Debug)]
+pub struct BridgeCgyyCancelOrderTarget {
+    pub order_id: i32,
+}
+#[derive(Clone, Debug)]
 pub struct BridgeCgyyOrder {
     pub id: i32,
     pub venue_site_id: Option<i32>,
@@ -549,6 +553,9 @@ pub struct BridgeCgyyOrder {
     pub theme: Option<String>,
     pub purpose_type_name: Option<String>,
     pub joiner_num: Option<i32>,
+    pub cancel_eligibility: BridgeActionEligibility,
+    pub cancel_target: Option<BridgeCgyyCancelOrderTarget>,
+    pub cancelled_target: Option<BridgeCgyyCancelOrderTarget>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyOrdersPage {
@@ -557,6 +564,18 @@ pub struct BridgeCgyyOrdersPage {
     pub total_pages: i32,
     pub size: i32,
     pub number: i32,
+}
+/// 调用方固定路线的场馆订单列表结果；不表示 Core 重新执行了 Auto 探测。
+#[derive(Clone, Debug)]
+pub struct BridgeCallerPinnedCgyyOrders {
+    pub data: BridgeCgyyOrdersPage,
+    pub pinned_route: super::client::BridgeConnectionMode,
+}
+/// 调用方固定路线的场馆订单详情结果；不表示 Core 重新执行了 Auto 探测。
+#[derive(Clone, Debug)]
+pub struct BridgeCallerPinnedCgyyOrder {
+    pub data: BridgeCgyyOrder,
+    pub pinned_route: super::client::BridgeConnectionMode,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyLockCode {

@@ -265,9 +265,14 @@ void main() {
     expect(backend.libbookCancellationPage, 2);
     expect(backend.libbookCancellationLimit, 10);
 
-    final cgyyCancelIntent = await shell.onPrepareCancellationWrite!(
-      WriteOperation.cgyyCancelOrder,
-      '41006',
+    final cgyyCancelIntent = await shell.onPrepareCgyyCancelWrite!(
+      const CgyyCancelAction(
+        orderId: 41006,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: 41006,
+        eligibility: ActionEligibility.allowed,
+      ),
     );
     expect(cgyyCancelIntent.operation, WriteOperation.cgyyCancelOrder);
     expect(cgyyCancelIntent.intentId, 'intent-cgyy-cancel');
@@ -449,17 +454,12 @@ void main() {
         FeatureQueryView.libbookBookings,
       );
     }
-    for (final operation in <WriteOperation>[
-      WriteOperation.cgyySubmitReservation,
-      WriteOperation.cgyyCancelOrder,
-    ]) {
-      backend.resetReadCalls();
-      await shell.onWriteSuccess!(operation, null);
-      expect(backend.loadedFeatures, isEmpty);
-      expect(backend.queryCalls, hasLength(1));
-      expect(backend.queryCalls.single.feature, FeatureId.cgyy);
-      expect(backend.queryCalls.single.query.view, FeatureQueryView.cgyyOrders);
-    }
+    backend.resetReadCalls();
+    await shell.onWriteSuccess!(WriteOperation.cgyySubmitReservation, null);
+    expect(backend.loadedFeatures, isEmpty);
+    expect(backend.queryCalls, hasLength(1));
+    expect(backend.queryCalls.single.feature, FeatureId.cgyy);
+    expect(backend.queryCalls.single.query.view, FeatureQueryView.cgyyOrders);
     expect(
       await shell.onVerifyCgyyReceipt!(
         const CgyyReservationReceipt(orderId: 41999),
@@ -471,6 +471,21 @@ void main() {
         const CgyyReservationReceipt(orderId: 41998),
       ),
       isFalse,
+    );
+    backend.resetReadCalls();
+    expect(
+      await shell.onVerifyCgyyCancellation!(
+        orderId: 41006,
+        expectedRoute: ConnectionMode.direct,
+      ),
+      isTrue,
+    );
+    expect(
+      backend.queryCalls.map((call) => call.query.view),
+      <FeatureQueryView>[
+        FeatureQueryView.cgyyOrders,
+        FeatureQueryView.cgyyOrderDetail,
+      ],
     );
 
     shell.onRoutePolicyChanged(RoutePolicy.webvpn);
@@ -534,6 +549,7 @@ final class _RecordingBackend
     implements
         UbaaBackend,
         FeatureQueryBackend,
+        CgyyCancellationReadbackBackend,
         RouteSettingsBackend,
         BykcWriteBackend,
         SigninWriteBackend,
@@ -632,16 +648,72 @@ final class _RecordingBackend
         query.view == FeatureQueryView.cgyyOrders) {
       return const FeatureResult.success(
         summary: '脱敏场馆订单',
+        resolvedRoute: ConnectionMode.direct,
         details: <FeatureDetail>[
           FeatureDetail(
             title: '脱敏订单',
             fields: <FeatureField>[FeatureField(label: '订单编号', value: '41999')],
+          ),
+          FeatureDetail(
+            title: '已取消订单',
+            actions: <FeatureAction>[
+              CgyyCancelAction(
+                orderId: 41006,
+                orderStatus: 2,
+                checkStatus: 2,
+                targetOrderId: null,
+                cancelledTargetOrderId: 41006,
+                eligibility: ActionEligibility.denied,
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+    if (feature == FeatureId.cgyy &&
+        query.view == FeatureQueryView.cgyyOrderDetail &&
+        query.orderId == 41006) {
+      return const FeatureResult.success(
+        summary: '脱敏场馆订单详情',
+        resolvedRoute: ConnectionMode.direct,
+        details: <FeatureDetail>[
+          FeatureDetail(
+            title: '已取消订单',
+            actions: <FeatureAction>[
+              CgyyCancelAction(
+                orderId: 41006,
+                orderStatus: 2,
+                checkStatus: 2,
+                targetOrderId: null,
+                cancelledTargetOrderId: 41006,
+                eligibility: ActionEligibility.denied,
+              ),
+            ],
           ),
         ],
       );
     }
     return FeatureResult.success(summary: '脱敏 ${feature.title}');
   }
+
+  @override
+  Future<FeatureResult> loadCgyyOrdersOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  }) => loadFeatureQuery(
+    FeatureId.cgyy,
+    FeatureQuery(view: FeatureQueryView.cgyyOrders, page: page, size: size),
+  );
+
+  @override
+  Future<FeatureResult> loadCgyyOrderDetailOnRoute({
+    required ConnectionMode route,
+    required int orderId,
+  }) => loadFeatureQuery(
+    FeatureId.cgyy,
+    FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: orderId),
+  );
 
   @override
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async {
@@ -696,7 +768,12 @@ final class _RecordingBackend
   @override
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) async {
     cgyyCancellationId = id;
-    return _intent('cgyy-cancel', WriteOperation.cgyyCancelOrder);
+    return _intent(
+      'cgyy-cancel',
+      WriteOperation.cgyyCancelOrder,
+    ).withReadbackQuery(
+      FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: id),
+    );
   }
 
   @override

@@ -20,7 +20,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 6;
+const _supportedBridgeContractVersion = 7;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -31,6 +31,7 @@ class BridgeBackend
     implements
         UbaaBackend,
         FeatureQueryBackend,
+        CgyyCancellationReadbackBackend,
         BykcWriteBackend,
         SigninWriteBackend,
         CancellationWriteBackend,
@@ -84,6 +85,19 @@ class BridgeBackend
     FeatureId feature,
     FeatureQuery query,
   ) => _loadFeatureQuery(this, feature, query);
+
+  @override
+  Future<FeatureResult> loadCgyyOrdersOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  }) => _loadCgyyOrdersOnRoute(this, route: route, page: page, size: size);
+
+  @override
+  Future<FeatureResult> loadCgyyOrderDetailOnRoute({
+    required ConnectionMode route,
+    required int orderId,
+  }) => _loadCgyyOrderDetailOnRoute(this, route: route, orderId: orderId);
 
   @override
   Future<void> dispose() => _dispose(this);

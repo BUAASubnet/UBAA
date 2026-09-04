@@ -163,6 +163,51 @@ class CgyyReserveAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.cgyySubmitReservation;
 }
 
+/// 单条场馆订单的 typed 取消能力。
+///
+/// [orderId]、[orderStatus] 和 [checkStatus] 仅用于兼容展示；只有
+/// [eligibility] 为 [ActionEligibility.allowed] 时 Core 才会给出
+/// canonical [targetOrderId]，只有 strict 已取消时才给出
+/// [cancelledTargetOrderId]。界面和 App 层不得从展示值重建证明。
+@immutable
+class CgyyCancelAction extends FeatureAction {
+  const CgyyCancelAction({
+    required this.orderId,
+    required this.orderStatus,
+    required this.checkStatus,
+    required this.targetOrderId,
+    this.cancelledTargetOrderId,
+    required this.eligibility,
+  });
+
+  final int orderId;
+  final int? orderStatus;
+  final int? checkStatus;
+  final int? targetOrderId;
+
+  /// Core 仅在 strict 正整数身份且 strict 已取消状态同时成立时提供。
+  final int? cancelledTargetOrderId;
+
+  @override
+  final ActionEligibility eligibility;
+
+  /// 是否携带可直接交给写入边界的 canonical 正整数目标。
+  bool get hasCanonicalTarget =>
+      eligibility == ActionEligibility.allowed &&
+      orderId > 0 &&
+      targetOrderId == orderId;
+
+  /// 当前 action 是否构成指定订单已经取消的 strict 只读证明。
+  bool confirmsCancellationOf(int expectedOrderId) =>
+      expectedOrderId > 0 &&
+      orderId == expectedOrderId &&
+      orderStatus == 2 &&
+      cancelledTargetOrderId == expectedOrderId;
+
+  @override
+  WriteOperation get operation => WriteOperation.cgyyCancelOrder;
+}
+
 /// 单条图书馆预约记录的 Core 已核对取消目标。
 ///
 /// [page] 与 [limit] 只限定 prepare、commit 和写后刷新使用的同一预约页；

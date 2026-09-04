@@ -246,6 +246,7 @@ final class _AllWritesIntegrationBackend
     implements
         UbaaBackend,
         FeatureQueryBackend,
+        CgyyCancellationReadbackBackend,
         RouteSettingsBackend,
         BykcWriteBackend,
         SigninWriteBackend,
@@ -418,6 +419,15 @@ final class _AllWritesIntegrationBackend
             FeatureField(label: '开始', value: '2099-01-01 10:00:00'),
             FeatureField(label: '结束', value: '2099-01-01 11:00:00'),
           ],
+          actions: <FeatureAction>[
+            CgyyCancelAction(
+              orderId: 17,
+              orderStatus: 1,
+              checkStatus: 1,
+              targetOrderId: 17,
+              eligibility: ActionEligibility.allowed,
+            ),
+          ],
         ),
       ],
       FeatureId.ygdk => const <FeatureDetail>[
@@ -455,6 +465,60 @@ final class _AllWritesIntegrationBackend
   ) => loadFeature(feature);
 
   @override
+  Future<FeatureResult> loadCgyyOrdersOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  }) async {
+    if (page != 0 || size != 20) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return _cgyyCancellationReadback(route: route, orderId: 17);
+  }
+
+  @override
+  Future<FeatureResult> loadCgyyOrderDetailOnRoute({
+    required ConnectionMode route,
+    required int orderId,
+  }) => _cgyyCancellationReadback(route: route, orderId: orderId);
+
+  Future<FeatureResult> _cgyyCancellationReadback({
+    required ConnectionMode route,
+    required int orderId,
+  }) async {
+    if (!_signedIn) {
+      throw const BackendException(UbaaErrorCode.authenticationRequired);
+    }
+    if (orderId <= 0) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    featureLoads.update(
+      FeatureId.cgyy,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    return FeatureResult.success(
+      summary: '集成场馆取消回读',
+      resolvedRoute: route,
+      details: <FeatureDetail>[
+        FeatureDetail(
+          title: '已取消场馆订单',
+          actions: <FeatureAction>[
+            CgyyCancelAction(
+              orderId: orderId,
+              orderStatus: 2,
+              checkStatus: 1,
+              targetOrderId: null,
+              cancelledTargetOrderId: orderId,
+              eligibility: ActionEligibility.denied,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) =>
       _prepare(WriteOperation.bykcSelectCourse);
 
@@ -489,8 +553,13 @@ final class _AllWritesIntegrationBackend
   );
 
   @override
-  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
-      _prepare(WriteOperation.cgyyCancelOrder);
+  Future<WriteIntent> prepareCgyyCancelOrder({required int id}) => _prepare(
+    WriteOperation.cgyyCancelOrder,
+    readbackQuery: FeatureQuery(
+      view: FeatureQueryView.cgyyOrderDetail,
+      orderId: id,
+    ),
+  );
 
   @override
   Future<WriteIntent> prepareLibbookReserve({

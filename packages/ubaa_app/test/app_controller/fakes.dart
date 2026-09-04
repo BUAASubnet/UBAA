@@ -587,6 +587,7 @@ class _CancellationWriteBackend
   int? bookingLimit;
   int libbookPrepareCalls = 0;
   int? orderId;
+  int cgyyPrepareCalls = 0;
 
   @override
   Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
@@ -629,6 +630,7 @@ class _CancellationWriteBackend
 
   @override
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) async {
+    cgyyPrepareCalls++;
     orderId = id;
     return _intent(WriteOperation.cgyyCancelOrder, '$id');
   }
@@ -845,6 +847,77 @@ class _CgyyQueryWriteBackend extends _CgyyWriteBackend
   ) async {
     queries.add((feature, query));
     return queryResult;
+  }
+}
+
+final class _CgyyCancelReadbackBackend
+    implements
+        UbaaBackend,
+        FeatureQueryBackend,
+        CgyyCancellationReadbackBackend {
+  _CgyyCancelReadbackBackend(this.load);
+
+  final Future<FeatureResult> Function(FeatureQuery query) load;
+  final List<FeatureQuery> queries = <FeatureQuery>[];
+  final List<ConnectionMode> readbackRoutes = <ConnectionMode>[];
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
+
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'student');
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async {
+    queries.add(query);
+    return load(query);
+  }
+
+  @override
+  Future<FeatureResult> loadCgyyOrdersOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  }) async {
+    readbackRoutes.add(route);
+    final query = FeatureQuery(
+      view: FeatureQueryView.cgyyOrders,
+      page: page,
+      size: size,
+    );
+    queries.add(query);
+    return load(query);
+  }
+
+  @override
+  Future<FeatureResult> loadCgyyOrderDetailOnRoute({
+    required ConnectionMode route,
+    required int orderId,
+  }) async {
+    readbackRoutes.add(route);
+    final query = FeatureQuery(
+      view: FeatureQueryView.cgyyOrderDetail,
+      orderId: orderId,
+    );
+    queries.add(query);
+    return load(query);
   }
 }
 

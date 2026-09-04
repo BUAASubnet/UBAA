@@ -157,12 +157,18 @@ Future<WriteIntent> _prepareCgyySubmitReservation(
 Future<WriteIntent> _prepareCgyyCancelOrder(
   BridgeBackend backend, {
   required int id,
-}) => _prepareIntent(
-  backend,
-  backend.client.prepareCgyyCancelOrder(
-    request: BridgeCgyyCancelOrderRequest(id: id),
-  ),
-);
+}) async {
+  if (id <= 0) throw const BackendException(UbaaErrorCode.invalidInput);
+  final intent = await _prepareIntent(
+    backend,
+    backend.client.prepareCgyyCancelOrder(
+      request: BridgeCgyyCancelOrderRequest(orderId: id),
+    ),
+  );
+  return intent.withReadbackQuery(
+    FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: id),
+  );
+}
 
 Future<WriteIntent> _prepareEvaluationSubmitCourses(
   BridgeBackend backend,

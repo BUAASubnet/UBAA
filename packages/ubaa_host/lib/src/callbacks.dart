@@ -93,8 +93,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.prepareBykcWrite(operation, courseId),
       onPrepareBykcSignWrite: _prepareBykcSignWrite,
       onPrepareSigninWrite: _controller.prepareSigninWrite,
-      onPrepareCancellationWrite: (operation, targetId) =>
-          _controller.prepareCancellationWrite(operation, targetId),
+      onPrepareCgyyCancelWrite: _controller.prepareCgyyCancelWrite,
       onPrepareLibbookReserveWrite: _controller.prepareLibbookReserveWrite,
       onPrepareLibbookCancelWrite: _controller.prepareLibbookCancelWrite,
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
@@ -106,6 +105,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onWriteSuccess: (operation, readbackQuery) =>
           _controller.refreshAfterWrite(operation, readbackQuery),
       onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
+      onVerifyCgyyCancellation: _controller.verifyCgyyCancellation,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>
           _controller.logout(clearSavedCredential: true),

@@ -409,22 +409,87 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
     let facade_dir = manifest_dir.join("src/facade");
 
     let observed = audited_route_usage(&facade_dir);
+    let shared_route_execution_reuse = assert_cgyy_cancel_atomic_route_boundary(&facade_dir);
     assert!(observed.entry_points > 0, "必须发现 facade 业务入口");
     assert_eq!(
-        observed.entry_points, observed.resolve_operation,
-        "每个公开异步业务入口必须解析一次路线"
+        observed.entry_points,
+        observed.resolve_operation + observed.caller_pinned,
+        "每个公开异步业务入口必须恰好选择 routed 或 caller-pinned 路线语义"
     );
     assert_eq!(
-        observed.resolve_operation,
-        observed.runtime_for + observed.route_parts_for,
-        "每个业务入口必须只取得一次已解析路线槽位"
+        observed.entry_points,
+        observed.runtime_for + observed.route_parts_for + shared_route_execution_reuse,
+        "每个业务入口必须只取得一次对应路线槽位"
     );
     assert_eq!(
-        observed.entry_points, observed.finish_routed,
+        observed.entry_points,
+        observed.finish_routed + observed.finish_caller_pinned + shared_route_execution_reuse,
         "每个公开异步业务入口都必须经过统一收尾"
     );
+    assert_eq!(observed.caller_pinned, 2, "只允许两项 Cgyy 回读固定路线");
+    assert_eq!(observed.caller_pinned, observed.finish_caller_pinned);
+    assert_caller_pinned_route_boundaries(&facade_dir);
     assert_route_slot_boundaries(&facade_dir);
     assert_route_algorithm_is_unique(manifest_dir);
+}
+
+fn assert_cgyy_cancel_atomic_route_boundary(facade_dir: &std::path::Path) -> usize {
+    let tokens = rust_tokens(&source(&facade_dir.join("write/reservations.rs")));
+    let entry_points = ["cgyy_cancel_order", "cgyy_cancel_order_if_route_matches"];
+    for entry_point in entry_points {
+        let body = function_body(&tokens, entry_point)
+            .unwrap_or_else(|| panic!("定位场馆取消入口：{entry_point}"));
+        assert_eq!(
+            count_sequence(body, &["resolve_operation", "("]),
+            1,
+            "{entry_point} 必须只做一次权威路线解析"
+        );
+        assert_eq!(
+            count_sequence(body, &["cgyy_cancel_order_resolved", "("]),
+            1,
+            "{entry_point} 必须复用同一个已解析路线执行器"
+        );
+    }
+    let executor =
+        function_body(&tokens, "cgyy_cancel_order_resolved").expect("定位场馆取消已解析路线执行器");
+    assert_eq!(
+        count_sequence(executor, &["resolve_operation", "("]),
+        0,
+        "最终发送执行器不得再次解析路线"
+    );
+    assert_eq!(count_sequence(executor, &["runtime_for", "("]), 1);
+    assert_eq!(count_sequence(executor, &["finish_routed_write", "("]), 1);
+    // 两个公开入口共用一个执行器，源码静态计数会比调用语义少一个
+    // runtime/finish；这里显式登记并由上方逐函数约束防止抵消漏检。
+    entry_points.len() - 1
+}
+
+fn assert_caller_pinned_route_boundaries(facade_dir: &std::path::Path) {
+    let tokens = rust_tokens(&source(&facade_dir.join("read/services.rs")));
+    for helper in ["cgyy_orders_on_route", "cgyy_order_detail_on_route"] {
+        let body = function_body(&tokens, helper)
+            .unwrap_or_else(|| panic!("定位 caller-pinned 读取入口：{helper}"));
+        assert_eq!(
+            count_sequence(body, &["resolve_operation", "("]),
+            0,
+            "{helper} 不得重新解析策略或 Auto 路线"
+        );
+        assert_eq!(
+            count_sequence(body, &["guard_caller_pinned_route", "("]),
+            1,
+            "{helper} 必须校验固定路线会话"
+        );
+        assert_eq!(
+            count_sequence(body, &["runtime_for", "("]),
+            1,
+            "{helper} 必须只取得一次固定路线 runtime"
+        );
+        assert_eq!(
+            count_sequence(body, &["finish_caller_pinned", "("]),
+            1,
+            "{helper} 必须以 caller-pinned 语义收尾"
+        );
+    }
 }
 
 fn audited_route_usage(facade_dir: &std::path::Path) -> RouteUsage {
@@ -542,18 +607,22 @@ fn assert_route_algorithm_is_unique(manifest_dir: &std::path::Path) {
 struct RouteUsage {
     entry_points: usize,
     resolve_operation: usize,
+    caller_pinned: usize,
     runtime_for: usize,
     route_parts_for: usize,
     finish_routed: usize,
+    finish_caller_pinned: usize,
 }
 
 impl RouteUsage {
     fn add(&mut self, other: Self) {
         self.entry_points += other.entry_points;
         self.resolve_operation += other.resolve_operation;
+        self.caller_pinned += other.caller_pinned;
         self.runtime_for += other.runtime_for;
         self.route_parts_for += other.route_parts_for;
         self.finish_routed += other.finish_routed;
+        self.finish_caller_pinned += other.finish_caller_pinned;
     }
 }
 
@@ -561,10 +630,12 @@ fn route_usage(tokens: &[String]) -> RouteUsage {
     RouteUsage {
         entry_points: count_sequence(tokens, &["pub", "async", "fn"]),
         resolve_operation: count_sequence(tokens, &["resolve_operation", "("]),
+        caller_pinned: count_sequence(tokens, &["guard_caller_pinned_route", "("]),
         runtime_for: count_sequence(tokens, &["runtime_for", "("]),
         route_parts_for: count_sequence(tokens, &["route_parts_for", "("]),
         finish_routed: count_sequence(tokens, &["finish_routed", "("])
             + count_sequence(tokens, &["finish_routed_write", "("]),
+        finish_caller_pinned: count_sequence(tokens, &["finish_caller_pinned", "("]),
     }
 }
 

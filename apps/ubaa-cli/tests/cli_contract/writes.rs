@@ -33,7 +33,7 @@ fn libbook_reserve_arguments() -> Vec<String> {
 }
 
 #[tokio::test]
-async fn 课堂签到今日与写结果都符合_schema_v7() {
+async fn 课堂签到今日与写结果都符合_schema_v8() {
     let cli = Cli::try_parse_from(["ubaa", "--json", "signin", "today"]).unwrap();
     let mut backend = FakeRoutedBackend::default();
     let mut stdout = Vec::new();
@@ -44,7 +44,7 @@ async fn 课堂签到今日与写结果都符合_schema_v7() {
     assert_eq!(code, 0);
     let today: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&today);
-    assert_eq!(today["schemaVersion"], 7);
+    assert_eq!(today["schemaVersion"], 8);
     assert_eq!(today["data"][0]["signStatus"], 0);
     assert_eq!(today["data"][0]["signinEligibility"], "allowed");
     assert_eq!(today["data"][1]["signinEligibility"], "denied");
@@ -56,7 +56,7 @@ async fn 课堂签到今日与写结果都符合_schema_v7() {
     assert!(stderr.is_empty());
 
     let mut old = today.clone();
-    old["schemaVersion"] = 6.into();
+    old["schemaVersion"] = 7.into();
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../docs/contracts/cli-json.schema.json"
     ))
@@ -103,7 +103,7 @@ async fn 课堂签到确定成功与业务_false_保持内外层语义() {
 
         assert_eq!(exit, 0, "确定业务 false 仍表示调用完成");
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 7);
+        assert_eq!(value["schemaVersion"], 8);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["code"], expected_code);
@@ -218,7 +218,7 @@ async fn 固定路线课堂签到空目标同样在后端调用前拒绝() {
 }
 
 #[tokio::test]
-async fn 图书馆座位原始状态资格与稳定目标符合_schema_v7() {
+async fn 图书馆座位原始状态资格与稳定目标符合_schema_v8() {
     let cli = Cli::try_parse_from([
         "ubaa",
         "--json",
@@ -243,7 +243,7 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v7() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 7);
+    assert_eq!(value["schemaVersion"], 8);
     assert_eq!(value["data"][0]["status"], 1);
     assert_eq!(value["data"][0]["reserveEligibility"], "allowed");
     assert_eq!(value["data"][0]["reserveTarget"], "seat-allowed");
@@ -265,7 +265,7 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v7() {
     .unwrap();
     let validator = jsonschema::validator_for(&schema).unwrap();
     let mut old = value.clone();
-    old["schemaVersion"] = 6.into();
+    old["schemaVersion"] = 7.into();
     assert!(!validator.is_valid(&old));
     for status in [2_147_483_648_i64, -2_147_483_649_i64] {
         let mut out_of_range = value.clone();
@@ -275,7 +275,7 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v7() {
 }
 
 #[tokio::test]
-async fn 图书馆预约确定成功与业务_false_保持内外层语义并符合_schema_v7() {
+async fn 图书馆预约确定成功与业务_false_保持内外层语义并符合_schema_v8() {
     for (fixture, expected_success, expected_message) in [
         (LibBookFixtureResult::Success, true, "预约成功"),
         (LibBookFixtureResult::BusinessFalse, false, "座位不可预约"),
@@ -293,7 +293,7 @@ async fn 图书馆预约确定成功与业务_false_保持内外层语义并符�
 
         assert_eq!(exit, 0, "确定的业务 false 仍表示请求结果已知");
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 7);
+        assert_eq!(value["schemaVersion"], 8);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["message"], expected_message);
@@ -314,7 +314,7 @@ async fn 图书馆预约确定成功与业务_false_保持内外层语义并符�
         assert_eq!(request.end_time, "10:00");
 
         let mut old = value.clone();
-        old["schemaVersion"] = 6.into();
+        old["schemaVersion"] = 7.into();
         let schema: serde_json::Value = serde_json::from_str(include_str!(
             "../../../../docs/contracts/cli-json.schema.json"
         ))
@@ -342,7 +342,7 @@ async fn 图书馆预约发送前超时与发送后未知保持不同错误分�
 
         assert_eq!(exit, 5);
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 7);
+        assert_eq!(value["schemaVersion"], 8);
         assert_eq!(value["ok"], false);
         assert_eq!(value["error"]["code"], expected_error);
         assert_eq!(backend.libbook_reserve_calls, 1);
@@ -445,7 +445,8 @@ async fn 场馆取消显式确认后才调用后端() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["ok"], true);
-    assert_eq!(value["data"]["message"], "fixture cancellation");
+    assert_eq!(value["data"]["success"], true);
+    assert_eq!(value["data"]["message"], "场馆订单已取消");
     assert_eq!(value["meta"]["feature"], "cgyy");
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(backend.cgyy_cancel_calls, 1);
@@ -453,7 +454,7 @@ async fn 场馆取消显式确认后才调用后端() {
 }
 
 #[tokio::test]
-async fn 博雅三类写操作确认后输出均符合_schema_v7() {
+async fn 博雅三类写操作确认后输出均符合_schema_v8() {
     let cases = [
         (
             vec![
@@ -506,7 +507,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v7() {
         assert_eq!(code, 0);
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 7);
+        assert_eq!(value["schemaVersion"], 8);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["message"], expected_message);
         assert_eq!(value["meta"]["feature"], "bykc");

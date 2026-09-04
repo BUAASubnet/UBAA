@@ -11,7 +11,7 @@ void main() {
   _registerCgyyBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(6);
+    final client = _ContractVersionClient(7);
 
     final backend = BridgeBackend(client);
 
@@ -19,7 +19,7 @@ void main() {
   });
 
   test('BridgeBackend 在 release 可执行路径拒绝不匹配合同版本', () {
-    final client = _ContractVersionClient(5);
+    final client = _ContractVersionClient(6);
 
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
@@ -627,7 +627,13 @@ void main() {
         cgyy: BridgeRoutedCgyyOrders(
           data: const BridgeCgyyOrdersPage(
             content: <BridgeCgyyOrder>[
-              BridgeCgyyOrder(id: 17, orderStatus: 1, checkStatus: 2),
+              BridgeCgyyOrder(
+                id: 17,
+                orderStatus: 1,
+                checkStatus: 2,
+                cancelEligibility: BridgeActionEligibility.allowed,
+                cancelTarget: BridgeCgyyCancelOrderTarget(orderId: 17),
+              ),
             ],
             totalElements: 1,
             totalPages: 1,
@@ -665,6 +671,12 @@ void main() {
     expect(cgyyFields['审核状态'], '2');
     expect(cgyyFields['订单状态说明'], '待审批');
     expect(cgyyFields['审核状态说明'], '待辅导员审批');
+    final cgyyAction = cgyy.details.single.action<CgyyCancelAction>();
+    expect(cgyyAction?.orderId, 17);
+    expect(cgyyAction?.orderStatus, 1);
+    expect(cgyyAction?.checkStatus, 2);
+    expect(cgyyAction?.targetOrderId, 17);
+    expect(cgyyAction?.eligibility, ActionEligibility.allowed);
   });
 
   test('BridgeBackend 阳光打卡记录只投影图片数量而不传递地址', () async {
@@ -739,7 +751,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 6;
+  int contractVersion() => 7;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {

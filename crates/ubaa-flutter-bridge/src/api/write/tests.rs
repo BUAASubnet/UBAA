@@ -22,6 +22,7 @@ use ubaa_core::facade::{ErrorCode, ErrorKind, NetworkState, RoutedError, UbaaCli
 use ubaa_test_support::{ExpectedRequest, MockTransport};
 
 mod bykc;
+mod cgyy_cancel;
 mod cgyy_reservation;
 mod contract;
 mod libbook;

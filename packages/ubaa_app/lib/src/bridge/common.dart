@@ -135,6 +135,12 @@ ConnectionMode _toConnectionMode(BridgeConnectionMode mode) => switch (mode) {
   BridgeConnectionMode.webVpn => ConnectionMode.webvpn,
 };
 
+BridgeConnectionMode _toBridgeConnectionMode(ConnectionMode mode) =>
+    switch (mode) {
+      ConnectionMode.direct => BridgeConnectionMode.direct,
+      ConnectionMode.webvpn => BridgeConnectionMode.webVpn,
+    };
+
 RoutePolicy _toRoutePolicy(BridgeRoutePolicy policy) => switch (policy) {
   BridgeRoutePolicy.auto => RoutePolicy.auto,
   BridgeRoutePolicy.direct => RoutePolicy.direct,

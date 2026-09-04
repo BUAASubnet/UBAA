@@ -16,10 +16,12 @@ const LEGACY_PUBLIC_MODULES: [&str; 6] = [
     "session",
 ];
 
-const TEST_CONSTRUCTORS: [(&str, &str); 3] = [
+const TEST_CONSTRUCTORS: [(&str, &str); 5] = [
     ("src/facade/diagnostic.rs", "with_transport"),
+    ("src/facade/diagnostic.rs", "with_transport_at"),
     ("src/facade/client.rs", "with_transports"),
     ("src/facade/client.rs", "with_routing"),
+    ("src/facade/client.rs", "with_routing_and_probe_ttl"),
 ];
 
 const FEATURE_TEST_TARGETS: [(&str, &str); 13] = [
@@ -56,7 +58,7 @@ fn cli_与_bridge_生产源码只能通过_facade_引用_core() {
 
     for (host, source_root) in hosts {
         for path in rust_files_below(&source_root) {
-            if path.file_name().is_some_and(|name| name == "tests.rs") {
+            if is_test_only_source(&path) {
                 continue;
             }
             let source = read(&path);
@@ -84,6 +86,13 @@ fn cli_与_bridge_生产源码只能通过_facade_引用_core() {
         violations.len(),
         violations.join("\n")
     );
+}
+
+fn is_test_only_source(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| name == "tests.rs")
+        || path
+            .components()
+            .any(|component| component.as_os_str() == "tests")
 }
 
 #[test]
@@ -245,7 +254,7 @@ fn 需要注入的行为测试显式登记且不能被源码_cfg_静默删除() 
 }
 
 #[test]
-fn 测试注入模块与三个构造器仅在_test_contract_下编译() {
+fn 测试注入模块与五个构造器仅在_test_contract_下编译() {
     let facade_mod = rust_tokens(&read(&manifest_dir().join("src/facade/mod.rs")));
     assert_guarded_declaration(&facade_mod, "mod", "testing", "facade::testing");
 

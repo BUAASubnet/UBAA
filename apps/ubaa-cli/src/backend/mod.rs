@@ -4,16 +4,16 @@ use async_trait::async_trait;
 use serde_json::Value;
 use ubaa_core::facade::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
-    BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
-    CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
-    CgyyVenueSite, ClassroomQuery, ConnectionMode, EvaluationCoursesResponse, ExamArrangement,
-    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
-    LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult, SigninClass,
-    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
-    YgdkOverview, YgdkRecordsPage,
+    BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
+    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
+    CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode,
+    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
+    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
+    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
+    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RoutedError, RoutedResult};
@@ -171,7 +171,10 @@ pub trait CliBackend {
         Err(unavailable("场馆预约功能不可用"))
     }
     /// 取消预约订单。
-    async fn cgyy_cancel_order(&mut self, _id: i32) -> Result<FeatureResult<CgyyActionResult>> {
+    async fn cgyy_cancel_order(
+        &mut self,
+        _request: CgyyCancelOrderRequest,
+    ) -> Result<FeatureResult<CgyyCancelOrderResult>> {
         Err(unavailable("场馆预约功能不可用"))
     }
     async fn cgyy_submit_reservation(
@@ -431,7 +434,10 @@ pub trait RoutedCliBackend {
         Err(routed_unavailable("场馆预约功能不可用"))
     }
     /// 通过 Core 路由取消预约订单。
-    async fn cgyy_cancel_order(&mut self, _id: i32) -> RoutedResult<CgyyActionResult> {
+    async fn cgyy_cancel_order(
+        &mut self,
+        _request: CgyyCancelOrderRequest,
+    ) -> RoutedResult<CgyyCancelOrderResult> {
         Err(routed_unavailable("场馆预约功能不可用"))
     }
     async fn cgyy_submit_reservation(

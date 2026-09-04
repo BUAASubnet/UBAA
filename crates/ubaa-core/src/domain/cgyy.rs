@@ -115,7 +115,18 @@ pub struct CgyyOrder {
     pub check_content: Option<String>,
     pub handle_reason: Option<String>,
     pub remark: Option<String>,
+    /// 当前订单的 typed 取消资格；`Unknown` 必须按拒绝处理。
+    #[serde(default)]
+    pub cancel_eligibility: ActionEligibility,
+    /// 仅在身份、状态和取消时限均明确允许时提供。
+    #[serde(default)]
+    pub cancel_target: Option<CgyyCancelOrderTarget>,
+    /// 仅当兼容详情中的 strict 身份与已取消状态足以形成读回证明时提供。
+    #[serde(default)]
+    pub cancelled_target: Option<CgyyCancelOrderTarget>,
 }
+
+/// 场馆订单列表分页。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyOrdersPage {
@@ -124,14 +135,6 @@ pub struct CgyyOrdersPage {
     pub total_pages: i32,
     pub size: i32,
     pub number: i32,
-}
-
-/// 场馆预约写操作结果。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CgyyActionResult {
-    pub message: String,
-    pub order: Option<CgyyOrder>,
 }
 
 /// 场馆预约提交结果。
@@ -192,6 +195,39 @@ pub struct CgyyReservationReceipt {
     pub venue_site_id: Option<i32>,
     pub reservation_date: Option<String>,
     pub order_status: Option<i32>,
+}
+
+/// 场馆订单取消请求；订单标识必须为 canonical 正整数。
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyCancelOrderRequest {
+    pub order_id: i32,
+}
+
+/// 由 Core 从 fresh 详情派生的场馆订单取消目标。
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyCancelOrderTarget {
+    pub order_id: i32,
+}
+
+/// 场馆订单取消前的安全权威摘要。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyCancelOrderPreflight {
+    pub target: CgyyCancelOrderTarget,
+    pub order_status: i32,
+    pub check_status: i32,
+    pub reservation_start_date: Option<String>,
+    pub reservation_end_date: Option<String>,
+}
+
+/// 场馆订单取消的固定安全结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyCancelOrderResult {
+    pub success: bool,
+    pub message: String,
 }
 
 /// 场馆预约提交请求。

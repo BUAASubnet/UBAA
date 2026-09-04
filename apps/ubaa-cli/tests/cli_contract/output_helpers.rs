@@ -1,8 +1,8 @@
 use ubaa_cli::{CliFeature, ResolvedRoutedJsonMeta, RoutedJsonEnvelope};
 use ubaa_core::facade::{
     AuthStatus, BykcChosenCourse, BykcCourse, BykcSignConfig, BykcSignPoint, BykcUserProfile,
-    CgyyActionResult, ClassroomInfo, ClassroomQuery, CourseClass, Exam, ExamArrangement, Grade,
-    GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
+    CgyyCancelOrderResult, ClassroomInfo, ClassroomQuery, CourseClass, Exam, ExamArrangement,
+    Grade, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
     JudgeProblem, JudgeSubmissionStatus, RouteResolution, SpocAssignmentDetail,
     SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
     TodayClass, Week, WeeklySchedule,
@@ -151,7 +151,11 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
         (CliFeature::Cgyy, serde_json::json!({"available": true})),
         (
             CliFeature::Cgyy,
-            serde_json::to_value(CgyyActionResult::default()).unwrap(),
+            serde_json::to_value(CgyyCancelOrderResult {
+                success: true,
+                message: "场馆订单已取消".into(),
+            })
+            .unwrap(),
         ),
     ]
 }
@@ -279,9 +283,9 @@ pub(super) fn assert_schema_rejects_invalid_envelopes(
     unresolved: &serde_json::Value,
     aggregate: &serde_json::Value,
 ) {
-    let mut schema_v6 = unresolved.clone();
-    schema_v6["schemaVersion"] = serde_json::json!(6);
-    assert!(!validator.is_valid(&schema_v6));
+    let mut schema_v7 = unresolved.clone();
+    schema_v7["schemaVersion"] = serde_json::json!(7);
+    assert!(!validator.is_valid(&schema_v7));
 
     let mut invented_route = unresolved.clone();
     invented_route["meta"]["resolvedRoute"] = serde_json::json!("direct");

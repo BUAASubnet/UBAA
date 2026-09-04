@@ -6,6 +6,11 @@ use serde::Serialize;
 use ubaa_core::facade::SafeError;
 use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 
+pub(crate) const CGYY_CANCEL_OUTCOME_UNKNOWN_MESSAGE: &str =
+    "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作";
+pub(crate) const CGYY_RESERVATION_OUTCOME_UNKNOWN_MESSAGE: &str =
+    "场馆写入结果未知，请稍后查询预约记录确认";
+
 /// 安全的 CLI 错误载荷。
 #[derive(Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

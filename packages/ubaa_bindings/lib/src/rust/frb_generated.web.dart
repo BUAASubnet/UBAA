@@ -82,6 +82,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_cgyy_cancel_order_request(dynamic raw);
 
   @protected
+  BridgeCgyyCancelOrderTarget
+  dco_decode_box_autoadd_bridge_cgyy_cancel_order_target(dynamic raw);
+
+  @protected
   BridgeCgyyReservationReceipt
   dco_decode_box_autoadd_bridge_cgyy_reservation_receipt(dynamic raw);
 
@@ -181,7 +185,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeBykcUserProfile dco_decode_bridge_bykc_user_profile(dynamic raw);
 
   @protected
+  BridgeCallerPinnedCgyyOrder dco_decode_bridge_caller_pinned_cgyy_order(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCallerPinnedCgyyOrders dco_decode_bridge_caller_pinned_cgyy_orders(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCgyyCancelOrderRequest dco_decode_bridge_cgyy_cancel_order_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyCancelOrderTarget dco_decode_bridge_cgyy_cancel_order_target(
     dynamic raw,
   );
 
@@ -743,6 +762,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyCancelOrderTarget?
+  dco_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(dynamic raw);
+
+  @protected
   BridgeCgyyReservationReceipt?
   dco_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(dynamic raw);
 
@@ -843,6 +866,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCgyyCancelOrderRequest
   sse_decode_box_autoadd_bridge_cgyy_cancel_order_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyCancelOrderTarget
+  sse_decode_box_autoadd_bridge_cgyy_cancel_order_target(
     SseDeserializer deserializer,
   );
 
@@ -988,7 +1017,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCallerPinnedCgyyOrder sse_decode_bridge_caller_pinned_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCallerPinnedCgyyOrders sse_decode_bridge_caller_pinned_cgyy_orders(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCgyyCancelOrderRequest sse_decode_bridge_cgyy_cancel_order_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyCancelOrderTarget sse_decode_bridge_cgyy_cancel_order_target(
     SseDeserializer deserializer,
   );
 
@@ -1728,6 +1772,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyCancelOrderTarget?
+  sse_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCgyyReservationReceipt?
   sse_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
     SseDeserializer deserializer,
@@ -1840,6 +1890,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cgyy_cancel_order_request(
     BridgeCgyyCancelOrderRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_cancel_order_target(
+    BridgeCgyyCancelOrderTarget self,
     SseSerializer serializer,
   );
 
@@ -2006,8 +2062,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_caller_pinned_cgyy_order(
+    BridgeCallerPinnedCgyyOrder self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_caller_pinned_cgyy_orders(
+    BridgeCallerPinnedCgyyOrders self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cgyy_cancel_order_request(
     BridgeCgyyCancelOrderRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_cancel_order_target(
+    BridgeCgyyCancelOrderTarget self,
     SseSerializer serializer,
   );
 
@@ -2911,6 +2985,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_bykc_sign_config(
     BridgeBykcSignConfig? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cgyy_cancel_order_target(
+    BridgeCgyyCancelOrderTarget? self,
     SseSerializer serializer,
   );
 

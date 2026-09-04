@@ -7,6 +7,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 part 'widgets/accessibility.dart';
+part 'widgets/cgyy_cancel_writes.dart';
 part 'widgets/cgyy_writes.dart';
 part 'widgets/feature_details.dart';
 part 'widgets/goldens.dart';

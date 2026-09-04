@@ -57,19 +57,19 @@ class BridgeBykcSignCourseRequest {
 }
 
 class BridgeCgyyCancelOrderRequest {
-  final int id;
+  final int orderId;
 
-  const BridgeCgyyCancelOrderRequest({required this.id});
+  const BridgeCgyyCancelOrderRequest({required this.orderId});
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => orderId.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeCgyyCancelOrderRequest &&
           runtimeType == other.runtimeType &&
-          id == other.id;
+          orderId == other.orderId;
 }
 
 class BridgeCgyyReservationReceipt {

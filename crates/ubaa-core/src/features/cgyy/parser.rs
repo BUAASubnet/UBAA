@@ -1,11 +1,13 @@
 //! 场馆预约响应信封、站点、用途、日期和订单解析。
 
 use std::collections::HashMap;
+use std::time::SystemTime;
 
+use chrono::{DateTime, Duration, FixedOffset, NaiveDateTime, Utc};
 use serde_json::{Map, Value};
 
 use crate::domain::{
-    ActionEligibility, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage,
+    ActionEligibility, CgyyCancelOrderTarget, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage,
     CgyyPurposeSource, CgyyPurposeType, CgyyReservationTarget, CgyySlotStatus,
     CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
 };
@@ -55,15 +57,6 @@ impl<T> NullableField<T> {
             Self::Invalid | Self::Null => None,
         }
     }
-}
-
-/// 解析场馆预约写操作响应。
-pub fn parse_action_result(body: &str) -> Result<CgyyActionResult> {
-    let root = object(body)?;
-    let message = string(&root, "message").unwrap_or_default();
-    let value = data(body)?;
-    let order = value.as_object().map(parse_order);
-    Ok(CgyyActionResult { message, order })
 }
 
 pub(super) fn error(message: impl Into<String>) -> UbaaError {
@@ -531,8 +524,7 @@ fn nullable_bool(map: &Map<String, Value>, key: &str) -> NullableField<bool> {
     }
 }
 
-/// 解析预约订单分页。
-pub fn parse_orders(body: &str) -> Result<CgyyOrdersPage> {
+pub(super) fn parse_orders_at(body: &str, now: NaiveDateTime) -> Result<CgyyOrdersPage> {
     let value = data(body)?;
     let root = value
         .as_object()
@@ -546,7 +538,7 @@ pub fn parse_orders(body: &str) -> Result<CgyyOrdersPage> {
             .into_iter()
             .flatten()
             .filter_map(Value::as_object)
-            .map(parse_order)
+            .map(|order| parse_order_at(order, now))
             .collect(),
         total_elements: int(&root, "totalElements").unwrap_or_default(),
         total_pages: int(&root, "totalPages").unwrap_or_default(),
@@ -555,19 +547,19 @@ pub fn parse_orders(body: &str) -> Result<CgyyOrdersPage> {
     })
 }
 
-/// 解析单个预约订单详情。
-pub fn parse_order_detail(body: &str) -> Result<CgyyOrder> {
+pub(super) fn parse_order_detail_at(body: &str, now: NaiveDateTime) -> Result<CgyyOrder> {
     let value = data(body)?;
     value
         .as_object()
         .cloned()
         .or_else(|| value.is_null().then(Map::new))
-        .map(|root| parse_order(&root))
+        .map(|root| parse_order_at(&root, now))
         .ok_or_else(|| error("场馆订单详情结构无效"))
 }
 
-pub(super) fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
+pub(super) fn parse_order_at(raw: &Map<String, Value>, now: NaiveDateTime) -> CgyyOrder {
     let purpose_type = int(raw, "purposeType");
+    let cancel = cancel_fields(raw, now);
     CgyyOrder {
         id: int(raw, "id").unwrap_or_default(),
         trade_no: string(raw, "tradeNo"),
@@ -598,7 +590,119 @@ pub(super) fn parse_order(raw: &Map<String, Value>) -> CgyyOrder {
         check_content: string(raw, "checkContent"),
         handle_reason: string(raw, "handleReason"),
         remark: string(raw, "remark"),
+        cancel_eligibility: cancel.eligibility,
+        cancel_target: cancel.target,
+        cancelled_target: cancel.cancelled_target,
     }
+}
+
+pub(super) struct CgyyCancelOrderAuthority {
+    pub(super) order_id: i32,
+    pub(super) order_status: Option<i32>,
+    pub(super) check_status: Option<i32>,
+    pub(super) eligibility: ActionEligibility,
+    pub(super) reservation_start_date: Option<String>,
+    pub(super) reservation_end_date: Option<String>,
+}
+
+pub(super) fn parse_cancel_order_authority(
+    body: &str,
+    expected_order_id: i32,
+    now: NaiveDateTime,
+) -> Result<CgyyCancelOrderAuthority> {
+    let value = data(body)?;
+    let raw = value
+        .as_object()
+        .ok_or_else(|| error("场馆取消详情必须是唯一对象"))?;
+    let fields = cancel_fields(raw, now);
+    let Some(order_id) = fields.order_id.filter(|id| *id == expected_order_id) else {
+        return Err(error("场馆取消详情订单标识无效或不一致"));
+    };
+    Ok(CgyyCancelOrderAuthority {
+        order_id,
+        order_status: fields.order_status,
+        check_status: fields.check_status,
+        eligibility: fields.eligibility,
+        reservation_start_date: fields.reservation_start_date,
+        reservation_end_date: fields.reservation_end_date,
+    })
+}
+
+struct CancelFields {
+    order_id: Option<i32>,
+    order_status: Option<i32>,
+    check_status: Option<i32>,
+    eligibility: ActionEligibility,
+    target: Option<CgyyCancelOrderTarget>,
+    cancelled_target: Option<CgyyCancelOrderTarget>,
+    reservation_start_date: Option<String>,
+    reservation_end_date: Option<String>,
+}
+
+fn cancel_fields(raw: &Map<String, Value>, now: NaiveDateTime) -> CancelFields {
+    let order_id = strict_i32(raw, "id").filter(|id| *id > 0);
+    let order_status = strict_i32(raw, "orderStatus");
+    let check_status = strict_i32(raw, "checkStatus");
+    let start = parse_cgyy_datetime(raw.get("reservationStartDate"));
+    let end = parse_cgyy_datetime(raw.get("reservationEndDate"));
+    let cancelled_target = match (order_id, order_status) {
+        (Some(order_id), Some(2)) => Some(CgyyCancelOrderTarget { order_id }),
+        _ => None,
+    };
+    let eligibility = if order_id.is_none() {
+        ActionEligibility::Unknown
+    } else if order_status == Some(2) || check_status.is_some_and(|status| status < 0) {
+        ActionEligibility::Denied
+    } else if !matches!(order_status, Some(1 | 3))
+        || !check_status.is_some_and(|status| (1..=6).contains(&status))
+    {
+        ActionEligibility::Unknown
+    } else if let Some(start) = start {
+        match start.checked_sub_signed(Duration::hours(4)) {
+            Some(deadline) if now < deadline => ActionEligibility::Allowed,
+            Some(_) => ActionEligibility::Denied,
+            None => ActionEligibility::Unknown,
+        }
+    } else if let Some(end) = end {
+        if now < end {
+            ActionEligibility::Allowed
+        } else {
+            ActionEligibility::Denied
+        }
+    } else {
+        ActionEligibility::Allowed
+    };
+    let target = (eligibility == ActionEligibility::Allowed).then(|| CgyyCancelOrderTarget {
+        order_id: order_id.expect("已允许的场馆取消订单必须具有正整数标识"),
+    });
+    CancelFields {
+        order_id,
+        order_status,
+        check_status,
+        eligibility,
+        target,
+        cancelled_target,
+        reservation_start_date: start.map(format_cgyy_datetime),
+        reservation_end_date: end.map(format_cgyy_datetime),
+    }
+}
+
+fn parse_cgyy_datetime(value: Option<&Value>) -> Option<NaiveDateTime> {
+    let normalized = value.and_then(Value::as_str)?.trim().replace(' ', "T");
+    ["%Y-%m-%dT%H:%M:%S%.f", "%Y-%m-%dT%H:%M"]
+        .into_iter()
+        .find_map(|format| NaiveDateTime::parse_from_str(&normalized, format).ok())
+}
+
+fn format_cgyy_datetime(value: NaiveDateTime) -> String {
+    value.format("%Y-%m-%d %H:%M:%S").to_string()
+}
+
+pub(super) fn shanghai_datetime(now: SystemTime) -> NaiveDateTime {
+    let offset = FixedOffset::east_opt(8 * 60 * 60).expect("Asia/Shanghai 固定偏移必须有效");
+    DateTime::<Utc>::from(now)
+        .with_timezone(&offset)
+        .naive_local()
 }
 
 /// 解析门锁码响应，仅保留是否存在数据的安全摘要。

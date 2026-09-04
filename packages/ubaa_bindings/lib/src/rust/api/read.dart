@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -379,6 +379,66 @@ class BridgeBykcUserProfile {
           collegeName == other.collegeName;
 }
 
+/// 调用方固定路线的场馆订单详情结果；不表示 Core 重新执行了 Auto 探测。
+class BridgeCallerPinnedCgyyOrder {
+  final BridgeCgyyOrder data;
+  final BridgeConnectionMode pinnedRoute;
+
+  const BridgeCallerPinnedCgyyOrder({
+    required this.data,
+    required this.pinnedRoute,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ pinnedRoute.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCallerPinnedCgyyOrder &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          pinnedRoute == other.pinnedRoute;
+}
+
+/// 调用方固定路线的场馆订单列表结果；不表示 Core 重新执行了 Auto 探测。
+class BridgeCallerPinnedCgyyOrders {
+  final BridgeCgyyOrdersPage data;
+  final BridgeConnectionMode pinnedRoute;
+
+  const BridgeCallerPinnedCgyyOrders({
+    required this.data,
+    required this.pinnedRoute,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ pinnedRoute.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCallerPinnedCgyyOrders &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          pinnedRoute == other.pinnedRoute;
+}
+
+class BridgeCgyyCancelOrderTarget {
+  final int orderId;
+
+  const BridgeCgyyCancelOrderTarget({required this.orderId});
+
+  @override
+  int get hashCode => orderId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCgyyCancelOrderTarget &&
+          runtimeType == other.runtimeType &&
+          orderId == other.orderId;
+}
+
 class BridgeCgyyDayInfo {
   final int venueSiteId;
   final String reservationDate;
@@ -450,6 +510,9 @@ class BridgeCgyyOrder {
   final String? theme;
   final String? purposeTypeName;
   final int? joinerNum;
+  final BridgeActionEligibility cancelEligibility;
+  final BridgeCgyyCancelOrderTarget? cancelTarget;
+  final BridgeCgyyCancelOrderTarget? cancelledTarget;
 
   const BridgeCgyyOrder({
     required this.id,
@@ -467,6 +530,9 @@ class BridgeCgyyOrder {
     this.theme,
     this.purposeTypeName,
     this.joinerNum,
+    required this.cancelEligibility,
+    this.cancelTarget,
+    this.cancelledTarget,
   });
 
   @override
@@ -485,7 +551,10 @@ class BridgeCgyyOrder {
       checkStatus.hashCode ^
       theme.hashCode ^
       purposeTypeName.hashCode ^
-      joinerNum.hashCode;
+      joinerNum.hashCode ^
+      cancelEligibility.hashCode ^
+      cancelTarget.hashCode ^
+      cancelledTarget.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -506,7 +575,10 @@ class BridgeCgyyOrder {
           checkStatus == other.checkStatus &&
           theme == other.theme &&
           purposeTypeName == other.purposeTypeName &&
-          joinerNum == other.joinerNum;
+          joinerNum == other.joinerNum &&
+          cancelEligibility == other.cancelEligibility &&
+          cancelTarget == other.cancelTarget &&
+          cancelledTarget == other.cancelledTarget;
 }
 
 class BridgeCgyyOrdersPage {

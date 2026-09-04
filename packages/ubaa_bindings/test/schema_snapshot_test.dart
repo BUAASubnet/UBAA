@@ -70,7 +70,9 @@ void main() {
       'cgyyPurposeTypes',
       'cgyyDayInfo',
       'cgyyOrders',
+      'cgyyOrdersOnRoute',
       'cgyyOrderDetail',
+      'cgyyOrderDetailOnRoute',
       'cgyyLockCode',
       'evaluationAll',
       'prepareBykcSelectCourse',
@@ -114,6 +116,8 @@ void main() {
       'BridgeRoutedCgyySites',
       'BridgeRoutedEvaluation',
       'BridgeCgyyLockCode',
+      'BridgeCallerPinnedCgyyOrder',
+      'BridgeCallerPinnedCgyyOrders',
     ];
     for (final name in dtoNames) {
       expect(read, contains('class $name'), reason: '生成 DTO 缺少 $name');
@@ -184,6 +188,101 @@ void main() {
     );
   });
 
+  test('场馆取消 DTO 与请求固定 typed 资格和 canonical 订单 ID', () {
+    final orderDeclaration = RegExp(
+      r'class BridgeCgyyOrder \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(orderDeclaration, isNotNull);
+    final orderBody = orderDeclaration!.namedGroup('body')!;
+
+    expect(
+      RegExp(
+        r'final BridgeActionEligibility cancelEligibility;',
+      ).allMatches(orderBody),
+      hasLength(1),
+    );
+    expect(
+      RegExp(
+        r'final BridgeCgyyCancelOrderTarget\? cancelTarget;',
+      ).allMatches(orderBody),
+      hasLength(1),
+    );
+    expect(
+      RegExp(
+        r'final BridgeCgyyCancelOrderTarget\? cancelledTarget;',
+      ).allMatches(orderBody),
+      hasLength(1),
+    );
+    expect(orderBody, contains('required this.cancelEligibility,'));
+    expect(orderBody, contains('this.cancelTarget,'));
+    expect(orderBody, contains('this.cancelledTarget,'));
+
+    final targetDeclaration = RegExp(
+      r'class BridgeCgyyCancelOrderTarget \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(targetDeclaration, isNotNull);
+    final targetBody = targetDeclaration!.namedGroup('body')!;
+    expect(RegExp(r'final int orderId;').allMatches(targetBody), hasLength(1));
+    expect(targetBody, contains('required this.orderId'));
+    expect(targetBody, isNot(contains('final int id;')));
+
+    final requestDeclaration = RegExp(
+      r'class BridgeCgyyCancelOrderRequest \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(write);
+    expect(requestDeclaration, isNotNull);
+    final requestBody = requestDeclaration!.namedGroup('body')!;
+    expect(RegExp(r'final int orderId;').allMatches(requestBody), hasLength(1));
+    expect(requestBody, contains('required this.orderId'));
+    expect(requestBody, isNot(contains('final int id;')));
+
+    expect(
+      client,
+      contains(
+        RegExp(
+          r'prepareCgyyCancelOrder\s*\(\{\s*required BridgeCgyyCancelOrderRequest request',
+          dotAll: true,
+        ),
+      ),
+    );
+  });
+
+  test('场馆取消回读固定 caller-pinned 路线且不伪装 Auto 决策', () {
+    for (final name in <String>[
+      'BridgeCallerPinnedCgyyOrder',
+      'BridgeCallerPinnedCgyyOrders',
+    ]) {
+      final declaration = RegExp(
+        'class $name \\{(?<body>.*?)\\n\\}',
+        dotAll: true,
+      ).firstMatch(read);
+      expect(declaration, isNotNull, reason: '生成 DTO 缺少 $name');
+      final body = declaration!.namedGroup('body')!;
+      expect(body, contains('final BridgeConnectionMode pinnedRoute;'));
+      expect(body, isNot(contains('BridgeRouteDecision')));
+    }
+    expect(
+      client,
+      contains(
+        RegExp(
+          r'cgyyOrdersOnRoute\s*\(\{\s*required BridgeConnectionMode route,\s*required int page,\s*required int size',
+          dotAll: true,
+        ),
+      ),
+    );
+    expect(
+      client,
+      contains(
+        RegExp(
+          r'cgyyOrderDetailOnRoute\s*\(\{\s*required BridgeConnectionMode route,\s*required int id',
+          dotAll: true,
+        ),
+      ),
+    );
+  });
+
   test('生成 DTO 快照覆盖全部公开读取类型', () {
     const allDtoNames = <String>[
       'BridgeBykcChosenCourse',
@@ -194,6 +293,9 @@ void main() {
       'BridgeBykcStatistic',
       'BridgeBykcStatistics',
       'BridgeBykcUserProfile',
+      'BridgeCgyyCancelOrderTarget',
+      'BridgeCallerPinnedCgyyOrder',
+      'BridgeCallerPinnedCgyyOrders',
       'BridgeCgyyDayInfo',
       'BridgeCgyyLockCode',
       'BridgeCgyyOrder',

@@ -11,8 +11,9 @@ use crate::runtime::ClientRuntime;
 
 use super::auth::get;
 use super::parser::{
-    CgyyDayContext, fallback_purpose_types, parse_day_context, parse_lock_code, parse_order_detail,
-    parse_orders, parse_purpose_types_with_source, parse_sites,
+    CgyyDayContext, fallback_purpose_types, parse_day_context, parse_lock_code,
+    parse_order_detail_at, parse_orders_at, parse_purpose_types_with_source, parse_sites,
+    shanghai_datetime,
 };
 
 pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
@@ -79,11 +80,13 @@ pub(crate) async fn get_orders(
     ]
     .into_iter()
     .collect();
-    parse_orders(&get(runtime, "/api/orders/mine", params).await?)
+    let body = get(runtime, "/api/orders/mine", params).await?;
+    parse_orders_at(&body, shanghai_datetime(runtime.now()))
 }
 
 pub(crate) async fn get_order_detail(runtime: &mut ClientRuntime, id: i32) -> Result<CgyyOrder> {
-    parse_order_detail(&get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?)
+    let body = get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?;
+    parse_order_detail_at(&body, shanghai_datetime(runtime.now()))
 }
 
 /// 查询当前用户可用的门锁码，保留上游结构为不透明 JSON。

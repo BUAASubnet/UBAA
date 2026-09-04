@@ -376,7 +376,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareBykcWrite,
     this.onPrepareBykcSignWrite,
     this.onPrepareSigninWrite,
-    this.onPrepareCancellationWrite,
+    this.onPrepareCgyyCancelWrite,
     this.onPrepareLibbookReserveWrite,
     this.onPrepareLibbookCancelWrite,
     this.onPrepareCgyySubmitWrite,
@@ -387,6 +387,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onCommitWrite,
     this.onWriteSuccess,
     this.onVerifyCgyyReceipt,
+    this.onVerifyCgyyCancellation,
     super.key,
   });
 
@@ -410,8 +411,7 @@ class UbaaMainShell extends StatefulWidget {
   onPrepareBykcWrite;
   final BykcSignPreparer? onPrepareBykcSignWrite;
   final SigninPreparer? onPrepareSigninWrite;
-  final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
-  onPrepareCancellationWrite;
+  final CgyyCancelPreparer? onPrepareCgyyCancelWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
   final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
@@ -423,8 +423,8 @@ class UbaaMainShell extends StatefulWidget {
   final WriteSuccessHandler? onWriteSuccess;
 
   /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
-  final Future<bool> Function(CgyyReservationReceipt receipt)?
-  onVerifyCgyyReceipt;
+  final CgyyReceiptVerifier? onVerifyCgyyReceipt;
+  final CgyyCancellationVerifier? onVerifyCgyyCancellation;
 
   @override
   State<UbaaMainShell> createState() => _UbaaMainShellState();
@@ -499,9 +499,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onSigninWrite: widget.onPrepareSigninWrite == null
                 ? null
                 : _startSigninWrite,
-            onCancellationWrite: widget.onPrepareCancellationWrite == null
+            onCgyyCancelWrite: widget.onPrepareCgyyCancelWrite == null
                 ? null
-                : _startCancellationWrite,
+                : _startCgyyCancelWrite,
             onLibbookReserveWrite: widget.onPrepareLibbookReserveWrite == null
                 ? null
                 : _startLibbookReserveWrite,
@@ -692,15 +692,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
-  Future<void> _startCancellationWrite(
-    WriteOperation operation,
-    String targetId,
-  ) async {
-    final prepare = widget.onPrepareCancellationWrite;
+  Future<void> _startCgyyCancelWrite(CgyyCancelAction action) async {
+    final prepare = widget.onPrepareCgyyCancelWrite;
     if (prepare == null) return;
     await _prepareWrite(
-      prepare: () => prepare(operation, targetId),
-      failureMessage: '暂时无法准备取消操作；尚未提交任何写请求。',
+      prepare: () => prepare(action),
+      failureMessage: '暂时无法准备取消场馆订单；尚未提交任何写请求。',
     );
   }
 
@@ -830,6 +827,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final commit = widget.onCommitWrite;
     if (intent == null || commit == null || _writeSubmitting) return;
     bool? cgyyReceiptVerified;
+    bool? cgyyCancellationVerified;
     setState(() {
       _writeSubmitting = true;
       _writeError = null;
@@ -837,7 +835,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     try {
       final result = await commit(intent.intentId);
       if (result.success || result.outcomeUnknown) {
-        await _refreshAfterWrite(result.operation, intent.readbackQuery);
+        cgyyCancellationVerified = await _readbackAfterWrite(
+          result.operation,
+          intent,
+        );
       }
       if (result.success && !result.outcomeUnknown) {
         final receipt = result.cgyyReceipt;
@@ -863,13 +864,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             _writeResultMessage(
               result,
               cgyyReceiptVerified: cgyyReceiptVerified,
+              cgyyCancellationVerified: cgyyCancellationVerified,
             ),
           ),
         ),
       );
     } on UiError catch (error) {
       if (error.code == UbaaErrorCode.outcomeUnknown) {
-        await _refreshAfterWrite(intent.operation, intent.readbackQuery);
+        cgyyCancellationVerified = await _readbackAfterWrite(
+          intent.operation,
+          intent,
+        );
       }
       if (!mounted) return;
       setState(() {
@@ -877,9 +882,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _writeSubmitting = false;
         _writeError = null;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_writeErrorMessage(error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _writeErrorMessage(
+              error,
+              cgyyCancellationVerified: cgyyCancellationVerified,
+            ),
+          ),
+        ),
+      );
     } on Object {
       if (!mounted) return;
       setState(() {
@@ -904,17 +916,52 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  String _writeErrorMessage(UiError error) =>
+  Future<bool?> _readbackAfterWrite(
+    WriteOperation operation,
+    WriteIntent intent,
+  ) async {
+    if (operation != WriteOperation.cgyyCancelOrder) {
+      await _refreshAfterWrite(operation, intent.readbackQuery);
+      return null;
+    }
+    final query = intent.readbackQuery;
+    final orderId = query?.view == FeatureQueryView.cgyyOrderDetail
+        ? query?.orderId
+        : null;
+    final verify = widget.onVerifyCgyyCancellation;
+    if (orderId == null || orderId <= 0 || verify == null) return false;
+    try {
+      return await verify(
+        orderId: orderId,
+        expectedRoute: intent.resolvedRoute,
+      );
+    } on Object {
+      return false;
+    }
+  }
+
+  String _writeErrorMessage(UiError error, {bool? cgyyCancellationVerified}) =>
       error.code == UbaaErrorCode.outcomeUnknown
-      ? '提交结果不确定，请先刷新相关状态，不要重复提交。'
+      ? cgyyCancellationVerified == true
+            ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
+            : '提交结果不确定，请先刷新相关状态，不要重复提交。'
       : error.message;
 
   String _writeResultMessage(
     WriteCommitResult result, {
     bool? cgyyReceiptVerified,
+    bool? cgyyCancellationVerified,
   }) {
     if (result.outcomeUnknown) {
-      return '提交结果不确定，请先刷新相关状态，不要重复提交。';
+      return cgyyCancellationVerified == true
+          ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
+          : '提交结果不确定，请先刷新相关状态，不要重复提交。';
+    }
+    if (result.operation == WriteOperation.cgyyCancelOrder) {
+      final hint = cgyyCancellationVerified == true
+          ? '取消状态已核对'
+          : '取消状态尚未核对，请勿重复提交';
+      return '${result.message}（$hint）';
     }
     final receipt = result.cgyyReceipt;
     if (result.operation == WriteOperation.cgyySubmitReservation &&
@@ -1292,7 +1339,7 @@ class _FeatureDetailView extends StatelessWidget {
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
-    this.onCancellationWrite,
+    this.onCgyyCancelWrite,
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
@@ -1311,8 +1358,7 @@ class _FeatureDetailView extends StatelessWidget {
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
   final SigninStarter? onSigninWrite;
-  final Future<void> Function(WriteOperation operation, String targetId)?
-  onCancellationWrite;
+  final CgyyCancelStarter? onCgyyCancelWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
@@ -1394,7 +1440,7 @@ class _FeatureDetailView extends StatelessWidget {
       onBykcWrite: onBykcWrite,
       onBykcSignWrite: onBykcSignWrite,
       onSigninWrite: onSigninWrite,
-      onCancellationWrite: onCancellationWrite,
+      onCgyyCancelWrite: onCgyyCancelWrite,
       onLibbookReserveWrite: onLibbookReserveWrite,
       onLibbookCancelWrite: onLibbookCancelWrite,
       onCgyySubmitWrite: onCgyySubmitWrite,
@@ -1426,7 +1472,7 @@ class _FeatureDetailView extends StatelessWidget {
                   onBykcWrite: onBykcWrite,
                   onBykcSignWrite: onBykcSignWrite,
                   onSigninWrite: onSigninWrite,
-                  onCancellationWrite: onCancellationWrite,
+                  onCgyyCancelWrite: onCgyyCancelWrite,
                   onLibbookReserveWrite: onLibbookReserveWrite,
                   onLibbookCancelWrite: onLibbookCancelWrite,
                   onCgyySubmitWrite: onCgyySubmitWrite,
@@ -2852,7 +2898,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
-    this.onCancellationWrite,
+    this.onCgyyCancelWrite,
     this.onLibbookReserveWrite,
     this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
@@ -2870,8 +2916,7 @@ class _FeatureDetailList extends StatefulWidget {
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
   final SigninStarter? onSigninWrite;
-  final Future<void> Function(WriteOperation operation, String targetId)?
-  onCancellationWrite;
+  final CgyyCancelStarter? onCgyyCancelWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
@@ -3024,7 +3069,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                       BykcSignKind.signOut,
                     );
                     final signinAction = detail.action<SigninPerformAction>();
-                    final cancellation = _cancellationTarget(detail);
+                    final cgyyCancelAction = _cgyyCancelAction(detail);
                     final libbookReserveAction = detail
                         .action<LibbookReserveAction>();
                     final libbookCancelAction = detail
@@ -3256,16 +3301,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                   ),
                                 ),
                             ],
-                            if (cancellation != null &&
-                                widget.onCancellationWrite != null) ...<Widget>[
+                            if (cgyyCancelAction != null &&
+                                widget.onCgyyCancelWrite != null) ...<Widget>[
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: () => widget.onCancellationWrite!(
-                                  cancellation.operation,
-                                  cancellation.targetId,
-                                ),
+                                onPressed: () =>
+                                    widget.onCgyyCancelWrite!(cgyyCancelAction),
                                 icon: const Icon(Icons.event_busy),
-                                label: Text('准备取消订单'),
+                                label: const Text('准备取消订单'),
                               ),
                             ],
                             if (libbookReserveAction != null &&
@@ -3425,53 +3468,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     return null;
   }
 
-  ({WriteOperation operation, String targetId})? _cancellationTarget(
-    FeatureDetail detail,
-  ) {
+  CgyyCancelAction? _cgyyCancelAction(FeatureDetail detail) {
     if (widget.feature != FeatureId.cgyy) return null;
-    final values = <String, String>{
-      for (final field in detail.fields) field.label: field.value.trim(),
-    };
-    final targetId = values['订单编号'];
-    if (targetId == null || targetId.isEmpty) return null;
-    if (!_isCgyyCancellationAllowed(values)) return null;
-    return (operation: WriteOperation.cgyyCancelOrder, targetId: targetId);
-  }
-
-  bool _isCgyyCancellationAllowed(Map<String, String> values) {
-    final orderStatus = int.tryParse(values['订单状态'] ?? '');
-    final rawCheckStatus = values['审核状态'];
-    final checkStatus = int.tryParse(rawCheckStatus ?? '');
-    if (orderStatus == null ||
-        (rawCheckStatus != null && checkStatus == null)) {
-      return false;
-    }
-    if ((checkStatus != null && checkStatus < 0) || orderStatus == 2) {
-      return false;
-    }
-    if (orderStatus != 1 && orderStatus != 3) return false;
-
-    final now = DateTime.now();
-    final start = _parseCgyyDateTime(values['开始']);
-    if (start != null &&
-        !now.isBefore(start.subtract(const Duration(hours: 4)))) {
-      return false;
-    }
-    final end = _parseCgyyDateTime(values['结束']);
-    if (start == null && end != null && !now.isBefore(end)) return false;
-    return true;
-  }
-
-  DateTime? _parseCgyyDateTime(String? value) {
-    final text = value?.trim();
-    if (text == null || text.isEmpty) return null;
-    final normalized = text.replaceFirst(' ', 'T');
-    if (!RegExp(
-      r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(?:\.\d+)?)?$',
-    ).hasMatch(normalized)) {
-      return null;
-    }
-    return DateTime.tryParse(normalized);
+    final action = detail.action<CgyyCancelAction>();
+    return action?.hasCanonicalTarget == true ? action : null;
   }
 
   CgyyReserveAction? _cgyyReserveAction(FeatureDetail detail) {

@@ -185,6 +185,66 @@ void main() {
     expect(action.eligibility, ActionEligibility.allowed);
   });
 
+  test('场馆取消 action 只保留 Core 核对的 typed 目标与三态资格', () {
+    const action = CgyyCancelAction(
+      orderId: 17,
+      orderStatus: 1,
+      checkStatus: 2,
+      targetOrderId: 17,
+      eligibility: ActionEligibility.allowed,
+    );
+    const denied = CgyyCancelAction(
+      orderId: 17,
+      orderStatus: 2,
+      checkStatus: 2,
+      targetOrderId: null,
+      eligibility: ActionEligibility.denied,
+    );
+    const cancelled = CgyyCancelAction(
+      orderId: 17,
+      orderStatus: 2,
+      checkStatus: 2,
+      targetOrderId: null,
+      cancelledTargetOrderId: 17,
+      eligibility: ActionEligibility.denied,
+    );
+
+    expect(action.orderId, 17);
+    expect(action.orderStatus, 1);
+    expect(action.checkStatus, 2);
+    expect(action.targetOrderId, 17);
+    expect(action.operation, WriteOperation.cgyyCancelOrder);
+    expect(action.eligibility, ActionEligibility.allowed);
+    expect(action.hasCanonicalTarget, isTrue);
+    expect(denied.orderStatus, 2);
+    expect(denied.targetOrderId, isNull);
+    expect(denied.eligibility, ActionEligibility.denied);
+    expect(denied.hasCanonicalTarget, isFalse);
+    expect(cancelled.confirmsCancellationOf(17), isTrue);
+    expect(cancelled.confirmsCancellationOf(18), isFalse);
+    expect(denied.confirmsCancellationOf(17), isFalse);
+    expect(
+      const CgyyCancelAction(
+        orderId: 17,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: 18,
+        eligibility: ActionEligibility.allowed,
+      ).hasCanonicalTarget,
+      isFalse,
+    );
+    expect(
+      const CgyyCancelAction(
+        orderId: 0,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: 0,
+        eligibility: ActionEligibility.allowed,
+      ).hasCanonicalTarget,
+      isFalse,
+    );
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

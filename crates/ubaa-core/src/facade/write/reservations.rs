@@ -1,35 +1,89 @@
 //! 场馆与图书馆预约写入口。
 
+use crate::connection::RouteResolution;
 use crate::domain::{
-    CgyyActionResult, CgyyReservationPreflight, CgyyReservationResult,
-    CgyyReservationSubmitRequest, LibBookCancelPreflight, LibBookCancelRequest,
-    LibBookCancelResult, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
-    ReadonlyFeature,
+    CgyyCancelOrderPreflight, CgyyCancelOrderRequest, CgyyCancelOrderResult,
+    CgyyReservationPreflight, CgyyReservationResult, CgyyReservationSubmitRequest, ConnectionMode,
+    LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult, LibBookReservePreflight,
+    LibBookReserveRequest, LibBookReserveResult, ReadonlyFeature,
 };
 
 use super::super::client::UbaaClient;
 use super::super::routing::{invalid_input, routed_error};
-use super::super::types::{Operation, RoutedResult};
+use super::super::types::{Operation, RoutedError, RoutedResult};
 
 impl UbaaClient {
+    /// 只读复核场馆预约订单的 typed 取消资格。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、订单标识无效、场馆路线不可用或资格不足时返回带路线信息的错误。
+    pub async fn preflight_cgyy_cancel(
+        &mut self,
+        request: &CgyyCancelOrderRequest,
+    ) -> RoutedResult<CgyyCancelOrderPreflight> {
+        validate_cgyy_cancel_order_id(request.order_id)?;
+        self.guard_latest_routed()?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "orders.cancel.preflight");
+        let result = crate::features::cgyy::preflight_cancel_order(
+            self.runtime_for(resolution.mode),
+            request,
+        )
+        .await;
+        self.finish_routed(resolution, result)
+    }
+
     /// 取消场馆预约订单。
     ///
     /// # Errors
     ///
     /// 会话所有权失效、订单标识无效、场馆路线不可用或取消失败时返回带路线信息的错误。
-    pub async fn cgyy_cancel_order(&mut self, id: i32) -> RoutedResult<CgyyActionResult> {
+    pub async fn cgyy_cancel_order(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+    ) -> RoutedResult<CgyyCancelOrderResult> {
+        validate_cgyy_cancel_order_id(request.order_id)?;
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
-        self.log_cgyy_route(resolution, "orders.cancel");
-        if id <= 0 {
+        self.cgyy_cancel_order_resolved(request, resolution).await
+    }
+
+    /// 仅当本次唯一权威路线解析仍与调用方预期一致时取消场馆预约订单。
+    ///
+    /// 路线不一致会在读取订单详情或发送取消请求之前拒绝，并在错误中携带本次实际解析结果。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、解析路线与预期不一致、场馆路线不可用或取消失败时返回带路线信息的错误。
+    pub async fn cgyy_cancel_order_if_route_matches(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<CgyyCancelOrderResult> {
+        validate_cgyy_cancel_order_id(request.order_id)?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        if resolution.mode != expected_route {
             return Err(routed_error(
-                invalid_input("订单标识必须为正数"),
+                invalid_input("场馆订单取消路线已变化，请重新确认"),
                 resolution,
             ));
         }
-        let result =
-            crate::features::cgyy::cancel_order(self.runtime_for(resolution.mode), id).await;
-        self.finish_routed(resolution, result)
+        self.cgyy_cancel_order_resolved(request, resolution).await
+    }
+
+    async fn cgyy_cancel_order_resolved(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+        resolution: RouteResolution,
+    ) -> RoutedResult<CgyyCancelOrderResult> {
+        self.log_cgyy_route(resolution, "orders.cancel");
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::cgyy::cancel_order(runtime, request).await
+        };
+        self.finish_routed_write(resolution, result)
     }
 
     /// 只读复核场馆预约的当前日期和唯一 typed 槽位目标。
@@ -143,4 +197,14 @@ impl UbaaClient {
         };
         self.finish_routed_write(resolution, result)
     }
+}
+
+fn validate_cgyy_cancel_order_id(order_id: i32) -> std::result::Result<(), RoutedError> {
+    if order_id <= 0 {
+        return Err(RoutedError {
+            error: invalid_input("订单标识必须为正数"),
+            resolution: None,
+        });
+    }
+    Ok(())
 }

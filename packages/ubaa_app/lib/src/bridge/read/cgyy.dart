@@ -1,5 +1,51 @@
 part of '../bridge_backend.dart';
 
+Future<FeatureResult> _loadCgyyOrdersOnRoute(
+  BridgeBackend backend, {
+  required ConnectionMode route,
+  required int page,
+  required int size,
+}) async {
+  if (page < 0 || size <= 0) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  try {
+    final result = await backend.client.cgyyOrdersOnRoute(
+      route: _toBridgeConnectionMode(route),
+      page: page,
+      size: size,
+    );
+    return _mapCgyyOrdersResult(
+      result.data,
+      _toConnectionMode(result.pinnedRoute),
+    );
+  } on BridgeError catch (error) {
+    throw _mapError(error);
+  }
+}
+
+Future<FeatureResult> _loadCgyyOrderDetailOnRoute(
+  BridgeBackend backend, {
+  required ConnectionMode route,
+  required int orderId,
+}) async {
+  if (orderId <= 0) {
+    throw const BackendException(UbaaErrorCode.invalidInput);
+  }
+  try {
+    final result = await backend.client.cgyyOrderDetailOnRoute(
+      route: _toBridgeConnectionMode(route),
+      id: orderId,
+    );
+    return _mapCgyyOrderDetailResult(
+      result.data,
+      _toConnectionMode(result.pinnedRoute),
+    );
+  } on BridgeError catch (error) {
+    throw _mapError(error);
+  }
+}
+
 Future<FeatureResult> _loadCgyyFeature(
   BridgeBackend backend,
   FeatureId feature,
@@ -125,80 +171,16 @@ Future<FeatureResult> _loadCgyyFeature(
           final page = query.page <= 0 ? 1 : query.page;
           final size = query.size.clamp(1, 100);
           final result = await client.cgyyOrders(page: page, size: size);
-          final details = result.data.content
-              .map(
-                (item) => FeatureDetail(
-                  title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
-                  subtitle: item.venueSpaceName ?? item.venueName,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('订单编号', '${item.id}'),
-                    _field(
-                      '日期',
-                      item.reservationDateDetail ?? item.reservationDate,
-                    ),
-                    _field('开始', item.reservationStartDate),
-                    _field('结束', item.reservationEndDate),
-                    _field('用途', item.purposeTypeName),
-                    item.joinerNum == null
-                        ? null
-                        : _field('参与人数', '${item.joinerNum}'),
-                    _field('订单状态', item.orderStatus?.toString()),
-                    _field('审核状态', item.checkStatus?.toString()),
-                    _field(
-                      '订单状态说明',
-                      _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
-                    ),
-                    _field('审核状态说明', _cgyyCheckStatusText(item.checkStatus)),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.content.length,
-            '条场馆订单',
-            details: details,
-            pagination: _pagination(
-              page: result.data.number,
-              size: result.data.size,
-              total: result.data.totalElements,
-              totalPages: result.data.totalPages,
-            ),
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          return _mapCgyyOrdersResult(
+            result.data,
+            _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.cgyyOrderDetail:
           final orderId = _requiredPositiveInt(query.orderId, '订单 ID');
           final result = await client.cgyyOrderDetail(id: orderId);
-          final item = result.data;
-          return FeatureResult.success(
-            summary: '订单详情',
-            details: <FeatureDetail>[
-              FeatureDetail(
-                title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
-                subtitle: item.venueSpaceName ?? item.venueName,
-                fields: _compactFields(<FeatureField?>[
-                  _field('订单编号', '${item.id}'),
-                  _field('校区', item.campusName),
-                  _field(
-                    '日期',
-                    item.reservationDateDetail ?? item.reservationDate,
-                  ),
-                  _field('开始', item.reservationStartDate),
-                  _field('结束', item.reservationEndDate),
-                  _field('用途', item.purposeTypeName),
-                  item.joinerNum == null
-                      ? null
-                      : _field('参与人数', '${item.joinerNum}'),
-                  _field('订单状态', item.orderStatus?.toString()),
-                  _field('审核状态', item.checkStatus?.toString()),
-                  _field(
-                    '订单状态说明',
-                    _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
-                  ),
-                  _field('审核状态说明', _cgyyCheckStatusText(item.checkStatus)),
-                ]),
-              ),
-            ],
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          return _mapCgyyOrderDetailResult(
+            result.data,
+            _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.cgyyLockCode:
           final result = await client.cgyyLockCode();
@@ -245,6 +227,93 @@ Future<FeatureResult> _loadCgyyFeature(
     default:
       throw StateError('unexpected feature: $feature');
   }
+}
+
+FeatureResult _mapCgyyOrdersResult(
+  BridgeCgyyOrdersPage data,
+  ConnectionMode resolvedRoute,
+) {
+  final details = data.content
+      .map(
+        (item) => FeatureDetail(
+          title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
+          subtitle: item.venueSpaceName ?? item.venueName,
+          fields: _compactFields(<FeatureField?>[
+            _field('订单编号', '${item.id}'),
+            _field('日期', item.reservationDateDetail ?? item.reservationDate),
+            _field('开始', item.reservationStartDate),
+            _field('结束', item.reservationEndDate),
+            _field('用途', item.purposeTypeName),
+            item.joinerNum == null ? null : _field('参与人数', '${item.joinerNum}'),
+            _field('订单状态', item.orderStatus?.toString()),
+            _field('审核状态', item.checkStatus?.toString()),
+            _field(
+              '订单状态说明',
+              _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
+            ),
+            _field('审核状态说明', _cgyyCheckStatusText(item.checkStatus)),
+          ]),
+          actions: _cgyyCancelActions(item),
+        ),
+      )
+      .toList(growable: false);
+  return _countResult(
+    data.content.length,
+    '条场馆订单',
+    details: details,
+    pagination: _pagination(
+      page: data.number,
+      size: data.size,
+      total: data.totalElements,
+      totalPages: data.totalPages,
+    ),
+    resolvedRoute: resolvedRoute,
+  );
+}
+
+FeatureResult _mapCgyyOrderDetailResult(
+  BridgeCgyyOrder item,
+  ConnectionMode resolvedRoute,
+) => FeatureResult.success(
+  summary: '订单详情',
+  details: <FeatureDetail>[
+    FeatureDetail(
+      title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
+      subtitle: item.venueSpaceName ?? item.venueName,
+      fields: _compactFields(<FeatureField?>[
+        _field('订单编号', '${item.id}'),
+        _field('校区', item.campusName),
+        _field('日期', item.reservationDateDetail ?? item.reservationDate),
+        _field('开始', item.reservationStartDate),
+        _field('结束', item.reservationEndDate),
+        _field('用途', item.purposeTypeName),
+        item.joinerNum == null ? null : _field('参与人数', '${item.joinerNum}'),
+        _field('订单状态', item.orderStatus?.toString()),
+        _field('审核状态', item.checkStatus?.toString()),
+        _field(
+          '订单状态说明',
+          _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
+        ),
+        _field('审核状态说明', _cgyyCheckStatusText(item.checkStatus)),
+      ]),
+      actions: _cgyyCancelActions(item),
+    ),
+  ],
+  resolvedRoute: resolvedRoute,
+);
+
+List<FeatureAction> _cgyyCancelActions(BridgeCgyyOrder item) {
+  if (item.id <= 0) return const <FeatureAction>[];
+  return <FeatureAction>[
+    CgyyCancelAction(
+      orderId: item.id,
+      orderStatus: item.orderStatus,
+      checkStatus: item.checkStatus,
+      targetOrderId: item.cancelTarget?.orderId,
+      cancelledTargetOrderId: item.cancelledTarget?.orderId,
+      eligibility: _toCgyyActionEligibility(item.cancelEligibility),
+    ),
+  ];
 }
 
 ActionEligibility _toCgyyActionEligibility(

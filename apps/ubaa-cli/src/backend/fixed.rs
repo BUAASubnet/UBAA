@@ -6,16 +6,16 @@ use ubaa_core::facade::Result;
 use ubaa_core::facade::RouteClient;
 use ubaa_core::facade::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
-    BykcStatistics, BykcUserProfile, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder,
-    CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
-    CgyyVenueSite, ClassroomQuery, ConnectionMode, EvaluationCoursesResponse, ExamArrangement,
-    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
-    LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult, SigninClass,
-    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
-    YgdkOverview, YgdkRecordsPage,
+    BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
+    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
+    CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode,
+    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
+    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
+    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
+    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 
 use super::CliBackend;
@@ -152,8 +152,11 @@ impl CliBackend for RouteClient {
     async fn cgyy_order_detail(&mut self, id: i32) -> Result<FeatureResult<CgyyOrder>> {
         self.cgyy_order_detail(id).await
     }
-    async fn cgyy_cancel_order(&mut self, id: i32) -> Result<FeatureResult<CgyyActionResult>> {
-        self.cgyy_cancel_order(id).await
+    async fn cgyy_cancel_order(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+    ) -> Result<FeatureResult<CgyyCancelOrderResult>> {
+        self.cgyy_cancel_order(request).await
     }
     async fn cgyy_submit_reservation(
         &mut self,

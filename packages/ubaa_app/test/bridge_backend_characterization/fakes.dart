@@ -39,7 +39,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 6;
+  int contractVersion() => 7;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -276,7 +276,15 @@ class _CharacterizationBridgeClient implements BridgeClient {
       case #cgyyOrderDetail:
         return Future<BridgeRoutedCgyyOrder>.value(
           BridgeRoutedCgyyOrder(
-            data: BridgeCgyyOrder(id: named[#id] as int),
+            data: BridgeCgyyOrder(
+              id: named[#id] as int,
+              orderStatus: 2,
+              checkStatus: 2,
+              cancelEligibility: BridgeActionEligibility.denied,
+              cancelledTarget: BridgeCgyyCancelOrderTarget(
+                orderId: named[#id] as int,
+              ),
+            ),
             route: _webVpnRoute,
           ),
         );
@@ -289,7 +297,14 @@ class _CharacterizationBridgeClient implements BridgeClient {
               content: emptyReads
                   ? const <BridgeCgyyOrder>[]
                   : const <BridgeCgyyOrder>[
-                      BridgeCgyyOrder(id: 101, theme: '订单分页'),
+                      BridgeCgyyOrder(
+                        id: 101,
+                        theme: '订单分页',
+                        orderStatus: 1,
+                        checkStatus: 2,
+                        cancelEligibility: BridgeActionEligibility.allowed,
+                        cancelTarget: BridgeCgyyCancelOrderTarget(orderId: 101),
+                      ),
                     ],
               totalElements: emptyReads ? 0 : 201,
               totalPages: emptyReads ? 0 : 3,

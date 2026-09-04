@@ -10,6 +10,7 @@ const _publicNames = <String>[
   'BackendRouteSettings',
   'RouteSettingsBackend',
   'FeatureQueryBackend',
+  'CgyyCancellationReadbackBackend',
   'WriteCommitBackend',
   'WriteIntentDiscardBackend',
   'BykcWriteBackend',
@@ -36,9 +37,9 @@ const _publicNames = <String>[
 ];
 
 void main() {
-  test('ubaa_app barrel 保持二十九个公开名字和稳定签名', () {
-    expect(_publicNames, hasLength(29));
-    expect(_publicNames.toSet(), hasLength(29));
+  test('ubaa_app barrel 保持三十个公开名字和稳定签名', () {
+    expect(_publicNames, hasLength(30));
+    expect(_publicNames.toSet(), hasLength(30));
 
     // 这些函数只作为编译期合同被引用，不会构造或打开原生 Bridge。
     expect(<Object>[
@@ -55,6 +56,7 @@ List<Object?> _backendInterfaceSignatures(
   UbaaBackend backend,
   RouteSettingsBackend routeSettingsBackend,
   FeatureQueryBackend featureQueryBackend,
+  CgyyCancellationReadbackBackend cgyyCancellationReadbackBackend,
   WriteCommitBackend writeCommitBackend,
   WriteIntentDiscardBackend writeIntentDiscardBackend,
   BykcWriteBackend bykcWriteBackend,
@@ -77,6 +79,18 @@ List<Object?> _backendInterfaceSignatures(
       routeSettingsBackend.routeSettings;
   final Future<FeatureResult> Function(FeatureId, FeatureQuery)
   loadFeatureQuery = featureQueryBackend.loadFeatureQuery;
+  final Future<FeatureResult> Function({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  })
+  loadCgyyOrdersOnRoute = cgyyCancellationReadbackBackend.loadCgyyOrdersOnRoute;
+  final Future<FeatureResult> Function({
+    required ConnectionMode route,
+    required int orderId,
+  })
+  loadCgyyOrderDetailOnRoute =
+      cgyyCancellationReadbackBackend.loadCgyyOrderDetailOnRoute;
   final Future<WriteCommitResult> Function(String) commitWrite =
       writeCommitBackend.commitWrite;
   final Future<void> Function(String) discardWriteIntent =
@@ -140,6 +154,8 @@ List<Object?> _backendInterfaceSignatures(
     loadFeature,
     routeSettings,
     loadFeatureQuery,
+    loadCgyyOrdersOnRoute,
+    loadCgyyOrderDetailOnRoute,
     commitWrite,
     discardWriteIntent,
     commitDiscardBackend,
@@ -295,6 +311,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
   final UbaaBackend backend = bridgeBackend;
   final RouteSettingsBackend routeBackend = bridgeBackend;
   final FeatureQueryBackend queryBackend = bridgeBackend;
+  final CgyyCancellationReadbackBackend cgyyReadbackBackend = bridgeBackend;
   final WriteCommitBackend commitBackend = bridgeBackend;
   final WriteIntentDiscardBackend discardBackend = bridgeBackend;
   final BykcWriteBackend bykcBackend = bridgeBackend;
@@ -314,6 +331,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
     backend,
     routeBackend,
     queryBackend,
+    cgyyReadbackBackend,
     commitBackend,
     discardBackend,
     bykcBackend,

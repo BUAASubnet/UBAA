@@ -495,7 +495,7 @@ void _registerBykcStateTests() {
 }
 
 void _registerCgyyStateTest() {
-  testWidgets('场馆取消入口遵守冻结状态和四小时前截止时间', (tester) async {
+  testWidgets('场馆取消入口只遵守 Core typed 资格和目标一致性', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final snapshots = <FeatureId, FeatureSnapshot>{
@@ -508,52 +508,74 @@ void _registerCgyyStateTest() {
               ? const <FeatureDetail>[
                   FeatureDetail(
                     title: '已取消订单',
-                    fields: <FeatureField>[
-                      FeatureField(label: '订单编号', value: '18'),
-                      FeatureField(label: '订单状态', value: '2'),
-                      FeatureField(label: '审核状态', value: '1'),
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 18,
+                        orderStatus: 2,
+                        checkStatus: 1,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.denied,
+                      ),
                     ],
                   ),
                   FeatureDetail(
                     title: '审批驳回订单',
-                    fields: <FeatureField>[
-                      FeatureField(label: '订单编号', value: '19'),
-                      FeatureField(label: '订单状态', value: '1'),
-                      FeatureField(label: '审核状态', value: '-2'),
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 19,
+                        orderStatus: 1,
+                        checkStatus: -2,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.denied,
+                      ),
                     ],
                   ),
                   FeatureDetail(
                     title: '待审核订单',
-                    fields: <FeatureField>[
-                      FeatureField(label: '订单编号', value: '20'),
-                      FeatureField(label: '订单状态', value: '1'),
-                      FeatureField(label: '审核状态', value: '2'),
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 20,
+                        orderStatus: 1,
+                        checkStatus: 2,
+                        targetOrderId: 20,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                   FeatureDetail(
-                    title: '已过截止时间订单',
-                    fields: <FeatureField>[
-                      FeatureField(label: '订单编号', value: '21'),
-                      FeatureField(label: '订单状态', value: '1'),
-                      FeatureField(label: '审核状态', value: '1'),
-                      FeatureField(label: '开始', value: '2020-01-01 10:00:00'),
-                      FeatureField(label: '结束', value: '2020-01-01 11:00:00'),
+                    title: '截止时间已过',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 21,
+                        orderStatus: 1,
+                        checkStatus: 1,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.denied,
+                      ),
                     ],
                   ),
                   FeatureDetail(
                     title: '未知状态订单',
-                    fields: <FeatureField>[
-                      FeatureField(label: '订单编号', value: '22'),
-                      FeatureField(label: '订单状态', value: '9'),
-                      FeatureField(label: '审核状态', value: '1'),
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 22,
+                        orderStatus: 9,
+                        checkStatus: 1,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.unknown,
+                      ),
                     ],
                   ),
                   FeatureDetail(
-                    title: '审核状态格式错误订单',
-                    fields: <FeatureField>[
-                      FeatureField(label: '订单编号', value: '23'),
-                      FeatureField(label: '订单状态', value: '1'),
-                      FeatureField(label: '审核状态', value: '待审核'),
+                    title: '目标不一致订单',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 23,
+                        orderStatus: 1,
+                        checkStatus: 2,
+                        targetOrderId: 24,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                 ]
@@ -570,7 +592,7 @@ void _registerCgyyStateTest() {
           telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
-          onPrepareCancellationWrite: (_, __) async {
+          onPrepareCgyyCancelWrite: (_) async {
             fail('状态不可取消的订单不应触发准备回调');
           },
           onLogout: () async {},

@@ -210,12 +210,11 @@ void registerBridgeBackendReadCharacterization() {
         const FeatureQuery(view: FeatureQueryView.cgyyLockCode),
       ),
     );
-    results.add(
-      await backend.loadFeatureQuery(
-        FeatureId.cgyy,
-        const FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: 9),
-      ),
+    final cgyyDetail = await backend.loadFeatureQuery(
+      FeatureId.cgyy,
+      const FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: 9),
     );
+    results.add(cgyyDetail);
     final cgyyPage = await backend.loadFeatureQuery(
       FeatureId.cgyy,
       const FeatureQuery(
@@ -436,6 +435,19 @@ void registerBridgeBackendReadCharacterization() {
       results.map((result) => result.resolvedRoute).toSet(),
       <ConnectionMode?>{ConnectionMode.webvpn},
     );
+    final cgyyDetailAction = cgyyDetail.details.single
+        .action<CgyyCancelAction>();
+    final cgyyListAction = cgyyPage.details.single.action<CgyyCancelAction>();
+    expect(cgyyDetailAction?.orderId, 9);
+    expect(cgyyDetailAction?.orderStatus, 2);
+    expect(cgyyDetailAction?.targetOrderId, isNull);
+    expect(cgyyDetailAction?.cancelledTargetOrderId, 9);
+    expect(cgyyDetailAction?.confirmsCancellationOf(9), isTrue);
+    expect(cgyyDetailAction?.eligibility, ActionEligibility.denied);
+    expect(cgyyListAction?.orderId, 101);
+    expect(cgyyListAction?.orderStatus, 1);
+    expect(cgyyListAction?.targetOrderId, 101);
+    expect(cgyyListAction?.eligibility, ActionEligibility.allowed);
     const expectedProjectionFragments = <String>[
       '课程 ID|9527',
       '状态|available',

@@ -1,9 +1,10 @@
 //! 单路线诊断客户端的场馆查询与预约入口。
 
 use crate::domain::{
-    CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType,
-    CgyyPurposeTypes, CgyyReservationPreflight, CgyyReservationResult,
-    CgyyReservationSubmitRequest, CgyyVenueSite, FeatureResult,
+    CgyyCancelOrderPreflight, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
+    CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes,
+    CgyyReservationPreflight, CgyyReservationResult, CgyyReservationSubmitRequest, CgyyVenueSite,
+    FeatureResult,
 };
 use crate::error::Result;
 
@@ -119,18 +120,35 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 只读复核场馆预约订单的 typed 取消资格。
+    ///
+    /// # Errors
+    ///
+    /// 参数无效、会话所有权校验、网络读取或上游响应处理失败时返回错误。
+    pub async fn preflight_cgyy_cancel(
+        &mut self,
+        request: &CgyyCancelOrderRequest,
+    ) -> Result<FeatureResult<CgyyCancelOrderPreflight>> {
+        self.guard_latest_session_ownership()?;
+        let result =
+            crate::features::cgyy::preflight_cancel_order(&mut self.runtime, request).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 取消场馆预约订单。
     ///
     /// # Errors
     ///
     /// 参数无效、会话所有权校验、网络写请求或上游响应处理失败时返回错误。
-    pub async fn cgyy_cancel_order(&mut self, id: i32) -> Result<FeatureResult<CgyyActionResult>> {
+    pub async fn cgyy_cancel_order(
+        &mut self,
+        request: CgyyCancelOrderRequest,
+    ) -> Result<FeatureResult<CgyyCancelOrderResult>> {
         self.guard_latest_session_ownership()?;
-        if id <= 0 {
-            return Err(invalid_input("订单标识必须为正数"));
-        }
-        let result = crate::features::cgyy::cancel_order(&mut self.runtime, id).await;
-        let data = self.finish_readonly_operation(result)?;
+        self.runtime.begin_non_idempotent_operation();
+        let result = crate::features::cgyy::cancel_order(&mut self.runtime, request).await;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 

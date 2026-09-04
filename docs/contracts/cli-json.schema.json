@@ -461,13 +461,112 @@
     "cgyySlotStatus": { "type": "object", "required": ["timeId", "reservationStatus", "reservationEligibility", "reservationTarget", "startDate", "endDate", "tradeNo", "orderId", "useNum", "alreadyNum", "takeUp", "takeUpExplain"], "properties": { "timeId": { "$ref": "#/$defs/i32" }, "reservationStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "reservationEligibility": { "$ref": "#/$defs/actionEligibility" }, "reservationTarget": { "anyOf": [{ "$ref": "#/$defs/cgyyReservationTarget" }, { "type": "null" }] }, "startDate": { "$ref": "#/$defs/nullableString" }, "endDate": { "$ref": "#/$defs/nullableString" }, "tradeNo": { "$ref": "#/$defs/nullableString" }, "orderId": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "useNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "alreadyNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "takeUp": { "type": ["boolean", "null"] }, "takeUpExplain": { "$ref": "#/$defs/nullableString" } }, "allOf": [{ "if": { "properties": { "reservationEligibility": { "const": "allowed" } }, "required": ["reservationEligibility"] }, "then": { "properties": { "reservationTarget": { "$ref": "#/$defs/cgyyReservationTarget" } }, "required": ["reservationTarget"] }, "else": { "properties": { "reservationTarget": { "type": "null" } }, "required": ["reservationTarget"] } }], "additionalProperties": false },
     "cgyySpaceAvailability": { "type": "object", "required": ["spaceId", "spaceName", "venueSiteId", "venueSpaceGroupId", "slots"], "properties": { "spaceId": { "$ref": "#/$defs/i32" }, "spaceName": { "type": "string" }, "venueSiteId": { "$ref": "#/$defs/i32" }, "venueSpaceGroupId": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "slots": { "type": "array", "items": { "$ref": "#/$defs/cgyySlotStatus" } } }, "additionalProperties": false },
     "cgyyDayInfo": { "type": "object", "required": ["venueSiteId", "reservationDate", "availableDates", "timeSlots", "spaces", "reservationTotalNum"], "properties": { "venueSiteId": { "$ref": "#/$defs/i32" }, "reservationDate": { "type": "string" }, "availableDates": { "type": "array", "items": { "type": "string" } }, "timeSlots": { "type": "array", "items": { "$ref": "#/$defs/cgyyTimeSlot" } }, "spaces": { "type": "array", "items": { "$ref": "#/$defs/cgyySpaceAvailability" } }, "reservationTotalNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] } }, "additionalProperties": false },
-    "cgyyOrder": { "type": "object", "required": ["id", "tradeNo", "venueSiteId", "reservationDate", "reservationDateDetail", "venueSpaceName", "campusName", "venueName", "siteName", "reservationStartDate", "reservationEndDate", "phone", "orderStatus", "payStatus", "checkStatus", "theme", "purposeType", "purposeTypeName", "joinerNum", "activityContent", "joiners", "checkContent", "handleReason", "remark"], "properties": { "id": { "$ref": "#/$defs/i32" }, "tradeNo": { "$ref": "#/$defs/nullableString" }, "venueSiteId": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "reservationDate": { "$ref": "#/$defs/nullableString" }, "reservationDateDetail": { "$ref": "#/$defs/nullableString" }, "venueSpaceName": { "$ref": "#/$defs/nullableString" }, "campusName": { "$ref": "#/$defs/nullableString" }, "venueName": { "$ref": "#/$defs/nullableString" }, "siteName": { "$ref": "#/$defs/nullableString" }, "reservationStartDate": { "$ref": "#/$defs/nullableString" }, "reservationEndDate": { "$ref": "#/$defs/nullableString" }, "phone": { "$ref": "#/$defs/nullableString" }, "orderStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "payStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "checkStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "theme": { "$ref": "#/$defs/nullableString" }, "purposeType": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "purposeTypeName": { "$ref": "#/$defs/nullableString" }, "joinerNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "activityContent": { "$ref": "#/$defs/nullableString" }, "joiners": { "$ref": "#/$defs/nullableString" }, "checkContent": { "$ref": "#/$defs/nullableString" }, "handleReason": { "$ref": "#/$defs/nullableString" }, "remark": { "$ref": "#/$defs/nullableString" } }, "additionalProperties": false },
+    "cgyyCancelOrderTarget": { "type": "object", "required": ["orderId"], "properties": { "orderId": { "$ref": "#/$defs/positiveI32" } }, "additionalProperties": false },
+    "cgyyOrder": {
+      "type": "object",
+      "required": [
+        "id",
+        "tradeNo",
+        "venueSiteId",
+        "reservationDate",
+        "reservationDateDetail",
+        "venueSpaceName",
+        "campusName",
+        "venueName",
+        "siteName",
+        "reservationStartDate",
+        "reservationEndDate",
+        "phone",
+        "orderStatus",
+        "payStatus",
+        "checkStatus",
+        "theme",
+        "purposeType",
+        "purposeTypeName",
+        "joinerNum",
+        "activityContent",
+        "joiners",
+        "checkContent",
+        "handleReason",
+        "remark",
+        "cancelEligibility",
+        "cancelTarget",
+        "cancelledTarget"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/i32" },
+        "tradeNo": { "$ref": "#/$defs/nullableString" },
+        "venueSiteId": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "reservationDate": { "$ref": "#/$defs/nullableString" },
+        "reservationDateDetail": { "$ref": "#/$defs/nullableString" },
+        "venueSpaceName": { "$ref": "#/$defs/nullableString" },
+        "campusName": { "$ref": "#/$defs/nullableString" },
+        "venueName": { "$ref": "#/$defs/nullableString" },
+        "siteName": { "$ref": "#/$defs/nullableString" },
+        "reservationStartDate": { "$ref": "#/$defs/nullableString" },
+        "reservationEndDate": { "$ref": "#/$defs/nullableString" },
+        "phone": { "$ref": "#/$defs/nullableString" },
+        "orderStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "payStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "checkStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "theme": { "$ref": "#/$defs/nullableString" },
+        "purposeType": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "purposeTypeName": { "$ref": "#/$defs/nullableString" },
+        "joinerNum": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "activityContent": { "$ref": "#/$defs/nullableString" },
+        "joiners": { "$ref": "#/$defs/nullableString" },
+        "checkContent": { "$ref": "#/$defs/nullableString" },
+        "handleReason": { "$ref": "#/$defs/nullableString" },
+        "remark": { "$ref": "#/$defs/nullableString" },
+        "cancelEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "cancelTarget": { "anyOf": [{ "$ref": "#/$defs/cgyyCancelOrderTarget" }, { "type": "null" }] },
+        "cancelledTarget": { "anyOf": [{ "$ref": "#/$defs/cgyyCancelOrderTarget" }, { "type": "null" }] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "cancelEligibility": { "const": "allowed" } },
+            "required": ["cancelEligibility"]
+          },
+          "then": {
+            "properties": { "cancelTarget": { "$ref": "#/$defs/cgyyCancelOrderTarget" } },
+            "required": ["cancelTarget"]
+          },
+          "else": {
+            "properties": { "cancelTarget": { "type": "null" } },
+            "required": ["cancelTarget"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "cancelledTarget": { "type": "object" } },
+            "required": ["cancelledTarget"]
+          },
+          "then": {
+            "properties": {
+              "orderStatus": { "const": 2 },
+              "cancelEligibility": { "const": "denied" },
+              "cancelTarget": { "type": "null" }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
     "cgyyOrdersPage": { "type": "object", "required": ["content", "totalElements", "totalPages", "size", "number"], "properties": { "content": { "type": "array", "items": { "$ref": "#/$defs/cgyyOrder" } }, "totalElements": { "$ref": "#/$defs/i32" }, "totalPages": { "$ref": "#/$defs/i32" }, "size": { "$ref": "#/$defs/i32" }, "number": { "$ref": "#/$defs/i32" } }, "additionalProperties": false },
-    "cgyyActionResult": { "type": "object", "required": ["message", "order"], "properties": { "message": { "type": "string" }, "order": { "anyOf": [{ "$ref": "#/$defs/cgyyOrder" }, { "type": "null" }] } }, "additionalProperties": false },
+    "cgyyCancelOrderResult": {
+      "type": "object",
+      "required": ["success", "message"],
+      "properties": {
+        "success": { "const": true },
+        "message": { "const": "场馆订单已取消" }
+      },
+      "additionalProperties": false
+    },
     "cgyyReservationReceipt": { "type": "object", "required": ["orderId", "venueSiteId", "reservationDate", "orderStatus"], "properties": { "orderId": { "$ref": "#/$defs/positiveI32" }, "venueSiteId": { "anyOf": [{ "$ref": "#/$defs/positiveI32" }, { "type": "null" }] }, "reservationDate": { "$ref": "#/$defs/nullableString" }, "orderStatus": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] } }, "additionalProperties": false },
     "cgyyReservationResult": { "type": "object", "required": ["success", "message", "receipt"], "properties": { "success": { "type": "boolean" }, "message": { "type": "string" }, "receipt": { "anyOf": [{ "$ref": "#/$defs/cgyyReservationReceipt" }, { "type": "null" }] } }, "allOf": [{ "if": { "properties": { "success": { "const": false } }, "required": ["success"] }, "then": { "properties": { "receipt": { "type": "null" } }, "required": ["receipt"] } }], "additionalProperties": false },
     "cgyyLockCode": { "type": "object", "required": ["available"], "properties": { "available": { "type": "boolean" } }, "additionalProperties": false },
-    "cgyyRoutedData": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/cgyyVenueSite" } }, { "type": "array", "items": { "$ref": "#/$defs/cgyyPurposeType" } }, { "$ref": "#/$defs/cgyyDayInfo" }, { "$ref": "#/$defs/cgyyOrdersPage" }, { "$ref": "#/$defs/cgyyOrder" }, { "$ref": "#/$defs/cgyyActionResult" }, { "$ref": "#/$defs/cgyyReservationResult" }, { "$ref": "#/$defs/cgyyLockCode" } ] },
+    "cgyyRoutedData": { "anyOf": [ { "type": "array", "items": { "$ref": "#/$defs/cgyyVenueSite" } }, { "type": "array", "items": { "$ref": "#/$defs/cgyyPurposeType" } }, { "$ref": "#/$defs/cgyyDayInfo" }, { "$ref": "#/$defs/cgyyOrdersPage" }, { "$ref": "#/$defs/cgyyOrder" }, { "$ref": "#/$defs/cgyyCancelOrderResult" }, { "$ref": "#/$defs/cgyyReservationResult" }, { "$ref": "#/$defs/cgyyLockCode" } ] },
     "ygdkOverview": {
       "type": "object",
       "required": ["summary", "classifyId", "classifyName", "defaultItemId", "defaultItemName", "items"],
@@ -859,7 +958,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 7 },
+        "schemaVersion": { "const": 8 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1014,7 +1113,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 7 },
+        "schemaVersion": { "const": 8 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1170,7 +1269,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 7 },
+        "schemaVersion": { "const": 8 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1246,7 +1345,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 7 },
+        "schemaVersion": { "const": 8 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

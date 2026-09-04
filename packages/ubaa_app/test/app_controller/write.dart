@@ -180,24 +180,71 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('场馆取消写意图严格校验公开编号', () async {
+  test('场馆取消只接受 Core typed Allowed action 的 canonical 目标', () async {
     final backend = _CancellationWriteBackend();
     final controller = AppController(backend: backend);
 
-    final venueIntent = await controller.prepareCancellationWrite(
-      WriteOperation.cgyyCancelOrder,
-      '17',
+    final venueIntent = await controller.prepareCgyyCancelWrite(
+      const CgyyCancelAction(
+        orderId: 17,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: 17,
+        eligibility: ActionEligibility.allowed,
+      ),
     );
     expect(venueIntent.operation, WriteOperation.cgyyCancelOrder);
     expect(backend.orderId, 17);
 
-    await expectLater(
-      controller.prepareCancellationWrite(
-        WriteOperation.cgyyCancelOrder,
-        'not-a-number',
+    for (final action in const <CgyyCancelAction>[
+      CgyyCancelAction(
+        orderId: 17,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: null,
+        eligibility: ActionEligibility.allowed,
       ),
-      throwsA(isA<BackendException>()),
-    );
+      CgyyCancelAction(
+        orderId: 17,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: 18,
+        eligibility: ActionEligibility.allowed,
+      ),
+      CgyyCancelAction(
+        orderId: 17,
+        orderStatus: 2,
+        checkStatus: 2,
+        targetOrderId: null,
+        eligibility: ActionEligibility.denied,
+      ),
+      CgyyCancelAction(
+        orderId: 17,
+        orderStatus: null,
+        checkStatus: null,
+        targetOrderId: null,
+        eligibility: ActionEligibility.unknown,
+      ),
+      CgyyCancelAction(
+        orderId: 0,
+        orderStatus: 1,
+        checkStatus: 2,
+        targetOrderId: 0,
+        eligibility: ActionEligibility.allowed,
+      ),
+    ]) {
+      await expectLater(
+        controller.prepareCgyyCancelWrite(action),
+        throwsA(
+          isA<BackendException>().having(
+            (error) => error.code,
+            'code',
+            UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+    }
+    expect(backend.cgyyPrepareCalls, 1);
     controller.dispose();
   });
 
@@ -554,12 +601,14 @@ void _registerWriteTests() {
       backend.loadedFeatures.clear();
       backend.queries.clear();
       await controller.refreshAfterWrite(operation);
-      if (operation == WriteOperation.cgyySubmitReservation ||
-          operation == WriteOperation.cgyyCancelOrder) {
+      if (operation == WriteOperation.cgyySubmitReservation) {
         expect(backend.loadedFeatures, isEmpty);
         expect(backend.queries, hasLength(1));
         expect(backend.queries.single.$1, FeatureId.cgyy);
         expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
+      } else if (operation == WriteOperation.cgyyCancelOrder) {
+        expect(backend.loadedFeatures, isEmpty);
+        expect(backend.queries, isEmpty);
       } else if (operation == WriteOperation.libbookReserve ||
           operation == WriteOperation.libbookCancelBooking) {
         expect(backend.loadedFeatures, isEmpty);
@@ -661,7 +710,203 @@ void _registerWriteTests() {
     );
     controller.dispose();
   });
+
+  test('场馆取消双回读只用 Core strict 同 ID 已取消证明标记已核对', () async {
+    final backend = _CgyyCancelReadbackBackend((query) async {
+      final action = CgyyCancelAction(
+        orderId: 17,
+        orderStatus: 2,
+        checkStatus: 2,
+        targetOrderId: null,
+        cancelledTargetOrderId: 17,
+        eligibility: ActionEligibility.denied,
+      );
+      return FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: <FeatureDetail>[
+          FeatureDetail(
+            title: query.view == FeatureQueryView.cgyyOrders ? '订单列表' : '订单详情',
+            fields: const <FeatureField>[
+              FeatureField(label: '订单编号', value: '999'),
+              FeatureField(label: '订单状态', value: '1'),
+            ],
+            actions: <FeatureAction>[action],
+          ),
+        ],
+      );
+    });
+    final controller = AppController(backend: backend);
+
+    expect(
+      await controller.verifyCgyyCancellation(
+        orderId: 17,
+        expectedRoute: ConnectionMode.direct,
+      ),
+      isTrue,
+    );
+    expect(backend.queries.map((query) => query.view), <FeatureQueryView>[
+      FeatureQueryView.cgyyOrders,
+      FeatureQueryView.cgyyOrderDetail,
+    ]);
+    expect(backend.queries.last.orderId, 17);
+    expect(backend.queries.first.page, 0);
+    expect(backend.readbackRoutes, const <ConnectionMode>[
+      ConnectionMode.direct,
+      ConnectionMode.direct,
+    ]);
+    final snapshot = controller.snapshots[FeatureId.cgyy]!;
+    expect(snapshot.status, FeatureLoadStatus.success);
+    expect(snapshot.details.single.title, '订单列表');
+    expect(snapshot.resolvedRoute, ConnectionMode.direct);
+    controller.dispose();
+  });
+
+  test('场馆取消双回读的空失败路线冲突或 strict 证明缺失均保持未核对', () async {
+    final cases = <Future<FeatureResult> Function(FeatureQuery)>[
+      (query) async => query.view == FeatureQueryView.cgyyOrders
+          ? _cgyyCancelReadbackResult(
+              orderId: 17,
+              orderStatus: 2,
+              route: ConnectionMode.direct,
+            )
+          : const FeatureResult.empty(resolvedRoute: ConnectionMode.direct),
+      (query) async {
+        if (query.view == FeatureQueryView.cgyyOrders) {
+          throw const BackendException(UbaaErrorCode.networkError);
+        }
+        return _cgyyCancelReadbackResult(
+          orderId: 17,
+          orderStatus: 2,
+          route: ConnectionMode.direct,
+        );
+      },
+      (query) async => _cgyyCancelReadbackResult(
+        orderId: 17,
+        orderStatus: 2,
+        route: ConnectionMode.webvpn,
+      ),
+      (query) async => _cgyyCancelReadbackResult(
+        orderId: query.view == FeatureQueryView.cgyyOrders ? 17 : 18,
+        orderStatus: 2,
+        route: ConnectionMode.direct,
+      ),
+      (query) async => _cgyyCancelReadbackResult(
+        orderId: 17,
+        orderStatus: query.view == FeatureQueryView.cgyyOrders ? 2 : 1,
+        route: ConnectionMode.direct,
+      ),
+      (query) async => _cgyyCancelReadbackResult(
+        orderId: 17,
+        orderStatus: 2,
+        route: ConnectionMode.direct,
+      ),
+    ];
+
+    for (final load in cases) {
+      final backend = _CgyyCancelReadbackBackend(load);
+      final controller = AppController(backend: backend);
+
+      expect(
+        await controller.verifyCgyyCancellation(
+          orderId: 17,
+          expectedRoute: ConnectionMode.direct,
+        ),
+        isFalse,
+      );
+      expect(backend.queries, hasLength(2));
+      expect(backend.queries.last.orderId, 17);
+      expect(backend.readbackRoutes, const <ConnectionMode>[
+        ConnectionMode.direct,
+        ConnectionMode.direct,
+      ]);
+      expect(
+        controller.snapshots[FeatureId.cgyy]!.resolvedRoute,
+        isNot(ConnectionMode.webvpn),
+      );
+      controller.dispose();
+    }
+  });
+
+  test('场馆取消双回读不得因并发 generation 丢弃本次列表后误用旧 snapshot', () async {
+    final listStarted = Completer<void>();
+    final releaseList = Completer<void>();
+    final verified = FeatureResult.success(
+      resolvedRoute: ConnectionMode.direct,
+      details: <FeatureDetail>[
+        FeatureDetail(
+          title: '旧场馆订单',
+          actions: <FeatureAction>[
+            CgyyCancelAction(
+              orderId: 17,
+              orderStatus: 2,
+              checkStatus: 2,
+              targetOrderId: null,
+              cancelledTargetOrderId: 17,
+              eligibility: ActionEligibility.denied,
+            ),
+          ],
+        ),
+      ],
+    );
+    final backend = _CgyyCancelReadbackBackend((query) async {
+      if (query.view == FeatureQueryView.cgyyOrders) {
+        listStarted.complete();
+        await releaseList.future;
+        return const FeatureResult.empty(resolvedRoute: ConnectionMode.direct);
+      }
+      return verified;
+    });
+    final controller = AppController(backend: backend);
+
+    final verification = controller.verifyCgyyCancellation(
+      orderId: 17,
+      expectedRoute: ConnectionMode.direct,
+    );
+    await listStarted.future;
+    await controller.refreshFeatureQuery(
+      FeatureId.cgyy,
+      const FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: 999),
+    );
+    releaseList.complete();
+
+    expect(await verification, isFalse);
+    expect(backend.queries.map((query) => query.view), <FeatureQueryView>[
+      FeatureQueryView.cgyyOrders,
+      FeatureQueryView.cgyyOrderDetail,
+      FeatureQueryView.cgyyOrderDetail,
+    ]);
+    expect(backend.readbackRoutes, const <ConnectionMode>[
+      ConnectionMode.direct,
+      ConnectionMode.direct,
+    ]);
+    final snapshot = controller.snapshots[FeatureId.cgyy]!;
+    expect(snapshot.status, FeatureLoadStatus.success);
+    expect(snapshot.details.single.title, '旧场馆订单');
+    controller.dispose();
+  });
 }
+
+FeatureResult _cgyyCancelReadbackResult({
+  required int orderId,
+  required int? orderStatus,
+  required ConnectionMode route,
+}) => FeatureResult.success(
+  resolvedRoute: route,
+  details: <FeatureDetail>[
+    FeatureDetail(
+      title: '场馆订单',
+      actions: <FeatureAction>[
+        CgyyCancelAction(
+          orderId: orderId,
+          orderStatus: orderStatus,
+          checkStatus: 2,
+          targetOrderId: null,
+          eligibility: ActionEligibility.denied,
+        ),
+      ],
+    ),
+  ],
+);
 
 const _cgyyFirstAction = CgyyReserveAction(
   venueSiteId: 3,

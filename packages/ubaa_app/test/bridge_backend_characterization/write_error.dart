@@ -149,7 +149,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       <Object?>[libbookCancel.id, libbookCancel.page, libbookCancel.limit],
       <Object?>['booking-1', 2, 10],
     );
-    expect(cgyyCancel.id, 14);
+    expect(cgyyCancel.orderId, 14);
     expect(
       <Object?>[
         ygdk.itemId,

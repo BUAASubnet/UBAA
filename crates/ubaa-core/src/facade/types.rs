@@ -1,7 +1,7 @@
 //! Facade 的结果包装器与内部操作类型。
 
 use crate::connection::RouteResolution;
-use crate::domain::ReadonlyFeature;
+use crate::domain::{ConnectionMode, ReadonlyFeature};
 use crate::error::UbaaError;
 
 /// 普通路由 facade 操作返回的结果。
@@ -14,6 +14,18 @@ pub struct Routed<T> {
     pub data: T,
     /// 本次操作不可变的路由元数据。
     pub resolution: RouteResolution,
+}
+
+/// 调用方显式固定路线的操作结果。
+///
+/// 该包装器只陈述调用方指定且 Core 实际使用的路线，不表示 Core 重新执行了
+/// `RoutePolicy` 或 Auto 探测。
+#[derive(Clone, Debug)]
+pub struct CallerPinned<T> {
+    /// 稳定的操作结果。
+    pub data: T,
+    /// 调用方指定且本次请求实际使用的路线。
+    pub pinned_route: ConnectionMode,
 }
 
 /// 普通操作失败；若已完成解析则包含路由元数据。

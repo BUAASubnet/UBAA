@@ -181,11 +181,20 @@ void _registerWriteMatrixFlowTest() {
       await tester.pumpAndSettle();
       expect(backend.commitCalls, before + 1);
       expect(backend.committedOperations.last, operation);
-      expect(
-        backend.featureLoads[readbackFeature],
-        greaterThan(beforeReadback),
-        reason: '${operation.title}提交后必须刷新${readbackFeature.title}核对',
-      );
+      final readbackCount = backend.featureLoads[readbackFeature] ?? 0;
+      if (operation == WriteOperation.cgyyCancelOrder) {
+        expect(
+          readbackCount,
+          beforeReadback + 2,
+          reason: '场馆取消提交后必须各读一次订单列表和同 ID 详情',
+        );
+      } else {
+        expect(
+          readbackCount,
+          greaterThan(beforeReadback),
+          reason: '${operation.title}提交后必须刷新${readbackFeature.title}核对',
+        );
+      }
     }
 
     await openFeature(FeatureId.bykc);
@@ -216,9 +225,6 @@ void _registerWriteMatrixFlowTest() {
     );
     await leaveFeature();
 
-    await openFeature(FeatureId.cgyy);
-    await confirm('准备取消订单', WriteOperation.cgyyCancelOrder, FeatureId.cgyy);
-    await leaveFeature();
     await openFeature(FeatureId.cgyy);
     expect(find.text('准备场馆预约'), findsOneWidget);
     await tester.tap(find.text('准备场馆预约').first);
@@ -254,6 +260,10 @@ void _registerWriteMatrixFlowTest() {
       greaterThan(beforeCgyyReadback),
       reason: '场馆预约提交后必须刷新场馆订单核对',
     );
+    await leaveFeature();
+
+    await openFeature(FeatureId.cgyy);
+    await confirm('准备取消订单', WriteOperation.cgyyCancelOrder, FeatureId.cgyy);
     await leaveFeature();
 
     await openFeature(FeatureId.ygdk);
@@ -300,8 +310,8 @@ void _registerWriteMatrixFlowTest() {
       WriteOperation.signinPerform,
       WriteOperation.libbookReserve,
       WriteOperation.libbookCancelBooking,
-      WriteOperation.cgyyCancelOrder,
       WriteOperation.cgyySubmitReservation,
+      WriteOperation.cgyyCancelOrder,
       WriteOperation.ygdkSubmit,
       WriteOperation.evaluationSubmitCourses,
     ]);

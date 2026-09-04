@@ -16,12 +16,13 @@ use super::mappers::{
     map_today_classes, map_weekly_schedule, map_weeks, map_ygdk_overview, map_ygdk_records,
 };
 use super::{
-    BridgeJudgeAssignmentKey, BridgeRoutedBykcChosenCourses, BridgeRoutedBykcCourse,
-    BridgeRoutedBykcCourses, BridgeRoutedBykcProfile, BridgeRoutedBykcStatistics,
-    BridgeRoutedCgyyDayInfo, BridgeRoutedCgyyLockCode, BridgeRoutedCgyyOrder,
-    BridgeRoutedCgyyOrders, BridgeRoutedCgyyPurposeTypes, BridgeRoutedCgyySites,
-    BridgeRoutedClassroomQuery, BridgeRoutedEvaluation, BridgeRoutedExamArrangement,
-    BridgeRoutedGrades, BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
+    BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeJudgeAssignmentKey,
+    BridgeRoutedBykcChosenCourses, BridgeRoutedBykcCourse, BridgeRoutedBykcCourses,
+    BridgeRoutedBykcProfile, BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo,
+    BridgeRoutedCgyyLockCode, BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders,
+    BridgeRoutedCgyyPurposeTypes, BridgeRoutedCgyySites, BridgeRoutedClassroomQuery,
+    BridgeRoutedEvaluation, BridgeRoutedExamArrangement, BridgeRoutedGrades,
+    BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
     BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreas,
     BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats,
     BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments,
@@ -29,7 +30,8 @@ use super::{
     BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords,
 };
 use crate::api::client::{
-    BridgeClient, BridgeError, BridgeRouteDecision, catch_panic, disposed_error, map_route,
+    BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, catch_panic,
+    disposed_error, map_route,
 };
 
 impl BridgeClient {
@@ -48,6 +50,29 @@ impl BridgeClient {
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let routed = call(client).await.map_err(BridgeError::from_routed)?;
             Ok((mapper(routed.data), map_route(routed.resolution)))
+        })
+        .await
+    }
+
+    async fn execute_caller_pinned_read<T, O, F>(
+        &self,
+        call: F,
+        mapper: fn(T) -> O,
+    ) -> Result<(O, BridgeConnectionMode), BridgeError>
+    where
+        F: for<'a> FnOnce(
+            &'a mut UbaaClient,
+        ) -> Pin<
+            Box<dyn Future<Output = domain::Result<domain::CallerPinned<T>>> + Send + 'a>,
+        >,
+    {
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let pinned = call(client)
+                .await
+                .map_err(|error| BridgeError::from_core(error, None))?;
+            Ok((mapper(pinned.data), pinned.pinned_route.into()))
         })
         .await
     }
@@ -398,6 +423,25 @@ impl BridgeClient {
             .await?;
         Ok(BridgeRoutedCgyyOrders { data, route })
     }
+    /// 在调用方指定的已认证路线读取场馆订单，不执行 Auto 探测或回退。
+    pub async fn cgyy_orders_on_route(
+        &self,
+        route: BridgeConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> Result<BridgeCallerPinnedCgyyOrders, BridgeError> {
+        let (data, pinned_route) = self
+            .execute_caller_pinned_read(
+                move |client| {
+                    Box::pin(
+                        async move { client.cgyy_orders_on_route(route.into(), page, size).await },
+                    )
+                },
+                map_cgyy_orders,
+            )
+            .await?;
+        Ok(BridgeCallerPinnedCgyyOrders { data, pinned_route })
+    }
     pub async fn cgyy_order_detail(&self, id: i32) -> Result<BridgeRoutedCgyyOrder, BridgeError> {
         let (data, route) = self
             .execute_read(
@@ -406,6 +450,24 @@ impl BridgeClient {
             )
             .await?;
         Ok(BridgeRoutedCgyyOrder { data, route })
+    }
+    /// 在调用方指定的已认证路线读取场馆订单详情，不执行 Auto 探测或回退。
+    pub async fn cgyy_order_detail_on_route(
+        &self,
+        route: BridgeConnectionMode,
+        id: i32,
+    ) -> Result<BridgeCallerPinnedCgyyOrder, BridgeError> {
+        let (data, pinned_route) = self
+            .execute_caller_pinned_read(
+                move |client| {
+                    Box::pin(
+                        async move { client.cgyy_order_detail_on_route(route.into(), id).await },
+                    )
+                },
+                map_cgyy_order,
+            )
+            .await?;
+        Ok(BridgeCallerPinnedCgyyOrder { data, pinned_route })
     }
     pub async fn cgyy_lock_code(&self) -> Result<BridgeRoutedCgyyLockCode, BridgeError> {
         let (data, route) = self

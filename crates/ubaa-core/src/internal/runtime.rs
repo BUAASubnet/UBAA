@@ -21,6 +21,7 @@ pub(crate) struct ClientRuntime {
     session_revision: u64,
     feature_state: Arc<RouteFeatureState>,
     non_idempotent_boundary_crossed: bool,
+    clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
 }
 
 impl ClientRuntime {
@@ -32,7 +33,24 @@ impl ClientRuntime {
         let transport: Arc<dyn HttpTransport> = Arc::new(transport);
         let store: Arc<dyn SessionStore> = Arc::new(store);
         let persisted = store.load_versioned()?;
-        Self::from_versioned(mode, transport, store, persisted)
+        Self::from_versioned(mode, transport, store, persisted, Arc::new(SystemTime::now))
+    }
+
+    #[cfg(feature = "test-contract")]
+    pub(crate) fn new_at<T, S>(
+        mode: ConnectionMode,
+        transport: T,
+        store: S,
+        now: SystemTime,
+    ) -> Result<Self>
+    where
+        T: HttpTransport + 'static,
+        S: SessionStore + 'static,
+    {
+        let transport: Arc<dyn HttpTransport> = Arc::new(transport);
+        let store: Arc<dyn SessionStore> = Arc::new(store);
+        let persisted = store.load_versioned()?;
+        Self::from_versioned(mode, transport, store, persisted, Arc::new(move || now))
     }
 
     fn from_versioned(
@@ -40,6 +58,7 @@ impl ClientRuntime {
         transport: Arc<dyn HttpTransport>,
         store: Arc<dyn SessionStore>,
         persisted: VersionedSession,
+        clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     ) -> Result<Self> {
         let mut jar = CookieJar::default();
         let mut authenticated_at = None;
@@ -68,6 +87,7 @@ impl ClientRuntime {
             session_revision,
             feature_state: Arc::new(RouteFeatureState::default()),
             non_idempotent_boundary_crossed: false,
+            clock,
         })
     }
 
@@ -103,6 +123,7 @@ impl ClientRuntime {
             session_revision: self.session_revision,
             feature_state: Arc::clone(&self.feature_state),
             non_idempotent_boundary_crossed: false,
+            clock: Arc::clone(&self.clock),
         }
     }
 
@@ -120,9 +141,12 @@ impl ClientRuntime {
         Arc::clone(&self.feature_state)
     }
 
+    pub(crate) fn now(&self) -> SystemTime {
+        (self.clock)()
+    }
+
     pub(crate) fn cookie_value(&mut self, name: &str, request_url: &str) -> Result<Option<String>> {
-        self.jar
-            .cookie_value_for_url(name, request_url, SystemTime::now())
+        self.jar.cookie_value_for_url(name, request_url, self.now())
     }
 
     pub(crate) fn clear_feature_state(&self) {
@@ -170,7 +194,7 @@ impl ClientRuntime {
     }
 
     pub(crate) async fn request(&mut self, mut request: HttpRequest) -> Result<HttpResponse> {
-        let now = SystemTime::now();
+        let now = self.now();
         let cookie = self.jar.cookie_header(&request.url, now)?;
         if !cookie.is_empty() {
             request.headers.insert("Cookie".into(), cookie);
@@ -190,7 +214,7 @@ impl ClientRuntime {
         &mut self,
         mut request: HttpRequest,
     ) -> Result<HttpResponse> {
-        let now = SystemTime::now();
+        let now = self.now();
         let cookie = self.jar.cookie_header(&request.url, now)?;
         if !cookie.is_empty() {
             request.headers.insert("Cookie".into(), cookie);
@@ -213,7 +237,7 @@ impl ClientRuntime {
         &mut self,
         clear_workflow: &mut (dyn FnMut() + Send),
     ) -> Result<(i64, i64)> {
-        let now = now_seconds()?;
+        let now = now_seconds_at(self.now())?;
         let authenticated_at = self.authenticated_at.unwrap_or(now);
         self.authenticated_at = Some(authenticated_at);
         self.last_activity = Some(now);
@@ -271,9 +295,8 @@ impl ClientRuntime {
     }
 }
 
-fn now_seconds() -> Result<i64> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
+fn now_seconds_at(now: SystemTime) -> Result<i64> {
+    now.duration_since(UNIX_EPOCH)
         .map(|duration| i64::try_from(duration.as_secs()).unwrap_or(i64::MAX))
         .map_err(|_| {
             UbaaError::new(

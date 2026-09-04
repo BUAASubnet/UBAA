@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use serde_json::{Map, Value};
 
 use crate::domain::{
-    ActionEligibility, CgyyActionResult, CgyyReservationPreflight, CgyyReservationReceipt,
-    CgyyReservationResult, CgyyReservationSelection, CgyyReservationSubmitRequest,
-    CgyyReservationTarget,
+    ActionEligibility, CgyyCancelOrderPreflight, CgyyCancelOrderRequest, CgyyCancelOrderResult,
+    CgyyReservationPreflight, CgyyReservationReceipt, CgyyReservationResult,
+    CgyyReservationSelection, CgyyReservationSubmitRequest, CgyyReservationTarget,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpMethod, HttpResponse};
@@ -16,7 +16,7 @@ use crate::runtime::ClientRuntime;
 use super::auth::{business_request, ensure_login};
 use super::captcha::{check_captcha, prepare_captcha_once};
 use super::http::{log_response, signed_request};
-use super::parser::{data, error, parse_action_result};
+use super::parser::{data, error, parse_cancel_order_authority, shanghai_datetime};
 use super::read::get_day_context;
 
 struct ReservationAuthority {
@@ -26,16 +26,109 @@ struct ReservationAuthority {
     canonical_selections: Vec<CgyyReservationSelection>,
 }
 
-/// 取消指定场馆预约订单。
-pub(crate) async fn cancel_order(runtime: &mut ClientRuntime, id: i32) -> Result<CgyyActionResult> {
+/// 重新读取指定订单详情并形成 typed 取消权威摘要。
+pub(crate) async fn preflight_cancel_order(
+    runtime: &mut ClientRuntime,
+    request: &CgyyCancelOrderRequest,
+) -> Result<CgyyCancelOrderPreflight> {
+    let request = normalize_cancel_order_request(*request)?;
     let body = business_request(
         runtime,
-        HttpMethod::Post,
-        &format!("/api/orders/new/cancel/{id}"),
+        HttpMethod::Get,
+        &format!("/api/orders/{}", request.order_id),
         BTreeMap::new(),
     )
-    .await?;
-    parse_action_result(&body)
+    .await
+    .map_err(|error| sanitize_cancel_authority_error(&error))?;
+    let authority =
+        parse_cancel_order_authority(&body, request.order_id, shanghai_datetime(runtime.now()))
+            .map_err(|error| sanitize_cancel_authority_error(&error))?;
+    match authority.eligibility {
+        ActionEligibility::Allowed => {}
+        ActionEligibility::Denied => {
+            return Err(unavailable(
+                "该场馆预约订单当前不可取消，请刷新订单后重新准备",
+            ));
+        }
+        ActionEligibility::Unknown => {
+            return Err(authority_changed("场馆取消资格缺少必要字段"));
+        }
+    }
+    let order_status = authority
+        .order_status
+        .expect("已允许取消的场馆订单必须具有 canonical orderStatus");
+    let check_status = authority
+        .check_status
+        .expect("已允许取消的场馆订单必须具有 canonical checkStatus");
+    Ok(CgyyCancelOrderPreflight {
+        target: crate::domain::CgyyCancelOrderTarget {
+            order_id: authority.order_id,
+        },
+        order_status,
+        check_status,
+        reservation_start_date: authority.reservation_start_date,
+        reservation_end_date: authority.reservation_end_date,
+    })
+}
+
+/// 重新读取取消资格后，只发送一次场馆取消请求。
+pub(crate) async fn cancel_order(
+    runtime: &mut ClientRuntime,
+    request: CgyyCancelOrderRequest,
+) -> Result<CgyyCancelOrderResult> {
+    let preflight = preflight_cancel_order(runtime, &request).await?;
+    let access_token = ensure_login(runtime).await?;
+    let path = format!("/api/orders/new/cancel/{}", preflight.target.order_id);
+    let http_request = signed_request(
+        runtime,
+        HttpMethod::Post,
+        &path,
+        BTreeMap::new(),
+        Some(&access_token),
+    )?;
+    let expected_final_url = http_request.url.clone();
+    let response = runtime
+        .request_non_idempotent(http_request)
+        .await
+        .map_err(cancel_send_error)?;
+    log_response(runtime, "orders.cancel", &response);
+    if response.status != 200 || response.final_url != expected_final_url {
+        return Err(cancel_outcome_unknown());
+    }
+    let root = serde_json::from_slice::<Value>(&response.body)
+        .ok()
+        .and_then(|value| value.as_object().cloned())
+        .ok_or_else(cancel_outcome_unknown)?;
+    if root.get("code").and_then(strict_i32_value) != Some(200) {
+        return Err(cancel_outcome_unknown());
+    }
+    Ok(CgyyCancelOrderResult {
+        success: true,
+        message: "场馆预约订单已取消".into(),
+    })
+}
+
+fn normalize_cancel_order_request(
+    request: CgyyCancelOrderRequest,
+) -> Result<CgyyCancelOrderRequest> {
+    if request.order_id <= 0 {
+        return Err(invalid_input("订单标识必须为正数"));
+    }
+    Ok(request)
+}
+
+fn sanitize_cancel_authority_error(error: &UbaaError) -> UbaaError {
+    let message = match error.code {
+        ErrorCode::AuthenticationRequired
+        | ErrorCode::InvalidCredentials
+        | ErrorCode::PasswordRiskConfirmationFailed
+        | ErrorCode::PermissionDenied => "场馆取消资格核对需要重新认证",
+        ErrorCode::NetworkError | ErrorCode::Timeout | ErrorCode::UpstreamUnavailable => {
+            "场馆取消资格核对暂时不可用"
+        }
+        _ => "场馆取消资格核对响应无效",
+    };
+    UbaaError::new(error.code, error.kind, error.retryable, message)
 }
 
 fn reservation_order_json(selections: &[CgyyReservationSelection]) -> Result<String> {
@@ -465,4 +558,21 @@ fn write_outcome_unknown() -> UbaaError {
         false,
         "场馆预约请求已发送，结果未知，请先刷新订单后再决定是否重试",
     )
+}
+
+fn cancel_outcome_unknown() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        "场馆取消请求已发送，结果未知，请刷新订单后再决定是否重试",
+    )
+}
+
+fn cancel_send_error(error: UbaaError) -> UbaaError {
+    if error.code == ErrorCode::OutcomeUnknown {
+        cancel_outcome_unknown()
+    } else {
+        error
+    }
 }

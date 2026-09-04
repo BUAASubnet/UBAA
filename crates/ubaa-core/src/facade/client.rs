@@ -1,6 +1,8 @@
 //! 聚合客户端字段、构造与全局配置。
 
 use std::path::{Path, PathBuf};
+#[cfg(feature = "test-contract")]
+use std::time::Duration;
 
 use crate::auth::AuthWorkflow;
 use crate::config::RouteConfig;
@@ -89,6 +91,35 @@ impl UbaaClient {
         Self::build_with_routing(direct_transport, webvpn_transport, store, config, probe)
     }
 
+    /// 使用可注入传输、路由输入与探测缓存 TTL 构造测试客户端。
+    ///
+    /// # Errors
+    ///
+    /// 双路线会话协调器或任一路线运行时无法初始化时返回错误。
+    #[cfg(feature = "test-contract")]
+    #[doc(hidden)]
+    pub fn with_routing_and_probe_ttl<TDirect, TWebVpn, P>(
+        direct_transport: TDirect,
+        webvpn_transport: TWebVpn,
+        store: FileSessionStore,
+        config: RouteConfig,
+        probe: P,
+        probe_ttl: Duration,
+    ) -> Result<Self>
+    where
+        TDirect: HttpTransport + 'static,
+        TWebVpn: HttpTransport + 'static,
+        P: GatewayProbe + 'static,
+    {
+        Self::build_with_probe(
+            direct_transport,
+            webvpn_transport,
+            store,
+            config,
+            Box::new(CachingGatewayProbe::new(probe, probe_ttl)),
+        )
+    }
+
     fn build_with_routing<TDirect, TWebVpn, P>(
         direct_transport: TDirect,
         webvpn_transport: TWebVpn,
@@ -101,13 +132,33 @@ impl UbaaClient {
         TWebVpn: HttpTransport + 'static,
         P: GatewayProbe + 'static,
     {
+        Self::build_with_probe(
+            direct_transport,
+            webvpn_transport,
+            store,
+            config,
+            Box::new(CachingGatewayProbe::with_default_ttl(probe)),
+        )
+    }
+
+    fn build_with_probe<TDirect, TWebVpn>(
+        direct_transport: TDirect,
+        webvpn_transport: TWebVpn,
+        store: FileSessionStore,
+        config: RouteConfig,
+        probe: Box<dyn GatewayProbe>,
+    ) -> Result<Self>
+    where
+        TDirect: HttpTransport + 'static,
+        TWebVpn: HttpTransport + 'static,
+    {
         let sessions = DualSessionCoordinator::new(store)?;
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
             config_dir: None,
             config,
-            probe: Box::new(CachingGatewayProbe::with_default_ttl(probe)),
+            probe,
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
                 direct_transport,

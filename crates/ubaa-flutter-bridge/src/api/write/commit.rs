@@ -45,18 +45,23 @@ impl BridgeClient {
             }
             let pending = entry.request;
             let operation = pending.operation();
+            let expected_route = entry.resolved_route;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
-            let current_resolution = client
-                .resolve_route_for_feature(pending.feature())
-                .map_err(map_resolution_error)?;
-            let current_route: BridgeConnectionMode = current_resolution.mode.into();
-            if current_route != entry.resolved_route {
-                return Err(BridgeError::local(
-                    BridgeErrorCode::OperationConflict,
-                    BridgeErrorKind::Input,
-                    true,
-                    "route changed; prepare the write again",
-                ));
+            // 场馆取消把路线匹配与最终发送绑定在 Core 的同一个调用中；若先在
+            // Bridge 解析再调用普通写入口，Auto 探测缓存跨界时会形成 TOCTOU。
+            if !matches!(&pending, PendingWrite::CgyyCancel(_)) {
+                let current_resolution = client
+                    .resolve_route_for_feature(pending.feature())
+                    .map_err(map_resolution_error)?;
+                let current_route: BridgeConnectionMode = current_resolution.mode.into();
+                if current_route != expected_route {
+                    return Err(BridgeError::local(
+                        BridgeErrorCode::OperationConflict,
+                        BridgeErrorKind::Input,
+                        true,
+                        "route changed; prepare the write again",
+                    ));
+                }
             }
             match &pending {
                 PendingWrite::BykcSelect(request) => {
@@ -189,9 +194,22 @@ impl BridgeClient {
                         )
                     }),
                 PendingWrite::CgyyCancel(request) => client
-                    .cgyy_cancel_order(request.id)
+                    .cgyy_cancel_order_if_route_matches(
+                        domain::CgyyCancelOrderRequest {
+                            order_id: request.order_id,
+                        },
+                        expected_route.into(),
+                    )
                     .await
-                    .map(|r| (r.resolution, true, safe_message("场馆订单已取消"), None)),
+                    .map(|r| {
+                        let success = r.data.success;
+                        let message = if success {
+                            safe_message("场馆订单已取消")
+                        } else {
+                            safe_message("场馆订单取消未完成")
+                        };
+                        (r.resolution, success, message, None)
+                    }),
                 PendingWrite::Evaluation(request) => client
                     .evaluation_submit_courses(
                         request
@@ -204,17 +222,64 @@ impl BridgeClient {
                     .map(|r| (r.resolution, true, safe_message("教学评教已提交"), None)),
             };
             match result {
-                Ok((resolution, success, message, cgyy_receipt)) => Ok(BridgeWriteCommitResult {
+                Ok((resolution, success, message, cgyy_receipt)) => finish_commit_success(
                     operation,
+                    resolution.mode.into(),
                     success,
                     message,
-                    outcome_unknown: false,
-                    resolved_route: Some(resolution.mode.into()),
                     cgyy_receipt,
-                }),
-                Err(error) => Err(map_commit_error(operation, error)),
+                ),
+                Err(error) => Err(map_dispatch_error(operation, expected_route, error)),
             }
         })
         .await
     }
+}
+
+pub(super) fn finish_commit_success(
+    operation: super::BridgeWriteOperation,
+    resolved_route: BridgeConnectionMode,
+    success: bool,
+    message: String,
+    cgyy_receipt: Option<super::BridgeCgyyReservationReceipt>,
+) -> Result<BridgeWriteCommitResult, BridgeError> {
+    if matches!(operation, super::BridgeWriteOperation::CgyyCancelOrder) && !success {
+        return Err(BridgeError {
+            code: BridgeErrorCode::UpstreamChanged,
+            kind: BridgeErrorKind::Upstream,
+            retryable: false,
+            message: "场馆订单取消响应未确认成功".to_owned(),
+            resolved_route: Some(resolved_route),
+        });
+    }
+    Ok(BridgeWriteCommitResult {
+        operation,
+        success,
+        message,
+        outcome_unknown: false,
+        resolved_route: Some(resolved_route),
+        cgyy_receipt,
+    })
+}
+
+fn map_dispatch_error(
+    operation: super::BridgeWriteOperation,
+    expected_route: BridgeConnectionMode,
+    error: domain::RoutedError,
+) -> BridgeError {
+    if matches!(operation, super::BridgeWriteOperation::CgyyCancelOrder)
+        && error.error.code == domain::ErrorCode::InvalidInput
+        && error
+            .resolution()
+            .is_some_and(|resolution| resolution.mode != expected_route.into())
+    {
+        return BridgeError {
+            code: BridgeErrorCode::OperationConflict,
+            kind: BridgeErrorKind::Input,
+            retryable: true,
+            message: "route changed; prepare the write again".to_owned(),
+            resolved_route: error.resolution().map(|resolution| resolution.mode.into()),
+        };
+    }
+    map_commit_error(operation, error)
 }

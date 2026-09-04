@@ -4,7 +4,7 @@ use super::captcha::{
 };
 use super::crypto::build_captcha_solution;
 use super::http::{check_business_response, safe_parameter_summary, safe_url, signed_request};
-use super::parser::{parse_action_result, parse_sites};
+use super::parser::parse_sites;
 use super::sign::sign;
 use super::write::{build_submit_form, validate_submit_request};
 use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
@@ -37,14 +37,6 @@ fn 签名排除冻结审计字段() {
         sign("/api/test", &clean, timestamp),
         sign("/api/test", &noisy, timestamp)
     );
-}
-
-#[test]
-fn 解析取消订单成功消息() {
-    let result = parse_action_result(r#"{"code":200,"message":"取消成功","data":null}"#)
-        .expect("应解析成功");
-    assert_eq!(result.message, "取消成功");
-    assert!(result.order.is_none());
 }
 
 #[test]
@@ -362,10 +354,17 @@ fn 预约请求_debug_隐藏全部敏感表单字段且保留安全结构元数�
 }
 
 mod contract {
+    use chrono::NaiveDateTime;
+
     use super::super::parser::{
-        parse_day_context, parse_lock_code, parse_order_detail, parse_orders,
+        parse_day_context, parse_lock_code, parse_order_detail_at, parse_orders_at,
         parse_purpose_types_with_source, parse_sites,
     };
+
+    fn fixed_now() -> NaiveDateTime {
+        NaiveDateTime::parse_from_str("2026-09-05 12:00:00", "%Y-%m-%d %H:%M:%S")
+            .expect("固定场馆解析时间有效")
+    }
 
     #[test]
     fn 解析场馆站点和用途类型() {
@@ -457,40 +456,44 @@ mod contract {
     #[test]
     fn 解析订单分页和详情完整字段() {
         let body = include_str!("../../../../../fixtures/readonly/cgyy-orders.json");
-        let page = parse_orders(body).unwrap();
+        let page = parse_orders_at(body, fixed_now()).unwrap();
         assert_eq!(
             page.content[0].purpose_type_name.as_deref(),
             Some("学术研讨类（竞赛、答辩、展示等小组讨论）")
         );
         assert_eq!(page.content[0].check_content.as_deref(), Some("材料不完整"));
-        let detail =
-            parse_order_detail(r#"{"code":200,"data":{"id":9,"theme":"课程讨论","joinerNum":3}}"#)
-                .unwrap();
+        let detail = parse_order_detail_at(
+            r#"{"code":200,"data":{"id":9,"theme":"课程讨论","joinerNum":3}}"#,
+            fixed_now(),
+        )
+        .unwrap();
         assert_eq!(detail.theme.as_deref(), Some("课程讨论"));
         assert_eq!(detail.joiner_num, Some(3));
     }
 
     #[test]
     fn 成功订单空数据按冻结实现映射为空页和空详情() {
-        let page = parse_orders(r#"{"code":200,"data":null}"#).unwrap();
+        let page = parse_orders_at(r#"{"code":200,"data":null}"#, fixed_now()).unwrap();
         assert!(page.content.is_empty());
         assert_eq!(page.total_elements, 0);
         assert_eq!(page.size, 20);
         assert_eq!(page.number, 0);
 
-        let detail = parse_order_detail(r#"{"code":200,"data":null}"#).unwrap();
+        let detail = parse_order_detail_at(r#"{"code":200,"data":null}"#, fixed_now()).unwrap();
         assert_eq!(detail.id, 0);
     }
 
     #[test]
     fn 订单缺少数据字段时按旧版映射为空对象() {
-        let page =
-            parse_orders(r#"{"code":200,"message":"OK","content":[{"id":99}],"totalElements":1}"#)
-                .unwrap();
+        let page = parse_orders_at(
+            r#"{"code":200,"message":"OK","content":[{"id":99}],"totalElements":1}"#,
+            fixed_now(),
+        )
+        .unwrap();
         assert!(page.content.is_empty());
         assert_eq!(page.total_elements, 0);
 
-        let detail = parse_order_detail(r#"{"code":200,"message":"OK"}"#).unwrap();
+        let detail = parse_order_detail_at(r#"{"code":200,"message":"OK"}"#, fixed_now()).unwrap();
         assert_eq!(detail.id, 0);
     }
 

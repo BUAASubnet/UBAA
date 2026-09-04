@@ -4,10 +4,14 @@ use ubaa_core::facade::testing::{
     FileSessionStore, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
 };
 use ubaa_core::facade::{
-    CgyyPurposeSource, CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode,
-    Result, RouteClient,
+    CgyyCancelOrderRequest, CgyyPurposeSource, CgyyReservationSelection,
+    CgyyReservationSubmitRequest, ConnectionMode, Result, RouteClient,
 };
 
+#[path = "cgyy/cancel_authority.rs"]
+mod cancel_authority;
+#[path = "cgyy/cancel_support.rs"]
+mod cancel_support;
 #[path = "cgyy/reservation_authority.rs"]
 mod reservation_authority;
 #[path = "cgyy/reservation_support.rs"]
@@ -314,11 +318,14 @@ fn 场馆取消写链发送签名路径和订单标识() {
         .enable_all()
         .build()
         .unwrap();
-    let result = runtime.block_on(client.cgyy_cancel_order(77)).unwrap().data;
-    assert_eq!(result.message, "取消成功");
+    let result = runtime
+        .block_on(client.cgyy_cancel_order(CgyyCancelOrderRequest { order_id: 77 }))
+        .unwrap()
+        .data;
+    assert_eq!(result.message, "场馆预约订单已取消");
     let requests = requests.lock().unwrap();
-    assert_eq!(requests.len(), 3);
-    let cancel = &requests[2];
+    assert_eq!(requests.len(), 4);
+    let cancel = &requests[3];
     let url = url::Url::parse(&cancel.url).unwrap();
     assert_eq!(url.path(), "/venue-zhjs-server/api/orders/new/cancel/77");
     assert!(cancel.body.is_empty());
@@ -469,6 +476,7 @@ impl HttpTransport for CgyyWriteTransport {
             "/venue-zhjs-server/api/reservation/order/info" => HttpResponse::new(200, request.url, br#"{"code":200,"data":{}}"#.to_vec()),
             "/venue-zhjs-server/api/captcha/check" => HttpResponse::new(200, request.url, br#"{"code":200,"data":{"success":true}}"#.to_vec()),
             "/venue-zhjs-server/api/reservation/order/submit" => HttpResponse::new(200, request.url, r#"{"code":200,"message":"预约成功","data":{}}"#.as_bytes().to_vec()),
+            "/venue-zhjs-server/api/orders/77" => HttpResponse::new(200, request.url, r#"{"code":200,"data":{"id":77,"orderStatus":1,"checkStatus":1}}"#.as_bytes().to_vec()),
             path if path.starts_with("/venue-zhjs-server/api/orders/new/cancel/") => HttpResponse::new(200, request.url, r#"{"code":200,"message":"取消成功","data":null}"#.as_bytes().to_vec()),
             _ => panic!("未预期的场馆写请求: {path}"),
         };
