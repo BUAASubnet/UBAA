@@ -532,6 +532,16 @@
      contract 升为 v4。完整 `just check`、`just flutter-check`、`just refs`、`just layout-check`、702 文件
      敏感扫描、FRB 零漂移、CLI binary E2E 16 项、macOS 脱敏宿主 integration 7 项及独立终审均通过。
      本阶段未联网执行真实预约，不包含签名、实体设备或真实写后核对证据；Phase 11F–14 继续按代码组织计划执行。
+183. 代码组织 Phase 11F 来源提交 `3e35b75` 与实现提交 `ef63d0a` 将图书馆取消改为 Core 所有的三态
+     eligibility/target，并把 action 的 `id/page/limit` 贯穿 prepare、commit 与同页 readback；取消 authority
+     必须由响应显式证明 canonical 正数分页且唯一匹配目标，最终 `/v4/space/cancel` wire 仍只有 `{id}` 并只发送
+     一次。未知成功文案与发送后歧义均不得默认成功，最终结果及 `/v4/member/seat` authority 错误均按操作映射
+     固定安全文案，不向 facade/CLI/Bridge 泄漏 raw message。CLI envelope 显式升为 schema v6，bridge
+     contract 升为 v5，磁盘 session 仍为 schema v2。Core 176 项默认测试、LibBook integration 25 项、CLI
+     contract 50 项、Bridge 61 项、Flutter Domain/App/UI/Bindings/Platform/Host/官方 App 全量测试、macOS 脱敏
+     integration 7 项、`just refs`、`just layout-check`、705 文件敏感扫描、完整 `just check`、FRB 零漂移、完整
+     `just flutter-check` 与独立正确性/安全复核均通过。本阶段未联网执行真实取消，不包含签名、实体设备或真实
+     写后核对证据；Phase 11G–14 继续按代码组织计划执行。
 
 ## 4. 安全与架构边界
 
