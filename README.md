@@ -10,8 +10,8 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
-- 阶段 11I 工作树上的十二项读取页面、typed 查询及十项写入流程已有 Fixture/Mock、Rust、Dart、
-  widget/golden 与脱敏宿主 integration 证据；Ygdk typed 提交已通过本地确定性门禁，阶段提交与最终候选绑定尚未完成；
+- 阶段 11I 提交上的十二项读取页面、typed 查询及十项写入流程已有 Fixture/Mock、Rust、Dart、
+  widget/golden 与脱敏宿主 integration 证据；Ygdk typed 提交已通过本地确定性门禁，最终候选绑定尚未完成；
 - Direct 与 WebVPN 的当前真实证据只覆盖 Core-live 只读矩阵，不代表真实 App 账号链路或真实写入；
 - 正式签名、证书、公证、商店上传、实体设备、原生安全存储 handler 和真实写入核对仍是后置条件。
 

@@ -1,5 +1,61 @@
 # 决策记录
 
+## 2026-09-05：Phase 11J 评教 fresh typed 批量提交与逐课程结果边界（来源合同已固定）
+
+本条先固定来源和待实施合同；生产代码必须在本条提交后才可修改。适用本地来源为
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `EvaluationService.kt`、
+`LocalEvaluationService.kt`、`EvaluationModel.kt`、`LocalEvaluationServiceBackendTest.kt`、旧 server
+`EvaluationClient.kt`、`EvaluationService.kt` 及其测试。交叉来源为
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `api/tes/{auth,data,opt}.rs`。
+完整逐操作九列见
+[source-parity.md 的 Phase 11J 表](source-parity.md#phase-11j-evaluation-提交逐操作九列2026-09-05)。
+
+两份来源共同证明评教业务位于 `https://spoc.buaa.edu.cn/pjxt`，任务、问卷、课程、题目与最终提交端点一致；
+本地产品先访问无显式 `service` 参数的 `/pjxt/cas`，任务请求固定
+`yhdm=<schoolid，空时回退 username>&pageNum=1&pageSize=10`。示例自行从
+`https://sso.buaa.edu.cn/login?service=.../pjxt/cas` 登录并使用 credential username；这里采用被迁移本地产品
+的身份与激活顺序，不把示例登录 URL 拼接进 Core。所有 Cookie 只属于当前用户和已解析 Direct/WebVPN runtime，
+不得跨路线、落盘到公开 DTO 或由 Host 读取。
+
+读取 authority 的顺序固定为任务 GET → 每任务问卷 GET `{rwid}` → 每问卷课程 GET `{wjid}`。当前生产实现把
+课程行重新拼成只含少数字段的 JSON，丢失 `msid` 与题目查询所需字段；Host 又可以回传伪造的整份课程对象。
+Phase 11J 将完整上游课程仅保留在 Core 内部，公开课程只给安全展示、三态 `submitEligibility` 和可空
+`EvaluationSubmitTarget {rwid,wjid,kcdm,bpdm}`。冻结模型注释把 ID 末段写成 `bpmc`，但两份实际 merge 实现及
+冻结测试都使用 `bpdm.orEmpty()`；采用可执行实现与测试的 `bpdm`，并保留本冲突记录。只有 fresh 行明确
+`ypjcs=0`、必需身份/名称/模式完整且同一 typed target 在本批 authority 中唯一时为 `allowed`；`ypjcs>0` 为
+`denied`，缺失、畸形、负数、重复或字段冲突为 `unknown`。展示文字、`isEvaluated` 布尔值、合成 ID 和默认值
+都不能兑换写权限。
+
+prepare 与 commit 都必须重新执行整批 authority，并要求调用方 targets 非空、顺序保持、无重复且每项与 fresh
+唯一 allowed target 完全一致。pending batch 之间任一 target 交集都冲突，不允许以列表顺序或不同批次 ID
+绕过。公开请求只保存 typed targets；Core 内部从 commit 本次 fresh authority 取得完整课程字段。对每门课程按
+冻结本地实现串行执行：尽力 JSON POST `reviseQuestionnairePattern {rwid,wjid,msid}`，再以完整 21 个 query 字段
+GET `getQuestionnaireTopic`，最后 JSON POST `submitSaveEvaluation`，信封精确为
+`{pjidlist:[],pjjglist:[...],pjzt:"1"}`。两份来源均未设置 `X-Requested-With`，因此当前生产中该无来源 Header
+必须删除；没有加密、签名或 challenge。
+
+答案策略采用被迁移本地实现：展平 `wjzblist[].tklist[]`，从全部题目中随机选择一个索引；若该索引对应有至少
+两个选项的选择题，则取第二项，其余选择题取第一项，主观题只在 `wjstctid` 使用第一选项 ID 且
+`xxdalist=[]`；课程结果固定 `pjdf=93` 并保持冻结字段/null。示例的“第一道选择题取第二项”、动态评分、满分/
+不及格理由约束与提交后的 `checkWhetherTheTaskIsEvaluable`、`system/property` 探测都只作冲突证据，不拼接进
+本地产品协议，也不得作为写后成功证明。
+
+最终 POST 必须通过不可自动重放边界恰好发送一次。明确 primitive `code` 为 `0`、`200` 或 `success`
+才是该课程确定成功；明确其它 primitive code 为确定失败。发送后的 transport/timeout/Cookie 错误、HTTP
+非 2xx、跳转、认证页、非 JSON、非 object、缺失或畸形 code 均为该课程不可重试 `outcome_unknown`。发生首个
+unknown 后立即停止：该课程标为 unknown，后续课程全部标为 `unattempted`；发送前题目/资格等确定失败则记录
+固定安全 failure 并继续下一课程。任何结果都不得透传 raw message/body、学生身份、题目、答案或内部课程字段。
+
+公开结果固定为按输入顺序的 `EvaluationCourseSubmitResult {target,courseName,outcome,message}`，outcome 只允许
+`success/failure/outcomeUnknown/unattempted`；batch 只有全部 success 才整体 success，含 unknown 时整体
+`outcome_unknown=true`。CLI 原始 JSON payload 入口必须删除，CLI 只从 fresh pending 读取产生 typed targets；
+公开 CLI JSON schema 计划由 v9 升 v10，Flutter Bridge contract 由 v8 升 v9。Bridge 不得丢弃逐课程结果或
+硬编码整体成功，UI 不得从中文字段反向拼装课程。确定结果和 unknown 都只在 intent 原路线执行一次
+caller-pinned `evaluationAll` 回读；该回读仅刷新状态，绝不把 unknown 升级为 success，也不触发自动重发。
+
+本条未联网、未发送评教、未读取真实课程或个人数据；它不授权任何真实账号写入，也不构成签名、实体设备或
+正式发布证据。
+
 ## 2026-09-05：Phase 11I 阳光打卡 typed 资格与单次最终提交边界（本地确定性门禁完成）
 
 本条固定本阶段的来源、安全合同与当前实施边界；完整逐操作九列见

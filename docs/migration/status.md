@@ -10,8 +10,8 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| committed implementation HEAD | `f4e3137` | 代码组织阶段 11H：Cgyy 取消三态资格、typed target/strict 已取消证明、双 fresh authority、原子固定路线、单次不可重放发送与 caller-pinned 双回读已实现；CLI schema v8、bridge v7；不表示当前工作树或真实写入已验证 |
-| implementation worktree | 未提交 | 阶段 11I 本地确定性门禁已完成：Ygdk OAuth/session generation guard、typed authority/request、expected-route 原子写链与 caller-pinned 双回读已闭合；CLI schema v9、bridge v8；阶段提交绑定待完成 |
+| committed implementation HEAD | `d8484ad` | 代码组织阶段 11I：Ygdk typed authority/request、expected-route 原子写链、单次 upload/final 与 caller-pinned 双回读已实现并通过本地确定性门禁；CLI schema v9、bridge v8；不表示真实写入已验证 |
+| implementation worktree | 未提交 | 阶段 11J 仅在记录 Evaluation 两份冻结来源的逐操作差异与 typed 批量提交设计；生产实现尚未改变 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -19,8 +19,8 @@
 [实施计划](../superpowers/plans/2026-09-03-code-organization.md) 为权威。结构治理提交在阶段 14 绑定新的
 verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
-当前工作树公开版本为 CLI JSON schema v9；Flutter bridge contract v8。两者已取得阶段 11I 的本地全量
-确定性门禁和独立终审结论，尚未取得阶段提交与最终候选绑定。
+当前公开版本为 CLI JSON schema v9；Flutter bridge contract v8。两者已在 `d8484ad` 取得阶段 11I 的本地
+全量确定性门禁和独立终审结论，尚未取得最终候选绑定。阶段 11J 的破坏性合同升级尚未实施。
 
 ## 当前能力
 
@@ -117,7 +117,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   Flutter 全量与宿主 integration 的首轮失败分别暴露两个测试 backend 未声明 caller-pinned 能力，以及取消
   后订单视图仍被误当作预约视图；修复测试宿主接口与操作顺序后均全量复跑通过。本阶段未执行真实场馆取消，
   不包含签名、实体设备或真实写后核对。
-- 阶段 11I 当前工作树将 Ygdk 分类与项目收归 Core fresh typed authority；prepare 不上传，commit 在
+- `d8484ad` 上的阶段 11I 将 Ygdk 分类与项目收归 Core fresh typed authority；prepare 不上传，commit 在
   expected-route 原子入口中固定路线、Session/credential generation，并依次执行 fresh authority、最多一次
   upload 与最多一次 final。任何 upload 失败均不自动重传且不进入 final；final 发送后歧义固定为不可重试
   `outcome_unknown`。确定成功与 unknown 都只在 intent 原路线独立执行一次 caller-pinned overview/records
@@ -126,7 +126,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   官方 App 2 项及 macOS 脱敏宿主 integration 7 项通过；`just refs`、`just layout-check`、完整 `just check`、
   FRB 零漂移、完整 `just flutter-check`、敏感信息扫描和独立终审均通过。结构拆分后除 Phase 12 待处理的
   `widgets.dart` 精确 baseline 外没有其它超长文件或拥挤目录。本阶段未执行真实照片上传或账号写入，不包含
-  签名、实体设备或真实写后核对；本条在阶段提交产生前仍只绑定当前工作树。
+  签名、实体设备或真实写后核对。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -143,7 +143,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11I 已完成本地确定性门禁但尚未提交绑定；阶段 11J–14 未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11I 已由 `d8484ad` 完成本地确定性门禁；阶段 11J–14 未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。
