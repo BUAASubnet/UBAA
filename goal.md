@@ -542,6 +542,14 @@
      integration 7 项、`just refs`、`just layout-check`、705 文件敏感扫描、完整 `just check`、FRB 零漂移、完整
      `just flutter-check` 与独立正确性/安全复核均通过。本阶段未联网执行真实取消，不包含签名、实体设备或真实
      写后核对证据；Phase 11G–14 继续按代码组织计划执行。
+184. 代码组织 Phase 11H 来源提交 `c2e07ae` 与实现提交 `f4e3137` 将场馆取消改为 Core 所有的三态
+     eligibility/target 与 strict `cancelledTarget` 证明：请求 ID 在 Auto 探测前校验，prepare/commit 均 fresh
+     读取同 ID 详情并按 `Asia/Shanghai` 严格核对开始前四小时截止点；最终取消在 Core 单次路线解析所得
+     runtime 上只发送一次。成功或 `outcome_unknown` 都固定 intent 原路线读取 0-based 首页列表与同 ID 详情，
+     只有两个本次局部结果都证明同一订单已取消才标记已核对，失败时绝不重发。CLI envelope 升为 schema v8，
+     bridge contract 升为 v7。Core 333 项、Bridge 81 项、CLI contract 66 项、Flutter 各 package 全量、
+     FRB 零漂移、完整 `just check`/`just flutter-check`、719 文件敏感扫描、macOS 脱敏宿主 integration 7 项与
+     独立终审均通过。本阶段未执行真实取消，不包含签名、实体设备或真实写后核对证据；Phase 11I–14 继续执行。
 
 ## 4. 安全与架构边界
 

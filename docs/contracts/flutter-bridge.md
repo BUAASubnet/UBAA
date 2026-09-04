@@ -9,13 +9,14 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `6`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `7`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
   `id/page/limit` authority 上下文。版本 6 将 Cgyy 时段 `reservationStatus` 改为可空整数，以 typed
   `reservationEligibility/reservationTarget` 取代 `isReservable`，并将预约成功结果收窄为安全收据。
-  版本 6 不与版本 5 或更早的生成绑定混用。
+  版本 7 再为 Cgyy 订单增加 typed `cancelEligibility/cancelTarget/cancelledTarget`，并新增
+  caller-pinned 的取消列表/详情回读。版本 7 不与版本 6 或更早的生成绑定混用。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -31,7 +32,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=6` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=7` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -70,7 +71,7 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 Core 错误码逐一映射：`invalid_input`、`authentication_required`、`invalid_credentials`、
 `password_risk_confirmation_failed`、`permission_denied`、`network_error`、`timeout`、
 `upstream_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
-Phase 11C–11G 已收口的博雅签到、课堂签到、LibBook 预约/取消与 Cgyy 预约链只允许在非幂等写请求越过
+Phase 11C–11H 已收口的博雅签到、课堂签到、LibBook 预约/取消与 Cgyy 预约/取消链只允许在非幂等写请求越过
 发送边界后产生 `outcome_unknown`；其余写操作暂时保留既有的 commit 阶段保守映射，可能把业务登录或
 预检中的网络类失败也归入结果未知，必须在后续来源对照阶段逐项收窄。LibBook 的 `outcome_unknown`
 保留 Core 提供的稳定 code、kind 与安全 message，同时强制 `retryable=false`；Cgyy 预约遵守相同的安全
@@ -200,7 +201,9 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `{venueSiteId,reservationDate,spaceId,timeId,venueSpaceGroupId?,timeOrdinal}`：站点、空间和时段 ID 必须为
   正数，日期非空，空间组为 `null` 或正数，raw `timeOrdinal` 为非负整数。交易号、
   订单号、占用数量/标记和内部说明不得跨 FFI。`CgyyOrder` 的 Dart 投影仅允许
-  `{id,venueSiteId?,reservationDate?,reservationDateDetail?,venueSpaceName?,campusName?,venueName?,siteName?,reservationStartDate?,reservationEndDate?,orderStatus?,checkStatus?,theme?,purposeTypeName?,joinerNum?}`。
+  `{id,venueSiteId?,reservationDate?,reservationDateDetail?,venueSpaceName?,campusName?,venueName?,siteName?,reservationStartDate?,reservationEndDate?,orderStatus?,checkStatus?,theme?,purposeTypeName?,joinerNum?,cancelEligibility,cancelTarget?,cancelledTarget?}`。
+  `cancelTarget` 只在 Core 确认订单可取消且 canonical 正数 ID 与订单一致时存在；
+  `cancelledTarget` 只在 Core 严格解析同 ID `orderStatus=2`、资格为 `denied` 且无待取消目标时存在。
   交易号、手机号、支付状态、用途原始编号、活动正文、参与人、审核内容、处理原因和备注
   不得进入 `BridgeCgyyOrder`；写入结果另只从该投影提取非敏感收据。`CgyyOrdersPage`
   保持分页字段；用途结果必须为 `{items,source}`，`source` 为
@@ -262,7 +265,9 @@ payload 传递。查询结果
 决定取消入口，`statusName` 和“状态码”只供展示，不参与资格推断。场馆订单列表/详情可投影冻结
 `checkStatus` 为“审核状态”，仅供展示；这些字段均不是令牌、交易号或内部正文，不改变 Core 的最终取消资格校验。
 场馆订单同时提供由冻结状态码派生的“订单状态说明/审核状态说明”，仅作为稳定中文展示文本；Dart 不据此拼接
-请求或改变 Core 的取消资格。
+请求或改变 Core 的取消资格。`BridgeCallerPinnedCgyyOrders` 与
+`BridgeCallerPinnedCgyyOrder` 只包含 `{data,pinnedRoute}`；它们表示 Core 实际使用了调用方指定的
+已认证路线，不伪造 `RouteDecision`，不执行 Auto 探测或跨路线回退。
 
 ## 6. 写 intent
 
@@ -280,7 +285,7 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 | `prepareLibbookCancelBooking` | `{id,page,limit}` | `libbookCancel` |
 | `prepareYgdkSubmit` | `{itemId?,startTime?,endTime?,place?,shareToSquare?,photo?}` | `ygdkSubmit` |
 | `prepareCgyySubmitReservation` | 由 1–2 个 `CgyyReserveAction` 唯一派生的目标与表单字段；不含 challenge 内部材料 | `cgyyReservation` |
-| `prepareCgyyCancelOrder` | `{id}` | `cgyyAction` |
+| `prepareCgyyCancelOrder` | `{orderId}` | `cgyyCancelOrder` |
 | `prepareEvaluationSubmitCourses` | `{courses: List<EvaluationCourse>}` | `evaluationBatch` |
 
 `cgyyReservation` 成功结果可附带 `CgyyReservationReceipt`，只投影
@@ -359,6 +364,21 @@ Flutter domain/app 的场馆预约提交只接受读取结果产生的 `CgyyRese
 不可重试的 `outcome_unknown`，不得自动重放。确定成功只可附带
 `{orderId,venueSiteId?,reservationDate?,orderStatus?}` 安全收据；验证码、完整订单、电话、主题、参与人、
 活动正文、上游 raw message 和其它个人信息不得进入写结果或错误。
+
+场馆取消 prepare 只接受读取结果产生的 `CgyyCancelAction`；App 要求 eligibility 为
+`allowed`、canonical 正数 `orderId` 与 `cancelTarget.orderId` 严格一致，并只在最末 adapter 构造
+`{orderId}`。Bridge prepare 与 commit 均由 Core fresh GET `/api/orders/{id}` 复核同 ID 资格与
+上海时区的开始前四小时截止点。commit 在 Core 内只解析一次路线，仅当结果与 intent
+的 `resolvedRoute` 一致时，才使用该同一 runtime 读详情并越过一次最终 POST 发送边界；路线变化在
+网络写入前映射为 `operationConflict`。成功结果固定为 `success=true/场馆订单已取消`；
+Core 若返回矛盾的 `success=false`，Bridge 失败关闭为 `upstreamChanged`，不得当作普通成功。
+
+场馆取消确定成功或 `outcomeUnknown` 后，App 依次调用
+`cgyyOrdersOnRoute(route,page=0,size=20)` 与 `cgyyOrderDetailOnRoute(route,id)`；两次回读都必须
+使用 intent 原路线，不重新执行路线策略。证明只消费本次两个局部结果，两者各自必须唯一
+匹配同 ID 且 `cancelledTarget.orderId` 一致；旧 snapshot、展示字段、单一列表或单一详情都不能标记
+已核对。列表结果可在 generation 未变且路线一致时最佳努力刷新 UI，但 snapshot 绝不参与证明；
+任一回读失败均只保持“未核对”，不重发取消。
 
 场馆预约的本地表单门禁还要求联系电话、主题、活动内容和参与人文本非空，用途编号与参与人数为正；
 这只约束产品 typed 请求，不改变 Core 上游协议。阳光打卡和场馆预约的 `request_digest` 只对非敏感形状做

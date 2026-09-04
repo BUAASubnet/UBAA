@@ -12,8 +12,10 @@
 `upstream_changed`，绝不下载、提示或提交验证材料。Core 会拒绝破坏这些关系的聚合 envelope。
 
 稳定 DTO 和错误码由 `goal.md` 第 6 节定义。每个 CLI 成功、失败、参数错误、聚合认证结果和
-隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的 schema 版本 4；CLI 不再
-输出 schema-v3。这不改变 `config.toml` 或 `session.json` 的版本化迁移读取器，磁盘
+隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 schema 版本 8；CLI 不再
+输出 schema-v7 或更早 envelope。历史 schema v4 首次承载 Signin typed 写结果，v5–v7 分别承载
+LibBook 预约、LibBook 取消与 Cgyy 预约合同，v8 再承载 Cgyy typed 取消资格与安全结果。这不改变
+`config.toml` 或 `session.json` 的版本化迁移读取器，磁盘
 `session.json` 仍为 schema v2。密码绝不会
 进入持久化会话或普通输出。
 

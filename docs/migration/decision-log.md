@@ -2,7 +2,8 @@
 
 ## 2026-09-04：Phase 11H 场馆取消双 fresh authority 与最终单次发送边界（当前有效）
 
-本条只固定 Phase 11H 的来源与实施合同，不宣称当前生产实现已经满足。重新核对冻结
+本条先固定 Phase 11H 的来源与实施合同；来源提交 `c2e07ae` 与实现提交 `f4e3137` 已使当前生产实现和
+确定性测试满足本条，但不表示真实账号写入已经验证。重新核对冻结
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `CgyyApi.kt`、`LocalCgyyApi.kt`、
 `LocalCgyySigner.kt`、`Cgyy.kt`、Cgyy 订单取消状态/时间测试以及旧 server 实现。固定
 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的模块清单没有 Cgyy、
@@ -36,15 +37,19 @@ allowed；`orderStatus=2` 或任一负 `checkStatus` 为 denied；状态缺失�
 明确不复制：认证准备和两次详情复核都在发送边界前完成，final POST 只经 `request_non_idempotent` 恰好调用
 一次，401、认证/业务跳转或任何其它结果都不得刷新认证后重放。只有冻结支持的 `code=200` 产生固定安全成功
 结果；一旦 POST 已发送，非 200、final URL 异常、transport/timeout、Cookie、非 JSON、非 object、code
-缺失或畸形统一返回不可重试 `outcome_unknown`。raw message/body、Cookie、token、签名和订单敏感字段均不得
-进入公共 DTO、CLI、Bridge、日志或文件。
+缺失或畸形统一返回不可重试 `outcome_unknown`。取消结果、取消错误、日志与验证证据均不得
+带出 raw message/body、Cookie、token、签名或订单敏感字段。这不在本阶段静默改变已有
+`orders/detail` 读取 DTO 或 CLI schema；它们仍由各自公开合同管理。
 
-确定成功或 `outcome_unknown` 后都只在原路线读取订单列表与同 ID 详情，绝不再次提交。仅 fresh canonical
-同 ID `orderStatus=2` 是取消证据；空详情、读取失败、ID 不匹配或列表/详情冲突保持未核对。历史独立授权探针
+确定成功或 `outcome_unknown` 后都只在 intent 原路线读取 0-based 首页订单列表与同 ID 详情，
+绝不重新 Auto 探测或再次提交。只有两个本次局部结果都唯一匹配同 ID，并各自携带 Core 从
+strict canonical `orderStatus=2` 派生的 `cancelledTarget`，才能标记已核对；旧 snapshot、空详情、
+读取失败、ID 不匹配或列表/详情冲突保持未核对。历史独立授权探针
 曾出现取消信封成功后列表仍为状态 1、稍后列表才变为状态 2，详情则先失败再返回空 data，因此取消响应不能
-自行升级为最终业务状态，读回失败也不能触发自动重发。本条没有授权或执行真实取消；实施必须先以脱敏
-fixture/Mock 完成严格 ID、状态、上海时间边界、双 fresh、单 POST、`outcome_unknown`、安全结果与列表/详情
-回读 RED 门禁。
+自行升级为最终业务状态，读回失败也不能触发自动重发。本条没有授权或执行真实取消。`f4e3137` 已以脱敏
+fixture/Mock 完成严格 ID、状态、上海时间边界、双 fresh、单 POST、`outcome_unknown`、安全结果、原子路线
+与 caller-pinned 列表/详情回读门禁；Core 333 项、Bridge 81 项、CLI contract 66 项、完整 Rust/Flutter
+工作区与 macOS 宿主 integration 7 项终态通过。
 
 ## 2026-09-04：Phase 11G 场馆预约 typed 资格与最终单次发送边界（当前有效）
 

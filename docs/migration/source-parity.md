@@ -203,7 +203,7 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
-| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v7；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果；v7 承载 Cgyy 可空 canonical 状态、typed `reservationEligibility/reservationTarget` 与安全预约结果/收据，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
+| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v8；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果；v7 承载 Cgyy 可空 canonical 状态、typed `reservationEligibility/reservationTarget` 与安全预约结果/收据；v8 再承载 Cgyy typed `cancelEligibility/cancelTarget/cancelledTarget` 与固定安全取消结果，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
 
 2026-08-24 的配置持久化证据：Unix 测试证明加载和保存会拒绝符号链接 `config.toml`，不会读取
 或改变其目标。八个并发保存使用唯一独占临时文件发布一份完整可解析配置，不遗留临时文件，
@@ -332,6 +332,12 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 | 11I Ygdk 提交 | OAuth → upload → clockin；示例不适用 | 最多 10 跳提 code，host gap 保留 | 路线内 uid/token | multipart 后 form，时间为上海 epoch 秒 | multipart + URL encoded | 无 | overview item、完整日期时间、图片 | 登录单飞；最终写不重放 | ID 正数、同日 end>start、图片有效；unknown 拒绝 |
 | 11J Evaluation 提交 | SPOC pjxt；两源部分等价 | 有界激活，示例 final 交叉证据 | 路线内 SPOC Cookie | revise/topic/submit；示例差异不拼接 | JSON | 无 | 完整 course DTO 与 pending 状态 | 逐课程串行；冻结本地答案策略 | evaluated/unknown/缺字段拒绝；逐项失败决定整体失败 |
 
+11H 表中“固定安全结果、不透传订单敏感字段”仅限取消结果、取消错误、日志与验证证据；
+不在本阶段静默破坏已有 `orders/detail` 读取 DTO 或 CLI schema。确定成功或
+`outcome_unknown` 后，Flutter 固定使用 intent 原路线读取 0-based 首页列表与同 ID 详情，
+不重新执行 Auto 探测。只有本次两个局部结果都唯一匹配同 ID，并各自带 Core 严格派生的
+`cancelledTarget`，才能标记已核对；旧 snapshot、单一读回、空、失败或冲突都保持未核对且绝不重发。
+
 11E 的冻结本地调用链固定为：CAS 精确 service 地址换取 `cas`，JSON POST `/v4/login/user` 取得非空
 `data.member.token`，JSON POST `/v4/Space/map` 与 `/v4/Space/seat` 完成只读资格复核，最后才允许 JSON POST
 `/v4/space/confirm`。既有只读区域详情仍只把 `date.list` 第一项的 `times` 投影为公开时段；写入 preflight
@@ -401,14 +407,22 @@ start 缺失或无效时才回退 end，并只允许 `now < end`；start/end 都
 最终写边界前完成，final POST `/api/orders/new/cancel/{id}` 只以 URL 编码空表单调用一次
 `request_non_idempotent`，401 或其它异常都不得触发认证刷新或 POST 重放。只有冻结支持的 `code=200` 可
 产生固定安全成功结果；一旦跨过发送边界，非 200、认证/业务跳转、final URL 异常、transport/timeout、
-Cookie、非 JSON 或 envelope/code 结构不足都统一为不可重试 `outcome_unknown`，raw message/body 与订单
-敏感字段不进入 Core 公共错误、CLI 或 Bridge。
+Cookie、非 JSON 或 envelope/code 结构不足都统一为不可重试 `outcome_unknown`。取消结果、取消错误、
+日志与验证证据不得带出 raw message/body 或订单敏感字段；已有 orders/detail 读取 DTO 不在此处静默改变。
 
-确定成功或 `outcome_unknown` 后都必须在同一路线执行只读订单列表与同 ID 详情回读；两次回读彼此独立记录，
-仅 canonical 同 ID `orderStatus=2` 可作为取消证据。空详情、读取失败、ID 不匹配或列表/详情冲突都保持
+确定成功或 `outcome_unknown` 后都必须在 intent 原路线执行 0-based 首页订单列表与同 ID 详情回读；
+两次回读彼此独立记录，不重新执行 Auto 探测。仅两个本次局部结果都唯一匹配同 ID，并携带 Core 从
+canonical `orderStatus=2` 严格派生的 `cancelledTarget`，可作为取消证据。旧 snapshot、空详情、读取失败、
+ID 不匹配或列表/详情冲突都保持
 “未核对”，不得把取消响应信封升级为最终状态，也绝不自动重发取消 POST。历史独立授权探针曾出现取消信封
 成功后列表仍为状态 1、稍后列表变为状态 2，而详情先失败再返回空 data；该历史仅支持上述读回与不重发原则，
 不构成当前真实写授权。
+
+上述 Phase 11H 合同已由来源提交 `c2e07ae` 与实现提交 `f4e3137` 落地。脱敏确定性证据覆盖：非法 ID 在
+Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下溢失败关闭、Core 单次路线解析、固定路线
+回读不探测不回退、final POST 恰好一次、发送后歧义不可重试、CLI/Bridge 固定安全映射，以及两个本次局部
+回读同时提供 strict 同 ID 已取消证明。Core 333 项、Bridge 81 项、CLI contract 66 项、完整
+`just check`、FRB 零漂移、Flutter 工作区和 macOS 宿主 integration 7 项终态通过；没有执行真实取消。
 
 11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
 `courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程

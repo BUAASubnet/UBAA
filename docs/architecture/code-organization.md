@@ -1,6 +1,6 @@
 # 代码与目录组织设计
 
-状态：2026-09-03 已批准执行；2026-09-04 已完成 Phase 11F，当前阶段为 Phase 11G
+状态：2026-09-03 已批准执行；2026-09-05 已完成 Phase 11H，当前阶段为 Phase 11I
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
@@ -53,6 +53,12 @@ action。prepare 与 commit 都 fresh 复核资格，验证码重试只发生在
 越过一次 non-idempotent 发送边界；成功结果至多附带安全收据，发送后无法判定时返回不可重试
 `outcome_unknown`，两者都不公开验证码、完整订单或个人信息。`session.json` 保持 schema v2，
 `config.toml` 保持版本 1。
+
+Phase 11H 将 Cgyy 订单取消从展示状态/时间推断收口为 Core 派生的
+`cancelEligibility/cancelTarget/cancelledTarget`；Flutter bridge contract 使用 v7，CLI schema 使用 v8。
+prepare/commit 都 fresh 读取同 ID 详情并以上海时区复核四小时截止点；commit 只在 Core 内解析
+一次路线并复用同一 runtime 越过一次 non-idempotent 发送边界。成功或结果未知后的列表/详情
+双回读固定 intent 原路线，只消费本次局部 `cancelledTarget` 证明，不从旧 snapshot 或展示字段推断。
 
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。
@@ -212,7 +218,7 @@ UBAA/
 │   │   │   ├── io/
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── input.rs
-│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v7
+│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v8
 │   │   │   │   ├── human.rs
 │   │   │   │   ├── error.rs                # 稳定错误 payload 与名称投影
 │   │   │   │   ├── render.rs               # stdout/stderr 渲染与 Core 错误投影
