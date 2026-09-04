@@ -28,6 +28,13 @@ void registerBridgeBackendSignatureCharacterization() {
       required String endTime,
     })
     libbookSignature = (backend as LibbookWriteBackend).prepareLibbookReserve;
+    final Future<WriteIntent> Function({
+      required String id,
+      required int page,
+      required int limit,
+    })
+    libbookCancelSignature =
+        (backend as CancellationWriteBackend).prepareLibbookCancelBooking;
     final Future<WriteIntent> Function(YgdkSubmitInput) ygdkSignature =
         (backend as YgdkWriteBackend).prepareYgdkSubmit;
     final Future<WriteIntent> Function(CgyySubmitInput) cgyySignature =
@@ -54,6 +61,7 @@ void registerBridgeBackendSignatureCharacterization() {
       signinSignature,
       cancellationSignature,
       libbookSignature,
+      libbookCancelSignature,
       ygdkSignature,
       cgyySignature,
       evaluationSignature,
@@ -61,7 +69,7 @@ void registerBridgeBackendSignatureCharacterization() {
       lifecycleSignature,
       discardSignature,
       setterSignature,
-    ], hasLength(15));
+    ], hasLength(16));
     expect(fake.calls, isEmpty);
   });
 }

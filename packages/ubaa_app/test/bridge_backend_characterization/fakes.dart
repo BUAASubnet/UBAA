@@ -39,7 +39,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 4;
+  int contractVersion() => 5;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -516,8 +516,10 @@ class _CharacterizationBridgeClient implements BridgeClient {
                         day: '2026-09-04',
                         beginTime: '08:00',
                         endTime: '10:00',
-                        status: '1',
-                        statusName: '有效',
+                        status: 1,
+                        statusName: '展示文案声称已结束',
+                        cancelEligibility: BridgeActionEligibility.allowed,
+                        cancelTarget: 'booking-read-1',
                       ),
                     ],
               page: page,

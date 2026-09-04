@@ -24,6 +24,21 @@ typedef LibbookReservePreparer =
 typedef LibbookReserveStarter =
     Future<void> Function(LibbookReserveAction action);
 
+/// 图书馆取消准备回调；保留 Core 给出的稳定目标、资格与同页上下文。
+typedef LibbookCancelPreparer =
+    Future<WriteIntent> Function(LibbookCancelAction action);
+
+/// 图书馆取消启动回调；不得从展示字段重建目标、资格或分页。
+typedef LibbookCancelStarter =
+    Future<void> Function(LibbookCancelAction action);
+
+/// 写入后只读核对回调；可选查询来自准备阶段保存的安全本地上下文。
+typedef WriteSuccessHandler =
+    Future<void> Function(
+      WriteOperation operation,
+      FeatureQuery? readbackQuery,
+    );
+
 /// 教学评教准备回调。
 typedef EvaluationSubmitPreparer =
     Future<WriteIntent> Function(List<EvaluationCourseInput> courses);

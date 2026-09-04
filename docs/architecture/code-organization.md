@@ -1,6 +1,6 @@
 # 代码与目录组织设计
 
-状态：2026-09-03 已批准执行；2026-09-04 已完成 Phase 11E，下一阶段为 Phase 11F
+状态：2026-09-03 已批准执行；2026-09-04 已完成 Phase 11E，当前阶段为 Phase 11F
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
@@ -40,6 +40,11 @@ v4。确定业务 `success=false` 保持外层成功、CLI 退出 0；`outcome_u
 Phase 11E 将 LibBook 座位 `status` 改为可空整数并加入 Core 派生的预约 eligibility/target，Flutter bridge
 contract 使用 v4；CLI schema 使用 v5 并收录严格预约结果。预约 prepare/commit 必须按日期、时段和座位
 唯一匹配 fresh authority，最终 confirm 只越过一次不可重放发送边界；磁盘 `session.json` 仍为 schema v2。
+
+Phase 11F 将 LibBook booking `status` 改为可空整数，并加入 Core 派生的
+`cancelEligibility/cancelTarget`；Flutter bridge contract 使用 v5，CLI schema 使用 v6。取消 action 保存
+`id/page/limit`，prepare、commit 与 readback 必须读取同一页并唯一匹配目标；最终 cancel wire 仍只有 `{id}`
+且只越过一次不可重放发送边界。`session.json` 保持 schema v2，`config.toml` 保持版本 1。
 
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。
@@ -199,7 +204,7 @@ UBAA/
 │   │   │   ├── io/
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── input.rs
-│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v5
+│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v6
 │   │   │   │   ├── human.rs
 │   │   │   │   ├── error.rs                # 稳定错误 payload 与名称投影
 │   │   │   │   ├── render.rs               # stdout/stderr 渲染与 Core 错误投影

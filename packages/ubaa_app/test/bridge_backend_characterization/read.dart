@@ -1,6 +1,80 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendReadCharacterization() {
+  test('图书馆取消 typed action 将目标和分页贯穿准备提交与同页回读', () async {
+    final client = _CharacterizationBridgeClient();
+    final backend = BridgeBackend(client);
+    const query = FeatureQuery(
+      view: FeatureQueryView.libbookBookings,
+      page: 3,
+      size: 7,
+    );
+
+    final initial = await backend.loadFeatureQuery(FeatureId.libbook, query);
+    final action = initial.details.single.action<LibbookCancelAction>();
+    expect(action, isNotNull);
+    final cancelAction = action!;
+    expect(
+      <Object?>[
+        cancelAction.bookingId,
+        cancelAction.page,
+        cancelAction.limit,
+        cancelAction.eligibility,
+      ],
+      <Object?>['booking-read-1', 3, 7, ActionEligibility.allowed],
+    );
+
+    final intent = await backend.prepareLibbookCancelBooking(
+      id: cancelAction.bookingId,
+      page: cancelAction.page,
+      limit: cancelAction.limit,
+    );
+    expect(intent.operation, WriteOperation.libbookCancelBooking);
+    final request =
+        client.writeRequests[#prepareLibbookCancelBooking]
+            as BridgeLibbookCancelBookingRequest;
+    expect(
+      <Object?>[request.id, request.page, request.limit],
+      <Object?>['booking-read-1', 3, 7],
+    );
+
+    client.commitResult = const BridgeWriteCommitResult(
+      operation: BridgeWriteOperation.libbookCancelBooking,
+      success: true,
+      message: '取消成功',
+      outcomeUnknown: false,
+      resolvedRoute: BridgeConnectionMode.webVpn,
+    );
+    final committed = await backend.commitWrite('intent-libbookCancelBooking');
+    expect(committed.operation, WriteOperation.libbookCancelBooking);
+    expect(committed.success, isTrue);
+
+    final readback = await backend.loadFeatureQuery(
+      FeatureId.libbook,
+      FeatureQuery(
+        view: FeatureQueryView.libbookBookings,
+        page: cancelAction.page,
+        size: cancelAction.limit,
+      ),
+    );
+    final readbackAction = readback.details.single
+        .action<LibbookCancelAction>();
+    expect(
+      <Object?>[
+        readbackAction?.bookingId,
+        readbackAction?.page,
+        readbackAction?.limit,
+      ],
+      <Object?>['booking-read-1', 3, 7],
+    );
+    expect(client.calls, <String>[
+      'libbookBookings:page=3,limit=7',
+      'prepareLibbookCancelBooking',
+      'commitWrite:intentId=intent-libbookCancelBooking',
+      'libbookBookings:page=3,limit=7',
+    ]);
+  });
+
   test('博雅摘要详情和已选记录只投影各自 typed 写能力', () async {
     final backend = BridgeBackend(_CharacterizationBridgeClient());
 

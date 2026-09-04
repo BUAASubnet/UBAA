@@ -3421,8 +3421,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeLibBookBooking dco_decode_bridge_lib_book_booking(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return BridgeLibBookBooking(
       id: dco_decode_String(arr[0]),
       nameMerge: dco_decode_String(arr[1]),
@@ -3431,8 +3431,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       day: dco_decode_String(arr[4]),
       beginTime: dco_decode_String(arr[5]),
       endTime: dco_decode_String(arr[6]),
-      status: dco_decode_String(arr[7]),
+      status: dco_decode_opt_box_autoadd_i_32(arr[7]),
       statusName: dco_decode_String(arr[8]),
+      cancelEligibility: dco_decode_bridge_action_eligibility(arr[9]),
+      cancelTarget: dco_decode_opt_String(arr[10]),
     );
   }
 
@@ -3517,9 +3519,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   dco_decode_bridge_libbook_cancel_booking_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 1)
-      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return BridgeLibbookCancelBookingRequest(id: dco_decode_String(arr[0]));
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLibbookCancelBookingRequest(
+      id: dco_decode_String(arr[0]),
+      page: dco_decode_i_32(arr[1]),
+      limit: dco_decode_i_32(arr[2]),
+    );
   }
 
   @protected
@@ -6015,8 +6021,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_day = sse_decode_String(deserializer);
     var var_beginTime = sse_decode_String(deserializer);
     var var_endTime = sse_decode_String(deserializer);
-    var var_status = sse_decode_String(deserializer);
+    var var_status = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_statusName = sse_decode_String(deserializer);
+    var var_cancelEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
+    var var_cancelTarget = sse_decode_opt_String(deserializer);
     return BridgeLibBookBooking(
       id: var_id,
       nameMerge: var_nameMerge,
@@ -6027,6 +6037,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       endTime: var_endTime,
       status: var_status,
       statusName: var_statusName,
+      cancelEligibility: var_cancelEligibility,
+      cancelTarget: var_cancelTarget,
     );
   }
 
@@ -6132,7 +6144,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
-    return BridgeLibbookCancelBookingRequest(id: var_id);
+    var var_page = sse_decode_i_32(deserializer);
+    var var_limit = sse_decode_i_32(deserializer);
+    return BridgeLibbookCancelBookingRequest(
+      id: var_id,
+      page: var_page,
+      limit: var_limit,
+    );
   }
 
   @protected
@@ -8659,8 +8677,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.day, serializer);
     sse_encode_String(self.beginTime, serializer);
     sse_encode_String(self.endTime, serializer);
-    sse_encode_String(self.status, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.status, serializer);
     sse_encode_String(self.statusName, serializer);
+    sse_encode_bridge_action_eligibility(self.cancelEligibility, serializer);
+    sse_encode_opt_String(self.cancelTarget, serializer);
   }
 
   @protected
@@ -8734,6 +8754,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
+    sse_encode_i_32(self.page, serializer);
+    sse_encode_i_32(self.limit, serializer);
   }
 
   @protected

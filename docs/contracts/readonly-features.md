@@ -34,6 +34,11 @@ HTML、加密参数、Token、Cookie 和响应正文始终留在 Core 内部，C
 `evaluation pending` 是 CLI 对 `evaluation_all` 返回的 `is_evaluated=false` 课程进行的本地
 派生视图，不存在独立的 `evaluation_pending` facade 或 bridge 方法。
 
+LibBook booking 的公开 `status` 为 nullable int，并由 Core 派生
+`cancelEligibility/cancelTarget`；`statusName` 只用于展示，宿主不得从文案或原始状态反推取消资格。
+取消 action 保存当前 `page/limit`，prepare、commit 与写后读取核对都使用同一页；这些本地 authority
+字段不会进入最终取消 wire，最终正文仍只有预约 `id`。
+
 扩展写命令（包括 Cgyy 预约/取消）不属于只读合同；它们虽然有 Core/CLI 协议实现，仍
 必须经过显式确认，真实验证入口永久阻止，只有 Mock、Fixture 和向量证据可以证明。
 
@@ -53,7 +58,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v5 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v6 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局

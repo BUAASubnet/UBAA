@@ -9,10 +9,11 @@ use ubaa_core::facade::{
     CgyyVenueSite, ClassroomQuery, ConnectionMode, EvaluationCoursesResponse, ExamArrangement,
     FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
     JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelResult, LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
-    LoginInput, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
+    LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult, SigninClass,
+    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
+    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
+    YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RoutedError, RoutedResult};
@@ -95,7 +96,7 @@ pub trait CliBackend {
     }
     async fn libbook_cancel_booking(
         &mut self,
-        _id: &str,
+        _request: LibBookCancelRequest,
     ) -> Result<FeatureResult<LibBookCancelResult>> {
         Err(unavailable("图书馆写功能不可用"))
     }
@@ -363,7 +364,10 @@ pub trait RoutedCliBackend {
     ) -> RoutedResult<LibBookReserveResult> {
         Err(routed_unavailable("图书馆写功能不可用"))
     }
-    async fn libbook_cancel_booking(&mut self, _id: &str) -> RoutedResult<LibBookCancelResult> {
+    async fn libbook_cancel_booking(
+        &mut self,
+        _request: LibBookCancelRequest,
+    ) -> RoutedResult<LibBookCancelResult> {
         Err(routed_unavailable("图书馆写功能不可用"))
     }
     /// 通过 Core 路由查询博雅用户资料。

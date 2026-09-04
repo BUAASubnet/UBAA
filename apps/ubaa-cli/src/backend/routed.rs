@@ -8,11 +8,11 @@ use ubaa_core::facade::{
     CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult, CgyyReservationSubmitRequest,
     CgyyVenueSite, ClassroomQuery, EvaluationCoursesResponse, ExamArrangement, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, SigninActionResult, SigninClass,
-    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
-    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
-    YgdkOverview, YgdkRecordsPage,
+    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
+    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, SigninActionResult,
+    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::facade::{RoutedResult, UbaaClient};
 
@@ -77,8 +77,11 @@ impl RoutedCliBackend for UbaaClient {
     ) -> RoutedResult<LibBookReserveResult> {
         UbaaClient::libbook_reserve(self, request).await
     }
-    async fn libbook_cancel_booking(&mut self, id: &str) -> RoutedResult<LibBookCancelResult> {
-        UbaaClient::libbook_cancel_booking(self, id).await
+    async fn libbook_cancel_booking(
+        &mut self,
+        request: LibBookCancelRequest,
+    ) -> RoutedResult<LibBookCancelResult> {
+        UbaaClient::libbook_cancel_booking(self, request).await
     }
     async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
         UbaaClient::cgyy_sites(self).await

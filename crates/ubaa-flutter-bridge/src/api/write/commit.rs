@@ -142,9 +142,21 @@ impl BridgeClient {
                         (r.resolution, success, message, None)
                     }),
                 PendingWrite::LibbookCancel(request) => client
-                    .libbook_cancel_booking(&request.id)
+                    .libbook_cancel_booking(domain::LibBookCancelRequest {
+                        booking_id: request.id,
+                        page: request.page,
+                        limit: request.limit,
+                    })
                     .await
-                    .map(|r| (r.resolution, true, safe_message("图书馆预约已取消"), None)),
+                    .map(|r| {
+                        let success = r.data.success;
+                        let message = if success {
+                            safe_message("图书馆预约已取消")
+                        } else {
+                            safe_message("图书馆预约取消未完成")
+                        };
+                        (r.resolution, success, message, None)
+                    }),
                 PendingWrite::Ygdk(request) => client
                     .ygdk_submit(domain::YgdkClockinSubmitRequest {
                         item_id: request.item_id,

@@ -29,7 +29,6 @@ void main() {
   _registerCgyyCancellationWriteTest();
   _registerCgyyStateTest();
   _registerLibbookCancellationWriteTest();
-  _registerLibbookStateTest();
   _registerFeatureInputTests();
   _registerRemainingWriteTests();
   _registerFeatureCollectionTests();

@@ -148,6 +148,42 @@ void main() {
     expect(body, contains('final String? reserveTarget;'));
   });
 
+  test('图书馆预约 DTO 与取消请求固定 typed 资格和同页回读参数', () {
+    final bookingDeclaration = RegExp(
+      r'class BridgeLibBookBooking \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(bookingDeclaration, isNotNull);
+    final bookingBody = bookingDeclaration!.namedGroup('body')!;
+
+    expect(bookingBody, contains('final int? status;'));
+    expect(
+      bookingBody,
+      contains('final BridgeActionEligibility cancelEligibility;'),
+    );
+    expect(bookingBody, contains('final String? cancelTarget;'));
+
+    final requestDeclaration = RegExp(
+      r'class BridgeLibbookCancelBookingRequest \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(write);
+    expect(requestDeclaration, isNotNull);
+    final requestBody = requestDeclaration!.namedGroup('body')!;
+
+    expect(requestBody, contains('final String id;'));
+    expect(requestBody, contains('final int page;'));
+    expect(requestBody, contains('final int limit;'));
+    expect(
+      client,
+      contains(
+        RegExp(
+          r'prepareLibbookCancelBooking\s*\(\{\s*required BridgeLibbookCancelBookingRequest request',
+          dotAll: true,
+        ),
+      ),
+    );
+  });
+
   test('生成 DTO 快照覆盖全部公开读取类型', () {
     const allDtoNames = <String>[
       'BridgeBykcChosenCourse',

@@ -67,8 +67,10 @@ pub struct LibBookBooking {
     pub day: String,
     pub begin_time: String,
     pub end_time: String,
-    pub status: String,
+    pub status: Option<i32>,
     pub status_name: String,
+    pub cancel_eligibility: ActionEligibility,
+    pub cancel_target: Option<String>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,6 +113,30 @@ pub struct LibBookReserveResult {
     pub success: bool,
     pub message: String,
     pub booking: Option<LibBookBooking>,
+}
+/// 图书馆预约取消请求。
+///
+/// `page` 与 `limit` 固定 action 产生时所在分页，使 prepare/commit 都只在同一页 fresh 复核。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookCancelRequest {
+    pub booking_id: String,
+    pub page: i32,
+    pub limit: i32,
+}
+/// 图书馆预约取消的当前权威摘要。
+///
+/// 该值不包含 bearer、Cookie、原始响应或调用方不能核验的隐藏状态。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookCancelPreflight {
+    pub booking_id: String,
+    pub booking_name: String,
+    pub area_name: String,
+    pub seat_no: String,
+    pub day: String,
+    pub begin_time: String,
+    pub end_time: String,
 }
 /// 图书馆取消结果。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]

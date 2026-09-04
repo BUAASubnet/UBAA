@@ -2,7 +2,8 @@
 
 use super::crypto::encrypt_reserve_request;
 use super::parser::parse_area_detail_for_day;
-use super::{parse_area_detail_for, parse_bookings, parse_libraries, parse_seats};
+use super::parser::parse_bookings_for_request;
+use super::{parse_area_detail_for, parse_libraries, parse_seats};
 use crate::domain::{ActionEligibility, LibBookReserveRequest};
 use crate::error::ErrorCode;
 
@@ -168,8 +169,14 @@ fn 座位列表按冻结实现的座位号升序输出() {
 
 #[test]
 fn 预约分页缺少总数时回退为当前条数() {
-    let page = parse_bookings(r#"{"code":0,"data":{"data":[{"id":"b1","no":"001"}]}}"#).unwrap();
+    let page = parse_bookings_for_request(
+        r#"{"code":0,"data":{"data":[{"id":"b1","no":"001"}]}}"#,
+        2,
+        10,
+    )
+    .unwrap();
     assert_eq!(page.bookings.len(), 1);
+    assert_eq!((page.page, page.limit), (2, 10));
     assert_eq!(page.total, 1);
 }
 

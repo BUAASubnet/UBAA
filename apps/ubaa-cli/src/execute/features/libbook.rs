@@ -1,8 +1,8 @@
 //! 图书馆 handler。
 
 use crate::io::schema::CliFeature;
-use ubaa_core::facade::LibBookReserveRequest;
-use ubaa_core::facade::Result;
+use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
+use ubaa_core::facade::{LibBookCancelRequest, LibBookReserveRequest};
 use ubaa_core::facade::{RoutedError, RoutedResult};
 
 use crate::backend::{CliBackend, RoutedCliBackend};
@@ -72,6 +72,8 @@ pub(in crate::execute) async fn run_libbook<B: CliBackend + Send>(
         }
         LibBookCommand::Cancel {
             booking_id,
+            page,
+            limit,
             confirm_write,
         } => {
             if !confirm_write {
@@ -79,9 +81,11 @@ pub(in crate::execute) async fn run_libbook<B: CliBackend + Send>(
                     "取消预约是写操作，必须显式指定 --confirm-write",
                 ));
             }
+            let request = normalize_cancel_request(&booking_id, page, limit)?;
             backend
-                .libbook_cancel_booking(&booking_id)
+                .libbook_cancel_booking(request)
                 .await
+                .map_err(sanitize_cancel_authority_error)
                 .and_then(|result| readonly(result, CliFeature::LibBook))
         }
     }
@@ -155,6 +159,8 @@ pub(in crate::execute) async fn run_routed_libbook<B: RoutedCliBackend + Send>(
         }
         LibBookCommand::Cancel {
             booking_id,
+            page,
+            limit,
             confirm_write,
         } => {
             if !confirm_write {
@@ -163,12 +169,55 @@ pub(in crate::execute) async fn run_routed_libbook<B: RoutedCliBackend + Send>(
                     resolution: None,
                 });
             }
-            routed_readonly(
-                backend.libbook_cancel_booking(&booking_id).await,
-                CliFeature::LibBook,
-            )
+            let request = normalize_cancel_request(&booking_id, page, limit).map_err(|error| {
+                RoutedError {
+                    error,
+                    resolution: None,
+                }
+            })?;
+            let result = backend
+                .libbook_cancel_booking(request)
+                .await
+                .map_err(sanitize_routed_cancel_authority_error);
+            routed_readonly(result, CliFeature::LibBook)
         }
     }
+}
+
+fn sanitize_cancel_authority_error(error: UbaaError) -> UbaaError {
+    if error.code != ErrorCode::UpstreamChanged {
+        return error;
+    }
+    UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        "图书馆预约取消资格核对响应无效",
+    )
+}
+
+fn sanitize_routed_cancel_authority_error(mut error: RoutedError) -> RoutedError {
+    error.error = sanitize_cancel_authority_error(error.error);
+    error
+}
+
+fn normalize_cancel_request(
+    booking_id: &str,
+    page: i32,
+    limit: i32,
+) -> Result<LibBookCancelRequest> {
+    let booking_id = booking_id.trim().to_owned();
+    if booking_id.is_empty() {
+        return Err(invalid_input("图书馆预约编号不能为空"));
+    }
+    if page <= 0 || limit <= 0 {
+        return Err(invalid_input("图书馆预约分页参数必须为正整数"));
+    }
+    Ok(LibBookCancelRequest {
+        booking_id,
+        page,
+        limit,
+    })
 }
 
 fn normalize_reserve_request(request: &LibBookReserveRequest) -> Result<LibBookReserveRequest> {

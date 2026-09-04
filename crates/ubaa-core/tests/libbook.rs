@@ -5,9 +5,12 @@ use ubaa_core::facade::testing::{
     FileSessionStore, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
 };
 use ubaa_core::facade::{
-    ActionEligibility, ConnectionMode, LibBookReserveRequest, Result, RouteClient,
+    ActionEligibility, ConnectionMode, LibBookCancelRequest, LibBookReserveRequest, Result,
+    RouteClient,
 };
 
+#[path = "libbook/cancel_authority.rs"]
+mod cancel_authority;
 #[path = "libbook/write_authority.rs"]
 mod write_authority;
 
@@ -123,7 +126,11 @@ fn 图书馆预约取消写链发送冻结加密请求() {
         .data;
     assert!(result.success);
     let cancelled = runtime
-        .block_on(client.libbook_cancel_booking("booking-1"))
+        .block_on(client.libbook_cancel_booking(LibBookCancelRequest {
+            booking_id: "booking-1".into(),
+            page: 1,
+            limit: 20,
+        }))
         .unwrap()
         .data;
     assert!(cancelled.success);
@@ -203,7 +210,7 @@ impl HttpTransport for MockLibBookTransport {
             "/v4/member/seat" => HttpResponse::new(
                 200,
                 request.url,
-                r#"{"code":1,"data":{"data":[{"id":"b1","nameMerge":"分区 / 001","no":"001","status_name":"已预约"}],"total":1,"current_page":1,"per_page":20}}"#.as_bytes().to_vec(),
+                r#"{"code":1,"data":{"data":[{"id":"booking-1","nameMerge":"分区 / 001","no":"001","status":1,"status_name":"已预约"}],"total":1,"current_page":1,"per_page":20}}"#.as_bytes().to_vec(),
             ),
             "/v4/space/confirm" => HttpResponse::new(
                 200,
@@ -213,7 +220,7 @@ impl HttpTransport for MockLibBookTransport {
             "/v4/space/cancel" => HttpResponse::new(
                 200,
                 request.url,
-                r#"{"code":0,"data":{"success":true,"message":"取消成功"}}"#.as_bytes().to_vec(),
+                r#"{"code":0,"message":"取消成功","data":{"success":true}}"#.as_bytes().to_vec(),
             ),
             _ => panic!("未预期的图书馆请求: {}", request.url),
         };

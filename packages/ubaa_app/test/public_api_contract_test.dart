@@ -104,7 +104,11 @@ List<Object?> _backendInterfaceSignatures(
   prepareBykcSignCourse = bykcWriteBackend.prepareBykcSignCourse;
   final Future<WriteIntent> Function({required String courseId})
   prepareSigninPerform = signinWriteBackend.prepareSigninPerform;
-  final Future<WriteIntent> Function({required String id})
+  final Future<WriteIntent> Function({
+    required String id,
+    required int page,
+    required int limit,
+  })
   prepareLibbookCancelBooking =
       cancellationWriteBackend.prepareLibbookCancelBooking;
   final Future<WriteIntent> Function({required int id}) prepareCgyyCancelOrder =
@@ -231,6 +235,8 @@ List<Object?> _controllerSignatures(
   final UiError Function(UbaaErrorCode) mapError = UbaaErrorMapper.fromCode;
   final Future<WriteIntent> Function(LibbookReserveAction)
   prepareLibbookReserveWrite = appController.prepareLibbookReserveWrite;
+  final Future<WriteIntent> Function(LibbookCancelAction)
+  prepareLibbookCancelWrite = appController.prepareLibbookCancelWrite;
 
   return <Object?>[
     phase,
@@ -240,6 +246,7 @@ List<Object?> _controllerSignatures(
     readPhase,
     mapError,
     prepareLibbookReserveWrite,
+    prepareLibbookCancelWrite,
     appController,
   ];
 }

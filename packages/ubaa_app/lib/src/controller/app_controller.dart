@@ -451,7 +451,7 @@ class AppController extends ChangeNotifier {
     return writer.prepareSigninPerform(courseId: normalized);
   }
 
-  /// 准备图书馆或场馆取消的 typed 一次性意图；只接受读取结果中的公开编号。
+  /// 准备场馆取消的一次性意图；Phase 11H 前仍只接受读取结果中的公开编号。
   Future<WriteIntent> prepareCancellationWrite(
     WriteOperation operation,
     String targetId,
@@ -466,15 +466,35 @@ class AppController extends ChangeNotifier {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     return switch (operation) {
-      WriteOperation.libbookCancelBooking => writer.prepareLibbookCancelBooking(
-        id: normalized,
-      ),
       WriteOperation.cgyyCancelOrder => switch (int.tryParse(normalized)) {
         final id? when id > 0 => writer.prepareCgyyCancelOrder(id: id),
         _ => throw const BackendException(UbaaErrorCode.invalidInput),
       },
       _ => throw const BackendException(UbaaErrorCode.invalidInput),
     };
+  }
+
+  /// 准备图书馆取消意图；目标、资格与分页上下文全部来自 Core typed 读取。
+  Future<WriteIntent> prepareLibbookCancelWrite(
+    LibbookCancelAction action,
+  ) async {
+    final backend = _backend;
+    if (backend is! CancellationWriteBackend) {
+      throw const BackendException(UbaaErrorCode.unsupported);
+    }
+    final bookingId = action.bookingId.trim();
+    if (action.eligibility != ActionEligibility.allowed ||
+        bookingId.isEmpty ||
+        action.page <= 0 ||
+        action.limit <= 0) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final writer = backend as CancellationWriteBackend;
+    return writer.prepareLibbookCancelBooking(
+      id: bookingId,
+      page: action.page,
+      limit: action.limit,
+    );
   }
 
   /// 准备图书馆预约的 typed 一次性意图；只接受读取白名单中的完整目标。
@@ -680,13 +700,17 @@ class AppController extends ChangeNotifier {
   }
 
   /// 写入成功后仅刷新关联只读领域，用于结果核对；不会重试写请求。
-  Future<void> refreshAfterWrite(WriteOperation operation) {
+  Future<void> refreshAfterWrite(
+    WriteOperation operation, [
+    FeatureQuery? readbackQuery,
+  ]) {
     if (operation == WriteOperation.libbookReserve ||
         operation == WriteOperation.libbookCancelBooking) {
       if (_backend is FeatureQueryBackend) {
         return refreshFeatureQuery(
           FeatureId.libbook,
-          const FeatureQuery(view: FeatureQueryView.libbookBookings),
+          readbackQuery ??
+              const FeatureQuery(view: FeatureQueryView.libbookBookings),
         );
       }
     }

@@ -174,18 +174,26 @@ class BridgeEvaluationSubmitCoursesRequest {
 
 class BridgeLibbookCancelBookingRequest {
   final String id;
+  final int page;
+  final int limit;
 
-  const BridgeLibbookCancelBookingRequest({required this.id});
+  const BridgeLibbookCancelBookingRequest({
+    required this.id,
+    required this.page,
+    required this.limit,
+  });
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => id.hashCode ^ page.hashCode ^ limit.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeLibbookCancelBookingRequest &&
           runtimeType == other.runtimeType &&
-          id == other.id;
+          id == other.id &&
+          page == other.page &&
+          limit == other.limit;
 }
 
 class BridgeLibbookReserveRequest {

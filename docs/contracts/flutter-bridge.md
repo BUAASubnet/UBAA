@@ -9,10 +9,11 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `4`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `5`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
-  可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 4 不与版本 3
-  或更早的生成绑定混用。
+  可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
+  `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
+  `id/page/limit` authority 上下文。版本 5 不与版本 4 或更早的生成绑定混用。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -28,7 +29,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=4` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=5` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -67,7 +68,7 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 Core 错误码逐一映射：`invalid_input`、`authentication_required`、`invalid_credentials`、
 `password_risk_confirmation_failed`、`permission_denied`、`network_error`、`timeout`、
 `upstream_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
-Phase 11C–11E 已收口的博雅签到、课堂签到与 LibBook 预约链只允许在非幂等写请求越过发送边界后产生
+Phase 11C–11F 已收口的博雅签到、课堂签到与 LibBook 预约/取消链只允许在非幂等写请求越过发送边界后产生
 `outcome_unknown`；其余写操作暂时保留既有的 commit 阶段保守映射，可能把业务登录或预检中的网络类失败
 也归入结果未知，必须在后续来源对照阶段逐项收窄。LibBook 的 `outcome_unknown` 保留 Core 提供的稳定
 code、kind 与安全 message，同时强制 `retryable=false`。无论来源如何，宿主都必须禁止自动重试并先执行
@@ -180,7 +181,9 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `LibBookAreaDetail {id,name,availableDates,timeSlots}`；时段 `{id,start,end,label}`；
   座位 `{id,name,no,status?,statusName,reserveEligibility,reserveTarget?}`；`status` 只允许可空整数，
   eligibility 为 `allowed|denied|unknown`，仅明确状态与非空稳定目标产生 target；预约
-  `{id,nameMerge,areaName,seatNo,day,beginTime,endTime,status,statusName}`；分页
+  `{id,nameMerge,areaName,seatNo,day,beginTime,endTime,status?,statusName,cancelEligibility,cancelTarget?}`；
+  `status` 只允许可空整数，canonical `1` 为 `allowed`、`6/8` 为 `denied`，缺失、畸形或其它值为
+  `unknown`；非空 ID 的 `1/6/8` 保留 target，只有 `unknown` 不签发 target。`statusName` 仅供展示；分页
   `{bookings,page,limit,total}`。
 - `YgdkOverview {summary,classifyId,classifyName,defaultItemId,defaultItemName,items}`；统计
   `{termId?,termName?,termCount,termTarget?,weekCount?,weekTarget?,monthCount?,monthTarget?,dayCount?,goodCount?}`；
@@ -248,9 +251,9 @@ payload 传递。查询结果
 仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID、区域 ID、场馆站点 ID 和订单 ID 仅作为
 用户选择后再次查询的公开标识，不进入日志或遥测。Cgyy 用途结果始终携带 `source`，UI 必须
 明示 `staticFallback`，不得将冻结回退伪称为上游成功；门锁结果只允许展示 `available`。
-图书馆预约详情可额外投影冻结状态码 `status` 为“状态码”，场馆订单列表/详情可投影冻结
-`checkStatus` 为“审核状态”，仅供 UI 取消入口按来源规则做展示门禁；两者均不是令牌、交易号或
-内部正文，不改变 Core 的最终取消资格校验。
+图书馆预约详情将 nullable `status`、`cancelEligibility/cancelTarget` 一并投影；UI 只消费 typed action
+决定取消入口，`statusName` 和“状态码”只供展示，不参与资格推断。场馆订单列表/详情可投影冻结
+`checkStatus` 为“审核状态”，仅供展示；这些字段均不是令牌、交易号或内部正文，不改变 Core 的最终取消资格校验。
 场馆订单同时提供由冻结状态码派生的“订单状态说明/审核状态说明”，仅作为稳定中文展示文本；Dart 不据此拼接
 请求或改变 Core 的取消资格。
 
@@ -267,7 +270,7 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 | `prepareBykcSignCourse` | `{courseId,lat?,lng?,signType}` | `bykcAction` |
 | `prepareSigninPerform` | `{courseId}` | `signinAction` |
 | `prepareLibbookReserve` | `{areaId,seatId,day,segment,startTime,endTime}` | `libbookReserve` |
-| `prepareLibbookCancelBooking` | `{id}` | `libbookCancel` |
+| `prepareLibbookCancelBooking` | `{id,page,limit}` | `libbookCancel` |
 | `prepareYgdkSubmit` | `{itemId?,startTime?,endTime?,place?,shareToSquare?,photo?}` | `ygdkSubmit` |
 | `prepareCgyySubmitReservation` | facade 公开请求字段，不含 challenge 内部材料 | `cgyyReservation` |
 | `prepareCgyyCancelOrder` | `{id}` | `cgyyAction` |
@@ -320,6 +323,17 @@ eligibility 为 `allowed` 后才可发送。确定业务拒绝保持 commit `suc
 typed 资格为 `allowed`。commit 消费 intent 后执行同一 fresh 预检，最终 confirm 只发送一次。明确业务拒绝
 保持 `success=false`；发送后 `outcome_unknown` 保留 Core 的稳定 code/kind/安全 message、不可重试且不得
 重放。应用对确定成功和未知结果都刷新 `libbookBookings` 一次，刷新只用于核对，不能反向宣称写入成功。
+
+图书馆取消 prepare 必须把完整 `LibbookCancelAction` 交给 bridge。action 的 `id/page/limit` 绑定预约记录
+产生时的页；Bridge 规范化并校验三者后，由 Core fresh 读取同一页，要求 booking ID 唯一匹配且
+`cancelEligibility=allowed` 才保存 intent。commit 消费 intent 后由 Core 再读取同一页复核，最终
+`/v4/space/cancel` wire 正文严格只有 `{id}`，`page/limit` 不进入写请求；响应分页元数据缺失、畸形、非正
+或别名冲突均安全拒绝。Core 仅对白名单 code/message 组合确认成功，并将成功、确定 false 与已知终态映射为
+固定安全文案，raw message 不跨 facade/CLI/Bridge。只有最终请求已发送后仍无法判定才返回不可重试
+`outcome_unknown`。成功或 unknown 后均只刷新同一
+`libbookBookings(page,limit)` 页用于核对，禁止自动重放取消。
+同页 authority 查询自身的失败也属于该边界：`/v4/member/seat` 非成功 envelope 的原始 message 不得进入
+BridgeError，统一投影为 `upstreamChanged` 与固定安全文案。
 
 照片通过 `BridgePhoto {bytes,fileName,mimeType}` 一次传入；Debug 只记录字节数与 MIME 类型。
 场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token

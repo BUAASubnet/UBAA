@@ -15,7 +15,9 @@ Cookie/会话、方法/参数、Header/编码、加密、DTO、并发/重试和�
 冻结本地产品的取消请求为 JSON POST `/v4/space/cancel`，wire 正文只有 `{id}`；它没有按 ID 查询详情、全量
 扫描或 arbitrary ID 校验端点。Phase 11F 因此把产生 action 时的正数 `page/limit` 保存在本地 authority
 上下文中，prepare 与 commit 都只能 POST `/v4/member/seat` 的同一页，并要求目标 booking ID 在 fresh 页中
-唯一匹配；`page/limit` 绝不进入最终取消正文。只有非空 ID 且 canonical 整数状态 `1` 为 `allowed`，状态
+唯一匹配；取消 authority 还要求响应显式携带 canonical 正数分页元数据，别名同时存在时必须一致，不能把
+缺失、畸形、非正或冲突值回退成 action 的页。`page/limit` 绝不进入最终取消正文。只有非空 ID 且 canonical
+整数状态 `1` 为 `allowed`，状态
 `6/8` 为 `denied`；状态缺失、null、畸形、非 canonical 整数或其它值均为 `unknown` 并安全拒绝。
 `statusName` 仅供展示，不能产生或改变 typed 资格。该 fail-closed 规则是当前安全合同的明确收紧：冻结产品
 会让中文 `statusName` 参与判断，并默认允许部分缺失或未知状态，本阶段不复制这一行为，也不虚构详情协议。
@@ -27,8 +29,13 @@ fresh 复核必须在越过发送边界前完成，最终 cancel 只调用一次
 不可重试的 `outcome_unknown`，随后只允许刷新预约列表供用户核对。冻结 JVM/Android LibBook engine 的
 trust-all certificate/hostname verifier 违反当前 TLS 安全边界，明确不采用。
 
-冻结成功 fixture 只证明上游 raw `code=1` 与 `message=取消成功`，确定的已取消、已结束、不存在或失效消息
-只证明可映射的业务错误；它不证明 raw `success` 或 `status` 字段参与上游成败。产品
+冻结成功 fixture 只证明上游 raw `code=1` 与精确 `message=取消成功`；冻结本地实现允许 canonical
+`code=0/1`，本阶段只在二者与精确成功文案组合时确认成功。确定的已取消、已结束、不存在或失效消息
+只用于映射固定安全业务错误，已知负面文案可映射固定 `success=false`；其它新成功文案一律为
+`outcome_unknown`。最终取消与 authority `/v4/member/seat` 的非成功 envelope 都不得把 raw message 带入
+公开结果或错误；Core 在取消专用解析边界固定归约 `upstream_changed` 文案，CLI 与 Bridge 再按操作做同样的
+防御性投影，避免夹带预约标识、个人数据、控制字符或 token。
+这些证据不证明 raw `success` 或 `status` 字段参与上游成败。产品
 `LibBookCancelResponse { success, message }` 是冻结 backend 映射后的 DTO，Core、CLI 与 Bridge 不得据此
 猜测不存在的 raw 字段，也不得在无法判定时默认成功。本阶段只使用脱敏 fixture/Mock，不执行真实取消，且不
 授权其它真实写操作。

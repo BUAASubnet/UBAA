@@ -115,16 +115,74 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('可逆取消写意图按领域严格校验公开编号', () async {
+  test('图书馆取消只接受完整 typed Allowed action 并保留同页上下文', () async {
     final backend = _CancellationWriteBackend();
     final controller = AppController(backend: backend);
 
-    final libraryIntent = await controller.prepareCancellationWrite(
-      WriteOperation.libbookCancelBooking,
-      ' booking-3 ',
+    final libraryIntent = await controller.prepareLibbookCancelWrite(
+      const LibbookCancelAction(
+        bookingId: ' booking-3 ',
+        page: 2,
+        limit: 10,
+        eligibility: ActionEligibility.allowed,
+      ),
     );
     expect(libraryIntent.operation, WriteOperation.libbookCancelBooking);
     expect(backend.bookingId, 'booking-3');
+    expect(backend.bookingPage, 2);
+    expect(backend.bookingLimit, 10);
+
+    for (final action in const <LibbookCancelAction>[
+      LibbookCancelAction(
+        bookingId: 'booking-3',
+        page: 2,
+        limit: 10,
+        eligibility: ActionEligibility.denied,
+      ),
+      LibbookCancelAction(
+        bookingId: 'booking-3',
+        page: 2,
+        limit: 10,
+        eligibility: ActionEligibility.unknown,
+      ),
+      LibbookCancelAction(
+        bookingId: '   ',
+        page: 2,
+        limit: 10,
+        eligibility: ActionEligibility.allowed,
+      ),
+      LibbookCancelAction(
+        bookingId: 'booking-3',
+        page: 0,
+        limit: 10,
+        eligibility: ActionEligibility.allowed,
+      ),
+      LibbookCancelAction(
+        bookingId: 'booking-3',
+        page: 2,
+        limit: 0,
+        eligibility: ActionEligibility.allowed,
+      ),
+    ]) {
+      await expectLater(
+        controller.prepareLibbookCancelWrite(action),
+        throwsA(
+          isA<BackendException>().having(
+            (error) => error.code,
+            'code',
+            UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+    }
+    expect(backend.libbookPrepareCalls, 1);
+
+    controller.dispose();
+  });
+
+  test('场馆取消写意图严格校验公开编号', () async {
+    final backend = _CancellationWriteBackend();
+    final controller = AppController(backend: backend);
 
     final venueIntent = await controller.prepareCancellationWrite(
       WriteOperation.cgyyCancelOrder,
@@ -430,6 +488,27 @@ void _registerWriteTests() {
       expect(backend.queries.single.$1, FeatureId.libbook);
       expect(backend.queries.single.$2.view, FeatureQueryView.libbookBookings);
     }
+    controller.dispose();
+  });
+
+  test('图书馆取消按 action 保存的同页上下文执行只读核对', () async {
+    final backend = _RefreshMatrixBackend();
+    final controller = AppController(backend: backend);
+
+    await controller.refreshAfterWrite(
+      WriteOperation.libbookCancelBooking,
+      const FeatureQuery(
+        view: FeatureQueryView.libbookBookings,
+        page: 3,
+        size: 10,
+      ),
+    );
+
+    expect(backend.queries, hasLength(1));
+    expect(backend.queries.single.$1, FeatureId.libbook);
+    expect(backend.queries.single.$2.view, FeatureQueryView.libbookBookings);
+    expect(backend.queries.single.$2.page, 3);
+    expect(backend.queries.single.$2.size, 10);
     controller.dispose();
   });
 

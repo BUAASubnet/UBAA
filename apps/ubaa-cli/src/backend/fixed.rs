@@ -11,10 +11,11 @@ use ubaa_core::facade::{
     CgyyVenueSite, ClassroomQuery, ConnectionMode, EvaluationCoursesResponse, ExamArrangement,
     FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
     JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelResult, LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
-    LoginInput, SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
+    LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult, SigninClass,
+    SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass,
+    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
+    YgdkOverview, YgdkRecordsPage,
 };
 
 use super::CliBackend;
@@ -91,9 +92,9 @@ impl CliBackend for RouteClient {
     }
     async fn libbook_cancel_booking(
         &mut self,
-        id: &str,
+        request: LibBookCancelRequest,
     ) -> Result<FeatureResult<LibBookCancelResult>> {
-        self.libbook_cancel_booking(id).await
+        self.libbook_cancel_booking(request).await
     }
     async fn bykc_profile(&mut self) -> Result<FeatureResult<BykcUserProfile>> {
         self.bykc_profile().await

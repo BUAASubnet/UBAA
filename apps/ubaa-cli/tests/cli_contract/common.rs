@@ -3,6 +3,7 @@ use ubaa_cli::{CliBackend, RoutedCliBackend};
 use ubaa_core::facade::{
     ActionEligibility, AuthStatus, BykcActionResult, BykcSignRequest, CgyyActionResult,
     ConnectionMode, ErrorCode, ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics,
+    LibBookBooking, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
     LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, NetworkState, Result,
     RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError, RoutedResult,
     SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics, Term, UbaaError,
@@ -24,6 +25,9 @@ pub(crate) struct FakeBackend {
     pub(crate) schedule_success: bool,
     pub(crate) signin_perform_calls: usize,
     pub(crate) libbook_reserve_calls: usize,
+    pub(crate) libbook_cancel_calls: usize,
+    pub(crate) libbook_last_cancel_request: Option<LibBookCancelRequest>,
+    pub(crate) libbook_cancel_error: Option<UbaaError>,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -55,6 +59,10 @@ pub(crate) struct FakeRoutedBackend {
     pub(crate) libbook_result: LibBookFixtureResult,
     pub(crate) libbook_last_request: Option<LibBookReserveRequest>,
     pub(crate) libbook_seats_calls: usize,
+    pub(crate) libbook_bookings_calls: usize,
+    pub(crate) libbook_cancel_calls: usize,
+    pub(crate) libbook_last_cancel_request: Option<LibBookCancelRequest>,
+    pub(crate) libbook_cancel_error: Option<UbaaError>,
 }
 
 #[async_trait]
@@ -171,6 +179,54 @@ impl RoutedCliBackend for FakeRoutedBackend {
                 libbook_seat("seat-occupied", Some(3), ActionEligibility::Denied, true),
                 libbook_seat("seat-unknown", None, ActionEligibility::Unknown, false),
             ],
+            resolution: direct_resolution(),
+        })
+    }
+
+    async fn libbook_bookings(
+        &mut self,
+        page: i32,
+        limit: i32,
+    ) -> RoutedResult<LibBookBookingsPage> {
+        self.libbook_bookings_calls += 1;
+        Ok(Routed {
+            data: LibBookBookingsPage {
+                bookings: vec![
+                    libbook_booking("booking-allowed", Some(1), ActionEligibility::Allowed, true),
+                    libbook_booking(
+                        "booking-cancelled",
+                        Some(6),
+                        ActionEligibility::Denied,
+                        true,
+                    ),
+                    libbook_booking("booking-ended", Some(8), ActionEligibility::Denied, true),
+                    libbook_booking("booking-unknown", None, ActionEligibility::Unknown, false),
+                ],
+                page,
+                limit,
+                total: 4,
+            },
+            resolution: direct_resolution(),
+        })
+    }
+
+    async fn libbook_cancel_booking(
+        &mut self,
+        request: LibBookCancelRequest,
+    ) -> RoutedResult<LibBookCancelResult> {
+        self.libbook_cancel_calls += 1;
+        self.libbook_last_cancel_request = Some(request);
+        if let Some(error) = self.libbook_cancel_error.take() {
+            return Err(RoutedError {
+                error,
+                resolution: Some(direct_resolution()),
+            });
+        }
+        Ok(Routed {
+            data: LibBookCancelResult {
+                success: true,
+                message: "取消成功".into(),
+            },
             resolution: direct_resolution(),
         })
     }
@@ -319,6 +375,27 @@ fn libbook_seat(
     }
 }
 
+fn libbook_booking(
+    id: &str,
+    status: Option<i32>,
+    cancel_eligibility: ActionEligibility,
+    has_target: bool,
+) -> LibBookBooking {
+    LibBookBooking {
+        id: id.into(),
+        name_merge: "脱敏图书馆预约".into(),
+        area_name: "脱敏分区".into(),
+        seat_no: "SAFE-001".into(),
+        day: "2026-08-28".into(),
+        begin_time: "08:00".into(),
+        end_time: "10:00".into(),
+        status,
+        status_name: "脱敏状态".into(),
+        cancel_eligibility,
+        cancel_target: has_target.then(|| id.into()),
+    }
+}
+
 fn bykc_action(message: &str) -> Routed<BykcActionResult> {
     Routed {
         data: BykcActionResult {
@@ -399,6 +476,24 @@ impl CliBackend for FakeBackend {
                 success: true,
                 message: "预约成功".into(),
                 booking: None,
+            },
+            resolved_route: ConnectionMode::Direct,
+        })
+    }
+
+    async fn libbook_cancel_booking(
+        &mut self,
+        request: LibBookCancelRequest,
+    ) -> Result<FeatureResult<LibBookCancelResult>> {
+        self.libbook_cancel_calls += 1;
+        self.libbook_last_cancel_request = Some(request);
+        if let Some(error) = self.libbook_cancel_error.take() {
+            return Err(error);
+        }
+        Ok(FeatureResult {
+            data: LibBookCancelResult {
+                success: true,
+                message: "取消成功".into(),
             },
             resolved_route: ConnectionMode::Direct,
         })

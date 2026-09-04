@@ -1445,8 +1445,10 @@ class BridgeLibBookBooking {
   final String day;
   final String beginTime;
   final String endTime;
-  final String status;
+  final int? status;
   final String statusName;
+  final BridgeActionEligibility cancelEligibility;
+  final String? cancelTarget;
 
   const BridgeLibBookBooking({
     required this.id,
@@ -1456,8 +1458,10 @@ class BridgeLibBookBooking {
     required this.day,
     required this.beginTime,
     required this.endTime,
-    required this.status,
+    this.status,
     required this.statusName,
+    required this.cancelEligibility,
+    this.cancelTarget,
   });
 
   @override
@@ -1470,7 +1474,9 @@ class BridgeLibBookBooking {
       beginTime.hashCode ^
       endTime.hashCode ^
       status.hashCode ^
-      statusName.hashCode;
+      statusName.hashCode ^
+      cancelEligibility.hashCode ^
+      cancelTarget.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1485,7 +1491,9 @@ class BridgeLibBookBooking {
           beginTime == other.beginTime &&
           endTime == other.endTime &&
           status == other.status &&
-          statusName == other.statusName;
+          statusName == other.statusName &&
+          cancelEligibility == other.cancelEligibility &&
+          cancelTarget == other.cancelTarget;
 }
 
 class BridgeLibBookBookingsPage {

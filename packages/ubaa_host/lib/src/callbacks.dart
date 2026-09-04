@@ -96,13 +96,15 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareCancellationWrite: (operation, targetId) =>
           _controller.prepareCancellationWrite(operation, targetId),
       onPrepareLibbookReserveWrite: _controller.prepareLibbookReserveWrite,
+      onPrepareLibbookCancelWrite: _controller.prepareLibbookCancelWrite,
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
       onPickYgdkPhoto: _photoPicker?.pickPhoto,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onDiscardWriteIntent: _controller.discardWriteIntent,
       onCommitWrite: _commitWrite,
-      onWriteSuccess: _controller.refreshAfterWrite,
+      onWriteSuccess: (operation, readbackQuery) =>
+          _controller.refreshAfterWrite(operation, readbackQuery),
       onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>

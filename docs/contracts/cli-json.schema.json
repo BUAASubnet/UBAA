@@ -266,11 +266,15 @@
     },
     "libBookBooking": {
       "type": "object",
-      "required": ["id", "nameMerge", "areaName", "seatNo", "day", "beginTime", "endTime", "status", "statusName"],
+      "required": ["id", "nameMerge", "areaName", "seatNo", "day", "beginTime", "endTime", "status", "statusName", "cancelEligibility", "cancelTarget"],
       "properties": {
         "id": { "type": "string" }, "nameMerge": { "type": "string" }, "areaName": { "type": "string" },
         "seatNo": { "type": "string" }, "day": { "type": "string" }, "beginTime": { "type": "string" },
-        "endTime": { "type": "string" }, "status": { "type": "string" }, "statusName": { "type": "string" }
+        "endTime": { "type": "string" },
+        "status": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "statusName": { "type": "string" },
+        "cancelEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "cancelTarget": { "$ref": "#/$defs/nullableString" }
       },
       "additionalProperties": false
     },
@@ -847,7 +851,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 5 },
+        "schemaVersion": { "const": 6 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1002,7 +1006,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 5 },
+        "schemaVersion": { "const": 6 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1158,7 +1162,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 5 },
+        "schemaVersion": { "const": 6 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1234,7 +1238,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 5 },
+        "schemaVersion": { "const": 6 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

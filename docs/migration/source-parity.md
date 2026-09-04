@@ -203,7 +203,7 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
-| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v5；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
+| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v6；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
 
 2026-08-24 的配置持久化证据：Unix 测试证明加载和保存会拒绝符号链接 `config.toml`，不会读取
 或改变其目标。八个并发保存使用唯一独占临时文件发布一份完整可解析配置，不遗留临时文件，
@@ -326,7 +326,7 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 | 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser`；示例 `boya` 等价，`class` 不适用 | 旧版规则同 11A；示例只有 Direct final URL | 路线内 Cookie/token，不采用示例可落盘 credential | POST `{courseId,signLat,signLng,signType}`；仅接受 1/2，目标为内层 `courseInfo.id` | 采用旧版 JSON 类型、Origin/Referer、双 token、`ak/sk/ts` | 同 11A；采用冻结本地随机点与正半径圆内均匀位置算法 | `checkin/pass/courseSignConfig`；缺失/畸形状态或窗口为 unknown，`courseSignType` 仅透传且不参与资格 | prepare/commit 都重读当前学期已选项；无资格缓存、幂等键或自动写重试 | 签到仅 `pass!=1 && checkin=0`，签退仅 `pass!=1 && checkin in {0,5,6}`，对应闭区间窗口内 allowed；随机选中点为正半径时可自动成坐标，否则必须提供完整有限坐标；unknown 拒绝 |
 | 11D Signin 签到 | iClass bootstrap；登录端点冲突见决策日志 | 两源均提 `loginName`，细节冲突保留 | `{userId,sessionId}` 形状；头身份冲突保留 | 时间戳/签到方法与参数位置冲突保留 | 两源均有 session 头但值来源冲突 | 无 | 今日 `signStatus`，结果 `result.stuSignStatus` | 按学生单飞；登录/只读预检可按既有规则刷新，最终 POST 不重放 | 状态 0=allowed、1=denied、缺失/畸形/其它=unknown；仅 allowed 可写；业务 false 原样返回 |
 | 11E LibBook 预约 | CAS 精确 service → `/v4/login/user` → `/v4/space/confirm`；固定示例无任何等价模块，九列均不适用 | 不跟随跳转，最多 8 跳从请求 URL/Location/query/fragment 提 cas；最终写不接受认证跳转 | 主认证 Cookie 按路线隔离；LibBook bearer 仅当前路线内存、不得持久化或跨路线复用 | prepare/commit 都以 `Space/map` 核对日期和唯一时段，再以 `Space/seat` 核对唯一座位；最终 POST `{aesjson}` | JSON + 精确 `bearer<token>`（无空格）+ Origin/Referer/X-Requested-With | AES-128-CBC/PKCS7；key=日期八位数字+逆序，IV=`ZZWBKJ_ZHIHUAWEI`；明文仅 `seat_id/segment/day` 加固定空起止时间，绝无 areaId | `status=1` allowed、`2/3` denied、缺失/畸形/其它 unknown；稳定目标 `(area,seat,day,segment)`，起止时间须与 fresh 时段一致 | token 登录单飞；发送前认证/只读可刷新一次，最终 confirm 只发送一次且绝不重放 | 仅唯一完整目标且明确 allowed 可写；明确业务 false 原样返回；发送后歧义为不可重试 outcome_unknown |
-| 11F LibBook 取消 | **旧版：**精确 CAS service → `/v4/login/user` → `/v4/space/cancel`。**示例：**无 LibBook 模块，本列 N/A 且不等价。**决定：**不采用 relay 路由。 | **旧版：**CAS 最多 8 跳提取 `cas`，业务 client 自动跟随且不验取消 final URL。**示例：**本列 N/A 且不等价。**决定：**保留有界 CAS，最终取消不接受业务/认证跳转。 | **旧版：**主 Cookie 路线隔离，bearer 按用户驻留路线内存且登录单飞。**示例：**本列 N/A 且不等价。**决定：**不落盘、不跨路线。 | **旧版：**取消 POST JSON `{id}`；fresh 列表 POST `/v4/member/seat` 的 `{type:"1",page,limit}`，无详情端点。**示例：**本列 N/A 且不等价。**决定：**本地 action 携带 page/limit，prepare/commit 同页唯一匹配；最终 wire 只有 `{id}`。 | **旧版：**固定 Accept/Chrome 147 User-Agent/X-Requested-With、路线 Origin/Referer、JSON Content-Type、精确无空格 bearer。**示例：**本列 N/A 且不等价。**决定：**保持精确 Header 与编码。 | **旧版：**取消无额外加密/签名，冻结 JVM/Android client 使用 trust-all TLS。**示例：**本列 N/A 且不等价。**决定：**不复用预约 AES，不复制 trust-all TLS。 | **旧版：**booking `id/status/statusName`，产品结果 `{success,message}`；已证实状态为 `1/6/8`，但旧产品会信任 `statusName` 与未知状态。**示例：**本列 N/A 且不等价。**决定：**canonical `1`=allowed、`6/8`=denied、缺失/畸形/其它=unknown；`statusName` 仅展示；raw 只以 `code/message` 判定，不假定 raw `success/status`。 | **旧版：**登录单飞，但没有 fresh authority，认证失效可重放取消，server 还可能重建 client。**示例：**本列 N/A 且不等价。**决定：**仅发送前刷新；最终 `request_non_idempotent` 一次且不重放。 | **旧版：**确定负面映射业务错误，HTTP/非 JSON/transport 无 outcome-unknown 分类。**示例：**本列 N/A 且不等价，无 CLI exit 证据。**决定：**仅 fresh 页唯一 allowed 目标可写；确定拒绝不伪装成功；已发送后歧义为不可重试 `outcome_unknown`。 |
+| 11F LibBook 取消 | **旧版：**精确 CAS service → `/v4/login/user` → `/v4/space/cancel`。**示例：**无 LibBook 模块，本列 N/A 且不等价。**决定：**不采用 relay 路由。 | **旧版：**CAS 最多 8 跳提取 `cas`，业务 client 自动跟随且不验取消 final URL。**示例：**本列 N/A 且不等价。**决定：**保留有界 CAS，最终取消不接受业务/认证跳转。 | **旧版：**主 Cookie 路线隔离，bearer 按用户驻留路线内存且登录单飞。**示例：**本列 N/A 且不等价。**决定：**不落盘、不跨路线。 | **旧版：**取消 POST JSON `{id}`；fresh 列表 POST `/v4/member/seat` 的 `{type:"1",page,limit}`，无详情端点。**示例：**本列 N/A 且不等价。**决定：**本地 action 携带 page/limit，prepare/commit 同页唯一匹配，响应必须显式证明无冲突正数分页；最终 wire 只有 `{id}`。 | **旧版：**固定 Accept/Chrome 147 User-Agent/X-Requested-With、路线 Origin/Referer、JSON Content-Type、精确无空格 bearer。**示例：**本列 N/A 且不等价。**决定：**保持精确 Header 与编码。 | **旧版：**取消无额外加密/签名，冻结 JVM/Android client 使用 trust-all TLS。**示例：**本列 N/A 且不等价。**决定：**不复用预约 AES，不复制 trust-all TLS。 | **旧版：**booking `id/status/statusName`，产品结果 `{success,message}`；已证实状态为 `1/6/8`，但旧产品会信任 `statusName` 与未知状态。**示例：**本列 N/A 且不等价。**决定：**canonical `1`=allowed、`6/8`=denied、缺失/畸形/其它=unknown；`statusName` 仅展示；raw 只以 `code/message` 判定，不假定 raw `success/status`，取消 authority 与最终结果对外都只返回固定安全文案。 | **旧版：**登录单飞，但没有 fresh authority，认证失效可重放取消，server 还可能重建 client。**示例：**本列 N/A 且不等价。**决定：**仅发送前刷新；最终 `request_non_idempotent` 一次且不重放。 | **旧版：**确定负面映射业务错误，HTTP、非 JSON、未知成功文案与 transport 无 outcome-unknown 分类。**示例：**本列 N/A 且不等价，无 CLI exit 证据。**决定：**仅 fresh 页唯一 allowed 目标可写；`/member/seat` 非成功 envelope 固定归约且不透传 message；精确“取消成功”白名单确认成功，确定拒绝不伪装成功；其它发送后歧义为不可重试 `outcome_unknown`。 |
 | 11G Cgyy 预约 | `manageLogin` → `/api/login` → 预约链；示例不适用 | 有界 SSO/WebVPN Cookie 同步 | access token 与 reservation token 分离 | day/context/captcha/submit 冻结字段 | signed form | MD5 + captcha AES | slot typed reservable、站点/空间/时段 ID | 单飞；最多两个相邻时段；captcha 3 次 | 完整必填字段且全部槽位明确可约；unknown 拒绝 |
 | 11H Cgyy 取消 | 同 11G，端点 `/orders/new/cancel/{id}` | 同 11G | 同 11G | POST 空表单 | signed form | MD5 | order/review 状态、开始/结束 | 上海时区 clock；prepare/commit 双复核 | 状态允许且严格早于 deadline；unknown 拒绝 |
 | 11I Ygdk 提交 | OAuth → upload → clockin；示例不适用 | 最多 10 跳提 code，host gap 保留 | 路线内 uid/token | multipart 后 form，时间为上海 epoch 秒 | multipart + URL encoded | 无 | overview item、完整日期时间、图片 | 登录单飞；最终写不重放 | ID 正数、同日 end>start、图片有效；unknown 拒绝 |
@@ -352,7 +352,8 @@ message 并强制不可重试；Flutter 对确定成功或未知结果只刷新�
 JSON POST `/v4/member/seat`，参数严格为 `type="1"` 与调用方的 `page/limit`。因此 typed action 必须保留
 产生它的正数分页上下文，prepare 和 commit 分别 fresh 读取同一页，并以非空 booking ID 唯一匹配；目标缺失
 或重复均不得发送 `/v4/space/cancel`。最终 wire 正文仍严格只有 `{id}`，不夹带 `page/limit`、状态、用户或
-日期。只有 canonical 整数 `status=1` 产生 allowed，`6/8` 产生 denied；缺失、null、非 canonical 整数、
+日期。取消 authority 的响应必须显式给出 canonical 正数 page/limit；缺失、畸形、非正或别名冲突不能使用
+普通只读列表的请求值 fallback。只有 canonical 整数 `status=1` 产生 allowed，`6/8` 产生 denied；缺失、null、非 canonical 整数、
 畸形或其它状态均为 unknown。`statusName` 保留为展示字段，不再参与 typed eligibility。
 
 冻结本地取消链会让业务 client 自动跟随跳转，并在认证失效后刷新 bearer、重放写请求；旧 server relay 还
@@ -361,13 +362,20 @@ JSON POST `/v4/member/seat`，参数严格为 `type="1"` 与调用方的 `page/l
 HTTP/认证跳转、非 JSON 或结构不足造成的无法判定统一为不可重试 `outcome_unknown`；后续只能刷新预约列表
 供用户核对。冻结 JVM/Android 的 trust-all TLS 同样违反当前安全合同，明确不采用。
 
-冻结成功 fixture 证明的是 raw `code=1` 和 `message=取消成功`，冻结负例证明部分 `code/message` 可确定映射
-为已取消、已结束、不存在或失效等业务错误。`LibBookCancelResponse.success` 是本地 backend 映射后的产品
-字段，不能反向证明 raw `success` 或 `status` 字段存在；结构不足时不得默认成功。上述来源来自
+冻结成功 fixture 证明的是 raw `code=1` 和精确 `message=取消成功`；冻结本地实现允许 canonical
+`code=0/1`，但其它新成功文案没有足够证据，必须保持 `outcome_unknown`。冻结负例证明部分 `code/message`
+可确定映射为已取消、已结束、不存在或失效等业务错误；Core 只公开固定安全的成功、失败或终态文案，不透传
+raw message。`LibBookCancelResponse.success` 是本地 backend 映射后的产品字段，不能反向证明 raw `success`
+或 `status` 字段存在；结构不足时不得默认成功。上述来源来自
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `LocalLibBookApi.kt`、`LibBook.kt`、
 `LibBookBookingStatusTest.kt`、`LocalLibBookApiBackendTest.kt`、`LocalConnectionAuth.kt` 与两个平台
 `LocalLibBookHttpClient`；`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
 `src/api.rs` 确认九列没有等价实现。
+
+同页 authority 的 `/v4/member/seat` 也属于取消公共边界：其非成功 envelope 中的 raw `message/msg` 可能含
+个人数据或控制字符，只能在内部用于认证失效识别，不能作为 `UbaaError`、CLI 或 FRB 文案。Core 将该取消
+专用路径固定为 `upstream_changed/图书馆预约取消资格核对响应无效`，CLI 与 Bridge 按操作再次收敛；普通
+只读 bookings 仍保持其独立合同，不借此改写其它功能的错误语义。
 
 11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
 `courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程

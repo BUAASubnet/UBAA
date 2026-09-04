@@ -4,9 +4,9 @@ use serde_json::{Value, json};
 use tracing::debug;
 
 use crate::domain::{
-    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult,
-    LibBookLibrary, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
-    LibBookSeat,
+    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelPreflight,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -14,8 +14,8 @@ use crate::ports::HttpRequest;
 use super::LibBookCredential;
 use super::crypto::encrypt_reserve_request;
 use super::parser::{
-    envelope, error, is_expired_body, parse_area_detail_for, parse_area_detail_for_day,
-    parse_areas, parse_bookings, parse_libraries, parse_seats,
+    error, is_expired_body, parse_area_detail_for, parse_area_detail_for_day, parse_areas,
+    parse_bookings_for_request, parse_bookings_with_strict_metadata, parse_libraries, parse_seats,
 };
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
@@ -72,6 +72,12 @@ pub(crate) async fn get_bookings(
     page: i32,
     limit: i32,
 ) -> Result<LibBookBookingsPage> {
+    validate_bookings_page(page, limit)?;
+    let body = request_bookings(runtime, page, limit).await?;
+    parse_bookings_for_request(&body, page, limit)
+}
+
+fn validate_bookings_page(page: i32, limit: i32) -> Result<()> {
     if page <= 0 || limit <= 0 {
         return Err(UbaaError::new(
             ErrorCode::InvalidInput,
@@ -80,14 +86,42 @@ pub(crate) async fn get_bookings(
             "分页参数无效",
         ));
     }
-    parse_bookings(
-        &request_json(
-            runtime,
-            "member/seat",
-            json!({"type": "1", "page": page, "limit": limit}),
-            true,
-        )
-        .await?,
+    Ok(())
+}
+
+async fn request_bookings(
+    runtime: &mut crate::runtime::ClientRuntime,
+    page: i32,
+    limit: i32,
+) -> Result<String> {
+    request_json(
+        runtime,
+        "member/seat",
+        json!({"type": "1", "page": page, "limit": limit}),
+        true,
+    )
+    .await
+}
+
+async fn get_cancel_bookings(
+    runtime: &mut crate::runtime::ClientRuntime,
+    page: i32,
+    limit: i32,
+) -> Result<LibBookBookingsPage> {
+    validate_bookings_page(page, limit)?;
+    let body = request_bookings(runtime, page, limit).await?;
+    parse_bookings_with_strict_metadata(&body).map_err(sanitize_cancel_authority_error)
+}
+
+fn sanitize_cancel_authority_error(error: UbaaError) -> UbaaError {
+    if error.code != ErrorCode::UpstreamChanged {
+        return error;
+    }
+    UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        "图书馆预约取消资格核对响应无效",
     )
 }
 
@@ -349,11 +383,57 @@ fn write_outcome_unknown() -> UbaaError {
     )
 }
 
-pub(crate) async fn cancel_booking(
+/// 重新读取 action 产生时所在分页，并形成唯一 active 预约的取消权威摘要。
+pub(crate) async fn preflight_cancel(
     runtime: &mut crate::runtime::ClientRuntime,
-    booking_id: &str,
-) -> Result<LibBookCancelResult> {
-    if booking_id.trim().is_empty() {
+    request: &LibBookCancelRequest,
+) -> Result<LibBookCancelPreflight> {
+    let request = normalize_cancel_request(request)?;
+    let page = get_cancel_bookings(runtime, request.page, request.limit).await?;
+    if page.page != request.page || page.limit != request.limit {
+        return Err(error("图书馆预约响应分页与取消目标上下文不一致"));
+    }
+    let matching = page
+        .bookings
+        .into_iter()
+        .filter(|booking| booking.id.trim() == request.booking_id)
+        .collect::<Vec<_>>();
+    let [booking] = matching.as_slice() else {
+        return if matching.is_empty() {
+            Err(unavailable("图书馆预约记录已变化，请刷新后重新准备"))
+        } else {
+            Err(error("图书馆预约响应包含重复预约标识"))
+        };
+    };
+    match booking.cancel_eligibility {
+        ActionEligibility::Allowed => {}
+        ActionEligibility::Denied => {
+            return Err(unavailable("该图书馆预约已结束或已取消，无需取消"));
+        }
+        ActionEligibility::Unknown => return Err(error("图书馆预约取消资格缺少必要字段")),
+    }
+    if booking.cancel_target.as_deref() != Some(request.booking_id.as_str()) {
+        return Err(error("图书馆预约取消目标与请求不一致"));
+    }
+
+    Ok(LibBookCancelPreflight {
+        booking_id: request.booking_id.clone(),
+        booking_name: safe_summary_field(&booking.name_merge, "图书馆预约"),
+        area_name: safe_summary_field(&booking.area_name, "图书馆分区"),
+        seat_no: safe_summary_field(&booking.seat_no, "未知座位"),
+        day: safe_summary_field(&booking.day, "未知日期"),
+        begin_time: safe_summary_field(&booking.begin_time, "未知开始时间"),
+        end_time: safe_summary_field(&booking.end_time, "未知结束时间"),
+    })
+}
+
+fn normalize_cancel_request(request: &LibBookCancelRequest) -> Result<LibBookCancelRequest> {
+    let request = LibBookCancelRequest {
+        booking_id: request.booking_id.trim().to_owned(),
+        page: request.page,
+        limit: request.limit,
+    };
+    if request.booking_id.is_empty() {
         return Err(UbaaError::new(
             ErrorCode::InvalidInput,
             ErrorKind::Input,
@@ -361,29 +441,128 @@ pub(crate) async fn cancel_booking(
             "预约编号不能为空",
         ));
     }
-    let response = request_json(runtime, "space/cancel", json!({"id": booking_id}), true).await?;
-    let value = envelope(&response)?;
-    let object = value.as_object();
-    let success = object
-        .and_then(|m| m.get("success"))
-        .and_then(Value::as_bool)
-        .or_else(|| {
-            object
-                .and_then(|m| m.get("status"))
-                .and_then(Value::as_i64)
-                .map(|v| v == 1)
-        })
-        .unwrap_or(true);
+    if request.page <= 0 || request.limit <= 0 {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "图书馆预约分页参数必须为正数",
+        ));
+    }
+    Ok(request)
+}
+
+pub(crate) async fn cancel_booking(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: LibBookCancelRequest,
+) -> Result<LibBookCancelResult> {
+    let preflight = preflight_cancel(runtime, &request).await?;
+    crate::features::require_session(runtime)?;
+    let credential = current_credential(runtime).await?;
+    let body = serde_json::to_vec(&json!({"id": preflight.booking_id}))
+        .map_err(|_| error("图书馆取消参数无效"))?;
+    let url = runtime.url(&format!("{BASE_URL}/v4/space/cancel"))?;
+    let expected_final_url = url.clone();
+    let authorization = format!("bearer{}", credential.token);
+    let mut http_request = HttpRequest::post(url, body);
+    http_request
+        .headers
+        .insert("Content-Type".into(), "application/json".into());
+    apply_headers(runtime, &mut http_request, Some(&authorization))?;
+    let response = runtime.request_non_idempotent(http_request).await?;
+    if response.status != 200
+        || !final_url_matches_request(&expected_final_url, &response.final_url)
+    {
+        return Err(cancel_outcome_unknown());
+    }
+    parse_cancel_outcome(&response.body)
+}
+
+fn parse_cancel_outcome(body: &[u8]) -> Result<LibBookCancelResult> {
+    let value: Value = serde_json::from_slice(body).map_err(|_| cancel_outcome_unknown())?;
+    let object = value.as_object().ok_or_else(cancel_outcome_unknown)?;
+    let code = object
+        .get("code")
+        .and_then(canonical_i32)
+        .ok_or_else(cancel_outcome_unknown)?;
     let message = object
-        .and_then(|m| m.get("message").or_else(|| m.get("msg")))
+        .get("message")
+        .or_else(|| object.get("msg"))
         .and_then(Value::as_str)
-        .unwrap_or(if success {
-            "取消成功"
-        } else {
-            "取消失败"
-        })
-        .to_owned();
-    Ok(LibBookCancelResult { success, message })
+        .map(str::trim)
+        .filter(|message| !message.is_empty())
+        .ok_or_else(cancel_outcome_unknown)?;
+    if is_authentication_message(message) {
+        return Err(cancel_outcome_unknown());
+    }
+    if is_known_cancel_terminal_message(message) {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "图书馆预约已结束、已取消或不存在",
+        ));
+    }
+    if matches!(code, 0 | 1) && message == "取消成功" {
+        return Ok(LibBookCancelResult {
+            success: true,
+            message: "图书馆预约已取消".to_owned(),
+        });
+    }
+    if matches!(code, 0 | 1) && !frozen_business_success(message) {
+        return Ok(LibBookCancelResult {
+            success: false,
+            message: "图书馆预约取消未完成".to_owned(),
+        });
+    }
+    Err(cancel_outcome_unknown())
+}
+
+fn canonical_i32(value: &Value) -> Option<i32> {
+    match value {
+        Value::Number(number) => number
+            .as_i64()
+            .and_then(|number| i32::try_from(number).ok()),
+        Value::String(value) => value
+            .parse::<i32>()
+            .ok()
+            .filter(|parsed| parsed.to_string() == *value),
+        _ => None,
+    }
+}
+
+fn is_known_cancel_terminal_message(message: &str) -> bool {
+    [
+        "已取消",
+        "用户取消",
+        "已结束",
+        "不能取消",
+        "无法取消",
+        "已完成",
+        "不存在",
+        "失效",
+    ]
+    .iter()
+    .any(|part| message.contains(part))
+}
+
+fn final_url_matches_request(expected: &str, actual: &str) -> bool {
+    let expected =
+        crate::connection::from_webvpn_url(expected).unwrap_or_else(|_| expected.to_owned());
+    let actual = crate::connection::from_webvpn_url(actual).unwrap_or_else(|_| actual.to_owned());
+    url::Url::parse(&expected)
+        .ok()
+        .zip(url::Url::parse(&actual).ok())
+        .is_some_and(|(expected, actual)| expected == actual)
+}
+
+fn cancel_outcome_unknown() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        "图书馆取消结果未知，请刷新预约记录后再决定是否重试",
+    )
 }
 
 async fn request_json(

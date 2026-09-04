@@ -144,8 +144,12 @@ Future<FeatureResult> _loadLibbookFeature(
           final limit = query.size.clamp(1, 100);
           final result = await client.libbookBookings(page: page, limit: limit);
           final details = result.data.bookings
-              .map(
-                (item) => FeatureDetail(
+              .map((item) {
+                final target = item.cancelTarget?.trim();
+                final eligibility = _toLibbookActionEligibility(
+                  item.cancelEligibility,
+                );
+                return FeatureDetail(
                   title: item.nameMerge,
                   subtitle: item.areaName,
                   fields: _compactFields(<FeatureField?>[
@@ -153,11 +157,22 @@ Future<FeatureResult> _loadLibbookFeature(
                     _field('座位', item.seatNo),
                     _field('日期', item.day),
                     _field('时段', '${item.beginTime}–${item.endTime}'),
-                    _field('状态码', item.status),
+                    _field('状态码', item.status?.toString()),
                     _field('状态', item.statusName),
+                    _field('可取消', _libbookEligibilityLabel(eligibility)),
                   ]),
-                ),
-              )
+                  actions: target == null || target.isEmpty
+                      ? const <FeatureAction>[]
+                      : <FeatureAction>[
+                          LibbookCancelAction(
+                            bookingId: target,
+                            page: result.data.page,
+                            limit: result.data.limit,
+                            eligibility: eligibility,
+                          ),
+                        ],
+                );
+              })
               .toList(growable: false);
           return _countResult(
             result.data.bookings.length,

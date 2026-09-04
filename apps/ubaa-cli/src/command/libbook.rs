@@ -68,6 +68,10 @@ pub enum LibBookCommand {
     Cancel {
         #[arg(long)]
         booking_id: String,
+        #[arg(long, default_value_t = 1)]
+        page: i32,
+        #[arg(long, default_value_t = 20)]
+        limit: i32,
         #[arg(long = "confirm-write")]
         confirm_write: bool,
     },

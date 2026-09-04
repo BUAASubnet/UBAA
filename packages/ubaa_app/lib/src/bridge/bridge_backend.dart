@@ -19,7 +19,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 4;
+const _supportedBridgeContractVersion = 5;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -132,8 +132,11 @@ class BridgeBackend
   );
 
   @override
-  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) =>
-      _prepareLibbookCancelBooking(this, id: id);
+  Future<WriteIntent> prepareLibbookCancelBooking({
+    required String id,
+    required int page,
+    required int limit,
+  }) => _prepareLibbookCancelBooking(this, id: id, page: page, limit: limit);
 
   /// 准备阳光打卡。照片字节只在本次调用构造 typed DTO，不写入配置或日志。
   @override

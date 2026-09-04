@@ -251,13 +251,19 @@ void main() {
     expect(signinIntent.intentId, 'intent-signin');
     expect(backend.signinCourseId, 'signin-course-41004');
 
-    final libbookCancelIntent = await shell.onPrepareCancellationWrite!(
-      WriteOperation.libbookCancelBooking,
-      ' booking-41005 ',
+    final libbookCancelIntent = await shell.onPrepareLibbookCancelWrite!(
+      const LibbookCancelAction(
+        bookingId: ' booking-41005 ',
+        page: 2,
+        limit: 10,
+        eligibility: ActionEligibility.allowed,
+      ),
     );
     expect(libbookCancelIntent.operation, WriteOperation.libbookCancelBooking);
     expect(libbookCancelIntent.intentId, 'intent-libbook-cancel');
     expect(backend.libbookCancellationId, 'booking-41005');
+    expect(backend.libbookCancellationPage, 2);
+    expect(backend.libbookCancellationLimit, 10);
 
     final cgyyCancelIntent = await shell.onPrepareCancellationWrite!(
       WriteOperation.cgyyCancelOrder,
@@ -422,7 +428,7 @@ void main() {
     };
     for (final route in featureRoutes.entries) {
       backend.resetReadCalls();
-      await shell.onWriteSuccess!(route.key);
+      await shell.onWriteSuccess!(route.key, null);
       expect(backend.loadedFeatures, <FeatureId>[route.value]);
       expect(backend.queryCalls, isEmpty);
     }
@@ -431,7 +437,7 @@ void main() {
       WriteOperation.libbookCancelBooking,
     ]) {
       backend.resetReadCalls();
-      await shell.onWriteSuccess!(operation);
+      await shell.onWriteSuccess!(operation, null);
       expect(backend.loadedFeatures, isEmpty);
       expect(backend.queryCalls, hasLength(1));
       expect(backend.queryCalls.single.feature, FeatureId.libbook);
@@ -445,7 +451,7 @@ void main() {
       WriteOperation.cgyyCancelOrder,
     ]) {
       backend.resetReadCalls();
-      await shell.onWriteSuccess!(operation);
+      await shell.onWriteSuccess!(operation, null);
       expect(backend.loadedFeatures, isEmpty);
       expect(backend.queryCalls, hasLength(1));
       expect(backend.queryCalls.single.feature, FeatureId.cgyy);
@@ -555,6 +561,8 @@ final class _RecordingBackend
   ({int courseId, double? lat, double? lng, int signType})? bykcSign;
   String? signinCourseId;
   String? libbookCancellationId;
+  int? libbookCancellationPage;
+  int? libbookCancellationLimit;
   int? cgyyCancellationId;
   ({
     String areaId,
@@ -662,9 +670,24 @@ final class _RecordingBackend
   }
 
   @override
-  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) async {
+  Future<WriteIntent> prepareLibbookCancelBooking({
+    required String id,
+    required int page,
+    required int limit,
+  }) async {
     libbookCancellationId = id;
-    return _intent('libbook-cancel', WriteOperation.libbookCancelBooking);
+    libbookCancellationPage = page;
+    libbookCancellationLimit = limit;
+    return _intent(
+      'libbook-cancel',
+      WriteOperation.libbookCancelBooking,
+    ).withReadbackQuery(
+      FeatureQuery(
+        view: FeatureQueryView.libbookBookings,
+        page: page,
+        size: limit,
+      ),
+    );
   }
 
   @override

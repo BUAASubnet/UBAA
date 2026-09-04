@@ -466,6 +466,8 @@ fn map_libbook_booking(v: domain::LibBookBooking) -> BridgeLibBookBooking {
         end_time: v.end_time,
         status: v.status,
         status_name: v.status_name,
+        cancel_eligibility: map_action_eligibility(v.cancel_eligibility),
+        cancel_target: v.cancel_target,
     }
 }
 pub(super) fn map_libbook_bookings(v: domain::LibBookBookingsPage) -> BridgeLibBookBookingsPage {

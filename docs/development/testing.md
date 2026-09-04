@@ -8,7 +8,7 @@
 | Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
 | 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v5、旧 v4 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
+| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v6、旧 v5 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
 | 结构与 Shell 合同 | `scripts/tests/layout.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
@@ -45,9 +45,12 @@ CLI envelope 从 schema v2 升为 v3，合同测试要求全部成功、失败�
 旧 v2 envelope。Phase 11D 又将 Signin 原始状态改为可空、加入 typed 资格/目标和写结果分支，因此当前公开
 envelope 显式升为 schema v4，真实 dispatcher 合同覆盖确定 true/false 与 `outcome_unknown` 并拒绝旧 v3。
 Phase 11E 将 LibBook 座位状态改为可空整数，以 typed `reserveEligibility/reserveTarget` 取代
-`isAvailable`，并加入确定的 `LibBookReserveResult`，因此当前 CLI envelope 显式升为 schema v5、
-Flutter bridge contract 显式升为 v4；合同测试拒绝旧 v4/v3 绑定。该测试范围不包含磁盘
-`session.json`；其 schema v2 由 Session/CAS 测试独立保护。
+`isAvailable`，并加入确定的 `LibBookReserveResult`，因此当时 CLI envelope 显式升为 schema v5、
+Flutter bridge contract 显式升为 v4。Phase 11F 又将 LibBook booking `status` 改为可空整数，加入
+typed `cancelEligibility/cancelTarget`，并让取消请求携带本地 `id/page/limit` 同页 authority 上下文；
+当前 CLI envelope 因此显式升为 schema v6、Flutter bridge contract 升为 v5，合同测试拒绝旧
+schema v5/bridge v4。该测试范围不包含磁盘 `session.json`；其 schema v2 由 Session/CAS 测试独立保护，
+`config.toml` 继续使用版本 1。
 
 ## 写入测试边界
 
@@ -64,6 +67,14 @@ Flutter bridge contract 显式升为 v4；合同测试拒绝旧 v4/v3 绑定。�
 LibBook 预约另由 Core/Bridge/App/UI 回归固定三条边界：确定业务拒绝作为 `success=false` 返回；发送后的
 `outcome_unknown` 保留 Core 稳定 code/kind/安全 message 且强制不可重试；确定成功与未知结果都会在不重放
 写请求的前提下刷新 `libbookBookings`，供用户核对。
+
+LibBook 取消回归必须另外固定：canonical `status=1` 为 allowed、`6/8` 为 denied，其余为 unknown；
+`statusName` 改动不影响资格；prepare 与 commit 都 fresh 读取 action 指定的同一 `page/limit` 并唯一匹配
+booking ID；最终取消 wire 只有 `{id}` 且恰好发送一次。确定 false、发送后 unknown、重复 commit 和生命周期
+失效均消费一次性 intent；成功或 unknown 只刷新同一预约页一次。响应分页缺失、畸形、非正或别名冲突必须
+在 cancel 前失败；未知成功文案不能默认成功，公开成功/失败/终态结果不得包含 raw message 或敏感标记。
+prepare/commit 读取 `/v4/member/seat` 时的非成功 envelope 也必须覆盖含个人数据、token 和控制字符的失败
+fixture，并同时断言 Core、CLI human/JSON 与 Bridge 只输出固定安全文案、不会发送最终 cancel。
 
 ## 真实只读与发布证据
 

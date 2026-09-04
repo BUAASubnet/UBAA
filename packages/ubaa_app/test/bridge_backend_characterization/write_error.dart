@@ -22,7 +22,11 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
         startTime: '08:00',
         endTime: '10:00',
       ),
-      await backend.prepareLibbookCancelBooking(id: 'booking-1'),
+      await backend.prepareLibbookCancelBooking(
+        id: 'booking-1',
+        page: 2,
+        limit: 10,
+      ),
       await backend.prepareYgdkSubmit(
         const YgdkSubmitInput(
           itemId: 7,
@@ -139,7 +143,10 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       <String>['area-1', 'seat-1', '2026-09-04', '1', '08:00', '10:00'],
     );
     expect(signin.courseId, 'signin-1');
-    expect(libbookCancel.id, 'booking-1');
+    expect(
+      <Object?>[libbookCancel.id, libbookCancel.page, libbookCancel.limit],
+      <Object?>['booking-1', 2, 10],
+    );
     expect(cgyyCancel.id, 14);
     expect(
       <Object?>[

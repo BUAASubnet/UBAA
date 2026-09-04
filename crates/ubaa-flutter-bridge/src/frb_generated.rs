@@ -4359,8 +4359,11 @@ impl SseDecode for crate::api::read::BridgeLibBookBooking {
         let mut var_day = <String>::sse_decode(deserializer);
         let mut var_beginTime = <String>::sse_decode(deserializer);
         let mut var_endTime = <String>::sse_decode(deserializer);
-        let mut var_status = <String>::sse_decode(deserializer);
+        let mut var_status = <Option<i32>>::sse_decode(deserializer);
         let mut var_statusName = <String>::sse_decode(deserializer);
+        let mut var_cancelEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
+        let mut var_cancelTarget = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeLibBookBooking {
             id: var_id,
             name_merge: var_nameMerge,
@@ -4371,6 +4374,8 @@ impl SseDecode for crate::api::read::BridgeLibBookBooking {
             end_time: var_endTime,
             status: var_status,
             status_name: var_statusName,
+            cancel_eligibility: var_cancelEligibility,
+            cancel_target: var_cancelTarget,
         };
     }
 }
@@ -4470,7 +4475,13 @@ impl SseDecode for crate::api::write::BridgeLibbookCancelBookingRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <String>::sse_decode(deserializer);
-        return crate::api::write::BridgeLibbookCancelBookingRequest { id: var_id };
+        let mut var_page = <i32>::sse_decode(deserializer);
+        let mut var_limit = <i32>::sse_decode(deserializer);
+        return crate::api::write::BridgeLibbookCancelBookingRequest {
+            id: var_id,
+            page: var_page,
+            limit: var_limit,
+        };
     }
 }
 
@@ -7778,6 +7789,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeLibBookBooking {
             self.end_time.into_into_dart().into_dart(),
             self.status.into_into_dart().into_dart(),
             self.status_name.into_into_dart().into_dart(),
+            self.cancel_eligibility.into_into_dart().into_dart(),
+            self.cancel_target.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -7915,7 +7928,12 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeLibBookTimeSlot>
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeLibbookCancelBookingRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [self.id.into_into_dart().into_dart()].into_dart()
+        [
+            self.id.into_into_dart().into_dart(),
+            self.page.into_into_dart().into_dart(),
+            self.limit.into_into_dart().into_dart(),
+        ]
+        .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
@@ -10131,8 +10149,13 @@ impl SseEncode for crate::api::read::BridgeLibBookBooking {
         <String>::sse_encode(self.day, serializer);
         <String>::sse_encode(self.begin_time, serializer);
         <String>::sse_encode(self.end_time, serializer);
-        <String>::sse_encode(self.status, serializer);
+        <Option<i32>>::sse_encode(self.status, serializer);
         <String>::sse_encode(self.status_name, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.cancel_eligibility,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.cancel_target, serializer);
     }
 }
 
@@ -10197,6 +10220,8 @@ impl SseEncode for crate::api::write::BridgeLibbookCancelBookingRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.id, serializer);
+        <i32>::sse_encode(self.page, serializer);
+        <i32>::sse_encode(self.limit, serializer);
     }
 }
 

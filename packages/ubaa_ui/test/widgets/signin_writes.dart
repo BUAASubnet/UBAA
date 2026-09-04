@@ -97,7 +97,7 @@ Future<void> _pumpSigninResult(
         onRetryFeature: (_) async {},
         onPrepareSigninWrite: (_) async => intent,
         onCommitWrite: (_) async => onCommit(),
-        onWriteSuccess: (_) async => onRefresh(),
+        onWriteSuccess: (_, __) async => onRefresh(),
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},

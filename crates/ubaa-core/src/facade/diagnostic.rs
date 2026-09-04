@@ -10,11 +10,12 @@ use crate::domain::{
     CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode, EvaluationCourse,
     EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
-    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
-    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelPreflight,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult,
+    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, Result};
 use crate::features::user;
@@ -717,6 +718,21 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 只读复核 action 所属分页内唯一 active 的图书馆预约。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、路线读取失败、目标不唯一或取消资格不足时返回错误。
+    pub async fn preflight_libbook_cancel(
+        &mut self,
+        request: &LibBookCancelRequest,
+    ) -> Result<FeatureResult<LibBookCancelPreflight>> {
+        self.guard_latest_session_ownership()?;
+        let result = crate::features::libbook::preflight_cancel(&mut self.runtime, request).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 取消图书馆预约。
     ///
     /// # Errors
@@ -724,11 +740,12 @@ impl RouteClient {
     /// 会话所有权校验、网络写请求或上游响应处理失败时返回错误。
     pub async fn libbook_cancel_booking(
         &mut self,
-        id: &str,
+        request: LibBookCancelRequest,
     ) -> Result<FeatureResult<LibBookCancelResult>> {
         self.guard_latest_session_ownership()?;
-        let result = crate::features::libbook::cancel_booking(&mut self.runtime, id).await;
-        let data = self.finish_readonly_operation(result)?;
+        self.runtime.begin_non_idempotent_operation();
+        let result = crate::features::libbook::cancel_booking(&mut self.runtime, request).await;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 

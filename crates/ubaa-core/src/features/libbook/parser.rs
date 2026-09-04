@@ -288,8 +288,24 @@ pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
     Ok(seats)
 }
 
-/// 解析当前用户的图书馆预约分页。
-pub fn parse_bookings(body: &str) -> Result<LibBookBookingsPage> {
+/// 按调用方请求值补齐普通只读分页；冻结实现允许响应省略分页元数据。
+pub(super) fn parse_bookings_for_request(
+    body: &str,
+    requested_page: i32,
+    requested_limit: i32,
+) -> Result<LibBookBookingsPage> {
+    parse_bookings_with_metadata(body, Some((requested_page, requested_limit)))
+}
+
+/// 取消 authority 必须由响应中的完整、无冲突分页元数据证明。
+pub(super) fn parse_bookings_with_strict_metadata(body: &str) -> Result<LibBookBookingsPage> {
+    parse_bookings_with_metadata(body, None)
+}
+
+fn parse_bookings_with_metadata(
+    body: &str,
+    fallback: Option<(i32, i32)>,
+) -> Result<LibBookBookingsPage> {
     let value = envelope(body)?;
     let object = value
         .as_object()
@@ -297,16 +313,32 @@ pub fn parse_bookings(body: &str) -> Result<LibBookBookingsPage> {
     let bookings = array(object, &["data", "bookings", "list"])
         .iter()
         .filter_map(Value::as_object)
-        .map(|booking| LibBookBooking {
-            id: text(booking, &["id"]),
-            name_merge: text(booking, &["nameMerge", "name_merge"]),
-            area_name: text(booking, &["name", "area_name", "areaName"]),
-            seat_no: text(booking, &["no", "seat_no", "seatNo"]),
-            day: text(booking, &["day", "date"]),
-            begin_time: text(booking, &["beginTime", "begin_time"]),
-            end_time: text(booking, &["endTime", "end_time"]),
-            status: text(booking, &["status"]),
-            status_name: text(booking, &["status_name", "statusName"]),
+        .map(|booking| {
+            let id = text(booking, &["id"]);
+            let status = optional_i32(booking, "status");
+            let target = (!id.trim().is_empty()).then(|| id.trim().to_owned());
+            let cancel_eligibility = match (status, target.as_ref()) {
+                (Some(1), Some(_)) => ActionEligibility::Allowed,
+                (Some(6 | 8), Some(_)) => ActionEligibility::Denied,
+                _ => ActionEligibility::Unknown,
+            };
+            let cancel_target = match cancel_eligibility {
+                ActionEligibility::Allowed | ActionEligibility::Denied => target,
+                ActionEligibility::Unknown => None,
+            };
+            LibBookBooking {
+                id,
+                name_merge: text(booking, &["nameMerge", "name_merge"]),
+                area_name: text(booking, &["name", "area_name", "areaName"]),
+                seat_no: text(booking, &["no", "seat_no", "seatNo"]),
+                day: text(booking, &["day", "date"]),
+                begin_time: text(booking, &["beginTime", "begin_time"]),
+                end_time: text(booking, &["endTime", "end_time"]),
+                status,
+                status_name: text(booking, &["status_name", "statusName"]),
+                cancel_eligibility,
+                cancel_target,
+            }
         })
         .collect::<Vec<_>>();
     let total = object
@@ -318,12 +350,41 @@ pub fn parse_bookings(body: &str) -> Result<LibBookBookingsPage> {
                 .or_else(|| value.as_str().and_then(|value| value.parse().ok()))
         })
         .unwrap_or_else(|| i32::try_from(bookings.len()).unwrap_or(i32::MAX));
+    let response_page = strict_positive_alias_number(object, &["current_page", "page"]);
+    let response_limit = strict_positive_alias_number(object, &["per_page", "limit"]);
+    let (page, limit) = match (response_page, response_limit, fallback) {
+        (Some(page), Some(limit), _) => (page, limit),
+        (_, _, Some((page, limit))) => (page.max(1), limit.max(1)),
+        _ => return Err(error("图书馆预约响应分页元数据无效")),
+    };
     Ok(LibBookBookingsPage {
         bookings,
-        page: number(object, &["current_page", "page"]).max(1),
-        limit: number(object, &["per_page", "limit"]).max(1),
+        page,
+        limit,
         total,
     })
+}
+
+fn strict_positive_alias_number(map: &Map<String, Value>, keys: &[&str]) -> Option<i32> {
+    let mut result = None;
+    for key in keys {
+        let Some(value) = map.get(*key) else {
+            continue;
+        };
+        let parsed = match value {
+            Value::Number(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()),
+            Value::String(value) => value
+                .parse::<i32>()
+                .ok()
+                .filter(|parsed| parsed.to_string() == *value),
+            _ => None,
+        }?;
+        if parsed <= 0 || result.is_some_and(|current| current != parsed) {
+            return None;
+        }
+        result = Some(parsed);
+    }
+    result
 }
 
 fn is_expired_message(message: &str) -> bool {

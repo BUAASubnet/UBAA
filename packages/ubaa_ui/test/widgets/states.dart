@@ -589,84 +589,6 @@ void _registerCgyyStateTest() {
   });
 }
 
-void _registerLibbookStateTest() {
-  testWidgets('图书馆预约取消入口遵守冻结状态码和状态名称', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.libbook
-              ? const <FeatureDetail>[
-                  FeatureDetail(
-                    title: '状态码已结束',
-                    fields: <FeatureField>[
-                      FeatureField(label: '预约 ID', value: 'booking-6'),
-                      FeatureField(label: '状态码', value: '6'),
-                      FeatureField(label: '状态', value: '有效'),
-                    ],
-                  ),
-                  FeatureDetail(
-                    title: '状态码已取消',
-                    fields: <FeatureField>[
-                      FeatureField(label: '预约 ID', value: 'booking-8'),
-                      FeatureField(label: '状态码', value: '8'),
-                      FeatureField(label: '状态', value: '有效'),
-                    ],
-                  ),
-                  FeatureDetail(
-                    title: '名称已取消',
-                    fields: <FeatureField>[
-                      FeatureField(label: '预约 ID', value: 'booking-name'),
-                      FeatureField(label: '状态码', value: '1'),
-                      FeatureField(label: '状态', value: '用户取消'),
-                    ],
-                  ),
-                  FeatureDetail(
-                    title: '有效预约',
-                    fields: <FeatureField>[
-                      FeatureField(label: '预约 ID', value: 'booking-ok'),
-                      FeatureField(label: '状态码', value: '1'),
-                      FeatureField(label: '状态', value: '有效'),
-                    ],
-                  ),
-                ]
-              : const <FeatureDetail>[],
-        ),
-    };
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: UbaaMainShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onPrepareCancellationWrite: (_, __) async {
-            fail('已结束或已取消的预约不应触发准备回调');
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-    await tester.tap(find.byIcon(Icons.apps_outlined));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('图书馆座位'));
-    await tester.tap(find.text('图书馆座位'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('准备取消预约'), findsOneWidget);
-  });
-}
-
 void _registerSharedStateTests() {
   testWidgets('已有摘要但详情为空的 stale 状态保留摘要并提供重试', (tester) async {
     var retryCalls = 0;
@@ -876,7 +798,7 @@ void _registerSharedStateTests() {
             outcomeUnknown: true,
             resolvedRoute: ConnectionMode.direct,
           ),
-          onWriteSuccess: (_) async => refreshCalls++,
+          onWriteSuccess: (_, __) async => refreshCalls++,
           onLogout: () async {},
           onLogoutAndClearAccount: () async {},
           onRoutePolicyChanged: (_) {},

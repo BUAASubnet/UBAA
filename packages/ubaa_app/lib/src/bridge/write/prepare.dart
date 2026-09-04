@@ -73,12 +73,27 @@ Future<WriteIntent> _prepareLibbookReserve(
 Future<WriteIntent> _prepareLibbookCancelBooking(
   BridgeBackend backend, {
   required String id,
-}) => _prepareIntent(
-  backend,
-  backend.client.prepareLibbookCancelBooking(
-    request: BridgeLibbookCancelBookingRequest(id: id),
-  ),
-);
+  required int page,
+  required int limit,
+}) async {
+  final intent = await _prepareIntent(
+    backend,
+    backend.client.prepareLibbookCancelBooking(
+      request: BridgeLibbookCancelBookingRequest(
+        id: id,
+        page: page,
+        limit: limit,
+      ),
+    ),
+  );
+  return intent.withReadbackQuery(
+    FeatureQuery(
+      view: FeatureQueryView.libbookBookings,
+      page: page,
+      size: limit,
+    ),
+  );
+}
 
 Future<WriteIntent> _prepareYgdkSubmit(
   BridgeBackend backend,

@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../common/route.dart';
+import '../feature/query.dart';
 
 /// 与 bridge 一一对应的封闭写操作枚举。
 enum WriteOperation {
@@ -49,6 +50,7 @@ class WriteIntent {
     required this.warnings,
     required this.expiresAt,
     required this.requestDigest,
+    this.readbackQuery,
   });
 
   final String intentId;
@@ -59,8 +61,22 @@ class WriteIntent {
   final DateTime expiresAt;
   final String requestDigest;
 
+  /// 仅供确定成功或结果未知后的只读核对使用，不参与 Bridge commit。
+  final FeatureQuery? readbackQuery;
+
   bool isExpired([DateTime? now]) =>
       !(expiresAt.isAfter(now ?? DateTime.now()));
+
+  WriteIntent withReadbackQuery(FeatureQuery query) => WriteIntent(
+    intentId: intentId,
+    operation: operation,
+    targetSummary: targetSummary,
+    resolvedRoute: resolvedRoute,
+    warnings: warnings,
+    expiresAt: expiresAt,
+    requestDigest: requestDigest,
+    readbackQuery: query,
+  );
 }
 
 /// 场馆预约提交后用于只读核对的非敏感订单收据。

@@ -400,8 +400,10 @@ pub struct BridgeLibBookBooking {
     pub day: String,
     pub begin_time: String,
     pub end_time: String,
-    pub status: String,
+    pub status: Option<i32>,
     pub status_name: String,
+    pub cancel_eligibility: BridgeActionEligibility,
+    pub cancel_target: Option<String>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeLibBookBookingsPage {

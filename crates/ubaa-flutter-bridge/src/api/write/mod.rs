@@ -67,6 +67,8 @@ pub struct BridgeLibbookReserveRequest {
 #[derive(Clone, Debug)]
 pub struct BridgeLibbookCancelBookingRequest {
     pub id: String,
+    pub page: i32,
+    pub limit: i32,
 }
 #[derive(Clone, Debug)]
 pub struct BridgePhotoUpload {

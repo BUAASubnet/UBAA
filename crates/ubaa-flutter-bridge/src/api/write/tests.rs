@@ -24,6 +24,7 @@ use ubaa_test_support::{ExpectedRequest, MockTransport};
 mod bykc;
 mod contract;
 mod libbook;
+mod libbook_cancel;
 mod lifecycle;
 mod signin;
 mod validation;

@@ -378,6 +378,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareSigninWrite,
     this.onPrepareCancellationWrite,
     this.onPrepareLibbookReserveWrite,
+    this.onPrepareLibbookCancelWrite,
     this.onPrepareCgyySubmitWrite,
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
@@ -412,13 +413,14 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteIntent> Function(WriteOperation operation, String targetId)?
   onPrepareCancellationWrite;
   final LibbookReservePreparer? onPrepareLibbookReserveWrite;
+  final LibbookCancelPreparer? onPrepareLibbookCancelWrite;
   final CgyyReservationPreparer? onPrepareCgyySubmitWrite;
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;
   final WriteIntentDiscarder? onDiscardWriteIntent;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
-  final Future<void> Function(WriteOperation operation)? onWriteSuccess;
+  final WriteSuccessHandler? onWriteSuccess;
 
   /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
   final Future<bool> Function(CgyyReservationReceipt receipt)?
@@ -503,6 +505,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onLibbookReserveWrite: widget.onPrepareLibbookReserveWrite == null
                 ? null
                 : _startLibbookReserveWrite,
+            onLibbookCancelWrite: widget.onPrepareLibbookCancelWrite == null
+                ? null
+                : _startLibbookCancelWrite,
             onEvaluationWrite: widget.onPrepareEvaluationWrite == null
                 ? null
                 : _startEvaluationWrite,
@@ -708,6 +713,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
+  Future<void> _startLibbookCancelWrite(LibbookCancelAction action) async {
+    final prepare = widget.onPrepareLibbookCancelWrite;
+    if (prepare == null) return;
+    await _prepareWrite(
+      prepare: () => prepare(action),
+      failureMessage: '暂时无法准备取消图书馆预约；尚未提交任何写请求。',
+    );
+  }
+
   Future<void> _startEvaluationWrite(
     List<EvaluationCourseInput> courses,
   ) async {
@@ -823,7 +837,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     try {
       final result = await commit(intent.intentId);
       if (result.success || result.outcomeUnknown) {
-        await _refreshAfterWrite(result.operation);
+        await _refreshAfterWrite(result.operation, intent.readbackQuery);
       }
       if (result.success && !result.outcomeUnknown) {
         final receipt = result.cgyyReceipt;
@@ -855,7 +869,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       );
     } on UiError catch (error) {
       if (error.code == UbaaErrorCode.outcomeUnknown) {
-        await _refreshAfterWrite(intent.operation);
+        await _refreshAfterWrite(intent.operation, intent.readbackQuery);
       }
       if (!mounted) return;
       setState(() {
@@ -879,9 +893,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  Future<void> _refreshAfterWrite(WriteOperation operation) async {
+  Future<void> _refreshAfterWrite(
+    WriteOperation operation,
+    FeatureQuery? readbackQuery,
+  ) async {
     try {
-      await widget.onWriteSuccess?.call(operation);
+      await widget.onWriteSuccess?.call(operation, readbackQuery);
     } on Object {
       // 写请求不会重试；读取核对失败由现有提示引导用户稍后手动刷新。
     }
@@ -1277,6 +1294,7 @@ class _FeatureDetailView extends StatelessWidget {
     this.onSigninWrite,
     this.onCancellationWrite,
     this.onLibbookReserveWrite,
+    this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
@@ -1296,6 +1314,7 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
+  final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
@@ -1377,6 +1396,7 @@ class _FeatureDetailView extends StatelessWidget {
       onSigninWrite: onSigninWrite,
       onCancellationWrite: onCancellationWrite,
       onLibbookReserveWrite: onLibbookReserveWrite,
+      onLibbookCancelWrite: onLibbookCancelWrite,
       onCgyySubmitWrite: onCgyySubmitWrite,
       onEvaluationWrite: onEvaluationWrite,
       onYgdkSubmitWrite: onYgdkSubmitWrite,
@@ -1408,6 +1428,7 @@ class _FeatureDetailView extends StatelessWidget {
                   onSigninWrite: onSigninWrite,
                   onCancellationWrite: onCancellationWrite,
                   onLibbookReserveWrite: onLibbookReserveWrite,
+                  onLibbookCancelWrite: onLibbookCancelWrite,
                   onCgyySubmitWrite: onCgyySubmitWrite,
                   onEvaluationWrite: onEvaluationWrite,
                   onYgdkSubmitWrite: onYgdkSubmitWrite,
@@ -2833,6 +2854,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onSigninWrite,
     this.onCancellationWrite,
     this.onLibbookReserveWrite,
+    this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
@@ -2851,6 +2873,7 @@ class _FeatureDetailList extends StatefulWidget {
   final Future<void> Function(WriteOperation operation, String targetId)?
   onCancellationWrite;
   final LibbookReserveStarter? onLibbookReserveWrite;
+  final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
@@ -3004,6 +3027,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final cancellation = _cancellationTarget(detail);
                     final libbookReserveAction = detail
                         .action<LibbookReserveAction>();
+                    final libbookCancelAction = detail
+                        .action<LibbookCancelAction>();
                     final cgyyReservation = _cgyyReservationTarget(detail);
                     final evaluation = _evaluationTarget(detail);
                     final ygdk = _ygdkTarget(detail);
@@ -3034,6 +3059,12 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                           libbookReserveAction.startTime,
                           libbookReserveAction.endTime,
                         ].every((value) => value.trim().isNotEmpty);
+                    final canLibbookCancel =
+                        libbookCancelAction?.eligibility ==
+                            ActionEligibility.allowed &&
+                        libbookCancelAction!.bookingId.trim().isNotEmpty &&
+                        libbookCancelAction.page > 0 &&
+                        libbookCancelAction.limit > 0;
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -3198,6 +3229,33 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                   ),
                                 ),
                             ],
+                            if (libbookCancelAction != null &&
+                                widget.onLibbookCancelWrite !=
+                                    null) ...<Widget>[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                onPressed: canLibbookCancel
+                                    ? () => widget.onLibbookCancelWrite!(
+                                        libbookCancelAction,
+                                      )
+                                    : null,
+                                icon: const Icon(Icons.event_busy),
+                                label: const Text('准备取消预约'),
+                              ),
+                              if (!canLibbookCancel)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    libbookCancelAction.eligibility ==
+                                            ActionEligibility.denied
+                                        ? '该预约当前不可取消。'
+                                        : '当前取消资格无法确认，请刷新后重试。',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
+                            ],
                             if (cancellation != null &&
                                 widget.onCancellationWrite != null) ...<Widget>[
                               const SizedBox(height: 12),
@@ -3207,12 +3265,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                   cancellation.targetId,
                                 ),
                                 icon: const Icon(Icons.event_busy),
-                                label: Text(
-                                  cancellation.operation ==
-                                          WriteOperation.libbookCancelBooking
-                                      ? '准备取消预约'
-                                      : '准备取消订单',
-                                ),
+                                label: Text('准备取消订单'),
                               ),
                             ],
                             if (libbookReserveAction != null &&
@@ -3375,36 +3428,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   ({WriteOperation operation, String targetId})? _cancellationTarget(
     FeatureDetail detail,
   ) {
+    if (widget.feature != FeatureId.cgyy) return null;
     final values = <String, String>{
       for (final field in detail.fields) field.label: field.value.trim(),
     };
-    final targetId = switch (widget.feature) {
-      FeatureId.libbook => values['预约 ID'],
-      FeatureId.cgyy => values['订单编号'],
-      _ => null,
-    };
+    final targetId = values['订单编号'];
     if (targetId == null || targetId.isEmpty) return null;
-
-    final allowed = switch (widget.feature) {
-      FeatureId.libbook => _isLibbookCancellationAllowed(values),
-      FeatureId.cgyy => _isCgyyCancellationAllowed(values),
-      _ => false,
-    };
-    if (!allowed) return null;
-    return (
-      operation: widget.feature == FeatureId.libbook
-          ? WriteOperation.libbookCancelBooking
-          : WriteOperation.cgyyCancelOrder,
-      targetId: targetId,
-    );
-  }
-
-  bool _isLibbookCancellationAllowed(Map<String, String> values) {
-    final statusCode = values['状态码'];
-    if (statusCode == '6' || statusCode == '8') return false;
-    final statusName = values['状态'] ?? '';
-    const blockedKeywords = <String>['取消', '结束', '已完成', '过期', '失效'];
-    return !blockedKeywords.any(statusName.contains);
+    if (!_isCgyyCancellationAllowed(values)) return null;
+    return (operation: WriteOperation.cgyyCancelOrder, targetId: targetId);
   }
 
   bool _isCgyyCancellationAllowed(Map<String, String> values) {

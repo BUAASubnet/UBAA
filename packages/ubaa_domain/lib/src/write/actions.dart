@@ -132,3 +132,27 @@ class LibbookReserveAction extends FeatureAction {
   @override
   WriteOperation get operation => WriteOperation.libbookReserve;
 }
+
+/// 单条图书馆预约记录的 Core 已核对取消目标。
+///
+/// [page] 与 [limit] 只限定 prepare、commit 和写后刷新使用的同一预约页；
+/// 最终上游取消正文仍只包含 [bookingId]。
+@immutable
+class LibbookCancelAction extends FeatureAction {
+  const LibbookCancelAction({
+    required this.bookingId,
+    required this.page,
+    required this.limit,
+    required this.eligibility,
+  });
+
+  final String bookingId;
+  final int page;
+  final int limit;
+
+  @override
+  final ActionEligibility eligibility;
+
+  @override
+  WriteOperation get operation => WriteOperation.libbookCancelBooking;
+}

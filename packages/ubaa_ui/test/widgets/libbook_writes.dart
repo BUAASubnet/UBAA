@@ -148,6 +148,220 @@ void _registerLibbookWriteResultTests() {
   });
 }
 
+const _libbookCancelAction = LibbookCancelAction(
+  bookingId: 'booking-authority',
+  page: 2,
+  limit: 10,
+  eligibility: ActionEligibility.allowed,
+);
+
+void _registerLibbookCancellationWriteTest() {
+  testWidgets('图书馆取消只消费 typed action 并按同页上下文核对一次', (tester) async {
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    var refreshCalls = 0;
+    FeatureQuery? readbackQuery;
+    final commit = Completer<WriteCommitResult>();
+    await _pumpLibbookCancelShell(
+      tester,
+      details: const <FeatureDetail>[
+        FeatureDetail(
+          title: '图书馆预约',
+          fields: <FeatureField>[
+            FeatureField(label: '预约 ID', value: 'display-id-wrong'),
+            FeatureField(label: '状态码', value: '8'),
+            FeatureField(label: '状态', value: '展示文案声称已结束'),
+          ],
+          actions: <FeatureAction>[_libbookCancelAction],
+        ),
+      ],
+      onPrepare: (action) async {
+        prepareCalls++;
+        expect(identical(action, _libbookCancelAction), isTrue);
+        return WriteIntent(
+          intentId: 'cancel-booking-authority',
+          operation: WriteOperation.libbookCancelBooking,
+          targetSummary: '取消图书馆预约脱敏目标',
+          resolvedRoute: ConnectionMode.direct,
+          warnings: const <String>['取消后请刷新预约记录确认状态'],
+          expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+          requestDigest: 'digest',
+          readbackQuery: const FeatureQuery(
+            view: FeatureQueryView.libbookBookings,
+            page: 2,
+            size: 10,
+          ),
+        );
+      },
+      onCommit: (_) {
+        commitCalls++;
+        return commit.future;
+      },
+      onRefresh: (operation, query) async {
+        refreshCalls++;
+        expect(operation, WriteOperation.libbookCancelBooking);
+        readbackQuery = query;
+      },
+    );
+
+    await tester.tap(find.text('准备取消预约'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(find.text('确认取消图书馆预约'), findsNWidgets(2));
+    await tester.tap(find.text('确认提交'));
+    await tester.pump();
+    await tester.tap(find.text('确认提交'));
+    await tester.pump();
+    expect(commitCalls, 1);
+    commit.complete(
+      const WriteCommitResult(
+        operation: WriteOperation.libbookCancelBooking,
+        success: true,
+        message: '预约取消已提交',
+        outcomeUnknown: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(commitCalls, 1);
+    expect(refreshCalls, 1);
+    expect(readbackQuery?.view, FeatureQueryView.libbookBookings);
+    expect(readbackQuery?.page, 2);
+    expect(readbackQuery?.size, 10);
+  });
+
+  testWidgets('图书馆取消 denied unknown 或 action 缺失时默认拒绝', (tester) async {
+    var prepareCalls = 0;
+    await _pumpLibbookCancelShell(
+      tester,
+      details: const <FeatureDetail>[
+        FeatureDetail(
+          title: '缺失 action 的预约',
+          fields: <FeatureField>[
+            FeatureField(label: '预约 ID', value: 'display-only'),
+            FeatureField(label: '状态码', value: '1'),
+            FeatureField(label: '状态', value: '有效'),
+          ],
+        ),
+        FeatureDetail(
+          title: 'denied 预约',
+          fields: <FeatureField>[
+            FeatureField(label: '状态码', value: '1'),
+            FeatureField(label: '状态', value: '有效'),
+          ],
+          actions: <FeatureAction>[
+            LibbookCancelAction(
+              bookingId: 'booking-denied',
+              page: 1,
+              limit: 20,
+              eligibility: ActionEligibility.denied,
+            ),
+          ],
+        ),
+        FeatureDetail(
+          title: 'unknown 预约',
+          fields: <FeatureField>[
+            FeatureField(label: '状态码', value: '1'),
+            FeatureField(label: '状态', value: '有效'),
+          ],
+          actions: <FeatureAction>[
+            LibbookCancelAction(
+              bookingId: 'booking-unknown',
+              page: 1,
+              limit: 20,
+              eligibility: ActionEligibility.unknown,
+            ),
+          ],
+        ),
+      ],
+      onPrepare: (_) async {
+        prepareCalls++;
+        throw StateError('非 allowed action 不应调用 prepare');
+      },
+    );
+
+    expect(_libbookCancelButtonFor('缺失 action 的预约'), findsNothing);
+    final denied = _libbookCancelButtonFor('denied 预约');
+    final unknown = _libbookCancelButtonFor('unknown 预约');
+    expect(denied, findsOneWidget);
+    expect(unknown, findsOneWidget);
+    expect(tester.widget<OutlinedButton>(denied).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(unknown).onPressed, isNull);
+    expect(prepareCalls, 0);
+  });
+
+  testWidgets('图书馆取消确定业务 false 不刷新也不显示成功', (tester) async {
+    var refreshCalls = 0;
+    await _pumpLibbookCancelShell(
+      tester,
+      details: const <FeatureDetail>[
+        FeatureDetail(
+          title: '可取消预约',
+          actions: <FeatureAction>[_libbookCancelAction],
+        ),
+      ],
+      onPrepare: (_) async => WriteIntent(
+        intentId: 'cancel-false',
+        operation: WriteOperation.libbookCancelBooking,
+        targetSummary: '取消预约',
+        resolvedRoute: ConnectionMode.direct,
+        warnings: const <String>[],
+        expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+        requestDigest: 'digest',
+      ),
+      onCommit: (_) async => const WriteCommitResult(
+        operation: WriteOperation.libbookCancelBooking,
+        success: false,
+        message: '预约取消未完成',
+        outcomeUnknown: false,
+      ),
+      onRefresh: (_, __) async => refreshCalls++,
+    );
+
+    await tester.tap(find.text('准备取消预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(refreshCalls, 0);
+    expect(find.text('预约取消未完成'), findsOneWidget);
+  });
+}
+
+Future<void> _pumpLibbookCancelShell(
+  WidgetTester tester, {
+  required List<FeatureDetail> details,
+  required LibbookCancelPreparer onPrepare,
+  Future<WriteCommitResult> Function(String intentId)? onCommit,
+  WriteSuccessHandler? onRefresh,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(800, 1200));
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: UbaaTheme.light(),
+      home: UbaaMainShell(
+        user: const UserSummary(username: 'student'),
+        snapshots: _libbookSnapshots(details),
+        routePolicy: RoutePolicy.auto,
+        telemetryEnabled: false,
+        onRefresh: () async {},
+        onRetryFeature: (_) async {},
+        onPrepareLibbookCancelWrite: onPrepare,
+        onCommitWrite: onCommit,
+        onWriteSuccess: onRefresh,
+        onLogout: () async {},
+        onLogoutAndClearAccount: () async {},
+        onRoutePolicyChanged: (_) {},
+        onTelemetryChanged: (_) {},
+      ),
+    ),
+  );
+  await tester.tap(find.byIcon(Icons.apps_outlined));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('图书馆座位'));
+  await tester.tap(find.text('图书馆座位'));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _pumpLibbookResult(
   WidgetTester tester, {
   required void Function(LibbookReserveAction action) onPrepare,
@@ -183,7 +397,7 @@ Future<void> _pumpLibbookResult(
       return intent;
     },
     onCommit: (_) => onCommit(),
-    onRefresh: (_) async => onRefresh(),
+    onRefresh: (_, __) async => onRefresh(),
   );
   await tester.tap(find.text('准备预约此座位'));
   await tester.pumpAndSettle();
@@ -195,7 +409,7 @@ Future<void> _pumpLibbookShell(
   required Map<FeatureId, FeatureSnapshot> snapshots,
   required Future<WriteIntent> Function(LibbookReserveAction action) onPrepare,
   Future<WriteCommitResult> Function(String intentId)? onCommit,
-  Future<void> Function(WriteOperation operation)? onRefresh,
+  WriteSuccessHandler? onRefresh,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1200));
   await tester.pumpWidget(
@@ -242,5 +456,13 @@ Finder _libbookButtonFor(String title) {
   return find.descendant(
     of: card,
     matching: find.widgetWithText(OutlinedButton, '准备预约此座位'),
+  );
+}
+
+Finder _libbookCancelButtonFor(String title) {
+  final card = find.ancestor(of: find.text(title), matching: find.byType(Card));
+  return find.descendant(
+    of: card,
+    matching: find.widgetWithText(OutlinedButton, '准备取消预约'),
   );
 }

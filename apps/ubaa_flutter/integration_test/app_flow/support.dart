@@ -377,6 +377,12 @@ final class _AllWritesIntegrationBackend
               endTime: '12:00',
               eligibility: ActionEligibility.allowed,
             ),
+            LibbookCancelAction(
+              bookingId: 'booking-1',
+              page: 1,
+              limit: 20,
+              eligibility: ActionEligibility.allowed,
+            ),
           ],
         ),
       ],
@@ -458,8 +464,18 @@ final class _AllWritesIntegrationBackend
       _prepare(WriteOperation.signinPerform);
 
   @override
-  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) =>
-      _prepare(WriteOperation.libbookCancelBooking);
+  Future<WriteIntent> prepareLibbookCancelBooking({
+    required String id,
+    required int page,
+    required int limit,
+  }) => _prepare(
+    WriteOperation.libbookCancelBooking,
+    readbackQuery: FeatureQuery(
+      view: FeatureQueryView.libbookBookings,
+      page: page,
+      size: limit,
+    ),
+  );
 
   @override
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
@@ -488,7 +504,10 @@ final class _AllWritesIntegrationBackend
     List<EvaluationCourseInput> courses,
   ) => _prepare(WriteOperation.evaluationSubmitCourses);
 
-  Future<WriteIntent> _prepare(WriteOperation operation) {
+  Future<WriteIntent> _prepare(
+    WriteOperation operation, {
+    FeatureQuery? readbackQuery,
+  }) {
     final intentId = 'all-writes-${_nextIntent++}';
     _pending[intentId] = operation;
     return Future<WriteIntent>.value(
@@ -500,6 +519,7 @@ final class _AllWritesIntegrationBackend
         warnings: const <String>['集成测试不访问真实账号'],
         expiresAt: DateTime.now().add(const Duration(minutes: 2)),
         requestDigest: 'all-writes-digest',
+        readbackQuery: readbackQuery,
       ),
     );
   }

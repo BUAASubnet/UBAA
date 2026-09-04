@@ -583,6 +583,9 @@ class _CancellationWriteBackend
     with _DiscardingWriteBackendFake
     implements UbaaBackend, CancellationWriteBackend {
   String? bookingId;
+  int? bookingPage;
+  int? bookingLimit;
+  int libbookPrepareCalls = 0;
   int? orderId;
 
   @override
@@ -606,9 +609,22 @@ class _CancellationWriteBackend
       const FeatureResult.empty();
 
   @override
-  Future<WriteIntent> prepareLibbookCancelBooking({required String id}) async {
+  Future<WriteIntent> prepareLibbookCancelBooking({
+    required String id,
+    required int page,
+    required int limit,
+  }) async {
+    libbookPrepareCalls++;
     bookingId = id;
-    return _intent(WriteOperation.libbookCancelBooking, id);
+    bookingPage = page;
+    bookingLimit = limit;
+    return _intent(WriteOperation.libbookCancelBooking, id).withReadbackQuery(
+      FeatureQuery(
+        view: FeatureQueryView.libbookBookings,
+        page: page,
+        size: limit,
+      ),
+    );
   }
 
   @override

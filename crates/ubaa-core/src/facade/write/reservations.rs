@@ -1,8 +1,9 @@
 //! 场馆与图书馆预约写入口。
 
 use crate::domain::{
-    CgyyActionResult, CgyyReservationResult, CgyyReservationSubmitRequest, LibBookCancelResult,
-    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, ReadonlyFeature,
+    CgyyActionResult, CgyyReservationResult, CgyyReservationSubmitRequest, LibBookCancelPreflight,
+    LibBookCancelRequest, LibBookCancelResult, LibBookReservePreflight, LibBookReserveRequest,
+    LibBookReserveResult, ReadonlyFeature,
 };
 
 use super::super::client::UbaaClient;
@@ -84,16 +85,39 @@ impl UbaaClient {
         self.finish_routed_write(resolution, result)
     }
 
+    /// 只读复核 action 所属分页内唯一 active 的图书馆预约。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、图书馆路线不可用、目标不唯一或资格不足时返回带路线信息的错误。
+    pub async fn preflight_libbook_cancel(
+        &mut self,
+        request: &LibBookCancelRequest,
+    ) -> RoutedResult<LibBookCancelPreflight> {
+        self.guard_latest_routed()?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result =
+            crate::features::libbook::preflight_cancel(self.runtime_for(resolution.mode), request)
+                .await;
+        self.finish_routed(resolution, result)
+    }
+
     /// 取消一笔图书馆座位预约。
     ///
     /// # Errors
     ///
     /// 会话所有权失效、图书馆路线不可用或取消失败时返回带路线信息的错误。
-    pub async fn libbook_cancel_booking(&mut self, id: &str) -> RoutedResult<LibBookCancelResult> {
+    pub async fn libbook_cancel_booking(
+        &mut self,
+        request: LibBookCancelRequest,
+    ) -> RoutedResult<LibBookCancelResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result =
-            crate::features::libbook::cancel_booking(self.runtime_for(resolution.mode), id).await;
-        self.finish_routed(resolution, result)
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::libbook::cancel_booking(runtime, request).await
+        };
+        self.finish_routed_write(resolution, result)
     }
 }

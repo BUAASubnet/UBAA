@@ -9,7 +9,7 @@ void main() {
   _registerLibbookBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(4);
+    final client = _ContractVersionClient(5);
 
     final backend = BridgeBackend(client);
 
@@ -17,7 +17,7 @@ void main() {
   });
 
   test('BridgeBackend 在 release 可执行路径拒绝不匹配合同版本', () {
-    final client = _ContractVersionClient(2);
+    final client = _ContractVersionClient(4);
 
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
@@ -565,7 +565,7 @@ void main() {
     expect(fields['可预约'], '是');
   });
 
-  test('BridgeBackend 取消入口状态字段保持公开且可供 UI 门禁使用', () async {
+  test('BridgeBackend 取消入口状态仅展示并由 typed 资格供 UI 门禁使用', () async {
     final route = const BridgeRouteDecision(
       policy: BridgeRoutePolicy.direct,
       resolvedRoute: BridgeConnectionMode.direct,
@@ -586,8 +586,10 @@ void main() {
                 day: '2026-09-02',
                 beginTime: '10:00',
                 endTime: '12:00',
-                status: '6',
+                status: 6,
                 statusName: '有效',
+                cancelEligibility: BridgeActionEligibility.denied,
+                cancelTarget: 'booking-6',
               ),
             ],
             page: 1,
@@ -620,6 +622,11 @@ void main() {
     };
     expect(libbookFields['状态码'], '6');
     expect(libbookFields['状态'], '有效');
+    final libbookAction = libbook.details.single.action<LibbookCancelAction>();
+    expect(libbookAction?.bookingId, 'booking-6');
+    expect(libbookAction?.page, 1);
+    expect(libbookAction?.limit, 20);
+    expect(libbookAction?.eligibility, ActionEligibility.denied);
 
     final cgyy = await backend.loadFeatureQuery(
       FeatureId.cgyy,
@@ -706,7 +713,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 4;
+  int contractVersion() => 5;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {

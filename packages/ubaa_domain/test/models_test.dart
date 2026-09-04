@@ -149,6 +149,21 @@ void main() {
     expect(action.eligibility, ActionEligibility.allowed);
   });
 
+  test('图书馆取消 action 保留 Core 目标与同页权威上下文', () {
+    const action = LibbookCancelAction(
+      bookingId: 'booking-safe',
+      page: 2,
+      limit: 20,
+      eligibility: ActionEligibility.allowed,
+    );
+
+    expect(action.bookingId, 'booking-safe');
+    expect(action.page, 2);
+    expect(action.limit, 20);
+    expect(action.operation, WriteOperation.libbookCancelBooking);
+    expect(action.eligibility, ActionEligibility.allowed);
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

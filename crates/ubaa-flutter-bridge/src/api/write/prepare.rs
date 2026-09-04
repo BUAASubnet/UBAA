@@ -3,9 +3,9 @@
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
     ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
-    map_bykc_sign_preflight_error, map_libbook_preflight_error, now_seconds, random_id,
-    safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
-    validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
+    map_bykc_sign_preflight_error, map_libbook_cancel_preflight_error, map_libbook_preflight_error,
+    now_seconds, random_id, safe_summary_label, validate_bykc_sign_request, validate_cgyy_request,
+    validate_id, validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
@@ -291,17 +291,57 @@ impl BridgeClient {
     }
     pub async fn prepare_libbook_cancel_booking(
         &self,
-        request: BridgeLibbookCancelBookingRequest,
+        mut request: BridgeLibbookCancelBookingRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        request.id = request.id.trim().to_owned();
         validate_text(&request.id)?;
-        self.prepare_write(
-            ReadonlyFeature::LibBook,
-            BridgeWriteOperation::LibbookCancelBooking,
-            format!("id={}", request.id),
-            "取消一条图书馆预约".to_owned(),
-            vec!["取消操作可能不可恢复".to_owned()],
-            PendingWrite::LibbookCancel(request),
-        )
+        validate_id_i32(request.page)?;
+        validate_id_i32(request.limit)?;
+        let canonical = format!(
+            "id={};page={};limit={}",
+            request.id, request.page, request.limit
+        );
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_libbook_cancel(&domain::LibBookCancelRequest {
+                    booking_id: request.id.clone(),
+                    page: request.page,
+                    limit: request.limit,
+                })
+                .await
+                .map_err(map_libbook_cancel_preflight_error)?;
+            if current.data.booking_id.trim() != request.id {
+                return Err(BridgeError::local(
+                    crate::api::client::BridgeErrorCode::UpstreamChanged,
+                    crate::api::client::BridgeErrorKind::Upstream,
+                    false,
+                    "图书馆预约取消目标与请求不一致",
+                ));
+            }
+            let booking_name = safe_summary_label(&current.data.booking_name, "图书馆预约");
+            let area_name = safe_summary_label(&current.data.area_name, "分区未知");
+            let seat_no = safe_summary_label(&current.data.seat_no, "座位号未知");
+            let booking_id = safe_summary_label(&current.data.booking_id, "预约未知");
+            let day = safe_summary_label(&current.data.day, "日期未知");
+            let begin_time = safe_summary_label(&current.data.begin_time, "开始时间未知");
+            let end_time = safe_summary_label(&current.data.end_time, "结束时间未知");
+            self.store_write_intent(
+                BridgeWriteOperation::LibbookCancelBooking,
+                canonical,
+                format!(
+                    "{booking_name}（预约 {booking_id}）·{area_name}·座位 {seat_no}·日期 {day}·{begin_time} 至 {end_time}",
+                ),
+                vec![
+                    "取消操作可能不可恢复".to_owned(),
+                    "提交后请刷新预约记录确认结果".to_owned(),
+                ],
+                PendingWrite::LibbookCancel(request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_ygdk_submit(

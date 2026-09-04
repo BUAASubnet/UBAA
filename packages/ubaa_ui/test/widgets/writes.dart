@@ -123,7 +123,7 @@ void _registerInitialWriteTests() {
               resolvedRoute: ConnectionMode.direct,
             );
           },
-          onWriteSuccess: (operation) async {
+          onWriteSuccess: (operation, _) async {
             expect(
               operation,
               anyOf(
@@ -503,7 +503,7 @@ void _registerInitialWriteTests() {
               outcomeUnknown: false,
             );
           },
-          onWriteSuccess: (operation) async {
+          onWriteSuccess: (operation, _) async {
             expect(operation, WriteOperation.signinPerform);
             refreshCalls++;
           },
@@ -576,7 +576,7 @@ Future<int> _pumpBykcCommitError(WidgetTester tester, Object error) async {
         onRetryFeature: (_) async {},
         onPrepareBykcWrite: (_, __) async => intent,
         onCommitWrite: (_) async => throw error,
-        onWriteSuccess: (_) async => refreshCalls++,
+        onWriteSuccess: (_, __) async => refreshCalls++,
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
         onRoutePolicyChanged: (_) {},
@@ -671,88 +671,6 @@ void _registerCgyyCancellationWriteTest() {
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('订单取消结果已提交，请刷新确认'), findsOneWidget);
-  });
-}
-
-void _registerLibbookCancellationWriteTest() {
-  testWidgets('图书馆预约取消只从公开预约 ID 进入确认页', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(800, 1000));
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.libbook
-              ? const <FeatureDetail>[
-                  FeatureDetail(
-                    title: '图书馆预约',
-                    fields: <FeatureField>[
-                      FeatureField(label: '预约 ID', value: 'booking-7'),
-                      FeatureField(label: '状态', value: '有效'),
-                    ],
-                  ),
-                ]
-              : const <FeatureDetail>[],
-        ),
-    };
-    var prepareCalls = 0;
-    var commitCalls = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: UbaaMainShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onPrepareCancellationWrite: (operation, targetId) async {
-            prepareCalls++;
-            expect(operation, WriteOperation.libbookCancelBooking);
-            expect(targetId, 'booking-7');
-            return WriteIntent(
-              intentId: 'cancel-booking-7',
-              operation: operation,
-              targetSummary: '取消图书馆预约 booking-7',
-              resolvedRoute: ConnectionMode.direct,
-              warnings: const <String>['取消后请刷新预约记录确认状态'],
-              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-              requestDigest: 'digest',
-            );
-          },
-          onCommitWrite: (intentId) async {
-            commitCalls++;
-            expect(intentId, 'cancel-booking-7');
-            return const WriteCommitResult(
-              operation: WriteOperation.libbookCancelBooking,
-              success: true,
-              message: '预约取消结果已提交，请刷新确认',
-              outcomeUnknown: false,
-            );
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-    await tester.tap(find.byIcon(Icons.apps_outlined));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('图书馆座位'));
-    await tester.tap(find.text('图书馆座位'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('准备取消预约'));
-    await tester.pumpAndSettle();
-    expect(prepareCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认取消图书馆预约'), findsNWidgets(2));
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
-    expect(commitCalls, 1);
-    expect(find.text('预约取消结果已提交，请刷新确认'), findsOneWidget);
   });
 }
 

@@ -27,14 +27,15 @@ pub use crate::domain::{
     EvaluationProgress, EvaluationQuestionnaire, EvaluationResult, EvaluationTask, Exam,
     ExamArrangement, FeatureResult, Grade, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
     JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, JudgeProblem, JudgeSubmissionStatus,
-    LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage, LibBookCancelResult,
-    LibBookLibrary, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
-    LibBookSeat, LibBookStorey, LibBookTimeSlot, LoginInput, LoginOutcome, LoginReadiness,
-    ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue,
-    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignmentSummary, SpocAssignments,
-    SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term, TodayClass, UserInfoResponse,
-    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkItem,
-    YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage, YgdkTermSummary,
+    LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage, LibBookCancelPreflight,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LibBookStorey, LibBookTimeSlot,
+    LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState,
+    RoutePolicy, SafeError, SecretValue, SigninActionResult, SigninClass, SpocAssignmentDetail,
+    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
+    TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
+    YgdkTermSummary,
 };
 pub use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
