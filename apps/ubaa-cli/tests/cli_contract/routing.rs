@@ -9,7 +9,7 @@ use ubaa_core::facade::{ConnectionMode, NetworkState, RoutePolicy};
 use crate::common::{FakeBackend, FakeRoutedBackend};
 
 #[tokio::test]
-async fn readonly_route_errors_use_schema_v8_diagnostics() {
+async fn readonly_route_errors_use_schema_v9_diagnostics() {
     let cli = Cli::try_parse_from(["ubaa", "--json", "schedule", "terms"]).unwrap();
     let mut backend = FakeBackend::default();
     let mut stdout = Vec::new();
@@ -27,7 +27,7 @@ async fn readonly_route_errors_use_schema_v8_diagnostics() {
 
     assert_eq!(code, 3);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");
@@ -61,7 +61,7 @@ async fn readonly_route_success_uses_explicit_policy_and_diagnostics() {
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert_eq!(value["ok"], true);
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");
@@ -83,7 +83,7 @@ async fn routed_user_success_preserves_core_default_route_diagnostics() {
 
     assert_eq!(code, 0);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert_eq!(value["ok"], true);
     assert_eq!(value["meta"]["feature"], "user");
     assert_eq!(value["meta"]["routePolicy"], "webvpn");
@@ -204,7 +204,7 @@ async fn routed_feature_error_preserves_post_resolution_core_diagnostics() {
 
     assert_eq!(code, 3);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");

@@ -7,6 +7,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../backend.dart';
 import '../write/cgyy_validation.dart';
+import '../write/ygdk_validation.dart';
 
 part 'common.dart';
 part 'read/academic.dart';
@@ -20,7 +21,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 7;
+const _supportedBridgeContractVersion = 8;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -32,6 +33,7 @@ class BridgeBackend
         UbaaBackend,
         FeatureQueryBackend,
         CgyyCancellationReadbackBackend,
+        YgdkSubmissionReadbackBackend,
         BykcWriteBackend,
         SigninWriteBackend,
         CancellationWriteBackend,
@@ -98,6 +100,18 @@ class BridgeBackend
     required ConnectionMode route,
     required int orderId,
   }) => _loadCgyyOrderDetailOnRoute(this, route: route, orderId: orderId);
+
+  @override
+  Future<FeatureResult> loadYgdkOverviewOnRoute({
+    required ConnectionMode route,
+  }) => _loadYgdkOverviewOnRoute(this, route: route);
+
+  @override
+  Future<FeatureResult> loadYgdkRecordsOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  }) => _loadYgdkRecordsOnRoute(this, route: route, page: page, size: size);
 
   @override
   Future<void> dispose() => _dispose(this);

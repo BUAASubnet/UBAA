@@ -11,6 +11,8 @@ const _publicNames = <String>[
   'RouteSettingsBackend',
   'FeatureQueryBackend',
   'CgyyCancellationReadbackBackend',
+  'YgdkReadbackState',
+  'YgdkSubmissionReadbackBackend',
   'WriteCommitBackend',
   'WriteIntentDiscardBackend',
   'BykcWriteBackend',
@@ -37,9 +39,9 @@ const _publicNames = <String>[
 ];
 
 void main() {
-  test('ubaa_app barrel 保持三十个公开名字和稳定签名', () {
-    expect(_publicNames, hasLength(30));
-    expect(_publicNames.toSet(), hasLength(30));
+  test('ubaa_app barrel 保持三十二个公开名字和稳定签名', () {
+    expect(_publicNames, hasLength(32));
+    expect(_publicNames.toSet(), hasLength(32));
 
     // 这些函数只作为编译期合同被引用，不会构造或打开原生 Bridge。
     expect(<Object>[
@@ -57,6 +59,7 @@ List<Object?> _backendInterfaceSignatures(
   RouteSettingsBackend routeSettingsBackend,
   FeatureQueryBackend featureQueryBackend,
   CgyyCancellationReadbackBackend cgyyCancellationReadbackBackend,
+  YgdkSubmissionReadbackBackend ygdkSubmissionReadbackBackend,
   WriteCommitBackend writeCommitBackend,
   WriteIntentDiscardBackend writeIntentDiscardBackend,
   BykcWriteBackend bykcWriteBackend,
@@ -91,6 +94,15 @@ List<Object?> _backendInterfaceSignatures(
   })
   loadCgyyOrderDetailOnRoute =
       cgyyCancellationReadbackBackend.loadCgyyOrderDetailOnRoute;
+  final Future<FeatureResult> Function({required ConnectionMode route})
+  loadYgdkOverviewOnRoute =
+      ygdkSubmissionReadbackBackend.loadYgdkOverviewOnRoute;
+  final Future<FeatureResult> Function({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  })
+  loadYgdkRecordsOnRoute = ygdkSubmissionReadbackBackend.loadYgdkRecordsOnRoute;
   final Future<WriteCommitResult> Function(String) commitWrite =
       writeCommitBackend.commitWrite;
   final Future<void> Function(String) discardWriteIntent =
@@ -156,6 +168,8 @@ List<Object?> _backendInterfaceSignatures(
     loadFeatureQuery,
     loadCgyyOrdersOnRoute,
     loadCgyyOrderDetailOnRoute,
+    loadYgdkOverviewOnRoute,
+    loadYgdkRecordsOnRoute,
     commitWrite,
     discardWriteIntent,
     commitDiscardBackend,
@@ -248,11 +262,17 @@ List<Object?> _controllerSignatures(
   appControllerConstructor = AppController.new;
   final AppPhase Function(AppController) readPhase = (controller) =>
       controller.phase;
+  final YgdkReadbackState Function(AppController) readYgdkReadback =
+      (controller) => controller.ygdkReadbackState;
+  final bool Function(AppController) readYgdkSubmissionCapabilities =
+      (controller) => controller.hasYgdkSubmissionBackendCapabilities;
   final UiError Function(UbaaErrorCode) mapError = UbaaErrorMapper.fromCode;
   final Future<WriteIntent> Function(LibbookReserveAction)
   prepareLibbookReserveWrite = appController.prepareLibbookReserveWrite;
   final Future<WriteIntent> Function(LibbookCancelAction)
   prepareLibbookCancelWrite = appController.prepareLibbookCancelWrite;
+  final Future<void> Function({required ConnectionMode expectedRoute})
+  refreshYgdkAfterWrite = appController.refreshYgdkAfterWrite;
 
   return <Object?>[
     phase,
@@ -260,9 +280,12 @@ List<Object?> _controllerSignatures(
     copyLoginForm,
     appControllerConstructor,
     readPhase,
+    readYgdkReadback,
+    readYgdkSubmissionCapabilities,
     mapError,
     prepareLibbookReserveWrite,
     prepareLibbookCancelWrite,
+    refreshYgdkAfterWrite,
     appController,
   ];
 }
@@ -312,6 +335,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
   final RouteSettingsBackend routeBackend = bridgeBackend;
   final FeatureQueryBackend queryBackend = bridgeBackend;
   final CgyyCancellationReadbackBackend cgyyReadbackBackend = bridgeBackend;
+  final YgdkSubmissionReadbackBackend ygdkReadbackBackend = bridgeBackend;
   final WriteCommitBackend commitBackend = bridgeBackend;
   final WriteIntentDiscardBackend discardBackend = bridgeBackend;
   final BykcWriteBackend bykcBackend = bridgeBackend;
@@ -332,6 +356,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
     routeBackend,
     queryBackend,
     cgyyReadbackBackend,
+    ygdkReadbackBackend,
     commitBackend,
     discardBackend,
     bykcBackend,

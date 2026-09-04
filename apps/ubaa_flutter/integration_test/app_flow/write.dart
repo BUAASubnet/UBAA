@@ -291,7 +291,7 @@ void _registerWriteMatrixFlowTest() {
     expect(
       backend.featureLoads[FeatureId.ygdk],
       greaterThan(beforeYgdkReadback),
-      reason: '阳光打卡提交后必须刷新打卡记录核对',
+      reason: '阳光打卡提交后必须按原路线刷新概览与记录',
     );
     await leaveFeature();
 

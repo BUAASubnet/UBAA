@@ -247,6 +247,7 @@ final class _AllWritesIntegrationBackend
         UbaaBackend,
         FeatureQueryBackend,
         CgyyCancellationReadbackBackend,
+        YgdkSubmissionReadbackBackend,
         RouteSettingsBackend,
         BykcWriteBackend,
         SigninWriteBackend,
@@ -433,7 +434,14 @@ final class _AllWritesIntegrationBackend
       FeatureId.ygdk => const <FeatureDetail>[
         FeatureDetail(
           title: '集成跑步项目',
-          fields: <FeatureField>[FeatureField(label: '项目编号', value: '7')],
+          fields: <FeatureField>[FeatureField(label: '展示编号已改名', value: '999')],
+          actions: <FeatureAction>[
+            YgdkSubmitAction(
+              classifyId: 31,
+              itemId: 7,
+              eligibility: ActionEligibility.allowed,
+            ),
+          ],
         ),
       ],
       FeatureId.evaluation => const <FeatureDetail>[
@@ -515,6 +523,39 @@ final class _AllWritesIntegrationBackend
           ],
         ),
       ],
+    );
+  }
+
+  @override
+  Future<FeatureResult> loadYgdkOverviewOnRoute({
+    required ConnectionMode route,
+  }) async {
+    featureLoads.update(
+      FeatureId.ygdk,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    return FeatureResult.success(summary: '集成阳光打卡概览', resolvedRoute: route);
+  }
+
+  @override
+  Future<FeatureResult> loadYgdkRecordsOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  }) async {
+    if (page != 1 || size != 20) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    featureLoads.update(
+      FeatureId.ygdk,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    return FeatureResult.success(
+      summary: '集成阳光打卡记录',
+      resolvedRoute: route,
+      details: const <FeatureDetail>[FeatureDetail(title: '集成打卡记录')],
     );
   }
 
@@ -620,6 +661,9 @@ final class _AllWritesIntegrationBackend
       message: '${operation.title}结果已提交，请刷新确认',
       outcomeUnknown: false,
       resolvedRoute: ConnectionMode.direct,
+      ygdkReceipt: operation == WriteOperation.ygdkSubmit
+          ? const YgdkSubmitReceipt(recordId: 41)
+          : null,
     );
   }
 

@@ -674,8 +674,10 @@ impl RouteClient {
         request: YgdkClockinSubmitRequest,
     ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
         self.guard_latest_session_ownership()?;
+        crate::features::ygdk::validate_submit_request(&request)?;
+        self.runtime.begin_non_idempotent_operation();
         let result = crate::features::ygdk::submit_clockin(&mut self.runtime, request).await;
-        let data = self.finish_readonly_operation(result)?;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 

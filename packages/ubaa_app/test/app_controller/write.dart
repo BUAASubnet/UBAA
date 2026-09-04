@@ -346,41 +346,6 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('阳光打卡写意图只保留内存输入并拒绝空照片', () async {
-    final backend = _YgdkWriteBackend();
-    final controller = AppController(backend: backend);
-    final intent = await controller.prepareYgdkWrite(
-      const YgdkSubmitInput(
-        itemId: 7,
-        startTime: '09:00',
-        endTime: '10:00',
-        place: '校园',
-        shareToSquare: false,
-        photo: YgdkPhotoInput(
-          bytes: <int>[1, 2, 3],
-          fileName: 'safe.jpg',
-          mimeType: 'image/jpeg',
-        ),
-      ),
-    );
-    expect(intent.operation, WriteOperation.ygdkSubmit);
-    expect(backend.input?.itemId, 7);
-    expect(backend.commitCalls, 0);
-    await expectLater(
-      controller.prepareYgdkWrite(
-        const YgdkSubmitInput(
-          photo: YgdkPhotoInput(
-            bytes: <int>[],
-            fileName: 'empty.jpg',
-            mimeType: 'image/jpeg',
-          ),
-        ),
-      ),
-      throwsA(isA<BackendException>()),
-    );
-    controller.dispose();
-  });
-
   test('场馆预约写意图只接受同目标相邻的 typed Allowed actions', () async {
     final backend = _CgyyWriteBackend();
     final controller = AppController(backend: backend);
@@ -606,7 +571,8 @@ void _registerWriteTests() {
         expect(backend.queries, hasLength(1));
         expect(backend.queries.single.$1, FeatureId.cgyy);
         expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
-      } else if (operation == WriteOperation.cgyyCancelOrder) {
+      } else if (operation == WriteOperation.cgyyCancelOrder ||
+          operation == WriteOperation.ygdkSubmit) {
         expect(backend.loadedFeatures, isEmpty);
         expect(backend.queries, isEmpty);
       } else if (operation == WriteOperation.libbookReserve ||

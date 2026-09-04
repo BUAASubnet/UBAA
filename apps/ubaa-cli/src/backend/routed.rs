@@ -6,18 +6,19 @@ use ubaa_core::facade::{
     BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
-    CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, EvaluationCoursesResponse,
-    ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
-    LibBookReserveResult, LibBookSeat, SigninActionResult, SigninClass, SpocAssignmentDetail,
-    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
-    WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
-    YgdkRecordsPage,
+    CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode,
+    EvaluationCoursesResponse, ExamArrangement, GradeData, JudgeAssignmentDetail,
+    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
+    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
+    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, SigninActionResult,
+    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
-use ubaa_core::facade::{RoutedResult, UbaaClient};
+use ubaa_core::facade::{Result, RoutedResult, UbaaClient};
 
 use super::RoutedCliBackend;
+use crate::io::input::internal_error;
 
 #[async_trait]
 impl RoutedCliBackend for UbaaClient {
@@ -157,6 +158,25 @@ impl RoutedCliBackend for UbaaClient {
         request: YgdkClockinSubmitRequest,
     ) -> RoutedResult<YgdkClockinSubmitResult> {
         UbaaClient::ygdk_submit(self, request).await
+    }
+    async fn ygdk_overview_on_route(&mut self, route: ConnectionMode) -> Result<YgdkOverview> {
+        let result = UbaaClient::ygdk_overview_on_route(self, route).await?;
+        if result.pinned_route != route {
+            return Err(internal_error("阳光打卡概览回读偏离固定路线"));
+        }
+        Ok(result.data)
+    }
+    async fn ygdk_records_on_route(
+        &mut self,
+        route: ConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> Result<YgdkRecordsPage> {
+        let result = UbaaClient::ygdk_records_on_route(self, route, page, size).await?;
+        if result.pinned_route != route {
+            return Err(internal_error("阳光打卡记录回读偏离固定路线"));
+        }
+        Ok(result.data)
     }
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         UbaaClient::get_user_info(self).await

@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -211735226;
+  int get rustContentHash => 907937951;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -356,8 +356,22 @@ abstract class RustLibApi extends BaseApi {
     required BridgeClient that,
   });
 
+  Future<BridgeCallerPinnedYgdkOverview>
+  crateApiClientBridgeClientYgdkOverviewOnRoute({
+    required BridgeClient that,
+    required BridgeConnectionMode route,
+  });
+
   Future<BridgeRoutedYgdkRecords> crateApiClientBridgeClientYgdkRecords({
     required BridgeClient that,
+    required int page,
+    required int size,
+  });
+
+  Future<BridgeCallerPinnedYgdkRecords>
+  crateApiClientBridgeClientYgdkRecordsOnRoute({
+    required BridgeClient that,
+    required BridgeConnectionMode route,
     required int page,
     required int size,
   });
@@ -2498,6 +2512,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCallerPinnedYgdkOverview>
+  crateApiClientBridgeClientYgdkOverviewOnRoute({
+    required BridgeClient that,
+    required BridgeConnectionMode route,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 56,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_caller_pinned_ygdk_overview,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientYgdkOverviewOnRouteConstMeta,
+        argValues: [that, route],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientYgdkOverviewOnRouteConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_ygdk_overview_on_route",
+        argNames: ["that", "route"],
+      );
+
+  @override
   Future<BridgeRoutedYgdkRecords> crateApiClientBridgeClientYgdkRecords({
     required BridgeClient that,
     required int page,
@@ -2516,7 +2569,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 57,
             port: port_,
           );
         },
@@ -2538,12 +2591,55 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCallerPinnedYgdkRecords>
+  crateApiClientBridgeClientYgdkRecordsOnRoute({
+    required BridgeClient that,
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(size, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 58,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_caller_pinned_ygdk_records,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientYgdkRecordsOnRouteConstMeta,
+        argValues: [that, route, page, size],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientYgdkRecordsOnRouteConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_ygdk_records_on_route",
+        argNames: ["that", "route", "page", "size"],
+      );
+
+  @override
   String crateApiSimpleBridgeHello() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2568,7 +2664,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 60,
             port: port_,
           );
         },
@@ -2742,12 +2838,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgePhotoUpload dco_decode_box_autoadd_bridge_photo_upload(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_bridge_photo_upload(raw);
-  }
-
-  @protected
   BridgeSafeError dco_decode_box_autoadd_bridge_safe_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_safe_error(raw);
@@ -2767,11 +2857,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeYgdkSubmitReceipt dco_decode_box_autoadd_bridge_ygdk_submit_receipt(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_ygdk_submit_receipt(raw);
+  }
+
+  @protected
   BridgeYgdkSubmitRequest dco_decode_box_autoadd_bridge_ygdk_submit_request(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_ygdk_submit_request(raw);
+  }
+
+  @protected
+  BridgeYgdkSubmitTarget dco_decode_box_autoadd_bridge_ygdk_submit_target(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_ygdk_submit_target(raw);
   }
 
   @protected
@@ -3002,6 +3108,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
     return BridgeCallerPinnedCgyyOrders(
       data: dco_decode_bridge_cgyy_orders_page(arr[0]),
+      pinnedRoute: dco_decode_bridge_connection_mode(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeCallerPinnedYgdkOverview dco_decode_bridge_caller_pinned_ygdk_overview(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeCallerPinnedYgdkOverview(
+      data: dco_decode_bridge_ygdk_overview(arr[0]),
+      pinnedRoute: dco_decode_bridge_connection_mode(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeCallerPinnedYgdkRecords dco_decode_bridge_caller_pinned_ygdk_records(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeCallerPinnedYgdkRecords(
+      data: dco_decode_bridge_ygdk_records_page(arr[0]),
       pinnedRoute: dco_decode_bridge_connection_mode(arr[1]),
     );
   }
@@ -4458,8 +4592,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeWriteCommitResult dco_decode_bridge_write_commit_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return BridgeWriteCommitResult(
       operation: dco_decode_bridge_write_operation(arr[0]),
       success: dco_decode_bool(arr[1]),
@@ -4468,6 +4602,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[4]),
       cgyyReceipt: dco_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
         arr[5],
+      ),
+      ygdkReceipt: dco_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+        arr[6],
       ),
     );
   }
@@ -4499,13 +4636,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeYgdkItem dco_decode_bridge_ygdk_item(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeYgdkItem(
       itemId: dco_decode_i_32(arr[0]),
       name: dco_decode_String(arr[1]),
       kind: dco_decode_opt_box_autoadd_i_32(arr[2]),
       sort: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      submitEligibility: dco_decode_bridge_action_eligibility(arr[4]),
+      submitTarget: dco_decode_opt_box_autoadd_bridge_ygdk_submit_target(
+        arr[5],
+      ),
     );
   }
 
@@ -4562,18 +4703,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeYgdkSubmitReceipt dco_decode_bridge_ygdk_submit_receipt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeYgdkSubmitReceipt(recordId: dco_decode_i_32(arr[0]));
+  }
+
+  @protected
   BridgeYgdkSubmitRequest dco_decode_bridge_ygdk_submit_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 6)
       throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeYgdkSubmitRequest(
-      itemId: dco_decode_opt_box_autoadd_i_32(arr[0]),
-      startTime: dco_decode_opt_String(arr[1]),
-      endTime: dco_decode_opt_String(arr[2]),
+      target: dco_decode_bridge_ygdk_submit_target(arr[0]),
+      startTime: dco_decode_String(arr[1]),
+      endTime: dco_decode_String(arr[2]),
       place: dco_decode_opt_String(arr[3]),
-      shareToSquare: dco_decode_opt_box_autoadd_bool(arr[4]),
-      photo: dco_decode_opt_box_autoadd_bridge_photo_upload(arr[5]),
+      shareToSquare: dco_decode_bool(arr[4]),
+      photo: dco_decode_bridge_photo_upload(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeYgdkSubmitTarget dco_decode_bridge_ygdk_submit_target(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeYgdkSubmitTarget(
+      classifyId: dco_decode_i_32(arr[0]),
+      itemId: dco_decode_i_32(arr[1]),
     );
   }
 
@@ -4998,14 +5160,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgePhotoUpload? dco_decode_opt_box_autoadd_bridge_photo_upload(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_bridge_photo_upload(raw);
-  }
-
-  @protected
   BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bridge_safe_error(raw);
@@ -5017,6 +5171,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bridge_user_profile(raw);
+  }
+
+  @protected
+  BridgeYgdkSubmitReceipt?
+  dco_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_ygdk_submit_receipt(raw);
+  }
+
+  @protected
+  BridgeYgdkSubmitTarget? dco_decode_opt_box_autoadd_bridge_ygdk_submit_target(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_ygdk_submit_target(raw);
   }
 
   @protected
@@ -5233,14 +5406,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgePhotoUpload sse_decode_box_autoadd_bridge_photo_upload(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_bridge_photo_upload(deserializer));
-  }
-
-  @protected
   BridgeSafeError sse_decode_box_autoadd_bridge_safe_error(
     SseDeserializer deserializer,
   ) {
@@ -5266,11 +5431,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeYgdkSubmitReceipt sse_decode_box_autoadd_bridge_ygdk_submit_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_ygdk_submit_receipt(deserializer));
+  }
+
+  @protected
   BridgeYgdkSubmitRequest sse_decode_box_autoadd_bridge_ygdk_submit_request(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_ygdk_submit_request(deserializer));
+  }
+
+  @protected
+  BridgeYgdkSubmitTarget sse_decode_box_autoadd_bridge_ygdk_submit_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_ygdk_submit_target(deserializer));
   }
 
   @protected
@@ -5569,6 +5750,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_data = sse_decode_bridge_cgyy_orders_page(deserializer);
     var var_pinnedRoute = sse_decode_bridge_connection_mode(deserializer);
     return BridgeCallerPinnedCgyyOrders(
+      data: var_data,
+      pinnedRoute: var_pinnedRoute,
+    );
+  }
+
+  @protected
+  BridgeCallerPinnedYgdkOverview sse_decode_bridge_caller_pinned_ygdk_overview(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_ygdk_overview(deserializer);
+    var var_pinnedRoute = sse_decode_bridge_connection_mode(deserializer);
+    return BridgeCallerPinnedYgdkOverview(
+      data: var_data,
+      pinnedRoute: var_pinnedRoute,
+    );
+  }
+
+  @protected
+  BridgeCallerPinnedYgdkRecords sse_decode_bridge_caller_pinned_ygdk_records(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_ygdk_records_page(deserializer);
+    var var_pinnedRoute = sse_decode_bridge_connection_mode(deserializer);
+    return BridgeCallerPinnedYgdkRecords(
       data: var_data,
       pinnedRoute: var_pinnedRoute,
     );
@@ -7205,6 +7412,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
           deserializer,
         );
+    var var_ygdkReceipt = sse_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+      deserializer,
+    );
     return BridgeWriteCommitResult(
       operation: var_operation,
       success: var_success,
@@ -7212,6 +7422,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       outcomeUnknown: var_outcomeUnknown,
       resolvedRoute: var_resolvedRoute,
       cgyyReceipt: var_cgyyReceipt,
+      ygdkReceipt: var_ygdkReceipt,
     );
   }
 
@@ -7254,11 +7465,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_kind = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_sort = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_submitEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
+    var var_submitTarget = sse_decode_opt_box_autoadd_bridge_ygdk_submit_target(
+      deserializer,
+    );
     return BridgeYgdkItem(
       itemId: var_itemId,
       name: var_name,
       kind: var_kind,
       sort: var_sort,
+      submitEligibility: var_submitEligibility,
+      submitTarget: var_submitTarget,
     );
   }
 
@@ -7332,25 +7551,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeYgdkSubmitReceipt sse_decode_bridge_ygdk_submit_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_recordId = sse_decode_i_32(deserializer);
+    return BridgeYgdkSubmitReceipt(recordId: var_recordId);
+  }
+
+  @protected
   BridgeYgdkSubmitRequest sse_decode_bridge_ygdk_submit_request(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_itemId = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_startTime = sse_decode_opt_String(deserializer);
-    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_target = sse_decode_bridge_ygdk_submit_target(deserializer);
+    var var_startTime = sse_decode_String(deserializer);
+    var var_endTime = sse_decode_String(deserializer);
     var var_place = sse_decode_opt_String(deserializer);
-    var var_shareToSquare = sse_decode_opt_box_autoadd_bool(deserializer);
-    var var_photo = sse_decode_opt_box_autoadd_bridge_photo_upload(
-      deserializer,
-    );
+    var var_shareToSquare = sse_decode_bool(deserializer);
+    var var_photo = sse_decode_bridge_photo_upload(deserializer);
     return BridgeYgdkSubmitRequest(
-      itemId: var_itemId,
+      target: var_target,
       startTime: var_startTime,
       endTime: var_endTime,
       place: var_place,
       shareToSquare: var_shareToSquare,
       photo: var_photo,
+    );
+  }
+
+  @protected
+  BridgeYgdkSubmitTarget sse_decode_bridge_ygdk_submit_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_classifyId = sse_decode_i_32(deserializer);
+    var var_itemId = sse_decode_i_32(deserializer);
+    return BridgeYgdkSubmitTarget(
+      classifyId: var_classifyId,
+      itemId: var_itemId,
     );
   }
 
@@ -8042,19 +8281,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgePhotoUpload? sse_decode_opt_box_autoadd_bridge_photo_upload(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_bridge_photo_upload(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   BridgeSafeError? sse_decode_opt_box_autoadd_bridge_safe_error(
     SseDeserializer deserializer,
   ) {
@@ -8075,6 +8301,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_bridge_user_profile(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeYgdkSubmitReceipt?
+  sse_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_ygdk_submit_receipt(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeYgdkSubmitTarget? sse_decode_opt_box_autoadd_bridge_ygdk_submit_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_ygdk_submit_target(deserializer));
     } else {
       return null;
     }
@@ -8309,15 +8562,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_bridge_photo_upload(
-    BridgePhotoUpload self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_bridge_photo_upload(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_bridge_safe_error(
     BridgeSafeError self,
     SseSerializer serializer,
@@ -8345,12 +8589,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bridge_ygdk_submit_receipt(
+    BridgeYgdkSubmitReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_submit_receipt(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bridge_ygdk_submit_request(
     BridgeYgdkSubmitRequest self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bridge_ygdk_submit_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_ygdk_submit_target(
+    BridgeYgdkSubmitTarget self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_submit_target(self, serializer);
   }
 
   @protected
@@ -8571,6 +8833,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bridge_cgyy_orders_page(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.pinnedRoute, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_caller_pinned_ygdk_overview(
+    BridgeCallerPinnedYgdkOverview self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_overview(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.pinnedRoute, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_caller_pinned_ygdk_records(
+    BridgeCallerPinnedYgdkRecords self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_ygdk_records_page(self.data, serializer);
     sse_encode_bridge_connection_mode(self.pinnedRoute, serializer);
   }
 
@@ -9832,6 +10114,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.cgyyReceipt,
       serializer,
     );
+    sse_encode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+      self.ygdkReceipt,
+      serializer,
+    );
   }
 
   @protected
@@ -9868,6 +10154,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_opt_box_autoadd_i_32(self.kind, serializer);
     sse_encode_opt_box_autoadd_i_32(self.sort, serializer);
+    sse_encode_bridge_action_eligibility(self.submitEligibility, serializer);
+    sse_encode_opt_box_autoadd_bridge_ygdk_submit_target(
+      self.submitTarget,
+      serializer,
+    );
   }
 
   @protected
@@ -9917,17 +10208,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_ygdk_submit_receipt(
+    BridgeYgdkSubmitReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.recordId, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_ygdk_submit_request(
     BridgeYgdkSubmitRequest self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_box_autoadd_i_32(self.itemId, serializer);
-    sse_encode_opt_String(self.startTime, serializer);
-    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_bridge_ygdk_submit_target(self.target, serializer);
+    sse_encode_String(self.startTime, serializer);
+    sse_encode_String(self.endTime, serializer);
     sse_encode_opt_String(self.place, serializer);
-    sse_encode_opt_box_autoadd_bool(self.shareToSquare, serializer);
-    sse_encode_opt_box_autoadd_bridge_photo_upload(self.photo, serializer);
+    sse_encode_bool(self.shareToSquare, serializer);
+    sse_encode_bridge_photo_upload(self.photo, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_ygdk_submit_target(
+    BridgeYgdkSubmitTarget self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.classifyId, serializer);
+    sse_encode_i_32(self.itemId, serializer);
   }
 
   @protected
@@ -10529,19 +10839,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_bridge_photo_upload(
-    BridgePhotoUpload? self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_bridge_photo_upload(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_opt_box_autoadd_bridge_safe_error(
     BridgeSafeError? self,
     SseSerializer serializer,
@@ -10564,6 +10861,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_bridge_user_profile(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+    BridgeYgdkSubmitReceipt? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_ygdk_submit_receipt(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_ygdk_submit_target(
+    BridgeYgdkSubmitTarget? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_ygdk_submit_target(self, serializer);
     }
   }
 
@@ -11011,11 +11334,31 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
   Future<BridgeRoutedYgdkOverview> ygdkOverview() =>
       RustLib.instance.api.crateApiClientBridgeClientYgdkOverview(that: this);
 
+  /// 在调用方指定的已认证路线读取阳光打卡概览，不执行 Auto 探测或回退。
+  Future<BridgeCallerPinnedYgdkOverview> ygdkOverviewOnRoute({
+    required BridgeConnectionMode route,
+  }) => RustLib.instance.api.crateApiClientBridgeClientYgdkOverviewOnRoute(
+    that: this,
+    route: route,
+  );
+
   Future<BridgeRoutedYgdkRecords> ygdkRecords({
     required int page,
     required int size,
   }) => RustLib.instance.api.crateApiClientBridgeClientYgdkRecords(
     that: this,
+    page: page,
+    size: size,
+  );
+
+  /// 在调用方指定的已认证路线读取阳光打卡记录，不执行 Auto 探测或回退。
+  Future<BridgeCallerPinnedYgdkRecords> ygdkRecordsOnRoute({
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  }) => RustLib.instance.api.crateApiClientBridgeClientYgdkRecordsOnRoute(
+    that: this,
+    route: route,
     page: page,
     size: size,
   );

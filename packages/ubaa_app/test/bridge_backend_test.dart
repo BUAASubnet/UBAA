@@ -5,21 +5,23 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 part 'bridge_backend/libbook.dart';
 part 'bridge_backend/cgyy.dart';
+part 'bridge_backend/ygdk.dart';
 
 void main() {
   _registerLibbookBridgeBackendTests();
   _registerCgyyBridgeBackendTests();
+  _registerYgdkBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(7);
+    final client = _ContractVersionClient(8);
 
     final backend = BridgeBackend(client);
 
     expect(backend.client, same(client));
   });
 
-  test('BridgeBackend 在 release 可执行路径拒绝不匹配合同版本', () {
-    final client = _ContractVersionClient(6);
+  test('BridgeBackend 在 release 可执行路径明确拒绝旧 v7 合同', () {
+    final client = _ContractVersionClient(7);
 
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
@@ -447,8 +449,15 @@ void main() {
     final backend = BridgeBackend(_FakeComplexWriteClient());
     final ygdkIntent = await backend.prepareYgdkSubmit(
       const YgdkSubmitInput(
-        itemId: 7,
+        action: YgdkSubmitAction(
+          classifyId: 31,
+          itemId: 7,
+          eligibility: ActionEligibility.allowed,
+        ),
+        startTime: '2026-09-04 08:00',
+        endTime: '2026-09-04 09:00',
         place: '校园',
+        shareToSquare: false,
         photo: YgdkPhotoInput(
           bytes: <int>[1, 2],
           fileName: 'safe.jpg',
@@ -751,7 +760,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 7;
+  int contractVersion() => 8;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {
@@ -861,9 +870,10 @@ class _FakeComplexWriteClient extends _CompatibleBridgeClient {
     final named = invocation.namedArguments;
     if (method == #prepareYgdkSubmit) {
       final request = named[#request] as BridgeYgdkSubmitRequest;
-      expect(request.itemId, 7);
-      expect(request.photo?.bytes, <int>[1, 2]);
-      expect(request.photo?.fileName, 'safe.jpg');
+      expect(request.target.classifyId, 31);
+      expect(request.target.itemId, 7);
+      expect(request.photo.bytes, <int>[1, 2]);
+      expect(request.photo.fileName, 'safe.jpg');
       return Future<BridgeWriteIntent>.value(
         _writeIntent(BridgeWriteOperation.ygdkSubmit),
       );

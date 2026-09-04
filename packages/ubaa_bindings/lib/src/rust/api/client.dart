@@ -243,7 +243,19 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedYgdkOverview> ygdkOverview();
 
+  /// 在调用方指定的已认证路线读取阳光打卡概览，不执行 Auto 探测或回退。
+  Future<BridgeCallerPinnedYgdkOverview> ygdkOverviewOnRoute({
+    required BridgeConnectionMode route,
+  });
+
   Future<BridgeRoutedYgdkRecords> ygdkRecords({
+    required int page,
+    required int size,
+  });
+
+  /// 在调用方指定的已认证路线读取阳光打卡记录，不执行 Auto 探测或回退。
+  Future<BridgeCallerPinnedYgdkRecords> ygdkRecordsOnRoute({
+    required BridgeConnectionMode route,
     required int page,
     required int size,
   });

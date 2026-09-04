@@ -1,10 +1,12 @@
 //! CLI 输入读取、请求输入校验和稳定错误构造。
 
 use std::io::{BufRead, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
-use ubaa_core::facade::{CgyyReservationSubmitRequest, YgdkClockinSubmitRequest, YgdkPhotoUpload};
+use ubaa_core::facade::{
+    CgyyReservationSubmitRequest, YgdkClockinSubmitRequest, YgdkPhotoUpload, YgdkSubmitTarget,
+};
 use ubaa_core::facade::{ErrorCode, ErrorKind, Result, UbaaError};
 
 pub(crate) fn prompt_line<R: BufRead, E: Write>(
@@ -107,50 +109,242 @@ pub(crate) fn invalid_input(message: impl Into<String>) -> UbaaError {
 }
 
 pub(crate) fn build_ygdk_request(
-    item_id: Option<i32>,
+    classify_id: i32,
+    item_id: i32,
     start_time: String,
     end_time: String,
     place: Option<String>,
-    photo: &PathBuf,
+    photo: &Path,
     share_to_square: bool,
 ) -> Result<YgdkClockinSubmitRequest> {
-    if start_time.trim().is_empty() || end_time.trim().is_empty() {
-        return Err(invalid_input("打卡开始和结束时间不能为空"));
+    if classify_id <= 0 || item_id <= 0 {
+        return Err(invalid_input("阳光打卡分类和项目编号必须为正整数"));
     }
-    let bytes = std::fs::read(photo).map_err(|_| invalid_input("无法读取打卡照片"))?;
-    if bytes.is_empty() {
-        return Err(invalid_input("打卡照片不能为空"));
-    }
+    validate_ygdk_time_shape(&start_time, &end_time)?;
+
+    let metadata = validated_ygdk_photo_metadata(photo)?;
+
     let file_name = photo
         .file_name()
         .and_then(|value| value.to_str())
-        .unwrap_or("photo.bin")
-        .to_owned();
-    let mime_type = match photo
+        .ok_or_else(|| invalid_input("打卡照片文件名无效"))?;
+    validate_ygdk_photo_file_name(file_name)?;
+    let extension = photo
         .extension()
         .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "jpg" | "jpeg" => "image/jpeg",
-        "png" => "image/png",
-        "webp" => "image/webp",
-        _ => "application/octet-stream",
-    }
-    .to_owned();
+        .ok_or_else(|| invalid_input("打卡照片扩展名无效"))?;
+    let mime_type = ygdk_photo_mime_type(extension)?;
+
+    let bytes = read_ygdk_photo_after_initial_check(photo, &metadata, || {})?;
+    let place = place.and_then(|value| {
+        let value = value.trim().to_owned();
+        (!value.is_empty()).then_some(value)
+    });
+
     Ok(YgdkClockinSubmitRequest {
-        item_id,
-        start_time: Some(start_time),
-        end_time: Some(end_time),
+        target: YgdkSubmitTarget {
+            classify_id,
+            item_id,
+        },
+        start_time,
+        end_time,
         place,
-        share_to_square: Some(share_to_square),
-        photo: Some(YgdkPhotoUpload {
+        share_to_square,
+        photo: YgdkPhotoUpload {
             bytes,
-            file_name,
+            file_name: file_name.to_owned(),
             mime_type,
-        }),
+        },
     })
+}
+
+const MAX_YGDK_PHOTO_BYTES: u64 = 10 * 1024 * 1024;
+
+fn validated_ygdk_photo_metadata(photo: &Path) -> Result<std::fs::Metadata> {
+    let metadata =
+        std::fs::symlink_metadata(photo).map_err(|_| invalid_input("无法读取打卡照片"))?;
+    if !metadata.file_type().is_file() {
+        return Err(invalid_input("打卡照片必须是普通文件"));
+    }
+    if metadata.len() == 0 || metadata.len() > MAX_YGDK_PHOTO_BYTES {
+        return Err(invalid_input("打卡照片大小必须在 1 字节到 10 MiB 之间"));
+    }
+    Ok(metadata)
+}
+
+fn read_ygdk_photo_after_initial_check(
+    photo: &Path,
+    initial_metadata: &std::fs::Metadata,
+    after_initial_check: impl FnOnce(),
+) -> Result<Vec<u8>> {
+    after_initial_check();
+    let file = std::fs::File::open(photo).map_err(|_| ygdk_photo_changed())?;
+    let opened_metadata = file.metadata().map_err(|_| ygdk_photo_changed())?;
+    let current_metadata = std::fs::symlink_metadata(photo).map_err(|_| ygdk_photo_changed())?;
+    if !initial_metadata.file_type().is_file()
+        || !opened_metadata.file_type().is_file()
+        || !current_metadata.file_type().is_file()
+        || opened_metadata.len() == 0
+        || opened_metadata.len() > MAX_YGDK_PHOTO_BYTES
+        || current_metadata.len() == 0
+        || current_metadata.len() > MAX_YGDK_PHOTO_BYTES
+        || !same_ygdk_photo_identity(initial_metadata, &opened_metadata)
+        || !same_ygdk_photo_identity(&opened_metadata, &current_metadata)
+    {
+        return Err(ygdk_photo_changed());
+    }
+    read_ygdk_photo_bytes(file)
+}
+
+fn read_ygdk_photo_bytes(reader: impl Read) -> Result<Vec<u8>> {
+    let mut reader = reader.take(MAX_YGDK_PHOTO_BYTES + 1);
+    let mut bytes = Vec::new();
+    reader
+        .read_to_end(&mut bytes)
+        .map_err(|_| invalid_input("无法读取打卡照片"))?;
+    if bytes.is_empty() || bytes.len() as u64 > MAX_YGDK_PHOTO_BYTES {
+        return Err(invalid_input("打卡照片大小必须在 1 字节到 10 MiB 之间"));
+    }
+    Ok(bytes)
+}
+
+#[cfg(unix)]
+fn same_ygdk_photo_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    left.dev() == right.dev() && left.ino() == right.ino()
+}
+
+#[cfg(windows)]
+fn same_ygdk_photo_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+
+    match (
+        left.volume_serial_number(),
+        left.file_index(),
+        right.volume_serial_number(),
+        right.file_index(),
+    ) {
+        (Some(left_volume), Some(left_index), Some(right_volume), Some(right_index)) => {
+            left_volume == right_volume && left_index == right_index
+        }
+        _ => false,
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+fn same_ygdk_photo_identity(_left: &std::fs::Metadata, _right: &std::fs::Metadata) -> bool {
+    false
+}
+
+fn ygdk_photo_changed() -> UbaaError {
+    invalid_input("打卡照片在读取期间发生变化")
+}
+
+fn ygdk_photo_mime_type(extension: &str) -> Result<String> {
+    if extension.is_empty()
+        || !extension.is_ascii()
+        || !extension.bytes().all(is_http_token_character)
+    {
+        return Err(invalid_input("打卡照片扩展名无效"));
+    }
+    let subtype = extension.to_ascii_lowercase();
+    let subtype = if subtype == "jpg" { "jpeg" } else { &subtype };
+    Ok(format!("image/{subtype}"))
+}
+
+const fn is_http_token_character(value: u8) -> bool {
+    value.is_ascii_alphanumeric()
+        || matches!(
+            value,
+            b'!' | b'#'
+                | b'$'
+                | b'%'
+                | b'&'
+                | b'\''
+                | b'*'
+                | b'+'
+                | b'-'
+                | b'.'
+                | b'^'
+                | b'_'
+                | b'`'
+                | b'|'
+                | b'~'
+        )
+}
+
+fn validate_ygdk_time_shape(start_time: &str, end_time: &str) -> Result<()> {
+    let Some((start_date, start_minute)) = parse_ygdk_time_shape(start_time) else {
+        return Err(invalid_input("阳光打卡时间必须使用 yyyy-MM-dd HH:mm 格式"));
+    };
+    let Some((end_date, end_minute)) = parse_ygdk_time_shape(end_time) else {
+        return Err(invalid_input("阳光打卡时间必须使用 yyyy-MM-dd HH:mm 格式"));
+    };
+    if start_date != end_date || end_minute <= start_minute {
+        return Err(invalid_input(
+            "阳光打卡开始和结束时间必须在同一天且结束时间更晚",
+        ));
+    }
+    Ok(())
+}
+
+fn parse_ygdk_time_shape(value: &str) -> Option<([u8; 10], u16)> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 16
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b' '
+        || bytes[13] != b':'
+    {
+        return None;
+    }
+    for (index, byte) in bytes.iter().enumerate() {
+        if !matches!(index, 4 | 7 | 10 | 13) && !byte.is_ascii_digit() {
+            return None;
+        }
+    }
+    let hour = u16::from(bytes[11] - b'0') * 10 + u16::from(bytes[12] - b'0');
+    let minute = u16::from(bytes[14] - b'0') * 10 + u16::from(bytes[15] - b'0');
+    let year = u16::from(bytes[0] - b'0') * 1_000
+        + u16::from(bytes[1] - b'0') * 100
+        + u16::from(bytes[2] - b'0') * 10
+        + u16::from(bytes[3] - b'0');
+    let month = u16::from(bytes[5] - b'0') * 10 + u16::from(bytes[6] - b'0');
+    let day = u16::from(bytes[8] - b'0') * 10 + u16::from(bytes[9] - b'0');
+    if hour > 23 || minute > 59 || !is_valid_gregorian_date(year, month, day) {
+        return None;
+    }
+    let mut date = [0; 10];
+    date.copy_from_slice(&bytes[..10]);
+    Some((date, hour * 60 + minute))
+}
+
+const fn is_valid_gregorian_date(year: u16, month: u16, day: u16) -> bool {
+    let leap_year =
+        year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    day >= 1 && day <= days_in_month
+}
+
+fn validate_ygdk_photo_file_name(file_name: &str) -> Result<()> {
+    let character_count = file_name.chars().count();
+    if matches!(file_name, "." | "..")
+        || !(1..=128).contains(&character_count)
+        || file_name.trim() != file_name
+        || file_name
+            .chars()
+            .any(|character| character.is_control() || matches!(character, '/' | '\\' | '"'))
+    {
+        return Err(invalid_input("打卡照片文件名无效"));
+    }
+    Ok(())
 }
 
 pub(crate) fn internal_error(message: impl Into<String>) -> UbaaError {
@@ -164,10 +358,30 @@ pub(crate) fn internal_error(message: impl Into<String>) -> UbaaError {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Read;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use serde_json::json;
     use ubaa_core::facade::ErrorCode;
 
-    use super::parse_cgyy_request;
+    use super::{
+        MAX_YGDK_PHOTO_BYTES, build_ygdk_request, parse_cgyy_request,
+        read_ygdk_photo_after_initial_check, read_ygdk_photo_bytes, validate_ygdk_photo_file_name,
+        validate_ygdk_time_shape, validated_ygdk_photo_metadata, ygdk_photo_mime_type,
+    };
+
+    #[derive(Default)]
+    struct CountingReader {
+        bytes_read: u64,
+    }
+
+    impl Read for CountingReader {
+        fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+            buffer.fill(1);
+            self.bytes_read += buffer.len() as u64;
+            Ok(buffer.len())
+        }
+    }
 
     fn 场馆预约请求_json() -> serde_json::Value {
         json!({
@@ -221,5 +435,137 @@ mod tests {
 
         assert_eq!(request.venue_site_id, 4);
         assert!(!request.has_captcha_material());
+    }
+
+    #[test]
+    fn 阳光打卡照片文件名拒绝当前与父目录别名() {
+        for file_name in [".", ".."] {
+            let error = validate_ygdk_photo_file_name(file_name).unwrap_err();
+            assert_eq!(error.code, ErrorCode::InvalidInput);
+            assert_eq!(error.message, "打卡照片文件名无效");
+            assert!(!error.message.contains(file_name));
+        }
+    }
+
+    #[test]
+    fn 阳光打卡时间拒绝非法公历日期且先于照片读取() {
+        for (start_time, end_time) in [
+            ("2026-00-01 08:00", "2026-00-01 09:00"),
+            ("2026-13-01 08:00", "2026-13-01 09:00"),
+            ("2026-01-00 08:00", "2026-01-00 09:00"),
+            ("2026-02-29 08:00", "2026-02-29 09:00"),
+            ("2024-02-30 08:00", "2024-02-30 09:00"),
+            ("2026-04-31 08:00", "2026-04-31 09:00"),
+        ] {
+            let error = validate_ygdk_time_shape(start_time, end_time)
+                .expect_err("非法公历日期必须失败关闭");
+            assert_eq!(error.code, ErrorCode::InvalidInput);
+            assert_eq!(error.message, "阳光打卡时间必须使用 yyyy-MM-dd HH:mm 格式");
+            assert!(!error.message.contains(start_time));
+            assert!(!error.message.contains(end_time));
+        }
+        validate_ygdk_time_shape("2024-02-29 08:00", "2024-02-29 09:00").expect("公历闰日应有效");
+
+        let missing_photo = std::env::temp_dir().join("ubaa-cli-ygdk-must-not-read-private.jpg");
+        let error = build_ygdk_request(
+            11,
+            22,
+            "2026-02-29 08:00".into(),
+            "2026-02-29 09:00".into(),
+            None,
+            &missing_photo,
+            false,
+        )
+        .expect_err("非法日期必须在照片读取前失败");
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+        assert_eq!(error.message, "阳光打卡时间必须使用 yyyy-MM-dd HH:mm 格式");
+        assert!(!error.message.contains("private"));
+    }
+
+    #[test]
+    fn 阳光打卡照片安全扩展生成规范化图片_mime() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("系统时间应晚于 Unix epoch")
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "ubaa-cli-ygdk-photo-mime-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&directory).expect("创建隔离照片目录");
+        let photo = directory.join("safe-photo.AVIF");
+        std::fs::write(&photo, b"safe-photo").expect("写入照片测试文件");
+
+        let result = build_ygdk_request(
+            11,
+            22,
+            "2026-04-01 08:00".into(),
+            "2026-04-01 09:00".into(),
+            None,
+            &photo,
+            false,
+        );
+
+        let _ = std::fs::remove_dir_all(&directory);
+        let request = result.expect("安全 ASCII token 扩展应被规范化为 image subtype");
+        assert_eq!(request.photo.mime_type, "image/avif");
+
+        for invalid_extension in [
+            "",
+            "jpg;size=1",
+            "svg/xml",
+            "bad extension",
+            "照片",
+            "jpg\r\n",
+        ] {
+            let error =
+                ygdk_photo_mime_type(invalid_extension).expect_err("危险图片 subtype 必须失败关闭");
+            assert_eq!(error.code, ErrorCode::InvalidInput);
+            assert_eq!(error.message, "打卡照片扩展名无效");
+            if !matches!(invalid_extension, "" | "照片") {
+                assert!(!error.message.contains(invalid_extension));
+            }
+        }
+    }
+
+    #[test]
+    fn 阳光打卡照片初检后路径替换必须失败关闭() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("系统时间应晚于 Unix epoch")
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "ubaa-cli-ygdk-photo-swap-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&directory).expect("创建隔离照片目录");
+        let selected = directory.join("selected.jpg");
+        let replacement = directory.join("replacement.jpg");
+        std::fs::write(&selected, b"selected-photo").expect("写入初检照片");
+        std::fs::write(&replacement, b"replacement-private-photo").expect("写入替换照片");
+        let metadata = validated_ygdk_photo_metadata(&selected).expect("初检照片有效");
+
+        let result = read_ygdk_photo_after_initial_check(&selected, &metadata, || {
+            std::fs::remove_file(&selected).expect("移除初检路径");
+            std::fs::rename(&replacement, &selected).expect("替换初检路径");
+        });
+
+        let _ = std::fs::remove_dir_all(&directory);
+        let error = result.expect_err("初检后替换路径必须失败关闭");
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+        assert_eq!(error.message, "打卡照片在读取期间发生变化");
+        assert!(!error.message.contains("selected"));
+        assert!(!error.message.contains("replacement"));
+    }
+
+    #[test]
+    fn 阳光打卡照片读取恰好限制到十_mib_加一字节() {
+        let mut reader = CountingReader::default();
+
+        let error = read_ygdk_photo_bytes(&mut reader).expect_err("超限照片必须失败关闭");
+
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+        assert_eq!(error.message, "打卡照片大小必须在 1 字节到 10 MiB 之间");
+        assert_eq!(reader.bytes_read, MAX_YGDK_PHOTO_BYTES + 1);
     }
 }

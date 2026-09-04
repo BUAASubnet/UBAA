@@ -18,6 +18,12 @@ Future<WriteCommitResult> _commitWrite(
           result.operation == BridgeWriteOperation.cgyySubmitReservation
           ? _mapCgyyReceipt(result.cgyyReceipt)
           : null,
+      ygdkReceipt:
+          result.operation == BridgeWriteOperation.ygdkSubmit &&
+              result.success &&
+              !result.outcomeUnknown
+          ? _mapYgdkReceipt(result.ygdkReceipt)
+          : null,
     );
   } on BridgeError catch (error) {
     throw _mapError(error);
@@ -46,6 +52,11 @@ CgyyReservationReceipt? _mapCgyyReceipt(BridgeCgyyReservationReceipt? receipt) {
         : receipt.reservationDate!.trim(),
     orderStatus: receipt.orderStatus,
   );
+}
+
+YgdkSubmitReceipt? _mapYgdkReceipt(BridgeYgdkSubmitReceipt? receipt) {
+  if (receipt == null || receipt.recordId <= 0) return null;
+  return YgdkSubmitReceipt(recordId: receipt.recordId);
 }
 
 WriteOperation _toWriteOperation(BridgeWriteOperation operation) =>

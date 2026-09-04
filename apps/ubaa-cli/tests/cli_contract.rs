@@ -16,3 +16,5 @@ mod output;
 mod routing;
 #[path = "cli_contract/writes.rs"]
 mod writes;
+#[path = "cli_contract/ygdk.rs"]
+mod ygdk;

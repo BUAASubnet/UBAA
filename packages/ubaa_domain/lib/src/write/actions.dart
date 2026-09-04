@@ -208,6 +208,32 @@ class CgyyCancelAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.cgyyCancelOrder;
 }
 
+/// 单个阳光打卡项目的 Core 已核对提交目标。
+///
+/// 分类和项目标识必须同时为正整数，且 [eligibility] 必须为
+/// [ActionEligibility.allowed]，才能进入 prepare。展示文案不得补齐或
+/// 覆盖任一目标字段。
+@immutable
+class YgdkSubmitAction extends FeatureAction {
+  const YgdkSubmitAction({
+    required this.classifyId,
+    required this.itemId,
+    required this.eligibility,
+  });
+
+  final int classifyId;
+  final int itemId;
+
+  @override
+  final ActionEligibility eligibility;
+
+  bool get hasCanonicalTarget =>
+      eligibility == ActionEligibility.allowed && classifyId > 0 && itemId > 0;
+
+  @override
+  WriteOperation get operation => WriteOperation.ygdkSubmit;
+}
+
 /// 单条图书馆预约记录的 Core 已核对取消目标。
 ///
 /// [page] 与 [limit] 只限定 prepare、commit 和写后刷新使用的同一预约页；

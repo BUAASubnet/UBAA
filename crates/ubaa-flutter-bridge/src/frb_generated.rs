@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -211735226;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 907937951;
 
 // Section: executor
 
@@ -3302,6 +3302,67 @@ fn wire__crate__api__client__BridgeClient_ygdk_overview_impl(
         },
     )
 }
+fn wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_ygdk_overview_on_route",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_route =
+                <crate::api::client::BridgeConnectionMode>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::ygdk_overview_on_route(
+                            &*api_that_guard,
+                            api_route,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__BridgeClient_ygdk_records_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3352,6 +3413,71 @@ fn wire__crate__api__client__BridgeClient_ygdk_records_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::client::BridgeClient::ygdk_records(
                             &*api_that_guard,
+                            api_page,
+                            api_size,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_ygdk_records_on_route",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_route =
+                <crate::api::client::BridgeConnectionMode>::sse_decode(&mut deserializer);
+            let api_page = <i32>::sse_decode(&mut deserializer);
+            let api_size = <i32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::ygdk_records_on_route(
+                            &*api_that_guard,
+                            api_route,
                             api_page,
                             api_size,
                         )
@@ -3766,6 +3892,32 @@ impl SseDecode for crate::api::read::BridgeCallerPinnedCgyyOrders {
         let mut var_pinnedRoute =
             <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
         return crate::api::read::BridgeCallerPinnedCgyyOrders {
+            data: var_data,
+            pinned_route: var_pinnedRoute,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::BridgeCallerPinnedYgdkOverview {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data = <crate::api::read::BridgeYgdkOverview>::sse_decode(deserializer);
+        let mut var_pinnedRoute =
+            <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
+        return crate::api::read::BridgeCallerPinnedYgdkOverview {
+            data: var_data,
+            pinned_route: var_pinnedRoute,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::BridgeCallerPinnedYgdkRecords {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data = <crate::api::read::BridgeYgdkRecordsPage>::sse_decode(deserializer);
+        let mut var_pinnedRoute =
+            <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
+        return crate::api::read::BridgeCallerPinnedYgdkRecords {
             data: var_data,
             pinned_route: var_pinnedRoute,
         };
@@ -5498,6 +5650,8 @@ impl SseDecode for crate::api::write::BridgeWriteCommitResult {
             <Option<crate::api::client::BridgeConnectionMode>>::sse_decode(deserializer);
         let mut var_cgyyReceipt =
             <Option<crate::api::write::BridgeCgyyReservationReceipt>>::sse_decode(deserializer);
+        let mut var_ygdkReceipt =
+            <Option<crate::api::write::BridgeYgdkSubmitReceipt>>::sse_decode(deserializer);
         return crate::api::write::BridgeWriteCommitResult {
             operation: var_operation,
             success: var_success,
@@ -5505,6 +5659,7 @@ impl SseDecode for crate::api::write::BridgeWriteCommitResult {
             outcome_unknown: var_outcomeUnknown,
             resolved_route: var_resolvedRoute,
             cgyy_receipt: var_cgyyReceipt,
+            ygdk_receipt: var_ygdkReceipt,
         };
     }
 }
@@ -5559,11 +5714,17 @@ impl SseDecode for crate::api::read::BridgeYgdkItem {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_kind = <Option<i32>>::sse_decode(deserializer);
         let mut var_sort = <Option<i32>>::sse_decode(deserializer);
+        let mut var_submitEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
+        let mut var_submitTarget =
+            <Option<crate::api::read::BridgeYgdkSubmitTarget>>::sse_decode(deserializer);
         return crate::api::read::BridgeYgdkItem {
             item_id: var_itemId,
             name: var_name,
             kind: var_kind,
             sort: var_sort,
+            submit_eligibility: var_submitEligibility,
+            submit_target: var_submitTarget,
         };
     }
 }
@@ -5636,23 +5797,44 @@ impl SseDecode for crate::api::read::BridgeYgdkRecordsPage {
     }
 }
 
+impl SseDecode for crate::api::write::BridgeYgdkSubmitReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_recordId = <i32>::sse_decode(deserializer);
+        return crate::api::write::BridgeYgdkSubmitReceipt {
+            record_id: var_recordId,
+        };
+    }
+}
+
 impl SseDecode for crate::api::write::BridgeYgdkSubmitRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_itemId = <Option<i32>>::sse_decode(deserializer);
-        let mut var_startTime = <Option<String>>::sse_decode(deserializer);
-        let mut var_endTime = <Option<String>>::sse_decode(deserializer);
+        let mut var_target = <crate::api::read::BridgeYgdkSubmitTarget>::sse_decode(deserializer);
+        let mut var_startTime = <String>::sse_decode(deserializer);
+        let mut var_endTime = <String>::sse_decode(deserializer);
         let mut var_place = <Option<String>>::sse_decode(deserializer);
-        let mut var_shareToSquare = <Option<bool>>::sse_decode(deserializer);
-        let mut var_photo =
-            <Option<crate::api::write::BridgePhotoUpload>>::sse_decode(deserializer);
+        let mut var_shareToSquare = <bool>::sse_decode(deserializer);
+        let mut var_photo = <crate::api::write::BridgePhotoUpload>::sse_decode(deserializer);
         return crate::api::write::BridgeYgdkSubmitRequest {
-            item_id: var_itemId,
+            target: var_target,
             start_time: var_startTime,
             end_time: var_endTime,
             place: var_place,
             share_to_square: var_shareToSquare,
             photo: var_photo,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::BridgeYgdkSubmitTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_classifyId = <i32>::sse_decode(deserializer);
+        let mut var_itemId = <i32>::sse_decode(deserializer);
+        return crate::api::read::BridgeYgdkSubmitTarget {
+            classify_id: var_classifyId,
+            item_id: var_itemId,
         };
     }
 }
@@ -6335,19 +6517,6 @@ impl SseDecode for Option<crate::api::client::BridgeConnectionMode> {
     }
 }
 
-impl SseDecode for Option<crate::api::write::BridgePhotoUpload> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::write::BridgePhotoUpload>::sse_decode(
-                deserializer,
-            ));
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for Option<crate::api::client::BridgeSafeError> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6366,6 +6535,32 @@ impl SseDecode for Option<crate::api::client::BridgeUserProfile> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::api::client::BridgeUserProfile>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::write::BridgeYgdkSubmitReceipt> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::write::BridgeYgdkSubmitReceipt>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::read::BridgeYgdkSubmitTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::read::BridgeYgdkSubmitTarget>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -6728,13 +6923,25 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
+        56 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        58 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        60 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -6753,7 +6960,7 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         33 => wire__crate__api__client__BridgeClient_open_impl(ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7158,6 +7365,48 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCallerPinnedCgyyO
     for crate::api::read::BridgeCallerPinnedCgyyOrders
 {
     fn into_into_dart(self) -> crate::api::read::BridgeCallerPinnedCgyyOrders {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCallerPinnedYgdkOverview {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.pinned_route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeCallerPinnedYgdkOverview
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCallerPinnedYgdkOverview>
+    for crate::api::read::BridgeCallerPinnedYgdkOverview
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeCallerPinnedYgdkOverview {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCallerPinnedYgdkRecords {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.pinned_route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeCallerPinnedYgdkRecords
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCallerPinnedYgdkRecords>
+    for crate::api::read::BridgeCallerPinnedYgdkRecords
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeCallerPinnedYgdkRecords {
         self
     }
 }
@@ -9538,6 +9787,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeWriteCommitResul
             self.outcome_unknown.into_into_dart().into_dart(),
             self.resolved_route.into_into_dart().into_dart(),
             self.cgyy_receipt.into_into_dart().into_dart(),
+            self.ygdk_receipt.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9616,6 +9866,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeYgdkItem {
             self.name.into_into_dart().into_dart(),
             self.kind.into_into_dart().into_dart(),
             self.sort.into_into_dart().into_dart(),
+            self.submit_eligibility.into_into_dart().into_dart(),
+            self.submit_target.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9711,10 +9963,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeYgdkRecordsPage>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeYgdkSubmitReceipt {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.record_id.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::write::BridgeYgdkSubmitReceipt
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::write::BridgeYgdkSubmitReceipt>
+    for crate::api::write::BridgeYgdkSubmitReceipt
+{
+    fn into_into_dart(self) -> crate::api::write::BridgeYgdkSubmitReceipt {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeYgdkSubmitRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.item_id.into_into_dart().into_dart(),
+            self.target.into_into_dart().into_dart(),
             self.start_time.into_into_dart().into_dart(),
             self.end_time.into_into_dart().into_dart(),
             self.place.into_into_dart().into_dart(),
@@ -9732,6 +10001,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::write::BridgeYgdkSubmitReques
     for crate::api::write::BridgeYgdkSubmitRequest
 {
     fn into_into_dart(self) -> crate::api::write::BridgeYgdkSubmitRequest {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeYgdkSubmitTarget {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.classify_id.into_into_dart().into_dart(),
+            self.item_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeYgdkSubmitTarget
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeYgdkSubmitTarget>
+    for crate::api::read::BridgeYgdkSubmitTarget
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeYgdkSubmitTarget {
         self
     }
 }
@@ -10021,6 +10311,22 @@ impl SseEncode for crate::api::read::BridgeCallerPinnedCgyyOrders {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::api::read::BridgeCgyyOrdersPage>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeConnectionMode>::sse_encode(self.pinned_route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::BridgeCallerPinnedYgdkOverview {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::BridgeYgdkOverview>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeConnectionMode>::sse_encode(self.pinned_route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::BridgeCallerPinnedYgdkRecords {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::BridgeYgdkRecordsPage>::sse_encode(self.data, serializer);
         <crate::api::client::BridgeConnectionMode>::sse_encode(self.pinned_route, serializer);
     }
 }
@@ -11221,6 +11527,10 @@ impl SseEncode for crate::api::write::BridgeWriteCommitResult {
             self.cgyy_receipt,
             serializer,
         );
+        <Option<crate::api::write::BridgeYgdkSubmitReceipt>>::sse_encode(
+            self.ygdk_receipt,
+            serializer,
+        );
     }
 }
 
@@ -11268,6 +11578,14 @@ impl SseEncode for crate::api::read::BridgeYgdkItem {
         <String>::sse_encode(self.name, serializer);
         <Option<i32>>::sse_encode(self.kind, serializer);
         <Option<i32>>::sse_encode(self.sort, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.submit_eligibility,
+            serializer,
+        );
+        <Option<crate::api::read::BridgeYgdkSubmitTarget>>::sse_encode(
+            self.submit_target,
+            serializer,
+        );
     }
 }
 
@@ -11311,15 +11629,30 @@ impl SseEncode for crate::api::read::BridgeYgdkRecordsPage {
     }
 }
 
+impl SseEncode for crate::api::write::BridgeYgdkSubmitReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.record_id, serializer);
+    }
+}
+
 impl SseEncode for crate::api::write::BridgeYgdkSubmitRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<i32>>::sse_encode(self.item_id, serializer);
-        <Option<String>>::sse_encode(self.start_time, serializer);
-        <Option<String>>::sse_encode(self.end_time, serializer);
+        <crate::api::read::BridgeYgdkSubmitTarget>::sse_encode(self.target, serializer);
+        <String>::sse_encode(self.start_time, serializer);
+        <String>::sse_encode(self.end_time, serializer);
         <Option<String>>::sse_encode(self.place, serializer);
-        <Option<bool>>::sse_encode(self.share_to_square, serializer);
-        <Option<crate::api::write::BridgePhotoUpload>>::sse_encode(self.photo, serializer);
+        <bool>::sse_encode(self.share_to_square, serializer);
+        <crate::api::write::BridgePhotoUpload>::sse_encode(self.photo, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::BridgeYgdkSubmitTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.classify_id, serializer);
+        <i32>::sse_encode(self.item_id, serializer);
     }
 }
 
@@ -11830,16 +12163,6 @@ impl SseEncode for Option<crate::api::client::BridgeConnectionMode> {
     }
 }
 
-impl SseEncode for Option<crate::api::write::BridgePhotoUpload> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <crate::api::write::BridgePhotoUpload>::sse_encode(value, serializer);
-        }
-    }
-}
-
 impl SseEncode for Option<crate::api::client::BridgeSafeError> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11856,6 +12179,26 @@ impl SseEncode for Option<crate::api::client::BridgeUserProfile> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::client::BridgeUserProfile>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::write::BridgeYgdkSubmitReceipt> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::write::BridgeYgdkSubmitReceipt>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::read::BridgeYgdkSubmitTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::read::BridgeYgdkSubmitTarget>::sse_encode(value, serializer);
         }
     }
 }

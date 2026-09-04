@@ -18,7 +18,7 @@ use super::{
     BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
     BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
     BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
-    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkTermSummary,
+    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
@@ -493,20 +493,59 @@ fn map_ygdk_summary(v: domain::YgdkTermSummary) -> BridgeYgdkTermSummary {
     }
 }
 pub(super) fn map_ygdk_overview(v: domain::YgdkOverview) -> BridgeYgdkOverview {
+    let classify_id = v.classify_id;
+    let classify_is_canonical = classify_id > 0 && !v.classify_name.trim().is_empty();
+    let mut item_id_counts = std::collections::BTreeMap::<i32, usize>::new();
+    for item in &v.items {
+        *item_id_counts.entry(item.item_id).or_default() += 1;
+    }
     BridgeYgdkOverview {
         summary: map_ygdk_summary(v.summary),
-        classify_id: v.classify_id,
+        classify_id,
         classify_name: v.classify_name,
         default_item_id: v.default_item_id,
         default_item_name: v.default_item_name,
         items: v
             .items
             .into_iter()
-            .map(|i| BridgeYgdkItem {
-                item_id: i.item_id,
-                name: i.name,
-                kind: i.kind,
-                sort: i.sort,
+            .map(|i| {
+                let target_is_canonical = i.submit_target.is_some_and(|target| {
+                    target.classify_id == classify_id
+                        && target.item_id == i.item_id
+                        && target.classify_id > 0
+                        && target.item_id > 0
+                });
+                let item_is_unique = item_id_counts.get(&i.item_id) == Some(&1);
+                let item_is_canonical =
+                    classify_is_canonical && i.item_id > 0 && !i.name.trim().is_empty();
+                let allowed = i.submit_eligibility == domain::ActionEligibility::Allowed
+                    && item_is_canonical
+                    && item_is_unique
+                    && target_is_canonical;
+                let denied = i.submit_eligibility == domain::ActionEligibility::Denied
+                    && item_is_canonical
+                    && item_is_unique
+                    && i.submit_target.is_none();
+                BridgeYgdkItem {
+                    item_id: i.item_id,
+                    name: i.name,
+                    kind: i.kind,
+                    sort: i.sort,
+                    submit_eligibility: if allowed {
+                        BridgeActionEligibility::Allowed
+                    } else if denied {
+                        BridgeActionEligibility::Denied
+                    } else {
+                        BridgeActionEligibility::Unknown
+                    },
+                    submit_target: allowed.then(|| {
+                        let target = i.submit_target.expect("allowed target was checked");
+                        BridgeYgdkSubmitTarget {
+                            classify_id: target.classify_id,
+                            item_id: target.item_id,
+                        }
+                    }),
+                }
             })
             .collect(),
     }
@@ -768,6 +807,73 @@ mod tests {
             ));
             assert!(projected.cancel_target.is_none());
         }
+    }
+
+    #[test]
+    fn 阳光打卡读取只投影同父级唯一正数typed目标() {
+        let item = |item_id, eligibility, target| domain::YgdkItem {
+            item_id,
+            name: "脱敏项目".to_owned(),
+            submit_eligibility: eligibility,
+            submit_target: target,
+            ..domain::YgdkItem::default()
+        };
+        let target = |classify_id, item_id| {
+            Some(domain::YgdkSubmitTarget {
+                classify_id,
+                item_id,
+            })
+        };
+        let overview = map_ygdk_overview(domain::YgdkOverview {
+            classify_id: 3,
+            classify_name: "阳光体育".to_owned(),
+            items: vec![
+                item(2, domain::ActionEligibility::Allowed, target(3, 2)),
+                item(4, domain::ActionEligibility::Allowed, target(3, 4)),
+                item(4, domain::ActionEligibility::Allowed, target(3, 4)),
+                item(5, domain::ActionEligibility::Allowed, target(9, 5)),
+                item(6, domain::ActionEligibility::Allowed, None),
+                item(7, domain::ActionEligibility::Denied, None),
+                item(8, domain::ActionEligibility::Unknown, target(3, 8)),
+                item(0, domain::ActionEligibility::Denied, None),
+                item(9, domain::ActionEligibility::Denied, None),
+                item(9, domain::ActionEligibility::Denied, None),
+                domain::YgdkItem {
+                    item_id: 10,
+                    name: " \t".to_owned(),
+                    submit_eligibility: domain::ActionEligibility::Denied,
+                    submit_target: None,
+                    ..domain::YgdkItem::default()
+                },
+            ],
+            ..domain::YgdkOverview::default()
+        });
+
+        assert!(matches!(
+            overview.items[0].submit_eligibility,
+            BridgeActionEligibility::Allowed
+        ));
+        assert_eq!(
+            overview.items[0]
+                .submit_target
+                .as_ref()
+                .expect("canonical target")
+                .item_id,
+            2
+        );
+        for index in [1, 2, 3, 4, 6, 7, 8, 9, 10] {
+            let item = &overview.items[index];
+            assert!(matches!(
+                item.submit_eligibility,
+                BridgeActionEligibility::Unknown
+            ));
+            assert!(item.submit_target.is_none());
+        }
+        assert!(matches!(
+            overview.items[5].submit_eligibility,
+            BridgeActionEligibility::Denied
+        ));
+        assert!(overview.items[5].submit_target.is_none());
     }
 
     #[test]

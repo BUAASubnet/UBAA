@@ -20,20 +20,21 @@ class YgdkPhotoInput {
 @immutable
 class YgdkSubmitInput {
   const YgdkSubmitInput({
-    this.itemId,
-    this.startTime,
-    this.endTime,
+    required this.action,
+    required this.startTime,
+    required this.endTime,
     this.place,
-    this.shareToSquare,
-    this.photo,
+    required this.shareToSquare,
+    required this.photo,
   });
 
-  final int? itemId;
-  final String? startTime;
-  final String? endTime;
+  /// 只能来自当次读取结果的 Core typed action。
+  final YgdkSubmitAction action;
+  final String startTime;
+  final String endTime;
   final String? place;
-  final bool? shareToSquare;
-  final YgdkPhotoInput? photo;
+  final bool shareToSquare;
+  final YgdkPhotoInput photo;
 }
 
 /// 场馆预约 typed 提交参数；目标只能来自读取结果的 [actions]。

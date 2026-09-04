@@ -245,6 +245,31 @@ void main() {
     );
   });
 
+  test('阳光打卡 action 只有在资格允许且分类与项目目标完整时可用', () {
+    const allowed = YgdkSubmitAction(
+      classifyId: 31,
+      itemId: 7,
+      eligibility: ActionEligibility.allowed,
+    );
+    const unknown = YgdkSubmitAction(
+      classifyId: 31,
+      itemId: 7,
+      eligibility: ActionEligibility.unknown,
+    );
+    const incomplete = YgdkSubmitAction(
+      classifyId: 0,
+      itemId: 7,
+      eligibility: ActionEligibility.allowed,
+    );
+
+    expect(allowed.classifyId, 31);
+    expect(allowed.itemId, 7);
+    expect(allowed.operation, WriteOperation.ygdkSubmit);
+    expect(allowed.hasCanonicalTarget, isTrue);
+    expect(unknown.hasCanonicalTarget, isFalse);
+    expect(incomplete.hasCanonicalTarget, isFalse);
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

@@ -199,6 +199,33 @@ pub trait CliBackend {
     ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
         Err(unavailable("阳光打卡写功能不可用"))
     }
+    /// 在固定后端已使用的原路线刷新阳光打卡概览。
+    async fn ygdk_overview_on_route(&mut self, route: ConnectionMode) -> Result<YgdkOverview> {
+        if self.mode() != route {
+            return Err(internal_error("阳光打卡回读路线与固定后端不一致"));
+        }
+        let result = self.ygdk_overview().await?;
+        if result.resolved_route != route {
+            return Err(internal_error("阳光打卡概览回读偏离固定路线"));
+        }
+        Ok(result.data)
+    }
+    /// 在固定后端已使用的原路线刷新阳光打卡记录。
+    async fn ygdk_records_on_route(
+        &mut self,
+        route: ConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> Result<YgdkRecordsPage> {
+        if self.mode() != route {
+            return Err(internal_error("阳光打卡回读路线与固定后端不一致"));
+        }
+        let result = self.ygdk_records(page, size).await?;
+        if result.resolved_route != route {
+            return Err(internal_error("阳光打卡记录回读偏离固定路线"));
+        }
+        Ok(result.data)
+    }
     /// 查询全部评教课程。
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         Err(unavailable("评教功能不可用"))
@@ -457,6 +484,19 @@ pub trait RoutedCliBackend {
         _request: YgdkClockinSubmitRequest,
     ) -> RoutedResult<YgdkClockinSubmitResult> {
         Err(routed_unavailable("阳光打卡写功能不可用"))
+    }
+    /// 在调用方固定的已解析路线刷新阳光打卡概览。
+    async fn ygdk_overview_on_route(&mut self, _route: ConnectionMode) -> Result<YgdkOverview> {
+        Err(unavailable("阳光打卡固定路线回读不可用"))
+    }
+    /// 在调用方固定的已解析路线刷新阳光打卡记录。
+    async fn ygdk_records_on_route(
+        &mut self,
+        _route: ConnectionMode,
+        _page: i32,
+        _size: i32,
+    ) -> Result<YgdkRecordsPage> {
+        Err(unavailable("阳光打卡固定路线回读不可用"))
     }
     /// 通过 Core 路由获取用户中心资料。
     async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {

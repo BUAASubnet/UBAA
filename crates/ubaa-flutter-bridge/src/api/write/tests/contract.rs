@@ -53,21 +53,31 @@ fn write_digest_shapes_do_not_include_sensitive_text_or_photo_bytes() {
     assert!(cgyy_shape.contains("phone=present:12"));
 
     let ygdk = BridgeYgdkSubmitRequest {
-        item_id: Some(1),
-        start_time: Some("2026-09-02 08:00".to_owned()),
-        end_time: Some("2026-09-02 09:00".to_owned()),
+        target: BridgeYgdkSubmitTarget {
+            classify_id: 3,
+            item_id: 1,
+        },
+        start_time: "2026-09-02 08:00".to_owned(),
+        end_time: "2026-09-02 09:00".to_owned(),
         place: Some("private-place".to_owned()),
-        share_to_square: Some(false),
-        photo: Some(BridgePhotoUpload {
+        share_to_square: false,
+        photo: BridgePhotoUpload {
             bytes: vec![0xde, 0xad, 0xbe, 0xef],
             file_name: "private-photo.jpg".to_owned(),
             mime_type: "image/jpeg".to_owned(),
-        }),
+        },
     };
     let ygdk_shape = ygdk_canonical(&ygdk);
+    let mut different_place_length = ygdk.clone();
+    different_place_length.place = Some("更长但同样存在的脱敏地点".to_owned());
+    let different_place_shape = ygdk_canonical(&different_place_length);
+    assert_eq!(ygdk_shape, different_place_shape);
     assert!(!ygdk_shape.contains("private-place"));
     assert!(!ygdk_shape.contains("private-photo.jpg"));
     assert!(!ygdk_shape.contains("deadbeef"));
+    assert!(!ygdk_shape.contains("start=present:"));
+    assert!(!ygdk_shape.contains("end=present:"));
+    assert!(!ygdk_shape.contains("place=present:"));
     assert!(ygdk_shape.contains("photo=present:4:image/jpeg"));
 }
 

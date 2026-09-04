@@ -1,6 +1,170 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendReadCharacterization() {
+  test('阳光打卡 Dart 投影对重复和不一致 typed 目标逐项 fail-closed', () async {
+    final client = _CharacterizationBridgeClient(
+      ygdkOverviewFixture: const BridgeYgdkOverview(
+        summary: BridgeYgdkTermSummary(termCount: 0),
+        classifyId: 31,
+        classifyName: '分类',
+        defaultItemId: 13,
+        defaultItemName: '唯一有效项目',
+        items: <BridgeYgdkItem>[
+          BridgeYgdkItem(
+            itemId: 7,
+            name: '重复一',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 7),
+          ),
+          BridgeYgdkItem(
+            itemId: 7,
+            name: '重复二',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 7),
+          ),
+          BridgeYgdkItem(
+            itemId: 8,
+            name: '错父分类',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 99, itemId: 8),
+          ),
+          BridgeYgdkItem(
+            itemId: 9,
+            name: '错项目',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 90),
+          ),
+          BridgeYgdkItem(
+            itemId: 10,
+            name: '允许但缺目标',
+            submitEligibility: BridgeActionEligibility.allowed,
+          ),
+          BridgeYgdkItem(
+            itemId: 11,
+            name: '拒绝但夹带目标',
+            submitEligibility: BridgeActionEligibility.denied,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 11),
+          ),
+          BridgeYgdkItem(
+            itemId: 12,
+            name: '未知但夹带目标',
+            submitEligibility: BridgeActionEligibility.unknown,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 12),
+          ),
+          BridgeYgdkItem(
+            itemId: 13,
+            name: '唯一有效项目',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 13),
+          ),
+          BridgeYgdkItem(
+            itemId: 14,
+            name: '   ',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 14),
+          ),
+          BridgeYgdkItem(
+            itemId: 0,
+            name: '零项目',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 0),
+          ),
+          BridgeYgdkItem(
+            itemId: -1,
+            name: '负项目',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: -1),
+          ),
+          BridgeYgdkItem(
+            itemId: 15,
+            name: '明确不可提交',
+            submitEligibility: BridgeActionEligibility.denied,
+          ),
+          BridgeYgdkItem(
+            itemId: 16,
+            name: '资格未知',
+            submitEligibility: BridgeActionEligibility.unknown,
+          ),
+        ],
+      ),
+    );
+    final result = await BridgeBackend(
+      client,
+    ).loadFeatureQuery(FeatureId.ygdk, const FeatureQuery());
+
+    final actions = <YgdkSubmitAction>[
+      for (final detail in result.details)
+        ...detail.actions.whereType<YgdkSubmitAction>(),
+    ];
+    expect(actions, hasLength(1));
+    expect(actions.single.itemId, 13);
+    expect(actions.single.classifyId, 31);
+    expect(actions.single.hasCanonicalTarget, isTrue);
+
+    for (final invalidParent in <BridgeYgdkOverview>[
+      const BridgeYgdkOverview(
+        summary: BridgeYgdkTermSummary(termCount: 0),
+        classifyId: 0,
+        classifyName: '分类',
+        defaultItemId: 7,
+        defaultItemName: '项目',
+        items: <BridgeYgdkItem>[
+          BridgeYgdkItem(
+            itemId: 7,
+            name: '项目',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 0, itemId: 7),
+          ),
+        ],
+      ),
+      const BridgeYgdkOverview(
+        summary: BridgeYgdkTermSummary(termCount: 0),
+        classifyId: 31,
+        classifyName: '   ',
+        defaultItemId: 7,
+        defaultItemName: '项目',
+        items: <BridgeYgdkItem>[
+          BridgeYgdkItem(
+            itemId: 7,
+            name: '项目',
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 7),
+          ),
+        ],
+      ),
+    ]) {
+      final invalidResult = await BridgeBackend(
+        _CharacterizationBridgeClient(ygdkOverviewFixture: invalidParent),
+      ).loadFeatureQuery(FeatureId.ygdk, const FeatureQuery());
+      expect(invalidResult.details.expand((detail) => detail.actions), isEmpty);
+    }
+  });
+
+  test('阳光打卡回读把调用方路线原样交给 Bridge 且不走 Auto', () async {
+    final client = _CharacterizationBridgeClient();
+    final backend = BridgeBackend(client);
+
+    final overview = await backend.loadYgdkOverviewOnRoute(
+      route: ConnectionMode.direct,
+    );
+    final records = await backend.loadYgdkRecordsOnRoute(
+      route: ConnectionMode.direct,
+      page: 1,
+      size: 20,
+    );
+
+    expect(client.calls, <String>[
+      'ygdkOverviewOnRoute:route=direct',
+      'ygdkRecordsOnRoute:route=direct,page=1,size=20',
+    ]);
+    expect(overview.resolvedRoute, ConnectionMode.direct);
+    expect(records.resolvedRoute, ConnectionMode.direct);
+    final action = overview.details.single.action<YgdkSubmitAction>();
+    expect(action?.classifyId, 31);
+    expect(action?.itemId, 7);
+    expect(action?.hasCanonicalTarget, isTrue);
+  });
+
   test('图书馆取消 typed action 将目标和分页贯穿准备提交与同页回读', () async {
     final client = _CharacterizationBridgeClient();
     final backend = BridgeBackend(client);
@@ -387,9 +551,11 @@ void registerBridgeBackendReadCharacterization() {
     results.add(
       await backend.loadFeatureQuery(FeatureId.spoc, const FeatureQuery()),
     );
-    results.add(
-      await backend.loadFeatureQuery(FeatureId.ygdk, const FeatureQuery()),
+    final ygdkOverview = await backend.loadFeatureQuery(
+      FeatureId.ygdk,
+      const FeatureQuery(),
     );
+    results.add(ygdkOverview);
     final ygdkPage = await backend.loadFeatureQuery(
       FeatureId.ygdk,
       const FeatureQuery(view: FeatureQueryView.ygdkRecords, page: 3, size: 77),
@@ -448,6 +614,10 @@ void registerBridgeBackendReadCharacterization() {
     expect(cgyyListAction?.orderStatus, 1);
     expect(cgyyListAction?.targetOrderId, 101);
     expect(cgyyListAction?.eligibility, ActionEligibility.allowed);
+    final ygdkAction = ygdkOverview.details.single.action<YgdkSubmitAction>();
+    expect(ygdkAction?.classifyId, 31);
+    expect(ygdkAction?.itemId, 7);
+    expect(ygdkAction?.hasCanonicalTarget, isTrue);
     const expectedProjectionFragments = <String>[
       '课程 ID|9527',
       '状态|available',

@@ -16,18 +16,19 @@ use super::mappers::{
     map_today_classes, map_weekly_schedule, map_weeks, map_ygdk_overview, map_ygdk_records,
 };
 use super::{
-    BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeJudgeAssignmentKey,
-    BridgeRoutedBykcChosenCourses, BridgeRoutedBykcCourse, BridgeRoutedBykcCourses,
-    BridgeRoutedBykcProfile, BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo,
-    BridgeRoutedCgyyLockCode, BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders,
-    BridgeRoutedCgyyPurposeTypes, BridgeRoutedCgyySites, BridgeRoutedClassroomQuery,
-    BridgeRoutedEvaluation, BridgeRoutedExamArrangement, BridgeRoutedGrades,
-    BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
-    BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreas,
-    BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats,
-    BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments,
-    BridgeRoutedTerms, BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
-    BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords,
+    BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeCallerPinnedYgdkOverview,
+    BridgeCallerPinnedYgdkRecords, BridgeJudgeAssignmentKey, BridgeRoutedBykcChosenCourses,
+    BridgeRoutedBykcCourse, BridgeRoutedBykcCourses, BridgeRoutedBykcProfile,
+    BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo, BridgeRoutedCgyyLockCode,
+    BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders, BridgeRoutedCgyyPurposeTypes,
+    BridgeRoutedCgyySites, BridgeRoutedClassroomQuery, BridgeRoutedEvaluation,
+    BridgeRoutedExamArrangement, BridgeRoutedGrades, BridgeRoutedJudgeAssignmentDetail,
+    BridgeRoutedJudgeAssignmentDetails, BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail,
+    BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries,
+    BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail,
+    BridgeRoutedSpocAssignments, BridgeRoutedTerms, BridgeRoutedTodayClasses,
+    BridgeRoutedWeeklySchedule, BridgeRoutedWeeks, BridgeRoutedYgdkOverview,
+    BridgeRoutedYgdkRecords,
 };
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, catch_panic,
@@ -366,6 +367,21 @@ impl BridgeClient {
             .await?;
         Ok(BridgeRoutedYgdkOverview { data, route })
     }
+    /// 在调用方指定的已认证路线读取阳光打卡概览，不执行 Auto 探测或回退。
+    pub async fn ygdk_overview_on_route(
+        &self,
+        route: BridgeConnectionMode,
+    ) -> Result<BridgeCallerPinnedYgdkOverview, BridgeError> {
+        let (data, pinned_route) = self
+            .execute_caller_pinned_read(
+                move |client| {
+                    Box::pin(async move { client.ygdk_overview_on_route(route.into()).await })
+                },
+                map_ygdk_overview,
+            )
+            .await?;
+        Ok(BridgeCallerPinnedYgdkOverview { data, pinned_route })
+    }
     pub async fn ygdk_records(
         &self,
         page: i32,
@@ -378,6 +394,25 @@ impl BridgeClient {
             )
             .await?;
         Ok(BridgeRoutedYgdkRecords { data, route })
+    }
+    /// 在调用方指定的已认证路线读取阳光打卡记录，不执行 Auto 探测或回退。
+    pub async fn ygdk_records_on_route(
+        &self,
+        route: BridgeConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> Result<BridgeCallerPinnedYgdkRecords, BridgeError> {
+        let (data, pinned_route) = self
+            .execute_caller_pinned_read(
+                move |client| {
+                    Box::pin(
+                        async move { client.ygdk_records_on_route(route.into(), page, size).await },
+                    )
+                },
+                map_ygdk_records,
+            )
+            .await?;
+        Ok(BridgeCallerPinnedYgdkRecords { data, pinned_route })
     }
     pub async fn cgyy_sites(&self) -> Result<BridgeRoutedCgyySites, BridgeError> {
         let (data, route) = self

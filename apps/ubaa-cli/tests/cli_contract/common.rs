@@ -7,7 +7,8 @@ use ubaa_core::facade::{
     LibBookCancelResult, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
     NetworkState, Result, RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError,
     RoutedResult, SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics,
-    Term, UbaaError, UserProfile,
+    Term, UbaaError, UserProfile, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
+    YgdkRecordsPage,
 };
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
@@ -31,6 +32,15 @@ pub(crate) struct FakeBackend {
     pub(crate) cgyy_cancel_calls: usize,
     pub(crate) cgyy_last_cancel_request: Option<CgyyCancelOrderRequest>,
     pub(crate) cgyy_cancel_result: CgyyCancelFixtureResult,
+    pub(crate) ygdk_submit_calls: usize,
+    pub(crate) ygdk_last_submit_request: Option<YgdkClockinSubmitRequest>,
+    pub(crate) ygdk_submit_result: YgdkSubmitFixtureResult,
+    pub(crate) ygdk_readback_overview_calls: usize,
+    pub(crate) ygdk_readback_overview_routes: Vec<ConnectionMode>,
+    pub(crate) ygdk_readback_overview_fails: bool,
+    pub(crate) ygdk_readback_records_calls: usize,
+    pub(crate) ygdk_readback_records_requests: Vec<(ConnectionMode, i32, i32)>,
+    pub(crate) ygdk_readback_records_fails: bool,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -59,6 +69,16 @@ pub(crate) enum CgyyCancelFixtureResult {
     PreSendChanged,
 }
 
+#[derive(Clone, Copy, Default)]
+pub(crate) enum YgdkSubmitFixtureResult {
+    #[default]
+    Success,
+    SuccessWithInvalidRecordId,
+    UnsafeFalse,
+    OutcomeUnknown,
+    PreSendChanged,
+}
+
 #[derive(Default)]
 pub(crate) struct FakeRoutedBackend {
     pub(crate) fail_schedule: bool,
@@ -76,10 +96,117 @@ pub(crate) struct FakeRoutedBackend {
     pub(crate) libbook_cancel_calls: usize,
     pub(crate) libbook_last_cancel_request: Option<LibBookCancelRequest>,
     pub(crate) libbook_cancel_error: Option<UbaaError>,
+    pub(crate) ygdk_overview_calls: usize,
+    pub(crate) ygdk_overview: Option<YgdkOverview>,
+    pub(crate) ygdk_records_calls: usize,
+    pub(crate) ygdk_records: Option<YgdkRecordsPage>,
+    pub(crate) ygdk_submit_calls: usize,
+    pub(crate) ygdk_last_submit_request: Option<YgdkClockinSubmitRequest>,
+    pub(crate) ygdk_submit_result: YgdkSubmitFixtureResult,
+    pub(crate) ygdk_readback_overview_calls: usize,
+    pub(crate) ygdk_readback_overview_routes: Vec<ConnectionMode>,
+    pub(crate) ygdk_readback_overview_fails: bool,
+    pub(crate) ygdk_readback_records_calls: usize,
+    pub(crate) ygdk_readback_records_requests: Vec<(ConnectionMode, i32, i32)>,
+    pub(crate) ygdk_readback_records_fails: bool,
 }
 
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
+        self.ygdk_overview_calls += 1;
+        Ok(Routed {
+            data: self.ygdk_overview.clone().unwrap_or_default(),
+            resolution: direct_resolution(),
+        })
+    }
+
+    async fn ygdk_records(&mut self, _page: i32, _size: i32) -> RoutedResult<YgdkRecordsPage> {
+        self.ygdk_records_calls += 1;
+        Ok(Routed {
+            data: self.ygdk_records.clone().unwrap_or_default(),
+            resolution: direct_resolution(),
+        })
+    }
+
+    async fn ygdk_submit(
+        &mut self,
+        request: YgdkClockinSubmitRequest,
+    ) -> RoutedResult<YgdkClockinSubmitResult> {
+        self.ygdk_submit_calls += 1;
+        self.ygdk_last_submit_request = Some(request);
+        match self.ygdk_submit_result {
+            YgdkSubmitFixtureResult::Success => Ok(Routed {
+                data: YgdkClockinSubmitResult {
+                    success: true,
+                    message: "RAW-UPSTREAM photo=PRIVATE token=PRIVATE".into(),
+                    record_id: Some(77),
+                },
+                resolution: direct_resolution(),
+            }),
+            YgdkSubmitFixtureResult::SuccessWithInvalidRecordId => Ok(Routed {
+                data: YgdkClockinSubmitResult {
+                    success: true,
+                    message: "RAW-UPSTREAM photo=PRIVATE token=PRIVATE".into(),
+                    record_id: Some(0),
+                },
+                resolution: direct_resolution(),
+            }),
+            YgdkSubmitFixtureResult::UnsafeFalse => Ok(Routed {
+                data: YgdkClockinSubmitResult {
+                    success: false,
+                    message: "RAW-UPSTREAM photo=PRIVATE token=PRIVATE".into(),
+                    record_id: None,
+                },
+                resolution: direct_resolution(),
+            }),
+            YgdkSubmitFixtureResult::OutcomeUnknown => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::OutcomeUnknown,
+                    ErrorKind::Upstream,
+                    false,
+                    "RAW-UPSTREAM photo=PRIVATE token=PRIVATE\nSet-Cookie=PRIVATE",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+            YgdkSubmitFixtureResult::PreSendChanged => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::UpstreamChanged,
+                    ErrorKind::Upstream,
+                    false,
+                    "RAW-UPSTREAM photo=PRIVATE token=PRIVATE",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+        }
+    }
+
+    async fn ygdk_overview_on_route(&mut self, route: ConnectionMode) -> Result<YgdkOverview> {
+        self.ygdk_readback_overview_calls += 1;
+        self.ygdk_readback_overview_routes.push(route);
+        if self.ygdk_readback_overview_fails {
+            Err(ygdk_readback_error())
+        } else {
+            Ok(YgdkOverview::default())
+        }
+    }
+
+    async fn ygdk_records_on_route(
+        &mut self,
+        route: ConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> Result<YgdkRecordsPage> {
+        self.ygdk_readback_records_calls += 1;
+        self.ygdk_readback_records_requests
+            .push((route, page, size));
+        if self.ygdk_readback_records_fails {
+            Err(ygdk_readback_error())
+        } else {
+            Ok(YgdkRecordsPage::default())
+        }
+    }
+
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         self.signin_today_calls += 1;
         Ok(Routed {
@@ -375,6 +502,15 @@ fn direct_resolution() -> RouteResolution {
     )
 }
 
+fn ygdk_readback_error() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::UpstreamUnavailable,
+        ErrorKind::Upstream,
+        false,
+        "fixture Ygdk readback unavailable",
+    )
+}
+
 fn signin_class(
     course_id: &str,
     sign_status: Option<i32>,
@@ -558,6 +694,78 @@ impl CliBackend for FakeBackend {
                 false,
                 "RAW-UPSTREAM phone=PRIVATE token=PRIVATE",
             )),
+        }
+    }
+
+    async fn ygdk_submit(
+        &mut self,
+        request: YgdkClockinSubmitRequest,
+    ) -> Result<FeatureResult<YgdkClockinSubmitResult>> {
+        self.ygdk_submit_calls += 1;
+        self.ygdk_last_submit_request = Some(request);
+        match self.ygdk_submit_result {
+            YgdkSubmitFixtureResult::Success => Ok(FeatureResult {
+                data: YgdkClockinSubmitResult {
+                    success: true,
+                    message: "RAW-UPSTREAM photo=PRIVATE token=PRIVATE".into(),
+                    record_id: Some(77),
+                },
+                resolved_route: ConnectionMode::Direct,
+            }),
+            YgdkSubmitFixtureResult::SuccessWithInvalidRecordId => Ok(FeatureResult {
+                data: YgdkClockinSubmitResult {
+                    success: true,
+                    message: "RAW-UPSTREAM photo=PRIVATE token=PRIVATE".into(),
+                    record_id: Some(0),
+                },
+                resolved_route: ConnectionMode::Direct,
+            }),
+            YgdkSubmitFixtureResult::UnsafeFalse => Ok(FeatureResult {
+                data: YgdkClockinSubmitResult {
+                    success: false,
+                    message: "RAW-UPSTREAM photo=PRIVATE token=PRIVATE".into(),
+                    record_id: None,
+                },
+                resolved_route: ConnectionMode::Direct,
+            }),
+            YgdkSubmitFixtureResult::OutcomeUnknown => Err(UbaaError::new(
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+                false,
+                "RAW-UPSTREAM photo=PRIVATE token=PRIVATE\nSet-Cookie=PRIVATE",
+            )),
+            YgdkSubmitFixtureResult::PreSendChanged => Err(UbaaError::new(
+                ErrorCode::UpstreamChanged,
+                ErrorKind::Upstream,
+                false,
+                "RAW-UPSTREAM photo=PRIVATE token=PRIVATE",
+            )),
+        }
+    }
+
+    async fn ygdk_overview_on_route(&mut self, route: ConnectionMode) -> Result<YgdkOverview> {
+        self.ygdk_readback_overview_calls += 1;
+        self.ygdk_readback_overview_routes.push(route);
+        if self.ygdk_readback_overview_fails {
+            Err(ygdk_readback_error())
+        } else {
+            Ok(YgdkOverview::default())
+        }
+    }
+
+    async fn ygdk_records_on_route(
+        &mut self,
+        route: ConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> Result<YgdkRecordsPage> {
+        self.ygdk_readback_records_calls += 1;
+        self.ygdk_readback_records_requests
+            .push((route, page, size));
+        if self.ygdk_readback_records_fails {
+            Err(ygdk_readback_error())
+        } else {
+            Ok(YgdkRecordsPage::default())
         }
     }
 }

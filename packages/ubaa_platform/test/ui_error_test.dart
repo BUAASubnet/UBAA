@@ -29,7 +29,7 @@ void main() {
       expect(error.actionLabel, '刷新状态');
     });
 
-    test('从当前 schema-v8 envelope 读取嵌套 error', () {
+    test('历史 schema-v8 envelope 仍可读取嵌套 error', () {
       final error = mapCoreErrorJson({
         'schemaVersion': 8,
         'ok': false,

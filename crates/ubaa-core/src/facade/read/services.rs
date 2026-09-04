@@ -361,6 +361,20 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 在调用方固定的已认证路线查询阳光打卡概览，不执行 Auto 探测或回退。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、指定路线未认证或上游读取失败时返回错误。
+    pub async fn ygdk_overview_on_route(
+        &mut self,
+        route: ConnectionMode,
+    ) -> crate::error::Result<CallerPinned<YgdkOverview>> {
+        self.guard_caller_pinned_route(route)?;
+        let result = crate::features::ygdk::get_overview(self.runtime_for(route)).await;
+        self.finish_caller_pinned(route, result)
+    }
+
     /// 查询阳光打卡历史记录。
     ///
     /// # Errors
@@ -371,5 +385,21 @@ impl UbaaClient {
         let result =
             crate::features::ygdk::get_records(self.runtime_for(resolution.mode), page, size).await;
         self.finish_routed(resolution, result)
+    }
+
+    /// 在调用方固定的已认证路线查询阳光打卡记录，不执行 Auto 探测或回退。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、指定路线未认证、分页无效或上游读取失败时返回错误。
+    pub async fn ygdk_records_on_route(
+        &mut self,
+        route: ConnectionMode,
+        page: i32,
+        size: i32,
+    ) -> crate::error::Result<CallerPinned<YgdkRecordsPage>> {
+        self.guard_caller_pinned_route(route)?;
+        let result = crate::features::ygdk::get_records(self.runtime_for(route), page, size).await;
+        self.finish_caller_pinned(route, result)
     }
 }

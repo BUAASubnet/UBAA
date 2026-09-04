@@ -9,7 +9,7 @@ use ubaa_core::facade as domain;
 
 use super::{
     BridgeBykcSignCourseRequest, BridgeCgyyReservationReceipt, BridgeCgyySubmitReservationRequest,
-    BridgeWriteOperation, BridgeYgdkSubmitRequest,
+    BridgeWriteOperation, BridgeYgdkSubmitReceipt, BridgeYgdkSubmitRequest,
 };
 use crate::api::client::{BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind};
 use crate::api::read::BridgeEvaluationCourse;
@@ -165,6 +165,28 @@ pub(super) fn map_cgyy_cancel_preflight_error(error: domain::RoutedError) -> Bri
     BridgeError::from_routed(error)
 }
 
+pub(super) fn map_ygdk_preflight_error(error: domain::RoutedError) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if error.error.code == domain::ErrorCode::UpstreamChanged {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "阳光打卡资格核对响应无效",
+        );
+    }
+    BridgeError::from_routed(error)
+}
+
 pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
@@ -184,6 +206,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
+            | BridgeWriteOperation::YgdkSubmit
             | BridgeWriteOperation::CgyySubmitReservation
             | BridgeWriteOperation::CgyyCancelOrder
     ) && error.error.code == domain::ErrorCode::InvalidInput
@@ -195,6 +218,7 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::LibbookCancelBooking => {
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
+            BridgeWriteOperation::YgdkSubmit => "阳光打卡资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyySubmitReservation => "场馆预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyyCancelOrder => "场馆订单取消资格已变化，请刷新后重新准备",
             _ => "课程签到资格已变化，请刷新后重新准备",
@@ -229,19 +253,32 @@ pub(super) fn map_commit_error(
             "场馆订单取消资格核对响应无效",
         );
     }
+    if matches!(operation, BridgeWriteOperation::YgdkSubmit)
+        && error.error.code == domain::ErrorCode::UpstreamChanged
+    {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "阳光打卡提交前资格核对响应无效",
+        );
+    }
     if error.error.code == domain::ErrorCode::OutcomeUnknown {
         let kind = error.error.kind.into();
-        let message = if matches!(operation, BridgeWriteOperation::CgyyCancelOrder) {
-            "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作".to_owned()
-        } else {
-            error.error.message.clone()
+        let message = match operation {
+            BridgeWriteOperation::CgyyCancelOrder => {
+                "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作"
+            }
+            BridgeWriteOperation::YgdkSubmit => "阳光打卡结果未知，请刷新概览与记录后再操作",
+            _ => &error.error.message,
         };
         return routed_local_error(
             &error,
             BridgeErrorCode::OutcomeUnknown,
             kind,
             false,
-            &message,
+            message,
         );
     }
     let outcome_unknown = if matches!(
@@ -250,6 +287,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
+            | BridgeWriteOperation::YgdkSubmit
             | BridgeWriteOperation::CgyySubmitReservation
             | BridgeWriteOperation::CgyyCancelOrder
     ) {
@@ -460,6 +498,12 @@ pub(super) fn map_cgyy_receipt(
     }
 }
 
+pub(super) fn map_ygdk_receipt(record_id: Option<i32>) -> Option<BridgeYgdkSubmitReceipt> {
+    record_id
+        .filter(|value| *value > 0)
+        .map(|record_id| BridgeYgdkSubmitReceipt { record_id })
+}
+
 pub(super) fn random_id() -> String {
     let mut value = String::with_capacity(32);
     for byte in random::<[u8; 16]>() {
@@ -504,16 +548,88 @@ pub(super) fn validate_text(value: &str) -> Result<(), BridgeError> {
     }
 }
 pub(super) fn validate_ygdk_request(request: &BridgeYgdkSubmitRequest) -> Result<(), BridgeError> {
-    let Some(photo) = request.photo.as_ref() else {
-        return Err(invalid_input("photo is required"));
-    };
+    validate_id_i32(request.target.classify_id)?;
+    validate_id_i32(request.target.item_id)?;
+    let photo = &request.photo;
     if photo.bytes.is_empty() {
         return Err(invalid_input("photo is empty"));
     }
-    if request.start_time.is_none() || request.end_time.is_none() {
-        return Err(invalid_input("start and end time are both required"));
+    if photo.bytes.len() > 10 * 1024 * 1024 {
+        return Err(invalid_input("photo exceeds the 10 MiB limit"));
+    }
+    validate_photo_file_name(&photo.file_name)?;
+    validate_photo_mime_type(&photo.mime_type)?;
+    validate_text(&request.start_time)?;
+    validate_text(&request.end_time)?;
+    Ok(())
+}
+
+fn validate_photo_file_name(value: &str) -> Result<(), BridgeError> {
+    if value != value.trim()
+        || value.is_empty()
+        || value.chars().count() > 128
+        || matches!(value, "." | "..")
+        || value
+            .chars()
+            .any(|ch| ch.is_control() || matches!(ch, '/' | '\\' | '"'))
+    {
+        return Err(invalid_input("photo file name is invalid"));
     }
     Ok(())
+}
+
+fn validate_photo_mime_type(value: &str) -> Result<(), BridgeError> {
+    if !is_valid_photo_mime_type(value) {
+        return Err(invalid_input("photo MIME type must be image/*"));
+    }
+    Ok(())
+}
+
+pub(super) fn is_valid_photo_mime_type(value: &str) -> bool {
+    value
+        .strip_prefix("image/")
+        .is_some_and(|subtype| !subtype.is_empty() && subtype.bytes().all(is_http_token_byte))
+}
+
+fn is_http_token_byte(value: u8) -> bool {
+    value.is_ascii_alphanumeric()
+        || matches!(
+            value,
+            b'!' | b'#'
+                | b'$'
+                | b'%'
+                | b'&'
+                | b'\''
+                | b'*'
+                | b'+'
+                | b'-'
+                | b'.'
+                | b'^'
+                | b'_'
+                | b'`'
+                | b'|'
+                | b'~'
+        )
+}
+
+pub(super) fn map_ygdk_request(
+    request: BridgeYgdkSubmitRequest,
+) -> domain::YgdkClockinSubmitRequest {
+    domain::YgdkClockinSubmitRequest {
+        target: domain::YgdkSubmitTarget {
+            classify_id: request.target.classify_id,
+            item_id: request.target.item_id,
+        },
+        start_time: request.start_time,
+        end_time: request.end_time,
+        place: request.place,
+        share_to_square: request.share_to_square,
+        photo: domain::YgdkPhotoUpload {
+            bytes: request.photo.bytes,
+            file_name: request.photo.file_name,
+            mime_type: request.photo.mime_type,
+        },
+    }
 }
 
 pub(super) fn validate_cgyy_request(
@@ -563,19 +679,25 @@ pub(super) fn validate_cgyy_request(
 }
 
 pub(super) fn ygdk_canonical(request: &BridgeYgdkSubmitRequest) -> String {
-    let photo_shape = request.photo.as_ref().map_or_else(
-        || "none".to_owned(),
-        |photo| format!("present:{}:{}", photo.bytes.len(), photo.mime_type),
+    let photo_shape = format!(
+        "present:{}:{}",
+        request.photo.bytes.len(),
+        request.photo.mime_type
     );
     format!(
-        "item={:?};start={};end={};place={};share={:?};photo={}",
-        request.item_id,
-        text_shape(request.start_time.as_deref()),
-        text_shape(request.end_time.as_deref()),
-        text_shape(request.place.as_deref()),
+        "classify={};item={};start={};end={};place={};share={};photo={}",
+        request.target.classify_id,
+        request.target.item_id,
+        presence_shape(Some(&request.start_time)),
+        presence_shape(Some(&request.end_time)),
+        presence_shape(request.place.as_deref()),
         request.share_to_square,
         photo_shape,
     )
+}
+
+fn presence_shape(value: Option<&str>) -> &'static str {
+    if value.is_some() { "present" } else { "none" }
 }
 
 pub(super) fn cgyy_canonical(request: &BridgeCgyySubmitReservationRequest) -> String {

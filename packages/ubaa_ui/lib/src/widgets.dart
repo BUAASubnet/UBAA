@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -388,6 +391,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onWriteSuccess,
     this.onVerifyCgyyReceipt,
     this.onVerifyCgyyCancellation,
+    this.onRefreshYgdkAfterWrite,
     super.key,
   });
 
@@ -425,6 +429,7 @@ class UbaaMainShell extends StatefulWidget {
   /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
   final CgyyReceiptVerifier? onVerifyCgyyReceipt;
   final CgyyCancellationVerifier? onVerifyCgyyCancellation;
+  final YgdkSubmissionRefresher? onRefreshYgdkAfterWrite;
 
   @override
   State<UbaaMainShell> createState() => _UbaaMainShellState();
@@ -439,6 +444,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   UiError? _writeError;
   bool _writeSubmitting = false;
   bool _writeDiscarding = false;
+
+  bool get _hasYgdkSubmissionCapabilities =>
+      widget.onPrepareYgdkSubmitWrite != null &&
+      widget.onPickYgdkPhoto != null &&
+      widget.onRefreshYgdkAfterWrite != null &&
+      widget.onCommitWrite != null &&
+      widget.onDiscardWriteIntent != null;
 
   @override
   void initState() {
@@ -514,10 +526,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onCgyySubmitWrite: widget.onPrepareCgyySubmitWrite == null
                 ? null
                 : _startCgyySubmitWrite,
-            onYgdkSubmitWrite: widget.onPrepareYgdkSubmitWrite == null
+            onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
                 ? null
                 : _startYgdkSubmitWrite,
-            onPickYgdkPhoto: widget.onPickYgdkPhoto,
+            onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
+                ? widget.onPickYgdkPhoto
+                : null,
           );
     return Scaffold(
       appBar: AppBar(
@@ -732,10 +746,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   Future<void> _startYgdkSubmitWrite(YgdkSubmitInput input) async {
     final prepare = widget.onPrepareYgdkSubmitWrite;
-    if (prepare == null) return;
+    if (!_hasYgdkSubmissionCapabilities || prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(input),
       failureMessage: '暂时无法准备阳光打卡；尚未提交任何写请求。',
+      expectedOperation: WriteOperation.ygdkSubmit,
     );
   }
 
@@ -751,6 +766,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   Future<void> _prepareWrite({
     required Future<WriteIntent> Function() prepare,
     required String failureMessage,
+    WriteOperation? expectedOperation,
   }) async {
     if (_pendingWrite != null || _writeSubmitting) return;
     final discard = widget.onDiscardWriteIntent;
@@ -760,6 +776,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     });
     try {
       final intent = await prepare();
+      if (expectedOperation != null && intent.operation != expectedOperation) {
+        await _discardPreparedIntentBestEffort(discard, intent.intentId);
+        throw StateError('写意图操作类型与入口不一致');
+      }
       if (!mounted) {
         await _discardPreparedIntentBestEffort(discard, intent.intentId);
         return;
@@ -824,21 +844,42 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   Future<void> _confirmWrite() async {
     final intent = _pendingWrite;
+    if (intent == null || _writeSubmitting) return;
+    if (intent.operation == WriteOperation.ygdkSubmit &&
+        !_hasYgdkSubmissionCapabilities) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('阳光打卡能力不完整；尚未提交任何写请求。')));
+      return;
+    }
     final commit = widget.onCommitWrite;
-    if (intent == null || commit == null || _writeSubmitting) return;
+    if (commit == null) return;
     bool? cgyyReceiptVerified;
     bool? cgyyCancellationVerified;
+    var ygdkReadbackAttempted = false;
     setState(() {
       _writeSubmitting = true;
       _writeError = null;
     });
     try {
       final result = await commit(intent.intentId);
+      if (result.operation != intent.operation) {
+        throw const UiError(
+          code: UbaaErrorCode.outcomeUnknown,
+          title: '结果待核对',
+          message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
+        );
+      }
       if (result.success || result.outcomeUnknown) {
-        cgyyCancellationVerified = await _readbackAfterWrite(
+        final readbackVerified = await _readbackAfterWrite(
           result.operation,
           intent,
         );
+        if (result.operation == WriteOperation.cgyyCancelOrder) {
+          cgyyCancellationVerified = readbackVerified;
+        } else if (result.operation == WriteOperation.ygdkSubmit) {
+          ygdkReadbackAttempted = readbackVerified == true;
+        }
       }
       if (result.success && !result.outcomeUnknown) {
         final receipt = result.cgyyReceipt;
@@ -865,16 +906,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               result,
               cgyyReceiptVerified: cgyyReceiptVerified,
               cgyyCancellationVerified: cgyyCancellationVerified,
+              ygdkReadbackAttempted: ygdkReadbackAttempted,
             ),
           ),
         ),
       );
     } on UiError catch (error) {
       if (error.code == UbaaErrorCode.outcomeUnknown) {
-        cgyyCancellationVerified = await _readbackAfterWrite(
+        final readbackVerified = await _readbackAfterWrite(
           intent.operation,
           intent,
         );
+        if (intent.operation == WriteOperation.cgyyCancelOrder) {
+          cgyyCancellationVerified = readbackVerified;
+        } else if (intent.operation == WriteOperation.ygdkSubmit) {
+          ygdkReadbackAttempted = readbackVerified == true;
+        }
       }
       if (!mounted) return;
       setState(() {
@@ -887,7 +934,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           content: Text(
             _writeErrorMessage(
               error,
+              operation: intent.operation,
               cgyyCancellationVerified: cgyyCancellationVerified,
+              ygdkReadbackAttempted: ygdkReadbackAttempted,
             ),
           ),
         ),
@@ -920,6 +969,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     WriteOperation operation,
     WriteIntent intent,
   ) async {
+    if (operation == WriteOperation.ygdkSubmit) {
+      final refresh = widget.onRefreshYgdkAfterWrite;
+      if (refresh == null) return false;
+      try {
+        await refresh(expectedRoute: intent.resolvedRoute);
+      } on Object {
+        // 回读失败不改变原提交结果，也不触发写入重试。
+      }
+      return true;
+    }
     if (operation != WriteOperation.cgyyCancelOrder) {
       await _refreshAfterWrite(operation, intent.readbackQuery);
       return null;
@@ -940,19 +999,41 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  String _writeErrorMessage(UiError error, {bool? cgyyCancellationVerified}) =>
-      error.code == UbaaErrorCode.outcomeUnknown
-      ? cgyyCancellationVerified == true
-            ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
-            : '提交结果不确定，请先刷新相关状态，不要重复提交。'
-      : error.message;
+  String _writeErrorMessage(
+    UiError error, {
+    required WriteOperation operation,
+    bool? cgyyCancellationVerified,
+    bool ygdkReadbackAttempted = false,
+  }) {
+    if (error.code == UbaaErrorCode.outcomeUnknown) {
+      if (operation == WriteOperation.ygdkSubmit) {
+        return ygdkReadbackAttempted
+            ? '提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'
+            : '提交结果不确定；未能自动刷新概览与记录，请勿重复提交。';
+      }
+      return cgyyCancellationVerified == true
+          ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
+          : '提交结果不确定，请先刷新相关状态，不要重复提交。';
+    }
+    if (operation == WriteOperation.ygdkSubmit &&
+        error.code == UbaaErrorCode.upstreamUnavailable) {
+      return '照片上传未完成，应用不会自动重试；本次阳光打卡尚未最终提交。';
+    }
+    return error.message;
+  }
 
   String _writeResultMessage(
     WriteCommitResult result, {
     bool? cgyyReceiptVerified,
     bool? cgyyCancellationVerified,
+    bool ygdkReadbackAttempted = false,
   }) {
     if (result.outcomeUnknown) {
+      if (result.operation == WriteOperation.ygdkSubmit) {
+        return ygdkReadbackAttempted
+            ? '提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'
+            : '提交结果不确定；未能自动刷新概览与记录，请勿重复提交。';
+      }
       return cgyyCancellationVerified == true
           ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
           : '提交结果不确定，请先刷新相关状态，不要重复提交。';
@@ -961,6 +1042,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       final hint = cgyyCancellationVerified == true
           ? '取消状态已核对'
           : '取消状态尚未核对，请勿重复提交';
+      return '${result.message}（$hint）';
+    }
+    if (result.operation == WriteOperation.ygdkSubmit) {
+      if (!result.success) return result.message;
+      final receipt = result.ygdkReceipt;
+      final readbackHint = ygdkReadbackAttempted
+          ? '已尝试按原路线刷新概览与记录'
+          : '请手动刷新概览与记录';
+      final hint = receipt?.isValid == true
+          ? '记录编号 ${receipt!.recordId}；$readbackHint'
+          : readbackHint;
       return '${result.message}（$hint）';
     }
     final receipt = result.cgyyReceipt;
@@ -2728,12 +2820,12 @@ class _DetailField extends StatelessWidget {
 
 class _YgdkFormDialog extends StatefulWidget {
   const _YgdkFormDialog({
-    required this.itemId,
+    required this.action,
     required this.title,
     required this.onPickPhoto,
   });
 
-  final int itemId;
+  final YgdkSubmitAction action;
   final String title;
   final YgdkPhotoPicker? onPickPhoto;
 
@@ -2742,10 +2834,14 @@ class _YgdkFormDialog extends StatefulWidget {
 }
 
 class _YgdkFormDialogState extends State<_YgdkFormDialog> {
+  static const _previewCacheWidth = 720;
+  static const _previewCacheHeight = 480;
+
   late final TextEditingController _startController;
   late final TextEditingController _endController;
   late final TextEditingController _placeController;
   YgdkPhotoInput? _photo;
+  Uint8List? _previewBytes;
   String? _error;
   bool _picking = false;
   bool _shareToSquare = false;
@@ -2760,6 +2856,7 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
 
   @override
   void dispose() {
+    _releasePhotoReferences();
     _startController.dispose();
     _endController.dispose();
     _placeController.dispose();
@@ -2777,7 +2874,11 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
           children: <Widget>[
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('项目：${widget.title}（${widget.itemId}）'),
+              child: Text(
+                '项目：${widget.title}'
+                '（分类 ${widget.action.classifyId} / '
+                '项目 ${widget.action.itemId}）',
+              ),
             ),
             TextField(
               controller: _startController,
@@ -2810,6 +2911,26 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
                 ),
               ),
             ),
+            if (_previewBytes case final bytes?) ...<Widget>[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(
+                  bytes,
+                  key: const ValueKey<String>('ygdk-photo-preview'),
+                  width: 180,
+                  height: 120,
+                  cacheWidth: _previewCacheWidth,
+                  cacheHeight: _previewCacheHeight,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(
+                    width: 180,
+                    height: 72,
+                    child: Center(child: Text('照片预览不可用，请重新选择。')),
+                  ),
+                ),
+              ),
+            ],
             if (widget.onPickPhoto == null)
               const Align(
                 alignment: Alignment.centerLeft,
@@ -2836,10 +2957,7 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
       ),
     ),
     actions: <Widget>[
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('取消'),
-      ),
+      TextButton(onPressed: _cancel, child: const Text('取消')),
       FilledButton(onPressed: _continue, child: const Text('继续确认')),
     ],
   );
@@ -2855,7 +2973,11 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
       final picked = await picker();
       if (!mounted) return;
       setState(() {
+        _releasePhotoReferences();
         _photo = picked;
+        _previewBytes = picked == null
+            ? null
+            : Uint8List.fromList(picked.bytes);
         _error = picked == null ? '未选择照片，阳光打卡必须附带照片。' : null;
       });
     } on Object {
@@ -2868,22 +2990,43 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
   }
 
   void _continue() {
-    final start = _startController.text.trim();
-    final end = _endController.text.trim();
-    if (start.isEmpty || end.isEmpty || _photo == null) {
+    final start = _startController.text;
+    final end = _endController.text;
+    final photo = _photo;
+    if (start.trim().isEmpty || end.trim().isEmpty || photo == null) {
       setState(() => _error = '请填写完整时间并选择照片。');
       return;
     }
-    Navigator.of(context).pop(
-      YgdkSubmitInput(
-        itemId: widget.itemId,
-        startTime: start,
-        endTime: end,
-        place: _placeController.text.trim(),
-        shareToSquare: _shareToSquare,
-        photo: _photo,
-      ),
+    final input = YgdkSubmitInput(
+      action: widget.action,
+      startTime: start,
+      endTime: end,
+      place: _placeController.text.trim(),
+      shareToSquare: _shareToSquare,
+      photo: photo,
     );
+    _releasePhotoReferences();
+    Navigator.of(context).pop(input);
+  }
+
+  void _cancel() {
+    _releasePhotoReferences();
+    Navigator.of(context).pop();
+  }
+
+  void _releasePhotoReferences() {
+    final bytes = _previewBytes;
+    if (bytes != null) {
+      unawaited(
+        ResizeImage(
+          MemoryImage(bytes),
+          width: _previewCacheWidth,
+          height: _previewCacheHeight,
+        ).evict(cache: PaintingBinding.instance.imageCache),
+      );
+    }
+    _previewBytes = null;
+    _photo = null;
   }
 }
 
@@ -3076,7 +3219,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                         .action<LibbookCancelAction>();
                     final cgyyReservation = _cgyyReserveAction(detail);
                     final evaluation = _evaluationTarget(detail);
-                    final ygdk = _ygdkTarget(detail);
+                    final ygdkAction = _ygdkAction(detail);
                     final canBykcSign =
                         bykcSignInAction?.eligibility ==
                         ActionEligibility.allowed;
@@ -3362,11 +3505,15 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 label: const Text('准备场馆预约'),
                               ),
                             ],
-                            if (ygdk != null &&
+                            if (ygdkAction != null &&
                                 widget.onYgdkSubmitWrite != null) ...<Widget>[
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: () => _showYgdkForm(context, ygdk),
+                                onPressed: () => _showYgdkForm(
+                                  context,
+                                  action: ygdkAction,
+                                  title: detail.title,
+                                ),
                                 icon: const Icon(Icons.directions_run),
                                 label: const Text('准备阳光打卡'),
                               ),
@@ -3509,27 +3656,22 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     return List<CgyyReserveAction>.unmodifiable(candidates);
   }
 
-  ({int itemId, String title})? _ygdkTarget(FeatureDetail detail) {
+  YgdkSubmitAction? _ygdkAction(FeatureDetail detail) {
     if (widget.feature != FeatureId.ygdk) return null;
-    for (final field in detail.fields) {
-      if (field.label != '项目编号') continue;
-      final itemId = int.tryParse(field.value.trim());
-      if (itemId != null && itemId > 0) {
-        return (itemId: itemId, title: detail.title);
-      }
-    }
-    return null;
+    final action = detail.action<YgdkSubmitAction>();
+    return action?.hasCanonicalTarget == true ? action : null;
   }
 
   Future<void> _showYgdkForm(
-    BuildContext context,
-    ({int itemId, String title}) target,
-  ) async {
+    BuildContext context, {
+    required YgdkSubmitAction action,
+    required String title,
+  }) async {
     final input = await showDialog<YgdkSubmitInput>(
       context: context,
       builder: (_) => _YgdkFormDialog(
-        itemId: target.itemId,
-        title: target.title,
+        action: action,
+        title: title,
         onPickPhoto: widget.onPickYgdkPhoto,
       ),
     );

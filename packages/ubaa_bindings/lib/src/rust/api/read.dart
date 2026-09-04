@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -418,6 +418,50 @@ class BridgeCallerPinnedCgyyOrders {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeCallerPinnedCgyyOrders &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          pinnedRoute == other.pinnedRoute;
+}
+
+/// 调用方固定路线的阳光打卡概览；不表示 Core 重新执行了 Auto 探测。
+class BridgeCallerPinnedYgdkOverview {
+  final BridgeYgdkOverview data;
+  final BridgeConnectionMode pinnedRoute;
+
+  const BridgeCallerPinnedYgdkOverview({
+    required this.data,
+    required this.pinnedRoute,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ pinnedRoute.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCallerPinnedYgdkOverview &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          pinnedRoute == other.pinnedRoute;
+}
+
+/// 调用方固定路线的阳光打卡记录页；不表示 Core 重新执行了 Auto 探测。
+class BridgeCallerPinnedYgdkRecords {
+  final BridgeYgdkRecordsPage data;
+  final BridgeConnectionMode pinnedRoute;
+
+  const BridgeCallerPinnedYgdkRecords({
+    required this.data,
+    required this.pinnedRoute,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ pinnedRoute.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCallerPinnedYgdkRecords &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           pinnedRoute == other.pinnedRoute;
@@ -2679,17 +2723,26 @@ class BridgeYgdkItem {
   final String name;
   final int? kind;
   final int? sort;
+  final BridgeActionEligibility submitEligibility;
+  final BridgeYgdkSubmitTarget? submitTarget;
 
   const BridgeYgdkItem({
     required this.itemId,
     required this.name,
     this.kind,
     this.sort,
+    required this.submitEligibility,
+    this.submitTarget,
   });
 
   @override
   int get hashCode =>
-      itemId.hashCode ^ name.hashCode ^ kind.hashCode ^ sort.hashCode;
+      itemId.hashCode ^
+      name.hashCode ^
+      kind.hashCode ^
+      sort.hashCode ^
+      submitEligibility.hashCode ^
+      submitTarget.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -2699,7 +2752,9 @@ class BridgeYgdkItem {
           itemId == other.itemId &&
           name == other.name &&
           kind == other.kind &&
-          sort == other.sort;
+          sort == other.sort &&
+          submitEligibility == other.submitEligibility &&
+          submitTarget == other.submitTarget;
 }
 
 class BridgeYgdkOverview {
@@ -2833,6 +2888,27 @@ class BridgeYgdkRecordsPage {
           page == other.page &&
           size == other.size &&
           hasMore == other.hasMore;
+}
+
+class BridgeYgdkSubmitTarget {
+  final int classifyId;
+  final int itemId;
+
+  const BridgeYgdkSubmitTarget({
+    required this.classifyId,
+    required this.itemId,
+  });
+
+  @override
+  int get hashCode => classifyId.hashCode ^ itemId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeYgdkSubmitTarget &&
+          runtimeType == other.runtimeType &&
+          classifyId == other.classifyId &&
+          itemId == other.itemId;
 }
 
 class BridgeYgdkTermSummary {

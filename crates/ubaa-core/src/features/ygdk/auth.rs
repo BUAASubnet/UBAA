@@ -5,6 +5,7 @@ use crate::ports::HttpRequest;
 use crate::runtime::ClientRuntime;
 
 use super::YgdkCredential;
+use super::http::ensure_active_generation;
 use super::parser::{error, integer, parse_envelope, string};
 
 const OAUTH_URL: &str = "https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1";
@@ -22,12 +23,18 @@ pub(super) async fn ensure_login(runtime: &mut ClientRuntime) -> Result<YgdkCred
         return Ok(value);
     }
     let generation = state.ygdk.generation();
-    let code = oauth_code(runtime).await?;
+    let code = oauth_code(runtime, generation).await?;
     let mut url =
         url::Url::parse(&runtime.url(LOGIN_URL)?).map_err(|_| error("阳光打卡登录地址无效"))?;
     url.query_pairs_mut().append_pair("code", &code);
-    let response = runtime.request(HttpRequest::get(url.to_string())).await?;
-    if response.status != 200 {
+    let expected_final_url = url.to_string();
+    let response = runtime
+        .request_with_pre_send_check(HttpRequest::get(expected_final_url.clone()), |runtime| {
+            ensure_active_generation(runtime, generation)
+        })
+        .await?;
+    ensure_active_generation(runtime, generation)?;
+    if response.status != 200 || response.final_url != expected_final_url {
         return Err(error("阳光打卡登录失败"));
     }
     let value = parse_envelope(&super::super::body(&response))?;
@@ -53,12 +60,15 @@ pub(super) async fn ensure_login(runtime: &mut ClientRuntime) -> Result<YgdkCred
     Ok(credential)
 }
 
-async fn oauth_code(runtime: &mut ClientRuntime) -> Result<String> {
+async fn oauth_code(runtime: &mut ClientRuntime, generation: u64) -> Result<String> {
     let mut current = OAUTH_URL.to_owned();
     for _ in 0..REDIRECT_LIMIT {
         let response = runtime
-            .request(HttpRequest::get(runtime.url(&current)?))
+            .request_with_pre_send_check(HttpRequest::get(runtime.url(&current)?), |runtime| {
+                ensure_active_generation(runtime, generation)
+            })
             .await?;
+        ensure_active_generation(runtime, generation)?;
         if let Some(code) = code_from_url(&response.final_url) {
             return Ok(code);
         }
@@ -86,11 +96,13 @@ pub(super) fn code_from_url(raw: &str) -> Option<String> {
     url.query_pairs()
         .find(|(k, _)| k == "code")
         .map(|(_, v)| v.into_owned())
+        .filter(|value| !value.trim().is_empty())
         .or_else(|| {
             let query = url.fragment()?.split_once('?')?.1;
             url::form_urlencoded::parse(query.as_bytes())
                 .find(|(key, _)| key == "code")
                 .map(|(_, value)| value.into_owned())
+                .filter(|value| !value.trim().is_empty())
         })
 }
 

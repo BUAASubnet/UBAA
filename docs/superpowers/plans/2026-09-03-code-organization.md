@@ -69,7 +69,7 @@
 | 11F | Libbook 取消资格 | 操作级来源对照与目标状态 RED | `refactor(flutter): typed 化图书馆取消资格` | 已提交：来源 `3e35b75`、实现 `ef63d0a`；同页唯一 fresh authority、严格分页、固定安全结果、单次发送、typed action、schema v6/bridge v5、全量门禁、macOS integration 7 项与独立复核通过 |
 | 11G | Cgyy 预约资格 | 操作级来源对照与可预约 RED | `refactor(flutter): typed 化场馆预约资格` | 已提交：来源 `187097c`、实现 `40b7b4e`；canonical 身份/三态资格、prepare/commit 双 fresh authority、发送前最多三轮 captcha、最终 submit 单次 non-idempotent 边界、安全收据、action-only 公开入口、schema v7/bridge v6、全量门禁、macOS integration 7 项与独立终审通过；不包含真实写入 |
 | 11H | Cgyy 取消资格 | 操作级来源对照与截止时间 RED | `refactor(flutter): typed 化场馆取消资格` | 已提交：来源 `c2e07ae`、实现 `f4e3137`；canonical 同 ID/三态资格、上海四小时截止、prepare/commit 双 fresh、Core 原子路线与单次 non-idempotent 发送、caller-pinned 0-based 列表/详情双回读、strict 已取消证明、schema v8/bridge v7、全量门禁、macOS integration 7 项与独立终审通过；不包含真实写入 |
-| 11I | Ygdk 提交资格 | 操作级来源对照与输入完整性 RED | `refactor(flutter): typed 化阳光打卡资格` | 待执行 |
+| 11I | Ygdk 提交资格 | 操作级来源对照与输入完整性 RED | `refactor(flutter): typed 化阳光打卡资格` | 已完成本地确定性门禁，待提交绑定：Core fresh typed authority、expected-route 原子提交、单次 upload/final、caller-pinned 双回读、schema v9/bridge v8、全量门禁、macOS integration 7 项与独立终审通过；不包含真实写入 |
 | 11J | Evaluation 提交资格 | 操作级来源对照与待评状态 RED | `refactor(flutter): typed 化评教提交资格` | 待执行 |
 | 11K | 唯一 WriteCoordinator | 生产 UI 双状态机契约 RED | `refactor(flutter): 统一写入状态机` | 待执行 |
 | 12 | Flutter UI 纯移动 | 行为阶段全绿、widgets baseline 仍存在 | `refactor(ui): 按页面与领域拆分组件` | 待执行 |

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,7 @@ part 'widgets/shell.dart';
 part 'widgets/signin_writes.dart';
 part 'widgets/states.dart';
 part 'widgets/writes.dart';
+part 'widgets/ygdk_writes.dart';
 
 void main() {
   _registerGoldenTests();
@@ -33,6 +35,7 @@ void main() {
   _registerCgyyStateTest();
   _registerLibbookCancellationWriteTest();
   _registerFeatureInputTests();
+  _registerYgdkWriteResultTests();
   _registerRemainingWriteTests();
   _registerFeatureCollectionTests();
   _registerLibbookQueryTests();

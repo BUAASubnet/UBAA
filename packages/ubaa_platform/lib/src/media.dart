@@ -1,5 +1,5 @@
-import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:flutter/services.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 宿主可能需要向系统申请的能力；具体平台插件不得把令牌或原始路径
 /// 暴露给应用层。
@@ -143,7 +143,13 @@ final class CallbackPhotoPicker implements PlatformPhotoPicker {
   Future<YgdkPhotoInput?> pickPhoto() async {
     if (!available) return null;
     try {
-      return await pick();
+      final photo = await pick();
+      if (photo == null) return null;
+      return _copyCanonicalPhotoInput(
+        bytes: photo.bytes,
+        fileName: photo.fileName,
+        mimeType: photo.mimeType,
+      );
     } on Object {
       throw const PlatformCapabilityException(
         PlatformPermission.photos,
@@ -185,26 +191,90 @@ final class MethodChannelPhotoPicker implements PlatformPhotoPicker {
     try {
       final result = await _channel.invokeMethod<Object?>('photo.pick');
       if (result is! Map) return null;
-      final rawBytes = result['bytes'];
-      final fileName = result['fileName'];
-      final mimeType = result['mimeType'];
-      if (rawBytes is! List || fileName is! String || mimeType is! String) {
-        return null;
-      }
-      if (rawBytes.isEmpty || rawBytes.length > maxPhotoBytes) return null;
-      if (!mimeType.startsWith('image/')) return null;
-      final safeFileName = fileName.split(RegExp(r'[/\\]')).last.trim();
-      if (safeFileName.isEmpty || safeFileName.length > 128) return null;
-      return YgdkPhotoInput(
-        bytes: rawBytes.cast<int>(),
-        fileName: safeFileName,
-        mimeType: mimeType,
+      return _copyCanonicalPhotoInput(
+        bytes: result['bytes'],
+        fileName: result['fileName'],
+        mimeType: result['mimeType'],
       );
     } on Object {
       return null;
     }
   }
 }
+
+YgdkPhotoInput? _copyCanonicalPhotoInput({
+  required Object? bytes,
+  required Object? fileName,
+  required Object? mimeType,
+}) {
+  if (bytes is! List ||
+      fileName is! String ||
+      mimeType is! String ||
+      bytes.isEmpty ||
+      bytes.length > MethodChannelPhotoPicker.maxPhotoBytes ||
+      !_isCanonicalPhotoFileName(fileName) ||
+      !_isCanonicalPhotoMimeType(mimeType)) {
+    return null;
+  }
+  final copiedBytes = Uint8List(bytes.length);
+  for (var index = 0; index < bytes.length; index++) {
+    final value = bytes[index];
+    if (value is! int || value < 0 || value > 255) return null;
+    copiedBytes[index] = value;
+  }
+  return YgdkPhotoInput(
+    bytes: copiedBytes,
+    fileName: fileName,
+    mimeType: mimeType,
+  );
+}
+
+bool _isCanonicalPhotoFileName(String value) {
+  final characters = value.runes;
+  if (value != value.trim() ||
+      value == '.' ||
+      value == '..' ||
+      characters.isEmpty ||
+      characters.length > 128) {
+    return false;
+  }
+  return !characters.any(
+    (character) =>
+        character == 0x2f ||
+        character == 0x5c ||
+        character == 0x22 ||
+        character <= 0x1f ||
+        (character >= 0x7f && character <= 0x9f),
+  );
+}
+
+bool _isCanonicalPhotoMimeType(String value) {
+  if (value != value.trim() || !value.startsWith('image/')) return false;
+  final subtype = value.substring('image/'.length);
+  return subtype.isNotEmpty && subtype.codeUnits.every(_isHttpTokenCodeUnit);
+}
+
+bool _isHttpTokenCodeUnit(int value) =>
+    (value >= 0x30 && value <= 0x39) ||
+    (value >= 0x41 && value <= 0x5a) ||
+    (value >= 0x61 && value <= 0x7a) ||
+    const <int>{
+      0x21,
+      0x23,
+      0x24,
+      0x25,
+      0x26,
+      0x27,
+      0x2a,
+      0x2b,
+      0x2d,
+      0x2e,
+      0x5e,
+      0x5f,
+      0x60,
+      0x7c,
+      0x7e,
+    }.contains(value);
 
 /// 原生照片选择回调的稳定类型。
 typedef PlatformPhotoPickerCallback = Future<YgdkPhotoInput?> Function();

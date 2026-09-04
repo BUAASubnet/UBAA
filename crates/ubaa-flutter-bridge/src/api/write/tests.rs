@@ -6,12 +6,12 @@ use std::time::Duration;
 
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, map_commit_error, map_resolution_error, random_id,
-    safe_summary_label, ygdk_canonical,
+    safe_summary_label, validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyReservationSelection,
     BridgeCgyySubmitReservationRequest, BridgePhotoUpload, BridgeWriteOperation,
-    BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
+    BridgeYgdkSubmitRequest, BridgeYgdkSubmitTarget, PendingEntry, PendingWrite,
 };
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode, BridgeErrorKind};
 use ubaa_core::facade::testing::{
@@ -30,6 +30,7 @@ mod libbook_cancel;
 mod lifecycle;
 mod signin;
 mod validation;
+mod ygdk;
 
 fn bykc_login_request() -> ExpectedRequest {
     let url = "https://bykc.buaa.edu.cn/sscv/cas/login";

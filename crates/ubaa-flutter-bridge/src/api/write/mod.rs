@@ -11,8 +11,10 @@ mod lifecycle;
 mod prepare;
 mod support;
 
+use std::fmt;
+
 use super::client::BridgeConnectionMode;
-use super::read::BridgeEvaluationCourse;
+use super::read::{BridgeEvaluationCourse, BridgeYgdkSubmitTarget};
 use ubaa_core::facade::ReadonlyFeature;
 
 #[derive(Clone, Copy, Debug)]
@@ -70,20 +72,48 @@ pub struct BridgeLibbookCancelBookingRequest {
     pub page: i32,
     pub limit: i32,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct BridgePhotoUpload {
     pub bytes: Vec<u8>,
     pub file_name: String,
     pub mime_type: String,
 }
-#[derive(Clone, Debug)]
+impl fmt::Debug for BridgePhotoUpload {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mime_type = if support::is_valid_photo_mime_type(&self.mime_type) {
+            self.mime_type.as_str()
+        } else {
+            "[INVALID]"
+        };
+        formatter
+            .debug_struct("BridgePhotoUpload")
+            .field("bytes", &format_args!("[{} bytes]", self.bytes.len()))
+            .field("file_name", &"[REDACTED]")
+            .field("mime_type", &mime_type)
+            .finish()
+    }
+}
+#[derive(Clone)]
 pub struct BridgeYgdkSubmitRequest {
-    pub item_id: Option<i32>,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
+    pub target: BridgeYgdkSubmitTarget,
+    pub start_time: String,
+    pub end_time: String,
     pub place: Option<String>,
-    pub share_to_square: Option<bool>,
-    pub photo: Option<BridgePhotoUpload>,
+    pub share_to_square: bool,
+    pub photo: BridgePhotoUpload,
+}
+impl fmt::Debug for BridgeYgdkSubmitRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("BridgeYgdkSubmitRequest")
+            .field("target", &self.target)
+            .field("start_time", &"[REDACTED]")
+            .field("end_time", &"[REDACTED]")
+            .field("place", &self.place.as_ref().map(|_| "[REDACTED]"))
+            .field("share_to_square", &self.share_to_square)
+            .field("photo", &self.photo)
+            .finish()
+    }
 }
 #[derive(Clone, Debug)]
 pub struct BridgeCgyyReservationSelection {
@@ -117,6 +147,10 @@ pub struct BridgeCgyyReservationReceipt {
     pub order_status: Option<i32>,
 }
 #[derive(Clone, Debug)]
+pub struct BridgeYgdkSubmitReceipt {
+    pub record_id: i32,
+}
+#[derive(Clone, Debug)]
 pub struct BridgeEvaluationSubmitCoursesRequest {
     pub courses: Vec<BridgeEvaluationCourse>,
 }
@@ -129,8 +163,11 @@ pub struct BridgeWriteCommitResult {
     pub outcome_unknown: bool,
     pub resolved_route: Option<BridgeConnectionMode>,
     pub cgyy_receipt: Option<BridgeCgyyReservationReceipt>,
+    pub ygdk_receipt: Option<BridgeYgdkSubmitReceipt>,
 }
 
+/// Bridge 内部的一次性写入载荷；不得进入 FRB 公共合同。
+#[flutter_rust_bridge::frb(ignore)]
 pub(crate) enum PendingWrite {
     BykcSelect(BridgeBykcCourseRequest),
     BykcDeselect(BridgeBykcCourseRequest),
@@ -138,12 +175,14 @@ pub(crate) enum PendingWrite {
     Signin(BridgeSigninPerformRequest),
     LibbookReserve(BridgeLibbookReserveRequest),
     LibbookCancel(BridgeLibbookCancelBookingRequest),
-    Ygdk(BridgeYgdkSubmitRequest),
+    Ygdk(ubaa_core::facade::YgdkClockinSubmitRequest),
     CgyyReserve(BridgeCgyySubmitReservationRequest),
     CgyyCancel(BridgeCgyyCancelOrderRequest),
     Evaluation(BridgeEvaluationSubmitCoursesRequest),
 }
 
+/// Bridge 内部的待确认条目；不得向 Dart 暴露载荷或自动字段访问器。
+#[flutter_rust_bridge::frb(ignore)]
 pub(crate) struct PendingEntry {
     pub request: PendingWrite,
     pub expires_at: i64,
@@ -199,10 +238,11 @@ impl PendingWrite {
             ),
             Self::LibbookCancel(request) => format!("libbook-cancel:{}", request.id.trim()),
             Self::Ygdk(request) => format!(
-                "ygdk:{:?}:{}:{}",
-                request.item_id,
-                request.start_time.as_deref().unwrap_or_default(),
-                request.end_time.as_deref().unwrap_or_default(),
+                "ygdk:{}:{}:{}:{}",
+                request.target.classify_id,
+                request.target.item_id,
+                request.start_time,
+                request.end_time,
             ),
             Self::CgyyReserve(request) => {
                 let first = request

@@ -34,16 +34,17 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 | 层/宿主 | 允许依赖 | 禁止依赖 | 输出与错误要求 |
 |---|---|---|---|
 | Rust Core | domain、ports、connection、session、auth、features、facade 内部依赖 | 向宿主泄漏上游原始响应；拥有 CLI 进程/展示策略 | 只经 facade 返回稳定 DTO、结构化错误和路线元数据 |
-| CLI | Core facade 与 CLI 自有 command/backend/execute/io | 直接调用 upstream/runtime；读取 Cookie；argv 明文密码 | human/JSON schema v8、稳定 stdout/stderr/退出码、敏感字段脱敏 |
+| CLI | Core facade 与 CLI 自有 command/backend/execute/io | 直接调用 upstream/runtime；读取 Cookie；argv 明文密码 | human/JSON schema v9、稳定 stdout/stderr/退出码、敏感字段脱敏 |
 | FRB bridge | Core facade 与专用 bridge DTO | 暴露 Core 私有类型、URL、Cookie、业务 Token 或原始 HTML | 版本锁定、typed error/DTO、生成 schema 零漂移 |
 | Dart domain/app/UI | bridge/backend 稳定合同与平台 typed 能力 | 自行处理协议/路线；从中文展示字段推断写资格 | 明确 loading/empty/failure/stale；写入一次性确认和未知结果保护 |
 | 平台宿主 | 共享 app/UI、平台路径/权限/安全存储接口 | 复制业务状态机；以明文文件替代安全存储 | 缺少原生 handler 时安全返回 unavailable，不冒充设备能力 |
 | 测试支持 | facade testing 边界、脱敏 fixture、Mock transport | 将测试构造器暴露给生产宿主；记录请求敏感正文 | 精确请求/解析/并发证据，不打印凭据或正文 |
 
 CLI 公开 envelope 的版本与本地持久化版本分别治理。破坏性 DTO/错误合同变化必须显式提升 CLI
-`schemaVersion` 并由 JSON Schema 与真实序列化合同共同验证；不得在旧版本号下静默改变字段。当前 CLI
-envelope 为 schema v8，`session.json` 仍为 schema v2，`config.toml` 仍为版本 1。Flutter bridge 当前
-contract 为 v7；LibBook 座位只允许通过可空整数 `status`、typed 资格和稳定目标开放预约，booking 也只
+`schemaVersion` 并由 JSON Schema 与真实序列化合同共同验证；不得在旧版本号下静默改变字段。当前 CLI envelope 为 schema v9，
+`session.json` 仍为 schema v2，`config.toml` 仍为版本 1。Flutter bridge 当前 contract 为 v8；Ygdk 只允许
+fresh overview 派生的 typed `submitEligibility/submitTarget` 形成写 action，primitive ID、默认项或展示名称
+均不得兑换权限。LibBook 座位只允许通过可空整数 `status`、typed 资格和稳定目标开放预约，booking 也只
 允许通过 nullable int `status` 与 typed `cancelEligibility/cancelTarget` 开放取消，不得恢复或从展示文案
 推导写资格。取消 action 的 `page/limit` 只绑定 fresh 同页 authority/readback；最终 wire 只发送 `{id}`。
 Cgyy 时段同样只允许通过 nullable int `reservationStatus`、typed

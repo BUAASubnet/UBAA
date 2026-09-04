@@ -113,9 +113,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_libbook_reserve_request(dynamic raw);
 
   @protected
-  BridgePhotoUpload dco_decode_box_autoadd_bridge_photo_upload(dynamic raw);
-
-  @protected
   BridgeSafeError dco_decode_box_autoadd_bridge_safe_error(dynamic raw);
 
   @protected
@@ -126,7 +123,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeUserProfile dco_decode_box_autoadd_bridge_user_profile(dynamic raw);
 
   @protected
+  BridgeYgdkSubmitReceipt dco_decode_box_autoadd_bridge_ygdk_submit_receipt(
+    dynamic raw,
+  );
+
+  @protected
   BridgeYgdkSubmitRequest dco_decode_box_autoadd_bridge_ygdk_submit_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeYgdkSubmitTarget dco_decode_box_autoadd_bridge_ygdk_submit_target(
     dynamic raw,
   );
 
@@ -189,6 +196,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCallerPinnedCgyyOrders dco_decode_bridge_caller_pinned_cgyy_orders(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCallerPinnedYgdkOverview dco_decode_bridge_caller_pinned_ygdk_overview(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCallerPinnedYgdkRecords dco_decode_bridge_caller_pinned_ygdk_records(
     dynamic raw,
   );
 
@@ -585,7 +602,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeYgdkRecordsPage dco_decode_bridge_ygdk_records_page(dynamic raw);
 
   @protected
+  BridgeYgdkSubmitReceipt dco_decode_bridge_ygdk_submit_receipt(dynamic raw);
+
+  @protected
   BridgeYgdkSubmitRequest dco_decode_bridge_ygdk_submit_request(dynamic raw);
+
+  @protected
+  BridgeYgdkSubmitTarget dco_decode_bridge_ygdk_submit_target(dynamic raw);
 
   @protected
   BridgeYgdkTermSummary dco_decode_bridge_ygdk_term_summary(dynamic raw);
@@ -777,15 +800,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  BridgePhotoUpload? dco_decode_opt_box_autoadd_bridge_photo_upload(
-    dynamic raw,
-  );
-
-  @protected
   BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw);
 
   @protected
   BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeYgdkSubmitReceipt?
+  dco_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(dynamic raw);
+
+  @protected
+  BridgeYgdkSubmitTarget? dco_decode_opt_box_autoadd_bridge_ygdk_submit_target(
     dynamic raw,
   );
 
@@ -915,11 +942,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  BridgePhotoUpload sse_decode_box_autoadd_bridge_photo_upload(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   BridgeSafeError sse_decode_box_autoadd_bridge_safe_error(
     SseDeserializer deserializer,
   );
@@ -936,7 +958,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeYgdkSubmitReceipt sse_decode_box_autoadd_bridge_ygdk_submit_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeYgdkSubmitRequest sse_decode_box_autoadd_bridge_ygdk_submit_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkSubmitTarget sse_decode_box_autoadd_bridge_ygdk_submit_target(
     SseDeserializer deserializer,
   );
 
@@ -1021,6 +1053,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCallerPinnedCgyyOrders sse_decode_bridge_caller_pinned_cgyy_orders(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCallerPinnedYgdkOverview sse_decode_bridge_caller_pinned_ygdk_overview(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCallerPinnedYgdkRecords sse_decode_bridge_caller_pinned_ygdk_records(
     SseDeserializer deserializer,
   );
 
@@ -1553,7 +1595,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeYgdkSubmitReceipt sse_decode_bridge_ygdk_submit_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeYgdkSubmitRequest sse_decode_bridge_ygdk_submit_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkSubmitTarget sse_decode_bridge_ygdk_submit_target(
     SseDeserializer deserializer,
   );
 
@@ -1793,17 +1845,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  BridgePhotoUpload? sse_decode_opt_box_autoadd_bridge_photo_upload(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   BridgeSafeError? sse_decode_opt_box_autoadd_bridge_safe_error(
     SseDeserializer deserializer,
   );
 
   @protected
   BridgeUserProfile? sse_decode_opt_box_autoadd_bridge_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkSubmitReceipt?
+  sse_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkSubmitTarget? sse_decode_opt_box_autoadd_bridge_ygdk_submit_target(
     SseDeserializer deserializer,
   );
 
@@ -1940,12 +1998,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_bridge_photo_upload(
-    BridgePhotoUpload self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_box_autoadd_bridge_safe_error(
     BridgeSafeError self,
     SseSerializer serializer,
@@ -1964,8 +2016,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_ygdk_submit_receipt(
+    BridgeYgdkSubmitReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_ygdk_submit_request(
     BridgeYgdkSubmitRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_ygdk_submit_target(
+    BridgeYgdkSubmitTarget self,
     SseSerializer serializer,
   );
 
@@ -2068,6 +2132,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_caller_pinned_cgyy_orders(
     BridgeCallerPinnedCgyyOrders self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_caller_pinned_ygdk_overview(
+    BridgeCallerPinnedYgdkOverview self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_caller_pinned_ygdk_records(
+    BridgeCallerPinnedYgdkRecords self,
     SseSerializer serializer,
   );
 
@@ -2717,8 +2793,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_ygdk_submit_receipt(
+    BridgeYgdkSubmitReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_ygdk_submit_request(
     BridgeYgdkSubmitRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_submit_target(
+    BridgeYgdkSubmitTarget self,
     SseSerializer serializer,
   );
 
@@ -3011,12 +3099,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_bridge_photo_upload(
-    BridgePhotoUpload? self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_opt_box_autoadd_bridge_safe_error(
     BridgeSafeError? self,
     SseSerializer serializer,
@@ -3025,6 +3107,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_user_profile(
     BridgeUserProfile? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_ygdk_submit_receipt(
+    BridgeYgdkSubmitReceipt? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_ygdk_submit_target(
+    BridgeYgdkSubmitTarget? self,
     SseSerializer serializer,
   );
 

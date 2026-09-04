@@ -1,6 +1,44 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerBridgeBackendWriteAndErrorCharacterization() {
+  test('阳光打卡收据只在明确成功且记录标识为正数时投影', () async {
+    final client = _CharacterizationBridgeClient();
+    final backend = BridgeBackend(client);
+
+    client.commitResult = const BridgeWriteCommitResult(
+      operation: BridgeWriteOperation.ygdkSubmit,
+      success: true,
+      message: '阳光打卡已提交',
+      outcomeUnknown: false,
+      resolvedRoute: BridgeConnectionMode.direct,
+      ygdkReceipt: BridgeYgdkSubmitReceipt(recordId: 41),
+    );
+    final success = await backend.commitWrite('ygdk-success');
+    expect(success.ygdkReceipt?.recordId, 41);
+
+    client.commitResult = const BridgeWriteCommitResult(
+      operation: BridgeWriteOperation.ygdkSubmit,
+      success: false,
+      message: '结果不确定',
+      outcomeUnknown: true,
+      resolvedRoute: BridgeConnectionMode.direct,
+      ygdkReceipt: BridgeYgdkSubmitReceipt(recordId: 41),
+    );
+    final unknown = await backend.commitWrite('ygdk-unknown');
+    expect(unknown.ygdkReceipt, isNull);
+
+    client.commitResult = const BridgeWriteCommitResult(
+      operation: BridgeWriteOperation.ygdkSubmit,
+      success: true,
+      message: '阳光打卡已提交',
+      outcomeUnknown: false,
+      resolvedRoute: BridgeConnectionMode.direct,
+      ygdkReceipt: BridgeYgdkSubmitReceipt(recordId: 0),
+    );
+    final invalid = await backend.commitWrite('ygdk-invalid-receipt');
+    expect(invalid.ygdkReceipt, isNull);
+  });
+
   test('十项写准备提交收据结果和完整错误映射保持安全闭包', () async {
     final client = _CharacterizationBridgeClient();
     final backend = BridgeBackend(client);
@@ -29,9 +67,13 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       ),
       await backend.prepareYgdkSubmit(
         const YgdkSubmitInput(
-          itemId: 7,
-          startTime: '08:00',
-          endTime: '09:00',
+          action: YgdkSubmitAction(
+            classifyId: 31,
+            itemId: 7,
+            eligibility: ActionEligibility.allowed,
+          ),
+          startTime: '2026-09-04 08:00',
+          endTime: '2026-09-04 09:00',
           place: '校园',
           shareToSquare: false,
           photo: YgdkPhotoInput(
@@ -152,19 +194,21 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
     expect(cgyyCancel.orderId, 14);
     expect(
       <Object?>[
-        ygdk.itemId,
+        ygdk.target.classifyId,
+        ygdk.target.itemId,
         ygdk.startTime,
         ygdk.endTime,
         ygdk.place,
         ygdk.shareToSquare,
-        ygdk.photo?.bytes.toList(),
-        ygdk.photo?.fileName,
-        ygdk.photo?.mimeType,
+        ygdk.photo.bytes.toList(),
+        ygdk.photo.fileName,
+        ygdk.photo.mimeType,
       ],
       <Object?>[
+        31,
         7,
-        '08:00',
-        '09:00',
+        '2026-09-04 08:00',
+        '2026-09-04 09:00',
         '校园',
         false,
         <int>[1, 2, 3],

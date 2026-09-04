@@ -203,7 +203,7 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
-| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v8；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果；v7 承载 Cgyy 可空 canonical 状态、typed `reservationEligibility/reservationTarget` 与安全预约结果/收据；v8 再承载 Cgyy typed `cancelEligibility/cancelTarget/cancelledTarget` 与固定安全取消结果，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
+| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v9；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果；v7 承载 Cgyy 可空 canonical 状态、typed `reservationEligibility/reservationTarget` 与安全预约结果/收据；v8 承载 Cgyy typed `cancelEligibility/cancelTarget/cancelledTarget` 与固定安全取消结果；v9 再承载 Ygdk typed `submitEligibility/submitTarget`、完整请求、安全结果和 caller-pinned 回读，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
 
 2026-08-24 的配置持久化证据：Unix 测试证明加载和保存会拒绝符号链接 `config.toml`，不会读取
 或改变其目标。八个并发保存使用唯一独占临时文件发布一份完整可解析配置，不遗留临时文件，
@@ -426,7 +426,7 @@ Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下
 
 ### Phase 11I Ygdk 提交逐操作九列（2026-09-05）
 
-本节固定来源合同，不是实现完成声明。适用旧版来源为
+本节固定来源合同并记录当前实现进度，不是阶段完成声明。适用旧版来源为
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `YgdkApi.kt`、
 `LocalYgdkApi.kt`、`Ygdk.kt`、`LocalYgdkApiBackendTest.kt`、`YgdkApiTest.kt`、
 `YgdkViewModel.kt`、`YgdkViewModelTest.kt`，以及旧 server 的 `YgdkClient.kt`、`YgdkService.kt` 与测试。
@@ -434,7 +434,7 @@ Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下
 `aas/app/boya/class/cloud/live/spoc/srs/sso/tes/user/wifi`，没有 Ygdk、Clockin 或照片上传等价实现；所以下表
 每一行的九个示例来源单元格都为 **N/A 且不等价**。不得从示例的通用 SSO、credential、Cookie、上传、
 错误类型或其它业务模块类比补齐任何字段。与本表绑定的产品取舍见
-[Phase 11I 决策](decision-log.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界来源合同尚未实施)。
+[Phase 11I 决策](decision-log.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -453,8 +453,8 @@ Phase 11I 的最小 typed 公共面固定为：Core 在每个 `YgdkItem` 上给�
 `classifyId/itemId`；只有二者来自同一 fresh overview、各自唯一且与父 DTO 一致时 target 才存在。prepare 请求不再接收
 primitive 可空 `itemId`，而接收该 typed target、两端 canonical 时间、可选地点/公开开关和必需内存照片；commit 重新取得
 fresh item name。Host/Bridge 边界必须再次校验正数、same-parent 与 eligibility/target 一致性，不能信任手工构造 DTO。
-这一公开读取、请求与安全结果形状属于破坏性合同变化：实施时 CLI JSON envelope/schema 必须从 v8 升为 **v9**，
-Flutter Bridge contract 必须从 v7 升为 **v8**，旧 v8/v7 分别显式拒绝；两个 schema 都要闭合字段并禁止 raw
+这一公开读取、请求与安全结果形状属于破坏性合同变化：当前工作树的 CLI JSON envelope/schema 已从 v8 升为 **v9**，
+Flutter Bridge contract 已从 v7 升为 **v8**，旧 v8/v7 分别显式拒绝；两个 schema 都要闭合字段并禁止 raw
 message、summary、照片 filename/bytes/path/URL、uid/token 与任意上游正文。
 
 prepare 与 commit 都必须 fresh classify+item，但只有 commit 在用户确认后上传与写入。pending intent 仅在 opaque client
@@ -464,7 +464,8 @@ commit 对 intent 单次消费；Core expected-route 入口在一个调用中完
 active generation credential → fresh authority → 单次 upload → 单次 final”，不得由 Bridge 先解析再让 Core 二次解析。
 路线冲突、过时 owner/session generation、credential generation 变化或任何发送前 authority 冲突均在 final 前失败关闭。
 
-实施 TDD 的 RED 清单固定如下，当前来源提交尚未运行这些新测试：
+Phase 11I 的 TDD 回归清单固定如下；当前工作树已逐项完成实现与测试，完整跨层 GREEN、生成零漂移和本地确定性
+门禁均已统一验证：
 
 1. classify/item 缺失、字符串数值、零、负数、重复 ID、空名称、target 与父项不一致均为 unknown/no target；唯一正数身份才 allowed。
 2. 时间严格拒绝缺一端、ISO `T`、秒、offset、跨日及 end<=start，并以固定上海向量断言 epoch 与
@@ -479,11 +480,12 @@ active generation credential → fresh authority → 单次 upload → 单次 fi
 7. CLI schema v9 与 Bridge v8 覆盖 eligibility/target/request/result，拒绝旧 v8/v7；FRB 生成快照同时固定 target same-ID/positive host invariant。
 8. 确定成功和 unknown 都恰好各触发一次 caller-pinned overview 与 records 首页读取；两者独立、无 Auto/fallback，空/失败/冲突不重发也不把 unknown 升级。
 
-截至本来源合同提交，现有 Core 仍接受可空 primitive `item_id`、直接把字符串时间发给上游并拼接
-`form_time_fmt`，会按名称选择默认项目；multipart filename/MIME 尚无 Core 防注入门禁，upload/final 尚未使用上述
-active-generation、单次 expected-route 原子入口和 final `outcome_unknown` 分类。现有 Bridge/UI 仍可从 primitive item ID
-准备写意图，Ygdk caller-pinned overview/records facade、CLI schema v9、Bridge v8 与严格写后证明均尚未实现。本节没有访问
-网络、上传照片或执行任何真实账号写入，也不授权下一实现阶段做真实写测试。
+截至当前工作树，OAuth/business-login 已受 owner/session generation guard 保护；Ygdk item 使用 fresh
+classify/item 派生的 typed authority，Bridge/App 请求携带完整 target；Core 提供 expected-route 原子入口与
+caller-pinned overview/records facade。CLI JSON schema v9、Flutter Bridge contract v8 与生成类型已经一致，安全
+收据仅允许可选正 `{recordId}`，upload/final 不自动重试且公开字段禁曝。完整 Rust/CLI/Bridge/Dart/Flutter 回归、
+FRB 零漂移、macOS 脱敏宿主 integration 和独立终审均已通过。冻结来源没有提供严格写后证明，当前回读仍不得把
+unknown 升级为 success。本节没有访问网络、上传照片或执行任何真实账号写入，也不授权后续阶段做真实写测试。
 
 11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
 `courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程

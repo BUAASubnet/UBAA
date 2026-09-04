@@ -98,6 +98,18 @@ class CgyyReservationReceipt {
   final int? orderStatus;
 }
 
+/// 阳光打卡提交后的安全收据。
+///
+/// 只包含正整数记录标识；不包含分类、项目、照片、时间、地点或上游原始响应。
+@immutable
+class YgdkSubmitReceipt {
+  const YgdkSubmitReceipt({required this.recordId});
+
+  final int recordId;
+
+  bool get isValid => recordId > 0;
+}
+
 /// 写入提交后的安全结果；不携带上游原始正文。
 @immutable
 class WriteCommitResult {
@@ -108,6 +120,7 @@ class WriteCommitResult {
     required this.outcomeUnknown,
     this.resolvedRoute,
     this.cgyyReceipt,
+    this.ygdkReceipt,
   });
 
   final WriteOperation operation;
@@ -116,4 +129,5 @@ class WriteCommitResult {
   final bool outcomeUnknown;
   final ConnectionMode? resolvedRoute;
   final CgyyReservationReceipt? cgyyReceipt;
+  final YgdkSubmitReceipt? ygdkReceipt;
 }

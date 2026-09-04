@@ -587,21 +587,75 @@
         "termId": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "termName": { "$ref": "#/$defs/nullableString" }, "termCount": { "type": "integer" }, "termTarget": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "weekCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "weekTarget": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "monthCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "monthTarget": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "dayCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "goodCount": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }
       }, "additionalProperties": false
     },
+    "ygdkSubmitTarget": {
+      "type": "object",
+      "required": ["classifyId", "itemId"],
+      "properties": {
+        "classifyId": { "$ref": "#/$defs/positiveI32" },
+        "itemId": { "$ref": "#/$defs/positiveI32" }
+      },
+      "additionalProperties": false
+    },
     "ygdkItem": {
-      "type": "object", "required": ["itemId", "name", "kind", "sort"],
-      "properties": { "itemId": { "type": "integer" }, "name": { "type": "string" }, "kind": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "sort": { "anyOf": [{ "type": "integer" }, { "type": "null" }] } }, "additionalProperties": false
+      "type": "object",
+      "required": ["itemId", "name", "kind", "sort", "submitEligibility", "submitTarget"],
+      "properties": {
+        "itemId": { "$ref": "#/$defs/i32" },
+        "name": { "type": "string" },
+        "kind": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "sort": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "submitEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "submitTarget": { "anyOf": [{ "$ref": "#/$defs/ygdkSubmitTarget" }, { "type": "null" }] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "submitEligibility": { "const": "allowed" } },
+            "required": ["submitEligibility"]
+          },
+          "then": {
+            "properties": { "submitTarget": { "$ref": "#/$defs/ygdkSubmitTarget" } },
+            "required": ["submitTarget"]
+          },
+          "else": {
+            "properties": { "submitTarget": { "type": "null" } },
+            "required": ["submitTarget"]
+          }
+        }
+      ],
+      "additionalProperties": false
     },
     "ygdkRecord": {
-      "type": "object", "required": ["recordId", "itemId", "itemName", "startTime", "endTime", "place", "images", "isOpen", "state", "createdAt", "createdAtLabel"],
-      "properties": { "recordId": { "type": "integer" }, "itemId": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "itemName": { "$ref": "#/$defs/nullableString" }, "startTime": { "$ref": "#/$defs/nullableString" }, "endTime": { "$ref": "#/$defs/nullableString" }, "place": { "$ref": "#/$defs/nullableString" }, "images": { "type": "array", "items": { "type": "string" } }, "isOpen": { "type": "boolean" }, "state": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "createdAt": { "$ref": "#/$defs/nullableString" }, "createdAtLabel": { "$ref": "#/$defs/nullableString" } }, "additionalProperties": false
+      "type": "object",
+      "required": ["recordId", "itemId", "itemName", "startTime", "endTime", "place", "imageCount", "isOpen", "state", "createdAt", "createdAtLabel"],
+      "properties": {
+        "recordId": { "$ref": "#/$defs/i32" },
+        "itemId": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "itemName": { "$ref": "#/$defs/nullableString" },
+        "startTime": { "$ref": "#/$defs/nullableString" },
+        "endTime": { "$ref": "#/$defs/nullableString" },
+        "place": { "$ref": "#/$defs/nullableString" },
+        "imageCount": { "$ref": "#/$defs/nonnegativeI32" },
+        "isOpen": { "type": "boolean" },
+        "state": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "createdAt": { "$ref": "#/$defs/nullableString" },
+        "createdAtLabel": { "$ref": "#/$defs/nullableString" }
+      },
+      "additionalProperties": false
     },
     "ygdkRecordsPage": {
       "type": "object", "required": ["content", "total", "page", "size", "hasMore"],
       "properties": { "content": { "type": "array", "items": { "$ref": "#/$defs/ygdkRecord" } }, "total": { "type": "integer" }, "page": { "type": "integer" }, "size": { "type": "integer" }, "hasMore": { "type": "boolean" } }, "additionalProperties": false
     },
-    "ygdkClockinSubmitResult": {
-      "type": "object", "required": ["success", "message", "recordId", "summary"],
-      "properties": { "success": { "type": "boolean" }, "message": { "type": "string" }, "recordId": { "anyOf": [{ "type": "integer" }, { "type": "null" }] }, "summary": { "anyOf": [{ "$ref": "#/$defs/ygdkTermSummary" }, { "type": "null" }] } }, "additionalProperties": false
+    "ygdkSubmitReceipt": {
+      "type": "object",
+      "required": ["success", "message", "recordId"],
+      "properties": {
+        "success": { "const": true },
+        "message": { "const": "阳光打卡已提交" },
+        "recordId": { "anyOf": [{ "$ref": "#/$defs/positiveI32" }, { "type": "null" }] }
+      },
+      "additionalProperties": false
     },
     "exam": {
       "type": "object",
@@ -958,7 +1012,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 8 },
+        "schemaVersion": { "const": 9 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1054,7 +1108,7 @@
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "ygdk" } }, "required": ["feature"] },
-                  "data": { "oneOf": [{ "$ref": "#/$defs/ygdkOverview" }, { "$ref": "#/$defs/ygdkRecordsPage" }, { "$ref": "#/$defs/ygdkClockinSubmitResult" }] }
+                  "data": { "oneOf": [{ "$ref": "#/$defs/ygdkOverview" }, { "$ref": "#/$defs/ygdkRecordsPage" }, { "$ref": "#/$defs/ygdkSubmitReceipt" }] }
                 }
               },
               {
@@ -1113,7 +1167,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 8 },
+        "schemaVersion": { "const": 9 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1269,7 +1323,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 8 },
+        "schemaVersion": { "const": 9 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1345,7 +1399,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 8 },
+        "schemaVersion": { "const": 9 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

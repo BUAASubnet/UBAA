@@ -10,10 +10,13 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
-- 十二项读取页面、typed 查询、十项写入的 prepare→确认→单次 commit→读取核对流程已有 Fixture/Mock、
-  Rust、Dart、widget/golden 与脱敏宿主 integration 证据；
+- 阶段 11I 工作树上的十二项读取页面、typed 查询及十项写入流程已有 Fixture/Mock、Rust、Dart、
+  widget/golden 与脱敏宿主 integration 证据；Ygdk typed 提交已通过本地确定性门禁，阶段提交与最终候选绑定尚未完成；
 - Direct 与 WebVPN 的当前真实证据只覆盖 Core-live 只读矩阵，不代表真实 App 账号链路或真实写入；
 - 正式签名、证书、公证、商店上传、实体设备、原生安全存储 handler 和真实写入核对仍是后置条件。
+
+当前公开合同版本为 CLI JSON schema v9 与 Flutter bridge contract v8；这两个版本都与磁盘
+`session.json` schema v2、`config.toml` 版本 1 相互独立。
 
 当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
 [代码与目录组织设计](docs/architecture/code-organization.md)和
@@ -38,7 +41,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 | `crates/ubaa-core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
 | `crates/ubaa-flutter-bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
 | `crates/ubaa-test-support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
-| `apps/ubaa-cli` | human/JSON schema v8 命令行宿主与只读 Core-live 入口 |
+| `apps/ubaa-cli` | human/JSON schema v9 命令行宿主与只读 Core-live 入口 |
 | `apps/ubaa_flutter` | Windows/macOS/Linux/Android/iOS 官方 Flutter 薄宿主 |
 | `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
 | `packages/ubaa_domain` | Dart 稳定领域模型 |
@@ -72,9 +75,9 @@ cargo run --locked -p ubaa-cli -- auth logout
 ```
 
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
-失败只输出一个 schema-v8 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
+失败只输出一个 schema-v9 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
 [CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；`session.json` 仍为
-schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v7；图书馆预约记录的 `status` 为
+schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v8；图书馆预约记录的 `status` 为
 nullable int，并由 Core 提供 typed `cancelEligibility/cancelTarget`。取消 action 在本地携带
 `id/page/limit` 以便 prepare、commit 和写后读取核对使用同一页，但最终上游取消正文仍只有 `id`。
 场馆时段的 `reservationStatus` 同样为 nullable int，只有 Core 明确给出 `allowed` 和完整
@@ -86,12 +89,17 @@ nullable int，并由 Core 提供 typed `cancelEligibility/cancelTarget`。取�
 重新读取同 ID 订单，并按上海时区严格校验开始前四小时截止点。最终取消只在同一
 原子路线解析中发送一次；确定成功或 `outcome_unknown` 都固定原路线回读第一页列表与
 同 ID 详情，只有两者都带 Core 严格派生的已取消证明时才标记已核对，回读失败绝不重发写请求。
+阳光打卡同样只消费 fresh overview 派生的 typed `submitTarget(classifyId,itemId)`；prepare 不上传，commit
+在 Core 的 expected-route 原子入口中固定路线、Session/credential generation、fresh authority、单次 upload
+和单次 final。上传与最终提交均禁止自动重试；确定成功和 `outcome_unknown` 只在 intent 原路线各执行一次
+caller-pinned overview 与 records 首页读取，安全收据只允许可选正 `recordId`。
 
 ## 确定性验证
 
 ```bash
 just refs
 just layout-check
+just contract-version-check
 just check-sensitive
 just check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
@@ -99,8 +107,9 @@ just flutter-check
 git diff --check
 ```
 
-`just layout-check` 对手写源码执行 1000 行/16 个直属文件的结构棘轮；`just check` 当前覆盖布局/refs/live
-Shell 合同、布局 checker、Rust/Cargo、CLI、构建、文档和差异，不包含 Flutter/codegen，并先对全部 Shell
+`just layout-check` 对手写源码执行 1000 行/16 个直属文件的结构棘轮；`just contract-version-check` 纯静态
+交叉校验 CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档；`just check` 当前覆盖布局/refs/live
+Shell 合同、上述版本门禁、Rust/Cargo、CLI、构建、文档和差异，不包含 Flutter/codegen，并先对全部 Shell
 执行 `bash -n`，环境有 ShellCheck 时再执行静态检查。后两项必须独立运行。平台构建、
 无签名 OHOS HAP 与发布前置命令见[开发命令](docs/development/commands.md)和
 [Flutter 发布 Runbook](docs/runbooks/flutter-release.md)。

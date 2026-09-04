@@ -2,6 +2,16 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use super::ActionEligibility;
+
+/// 阳光打卡提交的稳定目标。
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct YgdkSubmitTarget {
+    pub classify_id: i32,
+    pub item_id: i32,
+}
+
 /// 阳光打卡项目。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -10,6 +20,8 @@ pub struct YgdkItem {
     pub name: String,
     pub kind: Option<i32>,
     pub sort: Option<i32>,
+    pub submit_eligibility: ActionEligibility,
+    pub submit_target: Option<YgdkSubmitTarget>,
 }
 /// 阳光打卡学期统计。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -64,7 +76,7 @@ pub struct YgdkRecordsPage {
     pub has_more: bool,
 }
 /// 阳光打卡图片上传。图片字节只在一次请求内存中存在，不写入会话或输出。
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct YgdkPhotoUpload {
     #[serde(skip_serializing)]
@@ -74,26 +86,80 @@ pub struct YgdkPhotoUpload {
     #[serde(skip_serializing)]
     pub mime_type: String,
 }
+impl YgdkPhotoUpload {
+    pub(crate) fn normalized_mime_type(&self) -> Option<&str> {
+        let mime_type = self.mime_type.as_str();
+        let subtype = mime_type.strip_prefix("image/")?;
+        (mime_type == mime_type.trim()
+            && !subtype.is_empty()
+            && subtype.is_ascii()
+            && subtype.bytes().all(is_http_token_character))
+        .then_some(mime_type)
+    }
+}
+
+fn is_http_token_character(value: u8) -> bool {
+    value.is_ascii_alphanumeric()
+        || matches!(
+            value,
+            b'!' | b'#'
+                | b'$'
+                | b'%'
+                | b'&'
+                | b'\''
+                | b'*'
+                | b'+'
+                | b'-'
+                | b'.'
+                | b'^'
+                | b'_'
+                | b'`'
+                | b'|'
+                | b'~'
+        )
+}
 impl fmt::Debug for YgdkPhotoUpload {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("YgdkPhotoUpload")
             .field("bytes", &format_args!("[{} bytes]", self.bytes.len()))
             .field("file_name", &"[REDACTED]")
-            .field("mime_type", &self.mime_type)
+            .field(
+                "mime_type",
+                &self.normalized_mime_type().unwrap_or("[INVALID]"),
+            )
             .finish()
     }
 }
 /// 阳光打卡提交请求。
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct YgdkClockinSubmitRequest {
-    pub item_id: Option<i32>,
-    pub start_time: Option<String>,
-    pub end_time: Option<String>,
+    pub target: YgdkSubmitTarget,
+    pub start_time: String,
+    pub end_time: String,
     pub place: Option<String>,
-    pub share_to_square: Option<bool>,
-    pub photo: Option<YgdkPhotoUpload>,
+    pub share_to_square: bool,
+    pub photo: YgdkPhotoUpload,
+}
+impl fmt::Debug for YgdkClockinSubmitRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("YgdkClockinSubmitRequest")
+            .field("target", &self.target)
+            .field("start_time", &"[已隐藏]")
+            .field("end_time", &"[已隐藏]")
+            .field("place", &self.place.as_ref().map(|_| "[已隐藏]"))
+            .field("share_to_square", &self.share_to_square)
+            .field("photo", &self.photo)
+            .finish()
+    }
+}
+/// 阳光打卡提交前由 Core fresh 复核形成的规范化结果。
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct YgdkSubmitPreflight {
+    pub request: YgdkClockinSubmitRequest,
+    pub item_name: String,
 }
 /// 阳光打卡提交结果。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -102,5 +168,4 @@ pub struct YgdkClockinSubmitResult {
     pub success: bool,
     pub message: String,
     pub record_id: Option<i32>,
-    pub summary: Option<YgdkTermSummary>,
 }

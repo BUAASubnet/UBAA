@@ -10,9 +10,12 @@ import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/write.dart';
 import '../write/cgyy_validation.dart';
+import '../write/ygdk_validation.dart';
 import 'error_mapper.dart';
 
 part 'app_controller/cgyy_readback.dart';
+part 'app_controller/evaluation_normalization.dart';
+part 'app_controller/ygdk_readback.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
 
@@ -81,7 +84,9 @@ class AppController extends ChangeNotifier {
   bool _disposed = false;
   bool _initialized = false;
   int _refreshGeneration = 0;
+  int _ygdkGeneration = 0;
   bool _telemetryEnabled;
+  YgdkReadbackState _ygdkReadbackState = const YgdkReadbackState.empty();
   List<ConnectionMode> _activeRoutes = const <ConnectionMode>[];
   bool _rebuildingBackend = false;
 
@@ -100,6 +105,12 @@ class AppController extends ChangeNotifier {
   bool get isRebuildingBackend => _rebuildingBackend;
   Map<FeatureId, FeatureSnapshot> get snapshots =>
       Map<FeatureId, FeatureSnapshot>.unmodifiable(_snapshots);
+  YgdkReadbackState get ygdkReadbackState => _ygdkReadbackState;
+
+  /// backend 必须同时提供 typed 写入与原路线回读，宿主才可暴露
+  /// 阳光打卡提交入口。平台照片能力仍由宿主另行检查。
+  bool get hasYgdkSubmissionBackendCapabilities =>
+      _backend is YgdkWriteBackend && _backend is YgdkSubmissionReadbackBackend;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -165,6 +176,7 @@ class AppController extends ChangeNotifier {
     }
     _rebuildingBackend = true;
     _refreshGeneration++;
+    _ygdkGeneration++;
     _setPhase(AppPhase.checkingSession);
     try {
       final replacement = factory();
@@ -341,6 +353,9 @@ class AppController extends ChangeNotifier {
     if (_disposed) return;
     final generation = ++_refreshGeneration;
     final features = (only ?? FeatureId.values).toList(growable: false);
+    final ygdkGeneration = features.contains(FeatureId.ygdk)
+        ? ++_ygdkGeneration
+        : null;
     for (final feature in features) {
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: FeatureLoadStatus.loading,
@@ -349,7 +364,13 @@ class AppController extends ChangeNotifier {
     }
     _notify();
     await Future.wait(
-      features.map((feature) => _loadFeature(feature, generation)),
+      features.map(
+        (feature) => _loadFeature(
+          feature,
+          generation,
+          ygdkGeneration: feature == FeatureId.ygdk ? ygdkGeneration : null,
+        ),
+      ),
     );
   }
 
@@ -373,12 +394,18 @@ class AppController extends ChangeNotifier {
       return;
     }
     final generation = ++_refreshGeneration;
+    final ygdkGeneration = feature == FeatureId.ygdk ? ++_ygdkGeneration : null;
     _snapshots[feature] = _snapshots[feature]!.copyWith(
       status: FeatureLoadStatus.loading,
       clearError: true,
     );
     _notify();
-    await _loadFeature(feature, generation, query: query);
+    await _loadFeature(
+      feature,
+      generation,
+      query: query,
+      ygdkGeneration: ygdkGeneration,
+    );
   }
 
   /// 准备博雅选课/退选的 typed 一次性意图；准备本身不提交写请求。
@@ -528,35 +555,8 @@ class AppController extends ChangeNotifier {
     if (backend is! YgdkWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    if (input.itemId != null && input.itemId! <= 0) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    final startTime = _trimOptional(input.startTime);
-    final endTime = _trimOptional(input.endTime);
-    final place = _trimOptional(input.place);
-    final photo = input.photo;
-    if (photo != null &&
-        (photo.bytes.isEmpty ||
-            photo.fileName.trim().isEmpty ||
-            photo.mimeType.trim().isEmpty ||
-            !photo.mimeType.trim().toLowerCase().startsWith('image/'))) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
     return (backend as YgdkWriteBackend).prepareYgdkSubmit(
-      YgdkSubmitInput(
-        itemId: input.itemId,
-        startTime: startTime,
-        endTime: endTime,
-        place: place,
-        shareToSquare: input.shareToSquare,
-        photo: photo == null
-            ? null
-            : YgdkPhotoInput(
-                bytes: List<int>.unmodifiable(photo.bytes),
-                fileName: photo.fileName.trim(),
-                mimeType: photo.mimeType.trim().toLowerCase(),
-              ),
-      ),
+      validateYgdkSubmitInput(input),
     );
   }
 
@@ -595,38 +595,6 @@ class AppController extends ChangeNotifier {
       courses.map(_normalizeEvaluationCourse).toList(growable: false),
     );
   }
-
-  static String? _trimOptional(String? value) {
-    final normalized = value?.trim();
-    return normalized == null || normalized.isEmpty ? null : normalized;
-  }
-
-  static EvaluationCourseInput _normalizeEvaluationCourse(
-    EvaluationCourseInput course,
-  ) => EvaluationCourseInput(
-    id: course.id.trim(),
-    kcmc: course.kcmc.trim(),
-    bpmc: course.bpmc.trim(),
-    isEvaluated: course.isEvaluated,
-    rwid: course.rwid.trim(),
-    wjid: course.wjid.trim(),
-    kcdm: course.kcdm.trim(),
-    bpdm: _trimOptional(course.bpdm),
-    pjrdm: _trimOptional(course.pjrdm),
-    pjrmc: _trimOptional(course.pjrmc),
-    xnxq: _trimOptional(course.xnxq),
-    msid: course.msid.trim(),
-    zdmc: _trimOptional(course.zdmc),
-    ypjcs: course.ypjcs,
-    xypjcs: course.xypjcs,
-    sxz: _trimOptional(course.sxz),
-    rwh: _trimOptional(course.rwh),
-    xn: _trimOptional(course.xn),
-    xq: _trimOptional(course.xq),
-    pjlxid: _trimOptional(course.pjlxid),
-    sfksqbpj: _trimOptional(course.sfksqbpj),
-    yxsfktjst: _trimOptional(course.yxsfktjst),
-  );
 
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
   Future<WriteCommitResult> commitWrite(String intentId) async {
@@ -685,6 +653,11 @@ class AppController extends ChangeNotifier {
       // 此通用入口不做单列表降级，也不会触发写入重试。
       return Future<void>.value();
     }
+    if (operation == WriteOperation.ygdkSubmit) {
+      // 阳光打卡必须由 refreshYgdkAfterWrite 使用 intent 的原路线读取
+      // 概览和首页记录；通用刷新不得降级为 Auto 路线。
+      return Future<void>.value();
+    }
     final feature = switch (operation) {
       WriteOperation.bykcSelectCourse ||
       WriteOperation.bykcDeselectCourse ||
@@ -728,10 +701,18 @@ class AppController extends ChangeNotifier {
     expectedRoute: expectedRoute,
   );
 
+  /// 在 intent 的实际路线 best-effort 刷新阳光打卡概览与首页记录。
+  ///
+  /// 冻结来源没有提供记录与本次写入的严格关联规则，因此该方法不
+  /// 接收收据也不返回核对结论，更不得将 OutcomeUnknown 升级为成功。
+  Future<void> refreshYgdkAfterWrite({required ConnectionMode expectedRoute}) =>
+      _refreshYgdkAfterWrite(this, expectedRoute: expectedRoute);
+
   Future<void> _loadFeature(
     FeatureId feature,
     int generation, {
     FeatureQuery? query,
+    int? ygdkGeneration,
   }) async {
     final started = DateTime.now();
     final previous = _snapshots[feature]!;
@@ -745,7 +726,14 @@ class AppController extends ChangeNotifier {
           await queryBackend.loadFeatureQuery(feature, value),
         _ => await _backend.loadFeature(feature),
       };
-      if (!_applyFeatureResultIfCurrent(feature, result, generation)) return;
+      if (!_applyFeatureResultIfCurrent(
+        feature,
+        result,
+        generation,
+        ygdkGeneration: ygdkGeneration,
+      )) {
+        return;
+      }
       await _recordFeature(
         feature,
         success: result.error == null && !result.isEmpty,
@@ -754,7 +742,7 @@ class AppController extends ChangeNotifier {
         latency: DateTime.now().difference(started),
       );
     } on BackendException catch (exception) {
-      if (_disposed || generation != _refreshGeneration) return;
+      if (!_isFeatureLoadCurrent(feature, generation, ygdkGeneration)) return;
       final uiError = UbaaErrorMapper.fromCode(exception.code);
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: hadPreviousData
@@ -769,7 +757,7 @@ class AppController extends ChangeNotifier {
         latency: DateTime.now().difference(started),
       );
     } catch (_) {
-      if (_disposed || generation != _refreshGeneration) return;
+      if (!_isFeatureLoadCurrent(feature, generation, ygdkGeneration)) return;
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: hadPreviousData
             ? FeatureLoadStatus.stale
@@ -789,9 +777,12 @@ class AppController extends ChangeNotifier {
   bool _applyFeatureResultIfCurrent(
     FeatureId feature,
     FeatureResult result,
-    int generation,
-  ) {
-    if (_disposed || generation != _refreshGeneration) return false;
+    int generation, {
+    int? ygdkGeneration,
+  }) {
+    if (!_isFeatureLoadCurrent(feature, generation, ygdkGeneration)) {
+      return false;
+    }
     final status = result.error != null
         ? FeatureLoadStatus.failure
         : result.isEmpty
@@ -814,8 +805,18 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  bool _isFeatureLoadCurrent(
+    FeatureId feature,
+    int generation,
+    int? ygdkGeneration,
+  ) =>
+      !_disposed &&
+      generation == _refreshGeneration &&
+      (feature != FeatureId.ygdk || ygdkGeneration == _ygdkGeneration);
+
   Future<void> logout({bool clearSavedCredential = false}) async {
     if (_disposed) return;
+    _ygdkGeneration++;
     try {
       await _backend.logout();
     } on Object {
@@ -826,6 +827,7 @@ class AppController extends ChangeNotifier {
     _user = null;
     _activeRoutes = const <ConnectionMode>[];
     _loginForm = _loginForm.copyWith(password: '');
+    _resetFeatureSnapshots();
     _setPhase(AppPhase.login);
   }
 
@@ -862,6 +864,8 @@ class AppController extends ChangeNotifier {
 
   void _resetFeatureSnapshots() {
     _refreshGeneration++;
+    _ygdkGeneration++;
+    _ygdkReadbackState = const YgdkReadbackState.empty();
     for (final feature in FeatureId.values) {
       _snapshots[feature] = FeatureSnapshot(feature: feature);
     }
@@ -959,6 +963,10 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _refreshGeneration++;
+    _ygdkGeneration++;
+    _ygdkReadbackState = const YgdkReadbackState.empty();
+    _snapshots[FeatureId.ygdk] = const FeatureSnapshot(feature: FeatureId.ygdk);
     _disposed = true;
     unawaited(_disposeBackendOnce(_backend).catchError((_) {}));
     super.dispose();

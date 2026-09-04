@@ -1,6 +1,7 @@
 # Flutter Bridge 合同
 
-状态：P1 无签名验收已完成；实体设备上的原生 isolate/内存观测列为后置发布证据
+状态：合同 v8 的 Phase 11I 本地确定性门禁已完成，阶段提交与最终候选绑定待完成；此前 P1 证据只作历史基线，实体设备上的
+原生 isolate/内存观测仍是后置发布证据
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -9,14 +10,16 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `7`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `8`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
   `id/page/limit` authority 上下文。版本 6 将 Cgyy 时段 `reservationStatus` 改为可空整数，以 typed
   `reservationEligibility/reservationTarget` 取代 `isReservable`，并将预约成功结果收窄为安全收据。
   版本 7 再为 Cgyy 订单增加 typed `cancelEligibility/cancelTarget/cancelledTarget`，并新增
-  caller-pinned 的取消列表/详情回读。版本 7 不与版本 6 或更早的生成绑定混用。
+  caller-pinned 的取消列表/详情回读。版本 8 为 Ygdk 项目增加 typed
+  `submitEligibility/submitTarget`，将提交请求收紧为完整 typed target、canonical 时间和必需照片，并新增
+  caller-pinned 的概览/记录回读与安全提交收据。版本 8 不与版本 7 或更早的生成绑定混用。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -32,7 +35,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=7` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=8` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -71,11 +74,12 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 Core 错误码逐一映射：`invalid_input`、`authentication_required`、`invalid_credentials`、
 `password_risk_confirmation_failed`、`permission_denied`、`network_error`、`timeout`、
 `upstream_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
-Phase 11C–11H 已收口的博雅签到、课堂签到、LibBook 预约/取消与 Cgyy 预约/取消链只允许在非幂等写请求越过
+博雅签到、课堂签到、LibBook 预约/取消、Cgyy 预约/取消与 Ygdk 提交合同都只允许在非幂等写请求越过
 发送边界后产生 `outcome_unknown`；其余写操作暂时保留既有的 commit 阶段保守映射，可能把业务登录或
 预检中的网络类失败也归入结果未知，必须在后续来源对照阶段逐项收窄。LibBook 的 `outcome_unknown`
 保留 Core 提供的稳定 code、kind 与安全 message，同时强制 `retryable=false`；Cgyy 预约遵守相同的安全
-message、不可重试和先读后判定约束。无论来源如何，宿主都必须禁止自动重试并先执行只读核对。bridge 新增且
+message、不可重试和先读后判定约束。Ygdk upload 与 final 都不得自动重试；upload 失败时不得发送 final，
+final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。无论来源如何，宿主都必须禁止自动重试并先执行只读核对。bridge 新增且
 只用于本地状态的错误码为 `client_disposed`、`confirmation_required`、`intent_expired`、
 `operation_conflict`。未知 Core 码必须失败关闭为 `internal_error`。
 
@@ -137,6 +141,8 @@ message、不可重试和先读后判定约束。无论来源如何，宿主都�
 | `libbookBookings` | `page: i32, limit: i32` | `LibBookBookingsPage` |
 | `ygdkOverview` | 无 | `YgdkOverview` |
 | `ygdkRecords` | `page: i32, size: i32` | `YgdkRecordsPage` |
+| `ygdkOverviewOnRoute` | `route: ConnectionMode` | `CallerPinnedYgdkOverview` |
+| `ygdkRecordsOnRoute` | `route: ConnectionMode, page: i32, size: i32` | `CallerPinnedYgdkRecords` |
 | `cgyySites` | 无 | `List<CgyyVenueSite>` |
 | `cgyyPurposeTypes` | 无 | `CgyyPurposeTypes` |
 | `cgyyDayInfo` | `siteId: i32, date: String` | `CgyyDayInfo` |
@@ -190,9 +196,14 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `{bookings,page,limit,total}`。
 - `YgdkOverview {summary,classifyId,classifyName,defaultItemId,defaultItemName,items}`；统计
   `{termId?,termName?,termCount,termTarget?,weekCount?,weekTarget?,monthCount?,monthTarget?,dayCount?,goodCount?}`；
-  项目 `{itemId,name,kind?,sort?}`；记录分页 `{content,total,page,size,hasMore}`；记录
+  项目 `{itemId,name,kind?,sort?,submitEligibility,submitTarget?}`，其中 `submitTarget` 仅为
+  `{classifyId,itemId}`；记录分页 `{content,total,page,size,hasMore}`；记录
   `{recordId,itemId?,itemName?,startTime?,endTime?,place?,imageCount,isOpen,state?,createdAt?,createdAtLabel?}`。
-  `imageCount` 只表示图片数量；图片地址列表和其中可能包含的业务令牌不得跨 FFI。
+  只有 Core 从同一 fresh overview 中证明 canonical 正数 classify/item 身份各自唯一、名称非空且
+  target 与父项严格一致时，`submitEligibility` 才能为 `allowed` 并携带 target；其余情况均为
+  `unknown` 且无 target。`imageCount` 只表示图片数量；图片地址列表和其中可能包含的业务令牌不得跨 FFI。
+  `CallerPinnedYgdkOverview` 与 `CallerPinnedYgdkRecords` 只含 `{data,pinnedRoute}`，表示 Core 实际使用
+  调用方指定的已认证路线，不伪造 `RouteDecision`，也不执行 Auto 探测或跨路线回退。
 - `CgyyVenueSite`、`CgyyTimeSlot`、`CgyySpaceAvailability`、`CgyyDayInfo` 保持 facade 公共字段；
   `CgyySlotStatus` 仅允许
   `{timeId,reservationStatus?,reservationEligibility,reservationTarget?,startDate?,endDate?}`。
@@ -283,7 +294,7 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 | `prepareSigninPerform` | `{courseId}` | `signinAction` |
 | `prepareLibbookReserve` | `{areaId,seatId,day,segment,startTime,endTime}` | `libbookReserve` |
 | `prepareLibbookCancelBooking` | `{id,page,limit}` | `libbookCancel` |
-| `prepareYgdkSubmit` | `{itemId?,startTime?,endTime?,place?,shareToSquare?,photo?}` | `ygdkSubmit` |
+| `prepareYgdkSubmit` | `{target:{classifyId,itemId},startTime,endTime,place?,shareToSquare,photo:{bytes,fileName,mimeType}}` | `ygdkSubmit` |
 | `prepareCgyySubmitReservation` | 由 1–2 个 `CgyyReserveAction` 唯一派生的目标与表单字段；不含 challenge 内部材料 | `cgyyReservation` |
 | `prepareCgyyCancelOrder` | `{orderId}` | `cgyyCancelOrder` |
 | `prepareEvaluationSubmitCourses` | `{courses: List<EvaluationCourse>}` | `evaluationBatch` |
@@ -293,6 +304,10 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 参与人及活动正文不会进入 Dart。App 在成功回调后优先刷新 `cgyyOrders`，页面必须以订单列表/详情
 作为最终核对来源，并且只在刷新成功且订单列表出现同一公开 `orderId` 时标记为已核对；UI 可以显示
 订单编号并提示核对，但收据缺失、刷新失败或编号不匹配不得宣称已完成核对。
+
+`ygdkSubmit` 的确定成功结果固定为 `success=true`、安全文案“阳光打卡已提交”和可选
+`YgdkSubmitReceipt {recordId}`；`recordId` 只有在 Core 返回 canonical 正整数时存在。收据不得携带
+`classifyId`、`itemId`、summary、raw message/body、时间、地点、照片信息、uid 或 token。
 
 `WriteIntent` 固定字段：
 
@@ -346,6 +361,25 @@ typed 资格为 `allowed`。commit 消费 intent 后执行同一 fresh 预检，
 `libbookBookings(page,limit)` 页用于核对，禁止自动重放取消。
 同页 authority 查询自身的失败也属于该边界：`/v4/member/seat` 非成功 envelope 的原始 message 不得进入
 BridgeError，统一投影为 `upstreamChanged` 与固定安全文案。
+
+阳光打卡 prepare 只接受当前 `YgdkOverview.items` 中 eligibility 为 `allowed` 的完整
+`YgdkSubmitTarget {classifyId,itemId}`，不得把 primitive `itemId`、默认项目或展示名称兑换为写权限。
+请求的 `startTime/endTime` 都是必填的精确 `yyyy-MM-dd HH:mm` 上海本地时间，必须同日且结束严格晚于开始；
+`photo` 必填并在网络前执行 1..10 MiB、basename filename 与 `image/*` MIME 防注入校验。prepare 只执行
+本地校验和 fresh classify/item authority，不上传照片，也不发送最终写请求。
+
+commit 原子消费 intent，并只调用 Core expected-route 入口：本地校验、一次路线解析、intent 路线比较、
+活跃 owner/session/credential generation、fresh classify/item、upload 与 final 都在同一 runtime 和代次内完成。
+fresh target 不一致、路线或 generation 变化、上传失败均不得发送 final。upload 最多调用一次且不认证刷新、
+不切换路线、不自动重试；final 同样只越过一次 non-idempotent 发送边界。final 已开始发送后出现 HTTP、认证、
+跳转、transport、timeout、Cookie、JSON 或 envelope 歧义时只返回不可重试 `outcome_unknown`，不得依据 raw
+message 推断成功或再次提交。
+
+确定成功和 `outcome_unknown` 后，App 都只使用 commit 返回的原路线，各 best-effort 调用一次
+`ygdkOverviewOnRoute(route)` 与 `ygdkRecordsOnRoute(route,page=1,size=20)`；两次读取彼此独立，不 Auto、
+不 fallback，任一失败都不能触发写重放。冻结来源没有足以把某条记录与本次照片、时间和 target 唯一关联的
+规则，因此 count、首条、近似时间、展示文案或旧 snapshot 都不能把 unknown 升级为 success，也不能标记
+严格“已核对”。
 
 照片通过 `BridgePhoto {bytes,fileName,mimeType}` 一次传入；Debug 只记录字节数与 MIME 类型。
 场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token
@@ -415,7 +449,7 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后才能勾选；只有合同文件或部分方法
 不能标记 P1 完成。
 
-## 9. 当前实现证据（2026-09-01）
+## 9. 历史 P1 与当前实现证据（截至 2026-09-05）
 
 - 提交 `2faa753` 实现 `BridgeClient` opaque 生命周期、认证、路线设置、全部表中读取方法、
   typed 写入准备/一次性提交和安全错误投影；Core 新增仅用于准备阶段的路线解析入口。
@@ -439,5 +473,10 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
 - panic 归约、跨进程 Session 锁、路线/会话失效 intent 和场馆订单敏感字段禁曝快照已有实现与
   回归；Dart schema 快照覆盖全部公开读取 DTO 和十项写入口，应用层已有 dispose、后台恢复和
-  代次丢弃的确定性测试，`just flutter-codegen-check` 报告零漂移。上述代码/合同门禁满足本轮
+  代次丢弃的确定性测试，`just flutter-codegen-check` 报告零漂移。上述代码/合同门禁满足当时的
   无签名 P1；原生设备上的 isolate 重建、内存泄漏观测和真实跨平台生命周期仍留待后置设备验证。
+- Phase 11I 当前工作树已经闭合 Ygdk typed authority/request、Core expected-route 原子提交入口、
+  owner/session/credential generation guard、caller-pinned overview/records 方法，以及 CLI JSON schema v9、
+  Flutter Bridge contract v8 和相应生成类型。安全收据已严格收窄为 `{recordId}`，公开字段禁曝；完整
+  Rust/CLI/Bridge/Dart/Flutter 门禁、FRB 零漂移、macOS 脱敏宿主 integration 与独立终审均已通过。阶段提交与
+  最终候选绑定尚未完成。本轮没有联网、上传照片或执行真实写入，也不构成签名、实体设备或正式发布证据。

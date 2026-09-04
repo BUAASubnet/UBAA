@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -11,6 +12,7 @@ part 'app_controller/lifecycle.dart';
 part 'app_controller/race.dart';
 part 'app_controller/read.dart';
 part 'app_controller/write.dart';
+part 'app_controller/ygdk.dart';
 
 void main() {
   _registerAuthTests();
@@ -18,4 +20,5 @@ void main() {
   _registerLifecycleTests();
   _registerRaceTests();
   _registerWriteTests();
+  _registerYgdkWriteTests();
 }

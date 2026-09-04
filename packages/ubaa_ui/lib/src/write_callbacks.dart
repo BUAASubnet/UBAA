@@ -75,6 +75,12 @@ typedef YgdkSubmitStarter = Future<void> Function(YgdkSubmitInput input);
 /// 阳光打卡照片选择回调。
 typedef YgdkPhotoPicker = Future<YgdkPhotoInput?> Function();
 
+/// 阳光打卡提交后的原路线概览+记录回读。
+///
+/// 回读只刷新展示，不接收收据也不返回“已核对”结论。
+typedef YgdkSubmissionRefresher =
+    Future<void> Function({required ConnectionMode expectedRoute});
+
 /// 场馆预约准备回调。
 typedef CgyyReservationPreparer =
     Future<WriteIntent> Function(CgyySubmitInput input);

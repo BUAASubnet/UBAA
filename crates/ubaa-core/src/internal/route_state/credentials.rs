@@ -39,7 +39,7 @@ impl std::fmt::Debug for LibBookCredential {
 }
 
 /// 阳光打卡业务凭据，只在当前路线的内存状态中保存。
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub(crate) struct YgdkCredential {
     pub(crate) uid: i32,
     pub(crate) token: String,

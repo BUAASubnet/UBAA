@@ -27,8 +27,10 @@ core-test-contract:
 check:
     just shell-check
     bash ./scripts/tests/layout.sh
+    bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/references.sh
     just layout-check
+    just contract-version-check
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
@@ -45,6 +47,10 @@ check-sensitive:
 # 结构 checker 与当前违例 baseline；合同测试由 just check 独立执行。
 layout-check:
     bash ./scripts/check/layout.sh
+
+# 纯静态交叉校验 CLI/Bridge 常量、schema、Dart 接受版本和当前文档声明。
+contract-version-check:
+    bash ./scripts/check/contract-versions.sh
 
 # 检查仓库候选 Shell，显式排除锁定 Cargokit；路径全程使用 NUL 分隔。
 shell-check:

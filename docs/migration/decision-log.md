@@ -1,8 +1,8 @@
 # 决策记录
 
-## 2026-09-05：Phase 11I 阳光打卡 typed 资格与单次最终提交边界（来源合同，尚未实施）
+## 2026-09-05：Phase 11I 阳光打卡 typed 资格与单次最终提交边界（本地确定性门禁完成）
 
-本条只固定下一实现阶段的来源与安全合同；完整逐操作九列见
+本条固定本阶段的来源、安全合同与当前实施边界；完整逐操作九列见
 [source-parity.md 的 Phase 11I 表](source-parity.md#phase-11i-ygdk-提交逐操作九列2026-09-05)。适用来源为
 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `YgdkApi.kt`、
 `LocalYgdkApi.kt`、`Ygdk.kt`、API/backend 测试、Ygdk ViewModel 与旧 server client/service/tests。
@@ -72,13 +72,14 @@ Auto 探测、不 fallback、不复用旧 snapshot，任何读取失败都不得
 冻结来源没有足以把某条记录与本次 target、时间、照片唯一关联的严格证明，因此 count 增长、首条、文案、近似
 时间、空结果或旧 snapshot 都不能把 unknown 升级为 success；未来“已核对”状态必须先取得新的来源或脱敏实时证据。
 
-`YgdkItem` eligibility/target、typed prepare request 和固定安全结果会改变公开读取与写入形状，所以实施提交必须
-把 CLI JSON schema 从 v8 升为 **v9**、Flutter Bridge contract 从 v7 升为 **v8**，同步生成绑定与闭合 schema，
-并显式拒绝旧 v8/v7。当前生产实现仍接受可空 primitive item ID、直接发送字符串时间并拼接错误
-`form_time_fmt`、按名称选择默认项目，multipart filename/MIME 缺 Core 防注入门禁，且没有上述 expected-route
-原子入口、active-generation 写链、final `outcome_unknown` 或 caller-pinned Ygdk 双刷新 facade。因此本条状态是
-“来源合同已固定、生产尚未实施”，不是 Phase 11I 完成证据。本次只读核对冻结来源并修改文档，没有联网、上传
-照片或执行真实账号写入，也不授权实现阶段进行真实写测试。
+`YgdkItem` eligibility/target、typed prepare request 和固定安全结果改变公开读取与写入形状，因此当前工作树已把
+CLI JSON schema 升为 **v9**、Flutter Bridge contract 升为 **v8**，并保留旧 v8/v7 的显式拒绝边界。OAuth/
+business-login 的 owner/session generation guard、fresh classify/item 派生的 typed authority、完整 typed
+target/request、单次 expected-route 原子提交入口和 caller-pinned overview/records 回读均已实现。安全收据已严格
+收窄为可选正 `{recordId}`，upload/final 不自动重试，CLI/Bridge 公开字段禁曝；完整 Rust/CLI/Bridge/Dart/Flutter
+回归、FRB 零漂移、macOS 脱敏宿主 integration 与独立终审均已通过。本条状态是“本地确定性门禁完成”；阶段提交与
+最终候选绑定仍待后续阶段。本轮没有上传照片或执行真实账号写入，也不构成真实写后核对、签名、实体设备或正式
+发布证据。
 
 ## 2026-09-04：Phase 11H 场馆取消双 fresh authority 与最终单次发送边界（当前有效）
 

@@ -98,25 +98,29 @@ Future<WriteIntent> _prepareLibbookCancelBooking(
 Future<WriteIntent> _prepareYgdkSubmit(
   BridgeBackend backend,
   YgdkSubmitInput input,
-) => _prepareIntent(
-  backend,
-  backend.client.prepareYgdkSubmit(
-    request: BridgeYgdkSubmitRequest(
-      itemId: input.itemId,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      place: input.place,
-      shareToSquare: input.shareToSquare,
-      photo: input.photo == null
-          ? null
-          : BridgePhotoUpload(
-              bytes: Uint8List.fromList(input.photo!.bytes),
-              fileName: input.photo!.fileName,
-              mimeType: input.photo!.mimeType,
-            ),
+) async {
+  final canonicalInput = validateYgdkSubmitInput(input);
+  return _prepareIntent(
+    backend,
+    backend.client.prepareYgdkSubmit(
+      request: BridgeYgdkSubmitRequest(
+        target: BridgeYgdkSubmitTarget(
+          classifyId: canonicalInput.action.classifyId,
+          itemId: canonicalInput.action.itemId,
+        ),
+        startTime: canonicalInput.startTime,
+        endTime: canonicalInput.endTime,
+        place: canonicalInput.place,
+        shareToSquare: canonicalInput.shareToSquare,
+        photo: BridgePhotoUpload(
+          bytes: Uint8List.fromList(canonicalInput.photo.bytes),
+          fileName: canonicalInput.photo.fileName,
+          mimeType: canonicalInput.photo.mimeType,
+        ),
+      ),
     ),
-  ),
-);
+  );
+}
 
 Future<WriteIntent> _prepareCgyySubmitReservation(
   BridgeBackend backend,

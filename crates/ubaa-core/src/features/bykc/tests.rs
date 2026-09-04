@@ -483,6 +483,16 @@ fn 博雅签到与签退资格区分允许拒绝和未知() {
 
 #[test]
 fn 博雅签到坐标遵循圆内算法并在无正半径点时回退输入() {
+    let great_circle_distance = |lat: f64, lng: f64| {
+        const EARTH_RADIUS_METERS: f64 = 6_371_000.0;
+        let start_lat = 39.9_f64.to_radians();
+        let end_lat = lat.to_radians();
+        let delta_lat = end_lat - start_lat;
+        let delta_lng = (lng - 116.3).to_radians();
+        let haversine = (delta_lat / 2.0).sin().powi(2)
+            + start_lat.cos() * end_lat.cos() * (delta_lng / 2.0).sin().powi(2);
+        2.0 * EARTH_RADIUS_METERS * haversine.sqrt().asin()
+    };
     let config = crate::domain::BykcSignConfig {
         sign_points: vec![crate::domain::BykcSignPoint {
             lat: 39.9,
@@ -493,9 +503,7 @@ fn 博雅签到坐标遵循圆内算法并在无正半径点时回退输入() {
     };
     for _ in 0..32 {
         let (lat, lng) = resolve_sign_location(&config, None, None).expect("生成圆内坐标");
-        let north_meters = (lat - 39.9) * 111_320.0;
-        let east_meters = (lng - 116.3) * 111_320.0 * 39.9_f64.to_radians().cos();
-        assert!(north_meters.hypot(east_meters) <= 100.1);
+        assert!(great_circle_distance(lat, lng) <= 100.000_001);
     }
 
     let no_radius = crate::domain::BykcSignConfig {

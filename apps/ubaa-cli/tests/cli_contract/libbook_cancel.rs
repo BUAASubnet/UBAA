@@ -33,7 +33,7 @@ fn cancel_arguments(
 }
 
 #[tokio::test]
-async fn 图书馆预约记录取消资格与稳定目标符合_schema_v8() {
+async fn 图书馆预约记录取消资格与稳定目标符合_schema_v9() {
     let cli = Cli::try_parse_from([
         "ubaa", "--json", "libbook", "bookings", "--page", "1", "--limit", "20",
     ])
@@ -47,7 +47,7 @@ async fn 图书馆预约记录取消资格与稳定目标符合_schema_v8() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert_eq!(value["data"]["bookings"][0]["status"], 1);
     assert_eq!(value["data"]["bookings"][0]["cancelEligibility"], "allowed");
     assert_eq!(
@@ -77,7 +77,7 @@ async fn 图书馆预约记录取消资格与稳定目标符合_schema_v8() {
     ))
     .unwrap();
     let mut old = value;
-    old["schemaVersion"] = 7.into();
+    old["schemaVersion"] = 8.into();
     assert!(!jsonschema::validator_for(&schema).unwrap().is_valid(&old));
 }
 
@@ -103,7 +103,7 @@ async fn 图书馆取消未确认空白目标或非法分页均在路由后端�
 
         assert_eq!(exit, 2);
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 8);
+        assert_eq!(value["schemaVersion"], 9);
         assert_eq!(value["error"]["code"], "invalid_input");
         assert_eq!(backend.libbook_cancel_calls, 0);
         assert!(backend.libbook_last_cancel_request.is_none());
@@ -129,7 +129,7 @@ async fn 图书馆取消确认后向路由后端精确传递一次标准化请�
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], true);
     assert_eq!(value["data"]["message"], "取消成功");
@@ -200,7 +200,7 @@ async fn 固定路线图书馆取消同样校验并传递默认分页() {
     assert_eq!(request.limit, 20);
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 8);
+    assert_eq!(value["schemaVersion"], 9);
     assert!(stderr.is_empty());
 }
 

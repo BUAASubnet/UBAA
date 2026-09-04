@@ -3,12 +3,11 @@ part of 'ubaa_app_host.dart';
 extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   PlatformPhotoPicker? get _photoPicker {
     final picker = widget.photoPicker;
-    if (picker == null) return null;
-    return PermissionedPhotoPicker(
-      permissions:
-          widget.permissionGateway ?? const UnavailablePermissionGateway(),
-      picker: picker,
-    );
+    final permissions = widget.permissionGateway;
+    if (picker == null || !picker.isAvailable || permissions == null) {
+      return null;
+    }
+    return PermissionedPhotoPicker(permissions: permissions, picker: picker);
   }
 
   PlatformLocationProvider get _locationProvider =>
@@ -77,7 +76,14 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       },
       onSubmit: () => unawaited(_controller.submitLogin()),
     ),
-    AppPhase.home => UbaaMainShell(
+    AppPhase.home => _buildMainShell(),
+  };
+
+  Widget _buildMainShell() {
+    final photoPicker = _photoPicker;
+    final hasYgdkSubmissionCapabilities =
+        _controller.hasYgdkSubmissionBackendCapabilities && photoPicker != null;
+    return UbaaMainShell(
       user: _controller.user,
       snapshots: _controller.snapshots,
       routePolicy: _controller.loginForm.routePolicy,
@@ -97,8 +103,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareLibbookReserveWrite: _controller.prepareLibbookReserveWrite,
       onPrepareLibbookCancelWrite: _controller.prepareLibbookCancelWrite,
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
-      onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
-      onPickYgdkPhoto: _photoPicker?.pickPhoto,
+      onPrepareYgdkSubmitWrite: hasYgdkSubmissionCapabilities
+          ? _controller.prepareYgdkWrite
+          : null,
+      onPickYgdkPhoto: hasYgdkSubmissionCapabilities
+          ? photoPicker.pickPhoto
+          : null,
       onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
       onDiscardWriteIntent: _controller.discardWriteIntent,
       onCommitWrite: _commitWrite,
@@ -106,6 +116,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.refreshAfterWrite(operation, readbackQuery),
       onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
       onVerifyCgyyCancellation: _controller.verifyCgyyCancellation,
+      onRefreshYgdkAfterWrite: hasYgdkSubmissionCapabilities
+          ? _controller.refreshYgdkAfterWrite
+          : null,
       onLogout: _controller.logout,
       onLogoutAndClearAccount: () =>
           _controller.logout(clearSavedCredential: true),
@@ -115,6 +128,6 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onTelemetryChanged: (value) {
         unawaited(_controller.setTelemetryEnabled(value));
       },
-    ),
-  };
+    );
+  }
 }

@@ -8,9 +8,9 @@
 | Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
 | 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v8、旧 v7 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
+| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v9、旧 v8 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
-| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
+| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、CLI/Bridge 常量与当前文档一致性、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
 | Widget/golden | `packages/ubaa_ui/test/` | 十二领域页面、loading/empty/failure/stale、查询、写确认、响应式、明暗主题和可访问性 |
@@ -23,6 +23,7 @@
 ```bash
 just refs
 just layout-check
+just contract-version-check
 just check-sensitive
 just check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
@@ -30,7 +31,8 @@ just flutter-check
 git diff --check
 ```
 
-`just check` 当前运行 Shell `bash -n`/可用的 ShellCheck、layout/refs/live 合同、layout checker、锁定 Cargo
+`just check` 当前运行 Shell `bash -n`/可用的 ShellCheck、layout/contract-version/refs/live 合同、layout 与
+公开版本 checker、锁定 Cargo
 元数据、格式、Clippy、workspace 测试、构建、Rustdoc 与
 差异检查；Flutter/codegen 独立运行。focused test 必须先证明本次行为，完整门禁只证明没有发现其它回归。
 
@@ -58,13 +60,18 @@ envelope 因此显式升为 schema v7、Flutter bridge contract 升为 v6，合�
 该升级仍不改变磁盘 `session.json` schema v2 或 `config.toml` 版本 1。
 
 Phase 11H 为 Cgyy 订单增加 typed `cancelEligibility/cancelTarget/cancelledTarget`，并以 caller-pinned
-列表/详情 API 固定取消后的原路线双回读；当前 CLI envelope 显式升为 schema v8、Flutter bridge
+列表/详情 API 固定取消后的原路线双回读；当时 CLI envelope 显式升为 schema v8、Flutter bridge
 contract 升为 v7，合同测试拒绝旧 schema v7/bridge v6。取消测试另外固定 0-based 首页、原子
 路线匹配、本次局部结果证明、generation-safe UI 刷新与“回读失败不重发写”。磁盘版本仍不变。
 
+Phase 11I 为 Ygdk 项目增加 typed `submitEligibility/submitTarget`，将 prepare 请求收紧为完整 target、
+canonical 时间和必需照片，并加入 expected-route 原子提交与 caller-pinned 概览/记录回读；当前 CLI envelope 显式升为 schema v9、Flutter bridge contract 升为 v8，
+合同测试拒绝旧 schema v8/bridge v7。
+阶段最终门禁尚未完成，不得把当前工作树描述为全绿、真实写入或正式发布。
+
 ## 写入测试边界
 
-十项用户写入已有确定性闭环，但这不授权真实操作：
+阶段 11H 提交上的十项用户写入已有确定性闭环；Phase 11I 当前变更仍待最终门禁，且任何确定性证据都不授权真实操作：
 
 1. Core/CLI 证明精确请求、默认拒绝和 `--confirm-write`；
 2. bridge/app/UI 证明 typed prepare 不提交、取消无副作用、确认只提交一次；

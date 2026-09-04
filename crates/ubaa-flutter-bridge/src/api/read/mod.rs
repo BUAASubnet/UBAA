@@ -412,11 +412,18 @@ pub struct BridgeLibBookBookingsPage {
 }
 
 #[derive(Clone, Debug)]
+pub struct BridgeYgdkSubmitTarget {
+    pub classify_id: i32,
+    pub item_id: i32,
+}
+#[derive(Clone, Debug)]
 pub struct BridgeYgdkItem {
     pub item_id: i32,
     pub name: String,
     pub kind: Option<i32>,
     pub sort: Option<i32>,
+    pub submit_eligibility: BridgeActionEligibility,
+    pub submit_target: Option<BridgeYgdkSubmitTarget>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeYgdkTermSummary {
@@ -461,6 +468,18 @@ pub struct BridgeYgdkRecordsPage {
     pub page: i32,
     pub size: i32,
     pub has_more: bool,
+}
+/// 调用方固定路线的阳光打卡概览；不表示 Core 重新执行了 Auto 探测。
+#[derive(Clone, Debug)]
+pub struct BridgeCallerPinnedYgdkOverview {
+    pub data: BridgeYgdkOverview,
+    pub pinned_route: super::client::BridgeConnectionMode,
+}
+/// 调用方固定路线的阳光打卡记录页；不表示 Core 重新执行了 Auto 探测。
+#[derive(Clone, Debug)]
+pub struct BridgeCallerPinnedYgdkRecords {
+    pub data: BridgeYgdkRecordsPage,
+    pub pinned_route: super::client::BridgeConnectionMode,
 }
 
 #[derive(Clone, Debug)]

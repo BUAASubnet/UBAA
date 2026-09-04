@@ -193,12 +193,27 @@ impl ClientRuntime {
         }
     }
 
-    pub(crate) async fn request(&mut self, mut request: HttpRequest) -> Result<HttpResponse> {
+    pub(crate) async fn request(&mut self, request: HttpRequest) -> Result<HttpResponse> {
+        self.request_with_pre_send_check(request, |_| Ok(())).await
+    }
+
+    /// 在把请求交给 transport 的同一同步边界执行调用方检查。
+    ///
+    /// 检查发生在 Cookie 构造之后、transport 调用之前；检查失败时不会发送请求。
+    pub(crate) async fn request_with_pre_send_check<F>(
+        &mut self,
+        mut request: HttpRequest,
+        pre_send_check: F,
+    ) -> Result<HttpResponse>
+    where
+        F: FnOnce(&Self) -> Result<()>,
+    {
         let now = self.now();
         let cookie = self.jar.cookie_header(&request.url, now)?;
         if !cookie.is_empty() {
             request.headers.insert("Cookie".into(), cookie);
         }
+        pre_send_check(self)?;
         let request_url = request.url.clone();
         let response = self.transport.execute(request).await?;
         self.jar.store_response(&response, &request_url, now)?;
@@ -212,14 +227,31 @@ impl ClientRuntime {
     /// 归约为结果未知，调用方必须先读取核对，不能自动重试。
     pub(crate) async fn request_non_idempotent(
         &mut self,
-        mut request: HttpRequest,
+        request: HttpRequest,
     ) -> Result<HttpResponse> {
+        self.request_non_idempotent_with_pre_send_check(request, |_| Ok(()))
+            .await
+    }
+
+    /// 在非幂等发送边界紧前执行调用方检查。
+    ///
+    /// 检查失败时尚未设置发送边界，也不会调用 transport；请求一旦通过检查，
+    /// 即视为已经合法交付给 transport，后续失败统一归约为结果未知。
+    pub(crate) async fn request_non_idempotent_with_pre_send_check<F>(
+        &mut self,
+        mut request: HttpRequest,
+        pre_send_check: F,
+    ) -> Result<HttpResponse>
+    where
+        F: FnOnce(&Self) -> Result<()>,
+    {
         let now = self.now();
         let cookie = self.jar.cookie_header(&request.url, now)?;
         if !cookie.is_empty() {
             request.headers.insert("Cookie".into(), cookie);
         }
         self.ensure_session_revision()?;
+        pre_send_check(self)?;
         let request_url = request.url.clone();
         self.non_idempotent_boundary_crossed = true;
         let response = self
@@ -330,7 +362,7 @@ fn write_outcome_unknown() -> UbaaError {
 mod tests {
     use std::sync::{
         Arc,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicU64, AtomicUsize, Ordering},
     };
 
     use async_trait::async_trait;
@@ -374,6 +406,24 @@ mod tests {
     #[derive(Clone)]
     struct InvalidCookieTransport {
         calls: Arc<AtomicU64>,
+    }
+
+    #[derive(Clone)]
+    struct OrderedTransport {
+        sequence: Arc<AtomicUsize>,
+    }
+
+    #[async_trait]
+    impl HttpTransport for OrderedTransport {
+        async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+            assert_eq!(
+                self.sequence
+                    .compare_exchange(1, 2, Ordering::SeqCst, Ordering::SeqCst),
+                Ok(1),
+                "pre-send guard 必须先于 transport 调用"
+            );
+            Ok(HttpResponse::new(200, request.url, b"{}".to_vec()))
+        }
     }
 
     #[async_trait]
@@ -527,6 +577,137 @@ mod tests {
             );
             assert_eq!(calls.load(Ordering::Relaxed), 0);
             assert!(!revision_runtime.take_non_idempotent_boundary_crossed());
+            let _ = std::fs::remove_dir_all(root);
+        });
+    }
+
+    #[test]
+    fn 调用方_guard_在_transport_之前同步执行() {
+        let executor = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .expect("创建测试运行时");
+        executor.block_on(async {
+            static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+            let root = std::env::temp_dir().join(format!(
+                "ubaa-runtime-pre-send-guard-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
+            let _ = std::fs::remove_dir_all(&root);
+
+            let sequence = Arc::new(AtomicUsize::new(0));
+            let mut ordered_runtime = ClientRuntime::new(
+                ConnectionMode::Direct,
+                OrderedTransport {
+                    sequence: Arc::clone(&sequence),
+                },
+                FileSessionStore::new(root.join("ordered")).expect("创建顺序测试存储"),
+            )
+            .expect("创建顺序测试运行时");
+            let guard_sequence = Arc::clone(&sequence);
+            ordered_runtime
+                .request_with_pre_send_check(
+                    HttpRequest::get("https://example.test/read"),
+                    move |_| {
+                        assert_eq!(
+                            guard_sequence.compare_exchange(
+                                0,
+                                1,
+                                Ordering::SeqCst,
+                                Ordering::SeqCst
+                            ),
+                            Ok(0)
+                        );
+                        Ok(())
+                    },
+                )
+                .await
+                .expect("guard 通过后应发送请求");
+            assert_eq!(sequence.load(Ordering::SeqCst), 2);
+            let _ = std::fs::remove_dir_all(root);
+        });
+    }
+
+    #[test]
+    fn 调用方_guard_失败时零传输且不跨越非幂等边界() {
+        let executor = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .expect("创建测试运行时");
+        executor.block_on(async {
+            static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+            let root = std::env::temp_dir().join(format!(
+                "ubaa-runtime-pre-send-rejected-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
+            let _ = std::fs::remove_dir_all(&root);
+
+            let calls = Arc::new(AtomicU64::new(0));
+            let mut guarded_runtime = ClientRuntime::new(
+                ConnectionMode::Direct,
+                FailingTransport {
+                    calls: Arc::clone(&calls),
+                },
+                FileSessionStore::new(&root).expect("创建拒绝测试存储"),
+            )
+            .expect("创建拒绝测试运行时");
+            let rejected = || {
+                UbaaError::new(
+                    ErrorCode::InvalidInput,
+                    ErrorKind::Input,
+                    false,
+                    "确定性 guard 拒绝",
+                )
+            };
+
+            let read_error = guarded_runtime
+                .request_with_pre_send_check(HttpRequest::get("https://example.test/read"), |_| {
+                    Err(rejected())
+                })
+                .await
+                .expect_err("普通请求的 guard 失败必须阻止发送");
+            assert_eq!(
+                (
+                    read_error.code,
+                    read_error.kind,
+                    read_error.retryable,
+                    read_error.message.as_str()
+                ),
+                (
+                    ErrorCode::InvalidInput,
+                    ErrorKind::Input,
+                    false,
+                    "确定性 guard 拒绝"
+                )
+            );
+            assert_eq!(calls.load(Ordering::Relaxed), 0);
+
+            guarded_runtime.begin_non_idempotent_operation();
+            let write_error = guarded_runtime
+                .request_non_idempotent_with_pre_send_check(
+                    HttpRequest::post("https://example.test/write", Vec::new()),
+                    |_| Err(rejected()),
+                )
+                .await
+                .expect_err("非幂等请求的 guard 失败必须阻止发送");
+            assert_eq!(
+                (
+                    write_error.code,
+                    write_error.kind,
+                    write_error.retryable,
+                    write_error.message.as_str()
+                ),
+                (
+                    ErrorCode::InvalidInput,
+                    ErrorKind::Input,
+                    false,
+                    "确定性 guard 拒绝"
+                )
+            );
+            assert_eq!(calls.load(Ordering::Relaxed), 0);
+            assert!(!guarded_runtime.take_non_idempotent_boundary_crossed());
             let _ = std::fs::remove_dir_all(root);
         });
     }

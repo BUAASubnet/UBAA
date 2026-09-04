@@ -21,10 +21,14 @@ class _SetterRecordingBackend extends BridgeBackend {
 }
 
 class _CharacterizationBridgeClient implements BridgeClient {
-  _CharacterizationBridgeClient({this.emptyReads = false, List<String>? events})
-    : calls = events ?? <String>[];
+  _CharacterizationBridgeClient({
+    this.emptyReads = false,
+    this.ygdkOverviewFixture,
+    List<String>? events,
+  }) : calls = events ?? <String>[];
 
   final bool emptyReads;
+  final BridgeYgdkOverview? ygdkOverviewFixture;
   final List<String> calls;
   final Map<Symbol, Object> writeRequests = <Symbol, Object>{};
   BridgeError? authError;
@@ -39,7 +43,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 7;
+  int contractVersion() => 8;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -715,19 +719,16 @@ class _CharacterizationBridgeClient implements BridgeClient {
       case #ygdkOverview:
         return Future<BridgeRoutedYgdkOverview>.value(
           BridgeRoutedYgdkOverview(
-            data: BridgeYgdkOverview(
-              summary: BridgeYgdkTermSummary(termCount: 0),
-              classifyId: 0,
-              classifyName: '分类',
-              defaultItemId: 0,
-              defaultItemName: '项目',
-              items: emptyReads
-                  ? const <BridgeYgdkItem>[]
-                  : const <BridgeYgdkItem>[
-                      BridgeYgdkItem(itemId: 7, name: '跑步项目', kind: 1),
-                    ],
-            ),
+            data: ygdkOverviewFixture ?? _ygdkOverviewData(emptyReads),
             route: _webVpnRoute,
+          ),
+        );
+      case #ygdkOverviewOnRoute:
+        final route = named[#route] as BridgeConnectionMode;
+        return Future<BridgeCallerPinnedYgdkOverview>.value(
+          BridgeCallerPinnedYgdkOverview(
+            data: ygdkOverviewFixture ?? _ygdkOverviewData(emptyReads),
+            pinnedRoute: route,
           ),
         );
       case #ygdkRecords:
@@ -735,25 +736,18 @@ class _CharacterizationBridgeClient implements BridgeClient {
         final size = named[#size] as int;
         return Future<BridgeRoutedYgdkRecords>.value(
           BridgeRoutedYgdkRecords(
-            data: BridgeYgdkRecordsPage(
-              content: emptyReads
-                  ? const <BridgeYgdkRecord>[]
-                  : const <BridgeYgdkRecord>[
-                      BridgeYgdkRecord(
-                        recordId: 101,
-                        itemId: 7,
-                        itemName: '打卡记录',
-                        place: '校园',
-                        imageCount: 2,
-                        isOpen: false,
-                      ),
-                    ],
-              total: emptyReads ? 0 : 9,
-              page: page,
-              size: size,
-              hasMore: !emptyReads,
-            ),
+            data: _ygdkRecordsData(emptyReads, page: page, size: size),
             route: _webVpnRoute,
+          ),
+        );
+      case #ygdkRecordsOnRoute:
+        final route = named[#route] as BridgeConnectionMode;
+        final page = named[#page] as int;
+        final size = named[#size] as int;
+        return Future<BridgeCallerPinnedYgdkRecords>.value(
+          BridgeCallerPinnedYgdkRecords(
+            data: _ygdkRecordsData(emptyReads, page: page, size: size),
+            pinnedRoute: route,
           ),
         );
       default:
@@ -801,7 +795,9 @@ const _readMembers = <Symbol>{
   #spocAssignment,
   #spocAssignments,
   #ygdkOverview,
+  #ygdkOverviewOnRoute,
   #ygdkRecords,
+  #ygdkRecordsOnRoute,
 };
 
 const _writeMembers = <Symbol, BridgeWriteOperation>{
@@ -827,6 +823,48 @@ BridgeWriteIntent _bridgeIntent(BridgeWriteOperation operation) =>
       expiresAt: 2000000000,
       requestDigest: 'digest-${operation.name}',
     );
+
+BridgeYgdkOverview _ygdkOverviewData(bool emptyReads) => BridgeYgdkOverview(
+  summary: const BridgeYgdkTermSummary(termCount: 0),
+  classifyId: 31,
+  classifyName: '分类',
+  defaultItemId: 0,
+  defaultItemName: '项目',
+  items: emptyReads
+      ? const <BridgeYgdkItem>[]
+      : const <BridgeYgdkItem>[
+          BridgeYgdkItem(
+            itemId: 7,
+            name: '跑步项目',
+            kind: 1,
+            submitEligibility: BridgeActionEligibility.allowed,
+            submitTarget: BridgeYgdkSubmitTarget(classifyId: 31, itemId: 7),
+          ),
+        ],
+);
+
+BridgeYgdkRecordsPage _ygdkRecordsData(
+  bool emptyReads, {
+  required int page,
+  required int size,
+}) => BridgeYgdkRecordsPage(
+  content: emptyReads
+      ? const <BridgeYgdkRecord>[]
+      : const <BridgeYgdkRecord>[
+          BridgeYgdkRecord(
+            recordId: 101,
+            itemId: 7,
+            itemName: '打卡记录',
+            place: '校园',
+            imageCount: 2,
+            isOpen: false,
+          ),
+        ],
+  total: emptyReads ? 0 : 9,
+  page: page,
+  size: size,
+  hasMore: !emptyReads,
+);
 
 BridgeJudgeAssignmentDetail _judgeDetail(
   String courseId,
@@ -875,6 +913,10 @@ String _describeReadCall(Invocation invocation) {
     #scheduleWeeks => 'scheduleWeeks:term=${named[#term]}',
     #spocAssignment => 'spocAssignment:assignmentId=${named[#assignmentId]}',
     #ygdkRecords => 'ygdkRecords:page=${named[#page]},size=${named[#size]}',
+    #ygdkOverviewOnRoute =>
+      'ygdkOverviewOnRoute:route=${(named[#route] as BridgeConnectionMode).name}',
+    #ygdkRecordsOnRoute =>
+      'ygdkRecordsOnRoute:route=${(named[#route] as BridgeConnectionMode).name},page=${named[#page]},size=${named[#size]}',
     _ => _symbolName(invocation.memberName),
   };
 }

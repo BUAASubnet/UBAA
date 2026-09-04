@@ -37,7 +37,7 @@ pub use crate::domain::{
     SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
     TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
     YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
-    YgdkTermSummary,
+    YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
 };
 pub use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 

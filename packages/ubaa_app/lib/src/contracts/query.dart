@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 支持领域筛选/服务端分页的可选 backend 能力。
@@ -22,5 +23,39 @@ abstract interface class CgyyCancellationReadbackBackend {
   Future<FeatureResult> loadCgyyOrderDetailOnRoute({
     required ConnectionMode route,
     required int orderId,
+  });
+}
+
+/// 阳光打卡写后两项只读刷新各自保存的展示状态。
+///
+/// 该状态不携带收据、记录匹配或成功证明；[overview] 与 [records]
+/// 只表示两个独立 best-effort 读取的最新安全快照。
+@immutable
+class YgdkReadbackState {
+  YgdkReadbackState({required this.overview, required this.records})
+    : assert(overview.feature == FeatureId.ygdk),
+      assert(records.feature == FeatureId.ygdk);
+
+  const YgdkReadbackState.empty()
+    : overview = const FeatureSnapshot(feature: FeatureId.ygdk),
+      records = const FeatureSnapshot(feature: FeatureId.ygdk);
+
+  final FeatureSnapshot overview;
+  final FeatureSnapshot records;
+}
+
+/// 阳光打卡提交后只在 intent 已确认路线读取概览与记录首页。
+///
+/// 冻结来源未定义本次写入与记录页之间的严格关联规则，因此本能力
+/// 只更新展示快照，不返回也不推导“已核对”证明。
+abstract interface class YgdkSubmissionReadbackBackend {
+  Future<FeatureResult> loadYgdkOverviewOnRoute({
+    required ConnectionMode route,
+  });
+
+  Future<FeatureResult> loadYgdkRecordsOnRoute({
+    required ConnectionMode route,
+    required int page,
+    required int size,
   });
 }

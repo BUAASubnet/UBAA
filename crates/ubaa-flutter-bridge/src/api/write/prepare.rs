@@ -4,9 +4,10 @@ use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
     ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
     map_bykc_sign_preflight_error, map_cgyy_cancel_preflight_error, map_cgyy_preflight_error,
-    map_cgyy_request, map_libbook_cancel_preflight_error, map_libbook_preflight_error, now_seconds,
-    random_id, safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
-    validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
+    map_cgyy_request, map_libbook_cancel_preflight_error, map_libbook_preflight_error,
+    map_ygdk_preflight_error, map_ygdk_request, now_seconds, random_id, safe_summary_label,
+    validate_bykc_sign_request, validate_cgyy_request, validate_id, validate_id_i32, validate_text,
+    validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
@@ -351,14 +352,32 @@ impl BridgeClient {
     ) -> Result<BridgeWriteIntent, BridgeError> {
         validate_ygdk_request(&request)?;
         let canonical = ygdk_canonical(&request);
-        self.prepare_write(
-            ReadonlyFeature::Ygdk,
-            BridgeWriteOperation::YgdkSubmit,
-            canonical,
-            "提交一条阳光打卡记录".to_owned(),
-            vec!["照片仅在本次操作内存中保留".to_owned()],
-            PendingWrite::Ygdk(request),
-        )
+        let domain_request = map_ygdk_request(request);
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_ygdk_submit(&domain_request)
+                .await
+                .map_err(map_ygdk_preflight_error)?;
+            let target = current.data.request.target;
+            let item_name = safe_summary_label(&current.data.item_name, "阳光打卡项目");
+            self.store_write_intent(
+                BridgeWriteOperation::YgdkSubmit,
+                canonical,
+                format!(
+                    "{item_name}（分类 {} · 项目 {}）",
+                    target.classify_id, target.item_id
+                ),
+                vec![
+                    "照片仅在本次操作内存中保留".to_owned(),
+                    "提交后将固定原路线刷新概览与记录，回读不替代结果确认".to_owned(),
+                ],
+                PendingWrite::Ygdk(current.data.request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_cgyy_submit_reservation(

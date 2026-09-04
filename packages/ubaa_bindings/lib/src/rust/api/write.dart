@@ -10,7 +10,7 @@ import 'read.dart';
 
 // These functions are ignored because they are not marked as `pub`: `conflict_key`, `feature`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeBykcCourseRequest {
   final PlatformInt64 courseId;
@@ -313,6 +313,7 @@ class BridgeWriteCommitResult {
   final bool outcomeUnknown;
   final BridgeConnectionMode? resolvedRoute;
   final BridgeCgyyReservationReceipt? cgyyReceipt;
+  final BridgeYgdkSubmitReceipt? ygdkReceipt;
 
   const BridgeWriteCommitResult({
     required this.operation,
@@ -321,6 +322,7 @@ class BridgeWriteCommitResult {
     required this.outcomeUnknown,
     this.resolvedRoute,
     this.cgyyReceipt,
+    this.ygdkReceipt,
   });
 
   @override
@@ -330,7 +332,8 @@ class BridgeWriteCommitResult {
       message.hashCode ^
       outcomeUnknown.hashCode ^
       resolvedRoute.hashCode ^
-      cgyyReceipt.hashCode;
+      cgyyReceipt.hashCode ^
+      ygdkReceipt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -342,7 +345,8 @@ class BridgeWriteCommitResult {
           message == other.message &&
           outcomeUnknown == other.outcomeUnknown &&
           resolvedRoute == other.resolvedRoute &&
-          cgyyReceipt == other.cgyyReceipt;
+          cgyyReceipt == other.cgyyReceipt &&
+          ygdkReceipt == other.ygdkReceipt;
 }
 
 class BridgeWriteIntent {
@@ -401,26 +405,42 @@ enum BridgeWriteOperation {
   evaluationSubmitCourses,
 }
 
+class BridgeYgdkSubmitReceipt {
+  final int recordId;
+
+  const BridgeYgdkSubmitReceipt({required this.recordId});
+
+  @override
+  int get hashCode => recordId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeYgdkSubmitReceipt &&
+          runtimeType == other.runtimeType &&
+          recordId == other.recordId;
+}
+
 class BridgeYgdkSubmitRequest {
-  final int? itemId;
-  final String? startTime;
-  final String? endTime;
+  final BridgeYgdkSubmitTarget target;
+  final String startTime;
+  final String endTime;
   final String? place;
-  final bool? shareToSquare;
-  final BridgePhotoUpload? photo;
+  final bool shareToSquare;
+  final BridgePhotoUpload photo;
 
   const BridgeYgdkSubmitRequest({
-    this.itemId,
-    this.startTime,
-    this.endTime,
+    required this.target,
+    required this.startTime,
+    required this.endTime,
     this.place,
-    this.shareToSquare,
-    this.photo,
+    required this.shareToSquare,
+    required this.photo,
   });
 
   @override
   int get hashCode =>
-      itemId.hashCode ^
+      target.hashCode ^
       startTime.hashCode ^
       endTime.hashCode ^
       place.hashCode ^
@@ -432,7 +452,7 @@ class BridgeYgdkSubmitRequest {
       identical(this, other) ||
       other is BridgeYgdkSubmitRequest &&
           runtimeType == other.runtimeType &&
-          itemId == other.itemId &&
+          target == other.target &&
           startTime == other.startTime &&
           endTime == other.endTime &&
           place == other.place &&

@@ -9,6 +9,7 @@
 just refs-bootstrap                                         # 仅首次缺失时联网建立固定引用；验证阶段不调用
 just refs                                                   # 纯只读校验 remote、HEAD 与干净工作树
 just layout-check                                           # 1000 行/16 文件结构棘轮与当前 baseline
+just contract-version-check                                 # CLI/Bridge 常量、schema、Dart 与当前文档纯静态一致性
 cargo metadata --locked --no-deps --format-version 1        # 校验 Cargo.lock 与 workspace 元数据
 just check-sensitive                                        # 扫描 tracked 和非 ignored 候选文件中的敏感路径/模式
 just shell-check                                             # 全部 Shell 执行 bash -n；可用时再执行 ShellCheck
@@ -18,8 +19,8 @@ just flutter-check                                          # 六个 package/app
 git diff --check
 ```
 
-`just check` 内部也运行 layout、refs、live 三类 Shell 合同与 layout checker；独立列出 `just layout-check` 是为了
-让结构错误尽早失败。Rust、Flutter/codegen 仍是独立证据，任何一个通过都不能推导另一个通过；结构治理阶段
+`just check` 内部也运行 layout、contract-version、refs、live 四类 Shell 合同以及 layout/公开版本 checker；
+独立列出两个静态 checker 是为了让结构或版本漂移尽早失败。Rust、Flutter/codegen 仍是独立证据，任何一个通过都不能推导另一个通过；结构治理阶段
 还要运行实施计划指定的 focused test。
 
 常用 focused 命令：
