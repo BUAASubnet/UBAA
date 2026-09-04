@@ -133,6 +133,36 @@ class LibbookReserveAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.libbookReserve;
 }
 
+/// 单个场馆时段的 Core 已核对预约目标。
+///
+/// [timeOrdinal] 是时段在当次 fresh day-info 中的顺序，只用于校验
+/// 两个选择是否相邻；最终上游表单不携带该字段。
+@immutable
+class CgyyReserveAction extends FeatureAction {
+  const CgyyReserveAction({
+    required this.venueSiteId,
+    required this.reservationDate,
+    required this.spaceId,
+    required this.timeId,
+    required this.venueSpaceGroupId,
+    required this.timeOrdinal,
+    required this.eligibility,
+  });
+
+  final int venueSiteId;
+  final String reservationDate;
+  final int spaceId;
+  final int timeId;
+  final int? venueSpaceGroupId;
+  final int timeOrdinal;
+
+  @override
+  final ActionEligibility eligibility;
+
+  @override
+  WriteOperation get operation => WriteOperation.cgyySubmitReservation;
+}
+
 /// 单条图书馆预约记录的 Core 已核对取消目标。
 ///
 /// [page] 与 [limit] 只限定 prepare、commit 和写后刷新使用的同一预约页；

@@ -8,17 +8,17 @@ use super::{
     BridgeBykcSignConfig, BridgeBykcSignPoint, BridgeBykcStatistic, BridgeBykcStatistics,
     BridgeBykcUserProfile, BridgeCgyyDayInfo, BridgeCgyyLockCode, BridgeCgyyOrder,
     BridgeCgyyOrdersPage, BridgeCgyyPurposeSource, BridgeCgyyPurposeType, BridgeCgyyPurposeTypes,
-    BridgeCgyySlotStatus, BridgeCgyySpaceAvailability, BridgeCgyyTimeSlot, BridgeCgyyVenueSite,
-    BridgeClassroomFloor, BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass,
-    BridgeEvaluationCourse, BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam,
-    BridgeExamArrangement, BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail,
-    BridgeJudgeAssignmentSummary, BridgeJudgeProblem, BridgeJudgeSubmissionStatus,
-    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookBooking, BridgeLibBookBookingsPage,
-    BridgeLibBookLibrary, BridgeLibBookSeat, BridgeLibBookStorey, BridgeLibBookTimeSlot,
-    BridgeSigninClass, BridgeSpocAssignmentDetail, BridgeSpocAssignmentSummary,
-    BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm, BridgeTodayClass, BridgeWeek,
-    BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview, BridgeYgdkRecord,
-    BridgeYgdkRecordsPage, BridgeYgdkTermSummary,
+    BridgeCgyyReservationTarget, BridgeCgyySlotStatus, BridgeCgyySpaceAvailability,
+    BridgeCgyyTimeSlot, BridgeCgyyVenueSite, BridgeClassroomFloor, BridgeClassroomInfo,
+    BridgeClassroomQuery, BridgeCourseClass, BridgeEvaluationCourse,
+    BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam, BridgeExamArrangement,
+    BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail, BridgeJudgeAssignmentSummary,
+    BridgeJudgeProblem, BridgeJudgeSubmissionStatus, BridgeLibBookArea, BridgeLibBookAreaDetail,
+    BridgeLibBookBooking, BridgeLibBookBookingsPage, BridgeLibBookLibrary, BridgeLibBookSeat,
+    BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
+    BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
+    BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
+    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkTermSummary,
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
@@ -579,7 +579,17 @@ fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
     BridgeCgyySlotStatus {
         time_id: v.time_id,
         reservation_status: v.reservation_status,
-        is_reservable: v.is_reservable,
+        reservation_eligibility: map_action_eligibility(v.reservation_eligibility),
+        reservation_target: v
+            .reservation_target
+            .map(|target| BridgeCgyyReservationTarget {
+                venue_site_id: target.venue_site_id,
+                reservation_date: target.reservation_date,
+                space_id: target.space_id,
+                time_id: target.time_id,
+                venue_space_group_id: target.venue_space_group_id,
+                time_ordinal: target.time_ordinal,
+            }),
         start_date: v.start_date,
         end_date: v.end_date,
     }

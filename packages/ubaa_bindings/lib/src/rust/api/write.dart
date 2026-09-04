@@ -10,7 +10,7 @@ import 'read.dart';
 
 // These functions are ignored because they are not marked as `pub`: `conflict_key`, `feature`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeBykcCourseRequest {
   final PlatformInt64 courseId;
@@ -70,6 +70,37 @@ class BridgeCgyyCancelOrderRequest {
       other is BridgeCgyyCancelOrderRequest &&
           runtimeType == other.runtimeType &&
           id == other.id;
+}
+
+class BridgeCgyyReservationReceipt {
+  final int orderId;
+  final int? venueSiteId;
+  final String? reservationDate;
+  final int? orderStatus;
+
+  const BridgeCgyyReservationReceipt({
+    required this.orderId,
+    this.venueSiteId,
+    this.reservationDate,
+    this.orderStatus,
+  });
+
+  @override
+  int get hashCode =>
+      orderId.hashCode ^
+      venueSiteId.hashCode ^
+      reservationDate.hashCode ^
+      orderStatus.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCgyyReservationReceipt &&
+          runtimeType == other.runtimeType &&
+          orderId == other.orderId &&
+          venueSiteId == other.venueSiteId &&
+          reservationDate == other.reservationDate &&
+          orderStatus == other.orderStatus;
 }
 
 class BridgeCgyyReservationSelection {
@@ -281,7 +312,7 @@ class BridgeWriteCommitResult {
   final String message;
   final bool outcomeUnknown;
   final BridgeConnectionMode? resolvedRoute;
-  final BridgeCgyyOrder? order;
+  final BridgeCgyyReservationReceipt? cgyyReceipt;
 
   const BridgeWriteCommitResult({
     required this.operation,
@@ -289,7 +320,7 @@ class BridgeWriteCommitResult {
     required this.message,
     required this.outcomeUnknown,
     this.resolvedRoute,
-    this.order,
+    this.cgyyReceipt,
   });
 
   @override
@@ -299,7 +330,7 @@ class BridgeWriteCommitResult {
       message.hashCode ^
       outcomeUnknown.hashCode ^
       resolvedRoute.hashCode ^
-      order.hashCode;
+      cgyyReceipt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -311,7 +342,7 @@ class BridgeWriteCommitResult {
           message == other.message &&
           outcomeUnknown == other.outcomeUnknown &&
           resolvedRoute == other.resolvedRoute &&
-          order == other.order;
+          cgyyReceipt == other.cgyyReceipt;
 }
 
 class BridgeWriteIntent {

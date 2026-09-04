@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -582,17 +582,58 @@ class BridgeCgyyPurposeTypes {
           source == other.source;
 }
 
+class BridgeCgyyReservationTarget {
+  final int venueSiteId;
+  final String reservationDate;
+  final int spaceId;
+  final int timeId;
+  final int? venueSpaceGroupId;
+  final int timeOrdinal;
+
+  const BridgeCgyyReservationTarget({
+    required this.venueSiteId,
+    required this.reservationDate,
+    required this.spaceId,
+    required this.timeId,
+    this.venueSpaceGroupId,
+    required this.timeOrdinal,
+  });
+
+  @override
+  int get hashCode =>
+      venueSiteId.hashCode ^
+      reservationDate.hashCode ^
+      spaceId.hashCode ^
+      timeId.hashCode ^
+      venueSpaceGroupId.hashCode ^
+      timeOrdinal.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCgyyReservationTarget &&
+          runtimeType == other.runtimeType &&
+          venueSiteId == other.venueSiteId &&
+          reservationDate == other.reservationDate &&
+          spaceId == other.spaceId &&
+          timeId == other.timeId &&
+          venueSpaceGroupId == other.venueSpaceGroupId &&
+          timeOrdinal == other.timeOrdinal;
+}
+
 class BridgeCgyySlotStatus {
   final int timeId;
-  final int reservationStatus;
-  final bool isReservable;
+  final int? reservationStatus;
+  final BridgeActionEligibility reservationEligibility;
+  final BridgeCgyyReservationTarget? reservationTarget;
   final String? startDate;
   final String? endDate;
 
   const BridgeCgyySlotStatus({
     required this.timeId,
-    required this.reservationStatus,
-    required this.isReservable,
+    this.reservationStatus,
+    required this.reservationEligibility,
+    this.reservationTarget,
     this.startDate,
     this.endDate,
   });
@@ -601,7 +642,8 @@ class BridgeCgyySlotStatus {
   int get hashCode =>
       timeId.hashCode ^
       reservationStatus.hashCode ^
-      isReservable.hashCode ^
+      reservationEligibility.hashCode ^
+      reservationTarget.hashCode ^
       startDate.hashCode ^
       endDate.hashCode;
 
@@ -612,7 +654,8 @@ class BridgeCgyySlotStatus {
           runtimeType == other.runtimeType &&
           timeId == other.timeId &&
           reservationStatus == other.reservationStatus &&
-          isReservable == other.isReservable &&
+          reservationEligibility == other.reservationEligibility &&
+          reservationTarget == other.reservationTarget &&
           startDate == other.startDate &&
           endDate == other.endDate;
 }

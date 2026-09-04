@@ -16,7 +16,7 @@ Future<WriteCommitResult> _commitWrite(
           : _toConnectionMode(result.resolvedRoute!),
       cgyyReceipt:
           result.operation == BridgeWriteOperation.cgyySubmitReservation
-          ? _mapCgyyReceipt(result.order)
+          ? _mapCgyyReceipt(result.cgyyReceipt)
           : null,
     );
   } on BridgeError catch (error) {
@@ -36,15 +36,15 @@ WriteIntent _mapIntent(BridgeWriteIntent intent) => WriteIntent(
   requestDigest: intent.requestDigest,
 );
 
-CgyyReservationReceipt? _mapCgyyReceipt(BridgeCgyyOrder? order) {
-  if (order == null || order.id <= 0) return null;
+CgyyReservationReceipt? _mapCgyyReceipt(BridgeCgyyReservationReceipt? receipt) {
+  if (receipt == null || receipt.orderId <= 0) return null;
   return CgyyReservationReceipt(
-    orderId: order.id,
-    venueSiteId: order.venueSiteId,
-    reservationDate: order.reservationDate?.trim().isEmpty ?? true
+    orderId: receipt.orderId,
+    venueSiteId: receipt.venueSiteId,
+    reservationDate: receipt.reservationDate?.trim().isEmpty ?? true
         ? null
-        : order.reservationDate!.trim(),
-    orderStatus: order.orderStatus,
+        : receipt.reservationDate!.trim(),
+    orderStatus: receipt.orderStatus,
   );
 }
 

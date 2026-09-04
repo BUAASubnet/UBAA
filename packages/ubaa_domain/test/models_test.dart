@@ -164,6 +164,27 @@ void main() {
     expect(action.eligibility, ActionEligibility.allowed);
   });
 
+  test('场馆预约 action 保留 Core 核对的场地、时段顺序与三态资格', () {
+    const action = CgyyReserveAction(
+      venueSiteId: 3,
+      reservationDate: '2026-09-04',
+      spaceId: 4,
+      timeId: 900,
+      venueSpaceGroupId: 9,
+      timeOrdinal: 0,
+      eligibility: ActionEligibility.allowed,
+    );
+
+    expect(action.venueSiteId, 3);
+    expect(action.reservationDate, '2026-09-04');
+    expect(action.spaceId, 4);
+    expect(action.timeId, 900);
+    expect(action.venueSpaceGroupId, 9);
+    expect(action.timeOrdinal, 0);
+    expect(action.operation, WriteOperation.cgyySubmitReservation);
+    expect(action.eligibility, ActionEligibility.allowed);
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

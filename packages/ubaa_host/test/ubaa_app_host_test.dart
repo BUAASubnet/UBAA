@@ -320,13 +320,15 @@ void main() {
     expect(backend.ygdkInput?.photo?.mimeType, 'image/jpeg');
 
     const cgyyInput = CgyySubmitInput(
-      venueSiteId: 41020,
-      reservationDate: ' 2099-04-21 ',
-      selections: <CgyyReservationSelectionInput>[
-        CgyyReservationSelectionInput(
+      actions: <CgyyReserveAction>[
+        CgyyReserveAction(
+          venueSiteId: 41020,
+          reservationDate: ' 2099-04-21 ',
           spaceId: 41022,
           timeId: 41023,
           venueSpaceGroupId: 41024,
+          timeOrdinal: 0,
+          eligibility: ActionEligibility.allowed,
         ),
       ],
       phone: ' fixture-phone-41025 ',
@@ -341,12 +343,13 @@ void main() {
     final cgyyIntent = await shell.onPrepareCgyySubmitWrite!(cgyyInput);
     expect(cgyyIntent.operation, WriteOperation.cgyySubmitReservation);
     expect(cgyyIntent.intentId, 'intent-cgyy-submit');
-    expect(backend.cgyyInput?.venueSiteId, 41020);
-    expect(backend.cgyyInput?.reservationDate, '2099-04-21');
-    expect(backend.cgyyInput?.selections, hasLength(1));
-    expect(backend.cgyyInput?.selections.single.spaceId, 41022);
-    expect(backend.cgyyInput?.selections.single.timeId, 41023);
-    expect(backend.cgyyInput?.selections.single.venueSpaceGroupId, 41024);
+    expect(backend.cgyyInput?.actions.single.venueSiteId, 41020);
+    expect(backend.cgyyInput?.actions.single.reservationDate, '2099-04-21');
+    expect(backend.cgyyInput?.actions, hasLength(1));
+    expect(backend.cgyyInput?.actions.single.spaceId, 41022);
+    expect(backend.cgyyInput?.actions.single.timeId, 41023);
+    expect(backend.cgyyInput?.actions.single.venueSpaceGroupId, 41024);
+    expect(backend.cgyyInput?.actions.single.timeOrdinal, 0);
     expect(backend.cgyyInput?.phone, 'fixture-phone-41025');
     expect(backend.cgyyInput?.theme, 'fixture-theme-41026');
     expect(backend.cgyyInput?.purposeType, 41027);

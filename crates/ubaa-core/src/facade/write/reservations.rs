@@ -1,9 +1,10 @@
 //! 场馆与图书馆预约写入口。
 
 use crate::domain::{
-    CgyyActionResult, CgyyReservationResult, CgyyReservationSubmitRequest, LibBookCancelPreflight,
-    LibBookCancelRequest, LibBookCancelResult, LibBookReservePreflight, LibBookReserveRequest,
-    LibBookReserveResult, ReadonlyFeature,
+    CgyyActionResult, CgyyReservationPreflight, CgyyReservationResult,
+    CgyyReservationSubmitRequest, LibBookCancelPreflight, LibBookCancelRequest,
+    LibBookCancelResult, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
+    ReadonlyFeature,
 };
 
 use super::super::client::UbaaClient;
@@ -31,6 +32,26 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 只读复核场馆预约的当前日期和唯一 typed 槽位目标。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、目标不唯一、资格不足或上游结构变化时返回带路线信息的错误。
+    pub async fn preflight_cgyy_reservation(
+        &mut self,
+        request: &CgyyReservationSubmitRequest,
+    ) -> RoutedResult<CgyyReservationPreflight> {
+        self.guard_latest_routed()?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        self.log_cgyy_route(resolution, "reservation.preflight");
+        let result = crate::features::cgyy::preflight_reservation(
+            self.runtime_for(resolution.mode),
+            request,
+        )
+        .await;
+        self.finish_routed(resolution, result)
+    }
+
     /// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
     ///
     /// # Errors
@@ -43,10 +64,12 @@ impl UbaaClient {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "reservation.submit");
-        let result =
-            crate::features::cgyy::submit_reservation(self.runtime_for(resolution.mode), request)
-                .await;
-        self.finish_routed(resolution, result)
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::cgyy::submit_reservation(runtime, request).await
+        };
+        self.finish_routed_write(resolution, result)
     }
 
     /// 只读复核图书馆预约的当前日期、时段和唯一座位资格。

@@ -8,8 +8,8 @@ use sha2::{Digest, Sha256};
 use ubaa_core::facade as domain;
 
 use super::{
-    BridgeBykcSignCourseRequest, BridgeCgyySubmitReservationRequest, BridgeWriteOperation,
-    BridgeYgdkSubmitRequest,
+    BridgeBykcSignCourseRequest, BridgeCgyyReservationReceipt, BridgeCgyySubmitReservationRequest,
+    BridgeWriteOperation, BridgeYgdkSubmitRequest,
 };
 use crate::api::client::{BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind};
 use crate::api::read::BridgeEvaluationCourse;
@@ -103,6 +103,37 @@ pub(super) fn map_libbook_cancel_preflight_error(error: domain::RoutedError) -> 
     BridgeError::from_routed(error)
 }
 
+pub(super) fn map_cgyy_preflight_error(error: domain::RoutedError) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if error.error.code == domain::ErrorCode::InvalidInput && error.error.retryable {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "场馆预约资格已变化，请刷新后重新准备",
+        );
+    }
+    if error.error.code == domain::ErrorCode::UpstreamChanged {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "场馆预约资格核对响应无效",
+        );
+    }
+    BridgeError::from_routed(error)
+}
+
 pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
@@ -122,6 +153,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
+            | BridgeWriteOperation::CgyySubmitReservation
     ) && error.error.code == domain::ErrorCode::InvalidInput
         && error.error.retryable
     {
@@ -131,6 +163,7 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::LibbookCancelBooking => {
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
+            BridgeWriteOperation::CgyySubmitReservation => "场馆预约资格已变化，请刷新后重新准备",
             _ => "课程签到资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
@@ -169,6 +202,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::SigninPerform
             | BridgeWriteOperation::LibbookReserve
             | BridgeWriteOperation::LibbookCancelBooking
+            | BridgeWriteOperation::CgyySubmitReservation
     ) {
         false
     } else {
@@ -366,6 +400,17 @@ pub(super) fn map_cgyy_request(
     request
 }
 
+pub(super) fn map_cgyy_receipt(
+    receipt: domain::CgyyReservationReceipt,
+) -> BridgeCgyyReservationReceipt {
+    BridgeCgyyReservationReceipt {
+        order_id: receipt.order_id,
+        venue_site_id: receipt.venue_site_id,
+        reservation_date: receipt.reservation_date,
+        order_status: receipt.order_status,
+    }
+}
+
 pub(super) fn random_id() -> String {
     let mut value = String::with_capacity(32);
     for byte in random::<[u8; 16]>() {
@@ -430,12 +475,29 @@ pub(super) fn validate_cgyy_request(
     if request.selections.is_empty() {
         return Err(invalid_input("至少选择一个预约时段"));
     }
+    if request.selections.len() > 2 {
+        return Err(invalid_input("同次预约最多选择两个时段"));
+    }
     let first_space = request.selections[0].space_id;
+    let first_group = request.selections[0].venue_space_group_id;
+    let mut time_ids = std::collections::BTreeSet::new();
     for selection in &request.selections {
         validate_id_i32(selection.space_id)?;
         validate_id_i32(selection.time_id)?;
         if selection.space_id != first_space {
             return Err(invalid_input("同次预约只能选择同一房间的时段"));
+        }
+        if selection.venue_space_group_id != first_group {
+            return Err(invalid_input("同次预约的空间分组必须一致"));
+        }
+        if selection
+            .venue_space_group_id
+            .is_some_and(|group_id| group_id <= 0)
+        {
+            return Err(invalid_input("空间分组标识必须为正数"));
+        }
+        if !time_ids.insert(selection.time_id) {
+            return Err(invalid_input("同次预约不能重复选择时段"));
         }
     }
     validate_text(&request.phone)?;
@@ -447,6 +509,7 @@ pub(super) fn validate_cgyy_request(
         return Err(invalid_input("参与人数必须是正整数"));
     }
     validate_text(&request.activity_content)?;
+    validate_text(&request.joiners)?;
     Ok(())
 }
 
@@ -467,7 +530,7 @@ pub(super) fn ygdk_canonical(request: &BridgeYgdkSubmitRequest) -> String {
 }
 
 pub(super) fn cgyy_canonical(request: &BridgeCgyySubmitReservationRequest) -> String {
-    let selections = request
+    let mut selections = request
         .selections
         .iter()
         .map(|selection| {
@@ -478,6 +541,7 @@ pub(super) fn cgyy_canonical(request: &BridgeCgyySubmitReservationRequest) -> St
             )
         })
         .collect::<Vec<_>>();
+    selections.sort_unstable();
     format!(
         "site={};date={};selections={selections:?};phone={};theme={};purpose={};joiner_num={};content={};joiners={};philosophy={};off_school={}",
         request.venue_site_id,

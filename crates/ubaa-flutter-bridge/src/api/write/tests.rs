@@ -15,13 +15,14 @@ use super::{
 };
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode, BridgeErrorKind};
 use ubaa_core::facade::testing::{
-    DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, RouteConfig,
-    RouteSessionSnapshot,
+    DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, HttpTransport,
+    RouteConfig, RouteSessionSnapshot,
 };
 use ubaa_core::facade::{ErrorCode, ErrorKind, NetworkState, RoutedError, UbaaClient, UbaaError};
 use ubaa_test_support::{ExpectedRequest, MockTransport};
 
 mod bykc;
+mod cgyy_reservation;
 mod contract;
 mod libbook;
 mod libbook_cancel;
@@ -207,13 +208,16 @@ fn bykc_sign_write_request(status: u16, body: &'static str) -> ExpectedRequest {
     )
 }
 
-async fn install_core(
+async fn install_core<Direct, WebVpn>(
     bridge: &BridgeClient,
     store: FileSessionStore,
     config: &str,
-    direct: MockTransport,
-    webvpn: MockTransport,
-) {
+    direct: Direct,
+    webvpn: WebVpn,
+) where
+    Direct: HttpTransport + 'static,
+    WebVpn: HttpTransport + 'static,
+{
     let core = UbaaClient::with_routing(
         direct,
         webvpn,

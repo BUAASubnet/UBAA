@@ -2,15 +2,14 @@
 
 use super::support::{
     ensure_bykc_course_target, ensure_bykc_deselect_allowed, ensure_bykc_preflight_route,
-    ensure_bykc_select_allowed, invalid_input, map_cgyy_request, map_commit_error,
-    map_evaluation_course, map_resolution_error, now_seconds, safe_message,
+    ensure_bykc_select_allowed, invalid_input, map_cgyy_receipt, map_cgyy_request,
+    map_commit_error, map_evaluation_course, map_resolution_error, now_seconds, safe_message,
 };
 use super::{BridgeWriteCommitResult, PendingWrite};
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind, catch_panic,
     disposed_error,
 };
-use crate::api::read::map_cgyy_order;
 use ubaa_core::facade as domain;
 
 impl BridgeClient {
@@ -176,11 +175,17 @@ impl BridgeClient {
                     .cgyy_submit_reservation(map_cgyy_request(request))
                     .await
                     .map(|r| {
+                        let success = r.data.success;
+                        let message = if success {
+                            safe_message("场馆预约已提交")
+                        } else {
+                            safe_message("场馆预约未完成")
+                        };
                         (
                             r.resolution,
-                            true,
-                            safe_message("场馆预约已提交"),
-                            r.data.order.map(map_cgyy_order),
+                            success,
+                            message,
+                            r.data.receipt.map(map_cgyy_receipt),
                         )
                     }),
                 PendingWrite::CgyyCancel(request) => client
@@ -199,13 +204,13 @@ impl BridgeClient {
                     .map(|r| (r.resolution, true, safe_message("教学评教已提交"), None)),
             };
             match result {
-                Ok((resolution, success, message, order)) => Ok(BridgeWriteCommitResult {
+                Ok((resolution, success, message, cgyy_receipt)) => Ok(BridgeWriteCommitResult {
                     operation,
                     success,
                     message,
                     outcome_unknown: false,
                     resolved_route: Some(resolution.mode.into()),
-                    order,
+                    cgyy_receipt,
                 }),
                 Err(error) => Err(map_commit_error(operation, error)),
             }

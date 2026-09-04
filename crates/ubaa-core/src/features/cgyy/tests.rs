@@ -8,6 +8,7 @@ use super::parser::{parse_action_result, parse_sites};
 use super::sign::sign;
 use super::write::{build_submit_form, validate_submit_request};
 use crate::domain::{CgyyReservationSelection, CgyyReservationSubmitRequest, ConnectionMode};
+use crate::error::ErrorCode;
 use crate::ports::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use crate::runtime::ClientRuntime;
 use crate::session::FileSessionStore;
@@ -279,6 +280,87 @@ fn 预约请求省略验证码时允许内部挑战流程() {
     assert!(validate_submit_request(&request).is_ok());
 }
 
+#[test]
+fn 预约请求只提供部分内部验证码挑战时在网络前失败关闭() {
+    let request = CgyyReservationSubmitRequest {
+        venue_site_id: 4,
+        reservation_date: "2026-03-29".into(),
+        selections: vec![CgyyReservationSelection {
+            space_id: 6,
+            time_id: 242,
+            venue_space_group_id: None,
+        }],
+        phone: "010-00000000".into(),
+        theme: "测试预约".into(),
+        purpose_type: 1,
+        joiner_num: 1,
+        activity_content: "测试内容".into(),
+        joiners: "测试人员".into(),
+        captcha_token: "captcha-token".into(),
+        captcha_secret_key: Some("0123456789abcdef".into()),
+        captcha_original_image_base64: Some("original-fixture".into()),
+        captcha_jigsaw_image_base64: None,
+        ..Default::default()
+    };
+
+    let error = validate_submit_request(&request).expect_err("不完整挑战材料必须失败关闭");
+    assert_eq!(error.code, ErrorCode::InvalidInput);
+}
+
+#[test]
+fn 预约请求_debug_隐藏全部敏感表单字段且保留安全结构元数据() {
+    let request = CgyyReservationSubmitRequest {
+        venue_site_id: 4,
+        reservation_date: "2026-03-29".into(),
+        selections: vec![CgyyReservationSelection {
+            space_id: 6,
+            time_id: 242,
+            venue_space_group_id: Some(9),
+        }],
+        phone: "PHONE-SENTINEL-01000000000".into(),
+        theme: "THEME-SENTINEL".into(),
+        purpose_type: 1,
+        joiner_num: 1,
+        activity_content: "ACTIVITY-SENTINEL".into(),
+        joiners: "JOINERS-SENTINEL".into(),
+        is_philosophy_social_sciences: false,
+        is_off_school_joiner: true,
+        captcha_verification: "VERIFICATION-SENTINEL".into(),
+        captcha_point_json: "POINT-SENTINEL".into(),
+        captcha_token: "TOKEN-SENTINEL".into(),
+        captcha_secret_key: Some("SECRET-SENTINEL".into()),
+        captcha_original_image_base64: Some("ORIGINAL-IMAGE-SENTINEL".into()),
+        captcha_jigsaw_image_base64: Some("JIGSAW-IMAGE-SENTINEL".into()),
+    };
+
+    let debug = format!("{request:?}");
+    for sentinel in [
+        "PHONE-SENTINEL-01000000000",
+        "THEME-SENTINEL",
+        "ACTIVITY-SENTINEL",
+        "JOINERS-SENTINEL",
+        "VERIFICATION-SENTINEL",
+        "POINT-SENTINEL",
+        "TOKEN-SENTINEL",
+        "SECRET-SENTINEL",
+        "ORIGINAL-IMAGE-SENTINEL",
+        "JIGSAW-IMAGE-SENTINEL",
+    ] {
+        assert!(!debug.contains(sentinel), "Debug 泄漏了 {sentinel}");
+    }
+    for safe_metadata in [
+        "venue_site_id: 4",
+        "reservation_date: \"2026-03-29\"",
+        "space_id: 6",
+        "time_id: 242",
+        "purpose_type: 1",
+        "joiner_num: 1",
+        "is_off_school_joiner: true",
+    ] {
+        assert!(debug.contains(safe_metadata), "Debug 缺少 {safe_metadata}");
+    }
+}
+
 mod contract {
     use super::super::parser::{
         parse_day_context, parse_lock_code, parse_order_detail, parse_orders,
@@ -322,7 +404,12 @@ mod contract {
         let body = include_str!("../../../../../fixtures/readonly/cgyy-day.json");
         let result = parse_day_context(body, 4, "2026-03-29").unwrap().info;
         assert_eq!(result.time_slots[0].label, "14:00-15:35");
-        assert!(!result.spaces[0].slots[0].is_reservable);
+        assert_eq!(result.spaces[0].slots[0].reservation_status, Some(2));
+        assert_eq!(
+            result.spaces[0].slots[0].reservation_eligibility,
+            crate::domain::ActionEligibility::Denied
+        );
+        assert!(result.spaces[0].slots[0].reservation_target.is_none());
     }
 
     #[test]

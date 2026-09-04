@@ -3750,6 +3750,22 @@ impl SseDecode for crate::api::read::BridgeCgyyPurposeTypes {
     }
 }
 
+impl SseDecode for crate::api::write::BridgeCgyyReservationReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_orderId = <i32>::sse_decode(deserializer);
+        let mut var_venueSiteId = <Option<i32>>::sse_decode(deserializer);
+        let mut var_reservationDate = <Option<String>>::sse_decode(deserializer);
+        let mut var_orderStatus = <Option<i32>>::sse_decode(deserializer);
+        return crate::api::write::BridgeCgyyReservationReceipt {
+            order_id: var_orderId,
+            venue_site_id: var_venueSiteId,
+            reservation_date: var_reservationDate,
+            order_status: var_orderStatus,
+        };
+    }
+}
+
 impl SseDecode for crate::api::write::BridgeCgyyReservationSelection {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3764,18 +3780,42 @@ impl SseDecode for crate::api::write::BridgeCgyyReservationSelection {
     }
 }
 
+impl SseDecode for crate::api::read::BridgeCgyyReservationTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_venueSiteId = <i32>::sse_decode(deserializer);
+        let mut var_reservationDate = <String>::sse_decode(deserializer);
+        let mut var_spaceId = <i32>::sse_decode(deserializer);
+        let mut var_timeId = <i32>::sse_decode(deserializer);
+        let mut var_venueSpaceGroupId = <Option<i32>>::sse_decode(deserializer);
+        let mut var_timeOrdinal = <i32>::sse_decode(deserializer);
+        return crate::api::read::BridgeCgyyReservationTarget {
+            venue_site_id: var_venueSiteId,
+            reservation_date: var_reservationDate,
+            space_id: var_spaceId,
+            time_id: var_timeId,
+            venue_space_group_id: var_venueSpaceGroupId,
+            time_ordinal: var_timeOrdinal,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeCgyySlotStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_timeId = <i32>::sse_decode(deserializer);
-        let mut var_reservationStatus = <i32>::sse_decode(deserializer);
-        let mut var_isReservable = <bool>::sse_decode(deserializer);
+        let mut var_reservationStatus = <Option<i32>>::sse_decode(deserializer);
+        let mut var_reservationEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
+        let mut var_reservationTarget =
+            <Option<crate::api::read::BridgeCgyyReservationTarget>>::sse_decode(deserializer);
         let mut var_startDate = <Option<String>>::sse_decode(deserializer);
         let mut var_endDate = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeCgyySlotStatus {
             time_id: var_timeId,
             reservation_status: var_reservationStatus,
-            is_reservable: var_isReservable,
+            reservation_eligibility: var_reservationEligibility,
+            reservation_target: var_reservationTarget,
             start_date: var_startDate,
             end_date: var_endDate,
         };
@@ -5280,14 +5320,15 @@ impl SseDecode for crate::api::write::BridgeWriteCommitResult {
         let mut var_outcomeUnknown = <bool>::sse_decode(deserializer);
         let mut var_resolvedRoute =
             <Option<crate::api::client::BridgeConnectionMode>>::sse_decode(deserializer);
-        let mut var_order = <Option<crate::api::read::BridgeCgyyOrder>>::sse_decode(deserializer);
+        let mut var_cgyyReceipt =
+            <Option<crate::api::write::BridgeCgyyReservationReceipt>>::sse_decode(deserializer);
         return crate::api::write::BridgeWriteCommitResult {
             operation: var_operation,
             success: var_success,
             message: var_message,
             outcome_unknown: var_outcomeUnknown,
             resolved_route: var_resolvedRoute,
-            order: var_order,
+            cgyy_receipt: var_cgyyReceipt,
         };
     }
 }
@@ -6066,11 +6107,24 @@ impl SseDecode for Option<crate::api::read::BridgeBykcSignConfig> {
     }
 }
 
-impl SseDecode for Option<crate::api::read::BridgeCgyyOrder> {
+impl SseDecode for Option<crate::api::write::BridgeCgyyReservationReceipt> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::api::read::BridgeCgyyOrder>::sse_decode(
+            return Some(
+                <crate::api::write::BridgeCgyyReservationReceipt>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::read::BridgeCgyyReservationTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::read::BridgeCgyyReservationTarget>::sse_decode(
                 deserializer,
             ));
         } else {
@@ -7045,6 +7099,29 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCgyyPurposeTypes>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeCgyyReservationReceipt {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.order_id.into_into_dart().into_dart(),
+            self.venue_site_id.into_into_dart().into_dart(),
+            self.reservation_date.into_into_dart().into_dart(),
+            self.order_status.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::write::BridgeCgyyReservationReceipt
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::write::BridgeCgyyReservationReceipt>
+    for crate::api::write::BridgeCgyyReservationReceipt
+{
+    fn into_into_dart(self) -> crate::api::write::BridgeCgyyReservationReceipt {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeCgyyReservationSelection {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -7067,12 +7144,38 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::write::BridgeCgyyReservationS
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyyReservationTarget {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.venue_site_id.into_into_dart().into_dart(),
+            self.reservation_date.into_into_dart().into_dart(),
+            self.space_id.into_into_dart().into_dart(),
+            self.time_id.into_into_dart().into_dart(),
+            self.venue_space_group_id.into_into_dart().into_dart(),
+            self.time_ordinal.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeCgyyReservationTarget
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeCgyyReservationTarget>
+    for crate::api::read::BridgeCgyyReservationTarget
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeCgyyReservationTarget {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeCgyySlotStatus {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.time_id.into_into_dart().into_dart(),
             self.reservation_status.into_into_dart().into_dart(),
-            self.is_reservable.into_into_dart().into_dart(),
+            self.reservation_eligibility.into_into_dart().into_dart(),
+            self.reservation_target.into_into_dart().into_dart(),
             self.start_date.into_into_dart().into_dart(),
             self.end_date.into_into_dart().into_dart(),
         ]
@@ -9171,7 +9274,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::write::BridgeWriteCommitResul
             self.message.into_into_dart().into_dart(),
             self.outcome_unknown.into_into_dart().into_dart(),
             self.resolved_route.into_into_dart().into_dart(),
-            self.order.into_into_dart().into_dart(),
+            self.cgyy_receipt.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9733,6 +9836,16 @@ impl SseEncode for crate::api::read::BridgeCgyyPurposeTypes {
     }
 }
 
+impl SseEncode for crate::api::write::BridgeCgyyReservationReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.order_id, serializer);
+        <Option<i32>>::sse_encode(self.venue_site_id, serializer);
+        <Option<String>>::sse_encode(self.reservation_date, serializer);
+        <Option<i32>>::sse_encode(self.order_status, serializer);
+    }
+}
+
 impl SseEncode for crate::api::write::BridgeCgyyReservationSelection {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -9742,12 +9855,31 @@ impl SseEncode for crate::api::write::BridgeCgyyReservationSelection {
     }
 }
 
+impl SseEncode for crate::api::read::BridgeCgyyReservationTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.venue_site_id, serializer);
+        <String>::sse_encode(self.reservation_date, serializer);
+        <i32>::sse_encode(self.space_id, serializer);
+        <i32>::sse_encode(self.time_id, serializer);
+        <Option<i32>>::sse_encode(self.venue_space_group_id, serializer);
+        <i32>::sse_encode(self.time_ordinal, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeCgyySlotStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.time_id, serializer);
-        <i32>::sse_encode(self.reservation_status, serializer);
-        <bool>::sse_encode(self.is_reservable, serializer);
+        <Option<i32>>::sse_encode(self.reservation_status, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.reservation_eligibility,
+            serializer,
+        );
+        <Option<crate::api::read::BridgeCgyyReservationTarget>>::sse_encode(
+            self.reservation_target,
+            serializer,
+        );
         <Option<String>>::sse_encode(self.start_date, serializer);
         <Option<String>>::sse_encode(self.end_date, serializer);
     }
@@ -10787,7 +10919,10 @@ impl SseEncode for crate::api::write::BridgeWriteCommitResult {
             self.resolved_route,
             serializer,
         );
-        <Option<crate::api::read::BridgeCgyyOrder>>::sse_encode(self.order, serializer);
+        <Option<crate::api::write::BridgeCgyyReservationReceipt>>::sse_encode(
+            self.cgyy_receipt,
+            serializer,
+        );
     }
 }
 
@@ -11357,12 +11492,22 @@ impl SseEncode for Option<crate::api::read::BridgeBykcSignConfig> {
     }
 }
 
-impl SseEncode for Option<crate::api::read::BridgeCgyyOrder> {
+impl SseEncode for Option<crate::api::write::BridgeCgyyReservationReceipt> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::api::read::BridgeCgyyOrder>::sse_encode(value, serializer);
+            <crate::api::write::BridgeCgyyReservationReceipt>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::read::BridgeCgyyReservationTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::read::BridgeCgyyReservationTarget>::sse_encode(value, serializer);
         }
     }
 }

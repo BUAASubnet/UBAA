@@ -13,8 +13,6 @@ mod methods;
 
 use super::client::BridgeRouteDecision;
 
-pub(crate) use mappers::map_cgyy_order;
-
 macro_rules! routed {
     ($name:ident, $data:ty) => {
         #[derive(Clone, Debug)]
@@ -500,10 +498,20 @@ pub struct BridgeCgyyTimeSlot {
     pub label: String,
 }
 #[derive(Clone, Debug)]
+pub struct BridgeCgyyReservationTarget {
+    pub venue_site_id: i32,
+    pub reservation_date: String,
+    pub space_id: i32,
+    pub time_id: i32,
+    pub venue_space_group_id: Option<i32>,
+    pub time_ordinal: i32,
+}
+#[derive(Clone, Debug)]
 pub struct BridgeCgyySlotStatus {
     pub time_id: i32,
-    pub reservation_status: i32,
-    pub is_reservable: bool,
+    pub reservation_status: Option<i32>,
+    pub reservation_eligibility: BridgeActionEligibility,
+    pub reservation_target: Option<BridgeCgyyReservationTarget>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
 }

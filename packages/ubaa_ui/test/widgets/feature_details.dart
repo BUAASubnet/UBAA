@@ -81,34 +81,56 @@ void _registerFeatureInputTests() {
                   FeatureDetail(
                     title: '讨论室 上午',
                     fields: <FeatureField>[
-                      FeatureField(label: '站点 ID', value: '3'),
-                      FeatureField(label: '日期', value: '2026-09-03'),
-                      FeatureField(label: '空间 ID', value: '4'),
-                      FeatureField(label: '空间组 ID', value: '9'),
-                      FeatureField(label: '时段 ID', value: '5'),
-                      FeatureField(label: '可预约', value: '是'),
+                      FeatureField(label: '展示站点', value: '300'),
+                      FeatureField(label: '展示日期', value: '1900-01-01'),
+                      FeatureField(label: '展示空间', value: '400'),
+                      FeatureField(label: '展示时段', value: '500'),
+                      FeatureField(label: '可预约', value: '否'),
+                    ],
+                    actions: <FeatureAction>[
+                      CgyyReserveAction(
+                        venueSiteId: 3,
+                        reservationDate: '2026-09-03',
+                        spaceId: 4,
+                        timeId: 5,
+                        venueSpaceGroupId: 9,
+                        timeOrdinal: 0,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                   FeatureDetail(
                     title: '讨论室 下午',
                     fields: <FeatureField>[
-                      FeatureField(label: '站点 ID', value: '3'),
-                      FeatureField(label: '日期', value: '2026-09-03'),
-                      FeatureField(label: '空间 ID', value: '4'),
-                      FeatureField(label: '空间组 ID', value: '9'),
-                      FeatureField(label: '时段 ID', value: '6'),
-                      FeatureField(label: '可预约', value: '是'),
+                      FeatureField(label: '任意标签', value: '任意展示值'),
+                    ],
+                    actions: <FeatureAction>[
+                      CgyyReserveAction(
+                        venueSiteId: 3,
+                        reservationDate: '2026-09-03',
+                        spaceId: 4,
+                        timeId: 6,
+                        venueSpaceGroupId: 9,
+                        timeOrdinal: 1,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                   FeatureDetail(
                     title: '另一空间',
                     fields: <FeatureField>[
-                      FeatureField(label: '站点 ID', value: '3'),
-                      FeatureField(label: '日期', value: '2026-09-03'),
-                      FeatureField(label: '空间 ID', value: '5'),
-                      FeatureField(label: '空间组 ID', value: '9'),
-                      FeatureField(label: '时段 ID', value: '7'),
                       FeatureField(label: '可预约', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      CgyyReserveAction(
+                        venueSiteId: 3,
+                        reservationDate: '2026-09-03',
+                        spaceId: 5,
+                        timeId: 7,
+                        venueSpaceGroupId: 9,
+                        timeOrdinal: 2,
+                        eligibility: ActionEligibility.allowed,
+                      ),
                     ],
                   ),
                 ]
@@ -129,16 +151,10 @@ void _registerFeatureInputTests() {
           onRetryFeature: (_) async {},
           onPrepareCgyySubmitWrite: (input) async {
             prepareCalls++;
-            expect(input.venueSiteId, 3);
-            expect(input.reservationDate, '2026-09-03');
-            expect(
-              input.selections.map((selection) => selection.spaceId),
-              <int>[4, 4],
-            );
-            expect(input.selections.map((selection) => selection.timeId), <int>[
-              5,
-              6,
-            ]);
+            expect(input.actions.first.venueSiteId, 3);
+            expect(input.actions.first.reservationDate, '2026-09-03');
+            expect(input.actions.map((action) => action.spaceId), <int>[4, 4]);
+            expect(input.actions.map((action) => action.timeId), <int>[5, 6]);
             expect(input.phone, 'phone-placeholder');
             expect(input.purposeType, 2);
             return WriteIntent(

@@ -8,7 +8,7 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::{HttpMethod, HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 
-use super::parser::{error, object, string};
+use super::parser::{error, object};
 use super::sign::{sign, timestamp_millis};
 
 const BASE_URL: &str = "https://cgyy.buaa.edu.cn/venue-zhjs-server";
@@ -113,9 +113,7 @@ pub(super) fn check_business_response(response: &HttpResponse, feature: &str) ->
     });
     if code != Some(200) {
         warn!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = ?code, "Cgyy 业务 code 非成功值");
-        return Err(error(
-            string(&root, "message").unwrap_or_else(|| "场馆预约请求失败".into()),
-        ));
+        return Err(error("场馆预约请求失败"));
     }
     debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = 200, "Cgyy 业务响应通过");
     Ok(())

@@ -65,7 +65,21 @@ Future<FeatureResult> _loadCgyyFeature(
           final details = <FeatureDetail>[];
           for (final space in result.data.spaces) {
             for (final slot in space.slots) {
-              if (!slot.isReservable) continue;
+              final eligibility = _toCgyyActionEligibility(
+                slot.reservationEligibility,
+              );
+              final target = slot.reservationTarget;
+              if (eligibility != ActionEligibility.allowed ||
+                  target == null ||
+                  target.venueSiteId <= 0 ||
+                  target.reservationDate.trim().isEmpty ||
+                  target.spaceId <= 0 ||
+                  target.timeId <= 0 ||
+                  target.timeOrdinal < 0 ||
+                  (target.venueSpaceGroupId != null &&
+                      target.venueSpaceGroupId! <= 0)) {
+                continue;
+              }
               final matchingSlots = result.data.timeSlots
                   .where((item) => item.id == slot.timeId)
                   .toList(growable: false);
@@ -86,6 +100,17 @@ Future<FeatureResult> _loadCgyyFeature(
                     _field('结束时间', timeSlot?.endTime),
                     _field('可预约', '是'),
                   ]),
+                  actions: <FeatureAction>[
+                    CgyyReserveAction(
+                      venueSiteId: target.venueSiteId,
+                      reservationDate: target.reservationDate.trim(),
+                      spaceId: target.spaceId,
+                      timeId: target.timeId,
+                      venueSpaceGroupId: target.venueSpaceGroupId,
+                      timeOrdinal: target.timeOrdinal,
+                      eligibility: eligibility,
+                    ),
+                  ],
                 ),
               );
             }
@@ -221,6 +246,14 @@ Future<FeatureResult> _loadCgyyFeature(
       throw StateError('unexpected feature: $feature');
   }
 }
+
+ActionEligibility _toCgyyActionEligibility(
+  BridgeActionEligibility eligibility,
+) => switch (eligibility) {
+  BridgeActionEligibility.allowed => ActionEligibility.allowed,
+  BridgeActionEligibility.denied => ActionEligibility.denied,
+  BridgeActionEligibility.unknown => ActionEligibility.unknown,
+};
 
 String? _cgyyCheckStatusText(int? status) => switch (status) {
   1 => '审批通过',

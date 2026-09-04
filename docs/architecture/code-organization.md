@@ -46,6 +46,14 @@ Phase 11F 将 LibBook booking `status` 改为可空整数，并加入 Core 派�
 `id/page/limit`，prepare、commit 与 readback 必须读取同一页并唯一匹配目标；最终 cancel wire 仍只有 `{id}`
 且只越过一次不可重放发送边界。`session.json` 保持 schema v2，`config.toml` 保持版本 1。
 
+Phase 11G 将 Cgyy 时段 `reservationStatus` 改为可空整数，并加入 Core 派生的
+`reservationEligibility/reservationTarget`；Flutter bridge contract 使用 v6，CLI schema 使用 v7。Flutter
+预约输入只接受一至两个同站点、日期、空间和空间组、时段 ID/原始 ordinal 唯一且 ordinal 相邻的 typed
+action。prepare 与 commit 都 fresh 复核资格，验证码重试只发生在最终写入前，最终 reservation submit 只
+越过一次 non-idempotent 发送边界；成功结果至多附带安全收据，发送后无法判定时返回不可重试
+`outcome_unknown`，两者都不公开验证码、完整订单或个人信息。`session.json` 保持 schema v2，
+`config.toml` 保持版本 1。
+
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。
 
@@ -204,7 +212,7 @@ UBAA/
 │   │   │   ├── io/
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── input.rs
-│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v6
+│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v7
 │   │   │   │   ├── human.rs
 │   │   │   │   ├── error.rs                # 稳定错误 payload 与名称投影
 │   │   │   │   ├── render.rs               # stdout/stderr 渲染与 Core 错误投影
@@ -216,7 +224,7 @@ UBAA/
 │   │   │       └── steps.rs
 │   │   └── tests/
 │   │       ├── cli_contract.rs             # 薄入口
-│   │       ├── cli_contract/{common,help,output,routing,writes,exit}.rs
+│   │       ├── cli_contract/{common,help,output,output_helpers,routing,writes,exit,libbook_cancel,cgyy_reservation}.rs
 │   │       ├── binary_e2e.rs
 │   │       └── core_live_runtime.rs
 │   ├── ubaa_flutter/
@@ -275,7 +283,7 @@ UBAA/
 │   │   │   ├── commit.rs                   # 一次性消费、复核与提交
 │   │   │   ├── support.rs                  # 验证、canonical digest 与安全映射
 │   │   │   ├── tests.rs                    # cfg(test) 根与唯一测试注入 helper
-│   │   │   └── tests/{contract,bykc,lifecycle,validation}.rs
+│   │   │   └── tests/{contract,bykc,cgyy_reservation,libbook,libbook_cancel,lifecycle,signin,validation}.rs
 │   │   ├── client.rs
 │   │   └── simple.rs
 │   └── ubaa-test-support/
@@ -293,7 +301,7 @@ UBAA/
 │   │   ├── models.dart                     # 旧路径的显式兼容 export
 │   │   ├── common/{route,error,auth}.dart
 │   │   ├── feature/{catalog,query,result}.dart
-│   │   └── write/{intent,inputs}.dart
+│   │   └── write/{actions,inputs,intent}.dart
 │   ├── ubaa_app/lib/src/
 │   │   ├── backend.dart                    # 旧路径的显式兼容 export
 │   │   ├── app_controller.dart             # 旧路径的显式兼容 export
@@ -309,7 +317,8 @@ UBAA/
 │   │   ├── write/
 │   │   │   ├── coordinator.dart            # 唯一生产写状态机
 │   │   │   ├── state.dart
-│   │   │   └── receipt_verifier.dart
+│   │   │   ├── receipt_verifier.dart
+│   │   │   └── cgyy_validation.dart        # action-only 场馆预约输入门禁
 │   │   └── contracts/                      # 现有 backend 能力合同
 │   ├── ubaa_host/
 │   │   ├── pubspec.yaml

@@ -2585,9 +2585,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgeCgyyOrder dco_decode_box_autoadd_bridge_cgyy_order(dynamic raw) {
+  BridgeCgyyReservationReceipt
+  dco_decode_box_autoadd_bridge_cgyy_reservation_receipt(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_bridge_cgyy_order(raw);
+    return dco_decode_bridge_cgyy_reservation_receipt(raw);
+  }
+
+  @protected
+  BridgeCgyyReservationTarget
+  dco_decode_box_autoadd_bridge_cgyy_reservation_target(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cgyy_reservation_target(raw);
   }
 
   @protected
@@ -2970,6 +2978,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyReservationReceipt dco_decode_bridge_cgyy_reservation_receipt(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCgyyReservationReceipt(
+      orderId: dco_decode_i_32(arr[0]),
+      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      reservationDate: dco_decode_opt_String(arr[2]),
+      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[3]),
+    );
+  }
+
+  @protected
   BridgeCgyyReservationSelection dco_decode_bridge_cgyy_reservation_selection(
     dynamic raw,
   ) {
@@ -2985,17 +3009,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyReservationTarget dco_decode_bridge_cgyy_reservation_target(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeCgyyReservationTarget(
+      venueSiteId: dco_decode_i_32(arr[0]),
+      reservationDate: dco_decode_String(arr[1]),
+      spaceId: dco_decode_i_32(arr[2]),
+      timeId: dco_decode_i_32(arr[3]),
+      venueSpaceGroupId: dco_decode_opt_box_autoadd_i_32(arr[4]),
+      timeOrdinal: dco_decode_i_32(arr[5]),
+    );
+  }
+
+  @protected
   BridgeCgyySlotStatus dco_decode_bridge_cgyy_slot_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeCgyySlotStatus(
       timeId: dco_decode_i_32(arr[0]),
-      reservationStatus: dco_decode_i_32(arr[1]),
-      isReservable: dco_decode_bool(arr[2]),
-      startDate: dco_decode_opt_String(arr[3]),
-      endDate: dco_decode_opt_String(arr[4]),
+      reservationStatus: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      reservationEligibility: dco_decode_bridge_action_eligibility(arr[2]),
+      reservationTarget:
+          dco_decode_opt_box_autoadd_bridge_cgyy_reservation_target(arr[3]),
+      startDate: dco_decode_opt_String(arr[4]),
+      endDate: dco_decode_opt_String(arr[5]),
     );
   }
 
@@ -4270,7 +4314,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       message: dco_decode_String(arr[2]),
       outcomeUnknown: dco_decode_bool(arr[3]),
       resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[4]),
-      order: dco_decode_opt_box_autoadd_bridge_cgyy_order(arr[5]),
+      cgyyReceipt: dco_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
+        arr[5],
+      ),
     );
   }
 
@@ -4763,9 +4809,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgeCgyyOrder? dco_decode_opt_box_autoadd_bridge_cgyy_order(dynamic raw) {
+  BridgeCgyyReservationReceipt?
+  dco_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_bridge_cgyy_order(raw);
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cgyy_reservation_receipt(raw);
+  }
+
+  @protected
+  BridgeCgyyReservationTarget?
+  dco_decode_opt_box_autoadd_bridge_cgyy_reservation_target(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cgyy_reservation_target(raw);
   }
 
   @protected
@@ -4943,11 +5001,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgeCgyyOrder sse_decode_box_autoadd_bridge_cgyy_order(
+  BridgeCgyyReservationReceipt
+  sse_decode_box_autoadd_bridge_cgyy_reservation_receipt(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_bridge_cgyy_order(deserializer));
+    return (sse_decode_bridge_cgyy_reservation_receipt(deserializer));
+  }
+
+  @protected
+  BridgeCgyyReservationTarget
+  sse_decode_box_autoadd_bridge_cgyy_reservation_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cgyy_reservation_target(deserializer));
   }
 
   @protected
@@ -5437,6 +5505,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyReservationReceipt sse_decode_bridge_cgyy_reservation_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_orderId = sse_decode_i_32(deserializer);
+    var var_venueSiteId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_reservationDate = sse_decode_opt_String(deserializer);
+    var var_orderStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeCgyyReservationReceipt(
+      orderId: var_orderId,
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      orderStatus: var_orderStatus,
+    );
+  }
+
+  @protected
   BridgeCgyyReservationSelection sse_decode_bridge_cgyy_reservation_selection(
     SseDeserializer deserializer,
   ) {
@@ -5452,19 +5537,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyReservationTarget sse_decode_bridge_cgyy_reservation_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_venueSiteId = sse_decode_i_32(deserializer);
+    var var_reservationDate = sse_decode_String(deserializer);
+    var var_spaceId = sse_decode_i_32(deserializer);
+    var var_timeId = sse_decode_i_32(deserializer);
+    var var_venueSpaceGroupId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_timeOrdinal = sse_decode_i_32(deserializer);
+    return BridgeCgyyReservationTarget(
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      spaceId: var_spaceId,
+      timeId: var_timeId,
+      venueSpaceGroupId: var_venueSpaceGroupId,
+      timeOrdinal: var_timeOrdinal,
+    );
+  }
+
+  @protected
   BridgeCgyySlotStatus sse_decode_bridge_cgyy_slot_status(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_timeId = sse_decode_i_32(deserializer);
-    var var_reservationStatus = sse_decode_i_32(deserializer);
-    var var_isReservable = sse_decode_bool(deserializer);
+    var var_reservationStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_reservationEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
+    var var_reservationTarget =
+        sse_decode_opt_box_autoadd_bridge_cgyy_reservation_target(deserializer);
     var var_startDate = sse_decode_opt_String(deserializer);
     var var_endDate = sse_decode_opt_String(deserializer);
     return BridgeCgyySlotStatus(
       timeId: var_timeId,
       reservationStatus: var_reservationStatus,
-      isReservable: var_isReservable,
+      reservationEligibility: var_reservationEligibility,
+      reservationTarget: var_reservationTarget,
       startDate: var_startDate,
       endDate: var_endDate,
     );
@@ -6871,14 +6982,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_resolvedRoute = sse_decode_opt_box_autoadd_bridge_connection_mode(
       deserializer,
     );
-    var var_order = sse_decode_opt_box_autoadd_bridge_cgyy_order(deserializer);
+    var var_cgyyReceipt =
+        sse_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
+          deserializer,
+        );
     return BridgeWriteCommitResult(
       operation: var_operation,
       success: var_success,
       message: var_message,
       outcomeUnknown: var_outcomeUnknown,
       resolvedRoute: var_resolvedRoute,
-      order: var_order,
+      cgyyReceipt: var_cgyyReceipt,
     );
   }
 
@@ -7648,13 +7762,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  BridgeCgyyOrder? sse_decode_opt_box_autoadd_bridge_cgyy_order(
+  BridgeCgyyReservationReceipt?
+  sse_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_bridge_cgyy_order(deserializer));
+      return (sse_decode_box_autoadd_bridge_cgyy_reservation_receipt(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCgyyReservationTarget?
+  sse_decode_opt_box_autoadd_bridge_cgyy_reservation_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cgyy_reservation_target(
+        deserializer,
+      ));
     } else {
       return null;
     }
@@ -7869,12 +8002,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_bridge_cgyy_order(
-    BridgeCgyyOrder self,
+  void sse_encode_box_autoadd_bridge_cgyy_reservation_receipt(
+    BridgeCgyyReservationReceipt self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_bridge_cgyy_order(self, serializer);
+    sse_encode_bridge_cgyy_reservation_receipt(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_reservation_target(
+    BridgeCgyyReservationTarget self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_reservation_target(self, serializer);
   }
 
   @protected
@@ -8266,6 +8408,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_cgyy_reservation_receipt(
+    BridgeCgyyReservationReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.orderId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSiteId, serializer);
+    sse_encode_opt_String(self.reservationDate, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.orderStatus, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_cgyy_reservation_selection(
     BridgeCgyyReservationSelection self,
     SseSerializer serializer,
@@ -8277,14 +8431,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_cgyy_reservation_target(
+    BridgeCgyyReservationTarget self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.venueSiteId, serializer);
+    sse_encode_String(self.reservationDate, serializer);
+    sse_encode_i_32(self.spaceId, serializer);
+    sse_encode_i_32(self.timeId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSpaceGroupId, serializer);
+    sse_encode_i_32(self.timeOrdinal, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_cgyy_slot_status(
     BridgeCgyySlotStatus self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.timeId, serializer);
-    sse_encode_i_32(self.reservationStatus, serializer);
-    sse_encode_bool(self.isReservable, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.reservationStatus, serializer);
+    sse_encode_bridge_action_eligibility(
+      self.reservationEligibility,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_bridge_cgyy_reservation_target(
+      self.reservationTarget,
+      serializer,
+    );
     sse_encode_opt_String(self.startDate, serializer);
     sse_encode_opt_String(self.endDate, serializer);
   }
@@ -9371,7 +9546,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.resolvedRoute,
       serializer,
     );
-    sse_encode_opt_box_autoadd_bridge_cgyy_order(self.order, serializer);
+    sse_encode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
+      self.cgyyReceipt,
+      serializer,
+    );
   }
 
   @protected
@@ -10017,15 +10195,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_bridge_cgyy_order(
-    BridgeCgyyOrder? self,
+  void sse_encode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
+    BridgeCgyyReservationReceipt? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_bridge_cgyy_order(self, serializer);
+      sse_encode_box_autoadd_bridge_cgyy_reservation_receipt(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cgyy_reservation_target(
+    BridgeCgyyReservationTarget? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cgyy_reservation_target(self, serializer);
     }
   }
 

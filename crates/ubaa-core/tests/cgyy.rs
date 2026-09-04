@@ -8,6 +8,11 @@ use ubaa_core::facade::{
     Result, RouteClient,
 };
 
+#[path = "cgyy/reservation_authority.rs"]
+mod reservation_authority;
+#[path = "cgyy/reservation_support.rs"]
+mod reservation_support;
+
 #[test]
 fn 用途类型上游失败时回退到冻结静态定义() {
     let root =

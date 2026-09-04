@@ -4,12 +4,14 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 part 'bridge_backend/libbook.dart';
+part 'bridge_backend/cgyy.dart';
 
 void main() {
   _registerLibbookBridgeBackendTests();
+  _registerCgyyBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(5);
+    final client = _ContractVersionClient(6);
 
     final backend = BridgeBackend(client);
 
@@ -17,7 +19,7 @@ void main() {
   });
 
   test('BridgeBackend 在 release 可执行路径拒绝不匹配合同版本', () {
-    final client = _ContractVersionClient(4);
+    final client = _ContractVersionClient(5);
 
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
@@ -458,10 +460,16 @@ void main() {
 
     final cgyyIntent = await backend.prepareCgyySubmitReservation(
       const CgyySubmitInput(
-        venueSiteId: 3,
-        reservationDate: '2026-09-03',
-        selections: <CgyyReservationSelectionInput>[
-          CgyyReservationSelectionInput(spaceId: 4, timeId: 5),
+        actions: <CgyyReserveAction>[
+          CgyyReserveAction(
+            venueSiteId: 3,
+            reservationDate: '2026-09-03',
+            spaceId: 4,
+            timeId: 5,
+            venueSpaceGroupId: 9,
+            timeOrdinal: 0,
+            eligibility: ActionEligibility.allowed,
+          ),
         ],
         phone: 'phone-placeholder',
         theme: '讨论',
@@ -502,7 +510,7 @@ void main() {
     expect(result.cgyyReceipt?.orderStatus, 1);
   });
 
-  test('BridgeBackend 场馆日期空间只投影可预约时段的公开 ID', () async {
+  test('BridgeBackend 场馆时段只从 typed 资格与目标构造预约 action', () async {
     final backend = BridgeBackend(
       _FakeCgyyDayClient(
         BridgeRoutedCgyyDayInfo(
@@ -528,12 +536,21 @@ void main() {
                   BridgeCgyySlotStatus(
                     timeId: 5,
                     reservationStatus: 0,
-                    isReservable: true,
+                    reservationEligibility: BridgeActionEligibility.allowed,
+                    reservationTarget: BridgeCgyyReservationTarget(
+                      venueSiteId: 3,
+                      reservationDate: '2026-09-03',
+                      spaceId: 4,
+                      timeId: 5,
+                      venueSpaceGroupId: 9,
+                      timeOrdinal: 7,
+                    ),
                   ),
                   BridgeCgyySlotStatus(
                     timeId: 6,
                     reservationStatus: 1,
-                    isReservable: false,
+                    reservationEligibility: BridgeActionEligibility.unknown,
+                    reservationTarget: null,
                   ),
                 ],
               ),
@@ -563,6 +580,15 @@ void main() {
     expect(fields['时段 ID'], '5');
     expect(fields['空间组 ID'], '9');
     expect(fields['可预约'], '是');
+    final action = result.details.single.action<CgyyReserveAction>();
+    expect(action, isNotNull);
+    expect(action?.venueSiteId, 3);
+    expect(action?.reservationDate, '2026-09-03');
+    expect(action?.spaceId, 4);
+    expect(action?.timeId, 5);
+    expect(action?.venueSpaceGroupId, 9);
+    expect(action?.timeOrdinal, 7);
+    expect(action?.eligibility, ActionEligibility.allowed);
   });
 
   test('BridgeBackend 取消入口状态仅展示并由 typed 资格供 UI 门禁使用', () async {
@@ -713,7 +739,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 5;
+  int contractVersion() => 6;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {
@@ -835,6 +861,7 @@ class _FakeComplexWriteClient extends _CompatibleBridgeClient {
       expect(request.venueSiteId, 3);
       expect(request.selections.single.spaceId, 4);
       expect(request.selections.single.timeId, 5);
+      expect(request.selections.single.venueSpaceGroupId, 9);
       expect(request.phone, 'phone-placeholder');
       return Future<BridgeWriteIntent>.value(
         _writeIntent(BridgeWriteOperation.cgyySubmitReservation),
@@ -863,12 +890,11 @@ class _FakeCgyyCommitClient extends _CompatibleBridgeClient {
           message: '场馆预约已提交',
           outcomeUnknown: false,
           resolvedRoute: BridgeConnectionMode.direct,
-          order: const BridgeCgyyOrder(
-            id: 42,
+          cgyyReceipt: const BridgeCgyyReservationReceipt(
+            orderId: 42,
             venueSiteId: 3,
             reservationDate: '2026-09-03',
             orderStatus: 1,
-            theme: 'private-theme',
           ),
         ),
       );

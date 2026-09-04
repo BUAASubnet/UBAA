@@ -3029,7 +3029,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                         .action<LibbookReserveAction>();
                     final libbookCancelAction = detail
                         .action<LibbookCancelAction>();
-                    final cgyyReservation = _cgyyReservationTarget(detail);
+                    final cgyyReservation = _cgyyReserveAction(detail);
                     final evaluation = _evaluationTarget(detail);
                     final ygdk = _ygdkTarget(detail);
                     final canBykcSign =
@@ -3313,7 +3313,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 onPressed: () => _showCgyyReservationForm(
                                   context,
                                   cgyyReservation,
-                                  _cgyyReservationSelections(cgyyReservation),
+                                  _cgyyReserveCandidates(cgyyReservation),
                                 ),
                                 icon: const Icon(Icons.event_available),
                                 label: const Text('准备场馆预约'),
@@ -3474,74 +3474,39 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     return DateTime.tryParse(normalized);
   }
 
-  ({
-    int venueSiteId,
-    String reservationDate,
-    CgyyReservationSelectionInput selection,
-  })?
-  _cgyyReservationTarget(FeatureDetail detail) {
+  CgyyReserveAction? _cgyyReserveAction(FeatureDetail detail) {
     if (widget.feature != FeatureId.cgyy) return null;
-    final values = <String, String>{
-      for (final field in detail.fields) field.label: field.value.trim(),
-    };
-    if (values['可预约'] != '是') return null;
-    final siteId = int.tryParse(values['站点 ID'] ?? '');
-    final spaceId = int.tryParse(values['空间 ID'] ?? '');
-    final timeId = int.tryParse(values['时段 ID'] ?? '');
-    final date = values['日期'];
-    if (siteId == null ||
-        siteId <= 0 ||
-        spaceId == null ||
-        spaceId <= 0 ||
-        timeId == null ||
-        timeId <= 0 ||
-        date == null ||
-        date.isEmpty) {
-      return null;
-    }
-    final groupId = int.tryParse(values['空间组 ID'] ?? '');
-    return (
-      venueSiteId: siteId,
-      reservationDate: date,
-      selection: CgyyReservationSelectionInput(
-        spaceId: spaceId,
-        timeId: timeId,
-        venueSpaceGroupId: groupId,
-      ),
-    );
+    final action = detail.action<CgyyReserveAction>();
+    return action != null && _isUsableCgyyReserveAction(action) ? action : null;
   }
 
-  /// 收集当前日期同一空间结果中的全部可预约时段，供用户在一次预约中
-  /// 选择多个不同时间段。桥接合同要求一次预约只能包含同一空间；跨空间
-  /// 结果不展示为可选项，重复槽位按空间、时段和空间组去重，仍由 Core
-  /// 在 prepare 阶段执行最终资格与冲突校验。
-  List<CgyyReservationSelectionInput> _cgyyReservationSelections(
-    ({
-      int venueSiteId,
-      String reservationDate,
-      CgyyReservationSelectionInput selection,
-    })
-    target,
-  ) {
-    if (widget.feature != FeatureId.cgyy) {
-      return const <CgyyReservationSelectionInput>[];
-    }
+  bool _isUsableCgyyReserveAction(CgyyReserveAction action) =>
+      action.eligibility == ActionEligibility.allowed &&
+      action.venueSiteId > 0 &&
+      action.reservationDate.trim().isNotEmpty &&
+      action.spaceId > 0 &&
+      action.timeId > 0 &&
+      action.timeOrdinal >= 0 &&
+      (action.venueSpaceGroupId == null || action.venueSpaceGroupId! > 0);
+
+  List<CgyyReserveAction> _cgyyReserveCandidates(CgyyReserveAction target) {
     final seen = <String>{};
-    final selections = <CgyyReservationSelectionInput>[];
+    final candidates = <CgyyReserveAction>[];
     for (final detail in widget.details) {
-      final candidate = _cgyyReservationTarget(detail);
+      final candidate = _cgyyReserveAction(detail);
       if (candidate == null ||
           candidate.venueSiteId != target.venueSiteId ||
-          candidate.reservationDate != target.reservationDate ||
-          candidate.selection.spaceId != target.selection.spaceId) {
+          candidate.reservationDate.trim() != target.reservationDate.trim() ||
+          candidate.spaceId != target.spaceId ||
+          candidate.venueSpaceGroupId != target.venueSpaceGroupId) {
         continue;
       }
-      final selection = candidate.selection;
-      final key =
-          '${selection.spaceId}:${selection.timeId}:${selection.venueSpaceGroupId ?? ''}';
-      if (seen.add(key)) selections.add(selection);
+      if (seen.add(_cgyyActionKey(candidate))) candidates.add(candidate);
     }
-    return List<CgyyReservationSelectionInput>.unmodifiable(selections);
+    candidates.sort(
+      (left, right) => left.timeOrdinal.compareTo(right.timeOrdinal),
+    );
+    return List<CgyyReserveAction>.unmodifiable(candidates);
   }
 
   ({int itemId, String title})? _ygdkTarget(FeatureDetail detail) {
@@ -3575,13 +3540,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
 
   Future<void> _showCgyyReservationForm(
     BuildContext context,
-    ({
-      int venueSiteId,
-      String reservationDate,
-      CgyyReservationSelectionInput selection,
-    })
-    target,
-    List<CgyyReservationSelectionInput> availableSelections,
+    CgyyReserveAction target,
+    List<CgyyReserveAction> availableActions,
   ) async {
     final phone = TextEditingController();
     final theme = TextEditingController();
@@ -3589,13 +3549,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     final joinerNum = TextEditingController(text: '1');
     final content = TextEditingController();
     final joiners = TextEditingController();
-    final selectedKeys = <String>{_cgyySelectionKey(target.selection)};
-    final selectionsByKey = <String, CgyyReservationSelectionInput>{
-      for (final selection in <CgyyReservationSelectionInput>[
-        target.selection,
-        ...availableSelections,
-      ])
-        _cgyySelectionKey(selection): selection,
+    final selectedKeys = <String>{_cgyyActionKey(target)};
+    final actionsByKey = <String, CgyyReserveAction>{
+      for (final action in <CgyyReserveAction>[target, ...availableActions])
+        _cgyyActionKey(action): action,
     };
     final input = await showDialog<CgyySubmitInput>(
       context: context,
@@ -3613,13 +3570,11 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Text(
-                      '站点 ${target.venueSiteId} · ${target.reservationDate}',
+                      '站点 ${target.venueSiteId} · ${target.reservationDate.trim()}',
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '空间 ${target.selection.spaceId} · 时段 ${target.selection.timeId}',
-                    ),
-                    if (selectionsByKey.length > 1) ...<Widget>[
+                    Text('空间 ${target.spaceId} · 时段 ${target.timeId}'),
+                    if (actionsByKey.length > 1) ...<Widget>[
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerLeft,
@@ -3632,20 +3587,24 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
-                        children: selectionsByKey.entries
+                        children: actionsByKey.entries
                             .map((entry) {
-                              final selection = entry.value;
+                              final action = entry.value;
                               return FilterChip(
                                 label: Text(
-                                  '空间 ${selection.spaceId} · 时段 ${selection.timeId}',
+                                  '空间 ${action.spaceId} · 时段 ${action.timeId}',
                                 ),
                                 selected: selectedKeys.contains(entry.key),
                                 onSelected: (selected) => setState(() {
-                                  if (selected) {
-                                    selectedKeys.add(entry.key);
-                                  } else if (selectedKeys.length > 1) {
+                                  if (!selected) {
                                     selectedKeys.remove(entry.key);
+                                    return;
                                   }
+                                  _selectCgyyAction(
+                                    selectedKeys,
+                                    actionsByKey,
+                                    entry.key,
+                                  );
                                 }),
                               );
                             })
@@ -3677,7 +3636,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     ),
                     TextField(
                       controller: joiners,
-                      decoration: const InputDecoration(labelText: '参与人说明（可选）'),
+                      decoration: const InputDecoration(labelText: '参与人说明'),
                     ),
                     CheckboxListTile(
                       value: philosophy,
@@ -3718,23 +3677,29 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 onPressed: () {
                   final parsedPurpose = int.tryParse(purpose.text.trim());
                   final parsedJoinerNum = int.tryParse(joinerNum.text.trim());
-                  if (phone.text.trim().isEmpty ||
+                  if (selectedKeys.isEmpty ||
+                      phone.text.trim().isEmpty ||
                       theme.text.trim().isEmpty ||
                       content.text.trim().isEmpty ||
+                      joiners.text.trim().isEmpty ||
                       parsedPurpose == null ||
                       parsedPurpose <= 0 ||
                       parsedJoinerNum == null ||
                       parsedJoinerNum <= 0) {
-                    setState(() => error = '请完整填写联系电话、主题、用途编号、人数和活动内容。');
+                    setState(() => error = '请选择时段并完整填写预约信息。');
                     return;
                   }
+                  final actions =
+                      selectedKeys
+                          .map((key) => actionsByKey[key]!)
+                          .toList(growable: false)
+                        ..sort(
+                          (left, right) =>
+                              left.timeOrdinal.compareTo(right.timeOrdinal),
+                        );
                   Navigator.of(dialogContext).pop(
                     CgyySubmitInput(
-                      venueSiteId: target.venueSiteId,
-                      reservationDate: target.reservationDate,
-                      selections: selectedKeys
-                          .map((key) => selectionsByKey[key]!)
-                          .toList(growable: false),
+                      actions: actions,
                       phone: phone.text.trim(),
                       theme: theme.text.trim(),
                       purposeType: parsedPurpose,
@@ -3766,8 +3731,35 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     }
   }
 
-  String _cgyySelectionKey(CgyyReservationSelectionInput selection) =>
-      '${selection.spaceId}:${selection.timeId}:${selection.venueSpaceGroupId ?? ''}';
+  void _selectCgyyAction(
+    Set<String> selectedKeys,
+    Map<String, CgyyReserveAction> actionsByKey,
+    String nextKey,
+  ) {
+    final next = actionsByKey[nextKey]!;
+    final current = selectedKeys
+        .map((key) => actionsByKey[key]!)
+        .toList(growable: false);
+    if (current.length == 1 &&
+        _sameCgyyTarget(current.single, next) &&
+        (current.single.timeOrdinal - next.timeOrdinal).abs() == 1) {
+      selectedKeys.add(nextKey);
+      return;
+    }
+    selectedKeys
+      ..clear()
+      ..add(nextKey);
+  }
+
+  bool _sameCgyyTarget(CgyyReserveAction left, CgyyReserveAction right) =>
+      left.venueSiteId == right.venueSiteId &&
+      left.reservationDate.trim() == right.reservationDate.trim() &&
+      left.spaceId == right.spaceId &&
+      left.venueSpaceGroupId == right.venueSpaceGroupId;
+
+  String _cgyyActionKey(CgyyReserveAction action) =>
+      '${action.venueSiteId}:${action.reservationDate.trim()}:${action.spaceId}:'
+      '${action.venueSpaceGroupId ?? ''}:${action.timeId}:${action.timeOrdinal}';
 
   EvaluationCourseInput? _evaluationTarget(FeatureDetail detail) {
     if (widget.feature != FeatureId.evaluation) return null;

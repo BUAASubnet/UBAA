@@ -24,7 +24,7 @@ pub(crate) use read::{
 };
 #[allow(unused_imports)]
 pub use write::build_submit_form;
-pub(crate) use write::{cancel_order, submit_reservation};
+pub(crate) use write::{cancel_order, preflight_reservation, submit_reservation};
 
 #[cfg(test)]
 mod tests;

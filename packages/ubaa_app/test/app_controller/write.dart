@@ -334,47 +334,167 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('场馆预约写意图校验公开站点、时段和参与信息', () async {
+  test('场馆预约写意图只接受同目标相邻的 typed Allowed actions', () async {
     final backend = _CgyyWriteBackend();
     final controller = AppController(backend: backend);
     final intent = await controller.prepareCgyySubmitWrite(
-      const CgyySubmitInput(
-        venueSiteId: 3,
-        reservationDate: '2026-09-03',
-        selections: <CgyyReservationSelectionInput>[
-          CgyyReservationSelectionInput(spaceId: 4, timeId: 5),
-        ],
-        phone: 'phone-placeholder',
-        theme: '课程讨论',
-        purposeType: 1,
-        joinerNum: 2,
-        activityContent: '讨论',
-        joiners: '张三',
-        isPhilosophySocialSciences: false,
-        isOffSchoolJoiner: false,
+      _cgyySubmitInput(
+        actions: const <CgyyReserveAction>[_cgyySecondAction, _cgyyFirstAction],
       ),
     );
     expect(intent.operation, WriteOperation.cgyySubmitReservation);
-    expect(backend.input?.venueSiteId, 3);
+    expect(backend.input?.joiners, '张三');
+    expect(backend.input?.actions.first.venueSiteId, 3);
+    expect(backend.input?.actions.first.reservationDate, '2026-09-03');
+    expect(backend.input?.actions.map((action) => action.timeId), <int>[
+      900,
+      100,
+    ]);
+    expect(backend.input?.actions.map((action) => action.timeOrdinal), <int>[
+      0,
+      1,
+    ]);
     expect(backend.commitCalls, 0);
-    await expectLater(
-      controller.prepareCgyySubmitWrite(
-        const CgyySubmitInput(
+
+    final invalidActionGroups = <List<CgyyReserveAction>>[
+      const <CgyyReserveAction>[
+        CgyyReserveAction(
           venueSiteId: 3,
           reservationDate: '2026-09-03',
-          selections: <CgyyReservationSelectionInput>[],
-          phone: 'phone-placeholder',
-          theme: '课程讨论',
-          purposeType: 1,
-          joinerNum: 1,
-          activityContent: '讨论',
-          joiners: '',
-          isPhilosophySocialSciences: false,
-          isOffSchoolJoiner: false,
+          spaceId: 4,
+          timeId: 901,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 0,
+          eligibility: ActionEligibility.denied,
         ),
-      ),
-      throwsA(isA<BackendException>()),
-    );
+      ],
+      const <CgyyReserveAction>[
+        CgyyReserveAction(
+          venueSiteId: 3,
+          reservationDate: '2026-09-03',
+          spaceId: 4,
+          timeId: 902,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 0,
+          eligibility: ActionEligibility.unknown,
+        ),
+      ],
+      const <CgyyReserveAction>[_cgyyFirstAction, _cgyyFirstAction],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        CgyyReserveAction(
+          venueSiteId: 3,
+          reservationDate: '2026-09-03',
+          spaceId: 4,
+          timeId: 900,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 1,
+          eligibility: ActionEligibility.allowed,
+        ),
+      ],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        CgyyReserveAction(
+          venueSiteId: 3,
+          reservationDate: '2026-09-03',
+          spaceId: 4,
+          timeId: 101,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 0,
+          eligibility: ActionEligibility.allowed,
+        ),
+      ],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        _cgyySecondAction,
+        _cgyyThirdAction,
+      ],
+      const <CgyyReserveAction>[_cgyyFirstAction, _cgyyThirdAction],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        CgyyReserveAction(
+          venueSiteId: 8,
+          reservationDate: '2026-09-03',
+          spaceId: 4,
+          timeId: 100,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 1,
+          eligibility: ActionEligibility.allowed,
+        ),
+      ],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        CgyyReserveAction(
+          venueSiteId: 3,
+          reservationDate: '2026-09-04',
+          spaceId: 4,
+          timeId: 100,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 1,
+          eligibility: ActionEligibility.allowed,
+        ),
+      ],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        CgyyReserveAction(
+          venueSiteId: 3,
+          reservationDate: '2026-09-03',
+          spaceId: 5,
+          timeId: 100,
+          venueSpaceGroupId: 9,
+          timeOrdinal: 1,
+          eligibility: ActionEligibility.allowed,
+        ),
+      ],
+      const <CgyyReserveAction>[
+        _cgyyFirstAction,
+        CgyyReserveAction(
+          venueSiteId: 3,
+          reservationDate: '2026-09-03',
+          spaceId: 4,
+          timeId: 100,
+          venueSpaceGroupId: 10,
+          timeOrdinal: 1,
+          eligibility: ActionEligibility.allowed,
+        ),
+      ],
+    ];
+    for (final actions in invalidActionGroups) {
+      await expectLater(
+        controller.prepareCgyySubmitWrite(_cgyySubmitInput(actions: actions)),
+        throwsA(
+          isA<BackendException>().having(
+            (error) => error.code,
+            'code',
+            UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+    }
+    expect(backend.input?.actions, hasLength(2));
+    controller.dispose();
+  });
+
+  test('场馆预约写意图拒绝空 action 与 trim 后为空的参与人说明', () async {
+    final backend = _CgyyWriteBackend();
+    final controller = AppController(backend: backend);
+
+    for (final input in <CgyySubmitInput>[
+      _cgyySubmitInput(actions: const <CgyyReserveAction>[]),
+      _cgyySubmitInput(joiners: '  \n  '),
+    ]) {
+      await expectLater(
+        controller.prepareCgyySubmitWrite(input),
+        throwsA(
+          isA<BackendException>().having(
+            (error) => error.code,
+            'code',
+            UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+    }
+    expect(backend.input, isNull);
     controller.dispose();
   });
 
@@ -542,6 +662,51 @@ void _registerWriteTests() {
     controller.dispose();
   });
 }
+
+const _cgyyFirstAction = CgyyReserveAction(
+  venueSiteId: 3,
+  reservationDate: '2026-09-03',
+  spaceId: 4,
+  timeId: 900,
+  venueSpaceGroupId: 9,
+  timeOrdinal: 0,
+  eligibility: ActionEligibility.allowed,
+);
+
+const _cgyySecondAction = CgyyReserveAction(
+  venueSiteId: 3,
+  reservationDate: '2026-09-03',
+  spaceId: 4,
+  timeId: 100,
+  venueSpaceGroupId: 9,
+  timeOrdinal: 1,
+  eligibility: ActionEligibility.allowed,
+);
+
+const _cgyyThirdAction = CgyyReserveAction(
+  venueSiteId: 3,
+  reservationDate: '2026-09-03',
+  spaceId: 4,
+  timeId: 700,
+  venueSpaceGroupId: 9,
+  timeOrdinal: 2,
+  eligibility: ActionEligibility.allowed,
+);
+
+CgyySubmitInput _cgyySubmitInput({
+  List<CgyyReserveAction> actions = const <CgyyReserveAction>[_cgyyFirstAction],
+  String joiners = '  张三  ',
+}) => CgyySubmitInput(
+  actions: actions,
+  phone: ' phone-placeholder ',
+  theme: ' 课程讨论 ',
+  purposeType: 1,
+  joinerNum: 2,
+  activityContent: ' 讨论 ',
+  joiners: joiners,
+  isPhilosophySocialSciences: false,
+  isOffSchoolJoiner: false,
+);
 
 FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
   WriteOperation.bykcSelectCourse ||

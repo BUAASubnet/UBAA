@@ -9,6 +9,7 @@ import '../contracts/lifecycle.dart';
 import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/write.dart';
+import '../write/cgyy_validation.dart';
 import 'error_mapper.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
@@ -566,52 +567,14 @@ class AppController extends ChangeNotifier {
     );
   }
 
-  /// 准备场馆预约写意图；空间及时段必须来自已读取的公开可预约数据。
+  /// 准备场馆预约写意图；只接受 Core 已核对的 typed actions。
   Future<WriteIntent> prepareCgyySubmitWrite(CgyySubmitInput input) async {
     final backend = _backend;
     if (backend is! CgyyWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    if (input.venueSiteId <= 0 ||
-        input.purposeType <= 0 ||
-        input.joinerNum <= 0 ||
-        input.reservationDate.trim().isEmpty ||
-        input.phone.trim().isEmpty ||
-        input.theme.trim().isEmpty ||
-        input.activityContent.trim().isEmpty ||
-        input.selections.isEmpty ||
-        input.selections.any(
-          (selection) =>
-              selection.spaceId <= 0 ||
-              selection.timeId <= 0 ||
-              (selection.venueSpaceGroupId != null &&
-                  selection.venueSpaceGroupId! <= 0),
-        )) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    final selections = input.selections
-        .map(
-          (selection) => CgyyReservationSelectionInput(
-            spaceId: selection.spaceId,
-            timeId: selection.timeId,
-            venueSpaceGroupId: selection.venueSpaceGroupId,
-          ),
-        )
-        .toList(growable: false);
     return (backend as CgyyWriteBackend).prepareCgyySubmitReservation(
-      CgyySubmitInput(
-        venueSiteId: input.venueSiteId,
-        reservationDate: input.reservationDate.trim(),
-        selections: selections,
-        phone: input.phone.trim(),
-        theme: input.theme.trim(),
-        purposeType: input.purposeType,
-        joinerNum: input.joinerNum,
-        activityContent: input.activityContent.trim(),
-        joiners: input.joiners.trim(),
-        isPhilosophySocialSciences: input.isPhilosophySocialSciences,
-        isOffSchoolJoiner: input.isOffSchoolJoiner,
-      ),
+      validateCgyySubmitInput(input),
     );
   }
 

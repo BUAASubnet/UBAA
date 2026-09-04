@@ -3,9 +3,10 @@
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
     ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
-    map_bykc_sign_preflight_error, map_libbook_cancel_preflight_error, map_libbook_preflight_error,
-    now_seconds, random_id, safe_summary_label, validate_bykc_sign_request, validate_cgyy_request,
-    validate_id, validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
+    map_bykc_sign_preflight_error, map_cgyy_preflight_error, map_cgyy_request,
+    map_libbook_cancel_preflight_error, map_libbook_preflight_error, now_seconds, random_id,
+    safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
+    validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
@@ -362,21 +363,67 @@ impl BridgeClient {
     }
     pub async fn prepare_cgyy_submit_reservation(
         &self,
-        request: BridgeCgyySubmitReservationRequest,
+        mut request: BridgeCgyySubmitReservationRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
         validate_cgyy_request(&request)?;
-        let canonical = cgyy_canonical(&request);
-        self.prepare_write(
-            ReadonlyFeature::Cgyy,
-            BridgeWriteOperation::CgyySubmitReservation,
-            canonical,
-            "提交场馆预约申请".to_owned(),
-            vec![
-                "如需验证码，材料只在本次操作内存中使用".to_owned(),
-                "提交后必须查询订单核对结果".to_owned(),
-            ],
-            PendingWrite::CgyyReserve(request),
-        )
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let domain_request = map_cgyy_request(request.clone());
+            let current = client
+                .preflight_cgyy_reservation(&domain_request)
+                .await
+                .map_err(map_cgyy_preflight_error)?;
+            request.selections = current
+                .data
+                .targets
+                .iter()
+                .map(|target| super::BridgeCgyyReservationSelection {
+                    space_id: target.space_id,
+                    time_id: target.time_id,
+                    venue_space_group_id: target.venue_space_group_id,
+                })
+                .collect();
+            request.venue_site_id = current.data.venue_site_id;
+            request.reservation_date = current.data.reservation_date.clone();
+            request.phone = request.phone.trim().to_owned();
+            request.theme = request.theme.trim().to_owned();
+            request.activity_content = request.activity_content.trim().to_owned();
+            request.joiners = request.joiners.trim().to_owned();
+            let times = current
+                .data
+                .targets
+                .iter()
+                .map(|target| target.time_id.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            let first = current.data.targets.first().ok_or_else(|| {
+                BridgeError::local(
+                    crate::api::client::BridgeErrorCode::UpstreamChanged,
+                    crate::api::client::BridgeErrorKind::Upstream,
+                    false,
+                    "场馆预约资格缺少权威目标",
+                )
+            })?;
+            let reservation_date = safe_summary_label(&current.data.reservation_date, "预约日期");
+            let target_summary = format!(
+                "场馆 {} · 日期 {} · 空间 {} · 时段 {}",
+                current.data.venue_site_id, reservation_date, first.space_id, times,
+            );
+            let canonical = cgyy_canonical(&request);
+            self.store_write_intent(
+                BridgeWriteOperation::CgyySubmitReservation,
+                canonical,
+                target_summary,
+                vec![
+                    "如需验证码，材料只在本次操作内存中使用".to_owned(),
+                    "提交后必须查询订单核对结果".to_owned(),
+                ],
+                PendingWrite::CgyyReserve(request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_cgyy_cancel_order(

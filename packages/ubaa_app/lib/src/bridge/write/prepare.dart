@@ -121,32 +121,38 @@ Future<WriteIntent> _prepareYgdkSubmit(
 Future<WriteIntent> _prepareCgyySubmitReservation(
   BridgeBackend backend,
   CgyySubmitInput input,
-) => _prepareIntent(
-  backend,
-  backend.client.prepareCgyySubmitReservation(
-    request: BridgeCgyySubmitReservationRequest(
-      venueSiteId: input.venueSiteId,
-      reservationDate: input.reservationDate,
-      selections: input.selections
-          .map(
-            (selection) => BridgeCgyyReservationSelection(
-              spaceId: selection.spaceId,
-              timeId: selection.timeId,
-              venueSpaceGroupId: selection.venueSpaceGroupId,
-            ),
-          )
-          .toList(growable: false),
-      phone: input.phone,
-      theme: input.theme,
-      purposeType: input.purposeType,
-      joinerNum: input.joinerNum,
-      activityContent: input.activityContent,
-      joiners: input.joiners,
-      isPhilosophySocialSciences: input.isPhilosophySocialSciences,
-      isOffSchoolJoiner: input.isOffSchoolJoiner,
+) async {
+  final validated = validateCgyySubmitInput(input);
+  final actions = validated.actions.toList(growable: false)
+    ..sort((left, right) => left.timeOrdinal.compareTo(right.timeOrdinal));
+  final target = actions.first;
+  return _prepareIntent(
+    backend,
+    backend.client.prepareCgyySubmitReservation(
+      request: BridgeCgyySubmitReservationRequest(
+        venueSiteId: target.venueSiteId,
+        reservationDate: target.reservationDate,
+        selections: actions
+            .map(
+              (action) => BridgeCgyyReservationSelection(
+                spaceId: action.spaceId,
+                timeId: action.timeId,
+                venueSpaceGroupId: action.venueSpaceGroupId,
+              ),
+            )
+            .toList(growable: false),
+        phone: validated.phone,
+        theme: validated.theme,
+        purposeType: validated.purposeType,
+        joinerNum: validated.joinerNum,
+        activityContent: validated.activityContent,
+        joiners: validated.joiners,
+        isPhilosophySocialSciences: validated.isPhilosophySocialSciences,
+        isOffSchoolJoiner: validated.isOffSchoolJoiner,
+      ),
     ),
-  ),
-);
+  );
+}
 
 Future<WriteIntent> _prepareCgyyCancelOrder(
   BridgeBackend backend, {

@@ -18,6 +18,7 @@ tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
 ubaa-core = { path = "../ubaa-core" }
 
 [dev-dependencies]
+async-trait = "0.1.89"
 ubaa-test-support = { path = "../ubaa-test-support" }
 
 [lints.rust]

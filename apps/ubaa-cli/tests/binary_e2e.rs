@@ -561,7 +561,7 @@ fn binary_json_status_without_session_exits_three_with_parseable_error() {
 }
 
 #[test]
-fn binary_json_readonly_without_session_uses_schema_v6_route_diagnostics() {
+fn binary_json_readonly_without_session_uses_schema_v7_route_diagnostics() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-readonly-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);
     std::fs::create_dir_all(&config).unwrap();
@@ -583,7 +583,7 @@ fn binary_json_readonly_without_session_uses_schema_v6_route_diagnostics() {
     assert_cli_schema(&value);
 
     assert_eq!(output.status.code(), Some(3));
-    assert_eq!(value["schemaVersion"], 6);
+    assert_eq!(value["schemaVersion"], 7);
     assert_eq!(value["error"]["code"], "authentication_required");
     assert_eq!(value["meta"]["feature"], "schedule");
     assert_eq!(value["meta"]["routePolicy"], "direct");
@@ -649,7 +649,7 @@ fn binary_json_login_without_mode_or_config_enters_aggregate_facade() {
     let output = child.wait_with_output().unwrap();
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 6);
+    assert_eq!(value["schemaVersion"], 7);
     assert_eq!(value["meta"]["feature"], "auth");
     assert_ne!(value["error"]["code"], "invalid_input");
     assert!(output.stderr.is_empty());
@@ -671,7 +671,7 @@ fn binary_json_argument_errors_use_a_safe_parseable_envelope() {
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(output.status.code(), Some(2));
-    assert_eq!(value["schemaVersion"], 6);
+    assert_eq!(value["schemaVersion"], 7);
     assert_eq!(value["meta"]["feature"], "cli");
     assert!(value["meta"].get("resolvedRoute").is_none());
     assert_eq!(value["ok"], false);
@@ -724,7 +724,7 @@ fn binary_json_logout_without_session_uses_fixed_aggregate_routes() {
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_cli_schema(&value);
     assert!(output.status.success());
-    assert_eq!(value["schemaVersion"], 6);
+    assert_eq!(value["schemaVersion"], 7);
     assert_eq!(value["meta"]["routePolicy"], "auto");
     assert_eq!(
         value["meta"]["resolvedRoutes"],

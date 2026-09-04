@@ -397,6 +397,17 @@ final class _AllWritesIntegrationBackend
             FeatureField(label: '时段 ID', value: '5'),
             FeatureField(label: '可预约', value: '是'),
           ],
+          actions: <FeatureAction>[
+            CgyyReserveAction(
+              venueSiteId: 3,
+              reservationDate: '2026-09-03',
+              spaceId: 4,
+              timeId: 5,
+              venueSpaceGroupId: 9,
+              timeOrdinal: 0,
+              eligibility: ActionEligibility.allowed,
+            ),
+          ],
         ),
         FeatureDetail(
           title: '集成场馆订单',

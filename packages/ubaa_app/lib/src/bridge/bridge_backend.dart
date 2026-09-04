@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../backend.dart';
+import '../write/cgyy_validation.dart';
 
 part 'common.dart';
 part 'read/academic.dart';
@@ -19,7 +20,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 5;
+const _supportedBridgeContractVersion = 6;
 
 /// 基于 FRB opaque client 的生产后端。
 ///

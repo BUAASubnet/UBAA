@@ -279,9 +279,9 @@ pub(super) fn assert_schema_rejects_invalid_envelopes(
     unresolved: &serde_json::Value,
     aggregate: &serde_json::Value,
 ) {
-    let mut schema_v5 = unresolved.clone();
-    schema_v5["schemaVersion"] = serde_json::json!(5);
-    assert!(!validator.is_valid(&schema_v5));
+    let mut schema_v6 = unresolved.clone();
+    schema_v6["schemaVersion"] = serde_json::json!(6);
+    assert!(!validator.is_valid(&schema_v6));
 
     let mut invented_route = unresolved.clone();
     invented_route["meta"]["resolvedRoute"] = serde_json::json!("direct");

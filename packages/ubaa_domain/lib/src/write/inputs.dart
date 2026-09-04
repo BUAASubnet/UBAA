@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import 'actions.dart';
+
 /// 阳光打卡照片的内存输入；不得写入会话、日志或持久化配置。
 @immutable
 class YgdkPhotoInput {
@@ -34,27 +36,14 @@ class YgdkSubmitInput {
   final YgdkPhotoInput? photo;
 }
 
-/// 场馆预约中由读取结果选择的空间及时段。
-@immutable
-class CgyyReservationSelectionInput {
-  const CgyyReservationSelectionInput({
-    required this.spaceId,
-    required this.timeId,
-    this.venueSpaceGroupId,
-  });
-
-  final int spaceId;
-  final int timeId;
-  final int? venueSpaceGroupId;
-}
-
-/// 场馆预约 typed 提交参数；验证码材料仍由 Core/受控挑战流程持有。
+/// 场馆预约 typed 提交参数；目标只能来自读取结果的 [actions]。
+///
+/// 站点、日期、空间和时段不再提供 primitive 覆盖入口；验证码材料
+/// 仍由 Core/受控挑战流程持有。
 @immutable
 class CgyySubmitInput {
   const CgyySubmitInput({
-    required this.venueSiteId,
-    required this.reservationDate,
-    required this.selections,
+    required this.actions,
     required this.phone,
     required this.theme,
     required this.purposeType,
@@ -65,9 +54,7 @@ class CgyySubmitInput {
     required this.isOffSchoolJoiner,
   });
 
-  final int venueSiteId;
-  final String reservationDate;
-  final List<CgyyReservationSelectionInput> selections;
+  final List<CgyyReserveAction> actions;
   final String phone;
   final String theme;
   final int purposeType;

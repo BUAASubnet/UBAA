@@ -43,13 +43,15 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       ),
       await backend.prepareCgyySubmitReservation(
         const CgyySubmitInput(
-          venueSiteId: 7,
-          reservationDate: '2026-09-04',
-          selections: <CgyyReservationSelectionInput>[
-            CgyyReservationSelectionInput(
+          actions: <CgyyReserveAction>[
+            CgyyReserveAction(
+              venueSiteId: 7,
+              reservationDate: '2026-09-04',
               spaceId: 8,
               timeId: 9,
               venueSpaceGroupId: 10,
+              timeOrdinal: 0,
+              eligibility: ActionEligibility.allowed,
             ),
           ],
           phone: 'phone-placeholder',
@@ -261,12 +263,11 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       message: '结果待确认',
       outcomeUnknown: true,
       resolvedRoute: BridgeConnectionMode.webVpn,
-      order: BridgeCgyyOrder(
-        id: 42,
+      cgyyReceipt: BridgeCgyyReservationReceipt(
+        orderId: 42,
         venueSiteId: 7,
         reservationDate: '2026-09-04',
         orderStatus: 1,
-        theme: '不得进入收据',
       ),
     );
     final committed = await backend.commitWrite('intent-1');

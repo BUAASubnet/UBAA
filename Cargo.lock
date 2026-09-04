@@ -3115,6 +3115,7 @@ dependencies = [
 name = "ubaa_flutter_bridge"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "flutter_rust_bridge",
  "futures-util",
  "rand 0.10.2",

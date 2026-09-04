@@ -34,7 +34,7 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 | 层/宿主 | 允许依赖 | 禁止依赖 | 输出与错误要求 |
 |---|---|---|---|
 | Rust Core | domain、ports、connection、session、auth、features、facade 内部依赖 | 向宿主泄漏上游原始响应；拥有 CLI 进程/展示策略 | 只经 facade 返回稳定 DTO、结构化错误和路线元数据 |
-| CLI | Core facade 与 CLI 自有 command/backend/execute/io | 直接调用 upstream/runtime；读取 Cookie；argv 明文密码 | human/JSON schema v6、稳定 stdout/stderr/退出码、敏感字段脱敏 |
+| CLI | Core facade 与 CLI 自有 command/backend/execute/io | 直接调用 upstream/runtime；读取 Cookie；argv 明文密码 | human/JSON schema v7、稳定 stdout/stderr/退出码、敏感字段脱敏 |
 | FRB bridge | Core facade 与专用 bridge DTO | 暴露 Core 私有类型、URL、Cookie、业务 Token 或原始 HTML | 版本锁定、typed error/DTO、生成 schema 零漂移 |
 | Dart domain/app/UI | bridge/backend 稳定合同与平台 typed 能力 | 自行处理协议/路线；从中文展示字段推断写资格 | 明确 loading/empty/failure/stale；写入一次性确认和未知结果保护 |
 | 平台宿主 | 共享 app/UI、平台路径/权限/安全存储接口 | 复制业务状态机；以明文文件替代安全存储 | 缺少原生 handler 时安全返回 unavailable，不冒充设备能力 |
@@ -42,10 +42,14 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 
 CLI 公开 envelope 的版本与本地持久化版本分别治理。破坏性 DTO/错误合同变化必须显式提升 CLI
 `schemaVersion` 并由 JSON Schema 与真实序列化合同共同验证；不得在旧版本号下静默改变字段。当前 CLI
-envelope 为 schema v6，`session.json` 仍为 schema v2，`config.toml` 仍为版本 1。Flutter bridge 当前
-contract 为 v5；LibBook 座位只允许通过可空整数 `status`、typed 资格和稳定目标开放预约，booking 也只
+envelope 为 schema v7，`session.json` 仍为 schema v2，`config.toml` 仍为版本 1。Flutter bridge 当前
+contract 为 v6；LibBook 座位只允许通过可空整数 `status`、typed 资格和稳定目标开放预约，booking 也只
 允许通过 nullable int `status` 与 typed `cancelEligibility/cancelTarget` 开放取消，不得恢复或从展示文案
 推导写资格。取消 action 的 `page/limit` 只绑定 fresh 同页 authority/readback；最终 wire 只发送 `{id}`。
+Cgyy 时段同样只允许通过 nullable int `reservationStatus`、typed
+`reservationEligibility/reservationTarget` 开放预约，不得恢复 `isReservable` 或从状态文案反推资格。
+Flutter 预约输入只接收一至两个同站点、日期、空间和空间组、唯一且 raw ordinal 相邻的 action；App、Bridge
+与 Core 在各自边界失败关闭。
 
 ## 写入与发布
 
@@ -58,6 +62,11 @@ non-idempotent cancel 只发送一次；authority 分页元数据必须完整且
 成功或 unknown 后只刷新同一预约页，不用读取结果自动重放写入。
 取消 authority 的列表错误也不得透传上游 message；Core 专用路径、CLI 和 Bridge 分别用固定文案做纵深
 收敛，普通只读列表的错误合同不因此改变。
+
+Cgyy 预约 prepare 与 commit 都 fresh 复核唯一 allowed target；验证码获取/校验最多重试三次且必须在最终
+发送前结束，最终 reservation submit 只越过一次 non-idempotent 边界。确定成功至多附带安全收据，发送后的
+不确定结果统一为不可重试 `outcome_unknown`；公开写结果/错误不得包含验证码、完整订单、上游 raw message
+或个人信息。
 
 真实写入不属于普通测试、CI 或代码组织计划；每次必须有具体操作、目标、路线和时间授权。无签名 Debug/HAP、
 Mock、golden、simulator 或 CI artifact 不能证明签名、安装、实体设备、硬件安全存储或正式发布。

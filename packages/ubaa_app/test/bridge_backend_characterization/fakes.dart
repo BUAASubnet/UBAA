@@ -39,7 +39,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 5;
+  int contractVersion() => 6;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -247,8 +247,17 @@ class _CharacterizationBridgeClient implements BridgeClient {
                         slots: <BridgeCgyySlotStatus>[
                           BridgeCgyySlotStatus(
                             timeId: 9,
-                            reservationStatus: 0,
-                            isReservable: true,
+                            reservationStatus: 1,
+                            reservationEligibility:
+                                BridgeActionEligibility.allowed,
+                            reservationTarget: BridgeCgyyReservationTarget(
+                              venueSiteId: 7,
+                              reservationDate: '2026-09-04',
+                              spaceId: 8,
+                              timeId: 9,
+                              venueSpaceGroupId: 10,
+                              timeOrdinal: 0,
+                            ),
                           ),
                         ],
                       ),

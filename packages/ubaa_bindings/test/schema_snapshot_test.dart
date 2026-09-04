@@ -200,6 +200,7 @@ void main() {
       'BridgeCgyyOrdersPage',
       'BridgeCgyyPurposeType',
       'BridgeCgyyPurposeTypes',
+      'BridgeCgyyReservationTarget',
       'BridgeCgyySlotStatus',
       'BridgeCgyySpaceAvailability',
       'BridgeCgyyTimeSlot',
@@ -391,6 +392,16 @@ void main() {
     ).firstMatch(read);
     expect(slot, isNotNull);
     final slotBody = slot!.namedGroup('body')!;
+    expect(slotBody, contains('final int? reservationStatus;'));
+    expect(
+      slotBody,
+      contains('final BridgeActionEligibility reservationEligibility;'),
+    );
+    expect(
+      slotBody,
+      contains('final BridgeCgyyReservationTarget? reservationTarget;'),
+    );
+    expect(slotBody, isNot(contains('isReservable')));
     for (final forbidden in <String>[
       'tradeNo',
       'orderId',
@@ -441,5 +452,8 @@ void main() {
     expect(write, contains('class BridgeWriteIntent'));
     expect(write, contains('requestDigest'));
     expect(write, contains('expiresAt'));
+    expect(write, contains('class BridgeCgyyReservationReceipt'));
+    expect(write, contains('final BridgeCgyyReservationReceipt? cgyyReceipt;'));
+    expect(write, isNot(contains('final BridgeCgyyOrder? order;')));
   });
 }

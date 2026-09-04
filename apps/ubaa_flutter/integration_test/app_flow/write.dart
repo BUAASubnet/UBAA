@@ -232,6 +232,7 @@ void _registerWriteMatrixFlowTest() {
     await tester.enterText(find.widgetWithText(TextField, '用途编号'), '2');
     await tester.enterText(find.widgetWithText(TextField, '参与人数'), '2');
     await tester.enterText(find.widgetWithText(TextField, '活动内容'), '脱敏集成验证');
+    await tester.enterText(find.widgetWithText(TextField, '参与人说明'), '脱敏参与人');
     await tester.tap(find.text('继续确认'));
     // 场馆表单在退出动画后延迟释放输入控制器；普通 Timer 不会让
     // pumpAndSettle 主动继续推进时间，因此这里显式越过该安全窗口。

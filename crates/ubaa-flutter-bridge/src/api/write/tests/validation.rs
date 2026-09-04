@@ -74,6 +74,29 @@ async fn cgyy_prepare_rejects_incomplete_request_before_route_resolution() {
         .expect_err("invalid Cgyy input must be rejected during prepare");
     assert_eq!(error.code, BridgeErrorCode::InvalidInput);
     assert!(client.write_intents.lock().await.is_empty());
+
+    let invalid_group = client
+        .prepare_cgyy_submit_reservation(BridgeCgyySubmitReservationRequest {
+            venue_site_id: 4,
+            reservation_date: "2026-09-02".to_owned(),
+            selections: vec![BridgeCgyyReservationSelection {
+                space_id: 6,
+                time_id: 101,
+                venue_space_group_id: Some(0),
+            }],
+            phone: "010-00000000".to_owned(),
+            theme: "测试预约".to_owned(),
+            purpose_type: 1,
+            joiner_num: 1,
+            activity_content: "脱敏内容".to_owned(),
+            joiners: "脱敏参与者".to_owned(),
+            is_philosophy_social_sciences: false,
+            is_off_school_joiner: false,
+        })
+        .await
+        .expect_err("非正数空间组必须在路线解析前拒绝");
+    assert_eq!(invalid_group.code, BridgeErrorCode::InvalidInput);
+    assert!(client.write_intents.lock().await.is_empty());
     client.dispose().await.expect("dispose client");
     let _ = std::fs::remove_dir_all(path);
 }

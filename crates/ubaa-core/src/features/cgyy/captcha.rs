@@ -219,12 +219,7 @@ pub(super) fn parse_captcha_challenge(body: &str) -> Result<CgyyCaptchaChallenge
         .and_then(Value::as_bool)
         .unwrap_or(false);
     if !success {
-        return Err(error(
-            value
-                .get("repMsg")
-                .and_then(Value::as_str)
-                .unwrap_or("获取验证码失败"),
-        ));
+        return Err(error("获取验证码失败"));
     }
     let rep_data = value
         .get("repData")

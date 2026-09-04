@@ -12,7 +12,7 @@ mod prepare;
 mod support;
 
 use super::client::BridgeConnectionMode;
-use super::read::{BridgeCgyyOrder, BridgeEvaluationCourse};
+use super::read::BridgeEvaluationCourse;
 use ubaa_core::facade::ReadonlyFeature;
 
 #[derive(Clone, Copy, Debug)]
@@ -110,6 +110,13 @@ pub struct BridgeCgyyCancelOrderRequest {
     pub id: i32,
 }
 #[derive(Clone, Debug)]
+pub struct BridgeCgyyReservationReceipt {
+    pub order_id: i32,
+    pub venue_site_id: Option<i32>,
+    pub reservation_date: Option<String>,
+    pub order_status: Option<i32>,
+}
+#[derive(Clone, Debug)]
 pub struct BridgeEvaluationSubmitCoursesRequest {
     pub courses: Vec<BridgeEvaluationCourse>,
 }
@@ -121,7 +128,7 @@ pub struct BridgeWriteCommitResult {
     pub message: String,
     pub outcome_unknown: bool,
     pub resolved_route: Option<BridgeConnectionMode>,
-    pub order: Option<BridgeCgyyOrder>,
+    pub cgyy_receipt: Option<BridgeCgyyReservationReceipt>,
 }
 
 pub(crate) enum PendingWrite {
@@ -198,22 +205,16 @@ impl PendingWrite {
                 request.end_time.as_deref().unwrap_or_default(),
             ),
             Self::CgyyReserve(request) => {
-                let mut selections = request
+                let first = request
                     .selections
-                    .iter()
-                    .map(|value| {
-                        format!(
-                            "{}:{}:{:?}",
-                            value.space_id, value.time_id, value.venue_space_group_id
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                selections.sort();
+                    .first()
+                    .expect("场馆预约意图只保存已验证的非空时段");
                 format!(
-                    "cgyy-reserve:{}:{}:{}",
+                    "cgyy-reserve:{}:{}:{}:{:?}",
                     request.venue_site_id,
                     request.reservation_date,
-                    selections.join("|")
+                    first.space_id,
+                    first.venue_space_group_id,
                 )
             }
             Self::CgyyCancel(request) => format!("cgyy-cancel:{}", request.id),

@@ -82,7 +82,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_cgyy_cancel_order_request(dynamic raw);
 
   @protected
-  BridgeCgyyOrder dco_decode_box_autoadd_bridge_cgyy_order(dynamic raw);
+  BridgeCgyyReservationReceipt
+  dco_decode_box_autoadd_bridge_cgyy_reservation_receipt(dynamic raw);
+
+  @protected
+  BridgeCgyyReservationTarget
+  dco_decode_box_autoadd_bridge_cgyy_reservation_target(dynamic raw);
 
   @protected
   BridgeCgyySubmitReservationRequest
@@ -202,7 +207,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCgyyPurposeTypes dco_decode_bridge_cgyy_purpose_types(dynamic raw);
 
   @protected
+  BridgeCgyyReservationReceipt dco_decode_bridge_cgyy_reservation_receipt(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCgyyReservationSelection dco_decode_bridge_cgyy_reservation_selection(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyReservationTarget dco_decode_bridge_cgyy_reservation_target(
     dynamic raw,
   );
 
@@ -728,7 +743,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  BridgeCgyyOrder? dco_decode_opt_box_autoadd_bridge_cgyy_order(dynamic raw);
+  BridgeCgyyReservationReceipt?
+  dco_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(dynamic raw);
+
+  @protected
+  BridgeCgyyReservationTarget?
+  dco_decode_opt_box_autoadd_bridge_cgyy_reservation_target(dynamic raw);
 
   @protected
   BridgeConnectionMode? dco_decode_opt_box_autoadd_bridge_connection_mode(
@@ -827,7 +847,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  BridgeCgyyOrder sse_decode_box_autoadd_bridge_cgyy_order(
+  BridgeCgyyReservationReceipt
+  sse_decode_box_autoadd_bridge_cgyy_reservation_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyReservationTarget
+  sse_decode_box_autoadd_bridge_cgyy_reservation_target(
     SseDeserializer deserializer,
   );
 
@@ -999,7 +1026,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyReservationReceipt sse_decode_bridge_cgyy_reservation_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCgyyReservationSelection sse_decode_bridge_cgyy_reservation_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyReservationTarget sse_decode_bridge_cgyy_reservation_target(
     SseDeserializer deserializer,
   );
 
@@ -1691,7 +1728,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  BridgeCgyyOrder? sse_decode_opt_box_autoadd_bridge_cgyy_order(
+  BridgeCgyyReservationReceipt?
+  sse_decode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyReservationTarget?
+  sse_decode_opt_box_autoadd_bridge_cgyy_reservation_target(
     SseDeserializer deserializer,
   );
 
@@ -1800,8 +1844,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_bridge_cgyy_order(
-    BridgeCgyyOrder self,
+  void sse_encode_box_autoadd_bridge_cgyy_reservation_receipt(
+    BridgeCgyyReservationReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cgyy_reservation_target(
+    BridgeCgyyReservationTarget self,
     SseSerializer serializer,
   );
 
@@ -2004,8 +2054,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cgyy_reservation_receipt(
+    BridgeCgyyReservationReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cgyy_reservation_selection(
     BridgeCgyyReservationSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_reservation_target(
+    BridgeCgyyReservationTarget self,
     SseSerializer serializer,
   );
 
@@ -2853,8 +2915,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_bridge_cgyy_order(
-    BridgeCgyyOrder? self,
+  void sse_encode_opt_box_autoadd_bridge_cgyy_reservation_receipt(
+    BridgeCgyyReservationReceipt? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cgyy_reservation_target(
+    BridgeCgyyReservationTarget? self,
     SseSerializer serializer,
   );
 

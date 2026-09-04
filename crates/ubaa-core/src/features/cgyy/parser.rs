@@ -1,16 +1,60 @@
 //! 场馆预约响应信封、站点、用途、日期和订单解析。
 
+use std::collections::HashMap;
+
 use serde_json::{Map, Value};
 
 use crate::domain::{
-    CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeSource,
-    CgyyPurposeType, CgyySlotStatus, CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
+    ActionEligibility, CgyyActionResult, CgyyDayInfo, CgyyLockCode, CgyyOrder, CgyyOrdersPage,
+    CgyyPurposeSource, CgyyPurposeType, CgyyReservationTarget, CgyySlotStatus,
+    CgyySpaceAvailability, CgyyTimeSlot, CgyyVenueSite,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 pub(super) struct CgyyDayContext {
     pub(super) info: CgyyDayInfo,
     pub(super) reservation_token: Option<String>,
+    pub(super) requested_date_exact: bool,
+}
+
+struct ParsedTimeSlot {
+    value: CgyyTimeSlot,
+    ordinal: Option<i32>,
+    identity_valid: bool,
+}
+
+struct SlotTargetContext<'a> {
+    venue_site_id: i32,
+    reservation_date: &'a str,
+    space_id: i32,
+    venue_space_group_id: Option<i32>,
+    identity_valid: bool,
+}
+
+enum NullableField<T> {
+    Invalid,
+    Null,
+    Value(T),
+}
+
+impl<T> NullableField<T> {
+    fn is_valid(&self) -> bool {
+        !matches!(self, Self::Invalid)
+    }
+
+    fn as_option(&self) -> Option<&T> {
+        match self {
+            Self::Value(value) => Some(value),
+            Self::Invalid | Self::Null => None,
+        }
+    }
+
+    fn into_option(self) -> Option<T> {
+        match self {
+            Self::Value(value) => Some(value),
+            Self::Invalid | Self::Null => None,
+        }
+    }
 }
 
 /// 解析场馆预约写操作响应。
@@ -47,8 +91,7 @@ fn success_root(body: &str) -> Result<Map<String, Value>> {
             .or_else(|| value.as_str()?.parse::<i64>().ok())
     });
     if code != Some(200) {
-        let message = string(&root, "message").unwrap_or_else(|| "场馆预约请求失败".into());
-        return Err(error(message));
+        return Err(error("场馆预约请求失败"));
     }
     Ok(root)
 }
@@ -73,16 +116,6 @@ fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
     map.get(key)
         .and_then(|value| value.as_i64().or_else(|| value.as_str()?.parse().ok()))
         .and_then(|value| i32::try_from(value).ok())
-}
-
-fn bool_value(map: &Map<String, Value>, key: &str) -> Option<bool> {
-    map.get(key).and_then(|value| {
-        value.as_bool().or_else(|| match value.as_str()? {
-            "true" => Some(true),
-            "false" => Some(false),
-            _ => None,
-        })
-    })
 }
 
 /// 解析场馆站点列表。
@@ -206,62 +239,19 @@ pub(super) fn parse_day_context(
         .and_then(Value::as_object)
         .cloned()
         .ok_or_else(|| error("场馆日期响应结构无效"))?;
-    let time_slots: Vec<_> = root
-        .get("spaceTimeInfo")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_object)
-        .filter_map(|slot| {
-            Some(CgyyTimeSlot {
-                id: int(slot, "id")?,
-                begin_time: string(slot, "beginTime")?,
-                end_time: string(slot, "endTime")?,
-                label: format!(
-                    "{}-{}",
-                    string(slot, "beginTime")?,
-                    string(slot, "endTime")?
-                ),
-            })
-        })
+    let parsed_time_slots = parse_time_slots(&root);
+    let time_slots = parsed_time_slots
+        .iter()
+        .map(|slot| slot.value.clone())
         .collect();
-    let date_map = root
-        .get("reservationDateSpaceInfo")
-        .and_then(Value::as_object);
-    let date_key = date_map
-        .and_then(|map| {
-            map.contains_key(reservation_date)
-                .then_some(reservation_date.to_owned())
-                .or_else(|| map.keys().next().cloned())
-        })
-        .unwrap_or_else(|| reservation_date.to_owned());
-    let mut spaces: Vec<_> = date_map
-        .and_then(|map| map.get(&date_key))
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_object)
-        .map(|space| {
-            let mut slots: Vec<_> = time_slots
-                .iter()
-                .filter_map(|slot| {
-                    space
-                        .get(&slot.id.to_string())
-                        .and_then(Value::as_object)
-                        .map(|raw| parse_slot(slot.id, raw))
-                })
-                .collect();
-            slots.sort_by_key(|slot| slot.time_id);
-            CgyySpaceAvailability {
-                space_id: int(space, "id").unwrap_or_default(),
-                space_name: string(space, "spaceName").unwrap_or_default(),
-                venue_site_id: int(space, "venueSiteId").unwrap_or(venue_site_id),
-                venue_space_group_id: int(space, "venueSpaceGroupId"),
-                slots,
-            }
-        })
-        .collect();
-    spaces.sort_by(|left, right| left.space_name.cmp(&right.space_name));
+    let (date_key, requested_date_exact, raw_spaces) = select_date_spaces(&root, reservation_date);
+    let spaces = parse_spaces(
+        raw_spaces,
+        &parsed_time_slots,
+        venue_site_id,
+        reservation_date,
+        requested_date_exact,
+    );
     let available_dates = root
         .get("ableReservationDateList")
         .or_else(|| root.get("reservationDateList"))
@@ -281,21 +271,198 @@ pub(super) fn parse_day_context(
             reservation_total_num: int(&root, "reservationTotalNum"),
         },
         reservation_token: string(&root, "token"),
+        requested_date_exact,
     })
 }
 
-fn parse_slot(time_id: i32, raw: &Map<String, Value>) -> CgyySlotStatus {
-    let reservation_status = int(raw, "reservationStatus").unwrap_or_default();
-    let trade_no = string(raw, "tradeNo");
-    let order_id = int(raw, "orderId");
-    let take_up = bool_value(raw, "takeUp");
+fn parse_time_slots(root: &Map<String, Value>) -> Vec<ParsedTimeSlot> {
+    let raw_slots = root
+        .get("spaceTimeInfo")
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let mut time_id_counts = HashMap::new();
+    for raw in raw_slots {
+        if let Some(time_id) = raw
+            .as_object()
+            .and_then(|slot| int(slot, "id"))
+            .filter(|time_id| *time_id > 0)
+        {
+            *time_id_counts.entry(time_id).or_insert(0_usize) += 1;
+        }
+    }
+    raw_slots
+        .iter()
+        .enumerate()
+        .filter_map(|(ordinal, raw)| {
+            let slot = raw.as_object()?;
+            let id = int(slot, "id")?;
+            let begin_time = string(slot, "beginTime")?;
+            let end_time = string(slot, "endTime")?;
+            let identity_valid = id > 0
+                && strict_i32(slot, "id") == Some(id)
+                && time_id_counts.get(&id) == Some(&1)
+                && !begin_time.trim().is_empty()
+                && !end_time.trim().is_empty()
+                && !begin_time.chars().any(char::is_control)
+                && !end_time.chars().any(char::is_control);
+            Some(ParsedTimeSlot {
+                value: CgyyTimeSlot {
+                    id,
+                    label: format!("{begin_time}-{end_time}"),
+                    begin_time,
+                    end_time,
+                },
+                ordinal: i32::try_from(ordinal).ok(),
+                identity_valid,
+            })
+        })
+        .collect()
+}
+
+fn select_date_spaces<'a>(
+    root: &'a Map<String, Value>,
+    reservation_date: &str,
+) -> (String, bool, Vec<&'a Map<String, Value>>) {
+    let date_map = root
+        .get("reservationDateSpaceInfo")
+        .and_then(Value::as_object);
+    let requested_date_exact = date_map
+        .and_then(|map| map.get(reservation_date))
+        .is_some_and(Value::is_array);
+    let date_key = date_map
+        .and_then(|map| {
+            map.contains_key(reservation_date)
+                .then_some(reservation_date.to_owned())
+                .or_else(|| map.keys().next().cloned())
+        })
+        .unwrap_or_else(|| reservation_date.to_owned());
+    let raw_spaces: Vec<_> = date_map
+        .and_then(|map| map.get(&date_key))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_object)
+        .collect();
+    (date_key, requested_date_exact, raw_spaces)
+}
+
+fn parse_spaces(
+    raw_spaces: Vec<&Map<String, Value>>,
+    parsed_time_slots: &[ParsedTimeSlot],
+    venue_site_id: i32,
+    reservation_date: &str,
+    requested_date_exact: bool,
+) -> Vec<CgyySpaceAvailability> {
+    let mut space_id_counts = HashMap::new();
+    for space in &raw_spaces {
+        if let Some(space_id) = int(space, "id")
+            && space_id > 0
+        {
+            *space_id_counts.entry(space_id).or_insert(0_usize) += 1;
+        }
+    }
+    let mut spaces: Vec<_> = raw_spaces
+        .into_iter()
+        .map(|space| {
+            let space_id = int(space, "id").unwrap_or_default();
+            let canonical_space_id = strict_i32(space, "id");
+            let display_site_id = int(space, "venueSiteId");
+            let canonical_site_id = strict_i32(space, "venueSiteId");
+            let group = optional_group_id(space);
+            let group_identity_valid =
+                group.is_valid() && group.as_option().is_none_or(|group_id| *group_id > 0);
+            let venue_space_group_id = int(space, "venueSpaceGroupId");
+            let mut slot_key_counts = HashMap::new();
+            for time_id in space.keys().filter_map(|key| positive_i32_text(key)) {
+                *slot_key_counts.entry(time_id).or_insert(0_usize) += 1;
+            }
+            let space_identity_valid = requested_date_exact
+                && space_id > 0
+                && canonical_space_id == Some(space_id)
+                && space_id_counts.get(&space_id) == Some(&1)
+                && canonical_site_id == Some(venue_site_id)
+                && group_identity_valid;
+            let mut slots: Vec<_> = parsed_time_slots
+                .iter()
+                .filter_map(|slot| {
+                    space
+                        .get(&slot.value.id.to_string())
+                        .and_then(Value::as_object)
+                        .map(|raw| {
+                            let context = SlotTargetContext {
+                                venue_site_id,
+                                reservation_date,
+                                space_id,
+                                venue_space_group_id,
+                                identity_valid: space_identity_valid
+                                    && slot_key_counts.get(&slot.value.id) == Some(&1),
+                            };
+                            parse_slot(raw, slot, &context)
+                        })
+                })
+                .collect();
+            slots.sort_by_key(|slot| slot.time_id);
+            CgyySpaceAvailability {
+                space_id,
+                space_name: string(space, "spaceName").unwrap_or_default(),
+                venue_site_id: display_site_id.unwrap_or(venue_site_id),
+                venue_space_group_id,
+                slots,
+            }
+        })
+        .collect();
+    spaces.sort_by(|left, right| left.space_name.cmp(&right.space_name));
+    spaces
+}
+
+fn parse_slot(
+    raw: &Map<String, Value>,
+    time_slot: &ParsedTimeSlot,
+    context: &SlotTargetContext<'_>,
+) -> CgyySlotStatus {
+    let reservation_status = strict_i32(raw, "reservationStatus");
+    let trade_no_state = nullable_string(raw, "tradeNo");
+    let order_id_state = nullable_i32(raw, "orderId");
+    let take_up_state = nullable_bool(raw, "takeUp");
+    let decisive_fields_valid = reservation_status.is_some()
+        && trade_no_state.is_valid()
+        && order_id_state.is_valid()
+        && take_up_state.is_valid();
+    let trade_no = trade_no_state.into_option();
+    let order_id = order_id_state.into_option();
+    let take_up = take_up_state.into_option();
+    let reservation_eligibility = if !context.identity_valid
+        || !time_slot.identity_valid
+        || time_slot.ordinal.is_none()
+        || !decisive_fields_valid
+    {
+        ActionEligibility::Unknown
+    } else {
+        match reservation_status {
+            Some(1) if trade_no.is_none() && order_id.is_none() && take_up != Some(true) => {
+                ActionEligibility::Allowed
+            }
+            Some(_) => ActionEligibility::Denied,
+            None => ActionEligibility::Unknown,
+        }
+    };
+    let reservation_target =
+        (reservation_eligibility == ActionEligibility::Allowed).then(|| CgyyReservationTarget {
+            venue_site_id: context.venue_site_id,
+            reservation_date: context.reservation_date.to_owned(),
+            space_id: context.space_id,
+            time_id: time_slot.value.id,
+            venue_space_group_id: context.venue_space_group_id,
+            time_ordinal: time_slot
+                .ordinal
+                .expect("已验证的场馆时段必须具有可表示的 ordinal"),
+        });
     CgyySlotStatus {
-        time_id,
+        time_id: time_slot.value.id,
         reservation_status,
-        is_reservable: reservation_status == 1
-            && trade_no.is_none()
-            && order_id.is_none()
-            && take_up != Some(true),
+        reservation_eligibility,
+        reservation_target,
         start_date: string(raw, "startDate"),
         end_date: string(raw, "endDate"),
         trade_no,
@@ -304,6 +471,63 @@ fn parse_slot(time_id: i32, raw: &Map<String, Value>) -> CgyySlotStatus {
         already_num: int(raw, "alreadyNum"),
         take_up,
         take_up_explain: string(raw, "takeUpExplain"),
+    }
+}
+
+fn strict_i32(map: &Map<String, Value>, key: &str) -> Option<i32> {
+    match map.get(key)? {
+        Value::Number(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()),
+        Value::String(value) => value
+            .parse::<i32>()
+            .ok()
+            .filter(|parsed| parsed.to_string() == *value),
+        _ => None,
+    }
+}
+
+fn positive_i32_text(value: &str) -> Option<i32> {
+    value.parse::<i32>().ok().filter(|value| *value > 0)
+}
+
+fn nullable_i32(map: &Map<String, Value>, key: &str) -> NullableField<i32> {
+    match map.get(key) {
+        Some(Value::Null) => NullableField::Null,
+        Some(value) => strict_i32_value(value).map_or(NullableField::Invalid, NullableField::Value),
+        None => NullableField::Invalid,
+    }
+}
+
+fn optional_group_id(map: &Map<String, Value>) -> NullableField<i32> {
+    match map.get("venueSpaceGroupId") {
+        None | Some(Value::Null) => NullableField::Null,
+        Some(value) => strict_i32_value(value).map_or(NullableField::Invalid, NullableField::Value),
+    }
+}
+
+fn strict_i32_value(value: &Value) -> Option<i32> {
+    match value {
+        Value::Number(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()),
+        Value::String(value) => value
+            .parse::<i32>()
+            .ok()
+            .filter(|parsed| parsed.to_string() == *value),
+        _ => None,
+    }
+}
+
+fn nullable_string(map: &Map<String, Value>, key: &str) -> NullableField<String> {
+    match map.get(key) {
+        Some(Value::Null) => NullableField::Null,
+        Some(Value::String(value)) => NullableField::Value(value.clone()),
+        Some(_) | None => NullableField::Invalid,
+    }
+}
+
+fn nullable_bool(map: &Map<String, Value>, key: &str) -> NullableField<bool> {
+    match map.get(key) {
+        Some(Value::Null) => NullableField::Null,
+        Some(Value::Bool(value)) => NullableField::Value(*value),
+        Some(_) | None => NullableField::Invalid,
     }
 }
 

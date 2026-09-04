@@ -1,3 +1,5 @@
+#[path = "cli_contract/cgyy_reservation.rs"]
+mod cgyy_reservation;
 #[path = "cli_contract/common.rs"]
 mod common;
 #[path = "cli_contract/exit.rs"]

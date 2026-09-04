@@ -2,6 +2,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use super::ActionEligibility;
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyVenueSite {
@@ -52,8 +54,12 @@ pub struct CgyyTimeSlot {
 #[serde(rename_all = "camelCase")]
 pub struct CgyySlotStatus {
     pub time_id: i32,
-    pub reservation_status: i32,
-    pub is_reservable: bool,
+    /// 上游 canonical 预约状态；缺失、越界或类型畸形时保持为空。
+    pub reservation_status: Option<i32>,
+    /// 当前槽位的 typed 预约资格；`Unknown` 必须按拒绝处理。
+    pub reservation_eligibility: ActionEligibility,
+    /// 仅在资格明确允许且全部身份字段完整唯一时提供。
+    pub reservation_target: Option<CgyyReservationTarget>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub trade_no: Option<String>,
@@ -134,7 +140,7 @@ pub struct CgyyActionResult {
 pub struct CgyyReservationResult {
     pub success: bool,
     pub message: String,
-    pub order: Option<CgyyOrder>,
+    pub receipt: Option<CgyyReservationReceipt>,
 }
 
 /// 场馆门锁码的安全摘要。
@@ -152,6 +158,40 @@ pub struct CgyyReservationSelection {
     pub space_id: i32,
     pub time_id: i32,
     pub venue_space_group_id: Option<i32>,
+}
+
+/// 场馆预约槽位的稳定写目标。
+///
+/// `time_ordinal` 是该时段在上游完整 `spaceTimeInfo` 列表中的零基位置，
+/// 只用于本地 fresh authority 与相邻性判断，不进入最终上游表单。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationTarget {
+    pub venue_site_id: i32,
+    pub reservation_date: String,
+    pub space_id: i32,
+    pub time_id: i32,
+    pub venue_space_group_id: Option<i32>,
+    pub time_ordinal: i32,
+}
+
+/// 场馆预约 prepare 阶段的安全权威摘要。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationPreflight {
+    pub venue_site_id: i32,
+    pub reservation_date: String,
+    pub targets: Vec<CgyyReservationTarget>,
+}
+
+/// 场馆预约成功后的安全收据。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CgyyReservationReceipt {
+    pub order_id: i32,
+    pub venue_site_id: Option<i32>,
+    pub reservation_date: Option<String>,
+    pub order_status: Option<i32>,
 }
 
 /// 场馆预约提交请求。
@@ -215,10 +255,10 @@ impl fmt::Debug for CgyyReservationSubmitRequest {
             .field("reservation_date", &self.reservation_date)
             .field("selections", &self.selections)
             .field("phone", &"<redacted>")
-            .field("theme", &self.theme)
+            .field("theme", &"<redacted>")
             .field("purpose_type", &self.purpose_type)
             .field("joiner_num", &self.joiner_num)
-            .field("activity_content", &self.activity_content)
+            .field("activity_content", &"<redacted>")
             .field("joiners", &"<redacted>")
             .field(
                 "is_philosophy_social_sciences",

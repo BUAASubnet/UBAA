@@ -65,8 +65,34 @@ pub(crate) fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> 
 }
 
 pub(crate) fn parse_cgyy_request(input: &str) -> Result<CgyyReservationSubmitRequest> {
-    serde_json::from_str(input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
+    let value: Value =
+        serde_json::from_str(input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))?;
+    if value.as_object().is_some_and(|object| {
+        CGYY_PRIVATE_CAPTCHA_FIELDS
+            .iter()
+            .any(|field| object.contains_key(*field))
+    }) {
+        return Err(invalid_input(
+            "场馆预约请求不得包含由 Core 内部管理的验证码字段",
+        ));
+    }
+    serde_json::from_value(value).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
 }
+
+const CGYY_PRIVATE_CAPTCHA_FIELDS: [&str; 12] = [
+    "captchaVerification",
+    "captcha_verification",
+    "captchaPointJson",
+    "captcha_point_json",
+    "captchaToken",
+    "captcha_token",
+    "captchaSecretKey",
+    "captcha_secret_key",
+    "captchaOriginalImageBase64",
+    "captcha_original_image_base64",
+    "captchaJigsawImageBase64",
+    "captcha_jigsaw_image_base64",
+];
 
 pub(crate) fn write_json<W: Write, T: serde::Serialize>(
     stdout: &mut W,
@@ -138,11 +164,13 @@ pub(crate) fn internal_error(message: impl Into<String>) -> UbaaError {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+    use ubaa_core::facade::ErrorCode;
+
     use super::parse_cgyy_request;
 
-    #[test]
-    fn 场馆预约请求可以省略由_core_内部获取的验证码材料() {
-        let input = r#"{
+    fn 场馆预约请求_json() -> serde_json::Value {
+        json!({
             "venueSiteId": 4,
             "reservationDate": "2026-03-29",
             "selections": [{"spaceId": 6, "timeId": 242}],
@@ -154,10 +182,44 @@ mod tests {
             "joiners": "tester",
             "isPhilosophySocialSciences": false,
             "isOffSchoolJoiner": false
-        }"#;
+        })
+    }
 
-        let request = parse_cgyy_request(input).unwrap();
+    #[test]
+    fn 场馆预约请求可以省略由_core_内部获取的验证码材料() {
+        let input = 场馆预约请求_json().to_string();
 
+        let request = parse_cgyy_request(&input).unwrap();
+
+        assert!(!request.has_captcha_material());
+    }
+
+    #[test]
+    fn 场馆预约请求拒绝所有已知私有验证码字段且不回显字段值() {
+        for field in super::CGYY_PRIVATE_CAPTCHA_FIELDS {
+            let mut value = 场馆预约请求_json();
+            value[field] = "PRIVATE-CAPTCHA-VALUE".into();
+
+            let error = parse_cgyy_request(&value.to_string()).unwrap_err();
+
+            assert_eq!(error.code, ErrorCode::InvalidInput);
+            assert_eq!(
+                error.message,
+                "场馆预约请求不得包含由 Core 内部管理的验证码字段"
+            );
+            assert!(!error.message.contains(field));
+            assert!(!error.message.contains("PRIVATE-CAPTCHA-VALUE"));
+        }
+    }
+
+    #[test]
+    fn 场馆预约请求继续忽略普通未知字段以保持向前兼容() {
+        let mut value = 场馆预约请求_json();
+        value["futureCompatibleField"] = json!({"enabled": true});
+
+        let request = parse_cgyy_request(&value.to_string()).unwrap();
+
+        assert_eq!(request.venue_site_id, 4);
         assert!(!request.has_captcha_material());
     }
 }
