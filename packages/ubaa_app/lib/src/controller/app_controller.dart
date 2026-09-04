@@ -477,28 +477,24 @@ class AppController extends ChangeNotifier {
     };
   }
 
-  /// 准备图书馆预约；所有目标与时段均必须由用户从公开读取结果/控件提供。
-  Future<WriteIntent> prepareLibbookReserveWrite({
-    required String areaId,
-    required String seatId,
-    required String day,
-    required String segment,
-    required String startTime,
-    required String endTime,
-  }) async {
+  /// 准备图书馆预约的 typed 一次性意图；只接受读取白名单中的完整目标。
+  Future<WriteIntent> prepareLibbookReserveWrite(
+    LibbookReserveAction action,
+  ) async {
     final backend = _backend;
     if (backend is! LibbookWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
     final values = <String>[
-      areaId,
-      seatId,
-      day,
-      segment,
-      startTime,
-      endTime,
+      action.areaId,
+      action.seatId,
+      action.day,
+      action.segment,
+      action.startTime,
+      action.endTime,
     ].map((value) => value.trim()).toList(growable: false);
-    if (values.any((value) => value.isEmpty)) {
+    if (action.eligibility != ActionEligibility.allowed ||
+        values.any((value) => value.isEmpty)) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     final writer = backend as LibbookWriteBackend;
@@ -685,6 +681,15 @@ class AppController extends ChangeNotifier {
 
   /// 写入成功后仅刷新关联只读领域，用于结果核对；不会重试写请求。
   Future<void> refreshAfterWrite(WriteOperation operation) {
+    if (operation == WriteOperation.libbookReserve ||
+        operation == WriteOperation.libbookCancelBooking) {
+      if (_backend is FeatureQueryBackend) {
+        return refreshFeatureQuery(
+          FeatureId.libbook,
+          const FeatureQuery(view: FeatureQueryView.libbookBookings),
+        );
+      }
+    }
     if (operation == WriteOperation.cgyySubmitReservation ||
         operation == WriteOperation.cgyyCancelOrder) {
       // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，

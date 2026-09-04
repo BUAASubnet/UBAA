@@ -299,8 +299,17 @@ void _registerFeatureInputTests() {
     expect(find.text('阳光打卡结果已提交，请刷新记录确认'), findsOneWidget);
   });
 
-  testWidgets('图书馆可预约座位展示完整时段摘要后再准备写入', (tester) async {
+  testWidgets('图书馆预约只透传 typed action 而不解析误导展示字段', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
+    const expectedAction = LibbookReserveAction(
+      areaId: 'area-authority',
+      seatId: 'seat-authority',
+      day: '2026-09-02',
+      segment: 'segment-authority',
+      startTime: '10:00',
+      endTime: '12:00',
+      eligibility: ActionEligibility.allowed,
+    );
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -312,14 +321,15 @@ void _registerFeatureInputTests() {
                   FeatureDetail(
                     title: '座位 A-01',
                     fields: <FeatureField>[
-                      FeatureField(label: '分区 ID', value: 'area-1'),
-                      FeatureField(label: '座位 ID', value: 'seat-2'),
-                      FeatureField(label: '日期', value: '2026-09-02'),
-                      FeatureField(label: '时段', value: '3'),
-                      FeatureField(label: '开始时间', value: '10:00'),
-                      FeatureField(label: '结束时间', value: '12:00'),
-                      FeatureField(label: '可预约', value: '是'),
+                      FeatureField(label: '分区 ID', value: 'display-area-wrong'),
+                      FeatureField(label: '座位 ID', value: 'display-seat-wrong'),
+                      FeatureField(label: '日期', value: '1900-01-01'),
+                      FeatureField(label: '时段', value: 'display-segment-wrong'),
+                      FeatureField(label: '开始时间', value: '00:00'),
+                      FeatureField(label: '结束时间', value: '00:01'),
+                      FeatureField(label: '可预约', value: '否'),
                     ],
+                    actions: <FeatureAction>[expectedAction],
                   ),
                 ]
               : const <FeatureDetail>[],
@@ -337,35 +347,31 @@ void _registerFeatureInputTests() {
           telemetryEnabled: false,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
-          onPrepareLibbookReserveWrite:
-              ({
-                required areaId,
-                required seatId,
-                required day,
-                required segment,
-                required startTime,
-                required endTime,
-              }) async {
-                prepareCalls++;
-                expect(areaId, 'area-1');
-                expect(seatId, 'seat-2');
-                expect(day, '2026-09-02');
-                expect(segment, '3');
-                expect(startTime, '10:00');
-                expect(endTime, '12:00');
-                return WriteIntent(
-                  intentId: 'reserve-seat-2',
-                  operation: WriteOperation.libbookReserve,
-                  targetSummary: 'area-1 / seat-2 / 2026-09-02 3',
-                  resolvedRoute: ConnectionMode.direct,
-                  warnings: const <String>['请确认座位、日期和时段'],
-                  expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-                  requestDigest: 'digest',
-                );
-              },
+          onPrepareLibbookReserveWrite: (action) async {
+            prepareCalls++;
+            expect(identical(action, expectedAction), isTrue);
+            expect(action.areaId, 'area-authority');
+            expect(action.seatId, 'seat-authority');
+            expect(action.day, '2026-09-02');
+            expect(action.segment, 'segment-authority');
+            expect(action.startTime, '10:00');
+            expect(action.endTime, '12:00');
+            expect(action.eligibility, ActionEligibility.allowed);
+            return WriteIntent(
+              intentId: 'reserve-seat-authority',
+              operation: WriteOperation.libbookReserve,
+              targetSummary:
+                  'area-authority / seat-authority / 2026-09-02 '
+                  'segment-authority',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['请确认座位、日期和时段'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
           onCommitWrite: (intentId) async {
             commitCalls++;
-            expect(intentId, 'reserve-seat-2');
+            expect(intentId, 'reserve-seat-authority');
             return const WriteCommitResult(
               operation: WriteOperation.libbookReserve,
               success: true,

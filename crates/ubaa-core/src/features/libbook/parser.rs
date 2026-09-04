@@ -3,8 +3,8 @@
 use serde_json::{Map, Value};
 
 use crate::domain::{
-    LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage, LibBookLibrary,
-    LibBookSeat, LibBookStorey, LibBookTimeSlot,
+    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage,
+    LibBookLibrary, LibBookSeat, LibBookStorey, LibBookTimeSlot,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
@@ -45,6 +45,17 @@ fn number(map: &Map<String, Value>, keys: &[&str]) -> i32 {
                 })
         })
         .unwrap_or_default()
+}
+
+fn optional_i32(map: &Map<String, Value>, key: &str) -> Option<i32> {
+    match map.get(key)? {
+        Value::Number(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()),
+        Value::String(value) => value
+            .parse::<i32>()
+            .ok()
+            .filter(|parsed| parsed.to_string() == *value),
+        _ => None,
+    }
 }
 
 fn array<'a>(map: &'a Map<String, Value>, keys: &[&str]) -> &'a [Value] {
@@ -165,7 +176,65 @@ pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDet
         || array(object, &["timeSlots", "time_slots"]),
         |date| array(date, &["times", "timeSlots"]),
     );
-    let time_slots = slots
+    let time_slots = parse_time_slots(slots);
+    let id = text(area, &["id"]);
+    Ok(LibBookAreaDetail {
+        id: if id.is_empty() {
+            area_id.to_owned()
+        } else {
+            id
+        },
+        name: text(area, &["name"]),
+        available_dates,
+        time_slots,
+    })
+}
+
+/// 从 `Space/map` 原始日期列表中唯一选择目标日期，并只返回该日期的时段。
+pub(super) fn parse_area_detail_for_day(
+    area_id: &str,
+    day: &str,
+    body: &str,
+) -> Result<Option<LibBookAreaDetail>> {
+    let value = envelope(body)?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| error("图书馆分区响应结构无效"))?;
+    let area = object
+        .get("area")
+        .and_then(Value::as_object)
+        .unwrap_or(object);
+    let dates = object
+        .get("date")
+        .and_then(Value::as_object)
+        .map_or(&[] as &[Value], |date| array(date, &["list"]));
+    let matching_dates = dates
+        .iter()
+        .filter_map(Value::as_object)
+        .filter(|date| text(date, &["day", "date"]).trim() == day)
+        .collect::<Vec<_>>();
+    let [date] = matching_dates.as_slice() else {
+        return if matching_dates.is_empty() {
+            Ok(None)
+        } else {
+            Err(error("图书馆分区响应包含重复预约日期"))
+        };
+    };
+    let id = text(area, &["id"]);
+    Ok(Some(LibBookAreaDetail {
+        id: if id.is_empty() {
+            area_id.to_owned()
+        } else {
+            id
+        },
+        name: text(area, &["name"]),
+        available_dates: vec![day.to_owned()],
+        time_slots: parse_time_slots(array(date, &["times", "timeSlots"])),
+    }))
+}
+
+fn parse_time_slots(slots: &[Value]) -> Vec<LibBookTimeSlot> {
+    slots
         .iter()
         .filter_map(Value::as_object)
         .map(|slot| {
@@ -182,35 +251,36 @@ pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDet
             }
             value
         })
-        .collect();
-    let id = text(area, &["id"]);
-    Ok(LibBookAreaDetail {
-        id: if id.is_empty() {
-            area_id.to_owned()
-        } else {
-            id
-        },
-        name: text(area, &["name"]),
-        available_dates,
-        time_slots,
-    })
+        .collect()
 }
 
-/// 解析座位列表，并将状态 `1` 映射为可用。
+/// 解析座位列表，并从严格整数状态与非空座位编号派生预约资格。
 pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
     let value = envelope(body)?;
     let mut seats: Vec<_> = list_value(&value, &["list", "seats"])
         .iter()
         .filter_map(Value::as_object)
         .map(|object| {
-            let status = text(object, &["status"]);
+            let id = text(object, &["id"]);
+            let status = optional_i32(object, "status");
+            let target = (!id.trim().is_empty()).then(|| id.trim().to_owned());
+            let reserve_eligibility = match (status, target.as_ref()) {
+                (Some(1), Some(_)) => ActionEligibility::Allowed,
+                (Some(2 | 3), Some(_)) => ActionEligibility::Denied,
+                _ => ActionEligibility::Unknown,
+            };
+            let reserve_target = match reserve_eligibility {
+                ActionEligibility::Allowed | ActionEligibility::Denied => target,
+                ActionEligibility::Unknown => None,
+            };
             LibBookSeat {
-                id: text(object, &["id"]),
+                id,
                 name: text(object, &["name"]),
                 no: text(object, &["no", "seat_no"]),
-                status: status.clone(),
+                status,
                 status_name: text(object, &["status_name", "statusName"]),
-                is_available: status == "1",
+                reserve_eligibility,
+                reserve_target,
             }
         })
         .collect();

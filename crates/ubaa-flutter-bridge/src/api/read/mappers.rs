@@ -450,7 +450,8 @@ pub(super) fn map_libbook_seats(v: Vec<domain::LibBookSeat>) -> Vec<BridgeLibBoo
             no: s.no,
             status: s.status,
             status_name: s.status_name,
-            is_available: s.is_available,
+            reserve_eligibility: map_action_eligibility(s.reserve_eligibility),
+            reserve_target: s.reserve_target,
         })
         .collect()
 }

@@ -128,6 +128,27 @@ void main() {
     expect(action.eligibility, ActionEligibility.allowed);
   });
 
+  test('图书馆预约 action 保留 Core 目标、完整时段与三态资格', () {
+    const action = LibbookReserveAction(
+      areaId: 'area-safe',
+      seatId: 'seat-safe',
+      day: '2026-09-04',
+      segment: 'segment-safe',
+      startTime: '08:00',
+      endTime: '10:00',
+      eligibility: ActionEligibility.allowed,
+    );
+
+    expect(action.areaId, 'area-safe');
+    expect(action.seatId, 'seat-safe');
+    expect(action.day, '2026-09-04');
+    expect(action.segment, 'segment-safe');
+    expect(action.startTime, '08:00');
+    expect(action.endTime, '10:00');
+    expect(action.operation, WriteOperation.libbookReserve);
+    expect(action.eligibility, ActionEligibility.allowed);
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

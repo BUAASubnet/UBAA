@@ -4417,16 +4417,19 @@ impl SseDecode for crate::api::read::BridgeLibBookSeat {
         let mut var_id = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_no = <String>::sse_decode(deserializer);
-        let mut var_status = <String>::sse_decode(deserializer);
+        let mut var_status = <Option<i32>>::sse_decode(deserializer);
         let mut var_statusName = <String>::sse_decode(deserializer);
-        let mut var_isAvailable = <bool>::sse_decode(deserializer);
+        let mut var_reserveEligibility =
+            <crate::api::read::BridgeActionEligibility>::sse_decode(deserializer);
+        let mut var_reserveTarget = <Option<String>>::sse_decode(deserializer);
         return crate::api::read::BridgeLibBookSeat {
             id: var_id,
             name: var_name,
             no: var_no,
             status: var_status,
             status_name: var_statusName,
-            is_available: var_isAvailable,
+            reserve_eligibility: var_reserveEligibility,
+            reserve_target: var_reserveTarget,
         };
     }
 }
@@ -7846,7 +7849,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeLibBookSeat {
             self.no.into_into_dart().into_dart(),
             self.status.into_into_dart().into_dart(),
             self.status_name.into_into_dart().into_dart(),
-            self.is_available.into_into_dart().into_dart(),
+            self.reserve_eligibility.into_into_dart().into_dart(),
+            self.reserve_target.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -10159,9 +10163,13 @@ impl SseEncode for crate::api::read::BridgeLibBookSeat {
         <String>::sse_encode(self.id, serializer);
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.no, serializer);
-        <String>::sse_encode(self.status, serializer);
+        <Option<i32>>::sse_encode(self.status, serializer);
         <String>::sse_encode(self.status_name, serializer);
-        <bool>::sse_encode(self.is_available, serializer);
+        <crate::api::read::BridgeActionEligibility>::sse_encode(
+            self.reserve_eligibility,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.reserve_target, serializer);
     }
 }
 

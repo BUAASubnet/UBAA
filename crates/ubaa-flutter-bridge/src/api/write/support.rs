@@ -50,6 +50,28 @@ pub(super) fn map_bykc_sign_preflight_error(error: domain::RoutedError) -> Bridg
     BridgeError::from_routed(error)
 }
 
+pub(super) fn map_libbook_preflight_error(error: domain::RoutedError) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if error.error.code == domain::ErrorCode::InvalidInput && error.error.retryable {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "图书馆预约资格已变化，请刷新后重新准备",
+        );
+    }
+    BridgeError::from_routed(error)
+}
+
 pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
@@ -65,14 +87,16 @@ pub(super) fn map_commit_error(
     }
     if matches!(
         operation,
-        BridgeWriteOperation::BykcSignCourse | BridgeWriteOperation::SigninPerform
+        BridgeWriteOperation::BykcSignCourse
+            | BridgeWriteOperation::SigninPerform
+            | BridgeWriteOperation::LibbookReserve
     ) && error.error.code == domain::ErrorCode::InvalidInput
         && error.error.retryable
     {
-        let message = if matches!(operation, BridgeWriteOperation::SigninPerform) {
-            "课堂签到资格已变化，请刷新后重新准备"
-        } else {
-            "课程签到资格已变化，请刷新后重新准备"
+        let message = match operation {
+            BridgeWriteOperation::SigninPerform => "课堂签到资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::LibbookReserve => "图书馆预约资格已变化，请刷新后重新准备",
+            _ => "课程签到资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
             &error,
@@ -82,11 +106,22 @@ pub(super) fn map_commit_error(
             message,
         );
     }
-    let outcome_unknown = if error.error.code == domain::ErrorCode::OutcomeUnknown {
-        true
-    } else if matches!(
+    if error.error.code == domain::ErrorCode::OutcomeUnknown {
+        let kind = error.error.kind.into();
+        let message = error.error.message.clone();
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::OutcomeUnknown,
+            kind,
+            false,
+            &message,
+        );
+    }
+    let outcome_unknown = if matches!(
         operation,
-        BridgeWriteOperation::BykcSignCourse | BridgeWriteOperation::SigninPerform
+        BridgeWriteOperation::BykcSignCourse
+            | BridgeWriteOperation::SigninPerform
+            | BridgeWriteOperation::LibbookReserve
     ) {
         false
     } else {
@@ -433,7 +468,7 @@ pub(super) fn safe_summary_label(value: &str, fallback: &str) -> String {
     let sanitized = value
         .trim()
         .chars()
-        .filter(|value| !value.is_control())
+        .filter(|value| !unsafe_summary_character(*value))
         .take(80)
         .collect::<String>();
     if sanitized.is_empty() {
@@ -441,4 +476,17 @@ pub(super) fn safe_summary_label(value: &str, fallback: &str) -> String {
     } else {
         sanitized
     }
+}
+
+fn unsafe_summary_character(value: char) -> bool {
+    value.is_control()
+        || matches!(
+            value,
+            '\u{00ad}'
+                | '\u{061c}'
+                | '\u{200b}'..='\u{200f}'
+                | '\u{2028}'..='\u{202e}'
+                | '\u{2060}'..='\u{206f}'
+                | '\u{feff}'
+        )
 }

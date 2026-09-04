@@ -262,6 +262,7 @@ void registerBridgeBackendReadCharacterization() {
           view: FeatureQueryView.libbookSeats,
           areaId: 'area-1',
           date: DateTime(2026, 9, 4),
+          segment: 'segment-1',
           startTime: '08:00',
           endTime: '10:00',
         ),

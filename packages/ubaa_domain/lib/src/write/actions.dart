@@ -102,3 +102,33 @@ class SigninPerformAction extends FeatureAction {
   @override
   WriteOperation get operation => WriteOperation.signinPerform;
 }
+
+/// 单个图书馆座位的 Core 已核对预约目标。
+///
+/// 六个目标字段由读取查询上下文和 Bridge 的 typed 座位目标共同组成；消费端不得
+/// 从 `FeatureDetail.fields` 的展示文案重建这些值。
+@immutable
+class LibbookReserveAction extends FeatureAction {
+  const LibbookReserveAction({
+    required this.areaId,
+    required this.seatId,
+    required this.day,
+    required this.segment,
+    required this.startTime,
+    required this.endTime,
+    required this.eligibility,
+  });
+
+  final String areaId;
+  final String seatId;
+  final String day;
+  final String segment;
+  final String startTime;
+  final String endTime;
+
+  @override
+  final ActionEligibility eligibility;
+
+  @override
+  WriteOperation get operation => WriteOperation.libbookReserve;
+}

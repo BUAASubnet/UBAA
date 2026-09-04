@@ -2,7 +2,7 @@
 
 use crate::domain::{
     CgyyActionResult, CgyyReservationResult, CgyyReservationSubmitRequest, LibBookCancelResult,
-    LibBookReserveRequest, LibBookReserveResult, ReadonlyFeature,
+    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, ReadonlyFeature,
 };
 
 use super::super::client::UbaaClient;
@@ -48,6 +48,23 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 只读复核图书馆预约的当前日期、时段和唯一座位资格。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、图书馆路线不可用、目标不唯一或资格不足时返回带路线信息的错误。
+    pub async fn preflight_libbook_reserve(
+        &mut self,
+        request: &LibBookReserveRequest,
+    ) -> RoutedResult<LibBookReservePreflight> {
+        self.guard_latest_routed()?;
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result =
+            crate::features::libbook::preflight_reserve(self.runtime_for(resolution.mode), request)
+                .await;
+        self.finish_routed(resolution, result)
+    }
+
     /// 提交一笔图书馆座位预约。
     ///
     /// # Errors
@@ -59,9 +76,12 @@ impl UbaaClient {
     ) -> RoutedResult<LibBookReserveResult> {
         self.guard_latest_routed()?;
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result =
-            crate::features::libbook::reserve(self.runtime_for(resolution.mode), request).await;
-        self.finish_routed(resolution, result)
+        let result = {
+            let runtime = self.runtime_for(resolution.mode);
+            runtime.begin_non_idempotent_operation();
+            crate::features::libbook::reserve(runtime, request).await
+        };
+        self.finish_routed_write(resolution, result)
     }
 
     /// 取消一笔图书馆座位预约。

@@ -174,30 +174,70 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('图书馆预约写意图要求完整的公开选座参数', () async {
+  test('图书馆预约写意图只接受完整的 typed Allowed action', () async {
     final backend = _LibbookWriteBackend();
     final controller = AppController(backend: backend);
     final intent = await controller.prepareLibbookReserveWrite(
-      areaId: 'area-1',
-      seatId: 'seat-2',
-      day: '2026-09-02',
-      segment: '3',
-      startTime: '10:00',
-      endTime: '12:00',
+      const LibbookReserveAction(
+        areaId: ' area-1 ',
+        seatId: ' seat-2 ',
+        day: ' 2026-09-02 ',
+        segment: ' 3 ',
+        startTime: ' 10:00 ',
+        endTime: ' 12:00 ',
+        eligibility: ActionEligibility.allowed,
+      ),
     );
     expect(intent.operation, WriteOperation.libbookReserve);
+    expect(backend.prepareCalls, 1);
+    expect(backend.areaId, 'area-1');
     expect(backend.seatId, 'seat-2');
-    await expectLater(
-      controller.prepareLibbookReserveWrite(
-        areaId: ' ',
-        seatId: 'seat-2',
+    expect(backend.day, '2026-09-02');
+    expect(backend.segment, '3');
+    expect(backend.startTime, '10:00');
+    expect(backend.endTime, '12:00');
+
+    for (final action in const <LibbookReserveAction>[
+      LibbookReserveAction(
+        areaId: 'area-1',
+        seatId: 'seat-denied',
         day: '2026-09-02',
         segment: '3',
         startTime: '10:00',
         endTime: '12:00',
+        eligibility: ActionEligibility.denied,
       ),
-      throwsA(isA<BackendException>()),
-    );
+      LibbookReserveAction(
+        areaId: 'area-1',
+        seatId: 'seat-unknown',
+        day: '2026-09-02',
+        segment: '3',
+        startTime: '10:00',
+        endTime: '12:00',
+        eligibility: ActionEligibility.unknown,
+      ),
+      LibbookReserveAction(
+        areaId: 'area-1',
+        seatId: '   ',
+        day: '2026-09-02',
+        segment: '3',
+        startTime: '10:00',
+        endTime: '12:00',
+        eligibility: ActionEligibility.allowed,
+      ),
+    ]) {
+      await expectLater(
+        controller.prepareLibbookReserveWrite(action),
+        throwsA(
+          isA<BackendException>().having(
+            (error) => error.code,
+            'code',
+            UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+    }
+    expect(backend.prepareCalls, 1);
     controller.dispose();
   });
 
@@ -342,6 +382,15 @@ void _registerWriteTests() {
         expect(backend.queries, hasLength(1));
         expect(backend.queries.single.$1, FeatureId.cgyy);
         expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
+      } else if (operation == WriteOperation.libbookReserve ||
+          operation == WriteOperation.libbookCancelBooking) {
+        expect(backend.loadedFeatures, isEmpty);
+        expect(backend.queries, hasLength(1));
+        expect(backend.queries.single.$1, FeatureId.libbook);
+        expect(
+          backend.queries.single.$2.view,
+          FeatureQueryView.libbookBookings,
+        );
       } else {
         expect(backend.queries, isEmpty);
         expect(backend.loadedFeatures, hasLength(1));
@@ -360,6 +409,27 @@ void _registerWriteTests() {
     expect(backend.queries, hasLength(1));
     expect(backend.queries.single.$1, FeatureId.cgyy);
     expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
+    controller.dispose();
+  });
+
+  test('图书馆预约与取消都只刷新一次预约记录', () async {
+    final backend = _RefreshMatrixBackend();
+    final controller = AppController(backend: backend);
+
+    for (final operation in const <WriteOperation>[
+      WriteOperation.libbookReserve,
+      WriteOperation.libbookCancelBooking,
+    ]) {
+      backend.queries.clear();
+      backend.loadedFeatures.clear();
+
+      await controller.refreshAfterWrite(operation);
+
+      expect(backend.loadedFeatures, isEmpty);
+      expect(backend.queries, hasLength(1));
+      expect(backend.queries.single.$1, FeatureId.libbook);
+      expect(backend.queries.single.$2.view, FeatureQueryView.libbookBookings);
+    }
     controller.dispose();
   });
 

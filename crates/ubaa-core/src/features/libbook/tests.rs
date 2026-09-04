@@ -1,8 +1,126 @@
 //! 图书馆 parser 与冻结加密向量单元合同。
 
 use super::crypto::encrypt_reserve_request;
+use super::parser::parse_area_detail_for_day;
 use super::{parse_area_detail_for, parse_bookings, parse_libraries, parse_seats};
-use crate::domain::LibBookReserveRequest;
+use crate::domain::{ActionEligibility, LibBookReserveRequest};
+use crate::error::ErrorCode;
+
+type SeatStatusCase = (
+    &'static str,
+    &'static str,
+    Option<i32>,
+    ActionEligibility,
+    Option<&'static str>,
+);
+
+const SEAT_STATUS_CASES: &[SeatStatusCase] = &[
+    (
+        "字符串允许",
+        r#"{"id":" seat-safe ","status":"1"}"#,
+        Some(1),
+        ActionEligibility::Allowed,
+        Some("seat-safe"),
+    ),
+    (
+        "整数允许",
+        r#"{"id":"seat-safe","status":1}"#,
+        Some(1),
+        ActionEligibility::Allowed,
+        Some("seat-safe"),
+    ),
+    (
+        "状态二拒绝",
+        r#"{"id":"seat-safe","status":"2"}"#,
+        Some(2),
+        ActionEligibility::Denied,
+        Some("seat-safe"),
+    ),
+    (
+        "状态三拒绝",
+        r#"{"id":"seat-safe","status":3}"#,
+        Some(3),
+        ActionEligibility::Denied,
+        Some("seat-safe"),
+    ),
+    (
+        "其它整数未知",
+        r#"{"id":"seat-safe","status":9}"#,
+        Some(9),
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态缺失",
+        r#"{"id":"seat-safe"}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态为空",
+        r#"{"id":"seat-safe","status":null}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态畸形",
+        r#"{"id":"seat-safe","status":"bad"}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态前导零",
+        r#"{"id":"seat-safe","status":"01"}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态显式正号",
+        r#"{"id":"seat-safe","status":"+1"}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态布尔",
+        r#"{"id":"seat-safe","status":true}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态对象",
+        r#"{"id":"seat-safe","status":{"value":1}}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态小数",
+        r#"{"id":"seat-safe","status":1.5}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "状态溢出",
+        r#"{"id":"seat-safe","status":2147483648}"#,
+        None,
+        ActionEligibility::Unknown,
+        None,
+    ),
+    (
+        "目标为空",
+        r#"{"id":"   ","status":1}"#,
+        Some(1),
+        ActionEligibility::Unknown,
+        None,
+    ),
+];
 
 #[test]
 fn 解析图书馆楼层和座位状态() {
@@ -16,7 +134,21 @@ fn 解析图书馆楼层和座位状态() {
         r#"{"code":1,"data":[{"id":"s","name":"座位","no":"001","status":"1","statusName":"可用"}]}"#,
     )
     .unwrap();
-    assert!(seats[0].is_available);
+    assert_eq!(seats[0].status, Some(1));
+    assert_eq!(seats[0].reserve_eligibility, ActionEligibility::Allowed);
+    assert_eq!(seats[0].reserve_target.as_deref(), Some("s"));
+}
+
+#[test]
+fn 座位状态矩阵只从严格整数与非空目标派生预约资格() {
+    for &(case, row, status, eligibility, target) in SEAT_STATUS_CASES {
+        let body = format!(r#"{{"code":1,"data":[{row}]}}"#);
+        let seats = parse_seats(&body).expect("状态矩阵应保持座位行并安全归类");
+        assert_eq!(seats.len(), 1, "{case}");
+        assert_eq!(seats[0].status, status, "{case}");
+        assert_eq!(seats[0].reserve_eligibility, eligibility, "{case}");
+        assert_eq!(seats[0].reserve_target.as_deref(), target, "{case}");
+    }
 }
 
 #[test]
@@ -62,6 +194,36 @@ fn 解析区域时段并补充标签() {
 }
 
 #[test]
+fn 预约权威按目标日期而不是首日选择时段() {
+    let detail = parse_area_detail_for_day(
+        "area-safe",
+        "2026-09-04",
+        r#"{"code":1,"data":{"area":{"id":"area-safe"},"date":{"list":[{"day":"2026-09-03","times":[{"id":"other-segment","start":"08:00","end":"09:00"}]},{"day":"2026-09-04","times":[{"id":"segment-safe","start":"10:00","end":"12:00"}] }]}}}"#,
+    )
+    .expect("目标日期应可解析")
+    .expect("目标日期应存在");
+
+    assert_eq!(detail.available_dates, ["2026-09-04"]);
+    assert_eq!(detail.time_slots.len(), 1);
+    assert_eq!(detail.time_slots[0].id, "segment-safe");
+    assert_eq!(detail.time_slots[0].start, "10:00");
+    assert_eq!(detail.time_slots[0].end, "12:00");
+}
+
+#[test]
+fn 预约权威拒绝重复目标日期() {
+    let error = parse_area_detail_for_day(
+        "area-safe",
+        "2026-09-04",
+        r#"{"code":1,"data":{"area":{"id":"area-safe"},"date":{"list":[{"day":"2026-09-04","times":[]},{"day":"2026-09-04","times":[]}]}}}"#,
+    )
+    .expect_err("重复日期不能提供唯一预约权威");
+
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert!(!error.retryable);
+}
+
+#[test]
 fn reserve_request_matches_frozen_golden_vector() {
     let encrypted = encrypt_reserve_request(&LibBookReserveRequest {
         area_id: "8".into(),
@@ -88,6 +250,7 @@ fn 座位数字原语按冻结实现转为文本() {
     let seats = parse_seats(&body).expect("解析座位");
     assert_eq!(seats[0].id, "101");
     assert_eq!(seats[0].no, "12");
-    assert_eq!(seats[0].status, "1");
-    assert!(seats[0].is_available);
+    assert_eq!(seats[0].status, Some(1));
+    assert_eq!(seats[0].reserve_eligibility, ActionEligibility::Allowed);
+    assert_eq!(seats[0].reserve_target.as_deref(), Some("101"));
 }

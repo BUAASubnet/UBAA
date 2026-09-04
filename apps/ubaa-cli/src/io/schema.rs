@@ -16,7 +16,7 @@ use crate::io::error::{CliJsonError, output_invariant_error};
 use crate::io::input::internal_error;
 
 /// CLI 唯一支持的 JSON 架构版本。
-pub const CLI_JSON_SCHEMA_VERSION: u32 = 4;
+pub const CLI_JSON_SCHEMA_VERSION: u32 = 5;
 
 /// CLI JSON 元数据使用的封闭功能名称集合。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

@@ -135,6 +135,19 @@ void main() {
     expect(read, contains('available'));
   });
 
+  test('图书馆座位 DTO 保留可空原始状态与 Core typed 预约资格', () {
+    final declaration = RegExp(
+      r'class BridgeLibBookSeat \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read);
+    expect(declaration, isNotNull);
+    final body = declaration!.namedGroup('body')!;
+
+    expect(body, contains('final int? status;'));
+    expect(body, contains('final BridgeActionEligibility reserveEligibility;'));
+    expect(body, contains('final String? reserveTarget;'));
+  });
+
   test('生成 DTO 快照覆盖全部公开读取类型', () {
     const allDtoNames = <String>[
       'BridgeBykcChosenCourse',

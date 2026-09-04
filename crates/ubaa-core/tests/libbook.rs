@@ -4,7 +4,12 @@ use async_trait::async_trait;
 use ubaa_core::facade::testing::{
     FileSessionStore, HttpRequest, HttpResponse, HttpTransport, SessionSnapshot, SessionStore,
 };
-use ubaa_core::facade::{ConnectionMode, LibBookReserveRequest, Result, RouteClient};
+use ubaa_core::facade::{
+    ActionEligibility, ConnectionMode, LibBookReserveRequest, Result, RouteClient,
+};
+
+#[path = "libbook/write_authority.rs"]
+mod write_authority;
 
 #[test]
 fn 图书馆查询完成八跳内的_cas_换票并复用独立令牌() {
@@ -52,7 +57,8 @@ fn 图书馆查询完成八跳内的_cas_换票并复用独立令牌() {
         .block_on(client.libbook_seats("8", "2026-08-27", "08:00", "23:00"))
         .unwrap()
         .data;
-    assert!(seats[0].is_available);
+    assert_eq!(seats[0].reserve_eligibility, ActionEligibility::Allowed);
+    assert_eq!(seats[0].reserve_target.as_deref(), Some("s1"));
     let bookings = runtime
         .block_on(client.libbook_bookings(1, 20))
         .unwrap()
@@ -106,12 +112,12 @@ fn 图书馆预约取消写链发送冻结加密请求() {
         .unwrap();
     let result = runtime
         .block_on(client.libbook_reserve(LibBookReserveRequest {
-            area_id: "area-1".into(),
-            seat_id: "seat-1".into(),
-            day: "2026-08-28".into(),
-            segment: "seg-1".into(),
+            area_id: "8".into(),
+            seat_id: "s1".into(),
+            day: "2026-08-27".into(),
+            segment: "t1".into(),
             start_time: "08:00".into(),
-            end_time: "10:00".into(),
+            end_time: "23:00".into(),
         }))
         .unwrap()
         .data;

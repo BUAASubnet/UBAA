@@ -9,8 +9,10 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `3`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。版本 3 将课堂签到
-  `signStatus` 改为可空，并新增 typed eligibility/target；它不与版本 2 的旧生成绑定混用。
+- 合同版本为 `4`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+  `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
+  可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 4 不与版本 3
+  或更早的生成绑定混用。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -26,7 +28,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=3` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=4` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -65,9 +67,11 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 Core 错误码逐一映射：`invalid_input`、`authentication_required`、`invalid_credentials`、
 `password_risk_confirmation_failed`、`permission_denied`、`network_error`、`timeout`、
 `upstream_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
-Phase 11C 已收口的博雅签到链只允许在非幂等写请求越过发送边界后产生 `outcome_unknown`；其余写操作
-暂时保留既有的 commit 阶段保守映射，可能把业务登录或预检中的网络类失败也归入结果未知，必须在各自
-11D–J 来源对照阶段逐项收窄。无论来源如何，宿主都必须禁止自动重试并先执行只读核对。bridge 新增且
+Phase 11C–11E 已收口的博雅签到、课堂签到与 LibBook 预约链只允许在非幂等写请求越过发送边界后产生
+`outcome_unknown`；其余写操作暂时保留既有的 commit 阶段保守映射，可能把业务登录或预检中的网络类失败
+也归入结果未知，必须在后续来源对照阶段逐项收窄。LibBook 的 `outcome_unknown` 保留 Core 提供的稳定
+code、kind 与安全 message，同时强制 `retryable=false`。无论来源如何，宿主都必须禁止自动重试并先执行
+只读核对。bridge 新增且
 只用于本地状态的错误码为 `client_disposed`、`confirmation_required`、`intent_expired`、
 `operation_conflict`。未知 Core 码必须失败关闭为 `internal_error`。
 
@@ -76,12 +80,12 @@ Phase 11C 已收口的博雅签到链只允许在非幂等写请求越过发送�
 | 方法 | 输入 | 成功结果 | 约束 |
 |---|---|---|---|
 | `prepareLogin` | 无 | `LoginPreparation` | 固定 Direct、WebVPN 两项；不返回 execution 或挑战材料 |
-| `login` | `username: String, password: String` | `LoginOutcome` | 密码立即包装为 `SecretValue`；不进入 Debug、日志或持久化 |
-| `authStatus` | 无 | `LoginOutcome` | 复用聚合 facade；部分路线成功必须保留 |
+| `login` | `username: String, password: String` | `LoginOutcome` | 密码立即包装为 `SecretValue`；不进入 Debug、日志或持久化；成功后使旧 intent 失效 |
+| `authStatus` | 无 | `LoginOutcome` | 复用聚合 facade；部分路线成功必须保留；调用完成后使全部旧 intent 失效 |
 | `userInfo` | 无 | `Routed<UserProfile>` | 只返回白名单字段 |
-| `logout` | 无 | `void` | 远端尽力、Core Session 清理；不删除平台 CredentialVault |
+| `logout` | 无 | `void` | 远端尽力、Core Session 清理并使旧 intent 失效；不删除平台 CredentialVault |
 | `routeSettings` | 无 | `RouteSettings` | 返回配置策略与当前有效路线槽位，不读取 Session 内容 |
-| `setDefaultRoutePolicy` | `RoutePolicy` | `RouteSettings` | 有请求或 intent 时拒绝；原子保存、清空 feature override、重开 client、保留路线 Session |
+| `setDefaultRoutePolicy` | `RoutePolicy` | `RouteSettings` | 有进行中的 Core 请求时拒绝；原子保存、清空 feature override、重开 client、保留路线 Session，并使旧 intent 失效 |
 
 认证 DTO：
 
@@ -94,8 +98,8 @@ Phase 11C 已收口的博雅签到链只允许在非幂等写请求越过发送�
   `idCardTypeName`；不向 Flutter 返回证件号码、上游包装或 Cookie。
 - `RouteSettings {defaultPolicy, activeRoutes}`；`activeRoutes` 只含 Direct/WebVPN 枚举。
 
-切换策略时必须先确认没有进行中的 bridge 调用和未消费 intent；保存失败保持旧 client 与旧策略。
-保存成功后使 intent 全失效，dispose 旧 client，从同一目录重新 open，再返回新设置。Flutter
+切换策略时若有进行中的 Core 调用则拒绝；待确认 intent 不阻止切换，但保存和重开成功后必须全部失效。
+保存失败保持旧 client 与旧策略。成功时从同一目录重新 open，再返回新设置。Flutter
 不得开放 per-feature override，也不得把 `defaultPolicy` 当成某次调用的 `resolvedRoute`。
 
 ## 5. 读取方法与 schema
@@ -174,7 +178,8 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 - `LibBookLibrary {id,name,freeNum,totalNum,storeys}`；`LibBookStorey` 同名计数字段；
   `LibBookArea {id,name,areaName,premisesId,storeyId,freeNum,totalNum}`；
   `LibBookAreaDetail {id,name,availableDates,timeSlots}`；时段 `{id,start,end,label}`；
-  座位 `{id,name,no,status,statusName,isAvailable}`；预约
+  座位 `{id,name,no,status?,statusName,reserveEligibility,reserveTarget?}`；`status` 只允许可空整数，
+  eligibility 为 `allowed|denied|unknown`，仅明确状态与非空稳定目标产生 target；预约
   `{id,nameMerge,areaName,seatNo,day,beginTime,endTime,status,statusName}`；分页
   `{bookings,page,limit,total}`。
 - `YgdkOverview {summary,classifyId,classifyName,defaultItemId,defaultItemName,items}`；统计
@@ -223,7 +228,7 @@ ID/分页字段：
 | `bykcStatistics` | 无 | `bykcStatistics` |
 | `libbookAreas` | `premisesId`，`storeyId?`，`date?` | `libbookAreas(premisesId, storeyId?, day)` |
 | `libbookAreaDetail` | `areaId` | `libbookAreaDetail(areaId)` |
-| `libbookSeats` | `areaId`、`startTime`、`endTime`、`date?` | `libbookSeats(areaId, day, startTime, endTime)` |
+| `libbookSeats` | `areaId`、`segment`、`startTime`、`endTime`、`date?` | `libbookSeats(areaId, day, startTime, endTime)`；`segment` 只进入 typed 预约 action，不改变只读请求 |
 | `libbookBookings` | `page`、`size` | `libbookBookings(page, limit)` |
 | `ygdkRecords` | `page`、`size` | `ygdkRecords(page, size)` |
 | `cgyyPurposeTypes` | 无 | `cgyyPurposeTypes`（含 `source`） |
@@ -284,13 +289,15 @@ Flutter 不直接调用 facade 写方法。每项写入先调用 typed prepare�
 | `resolvedRoute` | `ConnectionMode` | prepare 时 Core 解析的实际路线 |
 | `warnings` | `List<String>` | 固定产品提示，不拼上游正文 |
 | `expiresAt` | `i64` | Unix 秒，默认 prepare 后 120 秒 |
-| `requestDigest` | `String` | 规范化非秘密请求的 SHA-256 十六进制摘要 |
+| `requestDigest` | `String` | 规范化非秘密请求的 SHA-256 十六进制指纹；只随 intent 返回，不是 commit 入参或写入授权依据 |
 
-intent 只在内存中保存 typed 请求和 prepare 时的 Session 修订/路线；不得保存密码、Cookie、
-challenge 图片或外部验证码三元组。commit 原子取出 intent 后再执行，因此重复点击最多一次进入
-Core。过期、已消费、client 重开、策略改变、Session 改变、同目标冲突或摘要不一致均不得执行
-网络写入。写请求可能到达上游后出现 timeout/连接中断时返回 `outcome_unknown`，intent 仍视为已
-消费，Flutter 必须调用合同指定的读取方法核对，禁止自动重试。
+opaque `intentId` 只在当前 client 内绑定内存中的 typed 请求、过期时间、prepare 路线和冲突键；不得保存
+密码、Cookie、challenge 图片或外部验证码三元组。`commitWrite` 只接收该 ID，原子取出 typed 请求后再执行，
+因此重复点击最多一次进入 Core。过期、已消费、路线变化或同目标冲突均不得执行网络写入；`requestDigest`
+不会由调用方回传，也不存在 bridge 侧摘要比对。外部进程改变 Session 修订时，由 Core 的 Session/CAS 边界
+在最终发送前拒绝，bridge 将其映射为 `operation_conflict`。login 成功、logout、`authStatus`、策略保存后
+重开 client 以及 dispose 都会清空旧 intent。写请求可能到达上游后出现 timeout/连接中断时返回
+`outcome_unknown`，intent 仍视为已消费，Flutter 必须调用合同指定的读取方法核对，禁止自动重试。
 
 `discardWriteIntent` 只接受当前 client 的 opaque intent ID，删除操作幂等且不执行网络请求。正式
 确认页只有在 discard 成功后才能清除本地待确认状态；若 commit 已先开始，discard 不负责中断已进入
@@ -299,7 +306,7 @@ Core 的操作。
 博雅签到 prepare 必须先由 Core 重读当前学期、目标课程、三态资格、时间窗和位置配置；确认摘要
 必须包含脱敏课程名称、课程标识、签到或签退类型、有效时间窗以及位置来源。若已有同一课程和
 签到类型的未过期 intent，第二次 prepare 返回 `operation_conflict`。commit 消费 intent 后再次
-执行相同预检，并在最终 POST 前复核 Session 修订；预检失败不得误报为结果不确定，只有最终写请求
+执行相同预检，并由 Core 在最终 POST 前复核当前 Session/CAS 状态；预检失败不得误报为结果不确定，只有最终写请求
 可能已到达上游后仍无法得到确定结果时才返回 `outcome_unknown`。
 
 课堂签到 prepare 必须调用 Core 只读 preflight，确认摘要逐项清理课程名、安排 ID、起止时间并显示
@@ -307,6 +314,12 @@ Core 的操作。
 构造才提取 `scheduleId`。commit 消费 intent 后由 Core 再 fresh 查询今日课程，要求唯一精确目标且
 eligibility 为 `allowed` 后才可发送。确定业务拒绝保持 commit `success=false`，不显示成功且不触发
 成功刷新；确定成功刷新今日签到一次，`outcome_unknown` 也只刷新一次并禁止自动重放。
+
+图书馆预约 prepare 必须把完整 `LibbookReserveAction` 交给 bridge，并由 Core 依次 fresh 读取目标日期的
+`Space/map` 时段与 `Space/seat` 座位，要求 `(areaId,seatId,day,segment,startTime,endTime)` 唯一精确匹配且
+typed 资格为 `allowed`。commit 消费 intent 后执行同一 fresh 预检，最终 confirm 只发送一次。明确业务拒绝
+保持 `success=false`；发送后 `outcome_unknown` 保留 Core 的稳定 code/kind/安全 message、不可重试且不得
+重放。应用对确定成功和未知结果都刷新 `libbookBookings` 一次，刷新只用于核对，不能反向宣称写入成功。
 
 照片通过 `BridgePhoto {bytes,fileName,mimeType}` 一次传入；Debug 只记录字节数与 MIME 类型。
 场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token
@@ -330,8 +343,8 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 
 ## 8. 验收门禁
 
-- Rust：每个映射的字段快照、错误映射、dispose、串行锁、panic 归约、intent 过期/重复/
-  Session 或路线失效、outcome unknown 和 typed 请求测试。
+- Rust：每个映射的字段快照、错误映射、dispose、串行锁、panic 归约、intent 过期/重复、登录/注销/
+  `authStatus`/重开失效、Core Session 冲突、路线失效、outcome unknown 和 typed 请求测试。
 - Dart：生成 API schema 快照（包括场馆订单、场馆时段和博雅已选课程内部字段禁曝断言）、`evaluationAll` 待评派生、ID/可选字段、错误映射和
   `BridgeClient` isolate 重建测试；宿主通过 `BackendFactory` 创建新的 opaque
   backend 后，应用重新读取持久化路线与认证状态，不复用已 dispose 的 handle。

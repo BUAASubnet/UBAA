@@ -229,6 +229,8 @@ List<Object?> _controllerSignatures(
   final AppPhase Function(AppController) readPhase = (controller) =>
       controller.phase;
   final UiError Function(UbaaErrorCode) mapError = UbaaErrorMapper.fromCode;
+  final Future<WriteIntent> Function(LibbookReserveAction)
+  prepareLibbookReserveWrite = appController.prepareLibbookReserveWrite;
 
   return <Object?>[
     phase,
@@ -237,6 +239,7 @@ List<Object?> _controllerSignatures(
     appControllerConstructor,
     readPhase,
     mapError,
+    prepareLibbookReserveWrite,
     appController,
   ];
 }

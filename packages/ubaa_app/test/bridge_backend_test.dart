@@ -3,9 +3,13 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+part 'bridge_backend/libbook.dart';
+
 void main() {
+  _registerLibbookBridgeBackendTests();
+
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(3);
+    final client = _ContractVersionClient(4);
 
     final backend = BridgeBackend(client);
 
@@ -207,49 +211,6 @@ void main() {
           .value,
       'course-1',
     );
-  });
-
-  test('BridgeBackend 图书馆座位详情保留预约所需公开摘要字段', () async {
-    final response = BridgeRoutedLibBookSeats(
-      data: const <BridgeLibBookSeat>[
-        BridgeLibBookSeat(
-          id: 'seat-2',
-          name: '座位 A-01',
-          no: 'A-01',
-          status: '1',
-          statusName: '可用',
-          isAvailable: true,
-        ),
-      ],
-      route: const BridgeRouteDecision(
-        policy: BridgeRoutePolicy.direct,
-        resolvedRoute: BridgeConnectionMode.direct,
-        network: BridgeNetworkState.campus,
-        initialRoute: BridgeConnectionMode.direct,
-        usedFallback: false,
-      ),
-    );
-    final backend = BridgeBackend(_FakeLibbookSeatsClient(response));
-    final result = await backend.loadFeatureQuery(
-      FeatureId.libbook,
-      FeatureQuery(
-        view: FeatureQueryView.libbookSeats,
-        areaId: 'area-1',
-        date: DateTime(2026, 9, 2),
-        segment: '3',
-        startTime: '10:00',
-        endTime: '12:00',
-      ),
-    );
-    final fields = {
-      for (final field in result.details.single.fields)
-        field.label: field.value,
-    };
-    expect(fields['分区 ID'], 'area-1');
-    expect(fields['座位 ID'], 'seat-2');
-    expect(fields['日期'], '2026-09-02');
-    expect(fields['时段'], '3');
-    expect(fields['可预约'], '是');
   });
 
   test('BridgeBackend 博雅已选课程投影签到时间和位置要求但不暴露坐标', () async {
@@ -745,7 +706,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 3;
+  int contractVersion() => 4;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {
@@ -829,25 +790,6 @@ class _FakeSpocClient extends _CompatibleBridgeClient {
   dynamic noSuchMethod(Invocation invocation) {
     if (invocation.memberName == #spocAssignments) {
       return Future<BridgeRoutedSpocAssignments>.value(response);
-    }
-    throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
-  }
-}
-
-class _FakeLibbookSeatsClient extends _CompatibleBridgeClient {
-  _FakeLibbookSeatsClient(this.response);
-
-  final BridgeRoutedLibBookSeats response;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #libbookSeats) {
-      final named = invocation.namedArguments;
-      expect(named[#areaId], 'area-1');
-      expect(named[#day], '2026-09-02');
-      expect(named[#startTime], '10:00');
-      expect(named[#endTime], '12:00');
-      return Future<BridgeRoutedLibBookSeats>.value(response);
     }
     throw UnsupportedError('unexpected bridge call: ${invocation.memberName}');
   }

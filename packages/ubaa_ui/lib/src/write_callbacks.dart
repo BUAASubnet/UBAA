@@ -16,27 +16,13 @@ typedef SigninStarter = Future<void> Function(SigninPerformAction action);
 /// 释放尚未提交的一次性意图；成功表示 Bridge 已移除对应 pending 状态。
 typedef WriteIntentDiscarder = Future<void> Function(String intentId);
 
-/// 图书馆预约准备回调。
+/// 图书馆预约准备回调；保留 Core 给出的完整 typed action。
 typedef LibbookReservePreparer =
-    Future<WriteIntent> Function({
-      required String areaId,
-      required String seatId,
-      required String day,
-      required String segment,
-      required String startTime,
-      required String endTime,
-    });
+    Future<WriteIntent> Function(LibbookReserveAction action);
 
-/// 图书馆预约启动回调。
+/// 图书馆预约启动回调；不得从展示字段重建目标或资格。
 typedef LibbookReserveStarter =
-    Future<void> Function({
-      required String areaId,
-      required String seatId,
-      required String day,
-      required String segment,
-      required String startTime,
-      required String endTime,
-    });
+    Future<void> Function(LibbookReserveAction action);
 
 /// 教学评教准备回调。
 typedef EvaluationSubmitPreparer =

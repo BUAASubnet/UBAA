@@ -6,14 +6,14 @@ use std::time::Duration;
 
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, map_commit_error, map_resolution_error, random_id,
-    ygdk_canonical,
+    safe_summary_label, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyReservationSelection,
     BridgeCgyySubmitReservationRequest, BridgePhotoUpload, BridgeWriteOperation,
     BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
 };
-use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
+use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode, BridgeErrorKind};
 use ubaa_core::facade::testing::{
     DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, RouteConfig,
     RouteSessionSnapshot,
@@ -23,6 +23,7 @@ use ubaa_test_support::{ExpectedRequest, MockTransport};
 
 mod bykc;
 mod contract;
+mod libbook;
 mod lifecycle;
 mod signin;
 mod validation;

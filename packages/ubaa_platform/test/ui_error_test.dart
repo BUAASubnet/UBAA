@@ -29,9 +29,9 @@ void main() {
       expect(error.actionLabel, '刷新状态');
     });
 
-    test('从当前 schema-v4 envelope 读取嵌套 error', () {
+    test('从当前 schema-v5 envelope 读取嵌套 error', () {
       final error = mapCoreErrorJson({
-        'schemaVersion': 4,
+        'schemaVersion': 5,
         'ok': false,
         'error': {
           'code': 'timeout',

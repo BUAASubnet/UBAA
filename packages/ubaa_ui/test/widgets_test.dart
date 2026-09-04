@@ -9,6 +9,8 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 part 'widgets/accessibility.dart';
 part 'widgets/feature_details.dart';
 part 'widgets/goldens.dart';
+part 'widgets/libbook_queries.dart';
+part 'widgets/libbook_writes.dart';
 part 'widgets/queries.dart';
 part 'widgets/shell.dart';
 part 'widgets/signin_writes.dart';
@@ -22,6 +24,7 @@ void main() {
   _registerFeatureRenderingTests();
   _registerInitialWriteTests();
   _registerSigninWriteResultTests();
+  _registerLibbookWriteResultTests();
   _registerBykcStateTests();
   _registerCgyyCancellationWriteTest();
   _registerCgyyStateTest();
@@ -30,6 +33,7 @@ void main() {
   _registerFeatureInputTests();
   _registerRemainingWriteTests();
   _registerFeatureCollectionTests();
+  _registerLibbookQueryTests();
   _registerQueryTests();
   _registerSharedStateTests();
   _registerFeatureCardSemanticsTest();

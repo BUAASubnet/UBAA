@@ -4,8 +4,9 @@ use serde_json::{Value, json};
 use tracing::debug;
 
 use crate::domain::{
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
+    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult,
+    LibBookLibrary, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
+    LibBookSeat,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -13,13 +14,15 @@ use crate::ports::HttpRequest;
 use super::LibBookCredential;
 use super::crypto::encrypt_reserve_request;
 use super::parser::{
-    envelope, error, is_expired_body, parse_area_detail_for, parse_areas, parse_bookings,
-    parse_libraries, parse_seats,
+    envelope, error, is_expired_body, parse_area_detail_for, parse_area_detail_for_day,
+    parse_areas, parse_bookings, parse_libraries, parse_seats,
 };
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
 const CAS_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbooking.lib.buaa.edu.cn%2Fv4%2Flogin%2Fcas";
 const REDIRECT_LIMIT: usize = 8;
+const ACCEPT: &str = "application/json, text/plain, */*";
+const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36";
 
 /// 查询图书馆楼馆列表。
 pub(crate) async fn get_libraries(
@@ -92,45 +95,258 @@ pub(crate) async fn reserve(
     runtime: &mut crate::runtime::ClientRuntime,
     request: LibBookReserveRequest,
 ) -> Result<LibBookReserveResult> {
-    if request.seat_id.trim().is_empty()
-        || request.segment.trim().is_empty()
-        || request.day.trim().is_empty()
-    {
-        return Err(UbaaError::new(
-            ErrorCode::InvalidInput,
-            ErrorKind::Input,
-            false,
-            "预约座位、时段和日期不能为空",
-        ));
+    let preflight = preflight_reserve(runtime, &request).await?;
+    let request = request_from_preflight(&preflight);
+    crate::features::require_session(runtime)?;
+    let credential = current_credential(runtime).await?;
+    let body = serde_json::to_vec(&json!({
+        "aesjson": encrypt_reserve_request(&request)?,
+    }))
+    .map_err(|_| error("图书馆预约参数无效"))?;
+    let url = runtime.url(&format!("{BASE_URL}/v4/space/confirm"))?;
+    let authorization = format!("bearer{}", credential.token);
+    let mut http_request = HttpRequest::post(url, body);
+    http_request
+        .headers
+        .insert("Content-Type".into(), "application/json".into());
+    apply_headers(runtime, &mut http_request, Some(&authorization))?;
+    let response = runtime.request_non_idempotent(http_request).await?;
+    if response.status != 200 || final_url_is_authentication(&response.final_url) {
+        return Err(write_outcome_unknown());
     }
-    let body = json!({"aesjson": encrypt_reserve_request(&request)?});
-    let response = request_json(runtime, "space/confirm", body, true).await?;
-    let value = envelope(&response)?;
-    let object = value.as_object();
-    let success = object
-        .and_then(|m| m.get("success"))
-        .and_then(Value::as_bool)
-        .or_else(|| {
-            object
-                .and_then(|m| m.get("status"))
-                .and_then(Value::as_i64)
-                .map(|v| v == 1)
-        })
-        .unwrap_or(true);
-    let message = object
-        .and_then(|m| m.get("message").or_else(|| m.get("msg")))
-        .and_then(Value::as_str)
-        .unwrap_or(if success {
-            "预约成功"
-        } else {
-            "预约失败"
-        })
-        .to_owned();
+    let (success, message) = parse_reserve_outcome(&response.body)?;
     Ok(LibBookReserveResult {
         success,
         message,
         booking: None,
     })
+}
+
+/// 重新读取分区、时段与座位，形成不含凭证或原始响应的预约权威摘要。
+pub(crate) async fn preflight_reserve(
+    runtime: &mut crate::runtime::ClientRuntime,
+    request: &LibBookReserveRequest,
+) -> Result<LibBookReservePreflight> {
+    let request = normalize_reserve_request(request)?;
+    let detail_body =
+        request_json(runtime, "Space/map", json!({"id": request.area_id}), true).await?;
+    let detail = parse_area_detail_for_day(&request.area_id, &request.day, &detail_body)?
+        .ok_or_else(|| unavailable("图书馆预约日期已变化，请刷新后重新准备"))?;
+    if detail.id.trim() != request.area_id {
+        return Err(error("图书馆分区详情标识与预约目标不一致"));
+    }
+    let matching_slots = detail
+        .time_slots
+        .iter()
+        .filter(|slot| slot.id.trim() == request.segment)
+        .collect::<Vec<_>>();
+    let [slot] = matching_slots.as_slice() else {
+        return if matching_slots.is_empty() {
+            Err(unavailable("图书馆预约时段已变化，请刷新后重新准备"))
+        } else {
+            Err(error("图书馆分区详情包含重复预约时段"))
+        };
+    };
+    if slot.start.trim() != request.start_time || slot.end.trim() != request.end_time {
+        return Err(unavailable("图书馆预约时段已变化，请刷新后重新准备"));
+    }
+
+    let matching_seats = get_seats(
+        runtime,
+        &request.area_id,
+        &request.day,
+        &request.start_time,
+        &request.end_time,
+    )
+    .await?
+    .into_iter()
+    .filter(|seat| seat.id.trim() == request.seat_id)
+    .collect::<Vec<_>>();
+    let [seat] = matching_seats.as_slice() else {
+        return if matching_seats.is_empty() {
+            Err(unavailable("图书馆预约座位已变化，请刷新后重新准备"))
+        } else {
+            Err(error("图书馆座位响应包含重复座位标识"))
+        };
+    };
+    match seat.reserve_eligibility {
+        ActionEligibility::Allowed => {}
+        ActionEligibility::Denied => {
+            return Err(unavailable("该图书馆座位当前不可预约，请刷新后重试"));
+        }
+        ActionEligibility::Unknown => return Err(error("图书馆座位预约资格缺少必要字段")),
+    }
+    if seat.reserve_target.as_deref() != Some(request.seat_id.as_str()) {
+        return Err(error("图书馆座位预约目标与请求不一致"));
+    }
+
+    Ok(LibBookReservePreflight {
+        area_id: request.area_id,
+        seat_id: request.seat_id.clone(),
+        seat_name: safe_summary_field(&seat.name, "图书馆座位"),
+        seat_no: safe_summary_field(&seat.no, &request.seat_id),
+        day: request.day,
+        segment: request.segment,
+        start_time: request.start_time,
+        end_time: request.end_time,
+    })
+}
+
+fn normalize_reserve_request(request: &LibBookReserveRequest) -> Result<LibBookReserveRequest> {
+    let normalized = LibBookReserveRequest {
+        area_id: request.area_id.trim().to_owned(),
+        seat_id: request.seat_id.trim().to_owned(),
+        day: request.day.trim().to_owned(),
+        segment: request.segment.trim().to_owned(),
+        start_time: request.start_time.trim().to_owned(),
+        end_time: request.end_time.trim().to_owned(),
+    };
+    if [
+        normalized.area_id.as_str(),
+        normalized.seat_id.as_str(),
+        normalized.day.as_str(),
+        normalized.segment.as_str(),
+        normalized.start_time.as_str(),
+        normalized.end_time.as_str(),
+    ]
+    .iter()
+    .any(|value| value.is_empty())
+    {
+        return Err(UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "图书馆预约目标字段不完整",
+        ));
+    }
+    Ok(normalized)
+}
+
+fn request_from_preflight(preflight: &LibBookReservePreflight) -> LibBookReserveRequest {
+    LibBookReserveRequest {
+        area_id: preflight.area_id.clone(),
+        seat_id: preflight.seat_id.clone(),
+        day: preflight.day.clone(),
+        segment: preflight.segment.clone(),
+        start_time: preflight.start_time.clone(),
+        end_time: preflight.end_time.clone(),
+    }
+}
+
+fn safe_summary_field(value: &str, fallback: &str) -> String {
+    let value = value
+        .chars()
+        .filter(|character| !character.is_control())
+        .collect::<String>();
+    let value = value.trim();
+    if value.is_empty() {
+        fallback.to_owned()
+    } else {
+        value.to_owned()
+    }
+}
+
+fn parse_reserve_outcome(body: &[u8]) -> Result<(bool, String)> {
+    let value: Value = serde_json::from_slice(body).map_err(|_| write_outcome_unknown())?;
+    let object = value.as_object().ok_or_else(write_outcome_unknown)?;
+    let code = object
+        .get("code")
+        .and_then(strict_i32)
+        .filter(|code| matches!(code, 0 | 1))
+        .ok_or_else(write_outcome_unknown)?;
+    debug_assert!(matches!(code, 0 | 1));
+
+    let data = object.get("data").and_then(Value::as_object);
+    let explicit_success = match data.and_then(|data| data.get("success")) {
+        Some(Value::Bool(success)) => Some(*success),
+        Some(_) => return Err(write_outcome_unknown()),
+        None => None,
+    };
+    let message = [object, data.unwrap_or(object)]
+        .into_iter()
+        .find_map(|candidate| {
+            candidate
+                .get("message")
+                .or_else(|| candidate.get("msg"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|message| !message.is_empty())
+        });
+    if message.is_some_and(is_authentication_message) {
+        return Err(write_outcome_unknown());
+    }
+    let frozen_success = message.map(frozen_business_success);
+    let success = match (explicit_success, frozen_success) {
+        // 冻结客户端以明确负面消息判定业务失败；新响应中的
+        // success=true 不得把该信号降级为成功。
+        (_, Some(false)) | (Some(false), _) => false,
+        (Some(true), _) | (None, Some(true)) => true,
+        (None, None) => return Err(write_outcome_unknown()),
+    };
+    Ok((
+        success,
+        message
+            .unwrap_or(if success {
+                "预约成功"
+            } else {
+                "预约失败"
+            })
+            .to_owned(),
+    ))
+}
+
+fn strict_i32(value: &Value) -> Option<i32> {
+    match value {
+        Value::Number(number) => number
+            .as_i64()
+            .and_then(|number| i32::try_from(number).ok()),
+        Value::String(value) => value.parse().ok(),
+        _ => None,
+    }
+}
+
+fn frozen_business_success(message: &str) -> bool {
+    [
+        "失败",
+        "不可",
+        "已被",
+        "不能取消",
+        "无法取消",
+        "已取消",
+        "用户取消",
+        "已结束",
+        "已完成",
+    ]
+    .iter()
+    .all(|negative| !message.contains(negative))
+}
+
+fn is_authentication_message(message: &str) -> bool {
+    ["登录失效", "请重新登录", "未登录", "登录状态"]
+        .iter()
+        .any(|part| message.contains(part))
+}
+
+fn final_url_is_authentication(value: &str) -> bool {
+    let direct = crate::connection::from_webvpn_url(value).unwrap_or_else(|_| value.to_owned());
+    url::Url::parse(&direct).is_ok_and(|url| {
+        url.host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case("sso.buaa.edu.cn"))
+            || matches!(url.path(), "/login" | "/v4/login/cas")
+    })
+}
+
+fn unavailable(message: &'static str) -> UbaaError {
+    UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, true, message)
+}
+
+fn write_outcome_unknown() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        "图书馆预约结果未知，请刷新预约记录后再决定是否重试",
+    )
 }
 
 pub(crate) async fn cancel_booking(
@@ -181,19 +397,12 @@ async fn request_json(
     let url = runtime.url(&format!("{BASE_URL}/v4/{path}"))?;
     let request_body = serde_json::to_vec(&body).map_err(|_| error("图书馆请求参数无效"))?;
     let authorization = format!("bearer{}", credential.token);
-    let referer = format!("{BASE_URL}/");
-    let response = crate::features::post_json(
-        runtime,
-        url,
-        request_body,
-        &[
-            ("Authorization", &authorization),
-            ("Origin", BASE_URL),
-            ("Referer", &referer),
-            ("X-Requested-With", "XMLHttpRequest"),
-        ],
-    )
-    .await?;
+    let mut request = HttpRequest::post(url, request_body);
+    request
+        .headers
+        .insert("Content-Type".into(), "application/json".into());
+    apply_headers(runtime, &mut request, Some(&authorization))?;
+    let response = runtime.request(request).await?;
     debug!(
         target: "ubaa::libbook",
         operation = path,
@@ -296,7 +505,12 @@ async fn current_credential(
     let cas = fetch_cas(runtime).await?;
     let body = serde_json::to_vec(&json!({"cas": cas})).map_err(|_| error("图书馆登录参数无效"))?;
     let url = runtime.url(&format!("{BASE_URL}/v4/login/user"))?;
-    let response = crate::features::post_json(runtime, url, body, &[("Origin", BASE_URL)]).await?;
+    let mut request = HttpRequest::post(url, body);
+    request
+        .headers
+        .insert("Content-Type".into(), "application/json".into());
+    apply_headers(runtime, &mut request, None)?;
+    let response = runtime.request(request).await?;
     if response.status != 200 {
         return Err(UbaaError::new(
             ErrorCode::AuthenticationRequired,
@@ -328,9 +542,9 @@ async fn current_credential(
 async fn fetch_cas(runtime: &mut crate::runtime::ClientRuntime) -> Result<String> {
     let mut current = CAS_URL.to_owned();
     for _ in 0..REDIRECT_LIMIT {
-        let response = runtime
-            .request(HttpRequest::get(runtime.url(&current)?))
-            .await?;
+        let mut request = HttpRequest::get(runtime.url(&current)?);
+        apply_headers(runtime, &mut request, None)?;
+        let response = runtime.request(request).await?;
         if let Some(value) = cas_from_url(&response.final_url) {
             return Ok(value);
         }
@@ -360,6 +574,27 @@ async fn fetch_cas(runtime: &mut crate::runtime::ClientRuntime) -> Result<String
         }
     }
     Err(error("图书馆登录跳转次数超过限制"))
+}
+
+fn apply_headers(
+    runtime: &crate::runtime::ClientRuntime,
+    request: &mut HttpRequest,
+    authorization: Option<&str>,
+) -> Result<()> {
+    let routed_base = runtime.url(BASE_URL)?;
+    for (name, value) in [
+        ("Accept", ACCEPT),
+        ("User-Agent", USER_AGENT),
+        ("X-Requested-With", "XMLHttpRequest"),
+        ("Referer", routed_base.as_str()),
+        ("Origin", routed_base.as_str()),
+    ] {
+        request.headers.insert(name.into(), value.into());
+    }
+    if let Some(value) = authorization {
+        request.headers.insert("Authorization".into(), value.into());
+    }
+    Ok(())
 }
 
 fn cas_from_url(raw: &str) -> Option<String> {

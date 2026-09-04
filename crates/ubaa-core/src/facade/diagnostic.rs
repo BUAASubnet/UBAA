@@ -11,10 +11,10 @@ use crate::domain::{
     EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
     LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelResult, LibBookLibrary,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult,
-    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
-    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
-    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
+    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, Result};
 use crate::features::user;
@@ -686,6 +686,21 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 只读复核图书馆预约的当前日期、时段和唯一座位资格。
+    ///
+    /// # Errors
+    ///
+    /// 会话所有权失效、路线读取失败、目标不唯一或资格不足时返回错误。
+    pub async fn preflight_libbook_reserve(
+        &mut self,
+        request: &LibBookReserveRequest,
+    ) -> Result<FeatureResult<LibBookReservePreflight>> {
+        self.guard_latest_session_ownership()?;
+        let result = crate::features::libbook::preflight_reserve(&mut self.runtime, request).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 提交图书馆座位预约。
     ///
     /// # Errors
@@ -696,8 +711,9 @@ impl RouteClient {
         request: LibBookReserveRequest,
     ) -> Result<FeatureResult<LibBookReserveResult>> {
         self.guard_latest_session_ownership()?;
+        self.runtime.begin_non_idempotent_operation();
         let result = crate::features::libbook::reserve(&mut self.runtime, request).await;
-        let data = self.finish_readonly_operation(result)?;
+        let data = self.finish_write_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 

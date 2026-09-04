@@ -38,7 +38,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 | `crates/ubaa-core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
 | `crates/ubaa-flutter-bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
 | `crates/ubaa-test-support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
-| `apps/ubaa-cli` | human/JSON schema v4 命令行宿主与只读 Core-live 入口 |
+| `apps/ubaa-cli` | human/JSON schema v5 命令行宿主与只读 Core-live 入口 |
 | `apps/ubaa_flutter` | Windows/macOS/Linux/Android/iOS 官方 Flutter 薄宿主 |
 | `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
 | `packages/ubaa_domain` | Dart 稳定领域模型 |
@@ -72,7 +72,7 @@ cargo run --locked -p ubaa-cli -- auth logout
 ```
 
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
-失败只输出一个 schema-v4 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
+失败只输出一个 schema-v5 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
 [CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；`session.json` 仍为
 schema v2。
 

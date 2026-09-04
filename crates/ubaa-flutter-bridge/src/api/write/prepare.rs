@@ -3,9 +3,9 @@
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
     ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
-    map_bykc_sign_preflight_error, now_seconds, random_id, safe_summary_label,
-    validate_bykc_sign_request, validate_cgyy_request, validate_id, validate_id_i32, validate_text,
-    validate_ygdk_request, ygdk_canonical,
+    map_bykc_sign_preflight_error, map_libbook_preflight_error, now_seconds, random_id,
+    safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
+    validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
@@ -230,11 +230,20 @@ impl BridgeClient {
     }
     pub async fn prepare_libbook_reserve(
         &self,
-        request: BridgeLibbookReserveRequest,
+        mut request: BridgeLibbookReserveRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        request.area_id = request.area_id.trim().to_owned();
+        request.seat_id = request.seat_id.trim().to_owned();
+        request.day = request.day.trim().to_owned();
+        request.segment = request.segment.trim().to_owned();
+        request.start_time = request.start_time.trim().to_owned();
+        request.end_time = request.end_time.trim().to_owned();
         validate_text(&request.area_id)?;
         validate_text(&request.seat_id)?;
         validate_text(&request.day)?;
+        validate_text(&request.segment)?;
+        validate_text(&request.start_time)?;
+        validate_text(&request.end_time)?;
         let canonical = format!(
             "area={};seat={};day={};segment={};start={};end={}",
             request.area_id,
@@ -244,14 +253,40 @@ impl BridgeClient {
             request.start_time,
             request.end_time
         );
-        self.prepare_write(
-            ReadonlyFeature::LibBook,
-            BridgeWriteOperation::LibbookReserve,
-            canonical,
-            "预约图书馆座位".to_owned(),
-            vec!["提交后将通过预约记录核对状态".to_owned()],
-            PendingWrite::LibbookReserve(request),
-        )
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let current = client
+                .preflight_libbook_reserve(&domain::LibBookReserveRequest {
+                    area_id: request.area_id.clone(),
+                    seat_id: request.seat_id.clone(),
+                    day: request.day.clone(),
+                    segment: request.segment.clone(),
+                    start_time: request.start_time.clone(),
+                    end_time: request.end_time.clone(),
+                })
+                .await
+                .map_err(map_libbook_preflight_error)?;
+            let seat_name = safe_summary_label(&current.data.seat_name, "图书馆座位");
+            let seat_no = safe_summary_label(&current.data.seat_no, "座位号未知");
+            let area_id = safe_summary_label(&request.area_id, "分区未知");
+            let seat_id = safe_summary_label(&request.seat_id, "座位未知");
+            let day = safe_summary_label(&request.day, "日期未知");
+            let segment = safe_summary_label(&request.segment, "时段未知");
+            let start_time = safe_summary_label(&request.start_time, "开始时间未知");
+            let end_time = safe_summary_label(&request.end_time, "结束时间未知");
+            self.store_write_intent(
+                BridgeWriteOperation::LibbookReserve,
+                canonical,
+                format!(
+                    "{seat_name}（座位号 {seat_no}）·分区 {area_id}·座位 {seat_id}·日期 {day}·时段 {segment}·{start_time} 至 {end_time}",
+                ),
+                vec!["提交后将通过预约记录核对状态".to_owned()],
+                PendingWrite::LibbookReserve(request),
+                current.resolution.mode.into(),
+            )
+            .await
+        })
         .await
     }
     pub async fn prepare_libbook_cancel_booking(

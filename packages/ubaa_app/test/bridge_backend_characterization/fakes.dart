@@ -39,7 +39,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 3;
+  int contractVersion() => 4;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -554,9 +554,10 @@ class _CharacterizationBridgeClient implements BridgeClient {
                       id: 'seat-read-1',
                       name: '座位 A-01',
                       no: 'A-01',
-                      status: '1',
+                      status: 1,
                       statusName: '可用',
-                      isAvailable: true,
+                      reserveEligibility: BridgeActionEligibility.allowed,
+                      reserveTarget: 'seat-read-1',
                     ),
                   ],
             route: _webVpnRoute,

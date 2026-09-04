@@ -267,13 +267,17 @@ void main() {
     expect(cgyyCancelIntent.intentId, 'intent-cgyy-cancel');
     expect(backend.cgyyCancellationId, 41006);
 
-    final reserveIntent = await shell.onPrepareLibbookReserveWrite!(
+    const libbookAction = LibbookReserveAction(
       areaId: ' area-41007 ',
       seatId: ' seat-41008 ',
       day: ' 2099-04-09 ',
       segment: ' segment-41010 ',
       startTime: ' 08:11 ',
       endTime: ' 09:12 ',
+      eligibility: ActionEligibility.allowed,
+    );
+    final reserveIntent = await shell.onPrepareLibbookReserveWrite!(
+      libbookAction,
     );
     expect(reserveIntent.operation, WriteOperation.libbookReserve);
     expect(reserveIntent.intentId, 'intent-libbook-reserve');
@@ -413,8 +417,6 @@ void main() {
       WriteOperation.bykcDeselectCourse: FeatureId.bykc,
       WriteOperation.bykcSignCourse: FeatureId.bykc,
       WriteOperation.signinPerform: FeatureId.signin,
-      WriteOperation.libbookReserve: FeatureId.libbook,
-      WriteOperation.libbookCancelBooking: FeatureId.libbook,
       WriteOperation.ygdkSubmit: FeatureId.ygdk,
       WriteOperation.evaluationSubmitCourses: FeatureId.evaluation,
     };
@@ -423,6 +425,20 @@ void main() {
       await shell.onWriteSuccess!(route.key);
       expect(backend.loadedFeatures, <FeatureId>[route.value]);
       expect(backend.queryCalls, isEmpty);
+    }
+    for (final operation in <WriteOperation>[
+      WriteOperation.libbookReserve,
+      WriteOperation.libbookCancelBooking,
+    ]) {
+      backend.resetReadCalls();
+      await shell.onWriteSuccess!(operation);
+      expect(backend.loadedFeatures, isEmpty);
+      expect(backend.queryCalls, hasLength(1));
+      expect(backend.queryCalls.single.feature, FeatureId.libbook);
+      expect(
+        backend.queryCalls.single.query.view,
+        FeatureQueryView.libbookBookings,
+      );
     }
     for (final operation in <WriteOperation>[
       WriteOperation.cgyySubmitReservation,

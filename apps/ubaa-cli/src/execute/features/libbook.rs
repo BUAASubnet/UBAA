@@ -57,15 +57,16 @@ pub(in crate::execute) async fn run_libbook<B: CliBackend + Send>(
             if !confirm_write {
                 return Err(invalid_input("预约是写操作，必须显式指定 --confirm-write"));
             }
+            let request = normalize_reserve_request(&LibBookReserveRequest {
+                area_id,
+                seat_id,
+                day,
+                segment,
+                start_time,
+                end_time,
+            })?;
             backend
-                .libbook_reserve(LibBookReserveRequest {
-                    area_id,
-                    seat_id,
-                    day,
-                    segment,
-                    start_time,
-                    end_time,
-                })
+                .libbook_reserve(request)
                 .await
                 .and_then(|result| readonly(result, CliFeature::LibBook))
         }
@@ -138,19 +139,19 @@ pub(in crate::execute) async fn run_routed_libbook<B: RoutedCliBackend + Send>(
                     resolution: None,
                 });
             }
-            routed_readonly(
-                backend
-                    .libbook_reserve(LibBookReserveRequest {
-                        area_id,
-                        seat_id,
-                        day,
-                        segment,
-                        start_time,
-                        end_time,
-                    })
-                    .await,
-                CliFeature::LibBook,
-            )
+            let request = normalize_reserve_request(&LibBookReserveRequest {
+                area_id,
+                seat_id,
+                day,
+                segment,
+                start_time,
+                end_time,
+            })
+            .map_err(|error| RoutedError {
+                error,
+                resolution: None,
+            })?;
+            routed_readonly(backend.libbook_reserve(request).await, CliFeature::LibBook)
         }
         LibBookCommand::Cancel {
             booking_id,
@@ -167,5 +168,33 @@ pub(in crate::execute) async fn run_routed_libbook<B: RoutedCliBackend + Send>(
                 CliFeature::LibBook,
             )
         }
+    }
+}
+
+fn normalize_reserve_request(request: &LibBookReserveRequest) -> Result<LibBookReserveRequest> {
+    let normalized = LibBookReserveRequest {
+        area_id: request.area_id.trim().to_owned(),
+        seat_id: request.seat_id.trim().to_owned(),
+        day: request.day.trim().to_owned(),
+        segment: request.segment.trim().to_owned(),
+        start_time: request.start_time.trim().to_owned(),
+        end_time: request.end_time.trim().to_owned(),
+    };
+    if [
+        &normalized.area_id,
+        &normalized.seat_id,
+        &normalized.day,
+        &normalized.segment,
+        &normalized.start_time,
+        &normalized.end_time,
+    ]
+    .into_iter()
+    .any(String::is_empty)
+    {
+        Err(invalid_input(
+            "图书馆预约分区、座位、日期、时段和起止时间均不能为空",
+        ))
+    } else {
+        Ok(normalized)
     }
 }

@@ -99,6 +99,52 @@ async fn 准备后会话修订过期在无新增请求下归约为操作冲突()
 }
 
 #[tokio::test]
+async fn 认证状态刷新会话后立即失效已准备意图() {
+    let root = test_root("auth-status-invalidates-intent");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = seed_sessions(&root, true, false);
+    let status_url = "https://uc.buaa.edu.cn/api/uc/status";
+    let direct = MockTransport::new([
+        bykc_login_request(),
+        eligible_bykc_detail_request(),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            status_url,
+            HttpResponse::new(
+                200,
+                status_url,
+                br#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#
+                    .to_vec(),
+            ),
+        ),
+    ]);
+    let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
+    install_core(
+        &client,
+        store,
+        "[route]\ndefault = \"direct\"\n",
+        direct.clone(),
+        MockTransport::new([]),
+    )
+    .await;
+    let intent = client
+        .prepare_bykc_select_course(BridgeBykcCourseRequest { course_id: 42 })
+        .await
+        .expect("准备写入");
+
+    client.auth_status().await.expect("刷新认证状态");
+
+    let error = client
+        .commit_write(intent.intent_id)
+        .await
+        .expect_err("认证状态刷新后不得提交旧意图");
+    assert_eq!(error.code, BridgeErrorCode::IntentExpired);
+    direct.assert_exhausted().expect("不得为旧意图发送额外请求");
+    client.dispose().await.expect("销毁 bridge");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
 async fn 重新登录在提交等待_core_锁时仍能失效旧意图() {
     let root = test_root("intent-lock-order");
     let _ = std::fs::remove_dir_all(&root);

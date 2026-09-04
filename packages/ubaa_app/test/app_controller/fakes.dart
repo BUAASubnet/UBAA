@@ -640,7 +640,13 @@ class _CancellationWriteBackend
 class _LibbookWriteBackend
     with _DiscardingWriteBackendFake
     implements UbaaBackend, LibbookWriteBackend {
+  int prepareCalls = 0;
+  String? areaId;
   String? seatId;
+  String? day;
+  String? segment;
+  String? startTime;
+  String? endTime;
 
   @override
   Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
@@ -671,7 +677,13 @@ class _LibbookWriteBackend
     required String startTime,
     required String endTime,
   }) async {
+    prepareCalls++;
+    this.areaId = areaId;
     this.seatId = seatId;
+    this.day = day;
+    this.segment = segment;
+    this.startTime = startTime;
+    this.endTime = endTime;
     return WriteIntent(
       intentId: 'reserve-intent',
       operation: WriteOperation.libbookReserve,

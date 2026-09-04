@@ -386,9 +386,10 @@ pub struct BridgeLibBookSeat {
     pub id: String,
     pub name: String,
     pub no: String,
-    pub status: String,
+    pub status: Option<i32>,
     pub status_name: String,
-    pub is_available: bool,
+    pub reserve_eligibility: BridgeActionEligibility,
+    pub reserve_target: Option<String>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeLibBookBooking {

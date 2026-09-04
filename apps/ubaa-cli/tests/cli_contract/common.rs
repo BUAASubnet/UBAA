@@ -2,10 +2,11 @@ use async_trait::async_trait;
 use ubaa_cli::{CliBackend, RoutedCliBackend};
 use ubaa_core::facade::{
     ActionEligibility, AuthStatus, BykcActionResult, BykcSignRequest, CgyyActionResult,
-    ConnectionMode, ErrorCode, ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics, LoginInput,
-    NetworkState, Result, RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError,
-    RoutedResult, SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics,
-    Term, UbaaError, UserProfile,
+    ConnectionMode, ErrorCode, ErrorKind, FeatureResult, JudgeAssignmentsDiagnostics,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, NetworkState, Result,
+    RouteDiagnostic, RoutePolicy, RouteResolution, Routed, RoutedError, RoutedResult,
+    SigninActionResult, SigninClass, SpocAssignments, SpocAssignmentsDiagnostics, Term, UbaaError,
+    UserProfile,
 };
 
 pub(crate) fn assert_cli_schema(value: &serde_json::Value) {
@@ -22,10 +23,20 @@ pub(crate) struct FakeBackend {
     pub(crate) login_calls: usize,
     pub(crate) schedule_success: bool,
     pub(crate) signin_perform_calls: usize,
+    pub(crate) libbook_reserve_calls: usize,
 }
 
 #[derive(Clone, Copy, Default)]
 pub(crate) enum SigninFixtureResult {
+    #[default]
+    Success,
+    BusinessFalse,
+    OutcomeUnknown,
+    PreSendTimeout,
+}
+
+#[derive(Clone, Copy, Default)]
+pub(crate) enum LibBookFixtureResult {
     #[default]
     Success,
     BusinessFalse,
@@ -40,6 +51,10 @@ pub(crate) struct FakeRoutedBackend {
     pub(crate) signin_today_calls: usize,
     pub(crate) signin_perform_calls: usize,
     pub(crate) signin_result: SigninFixtureResult,
+    pub(crate) libbook_reserve_calls: usize,
+    pub(crate) libbook_result: LibBookFixtureResult,
+    pub(crate) libbook_last_request: Option<LibBookReserveRequest>,
+    pub(crate) libbook_seats_calls: usize,
 }
 
 #[async_trait]
@@ -95,6 +110,69 @@ impl RoutedCliBackend for FakeRoutedBackend {
                 resolution: Some(direct_resolution()),
             }),
         }
+    }
+
+    async fn libbook_reserve(
+        &mut self,
+        request: LibBookReserveRequest,
+    ) -> RoutedResult<LibBookReserveResult> {
+        self.libbook_reserve_calls += 1;
+        self.libbook_last_request = Some(request);
+        match self.libbook_result {
+            LibBookFixtureResult::Success => Ok(Routed {
+                data: LibBookReserveResult {
+                    success: true,
+                    message: "预约成功".into(),
+                    booking: None,
+                },
+                resolution: direct_resolution(),
+            }),
+            LibBookFixtureResult::BusinessFalse => Ok(Routed {
+                data: LibBookReserveResult {
+                    success: false,
+                    message: "座位不可预约".into(),
+                    booking: None,
+                },
+                resolution: direct_resolution(),
+            }),
+            LibBookFixtureResult::OutcomeUnknown => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::OutcomeUnknown,
+                    ErrorKind::Upstream,
+                    false,
+                    "fixture outcome unknown",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+            LibBookFixtureResult::PreSendTimeout => Err(RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::Timeout,
+                    ErrorKind::Network,
+                    true,
+                    "fixture pre-send timeout",
+                ),
+                resolution: Some(direct_resolution()),
+            }),
+        }
+    }
+
+    async fn libbook_seats(
+        &mut self,
+        _area_id: &str,
+        _day: &str,
+        _start_time: &str,
+        _end_time: &str,
+    ) -> RoutedResult<Vec<LibBookSeat>> {
+        self.libbook_seats_calls += 1;
+        Ok(Routed {
+            data: vec![
+                libbook_seat("seat-allowed", Some(1), ActionEligibility::Allowed, true),
+                libbook_seat("seat-denied", Some(2), ActionEligibility::Denied, true),
+                libbook_seat("seat-occupied", Some(3), ActionEligibility::Denied, true),
+                libbook_seat("seat-unknown", None, ActionEligibility::Unknown, false),
+            ],
+            resolution: direct_resolution(),
+        })
     }
 
     async fn bykc_select_course(&mut self, _course_id: i64) -> RoutedResult<BykcActionResult> {
@@ -224,6 +302,23 @@ fn signin_class(
     }
 }
 
+fn libbook_seat(
+    id: &str,
+    status: Option<i32>,
+    reserve_eligibility: ActionEligibility,
+    has_target: bool,
+) -> LibBookSeat {
+    LibBookSeat {
+        id: id.into(),
+        name: "脱敏座位".into(),
+        no: "SAFE-001".into(),
+        status,
+        status_name: "脱敏状态".into(),
+        reserve_eligibility,
+        reserve_target: has_target.then(|| id.into()),
+    }
+}
+
 fn bykc_action(message: &str) -> Routed<BykcActionResult> {
     Routed {
         data: BykcActionResult {
@@ -289,6 +384,21 @@ impl CliBackend for FakeBackend {
                 code: 200,
                 success: true,
                 message: "签到成功".into(),
+            },
+            resolved_route: ConnectionMode::Direct,
+        })
+    }
+
+    async fn libbook_reserve(
+        &mut self,
+        _request: LibBookReserveRequest,
+    ) -> Result<FeatureResult<LibBookReserveResult>> {
+        self.libbook_reserve_calls += 1;
+        Ok(FeatureResult {
+            data: LibBookReserveResult {
+                success: true,
+                message: "预约成功".into(),
+                booking: None,
             },
             resolved_route: ConnectionMode::Direct,
         })

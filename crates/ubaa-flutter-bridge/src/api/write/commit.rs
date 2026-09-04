@@ -132,7 +132,15 @@ impl BridgeClient {
                         end_time: request.end_time,
                     })
                     .await
-                    .map(|r| (r.resolution, true, safe_message("图书馆预约已提交"), None)),
+                    .map(|r| {
+                        let success = r.data.success;
+                        let message = if success {
+                            safe_message("图书馆预约已提交")
+                        } else {
+                            safe_message("图书馆预约未完成")
+                        };
+                        (r.resolution, success, message, None)
+                    }),
                 PendingWrite::LibbookCancel(request) => client
                     .libbook_cancel_booking(&request.id)
                     .await

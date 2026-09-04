@@ -699,25 +699,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
-  Future<void> _startLibbookReserveWrite({
-    required String areaId,
-    required String seatId,
-    required String day,
-    required String segment,
-    required String startTime,
-    required String endTime,
-  }) async {
+  Future<void> _startLibbookReserveWrite(LibbookReserveAction action) async {
     final prepare = widget.onPrepareLibbookReserveWrite;
     if (prepare == null) return;
     await _prepareWrite(
-      prepare: () => prepare(
-        areaId: areaId,
-        seatId: seatId,
-        day: day,
-        segment: segment,
-        startTime: startTime,
-        endTime: endTime,
-      ),
+      prepare: () => prepare(action),
       failureMessage: '暂时无法准备图书馆预约；尚未提交任何写请求。',
     );
   }
@@ -1938,8 +1924,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
                 child: TextField(
                   controller: _segmentController,
                   decoration: const InputDecoration(
-                    labelText: '时段编号（可选）',
-                    hintText: '预约时必填',
+                    labelText: '时段编号（必填）',
                     isDense: true,
                   ),
                 ),
@@ -2397,6 +2382,10 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           return;
         }
         if (_libbookView == FeatureQueryView.libbookSeats) {
+          if (_segmentController.text.trim().isEmpty) {
+            _showMessage('时段编号不能为空。');
+            return;
+          }
           final rawDate = _dateController.text.trim();
           if (rawDate.isNotEmpty) {
             date = _parseDateOnly(rawDate);
@@ -3013,7 +3002,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     );
                     final signinAction = detail.action<SigninPerformAction>();
                     final cancellation = _cancellationTarget(detail);
-                    final reservation = _libbookReserveTarget(detail);
+                    final libbookReserveAction = detail
+                        .action<LibbookReserveAction>();
                     final cgyyReservation = _cgyyReservationTarget(detail);
                     final evaluation = _evaluationTarget(detail);
                     final ygdk = _ygdkTarget(detail);
@@ -3033,6 +3023,17 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                         signinAction?.eligibility ==
                             ActionEligibility.allowed &&
                         signinAction!.scheduleId.trim().isNotEmpty;
+                    final canLibbookReserve =
+                        libbookReserveAction?.eligibility ==
+                            ActionEligibility.allowed &&
+                        <String>[
+                          libbookReserveAction!.areaId,
+                          libbookReserveAction.seatId,
+                          libbookReserveAction.day,
+                          libbookReserveAction.segment,
+                          libbookReserveAction.startTime,
+                          libbookReserveAction.endTime,
+                        ].every((value) => value.trim().isNotEmpty);
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -3214,22 +3215,32 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                                 ),
                               ),
                             ],
-                            if (reservation != null &&
+                            if (libbookReserveAction != null &&
                                 widget.onLibbookReserveWrite !=
                                     null) ...<Widget>[
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: () => widget.onLibbookReserveWrite!(
-                                  areaId: reservation.areaId,
-                                  seatId: reservation.seatId,
-                                  day: reservation.day,
-                                  segment: reservation.segment,
-                                  startTime: reservation.startTime,
-                                  endTime: reservation.endTime,
-                                ),
+                                onPressed: canLibbookReserve
+                                    ? () => widget.onLibbookReserveWrite!(
+                                        libbookReserveAction,
+                                      )
+                                    : null,
                                 icon: const Icon(Icons.event_available),
                                 label: const Text('准备预约此座位'),
                               ),
+                              if (!canLibbookReserve)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    libbookReserveAction.eligibility ==
+                                            ActionEligibility.denied
+                                        ? '该座位当前不可预约。'
+                                        : '当前预约资格无法确认，请刷新后重试。',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
                             ],
                             if (evaluation != null &&
                                 widget.onEvaluationWrite != null) ...<Widget>[
@@ -3430,32 +3441,6 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       return null;
     }
     return DateTime.tryParse(normalized);
-  }
-
-  ({
-    String areaId,
-    String seatId,
-    String day,
-    String segment,
-    String startTime,
-    String endTime,
-  })?
-  _libbookReserveTarget(FeatureDetail detail) {
-    if (widget.feature != FeatureId.libbook) return null;
-    final values = <String, String>{
-      for (final field in detail.fields) field.label: field.value.trim(),
-    };
-    if (values['可预约'] != '是') return null;
-    const required = <String>['分区 ID', '座位 ID', '日期', '时段', '开始时间', '结束时间'];
-    if (required.any((label) => (values[label] ?? '').isEmpty)) return null;
-    return (
-      areaId: values['分区 ID']!,
-      seatId: values['座位 ID']!,
-      day: values['日期']!,
-      segment: values['时段']!,
-      startTime: values['开始时间']!,
-      endTime: values['结束时间']!,
-    );
   }
 
   ({

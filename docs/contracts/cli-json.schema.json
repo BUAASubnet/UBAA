@@ -254,10 +254,13 @@
     },
     "libBookSeat": {
       "type": "object",
-      "required": ["id", "name", "no", "status", "statusName", "isAvailable"],
+      "required": ["id", "name", "no", "status", "statusName", "reserveEligibility", "reserveTarget"],
       "properties": {
         "id": { "type": "string" }, "name": { "type": "string" }, "no": { "type": "string" },
-        "status": { "type": "string" }, "statusName": { "type": "string" }, "isAvailable": { "type": "boolean" }
+        "status": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
+        "statusName": { "type": "string" },
+        "reserveEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "reserveTarget": { "$ref": "#/$defs/nullableString" }
       },
       "additionalProperties": false
     },
@@ -280,13 +283,39 @@
       },
       "additionalProperties": false
     },
+    "libBookReserveResult": {
+      "type": "object",
+      "required": ["success", "message", "booking"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "message": { "type": "string" },
+        "booking": {
+          "anyOf": [
+            { "$ref": "#/$defs/libBookBooking" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "libBookCancelResult": {
+      "type": "object",
+      "required": ["success", "message"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "libBookRoutedData": {
-      "oneOf": [
+      "anyOf": [
         { "type": "array", "items": { "$ref": "#/$defs/libBookLibrary" } },
         { "type": "array", "items": { "$ref": "#/$defs/libBookArea" } },
         { "$ref": "#/$defs/libBookAreaDetail" },
         { "type": "array", "items": { "$ref": "#/$defs/libBookSeat" } },
-        { "$ref": "#/$defs/libBookBookingsPage" }
+        { "$ref": "#/$defs/libBookBookingsPage" },
+        { "$ref": "#/$defs/libBookReserveResult" },
+        { "$ref": "#/$defs/libBookCancelResult" }
       ]
     },
     "bykcUserProfile": {
@@ -818,7 +847,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 4 },
+        "schemaVersion": { "const": 5 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -973,7 +1002,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 4 },
+        "schemaVersion": { "const": 5 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1129,7 +1158,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 4 },
+        "schemaVersion": { "const": 5 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1205,7 +1234,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 4 },
+        "schemaVersion": { "const": 5 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

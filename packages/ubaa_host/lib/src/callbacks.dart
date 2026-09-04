@@ -95,22 +95,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareSigninWrite: _controller.prepareSigninWrite,
       onPrepareCancellationWrite: (operation, targetId) =>
           _controller.prepareCancellationWrite(operation, targetId),
-      onPrepareLibbookReserveWrite:
-          ({
-            required areaId,
-            required seatId,
-            required day,
-            required segment,
-            required startTime,
-            required endTime,
-          }) => _controller.prepareLibbookReserveWrite(
-            areaId: areaId,
-            seatId: seatId,
-            day: day,
-            segment: segment,
-            startTime: startTime,
-            endTime: endTime,
-          ),
+      onPrepareLibbookReserveWrite: _controller.prepareLibbookReserveWrite,
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareYgdkSubmitWrite: _controller.prepareYgdkWrite,
       onPickYgdkPhoto: _photoPicker?.pickPhoto,

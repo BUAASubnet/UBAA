@@ -88,6 +88,7 @@ Future<FeatureResult> _loadLibbookFeature(
           );
         case FeatureQueryView.libbookSeats:
           final areaId = _requiredQueryValue(query.areaId, '分区 ID');
+          final segment = _requiredQueryValue(query.segment, '时段');
           final startTime = _requiredQueryValue(query.startTime, '开始时间');
           final endTime = _requiredQueryValue(query.endTime, '结束时间');
           final result = await client.libbookSeats(
@@ -97,22 +98,40 @@ Future<FeatureResult> _loadLibbookFeature(
             endTime: endTime,
           );
           final details = result.data
-              .map(
-                (item) => FeatureDetail(
+              .map((item) {
+                final target = item.reserveTarget?.trim();
+                final eligibility = _toLibbookActionEligibility(
+                  item.reserveEligibility,
+                );
+                return FeatureDetail(
                   title: item.name,
                   subtitle: item.no,
                   fields: _compactFields(<FeatureField?>[
                     _field('分区 ID', areaId),
                     _field('座位 ID', item.id),
                     _field('日期', today),
-                    _field('时段', query.segment),
+                    _field('时段', segment),
                     _field('开始时间', startTime),
                     _field('结束时间', endTime),
+                    _field('状态码', item.status?.toString()),
                     _field('状态', item.statusName),
-                    _field('可预约', item.isAvailable ? '是' : '否'),
+                    _field('可预约', _libbookEligibilityLabel(eligibility)),
                   ]),
-                ),
-              )
+                  actions: target == null || target.isEmpty
+                      ? const <FeatureAction>[]
+                      : <FeatureAction>[
+                          LibbookReserveAction(
+                            areaId: areaId,
+                            seatId: target,
+                            day: today,
+                            segment: segment,
+                            startTime: startTime,
+                            endTime: endTime,
+                            eligibility: eligibility,
+                          ),
+                        ],
+                );
+              })
               .toList(growable: false);
           return _countResult(
             result.data.length,
@@ -181,3 +200,18 @@ Future<FeatureResult> _loadLibbookFeature(
       throw StateError('unexpected feature: $feature');
   }
 }
+
+ActionEligibility _toLibbookActionEligibility(
+  BridgeActionEligibility eligibility,
+) => switch (eligibility) {
+  BridgeActionEligibility.allowed => ActionEligibility.allowed,
+  BridgeActionEligibility.denied => ActionEligibility.denied,
+  BridgeActionEligibility.unknown => ActionEligibility.unknown,
+};
+
+String _libbookEligibilityLabel(ActionEligibility eligibility) =>
+    switch (eligibility) {
+      ActionEligibility.allowed => '是',
+      ActionEligibility.denied => '否',
+      ActionEligibility.unknown => '未知',
+    };

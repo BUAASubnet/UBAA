@@ -72,6 +72,16 @@ fn write_digest_shapes_do_not_include_sensitive_text_or_photo_bytes() {
 }
 
 #[test]
+fn 确认摘要移除双向控制零宽与行分隔字符() {
+    let value = safe_summary_label(
+        "座\u{202e}位\u{2066}A\u{200b}-01\u{2028}完成\u{feff}",
+        "未知座位",
+    );
+
+    assert_eq!(value, "座位A-01完成");
+}
+
+#[test]
 fn session_revision_conflict_maps_to_operation_conflict_at_write_boundary() {
     let error = UbaaError::new(
         ErrorCode::InternalError,
@@ -177,4 +187,54 @@ fn 课堂签到提交只信任_core_的显式发送边界分类() {
     );
     assert_eq!(post_send.code, BridgeErrorCode::OutcomeUnknown);
     assert!(!post_send.retryable);
+}
+
+#[test]
+fn 图书馆预约提交只信任_core_的显式发送边界分类() {
+    let pre_send = map_commit_error(
+        BridgeWriteOperation::LibbookReserve,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::NetworkError,
+                ErrorKind::Network,
+                true,
+                "fixture preflight network error",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(pre_send.code, BridgeErrorCode::NetworkError);
+    assert!(pre_send.retryable);
+
+    let eligibility_drift = map_commit_error(
+        BridgeWriteOperation::LibbookReserve,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::InvalidInput,
+                ErrorKind::Input,
+                true,
+                "fixture libbook eligibility changed",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(eligibility_drift.code, BridgeErrorCode::OperationConflict);
+    assert!(eligibility_drift.retryable);
+
+    let post_send = map_commit_error(
+        BridgeWriteOperation::LibbookReserve,
+        RoutedError {
+            error: UbaaError::new(
+                ErrorCode::OutcomeUnknown,
+                ErrorKind::Upstream,
+                false,
+                "fixture libbook outcome unknown",
+            ),
+            resolution: None,
+        },
+    );
+    assert_eq!(post_send.code, BridgeErrorCode::OutcomeUnknown);
+    assert_eq!(post_send.kind, BridgeErrorKind::Upstream);
+    assert!(!post_send.retryable);
+    assert_eq!(post_send.message, "fixture libbook outcome unknown");
 }

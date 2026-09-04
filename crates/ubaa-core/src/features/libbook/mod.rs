@@ -15,5 +15,6 @@ pub use parser::{
     parse_area_detail_for, parse_areas, parse_bookings, parse_libraries, parse_seats,
 };
 pub(crate) use service::{
-    cancel_booking, get_area_detail, get_areas, get_bookings, get_libraries, get_seats, reserve,
+    cancel_booking, get_area_detail, get_areas, get_bookings, get_libraries, get_seats,
+    preflight_reserve, reserve,
 };

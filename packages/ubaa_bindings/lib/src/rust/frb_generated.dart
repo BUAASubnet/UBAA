@@ -3471,15 +3471,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeLibBookSeat dco_decode_bridge_lib_book_seat(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return BridgeLibBookSeat(
       id: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       no: dco_decode_String(arr[2]),
-      status: dco_decode_String(arr[3]),
+      status: dco_decode_opt_box_autoadd_i_32(arr[3]),
       statusName: dco_decode_String(arr[4]),
-      isAvailable: dco_decode_bool(arr[5]),
+      reserveEligibility: dco_decode_bridge_action_eligibility(arr[5]),
+      reserveTarget: dco_decode_opt_String(arr[6]),
     );
   }
 
@@ -6073,16 +6074,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_id = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
     var var_no = sse_decode_String(deserializer);
-    var var_status = sse_decode_String(deserializer);
+    var var_status = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_statusName = sse_decode_String(deserializer);
-    var var_isAvailable = sse_decode_bool(deserializer);
+    var var_reserveEligibility = sse_decode_bridge_action_eligibility(
+      deserializer,
+    );
+    var var_reserveTarget = sse_decode_opt_String(deserializer);
     return BridgeLibBookSeat(
       id: var_id,
       name: var_name,
       no: var_no,
       status: var_status,
       statusName: var_statusName,
-      isAvailable: var_isAvailable,
+      reserveEligibility: var_reserveEligibility,
+      reserveTarget: var_reserveTarget,
     );
   }
 
@@ -8692,9 +8697,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.id, serializer);
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.no, serializer);
-    sse_encode_String(self.status, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.status, serializer);
     sse_encode_String(self.statusName, serializer);
-    sse_encode_bool(self.isAvailable, serializer);
+    sse_encode_bridge_action_eligibility(self.reserveEligibility, serializer);
+    sse_encode_opt_String(self.reserveTarget, serializer);
   }
 
   @protected

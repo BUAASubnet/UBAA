@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::ActionEligibility;
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibBookLibrary {
@@ -50,9 +52,10 @@ pub struct LibBookSeat {
     pub id: String,
     pub name: String,
     pub no: String,
-    pub status: String,
+    pub status: Option<i32>,
     pub status_name: String,
-    pub is_available: bool,
+    pub reserve_eligibility: ActionEligibility,
+    pub reserve_target: Option<String>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +84,21 @@ pub struct LibBookBookingsPage {
 pub struct LibBookReserveRequest {
     pub area_id: String,
     pub seat_id: String,
+    pub day: String,
+    pub segment: String,
+    pub start_time: String,
+    pub end_time: String,
+}
+/// 图书馆座位预约的当前权威摘要。
+///
+/// 该值只包含稳定目标与脱敏展示字段，不包含业务令牌、Cookie 或原始上游响应。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookReservePreflight {
+    pub area_id: String,
+    pub seat_id: String,
+    pub seat_name: String,
+    pub seat_no: String,
     pub day: String,
     pub segment: String,
     pub start_time: String,
