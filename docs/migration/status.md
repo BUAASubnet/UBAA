@@ -10,7 +10,7 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| implementation HEAD | `a147132` | 代码组织阶段 11B2：Bridge 写入层按 DTO/pending、prepare、commit、support 与领域测试完成目录化，公开 `api::write` 合同不变 |
+| implementation HEAD | `0a110b5` | 代码组织阶段 11C：Bykc 签到/签退资格、最终写前复核、单次发送边界、typed 位置能力与 schema v3 已实现 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -58,6 +58,13 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   294 行、最大测试叶 425 行。14 个公开类型、11 个公开异步方法、20 个写测试叶及其行为集合保持不变，
   Bridge 24 项、完整 `just check`、完整 `just flutter-check`、连续两次 FRB 零漂移、refs、layout、689 文件
   sensitive 与两侧独立复审均通过；生成绑定只发生一行私有 helper 忽略注释的可解释变化。
+- `0a110b5` 上的阶段 11C 将 Bykc 签到/签退资格完整迁移为 `allowed/denied/unknown` typed action，并在
+  prepare 与 commit 重读当前学期、课程与签到点配置；最终 POST 使用不可重放发送边界，发送后的 transport、
+  Cookie、响应形状或会话竞态不会被误报为可重试失败。CLI envelope 显式升为 schema v3，磁盘 session
+  仍为 schema v2。Core Bykc 12 项、Bridge 35 项、CLI E2E 16 项、CLI contract 33 项、Flutter Domain 10 项、
+  Platform 37 项、App 65 项、UI 58 项、Bindings 11 项、Host 11 项与官方 App 2 项通过；`just refs`、
+  `just layout-check`、694 文件敏感扫描、完整 `just check`、FRB 零漂移、完整 `just flutter-check` 和独立
+  Rust/Dart 复审均通过。该证据不包含原生位置 handler、真实签到、签名或设备验证。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -74,7 +81,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11C–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11D–14 尚未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

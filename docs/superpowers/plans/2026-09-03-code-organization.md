@@ -57,7 +57,7 @@
 | 11A | Bykc 选课资格 | 缺字段、目标错配、提交前资格漂移与展示字符串漂移 RED | `refactor(flutter): typed 化博雅选课资格` | 已提交：`c76a81a`；Core/Bridge typed 资格、prepare/commit fail-closed、FRB/Domain/App/UI 映射、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B | Bykc 退选资格 | 操作级来源对照与未知状态 RED | `refactor(flutter): typed 化博雅退选资格` | 已提交：`0a16276`；inner course ID、Core/Bridge 双复核、FRB/Domain/App/UI typed action、全量门禁与 macOS integration 6 项通过，独立复审 Ready |
 | 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 已提交：`a147132`；最大生产文件 294 行、最大测试叶 425 行，完整 Rust/Flutter 门禁与双重独立复审通过 |
-| 11C | Bykc 签到资格 | 操作级来源对照、unknown fail-closed 与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 执行中：CLI envelope 已因破坏性 typed 合同显式升为 schema v3，完整门禁与提交待闭合 |
+| 11C | Bykc 签到资格 | 操作级来源对照、unknown fail-closed 与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 已提交：来源 `a17bda4`、实现 `0a110b5`；Core 最终资格、单次发送边界、typed action、位置能力、schema v3、全量门禁与独立复审通过 |
 | 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 待执行 |
 | 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 待执行 |
 | 11F | Libbook 取消资格 | 操作级来源对照与目标状态 RED | `refactor(flutter): typed 化图书馆取消资格` | 待执行 |
