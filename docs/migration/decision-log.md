@@ -1,5 +1,51 @@
 # 决策记录
 
+## 2026-09-04：Phase 11H 场馆取消双 fresh authority 与最终单次发送边界（当前有效）
+
+本条只固定 Phase 11H 的来源与实施合同，不宣称当前生产实现已经满足。重新核对冻结
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `CgyyApi.kt`、`LocalCgyyApi.kt`、
+`LocalCgyySigner.kt`、`Cgyy.kt`、Cgyy 订单取消状态/时间测试以及旧 server 实现。固定
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的模块清单没有 Cgyy、
+`venue-zhjs`、`cgAuthorization` 或场馆订单协议，九列均为“不适用且不等价”；不得从 Boya 课程取消、
+通用 SSO/VPN、credential、Cookie 或错误类型类比补字段。
+
+冻结引导为无显式 `service` 参数的 GET
+`https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin`，再以 `Sso-Token` 空表单 POST
+`/api/login`；`data.token.access_token` 只作为当前路线业务请求的 `cgAuthorization`。订单详情唯一有
+证据的端点为 GET `/api/orders/{id}`，最终取消为 URL 编码空表单 POST
+`/api/orders/new/cancel/{id}`；旧 relay `/api/v1/cgyy/orders/{id}/cancel` 不是上游。请求保持冻结
+`Accept`、mobileReservation Referer、`app-key/timestamp/sign/cgAuthorization` 与小写 MD5 签名，GET
+`nocache` 参与签名；取消没有 captcha/challenge、AES 或其它加密。Cookie/token 只在当前用户和路线内存使用，
+不落盘、不跨路线，也不与预约 token 混用。
+
+冻结客户端自动跳转、固定 Direct 且没有 hop/host/terminal 白名单，与当前路线隔离及 WebVPN Cookie 同步
+决策冲突，明确不倒退复制。prepare 与 commit 必须分别在解析出的同一路线上 fresh GET
+`/api/orders/{id}`；请求 ID 网络前必须为正，响应只接受唯一 JSON object 中 canonical 正整数 `id` 严格等于
+请求 ID。`data=null`、数组、缺失、畸形、非正或不匹配 ID 一律 unknown 并在发送前拒绝；不得信任 UI
+label/value、缓存列表或调用方提交的状态，也不得发明冻结来源中不存在的分页扫描消歧协议。
+
+资格矩阵固定为：canonical `orderStatus in {1,3}` 且 `checkStatus in {1,2,3,4,5,6}` 才能
+allowed；`orderStatus=2` 或任一负 `checkStatus` 为 denied；状态缺失、畸形、0 或其它值均为 unknown。
+冻结 `displayStatus` 会放行部分缺失、0 或未知正审核状态，本阶段为遵守 typed unknown 失败关闭而有意收紧，
+不得把旧 UI 宽松行为伪称为当前允许。取消时限固定按 `Asia/Shanghai`：start 有效时只允许严格
+`now < start - 4h`，恰好 deadline 即拒绝；start 缺失或无效才回退有效 end 并要求 `now < end`；start/end
+都缺失或无效时不增加时间限制，但严格 ID 与状态门禁仍照常执行。Core 必须使用可注入时钟，不依赖设备时区。
+
+冻结 client 会在认证失效后重放业务请求，旧 server 对认证错误或泛 Cgyy 错误还可能重建 client 后再次取消；
+冻结 UI 则从缓存订单直接写且没有 fresh authority。上述行为违反当前一次性 intent 与结果未知不自动重试合同，
+明确不复制：认证准备和两次详情复核都在发送边界前完成，final POST 只经 `request_non_idempotent` 恰好调用
+一次，401、认证/业务跳转或任何其它结果都不得刷新认证后重放。只有冻结支持的 `code=200` 产生固定安全成功
+结果；一旦 POST 已发送，非 200、final URL 异常、transport/timeout、Cookie、非 JSON、非 object、code
+缺失或畸形统一返回不可重试 `outcome_unknown`。raw message/body、Cookie、token、签名和订单敏感字段均不得
+进入公共 DTO、CLI、Bridge、日志或文件。
+
+确定成功或 `outcome_unknown` 后都只在原路线读取订单列表与同 ID 详情，绝不再次提交。仅 fresh canonical
+同 ID `orderStatus=2` 是取消证据；空详情、读取失败、ID 不匹配或列表/详情冲突保持未核对。历史独立授权探针
+曾出现取消信封成功后列表仍为状态 1、稍后列表才变为状态 2，详情则先失败再返回空 data，因此取消响应不能
+自行升级为最终业务状态，读回失败也不能触发自动重发。本条没有授权或执行真实取消；实施必须先以脱敏
+fixture/Mock 完成严格 ID、状态、上海时间边界、双 fresh、单 POST、`outcome_unknown`、安全结果与列表/详情
+回读 RED 门禁。
+
 ## 2026-09-04：Phase 11G 场馆预约 typed 资格与最终单次发送边界（当前有效）
 
 本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
