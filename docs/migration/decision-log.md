@@ -1,5 +1,51 @@
 # 决策记录
 
+## 2026-09-04：Phase 11G 场馆预约 typed 资格与最终单次发送边界（当前有效）
+
+本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
+`LocalCgyyApi.kt`、`LocalCgyySigner.kt`、`LocalCgyyCaptchaSupport.kt`、`Cgyy.kt`、
+`CgyyViewModel.kt` 及其测试。固定
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `src/api.rs` 与 `src/lib.rs`
+没有 Cgyy、`venue-zhjs`、`cgAuthorization` 或场馆验证码协议；其通用 SSO/VPN、可落盘 credential 与 raw
+response 错误只属于其它 API，九列均为“不适用且不等价”，不得类比补 service、Cookie、字段、加密或错误。
+
+冻结引导为无显式 `service` 参数的 GET
+`https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin`，再以 `Sso-Token` 空表单 POST `/api/login`；
+`data.token.access_token` 只作为后续 `cgAuthorization`，day-info 返回的预约 `token` 只进入上下文与最终表单。
+冻结客户端会自动跟随跳转、固定走 Direct 且没有 hop、host 或 terminal URL 白名单；这与当前路线隔离和已记录的
+WebVPN 网关 Cookie 同步证据冲突。本阶段不倒退复制该行为：继续使用当前有界 SSO/WebVPN 路线适配，不跨路线
+复用 Cookie/token，也不从固定示例借用 VPN service。该既有路线决策不等同于两份冻结来源一致。
+
+预约写链固定为 fresh GET `/api/reservation/day/info`，URL 编码表单 POST `/api/reservation/order/info`，
+GET `/api/captcha/get`、表单 POST `/api/captcha/check`，最后表单 POST `/api/reservation/order/submit`。
+上下文严格携带五字段 `venueSiteId/reservationDate/weekStartDate/reservationOrderJson/token`；最终提交严格携带
+十四字段：前四项加 `phone/theme/purposeType/joinerNum/activityContent/joiners`、两个映射为 `0/1` 的布尔项、
+`captchaVerification` 与预约 `token`。请求继续使用冻结 Accept、Referer、`app-key/timestamp/sign` 及
+`cgAuthorization`；MD5 签名、GET `nocache`、captcha AES-ECB/PKCS5Padding、标准 Base64、固定
+`{"x":offset,"y":5}` 与 `challenge-token---point-json` 明文形状均不改变。
+
+typed 资格只在请求日期键精确存在、站点/空间/时段身份完整且唯一时产生；冻结 parser 在请求日期缺失时回退
+`reservationDateSpaceInfo` 首键的兼容行为只供只读展示，绝不授权写。槽位只有
+`reservationStatus=1`、`tradeNo=null`、`orderId=null` 且 `takeUp!=true` 时为 `allowed`；状态或占用字段
+缺失/畸形造成无法判定时为 `unknown`，明确其它状态为 `denied`。稳定 action 携带 typed 站点、日期、空间、
+空间组及时段目标，不从中文 label/value 反向解析。prepare 与 commit 都 fresh 复核同一路线目标；选择必须无
+重复、同一空间、数量为一至两个，两个时段按 fresh `timeSlots` 列表索引相邻而不是按 `timeId` 数值相邻，
+`venueSpaceGroupId` 必须与 fresh 空间值一致。
+
+冻结提交合同只证明 `phone/theme/activityContent/joiners` trim 后非空、`joinerNum>0`；当前产品继续要求
+`purposeType>0`，不臆造手机号格式、文本长度、参与人数量相等或 `reservationTotalNum` 容量规则。冻结 UI 会
+持久化电话、主题、活动正文和参与人等表单明文，本阶段明确不复制；Bridge pending intent 只在内存保存一次，
+opaque 摘要不得包含这些值，取消、过期、提交或 dispose 后立即删除。
+
+冻结 `repeat(3)` 实际把 captcha 获取、求解、校验和最终 submit 全部包在同一个宽泛 `catch` 中；底层
+`requestJson` 还会在认证失效时重放包括最终 POST 在内的业务请求。该行为与一次性 intent 和结果未知不自动
+重试的当前安全合同冲突，明确不复制：最多三轮只覆盖最终发送前的 captcha 挑战/校验；最终 submit 只通过
+`request_non_idempotent` 发送一次，绝不认证重放或再次进入 captcha 循环。发送后 transport、Cookie、
+认证/业务跳转、非 JSON 或结构不足造成的歧义返回不可重试 `outcome_unknown`；明确 `code=200` 按冻结产品
+语义确认提交，订单可选并只以正订单编号形成安全收据，后续列表核对不重放写请求。非成功信封和公开结果使用
+固定安全文案，不透传可能包含 token、个人数据、控制字符或上游原始正文的 message。本阶段只使用脱敏
+fixture/Mock，不执行真实场馆预约，也不授权其它真实写操作。
+
 ## 2026-09-04：Phase 11F 图书馆取消 typed 资格与单次发送边界（当前有效）
 
 本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
