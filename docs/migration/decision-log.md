@@ -1,5 +1,38 @@
 # 决策记录
 
+## 2026-09-04：Phase 11F 图书馆取消 typed 资格与单次发送边界（当前有效）
+
+本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
+`shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookApi.kt`、
+`shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/LibBook.kt`、
+`shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/LibBookBookingStatusTest.kt` 和
+`shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalLibBookApiBackendTest.kt`。固定
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
+`src/api.rs` 模块清单没有 LibBook、图书馆座位或 `booking.lib.buaa.edu.cn` 协议，因此 URL、重定向、
+Cookie/会话、方法/参数、Header/编码、加密、DTO、并发/重试和错误语义九列均为“不适用且不等价”，不得从
+其通用 SSO 或其它模块类比补值。
+
+冻结本地产品的取消请求为 JSON POST `/v4/space/cancel`，wire 正文只有 `{id}`；它没有按 ID 查询详情、全量
+扫描或 arbitrary ID 校验端点。Phase 11F 因此把产生 action 时的正数 `page/limit` 保存在本地 authority
+上下文中，prepare 与 commit 都只能 POST `/v4/member/seat` 的同一页，并要求目标 booking ID 在 fresh 页中
+唯一匹配；`page/limit` 绝不进入最终取消正文。只有非空 ID 且 canonical 整数状态 `1` 为 `allowed`，状态
+`6/8` 为 `denied`；状态缺失、null、畸形、非 canonical 整数或其它值均为 `unknown` 并安全拒绝。
+`statusName` 仅供展示，不能产生或改变 typed 资格。该 fail-closed 规则是当前安全合同的明确收紧：冻结产品
+会让中文 `statusName` 参与判断，并默认允许部分缺失或未知状态，本阶段不复制这一行为，也不虚构详情协议。
+
+冻结 `LocalLibBookApi.kt` 会让共享业务客户端自动跟随跳转，并在识别认证失效后刷新 bearer、重放原请求；
+旧 server relay 还可能在重建 client 后再次调用。Phase 11F 不复制业务跳转和认证失效重放：CAS 登录及只读
+fresh 复核必须在越过发送边界前完成，最终 cancel 只调用一次 `request_non_idempotent`，不接受认证跳转且
+绝不自动重放。请求一旦已经发送，timeout、transport、HTTP/认证跳转、非 JSON 或结构不足而无法判定时返回
+不可重试的 `outcome_unknown`，随后只允许刷新预约列表供用户核对。冻结 JVM/Android LibBook engine 的
+trust-all certificate/hostname verifier 违反当前 TLS 安全边界，明确不采用。
+
+冻结成功 fixture 只证明上游 raw `code=1` 与 `message=取消成功`，确定的已取消、已结束、不存在或失效消息
+只证明可映射的业务错误；它不证明 raw `success` 或 `status` 字段参与上游成败。产品
+`LibBookCancelResponse { success, message }` 是冻结 backend 映射后的 DTO，Core、CLI 与 Bridge 不得据此
+猜测不存在的 raw 字段，也不得在无法判定时默认成功。本阶段只使用脱敏 fixture/Mock，不执行真实取消，且不
+授权其它真实写操作。
+
 ## 2026-09-04：Phase 11E 图书馆预约 typed 资格与发送边界（当前有效）
 
 固定 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 没有 LibBook、座位或预约
