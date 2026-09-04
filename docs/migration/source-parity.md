@@ -322,12 +322,25 @@ Cgyy 没有等价协议。来源差异必须逐列记录，不能把“部分等
 | 11B Bykc 退选 | 同 11A，端点 `/delChosenCourse` | 同 11A | 同 11A | POST `{id}` | 同 11A | 同 11A | `selected/status/courseId` | 同 11A | 仅已选且未过期；不臆加退选截止硬规则 |
 | 11C Bykc 签到/签退 | 同 11A，端点 `/signCourseByUser`；示例 `boya` 等价，`class` 不适用 | 旧版规则同 11A；示例只有 Direct final URL | 路线内 Cookie/token，不采用示例可落盘 credential | POST `{courseId,signLat,signLng,signType}`；仅接受 1/2，目标为内层 `courseInfo.id` | 采用旧版 JSON 类型、Origin/Referer、双 token、`ak/sk/ts` | 同 11A；采用冻结本地随机点与正半径圆内均匀位置算法 | `checkin/pass/courseSignConfig`；缺失/畸形状态或窗口为 unknown，`courseSignType` 仅透传且不参与资格 | prepare/commit 都重读当前学期已选项；无资格缓存、幂等键或自动写重试 | 签到仅 `pass!=1 && checkin=0`，签退仅 `pass!=1 && checkin in {0,5,6}`，对应闭区间窗口内 allowed；随机选中点为正半径时可自动成坐标，否则必须提供完整有限坐标；unknown 拒绝 |
 | 11D Signin 签到 | iClass bootstrap；登录端点冲突见决策日志 | 两源均提 `loginName`，细节冲突保留 | `{userId,sessionId}` 形状；头身份冲突保留 | 时间戳/签到方法与参数位置冲突保留 | 两源均有 session 头但值来源冲突 | 无 | 今日 `signStatus`，结果 `result.stuSignStatus` | 按学生单飞；登录/只读预检可按既有规则刷新，最终 POST 不重放 | 状态 0=allowed、1=denied、缺失/畸形/其它=unknown；仅 allowed 可写；业务 false 原样返回 |
-| 11E LibBook 预约 | CAS/login → `/space/confirm`；示例不适用 | 最多 8 跳提 cas | 路线内 bearer | POST `{aesjson}` | JSON + bearer/Origin/Referer | AES-CBC 冻结常量 | seat `status/isAvailable` 与完整目标 | token 单飞、失效最多重试一次 | 仅明确 available；unknown 拒绝 |
+| 11E LibBook 预约 | CAS 精确 service → `/v4/login/user` → `/v4/space/confirm`；固定示例无任何等价模块，九列均不适用 | 不跟随跳转，最多 8 跳从请求 URL/Location/query/fragment 提 cas；最终写不接受认证跳转 | 主认证 Cookie 按路线隔离；LibBook bearer 仅当前路线内存、不得持久化或跨路线复用 | prepare/commit 都以 `Space/map` 核对日期和唯一时段，再以 `Space/seat` 核对唯一座位；最终 POST `{aesjson}` | JSON + 精确 `bearer<token>`（无空格）+ Origin/Referer/X-Requested-With | AES-128-CBC/PKCS7；key=日期八位数字+逆序，IV=`ZZWBKJ_ZHIHUAWEI`；明文仅 `seat_id/segment/day` 加固定空起止时间，绝无 areaId | `status=1` allowed、`2/3` denied、缺失/畸形/其它 unknown；稳定目标 `(area,seat,day,segment)`，起止时间须与 fresh 时段一致 | token 登录单飞；发送前认证/只读可刷新一次，最终 confirm 只发送一次且绝不重放 | 仅唯一完整目标且明确 allowed 可写；明确业务 false 原样返回；发送后歧义为不可重试 outcome_unknown |
 | 11F LibBook 取消 | 同 11E，端点 `/space/cancel` | 同 11E | 同 11E | POST `{id}` | 同 11E | 无额外加密 | booking `id/status/statusName` | 同 11E | 仅明确 active；6/8、结束类状态、unknown 拒绝 |
 | 11G Cgyy 预约 | `manageLogin` → `/api/login` → 预约链；示例不适用 | 有界 SSO/WebVPN Cookie 同步 | access token 与 reservation token 分离 | day/context/captcha/submit 冻结字段 | signed form | MD5 + captcha AES | slot typed reservable、站点/空间/时段 ID | 单飞；最多两个相邻时段；captcha 3 次 | 完整必填字段且全部槽位明确可约；unknown 拒绝 |
 | 11H Cgyy 取消 | 同 11G，端点 `/orders/new/cancel/{id}` | 同 11G | 同 11G | POST 空表单 | signed form | MD5 | order/review 状态、开始/结束 | 上海时区 clock；prepare/commit 双复核 | 状态允许且严格早于 deadline；unknown 拒绝 |
 | 11I Ygdk 提交 | OAuth → upload → clockin；示例不适用 | 最多 10 跳提 code，host gap 保留 | 路线内 uid/token | multipart 后 form，时间为上海 epoch 秒 | multipart + URL encoded | 无 | overview item、完整日期时间、图片 | 登录单飞；最终写不重放 | ID 正数、同日 end>start、图片有效；unknown 拒绝 |
 | 11J Evaluation 提交 | SPOC pjxt；两源部分等价 | 有界激活，示例 final 交叉证据 | 路线内 SPOC Cookie | revise/topic/submit；示例差异不拼接 | JSON | 无 | 完整 course DTO 与 pending 状态 | 逐课程串行；冻结本地答案策略 | evaluated/unknown/缺字段拒绝；逐项失败决定整体失败 |
+
+11E 的冻结本地调用链固定为：CAS 精确 service 地址换取 `cas`，JSON POST `/v4/login/user` 取得非空
+`data.member.token`，JSON POST `/v4/Space/map` 与 `/v4/Space/seat` 完成只读资格复核，最后才允许 JSON POST
+`/v4/space/confirm`。区域详情只把 `date.list` 第一项的 `times` 投影为时段，不能推断其它日期共享同一
+segment；因此日期、时段 ID 与起止时间不能明确同属当前详情时一律为 `unknown`。座位必须以非空 ID 唯一
+匹配；状态 `1` 产生 typed target，`2/3` 明确拒绝，缺失、null、布尔、对象、小数、溢出或其它整数均不得
+降级为可预约。`area_id` 只用于本地 authority/readback，不得宣称最终 confirm 会在 wire 上校验它。
+
+冻结本地实现和 server relay 对业务 false 的处理不同：前者在 `code=0/1` 下使用冻结负面消息判定并返回
+`success=false`，后者抛出 `LibBookException`。本阶段采用被迁移客户端的本地产品行为，让确定 false 作为
+成功解码的结果穿过 CLI/Bridge；只有结果确实无法判断才使用 `outcome_unknown`。两套冻结低层 client 都可能
+在认证失效后重放最终预约，本阶段依据一次性写安全合同明确不复制：bearer 必须在越过发送边界前准备好，
+最终请求只调用一次 non-idempotent transport。固定示例没有 LibBook API，不能为上述任一空白列补证。
 
 11B 的 `id` 语义必须与展示记录标识分开：冻结旧版 `BykcChosenCourse.id` 是已选记录 ID，而写入口从
 `courseInfo.id` 投影为公开 `courseId` 后传给 `/delChosenCourse`；示例 `Selected.id` 也明确表示用于退选的课程

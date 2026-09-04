@@ -1,5 +1,33 @@
 # 决策记录
 
+## 2026-09-04：Phase 11E 图书馆预约 typed 资格与发送边界（当前有效）
+
+固定 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 没有 LibBook、座位或预约
+协议，九列均为“不适用且不等价”；不得类比其 URL、字段、会话、加密或错误。Phase 11E 只采用冻结
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的适用本地产品实现：先以
+`Space/map` 当前详情核对日期、唯一时段 ID 与起止时间，再以 `Space/seat` 当前结果核对唯一座位。座位
+`status=1` 为 `allowed`，`2/3` 为 `denied`；状态缺失、null、畸形、其它值、空目标、目标缺失或重复均为
+`unknown` 并安全拒绝。prepare 与最终提交都必须 fresh 复核，不信任宿主回传的展示字段或旧布尔值。
+
+稳定产品目标为 `(area_id, seat_id, day, segment)`；`start_time/end_time` 必须与 fresh 时段严格一致并只作
+确认、座位查询和读后核对元数据。冻结预约密文明文严格为
+`{seat_id,segment,day,start_time:"",end_time:""}`：`area_id` 不进入密文，调用方提供的起止时间也不得
+进入密文。AES-128-CBC、PKCS#7、日期八位数字加逆序组成的 key、固定 IV
+`ZZWBKJ_ZHIHUAWEI` 和标准 Base64 均保持现有 golden，不因 typed 化改变。
+
+冻结本地 `LocalLibBookApiBackend.reserve` 对 `code=0/1` 下的明确业务拒绝返回正常
+`LibBookReserveResponse(success=false)`，而冻结 server relay 会把同类结果抛错；本阶段采用适用的本地产品
+语义，Core、CLI 与 Bridge 均不得把确定的 `success=false` 覆盖为成功。冻结低层客户端还会在认证失效文本后
+重放包括预约在内的请求；该行为与当前一次性 intent 合同冲突，明确不复制。登录和只读复核可在发送前刷新
+业务 bearer，最终 `/v4/space/confirm` 必须通过 non-idempotent 边界只发送一次；发送后的 transport、timeout、
+HTTP/认证歧义、非 JSON 或无法确定业务结果的响应统一为不可重试的 `outcome_unknown`。
+
+`LibBookSeat.status` 从任意字符串改为可空整数，并以 `reserveEligibility/reserveTarget` 取代
+`isAvailable`，会破坏严格的 FFI 与 CLI JSON 消费者。因此 Flutter bridge contract 从 v3 显式升为 v4，CLI
+envelope/schema 从 v4 显式升为 v5；磁盘 `session.json` 继续使用 schema v2。Flutter 的完整
+`LibbookReserveAction` 只由 typed 座位目标、typed 资格和 typed 查询上下文组成，中文 label/value 仅用于展示。
+这一确定性阶段不执行真实预约，也不授权其它写操作。
+
 ## 2026-09-04：Phase 11D 课堂签到 typed 资格与发送边界（当前有效）
 
 课堂签到的生产修复只采用两份冻结来源一致的事实和适用冻结本地实现：今日课程使用 `signStatus`，值 `0`
