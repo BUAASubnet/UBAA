@@ -1,6 +1,6 @@
 # 代码与目录组织设计
 
-状态：2026-09-03 已批准执行；2026-09-04 已完成 Phase 11C 并登记 CLI envelope schema v3 合同升级
+状态：2026-09-03 已批准执行；2026-09-04 已完成 Phase 11C，并登记 Phase 11D 的 CLI schema v4/bridge v3 合同边界
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
@@ -32,6 +32,10 @@ UI 与测试，不必在数千行聚合文件中搜索。
 同时加入 `outcome_unknown` 封闭错误码；这些是有意且经来源/TDD 支持的破坏性合同变化。因此 CLI envelope
 显式升级为 schema v3，bridge contract 同步从 v1 升为 v2，旧版本只作为历史证据保留。该版本升级不涉及
 本地持久化，`session.json` 继续使用 schema v2。
+
+Phase 11D 再次显式提升公开版本：Signin `signStatus` 改为可空并加入 typed eligibility/target，Flutter bridge
+contract 使用 v3；CLI 成功数据加入 Signin 写结果并将今日 DTO 改为 fail-closed 形状，envelope/schema 使用
+v4。确定业务 `success=false` 保持外层成功、CLI 退出 0；`outcome_unknown` 仍退出 5。两者必须分别测试。
 
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。

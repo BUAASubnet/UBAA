@@ -14,7 +14,8 @@
 - 上游协议、公开 DTO、CLI schema、FRB schema、golden、用户文案、key、semantics 和网络调用顺序不得因
   文件移动而改变。本轮已登记例外是 Phase 11C 的行为合同：Bykc 未知签到状态需要破坏性 typed 表达，故
   CLI envelope 从 v2 显式升为 v3、bridge contract 从 v1 显式升为 v2；不得在旧版本号下静默改变字段，且
-  磁盘 `session.json` 仍保持 schema v2。
+  磁盘 `session.json` 仍保持 schema v2。Phase 11D 的 Signin 可空状态与 typed 资格再次显式把 CLI
+  envelope/schema 从 v3 升为 v4、bridge contract 从 v2 升为 v3；磁盘 session 版本仍不变。
 - 机械结构提交与行为敏感提交严格分开；行为阶段必须先有来源对照和预期失败测试。
 - 真实写入不属于本计划；Direct/WebVPN 只读验证串行执行并只保留安全摘要。
 - 阶段 00–01 使用当前已有门禁；从阶段 02 checker 在同一提交中落地后，每个阶段提交前均运行：`just refs`、
@@ -366,6 +367,10 @@ UI 文件。
 `unknown` 的 `signEligibility`/`signOutEligibility` 取代，写请求到达边界后的不确定结果使用
 `outcome_unknown`。这些变化会破坏 schema v2 消费者，因此所有 CLI 成功、失败、参数错误、聚合和诊断
 envelope 统一显式升级为 schema v3，合同测试拒绝旧 v2；`session.json` schema v2 不在此次变更范围。
+
+11D 再次显式提升公开版本：Signin `signStatus` 改为可空并加入 typed eligibility/target，Flutter bridge
+contract 使用 v3；CLI 成功数据加入 Signin 写结果并将今日 DTO 改为 fail-closed 形状，envelope/schema 使用
+v4。确定业务 `success=false` 保持外层成功、CLI 退出 0；`outcome_unknown` 仍退出 5。两者必须分别测试。
 
 ### 阶段 11B2：Bridge write 目录化
 

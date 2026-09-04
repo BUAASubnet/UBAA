@@ -12,6 +12,13 @@
 最终 POST 通过 `request_non_idempotent` 且只发送一次，发送后的 transport、Cookie、认证跳转、非 JSON 或
 结构不完整响应归为 `outcome_unknown`、禁止自动重放；发送前读取失败保持原错误分类。
 
+`signStatus` 从必填整数改为可空并新增 eligibility/target，会破坏严格的 FFI 与 CLI JSON 消费者；本阶段
+因此显式把 Flutter bridge contract 从 v2 升为 v3、CLI envelope/schema 从 v3 升为 v4，并让 CLI schema
+新增 `SigninActionResult` 成功数据分支。不得在旧版本号下静默改变字段。明确的业务拒绝仍是成功解码出的
+`SigninActionResult { success: false }`：CLI 外层 `ok=true`、退出码 0 表示调用完成且结果确定，脚本必须读取
+内层 `success` 判断签到是否完成；Bridge 同样保留 `success=false`，UI 不显示成功、不触发成功后的刷新。
+这一选择复刻冻结 API 的 `Result.success(SigninActionResponse(... success=false))`，不发明新的错误码。
+
 冻结本地与固定示例在登录 URL、端口、时间戳方法、参数载体及会话头身份上仍有冲突。本阶段保持当前已有、
 由 Direct/WebVPN 只读证据支持的登录/读取路径，不借结构治理改写这些未决项；也不执行真实签到。UI 只消费
 Core→Bridge→Domain 的 typed action，中文状态文案只用于展示。
