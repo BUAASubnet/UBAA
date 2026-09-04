@@ -525,6 +525,13 @@
      `just check`、`just flutter-check`、`just refs`、`just layout-check`、697 文件敏感扫描、FRB 零漂移、
      CLI binary E2E 16 项、macOS 脱敏宿主 integration 7 项及独立终审均通过。本阶段未联网执行真实签到，
      不包含签名、实体设备或真实写后核对证据；Phase 11E–14 继续按代码组织计划执行。
+182. 代码组织 Phase 11E 来源提交 `61f8f99` 与实现提交 `445240d` 将图书馆预约改为 Core 所有的三态
+     typed 资格及稳定日期/时段/座位目标：座位 `status` 可空且只接受 canonical 整数，prepare/commit
+     均重读唯一 fresh authority；最终 confirm 使用单次不可重放发送边界，Direct/WebVPN 的冻结请求头分别
+     有合成传输证据。Flutter 不再从展示字段反推预约资格，CLI envelope 显式升为 schema v5，bridge
+     contract 升为 v4。完整 `just check`、`just flutter-check`、`just refs`、`just layout-check`、702 文件
+     敏感扫描、FRB 零漂移、CLI binary E2E 16 项、macOS 脱敏宿主 integration 7 项及独立终审均通过。
+     本阶段未联网执行真实预约，不包含签名、实体设备或真实写后核对证据；Phase 11F–14 继续按代码组织计划执行。
 
 ## 4. 安全与架构边界
 

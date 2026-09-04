@@ -15,7 +15,8 @@
   文件移动而改变。本轮已登记例外是 Phase 11C 的行为合同：Bykc 未知签到状态需要破坏性 typed 表达，故
   CLI envelope 从 v2 显式升为 v3、bridge contract 从 v1 显式升为 v2；不得在旧版本号下静默改变字段，且
   磁盘 `session.json` 仍保持 schema v2。Phase 11D 的 Signin 可空状态与 typed 资格再次显式把 CLI
-  envelope/schema 从 v3 升为 v4、bridge contract 从 v2 升为 v3；磁盘 session 版本仍不变。
+  envelope/schema 从 v3 升为 v4、bridge contract 从 v2 升为 v3；Phase 11E 的 LibBook 可空座位状态、
+  typed 预约资格与稳定目标再分别升为 CLI schema v5 和 bridge contract v4；磁盘 session 版本始终不变。
 - 机械结构提交与行为敏感提交严格分开；行为阶段必须先有来源对照和预期失败测试。
 - 真实写入不属于本计划；Direct/WebVPN 只读验证串行执行并只保留安全摘要。
 - 阶段 00–01 使用当前已有门禁；从阶段 02 checker 在同一提交中落地后，每个阶段提交前均运行：`just refs`、
@@ -60,7 +61,7 @@
 | 11B2 | Bridge write 目录化 | 20 个写测试叶名称与行为不变、Bridge 24 项全绿、FRB 生成零漂移 | `refactor(bridge): 按职责拆分写入 API` | 已提交：`a147132`；最大生产文件 294 行、最大测试叶 425 行，完整 Rust/Flutter 门禁与双重独立复审通过 |
 | 11C | Bykc 签到资格 | 操作级来源对照、unknown fail-closed 与可签到 RED | `refactor(flutter): typed 化博雅签到资格` | 已提交：来源 `a17bda4`、实现 `0a110b5`；Core 最终资格、单次发送边界、typed action、位置能力、schema v3、全量门禁与独立复审通过 |
 | 11D | Signin 签到资格 | 操作级来源对照与重复签到 RED | `refactor(flutter): typed 化课堂签到资格` | 已提交：来源 `39dd438`、公开合同 `48444fd`、实现 `b988ae1`；Core 双复核、单次发送、typed action、schema v4/bridge v3、全量门禁、macOS integration 7 项与独立终审通过 |
-| 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 待执行 |
+| 11E | Libbook 预约资格 | 操作级来源对照与状态码 RED | `refactor(flutter): typed 化图书馆预约资格` | 已提交：来源 `61f8f99`、实现 `445240d`；日期/时段/座位唯一 fresh authority、冻结请求头、单次发送、typed action、schema v5/bridge v4、全量门禁、macOS integration 7 项与独立终审通过 |
 | 11F | Libbook 取消资格 | 操作级来源对照与目标状态 RED | `refactor(flutter): typed 化图书馆取消资格` | 待执行 |
 | 11G | Cgyy 预约资格 | 操作级来源对照与可预约 RED | `refactor(flutter): typed 化场馆预约资格` | 待执行 |
 | 11H | Cgyy 取消资格 | 操作级来源对照与截止时间 RED | `refactor(flutter): typed 化场馆取消资格` | 待执行 |
