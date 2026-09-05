@@ -40,6 +40,17 @@ const _publicNames = <String>[
 ];
 
 void main() {
+  test('唯一写协调器和回读器可从公共入口导入', () {
+    final coordinator = WriteCoordinator(
+      commit: (_) async => throw StateError('公共入口编译合同不提交'),
+      receiptVerifier: const WriteReceiptVerifier(),
+    );
+    final WriteFlowController legacy = coordinator;
+    expect(identical(legacy, coordinator), isTrue);
+    expect(coordinator.state, isA<WriteState>());
+    coordinator.dispose();
+  });
+
   test('ubaa_app barrel 保持三十三个公开名字和稳定签名', () {
     expect(_publicNames, hasLength(33));
     expect(_publicNames.toSet(), hasLength(33));

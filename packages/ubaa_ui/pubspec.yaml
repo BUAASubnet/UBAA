@@ -16,3 +16,5 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  ubaa_app:
+    path: ../ubaa_app

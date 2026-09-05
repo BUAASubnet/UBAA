@@ -375,6 +375,10 @@ class UbaaMainShell extends StatefulWidget {
     required this.onTelemetryChanged,
     this.initialTab = 0,
     this.activeRoutes = const <ConnectionMode>[],
+    this.writeState = const WriteState.idle(),
+    this.onRunWritePrepare,
+    this.onCancelWrite,
+    this.onConfirmWrite,
     this.onFeatureQuery,
     this.onPrepareBykcWrite,
     this.onPrepareBykcSignWrite,
@@ -410,6 +414,10 @@ class UbaaMainShell extends StatefulWidget {
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final int initialTab;
   final List<ConnectionMode> activeRoutes;
+  final WriteState writeState;
+  final WritePreparationRunner? onRunWritePrepare;
+  final WriteCancellationRunner? onCancelWrite;
+  final WriteConfirmationRunner? onConfirmWrite;
   final Future<void> Function(FeatureId feature, FeatureQuery query)?
   onFeatureQuery;
   final Future<WriteIntent> Function(WriteOperation operation, int courseId)?
@@ -443,12 +451,14 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureId? _openedFeature;
   final Map<FeatureId, FeatureQuery> _featureQueries =
       <FeatureId, FeatureQuery>{};
-  WriteIntent? _pendingWrite;
-  UiError? _writeError;
-  bool _writeSubmitting = false;
-  bool _writeDiscarding = false;
+
+  bool get _hasWriteCommands =>
+      widget.onRunWritePrepare != null &&
+      widget.onCancelWrite != null &&
+      widget.onConfirmWrite != null;
 
   bool get _hasYgdkSubmissionCapabilities =>
+      _hasWriteCommands &&
       widget.onPrepareYgdkSubmitWrite != null &&
       widget.onPickYgdkPhoto != null &&
       widget.onRefreshYgdkAfterWrite != null &&
@@ -475,14 +485,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
-    final body = _pendingWrite != null
+    final pendingWrite = widget.writeState.intent;
+    final body = pendingWrite != null
         ? WriteConfirmationView(
-            intent: _pendingWrite!,
+            intent: pendingWrite,
             onCancel: _cancelWrite,
             onConfirm: _confirmWrite,
-            isSubmitting: _writeSubmitting,
-            isDiscarding: _writeDiscarding,
-            error: _writeError,
+            isSubmitting: widget.writeState.isSubmitting,
+            isDiscarding: widget.writeState.isDiscarding,
+            error: widget.writeState.error,
           )
         : _openedFeature == null
         ? _buildTab(context)
@@ -505,28 +516,36 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                     _featureQueries[feature] = query;
                     return widget.onFeatureQuery!(feature, query);
                   },
-            onBykcWrite: widget.onPrepareBykcWrite == null
+            onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
                 ? null
                 : _startBykcWrite,
-            onBykcSignWrite: widget.onPrepareBykcSignWrite == null
+            onBykcSignWrite:
+                !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
                 ? null
                 : _startBykcSignWrite,
-            onSigninWrite: widget.onPrepareSigninWrite == null
+            onSigninWrite:
+                !_hasWriteCommands || widget.onPrepareSigninWrite == null
                 ? null
                 : _startSigninWrite,
-            onCgyyCancelWrite: widget.onPrepareCgyyCancelWrite == null
+            onCgyyCancelWrite:
+                !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
                 ? null
                 : _startCgyyCancelWrite,
-            onLibbookReserveWrite: widget.onPrepareLibbookReserveWrite == null
+            onLibbookReserveWrite:
+                !_hasWriteCommands ||
+                    widget.onPrepareLibbookReserveWrite == null
                 ? null
                 : _startLibbookReserveWrite,
-            onLibbookCancelWrite: widget.onPrepareLibbookCancelWrite == null
+            onLibbookCancelWrite:
+                !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
                 ? null
                 : _startLibbookCancelWrite,
-            onEvaluationWrite: widget.onPrepareEvaluationWrite == null
+            onEvaluationWrite:
+                !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
                 ? null
                 : _startEvaluation,
-            onCgyySubmitWrite: widget.onPrepareCgyySubmitWrite == null
+            onCgyySubmitWrite:
+                !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
                 ? null
                 : _startCgyySubmitWrite,
             onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
@@ -539,11 +558,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _pendingWrite == null
+          pendingWrite == null
               ? (_openedFeature?.title ?? _tabs[_selectedIndex].label)
-              : '确认${_pendingWrite!.operation.title}',
+              : '确认${pendingWrite.operation.title}',
         ),
-        leading: _openedFeature == null || _pendingWrite != null
+        leading: _openedFeature == null || pendingWrite != null
             ? null
             : IconButton(
                 tooltip: '返回',
@@ -675,7 +694,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   );
 
   void _selectTab(int index) {
-    if (_pendingWrite != null) return;
+    if (widget.writeState.intent != null) return;
     setState(() {
       _selectedIndex = index;
       _openedFeature = null;
@@ -687,6 +706,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(operation, courseId),
+      expectedOperation: operation,
       failureMessage: '暂时无法准备操作；尚未提交任何写请求。',
     );
   }
@@ -697,6 +717,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     await _prepareWrite(
       prepare: () => prepare(action),
       failureMessage: '暂时无法准备博雅签到；尚未提交任何写请求。',
+      expectedOperation: action.operation,
     );
   }
 
@@ -706,6 +727,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     await _prepareWrite(
       prepare: () => prepare(action),
       failureMessage: '暂时无法准备签到；尚未提交任何写请求。',
+      expectedOperation: action.operation,
     );
   }
 
@@ -715,6 +737,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     await _prepareWrite(
       prepare: () => prepare(action),
       failureMessage: '暂时无法准备取消场馆订单；尚未提交任何写请求。',
+      expectedOperation: action.operation,
     );
   }
 
@@ -724,6 +747,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     await _prepareWrite(
       prepare: () => prepare(action),
       failureMessage: '暂时无法准备图书馆预约；尚未提交任何写请求。',
+      expectedOperation: action.operation,
     );
   }
 
@@ -733,6 +757,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     await _prepareWrite(
       prepare: () => prepare(action),
       failureMessage: '暂时无法准备取消图书馆预约；尚未提交任何写请求。',
+      expectedOperation: action.operation,
     );
   }
 
@@ -762,82 +787,36 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     await _prepareWrite(
       prepare: () => prepare(input),
       failureMessage: '暂时无法准备场馆预约；尚未提交任何写请求。',
+      expectedOperation: WriteOperation.cgyySubmitReservation,
     );
   }
 
   Future<void> _prepareWrite({
     required Future<WriteIntent> Function() prepare,
     required String failureMessage,
-    WriteOperation? expectedOperation,
+    required WriteOperation expectedOperation,
   }) async {
-    if (_pendingWrite != null || _writeSubmitting) return;
-    final discard = widget.onDiscardWriteIntent;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
+    final run = widget.onRunWritePrepare;
+    if (!_hasWriteCommands || run == null || widget.writeState.isSubmitting) {
+      return;
+    }
     try {
-      final intent = await prepare();
-      if (expectedOperation != null && intent.operation != expectedOperation) {
-        await _discardPreparedIntentBestEffort(discard, intent.intentId);
-        throw StateError('写意图操作类型与入口不一致');
-      }
-      if (!mounted) {
-        await _discardPreparedIntentBestEffort(discard, intent.intentId);
-        return;
-      }
-      setState(() {
-        _pendingWrite = intent;
-        _writeSubmitting = false;
-      });
+      await run(prepare, expectedOperation: expectedOperation);
     } on Object {
       if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeError = null;
-      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
-  Future<void> _discardPreparedIntentBestEffort(
-    WriteIntentDiscarder? discard,
-    String intentId,
-  ) async {
-    try {
-      await discard?.call(intentId);
-    } on Object {
-      // 页面已卸载，无可用 UI 承载错误；Bridge 会自行过期清理。
-    }
-  }
-
   Future<void> _cancelWrite() async {
-    final intent = _pendingWrite;
-    final discard = widget.onDiscardWriteIntent;
-    if (intent == null || _writeSubmitting) return;
-    setState(() {
-      _writeSubmitting = true;
-      _writeDiscarding = true;
-      _writeError = null;
-    });
+    final cancel = widget.onCancelWrite;
+    if (cancel == null || widget.writeState.isSubmitting) return;
     try {
-      if (discard == null) throw StateError('未提供意图丢弃能力');
-      await discard(intent.intentId);
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = null;
-        _writeSubmitting = false;
-        _writeDiscarding = false;
-      });
+      await cancel();
     } on Object {
       if (!mounted) return;
-      setState(() {
-        _writeSubmitting = false;
-        _writeDiscarding = false;
-        _writeError = null;
-      });
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('暂时无法取消待确认操作，请重试。')));
@@ -845,8 +824,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   Future<void> _confirmWrite() async {
-    final intent = _pendingWrite;
-    if (intent == null || _writeSubmitting) return;
+    final intent = widget.writeState.intent;
+    if (intent == null || widget.writeState.isSubmitting) return;
     if (intent.operation == WriteOperation.ygdkSubmit &&
         !_hasYgdkSubmissionCapabilities) {
       ScaffoldMessenger.of(
@@ -854,228 +833,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ).showSnackBar(const SnackBar(content: Text('阳光打卡能力不完整；尚未提交任何写请求。')));
       return;
     }
-    final commit = widget.onCommitWrite;
-    if (commit == null) return;
-    bool? cgyyReceiptVerified;
-    bool? cgyyCancellationVerified;
-    var ygdkReadbackAttempted = false;
-    setState(() {
-      _writeSubmitting = true;
-      _writeError = null;
-    });
-    try {
-      final result = await commit(intent.intentId);
-      if (result.operation != intent.operation) {
-        throw const UiError(
-          code: UbaaErrorCode.outcomeUnknown,
-          title: '结果待核对',
-          message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
-        );
-      }
-      if (result.success ||
-          result.outcomeUnknown ||
-          (result.operation == WriteOperation.evaluationSubmitCourses &&
-              result.evaluationResult != null)) {
-        final readbackVerified = await _readbackAfterWrite(
-          result.operation,
-          intent,
-        );
-        if (result.operation == WriteOperation.cgyyCancelOrder) {
-          cgyyCancellationVerified = readbackVerified;
-        } else if (result.operation == WriteOperation.ygdkSubmit) {
-          ygdkReadbackAttempted = readbackVerified == true;
-        }
-      }
-      if (result.success && !result.outcomeUnknown) {
-        final receipt = result.cgyyReceipt;
-        if (result.operation == WriteOperation.cgyySubmitReservation &&
-            receipt != null) {
-          try {
-            cgyyReceiptVerified = await widget.onVerifyCgyyReceipt?.call(
-              receipt,
-            );
-          } on Object {
-            // 核对失败不改变已完成的写入结果，也不重试写请求。
-          }
-        }
-      }
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = null;
-        _writeSubmitting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _writeResultMessage(
-              result,
-              cgyyReceiptVerified: cgyyReceiptVerified,
-              cgyyCancellationVerified: cgyyCancellationVerified,
-              ygdkReadbackAttempted: ygdkReadbackAttempted,
-            ),
-          ),
-        ),
-      );
-    } on UiError catch (error) {
-      if (error.code == UbaaErrorCode.outcomeUnknown ||
-          intent.operation == WriteOperation.evaluationSubmitCourses) {
-        final readbackVerified = await _readbackAfterWrite(
-          intent.operation,
-          intent,
-        );
-        if (intent.operation == WriteOperation.cgyyCancelOrder) {
-          cgyyCancellationVerified = readbackVerified;
-        } else if (intent.operation == WriteOperation.ygdkSubmit) {
-          ygdkReadbackAttempted = readbackVerified == true;
-        }
-      }
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = null;
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _writeErrorMessage(
-              error,
-              operation: intent.operation,
-              cgyyCancellationVerified: cgyyCancellationVerified,
-              ygdkReadbackAttempted: ygdkReadbackAttempted,
-            ),
-          ),
-        ),
-      );
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _pendingWrite = null;
-        _writeSubmitting = false;
-        _writeError = null;
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('应用内部错误，请返回后刷新相关状态。')));
-    }
-  }
-
-  Future<void> _refreshAfterWrite(
-    WriteOperation operation,
-    FeatureQuery? readbackQuery,
-  ) async {
-    try {
-      await widget.onWriteSuccess?.call(operation, readbackQuery);
-    } on Object {
-      // 写请求不会重试；读取核对失败由现有提示引导用户稍后手动刷新。
-    }
-  }
-
-  Future<bool?> _readbackAfterWrite(
-    WriteOperation operation,
-    WriteIntent intent,
-  ) async {
-    if (operation == WriteOperation.evaluationSubmitCourses) {
-      final refresh = widget.onRefreshEvaluationAfterWrite;
-      if (refresh == null) return false;
-      try {
-        await refresh(expectedRoute: intent.resolvedRoute);
-      } on Object catch (_) {}
-      return true;
-    }
-    if (operation == WriteOperation.ygdkSubmit) {
-      final refresh = widget.onRefreshYgdkAfterWrite;
-      if (refresh == null) return false;
-      try {
-        await refresh(expectedRoute: intent.resolvedRoute);
-      } on Object {
-        // 回读失败不改变原提交结果，也不触发写入重试。
-      }
-      return true;
-    }
-    if (operation != WriteOperation.cgyyCancelOrder) {
-      await _refreshAfterWrite(operation, intent.readbackQuery);
-      return null;
-    }
-    final query = intent.readbackQuery;
-    final orderId = query?.view == FeatureQueryView.cgyyOrderDetail
-        ? query?.orderId
-        : null;
-    final verify = widget.onVerifyCgyyCancellation;
-    if (orderId == null || orderId <= 0 || verify == null) return false;
-    try {
-      return await verify(
-        orderId: orderId,
-        expectedRoute: intent.resolvedRoute,
-      );
-    } on Object {
-      return false;
-    }
-  }
-
-  String _writeErrorMessage(
-    UiError error, {
-    required WriteOperation operation,
-    bool? cgyyCancellationVerified,
-    bool ygdkReadbackAttempted = false,
-  }) {
-    if (error.code == UbaaErrorCode.outcomeUnknown) {
-      if (operation == WriteOperation.ygdkSubmit) {
-        return ygdkReadbackAttempted
-            ? '提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'
-            : '提交结果不确定；未能自动刷新概览与记录，请勿重复提交。';
-      }
-      return cgyyCancellationVerified == true
-          ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
-          : '提交结果不确定，请先刷新相关状态，不要重复提交。';
-    }
-    if (operation == WriteOperation.ygdkSubmit &&
-        error.code == UbaaErrorCode.upstreamUnavailable) {
-      return '照片上传未完成，应用不会自动重试；本次阳光打卡尚未最终提交。';
-    }
-    return error.message;
-  }
-
-  String _writeResultMessage(
-    WriteCommitResult result, {
-    bool? cgyyReceiptVerified,
-    bool? cgyyCancellationVerified,
-    bool ygdkReadbackAttempted = false,
-  }) {
-    if (result.outcomeUnknown) {
-      if (result.operation == WriteOperation.ygdkSubmit) {
-        return ygdkReadbackAttempted
-            ? '提交结果不确定；已尝试按原路线刷新概览与记录，请勿重复提交。'
-            : '提交结果不确定；未能自动刷新概览与记录，请勿重复提交。';
-      }
-      return cgyyCancellationVerified == true
-          ? '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'
-          : '提交结果不确定，请先刷新相关状态，不要重复提交。';
-    }
-    if (result.operation == WriteOperation.cgyyCancelOrder) {
-      final hint = cgyyCancellationVerified == true
-          ? '取消状态已核对'
-          : '取消状态尚未核对，请勿重复提交';
-      return '${result.message}（$hint）';
-    }
-    if (result.operation == WriteOperation.ygdkSubmit) {
-      if (!result.success) return result.message;
-      final receipt = result.ygdkReceipt;
-      final readbackHint = ygdkReadbackAttempted
-          ? '已尝试按原路线刷新概览与记录'
-          : '请手动刷新概览与记录';
-      final hint = receipt?.isValid == true
-          ? '记录编号 ${receipt!.recordId}；$readbackHint'
-          : readbackHint;
-      return '${result.message}（$hint）';
-    }
-    final receipt = result.cgyyReceipt;
-    if (result.operation == WriteOperation.cgyySubmitReservation &&
-        receipt != null) {
-      final hint = cgyyReceiptVerified == true ? '订单列表已核对' : '请在订单列表核对';
-      return '${result.message}（订单编号 ${receipt.orderId}，$hint）';
-    }
-    return result.message;
+    final confirm = widget.onConfirmWrite;
+    if (confirm == null) return;
+    final outcome = await confirm();
+    if (!mounted || outcome == null) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(outcome.message)));
   }
 }
 

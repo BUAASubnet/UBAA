@@ -1,5 +1,16 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+/// 把领域准备函数交给应用层唯一写入协调器。
+typedef WritePreparationRunner =
+    Future<WriteIntent?> Function(
+      Future<WriteIntent> Function() prepare, {
+      required WriteOperation expectedOperation,
+    });
+
+/// 取消或确认只向宿主发出命令，UI 不直接消费 Bridge intent。
+typedef WriteCancellationRunner = Future<void> Function();
+typedef WriteConfirmationRunner = Future<WriteOutcome?> Function();
+
 /// 博雅签到/签退准备回调；保留读取层给出的完整 typed action。
 typedef BykcSignPreparer = Future<WriteIntent> Function(BykcSignAction action);
 

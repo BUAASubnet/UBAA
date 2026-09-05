@@ -338,7 +338,7 @@ Future<void> _pumpLibbookCancelShell(
   await tester.pumpWidget(
     MaterialApp(
       theme: UbaaTheme.light(),
-      home: UbaaMainShell(
+      home: coordinatedShell(
         user: const UserSummary(username: 'student'),
         snapshots: _libbookSnapshots(details),
         routePolicy: RoutePolicy.auto,
@@ -415,7 +415,7 @@ Future<void> _pumpLibbookShell(
   await tester.pumpWidget(
     MaterialApp(
       theme: UbaaTheme.light(),
-      home: UbaaMainShell(
+      home: coordinatedShell(
         user: const UserSummary(username: 'student'),
         snapshots: snapshots,
         routePolicy: RoutePolicy.auto,

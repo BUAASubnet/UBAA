@@ -256,7 +256,7 @@ Future<void> _pumpCgyyShell(
   await tester.pumpWidget(
     MaterialApp(
       theme: UbaaTheme.light(),
-      home: UbaaMainShell(
+      home: coordinatedShell(
         user: const UserSummary(username: 'student'),
         snapshots: <FeatureId, FeatureSnapshot>{
           for (final feature in FeatureId.values)

@@ -31,7 +31,7 @@ void _registerBykcStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -135,7 +135,7 @@ void _registerBykcStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -207,7 +207,7 @@ void _registerBykcStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -320,7 +320,7 @@ void _registerBykcStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -384,7 +384,7 @@ void _registerBykcStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -443,7 +443,7 @@ void _registerBykcStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -585,7 +585,7 @@ void _registerCgyyStateTest() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -639,7 +639,7 @@ void _registerSharedStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -725,7 +725,7 @@ void _registerSharedStateTests() {
       await tester.pumpWidget(
         MaterialApp(
           theme: UbaaTheme.light(),
-          home: UbaaMainShell(
+          home: coordinatedShell(
             user: const UserSummary(username: 'student'),
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
@@ -805,7 +805,7 @@ void _registerSharedStateTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,

@@ -76,6 +76,15 @@ extension _AppControllerRefresh on AppController {
     FeatureQuery? query,
     int? ygdkGeneration,
   }) async {
+    // loading 通知可能同步触发注销或切换路线，发请求前再次核对归属。
+    if (!_isFeatureLoadCurrent(
+      feature,
+      generation,
+      lifecycleEpoch,
+      ygdkGeneration,
+    )) {
+      return;
+    }
     final started = DateTime.now();
     final previous = _snapshots[feature]!;
     final hadPreviousData =

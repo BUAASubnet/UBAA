@@ -7,3 +7,4 @@ export 'feature/result.dart';
 export 'write/actions.dart';
 export 'write/inputs.dart';
 export 'write/intent.dart';
+export 'write/state.dart';

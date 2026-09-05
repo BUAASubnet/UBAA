@@ -42,6 +42,9 @@ Future<bool> _verifyCgyyCancellation(
   } on Object {
     // 列表读取失败仅表示未核对，仍继续独立读取详情。
   }
+  if (controller._disposed || lifecycleEpoch != controller._lifecycleEpoch) {
+    return false;
+  }
   try {
     detailResult = await backend.loadCgyyOrderDetailOnRoute(
       route: expectedRoute,

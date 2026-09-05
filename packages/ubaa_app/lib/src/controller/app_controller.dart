@@ -10,12 +10,15 @@ import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/write.dart';
 import '../write/cgyy_validation.dart';
+import '../write/coordinator.dart';
+import '../write/receipt_verifier.dart';
 import '../write/ygdk_validation.dart';
 import 'error_mapper.dart';
 
 part 'app_controller/cgyy_readback.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
+part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
@@ -70,13 +73,18 @@ class AppController extends ChangeNotifier {
        _snapshots = {
          for (final feature in FeatureId.values)
            feature: FeatureSnapshot(feature: feature),
-       };
+       } {
+    _writeCoordinator = _createWriteCoordinator(backend);
+    _writeCoordinator.addListener(_notify);
+  }
 
   UbaaBackend _backend;
   final BackendFactory? _backendFactory;
   final CredentialVault _credentialVault;
   final TelemetryClient _telemetry;
   final Map<FeatureId, FeatureSnapshot> _snapshots;
+  late WriteCoordinator _writeCoordinator;
+  int _writeTransitions = 0;
 
   AppPhase _phase = AppPhase.splash;
   LoginFormState _loginForm = const LoginFormState();
@@ -110,6 +118,7 @@ class AppController extends ChangeNotifier {
   Map<FeatureId, FeatureSnapshot> get snapshots =>
       Map<FeatureId, FeatureSnapshot>.unmodifiable(_snapshots);
   YgdkReadbackState get ygdkReadbackState => _ygdkReadbackState;
+  WriteCoordinator get writeCoordinator => _writeCoordinator;
 
   /// backend 必须同时提供 typed 写入与原路线回读，宿主才可暴露
   /// 阳光打卡提交入口。平台照片能力仍由宿主另行检查。
@@ -125,6 +134,7 @@ class AppController extends ChangeNotifier {
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
+    _beginWriteTransition();
     _setPhase(AppPhase.checkingSession);
     try {
       if (_backend case final RouteSettingsBackend routeBackend) {
@@ -167,6 +177,8 @@ class AppController extends ChangeNotifier {
     } catch (_) {
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
       _setPhase(AppPhase.login);
+    } finally {
+      _endWriteTransition();
     }
   }
 
@@ -185,8 +197,7 @@ class AppController extends ChangeNotifier {
       return false;
     }
     _rebuildingBackend = true;
-    _lifecycleEpoch++;
-    _ygdkGeneration++;
+    _beginWriteTransition();
     _setPhase(AppPhase.checkingSession);
     try {
       final replacement = factory();
@@ -210,6 +221,7 @@ class AppController extends ChangeNotifier {
         return false;
       }
       _backend = replacement;
+      _replaceWriteCoordinator(replacement);
       _initialized = false;
       _user = null;
       _activeRoutes = const <ConnectionMode>[];
@@ -225,6 +237,7 @@ class AppController extends ChangeNotifier {
       _setPhase(AppPhase.login);
       return false;
     } finally {
+      _endWriteTransition();
       _rebuildingBackend = false;
       _notify();
     }
@@ -265,6 +278,7 @@ class AppController extends ChangeNotifier {
     if (_disposed || _phase == AppPhase.loggingIn) return;
     final previousPolicy = _loginForm.routePolicy;
     if (previousPolicy == value) return;
+    _beginWriteTransition();
     _clearError();
     try {
       await _backend.prepareLogin(value);
@@ -296,6 +310,8 @@ class AppController extends ChangeNotifier {
       if (_disposed) return;
       _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+    } finally {
+      _endWriteTransition();
     }
     _notify();
   }
@@ -308,6 +324,7 @@ class AppController extends ChangeNotifier {
       _notify();
       return;
     }
+    _beginWriteTransition();
     _error = null;
     _activeRoutes = const <ConnectionMode>[];
     _setPhase(AppPhase.loggingIn);
@@ -356,6 +373,8 @@ class AppController extends ChangeNotifier {
       if (_disposed) return;
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
       _setPhase(AppPhase.login);
+    } finally {
+      _endWriteTransition();
     }
   }
 
@@ -555,31 +574,12 @@ class AppController extends ChangeNotifier {
   }
 
   /// 提交已确认的一次性意图；不接受任意请求正文，也不自动重试。
-  Future<WriteCommitResult> commitWrite(String intentId) async {
-    final backend = _backend;
-    if (backend is! WriteCommitBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    final writer = backend as WriteCommitBackend;
-    if (intentId.trim().isEmpty) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    return writer.commitWrite(intentId);
-  }
+  Future<WriteCommitResult> commitWrite(String intentId) =>
+      _commitWriteWithBackend(_backend, intentId);
 
   /// 释放尚未确认的一次性意图；该操作不提交任何上游写请求。
-  Future<void> discardWriteIntent(String intentId) async {
-    final backend = _backend;
-    if (backend is! WriteCommitBackend) {
-      throw const BackendException(UbaaErrorCode.unsupported);
-    }
-    final writer = backend as WriteCommitBackend;
-    final normalized = intentId.trim();
-    if (normalized.isEmpty) {
-      throw const BackendException(UbaaErrorCode.invalidInput);
-    }
-    return writer.discardWriteIntent(normalized);
-  }
+  Future<void> discardWriteIntent(String intentId) =>
+      _discardWriteWithBackend(_backend, intentId);
 
   /// 写入成功后仅刷新关联只读领域，用于结果核对；不会重试写请求。
   Future<void> refreshAfterWrite(
@@ -681,20 +681,23 @@ class AppController extends ChangeNotifier {
 
   Future<void> logout({bool clearSavedCredential = false}) async {
     if (_disposed) return;
-    _lifecycleEpoch++;
-    _ygdkGeneration++;
+    _beginWriteTransition();
     try {
-      await _backend.logout();
-    } on Object {
-      // 注销失败也回到登录页，避免继续展示可能过期的隐私数据。
+      try {
+        await _backend.logout();
+      } on Object {
+        // 注销失败也回到登录页，避免继续展示可能过期的隐私数据。
+      }
+      if (clearSavedCredential) await _credentialVault.clear();
+      if (_disposed) return;
+      _user = null;
+      _activeRoutes = const <ConnectionMode>[];
+      _loginForm = _loginForm.copyWith(password: '');
+      _resetFeatureSnapshots();
+      _setPhase(AppPhase.login);
+    } finally {
+      _endWriteTransition();
     }
-    if (clearSavedCredential) await _credentialVault.clear();
-    if (_disposed) return;
-    _user = null;
-    _activeRoutes = const <ConnectionMode>[];
-    _loginForm = _loginForm.copyWith(password: '');
-    _resetFeatureSnapshots();
-    _setPhase(AppPhase.login);
   }
 
   Future<void> setTelemetryEnabled(bool value) async {
@@ -731,6 +734,7 @@ class AppController extends ChangeNotifier {
   void _resetFeatureSnapshots() {
     _lifecycleEpoch++;
     _ygdkGeneration++;
+    _writeCoordinator.invalidate();
     _ygdkReadbackState = const YgdkReadbackState.empty();
     for (final feature in FeatureId.values) {
       _snapshots[feature] = FeatureSnapshot(feature: feature);
@@ -758,6 +762,11 @@ class AppController extends ChangeNotifier {
   }
 
   void _setPhase(AppPhase phase) {
+    if (phase == AppPhase.login) {
+      _lifecycleEpoch++;
+      _ygdkGeneration++;
+      _writeCoordinator.invalidate();
+    }
     _phase = phase;
     _notify();
   }
@@ -829,11 +838,14 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     _lifecycleEpoch++;
     _ygdkGeneration++;
+    _writeCoordinator.removeListener(_notify);
+    _writeCoordinator.dispose();
     _ygdkReadbackState = const YgdkReadbackState.empty();
     _snapshots[FeatureId.ygdk] = const FeatureSnapshot(feature: FeatureId.ygdk);
-    _disposed = true;
     unawaited(_disposeBackendOnce(_backend).catchError((_) {}));
     super.dispose();
   }

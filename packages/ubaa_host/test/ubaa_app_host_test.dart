@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -11,9 +13,11 @@ part 'ubaa_app_host/callbacks.dart';
 part 'ubaa_app_host/capability_gates.dart';
 part 'ubaa_app_host/fakes.dart';
 part 'ubaa_app_host/recording_backend.dart';
+part 'ubaa_app_host/write_coordination.dart';
 
 void main() {
   _registerBootstrapTests();
   _registerCallbackTests();
   _registerCapabilityGateTests();
+  _registerWriteCoordinationTests();
 }

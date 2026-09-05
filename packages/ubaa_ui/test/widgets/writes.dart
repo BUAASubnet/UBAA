@@ -80,7 +80,7 @@ void _registerInitialWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -217,7 +217,7 @@ void _registerInitialWriteTests() {
     var discardCalls = 0;
     await tester.pumpWidget(
       MaterialApp(
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -294,7 +294,7 @@ void _registerInitialWriteTests() {
     };
     await tester.pumpWidget(
       MaterialApp(
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -363,7 +363,7 @@ void _registerInitialWriteTests() {
     };
     await tester.pumpWidget(
       MaterialApp(
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -479,7 +479,7 @@ void _registerInitialWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -567,7 +567,7 @@ Future<int> _pumpBykcCommitError(WidgetTester tester, Object error) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: UbaaTheme.light(),
-      home: UbaaMainShell(
+      home: coordinatedShell(
         user: const UserSummary(username: 'student'),
         snapshots: snapshots,
         routePolicy: RoutePolicy.auto,

@@ -270,4 +270,29 @@ void main() {
     expect(internalErrorController.error?.code, UbaaErrorCode.internalError);
     internalErrorController.dispose();
   });
+
+  test('旧确认入口过滤未知异常并消费已经提交的意图', () async {
+    var commits = 0;
+    final controller = WriteFlowController(
+      commit: (_) async {
+        commits++;
+        throw StateError('/private/token=secret');
+      },
+    );
+    controller.setIntent(intent());
+    await expectLater(
+      controller.confirm(),
+      throwsA(
+        isA<BackendException>().having(
+          (error) => error.code,
+          'code',
+          UbaaErrorCode.internalError,
+        ),
+      ),
+    );
+    expect(controller.intent, isNull);
+    expect(await controller.confirm(), isNull);
+    expect(commits, 1);
+    controller.dispose();
+  });
 }

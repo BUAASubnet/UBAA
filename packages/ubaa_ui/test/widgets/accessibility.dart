@@ -27,7 +27,7 @@ void _registerResponsiveAccessibilityTests() {
             size: Size(390, 844),
             textScaler: TextScaler.linear(1.3),
           ),
-          child: UbaaMainShell(
+          child: coordinatedShell(
             user: const UserSummary(username: 'student', displayName: '测试同学'),
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
@@ -98,7 +98,7 @@ void _registerFeatureCardSemanticsTest() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,

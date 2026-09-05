@@ -31,6 +31,14 @@ Future<void> _refreshEvaluationAfterWrite(
       .copyWith(status: FeatureLoadStatus.loading, clearError: true);
   controller._notify();
 
+  if (!controller._isFeatureLoadCurrent(
+    FeatureId.evaluation,
+    generation,
+    lifecycleEpoch,
+    null,
+  )) {
+    return;
+  }
   try {
     final result = await backend.loadEvaluationOnRoute(route: expectedRoute);
     if (result.resolvedRoute != expectedRoute) {

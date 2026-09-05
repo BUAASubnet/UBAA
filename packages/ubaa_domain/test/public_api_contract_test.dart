@@ -1,9 +1,10 @@
 import 'package:test/test.dart';
+import 'package:ubaa_domain/src/write/state.dart' as write_state;
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
-  test('公共 barrel 保持四十八个稳定名字', () {
-    // 公开面精确由 41 个类型、5 个 named extension 和 2 个常量组成。
+  test('公共 barrel 保持五十一个稳定名字', () {
+    // 公开面精确由 44 个类型、5 个 named extension 和 2 个常量组成。
     final publicTypes = <Type>{
       RoutePolicy,
       FeatureId,
@@ -46,8 +47,11 @@ void main() {
       CgyyReservationReceipt,
       YgdkSubmitReceipt,
       WriteCommitResult,
+      WritePhase,
+      WriteState,
+      WriteOutcome,
     };
-    expect(publicTypes, hasLength(41));
+    expect(publicTypes, hasLength(44));
 
     expect(RoutePolicyText(RoutePolicy.direct).wireName, 'direct');
     expect(FeatureIdText(FeatureId.schedule).title, '课表查询');
@@ -72,6 +76,9 @@ void main() {
     expect(query.runtimeType, FeatureQuery);
     expect(result.runtimeType, FeatureResult);
     expect(receipt.runtimeType, CgyyReservationReceipt);
+    expect(WritePhase, same(write_state.WritePhase));
+    expect(WriteState, same(write_state.WriteState));
+    expect(WriteOutcome, same(write_state.WriteOutcome));
   });
 
   test('公开枚举与功能常量保持封闭顺序', () {
@@ -104,6 +111,15 @@ void main() {
     expect(WriteOperation.values, hasLength(10));
     expect(WriteOperation.values.first, WriteOperation.bykcSelectCourse);
     expect(WriteOperation.values.last, WriteOperation.evaluationSubmitCourses);
+    expect(WritePhase.values, <WritePhase>[
+      WritePhase.idle,
+      WritePhase.preparing,
+      WritePhase.ready,
+      WritePhase.cancelling,
+      WritePhase.committing,
+      WritePhase.readingBack,
+      WritePhase.invalidating,
+    ]);
 
     expect(ordinaryFeatureIds, <FeatureId>[
       FeatureId.schedule,

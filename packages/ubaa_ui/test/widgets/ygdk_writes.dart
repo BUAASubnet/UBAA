@@ -105,7 +105,7 @@ void _registerYgdkWriteResultTests() {
             theme: UbaaTheme.light(),
             home: ValueListenableBuilder<String?>(
               valueListenable: missingCapability,
-              builder: (context, unavailable, _) => UbaaMainShell(
+              builder: (context, unavailable, _) => coordinatedShell(
                 key: ValueKey<String>('confirm-missing-$missing'),
                 user: const UserSummary(username: 'student'),
                 snapshots: _ygdkSnapshots(),
@@ -213,7 +213,7 @@ void _registerYgdkWriteResultTests() {
         theme: UbaaTheme.light(),
         home: ValueListenableBuilder<bool>(
           valueListenable: readbackAvailable,
-          builder: (context, available, _) => UbaaMainShell(
+          builder: (context, available, _) => coordinatedShell(
             user: const UserSummary(username: 'student'),
             snapshots: _ygdkSnapshots(),
             routePolicy: RoutePolicy.auto,
@@ -356,7 +356,7 @@ void _registerYgdkWriteResultTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: _ygdkSnapshots(),
           routePolicy: RoutePolicy.auto,
@@ -410,7 +410,7 @@ void _registerYgdkWriteResultTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: _ygdkSnapshots(),
           routePolicy: RoutePolicy.auto,
@@ -465,7 +465,7 @@ void _registerYgdkWriteResultTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: _ygdkSnapshots(),
           routePolicy: RoutePolicy.auto,
@@ -569,7 +569,7 @@ Future<void> _pumpYgdkShell(
 }) => tester.pumpWidget(
   MaterialApp(
     theme: UbaaTheme.light(),
-    home: UbaaMainShell(
+    home: coordinatedShell(
       key: key,
       user: const UserSummary(username: 'student'),
       snapshots: _ygdkSnapshots(),

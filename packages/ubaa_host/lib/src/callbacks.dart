@@ -19,9 +19,15 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       );
 
   Future<WriteIntent> _prepareBykcSignWrite(BykcSignAction action) async {
+    final coordinator = _controller.writeCoordinator;
+    final coordinated = coordinator.state.phase == WritePhase.preparing;
     PlatformLocation? location;
     if (action.requiresCoordinates) {
       location = await _locationProvider.currentLocation();
+    }
+    if (!identical(_controller.writeCoordinator, coordinator) ||
+        (coordinated && coordinator.state.phase != WritePhase.preparing)) {
+      throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
     }
     return _controller.prepareBykcSignWrite(
       action.courseId,
@@ -90,6 +96,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       snapshots: _controller.snapshots,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,
+      writeState: _controller.writeCoordinator.state,
+      onRunWritePrepare: _controller.writeCoordinator.prepareForUi,
+      onCancelWrite: _controller.writeCoordinator.cancelForUi,
+      onConfirmWrite: _controller.writeCoordinator.confirmForUi,
       initialTab: widget.initialTab,
       telemetryEnabled: _controller.telemetryEnabled,
       onRefresh: _controller.refreshHome,

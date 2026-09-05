@@ -10,8 +10,8 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| committed implementation HEAD | `d8484ad` | 代码组织阶段 11I：Ygdk typed authority/request、expected-route 原子写链、单次 upload/final 与 caller-pinned 双回读已实现并通过本地确定性门禁；CLI schema v9、bridge v8；不表示真实写入已验证 |
-| implementation candidate | 本阶段提交 | 阶段 11J 已实现 Evaluation typed target、批量四态结果、expected-route 提交与 caller-pinned 回读；本地确定性门禁、FRB 零漂移、macOS integration 与独立审查修复已通过 |
+| committed implementation HEAD | `4b0dcb0` | 代码组织阶段 11J：Evaluation typed target、批量四态结果、expected-route 提交与 caller-pinned 回读已通过本地确定性、FRB 与 macOS integration 门禁；CLI schema v10、bridge v9 |
+| implementation candidate | 本阶段提交 | 阶段 11K 已统一生产 WriteCoordinator、immutable state 与安全回读；完整 Rust/Flutter、FRB、macOS integration、本机三平台产物、OHOS API26 无签名门禁与独立复审均通过 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -19,8 +19,8 @@
 [实施计划](../superpowers/plans/2026-09-03-code-organization.md) 为权威。结构治理提交在阶段 14 绑定新的
 verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
-当前工作树公开版本为 CLI JSON schema v10；Flutter bridge contract v9。已提交的 `d8484ad` 仍是阶段 11I 的
-schema v9/bridge v8 本地确定性证据；当前版本对为 CLI schema v10、bridge v9。Phase 11J 本地门禁已完成，最终候选、原生平台与实时证据仍由阶段 14 重新绑定。
+当前公开版本为 CLI JSON schema v10；Flutter bridge contract v9。阶段 11K 保持 `4b0dcb0` 的版本和生成绑定；
+最终候选、原生平台与实时证据仍由阶段 14 重新绑定。
 
 ## 当前能力
 
@@ -127,12 +127,20 @@ schema v9/bridge v8 本地确定性证据；当前版本对为 CLI schema v10、
   FRB 零漂移、完整 `just flutter-check`、敏感信息扫描和独立终审均通过。结构拆分后除 Phase 12 待处理的
   `widgets.dart` 精确 baseline 外没有其它超长文件或拥挤目录。本阶段未执行真实照片上传或账号写入，不包含
   签名、实体设备或真实写后核对。
-- 阶段 11J 完成 Evaluation typed 提交链，CLI schema v10、bridge v9。独立审查补齐冲突课程行仍参与同目标
+- `4b0dcb0` 上的阶段 11J 完成 Evaluation typed 提交链，CLI schema v10、bridge v9。独立审查补齐冲突课程行仍参与同目标
   去重的 RED/GREEN，并修复架构门禁沿实际 `mod`/`#[path]` 声明识别领域测试的缺口；未引用测试文件不作证据。
   Core 单元 215 项双配置、架构合同 22 项、Evaluation 集成 20 项、CLI binary E2E 16 项、CLI contract 94 项、
   Bridge 108 项、Flutter Domain 18、Platform 42、App 111、UI 91、Bindings 15、Host 15、官方 App 2 项与
   macOS 脱敏 integration 7 项通过。refs、layout、敏感扫描、完整 `just check`、完整 `just flutter-check`、
   FRB 零漂移与差异检查通过；不将此本地阶段证据视为阶段 14 的最终候选或真实写入证据。
+- 阶段 11K 将生产写状态统一到 AppController 持有的 `WriteCoordinator`，旧 `WriteFlowController` 为同一
+  类型别名。UI 只消费 immutable state 与三个安全命令；准备、取消、提交、回读的失效/销毁、同步通知重入、
+  backend 替换以及位置/照片等待期间注销均有确定性覆盖。最终 Flutter Domain 25、Platform 42、App 177、
+  UI 95、Bindings 15、Host 18、官方 App 2，共 374 项通过，macOS integration 7 项通过；14 个原 UI 测试叶
+  只改构造名称，26 张 golden 的名称、长度与 SHA-256 不变。refs、layout、敏感扫描、完整 `just check`、
+  FRB 零漂移、完整 `just flutter-check`、macOS/Android APK/iOS simulator Debug 构建及产物结构、OHOS API26
+  arm64 无签名 HAP 和独立复审通过；新文档遗漏 `--locked` 曾被 CLI 合同拦截，修正后完整复跑通过。
+  唯一结构 baseline 为 3883 行的 `widgets.dart`，交由 Phase 12 纯拆分处理；本阶段不执行真实写入。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -149,7 +157,7 @@ schema v9/bridge v8 本地确定性证据；当前版本对为 CLI schema v10、
 
 ## 未验证
 
-- 阶段 11J 已完成本地确定性门禁；阶段 11K–14 未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11K 已完成本地确定性与无签名原生门禁；阶段 12–14 未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

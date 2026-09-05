@@ -1,5 +1,26 @@
 # 决策记录
 
+## 2026-09-05：Phase 11K 单一写入状态与会话生命周期所有权
+
+评教阶段已由 `4b0dcb0` 完成跨层实现与本地门禁。其后将原 `WriteFlowController` 演进为
+`ubaa_app/write/coordinator.dart`，旧名称保留为同一类型的兼容别名；`WriteState` 与一次性安全
+`WriteOutcome` 属于 `ubaa_domain/write/state.dart`，不在 UI 或 Host 复制 pending、提交、取消、错误状态。
+精确接口、回读矩阵和验证范围见 [协调器实施计划](../superpowers/plans/2026-09-05-write-coordinator.md)。
+
+AppController 持有当前唯一 coordinator，并在初始化、登录、路线切换、注销和 backend 重建开始前关闭新写
+操作、同步失效旧意图。转换计数覆盖嵌套与重叠转换；commit/discard 捕获创建时的具体 backend，晚到准备结果
+只能交给原 backend 清理。同步通知重入和每个异步完成点都复核代次，旧结果不能交付到新会话，也不能发起
+后续领域回读。Core/Bridge 的最终资格、一次性消费与网络发送边界保持原所有权。
+
+Host 注入 immutable state 与 prepare/cancel/confirm 三个安全命令；UI 同时检查三项能力，只收集 typed 输入、
+显示确认状态和安全完成消息。照片、位置与表单输入仍由平台/界面负责；位置等待返回后须检查原准备流程是否
+仍有效。旧 Shell callback 名称保留为兼容接线面，生产 UI 不再直接调度 commit/discard 或领域回读。
+
+`WriteReceiptVerifier` 只执行原领域只读核对并投影安全提示，不保存待确认状态、不重试提交，也不把未知结果
+提升为成功。旧 `BackendException` 代码与方法返回类型保持兼容；UI 使用独立安全入口，避免展示映射反向改变
+旧接口错误码。UI 测试以 dev dependency 使用真实 coordinator，生产依赖仍只面向 domain；测试接线不实现
+另一套状态机。CLI schema v10、bridge v9、生成绑定和 golden 均不因本阶段改变。
+
 ## 2026-09-05：Phase 11J 评教 fresh typed 批量提交与逐课程结果边界（来源合同已固定）
 
 本条先固定来源和待实施合同；生产代码必须在本条提交后才可修改。适用本地来源为

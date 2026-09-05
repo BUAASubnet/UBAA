@@ -40,7 +40,7 @@ void _registerEvaluationWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -163,7 +163,7 @@ void _registerEvaluationWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -300,7 +300,7 @@ void _registerEvaluationWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -367,7 +367,7 @@ void _registerEvaluationWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
-        home: UbaaMainShell(
+        home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -445,7 +445,7 @@ void _registerEvaluationWriteTests() {
       await tester.pumpWidget(
         MaterialApp(
           theme: UbaaTheme.light(),
-          home: UbaaMainShell(
+          home: coordinatedShell(
             user: const UserSummary(username: 'student'),
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
