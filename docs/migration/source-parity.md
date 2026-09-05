@@ -478,7 +478,7 @@ Phase 11I 的最小 typed 公共面固定为：Core 在每个 `YgdkItem` 上给�
 `classifyId/itemId`；只有二者来自同一 fresh overview、各自唯一且与父 DTO 一致时 target 才存在。prepare 请求不再接收
 primitive 可空 `itemId`，而接收该 typed target、两端 canonical 时间、可选地点/公开开关和必需内存照片；commit 重新取得
 fresh item name。Host/Bridge 边界必须再次校验正数、same-parent 与 eligibility/target 一致性，不能信任手工构造 DTO。
-这一公开读取、请求与安全结果形状属于破坏性合同变化：当前工作树的 CLI JSON envelope/schema 已从 v8 升为 **v9**，
+这一公开读取、请求与安全结果形状属于破坏性合同变化：Phase 11I 当时将 CLI JSON envelope/schema 从 v8 升为 **v9**，
 Flutter Bridge contract 已从 v7 升为 **v8**，旧 v8/v7 分别显式拒绝；两个 schema 都要闭合字段并禁止 raw
 message、summary、照片 filename/bytes/path/URL、uid/token 与任意上游正文。
 
@@ -489,7 +489,7 @@ commit 对 intent 单次消费；Core expected-route 入口在一个调用中完
 active generation credential → fresh authority → 单次 upload → 单次 final”，不得由 Bridge 先解析再让 Core 二次解析。
 路线冲突、过时 owner/session generation、credential generation 变化或任何发送前 authority 冲突均在 final 前失败关闭。
 
-Phase 11I 的 TDD 回归清单固定如下；当前工作树已逐项完成实现与测试，完整跨层 GREEN、生成零漂移和本地确定性
+Phase 11I 的 TDD 回归清单固定如下；该阶段已逐项完成实现与测试，完整跨层 GREEN、生成零漂移和本地确定性
 门禁均已统一验证：
 
 1. classify/item 缺失、字符串数值、零、负数、重复 ID、空名称、target 与父项不一致均为 unknown/no target；唯一正数身份才 allowed。

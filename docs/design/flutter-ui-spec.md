@@ -1,9 +1,10 @@
 # Flutter UI 规格（无签名执行目标已完成；正式发布后置）
 
-更新：2026-09-02
+更新：2026-09-05
 
 本规格只描述共享 `ubaa_ui` 的用户可见状态。上游 URL、Cookie、令牌和原始响应不进入
-页面模型；页面只消费 `ubaa_app` 映射后的 `FeatureSnapshot` 与 `FeatureDetail`。
+页面模型；页面只消费 `ubaa_app` 映射后的 domain 模型。当前候选、确定性门禁与平台验证分别以
+[迁移状态](../migration/status.md) 为准，本文末尾的历史验证记录不代表本轮最终候选已经通过。
 
 ## 导航与响应式布局
 
@@ -31,30 +32,30 @@
 Core 明确返回空结果后不保留旧数据；此后刷新失败按首次失败显示稳定错误，不伪造成 stale。
 课堂、图书馆座位和场馆日期查询的日期输入严格限定为真实日历日期的 `YYYY-MM-DD` 形状；带时间、时区或不存在日期的字符串在 UI 层拒绝，不进入 typed `FeatureQuery`。
 
-写操作的确认页必须在对应领域接入 `WriteIntent` 后单独实现：摘要、实际路线、警告和过期时间
-全部可见，确认按钮一次点击后禁用，结果不确定时只引导读取核对，不自动重试。当前博雅课程
-详情已提供“准备选课/准备退选”按钮：按钮只调用 typed prepare，确认页消费单次 intent 后才可
-提交，并在提交成功后提示刷新已选课程核对。课堂签到详情在存在公开课程编号时提供“准备签到”按钮，
-同样只调用 typed prepare，确认后单次提交并提示刷新签到状态；位置/挑战等条件不在 UI 猜测。
-当读取字段明确表示课程已选或状态为 `selected/已选` 时仅保留退选入口；状态为
-`available/可选` 且未选时仅开放选课入口，已选课程视图不会再次显示选课。状态缺失时不由 UI 推断，
-仍保留入口并交由 Core prepare 做最终资格校验，同时显示稳定提示。
-图书馆预约记录和场馆订单详情在存在公开编号时分别提供“准备取消预约/准备取消订单”，沿用相同的一次性确认与刷新核对规则。
-博雅课程详情还提供“准备博雅签到/准备博雅签退”，仅提交公开课程 ID 与合同规定的 `signType`，位置和时间窗由 Core
-在 prepare 阶段校验；详情同时显示 Core 返回的签到/签退时间窗、位置点数量和签到类型（不显示经纬度/半径），
-当 `canSign`/`canSignOut` 明确为否时禁用对应按钮并提示当前状态；确认后按相同规则单次提交并提示刷新考勤。
-图书馆座位查询将公开分区/座位、日期、时段和起止时间带入可预约摘要，满足条件时显示“准备预约此座位”；确认前不提交，
-预约成功后提示刷新预约记录核对。
-场馆可预约时段表单默认选中当前详情，并收集同一站点、日期、空间下去重的其它可预约时段；用户可通过 typed
-多选控件在一次准备中选择同一空间的多个时段，至少保留一个选择。跨站点、日期或空间的详情不会混入，时段冲突和最终资格
-仍由 Core prepare 校验。
-阳光打卡概览在存在公开项目编号时显示“准备阳光打卡”，表单要求开始/结束时间和平台 picker 提供的内存照片，并允许选择是否分享到打卡广场；
-照片选择器未接入或权限失败时明确提示且不进入提交，确认页只消费 typed intent。
-教学评教待评详情补齐公开课程/任务/问卷/课程代码/模型标识，满足字段完整时显示“准备提交评教”；用户也可逐门勾选待评课程，
-通过“准备批量评教”一次准备多课程 typed intent，确认页消费后才提交。题目答案由 Core 冻结策略在提交链内部构造，
-Dart 不接收原始题目或答案；当前页面显示批量意图和统一结果提示，逐题答案、逐项进度和挑战材料只有在 Core 提供稳定白名单
-DTO 后才可加入，不能由 UI 猜测或自行拼接。
-所有确定成功的写入均通过 AppController 刷新关联只读领域作为核对；刷新失败不重复提交，结果不确定仍要求用户先手动读取。
+写入口只消费 Core 派生、经 bridge/app 校验的 typed action。只有 `allowed`、完整且一致的稳定目标、
+领域 prepare 能力和共享 prepare/cancel/confirm 三个命令全部具备时才开放入口；缺失、未知或冲突默认关闭。
+中文标签、展示状态、合成 ID、默认值及 UI 时间计算都不能产生写资格。Core 在 prepare/commit 重新读取
+authority，仍是最终业务权威。
+
+| 领域 | 页面输入与资格边界 | 提交后的只读核对 |
+|---|---|---|
+| 博雅选课/退选 | 消费对应 typed action；退选目标使用课程 ID，不能使用外层选择记录 ID | 成功或 `outcome_unknown` 时刷新关联课程/已选视图 |
+| 博雅签到/签退 | 消费 typed 签到 action；位置由平台能力提供，时间窗和签到点由 Core 重读校验，展示层不恢复 `canSign/canSignOut` | 成功或 `outcome_unknown` 时刷新关联考勤信息 |
+| 课堂签到 | 消费 `SigninPerformAction`；公开编号本身不能放行 | 成功或 `outcome_unknown` 时刷新今日课程 |
+| 图书馆预约/取消 | 预约消费完整座位/日期/时段 action；取消 action 固定 `id/page/limit`，状态文本只展示 | 刷新对应预约页；取消 prepare、commit 和回读保持同页 |
+| 场馆预约/取消 | 预约只选择一至两个同站点、日期、空间和空间组的 allowed action，时段 ID/原始序号唯一且序号相邻；取消消费 typed target | 预约成功收据与订单列表核对；取消成功或 unknown 固定原路线读取首页列表与同 ID 详情，仅消费本次严格取消证明 |
+| 阳光打卡 | typed 提交、照片选择与回读能力齐备才开放入口；表单消费 Core 签发的分类/项目 target、完整本地时间和内存照片，权限失败或缺照片不进入 prepare | 成功或 unknown 按 intent 原路线各尝试一次概览与记录首页读取，结果不确定仍保持 unknown |
+| 教学评教 | 单门或批量选择非空、有序、无重复的 typed targets；完整问卷、题目和答案只留在 Core | 确定结果、部分失败、unknown 或 commit 异常都至多按原路线回读一次，保留逐课程四态结果 |
+
+确认页显示 `WriteIntent` 的摘要、实际路线、警告与过期时间。应用层唯一 `WriteCoordinator` 拥有
+prepare、待确认、取消、提交、回读与失效状态；共享 Host 将 domain `WriteState` 和三个命令注入 UI，
+UI 只负责表单、确认展示和安全提示，不保存另一份待确认意图。提交或取消期间禁止重复操作；取消失败保留
+原意图供再次取消，过期意图不得提交。注销、重登录、路线切换或 backend 重建使旧操作失效，晚到结果不能
+恢复旧确认页或触发新会话回读。
+
+`WriteReceiptVerifier` 统一编排既有领域读取与提示。读取失败不重发写请求，不把 unknown 升级为成功；
+普通 commit 错误不自动推断请求已发送，只有明确的 `outcome_unknown` 或 Evaluation 既定规则进入相应回读。
+任何确定性确认或读取核对都不能替代真实账号写入证据。
 
 取消入口状态门禁：图书馆和场馆详情都只在 Core 返回 typed `allowed` 资格与完整且一致的
 `cancelTarget` 时显示取消准备按钮。状态码、状态说明与场馆开始/结束时间只供展示，共享 UI 不解析
@@ -72,7 +73,37 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
 - “我的”页分别展示 Core 持久化的默认路线策略和不含 Session 内容的已认证路线槽位；两者
   不替代各项读取结果中的实际路线。
 
-## 当前证据与剩余范围
+## 实现定位与验证边界
+
+公共导出继续经 `packages/ubaa_ui/lib/ubaa_ui.dart`；`lib/src/widgets.dart` 只组装同一 library 的 imports 与
+parts。维护实现时按下表定位，调用方不直接导入 part 文件。
+
+| 修改内容 | 实际实现 |
+|---|---|
+| 启动、登录、主页和个人页 | [app/splash.dart](../../packages/ubaa_ui/lib/src/app/splash.dart)、[login.dart](../../packages/ubaa_ui/lib/src/app/login.dart)、[home.dart](../../packages/ubaa_ui/lib/src/app/home.dart)、[profile.dart](../../packages/ubaa_ui/lib/src/app/profile.dart) |
+| 页签/详情导航、外部写状态与命令接线 | [app/shell.dart](../../packages/ubaa_ui/lib/src/app/shell.dart) |
+| 查询控制器创建/释放、输入校验、FeatureQuery 组装与提交 | [common/query_controls.dart](../../packages/ubaa_ui/lib/src/common/query_controls.dart) |
+| loading/empty/failure/stale 和查询/详情组合 | [common/feature_detail.dart](../../packages/ubaa_ui/lib/src/common/feature_detail.dart) |
+| 本地筛选、详情行组合与选择集合生命周期 | [common/detail_list.dart](../../packages/ubaa_ui/lib/src/common/detail_list.dart)；字段展示在 [detail_fields.dart](../../packages/ubaa_ui/lib/src/common/detail_fields.dart) |
+| 服务端/本地翻页控件与错误卡 | [common/pagination.dart](../../packages/ubaa_ui/lib/src/common/pagination.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
+| 课表、考试、成绩、空教室查询控件 | [features/academic.dart](../../packages/ubaa_ui/lib/src/features/academic.dart) |
+| SPOC/Judge 作业与 Signin 课堂签到查询、签到按钮 | [features/assignments.dart](../../packages/ubaa_ui/lib/src/features/assignments.dart) |
+| 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc.dart](../../packages/ubaa_ui/lib/src/features/bykc.dart)、[libbook.dart](../../packages/ubaa_ui/lib/src/features/libbook.dart) |
+| 场馆、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy.dart](../../packages/ubaa_ui/lib/src/features/cgyy.dart)、[ygdk.dart](../../packages/ubaa_ui/lib/src/features/ygdk.dart)、[evaluation.dart](../../packages/ubaa_ui/lib/src/features/evaluation.dart) |
+| 场馆预约与阳光打卡输入表单 | [write/cgyy_form.dart](../../packages/ubaa_ui/lib/src/write/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/write/ygdk_form.dart) |
+| 意图摘要、错误、取消与提交按钮 | [write/confirmation.dart](../../packages/ubaa_ui/lib/src/write/confirmation.dart)；回调类型在 [write_callbacks.dart](../../packages/ubaa_ui/lib/src/write_callbacks.dart) |
+
+页面测试按领域位于 `packages/ubaa_ui/test/widgets/`，写命令接线测试位于
+`packages/ubaa_ui/test/write_coordination_test.dart`。应用层 `packages/ubaa_app/test/` 中的
+`write_coordinator_test.dart`、`app_write_lifecycle_test.dart` 与 `write_readback_reentry_test.dart`
+分别保护单次消费、会话失效和回读重入。宿主 integration 位于
+`apps/ubaa_flutter/integration_test/app_flow_test.dart`，只使用脱敏 backend。
+生产唯一状态机的实现与接口见[协调器实施记录](../superpowers/plans/2026-09-05-write-coordinator.md)。
+
+## 历史与阶段 UI 验证记录
+
+以下保留当时的实现和验证事实，旧提交中的资格推断、刷新行为与测试数量不再定义现行规则；现行规则以
+上文 typed action/协调器边界及稳定合同为准，当前门禁结果以迁移状态页为准。
 
 - `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染、本地/服务端分页与筛选、
   日期格式/日历校验、摘要-only stale 保留、实际路线展示、手机/平板/桌面明暗主题响应式 golden、
@@ -102,7 +133,7 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   widget 回归证明未知结果不会沿用普通后端消息，也不会自动触发重试或写后刷新。该证据覆盖共享确认壳，
   不替代逐领域真实写后核对。
 - `1e3c729` 的合同 CI `33589036008` 与五平台 Debug CI `33589036000` 已终态成功；CI 只证明无签名构建和
-  确定性门禁，不替代 OHOS 签名、实体设备读屏或真实 App→FRB→Core 链路。当前 HEAD `0a0bb71` 的
+  确定性门禁，不替代 OHOS 签名、实体设备读屏或真实 App→FRB→Core 链路。当时 HEAD `0a0bb71` 的
   `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 已完成并报告 FRB 零漂移。
 - `7bc9c1a` 的合同 CI `33591063958` 与五平台 Debug CI `33591063833` 已终态成功；Android APK、iOS simulator、
   macOS、Linux、Windows 均上传无签名 Debug 产物。CI 不替代 OHOS 签名、实体设备读屏、真实写后核对或当前本机
@@ -112,13 +143,13 @@ DTO 后才可加入，不能由 UI 猜测或自行拼接。
   合同 CI `33592184452` 与五平台 CI `33592184458` 也已终态成功；这些证据仍不替代真实写后核对、实体设备或签名。
 - `190f318` 在官方 Flutter macOS 宿主集成中加入 commit 异常场景，4/4 场景通过；异常结果不刷新签到状态、不显示已签到，
   仅保留稳定未知结果提示。集成使用脱敏 typed fake backend，不替代真实 FRB、上游或设备证据。
-- 当前官方 Flutter macOS 宿主集成已扩展到 5/5：新增全领域 typed 查询矩阵，逐项覆盖十二个功能的查询视图、公开 ID、日期、学期/周次和分页
+- 当时官方 Flutter macOS 宿主集成已扩展到 5/5：新增全领域 typed 查询矩阵，逐项覆盖十二个功能的查询视图、公开 ID、日期、学期/周次和分页
   参数，并从页面回到功能列表验证导航状态不丢失；所有输入均为脱敏 fixture，不访问真实账号或上游。
-- `WriteFlowController` 测试现以 `WriteOperation.values` 逐项验证十项写操作的 prepare→confirm 单次提交和重复确认拒绝；该矩阵只证明共享确认
+- `WriteFlowController` 测试当时以 `WriteOperation.values` 逐项验证十项写操作的 prepare→confirm 单次提交和重复确认拒绝；该矩阵只证明共享确认
   状态机，不证明任何真实账号副作用或写后上游核对。
 - `190f318` 的合同 CI `33593160544` 与五平台 Debug CI `33593160580`，以及后续文档 CI `33593227275` 均终态成功；五平台
   Debug 产物已上传，仍不替代 OHOS 签名、实体设备或真实写后核对。
-- 当前 HEAD `0a0bb71` 的 FRB 零漂移重试已完成，`cargo-expand`、生成、格式化和生成目录差异检查均通过；此前无输出后中断的尝试仅作为过程记录保留。
+- 当时 HEAD `0a0bb71` 的 FRB 零漂移重试已完成，`cargo-expand`、生成、格式化和生成目录差异检查均通过；此前无输出后中断的尝试仅作为过程记录保留。
 - 最终审计提交 `7e6a4ea` 的引用、敏感扫描、无签名 RC 前置报告和差异检查均通过，且远端同步、工作树清洁；临时 OHOS 无签名产物已移出仓库。
 - 平台权限和照片选择器通过 `CallbackPermissionGateway`、`CallbackPhotoPicker` 注入原生回调；回调异常
   归约为稳定不可用/能力错误，`PermissionedPhotoPicker` 可按宿主选择相册或桌面文件权限。当前测试覆盖

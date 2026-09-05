@@ -28,8 +28,8 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 
 ## 跨宿主边界
 
-下表是本轮结构治理的终态约束。当前 CLI/bridge 仍有直接导入部分 Core 公共类型、Core 仍拥有 CLI 输出/退出
-策略等已登记例外；它们由实施计划阶段 04、06C 关闭，不得被新代码继续扩大。
+下表是已经落实的所有权约束。阶段 04 已将输出/退出策略迁入 CLI，阶段 06C 已收窄 Core 私有实现与测试
+注入面；不得重新引入跨 facade 的生产依赖。Core 根部的稳定 `domain/error` 旧路径只用于类型兼容，不是宿主入口。
 
 | 层/宿主 | 允许依赖 | 禁止依赖 | 输出与错误要求 |
 |---|---|---|---|
@@ -39,6 +39,12 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 | Dart domain/app/UI | bridge/backend 稳定合同与平台 typed 能力 | 自行处理协议/路线；从中文展示字段推断写资格 | 明确 loading/empty/failure/stale；写入一次性确认和未知结果保护 |
 | 平台宿主 | 共享 app/UI、平台路径/权限/安全存储接口 | 复制业务状态机；以明文文件替代安全存储 | 缺少原生 handler 时安全返回 unavailable，不冒充设备能力 |
 | 测试支持 | facade testing 边界、脱敏 fixture、Mock transport | 将测试构造器暴露给生产宿主；记录请求敏感正文 | 精确请求/解析/并发证据，不打印凭据或正文 |
+
+共享 Dart 的具体依赖方向为：平台 app → `ubaa_host` → `ubaa_app/ubaa_ui/ubaa_platform`；`ubaa_app` 经
+唯一 `BridgeBackend` 使用 bindings，`ubaa_ui` 生产代码只消费 domain 与 Flutter。`ubaa_domain` 定义不可变
+`WriteState/WriteOutcome`，`ubaa_app` 的 `WriteCoordinator` 唯一拥有待确认意图、提交和失效状态，
+`WriteReceiptVerifier` 只编排只读核对和安全结果提示。Host 注入状态和 prepare/cancel/confirm 三个命令；
+缺少任一命令或领域能力时 UI 关闭写入口。旧 `WriteFlowController` 是同一实现的类型别名，不是备用状态机。
 
 CLI 公开 envelope 的版本与本地持久化版本分别治理。破坏性 DTO/错误合同变化必须显式提升 CLI
 `schemaVersion` 并由 JSON Schema 与真实序列化合同共同验证；不得在旧版本号下静默改变字段。当前 CLI envelope 为 schema v10，

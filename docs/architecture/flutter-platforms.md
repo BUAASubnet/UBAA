@@ -1,9 +1,12 @@
 # Flutter 六平台版本与验收矩阵
 
 状态：无签名执行目标 P0–P6 已完成；签名、设备和原生安全存储为后置发布条件
-更新：2026-09-02
+更新：2026-09-05
 
 本文件记录可复现工具链事实和实际验证结果。版本“理论支持”不等于 UBAA 已验证；只有带日期、命令和产物/设备证据的行才能标记通过。
+
+第 5、6 节的 P0–P6 构建与采用记录属于历史证据，当前结构治理的实现与候选门禁统一见
+[迁移状态](../migration/status.md)。工具版本继续由锁文件及检查脚本约束，旧 CI 成功不自动绑定新候选。
 
 ## 1. 锁定候选
 
@@ -69,15 +72,21 @@ DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 
 ## 3.1 无签名平台能力适配
 
-共享 `ubaa_platform` 通过 `cn.edu.buaa.ubaa/platform` MethodChannel 暴露三类稳定边界：
+共享 `ubaa_platform` 通过 `cn.edu.buaa.ubaa/platform` MethodChannel 暴露四类稳定边界：
 `permission.request` 返回固定权限状态，`credentials.capability/read/write/clear` 访问
-版本化安全存储 namespace，`photo.capability/pick` 只传递受限的图片字节、展示名和 MIME。
-`createDefaultPlatformCapabilities()` 在两个 Flutter 宿主启动时先探测凭据和照片能力；缺少
+版本化安全存储 namespace，`photo.capability/pick` 只传递受限的图片字节、展示名和 MIME，
+`location.capability/current` 提供受类型与范围约束的位置坐标。
+`createDefaultPlatformCapabilities()` 在两个 Flutter 宿主启动时先探测凭据、照片和位置能力；缺少
 原生 handler 或返回值不符合合同会安全归约为不可用，不会回退到明文文件、内存凭据或原始路径。
 
 当前已完成 Dart typed 适配器、输入校验和 MethodChannel Mock 合同测试；Android Keystore、
 iOS/macOS Keychain、Linux Secret Service、Windows 安全存储和 HarmonyOS HUKS 的原生 handler
 尚未接入，实体设备权限、生命周期和硬件安全存储验证继续记录为后置 `BLOCKED`。
+
+两个平台 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host`
+负责 AppController 生命周期与 callback 接线。生产默认通过 `createProductionBackend()` 打开
+`BridgeBackend`，打开失败才使用 `UnavailableBackend`；Demo 只用于显式注入的测试或预览。
+写入状态由应用层 `WriteCoordinator` 唯一持有，平台位置获取期间发生会话失效后不能继续准备旧操作。
 
 ## 4. 可复现命令
 
@@ -97,7 +106,7 @@ cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D 
 前置、arm64 动态库和无签名 HAP 包内容。它不能替代后置的签名 HAP、实体设备 FRB hello 或正式
 发布构建，后置项必须单独记录为 `BLOCKED`。
 
-## 5. 验收记录模板
+## 5. 验收记录模板与历史证据
 
 | 日期 | 平台/设备 | SDK/架构 | 命令/产物 | 启动 | FRB | 登录模拟 | 安全存储 | 只读 smoke | 备注 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -116,7 +125,7 @@ cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D 
 判断。缺失、格式未知或目标不一致时入口默认关闭；Core prepare/commit 负责最终资格、时区、会话和上游错误判定。
 取消仍沿用一次性 `WriteIntent`，不增加后台重试或跨路线切换。
 
-最新五平台复核：提交 `62ec048` 的 Flutter native run `33541980112` 已完成 Windows、macOS、Linux、
+当时五平台复核：提交 `62ec048` 的 Flutter native run `33541980112` 已完成 Windows、macOS、Linux、
 Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、Windows、Linux、iOS simulator
 和 Android APK job 均成功。这仍不是签名 Release 或实体设备证据。
 
@@ -124,31 +133,31 @@ Android APK 与 iOS simulator debug 构建并上传产物；该 run 的 macOS、
 异常归约为稳定的 `unavailable`，`CallbackPhotoPicker` 将选择器异常归约为稳定能力错误，
 `PermissionedPhotoPicker` 可显式使用相册或桌面文件权限。该适配器只负责 typed 边界，不伪造任何
 Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件与实体设备验证继续保持后置
-`BLOCKED`。当前提交 `b0c4a77` 的合同 CI `33583052957` 与五平台 native CI `33583052953` 均已终态成功；
+`BLOCKED`。当时提交 `b0c4a77` 的合同 CI `33583052957` 与五平台 native CI `33583052953` 均已终态成功；
 五个平台 job（Windows、Linux、macOS、iOS simulator、Android APK）均通过并上传无签名 Debug 产物。
 该证据不包含 OHOS 签名 HAP、实体设备或正式发布。
 
-最终 HEAD `5bd9814` 重新运行 OHOS API26 无签名门禁，DevEco `26.0.0.821`、fork/API26 工具链与
+当时最终 HEAD `5bd9814` 重新运行 OHOS API26 无签名门禁，DevEco `26.0.0.821`、fork/API26 工具链与
 `aarch64-unknown-linux-ohos` 前置均通过，HAP 内含 `libs/arm64-v8a/libubaa_bindings.so`。HAP 未签名、
 未安装、未上传，生成输出已移出工作树；签名和设备验证仍为后置 `BLOCKED`。
 
-## 5.1 无签名执行目标终态复核（2026-09-02）
+## 5.1 历史无签名执行目标终态复核（2026-09-02）
 
 - `81dd9d2` 的官方 macOS 宿主写入组合回归为十项写操作逐项断言提交后刷新关联只读领域；预期失败后
   聚焦场景 1/1 通过。十二项领域详情 golden、共享状态矩阵、typed 查询宿主 smoke 与未知结果/异常边界
   共同覆盖无签名 UI 流程。
 - `0a0bb71` 进一步以手机/平板/桌面三种尺寸和明/暗主题建立主页与课表详情响应式 golden（12 个），并以动态字体、键盘焦点、十二项卡片语义和 1000 条详情分页回归覆盖
   无障碍与长列表边界；`ubaa_ui` 全量 49 项测试通过。
-- Core-live 在当前营业窗口内 Direct/WebVPN 串行复跑均 exit code 0；提交 `4eaf1dd` 的五平台 Flutter native CI
+- Core-live 在当时营业窗口内 Direct/WebVPN 串行复跑均 exit code 0；提交 `4eaf1dd` 的五平台 Flutter native CI
   `33628444289` 与合同 CI `33628444204` 均终态成功。API26 无签名 OHOS HAP、arm64 bridge、敏感扫描、
   SBOM/依赖审计和回滚 runbook 均有本机或 CI 证据；FRB 零漂移沿用 `94133ae` 前同一生成输入的成功门禁，
-  `81dd9d2` 仅改宿主测试且生成目录无差异；当前最终提交 `4eaf1dd` 再次运行 codegen 成功报告零漂移。
+  `81dd9d2` 仅改宿主测试且生成目录无差异；当时最终提交 `4eaf1dd` 再次运行 codegen 成功报告零漂移。
 - 因此 P3（全部读取页面与双路线证据）、P4（十项写入确认/防重复/读后核对与 deterministic/Mock）、
   P5（平台能力抽象、权限/照片边界、生命周期/长列表/无障碍及无签名静态检查）和 P6（无签名 RC 发布准备）
   的无签名部分已完成。原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备
   安装/权限/生命周期、签名/公证/商店发布明确保持后置 `BLOCKED`。
 
-## 6. P0 探索产物审查
+## 6. 历史 P0 探索产物审查
 
 | 产物 | 采用结论 | P0 证据 | 后续约束 |
 |---|---|---|---|
@@ -158,7 +167,8 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
 | `ubaa_ui` | 保留主题、响应式导航、共享详情/查询/确认组件 | analyze、widget、十二项逐领域 golden 以及宿主全功能 smoke 通过 | 十二项功能已有 typed 详情入口和写入确认组件；真实设备链路与原生安全存储仍为后置条件 |
 | Demo backend、交互验证码字段 | 不作为生产合同采用 | Core 当前未证明通用交互验证码；Demo 不访问 Core，生产入口默认 `UnavailableBackend` | Demo 仅限测试/预览；交互挑战继续由 Core 已证明的 typed 流程处理 |
 
-P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goal.md` 的功能、平台或发布完成条件。
+P0 的“保留”只表示当时允许作为后续实现起点；表内默认 backend 是当时骨架状态，现行生产组合见第 3.1 节。
+该审查不表示满足 `goal.md` 的功能、平台或发布完成条件。
 
 ## 7. FRB 生成边界
 
@@ -184,13 +194,14 @@ P0 的“保留”只表示允许作为后续实现起点，不表示满足 `goa
 
 | 风险 | 当前证据 | 影响 | 处置与门禁 |
 |---|---|---|---|
-| GitHub Actions Node.js 20 运行时进入弃用迁移 | 成功 run `33450597586` 对 `checkout@v4`、`upload-artifact@v4` 给出强制 Node.js 24 警告 | 当前不影响产物，但后续 runner 可能停止兼容旧 action runtime | P1 前期按官方 action 版本说明升级并以完整 CI/native run 复验 |
+| GitHub Actions 旧 action 运行时警告 | 历史 run `33450597586` 对 v4 action 给出警告；现行两条 workflow 已使用 `checkout@v5`、`upload-artifact@v6` | 旧警告不代表现行配置仍使用 v4；候选能否运行由其实际 CI 决定 | 每次 action 变更重新执行合同与原生 workflow，不沿用旧 run |
 | OHOS 调试签名尚未配置 | DevEco/CLI `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、SDK API26 前置通过；无签名 HAP assemble 与包内容检查通过 | 无法生成签名 HAP 或设备 FRB hello，但不阻断本轮无签名 RC | 取得项目所有者逐项授权后配置受控签名并重跑；不得提交签名材料或绕过签名 |
-| OHOS 下载入口需要华为账号 | 未登录、未传输账号信息 | 工具链取得受外部账号与授权约束 | 取得项目所有者明确授权后才登录或使用受限下载 |
+| OHOS 工具链重新获取 | 本机已有锁定 API26 工具链；历史下载入口涉及华为账号 | 当前本机构建不依赖重新下载；新 runner 仍须取得匹配工具链 | 按运行环境的访问权限准备工具链，不混用 SDK 版本 |
 | 正式签名材料未提供 | 仅有无签名 debug/simulator 产物 | P0 空 HAP 与 P6 正式发布均不能完成 | Apple、Google、Microsoft、HarmonyOS 账号/证书单独授权并安全注入 |
 | 领域详情与平台能力仍有证据缺口 | 十二项详情 golden、查询/确认、十项写入读后核对和无签名平台抽象已有确定性测试；真实设备/签名不可用 | 不能把 Mock 或无签名产物称为正式发布证据 | 无签名执行目标已闭合；设备、签名、安全存储验证保持后置 `BLOCKED` |
 
-当前结论为 **NO-GO（正式签名发布）/ GO（无签名 RC 与跨平台确定性开发）**。官方 Flutter 五平台
+当前发布边界仍为 **NO-GO（正式签名发布）/ GO（无签名 RC 与跨平台确定性开发）**，不代表结构治理最终
+候选已验证。以下保留历史支持证据：官方 Flutter 五平台
 native debug 矩阵已在 run `33541980112` 全部通过并上传独立产物，提交 `62ec048` 的合同
 run `33541980109` 也全部通过；随后文档提交 `8fd836a` 的合同 run `33542479679` 成功。
 OHOS 签名 HAP 与实体机 hello 是后置发布项而非本轮无签名目标阻断。该结论只允许继续不依赖
@@ -201,7 +212,10 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 （提交 `993f5a2`）的三个 job 全部成功。两条 run 均为无签名确定性证据，不替代 OHOS 签名、实体设备
 或正式发布门禁。
 
-提交 `5dc6dcf` 的 UI 增量保持平台边界不变：博雅状态门禁只消费 bridge 白名单字段，场馆多时段只在
+历史提交 `5dc6dcf` 的 UI 增量保持当时平台边界不变：博雅状态门禁只消费 bridge 白名单字段，场馆多时段只在
 同站点/日期/空间内组合 typed 选择，避免呈现桥接合同必拒绝的跨空间组合，最终资格和冲突仍由 Core prepare 校验。该变化由 `ubaa_ui` 42 项测试和
 `just flutter-check` 覆盖，不增加原生 handler、凭据、权限或签名要求；平台矩阵仍按无签名 Debug/静态证据
 与实体设备后置 `BLOCKED` 分开记录。
+
+上述历史 UI 规则已由 Phase 11 的 Core typed eligibility、稳定 action 和单次发送合同收口；展示字段不再
+决定写资格，场馆选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。

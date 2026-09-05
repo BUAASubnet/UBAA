@@ -26,18 +26,19 @@
 
 ## 写入能力
 
-以下十项用户可见写入已经具备 Core/CLI 协议骨架与统一的 prepare→确认→单次 commit 基础设施，但只有在
-对应 Phase 11 子阶段完成来源对照、typed 资格、最终权威重读、未知结果保护和确定性读取核对后，才可把该项
-写闭环标为完成。CLI 默认拒绝并要求 `--confirm-write`；Flutter 必须由用户主动进入确认流程。
+以下十项用户可见写入已经按 Phase 11A–J 落实来源对照、typed 资格、最终权威重读、未知结果保护和
+确定性读取核对。共享应用层统一拥有 prepare→确认→单次 commit 流程，UI 只消费 typed action 与状态。
+阶段提交和最终候选验证分别见[当前迁移状态](status.md)；本表不把阶段实现等同于当前真实写入成功。
+CLI 默认拒绝并要求 `--confirm-write`；Flutter 必须由用户主动进入确认流程。
 
 | 领域 | 用户操作 | 确定性实现 | 真实边界 |
 |---|---|---|---|
-| 博雅 | 选课、退选、签到/签退 | Core/CLI、加密/请求向量、typed intent、页面确认与读取刷新 | 当前周期未真实执行；UI 仍按展示字段收紧部分入口，状态缺失时保留 prepare 入口并由 Core 最终校验；typed eligibility 与默认拒绝将在阶段 11 完成 |
-| 场馆 | 预约、取消 | 业务认证、签名、验证码挑战、Mock 重试、typed 表单、收据与订单列表核对 | 2026-08-29 有一次独立授权的历史 Direct 预约/取消证据；不自动证明当前提交或后续授权 |
-| 教学评教 | 提交待评课程 | 问卷链、提交信封、typed 课程选择、确认与状态刷新 | 当前周期仅 Fixture/Mock/宿主 fake |
-| 图书馆 | 预约、取消 | AES 请求向量、typed 座位/时段、确认、记录刷新 | 当前周期仅 Fixture/Mock/宿主 fake |
-| 课堂签到 | 执行签到 | 冻结表单、重复签到门禁、确认与课程状态刷新 | 当前周期仅 Fixture/Mock/宿主 fake |
-| 阳光打卡 | 上传照片并提交 | multipart/表单向量、照片 typed 边界、确认与记录刷新 | 当前周期仅 Fixture/Mock/宿主 fake；无真实照片上传 |
+| 博雅 | 选课、退选、签到/签退 | Core typed eligibility/action、fresh authority、冻结加密/请求向量、一次性确认与读取刷新；未知资格默认拒绝 | 当前周期未真实执行；中文展示字段不再决定写资格 |
+| 场馆 | 预约、取消 | typed 时段/取消目标、fresh authority、单次最终发送、安全收据及原路线取消证明；验证码重试只在最终写入前 | 2026-08-29 有一次独立授权的历史 Direct 预约/取消证据；不自动证明当前提交或后续授权 |
+| 教学评教 | 提交待评课程 | typed targets、Core 内部 fresh 问卷链、批量四态结果、unknown 后停止与 caller-pinned 回读 | 当前周期仅 Fixture/Mock/宿主 fake |
+| 图书馆 | 预约、取消 | typed 座位/时段/取消目标、fresh authority、单次发送、取消同页记录刷新 | 当前周期仅 Fixture/Mock/宿主 fake |
+| 课堂签到 | 执行签到 | 可空状态、typed 安排目标、当天唯一 authority、冻结表单、严格结果与状态刷新 | 当前周期仅 Fixture/Mock/宿主 fake |
+| 阳光打卡 | 上传照片并提交 | typed 分类/项目 authority、完整照片请求、expected-route 原子链、单次 upload/final 与原路线双回读 | 当前周期仅 Fixture/Mock/宿主 fake；无真实照片上传 |
 
 任何写请求一旦可能到达上游都不得自动重试。`outcome_unknown`、transport 异常、收据缺失或读取刷新失败
 必须提示先核对，不得把 UI 成功文案当作上游最终状态。
@@ -64,6 +65,7 @@
 
 UBAA 2 已完成基础响应 DTO/解析器、独立业务会话、路线转换、facade/CLI/FRB/Flutter 接入，并有脱敏 Fixture、
 Mock 与 Direct/WebVPN 只读证据。固定 `examples/buaa-api/src/api/class` 提供部分等价 iClass 实现，但其查询方法、
-会话头身份、端口和参数载体与冻结本地实现冲突，只能交叉证明一致字段，不能拼接协议。2026-09-03 审查确认
-今日状态字段、form 用户 ID 和嵌套提交结果仍有待修 parity gap；修复并通过 typed 资格门禁前不得把签到写闭环
-标为完成。没有单次真实授权时保持不执行。
+会话头身份、端口和参数载体与冻结本地实现冲突，只能交叉证明一致字段，不能拼接协议。2026-09-03 审查发现的
+今日状态字段、form 用户 ID 和嵌套提交结果缺口已由 Phase 11D 的 `b988ae1` 完成本地确定性修复：未知状态
+显式可空、资格与目标由 Core 派生，prepare/commit 重读当天唯一安排，最终写入只发送一次并严格区分业务
+拒绝与结果未知。该阶段证据没有执行真实签到，不替代当前候选或真实写后核对。

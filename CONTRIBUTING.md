@@ -6,8 +6,8 @@
 - 每项行为变更先增加会失败的脱敏测试并观察预期失败，再做最小实现。
 - 认证、读取或写入协议变更必须先完成 `docs/migration/source-parity.md` 规定的两个冻结来源逐操作对照；
   没有证据的 URL、字段、Header、加密常量和错误语义不得从经验补全。
-- Rust Core 是协议与路线的唯一所有者；新增生产代码只能通过 facade/bridge 稳定合同使用能力，现有公共类型
-  与 CLI 输出策略例外按结构治理实施计划关闭。
+- Rust Core 是协议与路线的唯一所有者；生产宿主只能通过 facade/bridge 稳定合同使用能力。CLI 自有
+  `command/backend/execute/io` 负责参数、输出和退出策略；Core 测试注入只在显式 `test-contract` 下开放。
 
 当前代码结构目标、阶段顺序与提交边界见[代码与目录组织设计](docs/architecture/code-organization.md)和
 [实施计划](docs/superpowers/plans/2026-09-03-code-organization.md)。

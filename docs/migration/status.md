@@ -10,17 +10,32 @@
 
 | 类型 | 提交 | 含义 |
 |---|---|---|
-| committed implementation HEAD | `4b0dcb0` | 代码组织阶段 11J：Evaluation typed target、批量四态结果、expected-route 提交与 caller-pinned 回读已通过本地确定性、FRB 与 macOS integration 门禁；CLI schema v10、bridge v9 |
-| implementation candidate | 本阶段提交 | 阶段 11K 已统一生产 WriteCoordinator、immutable state 与安全回读；完整 Rust/Flutter、FRB、macOS integration、本机三平台产物、OHOS API26 无签名门禁与独立复审均通过 |
-| verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
-| evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
+| typed 业务实现 | `4b0dcb0` | 阶段 11J 完成 Evaluation 批量四态结果、expected-route 提交与 caller-pinned 回读；当前 CLI schema v10、bridge v9 |
+| 唯一写入协调器 | `b6ff2c7` | 阶段 11K 完成 immutable state、安全回读和宿主生命周期；完整 Rust/Flutter、FRB、macOS integration、本机三平台及 OHOS API26 无签名门禁通过 |
+| UI 目录与 Core 入口 | `1f63127e`、`7202fcf9` | 阶段 12/12B 按职责拆分 UI、HTTP helper 与 Reqwest adapter；AST/原文等价、完整 Rust/Flutter/FRB、macOS integration 及独立复审通过 |
+| 结构治理最终候选 | 本页所在收口提交 | 包含全部代码拆分、实际目录图、当前状态与阶段账本；阶段 14 以完整 SHA 重新绑定全部门禁和远端 CI |
+| 历史 verified HEAD | `4eaf1dd` | 整理前的完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI；只证明该历史提交 |
+| 历史 evidence HEAD | `11a2969` | 固化 `4eaf1dd` 的旧证据，不证明整理后候选，也不表示签名、设备或真实写入已完成 |
 
 当前代码组织治理以 [代码与目录组织设计](../architecture/code-organization.md) 和
 [实施计划](../superpowers/plans/2026-09-03-code-organization.md) 为权威。结构治理提交在阶段 14 绑定新的
 verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
-当前公开版本为 CLI JSON schema v10；Flutter bridge contract v9。阶段 11K 保持 `4b0dcb0` 的版本和生成绑定；
-最终候选、原生平台与实时证据仍由阶段 14 重新绑定。
+当前公开版本为 CLI JSON schema v10；Flutter bridge contract v9。阶段 11K 及随后机械整理保持该版本和生成
+绑定。阶段 14 的执行记录在仓库外保存完整候选 SHA、每项命令退出码、两条 live 安全摘要、两套 CI run URL
+与各 job 终态；最终交付消息链接该记录。验收结果不再写回仓库，避免产生未经同等验证的新 HEAD。
+
+## 结构整理结果
+
+原审查的 15 个超千行手写文件、2 个超 16 直属源码文件目录均已消除，结构 baseline 为空。最终扫描范围有
+493 个手写文件、106787 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
+`widgets.dart` 已从行为收敛后的 3883 行变成 27 行入口，21 个实现 part 按页面、共享组件、业务、写入表单
+定位，最大 UI 实现 484 行。独立 Rust/Dart 审查没有遗留高/中结构问题。
+
+Core 领域、路线状态、会话存储、端口实现与 facade 边界分开；CLI 输出/退出策略由 CLI 自己拥有；bridge
+生成区与手写 DTO/方法/映射分开；Dart 应用、单一写入协调器、UI 和共享宿主各有明确职责。入口只保留合同、
+组合和稳定导出。具体修 bug、加领域与改 UI 的路径见 [开发定位索引](../index.md)，完整树见
+[代码组织设计](../architecture/code-organization.md#5-目标目录结构)。
 
 ## 当前能力
 
@@ -37,7 +52,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 `Cgyy purposes` 的实时结果仍明确标记 `source=static_fallback`，表示采用已记录的冻结回退，不冒充上游用途接口
 实时成功。SPOC/博雅详情只有在同批次父列表为空时才可记为 `NOT_APPLICABLE`。
 
-## 已验证
+## 本地阶段证据
 
 - `9fbb83a` 上的阶段 10A 已通过 `just refs`、`just layout-check`、`just check-sensitive`、
   `just flutter-codegen-check`、`just flutter-check`、完整 `just check` 与独立代码审查；结构 baseline 只剩
@@ -133,14 +148,25 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   Bridge 108 项、Flutter Domain 18、Platform 42、App 111、UI 91、Bindings 15、Host 15、官方 App 2 项与
   macOS 脱敏 integration 7 项通过。refs、layout、敏感扫描、完整 `just check`、完整 `just flutter-check`、
   FRB 零漂移与差异检查通过；不将此本地阶段证据视为阶段 14 的最终候选或真实写入证据。
-- 阶段 11K 将生产写状态统一到 AppController 持有的 `WriteCoordinator`，旧 `WriteFlowController` 为同一
+- `b6ff2c7` 的阶段 11K 将生产写状态统一到 AppController 持有的 `WriteCoordinator`，旧 `WriteFlowController` 为同一
   类型别名。UI 只消费 immutable state 与三个安全命令；准备、取消、提交、回读的失效/销毁、同步通知重入、
   backend 替换以及位置/照片等待期间注销均有确定性覆盖。最终 Flutter Domain 25、Platform 42、App 177、
   UI 95、Bindings 15、Host 18、官方 App 2，共 374 项通过，macOS integration 7 项通过；14 个原 UI 测试叶
   只改构造名称，26 张 golden 的名称、长度与 SHA-256 不变。refs、layout、敏感扫描、完整 `just check`、
   FRB 零漂移、完整 `just flutter-check`、macOS/Android APK/iOS simulator Debug 构建及产物结构、OHOS API26
   arm64 无签名 HAP 和独立复审通过；新文档遗漏 `--locked` 曾被 CLI 合同拦截，修正后完整复跑通过。
-  唯一结构 baseline 为 3883 行的 `widgets.dart`，交由 Phase 12 纯拆分处理；本阶段不执行真实写入。
+  该阶段留下的 3883 行 `widgets.dart` 已由后续 Phase 12 纯拆分；本阶段未执行真实写入。
+
+- `1f63127e` 和 `7202fcf9` 完成 UI 与 Core 入口的最后两组机械整理。UI 公共路径、23 类/295 成员、回调与
+  布局 AST 等价，26 张 golden 字节不变；Core 7 组源码/测试块逐字相同，Reqwest 3 项、认证 28 项、只读
+  61 项定向测试通过。Flutter 374 项、FRB 零漂移、refs、零例外 layout、敏感扫描与完整 `just check` 通过。
+  macOS integration 首轮页面切换等待超时，完整复跑 7 项通过；旧 Debug 缓存下的首次 Rust 全量因启动
+  延迟主动终止（143），保留日志及缓存后从头复跑全量（0）。两份中断/失败记录均保留，不计为 PASS。
+
+## 整理前的历史完整验收
+
+以下证据只绑定 `4eaf1dd`，不能沿用为本次结构治理的最终候选 PASS：
+
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -152,12 +178,9 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 - 十二项详情 golden、响应式/明暗主题、状态矩阵、typed 查询、十项写入确认/防重复/读后核对和未知结果
   确定性回归均有记录。
 
-以上证据只绑定 `4eaf1dd`。当前结构治理完成后必须在最终候选 HEAD 重新运行计划规定的全部门禁，不能直接
-沿用这些 PASS。
-
 ## 未验证
 
-- 阶段 11K 已完成本地确定性与无签名原生门禁；阶段 12–14 未完成，当前结构治理仍未形成新的 verified HEAD。
+- 本页冻结最终候选时不预填阶段 14 的 PASS；最终完整验收以仓库外执行记录及同 SHA 的 CI 终态为准。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

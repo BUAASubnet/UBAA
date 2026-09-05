@@ -10,7 +10,7 @@
 
 **设计依据：** [代码组织设计](../../architecture/code-organization.md) 第 6.2 节；[父实施计划](2026-09-03-code-organization.md) Phase 11K；[当前状态](../../migration/status.md)。执行时先读取 Phase 11J 收口后的代码，不能把本文件的审查行数当作固定切割位置。
 
-**状态：** 2026-09-05，domain/app/Host/UI 已完成；完整 Rust、Flutter 374 项、FRB 零漂移、macOS integration 7 项、本机三平台产物、OHOS API26 无签名 HAP 和独立复审通过，随本阶段提交。
+**状态：** 2026-09-05，已提交 `b6ff2c7`；domain/app/Host/UI 已完成，完整 Rust、Flutter 374 项、FRB 零漂移、macOS integration 7 项、本机三平台产物、OHOS API26 无签名 HAP 和独立复审通过。
 
 ## 1. 全局约束
 

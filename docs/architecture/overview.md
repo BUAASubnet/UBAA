@@ -32,9 +32,16 @@ JSON/human 渲染和退出策略。Dart 与平台宿主只经 bridge 使用 Core
 Flutter bridge contract v9；实际 envelope 的 JSON Schema 校验、schema-v10 聚合
 登录输出、参数错误 envelope、不支持交互式登录步骤的显式
 拒绝、脱敏展示、带 revision 的原子双路线会话、Core 所有的 TCP 路由诊断和非交互式本地验证器
-均已实现。Flutter 侧 typed bridge、共享 domain/app/UI、十二项读取页面、十项写入确认和无签名六平台宿主的
-确定性证据已绑定阶段 11I；Phase 11J 的 Evaluation typed 批量提交正在当前工作树收口。Direct/WebVPN 的真实 Core-live 只读验证、无签名平台构建、
+均已实现。Flutter 侧 typed bridge、共享 domain/app/UI、十二项读取页面、十项写入确认和无签名六平台宿主
+已有分阶段确定性证据。Phase 11J 的 Evaluation typed 批量提交已在 `4b0dcb0` 完成，本地确定性门禁、
+FRB 零漂移与 macOS 脱敏宿主 integration 证据见[当前状态](../migration/status.md)。Direct/WebVPN 的真实 Core-live 只读验证、无签名平台构建、
 实体设备、签名发布和真实写入是彼此独立的证据层级；当前不包含服务器中继，真实写入仍须逐操作授权。
+
+Phase 11K 提交 `b6ff2c7` 将 Dart 生产写状态统一到 `ubaa_app` 的 `WriteCoordinator`，由
+`AppController` 绑定当前 backend 并在会话、路线与宿主生命周期变化时使旧状态失效。
+`WriteState`/`WriteOutcome` 属于 `ubaa_domain`；`ubaa_host` 统一拥有共享宿主生命周期、平台能力注入和
+UI callback 接线，向 UI 提供状态及 prepare/cancel/confirm 命令。UI 只保留页面交互状态，不拥有第二份
+待确认意图或提交状态机；Rust bridge 继续负责 opaque intent 的一次性消费与失效。
 
 CLI envelope 的 schema v10 与磁盘 Session 版本相互独立：前者描述 stdout 的封闭公开合同，后者仍是
 `session.json` schema v2 双路线快照，`config.toml` 仍为版本 1；本次 CLI 升级不迁移或改写本地持久化。

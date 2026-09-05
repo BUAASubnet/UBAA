@@ -15,7 +15,7 @@ just check-sensitive                                        # 扫描 tracked 和
 just shell-check                                             # 全部 Shell 执行 bash -n；可用时再执行 ShellCheck
 just check                                                  # Rust/Cargo/CLI/Shell 合同、构建、文档与 git diff；不含 Flutter
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just flutter-check                                          # 六个 package/app 执行 pub get、format、analyze、test
+just flutter-check                                          # 七个 package/app 执行 pub get、format、analyze、test
 git diff --check
 ```
 
@@ -29,7 +29,12 @@ git diff --check
 cargo test --locked -p ubaa-cli --all-targets
 cargo test --locked -p ubaa-core --all-targets
 cargo test --locked -p ubaa-test-support --all-targets
+just core-test-contract
 ```
+
+`cargo test --locked -p ubaa-core` 的默认配置不开放 facade 测试注入。`just core-test-contract` 分别运行默认 Core
+单元/集成与 Rustdoc、启用 `test-contract` 的全目标测试，以及测试注入关闭时的预期编译失败合同；修改
+Core 可见性、测试构造器或宿主依赖边界时使用该完整入口。
 
 ## Flutter 与无签名平台构建
 

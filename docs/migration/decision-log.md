@@ -1,5 +1,27 @@
 # 决策记录
 
+## 2026-09-05：Phase 12 UI 机械拆分与 Core 入口归属
+
+以 `b6ff2c7` 的稳定单一写入状态为前提，UI 只按 `app/common/features/write` 提取同一 Dart library 的
+21 个 part；`widgets.dart` 从 3883 行缩为 27 行。公共导出、23 个原类及 295 个原成员保持，21 个提取
+helper 在原位置调用；两个大 build 的列表片段以原位 spread 展开，StateSetter 仍传入原 `setState`。
+AST 等价比较只忽略格式及无语义尾逗号，保留表达式、参数、求值位置、回调次序、文案、key 和 semantics。
+不增加 Widget 包装，26 张原 golden 的名称、长度与 SHA-256 均不变。
+
+领域目录沿 Core/bridge 已建立的归属：Signin 与 SPOC/Judge 一同放在 `assignments`；通用查询、详情列表、
+错误与分页归 `common`，写入表单和确认归 `write`。Flutter 完整 374 项及 macOS integration 复跑 7 项通过，
+FRB 零漂移。集成首轮在应用前台激活失败后发生一次页面切换 `pumpAndSettle` 超时；未改源码的完整复跑全绿，
+保留首轮失败记录，不以普通 widget 测试代替宿主集成证据。
+
+独立检查同时发现两个 Core 入口仍可更准确地表达所有权：`features/mod.rs` 仅组合领域与内部导出，
+通用 HTTP 实现原样移入 `features/http.rs`；`ports/mod.rs` 保留 DTO 与 trait，具体 Reqwest adapter
+原样移入 `ports/reqwest_transport.rs`。此项独立提交，7 组原源码/测试块逐字相同，协议适用边界与定向
+测试见 [入口来源对照](source-parity-entry-modules.md)，不借机械整理变更协议。
+
+结构门禁的精确历史例外已清空。独立扫描确认 493 个手写文件均不超过 1000 行，135 个直属源码目录均不超过
+16 个文件。保留职责完整的 DTO、状态组合和横切测试文件，不为追求较小数字制造空模块或跨目录反向依赖。
+最终候选的完整门禁、两条实时只读路线和远端 CI 仍须依实施计划绑定同一提交。
+
 ## 2026-09-05：Phase 11K 单一写入状态与会话生命周期所有权
 
 评教阶段已由 `4b0dcb0` 完成跨层实现与本地门禁。其后将原 `WriteFlowController` 演进为

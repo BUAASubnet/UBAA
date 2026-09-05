@@ -1,18 +1,19 @@
 # 测试策略
 
-测试按证据层级组织；不同层级不能互相冒充。当前结构治理会逐步让测试目录镜像生产领域，但在对应阶段提交前，
-下表使用当前 HEAD 的真实路径。
+测试按证据层级和生产领域组织；不同层级不能互相冒充。根测试文件负责注册，领域子文件承载行为与合成
+数据；下表列出实际入口，阶段验证与最终候选证据统一见[当前迁移状态](../migration/status.md)。
 
 | 层级 | 当前位置 | 证明内容 |
 |---|---|---|
 | Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
-| 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
+| 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/fixtures.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
 | CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v10、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
-| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、CLI/Bridge 常量与当前文档一致性、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
+| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
+| 写入协调与宿主接线 | `packages/ubaa_app/test/write_coordinator_test.dart`、`app_write_lifecycle_test.dart`、`write_readback_reentry_test.dart`；`packages/ubaa_host/test/`；`packages/ubaa_ui/test/write_coordination_test.dart` | 唯一状态机、单次消费、取消/过期、注销/重建失效、回读重入与 UI 命令完整性 |
 | Widget/golden | `packages/ubaa_ui/test/` | 十二领域页面、loading/empty/failure/stale、查询、写确认、响应式、明暗主题和可访问性 |
 | 宿主 integration | `apps/ubaa_flutter/integration_test/app_flow_test.dart` | 脱敏 backend 下的登录、十二项查询、十项写入 prepare/确认/单次 commit/读取核对 |
 | 原生构建/产物 | Flutter 五平台 CI、本机 artifact check、OHOS API26 无签名门禁 | 宿主可构建及最小包结构；不证明签名、安装、实体设备或真实账号链路 |
@@ -55,8 +56,8 @@ schema v5/bridge v4。该测试范围不包含磁盘 `session.json`；其 schema
 `config.toml` 继续使用版本 1。
 
 Phase 11G 将 Cgyy 时段 `reservationStatus` 改为可空整数，以 typed
-`reservationEligibility/reservationTarget` 取代 `isReservable`，并把预约结果收窄为安全收据；当前 CLI
-envelope 因此显式升为 schema v7、Flutter bridge contract 升为 v6，合同测试拒绝旧 schema v6/bridge v5。
+`reservationEligibility/reservationTarget` 取代 `isReservable`，并把预约结果收窄为安全收据；当时 CLI
+envelope 显式升为 schema v7、Flutter bridge contract 升为 v6，合同测试拒绝旧 schema v6/bridge v5。
 该升级仍不改变磁盘 `session.json` schema v2 或 `config.toml` 版本 1。
 
 Phase 11H 为 Cgyy 订单增加 typed `cancelEligibility/cancelTarget/cancelledTarget`，并以 caller-pinned
@@ -71,11 +72,16 @@ canonical 时间和必需照片，并加入 expected-route 原子提交与 calle
 Phase 11J 为 Evaluation 课程增加 typed `submitEligibility/submitTarget`，把 prepare 请求收紧为非空、有序、
 无重复的 targets，并新增 `success/failure/outcomeUnknown/unattempted` 四态逐项结果及 caller-pinned 原路线回读；
 当前 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9，合同测试拒绝旧 schema v9/bridge v8。
-阶段最终门禁尚未完成，不得把当前工作树描述为全绿、真实写入或正式发布。
+该阶段的 typed 实现与本地确定性门禁已在 `4b0dcb0` 落地；整轮结构治理的最终候选与远端证据仍单独记录。
+
+Phase 11K 的 `WriteCoordinator` 同时服务生产链与旧 `WriteFlowController` 类型别名。app 测试覆盖旧方法
+签名/错误码、prepare/cancel/confirm 单次消费、未知结果回读、失效晚到结果与同步通知重入；Host 测试覆盖
+生产接线和平台位置等待期间注销，UI 测试覆盖状态外部所有权及缺任一写命令时默认拒绝。UI 测试 harness
+只连接真实 coordinator 与脱敏 callback，不复制业务状态机；对 app 的依赖仅存在于 UI 的 dev dependencies。
 
 ## 写入测试边界
 
-阶段 11I 提交上的十项用户写入已有确定性闭环；Phase 11J 当前变更仍待最终门禁，且任何确定性证据都不授权真实操作：
+十项用户写入分别由领域合同、共享协调器和宿主测试保护；任何确定性证据都不授权真实操作：
 
 1. Core/CLI 证明精确请求、默认拒绝和 `--confirm-write`；
 2. bridge/app/UI 证明 typed prepare 不提交、取消无副作用、确认只提交一次；

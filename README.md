@@ -10,8 +10,9 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
-- 阶段 11I 提交上的十二项读取页面、typed 查询及十项写入流程已有 Fixture/Mock、Rust、Dart、
-  widget/golden 与脱敏宿主 integration 证据；当前工作树正在收口 Evaluation typed 批量提交，最终候选绑定尚未完成；
+- 十二项读取页面、typed 查询及十项写入流程已有 Fixture/Mock、Rust、Dart、widget/golden 与脱敏宿主
+  integration 阶段证据；Evaluation typed 批量提交已在阶段 11J `4b0dcb0` 落地，阶段 11K `b6ff2c7`
+  已统一 Dart 写入协调，结构治理的最终候选验证仍单独记录；
 - Direct 与 WebVPN 的当前真实证据只覆盖 Core-live 只读矩阵，不代表真实 App 账号链路或真实写入；
 - 正式签名、证书、公证、商店上传、实体设备、原生安全存储 handler 和真实写入核对仍是后置条件。
 
@@ -46,13 +47,24 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 | `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
 | `packages/ubaa_domain` | Dart 稳定领域模型 |
 | `packages/ubaa_app` | 应用状态、bridge adapter 与写入协调 |
-| `packages/ubaa_platform` | 平台路径、权限、凭据和照片 typed 边界 |
+| `packages/ubaa_host` | 共享 AppController 生命周期、平台能力注入与 UI callback 接线 |
+| `packages/ubaa_platform` | 平台路径、权限、凭据、照片和位置 typed 边界 |
 | `packages/ubaa_ui` | 共享页面、查询、确认、响应式与可访问性 UI |
 | `packages/ubaa_bindings` | FRB 机械生成 Dart 输出和 Cargokit 平台构建支持 |
 | `scripts` | 按副作用分类的 bootstrap、check、build、live、release 与确定性合同入口 |
 | `docs` | 架构、合同、开发命令、迁移证据与运行手册 |
 
 完整文档入口见[文档索引](docs/index.md)。
+
+修改协议先定位 Core 的对应领域；修改展示投影定位 `ubaa_app` 的 `bridge/read`；修改写入生命周期定位
+`ubaa_app` 的 `write` 与 `controller`；修改界面定位 `ubaa_ui`。共享 `WriteState`/`WriteOutcome` 位于
+`ubaa_domain`，`WriteCoordinator` 是应用层唯一生产写状态机；宿主向 UI 注入状态及 prepare/cancel/confirm
+命令，UI 不保存另一份待确认意图，也不从展示文本推断写资格。
+
+UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[公共查询与详情](packages/ubaa_ui/lib/src/common/)、
+[领域控件](packages/ubaa_ui/lib/src/features/)和[表单与确认页](packages/ubaa_ui/lib/src/write/)由
+`widgets.dart` 统一组成 library。课表、考试、成绩和空教室归 `features/academic.dart`，
+SPOC、Judge 和 Signin 归 `features/assignments.dart`；对应实现与测试入口见[文档索引](docs/index.md#按修改内容定位)。
 
 ## CLI 快速开始
 

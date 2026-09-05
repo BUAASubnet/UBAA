@@ -1,7 +1,8 @@
 # Flutter Bridge 合同
 
-状态：合同 v9 的 Phase 11J typed 实现已进入当前工作树，完整本地确定性门禁与阶段提交待完成；此前 P1 证据只作历史基线，实体设备上的
-原生 isolate/内存观测仍是后置发布证据
+状态：合同 v9 的 Phase 11J typed 实现已在 `4b0dcb0` 完成本地确定性门禁、FRB 零漂移与脱敏宿主
+integration；Phase 11K `b6ff2c7` 完成 Dart 单一写入协调器与共享宿主接线，保持合同 v9。
+此前 P1 证据只作历史基线，实体设备上的原生 isolate/内存观测仍是后置发布证据。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -60,6 +61,12 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 
 注销调用在 controller 销毁后为 no-op；已在途的注销完成后不得回写用户、活动路线、登录表单
 或阶段状态。若调用方已明确要求清理已保存凭据，清理动作仍按安全边界执行。
+
+`ubaa_app` 的 `AppController` 拥有绑定当前 backend 的唯一生产 `WriteCoordinator`；共享不可变
+`WriteState`/`WriteOutcome` 位于 `ubaa_domain`。登录、注销、路线切换、backend 重建和销毁会使旧写状态
+失效，晚到 prepare 只向原 backend 释放意图。`ubaa_host` 统一装配宿主生命周期、平台能力与 UI callback，
+向 UI 注入当前写状态和 prepare/cancel/confirm 命令；UI 不持有第二份 pending。这些 Dart 所有权约束
+不替代 Rust bridge 对 opaque intent 的原子消费、时限和失效检查。
 
 ## 3. 错误合同
 
@@ -501,6 +508,10 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   Flutter Bridge contract v8 和相应生成类型。安全收据已严格收窄为 `{recordId}`，公开字段禁曝；完整
   Rust/CLI/Bridge/Dart/Flutter 门禁、FRB 零漂移、macOS 脱敏宿主 integration 与独立终审均已通过并提交为
   `d8484ad`。该阶段没有联网、上传照片或执行真实写入，也不构成签名、实体设备或正式发布证据。
-- Phase 11J 当前工作树已升级到 CLI JSON schema v10、Flutter Bridge contract v9，并实现 Evaluation typed
-  target、批量四态结果和 caller-pinned 回读；完整跨层门禁、FRB 二次零漂移、独立终审与阶段提交仍待完成，
-  因此不能把当前工作树称为最终候选。本阶段不执行任何真实评教写入。
+- Phase 11J 提交 `4b0dcb0` 已升级到 CLI JSON schema v10、Flutter Bridge contract v9，并实现 Evaluation
+  typed target、批量四态结果和 caller-pinned 回读；本地确定性门禁、FRB 零漂移与 macOS 脱敏宿主
+  integration 已完成。该阶段没有执行真实评教写入，证据范围见[当前状态](../migration/status.md)。
+- Phase 11K 提交 `b6ff2c7` 将 Dart 写状态收归 `WriteCoordinator`，状态模型归 `ubaa_domain`，
+  backend 绑定与会话失效归 `AppController`，宿主装配及 UI 状态/命令接线归 `ubaa_host`；安全结果消息与
+  只读核对由应用层 `WriteReceiptVerifier` 统一编排。该阶段保持 CLI schema v10、bridge v9 和生成绑定，
+  不改变上游协议；结构治理的最终候选与发布证据继续单独记录。

@@ -1,6 +1,6 @@
 # 代码与目录组织设计
 
-状态：2026-09-03 已批准执行；2026-09-05 Phase 11K 本地门禁已闭合，后续执行 Phase 12 UI 纯拆分
+状态：2026-09-05 目录与职责设计已实现；最终候选验收按第 10.4 节绑定同一提交
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
@@ -60,10 +60,37 @@ prepare/commit 都 fresh 读取同 ID 详情并以上海时区复核四小时截
 一次路线并复用同一 runtime 越过一次 non-idempotent 发送边界。成功或结果未知后的列表/详情
 双回读固定 intent 原路线，只消费本次局部 `cancelledTarget` 证明，不从旧 snapshot 或展示字段推断。
 
+Phase 11I 的 Ygdk typed 提交继续提升为 CLI schema v9 / bridge v8；Phase 11J 的 Evaluation typed
+批量提交与逐项四态结果提升为当前 CLI schema v10 / bridge v9。Phase 11K 的唯一写入协调器和其后
+UI/Core 机械整理保留该版本、生成绑定及 golden；具体来源与阶段证据见 [实施账本](../superpowers/plans/2026-09-03-code-organization.md)。
+
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。
 
-## 2. 审查基线与量化结论
+## 2. 原始审查基线与整理结果
+
+以下旧问题表记录设计批准时的基线，不代表整理后的现状。2026-09-05 按结构门禁同一范围独立扫描：
+
+| 指标 | 审查基线 | 整理后 |
+|---|---:|---:|
+| 超过 1000 行的手写代码文件 | 15 | 0 |
+| 直属手写代码超过 16 个的目录 | 2 | 0 |
+| 历史结构例外 | 17 | 0 |
+| UI 聚合实现入口 | 4030 行；行为收敛后 3883 行 | 27 行入口、21 个职责明确的实现文件 |
+| UI 最大实现文件 | 3883 行 | 484 行 |
+
+最终源码范围有 493 个手写文件、106787 行、135 个直属源码目录；排除 21 个 Cargokit 文件和 8 个 FRB
+生成文件。Rust 生产文件 157 个、测试文件 113 个；Dart 生产文件 89 个、测试文件 75 个；其它语言文件
+59 个。最大生产 Rust 文件为 bridge `read/mappers.rs`（904 行），最大生产 Dart 文件为
+`app_controller.dart`（852 行）；它们分别只负责固定 DTO 投影和应用生命周期组合，不再吸收新领域实现。
+最大测试文件为 `bridge_backend_test.dart`（990 行），测试按领域和横切合同分层，不用空模块凑数量。
+
+UI 的 `app/common/features/write` 直属文件分别为 5/6/7/3；`Signin` 与 SPOC/Judge 一同归
+`assignments`，三端领域定位一致。Rust 的 `features/mod.rs`（34 行）只组合领域与稳定内部导出，
+HTTP helper 在 `features/http.rs`；`ports/mod.rs`（130 行）持有 DTO/trait 合同，Reqwest 实现在
+`ports/reqwest_transport.rs`。实际目录见第 5 节，操作定位入口见 [文档索引](../index.md)。
+
+### 2.1 原始基线
 
 本轮先执行了 `git status --short --branch`、`just refs` 和完整 `just check`。工作树基线干净，冻结引用
 分别为 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与
@@ -71,7 +98,7 @@ prepare/commit 都 fresh 读取同 ID 详情并以上海时区复核四小时截
 Flutter 独立审查同时运行了当前 `just flutter-check`，6 个 package/app 范围静态分析通过，140 个普通
 Flutter 测试通过；该结果不包含宿主 integration、原生构建、签名或设备证据。
 
-排除 FRB 生成文件与 Cargokit 后，当前共有 15 个超千行手写代码文件：
+排除 FRB 生成文件与 Cargokit 后，原始审查共有 15 个超千行手写代码文件：
 
 | 行数 | 文件 | 混合职责 |
 |---:|---|---|
@@ -101,7 +128,10 @@ Flutter 测试通过；该结果不包含宿主 integration、原生构建、签
 FRB 生成 Dart/Rust 合计超过三万行，但每个文件都有生成标记、固定输出目录与零漂移门禁。它们是需要隔离
 和标注的机械产物，不是需要人工拆分的业务代码。
 
-## 3. 当前问题
+## 3. 原始问题与治理依据
+
+本节保留各阶段启动时的问题及修复依据；实现与提交状态以 [阶段账本](../superpowers/plans/2026-09-03-code-organization.md)
+和 [当前状态](../migration/status.md) 为准。下列结构问题均已在对应阶段处理，协议未决项仍由来源对照单独记录。
 
 ### 3.1 高优先级结构问题
 
@@ -177,8 +207,8 @@ FRB 生成 Dart/Rust 合计超过三万行，但每个文件都有生成标记�
 
 ## 5. 目标目录结构
 
-只展开本轮会改变或需要固定边界的部分；平台工具链规定的 Android/iOS/macOS/Linux/Windows/OHOS runner
-目录保持原位。
+下图按当前实现的职责所有权展开主要源码、测试和门禁入口，不是仓库全部文件的完整清单；花括号表示同一
+目录中的实际成员。未展开的基础领域类型、认证与连接实现、生成产物和平台 runner 保持各自原位。
 
 ```text
 UBAA/
@@ -187,6 +217,7 @@ UBAA/
 │   │   ├── src/
 │   │   │   ├── lib.rs                     # 模块声明和稳定 re-export
 │   │   │   ├── main.rs                    # 普通 CLI bootstrap
+│   │   │   ├── routing.rs                 # Core 路线决策的安全上下文投影
 │   │   │   ├── command/
 │   │   │   │   ├── mod.rs                 # Cli/Command 组合
 │   │   │   │   ├── auth.rs
@@ -218,7 +249,7 @@ UBAA/
 │   │   │   ├── io/
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── input.rs
-│   │   │   │   ├── schema.rs               # CLI envelope owner；阶段 04 迁入时 v2，当前 v8
+│   │   │   │   ├── schema.rs               # CLI envelope 所有者，当前 schema v10
 │   │   │   │   ├── human.rs
 │   │   │   │   ├── error.rs                # 稳定错误 payload 与名称投影
 │   │   │   │   ├── render.rs               # stdout/stderr 渲染与 Core 错误投影
@@ -230,15 +261,17 @@ UBAA/
 │   │   │       └── steps.rs
 │   │   └── tests/
 │   │       ├── cli_contract.rs             # 薄入口
-│   │       ├── cli_contract/{common,help,output,output_helpers,routing,writes,exit,libbook_cancel,cgyy_reservation}.rs
+│   │       ├── cli_contract/
+│   │       │   ├── {common,help,output,output_helpers,routing,writes,exit}.rs
+│   │       │   └── {libbook_cancel,cgyy_reservation,cgyy_cancel,ygdk,evaluation}.rs
 │   │       ├── binary_e2e.rs
 │   │       └── core_live_runtime.rs
 │   ├── ubaa_flutter/
-│   │   ├── lib/main.dart                   # SDK/能力注入与 runApp
+│   │   ├── lib/main.dart                   # SDK/能力入口，调用共享 host bootstrap
 │   │   └── integration_test/
 │   │       ├── app_flow_test.dart          # 单一测试入口
 │   │       └── app_flow/{auth,query,write,support}.dart
-│   └── ubaa_ohos/lib/main.dart             # OHOS SDK/能力注入与 runApp
+│   └── ubaa_ohos/lib/main.dart             # OHOS SDK/能力入口，调用同一共享 host
 ├── crates/
 │   ├── ubaa-core/src/
 │   │   ├── lib.rs                          # 只导出 facade 与稳定基础类型
@@ -246,11 +279,12 @@ UBAA/
 │   │   │   ├── mod.rs                      # 稳定 facade 类型出口
 │   │   │   ├── client.rs                   # 字段、open/with 构造
 │   │   │   ├── auth.rs                     # prepare/login/status/logout
-│   │   │   ├── routing.rs                  # 唯一路线解析与 runtime selector
-│   │   │   ├── read/{mod,academic,services,assignments}.rs
-│   │   │   ├── write/{mod,campus,reservations}.rs
-│   │   │   ├── diagnostic.rs               # RouteClient
-│   │   │   ├── testing.rs                  # transport/session 的最小测试注入合同
+│   │   │   ├── routing.rs                  # 调用 connection 策略算法，统一编排路线与 runtime 选择
+│   │   │   ├── read/{mod,academic,services,assignments,evaluation}.rs
+│   │   │   ├── write/{mod,campus,reservations,evaluation}.rs
+│   │   │   ├── diagnostic.rs               # 固定路线 RouteClient 入口
+│   │   │   ├── diagnostic/{cgyy,evaluation}.rs
+│   │   │   ├── testing.rs                  # 非默认 test-contract 下的最小测试注入合同
 │   │   │   └── types.rs
 │   │   ├── internal/
 │   │   │   ├── mod.rs
@@ -260,6 +294,9 @@ UBAA/
 │   │   │       ├── cache.rs
 │   │   │       ├── credentials.rs
 │   │   │       └── classroom.rs
+│   │   ├── ports/
+│   │   │   ├── mod.rs                      # HTTP DTO、脱敏 Debug 与传输 trait
+│   │   │   └── reqwest_transport.rs        # 单次原始 HTTP 传输实现与相邻测试
 │   │   ├── session/
 │   │   │   ├── mod.rs
 │   │   │   ├── coordinator.rs
@@ -270,26 +307,39 @@ UBAA/
 │   │   │   ├── storage.rs
 │   │   │   └── types.rs
 │   │   └── features/
-│   │       ├── mod.rs
+│   │       ├── mod.rs                      # 领域声明、共享 helper 导出与结果包装
+│   │       ├── http.rs                     # 已有共享请求、会话与重定向 helper
 │   │       ├── cgyy/{mod,auth,http,captcha,read,write,parser,crypto,sign,tests}.rs
 │   │       ├── judge/{mod,service,batch,parser,calendar,tests}.rs
 │   │       ├── spoc/{mod,auth,list,detail,parser,crypto,calendar,tests}.rs
-│   │       ├── bykc/{mod,auth,read,write,parser,tests}.rs
-│   │       ├── libbook/{mod,service,parser,crypto}.rs
-│   │       ├── ygdk/{mod,service,parser,upload}.rs
-│   │       └── classroom.rs、evaluation.rs、grades.rs、schedule.rs、signin.rs、user.rs
+│   │       ├── bykc/{mod,auth,crypto,read,write,parser,tests}.rs
+│   │       ├── libbook/{mod,service,parser,crypto,tests}.rs
+│   │       ├── ygdk/
+│   │       │   ├── {mod,auth,http,read,write,parser,upload,tests}.rs
+│   │       │   └── tests/{contract,runtime_guards,value_contracts}.rs
+│   │       ├── evaluation/
+│   │       │   ├── {mod,read,write,parser,payload,tests}.rs
+│   │       │   └── tests/{contract,payload,read,write}.rs
+│   │       ├── {classroom,grades,schedule,signin,user}.rs
+│   │       └── {classroom,grades,schedule,signin}/contract_tests.rs
 │   ├── ubaa-flutter-bridge/src/api/
+│   │   ├── mod.rs
 │   │   ├── read/
 │   │   │   ├── mod.rs                      # DTO 继续保有 api::read 路径
 │   │   │   ├── methods.rs
-│   │   │   └── mappers.rs
+│   │   │   ├── mappers.rs
+│   │   │   ├── evaluation.rs
+│   │   │   └── tests.rs
 │   │   ├── write/
 │   │   │   ├── mod.rs                      # DTO 与 pending 类型保持 api::write 路径
 │   │   │   ├── prepare.rs                  # 意图建立与各领域 prepare
 │   │   │   ├── commit.rs                   # 一次性消费、复核与提交
+│   │   │   ├── lifecycle.rs                # intent 失效与释放
 │   │   │   ├── support.rs                  # 验证、canonical digest 与安全映射
 │   │   │   ├── tests.rs                    # cfg(test) 根与唯一测试注入 helper
-│   │   │   └── tests/{contract,bykc,cgyy_reservation,libbook,libbook_cancel,lifecycle,signin,validation}.rs
+│   │   │   └── tests/
+│   │   │       ├── {contract,bykc,cgyy_reservation,cgyy_cancel,libbook,libbook_cancel}.rs
+│   │   │       └── {lifecycle,signin,validation,ygdk,evaluation}.rs
 │   │   ├── client.rs
 │   │   └── simple.rs
 │   └── ubaa-test-support/
@@ -307,49 +357,65 @@ UBAA/
 │   │   ├── models.dart                     # 旧路径的显式兼容 export
 │   │   ├── common/{route,error,auth}.dart
 │   │   ├── feature/{catalog,query,result}.dart
-│   │   └── write/{actions,inputs,intent}.dart
+│   │   └── write/{actions,inputs,intent,state}.dart  # state 定义不可变 WriteState/WriteOutcome
 │   ├── ubaa_app/lib/src/
 │   │   ├── backend.dart                    # 旧路径的显式兼容 export
 │   │   ├── app_controller.dart             # 旧路径的显式兼容 export
 │   │   ├── bridge_backend.dart             # 旧路径的显式兼容 export
+│   │   ├── write_controller.dart           # WriteFlowController 兼容别名，不另建状态机
 │   │   ├── backend/{unavailable,demo}.dart
 │   │   ├── contracts/{backend,routing,query,write,lifecycle}.dart
 │   │   ├── controller/{app_controller,error_mapper}.dart
+│   │   ├── controller/app_controller/
+│   │   │   ├── refresh.dart                # 查询刷新与代次检查
+│   │   │   ├── write_lifecycle.dart        # backend 绑定、转换失效与协调器替换
+│   │   │   └── {cgyy_readback,ygdk_readback,evaluation_readback}.dart
 │   │   ├── bridge/
 │   │   │   ├── bridge_backend.dart         # 组合与接口实现
 │   │   │   ├── common.dart
 │   │   │   ├── read/{academic,assignments,bykc,libbook,cgyy,ygdk,evaluation}.dart
-│   │   │   └── write/{prepare,commit}.dart
-│   │   ├── write/
-│   │   │   ├── coordinator.dart            # 唯一生产写状态机
-│   │   │   ├── state.dart
-│   │   │   ├── receipt_verifier.dart
-│   │   │   └── cgyy_validation.dart        # action-only 场馆预约输入门禁
-│   │   └── contracts/                      # 现有 backend 能力合同
+│   │   │   └── write/{prepare,commit,lifecycle}.dart
+│   │   └── write/
+│   │       ├── coordinator.dart            # 唯一生产写状态机
+│   │       ├── receipt_verifier.dart       # 安全消息与写后只读核对，不持有 pending
+│   │       ├── cgyy_validation.dart        # action-only 场馆预约输入门禁
+│   │       └── ygdk_validation.dart        # typed 打卡输入门禁
 │   ├── ubaa_host/
 │   │   ├── pubspec.yaml
 │   │   ├── lib/ubaa_host.dart              # 公共 barrel
-│   │   ├── lib/src/{ubaa_app_host,lifecycle,callbacks}.dart
-│   │   └── test/{ubaa_app_host,lifecycle}_test.dart
+│   │   ├── lib/src/
+│   │   │   ├── ubaa_app_host.dart          # 共用 bootstrap 与组合根
+│   │   │   ├── lifecycle.dart              # AppController 创建、恢复与销毁
+│   │   │   └── callbacks.dart              # 平台能力与 UI 状态/命令接线
+│   │   └── test/
+│   │       ├── {ubaa_app_host,lifecycle}_test.dart
+│   │       └── ubaa_app_host/              # bootstrap、callback、能力与写入协调测试叶
 │   ├── ubaa_ui/lib/src/
-│   │   ├── widgets.dart                    # library/part 声明和公共入口
-│   │   ├── app/{splash,login,shell,profile}.dart
-│   │   ├── common/{detail_fields,pagination,error_card}.dart
+│   │   ├── widgets.dart                    # 公共 library 入口，组合下列 21 个 part
+│   │   ├── theme.dart
+│   │   ├── write_callbacks.dart            # 注入的 UI 命令类型
+│   │   ├── app/{splash,login,home,shell,profile}.dart
+│   │   ├── common/
+│   │   │   ├── query_controls.dart         # 查询控制器生命周期、输入校验与提交组合
+│   │   │   ├── feature_detail.dart         # 加载、空态、过期与错误状态
+│   │   │   ├── detail_list.dart            # 本地筛选、详情组合与选择状态
+│   │   │   └── {detail_fields,pagination,error_card}.dart
 │   │   ├── features/{academic,assignments,bykc,libbook,cgyy,ygdk,evaluation}.dart
-│   │   └── write/{forms,confirmation}.dart
-│   └── ubaa_bindings/lib/src/rust/**        # FRB 机械生成，禁止手改
+│   │   └── write/{cgyy_form,ygdk_form,confirmation}.dart
+│   ├── ubaa_platform/lib/src/              # typed 平台能力、默认装配与安全不可用实现
+│   └── ubaa_bindings/lib/src/rust/          # FRB 机械生成，禁止手改
 ├── fixtures/
-│   ├── README.md
 │   ├── auth/
 │   └── readonly/                            # 本轮保留现有路径，registry 覆盖全部 fixture
 ├── scripts/
 │   ├── README.md                            # 每个入口的副作用、网络与凭据要求
 │   ├── bootstrap/references.sh              # 可联网建立缺失冻结引用
-│   ├── check/{references,layout,sensitive,flutter-toolchains,flutter-codegen,flutter-workspace}.sh
+│   ├── check/{references,layout,sensitive,contract-versions,flutter-toolchains,flutter-codegen,flutter-workspace}.sh
 │   ├── build/{flutter,ohos}.sh
 │   ├── live/{verify,core-live}.sh
 │   ├── release/{preflight,verify-flutter-artifact}.sh
-│   ├── tests/{layout,live-launchers}.sh
+│   ├── tests/{layout,contract-versions,references,live-launchers,facade-test-contract}.sh
+│   ├── layout-baseline.txt                 # 结构棘轮例外登记
 │   └── lib/{repo,live-features}.sh           # 只存真实共享且有测试的函数
 └── docs/
     ├── index.md
@@ -360,8 +426,10 @@ UBAA/
         └── history/status-through-2026-09-02.md
 ```
 
-以上是本轮目标成员的完整清单，不创建 `其余`、`support`、`misc` 等模糊占位目录。只有目标文件拥有真实实现、
-类型或测试时才创建；无需拆分的小领域保持列出的单文件。同名 Rust `foo.rs` 与 `foo/mod.rs` 不得并存。
+树中目录按职责展开，未列出的相邻测试、配置和产物仍以源码为准。新增目录必须有具体领域或边界所有者，
+测试支持文件必须服务于明确的测试入口；无需拆分的小领域保持单文件。同名 Rust `foo.rs` 与 `foo/mod.rs`
+不得并存。UI 的 `features/academic.dart` 只负责课表、考试、成绩和空教室；SPOC、Judge、Signin 归
+`features/assignments.dart`。领域 part 复用 `common` 中的查询与详情生命周期，不另建公共状态副本。
 
 Rust integration test 的薄入口使用显式 `#[path = "auth/login.rs"] mod login;` 组装子文件，避免错误地假设
 Cargo 会从 `tests/auth.rs` 自动解析 `tests/auth/mod.rs`。Dart 测试拆分为同一 library 的 `part` 文件，只有根
@@ -546,7 +614,10 @@ just check
 ```text
 just flutter-check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-<锁定 Flutter SDK> flutter test apps/ubaa_flutter/integration_test/app_flow_test.dart -d macos --ignore-timeouts
+(
+  cd apps/ubaa_flutter
+  "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+)
 ```
 
 涉及 composition、package graph 或 native wiring 时，必须运行 macOS 宿主 integration、macOS/Android APK/iOS
@@ -554,7 +625,10 @@ simulator 本机构建及产物结构检查；Linux/Windows 由官方五平台 w
 同时要求：
 
 ```text
-<锁定 Flutter SDK> flutter test apps/ubaa_flutter/integration_test/app_flow_test.dart -d macos --ignore-timeouts
+(
+  cd apps/ubaa_flutter
+  "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+)
 just flutter-build platform=macos mode=debug
 just flutter-build platform=android-apk mode=debug
 just flutter-build platform=ios-simulator mode=debug
@@ -576,11 +650,17 @@ just check
 cargo test --locked -p ubaa-cli --all-targets
 just flutter-check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just release-preflight
-<锁定 Flutter SDK> flutter test apps/ubaa_flutter/integration_test/app_flow_test.dart -d macos --ignore-timeouts
+just release-preflight "${UBAA_RELEASE_REPORT_DIR:-/tmp/ubaa-code-organization-release-report}"
+(
+  cd apps/ubaa_flutter
+  "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+)
 just flutter-build platform=macos mode=debug
+just flutter-artifact-check macos apps/ubaa_flutter/build/macos/Build/Products/Debug/ubaa_flutter.app
 just flutter-build platform=android-apk mode=debug
+just flutter-artifact-check android-apk apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
 just flutter-build platform=ios-simulator mode=debug
+just flutter-artifact-check ios-simulator apps/ubaa_flutter/build/ios/iphonesimulator/Runner.app
 UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools \
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 just verify-live mode=direct

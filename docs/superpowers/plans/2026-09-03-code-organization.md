@@ -8,6 +8,9 @@
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
+当前状态：2026-09-05，阶段 00–13 实现、阶段验证及独立复审已完成；本次文档提交作为最终候选，
+阶段 14 的完整验收结果保存在仓库外并绑定该提交，不在本文件预填最终 PASS。
+
 ## 1. 不可变条件
 
 - `ubaa_old/`、`examples/`、`.env.local`、运行会话、验证码、真实响应与凭据只读且不得暂存。
@@ -20,7 +23,8 @@
   booking 状态、typed 取消资格与同页 authority 再升为 CLI schema v6 和 bridge contract v5；Phase 11G
   的 Cgyy canonical 状态、typed 预约资格/目标和安全收据继续升为 CLI schema v7 和 bridge contract v6；Phase 11H
   的 Cgyy typed 取消资格/目标/已取消证明与 caller-pinned 双回读再升为 CLI schema v8 和 bridge contract v7；磁盘 session
-  版本始终不变。
+  版本始终不变。Phase 11I 的 Ygdk typed 提交提升为 CLI schema v9 / bridge v8；Phase 11J 的 Evaluation
+  typed 批量结果提升为当前 CLI schema v10 / bridge v9。Phase 11K 及之后的机械整理不再改变版本。
 - 机械结构提交与行为敏感提交严格分开；行为阶段必须先有来源对照和预期失败测试。
 - 真实写入不属于本计划；Direct/WebVPN 只读验证串行执行并只保留安全摘要。
 - 阶段 00–01 使用当前已有门禁；从阶段 02 checker 在同一提交中落地后，每个阶段提交前均运行：`just refs`、
@@ -71,10 +75,11 @@
 | 11H | Cgyy 取消资格 | 操作级来源对照与截止时间 RED | `refactor(flutter): typed 化场馆取消资格` | 已提交：来源 `c2e07ae`、实现 `f4e3137`；canonical 同 ID/三态资格、上海四小时截止、prepare/commit 双 fresh、Core 原子路线与单次 non-idempotent 发送、caller-pinned 0-based 列表/详情双回读、strict 已取消证明、schema v8/bridge v7、全量门禁、macOS integration 7 项与独立终审通过；不包含真实写入 |
 | 11I | Ygdk 提交资格 | 操作级来源对照与输入完整性 RED | `refactor(flutter): typed 化阳光打卡资格` | 已提交：`d8484ad`；Core fresh typed authority、expected-route 原子提交、单次 upload/final、caller-pinned 双回读、schema v9/bridge v8、全量门禁、macOS integration 7 项与独立终审通过；不包含真实写入 |
 | 11J | Evaluation 提交资格 | 操作级来源对照、待评状态及冲突行去重 RED | `refactor(flutter): typed 化评教提交资格` | 来源 `50bcb60`、实现 `4b0dcb0`；完整 Rust/Flutter/FRB、macOS integration 与独立审查修复通过 |
-| 11K | 唯一 WriteCoordinator | 生产 UI 双状态机、通知重入与命令能力 RED | `refactor(flutter): 统一写入状态机` | 完整 Rust、Flutter 374 项、FRB、macOS integration 7 项、本机三平台产物、OHOS API26 及独立复审通过，随本阶段提交；[细化计划](2026-09-05-write-coordinator.md) |
-| 12 | Flutter UI 纯移动 | 行为阶段全绿、widgets baseline 仍存在 | `refactor(ui): 按页面与领域拆分组件` | 待执行 |
-| 13 | 信息架构收口 | baseline 空、最终目录清单 | `docs: 收口代码组织状态与证据` | 待执行 |
-| 14 | 最终候选与远端证据 | 全部门禁、live、native、API26 | `docs: 记录最终 HEAD 验证证据` | 待执行 |
+| 11K | 唯一 WriteCoordinator | 生产 UI 双状态机、通知重入与命令能力 RED | `refactor(flutter): 统一写入状态机` | 已提交 `b6ff2c7`；完整 Rust、Flutter 374 项、FRB、macOS integration 7 项、本机三平台产物、OHOS API26 及独立复审通过；[细化计划](2026-09-05-write-coordinator.md) |
+| 12 | Flutter UI 纯移动 | 行为阶段全绿、widgets baseline 仍存在 | `refactor(ui): 按页面与领域拆分组件` | 已提交 `1f63127e`；完整 Rust、Flutter 374 项、FRB、macOS integration 复跑 7 项、独立复审通过；27 行入口、21 part、23 类/295 成员 AST 等价，26 张 golden 不变 |
+| 12B | Core 入口职责整理 | 两个入口仍混入具体 HTTP/Reqwest 实现 | `refactor(core): 精简 HTTP 与端口入口` | 已提交 `7202fcf9`；7 组源码/测试块逐字相同，定向及全量门禁通过；[来源对照](../../migration/source-parity-entry-modules.md) |
+| 13 | 信息架构收口 | baseline 空、最终目录清单 | `docs: 收口代码组织状态与证据` | 随本次候选提交完成；493 文件、135 目录零违例，实际目录/职责/开发定位/命令已复核；独立审查发现的集成 cwd 与产物检查遗漏均已修正 |
+| 14 | 最终候选与远端证据 | 全部门禁、live、native、API26 | 仓库外验收记录与最终交付消息 | 候选提交后执行；不为回填 PASS 另建未经同等验证的提交 |
 
 ## 3. 详细任务
 
@@ -390,20 +395,28 @@ pending 类型留在 `write/mod.rs`，prepare、commit、验证/映射 helper �
 RED：覆盖 prepare、cancel、confirm once、重复确认、过期、commit 异常、outcome unknown、不自动重试、Cgyy
 receipt/readback、领域刷新、刷新失败和 dispose 中断；证明生产 UI 目前未使用现有 controller。
 
-实现：把现有 `WriteFlowController` 演进为 `write/{coordinator,state,receipt_verifier}.dart`，生产 AppController/UI
-只持有一个 coordinator 和 immutable state；删除 `_pendingWrite/_writeError/_writeSubmitting` 等第二套状态。
+实现：把现有 `WriteFlowController` 演进为 app 的 `write/{coordinator,receipt_verifier}.dart`；immutable
+`WriteState/WriteOutcome` 属于 domain 的 `write/state.dart`。AppController 持有唯一 coordinator，UI 消费
+其状态与安全命令；删除 `_pendingWrite/_writeError/_writeSubmitting` 等第二套状态。
 
 ### 阶段 12：UI 纯拆分
 
 只移动已经稳定的实现：
 
-- app：splash、login、shell、profile。
-- common：detail fields、pagination、error card。
+- app：splash、login、shell、home、profile。
+- common：feature detail、query controls、detail list、detail fields、pagination、error card。
 - features：academic、assignments、bykc、libbook、cgyy、ygdk、evaluation。
-- write：forms、confirmation。
+- write：cgyy form、ygdk form、confirmation。
 
 `widgets.dart` 只保留 library/part 与公共入口；不得修改任何逻辑表达式、回调顺序、文案、key、semantics 或
 布局。运行全部 widget/golden/integration，确认 PNG 无变化并从 baseline 删除 widgets.dart。
+
+### 阶段 12B：Core 入口职责整理
+
+完成 UI 后独立提交最小机械整理：`features/mod.rs` 的共享 HTTP 函数原样移到 `features/http.rs`，
+原内部调用路径与可见性保留；`ports/mod.rs` 留存 DTO/trait，把具体 Reqwest adapter、缓冲预算与既有
+3 个测试原样移到 `ports/reqwest_transport.rs`。来源对照先于生产移动，逐块原文比较与定向行为测试
+证明等价，不引入新的协议、通用抽象或公开边界。
 
 ### 阶段 13：信息架构收口
 
