@@ -178,17 +178,20 @@ dry_run_recipe() {
   fi
 }
 for cwd in "$repo_root" "$repo_root/apps/ubaa-cli" "$outside"; do
-  refs_dry_run=$(dry_run_recipe "$cwd" refs)
-  bootstrap_dry_run=$(dry_run_recipe "$cwd" refs-bootstrap)
-  sensitive_dry_run=$(dry_run_recipe "$cwd" check-sensitive)
-  flutter_dry_run=$(dry_run_recipe "$cwd" flutter-check)
-  preflight_dry_run=$(dry_run_recipe "$cwd" release-preflight)
-  [[ $refs_dry_run == *'scripts/check/references.sh'* ]]
-  [[ $refs_dry_run != *'bootstrap/references.sh'* ]]
-  [[ $bootstrap_dry_run == *'scripts/bootstrap/references.sh'* ]]
-  [[ $sensitive_dry_run == *'scripts/check/sensitive.sh'* ]]
-  [[ $flutter_dry_run == *'scripts/check/flutter-workspace.sh'* ]]
-  [[ $preflight_dry_run == *'scripts/release/preflight.sh'* ]]
+  refs_dry_run=$(dry_run_recipe "$cwd" refs 2>&1)
+  bootstrap_dry_run=$(dry_run_recipe "$cwd" refs-bootstrap 2>&1)
+  sensitive_dry_run=$(dry_run_recipe "$cwd" check-sensitive 2>&1)
+  flutter_dry_run=$(dry_run_recipe "$cwd" flutter-check 2>&1)
+  preflight_dry_run=$(dry_run_recipe "$cwd" release-preflight 2>&1)
+  if ! [[ $refs_dry_run == *'scripts/check/references.sh'* &&
+    $refs_dry_run != *'bootstrap/references.sh'* &&
+    $bootstrap_dry_run == *'scripts/bootstrap/references.sh'* &&
+    $sensitive_dry_run == *'scripts/check/sensitive.sh'* &&
+    $flutter_dry_run == *'scripts/check/flutter-workspace.sh'* &&
+    $preflight_dry_run == *'scripts/release/preflight.sh'* ]]; then
+    printf 'recipe dry-run 输出未满足副作用边界：%s\n' "$cwd" >&2
+    exit 1
+  fi
 done
 grep -F 'scripts/check/references.sh' "$repo_root/scripts/release/preflight.sh" >/dev/null
 if grep -F 'bootstrap/references.sh' "$repo_root/scripts/release/preflight.sh" >/dev/null; then
