@@ -69,8 +69,9 @@ jobs:
         run: just check-sensitive
       - name: 运行 Rust 与 Shell 确定性门禁
         run: just check
-      - name: 检查官方 Flutter packages 与 app
-        run: just flutter-check
+      - name: 安装 FRB 生成所需的锁定 Dart 依赖
+        working-directory: packages/ubaa_bindings
+        run: flutter pub get --enforce-lockfile
       - name: 检查 FRB 生成零漂移
         env:
           CARGO_INCREMENTAL: 0
@@ -84,6 +85,35 @@ jobs:
           name: ubaa-release-preflight-${{ github.run_id }}
           path: ${{ runner.temp }}/ubaa-release-report
           if-no-files-found: error
+          retention-days: 14
+
+  flutter-contracts:
+    # 既有 golden 使用 macOS 渲染；完整测试固定同类宿主，保持逐像素比较。
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: taiki-e/install-action@just
+      - name: 安装固定官方 Flutter SDK
+        shell: bash
+        run: |
+          flutter_root="$RUNNER_TEMP/flutter"
+          git init "$flutter_root"
+          git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
+          git -C "$flutter_root" fetch --depth=1 origin refs/tags/3.41.9:refs/tags/3.41.9
+          git -C "$flutter_root" checkout --detach 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
+          printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
+          printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
+          export UBAA_FLUTTER_HOME="$flutter_root"
+          bash ./scripts/check/flutter-toolchains.sh official
+      - name: 检查完整 Flutter 工作区与原始视觉基线
+        run: just flutter-check
+      - name: 保存失败的脱敏视觉差异
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ubaa-flutter-golden-diffs-${{ github.run_id }}
+          path: packages/ubaa_ui/test/failures/*.png
+          if-no-files-found: ignore
           retention-days: 14
 
   rust-platforms:
