@@ -39,7 +39,10 @@ output=$(UBAA_ENV_FILE="$test_root/.env.local" \
   "$test_root/scripts/live/verify.sh" mode=webvpn feature=cgyy date=2026-08-31 campus-id=2 2>"$test_root/stderr")
 [[ $output == *'route=webvpn feature=cgyy'* ]]
 [[ $output == *'stdin_lines=2'* ]]
-! grep -F 'test-password' "$test_root/stderr"
+if grep -F 'test-password' "$test_root/stderr" >/dev/null; then
+  printf '%s\n' '启动器诊断泄露了测试密码' >&2
+  exit 1
+fi
 grep -F 'argv=route=webvpn feature=cgyy date=2026-08-31 campus-id=2' "$test_root/stderr" >/dev/null
 
 if UBAA_ENV_FILE="$test_root/.env.local" \

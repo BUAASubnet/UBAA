@@ -191,7 +191,10 @@ for cwd in "$repo_root" "$repo_root/apps/ubaa-cli" "$outside"; do
   [[ $preflight_dry_run == *'scripts/release/preflight.sh'* ]]
 done
 grep -F 'scripts/check/references.sh' "$repo_root/scripts/release/preflight.sh" >/dev/null
-! grep -F 'bootstrap/references.sh' "$repo_root/scripts/release/preflight.sh" >/dev/null
+if grep -F 'bootstrap/references.sh' "$repo_root/scripts/release/preflight.sh" >/dev/null; then
+  printf '%s\n' 'release preflight 不得调用引用 bootstrap' >&2
+  exit 1
+fi
 
 bootstrap_line=$(grep -n 'just refs-bootstrap' "$repo_root/.github/workflows/ci.yml" | head -n 1 | cut -d: -f1)
 refs_line=$(grep -n 'just refs$' "$repo_root/.github/workflows/ci.yml" | head -n 1 | cut -d: -f1)

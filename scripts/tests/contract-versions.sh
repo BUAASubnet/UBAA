@@ -50,6 +50,8 @@ new_fixture() {
   printf '%s\n' \
     '{"properties":{"schemaVersion":{"const":10}}}' \
     >"$fixture/docs/contracts/cli-json.schema.json"
+  # Markdown 反引号属于文档样例，不执行命令替换。
+  # shellcheck disable=SC2016
   printf '%s\n' \
     '合同版本为 `9`' \
     '| `contractVersion` | 无 | `u32=9` |' \
@@ -86,6 +88,7 @@ new_fixture() {
     >"$fixture/docs/development/engineering-standards.md"
   printf '%s\n' 'schema-v10 envelope' \
     >"$fixture/docs/runbooks/live-auth-verification.md"
+  # shellcheck disable=SC2016
   printf '%s\n' '当前 CLI schema-v10 的 `error` envelope' \
     >"$fixture/packages/ubaa_platform/README.md"
   printf '%s\n' '当前 CLI envelope 只使用 schema v10' \

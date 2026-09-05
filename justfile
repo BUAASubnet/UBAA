@@ -56,7 +56,7 @@ contract-version-check:
 # 检查仓库候选 Shell，显式排除锁定 Cargokit；路径全程使用 NUL 分隔。
 shell-check:
     git ls-files --cached --others --exclude-standard -z -- '*.sh' | while IFS= read -r -d '' script; do [[ -f "$script" ]] || continue; case "$script" in packages/ubaa_bindings/cargokit/*) continue ;; esac; bash -n "$script"; done
-    if command -v shellcheck >/dev/null 2>&1; then git ls-files --cached --others --exclude-standard -z -- '*.sh' | while IFS= read -r -d '' script; do [[ -f "$script" ]] || continue; case "$script" in packages/ubaa_bindings/cargokit/*) continue ;; esac; shellcheck "$script"; done; else printf '%s\n' 'SKIP: ShellCheck 未执行（当前环境未安装）'; fi
+    if command -v shellcheck >/dev/null 2>&1; then git ls-files --cached --others --exclude-standard -z -- '*.sh' | while IFS= read -r -d '' script; do [[ -f "$script" ]] || continue; case "$script" in packages/ubaa_bindings/cargokit/*) continue ;; esac; shellcheck -x -P SCRIPTDIR "$script"; done; else printf '%s\n' 'SKIP: ShellCheck 未执行（当前环境未安装）'; fi
 
 # 生成不含签名、账号或真实响应的无签名 RC 依赖/源码校验报告。
 release-preflight report_dir="":

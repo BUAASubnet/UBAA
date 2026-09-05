@@ -60,6 +60,8 @@ else
   cleanup_config=no
 fi
 
+# 此函数由下方 EXIT trap 间接调用。
+# shellcheck disable=SC2329
 cleanup_config_dir() {
   if [[ ${cleanup_config:-no} == yes && -n ${config_dir:-} ]]; then
     rm -rf -- "$config_dir" || true

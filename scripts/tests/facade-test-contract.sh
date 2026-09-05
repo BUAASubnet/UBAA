@@ -22,6 +22,8 @@ if CARGO_TARGET_DIR="$repo_root/target" CARGO_TERM_COLOR=never cargo check --loc
   exit 1
 fi
 
+# 编译诊断中的反引号属于正则匹配文本。
+# shellcheck disable=SC2016
 if ! grep -Eq 'could not find `?testing`? in `?facade`?|no `?testing`? in `?facade`?' "$off_log"; then
   printf '%s\n' '错误：feature-off 夹具并非因 facade 测试注入面关闭而失败' >&2
   sed -n '1,120p' "$off_log" >&2
