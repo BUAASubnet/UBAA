@@ -70,7 +70,7 @@ else
   else
     fail "Flutter OH tag 不匹配：期望 ${expected_flutter_tag}，实际 ${actual_tag:-未知}"
   fi
-  flutter_version=$($flutter_root/bin/flutter --version 2>&1 | head -n 1 || true)
+  flutter_version=$("$flutter_root/bin/flutter" --version 2>&1 | head -n 1 || true)
   if [[ "$flutter_version" == *"$expected_flutter_tag"* ]]; then
     pass "$flutter_version"
   else
@@ -132,7 +132,7 @@ else
 fi
 
 if [[ -x "$node_home/bin/node" ]]; then
-  node_version=$($node_home/bin/node --version 2>/dev/null || true)
+  node_version=$("$node_home/bin/node" --version 2>/dev/null || true)
   pass "Node 可用：${node_version:-未知版本}"
 else
   fail "DevEco Node 不可用：$node_home/bin/node"
