@@ -270,6 +270,137 @@ void main() {
     expect(incomplete.hasCanonicalTarget, isFalse);
   });
 
+  test('评教 action 只允许 Core 给出的完整 typed 目标且 selection key 覆盖教师', () {
+    const target = EvaluationSubmitTarget(
+      rwid: 'task|safe',
+      wjid: 'questionnaire:safe',
+      kcdm: 'course-safe',
+      bpdm: 'teacher-safe',
+    );
+    const sameTarget = EvaluationSubmitTarget(
+      rwid: 'task|safe',
+      wjid: 'questionnaire:safe',
+      kcdm: 'course-safe',
+      bpdm: 'teacher-safe',
+    );
+    const otherTeacher = EvaluationSubmitTarget(
+      rwid: 'task|safe',
+      wjid: 'questionnaire:safe',
+      kcdm: 'course-safe',
+      bpdm: 'teacher-other',
+    );
+    const shiftedSeparator = EvaluationSubmitTarget(
+      rwid: 'task',
+      wjid: 'safe|questionnaire:safe',
+      kcdm: 'course-safe',
+      bpdm: 'teacher-safe',
+    );
+    const emptyTeacher = EvaluationSubmitTarget(
+      rwid: 'task|safe',
+      wjid: 'questionnaire:safe',
+      kcdm: 'course-safe',
+      bpdm: '',
+    );
+    const missingTeacher = EvaluationSubmitTarget(
+      rwid: 'task|safe',
+      wjid: 'questionnaire:safe',
+      kcdm: 'course-safe',
+    );
+
+    expect(target.selectionKey, sameTarget.selectionKey);
+    expect(target.selectionKey, isNot(otherTeacher.selectionKey));
+    expect(target.selectionKey, isNot(shiftedSeparator.selectionKey));
+    expect(emptyTeacher.selectionKey, missingTeacher.selectionKey);
+    expect(target.hasRequiredIdentity, isTrue);
+    expect(
+      const EvaluationSubmitTarget(
+        rwid: ' ',
+        wjid: 'questionnaire-safe',
+        kcdm: 'course-safe',
+      ).hasRequiredIdentity,
+      isFalse,
+    );
+
+    const allowed = EvaluationSubmitAction(
+      eligibility: ActionEligibility.allowed,
+      target: target,
+    );
+    const denied = EvaluationSubmitAction(
+      eligibility: ActionEligibility.denied,
+      target: target,
+    );
+    const unknown = EvaluationSubmitAction(
+      eligibility: ActionEligibility.unknown,
+      target: target,
+    );
+    const missing = EvaluationSubmitAction(
+      eligibility: ActionEligibility.allowed,
+      target: null,
+    );
+
+    expect(allowed.operation, WriteOperation.evaluationSubmitCourses);
+    expect(allowed.hasCanonicalTarget, isTrue);
+    expect(denied.hasCanonicalTarget, isFalse);
+    expect(unknown.hasCanonicalTarget, isFalse);
+    expect(missing.hasCanonicalTarget, isFalse);
+  });
+
+  test('评教批量结果完整保留四态逐项结果并进入通用提交结果', () {
+    const first = EvaluationSubmitTarget(
+      rwid: 'task-1',
+      wjid: 'questionnaire-1',
+      kcdm: 'course-1',
+    );
+    const second = EvaluationSubmitTarget(
+      rwid: 'task-2',
+      wjid: 'questionnaire-2',
+      kcdm: 'course-2',
+      bpdm: 'teacher-2',
+    );
+    const batch = EvaluationBatchResult(
+      items: <EvaluationCourseResult>[
+        EvaluationCourseResult(
+          target: first,
+          courseName: '课程一',
+          outcome: EvaluationCourseOutcome.success,
+          message: '已提交',
+        ),
+        EvaluationCourseResult(
+          target: second,
+          courseName: '课程二',
+          outcome: EvaluationCourseOutcome.outcomeUnknown,
+          message: '结果待核对',
+        ),
+      ],
+      success: false,
+      outcomeUnknown: true,
+    );
+    const result = WriteCommitResult(
+      operation: WriteOperation.evaluationSubmitCourses,
+      success: false,
+      message: '部分结果待核对',
+      outcomeUnknown: true,
+      evaluationResult: batch,
+    );
+
+    expect(EvaluationCourseOutcome.values, <EvaluationCourseOutcome>[
+      EvaluationCourseOutcome.success,
+      EvaluationCourseOutcome.failure,
+      EvaluationCourseOutcome.outcomeUnknown,
+      EvaluationCourseOutcome.unattempted,
+    ]);
+    expect(result.evaluationResult, same(batch));
+    expect(result.evaluationResult?.items, hasLength(2));
+    expect(
+      result.evaluationResult?.items.last.outcome,
+      EvaluationCourseOutcome.outcomeUnknown,
+    );
+    expect(
+      result.evaluationResult?.items.last.target.selectionKey,
+      second.selectionKey,
+    );
+  });
+
   test('详情可按类型稳定查找 action，缺失时默认为空', () {
     const action = BykcSelectAction(
       courseId: 42,

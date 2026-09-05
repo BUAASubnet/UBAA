@@ -11,7 +11,7 @@
 | 类型 | 提交 | 含义 |
 |---|---|---|
 | committed implementation HEAD | `d8484ad` | 代码组织阶段 11I：Ygdk typed authority/request、expected-route 原子写链、单次 upload/final 与 caller-pinned 双回读已实现并通过本地确定性门禁；CLI schema v9、bridge v8；不表示真实写入已验证 |
-| implementation worktree | 未提交 | 阶段 11J 仅在记录 Evaluation 两份冻结来源的逐操作差异与 typed 批量提交设计；生产实现尚未改变 |
+| implementation candidate | 本阶段提交 | 阶段 11J 已实现 Evaluation typed target、批量四态结果、expected-route 提交与 caller-pinned 回读；本地确定性门禁、FRB 零漂移、macOS integration 与独立审查修复已通过 |
 | verified HEAD | `4eaf1dd` | 完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI 绑定的已验证提交 |
 | evidence HEAD | `11a2969` | 对 `4eaf1dd` 最终无签名门禁和发布证据的最后一次状态固化；不表示签名、设备或真实写入已完成 |
 
@@ -19,17 +19,17 @@
 [实施计划](../superpowers/plans/2026-09-03-code-organization.md) 为权威。结构治理提交在阶段 14 绑定新的
 verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
-当前公开版本为 CLI JSON schema v9；Flutter bridge contract v8。两者已在 `d8484ad` 取得阶段 11I 的本地
-全量确定性门禁和独立终审结论，尚未取得最终候选绑定。阶段 11J 的破坏性合同升级尚未实施。
+当前工作树公开版本为 CLI JSON schema v10；Flutter bridge contract v9。已提交的 `d8484ad` 仍是阶段 11I 的
+schema v9/bridge v8 本地确定性证据；当前版本对为 CLI schema v10、bridge v9。Phase 11J 本地门禁已完成，最终候选、原生平台与实时证据仍由阶段 14 重新绑定。
 
 ## 当前能力
 
 | 能力 | 实现状态 | 当前证据 | 结论 |
 |---|---|---|---|
-| Rust Core/facade | 阶段 11H 基线已实现；当前工作树新增 Ygdk generation guard、typed authority 与 expected-route 原子写链 | Phase 11I Core 364 项及完整 `just check` 已通过 | 本地确定性实现已闭合；阶段提交与最终候选绑定待完成 |
-| CLI | schema v9 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已进入当前工作树；磁盘 `session.json` 仍为 schema v2 | Phase 11I CLI 116 项、schema 合同与 binary E2E 已通过 | 本地确定性实现已闭合；阶段提交与最终候选绑定待完成 |
+| Rust Core/facade | Evaluation fresh typed authority、批量四态结果与 expected-route/caller-pinned 链路已实现 | Core 默认与 test-contract 两种配置、架构合同与完整 `just check` 通过 | 本地阶段通过；最终候选绑定待完成 |
+| CLI | schema v10 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | binary E2E 16 项、CLI contract 94 项及完整工作区门禁通过 | 本地阶段通过；最终候选绑定待完成 |
 | 用户中心与十二项业务读取 | Core/CLI/FRB/Flutter typed 链路与页面已实现 | `4eaf1dd` 的 Direct/WebVPN Core-live 全量读取均退出码 0；页面/查询/widget/integration 使用脱敏 backend 验证 | Core 实时只读已验证；真实 App 账号链路未验证 |
-| 十项用户可见写入 | 当前工作树已闭合 Ygdk typed authority、原子固定路线、单次 upload/final 与 caller-pinned 回读 | Fixture/Mock/向量、Rust/Dart/app/widget 与 macOS 脱敏宿主 integration 全量门禁 | 本地确定性实现全绿；本周期未执行真实写入，不构成真实上游写入证据 |
+| 十项用户可见写入 | Evaluation typed target、批量顺序/停止规则及原路线回读已闭合 | Bridge 108 项、Flutter 跨层完整门禁与 macOS integration 7 项通过 | 本地阶段通过；本周期未执行真实写入 |
 | Windows/Linux/macOS/Android/iOS | 官方 Flutter 共享应用与原生宿主已实现 | Flutter CI `33628444289` 的五个无签名 Debug job；合同 CI `33628444204` | 无签名构建/结构证据通过，不是签名或设备证据 |
 | HarmonyOS | 锁定 OHOS fork、API26 runner、arm64 Rust bridge 与无签名 HAP 已实现 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 在 `4eaf1dd` 通过 | 无签名静态/包结构通过，不是签名 HAP 或设备证据 |
 | 发布准备 | SBOM、锁文件/许可证审计、产物结构检查和回滚 runbook 已实现 | `just release-preflight` 与发布 runbook | 无签名 RC 准备已验证，不是正式发布 |
@@ -127,6 +127,12 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
   FRB 零漂移、完整 `just flutter-check`、敏感信息扫描和独立终审均通过。结构拆分后除 Phase 12 待处理的
   `widgets.dart` 精确 baseline 外没有其它超长文件或拥挤目录。本阶段未执行真实照片上传或账号写入，不包含
   签名、实体设备或真实写后核对。
+- 阶段 11J 完成 Evaluation typed 提交链，CLI schema v10、bridge v9。独立审查补齐冲突课程行仍参与同目标
+  去重的 RED/GREEN，并修复架构门禁沿实际 `mod`/`#[path]` 声明识别领域测试的缺口；未引用测试文件不作证据。
+  Core 单元 215 项双配置、架构合同 22 项、Evaluation 集成 20 项、CLI binary E2E 16 项、CLI contract 94 项、
+  Bridge 108 项、Flutter Domain 18、Platform 42、App 111、UI 91、Bindings 15、Host 15、官方 App 2 项与
+  macOS 脱敏 integration 7 项通过。refs、layout、敏感扫描、完整 `just check`、完整 `just flutter-check`、
+  FRB 零漂移与差异检查通过；不将此本地阶段证据视为阶段 14 的最终候选或真实写入证据。
 - `4eaf1dd` 上的 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
   `just flutter-check`、`just release-preflight` 与 `git diff --check` 均有通过记录。
 - 同一 verified HEAD 的 Direct 与 WebVPN Core-live 在营业窗口内串行运行，认证、用户、课表、考试、成绩、
@@ -143,7 +149,7 @@ verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
 
 ## 未验证
 
-- 阶段 11I 已由 `d8484ad` 完成本地确定性门禁；阶段 11J–14 未完成，当前结构治理仍未形成新的 verified HEAD。
+- 阶段 11J 已完成本地确定性门禁；阶段 11K–14 未完成，当前结构治理仍未形成新的 verified HEAD。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

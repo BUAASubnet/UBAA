@@ -8,6 +8,7 @@
     clippy::similar_names
 )]
 
+mod evaluation;
 mod mappers;
 mod methods;
 
@@ -601,30 +602,21 @@ pub struct BridgeCgyyLockCode {
     pub available: bool,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct BridgeEvaluationSubmitTarget {
+    pub rwid: String,
+    pub wjid: String,
+    pub kcdm: String,
+    pub bpdm: Option<String>,
+}
 #[derive(Clone, Debug)]
 pub struct BridgeEvaluationCourse {
     pub id: String,
     pub kcmc: String,
     pub bpmc: String,
     pub is_evaluated: bool,
-    pub rwid: String,
-    pub wjid: String,
-    pub kcdm: String,
-    pub bpdm: Option<String>,
-    pub pjrdm: Option<String>,
-    pub pjrmc: Option<String>,
-    pub xnxq: Option<String>,
-    pub msid: String,
-    pub zdmc: Option<String>,
-    pub ypjcs: Option<i32>,
-    pub xypjcs: Option<i32>,
-    pub sxz: Option<String>,
-    pub rwh: Option<String>,
-    pub xn: Option<String>,
-    pub xq: Option<String>,
-    pub pjlxid: Option<String>,
-    pub sfksqbpj: Option<String>,
-    pub yxsfktjst: Option<String>,
+    pub submit_eligibility: BridgeActionEligibility,
+    pub submit_target: Option<BridgeEvaluationSubmitTarget>,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeEvaluationProgress {
@@ -636,6 +628,12 @@ pub struct BridgeEvaluationProgress {
 pub struct BridgeEvaluationCoursesResponse {
     pub courses: Vec<BridgeEvaluationCourse>,
     pub progress: BridgeEvaluationProgress,
+}
+/// 调用方固定路线的评教课程结果；不表示 Core 重新执行了 Auto 探测。
+#[derive(Clone, Debug)]
+pub struct BridgeCallerPinnedEvaluation {
+    pub data: BridgeEvaluationCoursesResponse,
+    pub pinned_route: super::client::BridgeConnectionMode,
 }
 
 routed!(BridgeRoutedTerms, Vec<BridgeTerm>);
@@ -679,3 +677,6 @@ routed!(BridgeRoutedCgyyOrders, BridgeCgyyOrdersPage);
 routed!(BridgeRoutedCgyyOrder, BridgeCgyyOrder);
 routed!(BridgeRoutedCgyyLockCode, BridgeCgyyLockCode);
 routed!(BridgeRoutedEvaluation, BridgeEvaluationCoursesResponse);
+
+#[cfg(test)]
+mod tests;

@@ -510,46 +510,6 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('教学评教写意图只接受待评课程且至少一门', () async {
-    final backend = _EvaluationWriteBackend();
-    final controller = AppController(backend: backend);
-    final intent = await controller
-        .prepareEvaluationWrite(const <EvaluationCourseInput>[
-          EvaluationCourseInput(
-            id: 'course-1',
-            kcmc: '课程',
-            bpmc: '教师',
-            rwid: 'task-1',
-            wjid: 'questionnaire-1',
-            kcdm: 'K1',
-            msid: 'M1',
-          ),
-        ]);
-    expect(intent.operation, WriteOperation.evaluationSubmitCourses);
-    expect(backend.courses.single.id, 'course-1');
-    expect(backend.commitCalls, 0);
-    await expectLater(
-      controller.prepareEvaluationWrite(const <EvaluationCourseInput>[]),
-      throwsA(isA<BackendException>()),
-    );
-    await expectLater(
-      controller.prepareEvaluationWrite(const <EvaluationCourseInput>[
-        EvaluationCourseInput(
-          id: 'done',
-          kcmc: '课程',
-          bpmc: '教师',
-          isEvaluated: true,
-          rwid: 'task-1',
-          wjid: 'questionnaire-1',
-          kcdm: 'K1',
-          msid: 'M1',
-        ),
-      ]),
-      throwsA(isA<BackendException>()),
-    );
-    controller.dispose();
-  });
-
   test('写入成功核对只刷新对应读取领域', () async {
     final backend = _BykcWriteBackend();
     final controller = AppController(backend: backend);
@@ -572,7 +532,8 @@ void _registerWriteTests() {
         expect(backend.queries.single.$1, FeatureId.cgyy);
         expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
       } else if (operation == WriteOperation.cgyyCancelOrder ||
-          operation == WriteOperation.ygdkSubmit) {
+          operation == WriteOperation.ygdkSubmit ||
+          operation == WriteOperation.evaluationSubmitCourses) {
         expect(backend.loadedFeatures, isEmpty);
         expect(backend.queries, isEmpty);
       } else if (operation == WriteOperation.libbookReserve ||
@@ -929,5 +890,7 @@ FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
   WriteOperation.ygdkSubmit => FeatureId.ygdk,
   WriteOperation.cgyySubmitReservation ||
   WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
-  WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+  WriteOperation.evaluationSubmitCourses => throw StateError(
+    '评教使用调用方固定路线回读，不走通用刷新',
+  ),
 };

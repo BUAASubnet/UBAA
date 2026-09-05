@@ -2,9 +2,8 @@
 
 use crate::connection::RouteResolution;
 use crate::domain::{
-    BykcActionResult, BykcSignRequest, ConnectionMode, EvaluationCourse, EvaluationResult,
-    ReadonlyFeature, SigninActionResult, YgdkClockinSubmitRequest, YgdkClockinSubmitResult,
-    YgdkSubmitPreflight,
+    BykcActionResult, BykcSignRequest, ConnectionMode, ReadonlyFeature, SigninActionResult,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkSubmitPreflight,
 };
 
 use super::super::client::UbaaClient;
@@ -12,42 +11,6 @@ use super::super::routing::{invalid_input, routed_error};
 use super::super::types::{Operation, RoutedError, RoutedResult};
 
 impl UbaaClient {
-    /// 提交由宿主构造的评教结果列表。
-    ///
-    /// # Errors
-    ///
-    /// 会话所有权失效、评教路线不可用或提交失败时返回带路线信息的错误。
-    pub async fn evaluation_submit(
-        &mut self,
-        pjjglist: Vec<serde_json::Value>,
-    ) -> RoutedResult<Vec<EvaluationResult>> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
-        let result = crate::features::evaluation::submit_payload(
-            self.runtime_for(resolution.mode),
-            pjjglist,
-        )
-        .await;
-        self.finish_routed(resolution, result)
-    }
-
-    /// 按冻结问卷链自动构造并提交课程评教。
-    ///
-    /// # Errors
-    ///
-    /// 会话所有权失效、评教路线不可用或问卷提交失败时返回带路线信息的错误。
-    pub async fn evaluation_submit_courses(
-        &mut self,
-        courses: Vec<EvaluationCourse>,
-    ) -> RoutedResult<Vec<EvaluationResult>> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
-        let result =
-            crate::features::evaluation::submit_courses(self.runtime_for(resolution.mode), courses)
-                .await;
-        self.finish_routed(resolution, result)
-    }
-
     /// 选择一门博雅课程。
     ///
     /// # Errors

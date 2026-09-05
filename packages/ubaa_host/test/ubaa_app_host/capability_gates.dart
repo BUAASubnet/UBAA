@@ -59,6 +59,22 @@ void _registerCapabilityGateTests() {
     }
   });
 
+  testWidgets('共享宿主在评教 backend 缺少写入或回读任一接口时成对关闭', (tester) async {
+    for (final backend in <UbaaBackend>[
+      _HostEvaluationWriteOnlyBackend(),
+      _HostEvaluationReadbackOnlyBackend(),
+    ]) {
+      await tester.pumpWidget(
+        UbaaAppHost(key: UniqueKey(), backend: backend, initialTab: 2),
+      );
+      await tester.pumpAndSettle();
+
+      final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+      expect(shell.onPrepareEvaluationWrite, isNull);
+      expect(shell.onRefreshEvaluationAfterWrite, isNull);
+    }
+  });
+
   testWidgets('共享宿主把提交异常隔离为 domain UiError', (tester) async {
     final backend = _RecordingBackend()..signedIn = true;
     await tester.pumpWidget(UbaaAppHost(backend: backend));

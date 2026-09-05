@@ -101,8 +101,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeEvaluationBatchResult
+  dco_decode_box_autoadd_bridge_evaluation_batch_result(dynamic raw);
+
+  @protected
   BridgeEvaluationSubmitCoursesRequest
   dco_decode_box_autoadd_bridge_evaluation_submit_courses_request(dynamic raw);
+
+  @protected
+  BridgeEvaluationSubmitTarget
+  dco_decode_box_autoadd_bridge_evaluation_submit_target(dynamic raw);
 
   @protected
   BridgeLibbookCancelBookingRequest
@@ -196,6 +204,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCallerPinnedCgyyOrders dco_decode_bridge_caller_pinned_cgyy_orders(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCallerPinnedEvaluation dco_decode_bridge_caller_pinned_evaluation(
     dynamic raw,
   );
 
@@ -298,7 +311,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeErrorKind dco_decode_bridge_error_kind(dynamic raw);
 
   @protected
+  BridgeEvaluationBatchResult dco_decode_bridge_evaluation_batch_result(
+    dynamic raw,
+  );
+
+  @protected
   BridgeEvaluationCourse dco_decode_bridge_evaluation_course(dynamic raw);
+
+  @protected
+  BridgeEvaluationCourseOutcome dco_decode_bridge_evaluation_course_outcome(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeEvaluationCourseResult dco_decode_bridge_evaluation_course_result(
+    dynamic raw,
+  );
 
   @protected
   BridgeEvaluationCoursesResponse dco_decode_bridge_evaluation_courses_response(
@@ -311,6 +339,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationSubmitCoursesRequest
   dco_decode_bridge_evaluation_submit_courses_request(dynamic raw);
+
+  @protected
+  BridgeEvaluationSubmitTarget dco_decode_bridge_evaluation_submit_target(
+    dynamic raw,
+  );
 
   @protected
   BridgeExam dco_decode_bridge_exam(dynamic raw);
@@ -688,6 +721,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeEvaluationCourseResult>
+  dco_decode_list_bridge_evaluation_course_result(dynamic raw);
+
+  @protected
+  List<BridgeEvaluationSubmitTarget>
+  dco_decode_list_bridge_evaluation_submit_target(dynamic raw);
+
+  @protected
   List<BridgeExam> dco_decode_list_bridge_exam(dynamic raw);
 
   @protected
@@ -798,6 +839,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeConnectionMode? dco_decode_opt_box_autoadd_bridge_connection_mode(
     dynamic raw,
   );
+
+  @protected
+  BridgeEvaluationBatchResult?
+  dco_decode_opt_box_autoadd_bridge_evaluation_batch_result(dynamic raw);
+
+  @protected
+  BridgeEvaluationSubmitTarget?
+  dco_decode_opt_box_autoadd_bridge_evaluation_submit_target(dynamic raw);
 
   @protected
   BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw);
@@ -924,8 +973,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeEvaluationBatchResult
+  sse_decode_box_autoadd_bridge_evaluation_batch_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeEvaluationSubmitCoursesRequest
   sse_decode_box_autoadd_bridge_evaluation_submit_courses_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationSubmitTarget
+  sse_decode_box_autoadd_bridge_evaluation_submit_target(
     SseDeserializer deserializer,
   );
 
@@ -1053,6 +1114,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCallerPinnedCgyyOrders sse_decode_bridge_caller_pinned_cgyy_orders(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCallerPinnedEvaluation sse_decode_bridge_caller_pinned_evaluation(
     SseDeserializer deserializer,
   );
 
@@ -1185,7 +1251,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeErrorKind sse_decode_bridge_error_kind(SseDeserializer deserializer);
 
   @protected
+  BridgeEvaluationBatchResult sse_decode_bridge_evaluation_batch_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeEvaluationCourse sse_decode_bridge_evaluation_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationCourseOutcome sse_decode_bridge_evaluation_course_outcome(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationCourseResult sse_decode_bridge_evaluation_course_result(
     SseDeserializer deserializer,
   );
 
@@ -1202,6 +1283,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationSubmitCoursesRequest
   sse_decode_bridge_evaluation_submit_courses_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationSubmitTarget sse_decode_bridge_evaluation_submit_target(
     SseDeserializer deserializer,
   );
 
@@ -1707,6 +1793,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeEvaluationCourseResult>
+  sse_decode_list_bridge_evaluation_course_result(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeEvaluationSubmitTarget>
+  sse_decode_list_bridge_evaluation_submit_target(SseDeserializer deserializer);
+
+  @protected
   List<BridgeExam> sse_decode_list_bridge_exam(SseDeserializer deserializer);
 
   @protected
@@ -1841,6 +1935,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeConnectionMode? sse_decode_opt_box_autoadd_bridge_connection_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationBatchResult?
+  sse_decode_opt_box_autoadd_bridge_evaluation_batch_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationSubmitTarget?
+  sse_decode_opt_box_autoadd_bridge_evaluation_submit_target(
     SseDeserializer deserializer,
   );
 
@@ -1980,8 +2086,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_evaluation_batch_result(
+    BridgeEvaluationBatchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_evaluation_submit_courses_request(
     BridgeEvaluationSubmitCoursesRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_evaluation_submit_target(
+    BridgeEvaluationSubmitTarget self,
     SseSerializer serializer,
   );
 
@@ -2132,6 +2250,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_caller_pinned_cgyy_orders(
     BridgeCallerPinnedCgyyOrders self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_caller_pinned_evaluation(
+    BridgeCallerPinnedEvaluation self,
     SseSerializer serializer,
   );
 
@@ -2295,8 +2419,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_evaluation_batch_result(
+    BridgeEvaluationBatchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_evaluation_course(
     BridgeEvaluationCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_course_outcome(
+    BridgeEvaluationCourseOutcome self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_course_result(
+    BridgeEvaluationCourseResult self,
     SseSerializer serializer,
   );
 
@@ -2315,6 +2457,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_evaluation_submit_courses_request(
     BridgeEvaluationSubmitCoursesRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_submit_target(
+    BridgeEvaluationSubmitTarget self,
     SseSerializer serializer,
   );
 
@@ -2925,6 +3073,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_evaluation_course_result(
+    List<BridgeEvaluationCourseResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_evaluation_submit_target(
+    List<BridgeEvaluationSubmitTarget> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_exam(
     List<BridgeExam> self,
     SseSerializer serializer,
@@ -3095,6 +3255,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_connection_mode(
     BridgeConnectionMode? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_evaluation_batch_result(
+    BridgeEvaluationBatchResult? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_evaluation_submit_target(
+    BridgeEvaluationSubmitTarget? self,
     SseSerializer serializer,
   );
 

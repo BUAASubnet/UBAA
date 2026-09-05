@@ -62,7 +62,7 @@ async fn json_login_outputs_one_parseable_redacted_envelope() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&value);
     assert_eq!(value["ok"], true);
-    assert_eq!(value["schemaVersion"], 9);
+    assert_eq!(value["schemaVersion"], 10);
     assert_eq!(value["meta"]["feature"], "auth");
     assert_eq!(value["meta"]["routePolicy"], "direct");
     assert_eq!(value["data"]["schoolId"], "TEST-0001");
@@ -281,7 +281,7 @@ fn cli_json_schema_accepts_empty_libbook_collections() {
 
     assert!(
         validator.is_valid(&value),
-        "合法的图书馆空列表必须符合 CLI schema v9：{value}"
+        "合法的图书馆空列表必须符合 CLI schema v10：{value}"
     );
 }
 
@@ -318,7 +318,7 @@ fn cli_json_schema_accepts_strict_libbook_cancel_result() {
 
     assert!(
         validator.is_valid(&valid),
-        "实际序列化的图书馆取消结果必须符合 CLI schema v9：{valid}"
+        "实际序列化的图书馆取消结果必须符合 CLI schema v10：{valid}"
     );
     assert!(!validator.is_valid(&missing_message));
     assert!(!validator.is_valid(&unexpected_field));
@@ -326,7 +326,7 @@ fn cli_json_schema_accepts_strict_libbook_cancel_result() {
 
 #[test]
 fn cli_json_contract_has_one_schema_version_and_closed_feature_names() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 9);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 10);
 
     let features = [
         CliFeature::Cli,
@@ -372,7 +372,7 @@ fn success_json_envelope_has_version_data_and_resolved_route_metadata() {
     );
     let value = serde_json::to_value(envelope).expect("envelope serializes");
 
-    assert_eq!(value["schemaVersion"], 9);
+    assert_eq!(value["schemaVersion"], 10);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["name"], "Fixture User");
     assert_eq!(
@@ -415,7 +415,7 @@ fn unresolved_routed_failure_has_only_feature_metadata() {
     );
 
     let value = serde_json::to_value(envelope).unwrap();
-    assert_eq!(value["schemaVersion"], 9);
+    assert_eq!(value["schemaVersion"], 10);
     assert_eq!(value["ok"], false);
     assert_eq!(value["meta"], serde_json::json!({"feature": "cli"}));
     assert!(value.get("data").is_none());
@@ -444,7 +444,7 @@ fn aggregate_auth_envelope_requires_direct_then_webvpn_and_has_fixed_meta_routes
     )
     .unwrap();
 
-    assert_eq!(value["schemaVersion"], 9);
+    assert_eq!(value["schemaVersion"], 10);
     assert_eq!(value["ok"], true);
     assert_eq!(
         value["data"]["routes"],
@@ -637,9 +637,16 @@ fn aggregate_auth_constructors_bind_profile_presence_to_route_readiness() {
 
 #[test]
 fn cli_json_schema_contains_no_v1_or_legacy_route_contract() {
-    let schema = include_str!("../../../../docs/contracts/cli-json.schema.json");
+    let schema_source = include_str!("../../../../docs/contracts/cli-json.schema.json");
+    let schema: serde_json::Value = serde_json::from_str(schema_source).unwrap();
+    let contains_schema_v1 = schema["$defs"]
+        .as_object()
+        .unwrap()
+        .values()
+        .filter_map(|definition| definition.pointer("/properties/schemaVersion/const"))
+        .any(|version| version.as_u64() == Some(1));
 
-    assert!(!schema.contains("\"const\": 1"));
-    assert!(!schema.contains("connectionMode"));
-    assert!(!schema.contains("legacyError"));
+    assert!(!contains_schema_v1);
+    assert!(!schema_source.contains("connectionMode"));
+    assert!(!schema_source.contains("legacyError"));
 }

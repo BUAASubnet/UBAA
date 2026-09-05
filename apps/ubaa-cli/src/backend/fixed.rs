@@ -1,7 +1,6 @@
 //! 固定路线 Core adapter。
 
 use async_trait::async_trait;
-use serde_json::Value;
 use ubaa_core::facade::Result;
 use ubaa_core::facade::RouteClient;
 use ubaa_core::facade::{
@@ -9,13 +8,14 @@ use ubaa_core::facade::{
     BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
     CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode,
-    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
-    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
-    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
-    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
-    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    EvaluationBatchResult, EvaluationCoursesResponse, EvaluationSubmitCoursesRequest,
+    ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
+    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail,
+    LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult, LibBookLibrary,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult,
+    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 
 use super::CliBackend;
@@ -183,17 +183,11 @@ impl CliBackend for RouteClient {
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         self.evaluation_all().await
     }
-    async fn evaluation_submit(
-        &mut self,
-        payload: Vec<Value>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
-        self.evaluation_submit(payload).await
-    }
     async fn evaluation_submit_courses(
         &mut self,
-        courses: Vec<ubaa_core::facade::EvaluationCourse>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
-        self.evaluation_submit_courses(courses).await
+        request: EvaluationSubmitCoursesRequest,
+    ) -> Result<FeatureResult<EvaluationBatchResult>> {
+        self.evaluation_submit_courses(request).await
     }
 
     async fn schedule_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {

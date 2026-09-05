@@ -8,9 +8,9 @@ import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
-// These functions are ignored because they are not marked as `pub`: `conflict_key`, `feature`, `operation`
+// These functions are ignored because they are not marked as `pub`: `conflict_key`, `conflicts_with`, `evaluation_target_conflict_key`, `feature`, `operation`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `PendingEntry`, `PendingWrite`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeBykcCourseRequest {
   final PlatformInt64 courseId;
@@ -187,20 +187,83 @@ class BridgeCgyySubmitReservationRequest {
           isOffSchoolJoiner == other.isOffSchoolJoiner;
 }
 
-class BridgeEvaluationSubmitCoursesRequest {
-  final List<BridgeEvaluationCourse> courses;
+class BridgeEvaluationBatchResult {
+  final List<BridgeEvaluationCourseResult> items;
+  final bool success;
+  final bool outcomeUnknown;
 
-  const BridgeEvaluationSubmitCoursesRequest({required this.courses});
+  const BridgeEvaluationBatchResult({
+    required this.items,
+    required this.success,
+    required this.outcomeUnknown,
+  });
 
   @override
-  int get hashCode => courses.hashCode;
+  int get hashCode =>
+      items.hashCode ^ success.hashCode ^ outcomeUnknown.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeEvaluationBatchResult &&
+          runtimeType == other.runtimeType &&
+          items == other.items &&
+          success == other.success &&
+          outcomeUnknown == other.outcomeUnknown;
+}
+
+enum BridgeEvaluationCourseOutcome {
+  success,
+  failure,
+  outcomeUnknown,
+  unattempted,
+}
+
+class BridgeEvaluationCourseResult {
+  final BridgeEvaluationSubmitTarget target;
+  final String courseName;
+  final BridgeEvaluationCourseOutcome outcome;
+  final String message;
+
+  const BridgeEvaluationCourseResult({
+    required this.target,
+    required this.courseName,
+    required this.outcome,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      target.hashCode ^
+      courseName.hashCode ^
+      outcome.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeEvaluationCourseResult &&
+          runtimeType == other.runtimeType &&
+          target == other.target &&
+          courseName == other.courseName &&
+          outcome == other.outcome &&
+          message == other.message;
+}
+
+class BridgeEvaluationSubmitCoursesRequest {
+  final List<BridgeEvaluationSubmitTarget> targets;
+
+  const BridgeEvaluationSubmitCoursesRequest({required this.targets});
+
+  @override
+  int get hashCode => targets.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeEvaluationSubmitCoursesRequest &&
           runtimeType == other.runtimeType &&
-          courses == other.courses;
+          targets == other.targets;
 }
 
 class BridgeLibbookCancelBookingRequest {
@@ -314,6 +377,7 @@ class BridgeWriteCommitResult {
   final BridgeConnectionMode? resolvedRoute;
   final BridgeCgyyReservationReceipt? cgyyReceipt;
   final BridgeYgdkSubmitReceipt? ygdkReceipt;
+  final BridgeEvaluationBatchResult? evaluationResult;
 
   const BridgeWriteCommitResult({
     required this.operation,
@@ -323,6 +387,7 @@ class BridgeWriteCommitResult {
     this.resolvedRoute,
     this.cgyyReceipt,
     this.ygdkReceipt,
+    this.evaluationResult,
   });
 
   @override
@@ -333,7 +398,8 @@ class BridgeWriteCommitResult {
       outcomeUnknown.hashCode ^
       resolvedRoute.hashCode ^
       cgyyReceipt.hashCode ^
-      ygdkReceipt.hashCode;
+      ygdkReceipt.hashCode ^
+      evaluationResult.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -346,7 +412,8 @@ class BridgeWriteCommitResult {
           outcomeUnknown == other.outcomeUnknown &&
           resolvedRoute == other.resolvedRoute &&
           cgyyReceipt == other.cgyyReceipt &&
-          ygdkReceipt == other.ygdkReceipt;
+          ygdkReceipt == other.ygdkReceipt &&
+          evaluationResult == other.evaluationResult;
 }
 
 class BridgeWriteIntent {

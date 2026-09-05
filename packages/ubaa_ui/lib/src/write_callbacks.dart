@@ -57,13 +57,19 @@ typedef WriteSuccessHandler =
       FeatureQuery? readbackQuery,
     );
 
-/// 教学评教准备回调。
+/// 教学评教准备回调；只传递读取 action 中的稳定 typed 目标。
 typedef EvaluationSubmitPreparer =
-    Future<WriteIntent> Function(List<EvaluationCourseInput> courses);
+    Future<WriteIntent> Function(List<EvaluationSubmitTarget> targets);
 
-/// 教学评教启动回调。
+/// 教学评教启动回调；不得从展示字段重建任务、问卷、课程或教师代码。
 typedef EvaluationSubmitStarter =
-    Future<void> Function(List<EvaluationCourseInput> courses);
+    Future<void> Function(List<EvaluationSubmitTarget> targets);
+
+/// 教学评教提交后的原路线课程与进度回读。
+///
+/// 回读只用于更新展示与核对结果，不得升级未知结果或触发写入重试。
+typedef EvaluationSubmissionRefresher =
+    Future<void> Function({required ConnectionMode expectedRoute});
 
 /// 阳光打卡准备回调。
 typedef YgdkSubmitPreparer =

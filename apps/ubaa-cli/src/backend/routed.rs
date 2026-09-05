@@ -1,19 +1,19 @@
 //! Core 聚合路由 adapter。
 
 use async_trait::async_trait;
-use serde_json::Value;
 use ubaa_core::facade::{
     BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
     CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode,
-    EvaluationCoursesResponse, ExamArrangement, GradeData, JudgeAssignmentDetail,
-    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
-    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
-    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, SigninActionResult,
-    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
-    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
-    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    EvaluationBatchResult, EvaluationCoursesResponse, EvaluationSubmitCoursesRequest,
+    ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReserveRequest,
+    LibBookReserveResult, LibBookSeat, SigninActionResult, SigninClass, SpocAssignmentDetail,
+    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
+    WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
+    YgdkRecordsPage,
 };
 use ubaa_core::facade::{Result, RoutedResult, UbaaClient};
 
@@ -25,17 +25,22 @@ impl RoutedCliBackend for UbaaClient {
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         UbaaClient::evaluation_all(self).await
     }
-    async fn evaluation_submit(
+    async fn evaluation_all_on_route(
         &mut self,
-        payload: Vec<Value>,
-    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
-        UbaaClient::evaluation_submit(self, payload).await
+        route: ConnectionMode,
+    ) -> Result<EvaluationCoursesResponse> {
+        let result = UbaaClient::evaluation_all_on_route(self, route).await?;
+        if result.pinned_route != route {
+            return Err(internal_error("评教课程回读偏离固定路线"));
+        }
+        Ok(result.data)
     }
-    async fn evaluation_submit_courses(
+    async fn evaluation_submit_courses_if_route_matches(
         &mut self,
-        courses: Vec<ubaa_core::facade::EvaluationCourse>,
-    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
-        UbaaClient::evaluation_submit_courses(self, courses).await
+        request: EvaluationSubmitCoursesRequest,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<EvaluationBatchResult> {
+        UbaaClient::evaluation_submit_courses_if_route_matches(self, request, expected_route).await
     }
     async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         UbaaClient::signin_today(self).await

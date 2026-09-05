@@ -165,6 +165,24 @@ void registerBridgeBackendReadCharacterization() {
     expect(action?.hasCanonicalTarget, isTrue);
   });
 
+  test('评教回读把调用方路线原样交给 Bridge 且不走 Auto', () async {
+    final client = _CharacterizationBridgeClient();
+    final backend = BridgeBackend(client);
+
+    final result = await backend.loadEvaluationOnRoute(
+      route: ConnectionMode.direct,
+    );
+
+    expect(client.calls, <String>['evaluationAllOnRoute:route=direct']);
+    expect(result.resolvedRoute, ConnectionMode.direct);
+    final action = result.details.single.action<EvaluationSubmitAction>();
+    expect(action?.eligibility, ActionEligibility.allowed);
+    expect(action?.target?.rwid, 'task-read-1');
+    expect(action?.target?.wjid, 'questionnaire-read-1');
+    expect(action?.target?.kcdm, 'READ1');
+    expect(action?.target?.bpdm, 'teacher-read-1');
+  });
+
   test('图书馆取消 typed action 将目标和分页贯穿准备提交与同页回读', () async {
     final client = _CharacterizationBridgeClient();
     final backend = BridgeBackend(client);
@@ -631,7 +649,7 @@ void registerBridgeBackendReadCharacterization() {
       '用途编号|2',
       '站点 ID|7',
       '可用节次|1,2',
-      '任务 ID|task-read-1',
+      '课程 ID|task-read-1_questionnaire-read-1_READ1_teacher-read-1',
       '地点|主楼 101',
       '成绩|95',
       '作业编号|assignment-1',

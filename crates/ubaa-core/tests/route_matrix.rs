@@ -9,11 +9,12 @@ use std::time::Duration;
 use async_trait::async_trait;
 use ubaa_core::facade::testing::{
     DualSessionSnapshot, FileSessionStore, GatewayProbe, HttpRequest, HttpResponse, HttpTransport,
-    RouteConfig, RouteSessionSnapshot,
+    RouteConfig, RouteSessionSnapshot, from_webvpn_url,
 };
 use ubaa_core::facade::{
-    ConnectionMode, ErrorCode, ErrorKind, NetworkState, Result, RouteDiagnostic, RoutePolicy,
-    RouteResolution, UbaaClient, UbaaError,
+    ConnectionMode, ErrorCode, ErrorKind, EvaluationCourseOutcome, EvaluationSubmitCoursesRequest,
+    EvaluationSubmitTarget, NetworkState, Result, RouteDiagnostic, RoutePolicy, RouteResolution,
+    UbaaClient, UbaaError,
 };
 
 use support::source_tokens::{count_sequence, function_body, rust_files_below, rust_tokens};
@@ -74,9 +75,37 @@ const AUTO_UNKNOWN_RESOLUTION: RouteResolution = RouteResolution {
 };
 
 const NO_EVENTS: &[MatrixEvent] = &[];
-const DIRECT_REQUEST: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::Direct)];
-const WEBVPN_REQUEST: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::WebVpn)];
+const DIRECT_REQUEST: &[MatrixEvent] = &[
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+];
+const DIRECT_FAILURE: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::Direct)];
+const WEBVPN_REQUEST: &[MatrixEvent] = &[
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+];
+const WEBVPN_FAILURE: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::WebVpn)];
 const AUTO_WEBVPN_REQUEST: &[MatrixEvent] = &[
+    MatrixEvent::Probe(NetworkState::OffCampus),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::WebVpn),
+];
+const AUTO_WEBVPN_FAILURE: &[MatrixEvent] = &[
     MatrixEvent::Probe(NetworkState::OffCampus),
     MatrixEvent::Http(ConnectionMode::WebVpn),
 ];
@@ -85,9 +114,29 @@ const AUTO_OFF_CAMPUS_WITHOUT_REQUEST: &[MatrixEvent] =
 const AUTO_CAMPUS_REQUEST: &[MatrixEvent] = &[
     MatrixEvent::Probe(NetworkState::Campus),
     MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+];
+const AUTO_CAMPUS_FAILURE: &[MatrixEvent] = &[
+    MatrixEvent::Probe(NetworkState::Campus),
+    MatrixEvent::Http(ConnectionMode::Direct),
 ];
 const AUTO_CAMPUS_WITHOUT_REQUEST: &[MatrixEvent] = &[MatrixEvent::Probe(NetworkState::Campus)];
 const AUTO_UNKNOWN_REQUEST: &[MatrixEvent] = &[
+    MatrixEvent::Probe(NetworkState::Unknown),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+];
+const AUTO_UNKNOWN_FAILURE: &[MatrixEvent] = &[
     MatrixEvent::Probe(NetworkState::Unknown),
     MatrixEvent::Http(ConnectionMode::Direct),
 ];
@@ -114,7 +163,7 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
         expected_resolution: DIRECT_RESOLUTION,
-        expected_events: DIRECT_REQUEST,
+        expected_events: DIRECT_FAILURE,
     },
     RouteMatrixCase {
         name: "direct-not-ready-success",
@@ -158,7 +207,7 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
         expected_resolution: WEBVPN_RESOLUTION,
-        expected_events: WEBVPN_REQUEST,
+        expected_events: WEBVPN_FAILURE,
     },
     RouteMatrixCase {
         name: "webvpn-not-ready-success",
@@ -202,7 +251,7 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
         expected_resolution: AUTO_OFF_CAMPUS_RESOLUTION,
-        expected_events: AUTO_WEBVPN_REQUEST,
+        expected_events: AUTO_WEBVPN_FAILURE,
     },
     RouteMatrixCase {
         name: "auto-off-campus-not-ready-success",
@@ -246,7 +295,7 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
         expected_resolution: AUTO_CAMPUS_RESOLUTION,
-        expected_events: AUTO_CAMPUS_REQUEST,
+        expected_events: AUTO_CAMPUS_FAILURE,
     },
     RouteMatrixCase {
         name: "auto-campus-not-ready-success",
@@ -290,7 +339,7 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
         expected_resolution: AUTO_UNKNOWN_RESOLUTION,
-        expected_events: AUTO_UNKNOWN_REQUEST,
+        expected_events: AUTO_UNKNOWN_FAILURE,
     },
     RouteMatrixCase {
         name: "auto-unknown-not-ready-success",
@@ -376,11 +425,56 @@ impl HttpTransport for MatrixTransport {
             .expect("路线矩阵事件锁")
             .push(MatrixEvent::Http(self.mode));
         match self.outcome {
-            ScriptedOutcome::Success => Ok(HttpResponse::new(
-                200,
-                request.url,
-                r#"{"code":200,"message":"合成评教成功"}"#.as_bytes().to_vec(),
-            )),
+            ScriptedOutcome::Success => {
+                let direct_url =
+                    from_webvpn_url(&request.url).unwrap_or_else(|_| request.url.clone());
+                let url = url::Url::parse(&direct_url).expect("路线矩阵合成 URL");
+                let body = match url.path() {
+                    "/pjxt/cas" => String::new(),
+                    "/pjxt/personnelEvaluation/listObtainPersonnelEvaluationTasks" => {
+                        r#"{"code":200,"result":{"list":[{"rwid":"route-task"}]}}"#.into()
+                    }
+                    "/pjxt/evaluationMethodSix/getQuestionnaireListToTask" => {
+                        r#"{"code":200,"result":[{"wjid":"route-form","msid":"route-mode"}]}"#
+                            .into()
+                    }
+                    "/pjxt/evaluationMethodSix/getRequiredReviewsData" => serde_json::json!({
+                        "code": 200,
+                        "result": [{
+                            "kcdm":"route-course", "bpdm":"route-teacher",
+                            "kcmc":"路线课程", "bpmc":"路线教师", "ypjcs":0,
+                            "xypjcs":1, "sxz":"student-kind", "pjrdm":"reviewer",
+                            "pjrmc":"评价人", "rwh":"route-row", "xn":"2026", "xq":"1",
+                            "xnxq":"2026-2027-1", "yxsfktjst":"0"
+                        }]
+                    })
+                    .to_string(),
+                    "/pjxt/evaluationMethodSix/reviseQuestionnairePattern" => {
+                        r#"{"code":200}"#.into()
+                    }
+                    "/pjxt/evaluationMethodSix/getQuestionnaireTopic" => serde_json::json!({
+                        "code":200,
+                        "result":[{
+                            "pjmap":{},
+                            "pjxtWjWjbReturnEntity":{"wjzblist":[{"tklist":[{
+                                "tmlx":"1", "tmid":"route-question",
+                                "tmxxlist":[{"tmxxid":"route-option"}]
+                            }]}]},
+                            "pjxtPjjgPjjgckb":[{
+                                "wjssrwid":"route-assignment", "bprdm":"route-teacher",
+                                "bprmc":"路线教师", "kcdm":"route-course", "kcmc":"路线课程",
+                                "pjid":"route-evaluation", "pjlx":"2", "pjrdm":"reviewer",
+                                "pjrjsdm":"student-role", "pjrxm":"评价人",
+                                "xnxq":"2026-2027-1"
+                            }]
+                        }]
+                    })
+                    .to_string(),
+                    "/pjxt/evaluationMethodSix/submitSaveEvaluation" => r#"{"code":200}"#.into(),
+                    path => panic!("路线矩阵出现未预期路径：{path}"),
+                };
+                Ok(HttpResponse::new(200, request.url, body.into_bytes()))
+            }
             ScriptedOutcome::NetworkFailure => Err(UbaaError::new(
                 ErrorCode::NetworkError,
                 ErrorKind::Network,
@@ -410,7 +504,8 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
 
     let observed = audited_route_usage(&facade_dir);
     let shared_route_execution_reuse = assert_cgyy_cancel_atomic_route_boundary(&facade_dir)
-        + assert_ygdk_submit_atomic_route_boundary(&facade_dir);
+        + assert_ygdk_submit_atomic_route_boundary(&facade_dir)
+        + assert_evaluation_submit_atomic_route_boundary(&facade_dir);
     assert!(observed.entry_points > 0, "必须发现 facade 业务入口");
     assert_eq!(
         observed.entry_points,
@@ -428,8 +523,8 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
         "每个公开异步业务入口都必须经过统一收尾"
     );
     assert_eq!(
-        observed.caller_pinned, 4,
-        "只允许 Cgyy 与 Ygdk 各两项回读固定路线"
+        observed.caller_pinned, 5,
+        "只允许 Cgyy 与 Ygdk 各两项、Evaluation 一项回读固定路线"
     );
     assert_eq!(observed.caller_pinned, observed.finish_caller_pinned);
     assert_caller_pinned_route_boundaries(&facade_dir);
@@ -516,14 +611,61 @@ fn assert_ygdk_submit_atomic_route_boundary(facade_dir: &std::path::Path) -> usi
     entry_points.len() - 1
 }
 
+fn assert_evaluation_submit_atomic_route_boundary(facade_dir: &std::path::Path) -> usize {
+    let tokens = rust_tokens(&source(&facade_dir.join("write/evaluation.rs")));
+    let entry_points = [
+        "evaluation_submit_courses",
+        "evaluation_submit_courses_if_route_matches",
+    ];
+    for entry_point in entry_points {
+        let body = function_body(&tokens, entry_point)
+            .unwrap_or_else(|| panic!("定位评教提交入口：{entry_point}"));
+        assert_eq!(
+            count_sequence(body, &["resolve_operation", "("]),
+            1,
+            "{entry_point} 必须只做一次权威路线解析"
+        );
+        assert_eq!(
+            count_sequence(body, &["evaluation_submit_courses_resolved", "("]),
+            1,
+            "{entry_point} 必须复用同一个已解析路线执行器"
+        );
+    }
+    let atomic = function_body(&tokens, "evaluation_submit_courses_if_route_matches")
+        .expect("定位评教 expected-route 原子入口");
+    assert_eq!(
+        count_sequence(
+            atomic,
+            &["resolution", ".", "mode", "!", "=", "expected_route"]
+        ),
+        1,
+        "评教原子入口必须在 authority 前比较唯一解析路线"
+    );
+    let executor = function_body(&tokens, "evaluation_submit_courses_resolved")
+        .expect("定位评教已解析路线执行器");
+    assert_eq!(
+        count_sequence(executor, &["resolve_operation", "("]),
+        0,
+        "评教最终发送执行器不得再次解析路线"
+    );
+    assert_eq!(count_sequence(executor, &["runtime_for", "("]), 1);
+    assert_eq!(
+        count_sequence(executor, &["begin_non_idempotent_operation", "("]),
+        1
+    );
+    assert_eq!(count_sequence(executor, &["finish_routed_write", "("]), 1);
+    entry_points.len() - 1
+}
+
 fn assert_caller_pinned_route_boundaries(facade_dir: &std::path::Path) {
-    let tokens = rust_tokens(&source(&facade_dir.join("read/services.rs")));
-    for helper in [
-        "cgyy_orders_on_route",
-        "cgyy_order_detail_on_route",
-        "ygdk_overview_on_route",
-        "ygdk_records_on_route",
+    for (relative, helper) in [
+        ("read/services.rs", "cgyy_orders_on_route"),
+        ("read/services.rs", "cgyy_order_detail_on_route"),
+        ("read/services.rs", "ygdk_overview_on_route"),
+        ("read/services.rs", "ygdk_records_on_route"),
+        ("read/evaluation.rs", "evaluation_all_on_route"),
     ] {
+        let tokens = rust_tokens(&source(&facade_dir.join(relative)));
         let body = function_body(&tokens, helper)
             .unwrap_or_else(|| panic!("定位 caller-pinned 读取入口：{helper}"));
         assert_eq!(
@@ -729,13 +871,24 @@ fn assert_route_case(runtime: &tokio::runtime::Runtime, case: &RouteMatrixCase) 
     )
     .expect("创建聚合客户端");
 
-    let result = runtime.block_on(client.evaluation_submit(vec![serde_json::json!({
-        "synthetic": true
-    })]));
+    let result = runtime.block_on(client.evaluation_submit_courses(
+        EvaluationSubmitCoursesRequest {
+            targets: vec![EvaluationSubmitTarget {
+                rwid: "route-task".into(),
+                wjid: "route-form".into(),
+                kcdm: "route-course".into(),
+                bpdm: Some("route-teacher".into()),
+            }],
+        },
+    ));
     let observed_resolution = match (case.expected_result, result) {
         (ExpectedResult::Success, Ok(routed)) => {
-            assert_eq!(routed.data.len(), 1, "{case_name}");
-            assert!(routed.data[0].success, "{case_name}");
+            assert_eq!(routed.data.items.len(), 1, "{case_name}");
+            assert_eq!(
+                routed.data.items[0].outcome,
+                EvaluationCourseOutcome::Success,
+                "{case_name}"
+            );
             routed.resolution
         }
         (ExpectedResult::Error(expected_code), Err(error)) => {

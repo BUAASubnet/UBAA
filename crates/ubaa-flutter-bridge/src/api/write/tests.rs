@@ -25,6 +25,7 @@ mod bykc;
 mod cgyy_cancel;
 mod cgyy_reservation;
 mod contract;
+mod evaluation;
 mod libbook;
 mod libbook_cancel;
 mod lifecycle;

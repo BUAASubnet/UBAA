@@ -176,36 +176,18 @@ Future<WriteIntent> _prepareCgyyCancelOrder(
 
 Future<WriteIntent> _prepareEvaluationSubmitCourses(
   BridgeBackend backend,
-  List<EvaluationCourseInput> courses,
+  List<EvaluationSubmitTarget> targets,
 ) => _prepareIntent(
   backend,
   backend.client.prepareEvaluationSubmitCourses(
     request: BridgeEvaluationSubmitCoursesRequest(
-      courses: courses
+      targets: targets
           .map(
-            (course) => BridgeEvaluationCourse(
-              id: course.id,
-              kcmc: course.kcmc,
-              bpmc: course.bpmc,
-              isEvaluated: course.isEvaluated,
-              rwid: course.rwid,
-              wjid: course.wjid,
-              kcdm: course.kcdm,
-              bpdm: course.bpdm,
-              pjrdm: course.pjrdm,
-              pjrmc: course.pjrmc,
-              xnxq: course.xnxq,
-              msid: course.msid,
-              zdmc: course.zdmc,
-              ypjcs: course.ypjcs,
-              xypjcs: course.xypjcs,
-              sxz: course.sxz,
-              rwh: course.rwh,
-              xn: course.xn,
-              xq: course.xq,
-              pjlxid: course.pjlxid,
-              sfksqbpj: course.sfksqbpj,
-              yxsfktjst: course.yxsfktjst,
+            (target) => BridgeEvaluationSubmitTarget(
+              rwid: target.rwid,
+              wjid: target.wjid,
+              kcdm: target.kcdm,
+              bpdm: target.bpdm,
             ),
           )
           .toList(growable: false),

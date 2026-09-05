@@ -1,6 +1,46 @@
 part of '../app_controller_test.dart';
 
 void _registerRaceTests() {
+  for (final completionOrder in const <List<FeatureId>>[
+    <FeatureId>[FeatureId.schedule, FeatureId.evaluation],
+    <FeatureId>[FeatureId.evaluation, FeatureId.schedule],
+  ]) {
+    test('无关领域并发刷新均保留各自最新结果：${completionOrder.first.name}先完成', () async {
+      final backend = _IndependentFeatureBackend();
+      final controller = AppController(backend: backend);
+
+      final schedule = controller.refreshHome(
+        only: const <FeatureId>[FeatureId.schedule],
+      );
+      await backend.started(FeatureId.schedule);
+      final evaluation = controller.refreshHome(
+        only: const <FeatureId>[FeatureId.evaluation],
+      );
+      await backend.started(FeatureId.evaluation);
+
+      for (final feature in completionOrder) {
+        backend.complete(
+          feature,
+          FeatureResult.success(
+            summary: '${feature.name}-fresh',
+            details: <FeatureDetail>[FeatureDetail(title: feature.name)],
+          ),
+        );
+      }
+      await Future.wait(<Future<void>>[schedule, evaluation]);
+
+      expect(
+        controller.snapshots[FeatureId.schedule]!.summary,
+        'schedule-fresh',
+      );
+      expect(
+        controller.snapshots[FeatureId.evaluation]!.summary,
+        'evaluation-fresh',
+      );
+      controller.dispose();
+    });
+  }
+
   test('controller 销毁后初始化不会继续读取用户或刷新首页', () async {
     final backend = _DelayedSignedInInitializeBackend();
     final controller = AppController(backend: backend);
@@ -85,4 +125,39 @@ void _registerRaceTests() {
     expect(snapshot.summary, isNull);
     expect(snapshot.details, isEmpty);
   });
+}
+
+class _IndependentFeatureBackend implements UbaaBackend {
+  final Map<FeatureId, Completer<void>> _started =
+      <FeatureId, Completer<void>>{};
+  final Map<FeatureId, Completer<FeatureResult>> _results =
+      <FeatureId, Completer<FeatureResult>>{};
+
+  Future<void> started(FeatureId feature) =>
+      (_started[feature] ??= Completer<void>()).future;
+
+  void complete(FeatureId feature, FeatureResult result) =>
+      (_results[feature] ??= Completer<FeatureResult>()).complete(result);
+
+  @override
+  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+
+  @override
+  Future<UserSummary?> userInfo() async => null;
+
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+
+  @override
+  Future<void> login(LoginInput input) async {}
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async {
+    final started = _started[feature] ??= Completer<void>();
+    if (!started.isCompleted) started.complete();
+    return (_results[feature] ??= Completer<FeatureResult>()).future;
+  }
 }

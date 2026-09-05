@@ -571,6 +571,7 @@ fn 阳光打卡bridge只接受正记录编号收据并固定未知结果文案()
         "RAW upstream message".to_owned(),
         None,
         None,
+        None,
     )
     .expect_err("Core false 不得被投影为普通成功结果");
     assert_eq!(false_result.code, BridgeErrorCode::UpstreamChanged);

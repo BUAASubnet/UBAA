@@ -6,8 +6,8 @@ use serde::Serialize;
 
 use serde_json::Value;
 use ubaa_core::facade::{
-    AuthStatus, ConnectionMode, FeatureResult, LoginOutcome, LoginReadiness, RouteLoginState,
-    RoutePolicy, SafeError, UserProfile,
+    AuthStatus, ConnectionMode, EvaluationBatchResult, FeatureResult, LoginOutcome, LoginReadiness,
+    RouteLoginState, RoutePolicy, SafeError, UserProfile,
 };
 use ubaa_core::facade::{NetworkState, RouteResolution};
 use ubaa_core::facade::{Result as CoreResult, UbaaError};
@@ -16,7 +16,7 @@ use crate::io::error::{CliJsonError, output_invariant_error};
 use crate::io::input::internal_error;
 
 /// CLI 唯一支持的 JSON 架构版本。
-pub const CLI_JSON_SCHEMA_VERSION: u32 = 9;
+pub const CLI_JSON_SCHEMA_VERSION: u32 = 10;
 
 /// CLI JSON 元数据使用的封闭功能名称集合。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -195,6 +195,22 @@ impl RoutedJsonEnvelope<serde_json::Value> {
             data: None,
             error: Some(error.into()),
             meta: RoutedJsonMeta::Unresolved(meta),
+        }
+    }
+
+    /// 构造评教 batch 结果未知的唯一“失败且携带安全数据”信封。
+    #[must_use]
+    pub(crate) fn evaluation_outcome_unknown(
+        data: serde_json::Value,
+        error: impl Into<CliJsonError>,
+        meta: ResolvedRoutedJsonMeta,
+    ) -> Self {
+        Self {
+            schema_version: CLI_JSON_SCHEMA_VERSION,
+            ok: false,
+            data: Some(data),
+            error: Some(error.into()),
+            meta: RoutedJsonMeta::Resolved(meta),
         }
     }
 }
@@ -432,6 +448,10 @@ pub(crate) enum CommandOutput {
         route: ConnectionMode,
         feature: CliFeature,
     },
+    EvaluationBatch {
+        data: EvaluationBatchResult,
+        route: ConnectionMode,
+    },
 }
 
 pub(crate) fn command_output_value(output: CommandOutput) -> CoreResult<Value> {
@@ -439,6 +459,7 @@ pub(crate) fn command_output_value(output: CommandOutput) -> CoreResult<Value> {
         CommandOutput::Profile(profile) => serde_json::to_value(profile),
         CommandOutput::Status(status) => serde_json::to_value(status),
         CommandOutput::Logout(value) | CommandOutput::Readonly { data: value, .. } => Ok(value),
+        CommandOutput::EvaluationBatch { data, .. } => serde_json::to_value(data),
     }
     .map_err(|_| internal_error("无法序列化命令输出"))
 }

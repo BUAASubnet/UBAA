@@ -14,7 +14,7 @@ mod support;
 use std::fmt;
 
 use super::client::BridgeConnectionMode;
-use super::read::{BridgeEvaluationCourse, BridgeYgdkSubmitTarget};
+use super::read::{BridgeEvaluationSubmitTarget, BridgeYgdkSubmitTarget};
 use ubaa_core::facade::ReadonlyFeature;
 
 #[derive(Clone, Copy, Debug)]
@@ -152,7 +152,27 @@ pub struct BridgeYgdkSubmitReceipt {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeEvaluationSubmitCoursesRequest {
-    pub courses: Vec<BridgeEvaluationCourse>,
+    pub targets: Vec<BridgeEvaluationSubmitTarget>,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BridgeEvaluationCourseOutcome {
+    Success,
+    Failure,
+    OutcomeUnknown,
+    Unattempted,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeEvaluationCourseResult {
+    pub target: BridgeEvaluationSubmitTarget,
+    pub course_name: String,
+    pub outcome: BridgeEvaluationCourseOutcome,
+    pub message: String,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeEvaluationBatchResult {
+    pub items: Vec<BridgeEvaluationCourseResult>,
+    pub success: bool,
+    pub outcome_unknown: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -164,6 +184,7 @@ pub struct BridgeWriteCommitResult {
     pub resolved_route: Option<BridgeConnectionMode>,
     pub cgyy_receipt: Option<BridgeCgyyReservationReceipt>,
     pub ygdk_receipt: Option<BridgeYgdkSubmitReceipt>,
+    pub evaluation_result: Option<BridgeEvaluationBatchResult>,
 }
 
 /// Bridge 内部的一次性写入载荷；不得进入 FRB 公共合同。
@@ -178,7 +199,7 @@ pub(crate) enum PendingWrite {
     Ygdk(ubaa_core::facade::YgdkClockinSubmitRequest),
     CgyyReserve(BridgeCgyySubmitReservationRequest),
     CgyyCancel(BridgeCgyyCancelOrderRequest),
-    Evaluation(BridgeEvaluationSubmitCoursesRequest),
+    Evaluation(ubaa_core::facade::EvaluationSubmitCoursesRequest),
 }
 
 /// Bridge 内部的待确认条目；不得向 Dart 暴露载荷或自动字段访问器。
@@ -259,17 +280,49 @@ impl PendingWrite {
             }
             Self::CgyyCancel(request) => format!("cgyy-cancel:{}", request.order_id),
             Self::Evaluation(request) => {
-                let mut ids = request
-                    .courses
+                let mut targets = request
+                    .targets
                     .iter()
-                    .map(|course| course.id.trim())
+                    .map(evaluation_target_conflict_key)
                     .collect::<Vec<_>>();
-                ids.sort_unstable();
-                ids.dedup();
-                format!("evaluation:{}", ids.join("|"))
+                targets.sort_unstable();
+                format!("evaluation:{}", targets.join("|"))
             }
         }
     }
+
+    fn conflicts_with(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Evaluation(left), Self::Evaluation(right)) => left.targets.iter().any(|left| {
+                let left = evaluation_target_conflict_key(left);
+                right
+                    .targets
+                    .iter()
+                    .any(|right| left == evaluation_target_conflict_key(right))
+            }),
+            _ => self.conflict_key() == other.conflict_key(),
+        }
+    }
+}
+
+fn evaluation_target_conflict_key(target: &ubaa_core::facade::EvaluationSubmitTarget) -> String {
+    fn segment(value: &str) -> String {
+        let value = value.trim();
+        format!("{}:{value}", value.len())
+    }
+    let bpdm = target
+        .bpdm
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_default();
+    format!(
+        "{}:{}:{}:{}",
+        segment(&target.rwid),
+        segment(&target.wjid),
+        segment(&target.kcdm),
+        segment(bpdm),
+    )
 }
 
 #[cfg(test)]

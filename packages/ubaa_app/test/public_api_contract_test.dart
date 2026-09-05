@@ -13,6 +13,7 @@ const _publicNames = <String>[
   'CgyyCancellationReadbackBackend',
   'YgdkReadbackState',
   'YgdkSubmissionReadbackBackend',
+  'EvaluationSubmissionReadbackBackend',
   'WriteCommitBackend',
   'WriteIntentDiscardBackend',
   'BykcWriteBackend',
@@ -39,9 +40,9 @@ const _publicNames = <String>[
 ];
 
 void main() {
-  test('ubaa_app barrel 保持三十二个公开名字和稳定签名', () {
-    expect(_publicNames, hasLength(32));
-    expect(_publicNames.toSet(), hasLength(32));
+  test('ubaa_app barrel 保持三十三个公开名字和稳定签名', () {
+    expect(_publicNames, hasLength(33));
+    expect(_publicNames.toSet(), hasLength(33));
 
     // 这些函数只作为编译期合同被引用，不会构造或打开原生 Bridge。
     expect(<Object>[
@@ -60,6 +61,7 @@ List<Object?> _backendInterfaceSignatures(
   FeatureQueryBackend featureQueryBackend,
   CgyyCancellationReadbackBackend cgyyCancellationReadbackBackend,
   YgdkSubmissionReadbackBackend ygdkSubmissionReadbackBackend,
+  EvaluationSubmissionReadbackBackend evaluationSubmissionReadbackBackend,
   WriteCommitBackend writeCommitBackend,
   WriteIntentDiscardBackend writeIntentDiscardBackend,
   BykcWriteBackend bykcWriteBackend,
@@ -103,6 +105,9 @@ List<Object?> _backendInterfaceSignatures(
     required int size,
   })
   loadYgdkRecordsOnRoute = ygdkSubmissionReadbackBackend.loadYgdkRecordsOnRoute;
+  final Future<FeatureResult> Function({required ConnectionMode route})
+  loadEvaluationOnRoute =
+      evaluationSubmissionReadbackBackend.loadEvaluationOnRoute;
   final Future<WriteCommitResult> Function(String) commitWrite =
       writeCommitBackend.commitWrite;
   final Future<void> Function(String) discardWriteIntent =
@@ -152,7 +157,7 @@ List<Object?> _backendInterfaceSignatures(
       ygdkWriteBackend.prepareYgdkSubmit;
   final Future<WriteIntent> Function(CgyySubmitInput)
   prepareCgyySubmitReservation = cgyyWriteBackend.prepareCgyySubmitReservation;
-  final Future<WriteIntent> Function(List<EvaluationCourseInput>)
+  final Future<WriteIntent> Function(List<EvaluationSubmitTarget>)
   prepareEvaluationSubmitCourses =
       evaluationWriteBackend.prepareEvaluationSubmitCourses;
   final Future<void> Function() dispose = backendLifecycle.dispose;
@@ -170,6 +175,7 @@ List<Object?> _backendInterfaceSignatures(
     loadCgyyOrderDetailOnRoute,
     loadYgdkOverviewOnRoute,
     loadYgdkRecordsOnRoute,
+    loadEvaluationOnRoute,
     commitWrite,
     discardWriteIntent,
     commitDiscardBackend,
@@ -266,6 +272,8 @@ List<Object?> _controllerSignatures(
       (controller) => controller.ygdkReadbackState;
   final bool Function(AppController) readYgdkSubmissionCapabilities =
       (controller) => controller.hasYgdkSubmissionBackendCapabilities;
+  final bool Function(AppController) readEvaluationSubmissionCapabilities =
+      (controller) => controller.hasEvaluationSubmissionBackendCapabilities;
   final UiError Function(UbaaErrorCode) mapError = UbaaErrorMapper.fromCode;
   final Future<WriteIntent> Function(LibbookReserveAction)
   prepareLibbookReserveWrite = appController.prepareLibbookReserveWrite;
@@ -273,6 +281,8 @@ List<Object?> _controllerSignatures(
   prepareLibbookCancelWrite = appController.prepareLibbookCancelWrite;
   final Future<void> Function({required ConnectionMode expectedRoute})
   refreshYgdkAfterWrite = appController.refreshYgdkAfterWrite;
+  final Future<void> Function({required ConnectionMode expectedRoute})
+  refreshEvaluationAfterWrite = appController.refreshEvaluationAfterWrite;
 
   return <Object?>[
     phase,
@@ -282,10 +292,12 @@ List<Object?> _controllerSignatures(
     readPhase,
     readYgdkReadback,
     readYgdkSubmissionCapabilities,
+    readEvaluationSubmissionCapabilities,
     mapError,
     prepareLibbookReserveWrite,
     prepareLibbookCancelWrite,
     refreshYgdkAfterWrite,
+    refreshEvaluationAfterWrite,
     appController,
   ];
 }
@@ -336,6 +348,8 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
   final FeatureQueryBackend queryBackend = bridgeBackend;
   final CgyyCancellationReadbackBackend cgyyReadbackBackend = bridgeBackend;
   final YgdkSubmissionReadbackBackend ygdkReadbackBackend = bridgeBackend;
+  final EvaluationSubmissionReadbackBackend evaluationReadbackBackend =
+      bridgeBackend;
   final WriteCommitBackend commitBackend = bridgeBackend;
   final WriteIntentDiscardBackend discardBackend = bridgeBackend;
   final BykcWriteBackend bykcBackend = bridgeBackend;
@@ -357,6 +371,7 @@ List<Object?> _bridgeSignatures(BridgeBackend bridgeBackend) {
     queryBackend,
     cgyyReadbackBackend,
     ygdkReadbackBackend,
+    evaluationReadbackBackend,
     commitBackend,
     discardBackend,
     bykcBackend,

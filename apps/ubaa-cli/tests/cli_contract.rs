@@ -4,6 +4,8 @@ mod cgyy_cancel;
 mod cgyy_reservation;
 #[path = "cli_contract/common.rs"]
 mod common;
+#[path = "cli_contract/evaluation.rs"]
+mod evaluation;
 #[path = "cli_contract/exit.rs"]
 mod exit;
 #[path = "cli_contract/help.rs"]

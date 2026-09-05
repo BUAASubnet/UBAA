@@ -1,19 +1,19 @@
 //! CLI 后端契约与默认不可用错误。
 
 use async_trait::async_trait;
-use serde_json::Value;
 use ubaa_core::facade::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyReservationResult,
     CgyyReservationSubmitRequest, CgyyVenueSite, ClassroomQuery, ConnectionMode,
-    EvaluationCoursesResponse, ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail,
-    JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea,
-    LibBookAreaDetail, LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult,
-    LibBookLibrary, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
-    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    EvaluationBatchResult, EvaluationCoursesResponse, EvaluationSubmitCoursesRequest,
+    ExamArrangement, FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
+    JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail,
+    LibBookBookingsPage, LibBookCancelRequest, LibBookCancelResult, LibBookLibrary,
+    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult,
+    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
+    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
+    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RoutedError, RoutedResult};
@@ -230,16 +230,24 @@ pub trait CliBackend {
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         Err(unavailable("评教功能不可用"))
     }
-    async fn evaluation_submit(
+    /// 在固定后端已经使用的原路线刷新评教课程。
+    async fn evaluation_all_on_route(
         &mut self,
-        _payload: Vec<Value>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
-        Err(unavailable("评教写功能不可用"))
+        route: ConnectionMode,
+    ) -> Result<EvaluationCoursesResponse> {
+        if self.mode() != route {
+            return Err(internal_error("评教回读路线与固定后端不一致"));
+        }
+        let result = self.evaluation_all().await?;
+        if result.resolved_route != route {
+            return Err(internal_error("评教课程回读偏离固定路线"));
+        }
+        Ok(result.data)
     }
     async fn evaluation_submit_courses(
         &mut self,
-        _courses: Vec<ubaa_core::facade::EvaluationCourse>,
-    ) -> Result<FeatureResult<Vec<ubaa_core::facade::EvaluationResult>>> {
+        _request: EvaluationSubmitCoursesRequest,
+    ) -> Result<FeatureResult<EvaluationBatchResult>> {
         Err(unavailable("评教写功能不可用"))
     }
 
@@ -334,16 +342,19 @@ pub trait RoutedCliBackend {
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         Err(routed_unavailable("评教功能不可用"))
     }
-    async fn evaluation_submit(
+    /// 在调用方固定的原路线刷新评教课程，不重新执行路由策略。
+    async fn evaluation_all_on_route(
         &mut self,
-        _payload: Vec<Value>,
-    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
-        Err(routed_unavailable("评教写功能不可用"))
+        _route: ConnectionMode,
+    ) -> Result<EvaluationCoursesResponse> {
+        Err(unavailable("评教功能不可用"))
     }
-    async fn evaluation_submit_courses(
+    /// 仅在 fresh commit 仍解析到调用方确认的路线时提交 typed 目标。
+    async fn evaluation_submit_courses_if_route_matches(
         &mut self,
-        _courses: Vec<ubaa_core::facade::EvaluationCourse>,
-    ) -> RoutedResult<Vec<ubaa_core::facade::EvaluationResult>> {
+        _request: EvaluationSubmitCoursesRequest,
+        _expected_route: ConnectionMode,
+    ) -> RoutedResult<EvaluationBatchResult> {
         Err(routed_unavailable("评教写功能不可用"))
     }
     /// 查询今日课堂签到状态。

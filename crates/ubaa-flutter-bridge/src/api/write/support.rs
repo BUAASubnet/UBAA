@@ -9,10 +9,12 @@ use ubaa_core::facade as domain;
 
 use super::{
     BridgeBykcSignCourseRequest, BridgeCgyyReservationReceipt, BridgeCgyySubmitReservationRequest,
-    BridgeWriteOperation, BridgeYgdkSubmitReceipt, BridgeYgdkSubmitRequest,
+    BridgeEvaluationBatchResult, BridgeEvaluationCourseOutcome, BridgeEvaluationCourseResult,
+    BridgeEvaluationSubmitCoursesRequest, BridgeWriteOperation, BridgeYgdkSubmitReceipt,
+    BridgeYgdkSubmitRequest,
 };
 use crate::api::client::{BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind};
-use crate::api::read::BridgeEvaluationCourse;
+use crate::api::read::BridgeEvaluationSubmitTarget;
 
 pub(super) fn map_resolution_error(error: ubaa_core::facade::UbaaError) -> BridgeError {
     // Core 将跨进程会话修订冲突归约为 internal_error；在写 intent 的路线复核边界
@@ -187,6 +189,34 @@ pub(super) fn map_ygdk_preflight_error(error: domain::RoutedError) -> BridgeErro
     BridgeError::from_routed(error)
 }
 
+pub(super) fn map_evaluation_preflight_error(error: &domain::RoutedError) -> BridgeError {
+    if error.error.message == "local session changed in another process" {
+        return routed_local_error(
+            error,
+            BridgeErrorCode::OperationConflict,
+            BridgeErrorKind::Input,
+            true,
+            "session changed; prepare the write again",
+        );
+    }
+    if error.error.code == domain::ErrorCode::UpstreamChanged {
+        return routed_local_error(
+            error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "教学评教资格核对响应无效",
+        );
+    }
+    routed_local_error(
+        error,
+        error.error.code.into(),
+        error.error.kind.into(),
+        error.error.retryable,
+        "教学评教准备失败",
+    )
+}
+
 pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
@@ -209,6 +239,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::YgdkSubmit
             | BridgeWriteOperation::CgyySubmitReservation
             | BridgeWriteOperation::CgyyCancelOrder
+            | BridgeWriteOperation::EvaluationSubmitCourses
     ) && error.error.code == domain::ErrorCode::InvalidInput
         && error.error.retryable
     {
@@ -221,6 +252,9 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::YgdkSubmit => "阳光打卡资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyySubmitReservation => "场馆预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::CgyyCancelOrder => "场馆订单取消资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::EvaluationSubmitCourses => {
+                "教学评教资格已变化，请刷新课程后重新准备"
+            }
             _ => "课程签到资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
@@ -264,6 +298,17 @@ pub(super) fn map_commit_error(
             "阳光打卡提交前资格核对响应无效",
         );
     }
+    if matches!(operation, BridgeWriteOperation::EvaluationSubmitCourses)
+        && error.error.code == domain::ErrorCode::UpstreamChanged
+    {
+        return routed_local_error(
+            &error,
+            BridgeErrorCode::UpstreamChanged,
+            BridgeErrorKind::Upstream,
+            false,
+            "教学评教提交前资格核对响应无效",
+        );
+    }
     if error.error.code == domain::ErrorCode::OutcomeUnknown {
         let kind = error.error.kind.into();
         let message = match operation {
@@ -271,6 +316,7 @@ pub(super) fn map_commit_error(
                 "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作"
             }
             BridgeWriteOperation::YgdkSubmit => "阳光打卡结果未知，请刷新概览与记录后再操作",
+            BridgeWriteOperation::EvaluationSubmitCourses => "教学评教结果未知，请刷新课程后核对",
             _ => &error.error.message,
         };
         return routed_local_error(
@@ -290,6 +336,7 @@ pub(super) fn map_commit_error(
             | BridgeWriteOperation::YgdkSubmit
             | BridgeWriteOperation::CgyySubmitReservation
             | BridgeWriteOperation::CgyyCancelOrder
+            | BridgeWriteOperation::EvaluationSubmitCourses
     ) {
         false
     } else {
@@ -307,6 +354,15 @@ pub(super) fn map_commit_error(
             BridgeErrorKind::Network,
             false,
             "write outcome is unknown; refresh status before retrying",
+        );
+    }
+    if matches!(operation, BridgeWriteOperation::EvaluationSubmitCourses) {
+        return routed_local_error(
+            &error,
+            error.error.code.into(),
+            error.error.kind.into(),
+            error.error.retryable,
+            "教学评教提交失败",
         );
     }
     BridgeError::from_routed(error)
@@ -434,30 +490,95 @@ pub(super) fn bykc_sign_canonical(request: &BridgeBykcSignCourseRequest) -> Stri
     )
 }
 
-pub(super) fn map_evaluation_course(c: BridgeEvaluationCourse) -> domain::EvaluationCourse {
-    domain::EvaluationCourse {
-        id: c.id,
-        kcmc: c.kcmc,
-        bpmc: c.bpmc,
-        is_evaluated: c.is_evaluated,
-        rwid: c.rwid,
-        wjid: c.wjid,
-        kcdm: c.kcdm,
-        bpdm: c.bpdm,
-        pjrdm: c.pjrdm,
-        pjrmc: c.pjrmc,
-        xnxq: c.xnxq,
-        msid: c.msid,
-        zdmc: c.zdmc,
-        ypjcs: c.ypjcs,
-        xypjcs: c.xypjcs,
-        sxz: c.sxz,
-        rwh: c.rwh,
-        xn: c.xn,
-        xq: c.xq,
-        pjlxid: c.pjlxid,
-        sfksqbpj: c.sfksqbpj,
-        yxsfktjst: c.yxsfktjst,
+pub(super) fn map_evaluation_request(
+    request: BridgeEvaluationSubmitCoursesRequest,
+) -> Result<domain::EvaluationSubmitCoursesRequest, BridgeError> {
+    if request.targets.is_empty() {
+        return Err(invalid_input("至少选择一门待评课程"));
+    }
+    let mut unique = std::collections::HashSet::new();
+    let targets = request
+        .targets
+        .into_iter()
+        .map(normalize_evaluation_target)
+        .map(|target| {
+            let target = target?;
+            if !unique.insert(target.clone()) {
+                return Err(invalid_input("评教提交目标不能重复"));
+            }
+            Ok(target)
+        })
+        .collect::<Result<Vec<_>, BridgeError>>()?;
+    Ok(domain::EvaluationSubmitCoursesRequest { targets })
+}
+
+fn normalize_evaluation_target(
+    target: BridgeEvaluationSubmitTarget,
+) -> Result<domain::EvaluationSubmitTarget, BridgeError> {
+    let rwid = target.rwid.trim().to_owned();
+    let wjid = target.wjid.trim().to_owned();
+    let kcdm = target.kcdm.trim().to_owned();
+    if rwid.is_empty() || wjid.is_empty() || kcdm.is_empty() {
+        return Err(invalid_input("评教提交目标无效"));
+    }
+    let bpdm = target
+        .bpdm
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
+    Ok(domain::EvaluationSubmitTarget {
+        rwid,
+        wjid,
+        kcdm,
+        bpdm,
+    })
+}
+
+pub(super) fn map_evaluation_target(
+    target: domain::EvaluationSubmitTarget,
+) -> BridgeEvaluationSubmitTarget {
+    BridgeEvaluationSubmitTarget {
+        rwid: target.rwid,
+        wjid: target.wjid,
+        kcdm: target.kcdm,
+        bpdm: target.bpdm,
+    }
+}
+
+pub(super) fn map_evaluation_batch(
+    batch: domain::EvaluationBatchResult,
+) -> BridgeEvaluationBatchResult {
+    BridgeEvaluationBatchResult {
+        items: batch
+            .items
+            .into_iter()
+            .map(|item| {
+                let (outcome, message) = match item.outcome {
+                    domain::EvaluationCourseOutcome::Success => {
+                        (BridgeEvaluationCourseOutcome::Success, "评教已提交")
+                    }
+                    domain::EvaluationCourseOutcome::Failure => (
+                        BridgeEvaluationCourseOutcome::Failure,
+                        "评教未提交，请刷新课程后重试",
+                    ),
+                    domain::EvaluationCourseOutcome::OutcomeUnknown => (
+                        BridgeEvaluationCourseOutcome::OutcomeUnknown,
+                        "评教提交结果未知，请刷新课程后核对",
+                    ),
+                    domain::EvaluationCourseOutcome::Unattempted => (
+                        BridgeEvaluationCourseOutcome::Unattempted,
+                        "前序课程结果未知，本课程未尝试",
+                    ),
+                };
+                BridgeEvaluationCourseResult {
+                    target: map_evaluation_target(item.target),
+                    course_name: safe_summary_label(&item.course_name, "教学评教课程"),
+                    outcome,
+                    message: message.to_owned(),
+                }
+            })
+            .collect(),
+        success: batch.success,
+        outcome_unknown: batch.outcome_unknown,
     }
 }
 

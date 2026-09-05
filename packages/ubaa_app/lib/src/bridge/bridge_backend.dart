@@ -21,7 +21,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 8;
+const _supportedBridgeContractVersion = 9;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -34,6 +34,7 @@ class BridgeBackend
         FeatureQueryBackend,
         CgyyCancellationReadbackBackend,
         YgdkSubmissionReadbackBackend,
+        EvaluationSubmissionReadbackBackend,
         BykcWriteBackend,
         SigninWriteBackend,
         CancellationWriteBackend,
@@ -114,6 +115,11 @@ class BridgeBackend
   }) => _loadYgdkRecordsOnRoute(this, route: route, page: page, size: size);
 
   @override
+  Future<FeatureResult> loadEvaluationOnRoute({
+    required ConnectionMode route,
+  }) => _loadEvaluationOnRoute(this, route: route);
+
+  @override
   Future<void> dispose() => _dispose(this);
 
   @override
@@ -181,11 +187,11 @@ class BridgeBackend
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
       _prepareCgyyCancelOrder(this, id: id);
 
-  /// 评教只接收 bridge 白名单课程 DTO，并在 commit 后由页面重新读取进度。
+  /// 评教只回传 Core 签发的稳定目标，并在 commit 后按原路线读取核对。
   @override
   Future<WriteIntent> prepareEvaluationSubmitCourses(
-    List<EvaluationCourseInput> courses,
-  ) => _prepareEvaluationSubmitCourses(this, courses);
+    List<EvaluationSubmitTarget> targets,
+  ) => _prepareEvaluationSubmitCourses(this, targets);
 
   @override
   Future<WriteCommitResult> commitWrite(String intentId) =>

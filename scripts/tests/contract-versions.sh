@@ -41,54 +41,54 @@ new_fixture() {
   cp "$checker_source" "$fixture/scripts/check/contract-versions.sh"
   chmod +x "$fixture/scripts/check/contract-versions.sh"
 
-  printf '%s\n' 'pub const CLI_JSON_SCHEMA_VERSION: u32 = 9;' \
+  printf '%s\n' 'pub const CLI_JSON_SCHEMA_VERSION: u32 = 10;' \
     >"$fixture/apps/ubaa-cli/src/io/schema.rs"
-  printf '%s\n' 'pub const BRIDGE_CONTRACT_VERSION: u32 = 8;' \
+  printf '%s\n' 'pub const BRIDGE_CONTRACT_VERSION: u32 = 9;' \
     >"$fixture/crates/ubaa-flutter-bridge/src/api/client.rs"
-  printf '%s\n' 'const _supportedBridgeContractVersion = 8;' \
+  printf '%s\n' 'const _supportedBridgeContractVersion = 9;' \
     >"$fixture/packages/ubaa_app/lib/src/bridge/bridge_backend.dart"
   printf '%s\n' \
-    '{"properties":{"schemaVersion":{"const":9}}}' \
+    '{"properties":{"schemaVersion":{"const":10}}}' \
     >"$fixture/docs/contracts/cli-json.schema.json"
   printf '%s\n' \
-    '合同版本为 `8`' \
-    '| `contractVersion` | 无 | `u32=8` |' \
+    '合同版本为 `9`' \
+    '| `contractVersion` | 无 | `u32=9` |' \
     >"$fixture/docs/contracts/flutter-bridge.md"
   printf '%s\n' \
-    'CLI JSON schema v9；Flutter bridge contract v8。' \
-    'human/JSON schema v9 命令行宿主' \
-    'schema-v9 信封' \
-    '当前 Flutter bridge contract 为 v8' \
+    'CLI JSON schema v10；Flutter bridge contract v9。' \
+    'human/JSON schema v10 命令行宿主' \
+    'schema-v10 信封' \
+    '当前 Flutter bridge contract 为 v9' \
     >"$fixture/README.md"
-  printf '%s\n' 'CLI JSON schema v9' \
+  printf '%s\n' 'CLI JSON schema v10' \
     >"$fixture/docs/contracts/auth-and-user.md"
   printf '%s\n' \
-    'CLI JSON schema v9' \
-    'schema-v9 聚合' \
-    'CLI envelope 的 schema v9' \
-    'Flutter bridge contract v8' \
+    'CLI JSON schema v10' \
+    'schema-v10 聚合' \
+    'CLI envelope 的 schema v10' \
+    'Flutter bridge contract v9' \
     >"$fixture/docs/architecture/overview.md"
   printf '%s\n' \
-    'CLI JSON schema v9；Flutter bridge contract v8。' \
-    'CLI schema v9、bridge v8' \
-    '| CLI | schema v9 envelope' \
+    'CLI JSON schema v10；Flutter bridge contract v9。' \
+    'CLI schema v10、bridge v9' \
+    '| CLI | schema v10 envelope' \
     >"$fixture/docs/migration/status.md"
-  printf '%s\n' 'schema-v9 路由 envelope' \
+  printf '%s\n' 'schema-v10 路由 envelope' \
     >"$fixture/docs/contracts/readonly-features.md"
   printf '%s\n' \
-    'human/JSON schema v9' \
-    '当前 CLI envelope 显式升为 schema v9、Flutter bridge contract 升为 v8' \
+    'human/JSON schema v10' \
+    '当前 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9' \
     >"$fixture/docs/development/testing.md"
   printf '%s\n' \
-    'human/JSON schema v9' \
-    '当前 CLI envelope 为 schema v9' \
-    'Flutter bridge 当前 contract 为 v8' \
+    'human/JSON schema v10' \
+    '当前 CLI envelope 为 schema v10' \
+    'Flutter bridge 当前 contract 为 v9' \
     >"$fixture/docs/development/engineering-standards.md"
-  printf '%s\n' 'schema-v9 envelope' \
+  printf '%s\n' 'schema-v10 envelope' \
     >"$fixture/docs/runbooks/live-auth-verification.md"
-  printf '%s\n' '当前 CLI schema-v9 的 `error` envelope' \
+  printf '%s\n' '当前 CLI schema-v10 的 `error` envelope' \
     >"$fixture/packages/ubaa_platform/README.md"
-  printf '%s\n' '当前 CLI envelope 只使用 schema v9' \
+  printf '%s\n' '当前 CLI envelope 只使用 schema v10' \
     >"$fixture/docs/migration/source-parity.md"
 
   printf '%s\n' "$fixture"
@@ -137,7 +137,7 @@ fixture=$(new_fixture matching)
 expect_pass '源码、schema 与当前文档版本一致时通过' "$fixture"
 
 fixture=$(new_fixture dart-mismatch)
-printf '%s\n' 'const _supportedBridgeContractVersion = 7;' \
+printf '%s\n' 'const _supportedBridgeContractVersion = 8;' \
   >"$fixture/packages/ubaa_app/lib/src/bridge/bridge_backend.dart"
 expect_rejected \
   'Dart 接受的 Bridge 版本落后时拒绝' \
@@ -145,7 +145,7 @@ expect_rejected \
   'packages/ubaa_app/lib/src/bridge/bridge_backend.dart'
 
 fixture=$(new_fixture schema-mismatch)
-printf '%s\n' '{"properties":{"schemaVersion":{"const":8}}}' \
+printf '%s\n' '{"properties":{"schemaVersion":{"const":9}}}' \
   >"$fixture/docs/contracts/cli-json.schema.json"
 expect_rejected \
   'CLI JSON Schema 常量落后时拒绝' \
@@ -153,7 +153,7 @@ expect_rejected \
   'docs/contracts/cli-json.schema.json'
 
 fixture=$(new_fixture stale-document)
-printf '%s\n' 'human/JSON schema v8 命令行宿主' \
+printf '%s\n' 'human/JSON schema v9 命令行宿主' \
   >"$fixture/README.md"
 expect_rejected '当前文档仍声明旧版本时拒绝' "$fixture" 'README.md'
 

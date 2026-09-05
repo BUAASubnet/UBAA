@@ -3,7 +3,7 @@
 use super::support::{
     ensure_bykc_course_target, ensure_bykc_deselect_allowed, ensure_bykc_preflight_route,
     ensure_bykc_select_allowed, invalid_input, map_cgyy_receipt, map_cgyy_request,
-    map_commit_error, map_evaluation_course, map_resolution_error, map_ygdk_receipt, now_seconds,
+    map_commit_error, map_evaluation_batch, map_resolution_error, map_ygdk_receipt, now_seconds,
     safe_message,
 };
 use super::{BridgeWriteCommitResult, PendingWrite};
@@ -48,11 +48,11 @@ impl BridgeClient {
             let operation = pending.operation();
             let expected_route = entry.resolved_route;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
-            // 场馆取消与阳光打卡把路线匹配及最终发送绑定在 Core 的同一个调用中；
+            // 场馆取消、阳光打卡与教学评教把路线匹配及最终发送绑定在 Core 的同一个调用中；
             // 若先在 Bridge 解析再调用普通写入口，Auto 探测缓存跨界时会形成 TOCTOU。
             if !matches!(
                 &pending,
-                PendingWrite::CgyyCancel(_) | PendingWrite::Ygdk(_)
+                PendingWrite::CgyyCancel(_) | PendingWrite::Ygdk(_) | PendingWrite::Evaluation(_)
             ) {
                 let current_resolution = client
                     .resolve_route_for_feature(pending.feature())
@@ -103,6 +103,7 @@ impl BridgeClient {
                             safe_message("博雅选课已提交"),
                             None,
                             None,
+                            None,
                         )
                     })
                 }
@@ -114,6 +115,7 @@ impl BridgeClient {
                             r.resolution,
                             true,
                             safe_message("博雅退选已提交"),
+                            None,
                             None,
                             None,
                         )
@@ -132,7 +134,7 @@ impl BridgeClient {
                             sign_type: request.sign_type,
                         })
                         .await
-                        .map(|r| (r.resolution, true, safe_message(message), None, None))
+                        .map(|r| (r.resolution, true, safe_message(message), None, None, None))
                 }
                 PendingWrite::Signin(request) => {
                     client.signin_perform(&request.course_id).await.map(|r| {
@@ -142,7 +144,7 @@ impl BridgeClient {
                         } else {
                             safe_message("签到未完成")
                         };
-                        (r.resolution, success, message, None, None)
+                        (r.resolution, success, message, None, None, None)
                     })
                 }
                 PendingWrite::LibbookReserve(request) => client
@@ -162,7 +164,7 @@ impl BridgeClient {
                         } else {
                             safe_message("图书馆预约未完成")
                         };
-                        (r.resolution, success, message, None, None)
+                        (r.resolution, success, message, None, None, None)
                     }),
                 PendingWrite::LibbookCancel(request) => client
                     .libbook_cancel_booking(domain::LibBookCancelRequest {
@@ -178,7 +180,7 @@ impl BridgeClient {
                         } else {
                             safe_message("图书馆预约取消未完成")
                         };
-                        (r.resolution, success, message, None, None)
+                        (r.resolution, success, message, None, None, None)
                     }),
                 PendingWrite::Ygdk(request) => client
                     .ygdk_submit_if_route_matches(request, expected_route.into())
@@ -192,6 +194,7 @@ impl BridgeClient {
                             safe_message("阳光打卡已提交"),
                             None,
                             receipt,
+                            None,
                         )
                     }),
                 PendingWrite::CgyyReserve(request) => client
@@ -210,6 +213,7 @@ impl BridgeClient {
                             message,
                             r.data.receipt.map(map_cgyy_receipt),
                             None,
+                            None,
                         )
                     }),
                 PendingWrite::CgyyCancel(request) => client
@@ -227,42 +231,56 @@ impl BridgeClient {
                         } else {
                             safe_message("场馆订单取消未完成")
                         };
-                        (r.resolution, success, message, None, None)
+                        (r.resolution, success, message, None, None, None)
                     }),
                 PendingWrite::Evaluation(request) => client
-                    .evaluation_submit_courses(
-                        request
-                            .courses
-                            .into_iter()
-                            .map(map_evaluation_course)
-                            .collect(),
-                    )
+                    .evaluation_submit_courses_if_route_matches(request, expected_route.into())
                     .await
                     .map(|r| {
+                        let batch = map_evaluation_batch(r.data);
                         (
                             r.resolution,
-                            true,
-                            safe_message("教学评教已提交"),
+                            batch.success,
+                            safe_message(evaluation_commit_message(&batch)),
                             None,
                             None,
+                            Some(batch),
                         )
                     }),
             };
             match result {
-                Ok((resolution, success, message, cgyy_receipt, ygdk_receipt)) => {
-                    finish_commit_success(
-                        operation,
-                        resolution.mode.into(),
-                        success,
-                        message,
-                        cgyy_receipt,
-                        ygdk_receipt,
-                    )
-                }
+                Ok((
+                    resolution,
+                    success,
+                    message,
+                    cgyy_receipt,
+                    ygdk_receipt,
+                    evaluation_result,
+                )) => finish_commit_success(
+                    operation,
+                    resolution.mode.into(),
+                    success,
+                    message,
+                    cgyy_receipt,
+                    ygdk_receipt,
+                    evaluation_result,
+                ),
                 Err(error) => Err(map_dispatch_error(operation, expected_route, error)),
             }
         })
         .await
+    }
+}
+
+pub(super) fn evaluation_commit_message(
+    batch: &super::BridgeEvaluationBatchResult,
+) -> &'static str {
+    if batch.outcome_unknown {
+        "教学评教提交结果无法确认，请刷新课程后核对"
+    } else if batch.success {
+        "教学评教已全部提交"
+    } else {
+        "教学评教部分课程未提交，请刷新课程后重试"
     }
 }
 
@@ -273,6 +291,7 @@ pub(super) fn finish_commit_success(
     message: String,
     cgyy_receipt: Option<super::BridgeCgyyReservationReceipt>,
     ygdk_receipt: Option<super::BridgeYgdkSubmitReceipt>,
+    evaluation_result: Option<super::BridgeEvaluationBatchResult>,
 ) -> Result<BridgeWriteCommitResult, BridgeError> {
     if matches!(operation, super::BridgeWriteOperation::CgyyCancelOrder) && !success {
         return Err(BridgeError {
@@ -296,10 +315,13 @@ pub(super) fn finish_commit_success(
         operation,
         success,
         message,
-        outcome_unknown: false,
+        outcome_unknown: evaluation_result
+            .as_ref()
+            .is_some_and(|result| result.outcome_unknown),
         resolved_route: Some(resolved_route),
         cgyy_receipt,
         ygdk_receipt,
+        evaluation_result,
     })
 }
 
@@ -310,7 +332,9 @@ fn map_dispatch_error(
 ) -> BridgeError {
     if matches!(
         operation,
-        super::BridgeWriteOperation::CgyyCancelOrder | super::BridgeWriteOperation::YgdkSubmit
+        super::BridgeWriteOperation::CgyyCancelOrder
+            | super::BridgeWriteOperation::YgdkSubmit
+            | super::BridgeWriteOperation::EvaluationSubmitCourses
     ) && error.error.code == domain::ErrorCode::InvalidInput
         && error
             .resolution()

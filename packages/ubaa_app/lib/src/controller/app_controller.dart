@@ -14,7 +14,8 @@ import '../write/ygdk_validation.dart';
 import 'error_mapper.dart';
 
 part 'app_controller/cgyy_readback.dart';
-part 'app_controller/evaluation_normalization.dart';
+part 'app_controller/evaluation_readback.dart';
+part 'app_controller/refresh.dart';
 part 'app_controller/ygdk_readback.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
@@ -83,7 +84,10 @@ class AppController extends ChangeNotifier {
   UiError? _error;
   bool _disposed = false;
   bool _initialized = false;
-  int _refreshGeneration = 0;
+  final Map<FeatureId, int> _featureRefreshGenerations = <FeatureId, int>{
+    for (final feature in FeatureId.values) feature: 0,
+  };
+  int _lifecycleEpoch = 0;
   int _ygdkGeneration = 0;
   bool _telemetryEnabled;
   YgdkReadbackState _ygdkReadbackState = const YgdkReadbackState.empty();
@@ -111,6 +115,12 @@ class AppController extends ChangeNotifier {
   /// 阳光打卡提交入口。平台照片能力仍由宿主另行检查。
   bool get hasYgdkSubmissionBackendCapabilities =>
       _backend is YgdkWriteBackend && _backend is YgdkSubmissionReadbackBackend;
+
+  /// backend 必须同时提供 typed 写入与调用方固定路线回读，
+  /// 宿主才能暴露评教提交入口。
+  bool get hasEvaluationSubmissionBackendCapabilities =>
+      _backend is EvaluationWriteBackend &&
+      _backend is EvaluationSubmissionReadbackBackend;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -175,7 +185,7 @@ class AppController extends ChangeNotifier {
       return false;
     }
     _rebuildingBackend = true;
-    _refreshGeneration++;
+    _lifecycleEpoch++;
     _ygdkGeneration++;
     _setPhase(AppPhase.checkingSession);
     try {
@@ -349,64 +359,15 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshHome({Iterable<FeatureId>? only}) async {
-    if (_disposed) return;
-    final generation = ++_refreshGeneration;
-    final features = (only ?? FeatureId.values).toList(growable: false);
-    final ygdkGeneration = features.contains(FeatureId.ygdk)
-        ? ++_ygdkGeneration
-        : null;
-    for (final feature in features) {
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: FeatureLoadStatus.loading,
-        clearError: true,
-      );
-    }
-    _notify();
-    await Future.wait(
-      features.map(
-        (feature) => _loadFeature(
-          feature,
-          generation,
-          ygdkGeneration: feature == FeatureId.ygdk ? ygdkGeneration : null,
-        ),
-      ),
-    );
-  }
+  Future<void> refreshHome({Iterable<FeatureId>? only}) =>
+      _refreshHome(only: only);
 
   Future<void> retryFeature(FeatureId feature) =>
       refreshHome(only: <FeatureId>[feature]);
 
   /// 对支持 [FeatureQueryBackend] 的生产实现执行单领域筛选读取。
-  ///
-  /// 不支持查询的 fake backend 明确报 unsupported，不会在 Dart 端拼接请求。
-  Future<void> refreshFeatureQuery(
-    FeatureId feature,
-    FeatureQuery query,
-  ) async {
-    if (_disposed) return;
-    if (_backend is! FeatureQueryBackend) {
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: FeatureLoadStatus.failure,
-        error: UbaaErrorMapper.fromCode(UbaaErrorCode.unsupported),
-      );
-      _notify();
-      return;
-    }
-    final generation = ++_refreshGeneration;
-    final ygdkGeneration = feature == FeatureId.ygdk ? ++_ygdkGeneration : null;
-    _snapshots[feature] = _snapshots[feature]!.copyWith(
-      status: FeatureLoadStatus.loading,
-      clearError: true,
-    );
-    _notify();
-    await _loadFeature(
-      feature,
-      generation,
-      query: query,
-      ygdkGeneration: ygdkGeneration,
-    );
-  }
+  Future<void> refreshFeatureQuery(FeatureId feature, FeatureQuery query) =>
+      _refreshFeatureQuery(feature, query);
 
   /// 准备博雅选课/退选的 typed 一次性意图；准备本身不提交写请求。
   Future<WriteIntent> prepareBykcWrite(
@@ -571,28 +532,25 @@ class AppController extends ChangeNotifier {
     );
   }
 
-  /// 准备教学评教写意图；仅接受读取结果中的待评课程稳定字段。
+  /// 准备教学评教写意图；仅接受读取 action 中的 typed 目标。
   Future<WriteIntent> prepareEvaluationWrite(
-    List<EvaluationCourseInput> courses,
+    List<EvaluationSubmitTarget> targets,
   ) async {
     final backend = _backend;
     if (backend is! EvaluationWriteBackend) {
       throw const BackendException(UbaaErrorCode.unsupported);
     }
-    if (courses.isEmpty ||
-        courses.any(
-          (course) =>
-              course.isEvaluated ||
-              course.id.trim().isEmpty ||
-              course.rwid.trim().isEmpty ||
-              course.wjid.trim().isEmpty ||
-              course.kcdm.trim().isEmpty ||
-              course.msid.trim().isEmpty,
-        )) {
+    final normalized = targets
+        .map(_normalizeEvaluationTarget)
+        .toList(growable: false);
+    final uniqueKeys = normalized.map((target) => target.selectionKey).toSet();
+    if (normalized.isEmpty ||
+        normalized.any((target) => !target.hasRequiredIdentity) ||
+        uniqueKeys.length != normalized.length) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
     return (backend as EvaluationWriteBackend).prepareEvaluationSubmitCourses(
-      courses.map(_normalizeEvaluationCourse).toList(growable: false),
+      normalized,
     );
   }
 
@@ -658,6 +616,10 @@ class AppController extends ChangeNotifier {
       // 概览和首页记录；通用刷新不得降级为 Auto 路线。
       return Future<void>.value();
     }
+    if (operation == WriteOperation.evaluationSubmitCourses) {
+      // 评教必须使用 intent 原路线回读；通用刷新不得重新执行 Auto。
+      return Future<void>.value();
+    }
     final feature = switch (operation) {
       WriteOperation.bykcSelectCourse ||
       WriteOperation.bykcDeselectCourse ||
@@ -668,7 +630,9 @@ class AppController extends ChangeNotifier {
       WriteOperation.ygdkSubmit => FeatureId.ygdk,
       WriteOperation.cgyySubmitReservation ||
       WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
-      WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+      WriteOperation.evaluationSubmitCourses => throw StateError(
+        '评教使用调用方固定路线回读',
+      ),
     };
     return refreshHome(only: <FeatureId>[feature]);
   }
@@ -708,114 +672,16 @@ class AppController extends ChangeNotifier {
   Future<void> refreshYgdkAfterWrite({required ConnectionMode expectedRoute}) =>
       _refreshYgdkAfterWrite(this, expectedRoute: expectedRoute);
 
-  Future<void> _loadFeature(
-    FeatureId feature,
-    int generation, {
-    FeatureQuery? query,
-    int? ygdkGeneration,
-  }) async {
-    final started = DateTime.now();
-    final previous = _snapshots[feature]!;
-    final hadPreviousData =
-        previous.updatedAt != null &&
-        (previous.details.isNotEmpty ||
-            previous.summary?.trim().isNotEmpty == true);
-    try {
-      final result = switch ((_backend, query)) {
-        (FeatureQueryBackend queryBackend, final FeatureQuery value) =>
-          await queryBackend.loadFeatureQuery(feature, value),
-        _ => await _backend.loadFeature(feature),
-      };
-      if (!_applyFeatureResultIfCurrent(
-        feature,
-        result,
-        generation,
-        ygdkGeneration: ygdkGeneration,
-      )) {
-        return;
-      }
-      await _recordFeature(
-        feature,
-        success: result.error == null && !result.isEmpty,
-        empty: result.isEmpty,
-        error: result.error,
-        latency: DateTime.now().difference(started),
-      );
-    } on BackendException catch (exception) {
-      if (!_isFeatureLoadCurrent(feature, generation, ygdkGeneration)) return;
-      final uiError = UbaaErrorMapper.fromCode(exception.code);
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: hadPreviousData
-            ? FeatureLoadStatus.stale
-            : FeatureLoadStatus.failure,
-        error: uiError,
-        updatedAt: DateTime.now(),
-      );
-      await _recordFeature(
-        feature,
-        error: uiError,
-        latency: DateTime.now().difference(started),
-      );
-    } catch (_) {
-      if (!_isFeatureLoadCurrent(feature, generation, ygdkGeneration)) return;
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: hadPreviousData
-            ? FeatureLoadStatus.stale
-            : FeatureLoadStatus.failure,
-        error: UbaaErrorMapper.fromCode(UbaaErrorCode.internalError),
-        updatedAt: DateTime.now(),
-      );
-      await _recordFeature(
-        feature,
-        error: UbaaErrorMapper.fromCode(UbaaErrorCode.internalError),
-        latency: DateTime.now().difference(started),
-      );
-    }
-    _notify();
-  }
-
-  bool _applyFeatureResultIfCurrent(
-    FeatureId feature,
-    FeatureResult result,
-    int generation, {
-    int? ygdkGeneration,
-  }) {
-    if (!_isFeatureLoadCurrent(feature, generation, ygdkGeneration)) {
-      return false;
-    }
-    final status = result.error != null
-        ? FeatureLoadStatus.failure
-        : result.isEmpty
-        ? FeatureLoadStatus.empty
-        : FeatureLoadStatus.success;
-    _snapshots[feature] = _snapshots[feature]!.copyWith(
-      status: status,
-      summary: result.summary,
-      details: result.details,
-      error: result.error,
-      resolvedRoute: result.resolvedRoute,
-      pagination: result.pagination,
-      updatedAt: DateTime.now(),
-      clearError: result.error == null,
-      clearSummary: result.summary == null,
-      clearDetails: result.details.isEmpty,
-      clearResolvedRoute: result.resolvedRoute == null,
-      clearPagination: result.pagination == null,
-    );
-    return true;
-  }
-
-  bool _isFeatureLoadCurrent(
-    FeatureId feature,
-    int generation,
-    int? ygdkGeneration,
-  ) =>
-      !_disposed &&
-      generation == _refreshGeneration &&
-      (feature != FeatureId.ygdk || ygdkGeneration == _ygdkGeneration);
+  /// 在 intent 的实际路线 best-effort 刷新评教课程。
+  ///
+  /// 该回读只更新 Evaluation 快照，不改写结果，也不会重试提交。
+  Future<void> refreshEvaluationAfterWrite({
+    required ConnectionMode expectedRoute,
+  }) => _refreshEvaluationAfterWrite(this, expectedRoute: expectedRoute);
 
   Future<void> logout({bool clearSavedCredential = false}) async {
     if (_disposed) return;
+    _lifecycleEpoch++;
     _ygdkGeneration++;
     try {
       await _backend.logout();
@@ -863,7 +729,7 @@ class AppController extends ChangeNotifier {
   };
 
   void _resetFeatureSnapshots() {
-    _refreshGeneration++;
+    _lifecycleEpoch++;
     _ygdkGeneration++;
     _ygdkReadbackState = const YgdkReadbackState.empty();
     for (final feature in FeatureId.values) {
@@ -963,7 +829,7 @@ class AppController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _refreshGeneration++;
+    _lifecycleEpoch++;
     _ygdkGeneration++;
     _ygdkReadbackState = const YgdkReadbackState.empty();
     _snapshots[FeatureId.ygdk] = const FeatureSnapshot(feature: FeatureId.ygdk);

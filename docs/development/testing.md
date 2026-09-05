@@ -8,7 +8,7 @@
 | Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
 | 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/lib.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v9、旧 v8 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
+| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v10、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
 | 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`live-launchers.sh` | index/工作树结构棘轮、CLI/Bridge 常量与当前文档一致性、refs 副作用边界、凭据 stdin、构建失败/信号清理 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
@@ -65,13 +65,17 @@ contract 升为 v7，合同测试拒绝旧 schema v7/bridge v6。取消测试另
 路线匹配、本次局部结果证明、generation-safe UI 刷新与“回读失败不重发写”。磁盘版本仍不变。
 
 Phase 11I 为 Ygdk 项目增加 typed `submitEligibility/submitTarget`，将 prepare 请求收紧为完整 target、
-canonical 时间和必需照片，并加入 expected-route 原子提交与 caller-pinned 概览/记录回读；当前 CLI envelope 显式升为 schema v9、Flutter bridge contract 升为 v8，
+canonical 时间和必需照片，并加入 expected-route 原子提交与 caller-pinned 概览/记录回读；当时 CLI envelope 显式升为 schema v9、Flutter bridge contract 升为 v8，
 合同测试拒绝旧 schema v8/bridge v7。
+
+Phase 11J 为 Evaluation 课程增加 typed `submitEligibility/submitTarget`，把 prepare 请求收紧为非空、有序、
+无重复的 targets，并新增 `success/failure/outcomeUnknown/unattempted` 四态逐项结果及 caller-pinned 原路线回读；
+当前 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9，合同测试拒绝旧 schema v9/bridge v8。
 阶段最终门禁尚未完成，不得把当前工作树描述为全绿、真实写入或正式发布。
 
 ## 写入测试边界
 
-阶段 11H 提交上的十项用户写入已有确定性闭环；Phase 11I 当前变更仍待最终门禁，且任何确定性证据都不授权真实操作：
+阶段 11I 提交上的十项用户写入已有确定性闭环；Phase 11J 当前变更仍待最终门禁，且任何确定性证据都不授权真实操作：
 
 1. Core/CLI 证明精确请求、默认拒绝和 `--confirm-write`；
 2. bridge/app/UI 证明 typed prepare 不提交、取消无副作用、确认只提交一次；

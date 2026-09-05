@@ -7,15 +7,14 @@ use std::time::SystemTime;
 use crate::auth::AuthWorkflow;
 use crate::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
-    BykcStatistics, BykcUserProfile, ClassroomQuery, ConnectionMode, EvaluationCourse,
-    EvaluationCoursesResponse, EvaluationResult, ExamArrangement, FeatureResult, GradeData,
-    JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary, JudgeAssignmentsDiagnostics,
-    LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelPreflight,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput, SigninActionResult,
-    SigninClass, SpocAssignmentDetail, SpocAssignments, SpocAssignmentsDiagnostics, Term,
-    TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
-    YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    BykcStatistics, BykcUserProfile, ClassroomQuery, ConnectionMode, ExamArrangement,
+    FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
+    LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult, LibBookLibrary,
+    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
+    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
+    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
+    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, Result};
 use crate::features::user;
@@ -26,6 +25,7 @@ use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 use super::routing::invalid_input;
 
 mod cgyy;
+mod evaluation;
 
 /// 仅供诊断、测试和真实验证使用的单路线客户端。
 #[doc(hidden)]
@@ -256,48 +256,6 @@ impl RouteClient {
     pub async fn bykc_statistics(&mut self) -> Result<FeatureResult<BykcStatistics>> {
         self.guard_session_ownership()?;
         let result = crate::features::bykc::get_statistics(&mut self.runtime).await;
-        let data = self.finish_readonly_operation(result)?;
-        Ok(crate::features::feature_result(&self.runtime, data))
-    }
-
-    /// 查询全部评教课程。
-    ///
-    /// # Errors
-    ///
-    /// 会话校验或清理、网络请求或上游响应处理失败时返回错误。
-    pub async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
-        self.guard_session_ownership()?;
-        let result = crate::features::evaluation::get_all(&mut self.runtime).await;
-        let data = self.finish_readonly_operation(result)?;
-        Ok(crate::features::feature_result(&self.runtime, data))
-    }
-
-    /// 提交由宿主构造的评教结果列表。
-    ///
-    /// # Errors
-    ///
-    /// 会话所有权校验、网络写请求或上游响应处理失败时返回错误。
-    pub async fn evaluation_submit(
-        &mut self,
-        pjjglist: Vec<serde_json::Value>,
-    ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
-        self.guard_latest_session_ownership()?;
-        let result = crate::features::evaluation::submit_payload(&mut self.runtime, pjjglist).await;
-        let data = self.finish_readonly_operation(result)?;
-        Ok(crate::features::feature_result(&self.runtime, data))
-    }
-
-    /// 按冻结问卷链自动构造并提交课程评教。
-    ///
-    /// # Errors
-    ///
-    /// 会话所有权校验、网络写请求或上游响应处理失败时返回错误。
-    pub async fn evaluation_submit_courses(
-        &mut self,
-        courses: Vec<EvaluationCourse>,
-    ) -> Result<FeatureResult<Vec<EvaluationResult>>> {
-        self.guard_latest_session_ownership()?;
-        let result = crate::features::evaluation::submit_courses(&mut self.runtime, courses).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

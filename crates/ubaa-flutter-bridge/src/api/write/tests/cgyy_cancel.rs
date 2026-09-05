@@ -21,6 +21,7 @@ fn 场馆取消core意外返回false时bridge固定失败关闭() {
         "不应暴露的普通失败文案".to_owned(),
         None,
         None,
+        None,
     )
     .expect_err("场馆取消 false 不能成为普通 commit 结果");
 

@@ -2,12 +2,12 @@
 
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
-    ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, invalid_input,
-    map_bykc_sign_preflight_error, map_cgyy_cancel_preflight_error, map_cgyy_preflight_error,
-    map_cgyy_request, map_libbook_cancel_preflight_error, map_libbook_preflight_error,
-    map_ygdk_preflight_error, map_ygdk_request, now_seconds, random_id, safe_summary_label,
-    validate_bykc_sign_request, validate_cgyy_request, validate_id, validate_id_i32, validate_text,
-    validate_ygdk_request, ygdk_canonical,
+    ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, map_bykc_sign_preflight_error,
+    map_cgyy_cancel_preflight_error, map_cgyy_preflight_error, map_cgyy_request,
+    map_evaluation_preflight_error, map_evaluation_request, map_libbook_cancel_preflight_error,
+    map_libbook_preflight_error, map_ygdk_preflight_error, map_ygdk_request, now_seconds,
+    random_id, safe_summary_label, validate_bykc_sign_request, validate_cgyy_request, validate_id,
+    validate_id_i32, validate_text, validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyCancelOrderRequest,
@@ -18,7 +18,7 @@ use super::{
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, catch_panic, disposed_error,
 };
-use ubaa_core::facade::{self as domain, ReadonlyFeature};
+use ubaa_core::facade as domain;
 
 impl BridgeClient {
     async fn store_write_intent(
@@ -34,13 +34,12 @@ impl BridgeClient {
         let request_digest = digest(&canonical);
         let now = now_seconds();
         let expires_at = now.saturating_add(120);
-        let conflict_key = pending.conflict_key();
         let mut intents = self.write_intents.lock().await;
         intents.retain(|_, entry| entry.expires_at > now);
-        if intents
-            .values()
-            .any(|entry| entry.conflict_key == conflict_key)
-        {
+        let conflict_key = pending.conflict_key();
+        if intents.values().any(|entry| {
+            pending.conflicts_with(&entry.request) || conflict_key == entry.conflict_key
+        }) {
             return Err(BridgeError::local(
                 crate::api::client::BridgeErrorCode::OperationConflict,
                 crate::api::client::BridgeErrorKind::Input,
@@ -66,34 +65,6 @@ impl BridgeClient {
             expires_at,
             request_digest,
         })
-    }
-
-    async fn prepare_write(
-        &self,
-        feature: ReadonlyFeature,
-        operation: BridgeWriteOperation,
-        canonical: String,
-        target_summary: String,
-        warnings: Vec<String>,
-        pending: PendingWrite,
-    ) -> Result<BridgeWriteIntent, BridgeError> {
-        catch_panic(async {
-            let mut guard = self.inner.lock().await;
-            let client = guard.as_mut().ok_or_else(disposed_error)?;
-            let resolution = client
-                .resolve_route_for_feature(feature)
-                .map_err(|error| BridgeError::from_core(error, None))?;
-            self.store_write_intent(
-                operation,
-                canonical,
-                target_summary,
-                warnings,
-                pending,
-                resolution.mode.into(),
-            )
-            .await
-        })
-        .await
     }
 
     pub async fn prepare_bykc_select_course(
@@ -495,23 +466,61 @@ impl BridgeClient {
         &self,
         request: BridgeEvaluationSubmitCoursesRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
-        if request.courses.is_empty() {
-            return Err(invalid_input("至少选择一门待评课程"));
-        }
-        let canonical = request
-            .courses
-            .iter()
-            .map(|c| format!("{}:{}:{}", c.id, c.rwid, c.wjid))
-            .collect::<Vec<_>>()
-            .join("|");
-        self.prepare_write(
-            ReadonlyFeature::Evaluation,
-            BridgeWriteOperation::EvaluationSubmitCourses,
-            canonical,
-            format!("提交 {} 门课程的教学评教", request.courses.len()),
-            vec!["评教提交后不可撤销，请确认课程数量".to_owned()],
-            PendingWrite::Evaluation(request),
-        )
+        let request = map_evaluation_request(request)?;
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let routed = client
+                .preflight_evaluation_submit_courses(&request)
+                .await
+                .map_err(|error| map_evaluation_preflight_error(&error))?;
+            let route: BridgeConnectionMode = routed.resolution.mode.into();
+            let preflight = routed.data;
+            let courses_match = preflight.targets == request.targets
+                && preflight.courses.len() == request.targets.len()
+                && preflight
+                    .courses
+                    .iter()
+                    .zip(&request.targets)
+                    .all(|(course, target)| {
+                        course.submit_eligibility == domain::ActionEligibility::Allowed
+                            && course.submit_target.as_ref() == Some(target)
+                            && !course.is_evaluated
+                            && !course.kcmc.trim().is_empty()
+                            && !course.bpmc.trim().is_empty()
+                            && course.id
+                                == format!(
+                                    "{}_{}_{}_{}",
+                                    target.rwid,
+                                    target.wjid,
+                                    target.kcdm,
+                                    target.bpdm.as_deref().unwrap_or_default(),
+                                )
+                    });
+            if !courses_match {
+                return Err(BridgeError {
+                    code: crate::api::client::BridgeErrorCode::UpstreamChanged,
+                    kind: crate::api::client::BridgeErrorKind::Upstream,
+                    retryable: false,
+                    message: "教学评教资格核对响应无效".to_owned(),
+                    resolved_route: Some(route),
+                });
+            }
+            let count = preflight.targets.len();
+            let pending = PendingWrite::Evaluation(domain::EvaluationSubmitCoursesRequest {
+                targets: preflight.targets,
+            });
+            let canonical = pending.conflict_key();
+            self.store_write_intent(
+                BridgeWriteOperation::EvaluationSubmitCourses,
+                canonical,
+                format!("提交 {count} 门课程的教学评教"),
+                vec!["评教提交后不可撤销，请确认课程数量".to_owned()],
+                pending,
+                route,
+            )
+            .await
+        })
         .await
     }
 }

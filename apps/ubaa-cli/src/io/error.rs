@@ -10,6 +10,8 @@ pub(crate) const CGYY_CANCEL_OUTCOME_UNKNOWN_MESSAGE: &str =
     "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作";
 pub(crate) const CGYY_RESERVATION_OUTCOME_UNKNOWN_MESSAGE: &str =
     "场馆写入结果未知，请稍后查询预约记录确认";
+pub(crate) const EVALUATION_OUTCOME_UNKNOWN_MESSAGE: &str =
+    "评教批量提交结果未知，请刷新课程核对后再操作";
 
 /// 安全的 CLI 错误载荷。
 #[derive(Clone, Eq, PartialEq, Serialize)]

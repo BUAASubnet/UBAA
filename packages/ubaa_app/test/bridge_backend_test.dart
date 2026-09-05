@@ -5,23 +5,25 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 part 'bridge_backend/libbook.dart';
 part 'bridge_backend/cgyy.dart';
+part 'bridge_backend/evaluation.dart';
 part 'bridge_backend/ygdk.dart';
 
 void main() {
   _registerLibbookBridgeBackendTests();
   _registerCgyyBridgeBackendTests();
+  _registerEvaluationBridgeBackendTests();
   _registerYgdkBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(8);
+    final client = _ContractVersionClient(9);
 
     final backend = BridgeBackend(client);
 
     expect(backend.client, same(client));
   });
 
-  test('BridgeBackend 在 release 可执行路径明确拒绝旧 v7 合同', () {
-    final client = _ContractVersionClient(7);
+  test('BridgeBackend 在 release 可执行路径明确拒绝旧 v8 合同', () {
+    final client = _ContractVersionClient(8);
 
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
@@ -492,18 +494,15 @@ void main() {
     );
     expect(cgyyIntent.operation, WriteOperation.cgyySubmitReservation);
 
-    final evaluationIntent = await backend
-        .prepareEvaluationSubmitCourses(const <EvaluationCourseInput>[
-          EvaluationCourseInput(
-            id: 'course-1',
-            kcmc: '课程',
-            bpmc: '教师',
-            rwid: 'task-1',
-            wjid: 'questionnaire-1',
-            kcdm: 'K1',
-            msid: 'M1',
-          ),
-        ]);
+    final evaluationIntent = await backend.prepareEvaluationSubmitCourses(
+      const <EvaluationSubmitTarget>[
+        EvaluationSubmitTarget(
+          rwid: 'task-1',
+          wjid: 'questionnaire-1',
+          kcdm: 'K1',
+        ),
+      ],
+    );
     expect(evaluationIntent.operation, WriteOperation.evaluationSubmitCourses);
   });
 
@@ -760,7 +759,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 8;
+  int contractVersion() => 9;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {
@@ -891,8 +890,9 @@ class _FakeComplexWriteClient extends _CompatibleBridgeClient {
     }
     if (method == #prepareEvaluationSubmitCourses) {
       final request = named[#request] as BridgeEvaluationSubmitCoursesRequest;
-      expect(request.courses.single.id, 'course-1');
-      expect(request.courses.single.rwid, 'task-1');
+      expect(request.targets.single.rwid, 'task-1');
+      expect(request.targets.single.wjid, 'questionnaire-1');
+      expect(request.targets.single.kcdm, 'K1');
       return Future<BridgeWriteIntent>.value(
         _writeIntent(BridgeWriteOperation.evaluationSubmitCourses),
       );

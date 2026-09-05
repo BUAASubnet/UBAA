@@ -75,9 +75,12 @@ abstract interface class CgyyWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input);
 }
 
-/// 已接入 typed 教学评教写意图的能力；仅传递冻结课程标识字段。
+/// 已接入 typed 教学评教写意图的能力。
+///
+/// 宿主只回传 Core 在读取 action 中给出的稳定目标；完整课程、
+/// 问卷题目与答案始终由 Core fresh authority 持有。
 abstract interface class EvaluationWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareEvaluationSubmitCourses(
-    List<EvaluationCourseInput> courses,
+    List<EvaluationSubmitTarget> targets,
   );
 }

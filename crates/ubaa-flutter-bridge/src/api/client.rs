@@ -14,7 +14,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 8;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 9;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -627,7 +627,7 @@ mod tests {
         let path = std::env::temp_dir().join(format!("ubaa-bridge-client-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
-        assert_eq!(client.contract_version(), 8);
+        assert_eq!(client.contract_version(), 9);
         client.dispose().await.expect("dispose client");
         client.dispose().await.expect("dispose client twice");
         let error = client.auth_status().await.expect_err("disposed client");
@@ -648,7 +648,7 @@ mod tests {
         old.dispose().await.expect("dispose old client");
 
         let rebuilt = BridgeClient::open(config_dir).expect("reopen after isolate rebuild");
-        assert_eq!(rebuilt.contract_version(), 8);
+        assert_eq!(rebuilt.contract_version(), 9);
         assert_eq!(
             old.route_settings()
                 .await

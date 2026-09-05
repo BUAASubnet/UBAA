@@ -3,7 +3,9 @@
 use std::io::{self, Write};
 
 use serde_json::{Value, json};
-use ubaa_core::facade::{AuthStatus, CgyyLockCode, UserProfile};
+use ubaa_core::facade::{
+    AuthStatus, CgyyLockCode, EvaluationBatchResult, EvaluationCourseOutcome, UserProfile,
+};
 
 use super::schema::CommandOutput;
 
@@ -30,7 +32,36 @@ pub(crate) fn render_human<O: Write>(output: CommandOutput, stdout: &mut O) -> i
         }
         CommandOutput::Logout(_) => writeln!(stdout, "已退出登录。"),
         CommandOutput::Readonly { .. } => unreachable!("readonly output handled above"),
+        CommandOutput::EvaluationBatch { data, .. } => write_evaluation_batch(stdout, &data),
     }
+}
+
+fn write_evaluation_batch<W: Write>(
+    stdout: &mut W,
+    batch: &EvaluationBatchResult,
+) -> io::Result<()> {
+    let summary = if batch.outcome_unknown {
+        "结果未知"
+    } else if batch.success {
+        "全部成功"
+    } else {
+        "部分失败"
+    };
+    writeln!(stdout, "评教批量提交：{summary}")?;
+    for item in &batch.items {
+        let outcome = match item.outcome {
+            EvaluationCourseOutcome::Success => "成功",
+            EvaluationCourseOutcome::Failure => "失败",
+            EvaluationCourseOutcome::OutcomeUnknown => "结果未知",
+            EvaluationCourseOutcome::Unattempted => "未尝试",
+        };
+        writeln!(
+            stdout,
+            "- {}：{}（{}）",
+            item.course_name, outcome, item.message
+        )?;
+    }
+    Ok(())
 }
 
 fn write_optional<W: Write>(stdout: &mut W, label: &str, value: Option<&str>) -> io::Result<()> {

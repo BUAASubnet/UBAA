@@ -248,6 +248,7 @@ final class _AllWritesIntegrationBackend
         FeatureQueryBackend,
         CgyyCancellationReadbackBackend,
         YgdkSubmissionReadbackBackend,
+        EvaluationSubmissionReadbackBackend,
         RouteSettingsBackend,
         BykcWriteBackend,
         SigninWriteBackend,
@@ -449,11 +450,22 @@ final class _AllWritesIntegrationBackend
           title: '集成评教课程',
           fields: <FeatureField>[
             FeatureField(label: '状态', value: '待评'),
-            FeatureField(label: '课程 ID', value: 'course-evaluation'),
-            FeatureField(label: '任务 ID', value: 'task-evaluation'),
-            FeatureField(label: '问卷 ID', value: 'questionnaire-evaluation'),
-            FeatureField(label: '课程代码', value: 'K-EVAL'),
-            FeatureField(label: '模型 ID', value: 'M-EVAL'),
+            FeatureField(
+              label: '课程 ID',
+              value:
+                  'task-evaluation_questionnaire-evaluation_K-EVAL_teacher-evaluation',
+            ),
+          ],
+          actions: <FeatureAction>[
+            EvaluationSubmitAction(
+              eligibility: ActionEligibility.allowed,
+              target: EvaluationSubmitTarget(
+                rwid: 'task-evaluation',
+                wjid: 'questionnaire-evaluation',
+                kcdm: 'K-EVAL',
+                bpdm: 'teacher-evaluation',
+              ),
+            ),
           ],
         ),
       ],
@@ -536,6 +548,16 @@ final class _AllWritesIntegrationBackend
       ifAbsent: () => 1,
     );
     return FeatureResult.success(summary: '集成阳光打卡概览', resolvedRoute: route);
+  }
+
+  @override
+  Future<FeatureResult> loadEvaluationOnRoute({
+    required ConnectionMode route,
+  }) async {
+    if (route != ConnectionMode.direct) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return loadFeature(FeatureId.evaluation);
   }
 
   @override
@@ -622,7 +644,7 @@ final class _AllWritesIntegrationBackend
 
   @override
   Future<WriteIntent> prepareEvaluationSubmitCourses(
-    List<EvaluationCourseInput> courses,
+    List<EvaluationSubmitTarget> targets,
   ) => _prepare(WriteOperation.evaluationSubmitCourses);
 
   Future<WriteIntent> _prepare(

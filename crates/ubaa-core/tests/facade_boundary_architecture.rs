@@ -1,6 +1,8 @@
 //! Core facade、测试注入面与生产宿主依赖方向的架构门禁。
 
 mod support;
+#[path = "support/test_modules.rs"]
+mod test_modules;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -240,9 +242,9 @@ fn 需要注入的行为测试显式登记且不能被源码_cfg_静默删除() 
             !compact.contains("#![cfg(feature"),
             "测试目标 {name} 不得用 crate 级 feature cfg 静默删除全部测试"
         );
-        let tokens = rust_tokens(&source);
-        let has_test = count_sequence(&tokens, &["#", "[", "test", "]"]) > 0
-            || count_sequence(&tokens, &["#", "[", "tokio", ":", ":", "test"]) > 0;
+        let has_test = test_modules::has_declared_test(&manifest_dir().join(path), &|path| {
+            std::fs::read_to_string(path).ok()
+        });
         assert!(has_test, "测试目标 {name} 必须至少保留一个可执行测试");
     }
 
@@ -310,6 +312,72 @@ fn feature_on_off_compile_fixture_只改变依赖feature且不会被_cfg_静默�
         Some(vec!["test-contract".to_owned()]),
         "feature-on fixture 必须只启用 test-contract"
     );
+}
+
+#[test]
+fn evaluation_正常_facade_只接受_typed_target_且公开课程不含上游_authority() {
+    let manifest = manifest_dir();
+    for relative in [
+        "src/facade/read/evaluation.rs",
+        "src/facade/write/evaluation.rs",
+        "src/facade/diagnostic/evaluation.rs",
+    ] {
+        let tokens = rust_tokens(&read(&manifest.join(relative)));
+        assert_eq!(
+            count_sequence(&tokens, &["serde_json", ":", ":", "Value"]),
+            0,
+            "{relative} 不得接受或返回宿主构造的 JSON Value"
+        );
+        assert_eq!(
+            count_sequence(&tokens, &["evaluation_submit", "("]),
+            0,
+            "{relative} 不得保留原始评教 payload 写入口"
+        );
+    }
+
+    let domain = rust_tokens(&read(&manifest.join("src/domain/evaluation.rs")));
+    let course =
+        named_item_body(&domain, "struct", "EvaluationCourse").expect("定位公开 EvaluationCourse");
+    for forbidden in [
+        "rwid",
+        "wjid",
+        "kcdm",
+        "bpdm",
+        "pjrdm",
+        "pjrmc",
+        "msid",
+        "zdmc",
+        "ypjcs",
+        "xypjcs",
+        "sxz",
+        "rwh",
+        "xn",
+        "xq",
+        "xnxq",
+        "pjlxid",
+        "sfksqbpj",
+        "yxsfktjst",
+    ] {
+        assert_eq!(
+            count_sequence(course, &["pub", forbidden, ":"]),
+            0,
+            "公开 EvaluationCourse 不得暴露内部 authority 字段 {forbidden}"
+        );
+    }
+    for required in [
+        "id",
+        "kcmc",
+        "bpmc",
+        "is_evaluated",
+        "submit_eligibility",
+        "submit_target",
+    ] {
+        assert_eq!(
+            count_sequence(course, &["pub", required, ":"]),
+            1,
+            "公开 EvaluationCourse 必须且只能含一个安全字段 {required}"
+        );
+    }
 }
 
 #[derive(Debug)]
@@ -525,6 +593,19 @@ fn matching_brace_end(tokens: &[String], mut cursor: usize) -> usize {
         cursor += 1;
     }
     tokens.len()
+}
+
+fn named_item_body<'a>(tokens: &'a [String], kind: &str, name: &str) -> Option<&'a [String]> {
+    let declaration = tokens
+        .windows(2)
+        .position(|window| window[0] == kind && window[1] == name)?;
+    let open = tokens[declaration + 2..]
+        .iter()
+        .position(|token| token == "{")?
+        + declaration
+        + 2;
+    let end = matching_brace_end(tokens, open);
+    (end > open + 1).then(|| &tokens[open + 1..end - 1])
 }
 
 fn parse_manifest(path: &Path) -> toml::Value {

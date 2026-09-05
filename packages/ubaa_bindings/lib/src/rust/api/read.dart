@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -418,6 +418,28 @@ class BridgeCallerPinnedCgyyOrders {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeCallerPinnedCgyyOrders &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          pinnedRoute == other.pinnedRoute;
+}
+
+/// 调用方固定路线的评教课程结果；不表示 Core 重新执行了 Auto 探测。
+class BridgeCallerPinnedEvaluation {
+  final BridgeEvaluationCoursesResponse data;
+  final BridgeConnectionMode pinnedRoute;
+
+  const BridgeCallerPinnedEvaluation({
+    required this.data,
+    required this.pinnedRoute,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ pinnedRoute.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCallerPinnedEvaluation &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           pinnedRoute == other.pinnedRoute;
@@ -1035,48 +1057,16 @@ class BridgeEvaluationCourse {
   final String kcmc;
   final String bpmc;
   final bool isEvaluated;
-  final String rwid;
-  final String wjid;
-  final String kcdm;
-  final String? bpdm;
-  final String? pjrdm;
-  final String? pjrmc;
-  final String? xnxq;
-  final String msid;
-  final String? zdmc;
-  final int? ypjcs;
-  final int? xypjcs;
-  final String? sxz;
-  final String? rwh;
-  final String? xn;
-  final String? xq;
-  final String? pjlxid;
-  final String? sfksqbpj;
-  final String? yxsfktjst;
+  final BridgeActionEligibility submitEligibility;
+  final BridgeEvaluationSubmitTarget? submitTarget;
 
   const BridgeEvaluationCourse({
     required this.id,
     required this.kcmc,
     required this.bpmc,
     required this.isEvaluated,
-    required this.rwid,
-    required this.wjid,
-    required this.kcdm,
-    this.bpdm,
-    this.pjrdm,
-    this.pjrmc,
-    this.xnxq,
-    required this.msid,
-    this.zdmc,
-    this.ypjcs,
-    this.xypjcs,
-    this.sxz,
-    this.rwh,
-    this.xn,
-    this.xq,
-    this.pjlxid,
-    this.sfksqbpj,
-    this.yxsfktjst,
+    required this.submitEligibility,
+    this.submitTarget,
   });
 
   @override
@@ -1085,24 +1075,8 @@ class BridgeEvaluationCourse {
       kcmc.hashCode ^
       bpmc.hashCode ^
       isEvaluated.hashCode ^
-      rwid.hashCode ^
-      wjid.hashCode ^
-      kcdm.hashCode ^
-      bpdm.hashCode ^
-      pjrdm.hashCode ^
-      pjrmc.hashCode ^
-      xnxq.hashCode ^
-      msid.hashCode ^
-      zdmc.hashCode ^
-      ypjcs.hashCode ^
-      xypjcs.hashCode ^
-      sxz.hashCode ^
-      rwh.hashCode ^
-      xn.hashCode ^
-      xq.hashCode ^
-      pjlxid.hashCode ^
-      sfksqbpj.hashCode ^
-      yxsfktjst.hashCode;
+      submitEligibility.hashCode ^
+      submitTarget.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1113,24 +1087,8 @@ class BridgeEvaluationCourse {
           kcmc == other.kcmc &&
           bpmc == other.bpmc &&
           isEvaluated == other.isEvaluated &&
-          rwid == other.rwid &&
-          wjid == other.wjid &&
-          kcdm == other.kcdm &&
-          bpdm == other.bpdm &&
-          pjrdm == other.pjrdm &&
-          pjrmc == other.pjrmc &&
-          xnxq == other.xnxq &&
-          msid == other.msid &&
-          zdmc == other.zdmc &&
-          ypjcs == other.ypjcs &&
-          xypjcs == other.xypjcs &&
-          sxz == other.sxz &&
-          rwh == other.rwh &&
-          xn == other.xn &&
-          xq == other.xq &&
-          pjlxid == other.pjlxid &&
-          sfksqbpj == other.sfksqbpj &&
-          yxsfktjst == other.yxsfktjst;
+          submitEligibility == other.submitEligibility &&
+          submitTarget == other.submitTarget;
 }
 
 class BridgeEvaluationCoursesResponse {
@@ -1179,6 +1137,34 @@ class BridgeEvaluationProgress {
           totalCourses == other.totalCourses &&
           evaluatedCourses == other.evaluatedCourses &&
           pendingCourses == other.pendingCourses;
+}
+
+class BridgeEvaluationSubmitTarget {
+  final String rwid;
+  final String wjid;
+  final String kcdm;
+  final String? bpdm;
+
+  const BridgeEvaluationSubmitTarget({
+    required this.rwid,
+    required this.wjid,
+    required this.kcdm,
+    this.bpdm,
+  });
+
+  @override
+  int get hashCode =>
+      rwid.hashCode ^ wjid.hashCode ^ kcdm.hashCode ^ bpdm.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeEvaluationSubmitTarget &&
+          runtimeType == other.runtimeType &&
+          rwid == other.rwid &&
+          wjid == other.wjid &&
+          kcdm == other.kcdm &&
+          bpdm == other.bpdm;
 }
 
 class BridgeExam {

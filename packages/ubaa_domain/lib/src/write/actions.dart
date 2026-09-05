@@ -17,6 +17,31 @@ abstract class FeatureAction {
   ActionEligibility get eligibility;
 }
 
+/// 一门课程的 Core 已核对评教能力。
+///
+/// 只有 [eligibility] 为 [ActionEligibility.allowed] 且 [target] 完整时，
+/// UI 才能把目标交给 prepare；拒绝和未知状态不得由展示文案补齐。
+@immutable
+class EvaluationSubmitAction extends FeatureAction {
+  const EvaluationSubmitAction({
+    required this.eligibility,
+    required this.target,
+  });
+
+  @override
+  final ActionEligibility eligibility;
+
+  final EvaluationSubmitTarget? target;
+
+  bool get hasCanonicalTarget =>
+      eligibility == ActionEligibility.allowed &&
+      target != null &&
+      target!.hasRequiredIdentity;
+
+  @override
+  WriteOperation get operation => WriteOperation.evaluationSubmitCourses;
+}
+
 /// 单门博雅课程的选课能力。
 @immutable
 class BykcSelectAction extends FeatureAction {

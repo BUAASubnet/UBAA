@@ -4,10 +4,10 @@ use std::io::Write;
 
 use serde_json::Value;
 use ubaa_core::facade::ConnectionMode;
-use ubaa_core::facade::{Result, UbaaError};
+use ubaa_core::facade::{ErrorCode, ErrorKind, EvaluationBatchResult, Result, UbaaError};
 use ubaa_core::facade::{RouteResolution, Routed, RoutedError, RoutedResult};
 
-use crate::io::error::CliJsonError;
+use crate::io::error::{CliJsonError, EVALUATION_OUTCOME_UNKNOWN_MESSAGE};
 use crate::io::exit_code::{ExitCode, exit_code};
 use crate::io::human::render_human;
 use crate::io::input::write_json;
@@ -25,6 +25,12 @@ pub(crate) fn render_routed_result<O: Write, E: Write>(
     stderr: &mut E,
 ) -> i32 {
     match result {
+        Ok(Routed {
+            data: CommandOutput::EvaluationBatch { data, route },
+            resolution,
+        }) if data.outcome_unknown => {
+            render_evaluation_outcome_unknown(json_mode, data, route, resolution, stdout, stderr)
+        }
         Ok(Routed { data, resolution }) => {
             if json_mode {
                 let value = match command_output_value(data) {
@@ -80,9 +86,20 @@ pub(crate) fn render_result<O: Write, E: Write>(
     stderr: &mut E,
 ) -> i32 {
     match result {
+        Ok(CommandOutput::EvaluationBatch { data, route }) if data.outcome_unknown => {
+            render_evaluation_outcome_unknown(
+                json_mode,
+                data,
+                route,
+                route_context.resolution(route),
+                stdout,
+                stderr,
+            )
+        }
         Ok(output) => {
             let resolved_route = match &output {
-                CommandOutput::Readonly { route, .. } => *route,
+                CommandOutput::Readonly { route, .. }
+                | CommandOutput::EvaluationBatch { route, .. } => *route,
                 _ => mode,
             };
             if json_mode {
@@ -126,6 +143,44 @@ pub(crate) fn render_result<O: Write, E: Write>(
             stderr,
         ),
     }
+}
+
+fn render_evaluation_outcome_unknown<O: Write, E: Write>(
+    json_mode: bool,
+    data: EvaluationBatchResult,
+    route: ConnectionMode,
+    resolution: RouteResolution,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let error = UbaaError::new(
+        ErrorCode::OutcomeUnknown,
+        ErrorKind::Upstream,
+        false,
+        EVALUATION_OUTCOME_UNKNOWN_MESSAGE,
+    );
+    if json_mode {
+        let Ok(data) = serde_json::to_value(data) else {
+            return ExitCode::Internal as i32;
+        };
+        let meta = ResolvedRoutedJsonMeta::from_resolution(CliFeature::Evaluation, resolution);
+        let envelope = RoutedJsonEnvelope::evaluation_outcome_unknown(
+            data,
+            CliJsonError::from_core(error),
+            meta,
+        );
+        if write_json(stdout, &envelope).is_err() {
+            return ExitCode::Internal as i32;
+        }
+    } else {
+        if render_human(CommandOutput::EvaluationBatch { data, route }, stdout).is_err() {
+            return ExitCode::Internal as i32;
+        }
+        if writeln!(stderr, "错误：{error}").is_err() {
+            return ExitCode::Internal as i32;
+        }
+    }
+    ExitCode::Network as i32
 }
 
 fn render_resolved_error<O: Write, E: Write>(

@@ -110,6 +110,74 @@ class YgdkSubmitReceipt {
   bool get isValid => recordId > 0;
 }
 
+/// 一门待评课程的稳定提交目标。
+///
+/// 四个字段来自 Core 读取结果；[selectionKey] 只用于本地选择、去重和结果
+/// 关联，不是上游请求正文。消费端不得从课程名称或展示字段重建任一值。
+@immutable
+class EvaluationSubmitTarget {
+  const EvaluationSubmitTarget({
+    required this.rwid,
+    required this.wjid,
+    required this.kcdm,
+    this.bpdm,
+  });
+
+  final String rwid;
+  final String wjid;
+  final String kcdm;
+  final String? bpdm;
+
+  /// 必填身份字段是否完整；可选教师代码不参与完整性判定。
+  bool get hasRequiredIdentity =>
+      rwid.trim().isNotEmpty &&
+      wjid.trim().isNotEmpty &&
+      kcdm.trim().isNotEmpty;
+
+  /// 无歧义地覆盖任务、问卷、课程及可选教师代码的本地稳定键。
+  String get selectionKey => <String>[
+    _evaluationKeyPart(rwid),
+    _evaluationKeyPart(wjid),
+    _evaluationKeyPart(kcdm),
+    _evaluationKeyPart(bpdm ?? ''),
+  ].join('|');
+}
+
+String _evaluationKeyPart(String value) => '${value.length}:$value';
+
+/// 单门课程提交后的封闭结果。
+enum EvaluationCourseOutcome { success, failure, outcomeUnknown, unattempted }
+
+/// 单门课程的安全提交结果；不包含原始上游正文。
+@immutable
+class EvaluationCourseResult {
+  const EvaluationCourseResult({
+    required this.target,
+    required this.courseName,
+    required this.outcome,
+    required this.message,
+  });
+
+  final EvaluationSubmitTarget target;
+  final String courseName;
+  final EvaluationCourseOutcome outcome;
+  final String message;
+}
+
+/// 一次批量评教提交的封闭结果。
+@immutable
+class EvaluationBatchResult {
+  const EvaluationBatchResult({
+    required this.items,
+    required this.success,
+    required this.outcomeUnknown,
+  });
+
+  final List<EvaluationCourseResult> items;
+  final bool success;
+  final bool outcomeUnknown;
+}
+
 /// 写入提交后的安全结果；不携带上游原始正文。
 @immutable
 class WriteCommitResult {
@@ -121,6 +189,7 @@ class WriteCommitResult {
     this.resolvedRoute,
     this.cgyyReceipt,
     this.ygdkReceipt,
+    this.evaluationResult,
   });
 
   final WriteOperation operation;
@@ -130,4 +199,5 @@ class WriteCommitResult {
   final ConnectionMode? resolvedRoute;
   final CgyyReservationReceipt? cgyyReceipt;
   final YgdkSubmitReceipt? ygdkReceipt;
+  final EvaluationBatchResult? evaluationResult;
 }

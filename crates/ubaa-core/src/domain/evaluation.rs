@@ -1,21 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EvaluationTask {
-    pub rwid: String,
-    pub rwmc: String,
-    pub questionnaires: Vec<EvaluationQuestionnaire>,
-}
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EvaluationQuestionnaire {
-    pub wjid: String,
-    pub wjmc: String,
-    pub msid: String,
-    pub courses: Vec<EvaluationCourse>,
-}
-/// 一门待评教课程及调用上游所需的稳定字段。
+use super::ActionEligibility;
+
+/// 一门评教课程的安全公开投影。
+///
+/// 上游题目查询和提交所需字段只保留在 Core 的单次 fresh authority 中；宿主只能
+/// 回传 `submit_target`，不得构造或覆盖这些内部字段。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EvaluationCourse {
@@ -23,24 +13,35 @@ pub struct EvaluationCourse {
     pub kcmc: String,
     pub bpmc: String,
     pub is_evaluated: bool,
+    pub submit_eligibility: ActionEligibility,
+    pub submit_target: Option<EvaluationSubmitTarget>,
+}
+
+/// 由 Core 从 fresh 课程 authority 派生的稳定评教目标。
+///
+/// `bpdm=None` 与空字符串在冻结协议 identity 中同属空末段，但 DTO 保留缺失语义。
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationSubmitTarget {
     pub rwid: String,
     pub wjid: String,
     pub kcdm: String,
     pub bpdm: Option<String>,
-    pub pjrdm: Option<String>,
-    pub pjrmc: Option<String>,
-    pub xnxq: Option<String>,
-    pub msid: String,
-    pub zdmc: Option<String>,
-    pub ypjcs: Option<i32>,
-    pub xypjcs: Option<i32>,
-    pub sxz: Option<String>,
-    pub rwh: Option<String>,
-    pub xn: Option<String>,
-    pub xq: Option<String>,
-    pub pjlxid: Option<String>,
-    pub sfksqbpj: Option<String>,
-    pub yxsfktjst: Option<String>,
+}
+
+/// 评教 typed 批量提交请求。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationSubmitCoursesRequest {
+    pub targets: Vec<EvaluationSubmitTarget>,
+}
+
+/// Core 在 prepare 阶段 fresh 复核形成的安全摘要。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationSubmitPreflight {
+    pub targets: Vec<EvaluationSubmitTarget>,
+    pub courses: Vec<EvaluationCourse>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,10 +66,32 @@ pub struct EvaluationCoursesResponse {
     pub courses: Vec<EvaluationCourse>,
     pub progress: EvaluationProgress,
 }
+/// 单门课程评教的封闭结果。
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum EvaluationCourseOutcome {
+    Success,
+    Failure,
+    OutcomeUnknown,
+    #[default]
+    Unattempted,
+}
+
+/// 单门课程评教的固定安全结果。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EvaluationResult {
-    pub success: bool,
-    pub message: String,
+pub struct EvaluationCourseResult {
+    pub target: EvaluationSubmitTarget,
     pub course_name: String,
+    pub outcome: EvaluationCourseOutcome,
+    pub message: String,
+}
+
+/// 按请求顺序返回的评教批量结果。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluationBatchResult {
+    pub items: Vec<EvaluationCourseResult>,
+    pub success: bool,
+    pub outcome_unknown: bool,
 }

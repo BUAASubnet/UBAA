@@ -90,6 +90,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedEvaluation> evaluationAll();
 
+  /// 在调用方指定的已认证路线读取评教课程，不执行 Auto 探测或回退。
+  Future<BridgeCallerPinnedEvaluation> evaluationAllOnRoute({
+    required BridgeConnectionMode route,
+  });
+
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});
 
   Future<BridgeRoutedGrades> grades({required String term});

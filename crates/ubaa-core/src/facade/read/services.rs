@@ -3,8 +3,8 @@
 use crate::domain::{
     BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes, CgyyVenueSite,
-    ConnectionMode, EvaluationCoursesResponse, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookLibrary, LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
+    ConnectionMode, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary,
+    LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
 };
 use crate::features::user;
 
@@ -101,17 +101,6 @@ impl UbaaClient {
     pub async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
         let result = crate::features::bykc::get_statistics(self.runtime_for(resolution.mode)).await;
-        self.finish_routed(resolution, result)
-    }
-
-    /// 查询全部评教课程。
-    ///
-    /// # Errors
-    ///
-    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
-    pub async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
-        let result = crate::features::evaluation::get_all(self.runtime_for(resolution.mode)).await;
         self.finish_routed(resolution, result)
     }
 

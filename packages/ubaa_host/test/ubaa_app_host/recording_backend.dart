@@ -6,6 +6,7 @@ final class _RecordingBackend
         FeatureQueryBackend,
         CgyyCancellationReadbackBackend,
         YgdkSubmissionReadbackBackend,
+        EvaluationSubmissionReadbackBackend,
         RouteSettingsBackend,
         BykcWriteBackend,
         SigninWriteBackend,
@@ -34,6 +35,7 @@ final class _RecordingBackend
   final List<ConnectionMode> ygdkOverviewRoutes = <ConnectionMode>[];
   final List<({ConnectionMode route, int page, int size})> ygdkRecordReads =
       <({ConnectionMode route, int page, int size})>[];
+  final List<ConnectionMode> evaluationReadbackRoutes = <ConnectionMode>[];
   int? bykcSelectCourseId;
   int? bykcDeselectCourseId;
   ({int courseId, double? lat, double? lng, int signType})? bykcSign;
@@ -53,7 +55,7 @@ final class _RecordingBackend
   libbookReservation;
   YgdkSubmitInput? ygdkInput;
   CgyySubmitInput? cgyyInput;
-  List<EvaluationCourseInput>? evaluationCourses;
+  List<EvaluationSubmitTarget>? evaluationTargets;
   String? committedIntentId;
   String? discardedIntentId;
   Object? commitFailure;
@@ -65,6 +67,7 @@ final class _RecordingBackend
     queryCalls.clear();
     ygdkOverviewRoutes.clear();
     ygdkRecordReads.clear();
+    evaluationReadbackRoutes.clear();
   }
 
   @override
@@ -195,6 +198,14 @@ final class _RecordingBackend
   }
 
   @override
+  Future<FeatureResult> loadEvaluationOnRoute({
+    required ConnectionMode route,
+  }) async {
+    evaluationReadbackRoutes.add(route);
+    return FeatureResult.success(summary: '脱敏评教回读', resolvedRoute: route);
+  }
+
+  @override
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async {
     bykcSelectCourseId = courseId;
     return _intent('bykc-select', WriteOperation.bykcSelectCourse);
@@ -291,9 +302,9 @@ final class _RecordingBackend
 
   @override
   Future<WriteIntent> prepareEvaluationSubmitCourses(
-    List<EvaluationCourseInput> courses,
+    List<EvaluationSubmitTarget> targets,
   ) async {
-    evaluationCourses = List<EvaluationCourseInput>.unmodifiable(courses);
+    evaluationTargets = List<EvaluationSubmitTarget>.unmodifiable(targets);
     return _intent('evaluation-submit', WriteOperation.evaluationSubmitCourses);
   }
 

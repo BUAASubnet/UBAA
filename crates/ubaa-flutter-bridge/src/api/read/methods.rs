@@ -6,29 +6,30 @@ use std::pin::Pin;
 use ubaa_core::facade as domain;
 use ubaa_core::facade::{RoutedResult, UbaaClient};
 
+use super::evaluation::map_evaluation;
 use super::mappers::{
     map_bykc_chosen_courses, map_bykc_course, map_bykc_course_page, map_bykc_profile,
     map_bykc_statistics, map_cgyy_day_info, map_cgyy_lock_code, map_cgyy_order, map_cgyy_orders,
-    map_cgyy_purpose_types, map_cgyy_sites, map_classroom_query, map_evaluation,
-    map_exam_arrangement, map_grade_data, map_judge_detail, map_judge_details, map_judge_summaries,
+    map_cgyy_purpose_types, map_cgyy_sites, map_classroom_query, map_exam_arrangement,
+    map_grade_data, map_judge_detail, map_judge_details, map_judge_summaries,
     map_libbook_area_detail, map_libbook_areas, map_libbook_bookings, map_libbook_libraries,
     map_libbook_seats, map_signin_classes, map_spoc_assignments, map_spoc_detail, map_terms,
     map_today_classes, map_weekly_schedule, map_weeks, map_ygdk_overview, map_ygdk_records,
 };
 use super::{
-    BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeCallerPinnedYgdkOverview,
-    BridgeCallerPinnedYgdkRecords, BridgeJudgeAssignmentKey, BridgeRoutedBykcChosenCourses,
-    BridgeRoutedBykcCourse, BridgeRoutedBykcCourses, BridgeRoutedBykcProfile,
-    BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo, BridgeRoutedCgyyLockCode,
-    BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders, BridgeRoutedCgyyPurposeTypes,
-    BridgeRoutedCgyySites, BridgeRoutedClassroomQuery, BridgeRoutedEvaluation,
-    BridgeRoutedExamArrangement, BridgeRoutedGrades, BridgeRoutedJudgeAssignmentDetail,
-    BridgeRoutedJudgeAssignmentDetails, BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail,
-    BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries,
-    BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail,
-    BridgeRoutedSpocAssignments, BridgeRoutedTerms, BridgeRoutedTodayClasses,
-    BridgeRoutedWeeklySchedule, BridgeRoutedWeeks, BridgeRoutedYgdkOverview,
-    BridgeRoutedYgdkRecords,
+    BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeCallerPinnedEvaluation,
+    BridgeCallerPinnedYgdkOverview, BridgeCallerPinnedYgdkRecords, BridgeJudgeAssignmentKey,
+    BridgeRoutedBykcChosenCourses, BridgeRoutedBykcCourse, BridgeRoutedBykcCourses,
+    BridgeRoutedBykcProfile, BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo,
+    BridgeRoutedCgyyLockCode, BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders,
+    BridgeRoutedCgyyPurposeTypes, BridgeRoutedCgyySites, BridgeRoutedClassroomQuery,
+    BridgeRoutedEvaluation, BridgeRoutedExamArrangement, BridgeRoutedGrades,
+    BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
+    BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreas,
+    BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats,
+    BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments,
+    BridgeRoutedTerms, BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
+    BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords,
 };
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, catch_panic,
@@ -522,4 +523,36 @@ impl BridgeClient {
             .await?;
         Ok(BridgeRoutedEvaluation { data, route })
     }
+    /// 在调用方指定的已认证路线读取评教课程，不执行 Auto 探测或回退。
+    pub async fn evaluation_all_on_route(
+        &self,
+        route: BridgeConnectionMode,
+    ) -> Result<BridgeCallerPinnedEvaluation, BridgeError> {
+        let (data, pinned_route) = self
+            .execute_caller_pinned_read(
+                move |client| {
+                    Box::pin(async move { client.evaluation_all_on_route(route.into()).await })
+                },
+                map_evaluation,
+            )
+            .await?;
+        ensure_caller_pinned_route(route, pinned_route)?;
+        Ok(BridgeCallerPinnedEvaluation { data, pinned_route })
+    }
+}
+
+pub(super) fn ensure_caller_pinned_route(
+    expected: BridgeConnectionMode,
+    actual: BridgeConnectionMode,
+) -> Result<(), BridgeError> {
+    if expected == actual {
+        return Ok(());
+    }
+    Err(BridgeError {
+        code: crate::api::client::BridgeErrorCode::OperationConflict,
+        kind: crate::api::client::BridgeErrorKind::Input,
+        retryable: false,
+        message: "调用方固定路线与 Core 返回路线不一致".to_owned(),
+        resolved_route: Some(actual),
+    })
 }

@@ -423,16 +423,85 @@
     },
     "evaluationCourse": {
       "type": "object",
-      "required": ["id", "kcmc", "bpmc", "isEvaluated", "rwid", "wjid", "kcdm", "bpdm", "pjrdm", "pjrmc", "xnxq", "msid", "zdmc", "ypjcs", "xypjcs", "sxz", "rwh", "xn", "xq", "pjlxid", "sfksqbpj", "yxsfktjst"],
+      "required": ["id", "kcmc", "bpmc", "isEvaluated", "submitEligibility", "submitTarget"],
       "properties": {
         "id": { "type": "string" }, "kcmc": { "type": "string" }, "bpmc": { "type": "string" }, "isEvaluated": { "type": "boolean" },
-        "rwid": { "type": "string" }, "wjid": { "type": "string" }, "kcdm": { "type": "string" }, "bpdm": { "$ref": "#/$defs/nullableString" },
-        "pjrdm": { "$ref": "#/$defs/nullableString" }, "pjrmc": { "$ref": "#/$defs/nullableString" }, "xnxq": { "$ref": "#/$defs/nullableString" },
-        "msid": { "type": "string" }, "zdmc": { "$ref": "#/$defs/nullableString" }, "ypjcs": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] },
-        "xypjcs": { "anyOf": [{ "$ref": "#/$defs/i32" }, { "type": "null" }] }, "sxz": { "$ref": "#/$defs/nullableString" },
-        "rwh": { "$ref": "#/$defs/nullableString" }, "xn": { "$ref": "#/$defs/nullableString" }, "xq": { "$ref": "#/$defs/nullableString" },
-        "pjlxid": { "$ref": "#/$defs/nullableString" }, "sfksqbpj": { "$ref": "#/$defs/nullableString" }, "yxsfktjst": { "$ref": "#/$defs/nullableString" }
-      }, "additionalProperties": false
+        "submitEligibility": { "$ref": "#/$defs/actionEligibility" },
+        "submitTarget": { "anyOf": [{ "$ref": "#/$defs/evaluationSubmitTarget" }, { "type": "null" }] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "submitEligibility": { "const": "allowed" } }, "required": ["submitEligibility"] },
+          "then": { "properties": { "submitTarget": { "$ref": "#/$defs/evaluationSubmitTarget" } } },
+          "else": { "properties": { "submitTarget": { "type": "null" } } }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "evaluationSubmitTarget": {
+      "type": "object",
+      "required": ["rwid", "wjid", "kcdm", "bpdm"],
+      "properties": {
+        "rwid": { "type": "string", "minLength": 1 },
+        "wjid": { "type": "string", "minLength": 1 },
+        "kcdm": { "type": "string", "minLength": 1 },
+        "bpdm": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+      },
+      "additionalProperties": false
+    },
+    "evaluationCourseOutcome": {
+      "enum": ["success", "failure", "outcomeUnknown", "unattempted"]
+    },
+    "evaluationCourseResult": {
+      "type": "object",
+      "required": ["target", "courseName", "outcome", "message"],
+      "properties": {
+        "target": { "$ref": "#/$defs/evaluationSubmitTarget" },
+        "courseName": { "type": "string" },
+        "outcome": { "$ref": "#/$defs/evaluationCourseOutcome" },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "evaluationBatchResult": {
+      "type": "object",
+      "required": ["items", "success", "outcomeUnknown"],
+      "properties": {
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evaluationCourseResult" } },
+        "success": { "type": "boolean" },
+        "outcomeUnknown": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "success": { "const": true } }, "required": ["success"] },
+          "then": {
+            "properties": {
+              "outcomeUnknown": { "const": false },
+              "items": { "items": { "properties": { "outcome": { "const": "success" } }, "required": ["outcome"] } }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "outcomeUnknown": { "const": true } }, "required": ["outcomeUnknown"] },
+          "then": {
+            "properties": {
+              "success": { "const": false },
+              "items": { "contains": { "properties": { "outcome": { "const": "outcomeUnknown" } }, "required": ["outcome"] } }
+            }
+          },
+          "else": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": { "outcome": { "enum": ["success", "failure"] } },
+                  "required": ["outcome"]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
     },
     "evaluationProgress": {
       "type": "object", "required": ["totalCourses", "evaluatedCourses", "pendingCourses"],
@@ -447,7 +516,8 @@
     "evaluationRoutedData": {
       "anyOf": [
         { "$ref": "#/$defs/evaluationCoursesResponse" },
-        { "type": "array", "items": { "$ref": "#/$defs/evaluationCourse" } }
+        { "type": "array", "items": { "$ref": "#/$defs/evaluationCourse" } },
+        { "$ref": "#/$defs/evaluationBatchResult" }
       ]
     },
     "cgyyVenueSite": {
@@ -1012,7 +1082,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 9 },
+        "schemaVersion": { "const": 10 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1029,8 +1099,7 @@
             "not": { "required": ["error"] }
           },
           "else": {
-            "required": ["error"],
-            "not": { "required": ["data"] }
+            "required": ["error"]
           }
         },
         {
@@ -1140,22 +1209,29 @@
           "then": {
             "oneOf": [
               {
+                "required": ["data"],
                 "properties": {
                   "meta": {
-                    "properties": { "feature": { "not": { "const": "auth" } } },
+                    "properties": { "feature": { "const": "evaluation" } },
                     "required": ["feature"]
                   },
-                  "error": { "$ref": "#/$defs/error" }
+                  "error": {
+                    "allOf": [
+                      { "$ref": "#/$defs/error" },
+                      { "properties": { "code": { "const": "outcome_unknown" } }, "required": ["code"] }
+                    ]
+                  },
+                  "data": {
+                    "allOf": [
+                      { "$ref": "#/$defs/evaluationBatchResult" },
+                      { "properties": { "outcomeUnknown": { "const": true } }, "required": ["outcomeUnknown"] }
+                    ]
+                  }
                 }
               },
               {
-                "properties": {
-                  "meta": {
-                    "properties": { "feature": { "const": "auth" } },
-                    "required": ["feature"]
-                  },
-                  "error": { "$ref": "#/$defs/error" }
-                }
+                "not": { "required": ["data"] },
+                "properties": { "error": { "$ref": "#/$defs/error" } }
               }
             ]
           }
@@ -1167,7 +1243,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 9 },
+        "schemaVersion": { "const": 10 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1323,7 +1399,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 9 },
+        "schemaVersion": { "const": 10 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1399,7 +1475,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 9 },
+        "schemaVersion": { "const": 10 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

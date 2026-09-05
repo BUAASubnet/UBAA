@@ -80,7 +80,7 @@ pub enum Command {
     Bykc(BykcArgs),
     /// 场馆预约只读操作。
     Cgyy(CgyyArgs),
-    /// 教学评教只读操作。
+    /// 教学评教查询与 typed 批量提交操作。
     Evaluation(EvaluationArgs),
 }
 

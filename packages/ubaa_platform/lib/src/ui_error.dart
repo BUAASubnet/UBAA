@@ -23,7 +23,7 @@ class CoreErrorPayload {
   final String? message;
   final String? issueId;
 
-  /// 从 Core 错误对象或当前 CLI schema-v9（兼容历史版本）envelope 中解析。
+  /// 从 Core 错误对象或当前 CLI schema-v10（兼容历史版本）envelope 中解析。
   factory CoreErrorPayload.fromJson(Object? value) {
     final parsed = tryParse(value);
     return parsed ?? const CoreErrorPayload(code: 'internal_error');
@@ -113,7 +113,7 @@ class UiErrorMapper {
     );
   }
 
-  /// 解析 Core 错误对象或当前 schema-v9（兼容历史版本）envelope。
+  /// 解析 Core 错误对象或当前 schema-v10（兼容历史版本）envelope。
   UiError fromJson(
     Object? value, {
     String? feature,

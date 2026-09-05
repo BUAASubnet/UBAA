@@ -263,57 +263,51 @@ void _registerCallbackTests() {
     expect(backend.cgyyInput?.isPhilosophySocialSciences, isTrue);
     expect(backend.cgyyInput?.isOffSchoolJoiner, isFalse);
 
-    const evaluationInput = EvaluationCourseInput(
-      id: ' evaluation-id-41031 ',
-      kcmc: ' course-name-41032 ',
-      bpmc: ' teacher-name-41033 ',
-      rwid: ' task-41034 ',
-      wjid: ' questionnaire-41035 ',
-      kcdm: ' course-code-41036 ',
-      bpdm: ' teacher-code-41037 ',
-      pjrdm: ' evaluator-code-41038 ',
-      pjrmc: ' evaluator-name-41039 ',
-      xnxq: ' term-41040 ',
-      msid: ' mode-41041 ',
-      zdmc: ' site-41042 ',
-      ypjcs: 41043,
-      xypjcs: 41044,
-      sxz: ' attribute-41045 ',
-      rwh: ' task-number-41046 ',
-      xn: ' year-41047 ',
-      xq: ' semester-41048 ',
-      pjlxid: ' type-41049 ',
-      sfksqbpj: ' allowed-41050 ',
-      yxsfktjst: ' submitted-41051 ',
-    );
+    const evaluationTargets = <EvaluationSubmitTarget>[
+      EvaluationSubmitTarget(
+        rwid: ' task-41031 ',
+        wjid: ' questionnaire-41032 ',
+        kcdm: ' course-code-41033 ',
+        bpdm: ' teacher-code-41034 ',
+      ),
+      EvaluationSubmitTarget(
+        rwid: ' task-41035 ',
+        wjid: ' questionnaire-41036 ',
+        kcdm: ' course-code-41037 ',
+        bpdm: '   ',
+      ),
+    ];
     final evaluationIntent = await shell.onPrepareEvaluationWrite!(
-      const <EvaluationCourseInput>[evaluationInput],
+      evaluationTargets,
     );
     expect(evaluationIntent.operation, WriteOperation.evaluationSubmitCourses);
     expect(evaluationIntent.intentId, 'intent-evaluation-submit');
-    final evaluation = backend.evaluationCourses?.single;
-    expect(evaluation?.id, 'evaluation-id-41031');
-    expect(evaluation?.kcmc, 'course-name-41032');
-    expect(evaluation?.bpmc, 'teacher-name-41033');
-    expect(evaluation?.isEvaluated, isFalse);
-    expect(evaluation?.rwid, 'task-41034');
-    expect(evaluation?.wjid, 'questionnaire-41035');
-    expect(evaluation?.kcdm, 'course-code-41036');
-    expect(evaluation?.bpdm, 'teacher-code-41037');
-    expect(evaluation?.pjrdm, 'evaluator-code-41038');
-    expect(evaluation?.pjrmc, 'evaluator-name-41039');
-    expect(evaluation?.xnxq, 'term-41040');
-    expect(evaluation?.msid, 'mode-41041');
-    expect(evaluation?.zdmc, 'site-41042');
-    expect(evaluation?.ypjcs, 41043);
-    expect(evaluation?.xypjcs, 41044);
-    expect(evaluation?.sxz, 'attribute-41045');
-    expect(evaluation?.rwh, 'task-number-41046');
-    expect(evaluation?.xn, 'year-41047');
-    expect(evaluation?.xq, 'semester-41048');
-    expect(evaluation?.pjlxid, 'type-41049');
-    expect(evaluation?.sfksqbpj, 'allowed-41050');
-    expect(evaluation?.yxsfktjst, 'submitted-41051');
+    expect(
+      backend.evaluationTargets
+          ?.map(
+            (target) => (
+              rwid: target.rwid,
+              wjid: target.wjid,
+              kcdm: target.kcdm,
+              bpdm: target.bpdm,
+            ),
+          )
+          .toList(growable: false),
+      <({String rwid, String wjid, String kcdm, String? bpdm})>[
+        (
+          rwid: 'task-41031',
+          wjid: 'questionnaire-41032',
+          kcdm: 'course-code-41033',
+          bpdm: 'teacher-code-41034',
+        ),
+        (
+          rwid: 'task-41035',
+          wjid: 'questionnaire-41036',
+          kcdm: 'course-code-41037',
+          bpdm: null,
+        ),
+      ],
+    );
 
     final commitResult = await shell.onCommitWrite!('intent-commit-41052');
     expect(backend.committedIntentId, 'intent-commit-41052');
@@ -330,7 +324,6 @@ void _registerCallbackTests() {
       WriteOperation.bykcDeselectCourse: FeatureId.bykc,
       WriteOperation.bykcSignCourse: FeatureId.bykc,
       WriteOperation.signinPerform: FeatureId.signin,
-      WriteOperation.evaluationSubmitCourses: FeatureId.evaluation,
     };
     for (final route in featureRoutes.entries) {
       backend.resetReadCalls();
@@ -355,6 +348,17 @@ void _registerCallbackTests() {
         (route: ConnectionMode.webvpn, page: 1, size: 20),
       ],
     );
+    backend.resetReadCalls();
+    await shell.onWriteSuccess!(WriteOperation.evaluationSubmitCourses, null);
+    expect(backend.loadedFeatures, isEmpty);
+    expect(backend.queryCalls, isEmpty);
+    expect(backend.evaluationReadbackRoutes, isEmpty);
+    await shell.onRefreshEvaluationAfterWrite!(
+      expectedRoute: ConnectionMode.webvpn,
+    );
+    expect(backend.evaluationReadbackRoutes, <ConnectionMode>[
+      ConnectionMode.webvpn,
+    ]);
     for (final operation in <WriteOperation>[
       WriteOperation.libbookReserve,
       WriteOperation.libbookCancelBooking,
@@ -409,6 +413,12 @@ void _registerCallbackTests() {
     shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.routePolicy, RoutePolicy.webvpn);
     expect(shell.telemetryEnabled, isTrue);
+    await shell.onRefreshEvaluationAfterWrite!(
+      expectedRoute: evaluationIntent.resolvedRoute,
+    );
+    expect(backend.evaluationReadbackRoutes, <ConnectionMode>[
+      ConnectionMode.direct,
+    ]);
 
     expect(vault.hasValue, isTrue);
     await shell.onLogout();

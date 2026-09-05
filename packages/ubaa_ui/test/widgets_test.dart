@@ -10,6 +10,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 part 'widgets/accessibility.dart';
 part 'widgets/cgyy_cancel_writes.dart';
 part 'widgets/cgyy_writes.dart';
+part 'widgets/evaluation_writes.dart';
 part 'widgets/feature_details.dart';
 part 'widgets/goldens.dart';
 part 'widgets/libbook_queries.dart';
@@ -36,6 +37,7 @@ void main() {
   _registerLibbookCancellationWriteTest();
   _registerFeatureInputTests();
   _registerYgdkWriteResultTests();
+  _registerEvaluationWriteTests();
   _registerRemainingWriteTests();
   _registerFeatureCollectionTests();
   _registerLibbookQueryTests();

@@ -59,3 +59,11 @@ abstract interface class YgdkSubmissionReadbackBackend {
     required int size,
   });
 }
+
+/// 评教提交后只在 intent 已确认的原路线刷新课程 authority。
+///
+/// 回读只更新安全展示状态，不得把 `outcomeUnknown` 升级为成功，
+/// 也不得重发评教写请求。
+abstract interface class EvaluationSubmissionReadbackBackend {
+  Future<FeatureResult> loadEvaluationOnRoute({required ConnectionMode route});
+}

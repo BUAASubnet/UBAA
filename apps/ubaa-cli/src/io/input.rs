@@ -1,7 +1,7 @@
 //! CLI 输入读取、请求输入校验和稳定错误构造。
 
 use std::io::{BufRead, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::Value;
 use ubaa_core::facade::{
@@ -43,19 +43,6 @@ pub(crate) fn read_secret_line<R: BufRead>(input: &mut R, missing_message: &str)
     } else {
         Ok(value)
     }
-}
-
-pub(crate) fn read_evaluation_payload(path: &PathBuf) -> Result<Vec<Value>> {
-    let bytes = std::fs::read(path).map_err(|_| invalid_input("无法读取评教 payload 文件"))?;
-    let value: Value = serde_json::from_slice(&bytes)
-        .map_err(|_| invalid_input("评教 payload 必须是 JSON 数组"))?;
-    let values = value
-        .as_array()
-        .ok_or_else(|| invalid_input("评教 payload 必须是 JSON 数组"))?;
-    if values.is_empty() {
-        return Err(invalid_input("评教 payload 不能为空"));
-    }
-    Ok(values.clone())
 }
 
 pub(crate) fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> {
@@ -106,6 +93,15 @@ pub(crate) fn write_json<W: Write, T: serde::Serialize>(
 
 pub(crate) fn invalid_input(message: impl Into<String>) -> UbaaError {
     UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
+}
+
+pub(crate) fn upstream_changed(message: impl Into<String>) -> UbaaError {
+    UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        message,
+    )
 }
 
 pub(crate) fn build_ygdk_request(

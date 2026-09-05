@@ -69,10 +69,48 @@ final class _HostYgdkReadbackOnlyBackend extends _HostReadOnlyBackend
   }) async => const FeatureResult.empty();
 }
 
+final class _HostEvaluationWriteOnlyBackend extends _HostReadOnlyBackend
+    implements EvaluationWriteBackend {
+  @override
+  Future<WriteIntent> prepareEvaluationSubmitCourses(
+    List<EvaluationSubmitTarget> targets,
+  ) async => _hostEvaluationIntent;
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async =>
+      const WriteCommitResult(
+        operation: WriteOperation.evaluationSubmitCourses,
+        success: true,
+        message: '不应使用',
+        outcomeUnknown: false,
+      );
+
+  @override
+  Future<void> discardWriteIntent(String intentId) async {}
+}
+
+final class _HostEvaluationReadbackOnlyBackend extends _HostReadOnlyBackend
+    implements EvaluationSubmissionReadbackBackend {
+  @override
+  Future<FeatureResult> loadEvaluationOnRoute({
+    required ConnectionMode route,
+  }) async => FeatureResult.empty(resolvedRoute: route);
+}
+
 final _hostYgdkIntent = WriteIntent(
   intentId: 'host-ygdk-intent',
   operation: WriteOperation.ygdkSubmit,
   targetSummary: '阳光打卡',
+  resolvedRoute: ConnectionMode.direct,
+  warnings: const <String>[],
+  expiresAt: DateTime.utc(2099),
+  requestDigest: 'digest',
+);
+
+final _hostEvaluationIntent = WriteIntent(
+  intentId: 'host-evaluation-intent',
+  operation: WriteOperation.evaluationSubmitCourses,
+  targetSummary: '教学评教',
   resolvedRoute: ConnectionMode.direct,
   warnings: const <String>[],
   expiresAt: DateTime.utc(2099),

@@ -391,6 +391,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onWriteSuccess,
     this.onVerifyCgyyReceipt,
     this.onVerifyCgyyCancellation,
+    this.onRefreshEvaluationAfterWrite,
     this.onRefreshYgdkAfterWrite,
     super.key,
   });
@@ -429,6 +430,8 @@ class UbaaMainShell extends StatefulWidget {
   /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
   final CgyyReceiptVerifier? onVerifyCgyyReceipt;
   final CgyyCancellationVerifier? onVerifyCgyyCancellation;
+  // 按已确认意图的路线执行一次评教只读回读。
+  final EvaluationSubmissionRefresher? onRefreshEvaluationAfterWrite;
   final YgdkSubmissionRefresher? onRefreshYgdkAfterWrite;
 
   @override
@@ -522,7 +525,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 : _startLibbookCancelWrite,
             onEvaluationWrite: widget.onPrepareEvaluationWrite == null
                 ? null
-                : _startEvaluationWrite,
+                : _startEvaluation,
             onCgyySubmitWrite: widget.onPrepareCgyySubmitWrite == null
                 ? null
                 : _startCgyySubmitWrite,
@@ -733,14 +736,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
-  Future<void> _startEvaluationWrite(
-    List<EvaluationCourseInput> courses,
-  ) async {
+  Future<void> _startEvaluation(List<EvaluationSubmitTarget> targets) async {
     final prepare = widget.onPrepareEvaluationWrite;
     if (prepare == null) return;
     await _prepareWrite(
-      prepare: () => prepare(courses),
+      prepare: () => prepare(targets),
       failureMessage: '暂时无法准备教学评教；尚未提交任何写请求。',
+      expectedOperation: WriteOperation.evaluationSubmitCourses,
     );
   }
 
@@ -870,7 +872,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
         );
       }
-      if (result.success || result.outcomeUnknown) {
+      if (result.success ||
+          result.outcomeUnknown ||
+          (result.operation == WriteOperation.evaluationSubmitCourses &&
+              result.evaluationResult != null)) {
         final readbackVerified = await _readbackAfterWrite(
           result.operation,
           intent,
@@ -912,7 +917,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ),
       );
     } on UiError catch (error) {
-      if (error.code == UbaaErrorCode.outcomeUnknown) {
+      if (error.code == UbaaErrorCode.outcomeUnknown ||
+          intent.operation == WriteOperation.evaluationSubmitCourses) {
         final readbackVerified = await _readbackAfterWrite(
           intent.operation,
           intent,
@@ -969,6 +975,14 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     WriteOperation operation,
     WriteIntent intent,
   ) async {
+    if (operation == WriteOperation.evaluationSubmitCourses) {
+      final refresh = widget.onRefreshEvaluationAfterWrite;
+      if (refresh == null) return false;
+      try {
+        await refresh(expectedRoute: intent.resolvedRoute);
+      } on Object catch (_) {}
+      return true;
+    }
     if (operation == WriteOperation.ygdkSubmit) {
       final refresh = widget.onRefreshYgdkAfterWrite;
       if (refresh == null) return false;
@@ -3074,18 +3088,19 @@ class _FeatureDetailList extends StatefulWidget {
 class _FeatureDetailListState extends State<_FeatureDetailList> {
   static const _pageSize = 20;
   final TextEditingController _queryController = TextEditingController();
-  final Set<String> _selectedEvaluationIds = <String>{};
+  final Set<String> _selectedEvaluationKeys = <String>{};
   String _query = '';
   int _page = 0;
 
   @override
   void didUpdateWidget(covariant _FeatureDetailList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final validIds = <String>{
+    final validKeys = <String>{
       for (final detail in widget.details)
-        if (_evaluationTarget(detail) case final course?) course.id,
+        if (_evaluationSubmitTarget(detail) case final target?)
+          target.selectionKey,
     };
-    _selectedEvaluationIds.removeWhere((id) => !validIds.contains(id));
+    _selectedEvaluationKeys.removeWhere((key) => !validKeys.contains(key));
   }
 
   @override
@@ -3125,12 +3140,19 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     final visible = serverPagination == null
         ? details.skip(start).take(_pageSize).toList(growable: false)
         : details;
-    final pendingEvaluations = widget.details
-        .map(_evaluationTarget)
-        .whereType<EvaluationCourseInput>()
-        .toList(growable: false);
+    final pendingEvaluationsByKey = <String, EvaluationSubmitTarget>{};
+    for (final detail in widget.details) {
+      if (_evaluationSubmitTarget(detail) case final target?) {
+        pendingEvaluationsByKey.putIfAbsent(target.selectionKey, () => target);
+      }
+    }
+    final pendingEvaluations = pendingEvaluationsByKey.values.toList(
+      growable: false,
+    );
     final selectedEvaluations = pendingEvaluations
-        .where((course) => _selectedEvaluationIds.contains(course.id))
+        .where(
+          (target) => _selectedEvaluationKeys.contains(target.selectionKey),
+        )
         .toList(growable: false);
     return Column(
       children: <Widget>[
@@ -3164,12 +3186,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                       : () => setState(() {
                           if (selectedEvaluations.length ==
                               pendingEvaluations.length) {
-                            _selectedEvaluationIds.clear();
+                            _selectedEvaluationKeys.clear();
                           } else {
-                            _selectedEvaluationIds
+                            _selectedEvaluationKeys
                               ..clear()
                               ..addAll(
-                                pendingEvaluations.map((course) => course.id),
+                                pendingEvaluations.map(
+                                  (target) => target.selectionKey,
+                                ),
                               );
                           }
                         }),
@@ -3218,7 +3242,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     final libbookCancelAction = detail
                         .action<LibbookCancelAction>();
                     final cgyyReservation = _cgyyReserveAction(detail);
-                    final evaluation = _evaluationTarget(detail);
+                    final evaluation = _evaluationSubmitTarget(detail);
                     final ygdkAction = _ygdkAction(detail);
                     final canBykcSign =
                         bykcSignInAction?.eligibility ==
@@ -3283,17 +3307,19 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                               const SizedBox(height: 8),
                               CheckboxListTile(
                                 key: ValueKey<String>(
-                                  'evaluation-${evaluation.id}',
+                                  'evaluation-${evaluation.selectionKey}',
                                 ),
-                                value: _selectedEvaluationIds.contains(
-                                  evaluation.id,
+                                value: _selectedEvaluationKeys.contains(
+                                  evaluation.selectionKey,
                                 ),
                                 onChanged: (selected) => setState(() {
                                   if (selected == true) {
-                                    _selectedEvaluationIds.add(evaluation.id);
+                                    _selectedEvaluationKeys.add(
+                                      evaluation.selectionKey,
+                                    );
                                   } else {
-                                    _selectedEvaluationIds.remove(
-                                      evaluation.id,
+                                    _selectedEvaluationKeys.remove(
+                                      evaluation.selectionKey,
                                     );
                                   }
                                 }),
@@ -3486,7 +3512,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
                                 onPressed: () => widget.onEvaluationWrite!(
-                                  <EvaluationCourseInput>[evaluation],
+                                  <EvaluationSubmitTarget>[evaluation],
                                 ),
                                 icon: const Icon(Icons.rate_review_outlined),
                                 label: const Text('准备提交评教'),
@@ -3903,35 +3929,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
       '${action.venueSiteId}:${action.reservationDate.trim()}:${action.spaceId}:'
       '${action.venueSpaceGroupId ?? ''}:${action.timeId}:${action.timeOrdinal}';
 
-  EvaluationCourseInput? _evaluationTarget(FeatureDetail detail) {
+  EvaluationSubmitTarget? _evaluationSubmitTarget(FeatureDetail detail) {
     if (widget.feature != FeatureId.evaluation) return null;
-    final values = <String, String>{
-      for (final field in detail.fields) field.label: field.value.trim(),
-    };
-    if (values['状态'] != '待评') return null;
-    final id = values['课程 ID'];
-    final rwid = values['任务 ID'];
-    final wjid = values['问卷 ID'];
-    final kcdm = values['课程代码'];
-    final msid = values['模型 ID'];
-    if ([
-      id,
-      rwid,
-      wjid,
-      kcdm,
-      msid,
-    ].any((value) => value == null || value.isEmpty)) {
-      return null;
-    }
-    return EvaluationCourseInput(
-      id: id!,
-      kcmc: detail.title,
-      bpmc: detail.subtitle?.trim() ?? '',
-      rwid: rwid!,
-      wjid: wjid!,
-      kcdm: kcdm!,
-      msid: msid!,
-    );
+    final action = detail.action<EvaluationSubmitAction>();
+    return action?.hasCanonicalTarget == true ? action!.target : null;
   }
 }
 

@@ -36,6 +36,16 @@ pub fn rust_files_below(root: &Path) -> Vec<PathBuf> {
 /// 忽略注释、字面量和空白，将 Rust 源码拆成标识符与标点 token。
 #[must_use]
 pub fn rust_tokens(source: &str) -> Vec<String> {
+    tokenize(source, false)
+}
+
+/// 保留字面量原文，供架构门禁解析 `path` 属性；注释与空白仍被忽略。
+#[must_use]
+pub fn rust_tokens_with_literals(source: &str) -> Vec<String> {
+    tokenize(source, true)
+}
+
+fn tokenize(source: &str, keep_literals: bool) -> Vec<String> {
     let bytes = source.as_bytes();
     let mut tokens = Vec::new();
     let mut cursor = 0;
@@ -58,20 +68,34 @@ pub fn rust_tokens(source: &str) -> Vec<String> {
             continue;
         }
         if let Some(end) = raw_string_end(bytes, cursor) {
+            if keep_literals {
+                tokens.push(source[cursor..end].to_owned());
+            }
             cursor = end;
             continue;
         }
         if bytes[cursor] == b'"' {
-            cursor = quoted_string_end(bytes, cursor + 1);
+            let end = quoted_string_end(bytes, cursor + 1);
+            if keep_literals {
+                tokens.push(source[cursor..end].to_owned());
+            }
+            cursor = end;
             continue;
         }
         if matches!(bytes[cursor], b'b' | b'c') && bytes.get(cursor + 1) == Some(&b'"') {
-            cursor = quoted_string_end(bytes, cursor + 2);
+            let end = quoted_string_end(bytes, cursor + 2);
+            if keep_literals {
+                tokens.push(source[cursor..end].to_owned());
+            }
+            cursor = end;
             continue;
         }
         if bytes[cursor] == b'\''
             && let Some(end) = char_literal_end(source, cursor)
         {
+            if keep_literals {
+                tokens.push(source[cursor..end].to_owned());
+            }
             cursor = end;
             continue;
         }
@@ -79,6 +103,9 @@ pub fn rust_tokens(source: &str) -> Vec<String> {
             && bytes.get(cursor + 1) == Some(&b'\'')
             && let Some(end) = char_literal_end(source, cursor + 1)
         {
+            if keep_literals {
+                tokens.push(source[cursor..end].to_owned());
+            }
             cursor = end;
             continue;
         }
@@ -292,7 +319,25 @@ mod tests {
     use std::path::Path;
     use std::sync::atomic::{AtomicU64, Ordering};
 
-    use super::{count_sequence, function_body, rust_files_below, rust_tokens};
+    use super::{
+        count_sequence, function_body, rust_files_below, rust_tokens, rust_tokens_with_literals,
+    };
+
+    #[test]
+    fn 路径扫描保留真实字面量且不解释字面量中的伪声明() {
+        let tokens = rust_tokens_with_literals(
+            r#"#[path = "cases/leaf.rs"] mod leaf;
+            const SAMPLE: &str = "mod orphan;";
+            // #[path = "orphan.rs"] mod orphan;
+            "#,
+        );
+
+        assert_eq!(
+            count_sequence(&tokens, &["path", "=", "\"cases/leaf.rs\""]),
+            1
+        );
+        assert_eq!(count_sequence(&tokens, &["mod", "orphan", ";"]), 0);
+    }
 
     #[test]
     fn token_扫描忽略空白注释字符串与字符字面量() {

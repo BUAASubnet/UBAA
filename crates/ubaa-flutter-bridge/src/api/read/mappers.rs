@@ -10,15 +10,15 @@ use super::{
     BridgeCgyyOrder, BridgeCgyyOrdersPage, BridgeCgyyPurposeSource, BridgeCgyyPurposeType,
     BridgeCgyyPurposeTypes, BridgeCgyyReservationTarget, BridgeCgyySlotStatus,
     BridgeCgyySpaceAvailability, BridgeCgyyTimeSlot, BridgeCgyyVenueSite, BridgeClassroomFloor,
-    BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeEvaluationCourse,
-    BridgeEvaluationCoursesResponse, BridgeEvaluationProgress, BridgeExam, BridgeExamArrangement,
-    BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail, BridgeJudgeAssignmentSummary,
-    BridgeJudgeProblem, BridgeJudgeSubmissionStatus, BridgeLibBookArea, BridgeLibBookAreaDetail,
-    BridgeLibBookBooking, BridgeLibBookBookingsPage, BridgeLibBookLibrary, BridgeLibBookSeat,
-    BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
-    BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
-    BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
-    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
+    BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeExam,
+    BridgeExamArrangement, BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail,
+    BridgeJudgeAssignmentSummary, BridgeJudgeProblem, BridgeJudgeSubmissionStatus,
+    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookBooking, BridgeLibBookBookingsPage,
+    BridgeLibBookLibrary, BridgeLibBookSeat, BridgeLibBookStorey, BridgeLibBookTimeSlot,
+    BridgeSigninClass, BridgeSpocAssignmentDetail, BridgeSpocAssignmentSummary,
+    BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm, BridgeTodayClass, BridgeWeek,
+    BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview, BridgeYgdkRecord,
+    BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
@@ -717,46 +717,6 @@ pub(super) fn map_cgyy_lock_code(v: domain::CgyyLockCode) -> BridgeCgyyLockCode 
         available: v.available,
     }
 }
-pub(super) fn map_evaluation(
-    v: domain::EvaluationCoursesResponse,
-) -> BridgeEvaluationCoursesResponse {
-    BridgeEvaluationCoursesResponse {
-        courses: v
-            .courses
-            .into_iter()
-            .map(|c| BridgeEvaluationCourse {
-                id: c.id,
-                kcmc: c.kcmc,
-                bpmc: c.bpmc,
-                is_evaluated: c.is_evaluated,
-                rwid: c.rwid,
-                wjid: c.wjid,
-                kcdm: c.kcdm,
-                bpdm: c.bpdm,
-                pjrdm: c.pjrdm,
-                pjrmc: c.pjrmc,
-                xnxq: c.xnxq,
-                msid: c.msid,
-                zdmc: c.zdmc,
-                ypjcs: c.ypjcs,
-                xypjcs: c.xypjcs,
-                sxz: c.sxz,
-                rwh: c.rwh,
-                xn: c.xn,
-                xq: c.xq,
-                pjlxid: c.pjlxid,
-                sfksqbpj: c.sfksqbpj,
-                yxsfktjst: c.yxsfktjst,
-            })
-            .collect(),
-        progress: BridgeEvaluationProgress {
-            total_courses: v.progress.total_courses,
-            evaluated_courses: v.progress.evaluated_courses,
-            pending_courses: v.progress.pending_courses,
-        },
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -2,4 +2,5 @@
 
 mod academic;
 mod assignments;
+mod evaluation;
 mod services;

@@ -43,7 +43,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 8;
+  int contractVersion() => 9;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -377,28 +377,16 @@ class _CharacterizationBridgeClient implements BridgeClient {
       case #evaluationAll:
         return Future<BridgeRoutedEvaluation>.value(
           BridgeRoutedEvaluation(
-            data: BridgeEvaluationCoursesResponse(
-              courses: emptyReads
-                  ? const <BridgeEvaluationCourse>[]
-                  : const <BridgeEvaluationCourse>[
-                      BridgeEvaluationCourse(
-                        id: 'evaluation-read-1',
-                        kcmc: '评教课程',
-                        bpmc: '测试教师',
-                        isEvaluated: false,
-                        rwid: 'task-read-1',
-                        wjid: 'questionnaire-read-1',
-                        kcdm: 'READ1',
-                        msid: 'MODEL1',
-                      ),
-                    ],
-              progress: BridgeEvaluationProgress(
-                totalCourses: emptyReads ? 0 : 1,
-                evaluatedCourses: 0,
-                pendingCourses: emptyReads ? 0 : 1,
-              ),
-            ),
+            data: _evaluationCoursesData(emptyReads),
             route: _webVpnRoute,
+          ),
+        );
+      case #evaluationAllOnRoute:
+        final route = named[#route] as BridgeConnectionMode;
+        return Future<BridgeCallerPinnedEvaluation>.value(
+          BridgeCallerPinnedEvaluation(
+            data: _evaluationCoursesData(emptyReads),
+            pinnedRoute: route,
           ),
         );
       case #examArrangement:
@@ -777,6 +765,7 @@ const _readMembers = <Symbol>{
   #cgyySites,
   #classroomSearch,
   #evaluationAll,
+  #evaluationAllOnRoute,
   #examArrangement,
   #grades,
   #judgeAssignment,
@@ -843,6 +832,32 @@ BridgeYgdkOverview _ygdkOverviewData(bool emptyReads) => BridgeYgdkOverview(
         ],
 );
 
+BridgeEvaluationCoursesResponse _evaluationCoursesData(bool emptyReads) =>
+    BridgeEvaluationCoursesResponse(
+      courses: emptyReads
+          ? const <BridgeEvaluationCourse>[]
+          : const <BridgeEvaluationCourse>[
+              BridgeEvaluationCourse(
+                id: 'task-read-1_questionnaire-read-1_READ1_teacher-read-1',
+                kcmc: '评教课程',
+                bpmc: '测试教师',
+                isEvaluated: false,
+                submitEligibility: BridgeActionEligibility.allowed,
+                submitTarget: BridgeEvaluationSubmitTarget(
+                  rwid: 'task-read-1',
+                  wjid: 'questionnaire-read-1',
+                  kcdm: 'READ1',
+                  bpdm: 'teacher-read-1',
+                ),
+              ),
+            ],
+      progress: BridgeEvaluationProgress(
+        totalCourses: emptyReads ? 0 : 1,
+        evaluatedCourses: 0,
+        pendingCourses: emptyReads ? 0 : 1,
+      ),
+    );
+
 BridgeYgdkRecordsPage _ygdkRecordsData(
   bool emptyReads, {
   required int page,
@@ -895,6 +910,8 @@ String _describeReadCall(Invocation invocation) {
       'classroomSearch:campus=${named[#campus]},date=${named[#date]}',
     #examArrangement => 'examArrangement:term=${named[#term]}',
     #grades => 'grades:term=${named[#term]}',
+    #evaluationAllOnRoute =>
+      'evaluationAllOnRoute:route=${(named[#route] as BridgeConnectionMode).name}',
     #judgeAssignment =>
       'judgeAssignment:courseId=${named[#courseId]},assignmentId=${named[#assignmentId]}',
     #judgeAssignmentDetails =>

@@ -58,7 +58,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v9 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v10 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局

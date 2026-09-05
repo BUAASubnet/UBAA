@@ -83,6 +83,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final photoPicker = _photoPicker;
     final hasYgdkSubmissionCapabilities =
         _controller.hasYgdkSubmissionBackendCapabilities && photoPicker != null;
+    final hasEvaluationSubmissionCapabilities =
+        _controller.hasEvaluationSubmissionBackendCapabilities;
     return UbaaMainShell(
       user: _controller.user,
       snapshots: _controller.snapshots,
@@ -109,13 +111,18 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPickYgdkPhoto: hasYgdkSubmissionCapabilities
           ? photoPicker.pickPhoto
           : null,
-      onPrepareEvaluationWrite: _controller.prepareEvaluationWrite,
+      onPrepareEvaluationWrite: hasEvaluationSubmissionCapabilities
+          ? _controller.prepareEvaluationWrite
+          : null,
       onDiscardWriteIntent: _controller.discardWriteIntent,
       onCommitWrite: _commitWrite,
       onWriteSuccess: (operation, readbackQuery) =>
           _controller.refreshAfterWrite(operation, readbackQuery),
       onVerifyCgyyReceipt: _controller.matchesCgyyReceipt,
       onVerifyCgyyCancellation: _controller.verifyCgyyCancellation,
+      onRefreshEvaluationAfterWrite: hasEvaluationSubmissionCapabilities
+          ? _controller.refreshEvaluationAfterWrite
+          : null,
       onRefreshYgdkAfterWrite: hasYgdkSubmissionCapabilities
           ? _controller.refreshYgdkAfterWrite
           : null,

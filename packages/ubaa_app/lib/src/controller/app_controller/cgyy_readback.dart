@@ -18,7 +18,8 @@ Future<bool> _verifyCgyyCancellation(
   final backend = controller._backend as CgyyCancellationReadbackBackend;
   // 本次回读成为最新的场馆刷新；若期间发生新的查询，generation 会阻止
   // 这次较旧的列表覆盖 UI，但 proof 始终只使用下方局部结果。
-  final generation = ++controller._refreshGeneration;
+  final lifecycleEpoch = controller._lifecycleEpoch;
+  final generation = controller._nextFeatureGeneration(FeatureId.cgyy);
 
   FeatureResult? listResult;
   FeatureResult? detailResult;
@@ -34,6 +35,7 @@ Future<bool> _verifyCgyyCancellation(
           FeatureId.cgyy,
           listResult,
           generation,
+          lifecycleEpoch,
         )) {
       controller._notify();
     }
