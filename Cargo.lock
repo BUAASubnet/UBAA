@@ -3091,6 +3091,7 @@ dependencies = [
  "directories",
  "jsonschema",
  "rpassword",
+ "same-file",
  "serde",
  "serde_json",
  "tokio",

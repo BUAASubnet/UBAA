@@ -118,7 +118,7 @@ pub(crate) fn build_ygdk_request(
     }
     validate_ygdk_time_shape(&start_time, &end_time)?;
 
-    let metadata = validated_ygdk_photo_metadata(photo)?;
+    let selected_photo = open_validated_ygdk_photo(photo)?;
 
     let file_name = photo
         .file_name()
@@ -131,7 +131,7 @@ pub(crate) fn build_ygdk_request(
         .ok_or_else(|| invalid_input("打卡照片扩展名无效"))?;
     let mime_type = ygdk_photo_mime_type(extension)?;
 
-    let bytes = read_ygdk_photo_after_initial_check(photo, &metadata, || {})?;
+    let bytes = read_ygdk_photo_after_initial_check(photo, &selected_photo, || {})?;
     let place = place.and_then(|value| {
         let value = value.trim().to_owned();
         (!value.is_empty()).then_some(value)
@@ -156,7 +156,12 @@ pub(crate) fn build_ygdk_request(
 
 const MAX_YGDK_PHOTO_BYTES: u64 = 10 * 1024 * 1024;
 
-fn validated_ygdk_photo_metadata(photo: &Path) -> Result<std::fs::Metadata> {
+struct ValidatedYgdkPhoto {
+    metadata: std::fs::Metadata,
+    identity: same_file::Handle,
+}
+
+fn open_validated_ygdk_photo(photo: &Path) -> Result<ValidatedYgdkPhoto> {
     let metadata =
         std::fs::symlink_metadata(photo).map_err(|_| invalid_input("无法读取打卡照片"))?;
     if !metadata.file_type().is_file() {
@@ -165,16 +170,30 @@ fn validated_ygdk_photo_metadata(photo: &Path) -> Result<std::fs::Metadata> {
     if metadata.len() == 0 || metadata.len() > MAX_YGDK_PHOTO_BYTES {
         return Err(invalid_input("打卡照片大小必须在 1 字节到 10 MiB 之间"));
     }
-    Ok(metadata)
+    // 活句柄固定初检文件身份，Windows 不依赖尚未稳定的 MetadataExt 标识 API。
+    let file = std::fs::File::open(photo).map_err(|_| ygdk_photo_changed())?;
+    let identity = same_file::Handle::from_file(file).map_err(|_| ygdk_photo_changed())?;
+    let opened_metadata = identity
+        .as_file()
+        .metadata()
+        .map_err(|_| ygdk_photo_changed())?;
+    if !opened_metadata.file_type().is_file()
+        || opened_metadata.len() == 0
+        || opened_metadata.len() > MAX_YGDK_PHOTO_BYTES
+    {
+        return Err(ygdk_photo_changed());
+    }
+    Ok(ValidatedYgdkPhoto { metadata, identity })
 }
 
 fn read_ygdk_photo_after_initial_check(
     photo: &Path,
-    initial_metadata: &std::fs::Metadata,
+    selected_photo: &ValidatedYgdkPhoto,
     after_initial_check: impl FnOnce(),
 ) -> Result<Vec<u8>> {
     after_initial_check();
     let file = std::fs::File::open(photo).map_err(|_| ygdk_photo_changed())?;
+    let initial_metadata = &selected_photo.metadata;
     let opened_metadata = file.metadata().map_err(|_| ygdk_photo_changed())?;
     let current_metadata = std::fs::symlink_metadata(photo).map_err(|_| ygdk_photo_changed())?;
     if !initial_metadata.file_type().is_file()
@@ -184,12 +203,24 @@ fn read_ygdk_photo_after_initial_check(
         || opened_metadata.len() > MAX_YGDK_PHOTO_BYTES
         || current_metadata.len() == 0
         || current_metadata.len() > MAX_YGDK_PHOTO_BYTES
-        || !same_ygdk_photo_identity(initial_metadata, &opened_metadata)
+    {
+        return Err(ygdk_photo_changed());
+    }
+    // 保留 Unix 原有两次 lstat 身份比较，不扩大 lstat 与打开路径之间的竞态窗口。
+    #[cfg(unix)]
+    if !same_ygdk_photo_identity(initial_metadata, &opened_metadata)
         || !same_ygdk_photo_identity(&opened_metadata, &current_metadata)
     {
         return Err(ygdk_photo_changed());
     }
-    read_ygdk_photo_bytes(file)
+    let opened_identity = same_file::Handle::from_file(file).map_err(|_| ygdk_photo_changed())?;
+    let current_file = std::fs::File::open(photo).map_err(|_| ygdk_photo_changed())?;
+    let current_identity =
+        same_file::Handle::from_file(current_file).map_err(|_| ygdk_photo_changed())?;
+    if selected_photo.identity != opened_identity || opened_identity != current_identity {
+        return Err(ygdk_photo_changed());
+    }
+    read_ygdk_photo_bytes(opened_identity.as_file())
 }
 
 fn read_ygdk_photo_bytes(reader: impl Read) -> Result<Vec<u8>> {
@@ -209,28 +240,6 @@ fn same_ygdk_photo_identity(left: &std::fs::Metadata, right: &std::fs::Metadata)
     use std::os::unix::fs::MetadataExt;
 
     left.dev() == right.dev() && left.ino() == right.ino()
-}
-
-#[cfg(windows)]
-fn same_ygdk_photo_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
-    use std::os::windows::fs::MetadataExt;
-
-    match (
-        left.volume_serial_number(),
-        left.file_index(),
-        right.volume_serial_number(),
-        right.file_index(),
-    ) {
-        (Some(left_volume), Some(left_index), Some(right_volume), Some(right_index)) => {
-            left_volume == right_volume && left_index == right_index
-        }
-        _ => false,
-    }
-}
-
-#[cfg(not(any(unix, windows)))]
-fn same_ygdk_photo_identity(_left: &std::fs::Metadata, _right: &std::fs::Metadata) -> bool {
-    false
 }
 
 fn ygdk_photo_changed() -> UbaaError {
@@ -361,9 +370,9 @@ mod tests {
     use ubaa_core::facade::ErrorCode;
 
     use super::{
-        MAX_YGDK_PHOTO_BYTES, build_ygdk_request, parse_cgyy_request,
+        MAX_YGDK_PHOTO_BYTES, build_ygdk_request, open_validated_ygdk_photo, parse_cgyy_request,
         read_ygdk_photo_after_initial_check, read_ygdk_photo_bytes, validate_ygdk_photo_file_name,
-        validate_ygdk_time_shape, validated_ygdk_photo_metadata, ygdk_photo_mime_type,
+        validate_ygdk_time_shape, ygdk_photo_mime_type,
     };
 
     #[derive(Default)]
@@ -537,17 +546,51 @@ mod tests {
         std::fs::create_dir(&directory).expect("创建隔离照片目录");
         let selected = directory.join("selected.jpg");
         let replacement = directory.join("replacement.jpg");
+        let retired = directory.join("retired.jpg");
         std::fs::write(&selected, b"selected-photo").expect("写入初检照片");
         std::fs::write(&replacement, b"replacement-private-photo").expect("写入替换照片");
-        let metadata = validated_ygdk_photo_metadata(&selected).expect("初检照片有效");
+        let selected_photo = open_validated_ygdk_photo(&selected).expect("初检照片有效");
 
-        let result = read_ygdk_photo_after_initial_check(&selected, &metadata, || {
-            std::fs::remove_file(&selected).expect("移除初检路径");
+        let result = read_ygdk_photo_after_initial_check(&selected, &selected_photo, || {
+            std::fs::rename(&selected, &retired).expect("移走初检路径并保留文件句柄");
             std::fs::rename(&replacement, &selected).expect("替换初检路径");
         });
 
+        drop(selected_photo);
         let _ = std::fs::remove_dir_all(&directory);
         let error = result.expect_err("初检后替换路径必须失败关闭");
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+        assert_eq!(error.message, "打卡照片在读取期间发生变化");
+        assert!(!error.message.contains("selected"));
+        assert!(!error.message.contains("replacement"));
+    }
+
+    #[test]
+    fn 阳光打卡照片同尺寸路径替换也不能冒充原文件() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("系统时间应晚于 Unix epoch")
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "ubaa-cli-ygdk-same-size-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&directory).expect("创建隔离照片目录");
+        let selected = directory.join("selected.jpg");
+        let replacement = directory.join("replacement.jpg");
+        let retired = directory.join("retired.jpg");
+        std::fs::write(&selected, b"original").expect("写入初检照片");
+        std::fs::write(&replacement, b"replaced").expect("写入同尺寸替换照片");
+        let selected_photo = open_validated_ygdk_photo(&selected).expect("初检照片有效");
+
+        let result = read_ygdk_photo_after_initial_check(&selected, &selected_photo, || {
+            std::fs::rename(&selected, &retired).expect("移走初检路径并保留文件句柄");
+            std::fs::rename(&replacement, &selected).expect("替换为同尺寸文件");
+        });
+
+        drop(selected_photo);
+        let _ = std::fs::remove_dir_all(&directory);
+        let error = result.expect_err("文件大小相同不能替代身份检查");
         assert_eq!(error.code, ErrorCode::InvalidInput);
         assert_eq!(error.message, "打卡照片在读取期间发生变化");
         assert!(!error.message.contains("selected"));
