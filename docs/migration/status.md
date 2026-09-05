@@ -17,7 +17,9 @@
 | 阶段 14A CLI 修复 | `4017edd7` | 稳定文件句柄替代 Windows 不稳定 API；本地完整 `just check` 与 CLI 全目标 127 项通过，Windows CI 仍待新候选复验 |
 | 阶段 14A 工具链修复 | `7b8eed3a` | 完整消费 Flutter stdout；六项隔离 Shell 合同、完整 `just check` 及两个改动脚本的 ShellCheck 0.11.0 通过 |
 | 阶段 14A Shell 门禁修复 | `23066064`、`c21a12dd` | OHOS 路径引用、source 静态解析、失败返回和断言已修复；全仓 ShellCheck 0.11.0、完整 `just check` 及独立复审通过 |
-| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A 工具链/Windows 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
+| 第二轮候选 | `bef16ee5` | 五平台原生 CI 成功，合同 CI 的冷启动输出与 Windows 名称夹具失败；两轮本地 01–16 项通过，实时 Cgyy 上游错误未通过 |
+| 阶段 14B 冷启动与夹具修复 | `f0daed09`、`38ef75cf` | CLI 128 项、工具链八项、完整 `just check`、真实隔离冷 SDK 及独立复审通过；新候选完整门禁待绑定 |
+| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A/14B 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
 | 历史 verified HEAD | `4eaf1dd` | 整理前的完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI；只证明该历史提交 |
 | 历史 evidence HEAD | `11a2969` | 固化 `4eaf1dd` 的旧证据，不证明整理后候选，也不表示签名、设备或真实写入已完成 |
 
@@ -33,7 +35,7 @@ verified HEAD 前，不继承 `4eaf1dd` 或 `d43c177` 的历史成功状态。
 ## 结构整理结果
 
 原审查的 15 个超千行手写文件、2 个超 16 直属源码文件目录均已消除，结构 baseline 为空。最终扫描范围有
-494 个手写文件、106960 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
+494 个手写文件、107026 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
 `widgets.dart` 已从行为收敛后的 3883 行变成 27 行入口，21 个实现 part 按页面、共享组件、业务、写入表单
 定位，最大 UI 实现 484 行。独立 Rust/Dart 审查没有遗留高/中结构问题。
 
@@ -47,7 +49,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
 | 能力 | 实现状态 | 当前证据 | 结论 |
 |---|---|---|---|
 | Rust Core/facade | Evaluation fresh typed authority、批量四态结果与 expected-route/caller-pinned 链路已实现 | Core 默认与 test-contract 两种配置、架构合同与完整 `just check` 通过 | 本地阶段通过；最终候选绑定待完成 |
-| CLI | schema v10 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | `4017edd7` 已修复 `d43c177` 暴露的 Windows 不稳定 API；本地 CLI 全目标 127 项与完整 `just check` 通过 | 新候选完整门禁与 Windows CI 待复验 |
+| CLI | schema v10 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | `4017edd7` 修复不稳定 API，`f0daed09` 修复 Windows 文件夹具；本地 CLI 全目标 128 项与完整 `just check` 通过 | 新候选完整门禁与 Windows CI 待复验 |
 | 用户中心与十二项业务读取 | Core/CLI/FRB/Flutter typed 链路与页面已实现 | `d43c177` 的 19 项本地门禁含 Direct/WebVPN Core-live；页面/查询/widget/integration 使用脱敏 backend 验证 | 旧候选 Core 实时只读通过；新候选需重验，真实 App 账号链路未验证 |
 | 十项用户可见写入 | Evaluation typed target、批量顺序/停止规则及原路线回读已闭合 | Bridge 108 项、Flutter 跨层完整门禁与 macOS integration 7 项通过 | 本地阶段通过；本周期未执行真实写入 |
 | Windows/Linux/macOS/Android/iOS | 官方 Flutter 共享应用与原生宿主已实现 | `d43c177` 的原生 CI `33962021922` 五个 job 全部成功；同候选合同 CI `33962021960` 未通过 | 旧候选无签名构建/结构通过，新候选仍需复验；不是签名或设备证据 |
@@ -192,6 +194,20 @@ Core-live 参数 3 项、binary E2E 16 项、CLI contract 94 项及 Core-live ru
 测试失败断言。`23066064` 与 `c21a12dd` 完成这些定点修复；全仓 ShellCheck 0.11.0、完整 `just check`
 及独立复审通过，没有扩大真实运行副作用或关闭整类诊断。
 
+## 阶段 14B 与冷启动验证
+
+`bef16ee53b065df350ba9b8681422ea3e47444b2` 的
+[原生 CI 33966609636](https://github.com/BUAASubnet/UBAA/actions/runs/33966609636) 五个 job 全部成功，
+但[合同 CI 33966609776](https://github.com/BUAASubnet/UBAA/actions/runs/33966609776) 失败：固定 SDK
+冷启动的 curl 进度先于版本输出，Windows 测试夹具则因非法名称在创建文件时失败；Windows 编译与 Clippy 已通过。
+
+`38ef75cf` 完整读取 stdout 后只接受首条独立版本行并精确比较版本 token，八项回归与真实隔离无缓存 SDK
+验证通过。`f0daed09` 保留所有平台的危险名称策略及 CLI 实文件检查连接，本地 CLI 全目标 128 项通过。
+完整 `just check`、ShellCheck 0.11.0 及独立复审通过。详细来源和测试边界见[决策记录](decision-log.md)。
+
+前次本地两轮均通过第 01–16 项，但 Cgyy 只读出现超时及 HTTP 502；一次定向恢复成功不能覆盖后续失败。
+两条路线实际主机与 runtime 均匹配，未依据错误改动协议。新候选仍需在上游可用时完整复验。
+
 本页所属提交是修复后的新候选。定向测试不替代新候选的 19 项完整本地门禁、Windows stable Rust job 及两条
 同 SHA CI；前次尝试的成功、失败和日志均保留，不合并成新候选的 PASS。
 
@@ -213,7 +229,7 @@ Core-live 参数 3 项、binary E2E 16 项、CLI contract 94 项及 Core-live ru
 ## 未验证
 
 - 本页冻结最终候选时不预填阶段 14 的 PASS；最终完整验收以仓库外执行记录及同 SHA 的 CI 终态为准。
-- 阶段 14A 修复后的候选尚需完整重新验收；`d43c177` 的本地和原生 CI 成功不能覆盖其合同 CI 失败。
+- 阶段 14A/14B 修复后的候选尚需完整重新验收；旧候选的部分成功不能覆盖其合同 CI 或实时上游失败。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

@@ -37,9 +37,9 @@ git diff --check
 元数据、格式、Clippy、workspace 测试、构建、Rustdoc 与
 差异检查；Flutter/codegen 独立运行。focused test 必须先证明本次行为，完整门禁只证明没有发现其它回归。
 
-阶段 14A 的 [Flutter 工具链合同](../../scripts/tests/flutter-toolchains.sh) 只在临时目录构造假 SDK 与 Git，
-不运行真实 Flutter；六项回归覆盖长多段 stdout 完整消费、错误或空首行版本、错误 commit、保留真实命令
-失败退出码，以及 OHOS 同样的输出约束。工具链检查不能因只取首行而提前关闭输出管道，也不能屏蔽 pipefail。
+阶段 14A/14B 的 [Flutter 工具链合同](../../scripts/tests/flutter-toolchains.sh) 只在临时目录构造假 SDK 与 Git，
+不运行真实 Flutter；八项回归覆盖长输出完整消费、首条独立版本行错误或缺失、错误 commit、命令失败退出码、
+OHOS、冷启动下载进度及版本前缀碰撞。检查允许下载进度位于版本行前，完整消费 stdout 后精确比较版本 token。
 修复提交 `7b8eed3a` 的六项合同、完整 `just check` 和两个改动脚本的 ShellCheck 0.11.0 已通过；新候选
 完整验收须将 ShellCheck 加入 PATH，实际执行全仓静态检查，不沿用工具缺失时的 SKIP。
 
@@ -47,9 +47,14 @@ git diff --check
 明确引用，根目录定位失败立即返回，两处否定匹配改为显式失败断言。字面 Markdown、生成标记和 trap
 间接调用只有定点诊断注释；全仓 ShellCheck 0.11.0 与完整 `just check` 已通过。
 
+`38ef75cf` 的冷启动修复另经隔离且无 `bin/cache` 的固定官方 SDK 验证，实际完成 Dart 下载和 Flutter
+工具编译后通过检查；原开发 SDK 未改变。该专项不能替代新候选完整门禁与 Linux CI 冷启动。
+
 CLI [照片输入测试](../../apps/ubaa-cli/src/io/input.rs) 覆盖原文件和同尺寸替换文件的身份区别；跨平台实现
 通过稳定 `same_file::Handle` 持有初检文件，Unix 继续检查设备与 inode，大小限制与安全错误不放宽。
 本地 Unix 回归不能证明 Windows stable 编译通过；合同 workflow 的 Windows Rust job 必须单独通过。
+`f0daed09` 修正 Windows 无法创建非法名称的夹具：不可创建名称仍作为原始路径送入 CLI，另以所有平台
+可创建的前导空白文件验证真实 CLI 校验连接，并用纯输入测试覆盖全部危险名称。生产输入策略保持不变。
 
 前次候选 `d43c177` 的 19 项本地门禁和五平台原生 CI 成功不覆盖其合同 CI 失败。修复后必须以新候选完整
 SHA 重跑本地与两条 workflow，不预填最终 PASS；失败和重跑日志按独立尝试目录保留，见[当前状态](../migration/status.md)。
