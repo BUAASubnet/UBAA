@@ -19,7 +19,9 @@
 | 阶段 14A Shell 门禁修复 | `23066064`、`c21a12dd` | OHOS 路径引用、source 静态解析、失败返回和断言已修复；全仓 ShellCheck 0.11.0、完整 `just check` 及独立复审通过 |
 | 第二轮候选 | `bef16ee5` | 五平台原生 CI 成功，合同 CI 的冷启动输出与 Windows 名称夹具失败；两轮本地 01–16 项通过，实时 Cgyy 上游错误未通过 |
 | 阶段 14B 冷启动与夹具修复 | `f0daed09`、`38ef75cf` | CLI 128 项、工具链八项、完整 `just check`、真实隔离冷 SDK 及独立复审通过；新候选完整门禁待绑定 |
-| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A/14B 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
+| 第三轮候选 | `a19cc7f2` | 本地 19 项、五平台原生 CI 与 Windows/macOS Rust CI 通过；合同 CI 的引用 Shell 测试失败，整体未通过 |
+| 阶段 14C 引用合同修复 | `fbcbbdb9` | Just 1.58 真实 RED、1.58/1.51 GREEN、完整 `just check` 与独立复审通过；显式退出消除 Bash 3.2 的断言漏报 |
+| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A/14B/14C 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
 | 历史 verified HEAD | `4eaf1dd` | 整理前的完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI；只证明该历史提交 |
 | 历史 evidence HEAD | `11a2969` | 固化 `4eaf1dd` 的旧证据，不证明整理后候选，也不表示签名、设备或真实写入已完成 |
 
@@ -35,7 +37,7 @@ verified HEAD 前，不继承 `4eaf1dd` 或 `d43c177` 的历史成功状态。
 ## 结构整理结果
 
 原审查的 15 个超千行手写文件、2 个超 16 直属源码文件目录均已消除，结构 baseline 为空。最终扫描范围有
-494 个手写文件、107026 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
+494 个手写文件、107029 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
 `widgets.dart` 已从行为收敛后的 3883 行变成 27 行入口，21 个实现 part 按页面、共享组件、业务、写入表单
 定位，最大 UI 实现 484 行。独立 Rust/Dart 审查没有遗留高/中结构问题。
 
@@ -211,6 +213,18 @@ Core-live 参数 3 项、binary E2E 16 项、CLI contract 94 项及 Core-live ru
 本页所属提交是修复后的新候选。定向测试不替代新候选的 19 项完整本地门禁、Windows stable Rust job 及两条
 同 SHA CI；前次尝试的成功、失败和日志均保留，不合并成新候选的 PASS。
 
+## 阶段 14C 与引用合同验证
+
+`a19cc7f2f60fd82dec86e9d606e1fde564956118` 在 2026-09-05 21:15–21:22 完整通过本地 19 项门禁，
+Direct/WebVPN 各为 39 PASS、1 NOT_APPLICABLE、0 FAIL，Cgyy 上游已恢复。
+[原生 CI 33968790269](https://github.com/BUAASubnet/UBAA/actions/runs/33968790269) 五个 job 全部成功；
+[合同 CI 33968790247](https://github.com/BUAASubnet/UBAA/actions/runs/33968790247) 的 Windows/macOS
+Rust job 成功，但引用 Shell 合同失败，不能标记该候选整体通过。
+
+`fbcbbdb9` 完整捕获 Just dry-run 的 stdout/stderr，并把六个原条件改为显式失败退出，消除 Bash 3.2
+裸 `[[ ]]` 的漏报。Just 1.58.0 真实 RED、1.58/1.51 GREEN、ShellCheck 0.11.0、完整 `just check`
+及独立复审通过。新候选显式使用 Just 1.58.0 与 ShellCheck 0.11.0 从头验收；详细边界见[决策记录](decision-log.md)。
+
 ## 整理前的历史完整验收
 
 以下证据只绑定 `4eaf1dd`，不能沿用为本次结构治理的最终候选 PASS：
@@ -229,7 +243,7 @@ Core-live 参数 3 项、binary E2E 16 项、CLI contract 94 项及 Core-live ru
 ## 未验证
 
 - 本页冻结最终候选时不预填阶段 14 的 PASS；最终完整验收以仓库外执行记录及同 SHA 的 CI 终态为准。
-- 阶段 14A/14B 修复后的候选尚需完整重新验收；旧候选的部分成功不能覆盖其合同 CI 或实时上游失败。
+- 阶段 14A/14B/14C 修复后的候选尚需完整重新验收；旧候选的部分成功不能覆盖其合同 CI 或实时上游失败。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

@@ -9,7 +9,8 @@
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
 当前状态：2026-09-05，阶段 00–13 已完成。候选 `d43c177` 的 19 项本地门禁和五平台原生 CI 通过，
-合同 CI 未通过；阶段 14A/14B 已修复工具链输出、Windows 文件身份与夹具兼容性及全仓 Shell 门禁。本页所属提交作为修复后的
+合同 CI 未通过；阶段 14A/14B/14C 已修复工具链输出、Windows 文件身份与夹具兼容性、全仓 Shell 门禁
+及 Just/Bash 引用合同差异。本页所属提交作为修复后的
 新候选，重新执行完整验收并在仓库外绑定同一 SHA，不在本文件预填最终 PASS。
 
 ## 1. 不可变条件
@@ -83,6 +84,7 @@
 | 14 | 最终候选与远端证据 | 全部门禁、live、native、API26 | 仓库外验收记录与最终交付消息 | `d43c177` 的 19 项本地与五平台原生 CI 通过，合同 CI 失败；整体未通过，转入 14A 后以新候选重验 |
 | 14A | 工具链输出、Windows 文件身份与 Shell 门禁 | 合同 CI Broken pipe / E0658；假 SDK 长输出及全仓 ShellCheck 失败 | 四项修复及本页所属候选提交 | `4017edd7`、`7b8eed3a`、`23066064`、`c21a12dd` 已提交；完整 `just check`、CLI 127 项、Shell 六项、全仓 ShellCheck 0.11.0 及独立复审通过；新候选完整本地与两条同 SHA CI 仍须重验 |
 | 14B | 冷启动输出与 Windows 文件夹具 | `bef16ee5` 合同 CI 的下载进度首行与 InvalidFilename | `f0daed09`、`38ef75cf` | CLI 128 项、Shell 八项、完整 `just check`、真实隔离冷 SDK 及独立复审通过；新候选仍须完整本地与同 SHA CI |
+| 14C | Just/Bash 引用合同兼容性 | `a19cc7f2` 合同 CI 的 dry-run 输出通道及本机断言漏报 | `fbcbbdb9` | Just 1.58 真实 RED、1.58/1.51 GREEN、完整 `just check` 与独立复审通过；新候选使用 Just 1.58 与 ShellCheck 0.11 完整重验 |
 
 ## 3. 详细任务
 
@@ -453,7 +455,7 @@ receipt/readback、领域刷新、刷新失败和 dispose 中断；证明生产 
 CLI 已提交 `4017edd7`，本地完整 `just check` 和 CLI 全目标 127 项通过；Shell `7b8eed3a` 的六项隔离合同、
 完整 `just check` 及两个改动脚本的 ShellCheck 0.11.0 通过。其后 `23066064`、`c21a12dd` 完成全仓
 ShellCheck 暴露的路径引用、source 静态解析、失败返回与断言修复，全仓 0.11.0、完整 `just check` 及独立复审通过。
-阶段 14B 后，当前结构范围为 494 个手写文件、107026 行、135 个直属源码目录，仍无结构违例。
+阶段 14C 后，当前结构范围为 494 个手写文件、107029 行、135 个直属源码目录，仍无结构违例。
 
 1. 隔离假 SDK/Git 回归覆盖完整长输出、版本行错误或缺失、错误 commit、原命令失败退出码和 OHOS；加入
    `just check`，不得关闭 pipefail 或把子进程失败转换为成功。新候选验收将 ShellCheck 0.11.0 加入 PATH，
@@ -464,6 +466,17 @@ ShellCheck 暴露的路径引用、source 静态解析、失败返回与断言�
    记录、产物摘要和发布报告保存到该 SHA 的独立尝试目录。
 4. 同一 SHA 重新运行合同及五平台原生 workflow；Windows stable Rust job 必须实际编译并通过，两条 run
    与每个 job 都终态成功后才可记录最终 PASS。前次成功结果不继承到新候选。
+
+### 阶段 14C：引用合同的跨版本验证
+
+候选 `a19cc7f2` 的本地 19 项与五平台原生 CI 均通过，两条实时路线各为 39 PASS、1 NOT_APPLICABLE、
+0 FAIL；合同 CI 的 Windows/macOS Rust job 成功，但引用 Shell 合同失败，整体未通过。
+`fbcbbdb9` 将六个 dry-run 条件改为显式失败退出，再完整捕获 stdout/stderr；保留三种 cwd、
+refs/bootstrap 副作用边界和原命令失败退出码。Just 1.58.0 的真实 RED、1.58/1.51 的 GREEN、
+ShellCheck 0.11.0、完整 `just check` 与独立复审均已完成。
+
+本页所属候选从阶段 14 第 2 步完整重验，显式使用 Just 1.58.0 与 ShellCheck 0.11.0，并保存版本输出。
+不得把旧 Bash 3.2 对裸 `[[ ]]` 的漏报退出 0，或旧候选的其它成功 job，作为新候选通过证据。
 
 ## 4. 停止条件
 

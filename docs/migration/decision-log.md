@@ -1,5 +1,22 @@
 # 决策记录
 
+## 2026-09-05：Just dry-run 输出通道的版本兼容性
+
+候选 `a19cc7f2f60fd82dec86e9d606e1fde564956118` 完整通过本地 19 项验收，Direct/WebVPN 各为
+39 PASS、1 NOT_APPLICABLE、0 FAIL；Windows 与 macOS Rust CI 均通过。合同 CI
+[run 33968790247](https://github.com/BUAASubnet/UBAA/actions/runs/33968790247) 仍在引用 Shell 合同失败：
+CI 安装 Just 1.58.0，本机此前为 1.51.0，`--dry-run` 的输出通道差异使只捕获 stdout 的断言为空。
+
+本机 Bash 3.2 还会漏报旧脚本裸 `[[ ]]` 断言的失败，原脚本退出 0 不能证明这些条件成立。因此先将六个
+原条件改为显式 `if` 失败诊断与 `exit 1`，在 Just 1.58.0 下取得真实 RED，再让五处捕获完整读取
+dry-run 的 stdout/stderr。两个 Just 版本随后均为 GREEN，失败命令的退出码仍原样传播，三种 cwd 的
+副作用边界条件保持不变。后续最终本地门禁显式采用与本次 CI
+相同的 Just 1.58.0 和 ShellCheck 0.11.0。没有修改真实 refs/bootstrap 或放宽冻结引用校验。
+
+修复提交 `fbcbbdb9`；ShellCheck 0.11.0、语法、完整 `just check` 与独立复审均通过。
+五平台原生 CI [run 33968790269](https://github.com/BUAASubnet/UBAA/actions/runs/33968790269) 也已终态成功，
+但这只属于旧候选；包含修复与本记录的新候选仍必须完整重新验收。
+
 ## 2026-09-05：固定 Flutter 冷启动下载进度的输出合同
 
 候选 `bef16ee53b065df350ba9b8681422ea3e47444b2` 的合同 CI
