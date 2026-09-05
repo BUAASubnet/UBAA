@@ -21,7 +21,9 @@
 | 阶段 14B 冷启动与夹具修复 | `f0daed09`、`38ef75cf` | CLI 128 项、工具链八项、完整 `just check`、真实隔离冷 SDK 及独立复审通过；新候选完整门禁待绑定 |
 | 第三轮候选 | `a19cc7f2` | 本地 19 项、五平台原生 CI 与 Windows/macOS Rust CI 通过；合同 CI 的引用 Shell 测试失败，整体未通过 |
 | 阶段 14C 引用合同修复 | `fbcbbdb9` | Just 1.58 真实 RED、1.58/1.51 GREEN、完整 `just check` 与独立复审通过；显式退出消除 Bash 3.2 的断言漏报 |
-| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A/14B/14C 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
+| 第四轮候选 | `06333190` | 本地 19 项、五平台原生 CI 与 Windows/macOS Rust CI 通过；Linux UI 三组 golden 比较失败，整体未通过 |
+| 阶段 14D 视觉环境修复 | `503f15bd` | 完整 Flutter 工作区与原始 golden 固定 macOS CI；Linux 继续 Rust/Shell、FRB 和发布预检，新 job 待终态验证 |
+| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A–14D 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
 | 历史 verified HEAD | `4eaf1dd` | 整理前的完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI；只证明该历史提交 |
 | 历史 evidence HEAD | `11a2969` | 固化 `4eaf1dd` 的旧证据，不证明整理后候选，也不表示签名、设备或真实写入已完成 |
 
@@ -225,6 +227,19 @@ Rust job 成功，但引用 Shell 合同失败，不能标记该候选整体通�
 裸 `[[ ]]` 的漏报。Just 1.58.0 真实 RED、1.58/1.51 GREEN、ShellCheck 0.11.0、完整 `just check`
 及独立复审通过。新候选显式使用 Just 1.58.0 与 ShellCheck 0.11.0 从头验收；详细边界见[决策记录](decision-log.md)。
 
+## 阶段 14D 与视觉环境验证
+
+`06333190081f20b5eee0a8b20986b46aad9265b7` 在 2026-09-05 21:56–22:03 完整通过本地 19 项，
+Direct/WebVPN 各为 39 PASS、1 NOT_APPLICABLE、0 FAIL。
+[原生 CI 33970695279](https://github.com/BUAASubnet/UBAA/actions/runs/33970695279) 五个 job 成功；
+[合同 CI 33970695247](https://github.com/BUAASubnet/UBAA/actions/runs/33970695247) 的完整 Rust/Shell
+和 Windows/macOS Rust job 成功，Linux UI 92 项通过、3 组 golden 测试失败。实际 15 张比较失败、
+11 张响应式图没有取得本次 Linux 比较结论，不能表述为 26 张全部失败。
+
+阶段 14D（`503f15bd`）将完整 Flutter 检查固定到 `macos-15`，保持 374 项测试、26 张原图与严格像素比较；Linux 继续
+执行 Rust/Shell、FRB 和发布预检。新候选包含该 CI 修复后，必须重新通过 19 项本地门禁和同 SHA 的
+4 个合同 job、5 个原生 job；本页不预填新的 CI 通过状态。
+
 ## 整理前的历史完整验收
 
 以下证据只绑定 `4eaf1dd`，不能沿用为本次结构治理的最终候选 PASS：
@@ -243,7 +258,7 @@ Rust job 成功，但引用 Shell 合同失败，不能标记该候选整体通�
 ## 未验证
 
 - 本页冻结最终候选时不预填阶段 14 的 PASS；最终完整验收以仓库外执行记录及同 SHA 的 CI 终态为准。
-- 阶段 14A/14B/14C 修复后的候选尚需完整重新验收；旧候选的部分成功不能覆盖其合同 CI 或实时上游失败。
+- 阶段 14A–14D 修复后的候选尚需完整重新验收；旧候选的部分成功不能覆盖其合同 CI 或实时上游失败。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

@@ -1,5 +1,31 @@
 # 决策记录
 
+## 2026-09-05：将既有视觉基线的宿主条件显式纳入 CI
+
+候选 `06333190081f20b5eee0a8b20986b46aad9265b7` 的本地 19 项、五平台原生 CI
+[33970695279](https://github.com/BUAASubnet/UBAA/actions/runs/33970695279) 和 Windows/macOS Rust job
+均通过。合同 CI [33970695247](https://github.com/BUAASubnet/UBAA/actions/runs/33970695247) 已通过完整
+Rust/Shell，但 Linux UI 92 项通过、3 组 golden 测试失败；实际比较失败 15 张，差异为 0.38%–2.19%，
+另 11 张响应式图片因测试提前结束而没有本次 Linux 比较结论。26 张原图与锁定整理基线逐字节相同。
+
+锁定 Flutter `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` 的
+`packages/flutter/lib/src/foundation/_platform_io.dart` 在 `FLUTTER_TEST` 下将默认平台设为 Android，
+故不能归因于两端默认 TargetPlatform 不同。SDK 的 `matchesGoldenFile` 文档明确指出跨操作系统字体渲染
+可能不同；engine 的测试字体仍经 macOS CoreText 与 Linux FreeType 各自加载。现有证据支持宿主环境差异，
+尚未取得 Linux failure 图来确定具体像素来源，不推断缺少中文字体或改变生产主题。
+
+阶段 14D 仅调整 CI：完整 `just flutter-check` 独立运行于 `macos-15`，使用同一固定 Flutter SDK，
+保留全部测试、golden 原图和严格像素比较。Linux 继续执行 refs、结构、敏感、完整 Rust/Shell、FRB 及
+发布预检；FRB 前显式安装 bindings 锁定依赖，消除对先前 Flutter 全工作区检查的隐式初始化依赖。
+新 job 失败时只保存脱敏测试生成的 `test/failures/*.png`。完整 workflow 的四个 job 均须终态成功，
+本机通过不能提前证明新的 macOS CI 图像完全一致。
+
+CI 修复提交为 `503f15bd`；本机完整 `just check`、374 项 Flutter 检查、YAML 结构解析、808 文件
+敏感扫描与独立复审通过。新候选仍需同 SHA 的全套本地与远端终态证据。
+
+本次还按锁定基线逐行复核 UI 历史大小，将设计页的初始审查 4030 行更正为实际 4046 行；行为收敛后的
+3883 行、当前 27 行入口、21 个实现 part、最大 484 行及 15/2/17 项违例清零均不变。
+
 ## 2026-09-05：Just dry-run 输出通道的版本兼容性
 
 候选 `a19cc7f2f60fd82dec86e9d606e1fde564956118` 完整通过本地 19 项验收，Direct/WebVPN 各为

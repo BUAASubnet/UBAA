@@ -9,8 +9,8 @@
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
 当前状态：2026-09-05，阶段 00–13 已完成。候选 `d43c177` 的 19 项本地门禁和五平台原生 CI 通过，
-合同 CI 未通过；阶段 14A/14B/14C 已修复工具链输出、Windows 文件身份与夹具兼容性、全仓 Shell 门禁
-及 Just/Bash 引用合同差异。本页所属提交作为修复后的
+合同 CI 未通过；阶段 14A–14D 已修复工具链输出、Windows 文件身份与夹具兼容性、全仓 Shell 门禁、
+Just/Bash 引用合同差异，并显式固定 Flutter 视觉基线的 CI 宿主。本页所属提交作为修复后的
 新候选，重新执行完整验收并在仓库外绑定同一 SHA，不在本文件预填最终 PASS。
 
 ## 1. 不可变条件
@@ -85,6 +85,7 @@
 | 14A | 工具链输出、Windows 文件身份与 Shell 门禁 | 合同 CI Broken pipe / E0658；假 SDK 长输出及全仓 ShellCheck 失败 | 四项修复及本页所属候选提交 | `4017edd7`、`7b8eed3a`、`23066064`、`c21a12dd` 已提交；完整 `just check`、CLI 127 项、Shell 六项、全仓 ShellCheck 0.11.0 及独立复审通过；新候选完整本地与两条同 SHA CI 仍须重验 |
 | 14B | 冷启动输出与 Windows 文件夹具 | `bef16ee5` 合同 CI 的下载进度首行与 InvalidFilename | `f0daed09`、`38ef75cf` | CLI 128 项、Shell 八项、完整 `just check`、真实隔离冷 SDK 及独立复审通过；新候选仍须完整本地与同 SHA CI |
 | 14C | Just/Bash 引用合同兼容性 | `a19cc7f2` 合同 CI 的 dry-run 输出通道及本机断言漏报 | `fbcbbdb9` | Just 1.58 真实 RED、1.58/1.51 GREEN、完整 `just check` 与独立复审通过；新候选使用 Just 1.58 与 ShellCheck 0.11 完整重验 |
+| 14D | Flutter 视觉基线的 CI 宿主 | `06333190` Linux 的三组 golden 比较失败 | `503f15bd` | 完整 Flutter 检查固定 macOS；Linux 保留 Rust/Shell、FRB 和发布预检；原图和阈值不变，新候选四个合同 job 必须全部成功 |
 
 ## 3. 详细任务
 
@@ -477,6 +478,18 @@ ShellCheck 0.11.0、完整 `just check` 与独立复审均已完成。
 
 本页所属候选从阶段 14 第 2 步完整重验，显式使用 Just 1.58.0 与 ShellCheck 0.11.0，并保存版本输出。
 不得把旧 Bash 3.2 对裸 `[[ ]]` 的漏报退出 0，或旧候选的其它成功 job，作为新候选通过证据。
+
+### 阶段 14D：固定视觉基线的宿主环境
+
+候选 `06333190` 本地 19 项、五平台原生 CI 与两项 Rust 平台 job 成功，但 Linux UI 3 组 golden 测试
+失败。既有 26 张原图与整理前逐字节一致，完整测试在本机 macOS 通过。锁定 SDK 两端默认 TargetPlatform
+均为 Android，底层宿主渲染不同，不通过主题修改、更新图片或扩大容差消除差异。
+
+1. 将完整 `just flutter-check` 移到独立 `macos-15` job，仍使用锁定官方 SDK；不减少测试集合。
+2. Linux 在 FRB 前显式安装 bindings 锁定依赖，继续执行全部 Rust/Shell、FRB 与发布预检。
+3. 失败附件仅保留脱敏测试的 PNG 差异，便于定位后续图像问题。
+4. 重新提交完整候选并执行全部 19 项本地门禁；两个 workflow 的全部 4+5 个 job 均为同 SHA 终态成功
+   后才完成。本机 golden 通过不代替新 CI 宿主的实际结果。
 
 ## 4. 停止条件
 

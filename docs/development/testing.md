@@ -37,6 +37,12 @@ git diff --check
 元数据、格式、Clippy、workspace 测试、构建、Rustdoc 与
 差异检查；Flutter/codegen 独立运行。focused test 必须先证明本次行为，完整门禁只证明没有发现其它回归。
 
+既有 golden 的逐像素比较采用固定 Flutter SDK 和 macOS 宿主；合同 CI 的 `flutter-contracts` 在
+`macos-15` 完整执行 `just flutter-check`，不跳过测试或放宽阈值。Linux `contract-gates` 执行完整
+Rust/Shell、FRB 与发布预检；FRB 前需在 `packages/ubaa_bindings` 安装锁定 Dart 依赖。
+跨操作系统的图像差异不能直接解释为 UI 变更。失败时 CI 仅上传脱敏测试生成的 `test/failures/*.png`，
+先比较渲染环境和具体差异，再判断是否需要修改代码；新 UI 行为仍必须独立审查并更新相应测试。
+
 阶段 14A/14B 的 [Flutter 工具链合同](../../scripts/tests/flutter-toolchains.sh) 只在临时目录构造假 SDK 与 Git，
 不运行真实 Flutter；八项回归覆盖长输出完整消费、首条独立版本行错误或缺失、错误 commit、命令失败退出码、
 OHOS、冷启动下载进度及版本前缀碰撞。检查允许下载进度位于版本行前，完整消费 stdout 后精确比较版本 token。
