@@ -13,22 +13,27 @@
 | typed 业务实现 | `4b0dcb0` | 阶段 11J 完成 Evaluation 批量四态结果、expected-route 提交与 caller-pinned 回读；当前 CLI schema v10、bridge v9 |
 | 唯一写入协调器 | `b6ff2c7` | 阶段 11K 完成 immutable state、安全回读和宿主生命周期；完整 Rust/Flutter、FRB、macOS integration、本机三平台及 OHOS API26 无签名门禁通过 |
 | UI 目录与 Core 入口 | `1f63127e`、`7202fcf9` | 阶段 12/12B 按职责拆分 UI、HTTP helper 与 Reqwest adapter；AST/原文等价、完整 Rust/Flutter/FRB、macOS integration 及独立复审通过 |
-| 结构治理最终候选 | 本页所在收口提交 | 包含全部代码拆分、实际目录图、当前状态与阶段账本；阶段 14 以完整 SHA 重新绑定全部门禁和远端 CI |
+| 前次结构治理候选 | `d43c177` | 19 项本地门禁与五平台原生 CI 通过；合同 CI 失败，不能作为最终通过证据 |
+| 阶段 14A CLI 修复 | `4017edd7` | 稳定文件句柄替代 Windows 不稳定 API；本地完整 `just check` 与 CLI 全目标 127 项通过，Windows CI 仍待新候选复验 |
+| 阶段 14A 工具链修复 | `7b8eed3a` | 完整消费 Flutter stdout；六项隔离 Shell 合同、完整 `just check` 及两个改动脚本的 ShellCheck 0.11.0 通过 |
+| 阶段 14A Shell 门禁修复 | `23066064`、`c21a12dd` | OHOS 路径引用、source 静态解析、失败返回和断言已修复；全仓 ShellCheck 0.11.0、完整 `just check` 及独立复审通过 |
+| 结构治理最终候选 | 本页所属提交 | 包含全部代码拆分、阶段 14A 工具链/Windows 修复及记录；重新以完整 SHA 绑定全部本地门禁和两条远端 CI，不预填 PASS |
 | 历史 verified HEAD | `4eaf1dd` | 整理前的完整无签名门禁、Direct/WebVPN 只读矩阵、五平台 Flutter CI 与合同 CI；只证明该历史提交 |
 | 历史 evidence HEAD | `11a2969` | 固化 `4eaf1dd` 的旧证据，不证明整理后候选，也不表示签名、设备或真实写入已完成 |
 
 当前代码组织治理以 [代码与目录组织设计](../architecture/code-organization.md) 和
 [实施计划](../superpowers/plans/2026-09-03-code-organization.md) 为权威。结构治理提交在阶段 14 绑定新的
-verified HEAD 前，不继承 `4eaf1dd` 的“当前候选已验证”身份。
+verified HEAD 前，不继承 `4eaf1dd` 或 `d43c177` 的历史成功状态。
 
 当前公开版本为 CLI JSON schema v10；Flutter bridge contract v9。阶段 11K 及随后机械整理保持该版本和生成
 绑定。阶段 14 的执行记录在仓库外保存完整候选 SHA、每项命令退出码、两条 live 安全摘要、两套 CI run URL
-与各 job 终态；最终交付消息链接该记录。验收结果不再写回仓库，避免产生未经同等验证的新 HEAD。
+与各 job 终态；最终交付消息链接该记录。失败需要修复时，修复与记录产生新候选并重新执行完整门禁。
+最终通过后不再仅为回填 PASS 修改仓库，避免产生未经同等验证的新 HEAD。
 
 ## 结构整理结果
 
 原审查的 15 个超千行手写文件、2 个超 16 直属源码文件目录均已消除，结构 baseline 为空。最终扫描范围有
-493 个手写文件、106787 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
+494 个手写文件、106960 行、135 个直属源码目录；FRB 生成和锁定 Cargokit 排除，冻结输入不作整理对象。
 `widgets.dart` 已从行为收敛后的 3883 行变成 27 行入口，21 个实现 part 按页面、共享组件、业务、写入表单
 定位，最大 UI 实现 484 行。独立 Rust/Dart 审查没有遗留高/中结构问题。
 
@@ -42,12 +47,12 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
 | 能力 | 实现状态 | 当前证据 | 结论 |
 |---|---|---|---|
 | Rust Core/facade | Evaluation fresh typed authority、批量四态结果与 expected-route/caller-pinned 链路已实现 | Core 默认与 test-contract 两种配置、架构合同与完整 `just check` 通过 | 本地阶段通过；最终候选绑定待完成 |
-| CLI | schema v10 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | binary E2E 16 项、CLI contract 94 项及完整工作区门禁通过 | 本地阶段通过；最终候选绑定待完成 |
-| 用户中心与十二项业务读取 | Core/CLI/FRB/Flutter typed 链路与页面已实现 | `4eaf1dd` 的 Direct/WebVPN Core-live 全量读取均退出码 0；页面/查询/widget/integration 使用脱敏 backend 验证 | Core 实时只读已验证；真实 App 账号链路未验证 |
+| CLI | schema v10 envelope、人类输出、Direct/WebVPN 诊断与写操作确认入口已实现；磁盘 `session.json` 仍为 schema v2 | `4017edd7` 已修复 `d43c177` 暴露的 Windows 不稳定 API；本地 CLI 全目标 127 项与完整 `just check` 通过 | 新候选完整门禁与 Windows CI 待复验 |
+| 用户中心与十二项业务读取 | Core/CLI/FRB/Flutter typed 链路与页面已实现 | `d43c177` 的 19 项本地门禁含 Direct/WebVPN Core-live；页面/查询/widget/integration 使用脱敏 backend 验证 | 旧候选 Core 实时只读通过；新候选需重验，真实 App 账号链路未验证 |
 | 十项用户可见写入 | Evaluation typed target、批量顺序/停止规则及原路线回读已闭合 | Bridge 108 项、Flutter 跨层完整门禁与 macOS integration 7 项通过 | 本地阶段通过；本周期未执行真实写入 |
-| Windows/Linux/macOS/Android/iOS | 官方 Flutter 共享应用与原生宿主已实现 | Flutter CI `33628444289` 的五个无签名 Debug job；合同 CI `33628444204` | 无签名构建/结构证据通过，不是签名或设备证据 |
-| HarmonyOS | 锁定 OHOS fork、API26 runner、arm64 Rust bridge 与无签名 HAP 已实现 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 在 `4eaf1dd` 通过 | 无签名静态/包结构通过，不是签名 HAP 或设备证据 |
-| 发布准备 | SBOM、锁文件/许可证审计、产物结构检查和回滚 runbook 已实现 | `just release-preflight` 与发布 runbook | 无签名 RC 准备已验证，不是正式发布 |
+| Windows/Linux/macOS/Android/iOS | 官方 Flutter 共享应用与原生宿主已实现 | `d43c177` 的原生 CI `33962021922` 五个 job 全部成功；同候选合同 CI `33962021960` 未通过 | 旧候选无签名构建/结构通过，新候选仍需复验；不是签名或设备证据 |
+| HarmonyOS | 锁定 OHOS fork、API26 runner、arm64 Rust bridge 与无签名 HAP 已实现 | `d43c177` 的本地门禁含 API26 无签名 HAP 与 arm64 内容检查 | 旧候选静态/包结构通过，新候选仍需复验；不是签名 HAP 或设备证据 |
+| 发布准备 | SBOM、锁文件/许可证审计、产物结构检查和回滚 runbook 已实现 | `d43c177` 的 `just release-preflight` 通过并保存报告 | 旧候选无签名 RC 准备通过，新候选需重生成；不是正式发布 |
 
 `Cgyy purposes` 的实时结果仍明确标记 `source=static_fallback`，表示采用已记录的冻结回退，不冒充上游用途接口
 实时成功。SPOC/博雅详情只有在同批次父列表为空时才可记为 `NOT_APPLICABLE`。
@@ -163,6 +168,33 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
   macOS integration 首轮页面切换等待超时，完整复跑 7 项通过；旧 Debug 缓存下的首次 Rust 全量因启动
   延迟主动终止（143），保留日志及缓存后从头复跑全量（0）。两份中断/失败记录均保留，不计为 PASS。
 
+## 阶段 14A 与前次候选
+
+`d43c177284e4be4beb63643b3cc79ec2ce8ff820` 完成 19 项串行本地门禁，包含完整 Rust/CLI、Flutter/FRB、
+发布报告、macOS integration、三平台构建与产物检查、OHOS API26、Direct/WebVPN 只读及最终差异检查。
+其[五平台原生 CI 33962021922](https://github.com/BUAASubnet/UBAA/actions/runs/33962021922) 五个 job 全部成功，
+但[合同 CI 33962021960](https://github.com/BUAASubnet/UBAA/actions/runs/33962021960) 未通过，不能标记整轮完成。
+
+合同 CI 暴露两项跨平台缺口：Flutter 版本命令的 stdout 被 `head` 提前关闭，触发 Broken pipe；Windows
+stable 无法编译尚不稳定的 `MetadataExt` 文件标识方法。阶段 14A 已实现完整消费工具链输出和 CLI 本地照片的
+稳定句柄身份检查，并增加隔离假 SDK 与同尺寸文件替换回归；Unix 原有设备/inode 检查继续保留。修复不改变
+上游协议、CLI schema v10、bridge v9、生成绑定或真实写入边界，具体裁决见[决策记录](decision-log.md)。
+
+CLI 修复已提交 `4017edd7`：本地完整 `just check` 退出码 0，CLI 全目标 127 项通过，包含输入单元 12 项、
+Core-live 参数 3 项、binary E2E 16 项、CLI contract 94 项及 Core-live runtime 2 项。该结果只证明本地
+阶段验证，不把 Unix 测试通过写成 Windows stable 已验收。
+
+工具链修复已提交 `7b8eed3a`：六项隔离假 SDK 合同、完整 `just check` 通过，两个新增/修改的 Shell 脚本
+已实际通过 ShellCheck 0.11.0。新候选的 19 项本地验收须把该工具加入 PATH，使全仓 Shell 门禁实际执行，
+不能用缺少工具时的 SKIP 替代本轮静态证据。
+
+全仓 ShellCheck 继续发现并推动修复了 OHOS 可执行路径引用、source 解析、根目录定位失败返回和两处
+测试失败断言。`23066064` 与 `c21a12dd` 完成这些定点修复；全仓 ShellCheck 0.11.0、完整 `just check`
+及独立复审通过，没有扩大真实运行副作用或关闭整类诊断。
+
+本页所属提交是修复后的新候选。定向测试不替代新候选的 19 项完整本地门禁、Windows stable Rust job 及两条
+同 SHA CI；前次尝试的成功、失败和日志均保留，不合并成新候选的 PASS。
+
 ## 整理前的历史完整验收
 
 以下证据只绑定 `4eaf1dd`，不能沿用为本次结构治理的最终候选 PASS：
@@ -181,6 +213,7 @@ Core 领域、路线状态、会话存储、端口实现与 facade 边界分开�
 ## 未验证
 
 - 本页冻结最终候选时不预填阶段 14 的 PASS；最终完整验收以仓库外执行记录及同 SHA 的 CI 终态为准。
+- 阶段 14A 修复后的候选尚需完整重新验收；`d43c177` 的本地和原生 CI 成功不能覆盖其合同 CI 失败。
 - Windows、Linux、Android、iOS 与 HarmonyOS 上使用真实账号的 App→FRB→Core 全链路没有实体设备证据。
 - 本周期没有执行十项真实写入，也没有真实上游写后读取核对；历史单次授权探针不自动证明当前实现。
 - Flutter 原生 CI 证明无签名 Debug 构建和结构，不证明安装、升级、卸载、签名、公证或商店审核。

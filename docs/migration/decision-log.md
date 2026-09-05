@@ -1,5 +1,39 @@
 # 决策记录
 
+## 2026-09-05：最终候选 CI 的工具链输出与 Windows 文件身份问题
+
+候选 `d43c177284e4be4beb63643b3cc79ec2ce8ff820` 的 19 项本地门禁全部通过，原生五平台
+[run 33962021922](https://github.com/BUAASubnet/UBAA/actions/runs/33962021922) 全部成功；合同
+[run 33962021960](https://github.com/BUAASubnet/UBAA/actions/runs/33962021960) 未通过，因此该候选不能作为完成证据。
+
+合同 job 首次启动 Flutter 时，`flutter --version | head -n 1` 提前关闭管道，使 Dart 报 Broken pipe
+并退出 255。修复须完整消费版本命令输出，仍拒绝错误 commit、版本与命令失败；先用隔离假 SDK 的长输出
+测试复现，不屏蔽 pipefail 或命令退出状态。
+
+Windows Rust job 在锁定 stable 1.95 上因 `MetadataExt::volume_serial_number/file_index` 的
+`windows_by_handle` 不稳定 API 编译失败。修复仅限 CLI 本地照片输入：采用锁文件已有的 `same-file 1.0.6`
+[公开 Handle API](https://docs.rs/same-file/1.0.6/same_file/struct.Handle.html)，从打开的文件取得身份并在整个
+比较期间持有句柄，保留普通文件、符号链接拒绝、1 字节至 10 MiB、读取上限和安全错误。追加同尺寸不同文件
+替换回归，禁止以大小、路径或时间戳冒充身份，不启用 nightly、不增加业务源码 unsafe。
+
+Unix 继续比较原有两次 `lstat` 的设备与 inode；Windows 以初检打开后持续持有的文件句柄作为身份锚点，
+再要求读取句柄和当前路径句柄都指向该文件。新增同尺寸替换用例在旧 Unix 实现上也通过；Windows 的原始
+失败证据是远端 stable 编译报 `E0658`，不把本地 Unix 回归宣称为 Windows 编译验证。
+
+这是宿主本地文件与工具链运行合同，不涉及两份冻结实现中的认证、读取或写入协议；现有逐操作来源矩阵、
+HTTP、DTO、Core/FRB、CLI schema v10、bridge v9、会话及真实写入边界均不改变。修复与记录提交后产生新的
+最终候选，必须重新执行 19 项本地门禁与两条同 SHA 的 CI；旧成功只保留为旧候选证据。
+
+CLI 修复提交为 `4017edd7`，工具链修复提交为 `7b8eed3a`。本地完整 `just check`、CLI 全 target 127 项、
+工具链六项隔离回归及修改脚本的 ShellCheck 0.11.0 均通过；这些阶段结果不能代替新候选的完整验收。
+
+同版本 ShellCheck 扩展到全部手写脚本后，发现 OHOS 命令路径未引用、共享 source 的检查器路径设置缺失、
+根目录定位未处理 `cd` 失败，以及两处裸 `! grep` 未形成可靠失败断言。OHOS 引用修复独立提交为
+`23066064`；脚本门禁修复提交为 `c21a12dd`，启用 `-x -P SCRIPTDIR`，对字面反引号与 trap 间接调用
+只作有注释的定点抑制，
+根目录定位失败立即返回，测试以显式分支拒绝错误。全量 ShellCheck 0.11.0 与完整 `just check` 已通过，
+最终候选仍从头执行含该版本 ShellCheck 的完整验收。
+
 ## 2026-09-05：Phase 12 UI 机械拆分与 Core 入口归属
 
 以 `b6ff2c7` 的稳定单一写入状态为前提，UI 只按 `app/common/features/write` 提取同一 Dart library 的

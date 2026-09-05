@@ -1,6 +1,6 @@
 # 代码与目录组织设计
 
-状态：2026-09-05 目录与职责设计已实现；最终候选验收按第 10.4 节绑定同一提交
+状态：2026-09-05 目录与职责设计及阶段 14A 修复已实现；新候选按第 10.4 节重新绑定完整验收
 
 基线提交：`11a296904d623b33da0a83157f714a7c5912ca8d`
 
@@ -64,6 +64,10 @@ Phase 11I 的 Ygdk typed 提交继续提升为 CLI schema v9 / bridge v8；Phase
 批量提交与逐项四态结果提升为当前 CLI schema v10 / bridge v9。Phase 11K 的唯一写入协调器和其后
 UI/Core 机械整理保留该版本、生成绑定及 golden；具体来源与阶段证据见 [实施账本](../superpowers/plans/2026-09-03-code-organization.md)。
 
+候选 `d43c177` 虽通过 19 项本地门禁和五平台原生 CI，但合同 CI 暴露工具链输出 Broken pipe 与 Windows
+不稳定文件身份 API。阶段 14A 将工具链 stdout 完整消费，并以稳定文件句柄维护 CLI 照片身份检查；公开
+CLI schema v10 / bridge v9 与协议边界保持不变。修复后的本页所属提交必须重新完整验收，旧候选不能视为最终通过。
+
 1000 行是阻止重新形成“几千行单文件”的硬门槛，不是推荐尺寸。普通实现文件优先控制在 300–600 行，
 高内聚状态机或 DTO 清单可接近 800 行；接近硬门槛的文件不得继续吸收新领域。
 
@@ -79,9 +83,9 @@ UI/Core 机械整理保留该版本、生成绑定及 golden；具体来源与�
 | UI 聚合实现入口 | 4030 行；行为收敛后 3883 行 | 27 行入口、21 个职责明确的实现文件 |
 | UI 最大实现文件 | 3883 行 | 484 行 |
 
-最终源码范围有 493 个手写文件、106787 行、135 个直属源码目录；排除 21 个 Cargokit 文件和 8 个 FRB
+最终源码范围有 494 个手写文件、106960 行、135 个直属源码目录；排除 21 个 Cargokit 文件和 8 个 FRB
 生成文件。Rust 生产文件 157 个、测试文件 113 个；Dart 生产文件 89 个、测试文件 75 个；其它语言文件
-59 个。最大生产 Rust 文件为 bridge `read/mappers.rs`（904 行），最大生产 Dart 文件为
+60 个。最大生产 Rust 文件为 bridge `read/mappers.rs`（904 行），最大生产 Dart 文件为
 `app_controller.dart`（852 行）；它们分别只负责固定 DTO 投影和应用生命周期组合，不再吸收新领域实现。
 最大测试文件为 `bridge_backend_test.dart`（990 行），测试按领域和横切合同分层，不用空模块凑数量。
 
@@ -414,7 +418,7 @@ UBAA/
 │   ├── build/{flutter,ohos}.sh
 │   ├── live/{verify,core-live}.sh
 │   ├── release/{preflight,verify-flutter-artifact}.sh
-│   ├── tests/{layout,contract-versions,references,live-launchers,facade-test-contract}.sh
+│   ├── tests/{layout,contract-versions,references,flutter-toolchains,live-launchers,facade-test-contract}.sh
 │   ├── layout-baseline.txt                 # 结构棘轮例外登记
 │   └── lib/{repo,live-features}.sh           # 只存真实共享且有测试的函数
 └── docs/
@@ -673,6 +677,12 @@ git diff --check
 未自动触发五平台 workflow，使用 `workflow_dispatch` 在该 HEAD 上运行。五平台 Windows、Linux、macOS、
 iOS simulator、Android APK 的每个 job 和 macOS 宿主 integration 都必须成功。只接受最终 run 结论，不以
 祖先提交、日志中的中间绿色行或 artifact 存在替代最终 HEAD 的终态。
+
+候选 CI 的失败必须先按实施计划阶段 14A 修复并形成新提交，再从本节第一条命令完整重验；即使旧候选的
+19 项本地门禁或五平台原生 CI 已通过，也不能继承到修复后的候选。每次尝试独立保存日志、退出码和报告，
+每项门禁前后复核完整 HEAD 与干净工作树；已知构建元数据的精确恢复须先留档，其它源码漂移阻止通过。
+阶段 14A 复验须将 ShellCheck 0.11.0 加入 PATH，使 `just check` 的全仓 Shell 静态检查实际执行，
+不能沿用此前工具不可用时的 SKIP 作为本轮证据。
 
 Direct 与 WebVPN 必须串行，只记录安全摘要。真实只读成功不能替代 Flutter→FRB→Core、签名或设备证据；
 本轮不执行真实写入，除非另有满足 `goal.md` 逐操作、逐目标条件的明确授权。

@@ -10,7 +10,7 @@
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
 | CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v10、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
-| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
+| 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`flutter-toolchains.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、工具链完整输出与失败退出码、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
 | 写入协调与宿主接线 | `packages/ubaa_app/test/write_coordinator_test.dart`、`app_write_lifecycle_test.dart`、`write_readback_reentry_test.dart`；`packages/ubaa_host/test/`；`packages/ubaa_ui/test/write_coordination_test.dart` | 唯一状态机、单次消费、取消/过期、注销/重建失效、回读重入与 UI 命令完整性 |
@@ -32,10 +32,27 @@ just flutter-check
 git diff --check
 ```
 
-`just check` 当前运行 Shell `bash -n`/可用的 ShellCheck、layout/contract-version/refs/live 合同、layout 与
+`just check` 当前运行 Shell `bash -n`/可用的 ShellCheck、layout/contract-version/refs/flutter-toolchains/live 合同、layout 与
 公开版本 checker、锁定 Cargo
 元数据、格式、Clippy、workspace 测试、构建、Rustdoc 与
 差异检查；Flutter/codegen 独立运行。focused test 必须先证明本次行为，完整门禁只证明没有发现其它回归。
+
+阶段 14A 的 [Flutter 工具链合同](../../scripts/tests/flutter-toolchains.sh) 只在临时目录构造假 SDK 与 Git，
+不运行真实 Flutter；六项回归覆盖长多段 stdout 完整消费、错误或空首行版本、错误 commit、保留真实命令
+失败退出码，以及 OHOS 同样的输出约束。工具链检查不能因只取首行而提前关闭输出管道，也不能屏蔽 pipefail。
+修复提交 `7b8eed3a` 的六项合同、完整 `just check` 和两个改动脚本的 ShellCheck 0.11.0 已通过；新候选
+完整验收须将 ShellCheck 加入 PATH，实际执行全仓静态检查，不沿用工具缺失时的 SKIP。
+
+`23066064` 与 `c21a12dd` 随后补齐全仓 ShellCheck：静态 source 使用 `-x -P SCRIPTDIR`，OHOS 命令路径
+明确引用，根目录定位失败立即返回，两处否定匹配改为显式失败断言。字面 Markdown、生成标记和 trap
+间接调用只有定点诊断注释；全仓 ShellCheck 0.11.0 与完整 `just check` 已通过。
+
+CLI [照片输入测试](../../apps/ubaa-cli/src/io/input.rs) 覆盖原文件和同尺寸替换文件的身份区别；跨平台实现
+通过稳定 `same_file::Handle` 持有初检文件，Unix 继续检查设备与 inode，大小限制与安全错误不放宽。
+本地 Unix 回归不能证明 Windows stable 编译通过；合同 workflow 的 Windows Rust job 必须单独通过。
+
+前次候选 `d43c177` 的 19 项本地门禁和五平台原生 CI 成功不覆盖其合同 CI 失败。修复后必须以新候选完整
+SHA 重跑本地与两条 workflow，不预填最终 PASS；失败和重跑日志按独立尝试目录保留，见[当前状态](../migration/status.md)。
 
 ## 行为变更与来源对照
 
