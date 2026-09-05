@@ -20,6 +20,12 @@ struct TestPhoto {
 
 impl TestPhoto {
     fn new(file_name: &str, bytes: &[u8]) -> Self {
+        let photo = Self::without_file(file_name);
+        std::fs::write(&photo.path, bytes).expect("写入照片测试文件");
+        photo
+    }
+
+    fn without_file(file_name: &str) -> Self {
         let directory = std::env::temp_dir().join(format!(
             "ubaa-cli-ygdk-{}-{}",
             std::process::id(),
@@ -27,7 +33,6 @@ impl TestPhoto {
         ));
         std::fs::create_dir(&directory).expect("创建隔离的照片测试目录");
         let path = directory.join(file_name);
-        std::fs::write(&path, bytes).expect("写入照片测试文件");
         Self { directory, path }
     }
 
@@ -780,12 +785,21 @@ async fn 阳光打卡危险照片与扩展token在路由前失败关闭() {
         TestPhoto::new("parameter.jpg;size=1", b"safe-photo"),
         TestPhoto::new("whitespace.bad extension", b"safe-photo"),
         TestPhoto::new("non-ascii.照片", b"safe-photo"),
-        TestPhoto::new("quote\"name.jpg", b"safe-photo"),
-        TestPhoto::new("line\r\nbreak.jpg", b"safe-photo"),
-        TestPhoto::new("back\\slash.jpg", b"safe-photo"),
-        TestPhoto::new("control\u{0085}name.jpg", b"safe-photo"),
-        TestPhoto::new("trailing.jpg ", b"safe-photo"),
+        TestPhoto::new(" leading.jpg", b"safe-photo"),
     ];
+    let invalid_file_names = [
+        "quote\"name.jpg",
+        "line\r\nbreak.jpg",
+        "back\\slash.jpg",
+        "control\u{0085}name.jpg",
+        "trailing.jpg ",
+    ];
+    // Windows 无法创建部分危险文件名；CLI 仍必须在路由前拒绝这些输入路径。
+    // 文件名策略另由不依赖文件系统的输入单元测试逐项验证。
+    #[cfg(windows)]
+    photos.extend(invalid_file_names.map(TestPhoto::without_file));
+    #[cfg(not(windows))]
+    photos.extend(invalid_file_names.map(|name| TestPhoto::new(name, b"safe-photo")));
 
     for photo in &mut photos {
         let cli = Cli::try_parse_from(submit_arguments(

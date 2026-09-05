@@ -453,6 +453,26 @@ mod tests {
     }
 
     #[test]
+    fn 阳光打卡危险文件名拒绝不依赖宿主文件系统() {
+        for file_name in [
+            "quote\"name.jpg",
+            "line\r\nbreak.jpg",
+            "back\\slash.jpg",
+            "forward/slash.jpg",
+            "control\u{0085}name.jpg",
+            "trailing.jpg ",
+            " leading.jpg",
+            "",
+        ] {
+            let error =
+                validate_ygdk_photo_file_name(file_name).expect_err("危险文件名必须由输入策略拒绝");
+            assert_eq!(error.code, ErrorCode::InvalidInput);
+            assert_eq!(error.message, "打卡照片文件名无效");
+        }
+        validate_ygdk_photo_file_name("正常照片.JPG").expect("安全文件名应被接受");
+    }
+
+    #[test]
     fn 阳光打卡时间拒绝非法公历日期且先于照片读取() {
         for (start_time, end_time) in [
             ("2026-00-01 08:00", "2026-00-01 09:00"),
