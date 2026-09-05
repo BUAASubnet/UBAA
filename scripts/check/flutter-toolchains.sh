@@ -32,10 +32,17 @@ check_sdk() {
       "$label" "$expected_commit" "$actual_commit" >&2
     return 1
   fi
-  local version_output version_line
+  local version_output version_line='' actual_version='' line
   version_output=$("$root/bin/flutter" --version)
-  version_line=${version_output%%$'\n'*}
-  if [[ "$version_line" != *"$expected_version"* ]]; then
+  # 冷启动的 curl 进度可能写入 stdout；只采用第一条独立 Flutter 版本行。
+  while IFS= read -r line; do
+    if [[ $line == 'Flutter '* ]]; then
+      version_line=$line
+      read -r _ actual_version _ <<<"$version_line"
+      break
+    fi
+  done <<<"$version_output"
+  if [[ "$actual_version" != "$expected_version" ]]; then
     printf 'error: %s 版本不匹配：%s\n' "$label" "$version_line" >&2
     return 1
   fi

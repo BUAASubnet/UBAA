@@ -24,5 +24,5 @@
 `lib/repo.sh` 只提供从任意当前目录定位仓库根的函数；`lib/live-features.sh` 只提供两个 live 入口共同使用的
 功能白名单。两者没有独立 CLI，也不拥有网络或凭据。
 
-`bash scripts/tests/flutter-toolchains.sh` 使用临时假 SDK 与 Git 验证版本检查完整消费长输出，
-并拒绝首行错误/空版本、错误 commit 和 Flutter 执行失败；不启动真实 SDK 或下载依赖。
+`bash scripts/tests/flutter-toolchains.sh` 的八项合同使用临时假 SDK 与 Git，验证完整消费长输出、容纳
+冷启动下载进度，并拒绝缺失或错误版本行、版本前缀碰撞、错误 commit 和命令失败；不启动真实 SDK 或下载依赖。

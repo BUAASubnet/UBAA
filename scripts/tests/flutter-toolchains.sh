@@ -23,7 +23,15 @@ cat >"$sdk_root/bin/flutter" <<'FAKE_FLUTTER'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ $# -eq 1 && $1 == --version ]] || exit 98
-printf '%s\n' 'bootstrap 输出仅写入 stderr' >&2
+printf '%s\n' 'bootstrap 诊断写入 stderr' >&2
+if [[ $UBAA_TEST_SDK_OUTPUT == cold ]]; then
+  # 锁定 Flutter 的 update_dart_sdk.sh:146/160 将 curl 进度以 2>&1 合入 stdout。
+  printf '\n%s\n%s\n%s\r\n\n' \
+    'Downloading Linux x64 Dart SDK from Flutter engine 42d3d75a56efe1a2e9902f52dc8006099c45d937...' \
+    '  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current' \
+    '100  221M  100  221M    0     0  40.0M      0  0:00:05  0:00:05 --:--:-- 40.0M'
+  printf '%s\n' '下载诊断中的 Flutter 0.0.0 不是版本行'
+fi
 printf '%s\n' "$UBAA_TEST_SDK_VERSION"
 if [[ $UBAA_TEST_SDK_OUTPUT == fail ]]; then
   printf '%s\n' '假 Flutter 执行失败' >&2
@@ -36,7 +44,10 @@ if [[ $UBAA_TEST_SDK_OUTPUT == long ]]; then
     printf '%s\n' "$chunk"
   done
 fi
-printf '%s\n' '后续诊断包含 Flutter 3.41.9，但不能替代首行版本'
+if [[ $UBAA_TEST_SDK_OUTPUT == later-banner ]]; then
+  printf '%s\n' 'Flutter 3.41.9'
+fi
+printf '%s\n' '后续诊断包含 Flutter 3.41.9，但不能替代独立版本行'
 printf '%s\n' 'stdout 已完整写出' >"$UBAA_TEST_SDK_COMPLETED"
 FAKE_FLUTTER
 chmod +x "$test_root/fake-bin/git" "$sdk_root/bin/flutter"
@@ -69,18 +80,18 @@ if run_checker long "$official_commit" 'Flutter 3.41.9' long; then
   [[ -f "$test_root/long.complete" ]] || fail '成功检查必须等待 stdout 全部写出'
   [[ $(<"$test_root/long.out") == "官方Flutter 已锁定：3.41.9 @ $official_commit" ]] \
     || fail '版本检查输出必须只保留确认信息'
-  grep -F 'bootstrap 输出仅写入 stderr' "$test_root/long.err" >/dev/null
+  grep -F 'bootstrap 诊断写入 stderr' "$test_root/long.err" >/dev/null
 else
   status=$?
   fail "正确版本的长多段 stdout 必须完整消费，实际退出码 $status"
 fi
 pass '正确官方版本的长多段 stdout 被完整消费，bootstrap stderr 不参与版本匹配'
 
-if run_checker wrong-version "$official_commit" 'Flutter 0.0.0' short; then
-  fail '首行错误版本被后续正确版本文本错误接受'
+if run_checker wrong-version "$official_commit" 'Flutter 0.0.0' later-banner; then
+  fail '第一条版本行错误时被后续正确版本行错误接受'
 fi
 grep -F '版本不匹配' "$test_root/wrong-version.err" >/dev/null
-pass '首行错误版本被拒绝，即使后续输出含正确版本'
+pass '第一条版本行错误时拒绝，即使后续存在正确版本行'
 
 if run_checker wrong-commit 0000000000000000000000000000000000000000 'Flutter 3.41.9' short; then
   fail '错误 commit 被接受'
@@ -98,10 +109,10 @@ fi
 pass '正确版本之后的 Flutter 执行失败仍按原退出码拒绝'
 
 if run_checker empty "$official_commit" '' short; then
-  fail '空首行被后续正确版本文本错误接受'
+  fail '未发现独立版本行时被诊断中的版本文本错误接受'
 fi
 grep -F '版本不匹配' "$test_root/empty.err" >/dev/null
-pass '空首行被拒绝'
+pass '未发现独立版本行时拒绝，即使诊断中包含 Flutter'
 
 if run_checker ohos "$ohos_commit" 'Flutter 3.41.10-ohos-1.0.1' long ohos; then
   [[ -f "$test_root/ohos.complete" ]] || fail 'OHOS 检查提前停止消费 stdout'
@@ -109,5 +120,19 @@ else
   fail '锁定 OHOS 版本的长多段输出被错误拒绝'
 fi
 pass 'OHOS 同样完整消费 stdout 并接受其锁定版本'
+
+if run_checker cold "$official_commit" 'Flutter 3.41.9' cold; then
+  [[ -f "$test_root/cold.complete" ]] || fail '冷启动输出未被完整消费'
+else
+  status=$?
+  fail "冷启动进度、下载文案和空行之后的正确版本必须通过，实际退出码 $status"
+fi
+pass '允许冷启动进度、下载文案及空行出现在真正版本行之前'
+
+if run_checker version-collision "$official_commit" 'Flutter 3.41.90' short; then
+  fail '版本前缀碰撞 3.41.90 被错误接受为 3.41.9'
+fi
+grep -F '版本不匹配' "$test_root/version-collision.err" >/dev/null
+pass '精确比较版本 token，拒绝 3.41.90 前缀碰撞'
 
 printf 'Flutter 工具链 Shell 合同通过：%s 项\n' "$pass_count"
