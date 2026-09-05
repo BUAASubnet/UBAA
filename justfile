@@ -29,6 +29,7 @@ check:
     bash ./scripts/tests/layout.sh
     bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/references.sh
+    bash ./scripts/tests/flutter-toolchains.sh
     just layout-check
     just contract-version-check
     cargo metadata --locked --no-deps --format-version 1 >/dev/null

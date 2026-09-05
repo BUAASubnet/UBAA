@@ -32,8 +32,9 @@ check_sdk() {
       "$label" "$expected_commit" "$actual_commit" >&2
     return 1
   fi
-  local version_line
-  version_line=$("$root/bin/flutter" --version | head -n 1)
+  local version_output version_line
+  version_output=$("$root/bin/flutter" --version)
+  version_line=${version_output%%$'\n'*}
   if [[ "$version_line" != *"$expected_version"* ]]; then
     printf 'error: %s 版本不匹配：%s\n' "$label" "$version_line" >&2
     return 1
