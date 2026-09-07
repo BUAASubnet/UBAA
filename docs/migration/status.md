@@ -1,10 +1,46 @@
 # 当前迁移与交付状态
 
-更新日期：2026-09-05
+更新日期：2026-09-07
 
 本页只呈现当前有效结论。2026-09-02 及以前的逐次修复、失败、重跑与 CI 流水已原样归档到
 [历史状态流水](history/status-through-2026-09-02.md)；不得用历史阶段中的“未完成”覆盖本页终态，也不得用
 历史成功替代当前候选重新验证。
+
+## 当前活动阶段：macOS 真实 App 测试
+
+`goal.md` 已按用户要求全量替换为 macOS 真实 App 只读专项计划。当前仍以
+`0bd866c9ff5f205f2b1604bf5e72640a3e735018` 为历史产品基线。用户随后授权修改代码修复联网权限，
+本轮实际修改 DebugProfile/Release 两份 macOS entitlement，并增加一个权限回归；Core/FRB/Dart 业务未改。
+修复提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`，状态文档随后单独提交；最终远端结果以 Git 历史和仓库外报告为准。
+
+结构治理已在上述提交完整验收，见[仓库外最终报告](/Users/moorefoss/Documents/Codex/2026-09-05/ubaa-code-organization-evidence.md)。
+下文原 HEAD 表格及“候选待验收”描述保留 2026-09-05 的提交前快照；按当时规则，最终 PASS 在仓库外归档，
+不应再据冻结快照判断该候选尚未通过。
+
+2026-09-07 已完成 refs、敏感扫描、版本合同、完整 `just check`、差异检查和 macOS 产物结构核对。
+`just check` 退出 0，但 ShellCheck 因本机未安装实际 SKIP，不计为新增 ShellCheck 通过证据。
+首次使用的 App 大小与同路径 SHA-256 均和旧基线一致；首次独立测试进程 42940 已在首轮收尾时停止。
+
+桌面锁定已在续测时解除。正式 App 的登录页、中文与图标及 Direct 选择已实际观察，页面明确提示
+原生安全存储不可用。用户手动填入用户名密码后，点击登录显示“网络不可用”；本轮系统日志确认
+对应进程 `81365` 在上海时间 14:06:54、14:17:13、14:17:28 出现 `deny(1) network-outbound`。
+修复前实际签名启用 App Sandbox，却缺少 `com.apple.security.network.client`，与当时的源配置一致。
+该次失败保留为历史，不能继续描述为修复后的当前状态。
+错误界面由用户报告，系统拒绝由本次日志核对，未冒称再次捕获了失败后的 AX 或读取个人页面。
+同日首轮使用 `.env.local` 账号分别执行了 Direct/WebVPN 的 Core-live 最小认证对照，
+两路线 prepare/login/status 各三项 PASS；它们不证明 App 链路或完整业务矩阵通过。
+
+MACOS-001 已按授权修复：DebugProfile/Release 各补齐 network.client=true，保留沙箱及其它权限。
+权限回归先失败后通过，官方 App 三项测试、静态分析、完整 `just check`、macOS Debug 构建与产物检查通过。
+实际新包的沙箱、客户端联网、原有服务端联网权限均为 true；同路径 checker SHA-256 为
+`37eed9dad817349c5125872ad7970bfb2bf2b7b42bbd6a03032cfd005312eb9f`，大小 188944384 字节。
+
+修复包以同一隔离目录重新打开，用户确认“可以登录了”，因此基础登录记录为 PASS（用户确认）。
+成功登录的实际路线、Session 恢复及十二领域结果未单独核对，不扩展为完整矩阵通过。
+用户同时反馈校园网负载较高并要求先整理提交推送，当前暂停进一步真实测试；该负载描述不作为容量测试证据。
+本轮没有代用户登录、再次运行 Core-live、手工重签旧包或执行业务写入。Release 配置已修正并通过静态回归，
+但 Release 包、正式签名与发布仍未验证。图书馆时段输入来源仍只有静态线索。当前记录和后续入口见
+[macOS 测试报告](/Users/moorefoss/Documents/Codex/2026-09-07/ubaa-macos-live-test.md)。
 
 ## HEAD 证据边界
 

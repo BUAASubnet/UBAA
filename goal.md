@@ -1,914 +1,223 @@
-# UBAA Flutter 六平台全功能正式版执行计划
+# macOS 真实 App 只读测试专项计划
 
-> 当前活动阶段（2026-09-05）：代码与目录结构治理及阶段 14A/14B 的跨平台门禁修复已实现，正在固定新候选验收。
-> 旧候选 `d43c177`、`bef16ee5` 的五平台原生 CI 通过，但合同 CI 分别暴露管道/Windows API、冷启动输出/
-> Windows 文件夹具问题；`bef16ee5` 的实时只读还出现 Cgyy 上游超时与 HTTP 502。修复与记录随本页所属提交形成新候选，
-> 必须重新执行全部本地门禁与两条同 SHA 的 CI，不继承旧候选的成功状态。原始
-> 15 个超千行文件、2 个直属源码拥挤目录已清零；Core、CLI、bridge、Dart 应用层、共享宿主与 UI 均按职责
-> 定位，结构门禁的历史例外清单为空。当前实现与历史无签名产品证据分别记录在
-> [当前状态](docs/migration/status.md)，最终验收必须绑定整理后的同一个提交。
-> 下文 P0–P6 保留原无签名合同与历史事实；签名、实体设备及真实业务写入不属于本轮结构整理验收。
->
-> 结构治理依据：[代码组织设计](docs/architecture/code-organization.md)；
-> [分阶段实施计划](docs/superpowers/plans/2026-09-03-code-organization.md)。凡后续整理触及行为或协议边界，
-> 仍须先完成冻结来源对照、RED 行为测试与对应验证门禁。
+状态：MACOS-001 联网权限已修复并重建，用户确认 App 可以登录。用户反馈校园网负载较高，要求先整理提交推送；后续双路线、会话恢复与十二领域实测暂停，完整验收未完成。
+制定日期：2026-09-07，Asia/Shanghai。
+负责角色：产品经理与架构师，管理测试、记录问题并进行用户已授权的必要代码修复；本轮实际代码范围为 macOS 权限及其回归测试。
 
-状态：无签名执行目标已完成；P0–P6 代码、确定性测试、无签名构建与发布准备门禁已闭合；签名、证书、实体设备、原生安全存储和正式发布为后置项
-计划确认日期：2026-09-01
-项目根目录：/Users/moorefoss/Code/UBAA
+本文件替代此前六平台无签名与结构治理执行计划，成为当前活动合同。旧计划保留在 Git 历史；六平台长期目标、既有架构与安全约束继续有效。本阶段聚焦 macOS 真实 App，不重新开展技术选型或扩大到六平台正式发布。
 
-本文件是当前阶段唯一的活动执行计划。当前轮目标是以现有 Rust Core/facade 为唯一业务核心，交付共享 Dart/UI 的 Flutter 无签名 RC，覆盖 Windows、macOS、Linux、Android、iOS 和 HarmonyOS，并让当前迁移矩阵中的全部用户可见读取与写入能力在六个平台具备可验证实现；正式签名发布作为后置阶段。
+## 1. 目标与完成定义
 
-本轮“完成”改按无签名执行目标判定：功能完整、六平台宿主代码与可复现无签名构建检查、确定性测试、写操作安全闭环、隐私和凭据安全、Direct/WebVPN 路线证据以及发布文档齐备。签名证书、正式签名产物、实体设备和商店发布不再阻塞本轮目标，但必须作为后置发布项明确记录。空壳页面、Demo backend、Mock 成功冒充真实协议、或仅实现读取能力都不能宣告本轮完成。
+使用 `.env.local` 中的测试账号，在现有 macOS 生产 App 中验证登录、会话恢复、Direct/WebVPN 路线切换、用户中心和十二个业务领域的真实读取。主证据必须来自真实 Flutter App 经 FRB、Core facade 到学校上游的链路；Core-live、Fixture、Mock、golden 和宿主 fake integration 分别作为对照，不能替代 App 结果。
 
-## 0. 本轮无签名执行合同（2026-09-02）
+本阶段交付：
 
-用户明确要求在没有签名证书、签名账号和实体设备的条件下完成可由代码、确定性测试、无签名构建、静态检查和文档证明的全部任务。本轮合同因此采用以下边界：
+1. 明确绑定源码基线与 App 产物摘要的测试记录。
+2. 按场景、领域、路线记录的 PASS、FAIL、BLOCKED、NOT_APPLICABLE 矩阵。
+3. 含安全复现步骤、预期与实际、影响范围和负责模块的问题清单。
+4. macOS 是否具备进入受控内测下一阶段的结论，以及待开发或验收条件。
 
-- 必须继续完成 P1–P4 的生产代码、typed bridge、页面、状态机、测试、来源对照和安全文档；真实写入仍按每次具体操作、目标、路线和时间单独授权，默认不执行。
-- 必须完成 P5 中不依赖证书或实体设备的六平台宿主代码、权限/文件/照片抽象、生命周期、错误路径、静态 ABI/动态库检查和可复现无签名 Debug 构建；设备专属验证记录为 `BLOCKED`，不伪造成功。
-- 必须完成 P6 中不依赖签名的发布准备：无签名构建配方、产物结构检查、SBOM/许可证/依赖审计、敏感扫描、迁移/回滚 runbook 和 CI 证据。
-- 签名 HAP、正式签名 Release、公证、商店上传、实体设备安装/hello、硬件安全存储和设备权限验证为“后置发布条件”，不计入本轮完成门禁，也不得在无凭据时猜测或伪造。
-- 本轮完成不能写成“正式版已发布”；必须同时标明“无签名执行目标完成”和“后置发布项未完成”。
+全部必需场景完成且逐项 PASS，或具有本轮同批次依据的 NOT_APPLICABLE，才可标记“macOS 真实 App 只读验收通过”。启动、登录或某条路线成功不能代替其它场景。完成调查并交付阻塞证据可以结束本次测试，但应表述为“本轮测试完成，验收未通过”。
 
-## 1. 已确认的产品决策
+## 2. 范围与授权
 
-- 技术路线：Flutter + flutter_rust_bridge（FRB），Rust Core 继续负责全部协议、认证、路由、Cookie、Session、加密、解析和业务规则。
-- 平台路线：Windows、macOS、Linux、Android、iOS 使用官方 Flutter；HarmonyOS 使用锁定的 CPF-Flutter/OpenHarmony fork。
-- 共享方式：六个平台共享 domain、app、UI 和 FRB Dart API，只保留宿主、签名、权限和平台安全存储差异。
-- UI：保留旧版 UBAA 的品牌、中文标签、导航层级、菜单顺序、Material 3 风格和主要交互体验，不要求像素级复制。
-- 网络路线：Auto 为默认；设置中提供 Direct 和 WebVPN；不提供 Server Relay。Dart 不拼 URL、不处理 Cookie、不自行探测或切换路线。
-- 正式版范围：覆盖 docs/migration/full-feature-matrix.md 与当前 facade 中所有面向用户的读取和写入能力。
-- 账号：单账号；支持安全持久化密码和自动登录。登录流程不猜测或预留尚未由 Core 证明的交互验证码；只有已有协议证据和 typed facade 合同的业务挑战才进入 UI，材料不持久化。
-- 系统：只承诺仍受上游框架或厂商支持的主流系统版本，具体范围由第 8 节的实际构建和设备证据定稿。
-- 冻结参考：ubaa_old/、examples/、.env.local、运行时会话和真实响应始终只读。
+用户明确要求先进行 macOS 真实测试，并授权使用 `.env.local` 中的账号。以下操作已属于本专项授权范围，无需重复询问：
 
-## 2. 范围权威与变更规则
+- 只读检查源码、配置、文档、现有产物与公开 CI 元数据。
+- 启动现有 macOS 生产 App，输入该账号完成正常登录。
+- 新建隔离配置目录，允许 App 写入本次测试的配置和 Session。
+- 查看用户中心与十二项业务读取，刷新并切换 Direct/WebVPN。
+- 在隔离环境内进行注销、重新登录、进程重启和会话恢复。
+- 必要时使用同一账号执行现有 Core-live 只读对照入口。
+- 更新本计划、迁移状态和仓库外脱敏报告。
 
-功能范围按以下顺序确定：
+本阶段不执行真实选课、退选、签到、签退、预约、取消预约、照片上传、阳光打卡或评教提交。认证登录、本次 Session 持久化与路线设置是必要副作用，不能误写为整个测试不产生文件或状态变化。
 
-1. docs/migration/full-feature-matrix.md 中记录的旧版用户能力；
-2. crates/ubaa-core/src/facade 当前公开的稳定业务方法；
-3. docs/contracts 下的认证、路线、会话、读取功能和 CLI JSON 合同；
-4. 冻结旧版 UI、接口、DTO、实现和测试；
-5. 必要时由安全实时观察补充当前上游事实。
+用户已明确允许修改代码；必要修复仍须保持最小范围、来源证据和回归验证。本轮不扩展到 Core 协议、FRB 生成物、依赖、CI 或其它业务实现。不得临时禁用沙箱、手工重签旧产物绕过限制、关闭 TLS、放宽解析、注入 Demo 或改写返回结果。正式签名、公证、商店上传和其它平台设备测试不属于本阶段。
 
-隐藏诊断入口、原始上游 payload、Cookie/token、验证码内部材料和仅供测试的 RouteClient 不属于用户功能。若执行中发现矩阵与 facade 冲突，先记录差异、确定产品语义、更新本计划或链接的合同，再修改生产代码。
+2026-09-07 用户补充授权：“修复权限，然后重新打开app，我来登录”。本轮允许在
+`DebugProfile.entitlements` 与 `Release.entitlements` 中补齐主动联网权限，增加对应的最小确定性回归，
+使用现有流程构建 macOS Debug App，并在同一隔离目录重新打开。保持沙箱及其它权限不变，
+不修改 Core 协议或其它业务代码；构建流程原有开发签名随构建正常生成，不手工重签旧包。
+登录由用户完成，助手不读取、填写凭据或点击登录，也不将打开登录页计为认证成功。
 
-已有未提交 Flutter/OHOS 骨架只是此前探索产物，不因存在于工作树就自动成为验收基线。P0 必须逐文件审查、保留有证据的部分、重写不符合计划的部分，并记录最终采用结果。
+修复后用户明确反馈“可以登录了，但是校园网负载目前比较高，先整理提交推送吧”。该反馈作为
+用户确认的登录成功记录；校园网负载来自用户描述，没有新增压测或容量结论。当前停止新增真实
+App/Core-live 请求，只完成文档、确定性检查、提交与推送。后续实测等待用户恢复，不自动重试。
 
-### 2.1 强制来源对照门禁
+## 3. 基线与证据来源
 
-每个认证、读取和写入操作在修改生产代码前，都必须分别对照 docs/migration/references.md 固定提交中的 ubaa_old 和 examples/buaa-api，并在 docs/migration/source-parity.md 或链接的决策记录中逐项固定：
+产品历史基线为 `0bd866c9ff5f205f2b1604bf5e72640a3e735018`，分支 `ubaa2`。该提交已有 2026-09-05 十九项本地门禁与同 SHA 两条 CI 的完整验收，见[最终报告](/Users/moorefoss/Documents/Codex/2026-09-05/ubaa-code-organization-evidence.md)。本轮在其基础上增加两份 macOS entitlement 的客户端权限和一个确定性回归，Core/FRB/Dart 业务代码未改；历史无签名结果不能自动继承为本轮完整 App 验收。
 
-1. 业务 CAS/Bootstrap URL 与 service 参数；
-2. 重定向与最终 URL 规则；
-3. Cookie、Session 与业务 token 作用域；
-4. HTTP 方法、精确参数、Header 与 Body 编码；
-5. 加密、签名和挑战常量；
-6. DTO、解析字段、类型与缺失值规则；
-7. 缓存、并发、去重与重试行为；
-8. 错误、退出和结果不确定语义；
-9. Flutter 展示或写确认所需但不能反推上游协议的产品语义。
+当前合同为 CLI JSON schema v10、Flutter bridge contract v9；磁盘 Session schema v2、config v1 独立治理。沿用锁定的官方 Flutter 3.41.9 与 FRB 2.13.0。
 
-某个参考没有等价协议时记录“不适用”，不得类比借用。两个参考冲突时停止该协议边界的实现，在 docs/migration/decision-log.md 记录文件、提交和安全实时观察，只采用实时证据或适用冻结本地实现支持的行为。
+冻结引用保持：
 
-每个 parity 缺口遵循同一 TDD 闭环：先增加脱敏 fixture、Mock 请求或解析失败测试并保留预期失败证据，再做最小实现，随后运行聚焦测试、just check-sensitive 和 just check。冻结目录、真实响应、Cookie、token、验证码和个人数据不得进入补丁或测试材料。
+- `ubaa_old`：`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`。
+- `examples/buaa-api`：`efb7976bf513f38364b88aeb83d704586cff9b2a`。
 
-## 3. 当前基线
+权限与回归修复提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`。状态文档随后单独提交，最终推送结果以 Git 历史和仓库外记录为准，不称其为原先干净候选。新 Debug App 使用现有构建流程生成，相同相对路径 checker SHA-256 为 `37eed9dad817349c5125872ad7970bfb2bf2b7b42bbd6a03032cfd005312eb9f`，大小 188944384 字节；不沿用旧产物摘要。
 
-恢复任何执行阶段时先运行：
+参考：[接手报告](/Users/moorefoss/Documents/Codex/2026-09-07/ubaa-project-handover.md)、[Core 边界](docs/architecture/core-boundaries.md)、[Bridge 合同](docs/contracts/flutter-bridge.md)、[完整功能矩阵](docs/migration/full-feature-matrix.md)、[UI 规格](docs/design/flutter-ui-spec.md)。
 
-    git status --short --branch
-    just refs
-    just check-sensitive
-    just check
+## 4. 凭据、会话与证据保护
 
-已知事实：
+- 账号仅从被忽略的 `.env.local` 读取，优先使用 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`，兼容现有启动器约定名称。不执行文件中的 shell 内容，不打印、复制到文档或放入命令参数。
+- 不读取、复用、覆盖或清除既有用户 Session。使用现成 `UBAA_CONFIG_DIR` 绝对路径覆盖，在 App 可访问的私有容器中新建唯一测试目录；不改写 HOME 或全局启动环境。
+- `UBAA_CONFIG_DIR` 只隔离 Core 配置与 Session，不隔离系统保险箱命名空间。记住密码与自动登录保持关闭，不保存新的系统凭据条目。
+- 密码不进入截图、AX 原始转储、普通日志或报告，不在剪贴板长期留存。真实个人页面只记录计数、状态与脱敏现象；包含姓名、学号、成绩或订单的原图不得作为普通附件。
+- 不输出 HTTP 正文、Cookie、业务 token、位置坐标、原始错误响应或完整个人资料。诊断仅保留稳定错误码、实际路线、时间、数量与必要安全消息。
+- 本次生成的 Session 保持私有且不提交；收尾只处理本次明确标识的测试状态，原有用户数据不动。
 
-> 下列编号 1–173 保留各次提交的历史快照；其中“未完成/待补齐”只描述当时的阶段状态。当前终态以事实 174–180、执行队列和第 11 节为准，
-> 后续不得用历史快照覆盖当前已验证的无签名完成结论。
+## 5. 分阶段执行
 
-1. 当前分支为 ubaa2 并跟踪 `origin/ubaa2`；合同、探索骨架、FRB 绑定、OHOS runner、
-   六平台门禁、bridge 实现、共享读取状态、macOS 链接修复和查询入口均已形成阶段提交；
-   最新提交及远端基线以 `git log` 和 CI 终态为准。
-2. 冻结引用由 docs/migration/references.md 固定；不得修改或暂存冻结仓库。
-3. Rust Core/CLI 的确定性门禁已通过；图书馆分区详情已在 2026-09-01 11:58（Asia/Shanghai）
-   营业窗口内复跑，Direct 与 WebVPN 均为 `PASS(count=1)`。
-4. 官方 Flutter 已锁定为 3.41.9，commit 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694，Dart 3.11.5。
-5. HarmonyOS fork 已锁定为 tag 3.41.10-ohos-1.0.1，commit adaf911c35c9136a7d18fc424d714c9ec7724e60。
-6. 当前 OHOS fork 的发布说明要求 DevEco/Command Line Tools 26.0.0 Beta2 与 OpenHarmony API 26 构建；用户已更新 Command Line Tools，本机 Studio/CLI 均报告 26.0.0.821、Hvigor 6.26.4、ohpm 26.0.0.630 与 SDK API26。旧 API21 仅是历史失败证据，不再代表当前工具链。
-7. 取得匹配 API 26 工具链、构建签名 HAP、打包 FRB arm64 动态库并完成实体机验证，是 HarmonyOS 正式版硬门槛。
-8. 当前 Core-live 真实读取证据中 Direct/WebVPN 必需操作均通过；同批次 SPOC/Bykc 父列表为空，
-   对应详情为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，不冒充上游接口成功。
-   第 10.3 节的 Flutter App 六平台 E2E 与 RC 审查仍未闭合。
-9. FRB Dart/Rust/runtime/codegen 与 Cargokit 已锁定 2.13.0；生成后由锁定 Rust
-   toolchain 机械格式化并通过零漂移门禁。macOS App 已实际启动越过 hello 断言，
-   iOS simulator 已链接 x86_64+arm64 framework，Android APK 已包含三种 ABI 的
-   Rust 动态库；这些证据只覆盖 P0 FFI 链路，不代表业务功能完成。
-10. OHOS runner 与 arm64 Cargokit HAR 已生成，OHOS app 的 pub get、analyze 和
-    widget test 通过；在用户更新的 `/Users/moorefoss/Code/bin/command-line-tools` 上，
-    `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 已通过工具链、Dart、native 前置，
-    生成并检查 `entry-default-unsigned.hap` 及其中的 `libs/arm64-v8a/libubaa_bindings.so`。
-    该产物未签名、未安装、未上传，设备 hello、HUKS 和正式发布证据仍为后置 `BLOCKED`。
-11. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、
-    `just flutter-check` 和本机 macOS/Android/iOS debug 构建已通过。远端 CI
-    `33466562627` 与原生构建 `33466562620` 均在提交 `79e8391` 通过；原生构建的
-    Windows、Linux、macOS、iOS simulator、Android APK job 全部通过并各自产生产物。
-    P0 仅因 DevEco/API26、签名空 HAP 与 OHOS 设备 hello 未完成而保持未勾选；按 P0
-    合同继续不依赖该阻断的五平台 P1 工作。
-12. `docs/contracts/flutter-bridge.md` 已冻结 P1 的 opaque client、typed error、认证/路线、
-    全部读取 DTO 和一次性写 intent 目标合同；`2faa753` 已实现生产 Rust binding 与生成 Dart
-    API，`7bd8fd2` 已接入应用 backend，但 panic/isolate/跨进程锁、完整 schema 快照和逐领域
-    页面消费仍未闭合，不得勾选 P1。
-13. `just flutter-codegen-check` 在 `2faa753` 后二次生成报告零漂移；`just flutter-check`、
-    `just check-sensitive` 与 `just check` 均通过。官方入口当前创建 `BridgeBackend`，初始化
-    失败只进入安全 `unsupported`，测试仍显式注入 `DemoBackend`；没有真实账号写入或签名凭据。
-14. `65b7b48` 已将普通 8 项与高级 4 项只读能力接入共享详情模型和导航，详情页不再是占位文案，
-    并通过 widget/app 测试；P3 的领域筛选、分页、stale 缓存、golden/integration 和完整写入
-    UI 尚未完成，不能勾选 P3。
-15. `5ffc9f6` 增加了平台安全凭据存储的 typed 注入边界和测试，但没有把回调冒充为原生实现；
-    六平台 Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件与设备证据仍是 P5/P6
-    阻断，生产默认安全地不持久化密码。
-16. `1b0d24e` 已将十项 typed 写入意图接入共享 `WriteIntent`、确认页面和 app 状态机，覆盖
-    过期、重复确认和 `outcome_unknown` 的禁止自动重试语义；真实写入、各领域选择器/权限/读取
-    核对和六平台集成尚未完成，P4 不能勾选。
-17. `061c8c2` 修正未知结果后的 intent 消费语义，并让已有成功数据在刷新失败时进入 `stale`；
-    `60686a9` 增加生成 API schema 快照、dispose 后重建、过期 intent 消费和独立会话实例文件锁
-    测试。P1 仍缺 FRB panic 归约、真实 isolate 重建和完整逐 DTO/Dart 消费证据。
-18. `891f6e4` 已补齐高级写操作的 app typed prepare 映射；共享详情列表已有本地筛选、20 项分页和
-    widget 测试，但这不替代领域 query、服务端分页、写入表单/读取核对或真实矩阵证据。
-19. `60ebb6c` 修复 macOS arm64 native debug 缺失 `SystemConfiguration` 链接并在本机重建通过；
-    写 intent 的跨进程会话修订冲突现已映射为 `operation_conflict`。远端五平台 native CI 仍以
-    最新提交终态为准，OHOS/API26、签名和设备证据仍未闭合。
-20. 当前 `AppController` 仅从可用安全保险箱恢复并执行用户已选择的自动登录，随后清空密码；
-   不可用保险箱会禁用持久化选项。自动登录确定性测试已通过，但六平台原生安全存储插件和
-   生命周期/设备证据仍属于 P5/P6。
-21. `FeatureQuery` 已固定 term/date/campus/floorId/section/week/page/size/judgeKeys 非敏感参数；`FeatureQueryBackend` 将课表
-   学期/周次、考试/成绩学期、空教室日期/校区和博雅分页以 typed 方式传入 Core，详情页查询控件
-   与 app/widget 测试已接线（博雅页码控件遵循 1-based）；bridge 将博雅页码明确收敛为 Core 要求的 1-based。其余领域筛选、
-    服务端分页、逐领域详情闭环、golden/integration 和写入页面仍未完成。
-22. bridge 现对 open、认证、路线、读取执行和 typed 写意图统一捕获 Rust panic，并归约为固定
-   `internal_error`；panic payload 不进入 Dart。对应单元测试、全 Rust 门禁和 FRB 生成零漂移已
-   通过，但 Dart isolate 重建、内存泄漏及六平台生命周期证据仍未完成。
-23. `WriteFlowController.prepare` 与 `BridgeBackend` 十项 typed prepare 已统一接入安全错误映射；
-   prepare 阶段不提交网络，确认页仍只消费一次性 `WriteIntent`。各领域表单、权限/挑战、读后
-   核对、integration 和真实写入授权仍缺失，本轮未产生真实副作用。
-24. 已新增 `docs/runbooks/flutter-release.md`，固定六平台发布前门禁、未签名/正式产物隔离、设备
-   smoke、两条路线证据、写入授权和回滚留档流程；签名账号/私钥和真实写入继续等待逐项明确授权。
-   OHOS API26/DevEco、实体设备、原生安全存储和正式签名仍是 P5/P6 阻断。
-25. 本机曾执行无签名 Release 探索：macOS 因 Cargokit 需要的 `x86_64-apple-darwin` Rust target
-    下载长期无输出而中断；Android AAB 的 Gradle 任务及 native strip 均完成并生成了本地 AAB，
-    但 Flutter 最终 `apkanalyzer` 因 Homebrew command-line tools 的 SDK 目录布局无法定位
-    latest build tools，命令按合同失败，不能将该 AAB 记为 Release PASS。未修改 SDK、未签名、
-    未上传任何产物；该环境问题与 OHOS/API26、正式签名和设备阻断一并保留。
-26. 2026-09-01 11:58（Asia/Shanghai）以当前提交串行执行 `just verify-live mode=direct` 与
-    `mode=webvpn`，两条路线全部必需只读操作通过，尤其 `libbook/area_detail` 均为
-    `PASS(count=1)`；SPOC/Bykc 详情因同批次父列表为空记 `NOT_APPLICABLE`，Cgyy 用途均明确
-    `source=static_fallback`。本次只证明 Core-live 协议矩阵，没有调用真实写接口，也不替代六平台
-    Flutter→FRB→Core 的真实设备 E2E。
-27. 远端 CI run `33468279841`（当前文档提交 `530a38e`）已终态成功：`contract-gates`、
-    macOS Rust 和 Windows Rust 三个 job 全部通过；该 run 只覆盖 Rust/合同门禁，不新增
-    OHOS API26、正式签名、实体设备或 Flutter Release 证据。
-28. 提交 `a17d398` 修正共享刷新状态：Core 明确返回空结果时清除旧摘要和详情，避免空状态
-    残留过期数据；新增 app 回归测试通过。本修复不改变 stale 失败保留上次成功数据的语义。
-29. 提交 `a17d398` 的远端 CI run `33469682792` 与 Flutter 原生 debug run `33469682830`
-    均已成功；后者在 Linux、Windows、macOS、iOS simulator、Android APK 五个原生 job
-    构建并上传 debug 产物。两者仍不提供 OHOS API26/HAP、正式签名或实体设备证据。
-30. 当前增量将 Core 返回的 `resolved_route` 从 `FeatureResult`/`BridgeBackend` 保留到
-    `FeatureSnapshot`，并在共享卡片与详情页显示“实际路线”；app/widget 回归测试已通过。
-    这修复了配置策略与实际路线可能混淆的展示缺口，但不替代六平台真实 App E2E。
-31. 应用层已通过受限 `RouteSettingsBackend` 读取活动路线；切换到未认证的固定路线时清除
-    用户和功能快照并回到登录页，避免旧路线数据残留。Bridge 仍由 Core 执行原子策略保存、
-    重开 client 和 intent 失效；对应 app 回归测试已通过。
-32. 共享“我的”页面已区分普通退出与二次确认的“退出并清除本机账号”；后者同时清理 Core
-    Session 和用户主动保存的凭据，app/widget 测试已通过。该流程不触发任何学校数据写入。
-33. 应用启动时已通过受限路线设置投影恢复 Core 持久化的 `defaultPolicy`，再检查认证状态；
-    路线切换仍按活动槽位决定是否清理状态并要求重新登录，相关 app 测试已通过。
-34. AppController 和共享“我的”页现展示不含 Session 内容的 `activeRoutes`，并与每项读取
-    结果的 `resolved_route` 分开；登录成功、路线切换和注销都会更新该投影，确定性测试已通过。
-35. 应用层已提供显式 `BackendFactory`/`rebuildBackend()` 生命周期入口：isolate 或宿主重建时
-    先创建新 opaque backend，再释放旧实例、清空旧用户/路线/功能快照并重新执行持久化路线与认证
-    恢复；无工厂、登录中和并发重建安全拒绝，app 回归测试已通过。官方 Flutter 与 OHOS 宿主
-    已接入后台→前台恢复回调。该证据仍不替代六平台实体生命周期与内存泄漏测试。
-36. 修正 `docs/contracts/readonly-features.md` 遗留的 `evaluation_pending` 表述：待评列表仅由
-    `evaluation_all` 的 `is_evaluated=false` 字段在 CLI/UI 本地派生，未新增未经 Core 证明的接口。
-37. 共享 `FeatureQuery` 已新增封闭的 `FeatureQueryView` 与图书馆公开 ID/时段参数；
-    `BridgeBackend` 和详情控件现可 typed 调用馆区、分区详情、座位及预约记录读取，并以
-    `FeatureDetail` 展示白名单字段。该增量只读且有 widget 回归测试，不替代 P3 的全部领域
-    页面、服务端分页、golden/integration 和六平台真实 App E2E。
-38. `FeatureQueryView` 现支持 `ygdkRecords`；BridgeBackend 和高级功能控件可 typed 调用
-    阳光打卡记录分页，并只展示不含图片地址/业务令牌的白名单字段。新增 widget 回归测试，
-    仍不代表阳光打卡提交或 P3 完成。
-39. `FeatureQueryView` 现覆盖 Cgyy 用途类型、日期空间、订单列表/详情和门锁状态；
-    BridgeBackend 与高级功能控件调用已有 typed facade，订单白名单省略手机号/参与人/交易号，
-    用途明示 `upstream` 或 `staticFallback`，门锁只展示 `available`。新增日期空间 widget
-    回归测试；该只读增量不代表预约写入、权限挑战或 P3 完成。
-40. `FeatureQueryView` 现支持 SPOC/Judge 作业详情；BridgeBackend 以公开作业/课程编号调用
-    typed 详情 facade，并仅映射作业头、题目状态/分数和纯文本内容；高级功能控件与 widget
-    测试已接线，缺少必要编号时返回 `invalid_input`。本轮只读，不代表 P3 的完整详情核对、
-    golden/integration、写入页面或六平台真实 App E2E 已完成。
-41. `FeatureQueryView` 现支持 `bykcDetail`；博雅列表展示课程 ID，详情控件与 BridgeBackend
-    仅接受正整数并调用已有 `bykcCourseDetail` typed facade，映射课程/教师/地点/时间/容量/状态
-    白名单字段。widget 测试先观察缺失视图的预期失败再通过；本轮不触发选课、退选或签到，
-    也不代表 P3/P4 的其余详情、表单、核对和六平台 App E2E 已完成。
-42. Bykc 只读视图继续覆盖 `bykcProfile`、`bykcChosenCourses` 和 `bykcStatistics`；
-    BridgeBackend 直接调用 typed facade 并映射个人资料、已选课程考勤/成绩状态及修读统计，
-    不传递课程附件路径等潜在 URL。博雅控件提供封闭下拉选择；本轮无新接口、无真实写操作，
-    P3 的完整状态、分页核对、golden/integration 和六平台 E2E 仍未完成。
-43. `FeatureQueryView` 现覆盖课表 `scheduleToday`、`scheduleTerms`、`scheduleWeeks` 和
-    `scheduleWeek`；BridgeBackend 以 typed facade 映射学期/周次/周课表，控件提供封闭下拉视图
-    并对学期、周次做本地必填校验。`summary` 的既有今日/指定周兼容行为保留；本轮只读，P3
-    其他领域状态、真实 App E2E 和完整服务端核对仍未闭合。
-44. 评教高级页现提供“全部课程/待评课程”视图；BridgeBackend 两者均调用同一
-    `evaluationAll`，仅按 `isEvaluated=false` 在本地派生待评列表，未新增未经证明的
-    `evaluation_pending` facade。控件/widget 回归已接线且不触发提交；题目选择、批量写入、
-    结果核对及 P3/P4/P5/P6 证据仍未完成。
-45. 考试页现提供“全部考试/已安排/未安排”视图；BridgeBackend 三种视图均调用
-    `examArrangement(term)`，只在本地从已安排/未安排集合派生，控件与 widget 回归已接线，
-    未新增接口或写操作。成绩、空教室、签到细筛及完整 P3 状态、真实 Flutter E2E 仍未闭合。
-46. 成绩页现提供“全部成绩/已出成绩/待出成绩”视图；BridgeBackend 三种视图均调用
-    `grades(term)`，仅按冻结 DTO 的 `score` 是否为空在本地派生，控件与 widget 回归已接线，
-    未新增接口或写操作。成绩服务端筛选/分页、空教室/签到细筛及完整 P3 状态、真实 Flutter
-    E2E 仍未闭合。
-47. 希冀作业列表控件现提供“包含已过期作业”本地开关，按冻结
-    `judgeAssignments(includeExpired)` 的既有 typed 参数传递；详情视图不显示该开关，widget
-    回归已覆盖，未新增接口或写操作。完整作业状态/分页、golden/integration、真实 Flutter
-    E2E 与 P4 写入页面仍未闭合。
-48. 2026-09-01 初次复核 `just ohos-check mode=debug` 时记录了旧 DevEco `6.0.1.251` 与
-    OpenHarmony SDK API21 的失败；该记录保留为历史证据，随后已由用户更新 Command Line
-    Tools 的当前事实替代。该次未下载受限工具链、未登录华为门户、未签名/构建 HAP、未连接设备。
-49. 用户更新 Command Line Tools 后，`/Users/moorefoss/Code/bin/command-line-tools` 与
-    DevEco Studio 均报告 `26.0.0.821`、Hvigor `6.26.4`、ohpm `26.0.0.630`、Node `24.14.1`
-    和 SDK API26。工程 profile 使用 `compatibleSdkVersion`/`targetSdkVersion: "26.0.0"`，
-    hvigor/project `modelVersion: "6.0.0"`；Studio 默认路径和 CLI 根路径执行
-    `just ohos-check mode=debug` 均通过工具链、Dart、native 前置并进入 HAP assemble，随后
-    在调试签名配置处停止。未配置自动签名、未签名/上传 HAP、未连接设备；P0/P6 仍未完成。
-50. 空教室查询现支持 `floorId` 与 `section` 本地筛选：楼层按白名单 `floorId` 或分组名精确匹配，
-    节次按冻结 `kxsds`/`availableSections` 的逗号分隔令牌精确匹配；`BridgeBackend` 仍只调用
-    `classroomSearch(campus,date)`，未改变上游参数。widget 控件参数测试通过，P3 的服务端筛选/分页、
-    完整领域状态、golden/integration 与真实 Flutter App E2E 仍未闭合。
-51. Judge 批量详情现通过 `FeatureQueryView.judgeBatchDetails` 和公开键列表接入共享 UI/BridgeBackend；
-    UI 每行解析 `课程编号/作业编号`，bridge 调用既有 `judgeAssignmentDetails(keys)` 并按白名单映射
-    作业头与题目。空键在 bridge/UI 均拒绝；P3 的列表选择器、分页、完整状态、golden/integration 和
-    真实 Flutter App E2E 仍未闭合。
-52. 课堂签到现通过 `FeatureQueryView.signinPending`/`signinCompleted` 接入共享 UI/BridgeBackend；
-    两种视图均只调用 `signinToday`，按冻结 `signStatus` 0/1 本地派生并保留实际路线。签到写入、
-    完整页面状态、golden/integration 和真实 Flutter App E2E 仍未闭合。
-53. 2026-09-01 在当前 SDK 上复核 `just flutter-build platform=android-appbundle mode=release`：Gradle
-    `bundleRelease` 成功，但 Flutter `apkanalyzer` 因 `cmdline-tools/latest` Homebrew symlink 无法定位
-    SDK `build-tools` 而按门禁失败；临时 overlay 仅证明三 ABI AAB 含 debug symbols。产物未签名、未上传，
-    Android Release/安装/实体机证据仍未完成。
-54. 提交 `e2fdd5a` 的合同 CI run `33490877831` 与 Flutter native run `33490877817` 均已终态成功；
-    后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 全部构建并上传 debug 产物。
-    该证据不包含 OHOS HAP、正式签名、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未闭合。
-55. 详情页现在按功能保存最近一次 typed `FeatureQuery`；查询后的失败/过期重试会复用相同筛选、分页和
-    公开 ID，不退回摘要查询。新增 widget 回归通过，未新增上游协议或写操作；P3 的逐领域完整状态、服务端
-    分页核对、golden/integration 和真实 Flutter App E2E 仍未闭合。
-56. SPOC 作业列表的详情白名单补充冻结 DTO 已证明的 `courseId`（课程编号），与已有 typed 详情调用的公开
-    标识一致；新增 BridgeBackend 脱敏回归通过，未新增上游请求或写操作。P3 的列表选择器、完整状态、服务端
-    分页核对、golden/integration 和真实 Flutter App E2E 仍未闭合。
-57. 共享查询控件现在从当前只读详情白名单提供公开 ID 选择器，覆盖博雅课程、图书馆馆区/分区、场馆站点/订单、
-    SPOC 作业和 Judge 课程/作业，并保留手动输入；新增 widget 回归通过，仍只生成 typed `FeatureQuery`，未新增
-    上游协议或写操作。P3 的服务端分页核对、完整状态、golden/integration 和真实 Flutter App E2E 仍未闭合。
-58. 博雅课程详情现提供选课/退选 typed 操作入口：共享 UI 仅在白名单课程 ID 为正整数时显示准备按钮，
-    AppController 通过封闭 `BykcWriteBackend` 调用既有 prepare，确认页再单次提交 `intentId`。widget/app 回归证明
-    准备阶段不提交、确认后才提交并拒绝非法操作；本轮无真实账号写入，其他写操作和 P4/P5/P6 门禁仍未闭合。
-59. 课堂签到只读详情现投影冻结 DTO 已证明的公开 `课程 ID`，共享 UI 以该编号触发 typed `signin_perform` prepare，
-    确认页二次确认后才单次提交；app/widget/bridge 回归覆盖编号清理、准备不提交和确认后提交。本轮无真实账号写入，
-    位置/挑战条件仍由 Core 合同判定，其他写操作及 P4/P5/P6 门禁仍未闭合。
-60. 图书馆预约记录与场馆订单详情现以读取白名单中的 `预约 ID`/`订单编号`提供可逆取消入口，
-    AppController 通过 `CancellationWriteBackend` 严格校验领域和编号后调用既有 typed prepare；确认页二次确认后才单次提交，
-    结果不确定时先刷新核对。app/widget 回归覆盖准备不提交、非法编号拒绝和确认后提交，本轮无真实账号写入，其他写操作及
-    P4/P5/P6 门禁仍未闭合。
-61. 博雅课程详情现提供签到/签退 typed 入口：UI 仅传公开正整数课程 ID，AppController 严格接受冻结 `signType` 1/2，
-    调用既有 `prepareBykcSignCourse`；位置不在 UI 猜测，Core 在 prepare 阶段判定业务条件。确认页二次确认后才单次提交，
-    app/widget 回归覆盖 signType 校验、取消确认和准备阶段零提交。本轮无真实账号写入，其他五项写操作及 P4/P5/P6 门禁仍未闭合。
-62. 图书馆座位读取详情现保留公开分区/座位 ID、日期、时段、起止时间和可预约状态；共享 UI 对可预约座位提供预约准备入口，
-    AppController 通过 `LibbookWriteBackend` 严格校验完整参数并调用既有 typed `prepareLibbookReserve`，确认页二次确认后才单次提交。
-    bridge/app/widget 回归覆盖字段投影、参数清理和准备阶段零提交，本轮无真实账号写入；场馆预约、阳光打卡、教学评教提交仍缺失，
-    P4/P5/P6 门禁仍未闭合。
-63. 统一确认页在写入返回确定成功后通过 `AppController.refreshAfterWrite` 只刷新关联读取领域，作为结果核对钩子；刷新失败不重试写请求，
-    `outcome_unknown`/commit 异常仍消费 intent 并要求先读取核对。app/widget 回归覆盖成功回调一次调用，本轮无真实账号写入，
-    场馆预约、阳光打卡、教学评教提交及 P4/P5/P6 门禁仍未闭合。
-64. 提交 `3e16d6f` 的远端合同 CI `33496873082` 与 Flutter native `33496873088` 均已成功，后者 Windows、macOS、Linux、Android APK、
-    iOS simulator 五个 job 全部通过；本地 refs、敏感扫描、Rust/Flutter 全量门禁也通过，OHOS 双布局仅在调试签名处阻断。
-    该证据不包含 OHOS HAP、正式签名/公证、实体设备或真实 App E2E，场馆预约、阳光打卡、教学评教提交及 P4/P5/P6 仍未完成。
-65. 写入成功核对映射已增加回归：取消图书馆预约只刷新图书馆读取领域，不触发其它领域或额外写请求；与 UI 成功回调共同证明
-    按操作隔离刷新。未知结果继续不刷新、不重试，场馆预约、阳光打卡、教学评教提交及 P4/P5/P6 仍未闭合。
-66. AppController/BridgeBackend 现补齐阳光打卡、场馆预约、教学评教三类复杂写入的 typed prepare 边界：照片仅内存复制，场馆
-    selection 与评教课程字段逐项映射，非法输入在网络前拒绝；教学评教详情补齐公开课程/任务/问卷/课程代码/模型标识并提供
-    单课程确认入口。app/bridge/widget 聚焦回归通过，本轮无真实账号写入、照片上传或验证码挑战；三类完整表单、权限/挑战、
-    批量答题与读后核对仍缺失，P4/P5/P6 不能勾选。
-67. 当前 HEAD 在 2026-09-01 18:56（Asia/Shanghai）串行复核真实只读路线：WebVPN 全部必需操作通过（`signin/today`、
-    `libbook/area_detail` 均 `PASS`）；Direct 除同样既有通过项外，`signin/today` 本批次为 `FAIL error=network_error`（exit code 5），
-    因此 Direct 本批次不能记为全通过。两条路线均未调用真实写接口；该失败阻止 RC，不能用历史成功或 Mock 替代。
-68. 最新代码在 DevEco Studio 默认路径与 `/Users/moorefoss/Code/bin/command-line-tools` CLI 路径复跑 `just ohos-check mode=debug`：
-    两次工具链/API26、Dart analyze/widget、native 前置均 0 失败/0 警告，并进入 HAP assemble；均在调试签名配置处按门禁停止。
-    未配置签名、未生成可发布 HAP、未连接设备；临时生成输出已移出工作树，P0/P6 仍未完成。
-69. 提交 `6e0ecf6` 的合同 CI `33499492838` 与 Flutter native `33499492820` 均已终态成功；后者 Windows、macOS、Linux、Android APK、
-    iOS simulator 五个 job 全部完成并上传 debug 产物。该证据不包含 OHOS HAP/签名、公证、实体设备或真实 App E2E；最新文档提交的
-    CI 仍在运行，P0/P5/P6 及 P4 完整表单仍未完成。
-70. 场馆日期空间读取现在逐个投影可预约时段公开站点/日期/空间/时段 ID 与时间；共享 UI 增加联系电话、主题、用途、人数、内容和
-    布尔选项填写表单，校验后才进入既有 typed `prepareCgyySubmitReservation` 与统一二次确认。widget/bridge 回归通过，验证码仍由
-    Core 受控流程处理，未执行真实预约；挑战恢复、订单匹配核对、阳光打卡照片表单、评教答题与 P4/P5/P6 仍未闭合。
-71. 共享评教详情页新增用户显式勾选待评课程、已选数量/全选控制和批量 typed prepare 入口；仅按读取白名单字段保持课程顺序传入
-    既有 `prepareEvaluationSubmitCourses`，新增 widget 回归证明未勾选时不准备、两门课程确认前不提交且确认后只提交一次。
-    本轮未新增上游评教协议或答案策略，未执行真实账号评教；题目答题、逐项进度、结果核对及 P4/P5/P6 仍未完成。
-72. 评教批量入口提交 `0626fa0` 后，根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和
-    `just flutter-check` 均通过；Flutter UI 全量测试 31 项通过，工作树保持干净。
-73. 当前提交以 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `just ohos-check mode=debug`：DevEco/SDK API26、Dart/widget、
-    native 前置均 0 失败/0 警告并进入 HAP assemble，随后在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备。
-74. 当前提交串行复核 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅
-    详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
-75. 远端合同 CI `33502775133`、Flutter 原生五平台 CI `33502775143` 和文档 CI `33502786574` 均成功；该证据不包含 OHOS HAP/
-    正式签名、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 及完整 P4 仍未完成。
-76. 共享阳光打卡详情新增公开项目编号表单、时间/地点/广场选项和宿主内存照片 picker 边界；独立对话框在销毁时释放控制器，
-    widget 回归证明照片与时间校验通过后才进入既有 typed `prepareYgdkSubmit` 和一次性确认，确认后只提交一次。
-    当前 Flutter/OHOS 宿主尚未接入原生照片选择器与权限流程，未执行真实照片上传；P4/P5/P6 仍未完成。
-77. 当前提交 `5998d6d` 的根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和 `just flutter-check`
-    均退出码 0，Flutter UI 全量回归 32 项通过，FRB 生成零漂移。
-78. 当前提交以 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `just ohos-check mode=debug`：DevEco/SDK API26、Dart/widget、
-    native 前置均通过并进入 HAP assemble，随后在调试签名配置处按门禁停止；退出码 1 为预期签名阻断，未配置签名、未生成可发布 HAP、
-    未连接设备，生成输出已移出工作树。
-79. 当前提交串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅详情
-    因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
-80. 提交 `85deca3` 的合同 CI `33504585524` 与 Flutter 原生五平台 CI `33504585537` 均终态成功；文档提交 `5998d6d` 的 CI `33505133780`
-    也终态成功。CI 证据不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E；P0/P5/P6 及完整 P4 仍未完成。
-81. `f38c07d` 在 `prepareYgdkSubmit` 路线解析前复用冻结的照片非空、开始/结束时间成对校验；失败测试先观察到
-    `AuthenticationRequired`，修复后 bridge 回归证明无效请求返回 `InvalidInput`、不建立路线请求且不保存 intent。
-    `6bc7889` 保留 FRB 生成的 Dart 清单更新，随后 `just check-sensitive`、`just check`、`just flutter-codegen-check` 和
-    `just flutter-check` 均通过；协议上传/提交、原生 picker、真实照片上传和 P4/P5/P6 仍未完成。
-82. `f38c07d` 的合同 CI `33507226398`、Flutter 原生五平台 CI `33507226352`，以及生成提交 `6bc7889` 的合同 CI
-    `33509909514`、Flutter 原生五平台 CI `33509909557` 均成功；文档提交 `4e28091` 的 CI `33510082731` 也成功。
-    CI 仍不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E，P0/P5/P6 及完整 P4 仍未完成。
-83. 当前 bridge 对 `prepareCgyySubmitReservation` 增加路线解析前的 typed 输入门禁：站点/日期、至少一个有效时段、同一房间、联系电话/主题/活动内容、正用途编号和正参与人数均须满足；失败回归先观察到旧实现返回 `AuthenticationRequired`，修复后统一返回 `InvalidInput` 且不保存 intent。
-    `cgyy_canonical`/`ygdk_canonical` 同时收敛为非敏感形状摘要，不保留或哈希电话、主题、参与人、活动正文、地点、照片文件名和照片字节；新增 bridge 脱敏回归、`just check-sensitive` 与 `just check` 通过。本轮未改变 Core 上游协议、未执行真实写入、验证码材料或照片上传，P4/P5/P6 仍未完成。
-84. Cgyy typed 提交结果不再丢弃 Core 已返回的订单对象：`BridgeBackend` 仅映射正订单编号及可选站点/日期/状态为 `CgyyReservationReceipt`，交易号、电话、主题、参与人和活动正文被排除；失败回归先证明 `WriteCommitResult` 缺少收据，修复后通过 BridgeBackend 映射测试。场馆预约/取消成功核对在支持查询的 backend 上优先刷新同路线 `cgyyOrders`，收据或刷新缺失不冒充最终核对；本轮无真实写入，P4/P5/P6 仍未完成。
-85. Cgyy 成功收据现在由统一确认 UI 只显示非敏感订单编号并提示前往订单列表核对；widget 先复现旧泛化成功文案，再验证带合成收据的安全提示，其他操作无收据时保持原文案。该呈现不改变写入次数或 Core 协议，未执行真实预约，最终核对与 P4/P5/P6 仍未完成。
-86. 先加入生成 Dart schema 失败断言并确认旧绑定暴露敏感订单字段，随后收窄 Rust `BridgeCgyyOrder` 与 FRB 生成结果：交易号、手机号、支付状态、活动正文、参与人、审核内容、处理原因和备注不再跨 FFI；仅保留订单编号、站点/日期/空间/校区、时间、状态、主题、用途名称和参与人数等页面白名单。聚焦 bridge/schema 回归通过，本轮不改变 Cgyy 上游协议、写入次数或真实写入；P1 仍缺真实 isolate/生命周期与逐 DTO 消费证据，P4/P5/P6 仍未完成。
-87. `AppController.matchesCgyyReceipt` 现只在成功的同路线 `cgyyOrders` 刷新快照中完全匹配公开订单编号时返回已核对；统一确认 UI 通过可选 verifier 显示“订单列表已核对”，刷新失败、空结果或编号不匹配保持提示核对且不重试。新增 app/widget 回归并接入官方 Flutter/OHOS 宿主，本轮无真实写入；P4/P5/P6 仍未完成。
-88. 先在生成 Dart schema 快照中观察到旧绑定暴露 `BykcChosenCourse` 的作业正文/附件/签到附注及 `CgyySlotStatus` 的交易号、订单号、占用审核字段，随后收窄 Rust bridge DTO 与映射并重新生成 FRB；新增 schema 禁曝回归和 bridge 测试通过。该收窄只影响 FFI 投影，不改变 Core 冻结 DTO、上游协议或真实写入；P1 仍缺 isolate/生命周期与完整逐 DTO 消费证据，P4/P5/P6 仍未完成。
-89. `e748dcb` 当前 HEAD 串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0，认证、用户资料和全部必需只读操作均为 `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，未调用真实写接口。随后使用更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `just ohos-check mode=debug`：API26/工具链、Dart/widget/native 前置均 0 失败/0 警告，HAP assemble 在调试签名配置处停止；无签名 HAP、无实体设备证据，P0/P6 仍受阻。
-90. 为避免生命周期恢复与初始化读取并发，先加入延迟认证 backend 的失败回归并观察到旧实现错误地释放旧 backend、创建替代实例，随后 `AppController.rebuildBackend` 在 `checkingSession` 阶段安全拒绝重建；聚焦测试通过。该修复只约束 Dart 生命周期，不改变 Core 协议或真实写入；P1 仍缺真实 isolate/内存生命周期与完整 DTO 消费证据，P2/P3/P4/P5/P6 仍未完成。
-91. 先在生成 Dart schema 中观察到旧 `BridgeYgdkRecord` 暴露图片地址列表，随后将 Rust bridge DTO/映射收窄为有界 `imageCount` 并重新生成 FRB；UI 继续显示图片数量，新增禁曝回归先失败后通过。Core 冻结解析、Ygdk 上游协议和真实写入均未改变；P1 仍缺完整逐 DTO 消费/平台生命周期证据，P4/P5/P6 仍未完成。
-92. 追加 `BridgeBackend` 应用层回归，验证 `BridgeYgdkRecord.imageCount` 只投影为“图片数量”、不传递图片地址，并核对分页调用使用 1-based 页码和固定大小；聚焦测试和完整 `just flutter-check` 通过。该证据仍不替代六平台真实 App→FRB→Core E2E，P1/P3/P4/P5/P6 仍未完成。
-93. 扩展生成 Dart schema 快照，覆盖 `read.dart` 的全部公开读取 DTO、嵌套类型和 `Routed<T>` 包装，防止生成器删除或改名类型而未被合同测试发现；绑定快照聚焦测试通过，不改变 Core 协议或生成物。逐 DTO Dart 消费、跨 isolate/平台生命周期及六平台真实链路仍缺证据，P1/P3/P5/P6 仍未完成。
-94. 当前 HEAD `538f57d` 串行复跑 Direct/WebVPN：必需只读操作均为 `PASS`，SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`，未调用真实写接口；随后以更新后的 Command Line Tools API26 路径复跑 OHOS debug，工具链与 native 前置 0 失败/0 警告，HAP 仍在调试签名处停止，未产生签名 HAP 或设备证据。P0/P5/P6 仍未完成。
-95. 提交 `538f57d` 的合同 CI `33537041843` 与五平台 native debug CI `33537041816` 均成功（Windows、macOS、Linux、Android APK、iOS simulator）；文档提交 `991f090` 的合同 CI `33537405629` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实六平台 App E2E，P0/P5/P6 仍未完成。
-96. 新增延迟认证 app 回归并先在旧实现上观察到 controller 销毁后仍继续 `userInfo`/首页刷新；随后在 `AppController.initialize` 的路线、认证、用户资料和凭据读取边界加入 `_disposed` guard。聚焦 app_controller 25/25 与完整 Flutter 门禁通过；仅改善 Dart 生命周期安全，不改变 Core/上游协议，真实 isolate/平台生命周期及 P1/P5/P6 仍未完成。
-97. 新增延迟功能读取回归并先观察到销毁后的在途成功结果仍回写快照；随后在 `refreshHome`/`refreshFeatureQuery` 入口及 `_loadFeature` 成功、失败边界加入 `_disposed` 与刷新代次检查。app_controller 聚焦测试 26/26 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate/平台生命周期和 P1/P5/P6 仍未完成。
-98. 新增延迟登录回归并先观察到销毁后的在途登录仍读取用户资料；随后在 `submitLogin` 的登录、路线状态、用户资料和凭据/UI 边界加入 `_disposed` guard，并让 `_refreshRouteSettings` 在销毁后不回写。app_controller 聚焦测试 27/27 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台登录生命周期及 P1/P5/P6 仍未完成。
-99. 新增延迟路线切换回归并先观察到销毁后的在途 `setRoutePolicy` 仍读取并应用路线设置；随后在准备、路线读取和错误边界加入 `_disposed` guard。app_controller 聚焦测试 28/28 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台生命周期及 P1/P5/P6 仍未完成。
-100. 新增延迟注销回归并先观察到销毁后的在途 `logout` 仍回写登录阶段；随后在入口和异步注销完成边界加入 `_disposed` no-op 保护，并保留用户明确要求的已保存凭据清理。app_controller 聚焦测试 29/29 通过；仅收紧 Dart 生命周期，不改变 Core/路线/上游协议，真实 isolate、平台生命周期及 P1/P5/P6 仍未完成。
-101. 在当前 HEAD `62ec048` 串行复跑 `just verify-live mode=direct` 与 `mode=webvpn`：两条路线认证、用户资料和全部必需只读操作均为 `PASS`；图书馆 `area_detail` 均为 `PASS(count=1)`，SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本次未调用真实写接口；该证据仍不替代六平台真实 Flutter→FRB→Core E2E，P0/P3/P4/P5/P6 仍未完成。
-102. 在当前 HEAD `62ec048` 以更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 复跑 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS fork、DevEco 26.0.0.821、SDK API26、辅助工具链、Rust arm64、Dart/widget/native 前置均 0 失败/0 警告；HAP assemble 仍在调试签名配置处停止。未配置签名、未生成可发布 HAP、未连接设备，P0/P5/P6 仍未完成。
-103. 提交 `62ec048` 的合同 CI `33541980109` 与 Flutter 原生五平台 CI `33541980112` 均成功，后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 均完成并上传 debug 产物；随后文档提交 `8fd836a` 的合同 CI `33542479679` 亦成功。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未完成。
-104. 提交 `bb51298` 的合同 CI `33543510586` 已终态成功，macOS Rust、Windows Rust 与合同门禁均通过；该文档提交不改变 Flutter/OHOS 产物或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实 Flutter→FRB→Core E2E 仍未完成，P0/P5/P6 仍未完成。
-105. 当前 HEAD `ef83cb9` 的 `just refs`、`just check-sensitive`、`just check`、`just flutter-check` 均通过；随后以 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 成功报告 FRB 零漂移。默认增量 FRB 首次尝试因 `cargo-expand` 长时间无输出被安全中断，重试未产生任何源码改动；OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
-106. 提交 `f4ebd54` 的合同 CI `33547707165` 已终态成功，合同门禁、macOS Rust 与 Windows Rust 均通过；该文档提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
-107. 新增 widget 回归并先在旧实现上观察到：已有成功摘要但详情为空的 `stale` 刷新失败会错误降级为首次失败卡片，丢失旧摘要和 stale 重试横幅；随后 `_FeatureDetailView` 在详情为空时保留旧摘要，并统一显示失败横幅与重试按钮。`ubaa_ui` 聚焦测试 32/32 通过。本轮只修复 UI 状态语义，不改变 Core、路线、上游协议或真实写入；P3 完整领域状态、golden/integration、六平台真实 App E2E 及 P4/P5/P6 仍未完成。
-108. 新增 app 回归并先在旧实现上观察到：功能已明确返回空结果后再次刷新失败会因 `updatedAt` 被错误标记为 `stale`；随后 `_loadFeature` 仅在上一结果保留非空摘要或详情时标记 stale，空结果后的失败保持 `failure`。`app_controller` 聚焦测试 30/30 通过。本轮只收紧读取状态语义，不改变 Core、路线、上游协议或真实写入；P3 其他领域闭环、golden/integration、六平台真实 App E2E 及 P4/P5/P6 仍未完成。
-109. 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 与 `just flutter-check` 均通过；空结果失败状态回归后 Flutter 全量测试仍通过。以 `/Users/moorefoss/Code/bin/command-line-tools` 执行同一提交的 OHOS debug 门禁时，DevEco `26.0.0.821`、OpenHarmony API26、辅助工具链、Rust arm64、Dart/widget/native 前置均为 0 失败/0 警告，HAP assemble 仍在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备，临时输出已移出工作树。
-110. 提交 `8e11c31` 的合同 CI `33551528661` 与 Flutter 原生五平台 CI `33551528765` 均已终态成功；后者 Windows、macOS、Linux、Android APK、iOS simulator 五个 job 全部完成并上传 debug 产物。CI 不包含 OHOS 签名 HAP、实体设备、正式 Release/公证或真实 Flutter→FRB→Core E2E，P0/P5/P6 仍未完成。
-111. 文档记录提交 `6f7506f` 的合同 CI `33552619888` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该文档提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
-112. 事实记录提交 `ed3433a` 的合同 CI `33553372169` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
-113. 最终事实记录提交 `b0a0bcf` 的合同 CI `33554202731` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；当前 HEAD 与 `origin/ubaa2` 一致、工作树干净。该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
+### P0：计划、工作树与产物预检
 
-114. 当前事实记录提交 `c33c659` 的合同 CI `33554997879` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
-115. 当前 HEAD 事实记录提交 `f0cdb62` 的合同 CI `33555799377` 已终态成功，contract-gates、macOS Rust 和 Windows Rust 均通过；该提交不改变代码、产物、签名或设备证据，OHOS 签名 HAP、实体设备、正式 Release/公证和真实六平台 App E2E 仍未完成。
+- [x] 记录初始 `git status --short --branch` 与源码基线；初始工作树干净。
+- [x] 执行 `just refs`，两份冻结引用通过。
+- [x] 全量替换 `goal.md` 为本专项计划。
+- [x] 执行 `just check-sensitive`、`just contract-version-check`、`git diff --check`，确认仅有预期文档差异。
+- [x] 检查现有 App 结构，记录路径、大小、SHA-256、架构、生产入口与实际签名 entitlements。
+- [x] 使用与历史相同的相对路径检查产物，大小与 SHA-256 均与 2026-09-05 归档一致。
+- [x] 创建隔离测试目录与仓库外证据记录，不读取既有用户会话。
 
-116. 先加入日期查询回归并在旧 UI 实现上观察到：课堂、图书馆座位和场馆日期控件会接受带时间/时区的字符串；随后严格限制为真实日历日期 `YYYY-MM-DD`，非法输入不进入 typed `FeatureQuery`。`ubaa_ui` 聚焦测试 33/33 通过；本轮不改变 Core/路线/协议或真实写入，P3 其余 golden/integration、六平台 App E2E 及 P4/P5/P6 仍未完成。
-117. 用户确认当前没有实体设备后，使用 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 完成
-    DevEco/SDK API26、Dart/widget、Rust arm64 native 前置和 HAP assemble；工具链与前置检查均为
-    0 失败/0 警告。先观察到旧门禁查找 `libubaa_flutter_bridge.so` 与实际打包名称不匹配，随后将
-    `scripts/ohos-check.sh` 收敛为兼容检查并生成 `entry-default-unsigned.hap`，确认其中包含
-    `libs/arm64-v8a/libubaa_bindings.so`。该 HAP 未签名、未安装，不能作为 P0/P6 发布或实体设备
-    证据；签名、hdc/设备 FRB hello、HUKS、真实 App smoke 及 P5/P6 仍未完成。
+App 路径为 `apps/ubaa_flutter/build/macos/Build/Products/Debug/ubaa_flutter.app`，生产入口为 `apps/ubaa_flutter/lib/main.dart`，共享宿主为 `packages/ubaa_host`。首次预检使用旧产物；本轮权限修复后已执行 `just flutter-build platform=macos mode=debug`，并核对实际签名的 App Sandbox 与 network.client 均为 true。
 
-118. 新增 `apps/ubaa_flutter/integration_test/app_flow_test.dart`，以脱敏 typed fake backend 覆盖
-    官方 Flutter 宿主从登录、主页、课表详情到学期/周次查询和“我的”页的组合流程；
-    `flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts`、宿主
-    `flutter analyze` 与既有 widget test 均通过。该证据不访问网络或真实账号，不替代各领域
-    golden/逐领域 integration、六平台真实 App→FRB→Core 读取或写入；P3–P6 仍未完成。
+预检发现的主动网络客户端权限缺失，已结合真实登录反馈与系统 `network-outbound` 拒绝记录定位并修复。图书馆时段编号的正式页面来源仍只是静态线索，尚未完成对应真实旅程，不猜测参数绕过。
 
-119. 在提交 `57e928a` 串行执行 `just verify-live mode=direct` 与
-    `just verify-live mode=webvpn` 均退出码 0；两条路线的认证、用户资料及必需只读操作均为
-    `PASS`，空父列表详情按同批次证据为 `NOT_APPLICABLE`，Cgyy 用途为
-    `PASS source=static_fallback`，本次未调用任何真实写接口。执行时间为 06:07
-    （Asia/Shanghai），早于 `libbook/area_detail` 的 08:30–23:00 窗口，因此该项不冒充窗口内
-    最终验收，既有窗口内记录继续有效；六平台真实 App E2E、P3–P6 仍未完成。
-120. 提交 `0464971` 的合同 CI `33564697988` 已终态成功；contract-gates、macOS Rust 和 Windows Rust
-    三个 job 全部通过。该文档提交不改变代码、产物、签名或设备证据；OHOS 签名 HAP、实体设备、正式
-    Release/公证和真实六平台 Flutter→FRB→Core E2E 仍未完成，P0/P5/P6 继续受阻。
-121. 在 `apps/ubaa_flutter/integration_test/app_flow_test.dart` 增加脱敏宿主写入组合回归：从登录和
-     高级功能页进入课堂签到确认，验证 typed `WriteIntent` 只提交一次，并在成功后通过对应只读刷新
-     观察到“已签到”状态；集成测试 2/2 通过，随后 `just flutter-check` 全量通过。本轮不访问网络、
-     真实账号或真实写接口；十项写操作逐领域核对、六平台真实 App E2E、签名和设备证据仍未完成。
-122. 提交 `fba1316` 新增 `PlatformPermissionGateway`、`PlatformPhotoPicker` 及内存/不可用实现，统一相机、相册、文件、
-     前台位置权限状态和阳光打卡 typed 照片边界；权限拒绝时不会调用 picker，原生插件和设备权限验证仍列为
-     后置 `BLOCKED`。官方 Flutter 与 OHOS 宿主新增可选 picker 注入点，生产默认不伪造照片。
-123. 提交 `fba1316` 将宿主集成回归扩展为普通 8 项与高级 4 项全部详情入口：使用脱敏 backend 从登录打开每项页面并返回，另覆盖
-     启动时选择功能分组；3 个 macOS 集成场景全部通过。该证据仍是确定性 UI/状态链路，不替代真实六平台 App→FRB→Core。
-124. 提交 `38763f4` 使无签名 `release-preflight` 新增 CycloneDX 风格 Cargo SBOM、Dart/Flutter 锁文件版本及许可证审计报告，并在合同
-     CI 生成和上传 14 天 artifact；报告不访问凭据、真实账号、原始响应或签名服务。CI 与无签名 OHOS Debug 复核需以新提交终态为准。
-125. 提交 `a7d4ac0` 将发布前置报告的锁文件来源收敛为 Git 跟踪清单，排除构建目录临时锁文件；在干净工作树上重新生成
-    报告成功，包含 8 个跟踪锁文件、SBOM、依赖/许可证审计、源码校验和无签名摘要。该报告仍不等价于签名发布。
-126. 提交 `9dfe078` 将 `just release-preflight` 的报告目录调用统一为绝对路径位置参数；合同 CI
-     `33573554458` 已终态成功，`contract-gates`、macOS Rust 和 Windows Rust 三个 job 均通过，且
-     `just check`、无签名 RC 报告生成和 artifact 上传成功。本次同步修正文档中“生产占位页”和
-     OHOS 必须签名的旧表述：十二项功能已有共享 typed 详情入口，当前交付以无签名 HAP/静态检查为准，
-     签名、设备、安全存储和逐领域 golden/真实 App 链路仍分别保持后置或未闭合状态。
-127. 当前提交 `2ceda40` 在干净工作树上重新执行 `just release-preflight /tmp/ubaa-release-preflight.ehLJVk`，
-     生成 8 个跟踪 Flutter 锁文件、Cargo SBOM、依赖/许可证审计、源码校验和无签名摘要均成功；随后使用
-     `/Users/moorefoss/Code/bin/command-line-tools` 执行无签名 OHOS Debug 门禁，API26 工具链、Dart/widget/native
-     前置均为 0 失败/0 警告，HAP 包确认含 arm64 `libubaa_bindings.so`。构建输出已移出工作树，未签名 HAP 未安装、
-     未签名、未上传；签名、实体设备和硬件安全存储继续为后置 `BLOCKED`。
-128. P0 无签名目标的审查项现已全部有证据：锁定的 Flutter/OHOS 工具链、官方五平台 Debug 构建证据、
-     OHOS API26 无签名 HAP/arm64 包内容检查、FRB 零漂移、根级门禁和架构/风险记录均已完成；签名 HAP、
-     实体设备 hello、硬件安全存储和正式发布保持后置条件。因此执行队列将 P0 标记完成，P1–P6 继续按本合同推进。
-129. P1 无签名验收现已闭合：BridgeClient opaque 生命周期、panic/错误归约、全部读取 DTO、十项 typed
-     写意图、一次性 commit、过期/重复/路线与会话失效、schema 快照、跨进程锁和 Dart dispose/后台恢复
-     确定性测试均通过，`CARGO_INCREMENTAL=0` 的 FRB 生成检查报告零漂移。原生设备 isolate 重建、内存
-     泄漏观测和真实跨平台生命周期保留为后置设备证据，不阻断本轮无签名 P1。
-130. P2 无签名代码门禁现已闭合：共享 Splash/登录/主页/我的/设置壳、会话恢复、自动登录、路线策略
-     投影与切换、退出和退出并清除账号、Noop/session-only/版本化安全凭据边界、应用私有配置路径、
-     错误/空状态/响应式导航和后台恢复均有实现及 Flutter/Rust 确定性测试。密码在安全存储不可用时
-     只留在本次会话，原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS 插件与设备验证
-     仍作为 P5/P6 后置 BLOCKED，不作为本轮无签名代码完成的反证。
+### P1：启动与真实认证
 
-131. P3/P4 读取到写入口的博雅签到边界已收紧：BridgeBackend 从冻结 typed `signConfig` 投影签到/签退
-     时间窗、位置点数量和 `courseSignType`，不把经纬度或半径带入 `FeatureDetail`；共享 UI 在读取字段
-     明确为“不可签到/签退”时禁用对应按钮并提示时间窗/状态由 Core 判定。bridge 回归和 `ubaa_ui`
-     widget 35 项测试通过；其余领域 golden、逐领域 integration、服务端分页和最终写后核对仍未闭合。
-132. P3 服务端分页元数据现已沿 typed bridge 投影到 `FeaturePagination`/`FeatureSnapshot`：博雅课程、图书馆预约、阳光打卡记录和场馆订单保留页码、每页数量、总数及总页数/hasMore，详情页在当前 `FeatureQuery` 上下文中提供 1-based 上下页并显示总数。domain、bridge、widget 回归先观察旧映射缺失元数据的失败后通过；全部领域分页实证、golden/integration、六平台 FRB E2E 与 P4/P5/P6 仍未完成。
-133. 提交 `0fa5ec0` 继续完成无签名 P5 边界：新增 `CallbackPermissionGateway` 与 `CallbackPhotoPicker`，将原生 SDK 回调收敛为稳定权限/照片类型，异常不携带平台正文；`PermissionedPhotoPicker` 支持显式选择相册或桌面文件权限。新增平台回调、文件权限和图书馆取消 UI 回归，`ubaa_platform`、`ubaa_ui` 全量测试与分析通过；该提交不伪造原生插件，Keychain/Keystore/Credential Manager/Secret Service/HUKS、设备权限和实体生命周期仍为后置 `BLOCKED`。
-134. 当前 HEAD `0fa5ec0` 已复核：`just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、`just release-preflight`、macOS 宿主集成（3/3）和 API26 无签名 OHOS HAP（arm64 `libubaa_bindings.so`）均通过；OHOS 仅以 `UBAA_OHOS_NO_CODESIGN=1` 生成 `entry-default-unsigned.hap`，未签名、未安装、未上传。远端合同 CI `33581588034` 与五平台 Flutter 原生 CI `33581587938` 均已终态成功；五平台 Windows、Linux、macOS、iOS simulator、Android APK job 全部成功并上传无签名 Debug 产物，签名/设备证据不在其中。
-135. 2026-09-02 营业窗口内串行复核当前 Core-live 只读矩阵：Direct 与 WebVPN 均 exit code 0；认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，空父列表详情按同批次证据为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮未调用任何真实写接口；这仍不替代六平台真实 App→FRB→Core、逐领域 golden/integration 和真实写后核对。
-136. 提交 `b0c4a77` 收紧课堂签到 UI：读取字段明确为“已签到”时，重复签到按钮禁用并显示稳定说明；旧 DTO 缺少状态字段时仍交给 Core prepare 做最终校验。先观察到旧实现按钮仍可用的失败回归，修复后 `ubaa_ui` 全量 37 项通过；`just check-sensitive`、`just check`、FRB 零漂移均通过。该提交的合同 CI `33583052957` 与五平台 Flutter 原生 CI `33583052953` 均终态成功，五平台 Debug job 全部通过并上传产物；不包含签名、实体设备或真实写入证据。
-137. 提交 `777261f` 新增主页与共享详情页的稳定 Flutter golden 基线（明亮主题、1280×800），先观察到基线文件缺失的预期失败，再生成并在不更新基线模式下通过；当前 `ubaa_ui` 全量 38 项通过，macOS 宿主集成 3/3 通过。该提交的合同 CI `33584844827` 与五平台 Flutter 原生 CI `33584844835` 均终态成功，五个平台 Debug job 全部通过并上传产物；golden 代表共享壳/详情渲染，实体设备和签名证据仍后置。
-138. 在最终 HEAD `5bd9814` 重新执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：OHOS fork `adaf911c35c9136a7d18fc424d714c9ec7724e60`、DevEco `26.0.0.821`、API26、Node/ohpm/Hvigor/hdc/Java 与 Rust `aarch64-unknown-linux-ohos` 均通过，Dart/widget/native 前置 0 失败/0 警告，生成并检查含 `libs/arm64-v8a/libubaa_bindings.so` 的无签名 HAP。HAP 未签名、未安装、未上传；所有生成输出已移出工作树，签名/设备证据仍后置 `BLOCKED`。
-139. 提交 `35ffb0d` 为共享功能卡片增加容器级无障碍语义，标签固定包含功能名称、当前状态和“点击查看详情”操作提示；失败/过期卡片的子级“重试”按钮仍保持独立 tooltip。先加入缺失语义的 widget 失败回归，再完成最小实现；`ubaa_ui` 全量 39 项、`just flutter-check`、`just check` 与 `just check-sensitive` 均通过。本轮只改共享 UI 语义，不访问网络、真实账号或写接口；逐领域读屏、实体设备辅助功能和 P3/P4/P5/P6 其余门禁仍未闭合。
-140. 提交 `1e3c729` 的合同 CI `33589036008` 与五平台 Flutter Debug CI `33589036000` 均终态成功：contract-gates、Windows/macOS Rust 以及 Android、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。当前 HEAD 的本机 `CARGO_INCREMENTAL=0 just flutter-codegen-check` 两次均在 cargo-expand 的 `rustc -Zunpretty=expanded` 阶段无输出后安全中断，工作树无生成漂移；该本机门禁暂记未完成运行，不冒充通过，待工具链恢复后重试。OHOS 签名、实体设备、真实 App→FRB→Core 和 P3/P4/P5/P6 其余缺口仍未闭合。
-141. 提交 `7bc9c1a` 为共享写入确认结果固定 `outcome_unknown` 安全提示：先加入“未知结果仍沿用普通后端文案”的 widget 失败回归，再以最小改动固定“提交结果不确定，请先刷新相关状态，不要重复提交”，不自动重试或触发写后刷新。`ubaa_ui` 全量 40 项、`just flutter-check`、`just check` 与 `just check-sensitive` 均通过，本轮未调用真实写接口。其合同 CI `33591063958` 与五平台 Flutter Debug CI `33591063833` 均终态成功，Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物；OHOS 签名、实体设备、真实写后核对、本机 FRB 零漂移重试以及 P3/P4/P5/P6 其余缺口仍未闭合。
-142. 提交 `f46c65c` 将共享确认壳的提交异常与显式 `outcome_unknown` 统一为“提交结果不确定，请先刷新相关状态，不要重复提交”，先加入异常路径失败回归并确认旧实现会暴露“相关课程状态”，再完成最小修复；`ubaa_ui` 全量 41 项、`just flutter-check`、`just check-sensitive`、`just check`、`just release-preflight` 和 API26 无签名 OHOS HAP/arm64 动态库复核均通过。其合同 CI `33592184452` 与五平台 Flutter Debug CI `33592184458` 均终态成功，Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物；本轮未调用真实写接口，OHOS 签名、实体设备、真实写后核对、本机 FRB 零漂移重试以及 P3/P4/P5/P6 其余缺口仍未闭合。
-143. 提交 `190f318` 在官方 Flutter macOS 宿主集成中增加 commit 异常场景：脱敏 backend 抛出异常时只显示稳定未知结果提示，不触发写后刷新、不误标记“已签到”、不泄露“相关课程状态”等业务上下文；`flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts` 四个场景 4/4 通过，`just check-sensitive` 与差异检查通过。本轮未访问真实账号或写接口；P4 其他写操作的逐领域 integration/结果核对、P5/P6 其余缺口仍未闭合。
-144. 提交 `190f318` 的合同 CI `33593160544` 与五平台 Flutter Debug CI `33593160580` 均终态成功，随后文档提交 `f7d0015` 的合同 CI `33593227275` 也成功；Android APK、iOS simulator、macOS、Linux、Windows job 全部通过并上传无签名 Debug 产物。CI 只证明确定性门禁和无签名宿主构建，不替代 OHOS 签名、实体设备、真实写后核对或正式发布；P3/P4/P5/P6 其余缺口仍未闭合。
-145. 当前 HEAD 文档提交 `f67f95f` 重新以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 尝试 FRB 零漂移；`cargo-expand` 的 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断，进程清理后工作树无生成漂移。本机零漂移门禁仍记为未完成运行，不能由历史成功、无签名 HAP 或其它 CI 推导通过；P3/P4/P5/P6 其余缺口仍未闭合。
-146. 最终审计提交 `7e6a4ea` 后，`just refs`、`just check-sensitive`、`just release-preflight /tmp/ubaa-release-preflight-final.qLoG85`、`git diff --check` 均成功；`HEAD` 与 `origin/ubaa2` 一致、工作树干净，OHOS 无签名 HAP/arm64 临时生成物已移出仓库。该审计未读取或写入凭据、真实账号、原始响应或个人数据；FRB 本机零漂移、逐领域真实写后核对、签名/设备和 P3/P4/P5/P6 其余完成条件仍未闭合。
-147. 新增 `scripts/verify-flutter-artifact.sh` 与 `just flutter-artifact-check`，并接入五平台 Flutter Debug CI 上传前步骤：Linux/Windows/macOS/iOS simulator 检查宿主入口、Flutter 资源和 App.framework，Android APK 检查 classes.dex、Flutter 资源及 arm64-v8a/armeabi-v7a/x86_64 的 `libubaa_flutter_bridge.so`。缺失路径的预期失败和本机 Android/macOS/iOS 结构检查均通过；该门禁只证明无签名包结构，不证明签名、安装或设备运行。
-148. 提交 `949d7eb` 新增官方 macOS 宿主全领域 typed 查询组合回归：登录后逐项覆盖十二个功能的查询视图、公开 ID、日期、学期/周次、分页和本地派生筛选，全部使用脱敏 fake backend，完整 `app_flow_test.dart` 5/5 通过；同时新增 `WriteOperation.values` 十项写操作矩阵，确认每项 prepare 不提交、confirm 只提交一次且重复确认不追加提交。`just flutter-check` 应用测试与 UI 41 项通过；该证据不替代真实写后核对、实体设备或签名发布。
-149. 无签名 P5 平台通道增量：`ubaa_platform` 新增 `MethodChannelPermissionGateway`、`MethodChannelSecureCredentialStore`、`MethodChannelPhotoPicker` 和默认能力组合，官方 Flutter/OHOS 入口在启动时先探测；权限状态、凭据探测/读写/清除、无效凭据拒绝和照片 10 MiB/类型/文件名边界均有 Mock 合同测试，`just flutter-check` 通过。缺少原生 handler 时安全返回不可用，不冒充 Keychain/Keystore/Secret Service/Credential Manager/HUKS；原生实现、实体设备权限/生命周期和硬件安全存储仍为后置 `BLOCKED`，P3/P4/P6 其余门禁仍未闭合。
-150. 提交 `30297a5` 后再次执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：DevEco/API26、OHOS fork、Dart/widget/native 前置为 0 失败/0 警告，生成并检查含 `libs/arm64-v8a/libubaa_bindings.so` 的无签名 HAP；HAP 未签名、未安装、未上传，生成输出已移出工作树。
-151. 修复 `scripts/verify-flutter-artifact.sh` 的目录摘要跨平台兼容性：按环境选择 `shasum` 或 `sha256sum`，避免 Windows Git Bash 缺少 `shasum` 时在产物结构门禁误报失败；`bash -n` 及本机 macOS/iOS simulator/Android APK 结构摘要复跑通过，Windows/Linux 由对应 CI runner 验证。
-152. Flutter 原生 CI 的 macOS job 已加入 `integration_test/app_flow_test.dart` 宿主 smoke，在无签名包结构检查后验证脱敏登录、十二项详情入口、typed 查询和课堂签到确认组合；测试不访问真实账号或上游，CI 终态需以提交后的运行记录为准。
-153. 当前 HEAD `1ca6ed8` 以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试成功，`cargo-expand`/Rust 展开完成且 FRB 生成目录零漂移；此前无输出中断仅是旧次尝试，当前本机零漂移门禁恢复为通过。
-154. 官方 Flutter 原生 CI run `33599670789`（提交 `1ca6ed8`）已终态成功：Windows、Linux、macOS、iOS simulator、Android APK 五个平台 job 全部通过并上传无签名 Debug 产物；macOS job 另通过 `integration_test/app_flow_test.dart` 宿主 smoke。该证据只覆盖无签名包结构和脱敏确定性流程，不包含签名、安装、实体设备或真实账号写入。
-155. 合同 CI run `33600117413`（提交 `993f5a2`）已终态成功：`contract-gates`、macOS Rust、Windows Rust 三个 job 全部通过，合同门禁与文档差异检查均通过。该 CI 不包含 OHOS 签名 HAP、实体设备、正式发布或真实写入；P3/P4/P5/P6 的逐领域/设备后置缺口仍按本合同保持未完成。
-156. 当前 HEAD `335fb45` 在 2026-09-02 营业窗口内串行复跑 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，空父列表详情为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本次未执行任何真实写接口；该证据仍不替代真实 App→FRB→Core、逐领域设备链路、硬件安全存储或写后核对。
-157. 新增 `AppController` 十项写操作读取核对矩阵：除场馆预约/取消固定查询同路线订单列表外，其余操作只刷新对应业务只读域，防止跨域刷新或重复提交；app controller focused suite 31/31、`just flutter-check` 与 `just check` 均通过。本轮仍未执行真实写接口。
-158. 提交 `5dc6dcf` 收紧博雅详情写入口：读取字段明确为“已选”或稳定状态枚举时仅开放对应的选课/退选操作，已选课程视图禁用重复选课；缺少状态字段时不在 UI 猜测，仍由 Core prepare 做最终校验。新增 widget 回归验证禁用按钮、稳定提示和零回调副作用；同时为场馆预约收集同一站点/日期下去重的全部可预约 typed 时段，表单可在一次准备中选择多个 `CgyyReservationSelectionInput`，跨站点/日期不会混入。`ubaa_ui` 全量 42 项、`just flutter-check`、`just check-sensitive` 与 `git diff --check` 均通过；本轮没有真实写入或原生平台调用，逐领域 golden/integration、真实写后核对、设备安全存储和签名发布仍未闭合。
-159. 提交 `4938a61` 的合同 CI run `33605940388` 与 Flutter 原生 CI run `33605940357` 均已终态 `success`。合同 run 的 `contract-gates`、Windows Rust、macOS Rust 全部通过；原生 run 的 Android APK、iOS simulator、macOS、Linux、Windows Debug 全部通过无签名产物结构检查，macOS 另通过宿主 integration smoke。此前本机 `just refs`、`just check-sensitive`、`just check`、FRB 零漂移、`just flutter-check`、无签名 RC 前置报告和 API26 无签名 OHOS HAP 均已通过且生成物已清理；本轮仍无签名、实体设备、原生安全存储或真实账号写入证据，P3/P4/P5/P6 逐领域与设备后置缺口未闭合。
-160. 当前 HEAD 在 2026-09-02 营业窗口内串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。本轮没有执行任何真实写接口；该证据仍不替代 Flutter→FRB→Core 写链、真实写后核对、实体设备或签名发布。
-161. 修复场馆预约 UI 与 bridge 合同的不一致：一次预约只能选择同一空间的多个时段，跨空间详情不再生成可选 `FilterChip`，避免把必然在 Core prepare 阶段拒绝的组合呈现给用户。先将跨空间禁显断言加入 `ubaa_ui` 回归并观察到旧实现失败，再完成最小过滤；聚焦测试通过，未产生网络或真实写入副作用。
-162. 新增 `ubaa_ui` 十二项功能状态矩阵回归，逐项覆盖 `loading`、`empty`、`failure`、`stale` 的详情呈现与失败/过期重试入口（共 48 个状态断言，重试回调 24 次）；全量 UI 测试 43 项通过。该证据补齐共享状态组件的逐领域覆盖，不替代真实 App→FRB→Core、逐领域真实写后核对或设备验证。
-163. 扩展博雅写入 widget 回归，同时验证同一正式页面传递 `signType=1`（签到）和 `signType=2`（签退），并确认两次均只进入一次性确认页、未在取消时提交；全量 UI 测试保持通过。本轮仍未执行真实签到或其它账号写入。
-164. 依据冻结 `CgyyOrderDto.displayStatus`/`canCancelAt` 与 `LibBookBookingDto.cancelBlockedMessage` 收紧取消入口：场馆订单列表补充公开审核状态，图书馆预约补充状态码；UI 隐藏已取消、审批驳回、未知状态、预约开始前四小时内/结束后的场馆订单，以及状态码 6/8 或状态名含取消/结束/完成/过期/失效的图书馆记录。先加入场馆状态/截止回归并观察旧实现错误展示四个按钮，随后最小修复通过聚焦和全量 widget 测试；本轮未访问上游或执行真实写入，P3/P4/P5/P6 仍未完成。
-165. 提交 `f711f02` 后复核：`just refs`、`just check-sensitive`、`just check`、`CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`、`just flutter-check`、无签名 RC 前置报告、macOS Debug 构建及产物结构摘要均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 通过 API26/arm64 无签名 HAP 门禁，HAP 未签名、未安装、未上传且生成输出已清理。工作树与远端 `origin/ubaa2` 一致；本轮仍无真实账号写入、原生安全存储、实体设备或签名发布证据。
-166. bridge 场馆订单状态说明现按冻结 `displayStatus` 映射为“已取消/审批通过/待审批/占用/正常/未知”，审核状态说明覆盖冻结正负审批码；UI 仍使用原始公开码执行取消门禁并展示说明。新增 bridge 字段断言与全量 app/UI 测试通过，不改变上游协议、写入次数或真实副作用；P3/P4/P5/P6 仍未完成。
-167. 继续收紧场馆取消入口：当公开 `审核状态` 字段存在但不是可解析的冻结数值时，UI 现在按默认拒绝处理；缺失该可选字段仍交由订单状态和 Core prepare 判定。新增格式错误状态回归，聚焦测试与 `flutter analyze` 均通过；提交 `48a7cbf` 已推送。本轮未访问上游或执行真实写入，P3/P4/P5/P6 其余门禁仍未闭合。
-168. 提交 `23ec075` 后在 2026-09-02 17 时段（Asia/Shanghai）串行复核真实只读矩阵：第一次 Direct 因图书馆 `libraries=upstream_changed` 且后续 `bookings=timeout` 退出码 5，WebVPN 全部必需读取 exit 0；随后立即重跑 Direct 恢复 exit 0，图书馆 `libraries/areas/area_detail/seats/bookings` 均 PASS(count=3/2/1/175/2)，其余必需读取均 PASS，SPOC/博雅详情因空父列表为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口，首次失败作为瞬时上游证据保留，不能用历史结果覆盖。
-169. 提交 `48a7cbf` 的 Flutter 原生 CI run `33613013808` 已终态成功，Linux、Windows、macOS、iOS simulator、Android APK 五个无签名 Debug job 均通过产物结构检查，macOS 通过宿主 integration smoke；提交 `23ec075` 的合同 CI run `33613046839` 已终态成功。CI 不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后核对或正式发布，P3/P4/P5/P6 其余门禁仍未闭合。
-170. 事实文档提交 `b97a9d9` 的合同 CI run `33614614484` 已终态成功，macOS/Windows Rust 与 contract-gates 均通过；当前 HEAD 与 `origin/ubaa2` 一致且工作树干净。该文档提交不改变代码、产物、签名或设备证据，前述 OHOS 签名、实体设备、原生安全存储、真实写后核对和 P3/P4/P5/P6 其余门禁仍未闭合。
-171. 提交 `68c7d06` 新增 macOS 官方 Flutter 宿主级写入组合回归：脱敏 fake backend 从登录、详情和表单进入
-     typed prepare、一次性确认、单次 commit，并覆盖全部十项 `WriteOperation`（博雅签到/签退分别验证
-     `signType=1/2`），包括课堂签到、图书馆预约/取消、场馆预约/取消、博雅选课/退选、阳光打卡和
-     单课程评教。测试使用内存照片与非网络 backend，不保存请求正文、不访问真实账号；聚焦测试和完整
-     `integration_test/app_flow_test.dart` 均通过（6/6），随后根级 `just check-sensitive`、`just check`、
-     `just flutter-codegen-check`、`just flutter-check`、`just release-preflight` 与无签名 OHOS API26
-     HAP/arm64 门禁均通过。该证据闭合确定性宿主写入 UI 链，但不替代真实写入/写后核对、逐领域 golden、
-     六平台真实 App→FRB→Core、原生安全存储或实体设备证据；P3/P4/P5/P6 队列仍按合同未勾选。
-172. 提交 `68c7d06` 的 Flutter 原生 CI `33617487122` 已终态成功，Linux、macOS、iOS simulator、Windows 和
-     Android APK 五个 job 全部通过，macOS job 执行新增宿主集成 smoke；同提交合同 CI `33617487214` 与文档提交
-     `63a91cc` 的合同 CI `33617727426` 也已终态成功。CI 仍不包含 OHOS 签名、实体设备、原生安全存储、真实写后
-     核对或正式发布；当前 `HEAD` 与 `origin/ubaa2` 一致、工作树干净，P3/P4/P5/P6 及第 11 节完成定义仍未闭合。
-173. 提交 `c2fed18` 为十二项 `FeatureId` 分别建立明亮主题 1280×800 详情 golden，覆盖普通/高级功能页导航、领域标题、脱敏字段、实际路线
-     和查询控件；先观察到首个基线缺失的预期失败，再生成十二个 PNG 并在不更新基线模式复跑通过。`ubaa_ui` `flutter analyze` 无问题、全量 46
-     项测试、敏感扫描与差异检查均通过。该提交闭合 P3 逐领域视觉基线子门禁，不替代逐领域 Core-live、六平台真实 App→FRB→Core、设备读屏或
-     P4 写后核对；P3/P4/P5/P6 与第 11 节完成定义仍未闭合。
-174. 提交 `81dd9d2` 为官方 macOS 宿主十项写入组合回归增加逐操作读后核对断言：博雅选课/退选/签到签退、课堂签到、图书馆预约/取消、场馆预约/取消、
-     阳光打卡和教学评教在单次确认提交后必须刷新关联只读领域；场馆预约专门核对订单列表刷新，阳光打卡专门核对记录刷新。先观察到缺少脱敏
-     `featureLoads` 计数器的预期编译失败，补充仅记录 `FeatureId` 次数的 fake backend 后聚焦宿主场景 1/1 通过；不访问网络、真实账号或写接口。
-175. 当前营业窗口以同一提交串行执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn` 均 exit code 0；两路线认证、用户、课表、考试、成绩、空教室、
-     SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`，SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为
-     `PASS source=static_fallback`。本轮没有执行任何真实写接口，未保留凭据、Cookie、令牌或原始响应。
-176. Flutter 原生 CI run `33620644050`（提交 `94133ae`）与合同 CI run `33620644066` 均终态 `success`；前者 Linux、Windows、macOS、iOS simulator、Android APK
-     五个 Debug job 均通过无签名产物结构检查并上传产物，后者 `contract-gates`、macOS Rust 和 Windows Rust 全部通过。`94133ae` 之前的同一 FRB 输入已由
-     `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 报告零漂移；`81dd9d2` 仅修改宿主集成测试，当前 FRB 生成目录相对该提交无差异，
-     本次重试在 `cargo-expand` 无输出超过四分钟后按安全策略中止，未产生生成漂移。结合 `just refs`、`just check-sensitive`、`just check`、`just flutter-check`、
-     无签名 OHOS API26 HAP/arm64、release-preflight、SBOM/依赖审计、回滚 runbook、十二项 golden/状态矩阵/typed 查询和十项写入确认/读后核对证据，本轮无签名
-     执行合同 P3、P4、P5、P6 及第 11 节完成定义已满足。原生 Keychain/Keystore/Credential Manager/Secret Service/HUKS handler、实体设备权限/生命周期、
-     签名/公证/商店发布继续保持后置 `BLOCKED`，不得改写为正式发布完成。
-177. 提交 `c8bd662` 对应的官方 Flutter 原生 CI run `33625430859` 与合同 CI run `33625430865` 均终态 `success`。原生 run 的 Linux、Windows、macOS、
-     iOS simulator、Android APK 五个 Debug job 均通过无签名产物结构检查并上传产物，合同 run 的 `contract-gates`、macOS Rust 和 Windows Rust 全部通过；
-     本次结果确认文档提交本身未回归无签名跨平台构建或合同门禁。两条 run 均不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后上游核对或正式商店发布，
-     这些后置事项继续保持 `BLOCKED`。
-178. 提交 `0a0bb71` 补齐了共享 UI 的响应式与可访问性证据：手机 `390×844`、平板 `768×1024`、桌面 `1280×800` 三种窗口和明/暗主题分别建立主页与课表详情
-     golden（共 12 个），并以动态字体 1.3 倍回归覆盖十二项卡片语义、键盘焦点和窄屏详情导航；1000 条详情数据的分页回归确认只保留当前 20 条页面节点，连续翻页不累积旧节点。
-     先观察到响应式 golden 缺失的预期失败，再生成基线；`ubaa_ui` analyze 与全量 49 项测试通过。该提交只涉及脱敏测试和图片基线，不访问网络、真实账号或写接口。
-179. 当前 HEAD `0a0bb71` 重新执行 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check`，约 84.9 秒完成 `cargo-expand`、FRB 生成、Dart/Rust 格式化并报告“FRB 生成零漂移”；
-     生成目录相对执行前无差异。此前无输出后安全中止的重试记录保留为历史过程，本次成功证据恢复了当前提交的 FRB 零漂移门禁。
-180. 最终文档提交 `4eaf1dd` 后，`just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、`just release-preflight`、
-     `git diff --check` 均通过；`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 通过 API26/DevEco 26.0.0.821、arm64 bridge 和无签名 HAP 结构检查。
-     当前营业窗口内串行执行 `just verify-live mode=direct` 与 `mode=webvpn` 均 exit code 0，认证、用户、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为
-     `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未执行真实写接口。
-     提交 `4eaf1dd` 对应官方 Flutter 原生 CI run `33628444289` 和合同 CI run `33628444204` 均终态 `success`：Linux、Windows、macOS、iOS simulator、Android APK
-     无签名 Debug job 通过结构检查并上传产物，合同 `contract-gates`、macOS Rust、Windows Rust 亦通过。以上不包含 OHOS 签名 HAP、实体设备、原生安全存储、真实写后上游核对或正式发布，继续保持后置 `BLOCKED`。
-181. 代码组织 Phase 11D 实现提交 `b988ae1` 将课堂签到改为 Core 所有的三态 typed 资格与稳定安排目标：
-     `signStatus` 可空且只由 Core 解释，prepare/commit 重读当天唯一目标，最终 POST 使用单次不可重放发送边界；
-     Flutter 不再从展示字段反推资格，CLI envelope 显式升为 schema v4，bridge contract 升为 v3。完整
-     `just check`、`just flutter-check`、`just refs`、`just layout-check`、697 文件敏感扫描、FRB 零漂移、
-     CLI binary E2E 16 项、macOS 脱敏宿主 integration 7 项及独立终审均通过。本阶段未联网执行真实签到，
-     不包含签名、实体设备或真实写后核对证据；Phase 11E–14 继续按代码组织计划执行。
-182. 代码组织 Phase 11E 来源提交 `61f8f99` 与实现提交 `445240d` 将图书馆预约改为 Core 所有的三态
-     typed 资格及稳定日期/时段/座位目标：座位 `status` 可空且只接受 canonical 整数，prepare/commit
-     均重读唯一 fresh authority；最终 confirm 使用单次不可重放发送边界，Direct/WebVPN 的冻结请求头分别
-     有合成传输证据。Flutter 不再从展示字段反推预约资格，CLI envelope 显式升为 schema v5，bridge
-     contract 升为 v4。完整 `just check`、`just flutter-check`、`just refs`、`just layout-check`、702 文件
-     敏感扫描、FRB 零漂移、CLI binary E2E 16 项、macOS 脱敏宿主 integration 7 项及独立终审均通过。
-     本阶段未联网执行真实预约，不包含签名、实体设备或真实写后核对证据；Phase 11F–14 继续按代码组织计划执行。
-183. 代码组织 Phase 11F 来源提交 `3e35b75` 与实现提交 `ef63d0a` 将图书馆取消改为 Core 所有的三态
-     eligibility/target，并把 action 的 `id/page/limit` 贯穿 prepare、commit 与同页 readback；取消 authority
-     必须由响应显式证明 canonical 正数分页且唯一匹配目标，最终 `/v4/space/cancel` wire 仍只有 `{id}` 并只发送
-     一次。未知成功文案与发送后歧义均不得默认成功，最终结果及 `/v4/member/seat` authority 错误均按操作映射
-     固定安全文案，不向 facade/CLI/Bridge 泄漏 raw message。CLI envelope 显式升为 schema v6，bridge
-     contract 升为 v5，磁盘 session 仍为 schema v2。Core 176 项默认测试、LibBook integration 25 项、CLI
-     contract 50 项、Bridge 61 项、Flutter Domain/App/UI/Bindings/Platform/Host/官方 App 全量测试、macOS 脱敏
-     integration 7 项、`just refs`、`just layout-check`、705 文件敏感扫描、完整 `just check`、FRB 零漂移、完整
-     `just flutter-check` 与独立正确性/安全复核均通过。本阶段未联网执行真实取消，不包含签名、实体设备或真实
-     写后核对证据；Phase 11G–14 继续按代码组织计划执行。
-184. 代码组织 Phase 11H 来源提交 `c2e07ae` 与实现提交 `f4e3137` 将场馆取消改为 Core 所有的三态
-     eligibility/target 与 strict `cancelledTarget` 证明：请求 ID 在 Auto 探测前校验，prepare/commit 均 fresh
-     读取同 ID 详情并按 `Asia/Shanghai` 严格核对开始前四小时截止点；最终取消在 Core 单次路线解析所得
-     runtime 上只发送一次。成功或 `outcome_unknown` 都固定 intent 原路线读取 0-based 首页列表与同 ID 详情，
-     只有两个本次局部结果都证明同一订单已取消才标记已核对，失败时绝不重发。CLI envelope 升为 schema v8，
-     bridge contract 升为 v7。Core 333 项、Bridge 81 项、CLI contract 66 项、Flutter 各 package 全量、
-     FRB 零漂移、完整 `just check`/`just flutter-check`、719 文件敏感扫描、macOS 脱敏宿主 integration 7 项与
-     独立终审均通过。本阶段未执行真实取消，不包含签名、实体设备或真实写后核对证据；Phase 11I–14 继续执行。
+桌面锁定已解除。续测进程 `81365` 使用同一隔离目录，Computer Use 已观察正式登录页、正常中文与图标，
+并将模式从 Auto 切换到 Direct。用户随后手动填入用户名和密码，点击登录后报告“网络不可用”。
+系统在该进程记录 `deny(1) network-outbound`；修复前实际签名与 Debug/Release 源配置均缺少
+`com.apple.security.network.client`，该次失败作为历史保留。修复后新进程 5730 使用相同隔离目录，
+助手确认正式登录页可用，用户随后确认“可以登录了”。当前基础登录为 PASS（用户确认），
+成功登录的实际路线与业务结果未单独捕获，不能据此勾选双路线、用户中心或十二领域完整矩阵。
 
-## 4. 安全与架构边界
+- [x] 以本轮 `UBAA_CONFIG_DIR` 启动独立进程并观察正式登录页。
+- [x] 核对登录页窗口、中文、密码隐藏图标与初始控件；Splash 瞬时过程和登录后导航未单独验收。
+- [x] 观察生产入口能够进入登录界面并切换 Direct；此结果仅证明启动与基础接线，不代表认证或业务读取通过。
+- [x] 执行 Direct 登录尝试：用户手动输入凭据并点击登录，结果为“网络不可用”；记住密码与自动登录此前均保持关闭。
+- [x] 按授权补齐两份客户端权限，完成失败/通过回归、官方 App 3 项测试、静态分析与 Debug 构建，实际签名保留沙箱并允许主动联网。
+- [x] 打开修复后的 App，由用户手动登录并确认成功；助手没有再次输入凭据或代为登录。
+- [ ] 登录成功后逐项核对用户中心、已认证路线与首批读取；按用户要求暂停。
+- [x] 核对安全错误与系统拒绝记录并完成修复；未重复 Core-live 对照。
 
-- 宿主只能依赖 ubaa-core facade 和专用 bridge DTO，不能访问 upstream、runtime、原始 URL、Cookie、业务 token 或内部 DTO。
-- 密码、Cookie、token、验证码、真实响应、个人资料和照片不得进入日志、错误详情、命令行、普通配置文件、fixture 或版本库。
-- 不关闭 TLS 校验，不绕过 CAS/SSO，不猜测上游 URL、字段、Header、加密常量或错误语义。
-- 显式 Direct 或 WebVPN 失败时不得静默切换路线；只有 Core 的 Auto 策略可以统一选择路线。
-- 每个写操作都必须由用户在前台主动发起，显示不可含糊的目标与影响，并再次确认。禁止后台写入、定时写入、登录后自动写入和隐藏批量写入。
-- 写请求一旦可能到达上游，不得自动重试。结果不确定时先通过对应读取接口核对状态，再决定是否允许用户重试。
-- 真实写入验证不是本计划的默认授权。每次真实验证前仍需用户对具体账号、目标、操作、路线、时间和可见副作用作出明确授权。
-- 安全存储不可用时只能使用本次进程内凭据，并明确提示；绝不以明文文件兜底。
+出现验证码、账号风险或缺少 Core 合同的交互步骤时，只记录真实类型与影响，不推断认证字段。已经实际尝试却失败的登录记 FAIL；因初始化、系统权限或输入路径而不能执行的依赖场景记 BLOCKED。CLI 登录成功不计为 App 登录成功。
 
-## 5. 完整功能矩阵
+### P2：路线与生命周期
 
-### 5.1 认证、会话和设置
+MACOS-001 已修复，基础登录获得用户确认；本节尚未逐项验收，当前按用户要求暂停。
 
-| 能力 | Core/facade 边界 | Flutter 交付 |
-|---|---|---|
-| 打开客户端 | open | 使用平台应用私有配置目录创建 opaque client |
-| 登录准备 | prepare_login | 分路线准备状态和可行动错误；当前 Core 未证明交互验证码时只展示稳定错误，不由 Flutter 猜测挑战协议 |
-| 登录 | login | 单账号登录、部分路线成功、自动登录、安全凭据写入 |
-| 状态恢复 | auth_status | Splash 恢复、过期会话清理、重新登录 |
-| 用户资料 | get_user_info | 我的页面，只展示必要字段 |
-| 注销 | logout | 退出登录；另有退出并清除本机账号 |
-| 路线策略 | default_route_policy、active_routes、新增 set_default_route_policy | Auto、Direct、WebVPN；展示配置策略与实际解析路线，按本节下方合同切换 |
+- [ ] Direct 下重新刷新每个受测页面，再记录本次结果的实际路线。
+- [ ] 结束本次 App 进程并使用相同隔离目录重启，核对 Core Session 恢复。
+- [ ] 测试最小化、恢复窗口与页面往返，核对加载、旧数据和错误状态。
+- [ ] 在“我的”切换 WebVPN，必要时重新登录，再逐项重新读取 P3。
+- [ ] 切回 Direct 并至少重新读取课表，核对路线与会话槽位；不假定切换必然导致重新登录。
+- [ ] 在隔离环境验证“退出登录”及随后重新登录。
+- [x] 登录页明确显示“当前平台暂未启用安全存储，密码只在本次运行中使用”，记住密码/自动登录不可用已记录；未声称完成 Keychain 验证。
 
-Flutter 不开放 per-feature route override。set_default_route_policy 必须作为新的稳定 facade 能力实现：拒绝在写 intent 或请求进行中切换；原子保存新的全局策略并清除 App 私有配置中的 feature override；使全部 WriteIntent 失效；dispose 后从同一私有目录重新 open；保留彼此隔离的路线 Session，再以 auth_status 检查目标路线，缺少目标路线认证时提示重新登录。每个业务结果仍展示 Core 返回的 resolved_route，不能把配置策略冒充实际路线。
+切换路线后可能保留旧快照，必须重新点击“应用筛选”或刷新，并以这次实际路线记账。Core Session 恢复与从 Keychain 读取密码后自动登录是不同场景。Auto 只作默认行为观察，不能替代两条固定路线证据。
 
-### 5.2 全部读取能力
+### P3：十二领域真实读取矩阵
 
-| 领域 | facade 方法 | 必须完成的页面与状态 |
-|---|---|---|
-| 课表 | schedule_terms、schedule_weeks、schedule_week、schedule_today | 学期、周次、周课表、今日课程、刷新和空状态 |
-| 考试 | exam_arrangement | 学期选择、已安排/未安排、时间地点和座位 |
-| 成绩 | grades | 学期成绩、课程详情、学分/绩点字段和缺失字段状态 |
-| 空教室 | classroom_search | 校区、日期、楼层、节次筛选和结果分组 |
-| SPOC | spoc_assignments、spoc_assignment | 作业列表、筛选排序、详情和提交状态 |
-| 希冀 | judge_assignments、judge_assignment、judge_assignment_details | 列表、批量详情、题目与提交进度 |
-| 课堂签到 | signin_today | 今日课程、签到状态和可操作窗口 |
-| 博雅课程 | bykc_profile、bykc_courses、bykc_course_detail、bykc_chosen_courses、bykc_statistics | 课程浏览、详情、已选课程和修读进度 |
-| 图书馆 | libbook_libraries、libbook_areas、libbook_area_detail、libbook_seats、libbook_bookings | 馆/楼层/分区/时段/座位和预约记录 |
-| 阳光打卡 | ygdk_overview、ygdk_records | 学期进度、项目列表、记录分页和图片状态 |
-| 场馆预约 | cgyy_sites、cgyy_purpose_types、cgyy_day_info、cgyy_orders、cgyy_order_detail、cgyy_lock_code | 站点、用途、日期空间、订单详情和门锁可用状态 |
-| 教学评教 | evaluation_all | 全部/待评课程、完成进度和选择状态 |
+当前全部业务行尚未完成逐项验收，按用户要求暂停。不能将登录后的自动加载、用户对网络负载的反馈或登录成功本身记为业务 PASS，也不继续沿用已修复的 MACOS-001 作为当前阻塞原因。
 
-诊断型方法只用于测试和脱敏诊断，不作为普通页面展示，也不能暴露内部协议信息。
+每行分别覆盖 Direct、WebVPN。标准步骤为“选择视图和输入、应用筛选、等待终态、核对实际路线、记录安全结果”。ID、学期与目标须来自本轮正式页面或其父列表，不从旧记录、内存或临时诊断猜取。
 
-不存在独立的 evaluation_pending facade 方法。待评列表统一由 evaluation_all 返回的稳定 is_evaluated=false 字段派生；P1 必须修正与此冲突的只读合同，并为 Core DTO、Dart 派生和 CLI 一致性建立 schema 快照测试。
-
-### 5.3 全部写入能力
-
-| 领域 | facade 方法 | 正式 UI 流程 | 完成后的核对 |
+| 编号 | 正式入口 | 最小读取路径 | 输入与边界 |
 |---|---|---|---|
-| 博雅选课 | bykc_select_course | 课程详情、资格/时间/容量检查、确认选课 | 刷新课程详情和已选列表 |
-| 博雅退选 | bykc_deselect_course | 显示课程与退选截止时间、二次确认 | 刷新详情、已选列表和修读进度 |
-| 博雅签到/签退 | bykc_sign_course | 显示课程、签到类型、时间窗口和位置要求、确认 | 刷新考勤状态 |
-| 课堂签到 | signin_perform | 显示课程名称、上课时间和当前状态、确认 | 刷新今日签到状态，防止重复 |
-| 图书馆预约 | libbook_reserve | 馆/分区/日期/时段/座位逐步选择、最终摘要确认 | 查询预约记录并匹配结果 |
-| 图书馆取消 | libbook_cancel_booking | 显示预约详情、取消条件和确认 | 刷新预约记录 |
-| 阳光打卡 | ygdk_submit | 项目、起止时间、地点、照片、公开选项、预览确认 | 刷新记录与进度 |
-| 场馆预约 | cgyy_submit_reservation | 站点/日期/空间/时段、主题、用途、参与信息、挑战处理、最终摘要 | 查询订单并匹配结果 |
-| 场馆取消 | cgyy_cancel_order | 显示订单详情、状态和取消影响、确认 | 刷新订单列表与详情 |
-| 教学评教 | evaluation_submit_courses | 选择未评课程、展示答题策略与不可撤销警告、批量确认、逐项进度 | 重新读取完成进度并展示逐项结果 |
-
-evaluation_submit 的原始字符串 payload 是低层 CLI/兼容入口，不直接暴露给 Flutter。Flutter 只使用 typed course 提交流程。SPOC、希冀、课表、考试、成绩和空教室在当前 Core 没有写入能力，不凭旧页面文案推断或新增协议。
-
-### 5.4 写操作统一确认模型
-
-bridge 为每项写操作提供 typed prepare 方法，并返回 WriteIntent：
-
-- intent_id：只在当前 opaque client 内有效的随机标识；
-- operation：固定写操作枚举；
-- target_summary：用户可读的目标与影响摘要；
-- resolved_route：Core 已解析的实际路线；
-- warnings：不可撤销、时间窗口、权限或资源状态提示；
-- expires_at：短时有效期；
-- request_digest：用于检测确认前请求内容是否变化，不含秘密。
-
-UI 展示摘要后，用户明确确认，再调用 commit_write(intent_id)。intent 只能使用一次；超时、客户端重开、路线改变、会话改变或请求内容改变都必须重新准备。commit 只执行已存储的 typed 请求，禁止接收任意 JSON 或 raw payload。
-
-新增稳定写错误至少覆盖 confirmation_required、intent_expired、operation_conflict 和 outcome_unknown，并映射为安全中文提示。若 Core 已有等价错误，复用 Core；否则作为 bridge 合同新增并测试。
-
-## 6. Flutter/FRB 目标架构
-
-    apps/ubaa_flutter/                 Android、iOS、Windows、macOS、Linux 官方宿主
-    apps/ubaa_ohos/                    HarmonyOS fork 宿主
-    packages/ubaa_domain/              DTO、枚举、UiError、WriteIntent 和页面模型
-    packages/ubaa_app/                 状态机、用例、依赖注入、读取与写入协调
-    packages/ubaa_ui/                  主题、导航、读取页面、写入流程和组件
-    packages/ubaa_platform/            CredentialVault、路径、权限、照片和位置接口
-    packages/ubaa_bindings/            FRB 生成 Dart API，禁止手改
-    crates/ubaa-flutter-bridge/        facade 到 FRB 的唯一映射层
-    crates/ubaa-core/                  协议、路线、会话和全部业务实现
-
-bridge crate 使用 cdylib 和 staticlib，并通过 Cargokit/FRB 生成平台产物。FRB Dart package、Rust crate、codegen 和 macros 必须锁定完全相同版本。生成配置、命令和输出目录纳入版本控制；重复生成不得产生未预期 diff。
-
-bridge 必须：
-
-- 使用 opaque BridgeClient 管理 UbaaClient；
-- 串行保护当前需要 &mut self 的 facade 调用；
-- 只返回专用、可序列化、FRB 兼容的最小字段 DTO；每个 DTO 使用展示白名单，不得把 Core DTO 整体透传；
-- 不直接导出 Routed<T>、RoutedError、Path 或内部类型；
-- 捕获 Rust panic 并投影为稳定内部错误，禁止 panic 穿越 FFI；
-- 支持幂等 dispose，并测试 double-dispose、use-after-dispose、取消中的会话一致性、Dart isolate 重建、内存泄漏和应用生命周期恢复；
-- 默认单进程单 BridgeClient；多实例或桌面多进程必须通过 Session Store 锁定，不能并发写同一会话文件；
-- 为所有读取与写入方法建立明确的 Dart API、参数边界和 schema 快照；
-- 在 docs/contracts/flutter-bridge.md 固定完整方法表、DTO、错误、schema 版本和 semver 兼容规则。
-
-flutter-bridge.md 必须逐 DTO 记录字段用途、是否含个人信息、遮盖规则、缓存期限和错误/崩溃快照策略。手机号、证件号、参与人、图片、交易号等字段只有页面确有用途时才可进入 Dart；Cgyy 锁码继续只返回 available；图片由受控字节或临时句柄传递，禁止把带 token 的原始 URL 交给 Dart。
-
-若首页串行读取影响体验，先在 Core 增加返回逐项结果的 home_bootstrap 聚合方法；未经会话并发审计不得在 Dart 建立多个隐式客户端或复制路由逻辑。
-
-## 7. UI、权限、凭据和本地数据
-
-### 7.1 页面与导航
-
-- Splash：品牌、版本检查、会话恢复；公告或更新检查失败不得阻塞使用。
-- 登录：学号、密码、记住密码、自动登录和路线选择；当前 Core 不支持的交互验证码显示可行动错误，不伪造输入流程。
-- 根导航：主页、普通功能、高级功能、我的；宽屏侧栏，窄屏底部导航或抽屉。
-- 普通功能顺序：课表、考试、成绩、博雅、空教室、SPOC、希冀、图书馆。
-- 高级功能：课堂签到、研讨室预约、阳光打卡、教学评教和其他已证明能力。
-- 首页各卡片独立 loading、success、empty、failure、stale 和 retry；单项失败不能白屏。
-- 写按钮必须根据当前状态、时间窗口和权限禁用，并说明原因。
-- 写入进行时只锁定相关目标；防重复点击。成功后刷新关联读取状态，失败保留非敏感输入。
-- Material 3 明暗主题、动态字体、键盘导航、屏幕阅读器语义、焦点顺序和颜色以外的状态标识全部覆盖。
-
-每个页面在 docs/design/flutter-ui-spec.md 记录导航来源、旧版参考文件、响应式布局、所有状态、确认文案和 widget/golden 测试。
-
-### 7.2 CredentialVault
-
-CredentialVault 提供 read、write、delete、capability，只保存一个账号的最小凭据，使用版本化命名空间和原子更新：
-
-- macOS/iOS：Keychain；
-- Android：Keystore 保护的密钥与应用私有密文，关闭敏感备份；
-- Windows：Credential Manager/Locker；
-- Linux：Secret Service/libsecret；
-- HarmonyOS：HUKS 非导出密钥保护应用私有密文。
-
-登录成功后才保存密码；凭据错误时清理旧密码；退出登录与退出并清除本机账号分开。安全存储缺失、锁定或损坏时退回本次会话，不创建明文备份。密码和挑战材料在使用后立即从 UI controller 与 bridge 临时状态中清理。
-
-### 7.3 Core Session 存储
-
-UbaaClient::open 只能接收 PlatformPaths 解析出的 App 私有目录。Core 继续拥有 Session 内容，Dart 和平台宿主不得读取 Cookie。P1/P2 必须冻结 session schema、迁移和清理合同，并逐平台满足：
-
-- Windows：当前用户专属目录、严格用户 ACL、原子替换，安装包和便携包都不得落到程序目录；
-- macOS/iOS：App Container/Application Support、备份排除；iOS 使用可用的数据保护级别；
-- Linux：XDG 私有数据目录、目录 0700、文件 0600、原子替换；权限无法保证时禁止持久化；
-- Android：应用私有 noBackupFilesDir 或等价目录，禁止云备份和设备间迁移；
-- HarmonyOS：应用沙箱私有目录、备份排除和厂商支持的文件保护。
-
-启动时拒绝符号链接、宽权限、损坏或降级 schema；注销清除 Core Session 但默认保留用户主动保存的密码，退出并清除账号同时删除 Session、密码和非必要缓存。升级、崩溃中断、重装和卸载后的行为必须有平台测试。
-
-### 7.4 平台权限与敏感输入
-
-- 阳光打卡：移动端支持相机/相册，桌面支持文件选择；提交前显示照片预览。照片只在本次提交和必要的预览生命周期内存在。
-- 博雅签到：仅在业务配置要求时请求前台位置；不申请后台位置。桌面没有位置能力时提供明确、可审查的手动输入或上游允许的无坐标路径，不能伪造位置。
-- 场馆挑战：图像和解答只保留在当前操作内存中，超时立即清理。
-- 权限拒绝必须给出可行动说明；拒绝权限不能导致应用崩溃或影响无关读取功能。
-- 普通缓存不得保存密码、Cookie、token、证件号、完整手机号、挑战图片或提交照片。
-- 诊断日志只记录稳定错误码、阶段、耗时桶和随机问题编号；用户手动导出前再次脱敏。
-
-## 8. 六平台目标与本轮无签名产物
-
-| 平台 | 目标系统 | 本轮无签名交付 | 后置正式发布项 |
-|---|---|---|---|
-| Windows | Windows 10/11 x64 | 原生 Debug 构建、安装包结构和运行门禁 | 签名 MSIX、安装/升级/卸载、Credential Manager 设备验证 |
-| macOS | macOS 12+，arm64；评估 x64 | 原生 Debug 构建、FRB hello 和 widget/integration | Apple Silicon/Intel 实机、Keychain、公证 DMG/App |
-| Linux | Ubuntu 22.04/24.04、Debian 12 x64 | 原生 Debug 构建、GTK 和 Secret Service 缺失路径测试 | AppImage/deb、Secret Service 设备验证 |
-| Android | API 24+，重点 API29/API35 | Debug APK 构建、ABI/产物结构和确定性测试 | 签名 AAB、模拟器/实体机、Keystore、权限和备份验证 |
-| iOS | iOS 15+ arm64 | simulator Debug 构建、FRB 链路和确定性测试 | 实体机 Archive/IPA、Keychain、权限、后台/前台恢复 |
-| HarmonyOS | build/target API26，实际最低运行版本由设备证据定稿 | API26 无签名 Debug HAP、arm64 FRB 和包内容检查 | 签名 HAP、HUKS、实体机和应用市场包 |
-
-Windows、Linux 必须在对应系统的原生 runner 构建，macOS 不能以交叉编译替代本轮可验证的运行证据。无签名目标要求每个平台至少一个 CI/本机可复现构建、静态检查和确定性 smoke；Android、iOS、HarmonyOS 的实体设备验证改列后置项。
-
-正式签名需要的 Apple、Google、Microsoft、Linux 发布、HarmonyOS 账号与证书由项目所有者在后置发布阶段安全提供。无签名产物只能标记为开发/RC 证据，不能标记为正式发布。
-
-## 9. 分阶段执行
-
-工期是单人顺序执行的粗略范围，不是发布日期承诺；OHOS 工具链、签名账号和真实写入窗口会影响总历时。
-
-### P0：冻结基线和兼容性闸门（3–5 个工作日）
-
-- 审查当前未提交 Flutter/OHOS 探索文件，形成可审查基线提交。
-- 固定 Flutter、OHOS fork、Dart、Rust、FRB、Cargokit、DevEco/CLI 和 SDK 精确版本。
-- 官方五平台分别建立最小宿主构建；OHOS 获得匹配 API26 并构建无签名 Debug HAP。
-- 在 macOS 完成 FRB hello；OHOS 在无设备条件下完成 HAP 内容、arm64 Rust 动态库和加载前置静态核对，设备 hello 记录为后置 `BLOCKED`。
-- 建立根级 just flutter-codegen-check、just flutter-check、just flutter-build 和 just ohos-check 配方；配方显式进入每个 package/app，官方 Flutter 与 OHOS fork 使用独立绝对 SDK 路径，禁止依赖当前 shell 中碰巧命中的 flutter。
-- 建立 docs/architecture/flutter-platforms.md、风险表和 go/no-go 结果。
-- OHOS 设备或签名失败不阻塞本轮无签名目标；设备专属验证和正式发布状态单独保持后置未完成。
-
-### P1：稳定 bridge 合同（1–2 周）
-
-- 建立 docs/contracts/flutter-bridge.md 和逐方法 DTO/schema。
-- 修正 evaluation pending 合同；实现 BridgeClient 生命周期、认证、路线读取/设置和全部读取方法。
-- 实现全部 typed 写请求、WriteIntent、一次性 commit 和不确定结果处理。
-- 增加 panic、dispose、isolate 重建、会话锁、错误映射、个人字段白名单、并发/取消/重复提交测试。
-- 建立可重复 FRB 生成、Cargokit 和六平台 native library 构建任务。
-
-### P2：共享应用壳与认证（1–2 周）
-
-- 完成 domain/app/ui/platform package 依赖边界。
-- 完成 Splash、登录、会话恢复、自动登录、注销、我的、设置和安全凭据。
-- 完成 Core Session 私有路径、权限、备份排除、损坏恢复、迁移和清理策略。
-- 确定状态管理与导航依赖；只有通过官方 Flutter 与 OHOS spike 的依赖才能进入锁文件。
-- 完成明暗主题、响应式导航、错误组件、空状态和无障碍基础。
-- 使用 fake backend、脱敏 fixture 和 FRB mock 完成 widget/integration 测试。
-
-### P3：全部读取能力（2–4 周）
-
-按第 5.2 节逐领域交付。每个领域必须同时完成：
-
-1. bridge DTO 与 Dart mapping；
-2. 列表/详情/筛选/分页页面；
-3. loading、empty、failure、retry、stale；
-4. widget/golden 测试；
-5. Core fixture/Mock 与 Direct/WebVPN 回归；
-6. 对应 Core-live 真实读取证据，或在设备/签名不可用时记录可复核的 `BLOCKED` 原因；不得用 Mock 冒充真实上游成功。
-
-不得先做八张摘要卡片后长期保留空详情页；一个领域只有详情与全部读取闭环完成才可勾选。
-
-当前读取缺口按以下规则闭合：libbook_area_detail 必须在 Asia/Shanghai 08:30–23:00 对 Direct/WebVPN 复跑；Bykc/SPOC 等详情只有在同一路线、同一批次的父列表确实为空时才可记 N/A，并保留父列表证据与详情 fixture 测试；Cgyy static_fallback 必须在 UI 标明来源和可能过期，且只有现有冻结回退决策仍适用并经 RC 审查时才可接受。
-
-### P4：全部写入能力（3–6 周）
-
-按风险从可逆到不可逆推进：
-
-1. 图书馆预约/取消；
-2. 场馆预约/取消及挑战；
-3. 博雅选课/退选；
-4. 博雅签到/签退与课堂签到；
-5. 阳光打卡照片提交；
-6. 教学评教选择与批量提交。
-
-每项依次完成：冻结来源 parity、失败测试、typed bridge 请求、WriteIntent、确认 UI、重复点击防护、结果核对、错误恢复、六平台 widget/integration 测试、两条路线确定性测试。完成全部确定性证据后，真实写入仍须另行申请具体操作、目标、路线和时间授权；本轮不因没有授权而停止代码和 Mock 闭环。
-
-不可撤销操作必须单独列出目标、影响、时间窗口和预期结果；没有安全样本或授权时标记 BLOCKED，不能以 Mock 替代真实成功声明。
-
-### P5：平台能力与六平台体验（2–4 周）
-
-- 完成六个平台安全凭据适配代码、抽象和 fake/Mock 合同测试；实体设备和系统密钥链验证列为后置 `BLOCKED`。
-- 完成相机/相册/文件选择、前台位置、已有 typed 合同的 Cgyy 业务挑战交互和权限拒绝路径。
-- 完成桌面窗口尺寸、键盘/鼠标、移动端生命周期和 OHOS 平台差异。
-- 对每个平台执行可在 CI/模拟环境完成的安装包结构、断网、会话过期、路线切换和权限变化测试；实体设备安装、升级、卸载和硬件权限验证列为后置 `BLOCKED`。
-- 完成性能、内存、无障碍和长列表检查。
-
-### P6：发布候选与正式发布（2–4 周）
-
-- 在原生 CI/runner 构建五平台 Debug 与 OHOS 无签名 Debug 产物，并尽可能验证无签名 Release 的产物结构。
-- 完成 SBOM、第三方许可、依赖审计和敏感信息扫描；签名、公证和商店上传列为后置发布项。
-- 完成 Direct/WebVPN 全读取矩阵和确定性写入矩阵；真实写入仍按授权规则单独处理。
-- 完成崩溃恢复、版本升级、配置迁移、回滚和发布 runbook。
-- 冻结无签名 RC，记录所有设备/签名阻塞项并生成产物校验摘要；正式签名 RC 待后置条件满足后另行生成。
-
-## 10. 测试、证据与 CI 门禁
-
-### 10.1 每次合并门禁
-
-    just refs
-    just check-sensitive
-    just check
-    just flutter-codegen-check
-    just flutter-check
-    git diff --check
-
-上述 Flutter 配方由 P0 创建后生效：flutter-codegen-check 使用锁定 FRB 版本重新生成并要求零漂移；flutter-check 用官方 SDK 在明确 cwd 遍历共享 package 和官方 App，执行 pub get、analyze、test；ohos-check 使用独立 OHOS fork SDK 执行对应 analyze、test、HAP/native 构建。平台 build 和 Release 阶段再运行 just flutter-build 与 just ohos-check。FRB 重新生成后工作树必须只有预期生成差异。不得通过放宽 lint、删除测试、忽略敏感扫描或手改生成文件获得通过。
-
-### 10.2 分层测试
-
-- Rust：领域、协议、路由、会话、读取、写入请求向量、默认拒绝、WriteIntent 和不确定结果。
-- Dart domain/app：DTO mapping、状态机、分页、缓存失效、错误和写确认。
-- Widget/golden：所有页面在手机、平板、桌面断点及明暗主题下的关键状态。
-- Integration：登录、会话恢复、路线切换、每个读取流程、每个写入准备/取消/确认流程。
-- 平台：安全存储、权限、文件/照片、应用私有目录、动态库加载和生命周期。
-- Release：安装、升级、卸载、签名、公证、产物校验和依赖清单。
-
-### 10.3 真实系统证据
-
-读取能力：Direct 与 WebVPN 按操作逐项验证，记录路线、时间、HTTP/业务安全状态和最终结论；Auto 保留确定性选择证据。FAIL 和必需 BLOCKED 一律阻止 RC。N/A 只有在父集合为空、前置条件客观不存在且有同批次证据时可接受；static_fallback 不算上游 PASS，只有 Cgyy 用途的既有冻结回退决策经复核且 UI 明示来源时可例外接受。
-
-Core-live 证明协议，不证明 App 链路。本轮无签名执行目标要求 Windows、macOS、Linux、Android、iOS 的宿主构建和可在 CI/本机完成的 Flutter→FRB→Core 确定性 integration/static smoke；HarmonyOS 要求 API26、无签名 HAP、arm64 动态库和加载前置静态核对。真实设备、签名 HAP 和设备安装/hello 在没有设备或凭据时必须记录可复核的 `BLOCKED`，不能用 Mock 冒充设备成功。Direct/WebVPN 的协议矩阵仍由 Core-live 逐操作覆盖，全部页面状态由 fixture/integration 覆盖；后置发布条件恢复后再补实体设备真实 E2E。
-
-写入能力：
-
-1. 先通过两条路线的 fixture/Mock/向量和默认拒绝测试；
-2. 提交一份不含秘密的真实验证清单；
-3. 用户明确授权具体操作和目标；
-4. 单操作串行执行，不并行、不批量、不自动重试；
-5. 立即使用读取接口核对结果；
-6. 可逆操作在授权包含清理时执行取消/退选并再次核对；
-7. 不可逆操作保留最小安全结果摘要；
-8. 任一结果不确定立即停止该领域后续写入。
-
-每个操作的 PASS、FAIL、BLOCKED 分开记录。历史上某次写入成功不能自动证明当前版本、另一条路线或另一项操作可用。
-
-真实写入协议逐操作在一台受控代表设备完成即可；六平台不重复制造相同副作用，但每个平台必须通过 Flutter→FRB→Core 的写入 prepare、取消、确认门禁、平台权限和 Mock 提交 E2E。任何真实写入仍受本节逐次授权规则约束。
-
-### 10.4 CI 平台
-
-- macOS runner：Rust、Dart、macOS、iOS simulator。
-- Linux runner：Rust、Dart、Linux、Android 构建。
-- Windows runner：Rust、Dart、Windows 安装包。
-- 受控 OHOS runner：固定 DevEco/CLI26、API26、无签名 HAP 构建、arm64/包内容检查和可用的静态 smoke；设备 smoke 列为后置条件。
-- 实体设备测试与签名任务使用受保护凭据，不在普通 Pull Request 中运行；本轮没有凭据时只记录 `BLOCKED`，不伪造结果。
-
-## 11. 本轮无签名执行完成定义（已满足）
-
-本轮状态已改为“无签名执行目标完成”，但没有改写为“正式发布完成”。以下条件均有当前提交、确定性测试、双路线只读、无签名构建或文档证据：
-
-1. 第 5 节列出的全部读取与写入能力均有正式 Flutter 页面，不存在占位页、Demo backend 或只显示摘要的未完成流程。
-2. 每项业务通过 Rust、Dart、widget/integration 和 bridge 合同测试；写入额外通过确认、重复提交和结果不确定测试。
-3. Windows、macOS、Linux、Android、iOS 有可复现 Debug 宿主构建；HarmonyOS 有 API26 无签名 Debug HAP、arm64 动态库和包内容检查。
-4. 六个平台的登录、会话恢复、路线设置、无签名条件下可验证的凭据边界、全部读取 smoke 和全部写入 UI 流程均有代码或 CI/模拟证据；实体设备专属项目明确记录 `BLOCKED`。
-5. Direct/WebVPN 全读取矩阵通过；每个写入操作均有来源对照、typed 请求、确认、防重复、结果核对和 deterministic/Mock 证据。真实写入没有授权时保持默认禁止，不得以 Mock 声称真实成功。
-6. 密码只进入经审计的平台安全存储边界或当前会话；日志、诊断、fixture、生成产物和版本库无秘密或个人数据。
-7. 所有写操作均使用一次性确认意图，无后台写入、无透明路线切换、无可能重复提交的自动重试。
-8. 无签名发布准备完成：产物结构校验、SBOM、依赖许可/审计、敏感扫描、配置迁移、回滚 runbook 和已知阻塞项清单齐备。
-9. 平台矩阵、bridge 合同、UI 规格、功能矩阵、测试证据、已知限制和发布 runbook 完整。
-10. `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check`、`just flutter-check`、无签名 OHOS 门禁和适用的 Flutter 构建门禁全部通过，工作树干净。
-
-### 11.1 后置正式发布条件（不计入本轮完成门禁）
-
-签名证书/账号、正式签名 HAP 与 Release、公证、实体设备安装/升级/卸载、硬件安全存储、设备权限和商店上传仍必须在取得相应凭据与设备后单独完成。它们在本轮记录为后置 `BLOCKED`，不得伪造结果，也不得阻塞无签名执行目标。
-
-## 12. 提交与变更管理
-
-- 每个阶段分成可审查提交；计划/合同、生成骨架、bridge、单一领域 UI、平台适配和发布配置不得混成一个提交。
-- 每个业务操作先增加失败测试并保留预期失败证据，再做最小实现。
-- 每次提交前检查 staged 文件和敏感扫描；禁止使用宽泛 git add . 把冻结目录或本地配置带入。
-- 自动生成文件必须可重现，禁止直接手改。
-- 新依赖必须记录用途、许可证、六平台支持和 OHOS 验证结果。
-- 任何范围、协议、平台最低版本或写入语义变化都要更新本计划或链接合同后实施。
-
-## 13. 执行队列
-
-- [x] 明确技术路线为 Flutter + FRB + Rust Core。
-- [x] 明确目标为六平台全部读取与写入能力正式版。
-- [x] 完成旧版 UI、Core facade、FRB/OHOS 工具链初步勘察。
-- [x] 将本文件重写为全功能正式版执行计划。
-- [x] P0：审查探索产物、冻结提交基线和六平台无签名工具链；签名 HAP/设备 hello 转为后置条件。
-- [x] P1：冻结完整 Flutter bridge 合同并实现绑定（无签名代码/合同验收已完成，原生设备观测后置）。
-- [x] P2：完成共享应用壳、认证、设置和安全凭据（无签名代码/合同门禁完成；原生密钥链和设备验证后置）。
-- [x] P3：完成全部读取页面与证据；十二项详情 golden/状态/查询覆盖，Direct/WebVPN Core-live 当前复核通过，空父详情按合同记 `NOT_APPLICABLE`。
-- [x] P4：完成全部写入页面、安全确认和确定性证据；十项写操作均有 typed prepare、一次性确认、防重复、outcome_unknown 安全处理和提交后只读核对回归；真实写入仍默认禁止。
-- [x] P5：完成六平台共享宿主适配、权限/文件/照片抽象、生命周期/错误/长列表/无障碍、静态 ABI 检查和无签名体验；原生 handler 与设备专属部分记录后置 `BLOCKED`。
-- [x] P6：完成无签名 RC、真实只读矩阵、确定性写入矩阵、SBOM/审计、迁移/回滚 runbook 和 CI 证据；签名 Release 与正式发布转为后置条件。
-- [x] 第 11 节无签名执行完成定义全部满足；状态为“无签名执行目标完成”，并保留后置发布条件清单。
-
-## 14. 默认决策与后续授权点
-
-- “记住密码”默认关闭，用户主动开启；安全存储不可用不明文降级。
-- 路线默认 Auto；App 不暴露 feature override；切换固定路线时清除 App 私有 override、使 intent 失效、重新打开 Core client，并在 auth_status 表明目标路线未认证时重新登录。
-- 所有写操作采用准备、摘要、明确确认、一次提交、读取核对的统一模型。
-- 批量评教默认不自动提交；用户选择课程、查看数量和不可撤销提示后确认。
-- 位置权限仅前台按需申请；不生成虚假位置。
-- OHOS 锁定 fork commit + DevEco/CLI26/API26；完成实体机证据前不能作为正式版发布。
-- 平台签名账号、证书、应用标识和商店发布权限不属于本轮执行前置；取得后只能用于后置正式发布条件，并由项目所有者单独安全提供。
-- 每次真实写入验证仍需单独授权；本计划本身只授权实现和确定性测试，不授权对真实账号产生副作用。
+| R01 | 普通功能 → 课表查询 | 今日课程、学期列表、周次列表、指定周课表 | 学期编码来自本次学期列表，周次来自本次周次列表 |
+| R02 | 普通功能 → 考试查询 | 全部、已安排、未安排考试 | 使用 R01 的学期编码，空集合与失败分开 |
+| R03 | 普通功能 → 成绩查询 | 全部、已出、待出成绩 | 使用本次学期，只记录数量与状态，不归档成绩 |
+| R04 | 普通功能 → 空教室查询 | 当日日期、界面默认校区、楼层/节次筛选 | 不猜校区数字对应名称，筛选编码从实际结果取得 |
+| R05 | 普通功能 → SPOC作业 | 作业列表、非空目标详情 | 使用“从当前作业列表选择”；空父集合才允许详情 N/A |
+| R06 | 普通功能 → 希冀作业 | 当前/含过期列表、单项与批量详情 | 同一记录的课程编号与作业编号保持配对 |
+| R07 | 普通功能 → 博雅课程 | 课程列表、详情、已选、修读统计、资料 | 课程 ID 从本轮列表取得，不进入选课/退选/签到 |
+| R08 | 普通功能 → 图书馆座位 | 馆、馆区、分区详情、座位、预约记录 | 上海 08:30–23:00 验证分区；时段编号若无法从页面取得，座位子项记 BLOCKED |
+| R09 | 高级功能 → 课堂签到 | 全部、未签到、已签到课程 | 仅查看，不点击“准备签到” |
+| R10 | 高级功能 → 场馆预约 | 站点、日期空间、用途、订单列表/详情、门锁状态读取 | ID 从本次列表取得，标明 static_fallback，不操作预约/取消或门锁 |
+| R11 | 高级功能 → 阳光打卡 | 概览、记录、可用时翻页一次 | 只核对进度与图片状态，不选照片、不上传 |
+| R12 | 高级功能 → 教学评教 | 全部、待评、完成进度 | 不准备提交、不批量评教 |
+
+- [ ] 完成 Direct 的 R01–R12 与必要子场景。
+- [ ] 完成 WebVPN 的 R01–R12 与必要子场景。
+- [ ] 单独记录“查下周课表”“找空教室”“找到可预约座位”三条用户旅程的步骤与阻塞。
+- [ ] 核对真实中文、图标、文字截断、错误提示、空态和陈旧数据提示。
+- [ ] 必填值无法从正式页面取得时保留用户旅程阻塞，不填任意字符串绕过校验。
+
+本轮不进入任何“准备选课/退选/签到/签退/预约/取消/打卡/评教”流程，也不点击共用“确认提交”。这些准备按钮不一定立即写入，但会引入本阶段不需要的位置、照片、挑战和确认流程。
+
+### P4：按需 Core-live 对照与归因
+
+真实 App 是本专项主入口。现有 Runbook 的“唯一网络入口”描述限定其 CLI 验证体系；本专项明确授权正常 App 登录读取，并允许 Core-live 作为独立对照。
+
+- [x] 建立同期最小认证基线：分别执行 `feature=auth route=direct` 与 `feature=auth route=webvpn`；未运行完整业务矩阵。
+- [x] 执行 Core-live 前完成 `just refs`、`just check-sensitive`、`just check`。后者退出 0，但本机未安装 ShellCheck，该子检查为 SKIP，不计为静态审计通过。
+- [x] 使用现有启动器从 `.env.local` 安全读取凭据并经 stdin 传入；两路线串行，各 prepare/login/status 三项 PASS。
+- [x] Core-live 与 App 分别记账；认证对照不替代尚未执行的 App 测试。
+
+可用命令：
+
+```bash
+just verify-live feature=auth route=direct
+just verify-live feature=auth route=webvpn
+just verify-live feature=cgyy route=direct
+just verify-live feature=cgyy route=webvpn
+just verify-live mode=direct
+just verify-live mode=webvpn
+```
+
+只运行本次诊断需要的命令。Core-live 通过而 App 失败时，App 仍未通过；两者都失败也不能自动排除 UI 问题。营业窗口、同批次空父集合 N/A、依赖失败 BLOCKED 与场馆 static_fallback 继续遵守[只读手册](docs/runbooks/live-readonly-verification.md)。
+
+本阶段不因仅修改文档而重跑其它平台构建或 FRB 生成；这些检查也不能提供新增 macOS 真实 App 证据。
+
+### P5：结论与交接
+
+- [x] 归档预检、认证对照、旧登录失败、权限修复与用户确认的登录成功；完整业务矩阵按用户要求暂停。
+- [x] 将已修复的 MACOS-001、仍不可用的原生安全存储和图书馆静态输入线索分开记录。
+- [x] 记录已执行的启动、登录前视觉、Direct 选择及用户登录结果；其余真实场景保持未验收。
+- [x] 初次进程 42940 已主动停止，续测进程 81365 后续已不在；修复后的 App 以独立进程 5730 交给用户，助手不继续操作或清理用户当前登录状态。
+- [x] 建立仓库外脱敏报告并更新本计划及 `docs/migration/status.md` 的阶段入口。
+- [x] 修复后已运行完整 `just check`、官方 App 3 项测试、静态分析、构建、产物与签名检查；ShellCheck 子检查仍为 SKIP，不能表述为通过。
+- [x] 收口前重新执行完整 `just check`、refs、敏感扫描与差异检查，核对配置、回归和决策记录的 staged 内容并形成修复提交；状态文档单独提交，最终推送结果写入外部记录。
+
+## 6. 证据与停止条件
+
+报告位置：[macOS 测试记录](/Users/moorefoss/Documents/Codex/2026-09-07/ubaa-macos-live-test.md)。每项至少记录：
+
+```text
+日期、上海时间
+product_source_base、execution_head、文档差异说明
+App 路径、架构、摘要、来源
+场景、领域、设置路线、本次实际路线
+证据类型：真实 App / Core-live 对照 / 静态预检 / 历史记录
+状态：PASS / FAIL / BLOCKED / NOT_APPLICABLE / 未执行
+安全计数、稳定错误码、耗时、依赖原因
+预期与实际、复现步骤、后续负责模块
+```
+
+以下情况停止对应边界，并继续独立可行的观察：
+
+- 桌面锁定导致不能操作 App；只等待人工解锁，不绕过系统锁定。
+- 生产 bridge 无法加载、沙箱拒绝联网或缺少安全凭据输入路径。
+- 认证出现风险、异常挑战或无法安全继续的上游拒绝。
+- 必填业务输入不能从本轮正式页面取得。
+- 必须修改源码、平台配置或安全策略才能继续。
+- 下一操作可能产生学校业务写入，或发现不确定业务副作用。
+- 凭据、Cookie、个人资料或原始响应可能进入普通日志、文档或差异。
+
+不以无限重试代替结论。完成可独立进行的检查、记录明确阻塞和开发交接条件后交付真实结果；不得将本专项结果写成正式发布完成。
+
+## 7. MACOS-001：主动联网权限缺失
+
+状态：权限修复完成，用户确认修复包可登录。原严重程度为阻断 macOS 真实认证与全部后续业务读取；负责模块为 macOS 原生宿主与打包配置。
+
+证据：续测进程 81365 在上海时间 14:06:54、14:17:13、14:17:28 被系统记录为
+`deny(1) network-outbound`；用户在真实登录操作后看到“网络不可用”。实际 App 签名开启 App Sandbox，
+只有 `network.server`，没有 `network.client`；DebugProfile 与 Release 源文件同样缺少客户端权限。
+
+已完成最小修复：两份 entitlement 各增加 network.client=true，保持 App Sandbox 和既有权限；新增权限回归先以 null 值失败，再通过。官方 App 三项测试、静态分析、完整 `just check` 和 macOS Debug 构建通过，实际产物中客户端权限与沙箱均为 true。
+
+新 Debug 产物摘要见第 3 节，用户已确认可登录。Release 配置通过同一结构回归，但本轮未构建 Release 产物。
+后续恢复实测时仍须分别验证 Direct/WebVPN、Session 恢复和 P2/P3，不把用户一次登录确认扩展为全部验收通过。
