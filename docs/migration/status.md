@@ -1,46 +1,39 @@
 # 当前迁移与交付状态
 
-更新日期：2026-09-07，Asia/Shanghai。
+更新日期：2026-09-08，Asia/Shanghai。
 
-## 当前活动阶段：可维护性治理
+## 当前活动阶段：全功能 UI/UX 重设计计划已制定
 
-当前活动合同为[可维护性治理](../../goal.md)，设计和实施计划分别见[设计](../superpowers/specs/2026-09-07-maintainability-design.md)与[计划](../superpowers/plans/2026-09-07-maintainability.md)。本阶段处理错误传播、本地安全诊断、传输诊断、严格门禁和可共享交接证据。
+当前活动合同为[全功能 UI/UX 审查、重设计与多设备验收计划](../../goal.md)。目标是先盘点所有功能和实际审查当前界面，再完成面向大学生的整体设计、共享 Flutter 实现与手机/平板/电脑实际渲染和交互验证。
 
-本轮本地可维护性治理已完成，最终实现内容为 `541981ea51a79044043b74cec3af0a32b5c35308`，详见[验收记录](evidence/2026-09-07-maintainability.md)。真实 App 与 Core-live 保持暂停。本轮不读取 `.env.local`、会话或实时响应，不执行真实学校写入、签名发布、设备安装或诊断上传。
+本次仅完成计划制定与旧合同归档，尚未执行新合同 P0–P7；没有修改生产代码、运行应用、读取凭据或开展实时验证。新合同规定执行阶段的本地开发、模拟器调试、脱敏写入 UI 验证与安全只读验收范围，旧合同中的暂停条款保留为历史事实，不继续限制新合同已明确授权的工作。
 
-## 已确认的合同与历史事实
+## 本次已核实
 
-| 项目 | 当前事实 | 边界 |
-|---|---|---|
-| 冻结引用 | `ubaa_old` `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`examples/buaa-api` `efb7976bf513f38364b88aeb83d704586cff9b2a` | 认证和只读行为变更仍须逐操作来源对照。 |
-| 稳定版本 | CLI JSON schema v10；Flutter bridge contract v9；`session.json` v2；`config.toml` v1 | 本轮不得静默变更公开合同。 |
-| 历史源码验收 | `0bd866c9ff5f205f2b1604bf5e72640a3e735018` | 这是 2026-09-05 的历史 verified 源码 SHA；摘要在[仓库内证据](evidence/2026-09-05-code-organization-summary.md)，本轮未重新在线核验。 |
-| macOS 历史修复 | `cf5d431338d22d18c0e24245bb0ad1fd16709dde` 补齐 DebugProfile/Release 的主动联网权限 | 来源为归档合同；基础登录有用户确认，完整真实 App 验收仍暂停。 |
+- 起始工作区为 `ubaa2`，计划制定前 `git status --short --branch` 无未提交改动。
+- `just refs` 通过：冻结 `ubaa_old` 为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，`examples/buaa-api` 为 `efb7976bf513f38364b88aeb83d704586cff9b2a`；未改写冻结目录。
+- 已阅读功能矩阵、现行 UI 规格、主题/首页与测试入口、平台矩阵及门禁脚本，确认共享 `ubaa_ui`、`ubaa_app`、`ubaa_host` 的实施定位；这不等于完成逐操作盘点或实际界面审查。
+- 现有文档声明 CLI JSON schema v10、Flutter bridge contract v9、`session.json` v2、`config.toml` v1；新合同要求执行前重新校验，禁止以 UI 改造静默改变公开合同。
 
-历史源码 SHA 与证据记录必须分开解释：`0bd866c9` 是 2026-09-05 验收报告对应的源码；该报告的脱敏内容被本仓库摘要引用，不把随后任何文档提交写成已重新验证的源码候选。
+## 后续执行与验收
 
-## 本轮已验证
+- P0–P1：基线、全功能清单、实际界面观察、优缺点与问题优先级。
+- P2：完整设计、三端代表性原型、逐文件实施清单及自评。
+- P3–P5：共享框架、全部领域查询、个人功能与全部脱敏写入流程的分批实现及持续渲染复验。
+- P6–P7：手机原生模拟器/设备、平板原生模拟器/设备、macOS 实际应用验收，确定性门禁与安全只读矩阵，功能保真核对及最终交付。
 
-- 错误字段完整传播、单一展示模板、结果未知禁止通用重试；有界本地诊断可从登录失败页与个人页主动查看/复制。
-- Reqwest 真实回环、保守失败分类与 Bridge 安全 DEBUG 日志接线；CLI 默认 JSON stderr 合同保持。
-- `just check-strict` 通过，实际运行 ShellCheck 0.11.0；CLI 128 项、Bridge 110 项、Flutter 396 项、维护 Shell 16 项及版本 Shell 7 项通过。
-- FRB 重生成零漂移、macOS 脱敏宿主 integration 7 项通过；macOS 生产 Debug、Android 四种架构 APK、iOS simulator、OHOS API26 无签名 HAP 与本地产物检查通过。
-- 结构门禁零例外、敏感扫描通过，独立复审无未解决高、中风险问题。源码验证内容和后续文档记录分别记账。
+各项产出路径、测试命令、设备/尺寸矩阵、授权和完成条件以 `goal.md` 为准。执行时同步本页与新证据，不继承历史测试计数、CI 或真实读取结果。
 
-本轮未推送，未运行远端 CI，也未重验 Windows/Linux 原生运行器。历史 CI 成功不能继承。
+## 历史已完成与未验证边界
 
-## 真实产品验收仍未完成
+2026-09-07 可维护性治理的最终实现为 `541981ea51a79044043b74cec3af0a32b5c35308`，历史本地门禁、Flutter/FRB/宿主集成和构建结果见[维护验收](evidence/2026-09-07-maintainability.md)。当日真实 App/Core-live 暂停、未推送与未执行远端 CI 等事实完整保留在归档中，不代表本轮已验证。
 
-- macOS 真实 App 的 Direct/WebVPN、会话恢复、用户中心和十二领域读取矩阵。
-- 真实业务写入及写后读取核对。
-- 正式签名、公证、商店上传、实体设备安装、原生安全存储和设备权限。
-
-Fixture、Mock、golden、无签名构建、宿主集成、历史 Core-live 和历史 CI 各自只证明其记录范围，不能替代以上真实产品验收。
+本轮尚未运行真实 App 或 Core-live，也未完成手机/平板/电脑运行验收。真实学校写入、正式签名、公证、商店上传、发布和实体设备安装不属于本轮必做项；写入界面使用合成/脱敏 backend 验证。Fixture、Mock、golden、原生宿主运行、构建、Core-live 与真实 App 各自独立记账。
 
 ## 历史归档
 
+- [2026-09-08 UI/UX 制定前活动合同全文](history/goal-2026-09-08-before-ui-ux.md)
+- [2026-09-08 UI/UX 制定前状态全文](history/status-2026-09-08-before-ui-ux.md)
 - [2026-09-07 维护治理前状态全文](history/status-2026-09-07-before-maintainability.md)
 - [2026-09-07 macOS 真实 App 活动合同全文](history/goal-2026-09-07-macos-real-app.md)
 - [2026-09-02 及以前状态流水](history/status-through-2026-09-02.md)
-
-归档保留当时的失败、修复、用户确认、暂停和计数，不以历史成功覆盖当前候选或本轮未执行项。

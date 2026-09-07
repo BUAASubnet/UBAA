@@ -1,37 +1,231 @@
-# 可维护性治理活动合同
+# UBAA 全功能 UI/UX 审查、重设计与多设备验收计划
 
-状态：本地可维护性治理完成，独立复审无未解决高、中风险问题。制定与完成日期：2026-09-07，Asia/Shanghai。
+> 执行代理：使用 `superpowers:executing-plans` 按阶段执行，以复选框跟踪进度。开始执行本合同时，用户已授权按本计划完成设计、代码修改、本地运行、模拟器调试与验证；常规设计取舍和可逆操作自主推进，不逐页请求批准。
 
-本文件是当前活动合同，覆盖错误语义、可追溯诊断、确定性门禁和可共享交接证据的维护修复。设计见[可维护性治理设计](docs/superpowers/specs/2026-09-07-maintainability-design.md)，实施步骤见[可维护性治理计划](docs/superpowers/plans/2026-09-07-maintainability.md)。
+制定日期：2026-09-08，Asia/Shanghai。
+状态：计划已制定，P0–P7 尚未执行。制定计划时的文档阅读不计为完整功能审查或界面验收。
 
-此前 macOS 真实 App 专项合同及其观察、修复和暂停事实已原样归档至[2026-09-07 macOS 真实 App 合同](docs/migration/history/goal-2026-09-07-macos-real-app.md)；不得将归档中的历史结果回填为本轮维护修复的验收结果。
+**目标：**理解当前项目的全部能力，基于真实界面审查优缺点，面向大学生设计并实现完整、一致、清爽、实用的 UI/UX，实际渲染和操作验证手机、平板、电脑的适配，保留现有功能与业务语义。
 
-## 已确认现状
+**架构：**优先修改共享 `ubaa_ui`，必要的展示状态和宿主接线分别落在 `ubaa_app`、`ubaa_host`；官方 Flutter 与 OHOS 宿主复用同一套设计。Core `facade`、typed Bridge、唯一 `WriteCoordinator` 继续拥有既定业务边界。
 
-- 冻结引用仍为 `ubaa_old` `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与 `examples/buaa-api` `efb7976bf513f38364b88aeb83d704586cff9b2a`。认证和只读行为变更继续先做逐操作来源对照。
-- 稳定公开合同保持 CLI JSON schema v10、Flutter Bridge v9、`session.json` v2 和 `config.toml` v1。本轮不得借维护治理改变上游请求、TLS、写入次数、重试策略或公开 Rust 错误。
-- `0bd866c9ff5f205f2b1604bf5e72640a3e735018` 是 2026-09-05 代码组织历史验收所记录的源码 SHA。其脱敏计数和公开 CI 链接已整理到[仓库内历史摘要](docs/migration/evidence/2026-09-05-code-organization-summary.md)，仅表示当日证据，未在本轮重新在线核验。
-- macOS 主动联网权限修复源码提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`。此前合同记录了用户确认的基础登录和随后暂停的真实测试；本轮只将其作为历史来源，不读取凭据、会话、实时响应或个人数据。
+**技术栈：**仓库锁定的 Rust、Flutter、Dart、FRB、Material 3；版本以工具链锁文件及现有检查脚本为准，不为视觉改造主动升级 SDK 或依赖。
 
-## 范围与约束
+**设计依据：**本合同与用户已确定的要求是执行起点；[现行 UI 规格](docs/design/flutter-ui-spec.md)是现状和行为约束来源。P2 产出 `docs/design/ui-ux-redesign.md`，P3 起同时按该设计和本合同实现；不得把尚未形成的新设计当作已评审成果。
 
-- 保持真实 App 和 Core-live 暂停，只进行本地确定性开发、测试和文档记录；不读取 `.env.local`、运行时会话、验证码或实时上游响应。
-- 不执行任何学校业务写入、签名发布、设备安装、上传诊断或自动重试上游请求。
-- 生产宿主只能经 Core `facade` 使用协议能力；不向宿主暴露 URL、Cookie、token、原始响应或 `upstream` 内部类型。
-- 每个行为修复先留下脱敏 RED 证据，再做最小实现与 GREEN 复验。涉及认证或只读行为时，先补来源对照；参考冲突或缺少证据时停止在边界，不猜测协议字段。
-- 仓库内只保存安全摘要和可复现的确定性证据。不得提交凭据、Cookie、token、原始响应、验证码、个人资料或其截图。
+此前合同与状态已分别原样归档到[旧合同](docs/migration/history/goal-2026-09-08-before-ui-ux.md)和[旧状态](docs/migration/history/status-2026-09-08-before-ui-ux.md)。旧测试计数、构建、CI 和实时观察均为历史证据，不继承为本轮 PASS。
 
-## 本轮工作与验收
+## 一、范围、授权与行为底线
 
-1. 恢复 Bridge 到 Dart 的既有错误字段传播，并让应用层只保留一个展示映射入口。
-2. 增加有界、仅内存且不含原始异常文本的本地诊断，覆盖控制器、写入协调器和安全 UI 呈现。
-3. 为 Reqwest 传输增加私有安全分类；补齐严格 ShellCheck 入口和 macOS 实际签名权限检查。
-4. 维护本页、[当前状态](docs/migration/status.md)、来源对照、排障资料和仓库内脱敏证据，使新 clone 不依赖个人绝对路径。
+1. 覆盖认证、会话恢复、全部领域查询与详情、既有写入流程、个人页、路线设置、诊断、主题及全部导航入口。不得仅改善首页，或用通用字段列表替代本来需要领域结构的设计。
+2. 用户群体为大学生。追求快速查询、短流程操作、可扫读的信息和适度信息密度；不假设所有学生偏爱强装饰、游戏化或社交化。不引入与当前功能无关的产品模块。
+3. 参考现有 Material 3、蓝色种子色 `0xFF536AA3`、明暗主题和组件气质。先记录值得保留的视觉特征，再改善；颜色、间距、圆角等允许有依据地调整，不强制像素复刻。
+4. 完整无障碍合规、读屏专项和认证不作为本轮新增验收门槛。保留已有语义与基础能力，保证文字清楚、控件好点、键盘可用及文字放大不破版，不为减小范围删除已有测试或功能。
+5. 授权本地代码与文档修改、构建、启动/停止本任务进程、创建隔离工作区与测试目录、安装必要的本地开发依赖、启动模拟器并安装调试测试包、运行测试和逐阶段本地提交。检查现有环境后复用锁定工具链，不覆盖用户未提交修改、默认运行会话或无关应用数据。
+6. 本合同替代旧合同的本地开发及 App 运行暂停范围。执行阶段按项目完成门禁进行认证与业务只读的 Core-live Direct/WebVPN 验证，并在安全凭据路径可用时验证生产 App 只读链路。制定计划这一轮不读取凭据或开展 live。
+7. 不执行真实选课、退选、签到、预约、取消、评教、照片上传等学校业务写入；写入 UI 全流程通过显式注入的脱敏 backend 验证。设备操作权限不解释为这些真实业务操作的授权。正式签名、公证、商店上传、发布、远端推送和实体设备安装不属于本轮必做项。
+8. `.env.local`、会话、验证码和实时响应只作为只读敏感输入。凭据仅经既有安全路径使用，不打印、不放进命令行参数、不写入证据；不绕过锁屏或 TLS，不提交真实个人资料或其截图。生产 App 测试使用隔离的绝对 `UBAA_CONFIG_DIR`，遵守 App Sandbox 路径约束，不改写 `HOME`。
+9. 生产宿主只能消费 `facade`/typed Bridge，不接触上游 URL、Cookie、token、原始响应或 `upstream` 内部类型。保持 CLI schema v10、Bridge v9、Session v2、配置 v1 等既有公开合同，执行前核实当前版本。
+10. 认证或只读功能的展示/行为变更，必须在生产代码修改前完成两个冻结来源的逐操作对照。纯视觉项可引用既有对照并逐项说明请求、字段、缓存、路由、错误语义均未改变；不能用“只改 UI”跳过行为审查。协议缺证据时只阻塞该边界，不猜字段，也不阻止其余 UI 工作。
+11. 保留 Core typed action/eligibility 和最终权威，保持 prepare→确认→单次 commit→既定只读核对；未知结果不显示成功、不自动重发。保留会话失效、过期意图、路线固定、取消失败、批量逐项结果和迟到响应保护。
+12. 常规审查、设计自评、实现与修复自主连续推进。遇到真实的账号、验证码、硬件或上游障碍，记录具体阻塞并继续独立任务；缺少外部条件时不能降低验收标准或将未执行标为完成。
 
-本轮最终实现内容已提交为 `541981ea51a79044043b74cec3af0a32b5c35308`。严格 Rust/Shell、CLI、396 项 Flutter、FRB 零漂移、7 项脱敏 macOS integration，以及 macOS/Android/iOS simulator/OHOS 本机构建与产物门禁通过，见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。后续文档提交只记录结果，不冒充新增源码或远端验证。
+## 二、真实范围与代码定位
 
-## 未完成的真实验收边界
+先交叉核实以下材料，不仅依赖状态文档：`UBAA2.md`、`docs/migration/full-feature-matrix.md`、`readonly-feature-matrix.md`、`source-parity.md`、`references.md`、`docs/contracts/flutter-bridge.md`、`docs/design/flutter-ui-spec.md`、`docs/architecture/flutter-platforms.md`、`docs/runbooks/local-diagnostics.md`、公开 facade/Bridge、页面与测试。
 
-- macOS 真实 App 的 Direct/WebVPN、会话恢复、用户中心和十二领域读取矩阵仍未完成。
-- 任何真实业务写入、写后读取核对、正式签名、公证、商店上传、实体设备和原生安全存储验证均未在本合同下执行。
-- 历史 Core-live、CI、Fixture、Mock、golden、无签名构建和宿主集成的成功不能代替本轮或真实 App 验收。
+| 范围 | 现有主要实现 | 回归定位 |
+|---|---|---|
+| 主题与共享导出 | `packages/ubaa_ui/lib/src/theme.dart`、`widgets.dart`、`lib/ubaa_ui.dart` | `packages/ubaa_ui/test/widgets/goldens.dart`、`widgets_test.dart` |
+| 启动、登录、导航、首页、个人页 | `packages/ubaa_ui/lib/src/app/{splash,login,shell,home,profile}.dart` | `test/widgets/shell.dart`、`test/diagnostics_test.dart` |
+| 查询、详情、字段、分页、错误与状态 | `packages/ubaa_ui/lib/src/common/{query_controls,feature_detail,detail_list,detail_fields,pagination,error_card}.dart` | `test/widgets/{queries,feature_details,states}.dart` |
+| 十二领域页面 | `packages/ubaa_ui/lib/src/features/{academic,assignments,bykc,libbook,cgyy,ygdk,evaluation}.dart` | `packages/ubaa_ui/test/widgets/` 下对应查询与写入测试 |
+| 表单与统一确认 | `packages/ubaa_ui/lib/src/write/{cgyy_form,ygdk_form,confirmation}.dart`、`write_callbacks.dart` | `test/write_coordination_test.dart`、`test/widgets/*writes.dart` |
+| 展示模型、加载与会话生命周期 | `packages/ubaa_domain/lib/`、`packages/ubaa_app/lib/src/controller/`、`bridge/read/` | `packages/ubaa_app/test/app_controller_test.dart`、`bridge_backend_characterization_test.dart` |
+| 写入与回读唯一状态机 | `packages/ubaa_app/lib/src/write/coordinator.dart`、`receipt_verifier.dart` | `write_coordinator_test.dart`、`app_write_lifecycle_test.dart`、`write_readback_reentry_test.dart` |
+| 宿主与平台能力 | `packages/ubaa_host/lib/src/`、`packages/ubaa_platform/lib/`、两个宿主 `lib/main.dart` | `packages/ubaa_host/test/`、`packages/ubaa_platform/test/` |
+| 实际 Flutter 宿主集成 | `apps/ubaa_flutter/integration_test/app_flow_test.dart` 及 `app_flow/` | 扩展已有脱敏注入链路，不另写假页面冒充生产 UI |
+
+表内 UI 测试简写路径相对 `packages/ubaa_ui/`，应用测试简写路径相对 `packages/ubaa_app/test/`。新增实现按责任放在对应目录，测试镜像组织；入口保持精简，不做无关目录重构。
+
+功能盘点至少包括以下领域，且展开到具体查询、子页面与操作：
+
+- 认证、验证码、会话恢复、用户资料、默认路线/已认证路线/实际路线、主题、匿名统计、诊断、退出与清除本机账号。
+- 课表、考试、成绩、空闲教室；SPOC 作业、希冀课程/作业/单项与批量详情。
+- 课堂签到查询与签到；博雅资料、课程、详情、已选、统计、选退课和签到/签退。
+- 图书馆楼馆、分区、时段、座位、预约记录、预约与取消。
+- 场馆站点、用途、日期、时段、订单、详情、现有锁码能力及预约与取消的展示边界。
+- 阳光打卡概览、记录、照片/位置能力与提交；教学评教全部/待评、单门/批量提交与逐项结果。
+
+以上是从现有文档定位的盘点起点，不冒充逐操作审计结果。对 Core 已有但界面未接入的能力，明确其产品价值、依赖和本轮接入结论；合理的用户能力应补齐入口，内部协议能力不直接暴露。无法接入的条目说明具体原因，不能从清单删除以获得“完整”。
+
+## 三、交付物与证据格式
+
+| 文件 | 必含内容 |
+|---|---|
+| `docs/design/ui-ux-inventory.md` | 每个操作的稳定编号、实现位置、当前入口、用户任务、数据/权限/资格约束、完成状态、新设计位置、测试和运行证据 |
+| `docs/design/ui-ux-audit.md` | 现有优点与不足；问题编号、复现条件、现象、依据、影响、优先级、改善方向；区分实际观察、静态推断和设计假设 |
+| `docs/design/ui-ux-redesign.md` | 信息架构、全部流程、设计变量、组件/状态规范、逐页面规格、三端适配规则、保留/调整理由及自评结论 |
+| `docs/design/ui-ux-implementation.md` | P2 根据审查结果拆出的实际文件/组件/接口改动、逐项回归用例、先后依赖和验证命令，支撑 P3–P5 实施 |
+| `docs/migration/evidence/2026-09-08-ui-ux.md` | 阶段记录、源码 SHA、命令/退出码、工具链、设备/尺寸/主题/数据类型、截图索引、问题修复复验、最终覆盖率与阻塞 |
+| `docs/design/evidence/ui-ux/` | 仅保存经过检查的合成/脱敏原型、前后截图和必要小型录屏；文件名关联页面编号、状态、设备与阶段 |
+| `docs/design/flutter-ui-spec.md` | 随最终实现更新当前产品规格，明确历史视觉基线已被哪份设计替代，保留业务约束 |
+| `docs/migration/status.md`、`decision-log.md`、`source-parity.md`、`goal.md` | 当前事实、设计/行为决策、来源核对、进度与未完成项 |
+
+功能状态分别记录“实现”“UI 可达”“确定性验证”“实际渲染”“真实只读”，不能合成一个“完成”字段。截图记录数据来源；来自 fake 的实际 App 渲染是 UI 证据，不能标为真实 FRB/上游证据。
+
+## 四、阶段执行清单
+
+### P0：建立可执行基线
+
+- [ ] 运行 `git status --short --branch`、`just refs`，记录开始 SHA、已有改动与当前工作区。需要隔离时自主创建 `codex/` 工作分支或 worktree，并确保新合同和锁定引用可用。
+- [ ] 核实 Flutter、Dart、Rust、模拟器和可用设备；执行现有 `scripts/check/flutter-toolchains.sh official`，列出手机、平板和 macOS 的实际可运行目标，不以安装过 SDK 推断模拟器可用。
+- [ ] 阅读全部范围材料，确认安全 backend 注入方法、生产启动路径、测试私有目录、模拟器安装方式；复用既有测试入口。
+- [ ] 运行 `just flutter-check` 建立现有回归基线。失败先记录和定位，区分环境、既有缺陷与本轮改动，不删除失败测试。
+- [ ] 启动现有 Flutter 界面，使用代表性合成业务数据保留登录、首页、列表、详情、确认和异常状态的前置截图；最迟 P1 必须取得真实运行观察。
+- [ ] 创建交付物中的清单、审查报告与证据记录，更新状态；仅文档空壳不能作为 P0 完成依据。
+
+### P1：全功能盘点与现状审查
+
+- [ ] 对每个领域沿 facade→Bridge→app→UI→测试核对到具体操作，填满功能清单并建立页面地图；解释文档与代码的差异。
+- [ ] 实际打开所有现有页面和主要子视图，操作查询、筛选、翻页、返回、刷新、设置和脱敏写入流程；未运行的路径标记原因。
+- [ ] 按大学生查询课表/成绩、查作业、找教室、查看与管理预约等任务审查；记录当前入口点击数和重复输入，作为后续对比基线。任务频率为设计假设，未访谈不能声称获得用户验证。
+- [ ] 从层级、布局、密度、色彩、文字、导航、反馈、容错、多端和状态连续性提出优缺点；每个问题给出依据和改善方向。
+- [ ] 优先级：P0 为误导业务结果/重复提交/数据安全/核心流程不可用；P1 为主要任务明显受阻或主要设备不可用；P2 为局部效率与一致性；P3 为装饰细节。制定逐项处理结论。
+- [ ] 复核所有既有功能均有去向，列出计划补齐的用户入口和明确不对外暴露的内部能力；完成阶段文档提交。
+
+### P2：完整设计与可渲染原型
+
+- [ ] 明确保留的现有风格和需要调整的部分，比较少量可行的信息架构，选择有任务依据的方案并写清理由，不等待逐页批准。
+- [ ] 设计全局导航、首页优先级、功能分组、个人设置和详情返回行为；高频查询目标为首页 1–2 次点击到达，例外按真实流程说明，不牺牲必要业务确认。
+- [ ] 在 `ui-ux-redesign.md` 写出可实施的颜色、字体层级、间距、圆角、内容宽度、断点、网格、列表/表格、按钮、表单、筛选、分页和反馈规范；定义浅色/深色和输入焦点状态。
+- [ ] 逐页面映射全部功能、字段优先级、操作、可用条件、空/加载/旧数据/错误状态、移动与宽屏结构。领域页面可以不同，共享同一设计语言。
+- [ ] 完整设计写入准备、确认、取消、过期、提交、逐项结果和核对状态；禁用或隐藏写入口时有可理解的原因，不能从展示文本推断业务资格。
+- [ ] 制作并实际渲染登录/首页、密集查询列表、领域详情、复杂表单、写入确认、个人页与异常状态的代表性原型，展示手机/平板/桌面；标明原型，不将其截图作为最终代码证据。
+- [ ] 自评任务可达性、信息密度、全功能映射和三端布局，记录问题并调整；设计闭合后形成逐文件实施清单与有意义的失败测试方案，再进入 P3。
+- [ ] 在实施清单列明每批消费/产出的真实接口和受影响测试，先核实签名再引用，不虚构组件或 Core API；记录来源对照，完成阶段提交。
+
+### P3：设计系统、导航框架与状态组件
+
+- [ ] 在现有主题与公共 UI 目录实现设计变量、响应式结构、导航与公共状态，保持共享导出稳定；必要时按责任拆文件。
+- [ ] 对布局断点切换不丢失当前页面、返回保留输入/筛选/滚动、软键盘不遮挡操作等行为，先增加针对性失败测试并观察预期失败，再做最小实现与复验。
+- [ ] 对纯配色/间距变更做实际视觉比较，不编写只复述常量的测试；golden 仅在看过新输出并确认后更新，不能批量更新来掩盖回归。
+- [ ] 在至少一个真实运行的 Flutter 宿主中检查窄/中/宽布局与明暗主题，修复公共框架问题后再推广到所有领域。
+- [ ] 运行对应 widget/app/host 测试、`just check-sensitive`、`just check`；记录阶段结果，检查暂存文件并提交。
+
+### P4：全部查询领域与个人功能迁移
+
+按以下批次顺序推进，每批都完成“设计映射→必要的行为 RED→实现→GREEN→实际渲染与操作→修复复验→门禁→提交”，不能集中到最后才渲染。
+
+- [ ] 批次 A：启动、登录、会话恢复、路线、首页、个人页、主题、诊断与退出；生产 backend 失败不能自动落入 Demo 成功界面。
+- [ ] 批次 B：课表、考试、成绩、空教室；保持真实学期/周次/日期/校区参数，优化时间、课程和成绩的领域展示。
+- [ ] 批次 C：SPOC、希冀、课堂签到查询、教学评教查询；保留全部/待办/过期/单项/批量等现有能力与明确结果。
+- [ ] 批次 D：博雅课程/详情/已选/统计；图书馆楼馆/分区/座位/时段/记录；场馆站点/日期/时段/订单/详情；阳光概览/记录。
+- [ ] 每批覆盖有数据、空结果、首次失败、旧数据刷新失败、长文本、大量列表及相关权限/资格缺失。保留服务端分页元数据，不以本地分页替换服务端页。
+- [ ] 检查刷新 generation、实际路线、明确空结果清除旧数据、日期校验及领域字段白名单没有退化；展示诊断保持用户可理解且不泄密。
+- [ ] 每批对照清单检查小屏操作可达和宽屏空间利用，运行聚焦测试、`just check-sensitive`、`just check` 后独立提交。
+
+### P5：全部写入 UI 与跨页面交互闭合
+
+- [ ] 按清单逐项迁移博雅选/退/签到/签退、图书馆预约/取消、场馆预约/取消、课堂签到、阳光照片表单、评教单门/批量流程；不能只验证一个共享确认弹窗。
+- [ ] 通过现有 typed fake 注入测试所有流程的 prepare、取消、确认、单次提交和规定回读；照片仅用合成图片，位置/权限通过受控平台能力注入。
+- [ ] 覆盖 allowed/denied/unknown、目标缺失/不一致、取消失败、意图过期、commit 异常、显式 outcome_unknown、读取核对失败、批量部分失败与未尝试项。
+- [ ] 验证提交中双击/返回、切换账户或路线、后台恢复与迟到响应不会重复发送、恢复旧意图或把不确定结果改成成功；有行为变更时先保留 RED 证据。
+- [ ] 实际操作手机/平板/桌面中的表单、选择、确认与结果页，检查软键盘和安全区域；记录运行数据为 fake，不触发真实业务写接口。
+- [ ] 运行对应 widget 测试、`write_coordination_test.dart`、应用写入生命周期/回读测试和宿主集成，执行 `just check-sensitive`、`just check` 后提交。
+
+### P6：多设备实测、只读链路与缺陷闭环
+
+- [ ] 执行第五节全部测试矩阵，逐页截图观察并实际操作；发现问题先登记，再修复，再在原触发环境复验，记录前后证据。
+- [ ] 至少取得一个手机原生模拟器/设备、一个平板原生模拟器/设备、一个 macOS 原生应用的最终运行证据。优先复用可用 iPhone/iPad 模拟器；Android 运行环境可用时补齐 Android 关键路径。
+- [ ] 若只有桌面改变窗口尺寸或 widget 渲染，只能标为尺寸适配证据；继续排查模拟器和构建条件，不将该结果标成手机/平板原生验收通过。
+- [ ] 在安全凭据路径可用时，用生产 App 验证登录/会话恢复、用户与领域只读页面；分开记录 Direct/WebVPN，敏感页面不保存原始截图到交付物。无法安全自动输入时记录依赖，继续脱敏运行验收。
+- [ ] 串行运行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`。真实失败记录操作、路线、稳定错误和时间；营业窗口、无父列表、上游不可用等按证据解释，不把认证成功算作全部业务成功。
+- [ ] 在变更后的最终源码候选运行第六节门禁；后续修复重新运行受影响检查，对旧证据标明失效范围。
+- [ ] P0/P1 体验缺陷清零；范围内 P2 完成修复，确有外部依赖的条目保持阻塞。P3 可有明确理由记录取舍，不得用重新降级掩盖功能问题。
+
+### P7：最终核对与交付
+
+- [ ] 每个功能都有新入口或明确的内部能力说明，每个页面有设计与最终实现对应，每个适用状态有测试或运行证据。
+- [ ] 更新现行 UI 规格、功能矩阵中确有变化的事实、迁移状态、来源对照、决策记录及本合同进度；不得复制历史计数充当本轮结果。
+- [ ] 复核暂存内容不含凭据、会话、真实照片/个人资料、原始 live 响应、临时构建目录；按阶段提交，保留用户既有改动，报告最终源码 SHA 与证据文档提交。
+- [ ] 最终交付：现状优缺点、改进理由、完整设计位置、功能覆盖表、代表性前后对比、三设备运行矩阵、命令结果和未验证项。
+- [ ] 只有本合同必需项全部满足才标为“全部完成”。存在手机/平板/macOS 实际运行或必需只读门禁阻塞时，准确报告“本地实现完成，完整验收受阻”，不可将 Goal 宣告全部达成。
+
+## 五、多设备与视觉验收矩阵
+
+下列尺寸是逻辑像素测试视口，不是物理截图像素或设备型号承诺。模拟器采用实际支持的尺寸并记录对应值；断点取 P2 设计值，额外检查断点前后各 1 个逻辑像素。
+
+| 类型 | 尺寸覆盖 | 实际运行与重点 |
+|---|---|---|
+| 手机 | 360×800、390×844；横屏 844×390 | 原生手机模拟器/设备至少一台；单栏、触控、长标题、软键盘、底部操作、安全区域、返回 |
+| 平板 | 768×1024、1024×768；窄分屏宽度 600 | 原生平板模拟器/设备至少一台；旋转、单双栏切换、列表详情、分屏与状态保留 |
+| 电脑 | 800×600、1280×800、1440×900、1920×1080 | macOS 实际应用；连续缩放窗口、内容最大宽度、侧栏、表格/多栏、鼠标键盘与滚动 |
+
+覆盖规则：
+
+1. 所有页面及主要子视图在手机/平板/电脑各一个代表尺寸检查；浅色和深色都覆盖。十二领域不能只截同一套示例标题，需用各自真实结构的合成数据。
+2. 其余边界尺寸覆盖公共框架、最密集查询、最长详情、复杂表单和确认页；如果同一组件在不同领域布局不同，分别覆盖。
+3. 登录、列表/详情、筛选分页、设置、退出与所有脱敏写入流程在三类实际运行目标操作验证；不能只在 widget test 中调用按钮回调。
+4. 检查关键文字不截断、按钮可达、无非预期横向溢出/重叠；表格或周课表确需横向浏览时提供明确操作与固定关键上下文。
+5. 检查返回、切换导航、旋转、分屏、键盘弹出和前后台切换后的状态连续性；屏幕宽度变化不能重发业务写请求。
+6. 正常数据、空数据、加载、首次错误、stale、部分失败、长文本与大量数据覆盖适用页面；资格缺失、权限不可用和结果未知覆盖相关操作。
+7. 基础字体比例至少检查 1.0 和 1.3；明暗切换和动态效果不引起明显闪烁或布局跳动。无障碍专项不在本轮门槛内。
+8. 记录滚动、输入与切换是否有可复现卡顿，必要时使用 profile 测量并注明设备/构建模式；不能用 Debug 截图或感觉给出帧率结论。
+9. Windows/Linux/OHOS 保持共享实现兼容，能使用对应原生运行器时验证；否则分别记录构建、静态和未运行边界，不将 macOS 窗口适配称作六平台原生验收。
+10. 单条证据字段至少为：场景编号、功能编号、源码 SHA、平台/系统、设备或模拟器、逻辑尺寸/DPR、主题、backend 类型、操作步骤、预期/实际结果、截图相对路径、日期、结论。
+
+## 六、可执行验证命令
+
+以下根级命令从仓库根执行。先核实脚本副作用与锁定工具链；已完成的包含性门禁不为凑次数重复运行。`just check-strict` 包含 `just check` 的 Rust/Shell 合同集合并增加严格 ShellCheck，最终运行严格入口时记录其覆盖关系。
+
+```sh
+just refs
+just layout-check
+just check-sensitive
+just contract-version-check
+just check-strict
+cargo test --locked -p ubaa-cli --test binary_e2e
+just flutter-check
+just flutter-codegen-check
+just flutter-build platform=macos mode=debug
+just flutter-build platform=android-apk mode=debug
+just flutter-build platform=ios-simulator mode=debug
+UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
+```
+
+对构建产物执行 `just flutter-artifact-check`，传入本次构建日志确认的实际平台和路径；OHOS 按脚本检查 HAP。先查看命令参数与实际产物再执行，不能照搬旧产物冒充新构建。Windows/Linux 构建仅在可用的对应原生环境执行，不要求 macOS 假装完成交叉运行。
+
+聚焦 Flutter 测试示例，以下从相应目录执行。默认 SDK 路径来自当前脚本，环境变量可按已通过校验的路径覆盖：
+
+```sh
+# 工作目录：packages/ubaa_ui
+"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/widgets_test.dart
+"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/write_coordination_test.dart
+
+# 工作目录：packages/ubaa_app
+"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/write_coordinator_test.dart test/app_write_lifecycle_test.dart test/write_readback_reentry_test.dart
+
+# 工作目录：apps/ubaa_flutter；现有 integration 使用脱敏 backend
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos
+"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" devices --machine
+```
+
+手机/平板宿主集成使用上条设备清单中的真实设备 ID 替换 `-d macos` 的值；如目标缺乏必需 runner，先完善最小测试接线并复验。所有平台都要补充实际界面观察，integration PASS 不替代截图和交互检查。
+
+以下只在执行阶段安全只读条件成立时从根目录串行执行；不同时使用同一账号开展多路登录：
+
+```sh
+just verify-live mode=direct
+just verify-live mode=webvpn
+```
+
+每个命令记录退出码、实际测试数量、源码和环境。错误或 SKIP 不是 PASS；N/A 需要操作级依据。本轮只有文档制定时运行文档与敏感/结构检查，不提前运行以上开发、构建或 live 阶段。
+
+## 七、续跑与完成规则
+
+- 执行开始先读取本文件、现状与最新证据，从首个未完成复选框继续；上下文压缩、耗时较长或已有阶段提交都不代表目标完成。
+- 在证据记录中维护“已完成、当前步骤、下一步、阻塞及恢复条件”，并同步状态页；避免多个文件对同一阶段给出矛盾结论。
+- 代表性原型通过自评后自主推进；用户已授权整体执行，不因一般技能中的默认逐步审批惯例停止。发现改变产品目标、破坏业务合同或真实业务写入需求时，保留边界并推进其他任务。
+- 不为了通过测试删除用例、放宽关键断言、伪造数据结果或直接覆盖所有 golden；也不以缺少真机为由放弃可用模拟器与本地原生运行。
+- 最终对“功能保真、设计完整、代码实现、确定性测试、三设备实际渲染、生产只读、其他平台/发布边界”分别给出结论。没有真实用户研究时不声称体验已经获得大学生群体验证。
