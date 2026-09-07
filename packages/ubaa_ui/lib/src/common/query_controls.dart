@@ -5,11 +5,13 @@ class _FeatureQueryControls extends StatefulWidget {
     required this.feature,
     required this.details,
     required this.onApply,
+    this.initialQuery,
   });
 
   final FeatureId feature;
   final List<FeatureDetail> details;
   final Future<void> Function(FeatureQuery query) onApply;
+  final FeatureQuery? initialQuery;
 
   @override
   State<_FeatureQueryControls> createState() => _FeatureQueryControlsState();
@@ -74,6 +76,67 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _judgeCourseController = TextEditingController();
     _judgeAssignmentController = TextEditingController();
     _judgeBatchController = TextEditingController();
+    _restoreQuery(widget.initialQuery);
+  }
+
+  // 只在新页面初始化；后续读取通知不覆盖用户尚未应用的草稿。
+  void _restoreQuery(FeatureQuery? query) {
+    if (query == null) return;
+    _termController.text = query.term ?? '';
+    _weekController.text = query.week?.toString() ?? '';
+    if (query.date case final date?) {
+      _dateController.text =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+    _campus = query.campus ?? 1;
+    _floorController.text = query.floorId ?? '';
+    _sectionController.text = query.section ?? '';
+    _pageController.text = '${query.page > 0 ? query.page : 1}';
+    _sizeController.text = '${query.size}';
+    _premisesController.text = query.premisesId ?? '';
+    _storeyController.text = query.storeyId ?? '';
+    _areaController.text = query.areaId ?? '';
+    _startController.text = query.startTime ?? '08:00';
+    _endController.text = query.endTime ?? '22:00';
+    _segmentController.text = query.segment ?? '';
+    _siteController.text = query.siteId?.toString() ?? '';
+    _orderController.text = query.orderId?.toString() ?? '';
+    _bykcCourseController.text = query.courseId ?? '';
+    _spocAssignmentController.text = query.assignmentId ?? '';
+    _judgeCourseController.text = query.courseId ?? '';
+    _judgeAssignmentController.text = query.assignmentId ?? '';
+    _judgeBatchController.text = query.judgeKeys
+        .map((key) => '${key.courseId}/${key.assignmentId}')
+        .join('\n');
+    _includeExpired = query.includeExpired;
+    switch (widget.feature) {
+      case FeatureId.schedule:
+        _scheduleView = query.view == FeatureQueryView.scheduleToday
+            ? FeatureQueryView.summary
+            : query.view;
+      case FeatureId.exam:
+        _examView = query.view;
+      case FeatureId.grades:
+        _gradesView = query.view;
+      case FeatureId.classroom:
+        break;
+      case FeatureId.bykc:
+        _bykcView = query.view;
+      case FeatureId.libbook:
+        _libbookView = query.view;
+      case FeatureId.ygdk:
+        _ygdkView = query.view;
+      case FeatureId.cgyy:
+        _cgyyView = query.view;
+      case FeatureId.spoc:
+        _spocView = query.view;
+      case FeatureId.judge:
+        _judgeView = query.view;
+      case FeatureId.signin:
+        _signinView = query.view;
+      case FeatureId.evaluation:
+        _evaluationView = query.view;
+    }
   }
 
   @override

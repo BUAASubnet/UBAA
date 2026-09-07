@@ -47,10 +47,10 @@ void main() {
     await tester.tap(find.text('周课表').last);
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.widgetWithText(TextField, '学期编码（可选）'),
+      find.widgetWithText(TextField, '学期编码'),
       '2026-2027-1',
     );
-    await tester.enterText(find.widgetWithText(TextField, '周次（可选）'), '7');
+    await tester.enterText(find.widgetWithText(TextField, '周次'), '7');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     final shell = tester.state(find.byType(UbaaMainShell));
@@ -60,14 +60,14 @@ void main() {
       expect(tester.state(find.byType(UbaaMainShell)), same(shell));
       expect(
         tester
-            .widget<TextField>(find.widgetWithText(TextField, '学期编码（可选）'))
+            .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
             .controller!
             .text,
         '2026-2027-1',
       );
       expect(
         tester
-            .widget<TextField>(find.widgetWithText(TextField, '周次（可选）'))
+            .widget<TextField>(find.widgetWithText(TextField, '周次'))
             .controller!
             .text,
         '7',

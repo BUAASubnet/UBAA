@@ -10,6 +10,53 @@ void registerInspectionBackendTests() {
     return backend;
   }
 
+  test('学业巡检保留typed展示且长文本大量模式不退回通用字段', () async {
+    for (final state in ['normal', 'long', 'many']) {
+      final backend = await ready(state: state);
+      for (final feature in [
+        FeatureId.schedule,
+        FeatureId.exam,
+        FeatureId.grades,
+        FeatureId.classroom,
+      ]) {
+        final result = await backend.loadFeature(feature);
+        expect(result.details, isNotEmpty);
+        expect(
+          result.details.every((detail) => detail.presentation != null),
+          isTrue,
+        );
+      }
+    }
+  });
+
+  test('学期周次巡检导航携带父查询而教室过滤完整匹配节次', () async {
+    final backend = await ready();
+    final terms = await backend.loadFeatureQuery(
+      FeatureId.schedule,
+      const FeatureQuery(view: FeatureQueryView.scheduleTerms),
+    );
+    expect(terms.details.first.readNavigation?.query.term, '2026-2027-1');
+    final weeks = await backend.loadFeatureQuery(
+      FeatureId.schedule,
+      const FeatureQuery(
+        view: FeatureQueryView.scheduleWeeks,
+        term: 'fixture-term-b',
+      ),
+    );
+    expect(weeks.details.last.readNavigation?.query.term, 'fixture-term-b');
+    expect(weeks.details.last.readNavigation?.query.week, 4);
+    final rooms = await backend.loadFeatureQuery(
+      FeatureId.classroom,
+      const FeatureQuery(campus: 2, section: '3'),
+    );
+    expect(rooms.details, hasLength(1));
+    expect(
+      (rooms.details.single.presentation! as ClassroomPresentation)
+          .sectionTokens,
+      contains('3'),
+    );
+  });
+
   test('巡检座位查询目标保留每次分区日期时段', () async {
     final backend = await ready();
     for (final area in ['area-1', 'area-2']) {

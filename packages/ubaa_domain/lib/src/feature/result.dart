@@ -4,6 +4,9 @@ import '../common/error.dart';
 import '../common/route.dart';
 import '../write/actions.dart';
 import 'catalog.dart';
+import 'presentation.dart';
+import 'read_navigation.dart';
+import 'read_context.dart';
 
 enum FeatureLoadStatus { idle, loading, success, empty, stale, failure }
 
@@ -18,6 +21,7 @@ class FeatureSnapshot {
     this.resolvedRoute,
     this.pagination,
     this.updatedAt,
+    this.readContext,
   });
 
   final FeatureId feature;
@@ -32,6 +36,7 @@ class FeatureSnapshot {
   /// Core 返回的服务端分页元数据；只对支持分页的 typed 查询存在。
   final FeaturePagination? pagination;
   final DateTime? updatedAt;
+  final FeatureReadContext? readContext;
 
   FeatureSnapshot copyWith({
     FeatureLoadStatus? status,
@@ -41,6 +46,7 @@ class FeatureSnapshot {
     ConnectionMode? resolvedRoute,
     FeaturePagination? pagination,
     DateTime? updatedAt,
+    FeatureReadContext? readContext,
     bool clearError = false,
     bool clearSummary = false,
     bool clearDetails = false,
@@ -57,6 +63,7 @@ class FeatureSnapshot {
         : (resolvedRoute ?? this.resolvedRoute),
     pagination: clearPagination ? null : (pagination ?? this.pagination),
     updatedAt: updatedAt ?? this.updatedAt,
+    readContext: readContext ?? this.readContext,
   );
 }
 
@@ -126,12 +133,16 @@ class FeatureDetail {
     this.subtitle,
     this.fields = const <FeatureField>[],
     this.actions = const <FeatureAction>[],
+    this.presentation,
+    this.readNavigation,
   });
 
   final String title;
   final String? subtitle;
   final List<FeatureField> fields;
   final List<FeatureAction> actions;
+  final FeaturePresentation? presentation;
+  final FeatureReadNavigation? readNavigation;
 
   /// 返回该详情中首个与 [T] 匹配的 typed action。
   ///

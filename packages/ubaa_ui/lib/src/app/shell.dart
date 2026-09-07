@@ -16,6 +16,7 @@ class UbaaMainShell extends StatefulWidget {
     this.initialTab = 0,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
+    this.readCacheEpoch = 0,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -58,6 +59,9 @@ class UbaaMainShell extends StatefulWidget {
   final int initialTab;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
+
+  /// 应用读取生命周期改变时使父返回缓存失效，当前页面草稿仍由页面持有。
+  final int readCacheEpoch;
   final List<ConnectionMode> activeRoutes;
 
   /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
@@ -99,8 +103,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureId? _openedFeature;
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
-  final Map<FeatureId, FeatureQuery> _featureQueries =
-      <FeatureId, FeatureQuery>{};
+  final Map<FeatureId, GlobalKey<_FeatureReadNavigatorState>> _readPageKeys =
+      {};
 
   bool get _hasWriteCommands =>
       widget.onRunWritePrepare != null &&
@@ -127,7 +131,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     if (oldWidget.user?.username != widget.user?.username) {
       _accountGeneration++;
       _visitedFeatures.clear();
-      _featureQueries.clear();
+      _readPageKeys.clear();
       _openedFeature = null;
     }
   }
@@ -187,10 +191,18 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             ? null
             : IconButton(
                 tooltip: '返回',
-                onPressed: () => setState(() => _openedFeature = null),
+                onPressed: () =>
+                    _readPageKeys[_openedFeature]?.currentState?.goBack(),
                 icon: const Icon(Icons.arrow_back),
               ),
         actions: <Widget>[
+          if (_openedFeature != null && pendingWrite == null)
+            IconButton(
+              tooltip: '刷新当前查询',
+              onPressed: () =>
+                  _readPageKeys[_openedFeature]?.currentState?.refreshCurrent(),
+              icon: const Icon(Icons.refresh),
+            ),
           if (_openedFeature == null && _selectedIndex == 0)
             IconButton(
               tooltip: '刷新',
@@ -235,58 +247,64 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
-  Widget _buildFeaturePage(FeatureId feature) => _FeatureDetailView(
-    feature: feature,
+  Widget _buildFeaturePage(FeatureId feature) => _FeatureReadNavigator(
+    key: _readPageKeys.putIfAbsent(
+      feature,
+      () => GlobalKey<_FeatureReadNavigatorState>(),
+    ),
     snapshot: widget.snapshots[feature]!,
-    query: _featureQueries[feature] ?? const FeatureQuery(),
-    onBack: () => setState(() => _openedFeature = null),
-    onRetry: () {
-      final query = _featureQueries[feature];
-      return query == null || widget.onFeatureQuery == null
-          ? widget.onRetryFeature(feature)
-          : widget.onFeatureQuery!(feature, query);
-    },
+    cacheEpoch: widget.readCacheEpoch,
+    onExit: () => setState(() => _openedFeature = null),
+    onRetry: () => widget.onRetryFeature(feature),
     onQuery: widget.onFeatureQuery == null
         ? null
-        : (query) {
-            _featureQueries[feature] = query;
-            return widget.onFeatureQuery!(feature, query);
-          },
-    onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
-        ? null
-        : _startBykcWrite,
-    onBykcSignWrite: !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
-        ? null
-        : _startBykcSignWrite,
-    onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
-        ? null
-        : _startSigninWrite,
-    onCgyyCancelWrite:
-        !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
-        ? null
-        : _startCgyyCancelWrite,
-    onLibbookReserveWrite:
-        !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
-        ? null
-        : _startLibbookReserveWrite,
-    onLibbookCancelWrite:
-        !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
-        ? null
-        : _startLibbookCancelWrite,
-    onEvaluationWrite:
-        !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
-        ? null
-        : _startEvaluation,
-    onCgyySubmitWrite:
-        !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
-        ? null
-        : _startCgyySubmitWrite,
-    onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
-        ? null
-        : _startYgdkSubmitWrite,
-    onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
-        ? widget.onPickYgdkPhoto
-        : null,
+        : (query) => widget.onFeatureQuery!(feature, query),
+    pageBuilder: (page) => _FeatureDetailView(
+      feature: feature,
+      snapshot: page.snapshot,
+      query: page.query,
+      backLabel: page.backLabel,
+      onBack: page.onBack,
+      onRetry: page.onRetry,
+      onQuery: page.onQuery,
+      onNavigate: page.onNavigate,
+      onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
+          ? null
+          : _startBykcWrite,
+      onBykcSignWrite:
+          !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
+          ? null
+          : _startBykcSignWrite,
+      onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
+          ? null
+          : _startSigninWrite,
+      onCgyyCancelWrite:
+          !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
+          ? null
+          : _startCgyyCancelWrite,
+      onLibbookReserveWrite:
+          !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
+          ? null
+          : _startLibbookReserveWrite,
+      onLibbookCancelWrite:
+          !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
+          ? null
+          : _startLibbookCancelWrite,
+      onEvaluationWrite:
+          !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
+          ? null
+          : _startEvaluation,
+      onCgyySubmitWrite:
+          !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
+          ? null
+          : _startCgyySubmitWrite,
+      onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
+          ? null
+          : _startYgdkSubmitWrite,
+      onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
+          ? widget.onPickYgdkPhoto
+          : null,
+    ),
   );
 
   Widget _buildTab(BuildContext context) => switch (_selectedIndex) {

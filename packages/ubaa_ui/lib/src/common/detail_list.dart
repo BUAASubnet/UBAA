@@ -8,6 +8,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.pagination,
     this.query,
     this.onQuery,
+    this.onNavigate,
     this.onBykcWrite,
     this.onBykcSignWrite,
     this.onSigninWrite,
@@ -25,6 +26,7 @@ class _FeatureDetailList extends StatefulWidget {
   final FeaturePagination? pagination;
   final FeatureQuery? query;
   final Future<void> Function(FeatureQuery query)? onQuery;
+  final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final Future<void> Function(WriteOperation operation, int courseId)?
   onBykcWrite;
   final BykcSignStarter? onBykcSignWrite;
@@ -137,6 +139,18 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
         Expanded(
           child: details.isEmpty
               ? const Center(child: Text('没有匹配的详情'))
+              : visible.every((detail) => detail.presentation != null) &&
+                    <FeatureId>{
+                      FeatureId.schedule,
+                      FeatureId.exam,
+                      FeatureId.grades,
+                      FeatureId.classroom,
+                    }.contains(widget.feature)
+              ? _AcademicResultContent(
+                  feature: widget.feature,
+                  details: visible,
+                  onNavigate: widget.onNavigate,
+                )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: visible.length,

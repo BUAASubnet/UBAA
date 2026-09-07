@@ -4,6 +4,26 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('刷新失败同时说明错误原因与旧数据来源', (tester) async {
+    _viewport(tester, const Size(799, 1000));
+    final state = ValueNotifier<FeatureSnapshot>(
+      _grades().copyWith(
+        status: FeatureLoadStatus.stale,
+        error: const UiError(
+          code: UbaaErrorCode.networkError,
+          title: '读取失败',
+          message: '请检查网络连接后重试',
+          retryable: true,
+        ),
+      ),
+    );
+    addTearDown(state.dispose);
+    await _mount(tester, state);
+    await _open(tester, FeatureId.grades);
+    expect(find.text('请检查网络连接后重试'), findsOneWidget);
+    expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
+    expect(find.text('保留课程 0'), findsOneWidget);
+  });
   testWidgets('已打开详情切换主题后标题颜色与当前主题一致', (tester) async {
     _viewport(tester, const Size(834, 1210));
     final state = ValueNotifier<FeatureSnapshot>(_grades());

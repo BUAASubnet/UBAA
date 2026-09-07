@@ -100,6 +100,10 @@ class AppController extends ChangeNotifier {
     for (final feature in FeatureId.values) feature: 0,
   };
   int _lifecycleEpoch = 0;
+  int _readCacheEpoch = 0;
+
+  /// UI 返回帧缓存的失效代次；不改变当前可见旧快照的 stale 语义。
+  int get readCacheEpoch => _readCacheEpoch;
   int _ygdkGeneration = 0;
   bool _telemetryEnabled;
   YgdkReadbackState _ygdkReadbackState = const YgdkReadbackState.empty();
@@ -634,6 +638,7 @@ class AppController extends ChangeNotifier {
     if (operation == WriteOperation.libbookReserve ||
         operation == WriteOperation.libbookCancelBooking) {
       if (_backend is FeatureQueryBackend) {
+        _readCacheEpoch++;
         return refreshFeatureQuery(
           FeatureId.libbook,
           readbackQuery ??
@@ -645,6 +650,7 @@ class AppController extends ChangeNotifier {
       // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，
       // 保留旧的领域刷新兼容路径，不伪造核对成功。
       if (_backend is FeatureQueryBackend) {
+        _readCacheEpoch++;
         return refreshFeatureQuery(
           FeatureId.cgyy,
           const FeatureQuery(view: FeatureQueryView.cgyyOrders),
@@ -782,6 +788,7 @@ class AppController extends ChangeNotifier {
   };
 
   void _resetFeatureSnapshots() {
+    _readCacheEpoch++;
     _lifecycleEpoch++;
     _ygdkGeneration++;
     _writeCoordinator.invalidate();
@@ -818,6 +825,7 @@ class AppController extends ChangeNotifier {
 
   void _setPhase(AppPhase phase) {
     if (phase == AppPhase.login) {
+      _readCacheEpoch++;
       _lifecycleEpoch++;
       _ygdkGeneration++;
       _writeCoordinator.invalidate();

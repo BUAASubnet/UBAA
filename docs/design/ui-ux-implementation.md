@@ -189,3 +189,13 @@ final class AssignmentPresentation extends FeaturePresentation {
 ## 静态计划自评
 
 接口核对已发现并处理：query 控件缺少传入恢复值；日期实为 date；主题当前固定 system；UserSummary.department 无生产资料来源；Library DTO 无跨日期关联。新增类型明确列为计划，由对应批次产出后才能消费；未要求修改 Core/Bridge 合同。所有功能编号已分配批次，实际运行、原型复验及阶段提交仍待执行。
+
+## P4-B 实际接口与实现回写
+
+已产出 `FeaturePresentation` 及按schedule/exam/grade/classroom拆分的7种模型、`FeatureReadNavigation(feature,query)`、`FeatureReadContext(query?,requestRevision)`。`FeatureDetail.presentation/readNavigation` 可空；`FeatureSnapshot.readContext` 可空兼容旧fake，生产读取明确归属。`FeatureQuery.hasSameParameters`比较全部字段及有序keys；context冻结keys。AppController新增只读 `readCacheEpoch`，Host转发到Shell，不改Bridge9。
+
+UI新增 `academic_content.dart` 与 `schedule_content.dart`，并由 `common/read_navigator.dart` 管理同领域稳定父页帧。查询控件仅按新帧初始query恢复，避免加载通知覆盖未应用草稿。新增实际“刷新当前查询”按钮，默认load与显式summary读取有别；分页仍按原默认query构造下一页，不因内部null语义隐藏服务端分页。
+
+独立review暴露epoch两种时序：无关领域失效带着已退出子页旧快照、写后权威回读先失效后返回不同query；已分别RED后用requestRevision边界修复。写后proof仍从App局部typed回读判断，UI缓存从不回写或作为receipt证据。后续P4-C/D复用本接口时仍需原生逐流程检查，不能把本批学期链路当作所有父子查询已通过。
+
+后续自评需继续核对课表summary兼容分支：App仍支持同时传term/week时读取周表，而查询下拉当前summary文案为“今日课程”。若在最终设计中收敛该入口，优先让UI显式scheduleToday或给出真实条件提示；保持backend summary兼容和公开参数合同，先补行为用例，不能在不记录语义的情况下删掉旧能力。

@@ -120,6 +120,38 @@ class FeatureQuery {
   final List<JudgeAssignmentQueryKey> judgeKeys;
   final bool includeExpired;
 
+  /// 比较完整读取参数；不序列化文本，也不忽略批量键的顺序。
+  bool hasSameParameters(FeatureQuery other) {
+    if (term != other.term ||
+        date != other.date ||
+        campus != other.campus ||
+        floorId != other.floorId ||
+        section != other.section ||
+        week != other.week ||
+        page != other.page ||
+        size != other.size ||
+        view != other.view ||
+        premisesId != other.premisesId ||
+        storeyId != other.storeyId ||
+        areaId != other.areaId ||
+        startTime != other.startTime ||
+        endTime != other.endTime ||
+        segment != other.segment ||
+        siteId != other.siteId ||
+        orderId != other.orderId ||
+        assignmentId != other.assignmentId ||
+        courseId != other.courseId ||
+        includeExpired != other.includeExpired ||
+        date?.isUtc != other.date?.isUtc ||
+        judgeKeys.length != other.judgeKeys.length) {
+      return false;
+    }
+    for (var index = 0; index < judgeKeys.length; index++) {
+      if (judgeKeys[index] != other.judgeKeys[index]) return false;
+    }
+    return true;
+  }
+
   FeatureQuery copyWith({
     String? term,
     DateTime? date,

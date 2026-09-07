@@ -13,6 +13,10 @@ Future<void> _refreshYgdkAfterWrite(
   }
   final backend = controller._backend as YgdkSubmissionReadbackBackend;
   final generation = ++controller._ygdkGeneration;
+  final requestRevision = controller._nextFeatureGeneration(FeatureId.ygdk);
+  controller._readCacheEpoch++;
+  controller._notify();
+  if (controller._disposed || generation != controller._ygdkGeneration) return;
 
   UiError mapFailure(Object cause, StackTrace? stackTrace) {
     if (controller._disposed || generation != controller._ygdkGeneration) {
@@ -27,6 +31,10 @@ Future<void> _refreshYgdkAfterWrite(
   }
 
   final overview = await _loadYgdkReadbackSnapshot(
+    readContext: FeatureReadContext(
+      query: const FeatureQuery(),
+      requestRevision: requestRevision,
+    ),
     expectedRoute: expectedRoute,
     mapFailure: mapFailure,
     load: () => backend.loadYgdkOverviewOnRoute(route: expectedRoute),
@@ -40,6 +48,14 @@ Future<void> _refreshYgdkAfterWrite(
   if (!overviewIsCurrent) return;
 
   final records = await _loadYgdkReadbackSnapshot(
+    readContext: FeatureReadContext(
+      query: const FeatureQuery(
+        view: FeatureQueryView.ygdkRecords,
+        page: 1,
+        size: 20,
+      ),
+      requestRevision: requestRevision,
+    ),
     expectedRoute: expectedRoute,
     mapFailure: mapFailure,
     load: () =>
@@ -55,13 +71,14 @@ Future<void> _refreshYgdkAfterWrite(
 
 Future<FeatureSnapshot> _loadYgdkReadbackSnapshot({
   required ConnectionMode expectedRoute,
+  required FeatureReadContext readContext,
   required Future<FeatureResult> Function() load,
   required UiError Function(Object, StackTrace?) mapFailure,
 }) async {
   try {
     final result = await load();
     if (result.error case final error?) {
-      return _failedYgdkReadbackSnapshot(mapFailure(error, null));
+      return _failedYgdkReadbackSnapshot(mapFailure(error, null), readContext);
     }
     if (result.resolvedRoute != expectedRoute) {
       return _failedYgdkReadbackSnapshot(
@@ -69,10 +86,12 @@ Future<FeatureSnapshot> _loadYgdkReadbackSnapshot({
           UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict),
           null,
         ),
+        readContext,
       );
     }
     return FeatureSnapshot(
       feature: FeatureId.ygdk,
+      readContext: readContext,
       status: result.isEmpty
           ? FeatureLoadStatus.empty
           : FeatureLoadStatus.success,
@@ -83,12 +102,19 @@ Future<FeatureSnapshot> _loadYgdkReadbackSnapshot({
       updatedAt: DateTime.now(),
     );
   } on Object catch (error, stackTrace) {
-    return _failedYgdkReadbackSnapshot(mapFailure(error, stackTrace));
+    return _failedYgdkReadbackSnapshot(
+      mapFailure(error, stackTrace),
+      readContext,
+    );
   }
 }
 
-FeatureSnapshot _failedYgdkReadbackSnapshot(UiError error) => FeatureSnapshot(
+FeatureSnapshot _failedYgdkReadbackSnapshot(
+  UiError error,
+  FeatureReadContext readContext,
+) => FeatureSnapshot(
   feature: FeatureId.ygdk,
+  readContext: readContext,
   status: FeatureLoadStatus.failure,
   error: error,
   updatedAt: DateTime.now(),

@@ -3,6 +3,7 @@ part of '../app_controller.dart';
 extension _AppControllerRefresh on AppController {
   Future<void> _refreshHome({Iterable<FeatureId>? only}) async {
     if (_disposed) return;
+    _readCacheEpoch++;
     final lifecycleEpoch = _lifecycleEpoch;
     final features = (only ?? FeatureId.values).toList(growable: false);
     final generations = <FeatureId, int>{
@@ -12,10 +13,7 @@ extension _AppControllerRefresh on AppController {
         ? ++_ygdkGeneration
         : null;
     for (final feature in features) {
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: FeatureLoadStatus.loading,
-        clearError: true,
-      );
+      _beginFeatureRead(feature, generations[feature]!, null);
     }
     _notify();
     await Future.wait(
@@ -38,6 +36,8 @@ extension _AppControllerRefresh on AppController {
     FeatureQuery query,
   ) async {
     if (_disposed) return;
+    final generation = _nextFeatureGeneration(feature);
+    final context = _beginFeatureRead(feature, generation, query);
     if (_backend is! FeatureQueryBackend) {
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: FeatureLoadStatus.failure,
@@ -47,20 +47,39 @@ extension _AppControllerRefresh on AppController {
       return;
     }
     final lifecycleEpoch = _lifecycleEpoch;
-    final generation = _nextFeatureGeneration(feature);
     final ygdkGeneration = feature == FeatureId.ygdk ? ++_ygdkGeneration : null;
-    _snapshots[feature] = _snapshots[feature]!.copyWith(
-      status: FeatureLoadStatus.loading,
-      clearError: true,
-    );
     _notify();
     await _loadFeature(
       feature,
       generation,
       lifecycleEpoch,
-      query: query,
+      query: context.query,
       ygdkGeneration: ygdkGeneration,
     );
+  }
+
+  FeatureReadContext _beginFeatureRead(
+    FeatureId feature,
+    int generation,
+    FeatureQuery? query,
+  ) {
+    final context = FeatureReadContext(
+      query: query,
+      requestRevision: generation,
+    );
+    final previous = _snapshots[feature]!;
+    _snapshots[feature] = previous.readContext?.hasSameQuery(query) == true
+        ? previous.copyWith(
+            status: FeatureLoadStatus.loading,
+            clearError: true,
+            readContext: context,
+          )
+        : FeatureSnapshot(
+            feature: feature,
+            status: FeatureLoadStatus.loading,
+            readContext: context,
+          );
+    return context;
   }
 
   int _nextFeatureGeneration(FeatureId feature) {
@@ -151,6 +170,7 @@ extension _AppControllerRefresh on AppController {
     int generation,
     int lifecycleEpoch, {
     int? ygdkGeneration,
+    FeatureReadContext? readContext,
   }) {
     if (!_isFeatureLoadCurrent(
       feature,
@@ -167,6 +187,10 @@ extension _AppControllerRefresh on AppController {
         : FeatureLoadStatus.success;
     _snapshots[feature] = _snapshots[feature]!.copyWith(
       status: status,
+      readContext:
+          readContext ??
+          _snapshots[feature]!.readContext ??
+          FeatureReadContext(requestRevision: generation),
       summary: result.summary,
       details: result.details,
       error: result.error == null

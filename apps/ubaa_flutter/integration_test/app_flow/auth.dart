@@ -31,8 +31,8 @@ void _registerAuthFlowTests() {
     await tester.tap(find.text('周课表').last);
     await tester.pumpAndSettle();
 
-    final termField = find.widgetWithText(TextField, '学期编码（可选）');
-    final weekField = find.widgetWithText(TextField, '周次（可选）');
+    final termField = find.widgetWithText(TextField, '学期编码');
+    final weekField = find.widgetWithText(TextField, '周次');
     expect(termField, findsOneWidget);
     expect(weekField, findsOneWidget);
     await tester.enterText(termField, '2026-2027-1');

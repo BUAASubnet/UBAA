@@ -78,7 +78,10 @@ void _registerCallbackTests() {
     expect(backend.loadedFeatures, isEmpty);
     expect(backend.queryCalls, hasLength(1));
     expect(backend.queryCalls.single.feature, FeatureId.schedule);
-    expect(backend.queryCalls.single.query, same(query));
+    // App 冻结批量键后转发独立查询对象，宿主合同约束全部参数保真。
+    expect(backend.queryCalls.single.query.hasSameParameters(query), isTrue);
+    expect(backend.queryCalls.single.query.view, FeatureQueryView.scheduleWeek);
+    expect(backend.queryCalls.single.query.week, 3);
 
     final selectIntent = await shell.onPrepareBykcWrite!(
       WriteOperation.bykcSelectCourse,

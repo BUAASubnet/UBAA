@@ -81,9 +81,10 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
         width: 180,
         child: TextField(
           controller: _termController,
-          decoration: const InputDecoration(
-            labelText: '学期编码（可选）',
-            hintText: '留空使用当前学期',
+          decoration: InputDecoration(
+            labelText: '学期编码',
+            helperText: _needsTerm ? '必填' : null,
+            hintText: _needsTerm ? '可从学期列表选择' : '留空使用当前学期',
             isDense: true,
           ),
         ),
@@ -94,8 +95,11 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
           child: TextField(
             controller: _weekController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '周次（可选）',
+            decoration: InputDecoration(
+              labelText: '周次',
+              helperText: _scheduleView == FeatureQueryView.scheduleWeek
+                  ? '必填'
+                  : null,
               hintText: '如 1',
               isDense: true,
             ),
@@ -119,8 +123,8 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
         child: TextField(
           controller: _floorController,
           decoration: const InputDecoration(
-            labelText: '楼层（可选）',
-            hintText: '如 F2',
+            labelText: '楼层',
+            hintText: '可选，如 F2',
             isDense: true,
           ),
         ),
@@ -130,8 +134,8 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
         child: TextField(
           controller: _sectionController,
           decoration: const InputDecoration(
-            labelText: '节次（可选）',
-            hintText: '如 3',
+            labelText: '节次',
+            hintText: '可选，如 3',
             isDense: true,
           ),
         ),
@@ -149,4 +153,9 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
       ),
     ],
   ];
+
+  bool get _needsTerm =>
+      widget.feature == FeatureId.schedule &&
+      (_scheduleView == FeatureQueryView.scheduleWeeks ||
+          _scheduleView == FeatureQueryView.scheduleWeek);
 }

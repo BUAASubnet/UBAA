@@ -20,17 +20,7 @@ Future<FeatureResult> _loadAcademicFeature(
               week: query.week!,
             );
             final details = result.data.arrangedList
-                .map(
-                  (item) => FeatureDetail(
-                    title: item.courseName,
-                    subtitle: item.courseCode,
-                    fields: _compactFields(<FeatureField?>[
-                      _field('时间', item.beginTime),
-                      _field('地点', item.placeName),
-                      _field('周次', item.weeksAndTeachers),
-                    ]),
-                  ),
-                )
+                .map(_mapScheduleCourseDetail)
                 .toList(growable: false);
             return _countResult(
               details.length,
@@ -45,6 +35,10 @@ Future<FeatureResult> _loadAcademicFeature(
                 (item) => FeatureDetail(
                   title: item.bizName,
                   subtitle: item.shortName,
+                  presentation: TodayCoursePresentation(
+                    time: item.time,
+                    place: item.place,
+                  ),
                   fields: _compactFields(<FeatureField?>[
                     _field('时间', item.time),
                     _field('地点', item.place),
@@ -64,6 +58,20 @@ Future<FeatureResult> _loadAcademicFeature(
               .map(
                 (item) => FeatureDetail(
                   title: item.itemName,
+                  presentation: TermPresentation(
+                    code: item.itemCode,
+                    selected: item.selected,
+                    index: item.itemIndex,
+                  ),
+                  readNavigation: item.itemCode.trim().isEmpty
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.schedule,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.scheduleWeeks,
+                            term: item.itemCode,
+                          ),
+                        ),
                   fields: <FeatureField>[
                     FeatureField(label: '学期编码', value: item.itemCode),
                     FeatureField(
@@ -88,6 +96,24 @@ Future<FeatureResult> _loadAcademicFeature(
                 (item) => FeatureDetail(
                   title: item.name,
                   subtitle: '${item.startDate}–${item.endDate}',
+                  presentation: WeekPresentation(
+                    requestTerm: term,
+                    responseTerm: item.term,
+                    number: item.serialNumber,
+                    current: item.curWeek,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                  ),
+                  readNavigation: item.serialNumber <= 0
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.schedule,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.scheduleWeek,
+                            term: term,
+                            week: item.serialNumber,
+                          ),
+                        ),
                   fields: <FeatureField>[
                     FeatureField(label: '周次', value: '${item.serialNumber}'),
                     FeatureField(label: '当前周', value: item.curWeek ? '是' : '否'),
@@ -109,17 +135,7 @@ Future<FeatureResult> _loadAcademicFeature(
           }
           final result = await client.scheduleWeek(term: term, week: week);
           final details = result.data.arrangedList
-              .map(
-                (item) => FeatureDetail(
-                  title: item.courseName,
-                  subtitle: item.courseCode,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('时间', item.beginTime),
-                    _field('地点', item.placeName),
-                    _field('周次', item.weeksAndTeachers),
-                  ]),
-                ),
-              )
+              .map(_mapScheduleCourseDetail)
               .toList(growable: false);
           return _countResult(
             details.length,
@@ -138,31 +154,17 @@ Future<FeatureResult> _loadAcademicFeature(
           final term = query.term ?? await _selectedTerm(backend);
           if (term == null) return const FeatureResult.empty();
           final result = await client.examArrangement(term: term);
-          final exams = switch (query.view) {
-            FeatureQueryView.examArranged => result.data.arranged,
-            FeatureQueryView.examNotArranged => result.data.notArranged,
-            _ => <BridgeExam>[
-              ...result.data.arranged,
-              ...result.data.notArranged,
-            ],
-          };
+          final exams = <({BridgeExam item, bool arranged})>[
+            if (query.view != FeatureQueryView.examNotArranged)
+              for (final item in result.data.arranged)
+                (item: item, arranged: true),
+            if (query.view != FeatureQueryView.examArranged)
+              for (final item in result.data.notArranged)
+                (item: item, arranged: false),
+          ];
           final details = exams
               .map(
-                (item) => FeatureDetail(
-                  title: item.courseName,
-                  subtitle: item.examTimeDescription ?? item.examDate,
-                  fields: _compactFields(<FeatureField?>[
-                    _field(
-                      '时间',
-                      item.startTime == null || item.endTime == null
-                          ? null
-                          : '${item.startTime}–${item.endTime}',
-                    ),
-                    _field('地点', item.examPlace),
-                    _field('座位', item.examSeatNo),
-                    _field('类型', item.examType),
-                  ]),
-                ),
+                (entry) => _mapExamDetail(entry.item, arranged: entry.arranged),
               )
               .toList(growable: false);
           final label = switch (query.view) {
@@ -203,6 +205,16 @@ Future<FeatureResult> _loadAcademicFeature(
                 (item) => FeatureDetail(
                   title: item.courseName ?? item.courseCode ?? '课程',
                   subtitle: item.courseCode,
+                  presentation: GradePresentation(
+                    courseName: item.courseName,
+                    courseCode: item.courseCode,
+                    score: item.score,
+                    gradePoint: item.gradePoint,
+                    credit: item.credit,
+                    courseType: item.courseType,
+                    scoreType: item.scoreType,
+                    termCode: item.termCode,
+                  ),
                   fields: _compactFields(<FeatureField?>[
                     _field('成绩', item.score),
                     _field('绩点', item.gradePoint),
@@ -241,6 +253,12 @@ Future<FeatureResult> _loadAcademicFeature(
               FeatureDetail(
                 title: room.name,
                 subtitle: floor.name,
+                presentation: ClassroomPresentation(
+                  roomId: room.id,
+                  floorId: room.floorId,
+                  floorName: floor.name,
+                  availableSections: room.availableSections,
+                ),
                 fields: _compactFields(<FeatureField?>[
                   _field('可用节次', room.availableSections),
                 ]),
@@ -288,3 +306,58 @@ bool _matchesClassroomSection(String available, String? filter) {
       .map((item) => item.trim())
       .any((item) => item == filter);
 }
+
+/// 两个周课表入口共用纯展示投影，不读取或推断新的查询字段。
+FeatureDetail _mapScheduleCourseDetail(BridgeCourseClass item) => FeatureDetail(
+  title: item.courseName,
+  subtitle: item.courseCode,
+  presentation: ScheduleCoursePresentation(
+    courseCode: item.courseCode,
+    courseSerialNo: item.courseSerialNo,
+    credit: item.credit,
+    beginTime: item.beginTime,
+    endTime: item.endTime,
+    beginSection: item.beginSection,
+    endSection: item.endSection,
+    dayOfWeek: item.dayOfWeek,
+    place: item.placeName,
+    weeksAndTeachers: item.weeksAndTeachers,
+    teachingTarget: item.teachingTarget,
+  ),
+  fields: _compactFields(<FeatureField?>[
+    _field('时间', item.beginTime),
+    _field('地点', item.placeName),
+    _field('周次', item.weeksAndTeachers),
+  ]),
+);
+
+FeatureDetail _mapExamDetail(BridgeExam item, {required bool arranged}) =>
+    FeatureDetail(
+      title: item.courseName,
+      subtitle: item.examTimeDescription ?? item.examDate,
+      presentation: ExamPresentation(
+        arranged: arranged,
+        courseNo: item.courseNo,
+        date: item.examDate,
+        description: item.examTimeDescription,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        place: item.examPlace,
+        seat: item.examSeatNo,
+        week: item.week,
+        status: item.examStatus,
+        type: item.examType,
+        taskId: item.taskId,
+      ),
+      fields: _compactFields(<FeatureField?>[
+        _field(
+          '时间',
+          item.startTime == null || item.endTime == null
+              ? null
+              : '${item.startTime}–${item.endTime}',
+        ),
+        _field('地点', item.examPlace),
+        _field('座位', item.examSeatNo),
+        _field('类型', item.examType),
+      ]),
+    );

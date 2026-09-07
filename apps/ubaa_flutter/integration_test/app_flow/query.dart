@@ -111,10 +111,10 @@ void _registerQueryFlowTests() {
     await openFeature(FeatureId.schedule);
     await chooseView('周课表');
     await tester.enterText(
-      find.widgetWithText(TextField, '学期编码（可选）'),
+      find.widgetWithText(TextField, '学期编码'),
       '2026-2027-1',
     );
-    await tester.enterText(find.widgetWithText(TextField, '周次（可选）'), '3');
+    await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
     await apply();
     expect(backend.lastQuery?.view, FeatureQueryView.scheduleWeek);
     await tester.tap(find.text('返回功能列表'));

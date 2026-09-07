@@ -673,3 +673,29 @@ Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimit
 审查发现的“SPOC 详情”首表误写 Judge URL 已于本日按两冻结来源和 Core 修正归属；历史说明保留于对应章节，不构成协议变更。Ygdk 主机集合未决边界、Cgyy 仅公开锁码 available、所有 typed 写入资格与单次提交保持原决定。本节只有静态来源证据，不是测试、实时只读或实际 UI PASS。
 
 P3B公共容器补充：刷新状态切换的State保留、隐藏焦点隔离、短视口滚动和Theme依赖仅影响本地呈现。全部认证/只读操作继续应用上述C1–C9，URL/参数/请求次数/DTO/错误码/路线/业务缓存均未变；不从旧展示数据产生新写资格。typed actions每次仍取当前snapshot.details，明确empty清除无效选择，唯一WriteCoordinator不变。6个状态/键盘场景（先5RED/1GREEN）及主题颜色RED合为7GREEN，原生旋转与字体复验独立记录。
+
+## 2026-09-08 P4-B 学业展示模型与只读导航（实现前合同）
+
+本段范围仅 domain 新展示类型、FeatureDetail 可空展示/导航字段、App academic 投影及确定性测试；不改 Core、Bridge v9、UI 或宿主。`just refs` 本轮退出 0，两来源固定提交与本文件一致。字段直接核对生成 `packages/ubaa_bindings/lib/src/rust/api/read.dart`、冻结旧版 `Schedule.kt/Grade.kt/Classroom.kt` 与 `LocalScheduleApi.kt/LocalGradeApi.kt/LocalClassroomApi.kt`；交叉来源为固定 `examples/buaa-api/src/api/aas/{core,opt,data}.rs` 与 `api/app/{core,opt,data}.rs`。后者成绩/空教室不等价，不借用字段或协议。
+
+| 操作 | URL/service、重定向、Cookie/Session | 方法参数、Header/编码、加密 | DTO 与新增展示 | 缓存/并发、错误/退出 |
+|---|---|---|---|---|
+| 今日课表 | 引用“未改变的课表/考试证据”；两路线与 AAS 激活不变 | scheduleToday 无新增入参；旧 GET 与 Header 不变，不新增加密 | 仅保留既有可空 time/place；不猜周几节次 | 不请求预取、不排序、不新增缓存；错误/路线原样 |
+| 学期 | 同上；示例 aas 不替代旧 service | scheduleTerms 原调用不变；点击导航只是待执行 typed query | itemCode/itemName/selected/itemIndex 原类型；非空原 code 生成 scheduleWeeks 导航 | 无新增 HTTP；顺序、空列表、错误不变 |
+| 周次 | 同上 | scheduleWeeks(term) 原参数不变 | startDate/endDate/响应term/serialNumber/curWeek/name；导航保留请求 term 与正 week，不从 fields 反解 | 不自动查询下一层；不按日期解析重排；错误不变 |
+| 周课表及 summary(term,week) | 同上；不借用示例 campusCode 正文 | 两分支 scheduleWeek(term,week) 请求、表单、编码不变 | 保留 dayOfWeek、begin/endSection int? 与时间/地点/周次教师等 String?；缺值不填 0 | 两分支共用投影，不新增缓存或排序，输入校验与错误不变 |
+| 考试三视图 | 同上；当前 term 默认选择不变 | examArrangement(term) 原调用不变 | 保留日期/单侧起止时间/座位等原可空值；arranged 来自原所属集合 | summary 仍 arranged 后 notArranged；顺序、错误、路由不变 |
+| 成绩三视图 | 引用“未改变的成绩证据”；示例 App 非同协议 | 旧激活、POST xq/year、Header/编码不变，不新增加密 | score/gradePoint 等 String? 原样；credit double?；不推算排名/GPA | 已出判定沿 score 非空；不排序、不新增缓存，错误不变 |
+| 空教室 | 引用“空教室会话同步/查询”；示例 App/Class 非此协议 | classroomSearch 仍 campus/date；本地 floor/section 不加入上游；GET/Header不变 | roomId/floorId/父楼层名、原 availableSections 与精确逗号令牌保留 | 3 不匹配 13；不新增请求/缓存/并发，路线及错误不变 |
+
+所有时间字符串仅展示，不假定可 DateTime.parse 或排序；term/weeks 导航不自动执行网络操作。actions 完全保留，不用展示结构推断任何写资格。本段是实现前约束，后续测试日志单独记录，不代表真实只读或 UI PASS。
+
+本段确定性实施结果：先新增仅 domain 类型/可空接口和六项 App 投影测试，实际运行出现六项 `presentation=null` 预期失败，原十一项 characterization 仍通过（`p4-academic-red.log`）；完成 academic 纯投影后同入口 17 项通过（`p4-academic-green.log`）。domain 全部 28 项测试通过；两个受影响 package 的 `dart analyze` 均无问题。日志位于本轮私有 `/tmp/ubaa-ui-ux-20260908/`，由阶段证据归档决定是否纳入长期证据。这些结果仅证明合成数据字段、导航参数和既有请求转发保持，不代表 UI 已使用新结构或实时读取成功。现有 title/subtitle/fields/actions 保留；新增展示不恢复未公开的周表字段，不解析时间排序。
+
+## 2026-09-08 P4-B 读取上下文与父缓存失效（实现前边界）
+
+本段仅修复 App/domain 的结果归属：不同 FeatureQuery 失败不能把父查询内容作为子查询 stale；同查询失败保留原 stale。FeatureReadContext 记录不可变查询键与既有请求代次，默认 loadFeature 的 null query 不等同显式 summary。全局 readCacheEpoch 仅使 UI 父返回帧缓存失效，不改当前可见同参数旧结果的 stale，也不替换受保护的 Ygdk 失败原 snapshot 实例。首页刷新、路线/账号/backend 失效与写后权威回读开始推进 epoch；原 generation、caller-pinned 路线、回读 proof 和写结果语义不变。
+
+来源仍为本文件逐操作九列：URL/service、重定向、Cookie、精确方法参数、Header/编码、加密均不变；DTO 只增加本地查询归属，Core 排序/缓存/并发/错误码不变。回读仍按既有 Evaluation、Ygdk、Cgyy 冻结/typed 合同执行，不增加网络调用。实际新 RED 三项分别暴露跨查询 stale、缺少context与缺少epoch，原62项AppController测试通过；后续结果单独记录。
+
+本段实现后确定性结果：新增读取归属与缓存epoch测试，AppController/写生命周期/回读重入三个入口合计96项全部通过，domain合计30项全部通过，App/domain/Host analyze均无问题。旧首页同查询stale与Ygdk回读失败保持原snapshot实例的断言未改。context用于成功/失败/加载结果归属，caller-pinned Evaluation/Cgyy/Ygdk回读分别带显式summary、orders、overview/records参数；Cgyy失败和Ygdk失败的既有旧快照保留规则不变，由独立epoch通知父缓存失效。此为合成数据验证，不是UI/native/live结论。

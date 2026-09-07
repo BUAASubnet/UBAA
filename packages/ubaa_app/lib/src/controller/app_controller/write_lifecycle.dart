@@ -22,6 +22,7 @@ extension _AppControllerWriteLifecycle on AppController {
     // 必须先禁止入口，再发出 invalidate 通知，覆盖监听器同步重入。
     _writeTransitions++;
     _lifecycleEpoch++;
+    _readCacheEpoch++;
     _ygdkGeneration++;
     _writeCoordinator.invalidate();
   }

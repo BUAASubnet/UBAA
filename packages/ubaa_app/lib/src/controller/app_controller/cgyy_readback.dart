@@ -20,6 +20,15 @@ Future<bool> _verifyCgyyCancellation(
   // 这次较旧的列表覆盖 UI，但 proof 始终只使用下方局部结果。
   final lifecycleEpoch = controller._lifecycleEpoch;
   final generation = controller._nextFeatureGeneration(FeatureId.cgyy);
+  controller._readCacheEpoch++;
+  controller._notify();
+  if (!controller._isFeatureLoadCurrent(
+    FeatureId.cgyy,
+    generation,
+    lifecycleEpoch,
+    null,
+  ))
+    return false;
 
   FeatureResult? listResult;
   FeatureResult? detailResult;
@@ -36,6 +45,14 @@ Future<bool> _verifyCgyyCancellation(
           listResult,
           generation,
           lifecycleEpoch,
+          readContext: FeatureReadContext(
+            query: const FeatureQuery(
+              view: FeatureQueryView.cgyyOrders,
+              page: 0,
+              size: 20,
+            ),
+            requestRevision: generation,
+          ),
         )) {
       controller._notify();
     }

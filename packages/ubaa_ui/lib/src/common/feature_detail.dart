@@ -18,6 +18,8 @@ class _FeatureDetailView extends StatelessWidget {
     this.onYgdkSubmitWrite,
     this.onPickYgdkPhoto,
     this.onQuery,
+    this.onNavigate,
+    this.backLabel = '返回功能列表',
   });
 
   final FeatureId feature;
@@ -37,6 +39,8 @@ class _FeatureDetailView extends StatelessWidget {
   final YgdkSubmitStarter? onYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;
   final Future<void> Function(FeatureQuery query)? onQuery;
+  final Future<void> Function(FeatureReadNavigation)? onNavigate;
+  final String backLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +52,14 @@ class _FeatureDetailView extends StatelessWidget {
       children: [
         if (snapshot.status == FeatureLoadStatus.stale)
           MaterialBanner(
-            content: Text(snapshot.error?.message ?? '刷新失败，以下是上次成功加载的数据。'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(snapshot.error?.message ?? '刷新失败，请稍后重试。'),
+                const Text('以下为上次成功加载的数据。'),
+              ],
+            ),
             leading: const Icon(Icons.sync_problem),
             actions: [
               TextButton(onPressed: () => onRetry(), child: const Text('重试')),
@@ -89,6 +100,7 @@ class _FeatureDetailView extends StatelessWidget {
           _FeatureQueryControls(
             feature: feature,
             details: snapshot.details,
+            initialQuery: query,
             onApply: onQuery!,
           ),
         if (snapshot.resolvedRoute case final route?)
@@ -110,7 +122,7 @@ class _FeatureDetailView extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back),
-              label: const Text('返回功能列表'),
+              label: Text(backLabel),
             ),
           ),
         ),
@@ -155,8 +167,9 @@ class _FeatureDetailView extends StatelessWidget {
       feature: feature,
       details: snapshot.details,
       pagination: snapshot.pagination,
-      query: query,
+      query: query ?? const FeatureQuery(),
       onQuery: onQuery,
+      onNavigate: onNavigate,
       onBykcWrite: onBykcWrite,
       onBykcSignWrite: onBykcSignWrite,
       onSigninWrite: onSigninWrite,

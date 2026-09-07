@@ -106,10 +106,7 @@ void main() {
         brightness,
         '合成成绩中输入本地搜索并收起键盘',
       );
-      final apply = find.text('应用筛选');
-      await tester.ensureVisible(apply);
-      await tester.pumpAndSettle();
-      await tester.tap(apply);
+      await tester.tap(find.byTooltip('刷新当前查询'));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -125,7 +122,7 @@ void main() {
         tester,
         '${brightness.name}-grades-stale-search',
         brightness,
-        '第二次同条件合成查询失败，旧结果与本地搜索保持，展示失败提示',
+        '点击当前查询刷新，第二次默认读取失败，旧结果与本地搜索保持',
       );
     });
   }

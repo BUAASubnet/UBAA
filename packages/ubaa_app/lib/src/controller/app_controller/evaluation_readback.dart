@@ -26,9 +26,12 @@ Future<void> _refreshEvaluationAfterWrite(
   final backend = controller._backend as EvaluationSubmissionReadbackBackend;
   final lifecycleEpoch = controller._lifecycleEpoch;
   final generation = controller._nextFeatureGeneration(FeatureId.evaluation);
-  controller._snapshots[FeatureId.evaluation] = controller
-      ._snapshots[FeatureId.evaluation]!
-      .copyWith(status: FeatureLoadStatus.loading, clearError: true);
+  controller._readCacheEpoch++;
+  controller._beginFeatureRead(
+    FeatureId.evaluation,
+    generation,
+    const FeatureQuery(view: FeatureQueryView.summary),
+  );
   controller._notify();
 
   if (!controller._isFeatureLoadCurrent(
@@ -89,6 +92,10 @@ void _setEvaluationReadbackFailureIfCurrent(
   controller._snapshots[FeatureId.evaluation] = FeatureSnapshot(
     feature: FeatureId.evaluation,
     status: FeatureLoadStatus.failure,
+    readContext: FeatureReadContext(
+      query: const FeatureQuery(view: FeatureQueryView.summary),
+      requestRevision: generation,
+    ),
     error: controller._recordFailure(
       cause ?? error,
       DiagnosticOperation.readback,

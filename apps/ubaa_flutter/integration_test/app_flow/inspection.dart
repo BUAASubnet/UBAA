@@ -48,6 +48,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
               title: '${item.title}（合成条目 ${index + 1}）',
               subtitle: item.subtitle,
               fields: item.fields,
+              presentation: item.presentation,
+              readNavigation: item.readNavigation,
             );
           })
         : details;
@@ -109,6 +111,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
     String title,
     Map<String, String> fields, {
     String? subtitle,
+    FeaturePresentation? presentation,
+    FeatureReadNavigation? readNavigation,
     List<FeatureAction> actions = const <FeatureAction>[],
   }) => FeatureDetail(
     title: _state == 'long' ? '$title——跨学科探索与实践中的长标题展示和换行检查' : title,
@@ -117,6 +121,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
         .map((entry) => FeatureField(label: entry.key, value: entry.value))
         .toList(growable: false),
     actions: actions,
+    presentation: presentation,
+    readNavigation: readNavigation,
   );
 
   List<FeatureDetail> _details(
@@ -127,64 +133,10 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
     final v = q.view;
     switch (feature) {
       case FeatureId.schedule:
-        if (v == FeatureQueryView.scheduleTerms) {
-          return [
-            _item('2026–2027 学年秋季学期', {'学期编码': '2026-2027-1', '当前学期': '是'}),
-            _item('2025–2026 学年春季学期', {'学期编码': '2025-2026-2', '当前学期': '否'}),
-          ];
-        }
-        if (v == FeatureQueryView.scheduleWeeks) {
-          return [
-            for (var week = 1; week <= 4; week++)
-              _item('第 $week 周', {
-                '周次': '$week',
-                '当前周': week == 2 ? '是' : '否',
-              }, subtitle: '2026-09-07–2026-09-13'),
-          ];
-        }
-        return [
-          _item('数据结构与算法', {
-            '时间': '08:00–09:35',
-            '地点': '合成教学楼 A203',
-            if (v == FeatureQueryView.scheduleWeek)
-              '周次': '第 ${q.week ?? 2} 周 · 示例教师甲',
-          }, subtitle: 'CS-DEMO-01'),
-          _item('大学物理实验', {
-            '时间': '14:00–15:35',
-            '地点': '合成实验楼 B105',
-          }, subtitle: 'PH-DEMO-02'),
-        ];
       case FeatureId.exam:
-        return [
-          _item(
-            v == FeatureQueryView.examNotArranged ? '概率论（时间待安排）' : '线性代数',
-            {
-              if (v != FeatureQueryView.examNotArranged) ...{
-                '时间': '09:00–11:00',
-                '地点': '合成教学楼 A301',
-                '座位': '18',
-              },
-              '类型': '期末考试',
-            },
-            subtitle: v == FeatureQueryView.examNotArranged
-                ? '尚未安排'
-                : '2026-12-23',
-          ),
-        ];
       case FeatureId.grades:
-        return [
-          _item('程序设计基础', {
-            '成绩': v == FeatureQueryView.gradesMissing ? '未出分' : '92',
-            if (v != FeatureQueryView.gradesMissing) '绩点': '3.8',
-            '学分': '4.0',
-            '课程类型': '专业必修',
-          }, subtitle: 'CS-DEMO-00'),
-        ];
       case FeatureId.classroom:
-        return [
-          _item('合成教学楼 A201', {'可用节次': '1–2、5–6、9–10'}, subtitle: '合成教学楼 / 二层'),
-          _item('合成教学楼 B305', {'可用节次': '3–4、7–8'}, subtitle: '合成教学楼 / 三层'),
-        ];
+        return _academicDetails(feature, q);
       case FeatureId.spoc:
       case FeatureId.judge:
         final judge = feature == FeatureId.judge;

@@ -11,6 +11,7 @@ import 'package:ubaa_flutter/main.dart';
 
 part 'app_flow/auth.dart';
 part 'app_flow/inspection.dart';
+part 'app_flow/inspection_academic.dart';
 part 'app_flow/inspection_contract.dart';
 part 'app_flow/query.dart';
 part 'app_flow/support.dart';
