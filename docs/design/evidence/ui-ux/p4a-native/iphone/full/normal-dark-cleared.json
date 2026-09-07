@@ -1,0 +1,21 @@
+{
+  "name": "normal-dark-cleared",
+  "scene": "normal-dark-cleared",
+  "backend": "synthetic-account-fixture",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1206.0,
+  "physicalHeight": 2622.0,
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "theme": "dark",
+  "textScale": 1.0,
+  "themeMode": "dark",
+  "themeSource": "explicit-test-system-or-user-preference",
+  "textScaleSource": "test-platform-text-scale",
+  "sourceSha": "0f3803ca+P4A-r1",
+  "dateUtc": "2026-09-07T22:39:28.521225Z",
+  "pngSaved": true
+}

@@ -722,3 +722,8 @@ ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch�
 ### P4-A 实施前账号资料白名单核对
 
 [资料投影来源增补](source-parity-ui-profile.md)按冻结API/DTO/实现/测试边界、examples不等价状态接口、Core/Bridge六字段白名单逐项核对。新增展示仅来自同次userInfo，既有用户资料九列协议矩阵继续适用；保留空username返回null和preferredName，不接证件号码，不持久化联系人展开状态。
+
+
+### P4-D 博雅与阳光展示接续来源
+
+[博雅与阳光字段、导航及动作边界](source-parity-ui-campus.md)记录5个博雅视图与2个阳光视图、集合统计、分页和固定路线回读，列明可复用的Core/Bridge字段和不可重新推导的写资格。仅实施前静态核对，不将其计为已迁移或原生通过。

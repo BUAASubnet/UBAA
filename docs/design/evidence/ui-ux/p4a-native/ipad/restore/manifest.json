@@ -1,0 +1,9 @@
+{
+  "savedScreenshots": [
+    "restored-dark-profile",
+    "restored-light-profile"
+  ],
+  "metadataCount": 2,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}

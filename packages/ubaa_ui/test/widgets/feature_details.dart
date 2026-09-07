@@ -50,11 +50,22 @@ void _registerFeatureRenderingTests() {
     expect(find.text('实际路线：直连'), findsOneWidget);
     expect(find.textContaining('只读详情页面将在'), findsNothing);
 
+    await tester.ensureVisible(find.text('返回功能列表'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('返回功能列表'));
+    await tester.pumpAndSettle();
+    expect(find.text('返回功能列表'), findsNothing);
     await tester.tap(find.byIcon(Icons.person_outline));
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsOneWidget);
-    await tester.ensureVisible(find.text('退出并清除本机账号'));
+    await tester.scrollUntilVisible(
+      find.text('退出并清除本机账号'),
+      200,
+      scrollable: find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('退出并清除本机账号'));
     await tester.pumpAndSettle();

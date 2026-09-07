@@ -36,17 +36,7 @@ class _ProfileView extends StatelessWidget {
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
         children: <Widget>[
-          Card(
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                radius: 28,
-                child: Text((user?.preferredName ?? 'U').characters.first),
-              ),
-              title: Text(user?.preferredName ?? '未登录'),
-              subtitle: Text(user?.username ?? ''),
-            ),
-          ),
+          _ProfileIdentityCard(user: user),
           const SizedBox(height: 16),
           Card(
             child: ListTile(
@@ -166,6 +156,9 @@ class _ProfileView extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) await onLogoutAndClearAccount();
+    // 账号切换或退出已销毁原页面时，旧确认不得清理后来登录的账号。
+    if (confirmed == true && context.mounted) {
+      await onLogoutAndClearAccount();
+    }
   }
 }

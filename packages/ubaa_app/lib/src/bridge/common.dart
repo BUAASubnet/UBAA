@@ -20,6 +20,10 @@ Future<UserSummary?> _userInfo(BridgeBackend backend) async {
     return UserSummary(
       username: username,
       displayName: _nonBlank(profile.name),
+      schoolId: _nonBlank(profile.schoolId),
+      email: _nonBlank(profile.email),
+      phone: _nonBlank(profile.phone),
+      idCardTypeName: _nonBlank(profile.idCardTypeName),
     );
   } on BridgeError catch (error) {
     throw _mapError(error);

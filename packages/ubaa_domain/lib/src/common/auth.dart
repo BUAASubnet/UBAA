@@ -27,11 +27,19 @@ class UserSummary {
     required this.username,
     this.displayName,
     this.department,
+    this.schoolId,
+    this.email,
+    this.phone,
+    this.idCardTypeName,
   });
 
   final String username;
   final String? displayName;
   final String? department;
+  final String? schoolId;
+  final String? email;
+  final String? phone;
+  final String? idCardTypeName;
 
   String get preferredName => displayName == null || displayName!.trim().isEmpty
       ? username

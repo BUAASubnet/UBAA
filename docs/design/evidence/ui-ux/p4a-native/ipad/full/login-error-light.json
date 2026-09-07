@@ -1,0 +1,21 @@
+{
+  "name": "login-error-light",
+  "scene": "login-error-light",
+  "backend": "synthetic-account-fixture",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "theme": "light",
+  "textScale": 1.0,
+  "themeMode": "system",
+  "themeSource": "explicit-test-system-or-user-preference",
+  "textScaleSource": "test-platform-text-scale",
+  "sourceSha": "0f3803ca+P4A-r1",
+  "dateUtc": "2026-09-07T22:43:17.920875Z",
+  "pngSaved": true
+}

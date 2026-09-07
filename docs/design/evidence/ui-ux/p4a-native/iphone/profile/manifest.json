@@ -1,0 +1,17 @@
+{
+  "savedScreenshots": [
+    "normal-dark-email-visible",
+    "normal-dark-profile-masked-visible",
+    "long-dark-email-visible",
+    "long-dark-profile-masked-visible",
+    "missing-dark-profile-masked-visible",
+    "normal-light-email-visible",
+    "normal-light-profile-masked-visible",
+    "long-light-email-visible",
+    "long-light-profile-masked-visible",
+    "missing-light-profile-masked-visible"
+  ],
+  "metadataCount": 10,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}
