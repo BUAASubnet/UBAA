@@ -1,5 +1,23 @@
 # 决策记录
 
+## 2026-09-07：修复 macOS 沙箱主动联网权限
+
+用户明确授权修复 MACOS-001 并重新打开 App，由用户登录。真实 App 进程 81365 的系统记录为
+`deny(1) network-outbound`；实际签名启用 App Sandbox，却缺少 `com.apple.security.network.client`。
+按 Apple 的客户端网络 entitlement 定义，仅在 DebugProfile 与 Release 配置补齐该布尔权限，保留沙箱及其它权限。
+
+冻结 `ubaa_old` 在固定提交的 `composeApp/build.gradle.kts` 使用 Compose Desktop/JVM 分发，未提供
+等价 Flutter macOS entitlement；固定 `examples/buaa-api/Cargo.toml` 是 Rust API 库，同样没有等价宿主配置。
+本次不改变任何 CAS/service URL、跳转、Cookie/Session 范围、方法/参数、Header/正文、加密、DTO、缓存并发或错误协议，
+继续沿用既有来源矩阵；不得从平台权限修复类推上游协议。
+
+新增的 macOS 权限回归以 `plutil` 解析两份真实配置，同时要求沙箱和主动连接为 true。
+修复前已观察到 DebugProfile 的客户端权限为 null 而失败；修复后官方 App 3 项测试、静态分析与完整
+`just check` 通过，macOS Debug 正常构建，实际签名中沙箱和 network.client 均为 true。
+新产物相同相对路径 checker SHA-256 为 `37eed9dad817349c5125872ad7970bfb2bf2b7b42bbd6a03032cfd005312eb9f`。
+用户随后确认 App 可以登录，并因校园网负载较高要求暂停实测、整理提交推送。该登录为用户确认的基础成功，
+不是逐路线或十二领域矩阵通过；本轮未构建 Release 包，没有正式签名发布或业务写入。
+
 ## 2026-09-05：将既有视觉基线的宿主条件显式纳入 CI
 
 候选 `06333190081f20b5eee0a8b20986b46aad9265b7` 的本地 19 项、五平台原生 CI
