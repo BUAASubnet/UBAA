@@ -1,0 +1,63 @@
+{
+  "name": "dark-rotation-before",
+  "scene": "schedule-unapplied-draft-native-rotation",
+  "steps": "XCUIDevice方向变化后读取真实窗口；同页面草稿与侧栏断言",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "textStyleDiagnostics": [
+    {
+      "role": "title-1",
+      "textColorArgb": 4293059305,
+      "foregroundColorArgb": null,
+      "defaultTextColorArgb": 4293059305,
+      "themeBrightness": "dark",
+      "themeTitleMediumColorArgb": 4293059305,
+      "themeBodySmallColorArgb": 4293059305,
+      "fontSize": 16.0
+    },
+    {
+      "role": "subtitle-1",
+      "textColorArgb": 4293059305,
+      "foregroundColorArgb": null,
+      "defaultTextColorArgb": 4293059305,
+      "themeBrightness": "dark",
+      "themeTitleMediumColorArgb": 4293059305,
+      "themeBodySmallColorArgb": 4293059305,
+      "fontSize": 12.0
+    },
+    {
+      "role": "title-2",
+      "textColorArgb": 4293059305,
+      "foregroundColorArgb": null,
+      "defaultTextColorArgb": 4293059305,
+      "themeBrightness": "dark",
+      "themeTitleMediumColorArgb": 4293059305,
+      "themeBodySmallColorArgb": 4293059305,
+      "fontSize": 16.0
+    },
+    {
+      "role": "subtitle-2",
+      "textColorArgb": 4293059305,
+      "foregroundColorArgb": null,
+      "defaultTextColorArgb": 4293059305,
+      "themeBrightness": "dark",
+      "themeTitleMediumColorArgb": 4293059305,
+      "themeBodySmallColorArgb": 4293059305,
+      "fontSize": 12.0
+    }
+  ],
+  "viewportSource": "native-view-unmodified",
+  "rotationSource": "XCUIDevice.orientation",
+  "rotationRunId": "709fa2b8-596c-4458-98a4-288270dd4be5",
+  "dateUtc": "2026-09-07T19:13:56.195631Z",
+  "sourceSha": "581556b9+P3B-uncommitted",
+  "pngSaved": true
+}

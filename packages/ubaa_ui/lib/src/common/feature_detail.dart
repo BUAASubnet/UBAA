@@ -40,17 +40,50 @@ class _FeatureDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = switch (snapshot.status) {
-      FeatureLoadStatus.loading => const Center(
-        child: CircularProgressIndicator(),
-      ),
-      FeatureLoadStatus.failure => _error(context),
-      FeatureLoadStatus.stale => _stale(context),
-      FeatureLoadStatus.empty => _empty(context),
-      FeatureLoadStatus.idle => _empty(context),
-      FeatureLoadStatus.success => _details(context),
-    };
-    return Column(
+    final showDetails =
+        (snapshot.status == FeatureLoadStatus.success ||
+            snapshot.status == FeatureLoadStatus.stale) &&
+        snapshot.details.isNotEmpty;
+    final content = Column(
+      children: [
+        if (snapshot.status == FeatureLoadStatus.stale)
+          MaterialBanner(
+            content: Text(snapshot.error?.message ?? '刷新失败，以下是上次成功加载的数据。'),
+            leading: const Icon(Icons.sync_problem),
+            actions: [
+              TextButton(onPressed: () => onRetry(), child: const Text('重试')),
+            ],
+          ),
+        Expanded(
+          key: const ValueKey<String>('stable-detail-list'),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 同一列表始终保留State；明确空结果仍将details更新为空。
+              ExcludeFocus(
+                excluding: !showDetails,
+                child: TickerMode(
+                  enabled: showDetails,
+                  child: Offstage(
+                    offstage: !showDetails,
+                    child: _details(context),
+                  ),
+                ),
+              ),
+              if (!showDetails)
+                switch (snapshot.status) {
+                  FeatureLoadStatus.loading => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  FeatureLoadStatus.failure => _error(context),
+                  _ => _empty(context),
+                },
+            ],
+          ),
+        ),
+      ],
+    );
+    final page = Column(
       children: <Widget>[
         if (onQuery != null && _supportsQuery)
           _FeatureQueryControls(
@@ -83,6 +116,23 @@ class _FeatureDetailView extends StatelessWidget {
         ),
       ],
     );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 短窗口或键盘出现时整页可滚动；不挤掉筛选与返回操作。
+        // 详情列表仍有独立滚动位置，正常高度下外层没有滚动范围。
+        final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        final minimumHeight = 640.0 * (textScale < 1 ? 1.0 : textScale);
+        return SingleChildScrollView(
+          primary: false,
+          child: SizedBox(
+            height: constraints.maxHeight < minimumHeight
+                ? minimumHeight
+                : constraints.maxHeight,
+            child: page,
+          ),
+        );
+      },
+    );
   }
 
   bool get _supportsQuery => switch (feature) {
@@ -101,7 +151,6 @@ class _FeatureDetailView extends StatelessWidget {
   };
 
   Widget _details(BuildContext context) {
-    if (snapshot.details.isEmpty) return _empty(context);
     return _FeatureDetailList(
       feature: feature,
       details: snapshot.details,
@@ -118,41 +167,6 @@ class _FeatureDetailView extends StatelessWidget {
       onEvaluationWrite: onEvaluationWrite,
       onYgdkSubmitWrite: onYgdkSubmitWrite,
       onPickYgdkPhoto: onPickYgdkPhoto,
-    );
-  }
-
-  Widget _stale(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        MaterialBanner(
-          content: Text(snapshot.error?.message ?? '刷新失败，以下是上次成功加载的数据。'),
-          leading: const Icon(Icons.sync_problem),
-          actions: <Widget>[
-            TextButton(onPressed: () => onRetry(), child: const Text('重试')),
-          ],
-        ),
-        Expanded(
-          child: snapshot.details.isEmpty
-              ? _empty(context)
-              : _FeatureDetailList(
-                  feature: feature,
-                  details: snapshot.details,
-                  pagination: snapshot.pagination,
-                  query: query,
-                  onQuery: onQuery,
-                  onBykcWrite: onBykcWrite,
-                  onBykcSignWrite: onBykcSignWrite,
-                  onSigninWrite: onSigninWrite,
-                  onCgyyCancelWrite: onCgyyCancelWrite,
-                  onLibbookReserveWrite: onLibbookReserveWrite,
-                  onLibbookCancelWrite: onLibbookCancelWrite,
-                  onCgyySubmitWrite: onCgyySubmitWrite,
-                  onEvaluationWrite: onEvaluationWrite,
-                  onYgdkSubmitWrite: onYgdkSubmitWrite,
-                  onPickYgdkPhoto: onPickYgdkPhoto,
-                ),
-        ),
-      ],
     );
   }
 

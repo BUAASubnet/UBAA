@@ -134,6 +134,14 @@ final class AssignmentPresentation extends FeaturePresentation {
 
 追加最小 RED：App 在 `bridge_backend_characterization/{read,fakes}.dart` 体系覆盖周二 3–4 节和结束时间两个周表分支、单侧考试时间/座位、非数字绩点/null、3/13 节次精确匹配；SPOC 导航仅 assignmentId，Judge 同标题不同双 ID 的批量 B→A 顺序和问题归属。UI 可新增 academic_presentation_test.dart/assignment_presentation_test.dart：真实点学期→周次一次 query、缺时间课程仍可见、同名作业精确选中父 ID、长正文和嵌套问题可滚动。Evaluation 复用 bridge_backend/evaluation.dart 与 widgets/evaluation_writes.dart，重复 target 仍 unknown；fields 故意含误导 ID 时新 readNavigation 仍只用 typed 来源。上述测试尚未编写或运行。
 
+### 批次 3 的页面上下文约束补充
+
+当前 `common/feature_detail.dart` 在 loading/empty/failure/success/stale 分支间更换内容子树，`_FeatureDetailList` 的搜索与滚动状态会随子树销毁；P3已验证的跨功能返回与断点保留不等于刷新期间也保留。typed 父子导航实施前需单独 RED：搜索/滚动后的父列表→子详情→返回，保留父筛选与位置；同一查询 success→loading→success/stale 不丢本地搜索；空结果不显示旧业务条目。
+
+现 `FeatureSnapshot` 不携带成功结果对应的 query；`AppController._loadFeature` 抛错时沿同一 feature 保留 previous 数据。切换子视图时，不能仅以“同一feature”认定旧数据属于新查询。后续实现必须为父子展示保存明确上下文，或为结果记录来源查询，确保失败后不会把前一子视图冒充当前父列表。新的显示上下文不拥有写资格；迟到响应仍以AppController的generation/lifecycleEpoch为准，账户变化销毁所有个人上下文。不得缓存Widget或绕开既有typed请求，不能因新增本地展示历史改变网络重试/缓存/路由协议。
+
+`UbaaMainShell._buildFeaturePage` 已在详情重试时复用 `_featureQueries[feature]`，这项是现有已修行为，应保留而非误报“所有重试都回到默认”。首页显式全量刷新和失败卡的重试行为另按实际任务测试，不把新typed点选的参数拼回展示字符串。
+
 ## 批次 4：校园父子查询与资料（P4-D/A）
 
 修改：`packages/ubaa_domain/lib/src/feature/{result,presentation}.dart`、`common/auth.dart`、`packages/ubaa_app/lib/src/bridge/common.dart`、`bridge/read/{bykc,libbook,cgyy,ygdk}.dart`、`packages/ubaa_ui/lib/src/features/{bykc,libbook,cgyy,ygdk}.dart`、`app/profile.dart`。必要时新增 `packages/ubaa_ui/lib/src/features/library_content.dart`、`reservation_content.dart`、`campus_content.dart`，各自负责领域布局。

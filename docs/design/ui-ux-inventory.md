@@ -36,7 +36,7 @@
 | SET-06 | 查看/复制本次诊断：登录或我的 | U/app/profile.dart；U/common/error_card.dart；A/controller/app_controller/diagnostics.dart；不自动上传 | 有 | 有 | 错误页与我的→诊断；仅脱敏元信息 | UT/diagnostics_test.dart；AT/diagnostics_test.dart | 未执行 | 手机/平板已打开/关闭诊断；复制交互待补 | 不适用（本地） |
 | AUTH-06 | 退出：我的 | F/auth.rs logout；B/client.rs logout；U/app/profile.dart；保留主动保存凭据，清理会话/意图 | 有 | 有 | 我的底部退出 | AT/app_controller/lifecycle.dart；packages/ubaa_host/test/lifecycle_test.dart | 未执行 | 未执行 | 未执行 |
 | AUTH-07 | 退出并清除本机账号：我的→确认 | U/app/profile.dart _confirmClearAccount；宿主 CredentialVault 清理；不删除学校数据 | 有 | 有 | 独立破坏性本机确认 | packages/ubaa_host/test/ubaa_app_host/callbacks.dart；packages/ubaa_platform/test/credentials_test.dart | 未执行 | 未执行 | 不适用（本地） |
-| NAV-01 | 导航、返回与刷新 | U/app/{shell,home}.dart；A/controller/app_controller/refresh.dart；generation/迟到响应保护 | 有 | 有 | P2 按学习/校园任务分组；跨宽度保留页面及输入 | UT/widgets/shell.dart；UT/widgets/states.dart；AT/app_controller/race.dart | 导航3项+连续性5项通过；UI115回归通过 | P3/P3A手机平板12入口与草稿返回通过；macOS缩放/旋转/分屏待验 | 未执行 |
+| NAV-01 | 导航、返回与刷新 | U/app/{shell,home}.dart；A/controller/app_controller/refresh.dart；generation/迟到响应保护 | 有 | 有 | P2 按学习/校园任务分组；跨宽度保留页面及输入 | UT/widgets/shell.dart；UT/widgets/states.dart；AT/app_controller/race.dart | 导航3项+连续性5项+刷新/键盘/主题7项通过；UI122回归通过 | P3/P3A手机平板12入口与草稿返回通过；P3B平板真实旋转、手机键盘/stale通过；macOS缩放/平板分屏待验 | 未执行 |
 
 ## 十二领域查询与子视图
 

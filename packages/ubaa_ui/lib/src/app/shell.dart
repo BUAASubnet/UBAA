@@ -323,6 +323,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   };
 
   Widget _buildRail(BuildContext context) => NavigationRail(
+    scrollable: true,
     minWidth: 80,
     minExtendedWidth: 200,
     selectedIndex: _selectedIndex,

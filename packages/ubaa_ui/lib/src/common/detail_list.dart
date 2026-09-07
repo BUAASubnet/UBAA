@@ -67,6 +67,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
 
   @override
   Widget build(BuildContext context) {
+    // 列表的构建委托可能保留子元素；外层显式依赖主题，切换时更新标题样式。
+    final theme = Theme.of(context);
     final query = _query.trim().toLowerCase();
     final details = query.isEmpty
         ? widget.details
@@ -203,15 +205,12 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                           children: <Widget>[
                             Text(
                               detail.title,
-                              style: Theme.of(context).textTheme.titleMedium,
+                              style: theme.textTheme.titleMedium,
                             ),
                             if (detail.subtitle case final subtitle?
                                 when subtitle.trim().isNotEmpty) ...<Widget>[
                               const SizedBox(height: 4),
-                              Text(
-                                subtitle,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
+                              Text(subtitle, style: theme.textTheme.bodySmall),
                             ],
                             for (final field in detail.fields) ...<Widget>[
                               const SizedBox(height: 8),

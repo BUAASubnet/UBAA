@@ -1,0 +1,23 @@
+{
+  "name": "dark-grades-stale-search",
+  "scene": "dark-grades-stale-search",
+  "steps": "第二次同条件合成查询失败，旧结果与本地搜索保持，展示失败提示",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1206.0,
+  "physicalHeight": 2622.0,
+  "devicePixelRatio": 3.0,
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "nativeKeyboardInsetLogical": 0.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "textScale": 1.0,
+  "textScaleSource": "test-platform-text-scale",
+  "viewportSource": "native-view-unmodified",
+  "captureRunId": "c0f097c3-7c6e-4889-8979-9d2a650870c3",
+  "dateUtc": "2026-09-07T19:33:23.612212Z",
+  "sourceSha": "581556b9+P3B-uncommitted",
+  "pngSaved": true
+}

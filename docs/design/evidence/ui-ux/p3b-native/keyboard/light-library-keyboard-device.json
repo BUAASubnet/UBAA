@@ -1,0 +1,11 @@
+{
+  "runId": "c0f097c3-7c6e-4889-8979-9d2a650870c3",
+  "scene": "light-library-keyboard",
+  "screenshot": "light-library-keyboard-device.png",
+  "screenshotSource": "simctl-native-device-including-system-ui",
+  "deviceId": "B196C00E-FDA6-45C2-BAC5-D7208B8D9DBD",
+  "physicalWidth": 1206,
+  "physicalHeight": 2622,
+  "dateUtc": "2026-09-07T19:33:34.837490Z",
+  "backend": "synthetic-inspection"
+}

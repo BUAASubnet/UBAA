@@ -1,0 +1,34 @@
+{
+  "savedScreenshots": [
+    "dark-library-keyboard",
+    "dark-library-query-result",
+    "dark-grades-before-refresh",
+    "dark-grades-stale-search",
+    "light-library-keyboard",
+    "light-library-query-result",
+    "light-grades-before-refresh",
+    "light-grades-stale-search"
+  ],
+  "metadataCount": 8,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "原生稳定软键盘与成绩stale搜索通过，非全领域或macOS最终验收",
+  "device": "iPhone 17 Pro",
+  "deviceId": "B196C00E-FDA6-45C2-BAC5-D7208B8D9DBD",
+  "testResult": "四个业务场景通过；driver退出0；8张Flutter窗口原图和2张含系统键盘整机原图",
+  "deviceScreenshots": [
+    "dark-library-keyboard-device",
+    "light-library-keyboard-device"
+  ],
+  "pngSha256": {
+    "dark-grades-before-refresh.png": "06f7581f320d3e395cc9cac32650eb84b65b56670c14e37a568b8737a680decd",
+    "dark-grades-stale-search.png": "436b46cb656bac8e833ab5462d43975118c163b2d2c91832b47a70ff88f92a71",
+    "dark-library-keyboard-device.png": "f2a35ce261327e9596a76ea8bfa39cf392b79202916fe1baff07695d0d33eca0",
+    "dark-library-keyboard.png": "616a5a294726039251466cbf88636b6c8407c756cbe00d92d03a4ac39467d3c4",
+    "dark-library-query-result.png": "4b97c30cc6b6fb8dca7c9b912ef775393d92280bfe63252b7e08ee94296c7dda",
+    "light-grades-before-refresh.png": "bcba869728536e7262f221cb45dd7deca4e79b68627e5f8cef23a28df2b6eb20",
+    "light-grades-stale-search.png": "23e045527530d6fad25c54dcf7269ba189396d6f028293211046f24277a99bf6",
+    "light-library-keyboard-device.png": "c8cc2379e2f4d91ac59c2d340363d475ac81e8f0719ace2094ec1fc2685cebed",
+    "light-library-keyboard.png": "0bffb43dc613bea9dc1979726b02448dc8babe83d223b83a2727fe4bdaad26f8",
+    "light-library-query-result.png": "2e688b53177f4e71002c6227601194264035fc47b3442d2699fc5efea9e4fbc0"
+  }
+}

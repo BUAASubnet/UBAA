@@ -671,3 +671,5 @@ Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimit
 可接线范围：图书馆馆列表已有 typed 楼层，分区已有父 ID，详情已有 typed 时段；App 可无损保留这些公开字段为选择器，segment 只能取时段 ID。阻塞范围：当前公开分区详情仅给出第一日期/顶层时段，不能据此声称全部日期共享时段；跨日期精确时段需另行合同与失败测试。userInfo 已接入但仅投影 username/name，既有白名单其它字段可做遮罩资料展示，department 没有来源。
 
 审查发现的“SPOC 详情”首表误写 Judge URL 已于本日按两冻结来源和 Core 修正归属；历史说明保留于对应章节，不构成协议变更。Ygdk 主机集合未决边界、Cgyy 仅公开锁码 available、所有 typed 写入资格与单次提交保持原决定。本节只有静态来源证据，不是测试、实时只读或实际 UI PASS。
+
+P3B公共容器补充：刷新状态切换的State保留、隐藏焦点隔离、短视口滚动和Theme依赖仅影响本地呈现。全部认证/只读操作继续应用上述C1–C9，URL/参数/请求次数/DTO/错误码/路线/业务缓存均未变；不从旧展示数据产生新写资格。typed actions每次仍取当前snapshot.details，明确empty清除无效选择，唯一WriteCoordinator不变。6个状态/键盘场景（先5RED/1GREEN）及主题颜色RED合为7GREEN，原生旋转与字体复验独立记录。

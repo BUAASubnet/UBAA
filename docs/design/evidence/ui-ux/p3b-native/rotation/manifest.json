@@ -1,0 +1,32 @@
+{
+  "savedScreenshots": [
+    "dark-rotation-before",
+    "dark-rotation-landscape",
+    "dark-rotation-home",
+    "dark-rotation-restored",
+    "dark-rotation-portrait",
+    "light-rotation-before",
+    "light-rotation-landscape",
+    "light-rotation-home",
+    "light-rotation-restored",
+    "light-rotation-portrait"
+  ],
+  "metadataCount": 10,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "原生旋转/主题颜色/草稿连续性通过，非全部领域或macOS验收",
+  "device": "iPad Pro 11-inch (M5)",
+  "deviceId": "9F9D9C27-D085-467E-86B6-2960D0082ECC",
+  "testResult": "XCTest1项+Flutter1场景通过；两主题10图，双进程退出0",
+  "pngSha256": {
+    "dark-rotation-before.png": "83b569ac36c4c6eec54fc81aa9b653b53d4f7e646d0079c70fc83504a6745b3a",
+    "dark-rotation-home.png": "cf08263bf5612335739735cc1929a7c3fd8f6eabf7bcd69b3bf126e893d6738c",
+    "dark-rotation-landscape.png": "99b0a471ca3fde6983c5685b83a601b682fe0dcc291671e3add13202a3f45e1b",
+    "dark-rotation-portrait.png": "83b569ac36c4c6eec54fc81aa9b653b53d4f7e646d0079c70fc83504a6745b3a",
+    "dark-rotation-restored.png": "99b0a471ca3fde6983c5685b83a601b682fe0dcc291671e3add13202a3f45e1b",
+    "light-rotation-before.png": "8703fc236ce7cf373f49ff723cb029bbc804e5b8548a4123980ab3bee124eb76",
+    "light-rotation-home.png": "7aa30356befd0a49d1670380d13914682c14488f7c4a64d917ef3c046fffa55f",
+    "light-rotation-landscape.png": "696346bc9e0649747c67642da3db8cc5fefcb6b90b1339c93d3f5f3385d459b1",
+    "light-rotation-portrait.png": "8703fc236ce7cf373f49ff723cb029bbc804e5b8548a4123980ab3bee124eb76",
+    "light-rotation-restored.png": "696346bc9e0649747c67642da3db8cc5fefcb6b90b1339c93d3f5f3385d459b1"
+  }
+}
