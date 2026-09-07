@@ -5,10 +5,30 @@ enum AuthStatus { signedOut, signedIn }
 
 /// Bridge/Core 错误的安全边界。`detail` 只能记录脱敏诊断，不得传给 UI。
 class BackendException implements Exception {
-  const BackendException(this.code, {this.detail});
+  const BackendException(
+    this.code, {
+    this.detail,
+    this.kind,
+    this.retryable,
+    this.resolvedRoute,
+    this.issueId,
+  });
+
+  /// 跨协调器兼容入口重新抛出时，不再把完整错误压缩成单个代码。
+  factory BackendException.fromUi(UiError error) => BackendException(
+    error.code,
+    kind: error.kind,
+    retryable: error.retryable,
+    resolvedRoute: error.resolvedRoute,
+    issueId: error.issueId,
+  );
 
   final UbaaErrorCode code;
   final String? detail;
+  final UbaaErrorKind? kind;
+  final bool? retryable;
+  final ConnectionMode? resolvedRoute;
+  final String? issueId;
 
   @override
   String toString() => 'BackendException(${code.wireName})';

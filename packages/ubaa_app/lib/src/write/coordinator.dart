@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../contracts/backend.dart';
 import '../controller/error_mapper.dart';
@@ -19,17 +20,20 @@ class WriteCoordinator extends ChangeNotifier {
     WriteReceiptVerifier? receiptVerifier,
     DateTime Function()? now,
     bool Function()? canStart,
+    LocalDiagnostics? diagnostics,
   }) : _commit = commit,
        _discard = discard,
        _receiptVerifier = receiptVerifier ?? const WriteReceiptVerifier(),
        _now = now ?? DateTime.now,
-       _canStart = canStart;
+       _canStart = canStart,
+       _diagnostics = diagnostics ?? LocalDiagnostics();
 
   final WriteCommitter _commit;
   final WriteDiscarder? _discard;
   final WriteReceiptVerifier _receiptVerifier;
   final DateTime Function() _now;
   final bool Function()? _canStart;
+  final LocalDiagnostics _diagnostics;
   WriteState _state = const WriteState.idle();
   bool _disposed = false;
   int _generation = 0;
@@ -56,7 +60,7 @@ class WriteCoordinator extends ChangeNotifier {
     try {
       return await _prepare(prepare, expectedOperation: expectedOperation);
     } on BackendException catch (exception) {
-      throw UbaaErrorMapper.fromCode(exception.code);
+      throw UbaaErrorMapper.fromException(exception);
     }
   }
 
@@ -81,12 +85,16 @@ class WriteCoordinator extends ChangeNotifier {
       }
       _publish(WriteState(phase: WritePhase.ready, intent: prepared));
       return _isCurrent(activity, generation) ? prepared : null;
-    } on Object catch (exception) {
+    } on Object catch (exception, stackTrace) {
       if (!_isCurrent(activity, generation)) return null;
-      final error = _safeError(exception);
+      final error = _safeError(
+        exception,
+        DiagnosticOperation.writePrepare,
+        stackTrace,
+      );
       _publish(WriteState(phase: WritePhase.idle, error: error));
       if (!_isCurrent(activity, generation)) return null;
-      throw BackendException(_errorCode(exception));
+      throw BackendException.fromUi(error);
     } finally {
       _finish(activity);
     }
@@ -98,7 +106,7 @@ class WriteCoordinator extends ChangeNotifier {
     try {
       await _cancel();
     } on BackendException catch (exception) {
-      throw UbaaErrorMapper.fromCode(exception.code);
+      throw UbaaErrorMapper.fromException(exception);
     }
   }
 
@@ -114,14 +122,18 @@ class WriteCoordinator extends ChangeNotifier {
       }
       await discard(pending.intentId);
       if (_isCurrent(activity, generation)) _publish(const WriteState.idle());
-    } on Object catch (exception) {
+    } on Object catch (exception, stackTrace) {
       if (!_isCurrent(activity, generation)) return;
-      final error = _safeError(exception);
+      final error = _safeError(
+        exception,
+        DiagnosticOperation.writeDiscard,
+        stackTrace,
+      );
       _publish(
         WriteState(phase: WritePhase.ready, intent: pending, error: error),
       );
       if (!_isCurrent(activity, generation)) return;
-      throw BackendException(_errorCode(exception));
+      throw BackendException.fromUi(error);
     } finally {
       _finish(activity);
     }
@@ -130,7 +142,9 @@ class WriteCoordinator extends ChangeNotifier {
   /// 保留旧返回值和异常类型；安全 UI 入口共享相同的消费路径。
   Future<WriteCommitResult?> confirm() async {
     final completion = await _confirm();
-    if (completion?.code case final code?) throw BackendException(code);
+    if (completion?.outcome.error case final error?) {
+      throw BackendException.fromUi(error);
+    }
     return completion?.outcome.result;
   }
 
@@ -166,9 +180,14 @@ class WriteCoordinator extends ChangeNotifier {
           code = UbaaErrorCode.outcomeUnknown;
           error = UbaaErrorMapper.fromCode(code);
         }
-      } on Object catch (exception) {
+      } on Object catch (exception, stackTrace) {
+        if (!_isCurrent(activity, generation)) return null;
         code = _errorCode(exception);
-        error = _safeError(exception);
+        error = _safeError(
+          exception,
+          DiagnosticOperation.writeCommit,
+          stackTrace,
+        );
       }
       if (!_isCurrent(activity, generation)) return null;
       _publish(WriteState(phase: WritePhase.readingBack, intent: pending));
@@ -177,6 +196,9 @@ class WriteCoordinator extends ChangeNotifier {
         result: result,
         error: error,
         isCurrent: () => _isCurrent(activity, generation),
+        onReadbackError: (cause, stackTrace) {
+          _safeError(cause, DiagnosticOperation.readback, stackTrace);
+        },
       );
       if (!_isCurrent(activity, generation)) return null;
       _publish(WriteState(phase: WritePhase.idle, error: error));
@@ -225,8 +247,24 @@ class WriteCoordinator extends ChangeNotifier {
     _ => UbaaErrorCode.internalError,
   };
 
-  UiError _safeError(Object exception) =>
-      UbaaErrorMapper.fromCode(_errorCode(exception));
+  UiError _safeError(
+    Object exception,
+    DiagnosticOperation operation,
+    StackTrace stackTrace,
+  ) {
+    final error = UbaaErrorMapper.fromObject(exception);
+    if (_disposed) return error;
+    try {
+      return _diagnostics.record(
+        operation: operation,
+        error: error,
+        cause: exception,
+        stackTrace: stackTrace,
+      );
+    } on Object {
+      return error;
+    }
+  }
 
   void _publish(WriteState state) {
     _state = state;
@@ -237,7 +275,8 @@ class WriteCoordinator extends ChangeNotifier {
     try {
       await _discard?.call(pending.intentId);
     } on Object {
-      // 失效或卸载后不再持有确认资格；Bridge 自行清理过期意图。
+      // 这是失效意图的后台清理，失败不能进入当前代次诊断。
+      // 用户主动取消的失败由 _cancel 单独记录；Bridge 自行清理过期意图。
     }
   }
 

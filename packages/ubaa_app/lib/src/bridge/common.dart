@@ -78,11 +78,18 @@ Future<void> _login(BridgeBackend backend, LoginInput input) async {
       password: input.password,
     );
     if (outcome.readiness == BridgeLoginReadiness.noneReady) {
-      final failed = outcome.routes
-          .map((route) => route.error)
-          .whereType<BridgeSafeError>()
-          .firstOrNull;
-      throw BackendException(_errorCode(failed?.code));
+      for (final route in outcome.routes) {
+        final failed = route.error;
+        if (failed != null) {
+          throw BackendException(
+            _errorCode(failed.code),
+            kind: _safeErrorKind(failed.kind),
+            retryable: failed.retryable,
+            resolvedRoute: _toConnectionMode(route.route),
+          );
+        }
+      }
+      throw const BackendException(UbaaErrorCode.internalError);
     }
   } on BridgeError catch (error) {
     throw _mapError(error);
@@ -238,8 +245,54 @@ String? _nonBlank(String? value) {
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
-BackendException _mapError(BridgeError error) =>
-    BackendException(_errorCode(error.code.name), detail: _safeDetail(error));
+BackendException _mapError(BridgeError error) => BackendException(
+  _typedErrorCode(error.code),
+  kind: _typedErrorKind(error.kind),
+  retryable: error.retryable,
+  resolvedRoute: error.resolvedRoute == null
+      ? null
+      : _toConnectionMode(error.resolvedRoute!),
+);
+
+UbaaErrorCode _typedErrorCode(BridgeErrorCode code) => switch (code) {
+  BridgeErrorCode.invalidInput => UbaaErrorCode.invalidInput,
+  BridgeErrorCode.authenticationRequired =>
+    UbaaErrorCode.authenticationRequired,
+  BridgeErrorCode.invalidCredentials => UbaaErrorCode.invalidCredentials,
+  BridgeErrorCode.passwordRiskConfirmationFailed =>
+    UbaaErrorCode.passwordRiskConfirmationFailed,
+  BridgeErrorCode.permissionDenied => UbaaErrorCode.permissionDenied,
+  BridgeErrorCode.networkError => UbaaErrorCode.networkError,
+  BridgeErrorCode.timeout => UbaaErrorCode.timeout,
+  BridgeErrorCode.upstreamUnavailable => UbaaErrorCode.upstreamUnavailable,
+  BridgeErrorCode.upstreamChanged => UbaaErrorCode.upstreamChanged,
+  BridgeErrorCode.parseError => UbaaErrorCode.parseError,
+  BridgeErrorCode.internalError ||
+  BridgeErrorCode.clientDisposed => UbaaErrorCode.internalError,
+  BridgeErrorCode.confirmationRequired => UbaaErrorCode.confirmationRequired,
+  BridgeErrorCode.intentExpired => UbaaErrorCode.intentExpired,
+  BridgeErrorCode.operationConflict => UbaaErrorCode.operationConflict,
+  BridgeErrorCode.outcomeUnknown => UbaaErrorCode.outcomeUnknown,
+};
+
+UbaaErrorKind _typedErrorKind(BridgeErrorKind kind) => switch (kind) {
+  BridgeErrorKind.input => UbaaErrorKind.input,
+  BridgeErrorKind.authentication => UbaaErrorKind.authentication,
+  BridgeErrorKind.network => UbaaErrorKind.network,
+  BridgeErrorKind.upstream => UbaaErrorKind.upstream,
+  BridgeErrorKind.parse => UbaaErrorKind.parse,
+  BridgeErrorKind.internal => UbaaErrorKind.internal,
+};
+
+UbaaErrorKind _safeErrorKind(String value) => switch (value) {
+  'input' => UbaaErrorKind.input,
+  'authentication' => UbaaErrorKind.authentication,
+  'network' => UbaaErrorKind.network,
+  'upstream' => UbaaErrorKind.upstream,
+  'parse' => UbaaErrorKind.parse,
+  'internal' => UbaaErrorKind.internal,
+  _ => UbaaErrorKind.unknown,
+};
 
 UbaaErrorCode _errorCode(String? code) => switch (code) {
   'invalidInput' || 'invalid_input' => UbaaErrorCode.invalidInput,
@@ -265,23 +318,3 @@ UbaaErrorCode _errorCode(String? code) => switch (code) {
   'outcomeUnknown' || 'outcome_unknown' => UbaaErrorCode.outcomeUnknown,
   _ => UbaaErrorCode.internalError,
 };
-
-String? _safeDetail(BridgeError error) {
-  final value = error.message.trim();
-  if (value.isEmpty || value.length > 160) return null;
-  final unsafeDetail = RegExp(
-    r'(password|cookie|token|authorization|https?://)',
-    caseSensitive: false,
-  );
-  if (value.contains(unsafeDetail)) return null;
-  return value;
-}
-
-extension on Iterable<BridgeSafeError?> {
-  BridgeSafeError? get firstOrNull {
-    for (final value in this) {
-      if (value != null) return value;
-    }
-    return null;
-  }
-}

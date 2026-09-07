@@ -39,8 +39,21 @@ Future<bool> _verifyCgyyCancellation(
         )) {
       controller._notify();
     }
-  } on Object {
+  } on Object catch (error, stackTrace) {
     // 列表读取失败仅表示未核对，仍继续独立读取详情。
+    if (controller._isFeatureLoadCurrent(
+      FeatureId.cgyy,
+      generation,
+      lifecycleEpoch,
+      null,
+    )) {
+      controller._recordFailure(
+        error,
+        DiagnosticOperation.readback,
+        stackTrace: stackTrace,
+        feature: FeatureId.cgyy,
+      );
+    }
   }
   if (controller._disposed || lifecycleEpoch != controller._lifecycleEpoch) {
     return false;
@@ -50,8 +63,21 @@ Future<bool> _verifyCgyyCancellation(
       route: expectedRoute,
       orderId: orderId,
     );
-  } on Object {
+  } on Object catch (error, stackTrace) {
     // 详情读取失败仅表示未核对，不得触发写入重试。
+    if (controller._isFeatureLoadCurrent(
+      FeatureId.cgyy,
+      generation,
+      lifecycleEpoch,
+      null,
+    )) {
+      controller._recordFailure(
+        error,
+        DiagnosticOperation.readback,
+        stackTrace: stackTrace,
+        feature: FeatureId.cgyy,
+      );
+    }
   }
 
   if (listResult == null ||

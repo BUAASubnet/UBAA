@@ -15,6 +15,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onTelemetryChanged,
     this.initialTab = 0,
     this.activeRoutes = const <ConnectionMode>[],
+    this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
     this.onRunWritePrepare,
     this.onCancelWrite,
@@ -54,6 +55,9 @@ class UbaaMainShell extends StatefulWidget {
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final int initialTab;
   final List<ConnectionMode> activeRoutes;
+
+  /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
+  final String Function()? onReadDiagnostics;
   final WriteState writeState;
   final WritePreparationRunner? onRunWritePrepare;
   final WriteCancellationRunner? onCancelWrite;
@@ -274,6 +278,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onLogout: widget.onLogout,
       onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
       activeRoutes: widget.activeRoutes,
+      onReadDiagnostics: widget.onReadDiagnostics,
     ),
   };
 

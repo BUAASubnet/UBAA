@@ -317,13 +317,13 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
         message: '安全诊断',
       );
       expect(exception.code, entry.value, reason: entry.key.name);
-      expect(exception.detail, '安全诊断');
+      expect(exception.detail, isNull);
     }
 
     final safe160 = List<String>.filled(160, '安').join();
     final detailCases = <String, String?>{
       '   ': null,
-      safe160: safe160,
+      safe160: null,
       '${safe160}安': null,
       '包含 password 的诊断': null,
       '包含 COOKIE 的诊断': null,

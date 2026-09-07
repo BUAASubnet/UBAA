@@ -1,5 +1,18 @@
 import 'package:meta/meta.dart';
 
+import 'route.dart';
+
+/// 错误类别属于共享领域模型，平台与应用层使用同一个类型。
+enum UbaaErrorKind {
+  input,
+  authentication,
+  network,
+  upstream,
+  parse,
+  internal,
+  unknown,
+}
+
 /// 稳定错误代码。值与 Rust Core/CLI 合同保持一致，UI 不直接展示上游文本。
 enum UbaaErrorCode {
   invalidInput,
@@ -55,6 +68,8 @@ class UiError {
     this.retryable = false,
     this.issueId,
     this.technicalDetail,
+    this.kind = UbaaErrorKind.unknown,
+    this.resolvedRoute,
   });
 
   final UbaaErrorCode code;
@@ -63,9 +78,26 @@ class UiError {
   final String? actionLabel;
   final bool retryable;
   final String? issueId;
+  final UbaaErrorKind kind;
+
+  /// 本次失败的实际路线，不能用配置策略或上一份成功快照代替。
+  final ConnectionMode? resolvedRoute;
 
   /// 不得包含密码、Cookie、URL、上游响应正文或个人信息。
   final String? technicalDetail;
+
+  /// 附加本地诊断编号时完整保留 Core 的错误语义。
+  UiError withIssueId(String value) => UiError(
+    code: code,
+    title: title,
+    message: message,
+    actionLabel: actionLabel,
+    retryable: retryable,
+    issueId: value,
+    kind: kind,
+    resolvedRoute: resolvedRoute,
+    technicalDetail: technicalDetail,
+  );
 
   @override
   String toString() => 'UiError(${code.wireName}, retryable: $retryable)';

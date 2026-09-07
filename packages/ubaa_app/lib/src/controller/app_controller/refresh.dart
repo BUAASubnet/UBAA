@@ -110,10 +110,10 @@ extension _AppControllerRefresh on AppController {
         feature,
         success: result.error == null && !result.isEmpty,
         empty: result.isEmpty,
-        error: result.error,
+        error: _snapshots[feature]!.error,
         latency: DateTime.now().difference(started),
       );
-    } on BackendException catch (exception) {
+    } on Object catch (error, stackTrace) {
       if (!_isFeatureLoadCurrent(
         feature,
         generation,
@@ -122,7 +122,13 @@ extension _AppControllerRefresh on AppController {
       )) {
         return;
       }
-      final uiError = UbaaErrorMapper.fromCode(exception.code);
+      final uiError = _recordFailure(
+        error,
+        DiagnosticOperation.read,
+        stackTrace: stackTrace,
+        feature: feature,
+        latency: DateTime.now().difference(started),
+      );
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: hadPreviousData
             ? FeatureLoadStatus.stale
@@ -133,27 +139,6 @@ extension _AppControllerRefresh on AppController {
       await _recordFeature(
         feature,
         error: uiError,
-        latency: DateTime.now().difference(started),
-      );
-    } catch (_) {
-      if (!_isFeatureLoadCurrent(
-        feature,
-        generation,
-        lifecycleEpoch,
-        ygdkGeneration,
-      )) {
-        return;
-      }
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: hadPreviousData
-            ? FeatureLoadStatus.stale
-            : FeatureLoadStatus.failure,
-        error: UbaaErrorMapper.fromCode(UbaaErrorCode.internalError),
-        updatedAt: DateTime.now(),
-      );
-      await _recordFeature(
-        feature,
-        error: UbaaErrorMapper.fromCode(UbaaErrorCode.internalError),
         latency: DateTime.now().difference(started),
       );
     }
@@ -184,7 +169,13 @@ extension _AppControllerRefresh on AppController {
       status: status,
       summary: result.summary,
       details: result.details,
-      error: result.error,
+      error: result.error == null
+          ? null
+          : _recordFailure(
+              result.error!,
+              DiagnosticOperation.read,
+              feature: feature,
+            ),
       resolvedRoute: result.resolvedRoute,
       pagination: result.pagination,
       updatedAt: DateTime.now(),

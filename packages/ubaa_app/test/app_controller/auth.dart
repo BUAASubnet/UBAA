@@ -71,7 +71,7 @@ void _registerAuthTests() {
 
   test('错误映射不暴露上游细节', () {
     final error = UbaaErrorMapper.fromCode(UbaaErrorCode.networkError);
-    expect(error.message, contains('校园网'));
+    expect(error.message, contains('网络'));
     expect(error.message, isNot(contains('http')));
     expect(error.retryable, isTrue);
   });

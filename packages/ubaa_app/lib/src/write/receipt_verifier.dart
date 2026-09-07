@@ -27,8 +27,18 @@ class WriteReceiptVerifier {
     WriteCommitResult? result,
     UiError? error,
     required bool Function() isCurrent,
+    void Function(Object, StackTrace)? onReadbackError,
   }) async {
     assert((result == null) != (error == null));
+    void report(Object cause, StackTrace stackTrace) {
+      if (!isCurrent()) return;
+      try {
+        onReadbackError?.call(cause, stackTrace);
+      } on Object {
+        // 诊断失败不改变提交结果或原路线回读规则。
+      }
+    }
+
     bool? receiptVerified;
     bool? cancellationVerified;
     var ygdkAttempted = false;
@@ -43,17 +53,26 @@ class WriteReceiptVerifier {
 
     if (shouldRead && isCurrent()) {
       if (operation == WriteOperation.evaluationSubmitCourses) {
-        await _refreshPinned(refreshEvaluationAfterWrite, intent.resolvedRoute);
+        await _refreshPinned(
+          refreshEvaluationAfterWrite,
+          intent.resolvedRoute,
+          report,
+        );
       } else if (operation == WriteOperation.ygdkSubmit) {
         ygdkAttempted = refreshYgdkAfterWrite != null;
-        await _refreshPinned(refreshYgdkAfterWrite, intent.resolvedRoute);
+        await _refreshPinned(
+          refreshYgdkAfterWrite,
+          intent.resolvedRoute,
+          report,
+        );
       } else if (operation == WriteOperation.cgyyCancelOrder) {
-        cancellationVerified = await _verifyCancellation(intent);
+        cancellationVerified = await _verifyCancellation(intent, report);
       } else {
         try {
           await refreshAfterWrite?.call(operation, intent.readbackQuery);
-        } on Object {
+        } on Object catch (cause, stackTrace) {
           // 读取失败不改变已经闭合的提交结果。
+          report(cause, stackTrace);
         }
       }
     }
@@ -66,8 +85,9 @@ class WriteReceiptVerifier {
       if (receipt != null) {
         try {
           receiptVerified = await verifyCgyyReceipt?.call(receipt);
-        } on Object {
+        } on Object catch (cause, stackTrace) {
           // 保留未核对状态，不重试提交。
+          report(cause, stackTrace);
         }
       }
     }
@@ -97,15 +117,20 @@ class WriteReceiptVerifier {
   Future<void> _refreshPinned(
     Future<void> Function({required ConnectionMode expectedRoute})? refresh,
     ConnectionMode route,
+    void Function(Object, StackTrace) report,
   ) async {
     try {
       await refresh?.call(expectedRoute: route);
-    } on Object {
+    } on Object catch (cause, stackTrace) {
       // 仅记录读取尝试，不能从读取错误推断提交成功与否。
+      report(cause, stackTrace);
     }
   }
 
-  Future<bool> _verifyCancellation(WriteIntent intent) async {
+  Future<bool> _verifyCancellation(
+    WriteIntent intent,
+    void Function(Object, StackTrace) report,
+  ) async {
     final query = intent.readbackQuery;
     final orderId = query?.view == FeatureQueryView.cgyyOrderDetail
         ? query?.orderId
@@ -117,7 +142,8 @@ class WriteReceiptVerifier {
         orderId: orderId,
         expectedRoute: intent.resolvedRoute,
       );
-    } on Object {
+    } on Object catch (cause, stackTrace) {
+      report(cause, stackTrace);
       return false;
     }
   }

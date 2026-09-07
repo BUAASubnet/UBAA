@@ -19,6 +19,7 @@ class UbaaLoginView extends StatefulWidget {
     required this.onAutoLoginChanged,
     required this.onRoutePolicyChanged,
     required this.onSubmit,
+    this.onReadDiagnostics,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class UbaaLoginView extends StatefulWidget {
   final ValueChanged<bool> onAutoLoginChanged;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final VoidCallback onSubmit;
+  final String Function()? onReadDiagnostics;
 
   @override
   State<UbaaLoginView> createState() => _UbaaLoginViewState();
@@ -179,6 +181,14 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                       if (widget.error case final error?) ...<Widget>[
                         const SizedBox(height: 16),
                         FriendlyErrorCard(error: error),
+                        if (widget.onReadDiagnostics != null)
+                          TextButton(
+                            onPressed: () => _showDiagnosticsDialog(
+                              context,
+                              widget.onReadDiagnostics!,
+                            ),
+                            child: const Text('查看诊断信息'),
+                          ),
                       ],
                       const SizedBox(height: 32),
                       Text(

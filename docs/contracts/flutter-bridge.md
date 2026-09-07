@@ -70,6 +70,11 @@ controller 仍存活且代次未变化时写入快照，成功或失败结果都
 
 ## 3. 错误合同
 
+Flutter 宿主必须继续保留这里定义的 code、kind、retryable 和 resolved_route；不能仅按错误码
+重新推导可重试性，也不能把 parse_error 改写为 upstream_changed。共享 UI 模板由 platform
+拥有，app 只适配既有字段；本机诊断编号和诊断记录不增加 FRB wire 字段。原始错误 message
+不再保存在 Dart technicalDetail，排障使用[允许字段的本地诊断](../runbooks/local-diagnostics.md)。
+
 `Result<T, BridgeError>` 在 Dart 中抛出 typed `BridgeError implements Exception`。字段固定为：
 
 | 字段 | 类型 | 约束 |

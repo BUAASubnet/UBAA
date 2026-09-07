@@ -14,8 +14,21 @@ Future<void> _refreshYgdkAfterWrite(
   final backend = controller._backend as YgdkSubmissionReadbackBackend;
   final generation = ++controller._ygdkGeneration;
 
+  UiError mapFailure(Object cause, StackTrace? stackTrace) {
+    if (controller._disposed || generation != controller._ygdkGeneration) {
+      return UbaaErrorMapper.fromObject(cause);
+    }
+    return controller._recordFailure(
+      cause,
+      DiagnosticOperation.readback,
+      feature: FeatureId.ygdk,
+      stackTrace: stackTrace,
+    );
+  }
+
   final overview = await _loadYgdkReadbackSnapshot(
     expectedRoute: expectedRoute,
+    mapFailure: mapFailure,
     load: () => backend.loadYgdkOverviewOnRoute(route: expectedRoute),
   );
   final overviewIsCurrent = _applyYgdkReadbackSnapshotIfCurrent(
@@ -28,6 +41,7 @@ Future<void> _refreshYgdkAfterWrite(
 
   final records = await _loadYgdkReadbackSnapshot(
     expectedRoute: expectedRoute,
+    mapFailure: mapFailure,
     load: () =>
         backend.loadYgdkRecordsOnRoute(route: expectedRoute, page: 1, size: 20),
   );
@@ -42,14 +56,20 @@ Future<void> _refreshYgdkAfterWrite(
 Future<FeatureSnapshot> _loadYgdkReadbackSnapshot({
   required ConnectionMode expectedRoute,
   required Future<FeatureResult> Function() load,
+  required UiError Function(Object, StackTrace?) mapFailure,
 }) async {
   try {
     final result = await load();
     if (result.error case final error?) {
-      return _failedYgdkReadbackSnapshot(error.code);
+      return _failedYgdkReadbackSnapshot(mapFailure(error, null));
     }
     if (result.resolvedRoute != expectedRoute) {
-      return _failedYgdkReadbackSnapshot(UbaaErrorCode.operationConflict);
+      return _failedYgdkReadbackSnapshot(
+        mapFailure(
+          UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict),
+          null,
+        ),
+      );
     }
     return FeatureSnapshot(
       feature: FeatureId.ygdk,
@@ -62,20 +82,17 @@ Future<FeatureSnapshot> _loadYgdkReadbackSnapshot({
       pagination: result.pagination,
       updatedAt: DateTime.now(),
     );
-  } on BackendException catch (error) {
-    return _failedYgdkReadbackSnapshot(error.code);
-  } on Object {
-    return _failedYgdkReadbackSnapshot(UbaaErrorCode.internalError);
+  } on Object catch (error, stackTrace) {
+    return _failedYgdkReadbackSnapshot(mapFailure(error, stackTrace));
   }
 }
 
-FeatureSnapshot _failedYgdkReadbackSnapshot(UbaaErrorCode code) =>
-    FeatureSnapshot(
-      feature: FeatureId.ygdk,
-      status: FeatureLoadStatus.failure,
-      error: UbaaErrorMapper.fromCode(code),
-      updatedAt: DateTime.now(),
-    );
+FeatureSnapshot _failedYgdkReadbackSnapshot(UiError error) => FeatureSnapshot(
+  feature: FeatureId.ygdk,
+  status: FeatureLoadStatus.failure,
+  error: error,
+  updatedAt: DateTime.now(),
+);
 
 bool _applyYgdkReadbackSnapshotIfCurrent(
   AppController controller, {

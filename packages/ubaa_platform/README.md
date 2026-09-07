@@ -30,8 +30,12 @@ session-only/Noop 语义；各平台 Keychain、Keystore、Secret Service、Cred
 
 `UiErrorMapper`/`mapCoreErrorJson` 接受 Rust Core 的稳定 `code`、`kind`、`retryable`
 字段以及当前 CLI schema-v10 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
-安全中文文案。未知或畸形载荷统一归约为 `internal_error`；上游 message 默认不会展示，
-只有显式请求且通过脱敏检查的短诊断文本才进入 `technicalDetail`。
+安全中文文案，并保留失败实际路线。未知或畸形载荷统一归约为 `internal_error`；上游 message
+不展示也不再保留在 `technicalDetail`，旧详情参数仅供兼容。app 的映射入口委托同一策略。
+
+`LocalDiagnostics` 默认仅在本次运行的内存中保存最近 100 个允许字段事件，不收集原文或
+个人数据，不写磁盘、不上传。登录失败页和个人页均支持用户主动查看、复制，详见
+[本地排障手册](../../docs/runbooks/local-diagnostics.md)。
 
 ## 媒体与权限边界
 

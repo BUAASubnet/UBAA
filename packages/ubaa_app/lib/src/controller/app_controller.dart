@@ -20,6 +20,7 @@ part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
+part 'app_controller/diagnostics.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
 
@@ -65,10 +66,12 @@ class AppController extends ChangeNotifier {
     BackendFactory? backendFactory,
     CredentialVault? credentialVault,
     TelemetryClient? telemetry,
+    LocalDiagnostics? diagnostics,
   }) : _backend = backend,
        _backendFactory = backendFactory,
        _credentialVault = credentialVault ?? const NoopCredentialVault(),
        _telemetry = telemetry ?? const NoopTelemetryClient(),
+       _diagnostics = diagnostics ?? LocalDiagnostics(),
        _telemetryEnabled = (telemetry ?? const NoopTelemetryClient()).enabled,
        _snapshots = {
          for (final feature in FeatureId.values)
@@ -82,6 +85,7 @@ class AppController extends ChangeNotifier {
   final BackendFactory? _backendFactory;
   final CredentialVault _credentialVault;
   final TelemetryClient _telemetry;
+  final LocalDiagnostics _diagnostics;
   final Map<FeatureId, FeatureSnapshot> _snapshots;
   late WriteCoordinator _writeCoordinator;
   int _writeTransitions = 0;
@@ -119,6 +123,10 @@ class AppController extends ChangeNotifier {
       Map<FeatureId, FeatureSnapshot>.unmodifiable(_snapshots);
   YgdkReadbackState get ygdkReadbackState => _ygdkReadbackState;
   WriteCoordinator get writeCoordinator => _writeCoordinator;
+  LocalDiagnostics get diagnostics => _diagnostics;
+
+  /// 只导出本次运行允许字段，不读取凭据、业务输入或磁盘会话。
+  String exportDiagnostics() => _diagnostics.exportText();
 
   /// backend 必须同时提供 typed 写入与原路线回读，宿主才可暴露
   /// 阳光打卡提交入口。平台照片能力仍由宿主另行检查。
@@ -171,11 +179,19 @@ class AppController extends ChangeNotifier {
         }
       }
       _setPhase(AppPhase.login);
-    } on BackendException catch (exception) {
-      _error = UbaaErrorMapper.fromCode(exception.code);
+    } on BackendException catch (exception, stackTrace) {
+      _error = _recordFailure(
+        exception,
+        DiagnosticOperation.initialization,
+        stackTrace: stackTrace,
+      );
       _setPhase(AppPhase.login);
-    } catch (_) {
-      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+    } catch (error, stackTrace) {
+      _error = _recordFailure(
+        error,
+        DiagnosticOperation.initialization,
+        stackTrace: stackTrace,
+      );
       _setPhase(AppPhase.login);
     } finally {
       _endWriteTransition();
@@ -209,8 +225,13 @@ class AppController extends ChangeNotifier {
       final previous = _backend;
       try {
         await _disposeBackendOnce(previous);
-      } on Object {
+      } on Object catch (error, stackTrace) {
         // 新实例已经创建；旧实例清理失败不能让新实例继续持有旧状态。
+        _recordFailure(
+          error,
+          DiagnosticOperation.disposal,
+          stackTrace: stackTrace,
+        );
       }
       if (_disposed) {
         try {
@@ -228,12 +249,20 @@ class AppController extends ChangeNotifier {
       _resetFeatureSnapshots();
       await initialize();
       return true;
-    } on BackendException catch (exception) {
-      _error = UbaaErrorMapper.fromCode(exception.code);
+    } on BackendException catch (exception, stackTrace) {
+      _error = _recordFailure(
+        exception,
+        DiagnosticOperation.initialization,
+        stackTrace: stackTrace,
+      );
       _setPhase(AppPhase.login);
       return false;
-    } on Object {
-      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+    } on Object catch (error, stackTrace) {
+      _error = _recordFailure(
+        error,
+        DiagnosticOperation.initialization,
+        stackTrace: stackTrace,
+      );
       _setPhase(AppPhase.login);
       return false;
     } finally {
@@ -302,14 +331,22 @@ class AppController extends ChangeNotifier {
         _resetFeatureSnapshots();
         _setPhase(AppPhase.login);
       }
-    } on BackendException catch (exception) {
+    } on BackendException catch (exception, stackTrace) {
       if (_disposed) return;
       _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
-      _error = UbaaErrorMapper.fromCode(exception.code);
-    } catch (_) {
+      _error = _recordFailure(
+        exception,
+        DiagnosticOperation.routeChange,
+        stackTrace: stackTrace,
+      );
+    } catch (error, stackTrace) {
       if (_disposed) return;
       _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
-      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+      _error = _recordFailure(
+        error,
+        DiagnosticOperation.routeChange,
+        stackTrace: stackTrace,
+      );
     } finally {
       _endWriteTransition();
     }
@@ -362,16 +399,24 @@ class AppController extends ChangeNotifier {
       _setPhase(AppPhase.home);
       await _recordAppOpen();
       unawaited(refreshHome());
-    } on BackendException catch (exception) {
+    } on BackendException catch (exception, stackTrace) {
       if (exception.code == UbaaErrorCode.invalidCredentials) {
         await _credentialVault.clear();
       }
       if (_disposed) return;
-      _error = UbaaErrorMapper.fromCode(exception.code);
+      _error = _recordFailure(
+        exception,
+        DiagnosticOperation.login,
+        stackTrace: stackTrace,
+      );
       _setPhase(AppPhase.login);
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (_disposed) return;
-      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+      _error = _recordFailure(
+        error,
+        DiagnosticOperation.login,
+        stackTrace: stackTrace,
+      );
       _setPhase(AppPhase.login);
     } finally {
       _endWriteTransition();
@@ -685,8 +730,13 @@ class AppController extends ChangeNotifier {
     try {
       try {
         await _backend.logout();
-      } on Object {
+      } on Object catch (error, stackTrace) {
         // 注销失败也回到登录页，避免继续展示可能过期的隐私数据。
+        _recordFailure(
+          error,
+          DiagnosticOperation.logout,
+          stackTrace: stackTrace,
+        );
       }
       if (clearSavedCredential) await _credentialVault.clear();
       if (_disposed) return;
@@ -704,12 +754,12 @@ class AppController extends ChangeNotifier {
     // 真实宿主会替换对应的启用/关闭 client；协调器同时在调用边界抑制
     // 事件，保证关闭后不会再产生新记录。
     _telemetryEnabled = value;
-    if (!value) await _telemetry.flush();
+    if (!value) await _flushTelemetry();
     _notify();
   }
 
   Future<void> clearTelemetryQueue() async {
-    await _telemetry.flush();
+    await _flushTelemetry();
   }
 
   void clearError() {
@@ -752,11 +802,16 @@ class AppController extends ChangeNotifier {
         final settings = await routeBackend.routeSettings();
         if (_disposed) return;
         _applyRouteSettings(settings);
-      } on Object {
+      } on Object catch (error, stackTrace) {
         if (_disposed) return;
         // 登录已经成功时，路线状态读取失败不能把账号重新置为失败；清空
         // 不确定的活动槽位，后续读取仍由 Core 返回实际错误。
         _activeRoutes = const <ConnectionMode>[];
+        _recordFailure(
+          error,
+          DiagnosticOperation.routeChange,
+          stackTrace: stackTrace,
+        );
       }
     }
   }
@@ -773,46 +828,6 @@ class AppController extends ChangeNotifier {
 
   void _notify() {
     if (!_disposed) notifyListeners();
-  }
-
-  Future<void> _recordAppOpen() async {
-    if (!_telemetryEnabled) return;
-    await _telemetry.track(TelemetryEvents.appStarted);
-  }
-
-  Future<void> _recordFeature(
-    FeatureId feature, {
-    bool success = false,
-    bool empty = false,
-    UiError? error,
-    Duration? latency,
-  }) async {
-    if (!_telemetryEnabled) return;
-    final event = error == null
-        ? TelemetryEvents.featureLoaded
-        : TelemetryEvents.featureFailed;
-    final result = success
-        ? 'success'
-        : empty
-        ? 'empty'
-        : 'failure';
-    await _telemetry.track(
-      event,
-      properties: <String, Object?>{
-        'feature': feature.wireName,
-        'result': result,
-        if (error != null) 'error_code': error.code.wireName,
-        if (error != null) 'retryable': error.retryable,
-        if (latency != null) 'source': _latencyBucket(latency),
-      },
-    );
-  }
-
-  String _latencyBucket(Duration latency) {
-    if (latency < const Duration(milliseconds: 500)) return 'lt_500ms';
-    if (latency < const Duration(seconds: 2)) return '500ms_2s';
-    if (latency < const Duration(seconds: 5)) return '2s_5s';
-    return 'gte_5s';
   }
 
   Future<void> _disposeBackendOnce(UbaaBackend backend) {

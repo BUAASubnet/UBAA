@@ -75,7 +75,7 @@ void main() {
       expect(network.retryable, isTrue);
     });
 
-    test('诊断细节仅接受脱敏短文本，issue id 有界', () {
+    test('旧详情参数不再保留原始文本，issue id 有界', () {
       final error = mapCoreError(
         code: 'internal_error',
         message: 'safe diagnostic',
@@ -89,7 +89,7 @@ void main() {
         includeTechnicalDetail: true,
       );
 
-      expect(error.technicalDetail, 'safe diagnostic');
+      expect(error.technicalDetail, isNull);
       expect(error.issueId, 'issue_123');
       expect(rejected.technicalDetail, isNull);
       expect(rejected.issueId, isNull);
@@ -108,6 +108,7 @@ void main() {
         'retryable': true,
         'message': '请检查网络连接后重试',
         'issueId': 'issue_1',
+        'kind': 'network',
       });
     });
   });

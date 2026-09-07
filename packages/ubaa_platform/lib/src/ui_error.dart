@@ -15,6 +15,7 @@ class CoreErrorPayload {
     this.retryable,
     this.message,
     this.issueId,
+    this.resolvedRoute,
   });
 
   final String code;
@@ -22,6 +23,7 @@ class CoreErrorPayload {
   final bool? retryable;
   final String? message;
   final String? issueId;
+  final ConnectionMode? resolvedRoute;
 
   /// 从 Core 错误对象或当前 CLI schema-v10（兼容历史版本）envelope 中解析。
   factory CoreErrorPayload.fromJson(Object? value) {
@@ -45,6 +47,7 @@ class CoreErrorPayload {
       retryable: rawRetryable is bool ? rawRetryable : null,
       message: rawMessage is String ? rawMessage : null,
       issueId: rawIssueId is String ? rawIssueId : null,
+      resolvedRoute: _parseRoute(_extractRoute(value, map)),
     );
   }
 
@@ -55,19 +58,12 @@ class CoreErrorPayload {
         if (retryable != null) 'retryable': retryable,
         if (includeMessage && message != null) 'message': message,
         if (issueId != null) 'issueId': issueId,
+        if (resolvedRoute != null) 'resolvedRoute': resolvedRoute!.name,
       };
 }
 
 /// 与 Core `ErrorKind` 对齐的 UI 错误类别。
-enum UiErrorKind {
-  input,
-  authentication,
-  network,
-  upstream,
-  parse,
-  internal,
-  unknown,
-}
+typedef UiErrorKind = UbaaErrorKind;
 
 extension UiErrorKindText on UiErrorKind {
   String get wireName => switch (this) {
@@ -93,11 +89,12 @@ class UiErrorMapper {
   }) {
     final code = _parseCode(payload.code);
     final template = _templateFor(code);
-    final retryable = payload.retryable ?? _defaultRetryable(code);
+    final retryable = code == UbaaErrorCode.outcomeUnknown
+        ? false
+        : payload.retryable ?? _defaultRetryable(code);
     final issueId = _safeIssueId(payload.issueId);
-    final technicalDetail = includeTechnicalDetail
-        ? _safeTechnicalDetail(payload.message)
-        : null;
+    // 保留参数供旧调用方编译；原始 message 无法证明安全，不再保留。
+    // 排障改用有界 LocalDiagnostics 的类型、阶段和源码位置。
     // `feature` 只用于调用方上下文；绝不拼进可能含个人数据的错误文本。
     // 保留参数是为了让页面层可以统一传入功能标识，而不改变稳定文案。
     // ignore: avoid_unused_constructor_parameters
@@ -109,7 +106,8 @@ class UiErrorMapper {
       actionLabel: template.actionLabel,
       retryable: retryable,
       issueId: issueId,
-      technicalDetail: technicalDetail,
+      kind: kindOf(payload),
+      resolvedRoute: payload.resolvedRoute,
     );
   }
 
@@ -149,6 +147,7 @@ UiError mapCoreError({
   String? issueId,
   String? feature,
   bool includeTechnicalDetail = false,
+  ConnectionMode? resolvedRoute,
 }) => UiErrorMapper().fromCore(
   CoreErrorPayload(
     code: code,
@@ -156,6 +155,7 @@ UiError mapCoreError({
     retryable: retryable,
     message: message,
     issueId: issueId,
+    resolvedRoute: resolvedRoute,
   ),
   feature: feature,
   includeTechnicalDetail: includeTechnicalDetail,
@@ -182,6 +182,8 @@ Map<String, Object?> uiErrorToJson(UiError error) => <String, Object?>{
   'retryable': error.retryable,
   'message': error.message,
   if (error.issueId != null) 'issueId': error.issueId,
+  'kind': error.kind.name,
+  if (error.resolvedRoute != null) 'resolvedRoute': error.resolvedRoute!.name,
 };
 
 UbaaErrorCode _parseCode(String raw) {
@@ -328,34 +330,6 @@ String? _safeIssueId(String? value) {
   return value;
 }
 
-String? _safeTechnicalDetail(String? value) {
-  if (value == null) return null;
-  final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-  if (normalized.isEmpty || normalized.length > 256) return null;
-  final lower = normalized.toLowerCase();
-  const sensitiveMarkers = <String>[
-    'password',
-    'token',
-    'cookie',
-    'authorization',
-    'set-cookie',
-    'username',
-    'account',
-    'email',
-    'phone',
-    'id_card',
-    'idcard',
-    'http://',
-    'https://',
-  ];
-  if (sensitiveMarkers.any(lower.contains)) return null;
-  if (RegExp(r'\b1[3-9][0-9]{9}\b').hasMatch(normalized) ||
-      RegExp(r'\b[^\s@]+@[^\s@]+\.[^\s@]+\b').hasMatch(normalized)) {
-    return null;
-  }
-  return normalized;
-}
-
 bool _looksLikeNetworkError(String typeName) =>
     typeName.contains('socket') ||
     typeName.contains('network') ||
@@ -383,3 +357,26 @@ Map<Object?, Object?>? _extractErrorMap(Object? value) {
   }
   return map;
 }
+
+Object? _extractRoute(Object? value, Map<Object?, Object?> error) {
+  if (value is Map) {
+    final meta = value['meta'];
+    if (meta is Map && meta.containsKey('resolvedRoute')) {
+      return meta['resolvedRoute'];
+    }
+    final data = value['data'];
+    if (data is Map && data['error'] is Map) {
+      final nestedMeta = data['meta'];
+      if (nestedMeta is Map && nestedMeta.containsKey('resolvedRoute')) {
+        return nestedMeta['resolvedRoute'];
+      }
+    }
+  }
+  return error['resolvedRoute'] ?? error['resolved_route'];
+}
+
+ConnectionMode? _parseRoute(Object? value) => switch (value) {
+  'direct' => ConnectionMode.direct,
+  'webvpn' => ConnectionMode.webvpn,
+  _ => null,
+};

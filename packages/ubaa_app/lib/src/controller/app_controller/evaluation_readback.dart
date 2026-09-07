@@ -46,7 +46,7 @@ Future<void> _refreshEvaluationAfterWrite(
         controller,
         generation: generation,
         lifecycleEpoch: lifecycleEpoch,
-        code: UbaaErrorCode.operationConflict,
+        error: UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict),
       );
       return;
     }
@@ -58,19 +58,14 @@ Future<void> _refreshEvaluationAfterWrite(
     )) {
       controller._notify();
     }
-  } on BackendException catch (error) {
+  } on Object catch (error, stackTrace) {
     _setEvaluationReadbackFailureIfCurrent(
       controller,
       generation: generation,
       lifecycleEpoch: lifecycleEpoch,
-      code: error.code,
-    );
-  } on Object {
-    _setEvaluationReadbackFailureIfCurrent(
-      controller,
-      generation: generation,
-      lifecycleEpoch: lifecycleEpoch,
-      code: UbaaErrorCode.internalError,
+      error: UbaaErrorMapper.fromObject(error),
+      cause: error,
+      stackTrace: stackTrace,
     );
   }
 }
@@ -79,7 +74,9 @@ void _setEvaluationReadbackFailureIfCurrent(
   AppController controller, {
   required int generation,
   required int lifecycleEpoch,
-  required UbaaErrorCode code,
+  required UiError error,
+  Object? cause,
+  StackTrace? stackTrace,
 }) {
   if (!controller._isFeatureLoadCurrent(
     FeatureId.evaluation,
@@ -92,7 +89,12 @@ void _setEvaluationReadbackFailureIfCurrent(
   controller._snapshots[FeatureId.evaluation] = FeatureSnapshot(
     feature: FeatureId.evaluation,
     status: FeatureLoadStatus.failure,
-    error: UbaaErrorMapper.fromCode(code),
+    error: controller._recordFailure(
+      cause ?? error,
+      DiagnosticOperation.readback,
+      stackTrace: stackTrace,
+      feature: FeatureId.evaluation,
+    ),
     updatedAt: DateTime.now(),
   );
   controller._notify();

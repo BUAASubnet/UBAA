@@ -41,7 +41,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     try {
       return await _controller.commitWrite(intentId);
     } on BackendException catch (exception) {
-      throw UbaaErrorMapper.fromCode(exception.code);
+      throw UbaaErrorMapper.fromException(exception);
     } on Object {
       throw UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
     }
@@ -69,6 +69,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       autoLogin: _controller.loginForm.autoLogin,
       routePolicy: _controller.loginForm.routePolicy,
       error: _controller.error,
+      onReadDiagnostics: _controller.exportDiagnostics,
       isLoading: _controller.phase == AppPhase.loggingIn,
       credentialPersistenceAvailable:
           _controller.credentialPersistenceAvailable,
@@ -96,6 +97,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       snapshots: _controller.snapshots,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,
+      onReadDiagnostics: _controller.exportDiagnostics,
       writeState: _controller.writeCoordinator.state,
       onRunWritePrepare: _controller.writeCoordinator.prepareForUi,
       onCancelWrite: _controller.writeCoordinator.cancelForUi,

@@ -10,6 +10,7 @@ class _ProfileView extends StatelessWidget {
     required this.onLogout,
     required this.onLogoutAndClearAccount,
     required this.activeRoutes,
+    this.onReadDiagnostics,
   });
 
   final UserSummary? user;
@@ -20,6 +21,7 @@ class _ProfileView extends StatelessWidget {
   final Future<void> Function() onLogout;
   final Future<void> Function() onLogoutAndClearAccount;
   final List<ConnectionMode> activeRoutes;
+  final String Function()? onReadDiagnostics;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -77,6 +79,16 @@ class _ProfileView extends StatelessWidget {
               value: telemetryEnabled,
               onChanged: onTelemetryChanged,
             ),
+            if (onReadDiagnostics != null) ...[
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.bug_report_outlined),
+                title: const Text('本次运行诊断'),
+                subtitle: const Text('查看或复制错误信息，不会自动上传'),
+                onTap: () =>
+                    _showDiagnosticsDialog(context, onReadDiagnostics!),
+              ),
+            ],
           ],
         ),
       ),
