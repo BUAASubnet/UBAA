@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   meta: ^1.16.0
   ubaa_domain:
     path: ../ubaa_domain

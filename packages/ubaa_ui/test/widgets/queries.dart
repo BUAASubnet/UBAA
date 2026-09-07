@@ -401,14 +401,21 @@ void _registerQueryTests() {
     );
     await tester.tap(find.text('课表查询'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), '2026-2027-1');
-    await tester.enterText(fields.at(1), '3');
+    await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('按输入查询').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, '学期编码'),
+      '2026-2027-1',
+    );
+    await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
     await tester.ensureVisible(find.text('应用筛选'));
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.term, '2026-2027-1');
     expect(received?.week, 3);
+    expect(received?.view, FeatureQueryView.summary);
   });
 
   testWidgets('课表查询控件提交学期列表视图', (tester) async {

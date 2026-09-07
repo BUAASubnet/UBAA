@@ -139,13 +139,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
         Expanded(
           child: details.isEmpty
               ? const Center(child: Text('没有匹配的详情'))
-              : visible.every((detail) => detail.presentation != null) &&
-                    <FeatureId>{
-                      FeatureId.schedule,
-                      FeatureId.exam,
-                      FeatureId.grades,
-                      FeatureId.classroom,
-                    }.contains(widget.feature)
+              : _supportsAcademicContent(widget.feature, visible)
               ? _AcademicResultContent(
                   feature: widget.feature,
                   details: visible,

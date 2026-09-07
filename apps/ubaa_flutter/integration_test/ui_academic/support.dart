@@ -171,6 +171,7 @@ Future<void> _horizontalAcademic(
   FeatureId feature,
   String scene,
 ) async {
+  if (feature != FeatureId.schedule) return;
   final viewport = find.byWidgetPredicate(
     (widget) =>
         widget is SingleChildScrollView &&
@@ -197,7 +198,7 @@ Future<void> _horizontalAcademic(
     brightness,
     scene,
     feature,
-    '实际内容宽度启用周列/成绩表后横向滚动；不修改窗口尺寸',
+    '实际内容宽度启用周课表列后横向滚动；不修改窗口尺寸',
   );
 }
 

@@ -86,6 +86,11 @@ bool _scheduled(ScheduleCoursePresentation course) =>
 
 List<Widget> _courseFields(ScheduleCoursePresentation course) => [
   if (_scheduled(course))
+    _AcademicInfo(
+      icon: Icons.calendar_view_week_outlined,
+      text: _weekdays[course.dayOfWeek! - 1],
+    ),
+  if (_scheduled(course))
     Chip(
       label: Text(
         course.beginSection == course.endSection

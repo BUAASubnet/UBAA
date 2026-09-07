@@ -699,3 +699,26 @@ P3B公共容器补充：刷新状态切换的State保留、隐藏焦点隔离、
 来源仍为本文件逐操作九列：URL/service、重定向、Cookie、精确方法参数、Header/编码、加密均不变；DTO 只增加本地查询归属，Core 排序/缓存/并发/错误码不变。回读仍按既有 Evaluation、Ygdk、Cgyy 冻结/typed 合同执行，不增加网络调用。实际新 RED 三项分别暴露跨查询 stale、缺少context与缺少epoch，原62项AppController测试通过；后续结果单独记录。
 
 本段实现后确定性结果：新增读取归属与缓存epoch测试，AppController/写生命周期/回读重入三个入口合计96项全部通过，domain合计30项全部通过，App/domain/Host analyze均无问题。旧首页同查询stale与Ygdk回读失败保持原snapshot实例的断言未改。context用于成功/失败/加载结果归属，caller-pinned Evaluation/Cgyy/Ygdk回读分别带显式summary、orders、overview/records参数；Cgyy失败和Ygdk失败的既有旧快照保留规则不变，由独立epoch通知父缓存失效。此为合成数据验证，不是UI/native/live结论。
+
+## 2026-09-08 P4-B2 独立学期选项与教室参数归属（实现前合同）
+
+本段复用“学期”已核验冻结 LocalScheduleApi/Schedule DTO 与示例 aas 适用性，以及“空教室”LocalClassroomApi/Classroom DTO；`just refs`再次退出0。URL/service、重定向、Cookie、方法/参数、Header/编码、加密、Core排序/缓存/错误码全部不变。App仅在用户明确请求时经 FeatureQueryBackend.loadFeatureQuery(schedule,scheduleTerms)读取，新增独立当前会话选项缓存和同代在途合并，不借写全局schedule snapshot。成功结果可复用，force绕过成功缓存；错误不缓存；生命周期、backend、路线及readCacheEpoch变化后不返回旧成功，迟到返回安全operationConflict。该App选项缓存不是上游缓存改变。
+
+ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch调用的同一日期字符串与校区变量投影，不重新读取时钟、不添加上游筛选参数。模型/回调骨架后新增五项App行为及一项metadata断言实际RED，原82项通过；不是编译失败。Core/Bridge v9和UI均未修改，本记录不声称原生或实时通过。
+
+本段实施结果：独立学期缓存/同代合并/force/失败重试/不可变选项/epoch与路线失效/注销/backend重建迟到保护均已确定性验证；同步抛错也经Future.sync正确释放在途句柄。AppController与characterization合计91项通过，domain30项通过；App/domain/Host analyze均无问题。教室queryDate/campus断言与实际client调用参数一致。现有首页snapshot/代次及写回读测试保留；未运行本段UI或原生/真实只读。force在已有同代在途请求时合并该次新读取，否则绕过成功缓存重读。
+
+
+### P4-C 实施前展示字段核对
+
+[SPOC、希冀、课堂签到逐操作增补](source-parity-ui-coursework.md)核对冻结API/DTO/实现/测试、固定examples最邻近模块、Core/Bridge白名单及App丢失字段。原九列协议矩阵继续为权威，本轮只增加typed投影与已有导航，不改URL、方法、凭证、缓存或写预检。当前仅计划已评审，未将静态盘点计为P4-C验收。
+
+
+### P4-D 实施前预约领域展示核对
+
+[图书馆与场馆增补](source-parity-ui-reservations.md)逐项列出11个只读视图、DTO与动作来源、日期关联不可证边界及测试计划。馆区详情过滤空日期后首项与原第一项时段可能不同，顶层回退也没有来源标记，不能仅凭两个非空列表自动绑定首日。此项仍是展示设计边界，不更改Core/Bridge参数或当前手填查询。
+
+
+### P4-A 实施前账号资料白名单核对
+
+[资料投影来源增补](source-parity-ui-profile.md)按冻结API/DTO/实现/测试边界、examples不等价状态接口、Core/Bridge六字段白名单逐项核对。新增展示仅来自同次userInfo，既有用户资料九列协议矩阵继续适用；保留空username返回null和preferredName，不接证件号码，不持久化联系人展开状态。

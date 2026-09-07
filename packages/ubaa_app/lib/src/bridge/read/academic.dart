@@ -239,9 +239,11 @@ Future<FeatureResult> _loadAcademicFeature(
           throw const BackendException(UbaaErrorCode.invalidInput);
       }
     case FeatureId.classroom:
+      final campus = query.campus ?? 1;
+      final queryDate = today;
       final result = await client.classroomSearch(
-        campus: query.campus ?? 1,
-        date: today,
+        campus: campus,
+        date: queryDate,
       );
       final floorFilter = query.floorId?.trim();
       final sectionFilter = query.section?.trim();
@@ -258,6 +260,8 @@ Future<FeatureResult> _loadAcademicFeature(
                   floorId: room.floorId,
                   floorName: floor.name,
                   availableSections: room.availableSections,
+                  queryDate: queryDate,
+                  campus: campus,
                 ),
                 fields: _compactFields(<FeatureField?>[
                   _field('可用节次', room.availableSections),

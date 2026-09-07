@@ -1,5 +1,20 @@
 part of '../widgets.dart';
 
+bool _supportsAcademicContent(FeatureId feature, List<FeatureDetail> details) =>
+    details.every(
+      (detail) => switch (feature) {
+        FeatureId.schedule =>
+          detail.presentation is TodayCoursePresentation ||
+              detail.presentation is TermPresentation ||
+              detail.presentation is WeekPresentation ||
+              detail.presentation is ScheduleCoursePresentation,
+        FeatureId.exam => detail.presentation is ExamPresentation,
+        FeatureId.grades => detail.presentation is GradePresentation,
+        FeatureId.classroom => detail.presentation is ClassroomPresentation,
+        _ => false,
+      },
+    );
+
 /// 学业内容直接消费 typed 展示模型；本地展开不会发起业务读取。
 class _AcademicResultContent extends StatelessWidget {
   const _AcademicResultContent({
@@ -27,8 +42,17 @@ class _AcademicResultContent extends StatelessWidget {
               details: details,
               wide: constraints.maxWidth >= 740,
             )
-          else if (feature == FeatureId.grades && constraints.maxWidth >= 740)
-            _GradeTable(details: details)
+          else if (feature == FeatureId.grades || feature == FeatureId.exam)
+            _AcademicGroupedResults(
+              feature: feature,
+              details: details,
+              wide: constraints.maxWidth >= 740,
+            )
+          else if (feature == FeatureId.classroom)
+            _ClassroomContent(
+              details: details,
+              wide: constraints.maxWidth >= 740,
+            )
           else
             for (final detail in details)
               Padding(
@@ -232,78 +256,6 @@ class _AcademicMore extends StatelessWidget {
               ),
           ],
         );
-}
-
-class _GradeTable extends StatelessWidget {
-  const _GradeTable({required this.details});
-  final List<FeatureDetail> details;
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text('课程成绩 · 按原查询顺序展示；横向滚动查看全部列'),
-      const SizedBox(height: 8),
-      Card(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            dataRowMinHeight: 56,
-            dataRowMaxHeight: double.infinity,
-            columns: [
-              for (final label in [
-                '课程',
-                '成绩',
-                '绩点',
-                '学分',
-                '课程类型',
-                '成绩类型',
-                '学期',
-              ])
-                DataColumn(label: Text(label)),
-            ],
-            rows: [
-              for (final detail in details)
-                if (detail.presentation case final GradePresentation grade)
-                  DataRow(
-                    cells: [
-                      DataCell(
-                        SizedBox(
-                          width: 220,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(detail.title),
-                                if (_nonBlank(grade.courseCode) ??
-                                        _nonBlank(detail.subtitle)
-                                    case final code?)
-                                  Text(
-                                    code,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(_nonBlank(grade.score) ?? '待出成绩')),
-                      DataCell(Text(_nonBlank(grade.gradePoint) ?? '—')),
-                      DataCell(Text(grade.credit?.toString() ?? '—')),
-                      DataCell(Text(_nonBlank(grade.courseType) ?? '—')),
-                      DataCell(Text(_nonBlank(grade.scoreType) ?? '—')),
-                      DataCell(Text(_nonBlank(grade.termCode) ?? '—')),
-                    ],
-                  ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
 }
 
 String? _nonBlank(String? value) =>

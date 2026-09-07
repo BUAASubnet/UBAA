@@ -17,6 +17,7 @@ class UbaaMainShell extends StatefulWidget {
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
+    this.onLoadAcademicTerms,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -62,6 +63,9 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 应用读取生命周期改变时使父返回缓存失效，当前页面草稿仍由页面持有。
   final int readCacheEpoch;
+
+  /// 用户打开学期选择器后读取独立选项，不改写课表结果页。
+  final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final List<ConnectionMode> activeRoutes;
 
   /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
@@ -268,6 +272,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onRetry: page.onRetry,
       onQuery: page.onQuery,
       onNavigate: page.onNavigate,
+      onLoadAcademicTerms: widget.onLoadAcademicTerms,
+      readCacheEpoch: widget.readCacheEpoch,
       onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
           ? null
           : _startBykcWrite,

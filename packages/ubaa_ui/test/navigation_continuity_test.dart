@@ -38,7 +38,8 @@ void main() {
     expect(tester.state(find.byType(UbaaMainShell)), same(shellState));
     expect(find.text('返回功能列表'), findsNothing);
     await _open(tester, FeatureId.schedule);
-    expect(_view(tester), FeatureQueryView.summary);
+    expect(_view(tester), FeatureQueryView.scheduleToday);
+    await _weekView(tester);
     expect(_text(tester, '学期编码'), isEmpty);
     expect(_text(tester, '周次'), isEmpty);
     expect(_text(tester, '筛选详情'), isEmpty);

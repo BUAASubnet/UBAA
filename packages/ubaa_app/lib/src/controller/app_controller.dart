@@ -18,6 +18,7 @@ import 'error_mapper.dart';
 part 'app_controller/cgyy_readback.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
+part 'app_controller/academic_terms.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
@@ -99,6 +100,12 @@ class AppController extends ChangeNotifier {
   final Map<FeatureId, int> _featureRefreshGenerations = <FeatureId, int>{
     for (final feature in FeatureId.values) feature: 0,
   };
+  FeatureResult? _academicTermsResult;
+  Future<FeatureResult>? _academicTermsPending;
+  UbaaBackend? _academicTermsBackend;
+  int _academicTermsEpoch = -1;
+  int _academicTermsLifecycle = -1;
+  int _academicTermsSerial = 0;
   int _lifecycleEpoch = 0;
   int _readCacheEpoch = 0;
 
@@ -426,6 +433,10 @@ class AppController extends ChangeNotifier {
       _endWriteTransition();
     }
   }
+
+  /// 用户明确请求学期选项，不占用全局课表快照。
+  Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
+      _loadAcademicTerms(forceRefresh: forceRefresh);
 
   Future<void> refreshHome({Iterable<FeatureId>? only}) =>
       _refreshHome(only: only);

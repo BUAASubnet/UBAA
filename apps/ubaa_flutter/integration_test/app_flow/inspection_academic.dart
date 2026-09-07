@@ -168,14 +168,21 @@ extension _AcademicInspection on _InspectionBackend {
             }, presentation: const GradePresentation(credit: 1.5)),
         ];
       case FeatureId.classroom:
-        const rooms = [
+        final date = q.date ?? DateTime.now();
+        final queryDate =
+            '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final rooms = [
           ClassroomPresentation(
+            queryDate: queryDate,
+            campus: q.campus ?? 1,
             roomId: 'room-a201',
             floorId: 'F02',
             floorName: '合成教学楼 / 二层',
             availableSections: '1,2,5,6,9,10,13',
           ),
           ClassroomPresentation(
+            queryDate: queryDate,
+            campus: q.campus ?? 1,
             roomId: 'room-b305',
             floorId: 'F03',
             floorName: '合成教学楼 / 三层',

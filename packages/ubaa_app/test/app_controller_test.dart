@@ -13,6 +13,7 @@ part 'app_controller/lifecycle.dart';
 part 'app_controller/race.dart';
 part 'app_controller/read.dart';
 part 'app_controller/read_context.dart';
+part 'app_controller/academic_terms.dart';
 part 'app_controller/write.dart';
 part 'app_controller/ygdk.dart';
 
@@ -20,6 +21,7 @@ void main() {
   _registerAuthTests();
   _registerReadTests();
   _registerReadContextTests();
+  _registerAcademicTermsTests();
   _registerLifecycleTests();
   _registerRaceTests();
   _registerEvaluationTests();

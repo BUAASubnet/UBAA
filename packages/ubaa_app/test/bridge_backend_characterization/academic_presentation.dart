@@ -161,6 +161,8 @@ void registerAcademicPresentationTests() {
     final room = result.details.single.presentation! as ClassroomPresentation;
     expect(room.roomId, 'room-3');
     expect(room.floorId, 'F03');
+    expect(room.queryDate, '2026-09-08');
+    expect(room.campus, 2);
     expect(room.floorName, '主楼三层');
     expect(room.availableSections, '3, 13');
     expect(room.sectionTokens, ['3', '13']);

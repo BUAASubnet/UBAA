@@ -20,6 +20,8 @@ class _FeatureDetailView extends StatelessWidget {
     this.onQuery,
     this.onNavigate,
     this.backLabel = '返回功能列表',
+    this.onLoadAcademicTerms,
+    this.readCacheEpoch = 0,
   });
 
   final FeatureId feature;
@@ -41,6 +43,8 @@ class _FeatureDetailView extends StatelessWidget {
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final String backLabel;
+  final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final int readCacheEpoch;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +104,10 @@ class _FeatureDetailView extends StatelessWidget {
           _FeatureQueryControls(
             feature: feature,
             details: snapshot.details,
+            snapshot: snapshot,
             initialQuery: query,
+            onLoadAcademicTerms: onLoadAcademicTerms,
+            readCacheEpoch: readCacheEpoch,
             onApply: onQuery!,
           ),
         if (snapshot.resolvedRoute case final route?)

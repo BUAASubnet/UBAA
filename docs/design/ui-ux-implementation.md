@@ -16,9 +16,9 @@
 | `packages/ubaa_ui/lib/src/common/detail_list.dart` | `_FeatureDetailList` 已有 query/pagination/onQuery；State 私有 `_queryController`、`_query`、`_page`、`_selectedEvaluationKeys` | 本地筛选/页码/滚动需提升到稳定页面状态；服务端分页不转成本地页 |
 | `packages/ubaa_domain/lib/src/feature/query.dart` | `FeatureQuery` 的日期字段是 `DateTime? date`；含 term/week/page/size/view/premisesId/storeyId/areaId/startTime/endTime/segment/siteId/orderId/assignmentId/courseId/judgeKeys/includeExpired | 不使用审查文本笔误 day；Bridge 的 day 由既有格式化路径提供 |
 | `packages/ubaa_domain/lib/src/feature/result.dart` | `FeatureResult`、`FeatureSnapshot` 均含 details/pagination/resolvedRoute；`FeatureDetail` 含 title/subtitle/fields/actions 与 `action<T>()` | 展示结构可新增可空 typed 字段，所有旧构造保持兼容；资格仍 actions |
-| `packages/ubaa_domain/lib/src/common/auth.dart` | `UserSummary({required username,displayName,department})` | 计划只新增 `String? schoolId`；department 不填入猜测来源 |
+| `packages/ubaa_domain/lib/src/common/auth.dart` | `UserSummary({required username,displayName,department})` | 计划新增可空 `schoolId/email/phone/idCardTypeName`；department 不填入猜测来源 |
 | `packages/ubaa_host/lib/src/callbacks.dart` | `_buildApplication()` 的 MaterialApp 固定 `themeMode: ThemeMode.system` | 改为宿主 State 的内存主题值；onThemeModeChanged 驱动 setState，不写磁盘 |
-| `packages/ubaa_app/lib/src/bridge/common.dart` | `_userInfo` 已调用 userInfo，仅映射 username/name，username 空时返回 null | schoolId 来自同次公开结果；不额外请求；局部资料回退若调整须独立 RED |
+| `packages/ubaa_app/lib/src/bridge/common.dart` | `_userInfo` 已调用 userInfo，仅映射 username/name，username 空时返回 null | 四项资料来自同次公开结果；不额外请求；局部资料回退若调整须独立 RED |
 | `packages/ubaa_app/lib/src/bridge/read/libbook.dart` | `_loadLibbookFeature(BridgeBackend,FeatureId,FeatureQuery,String today)`；楼层和时段被降为计数/文本 | 映射时保留现有公开 DTO，不从 UI 字段反解析 |
 | `packages/ubaa_app/lib/src/write/coordinator.dart` | 现有唯一 WriteCoordinator | 保留全部 prepare/cancel/confirm 入口；不在 UI 再造写入状态机 |
 
@@ -150,7 +150,7 @@ final class AssignmentPresentation extends FeaturePresentation {
 
 - [ ] Library RED：选首日 slot 后 onFeatureQuery 收到 segment=id/startTime=start/endTime=end；变日期/楼层清除旧时段/座位；迟到旧分区响应不能恢复旧 action；非首日不自动复用首日 slot，缺关联阻塞有提示。Core/Bridge 均不改。
 - [ ] Cgyy RED：占用与未知时段可展示但无写入口；allowed+合法 target 才有按钮；用途来源 static_fallback 仍明示，门锁仅 available。订单列表/详情保留分页及 typed 取消资格。
-- [ ] 资料 RED：schoolId 可空保留，username/name 原映射不退化；department 不凭 schoolId 填院系；个人页无新增身份证/邮箱/电话。换账号/退出清旧资料。
+- [ ] 资料 RED：schoolId 可空保留，username/name 原映射不退化；department 不凭 schoolId 填院系；同次白名单email/phone默认遮罩、明确查看后仅本地展开，idCardTypeName只显示类型，不新增证件号码。关闭详情/换账号/退出清旧展开状态与资料。
 - [ ] 实现楼馆/楼层/首日时段联动与领域卡；保留跨日期显式输入原能力但不声称自动时段联动，完整跨日期能力列阻塞。不扩 Bridge v9、不从 Core 内部类型取数据。
 - [ ] 实现博雅统计/已选/资料、场馆站点/用途/日期/订单/门锁、阳光概览/记录全部子视图；数字有来源，目标为空不显示虚构进度比例。
 - [ ] 测试：`packages/ubaa_app/test/bridge_backend/{libbook,cgyy,ygdk}.dart` 经 `bridge_backend_test.dart`；`bridge_backend_characterization_test.dart`；UI `widgets/libbook_queries.dart`、`feature_details.dart`、各领域 writes（经 widgets_test.dart）。在三端实际走父子选择及返回。
@@ -198,4 +198,46 @@ UI新增 `academic_content.dart` 与 `schedule_content.dart`，并由 `common/re
 
 独立review暴露epoch两种时序：无关领域失效带着已退出子页旧快照、写后权威回读先失效后返回不同query；已分别RED后用requestRevision边界修复。写后proof仍从App局部typed回读判断，UI缓存从不回写或作为receipt证据。后续P4-C/D复用本接口时仍需原生逐流程检查，不能把本批学期链路当作所有父子查询已通过。
 
-后续自评需继续核对课表summary兼容分支：App仍支持同时传term/week时读取周表，而查询下拉当前summary文案为“今日课程”。若在最终设计中收敛该入口，优先让UI显式scheduleToday或给出真实条件提示；保持backend summary兼容和公开参数合同，先补行为用例，不能在不记录语义的情况下删掉旧能力。
+B1留项（B2已按下文实现，尚待原生验收）：App仍支持同时传term/week时读取周表，而查询下拉当前summary文案为“今日课程”。若在最终设计中收敛该入口，优先让UI显式scheduleToday或给出真实条件提示；保持backend summary兼容和公开参数合同，先补行为用例，不能在不记录语义的情况下删掉旧能力。
+
+## B2 连续实施清单
+
+B1已提交 `83ee9e89`。B2现已实现独立学期选项读取接口： `AppController.loadAcademicTerms({bool forceRefresh=false}) -> Future<FeatureResult>`，复用原scheduleTerms查询但不改全局课表快照，App负责并发合并、错误重试与读取生命周期失效；Host可空 `onLoadAcademicTerms(bool)` 传到共享选择器，用户明确打开才读取。App已完成RED/GREEN和生命周期并发测试；原生选择器验收仍待执行。
+
+- 三学业页选项直接消费TermPresentation.code/selected，选定仅回填学期草稿，由原应用查询提交；保留手填兼容入口，失败/空选项不阻止手填。
+- 独立“今日课程”使用已有scheduleToday；summary兼容term+week保留为中性“按输入查询”，不再把周表结果称今日。
+- 教室日期选择回填现有严格日期字段；typed楼层/节次选项来自同日期/校区未过滤结果，过滤后仍可切其他楼层，切日期/校区失效。不从展示文本反推ID。ClassroomPresentation已追加同次实际参数queryDate/campus便于识别归属。日期框宽度应包含1.3字体和日期选择按钮。
+- 考试按arranged、成绩按既有非空score分组，组内不解析时间/成绩排序；宽考试与教室利用多列/楼层导航。宽成绩优先让主要列与课程标识同时可见，其余信息本地展开，避免横滚失去关键上下文；周表课程需在滚动时保留周几信息。
+- 每段仍执行行为RED/GREEN、实际手机/平板运行并复核；macOS人工窗口待解锁后补。B2之前的B1截图只证明B1，不借用为最终设计已完成。
+
+
+### B2 当前实施与反馈
+
+学期缓存以backend身份、生命周期、readCacheEpoch隔离，同代在途合并；错误不缓存，force只绕过已完成缓存，选择不会修改课表快照。教室选项按typed日期校区累积，切换日期/校区/epoch立即失效；独立审查发现epoch伴新loading被提前标为消费，已RED后仅屏蔽旧snapshot，success可补回新选项。
+
+`academic_tables.dart`将考试/成绩按原有资格字段分组（计数明确为本页），组内维持Core输入顺序；实际内容宽度740起显示4主要列，完整字段本地详情，行高随1.3长文本伸展。`classroom_content.dart`宽布局提供当前页楼层导航，窄布局分楼层卡片；这是本地当前页筛选，原服务查询仍需应用控件。课程卡独立重复星期信息，以免长周列滚动离开列头后失去日期上下文。typed模型不匹配时整页退回通用详情，保留原字段。
+
+日期选择使用锁定Flutter自带的flutter_localizations中文委托，传递增加SDK锁定intl0.20.2；没有升级SDK或既有依赖。8张旧golden仅更新已查看的今日控件收敛/教室日期与选择按钮差异；测试字体方框仅用于结构回归，中文可读性以本批原生图片为准。完整原生验收和本批阶段提交尚未完成。
+
+
+## P4-C 接续计划（B2原生与阶段提交、P4-A剩余实现后实施）
+
+本段尚未实现。SPOC/希冀、课堂签到、评教遵循既有Bridge白名单，不加后台请求或学校写入。待来源增补复核后，先Domain/App投影RED，再共享UI和Inspection，最后手机/平板实际点击与脱敏写入路径。每阶段只保留一个实施子代理，root独立文件同步工作；不在B2原生候选构建时更改生产源码。
+
+1. `presentation/assignment.dart`分别承载SPOC/希冀列表和详情所需typed ID、时间/状态/分数/正文及题目集合；不要把无ID的题目造为可请求目标。SPOC详情导航只带assignmentId，希冀带courseId+assignmentId；FeatureReadNavigation复用当前返回帧。单份作业一个父模型，题目在父模型内，批量保持Core返回顺序及输入有序键，不按标题去重。
+2. `presentation/signin.dart`保留原课程与时间及signStatus；按钮继续只读SigninPerformAction的target/eligibility。是否需要调整状态文案须由冻结来源和Core映射核对后决定，不能从denied泛化业务成功或更改既有过滤语义。
+3. `presentation/evaluation.dart`仅表示课程和isEvaluated；EvaluationSubmitTarget仍只在现有action内，不在展示模型复制资格。新增集合overview应独立于details：拟`FeatureOverview`与`EvaluationProgressOverview(total,evaluated,pending)`，SPOC学期上下文也仅用当前响应envelope。经FeatureResult/FeatureSnapshot/copyWith、App正常结果/空结果/失败/写后回读、UI父帧全链传递；新query清旧、同query stale保留、返回父页恢复，明确空结果用当前overview或空，不能沿用上次统计。
+4. UI新增`assignment_content.dart`呈现按课程分组的列表与长正文/题目详情；summary列表typed点击或有序多选直接进入查询，现手输编号保留为高级兼容但不再独立拼配课程与作业ID选择。教务任务的列表搜索和批量本地选择应在返回时保持；宽题目表保留题目名、状态、得分、满分，窄卡展示全部字段。课程分组只用已有courseId/name，不额外查询。
+5. `FeatureDetailList`新增领域展示分派须保留现action消费者；签到/评教定制头部和课程行应复用唯一WriteCoordinator回调，不能用纯内容组件替掉确认入口、资格提示或逐项结果。集合进度依据typed总数，局部搜索/分页不重算总进度。
+6. 关键回归包括同名异ID单项/批量、字段文本被干扰时typed导航仍正确、非标准时间与可空得分/正文、父子返回、过期includeExpired、签到unknown/target缺失、评教重复target/无教师维持拒绝、四态批量结果与只回读不重试。生产App只读及三端完整验收依旧单独计账。
+
+
+P4-C独立审查补充：overview置于详情列表外，空待评结果仍显示Core总进度；copyWith显式clearOverview，普通映射缺值清除，hadPreviousData纳入有效overview，同query异常保持stale，专用评教回读失败仍按原失败规则。Judge有序多选放父列表State，按双ID保存用户选择顺序，搜索/分页/子页返回保留；响应更新删已不存在键，epoch清空。搜索需覆盖嵌套题目文本，分页单位明确为父作业，保留旧所有可搜索信息。评教固定路线和普通读取共用现有_mapEvaluationResult投影，不改Ygdk/Cgyy回读证明。
+
+签到来源已核对：当前Core仅非空target+status1产生denied，但status1+空target为unknown；记录事实与资格分开展示，状态0/1/其他分别未签/已签/未知，异常组合提示不一致。pending=allowed、completed=denied过滤保持；typed action与fresh预检仍是写权威，不在展示层重算资格。具体冻结证据见source-parity-ui-coursework.md。
+
+
+P4-A资料一致性裁决已更新设计：新增4个可空字段而非仅schoolId，保留现username为空返回null及preferredName规则。UI账号资料详情不新增网络读取；先RED验证可空白名单投影、默认遮罩/主动展开/关闭恢复、相同账号资料更新与账号切换不会残留旧展开内容。所有原生资料证据使用synthetic，真实只读不保存原始个人页面截图。学校标识标签不推断为院系或学校名称。
+
+
+P4-A共享补项：B2手机实屏复核确认现查询头虽可滚动，却未提供设计要求的折叠。小于600时加入“查询条件”收起/展开，初始保持展开以保留当前参数发现性，宽屏继续直接显示；不自动应用或修改草稿。面板隐藏期间仍保留State，恢复宽度、收起再展开与父返回不触发query、不改变结果。先RED验证草稿/搜索/已应用参数连续性与零请求，再在手机原生实际操作。此项追踪UX-13，P3补充验收重新保持待办，B2领域展示的已通过证据仍有效。

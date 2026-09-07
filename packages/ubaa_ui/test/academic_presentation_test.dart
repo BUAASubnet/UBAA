@@ -4,6 +4,122 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('不同领域的展示模型仍可通过通用详情读取原字段', (tester) async {
+    await _show(tester, FeatureId.classroom, const [
+      FeatureDetail(
+        title: '保留的详情',
+        fields: [FeatureField(label: '原字段', value: '原值')],
+        presentation: GradePresentation(score: '80'),
+      ),
+    ]);
+    expect(find.text('原值'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('宽考试分安排状态且非标准日期仍保持原顺序', (tester) async {
+    await _show(tester, FeatureId.exam, const [
+      FeatureDetail(
+        title: '原顺序第一',
+        presentation: ExamPresentation(
+          arranged: true,
+          date: '教务待确认',
+          startTime: '午后',
+        ),
+      ),
+      FeatureDetail(
+        title: '原顺序第二',
+        presentation: ExamPresentation(arranged: true, date: '2020-01-01'),
+      ),
+      FeatureDetail(
+        title: '未安排课程',
+        presentation: ExamPresentation(arranged: false),
+      ),
+    ], width: 1280);
+    expect(find.byType(DataTable), findsNWidgets(2));
+    expect(find.text('已安排考试 · 本页2门'), findsOneWidget);
+    expect(find.text('未安排考试 · 本页1门'), findsOneWidget);
+    expect(find.text('教务待确认'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('原顺序第一')).dy,
+      lessThan(tester.getTopLeft(find.text('原顺序第二')).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('平板成绩主要列无需横滚且次要字段可本地打开', (tester) async {
+    await _show(
+      tester,
+      FeatureId.grades,
+      const [
+        FeatureDetail(
+          title: '可打开的课程',
+          presentation: GradePresentation(
+            courseCode: 'CS-X',
+            score: '80',
+            gradePoint: '3',
+            credit: 2,
+            scoreType: '百分制',
+            termCode: '2026-1',
+          ),
+        ),
+        FeatureDetail(title: '等待公布的课程', presentation: GradePresentation()),
+      ],
+      width: 834,
+      textScale: 1.3,
+    );
+    expect(find.byType(DataTable), findsNWidgets(2));
+    expect(
+      tester.getRect(find.byType(DataTable).first).right,
+      lessThanOrEqualTo(834),
+    );
+    expect(find.text('待出成绩 · 本页1门'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is SingleChildScrollView &&
+            widget.scrollDirection == Axis.horizontal,
+      ),
+      findsNothing,
+    );
+    await tester.tap(find.text('可打开的课程'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('更多信息').last);
+    await tester.pumpAndSettle();
+    expect(find.text('百分制'), findsOneWidget);
+    expect(find.text('2026-1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('宽教室楼层导航只筛当前结果并可恢复全部', (tester) async {
+    await _show(tester, FeatureId.classroom, const [
+      FeatureDetail(
+        title: '一层教室',
+        presentation: ClassroomPresentation(
+          roomId: 'a',
+          floorId: 'F1',
+          floorName: '一层',
+          availableSections: '1,13',
+        ),
+      ),
+      FeatureDetail(
+        title: '二层教室',
+        presentation: ClassroomPresentation(
+          roomId: 'b',
+          floorId: 'F2',
+          floorName: '二层',
+          availableSections: '3',
+        ),
+      ),
+    ], width: 1280);
+    await tester.tap(find.widgetWithText(ListTile, '二层'));
+    await tester.pumpAndSettle();
+    expect(find.text('一层教室'), findsNothing);
+    expect(find.text('二层教室'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, '全部（本页）'));
+    await tester.pumpAndSettle();
+    expect(find.text('一层教室'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('宽屏成绩长课程名在1.3文字完整伸展并显示课程编号', (tester) async {
     final title = List.filled(12, '跨学科课程中的实践与理论').join('');
     await _show(
@@ -54,7 +170,13 @@ void main() {
         ),
       ),
     ]);
-    expect(find.text('星期二'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.widgetWithText(Card, '程序设计'),
+        matching: find.text('星期二'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('第3–4节'), findsOneWidget);
     expect(find.text('10:00–11:40'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -300));
@@ -119,7 +241,7 @@ void main() {
         ),
       ),
     ]);
-    expect(find.text('三层'), findsOneWidget);
+    expect(find.text('三层'), findsNWidgets(2));
     expect(find.text('第3节'), findsOneWidget);
     expect(find.text('第13节'), findsOneWidget);
     expect(tester.takeException(), isNull);

@@ -9,6 +9,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'app_flow_test.dart' show createInspectionApp;
 
 part 'ui_academic/support.dart';
+part 'ui_academic/b2.dart';
 
 const _academicFeatures = [
   FeatureId.schedule,
@@ -23,10 +24,47 @@ void main() {
     testWidgets('原生学业全部子视图与typed父子返回：${brightness.name}', (tester) async {
       await _loginAcademic(tester, brightness, 'normal');
       await _openAcademic(tester, FeatureId.schedule);
+      await _chooseAcademicView(tester, '按输入查询');
+      await _selectAcademicTerm(tester, FeatureId.schedule);
+      await _academicField(tester, '周次（可选）', '2');
+      await _chooseAcademicView(tester, '按输入查询');
       await _applyAcademic(
         tester,
         FeatureId.schedule,
         FeatureQueryView.summary,
+        term: '2026-2027-1',
+      );
+      expect(
+        _academicSnapshot(tester, FeatureId.schedule).readContext!.query!.week,
+        2,
+      );
+      expect(
+        _academicSnapshot(tester, FeatureId.schedule).details.every(
+          (item) => item.presentation is ScheduleCoursePresentation,
+        ),
+        isTrue,
+      );
+      await _academicCapture(
+        binding,
+        tester,
+        brightness,
+        'normal-schedule-input-compatibility',
+        FeatureId.schedule,
+        '真实学期弹窗只更新草稿；按输入查询携带学期和周次并保持兼容',
+      );
+      await _chooseAcademicView(tester, '今日课程');
+      await _applyAcademic(
+        tester,
+        FeatureId.schedule,
+        FeatureQueryView.scheduleToday,
+      );
+      expect(
+        _academicSnapshot(tester, FeatureId.schedule).readContext!.query!.term,
+        isNull,
+      );
+      expect(
+        _academicSnapshot(tester, FeatureId.schedule).readContext!.query!.week,
+        isNull,
       );
       expect(
         _academicSnapshot(
@@ -167,7 +205,7 @@ void main() {
         ),
       ]) {
         await _openAcademic(tester, feature);
-        await _academicField(tester, '学期编码（可选）', '2026-2027-1');
+        await _selectAcademicTerm(tester, feature);
         for (final (label, view) in options) {
           await _chooseAcademicView(tester, label);
           await _applyAcademic(tester, feature, view, term: '2026-2027-1');
@@ -218,33 +256,14 @@ void main() {
             feature,
             '应用$label；从snapshot.readContext核对学期与视图，校验typed结果分类',
           );
+          if (view == FeatureQueryView.summary) {
+            await _checkAcademicTable(binding, tester, brightness, feature);
+          }
         }
       }
 
       await _openAcademic(tester, FeatureId.classroom);
-      await _academicField(tester, '日期', '2026-09-08');
-      await _academicField(tester, '楼层（可选）', 'F03');
-      await _academicField(tester, '节次（可选）', '3');
-      await _tapAcademic(tester, find.byType(DropdownButton<int>));
-      await _tapAcademic(tester, find.text('校区 2').last);
-      await _tapAcademic(tester, find.widgetWithText(FilledButton, '应用筛选'));
-      final query = _academicSnapshot(
-        tester,
-        FeatureId.classroom,
-      ).readContext!.query!;
-      expect(query.date, DateTime(2026, 9, 8));
-      expect(query.campus, 2);
-      expect(query.floorId, 'F03');
-      expect(query.section, '3');
-      final room =
-          _academicSnapshot(
-                tester,
-                FeatureId.classroom,
-              ).details.single.presentation!
-              as ClassroomPresentation;
-      expect(room.floorId, 'F03');
-      expect(room.sectionTokens, contains('3'));
-      expect(room.sectionTokens, isNot(contains('13')));
+      await _selectClassroomInputs(binding, tester, brightness);
       await _academicCapture(
         binding,
         tester,
@@ -274,6 +293,10 @@ void main() {
           );
           for (final feature in _academicFeatures) {
             await _openAcademic(tester, feature);
+            if (feature == FeatureId.schedule &&
+                !['first-error', 'stale', 'long'].contains(state)) {
+              await _chooseAcademicView(tester, '按输入查询');
+            }
             if (state == 'first-error') {
               final before = _academicSnapshot(tester, feature);
               expect(before.status, FeatureLoadStatus.failure);
@@ -372,6 +395,10 @@ void main() {
                   2,
                 );
               } else {
+                if (state == 'long' && feature == FeatureId.classroom) {
+                  await _academicField(tester, '日期', '2026-09-08');
+                  await _captureAcademicDateField(binding, tester, brightness);
+                }
                 await _applyAcademic(
                   tester,
                   feature,

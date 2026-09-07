@@ -4,14 +4,20 @@ class _FeatureQueryControls extends StatefulWidget {
   const _FeatureQueryControls({
     required this.feature,
     required this.details,
+    required this.snapshot,
     required this.onApply,
     this.initialQuery,
+    this.onLoadAcademicTerms,
+    this.readCacheEpoch = 0,
   });
 
   final FeatureId feature;
   final List<FeatureDetail> details;
+  final FeatureSnapshot snapshot;
   final Future<void> Function(FeatureQuery query) onApply;
   final FeatureQuery? initialQuery;
+  final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final int readCacheEpoch;
 
   @override
   State<_FeatureQueryControls> createState() => _FeatureQueryControlsState();
@@ -38,8 +44,15 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   late final TextEditingController _judgeCourseController;
   late final TextEditingController _judgeAssignmentController;
   late final TextEditingController _judgeBatchController;
+  final _classroomFloors = <String, String>{};
+  final _classroomSections = <String>{};
+  FeatureReadContext? _classroomLastContext;
+  List<FeatureDetail>? _classroomLastDetails;
+  bool _classroomConsumed = false;
+  String _classroomDraftDate = '';
+  int _classroomGeneration = 0;
   int _campus = 1;
-  FeatureQueryView _scheduleView = FeatureQueryView.summary;
+  FeatureQueryView _scheduleView = FeatureQueryView.scheduleToday;
   FeatureQueryView _examView = FeatureQueryView.summary;
   FeatureQueryView _gradesView = FeatureQueryView.summary;
   FeatureQueryView _evaluationView = FeatureQueryView.summary;
@@ -77,6 +90,22 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _judgeAssignmentController = TextEditingController();
     _judgeBatchController = TextEditingController();
     _restoreQuery(widget.initialQuery);
+    _classroomDraftDate = _dateController.text.trim();
+    _consumeClassroomOptions();
+    _dateController.addListener(_classroomDateChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _FeatureQueryControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.readCacheEpoch != widget.readCacheEpoch) {
+      _clearClassroomOptions();
+      _classroomConsumed = true;
+      // 只屏蔽失效前的读取；当前可能是新请求 loading，成功后仍须消费。
+      _classroomLastContext = oldWidget.snapshot.readContext;
+      _classroomLastDetails = oldWidget.snapshot.details;
+    }
+    _consumeClassroomOptions();
   }
 
   // 只在新页面初始化；后续读取通知不覆盖用户尚未应用的草稿。
@@ -111,9 +140,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _includeExpired = query.includeExpired;
     switch (widget.feature) {
       case FeatureId.schedule:
-        _scheduleView = query.view == FeatureQueryView.scheduleToday
-            ? FeatureQueryView.summary
-            : query.view;
+        _scheduleView = query.view;
       case FeatureId.exam:
         _examView = query.view;
       case FeatureId.grades:
@@ -142,6 +169,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   @override
   void dispose() {
     _termController.dispose();
+    _dateController.removeListener(_classroomDateChanged);
     _dateController.dispose();
     _floorController.dispose();
     _sectionController.dispose();
@@ -200,6 +228,13 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   Future<void> _apply() async {
     setState(() => _submitting = true);
     try {
+      if (widget.feature == FeatureId.schedule &&
+          _scheduleView == FeatureQueryView.scheduleToday) {
+        await widget.onApply(
+          const FeatureQuery(view: FeatureQueryView.scheduleToday),
+        );
+        return;
+      }
       DateTime? date;
       int? week;
       var page = 0;
@@ -534,6 +569,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     }
     return List<JudgeAssignmentQueryKey>.unmodifiable(keys);
   }
+
+  void _updateQueryDraft(VoidCallback update) => setState(update);
 
   void _showMessage(String message) {
     if (!mounted) return;

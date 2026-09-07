@@ -8,12 +8,16 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
         onChanged: _submitting
             ? null
             : (value) => setState(
-                () => _scheduleView = value ?? FeatureQueryView.summary,
+                () => _scheduleView = value ?? FeatureQueryView.scheduleToday,
               ),
         items: const <DropdownMenuItem<FeatureQueryView>>[
           DropdownMenuItem(
-            value: FeatureQueryView.summary,
+            value: FeatureQueryView.scheduleToday,
             child: Text('今日课程'),
+          ),
+          DropdownMenuItem(
+            value: FeatureQueryView.summary,
+            child: Text('按输入查询'),
           ),
           DropdownMenuItem(
             value: FeatureQueryView.scheduleTerms,
@@ -74,9 +78,16 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
           ),
         ],
       ),
-    if (widget.feature == FeatureId.schedule ||
+    if ((widget.feature == FeatureId.schedule &&
+            _scheduleView != FeatureQueryView.scheduleToday) ||
         widget.feature == FeatureId.exam ||
         widget.feature == FeatureId.grades) ...<Widget>[
+      if (widget.onLoadAcademicTerms != null)
+        OutlinedButton.icon(
+          onPressed: _submitting ? null : _chooseTerm,
+          icon: const Icon(Icons.calendar_month_outlined),
+          label: const Text('选择学期'),
+        ),
       SizedBox(
         width: 180,
         child: TextField(
@@ -106,56 +117,28 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
           ),
         ),
     ],
-    if (widget.feature == FeatureId.classroom) ...<Widget>[
-      SizedBox(
-        width: 150,
-        child: TextField(
-          controller: _dateController,
-          decoration: const InputDecoration(
-            labelText: '日期',
-            hintText: 'YYYY-MM-DD',
-            isDense: true,
-          ),
-        ),
-      ),
-      SizedBox(
-        width: 130,
-        child: TextField(
-          controller: _floorController,
-          decoration: const InputDecoration(
-            labelText: '楼层',
-            hintText: '可选，如 F2',
-            isDense: true,
-          ),
-        ),
-      ),
-      SizedBox(
-        width: 130,
-        child: TextField(
-          controller: _sectionController,
-          decoration: const InputDecoration(
-            labelText: '节次',
-            hintText: '可选，如 3',
-            isDense: true,
-          ),
-        ),
-      ),
-      DropdownButton<int>(
-        value: _campus,
-        onChanged: _submitting
-            ? null
-            : (value) => setState(() => _campus = value ?? 1),
-        items: const <DropdownMenuItem<int>>[
-          DropdownMenuItem(value: 1, child: Text('校区 1')),
-          DropdownMenuItem(value: 2, child: Text('校区 2')),
-          DropdownMenuItem(value: 3, child: Text('校区 3')),
-        ],
-      ),
-    ],
+    ..._classroomQueryFields(setState),
   ];
 
   bool get _needsTerm =>
       widget.feature == FeatureId.schedule &&
       (_scheduleView == FeatureQueryView.scheduleWeeks ||
           _scheduleView == FeatureQueryView.scheduleWeek);
+
+  Future<void> _chooseTerm() async {
+    final loader = widget.onLoadAcademicTerms;
+    if (loader == null) return;
+    final epoch = widget.readCacheEpoch;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (_) =>
+          _AcademicTermDialog(loader: loader, selected: _termController.text),
+    );
+    if (selected == null || !mounted) return;
+    if (widget.readCacheEpoch != epoch) {
+      _showMessage('连接状态已变化，请重新选择学期。');
+      return;
+    }
+    _updateQueryDraft(() => _termController.text = selected);
+  }
 }

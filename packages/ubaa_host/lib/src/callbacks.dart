@@ -94,6 +94,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         _controller.hasEvaluationSubmissionBackendCapabilities;
     return UbaaMainShell(
       readCacheEpoch: _controller.readCacheEpoch,
+      onLoadAcademicTerms: (forceRefresh) =>
+          _controller.loadAcademicTerms(forceRefresh: forceRefresh),
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
       user: _controller.user,
