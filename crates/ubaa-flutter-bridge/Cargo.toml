@@ -15,6 +15,8 @@ flutter_rust_bridge = "=2.13.0"
 rand = "=0.10.2"
 sha2 = "=0.10.9"
 tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt"] }
 ubaa-core = { path = "../ubaa-core" }
 
 [dev-dependencies]
