@@ -8,12 +8,15 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 当前已完成“无签名执行目标”，但**没有完成正式发布**：
 
+2026-09-07 已完成本地可维护性治理：统一错误语义、增加安全诊断与严格门禁，并整理可共享交接证据。
+当前结果见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)；真实 App/Core-live 按要求保持暂停。
+
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
 - 十二项读取页面、typed 查询及十项写入流程已有 Fixture/Mock、Rust、Dart、widget/golden 与脱敏宿主
   integration 阶段证据；Evaluation typed 批量提交已在阶段 11J `4b0dcb0` 落地，阶段 11K `b6ff2c7`
   已统一 Dart 写入协调，结构治理的最终候选验证仍单独记录；
-- Direct 与 WebVPN 的当前真实证据只覆盖 Core-live 只读矩阵，不代表真实 App 账号链路或真实写入；
+- Direct 与 WebVPN 的历史真实证据只覆盖对应提交的 Core-live 只读矩阵，不代表本轮真实 App 账号链路或真实写入；
 - 正式签名、证书、公证、商店上传、实体设备、原生安全存储 handler 和真实写入核对仍是后置条件。
 
 当前公开合同版本为 CLI JSON schema v10 与 Flutter bridge contract v9；这两个版本都与磁盘
@@ -48,7 +51,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 | `packages/ubaa_domain` | Dart 稳定领域模型 |
 | `packages/ubaa_app` | 应用状态、bridge adapter 与写入协调 |
 | `packages/ubaa_host` | 共享 AppController 生命周期、平台能力注入与 UI callback 接线 |
-| `packages/ubaa_platform` | 平台路径、权限、凭据、照片和位置 typed 边界 |
+| `packages/ubaa_platform` | 平台能力边界、共享错误策略与有界本地诊断 |
 | `packages/ubaa_ui` | 共享页面、查询、确认、响应式与可访问性 UI |
 | `packages/ubaa_bindings` | FRB 机械生成 Dart 输出和 Cargokit 平台构建支持 |
 | `scripts` | 按副作用分类的 bootstrap、check、build、live、release 与确定性合同入口 |

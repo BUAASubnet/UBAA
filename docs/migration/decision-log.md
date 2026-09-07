@@ -1,5 +1,25 @@
 # 决策记录
 
+## 2026-09-07：贯通安全错误诊断并保持既有业务权威
+
+本轮按用户授权完成可维护性治理，采用现有架构内的渐进修复。app 错误映射委托 platform，
+保留 Bridge 原有的 code/kind/retryable/resolved_route；parse_error 不再丢失身份，结果未知
+禁止通用重试。外部 message 不再通过关键词过滤冒充安全详情，新增诊断只允许枚举、编号、
+时间、耗时及筛选后的项目源码位置，默认本机有界内存且由用户主动复制。
+
+Core 安全传输事件与 Bridge 的默认接收器使用精确 DEBUG 四字段过滤。曾使用 WARN，
+完整 CLI E2E 实际发现默认 JSON stderr 被污染，因此以原断言为回归改成 DEBUG；不修改
+CLI 公共输出、HTTP 请求或写入次数。失效意图清理与过期遥测 flush 不进入当前代次诊断。
+
+严格验收必须实际执行 ShellCheck 0.11.0。macOS 权限从产物读取且必须是布尔 true，正式
+入口固定系统工具；测试注入仅位于函数夹具。真实 APK 检查还暴露 Bash 3 空数组清理错误，
+已通过真实 ZIP 回归修复。版本门禁保留权威版本检查，解除对历史状态表格排版的依赖。
+
+来源见[前置对照](source-parity-maintainability.md)与[传输来源记录](source-parity-maintainability-transport.md)，
+设计见[治理设计](../superpowers/specs/2026-09-07-maintainability-design.md)，实现与验收见
+[本轮记录](evidence/2026-09-07-maintainability.md)。真实 App/Core-live 仍暂停，本轮本地构建、
+Fixture/Mock 和宿主 integration 不替代真实系统或正式发布。
+
 ## 2026-09-07：修复 macOS 沙箱主动联网权限
 
 用户明确授权修复 MACOS-001 并重新打开 App，由用户登录。真实 App 进程 81365 的系统记录为

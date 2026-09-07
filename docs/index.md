@@ -5,6 +5,8 @@
 - [项目概览与当前范围](../README.md)
 - [当前迁移与交付状态](migration/status.md)
 - [当前执行合同](../goal.md)
+- [可维护性治理设计](superpowers/specs/2026-09-07-maintainability-design.md)
+- [可维护性治理计划](superpowers/plans/2026-09-07-maintainability.md)
 - [代码与目录组织设计](architecture/code-organization.md)
 - [代码组织实施计划](superpowers/plans/2026-09-03-code-organization.md)
 - [贡献指南](../CONTRIBUTING.md)
@@ -56,6 +58,8 @@
 
 ## 迁移、来源与证据
 
+- [2026-09-07 可维护性治理验收](migration/evidence/2026-09-07-maintainability.md)
+
 - [冻结参考](migration/references.md)
 - [协议来源对照矩阵](migration/source-parity.md)
 - [复杂业务模块目录化来源对照](migration/source-parity-code-organization.md)
@@ -64,10 +68,15 @@
 - [旧版功能盘点与迁移缺口](migration/legacy-feature-inventory.md)
 - [决策记录](migration/decision-log.md)
 - [当前迁移与交付状态](migration/status.md)
+- [2026-09-05 代码组织历史证据摘要](migration/evidence/2026-09-05-code-organization-summary.md)
+- [2026-09-07 维护治理前状态归档](migration/history/status-2026-09-07-before-maintainability.md)
+- [2026-09-07 macOS 真实 App 合同归档](migration/history/goal-2026-09-07-macos-real-app.md)
 - [2026-09-02 及以前状态流水归档](migration/history/status-through-2026-09-02.md)
 - [只读功能证据矩阵（历史快照）](migration/readonly-feature-matrix.md)
 
 ## 运行手册
+
+- [本地错误定位与诊断](runbooks/local-diagnostics.md)
 
 - [实时认证验证](runbooks/live-auth-verification.md)
 - [真实只读验证](runbooks/live-readonly-verification.md)
