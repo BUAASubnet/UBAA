@@ -656,3 +656,13 @@ Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使�
 场馆订单同时将冻结状态码映射为公开的“订单状态说明/审核状态说明”，只用于用户理解当前状态；原始内部字段仍不跨 facade。
 
 Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimitive.contentOrNull` 读取文本字段；Core `string` 现支持字符串、整数、浮点和布尔原语，避免合法的非字符串课程/问卷字段被误判为缺失。
+
+
+## 2026-09-08 UI/UX 重设计前逐操作保持合同
+
+本轮在生产 UI 修改前完成静态来源索引与 typed 接线边界核对，详见
+[UI/UX 来源与接线审查](../design/ui-ux-parity-review.md)。两冻结 HEAD 已读回并与本文件固定值一致；完整 refs 门禁由本轮主证据记录。该审查为每个当前认证/只读 Bridge 操作列出旧版接口、本地实现、DTO、测试与 Rust 示例适用性，并独立应用 C1–C9：URL/service、重定向、Cookie/Session、方法参数、Header/编码、加密、DTO/解析、缓存/并发、错误/退出均保持现有协议。纯视觉不授权改变请求或扩充公开合同。
+
+可接线范围：图书馆馆列表已有 typed 楼层，分区已有父 ID，详情已有 typed 时段；App 可无损保留这些公开字段为选择器，segment 只能取时段 ID。阻塞范围：当前公开分区详情仅给出第一日期/顶层时段，不能据此声称全部日期共享时段；跨日期精确时段需另行合同与失败测试。userInfo 已接入但仅投影 username/name，既有白名单其它字段可做遮罩资料展示，department 没有来源。
+
+审查同时标出既有“SPOC 详情”首表误写 Judge URL 的文档精度问题；不得据错置表修改协议。Ygdk 主机集合未决边界、Cgyy 仅公开锁码 available、所有 typed 写入资格与单次提交保持原决定。本节只有静态来源证据，不是测试、实时只读或实际 UI PASS。

@@ -21,9 +21,7 @@ void _registerQueryFlowTests() {
     expect(find.byType(CustomScrollView), findsOneWidget);
 
     for (final feature in ordinaryFeatureIds) {
-      final target = find.text(feature.title).first;
-      await tester.ensureVisible(target);
-      await tester.pumpAndSettle();
+      final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
       expect(find.text('返回功能列表'), findsOneWidget);
@@ -48,9 +46,7 @@ void _registerQueryFlowTests() {
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     for (final feature in advancedFeatureIds) {
-      final target = find.text(feature.title).first;
-      await tester.ensureVisible(target);
-      await tester.pumpAndSettle();
+      final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
       expect(find.text('返回功能列表'), findsOneWidget);
@@ -91,16 +87,7 @@ void _registerQueryFlowTests() {
           : find.byIcon(unselectedIcon);
       await tester.tap(tabFinder.first);
       await tester.pumpAndSettle();
-      final target = find.text(feature.title).first;
-      final viewportHeight =
-          tester.view.physicalSize.height / tester.view.devicePixelRatio;
-      for (var attempt = 0; attempt < 8; attempt++) {
-        final rect = tester.getRect(target);
-        if (rect.top >= 0 && rect.bottom <= viewportHeight) break;
-        final delta = rect.bottom > viewportHeight ? -240.0 : 240.0;
-        await tester.drag(find.byType(CustomScrollView), Offset(0, delta));
-        await tester.pumpAndSettle();
-      }
+      final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
       expect(find.text('返回功能列表'), findsOneWidget);
@@ -189,4 +176,38 @@ void _registerQueryFlowTests() {
       await tester.pumpAndSettle();
     }
   });
+}
+
+/// 先实际滚动构建懒加载卡片，再定位点击；不能对尚未构建的 Finder 取 first。
+Future<Finder> _scrollToQueryFeature(
+  WidgetTester tester,
+  FeatureId feature,
+) async {
+  final grid = find.byType(CustomScrollView);
+  expect(grid, findsOneWidget);
+  final scrollable = find.descendant(
+    of: grid,
+    matching: find.byType(Scrollable),
+  );
+  expect(scrollable, findsOneWidget);
+  final features = ordinaryFeatureIds.contains(feature)
+      ? ordinaryFeatureIds
+      : advancedFeatureIds;
+  // 合成摘要可能与标题同名；定位共同的唯一 Card，不对 Text 任取 first。
+  Finder featureCard(FeatureId id) => find.descendant(
+    of: grid,
+    matching: find.widgetWithText(Card, id.title),
+  );
+  // 返回或切换分组后可能保留滚动位置，先滚回组首，再寻找目标。
+  await tester.scrollUntilVisible(
+    featureCard(features.first),
+    -240,
+    scrollable: scrollable,
+  );
+  final target = featureCard(feature);
+  await tester.scrollUntilVisible(target, 240, scrollable: scrollable);
+  await tester.pumpAndSettle();
+  expect(target, findsOneWidget);
+  expect(target.hitTestable(), findsOneWidget);
+  return target;
 }
