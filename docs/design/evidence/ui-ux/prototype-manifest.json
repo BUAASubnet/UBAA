@@ -1,0 +1,329 @@
+{
+  "prototype_sha256": "0ebf38d2e01eb684b6f96ba8f2c3480874f9d3b5ea947b007e729da15f848f80",
+  "screenshots": [
+    {
+      "file": "prototype-bykc-desktop-dark.png",
+      "sha256": "874853451604dd3b64e6c64518b65ecd07373e0377448495f416af137bb16693",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-bykc-desktop-light.png",
+      "sha256": "0a1fbb722cb743b8b37108d672d868d41718571fbb6d5ac680c9f385624a7ff9",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-bykc-phone-dark.png",
+      "sha256": "8a6a3f7cbd984139eb2cc2f143b582f48983be55d144d9e952b2c5e299d6c450",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-bykc-phone-light.png",
+      "sha256": "a70a3f567b915137a0926195113f6806579cd4729ed9565d3f711def8d60e2cc",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-bykc-tablet-dark.png",
+      "sha256": "c735ce1c19fd0c6228b3dfc92fe8567613d0b8eb5f3ef6387d03884469b906ad",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-bykc-tablet-light.png",
+      "sha256": "c8140f63c1d6f47297249f4cac8d173beea31ebb2c72b8a10f4758f268e4701d",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-confirm-desktop-dark.png",
+      "sha256": "ca3886892ea2a7cd7dd2aa537fec27f4f0cc1591ba34e7ff0efbe25aba762d7c",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-confirm-desktop-light.png",
+      "sha256": "3747e576818f9225287e598ea8aeafa1afc8461d8a0616bc8f4f032ab2673d9b",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-confirm-phone-dark.png",
+      "sha256": "7be4db4fd7bae78dce2ac6dcbbb7838f546d959bfb7ed16777b38dcfc954b388",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-confirm-phone-light.png",
+      "sha256": "eed7d1fe620a332188b8aedea96548e7db6f4334685e7d1ecc5db34e322c6401",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-confirm-tablet-dark.png",
+      "sha256": "2cdb7620dc1f0348f09ff07a6d38aec009fcb2eec63aa1c32cf423783fead6b6",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-confirm-tablet-light.png",
+      "sha256": "401604173251160a6e729264a6873f20f3c5f3b5fb1750eac63de133c6aa27cd",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-error-desktop-dark.png",
+      "sha256": "c5134720c8fda0dee10e7c303b007a47204cc6dc22df178a5a6a50b587f9905b",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-error-desktop-light.png",
+      "sha256": "10aa87085bdb69b7abe8738c1ea7c9e8da41764acf0bf06f006be0d62779ff60",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-error-phone-dark.png",
+      "sha256": "806c2025586781d7770046b7914757e1d08173c928a91290cbc377638499f606",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-error-phone-light.png",
+      "sha256": "59824c33ac983596c1fc3b2347ed9cba0b97a2cc2b0693a865f0a940c5b138a4",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-error-tablet-dark.png",
+      "sha256": "04f547dcad9a9051b3316660fe74cefce7290dcab9b40c7e290e4ec0d2afd816",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-error-tablet-light.png",
+      "sha256": "413aa2eef406d92434ffc1147d71dc6920ace5d004305bfa0919f22428003beb",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-form-desktop-dark.png",
+      "sha256": "df817c8f45d69ab9aad2c343cb43116354067325d40be6fec1410f44e41b994a",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-form-desktop-light.png",
+      "sha256": "fb19f5dca51556d6eace08a5cd1bbbc0e91b899a425a84873a24b6806d7d20ff",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-form-phone-dark.png",
+      "sha256": "24f8b6f9e59f5244aa4fa2812bcf67a6b55b43ffa86b4db4cc084d1394b26f48",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-form-phone-light.png",
+      "sha256": "1c787af920658af5a242830fb6cecf2d25195ce9b6f4dce569073b5c0692318d",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-form-tablet-dark.png",
+      "sha256": "ab20decd9ef80aaaa92c6c924f3c15e6af5493f6e469acf420be3a0ee53b6906",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-form-tablet-light.png",
+      "sha256": "668002ee6874ac27d55bb548cf23bcdc5fc68785f79c9206075fc4ba16034f53",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-grades-desktop-dark.png",
+      "sha256": "1b032458262371f7918e1c3b19835c34767e20f0742e79af39c6714d88fcf1f4",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-grades-desktop-light.png",
+      "sha256": "ea1a7ea8fcf57130fd16ceb033c6f97dfed71f5569dceb3521fd74965965d07d",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-grades-phone-dark.png",
+      "sha256": "fb0116de4c3cc53a9c9ed27ffb5ac646c256f26df898436dd569b796cd4c8b84",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-grades-phone-light.png",
+      "sha256": "2f48891cd1c0bca8f653ef3ec27c0101cb7c493daf3d4036269ad8c748cf70f1",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-grades-tablet-dark.png",
+      "sha256": "0f32a34dfa0da493124743c370dd12c0132c1b3400b1e5f061129614bc3cd9f6",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-grades-tablet-light.png",
+      "sha256": "cf326459c7f97e64dce5c101bc9378324501d602d5833ac6c70c7037fcd16fc5",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-home-desktop-dark.png",
+      "sha256": "bc1058984c8f4c1335501d6b697e487b533716dc1725ce24c9f6ac0392643ff9",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-home-desktop-light.png",
+      "sha256": "36b3134a9150d05ca874aca5e6113715c72994c34912a38c059cc9866ec90a45",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-home-phone-dark.png",
+      "sha256": "f26bdea213db40811d0539273e92705aaaea6ff9623b268d465424db86fa53d6",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-home-phone-light.png",
+      "sha256": "fe55a7458d13f81d39ccdba298981c0c75e0af584fb123203eec3999660c9261",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-home-tablet-dark.png",
+      "sha256": "61e7562897eb6f1471c042fc271080fb98438e5764bfcb28fea890e09d677edf",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-home-tablet-light.png",
+      "sha256": "ba1176af476be863b9483a9fcff0af69ac73823c0064dda05cfc8fce1d421779",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-library-desktop-dark.png",
+      "sha256": "80d8a65360626a2e8d0d713bcb1170d6479286b867edec5532716eb588e71c5b",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-library-desktop-light.png",
+      "sha256": "77837bbea30af6b90ef71029dae123ed495cc3e686aae5845d94af5ea1771d73",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-library-phone-dark.png",
+      "sha256": "31e7174c15ff0c251d205ebd9f68f6a164ed139484757bc414e40e0ebd7cdda7",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-library-phone-light.png",
+      "sha256": "f089bb804af0a3cbe7b514c0cd3d1cdaeb0eb335939570b11ede7f2aa67233c8",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-library-tablet-dark.png",
+      "sha256": "e816053513d8e460d2d906eb7961db69c0d485551cdfcc8c314566eeba6e40c5",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-library-tablet-light.png",
+      "sha256": "f0fee767c1a4428f950eff60438ff4940b57686ea3de186794279919f6775707",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-login-desktop-dark.png",
+      "sha256": "a0014aaf8378a53244226916a30f96dc0c7a0566450ef961b70695d862d38bcf",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-login-desktop-light.png",
+      "sha256": "395020a01e51b5e1e525237ebc03968449178c7c300fd865c543fe3571b88a1c",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-login-phone-dark.png",
+      "sha256": "4031ad16bfdaf87433ff8621ab0d65cab754158bea6a0f5241c3ea9bbc5f9141",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-login-phone-light.png",
+      "sha256": "ad53017073fdffe87a00d4057931e343d22b3004218300dec72981cf302d707d",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-login-tablet-dark.png",
+      "sha256": "82abce9d9073f7474dc065e65bb7f6d9b70f9ec410b22f53588f006ff0fb78b8",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-login-tablet-light.png",
+      "sha256": "08081f57899d6a0c2f16cabfe2124a479baaea03f5248665c01b69534d8e7e1a",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-profile-desktop-dark.png",
+      "sha256": "04c4295d091a9fbfbdbb44750f1d2d4ba0023bc40e96aedd4974a2393c8c0c5d",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-profile-desktop-light.png",
+      "sha256": "0348d0a00e676ce0360d518d1351830e366c971b0897d263de8b45c2143b0015",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-profile-phone-dark.png",
+      "sha256": "ca2a92f9094c620096ffe5d7f308faf4c7509044169faaec42832d6f718d4576",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-profile-phone-light.png",
+      "sha256": "a4d146322baf91cb065ea046fbab12a2342aa392f3e0ecd777685dcc5254f9e9",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-profile-tablet-dark.png",
+      "sha256": "9aa2f95e9d7512bd896c254b4e832a7e37afdd91c3d18faffd74de88e6db650c",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    },
+    {
+      "file": "prototype-profile-tablet-light.png",
+      "sha256": "f4f1dc59a96986aa0ceba1955fbe14e593f9dde915edeb9cfc1d773df7918a73",
+      "date": "2026-09-08",
+      "data": "合成设计原型，不是Flutter设备验收"
+    }
+  ]
+}
