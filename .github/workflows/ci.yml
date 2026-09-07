@@ -67,8 +67,8 @@ jobs:
         run: just layout-check
       - name: 扫描敏感材料
         run: just check-sensitive
-      - name: 运行 Rust 与 Shell 确定性门禁
-        run: just check
+      - name: 运行严格 Rust 与 Shell 确定性门禁
+        run: just check-strict
       - name: 安装 FRB 生成所需的锁定 Dart 依赖
         working-directory: packages/ubaa_bindings
         run: flutter pub get --enforce-lockfile

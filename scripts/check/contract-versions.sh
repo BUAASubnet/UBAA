@@ -99,8 +99,6 @@ if [[ -n $cli_version ]]; then
   require_literal 'docs/architecture/overview.md' "schema-v${cli_version} 聚合"
   require_literal 'docs/architecture/overview.md' "CLI envelope 的 schema v${cli_version}"
   require_literal 'docs/migration/status.md' "CLI JSON schema v${cli_version}"
-  require_literal 'docs/migration/status.md' "CLI schema v${cli_version}、bridge v${bridge_version}"
-  require_literal 'docs/migration/status.md' "| CLI | schema v${cli_version} envelope"
   require_literal 'docs/development/testing.md' "human/JSON schema v${cli_version}"
   require_literal 'docs/development/testing.md' "当前 CLI envelope 显式升为 schema v${cli_version}"
   require_literal 'docs/development/engineering-standards.md' "human/JSON schema v${cli_version}"

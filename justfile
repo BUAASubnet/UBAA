@@ -26,10 +26,19 @@ core-test-contract:
 
 check:
     just shell-check
+    just _rust-shell-contracts
+
+# 维护验收和 CI 使用的严格入口；ShellCheck 缺失或版本不是 0.11.0 时立即失败。
+check-strict:
+    just shell-check-strict
+    just _rust-shell-contracts
+
+_rust-shell-contracts:
     bash ./scripts/tests/layout.sh
     bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/references.sh
     bash ./scripts/tests/flutter-toolchains.sh
+    bash ./scripts/tests/maintenance-gates.sh
     just layout-check
     just contract-version-check
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
@@ -55,8 +64,11 @@ contract-version-check:
 
 # 检查仓库候选 Shell，显式排除锁定 Cargokit；路径全程使用 NUL 分隔。
 shell-check:
-    git ls-files --cached --others --exclude-standard -z -- '*.sh' | while IFS= read -r -d '' script; do [[ -f "$script" ]] || continue; case "$script" in packages/ubaa_bindings/cargokit/*) continue ;; esac; bash -n "$script"; done
-    if command -v shellcheck >/dev/null 2>&1; then git ls-files --cached --others --exclude-standard -z -- '*.sh' | while IFS= read -r -d '' script; do [[ -f "$script" ]] || continue; case "$script" in packages/ubaa_bindings/cargokit/*) continue ;; esac; shellcheck -x -P SCRIPTDIR "$script"; done; else printf '%s\n' 'SKIP: ShellCheck 未执行（当前环境未安装）'; fi
+    bash ./scripts/check/shell.sh lenient
+
+# 与 shell-check 扫描范围相同，但要求 ShellCheck 0.11.0 可执行文件存在。
+shell-check-strict:
+    bash ./scripts/check/shell.sh strict
 
 # 生成不含签名、账号或真实响应的无签名 RC 依赖/源码校验报告。
 release-preflight report_dir="":
@@ -80,7 +92,7 @@ flutter-check:
 flutter-build platform="host" mode="debug":
     bash ./scripts/build/flutter.sh "{{platform}}" "{{mode}}"
 
-# 检查已构建 Flutter 产物的最小可加载结构，不执行签名或安装。
+# 检查已构建 Flutter 产物结构；macOS 还核验实际签名权限，不执行签名或安装。
 flutter-artifact-check platform artifact:
     bash ./scripts/release/verify-flutter-artifact.sh "{{platform}}" "{{artifact}}"
 

@@ -2,10 +2,23 @@
 # 检查 Flutter 无签名 Debug 产物的结构；不签名、不安装、不读取运行时数据。
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+# shellcheck source=macos-entitlements.sh
+source "$script_dir/macos-entitlements.sh"
+
 platform=${1:-}
 artifact=${2:-}
 platform=${platform#platform=}
 artifact=${artifact#artifact=}
+temporary_files=()
+
+cleanup() {
+  local file
+  for file in "${temporary_files[@]+"${temporary_files[@]}"}"; do
+    rm -f -- "$file"
+  done
+}
+trap cleanup EXIT
 
 if [[ -z "$platform" || -z "$artifact" ]]; then
   printf '用法：verify-flutter-artifact.sh <platform> <artifact-path>\n' >&2
@@ -53,6 +66,7 @@ case "$platform" in
     require_file "$artifact/Contents/MacOS/ubaa_flutter"
     require_dir "$artifact/Contents/Frameworks/App.framework"
     require_file "$artifact/Contents/Frameworks/App.framework/Versions/A/Resources/flutter_assets/AssetManifest.bin"
+    verify_macos_entitlements "$artifact" /usr/bin/codesign /usr/libexec/PlistBuddy
     ;;
   ios-simulator)
     require_file "$artifact/Runner"
@@ -89,7 +103,7 @@ if [[ -f "$artifact" ]]; then
 else
   size=$(du -sk "$artifact" | awk '{print $1 * 1024}')
   digest_input=$(mktemp)
-  trap 'rm -f "$digest_input"' EXIT
+  temporary_files+=("$digest_input")
   while IFS= read -r -d '' file; do
     hash_file "$file" >>"$digest_input"
   done < <(find "$artifact" -type f -print0 | sort -z)

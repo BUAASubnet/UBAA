@@ -10,6 +10,7 @@
 | check | `just layout-check` | `check/layout.sh` | 检查手写文件行数、目录拥挤度和 baseline；不访问网络或凭据 |
 | check | `just contract-version-check` | `check/contract-versions.sh` | 纯静态交叉校验 CLI/Bridge 源码常量、JSON Schema、Dart 接受版本与当前文档声明 |
 | check | `just check-sensitive` | `check/sensitive.sh` | 只读取待提交/未忽略文件，不读取 `.env.local` 或运行会话 |
+| check | `just shell-check` / `just shell-check-strict` | `check/shell.sh` | 均运行 Bash 语法检查；宽松入口缺 ShellCheck 时报告 SKIP，严格入口固定要求 0.11.0 |
 | check | `just flutter-check` | `check/flutter-workspace.sh` | 官方 Flutter 依赖解析、Dart format、analyze 和 test；只访问依赖源 |
 | check | `just flutter-codegen-check` | `check/flutter-codegen.sh` | 重生成 FRB 后要求受跟踪生成目录零漂移 |
 | build | `just flutter-build` | `build/flutter.sh` | 构建明确官方平台；不签名、不安装、不访问真实账号 |
@@ -17,8 +18,8 @@
 | live | `just verify-live` | `live/verify.sh`、`live/core-live.sh` | 真实只读矩阵汇总入口；只允许 direct/webvpn，凭据仅经 stdin，真实写入需另行授权 |
 | live | `just core-live` | `live/core-live.sh` | 底层只读进程入口；显式路线、stdin 凭据与会话清理规则同上 |
 | release | `just release-preflight` | `release/preflight.sh` | 只使用纯 refs 校验并生成无凭据报告；要求工作树干净 |
-| release | `just flutter-artifact-check` | `release/verify-flutter-artifact.sh` | 只读检查本地产物结构和摘要，不签名、不安装 |
-| tests | `just shell-check`、`just check` | `tests/{layout,contract-versions,references,flutter-toolchains,live-launchers}.sh` | 临时目录内的确定性合同；不访问真实上游 |
+| release | `just flutter-artifact-check` | `release/verify-flutter-artifact.sh`、`release/macos-entitlements.sh` | 只读检查本地产物结构和摘要；macOS 正式入口固定系统签名/plist 工具读取实际权限并要求 Sandbox 与客户端联网，不签名、不安装 |
+| tests | `just check`、`just check-strict` | `tests/{layout,contract-versions,references,flutter-toolchains,maintenance-gates,live-launchers}.sh` | 临时目录内的确定性合同；严格入口要求 ShellCheck，不访问真实上游 |
 | tests | `just core-test-contract` | `tests/facade-test-contract.sh` 与根 recipe 中的 Cargo 测试 | 分别验证 Core 默认/测试注入配置及关闭态编译拒绝；不访问真实上游 |
 
 `lib/repo.sh` 只提供从任意当前目录定位仓库根的函数；`lib/live-features.sh` 只提供两个 live 入口共同使用的

@@ -70,10 +70,7 @@ new_fixture() {
     'CLI envelope 的 schema v10' \
     'Flutter bridge contract v9' \
     >"$fixture/docs/architecture/overview.md"
-  printf '%s\n' \
-    'CLI JSON schema v10；Flutter bridge contract v9。' \
-    'CLI schema v10、bridge v9' \
-    '| CLI | schema v10 envelope' \
+  printf '%s\n' 'CLI JSON schema v10；Flutter bridge contract v9。' \
     >"$fixture/docs/migration/status.md"
   printf '%s\n' 'schema-v10 路由 envelope' \
     >"$fixture/docs/contracts/readonly-features.md"
@@ -159,5 +156,29 @@ fixture=$(new_fixture stale-document)
 printf '%s\n' 'human/JSON schema v9 命令行宿主' \
   >"$fixture/README.md"
 expect_rejected '当前文档仍声明旧版本时拒绝' "$fixture" 'README.md'
+
+fixture=$(new_fixture status-cli-mismatch)
+printf '%s\n' 'CLI JSON schema v9；Flutter bridge contract v9。' \
+  >"$fixture/docs/migration/status.md"
+expect_rejected \
+  '当前状态页 CLI JSON schema 版本错误时拒绝' \
+  "$fixture" \
+  'docs/migration/status.md'
+
+fixture=$(new_fixture status-bridge-mismatch)
+printf '%s\n' 'CLI JSON schema v10；Flutter bridge contract v8。' \
+  >"$fixture/docs/migration/status.md"
+expect_rejected \
+  '当前状态页 Flutter bridge contract 版本错误时拒绝' \
+  "$fixture" \
+  'docs/migration/status.md'
+
+fixture=$(new_fixture status-version-missing)
+printf '%s\n' '当前状态页未声明公开合同版本。' \
+  >"$fixture/docs/migration/status.md"
+expect_rejected \
+  '当前状态页缺失公开合同版本时拒绝' \
+  "$fixture" \
+  'docs/migration/status.md'
 
 printf '%s\n' "contract version shell contracts passed: $pass_count"

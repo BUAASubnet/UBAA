@@ -12,14 +12,18 @@ just layout-check                                           # 1000 行/16 文件
 just contract-version-check                                 # CLI/Bridge 常量、schema、Dart 与当前文档纯静态一致性
 cargo metadata --locked --no-deps --format-version 1        # 校验 Cargo.lock 与 workspace 元数据
 just check-sensitive                                        # 扫描 tracked 和非 ignored 候选文件中的敏感路径/模式
-just shell-check                                             # 全部 Shell 执行 bash -n；可用时再执行 ShellCheck
-just check                                                  # Rust/Cargo/CLI/Shell 合同、构建、文档与 git diff；不含 Flutter
+just shell-check                                             # 全部 Shell 执行 bash -n；缺 ShellCheck 时明确 SKIP
+just check                                                  # 宽松 Rust/Cargo/CLI/Shell 门禁，供未安装 ShellCheck 的本地环境使用
+just shell-check-strict                                      # 同一扫描范围；要求 ShellCheck 0.11.0 且报错即失败
+just check-strict                                            # 维护验收与 CI 的严格 Rust/Shell 入口；不含 Flutter
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
 just flutter-check                                          # 七个 package/app 执行 pub get、format、analyze、test
 git diff --check
 ```
 
-`just check` 内部也运行 layout、contract-version、refs、live 四类 Shell 合同以及 layout/公开版本 checker；
+`just check` 与 `just check-strict` 内部都运行 layout、contract-version、refs、maintenance、live 五类 Shell 合同以及
+layout/公开版本 checker；两者的 Rust 检查完全相同，区别仅是严格入口要求 ShellCheck 0.11.0。CI 和最终维护验收使用
+`just check-strict`，普通本地开发可用 `just check` 保留明确的 SKIP。
 独立列出两个静态 checker 是为了让结构或版本漂移尽早失败。Rust、Flutter/codegen 仍是独立证据，任何一个通过都不能推导另一个通过；结构治理阶段
 还要运行实施计划指定的 focused test。
 
@@ -52,7 +56,9 @@ UBAA_DEVECO_HOME=/绝对路径/DevEco或命令行工具 \
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 ```
 
-这些命令只证明相应无签名构建或产物结构。`UBAA_OHOS_NO_CODESIGN=1` 只允许 Debug；生成的 HAP 不得用于发布
+macOS 产物检查会从已有 `.app` 的实际签名读取 entitlements，并要求 `com.apple.security.app-sandbox=true` 与
+`com.apple.security.network.client=true`；读取失败、缺失或关闭均拒绝。检查器不修改产物，也不重签。
+其它平台仍只证明相应无签名构建或产物结构。`UBAA_OHOS_NO_CODESIGN=1` 只允许 Debug；生成的 HAP 不得用于发布
 或实体设备验收。签名、安装、设备和安全存储证据必须单独记录。
 
 ## 发布前置
