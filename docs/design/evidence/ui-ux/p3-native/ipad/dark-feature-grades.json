@@ -1,0 +1,19 @@
+{
+  "name": "dark-feature-grades",
+  "scene": "feature-grades",
+  "steps": "点击成绩查询功能卡进入默认子视图",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "devicePixelRatio": 2.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T18:01:32.584054Z",
+  "sourceSha": "e93d569e+P3-uncommitted",
+  "pngSaved": true
+}

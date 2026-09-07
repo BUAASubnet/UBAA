@@ -1,0 +1,19 @@
+{
+  "name": "light-home",
+  "scene": "home",
+  "steps": "合成账号登录进入首页",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "devicePixelRatio": 2.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T18:01:49.849206Z",
+  "sourceSha": "e93d569e+P3-uncommitted",
+  "pngSaved": true
+}

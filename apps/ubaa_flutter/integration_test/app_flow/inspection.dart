@@ -2,10 +2,14 @@ part of '../app_flow_test.dart';
 
 // 仅供显式人工巡检入口使用；全部业务数据为合成数据，不创建真实客户端。
 final class _InspectionBackend extends _AllWritesIntegrationBackend {
-  static const _state = String.fromEnvironment(
-    'UBAA_UI_STATE',
-    defaultValue: 'normal',
-  );
+  _InspectionBackend({
+    String state = const String.fromEnvironment(
+      'UBAA_UI_STATE',
+      defaultValue: 'normal',
+    ),
+  }) : _state = state;
+
+  final String _state;
   final Map<String, int> _inspectionLoads = <String, int>{};
 
   @override
@@ -36,7 +40,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
       return const FeatureResult.empty(resolvedRoute: ConnectionMode.direct);
     }
     final details = _details(feature, query, original.details);
-    final expanded = _state == 'many'
+    // 大量模式只检验只读密度，不复制同一目标的写 action。
+    final expanded = _state == 'many' && details.isNotEmpty
         ? List<FeatureDetail>.generate(40, (index) {
             final item = details[index % details.length];
             return FeatureDetail(
@@ -46,27 +51,58 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
             );
           })
         : details;
-    final paged = <FeatureQueryView>{
-      FeatureQueryView.libbookBookings,
-      FeatureQueryView.cgyyOrders,
-      FeatureQueryView.ygdkRecords,
-    }.contains(query.view);
+    final paged =
+        <FeatureQueryView>{
+          FeatureQueryView.libbookBookings,
+          FeatureQueryView.cgyyOrders,
+          FeatureQueryView.ygdkRecords,
+        }.contains(query.view) ||
+        (feature == FeatureId.bykc && query.view == FeatureQueryView.summary);
+    if (query.size <= 0) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final page = query.page <= 0 ? 1 : query.page;
+    if (page <= 0) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    final visible = paged
+        ? expanded.skip((page - 1) * query.size).take(query.size).toList()
+        : expanded;
+    final pagination = paged
+        ? FeaturePagination(
+            page: page,
+            size: query.size,
+            total: expanded.length,
+            hasMore: page * query.size < expanded.length,
+          )
+        : null;
+    if (visible.isEmpty) {
+      return FeatureResult.empty(
+        resolvedRoute: ConnectionMode.direct,
+        pagination: pagination,
+      );
+    }
     return FeatureResult.success(
       summary:
           feature == FeatureId.ygdk && query.view == FeatureQueryView.summary
           ? '学期进度 8/30'
           : '${expanded.length} 项 · 合成巡检数据',
-      details: expanded,
+      details: visible,
       resolvedRoute: ConnectionMode.direct,
-      pagination: paged
-          ? FeaturePagination(
-              page: query.page <= 0 ? 1 : query.page,
-              size: query.size,
-              total: expanded.length,
-              hasMore: false,
-            )
-          : null,
+      pagination: pagination,
     );
+  }
+
+  String _day(DateTime? date) {
+    if (date == null) throw const BackendException(UbaaErrorCode.invalidInput);
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _required(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    }
+    return value;
   }
 
   FeatureDetail _item(
@@ -152,6 +188,20 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
       case FeatureId.spoc:
       case FeatureId.judge:
         final judge = feature == FeatureId.judge;
+        if (v == FeatureQueryView.judgeBatchDetails) {
+          return [
+            for (final key in q.judgeKeys)
+              ..._details(
+                FeatureId.judge,
+                FeatureQuery(
+                  view: FeatureQueryView.judgeDetail,
+                  courseId: key.courseId,
+                  assignmentId: key.assignmentId,
+                ),
+                original,
+              ),
+          ];
+        }
         final detail =
             v == FeatureQueryView.spocDetail ||
             v == FeatureQueryView.judgeDetail ||
@@ -174,9 +224,13 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
             _item('题目二：递归边界', {'状态': '未通过', '得分': '0', '满分': '20'}),
         ];
       case FeatureId.signin:
-        final completed =
-            v == FeatureQueryView.signinCompleted ||
-            committedOperations.contains(WriteOperation.signinPerform);
+        final completed = committedOperations.contains(
+          WriteOperation.signinPerform,
+        );
+        if ((v == FeatureQueryView.signinCompleted && !completed) ||
+            (v == FeatureQueryView.signinPending && completed)) {
+          return [];
+        }
         return [
           _item(
             '数据结构与算法 · 课堂签到',
@@ -186,16 +240,20 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
           ),
         ];
       case FeatureId.evaluation:
+        final evaluated = committedOperations.contains(
+          WriteOperation.evaluationSubmitCourses,
+        );
+        if (v == FeatureQueryView.evaluationPending && evaluated) return [];
         return [
           _item(
             '离散数学',
             {
-              '状态': '待评',
+              '状态': evaluated ? '已评' : '待评',
               '课程 ID':
                   'task-evaluation_questionnaire-evaluation_K-EVAL_teacher-evaluation',
             },
             subtitle: '示例教师乙',
-            actions: original.first.actions,
+            actions: evaluated ? const [] : original.first.actions,
           ),
         ];
       case FeatureId.bykc:
@@ -283,13 +341,26 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
                 '可取消': '是',
               },
               subtitle: '二层安静阅览区',
-              actions: original.first.actions
-                  .whereType<LibbookCancelAction>()
-                  .toList(),
+              actions: [
+                LibbookCancelAction(
+                  bookingId: 'booking-1',
+                  page: q.page <= 0 ? 1 : q.page,
+                  limit: q.size,
+                  eligibility: ActionEligibility.allowed,
+                ),
+              ],
             ),
           ];
         }
-        final reserve = original.first.action<LibbookReserveAction>()!;
+        final reserve = LibbookReserveAction(
+          areaId: _required(q.areaId),
+          seatId: 'seat-1',
+          day: _day(q.date),
+          segment: _required(q.segment),
+          startTime: _required(q.startTime),
+          endTime: _required(q.endTime),
+          eligibility: ActionEligibility.allowed,
+        );
         return [
           _item(
             '靠窗座位 A018',
@@ -345,17 +416,35 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
             }, actions: original.last.actions),
           ];
         }
+        if (q.siteId == null || q.siteId! <= 0) {
+          throw const BackendException(UbaaErrorCode.invalidInput);
+        }
+        final reservationDate = _day(q.date);
         return [
-          _item('羽毛球 4 号场', {
-            '站点 ID': '3',
-            '日期': '2026-09-03',
-            '空间 ID': '4',
-            '空间组 ID': '9',
-            '时段 ID': '5',
-            '开始时间': '10:00',
-            '结束时间': '11:00',
-            '可预约': '是',
-          }, actions: original.first.actions),
+          _item(
+            '羽毛球 4 号场',
+            {
+              '站点 ID': '${q.siteId}',
+              '日期': reservationDate,
+              '空间 ID': '4',
+              '空间组 ID': '9',
+              '时段 ID': '5',
+              '开始时间': '10:00',
+              '结束时间': '11:00',
+              '可预约': '是',
+            },
+            actions: [
+              CgyyReserveAction(
+                venueSiteId: q.siteId!,
+                reservationDate: reservationDate,
+                spaceId: 4,
+                timeId: 5,
+                venueSpaceGroupId: 9,
+                timeOrdinal: 0,
+                eligibility: ActionEligibility.allowed,
+              ),
+            ],
+          ),
         ];
       case FeatureId.ygdk:
         if (v == FeatureQueryView.ygdkRecords) {

@@ -194,10 +194,8 @@ Future<Finder> _scrollToQueryFeature(
       ? ordinaryFeatureIds
       : advancedFeatureIds;
   // 合成摘要可能与标题同名；定位共同的唯一 Card，不对 Text 任取 first。
-  Finder featureCard(FeatureId id) => find.descendant(
-    of: grid,
-    matching: find.widgetWithText(Card, id.title),
-  );
+  Finder featureCard(FeatureId id) =>
+      find.descendant(of: grid, matching: find.widgetWithText(Card, id.title));
   // 返回或切换分组后可能保留滚动位置，先滚回组首，再寻找目标。
   await tester.scrollUntilVisible(
     featureCard(features.first),

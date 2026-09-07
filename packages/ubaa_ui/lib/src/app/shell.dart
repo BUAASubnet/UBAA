@@ -93,6 +93,8 @@ class UbaaMainShell extends StatefulWidget {
 class _UbaaMainShellState extends State<UbaaMainShell> {
   late int _selectedIndex;
   FeatureId? _openedFeature;
+  final Set<FeatureId> _visitedFeatures = <FeatureId>{};
+  int _accountGeneration = 0;
   final Map<FeatureId, FeatureQuery> _featureQueries =
       <FeatureId, FeatureQuery>{};
 
@@ -115,6 +117,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     _selectedIndex = widget.initialTab.clamp(0, _tabs.length - 1);
   }
 
+  @override
+  void didUpdateWidget(covariant UbaaMainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user?.username != widget.user?.username) {
+      _accountGeneration++;
+      _visitedFeatures.clear();
+      _featureQueries.clear();
+      _openedFeature = null;
+    }
+  }
+
   static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
     (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
     (label: '普通功能', icon: Icons.apps_outlined, selectedIcon: Icons.apps),
@@ -130,75 +143,35 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
     final pendingWrite = widget.writeState.intent;
-    final body = pendingWrite != null
-        ? WriteConfirmationView(
+    if (_openedFeature case final feature?) _visitedFeatures.add(feature);
+    final pages = _visitedFeatures.toList(growable: false);
+    // 只保留已访问页面的 State；每次 build 都读取当前快照和回调。
+    final body = IndexedStack(
+      key: ValueKey<int>(_accountGeneration),
+      index: pendingWrite != null
+          ? pages.length + 1
+          : _openedFeature == null
+          ? 0
+          : pages.indexOf(_openedFeature!) + 1,
+      children: <Widget>[
+        _buildTab(context),
+        for (final feature in pages)
+          TickerMode(
+            key: ValueKey<FeatureId>(feature),
+            enabled: pendingWrite == null && _openedFeature == feature,
+            child: _buildFeaturePage(feature),
+          ),
+        if (pendingWrite != null)
+          WriteConfirmationView(
             intent: pendingWrite,
             onCancel: _cancelWrite,
             onConfirm: _confirmWrite,
             isSubmitting: widget.writeState.isSubmitting,
             isDiscarding: widget.writeState.isDiscarding,
             error: widget.writeState.error,
-          )
-        : _openedFeature == null
-        ? _buildTab(context)
-        : _FeatureDetailView(
-            feature: _openedFeature!,
-            snapshot: widget.snapshots[_openedFeature!]!,
-            query: _featureQueries[_openedFeature!] ?? const FeatureQuery(),
-            onBack: () => setState(() => _openedFeature = null),
-            onRetry: () {
-              final feature = _openedFeature!;
-              final query = _featureQueries[feature];
-              return query == null || widget.onFeatureQuery == null
-                  ? widget.onRetryFeature(feature)
-                  : widget.onFeatureQuery!(feature, query);
-            },
-            onQuery: widget.onFeatureQuery == null
-                ? null
-                : (query) {
-                    final feature = _openedFeature!;
-                    _featureQueries[feature] = query;
-                    return widget.onFeatureQuery!(feature, query);
-                  },
-            onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
-                ? null
-                : _startBykcWrite,
-            onBykcSignWrite:
-                !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
-                ? null
-                : _startBykcSignWrite,
-            onSigninWrite:
-                !_hasWriteCommands || widget.onPrepareSigninWrite == null
-                ? null
-                : _startSigninWrite,
-            onCgyyCancelWrite:
-                !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
-                ? null
-                : _startCgyyCancelWrite,
-            onLibbookReserveWrite:
-                !_hasWriteCommands ||
-                    widget.onPrepareLibbookReserveWrite == null
-                ? null
-                : _startLibbookReserveWrite,
-            onLibbookCancelWrite:
-                !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
-                ? null
-                : _startLibbookCancelWrite,
-            onEvaluationWrite:
-                !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
-                ? null
-                : _startEvaluation,
-            onCgyySubmitWrite:
-                !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
-                ? null
-                : _startCgyySubmitWrite,
-            onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
-                ? null
-                : _startYgdkSubmitWrite,
-            onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
-                ? widget.onPickYgdkPhoto
-                : null,
-          );
+          ),
+      ],
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -223,15 +196,14 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ],
       ),
       drawer: wide ? null : _buildDrawer(context),
-      body: wide
-          ? Row(
-              children: <Widget>[
-                _buildRail(context),
-                const VerticalDivider(width: 1),
-                Expanded(child: body),
-              ],
-            )
-          : body,
+      // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
+      body: Row(
+        children: <Widget>[
+          if (wide) _buildRail(context),
+          if (wide) const VerticalDivider(width: 1),
+          Expanded(key: const ValueKey<String>('feature-pages'), child: body),
+        ],
+      ),
       bottomNavigationBar: wide
           ? null
           : NavigationBar(
@@ -250,6 +222,60 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             ),
     );
   }
+
+  Widget _buildFeaturePage(FeatureId feature) => _FeatureDetailView(
+    feature: feature,
+    snapshot: widget.snapshots[feature]!,
+    query: _featureQueries[feature] ?? const FeatureQuery(),
+    onBack: () => setState(() => _openedFeature = null),
+    onRetry: () {
+      final query = _featureQueries[feature];
+      return query == null || widget.onFeatureQuery == null
+          ? widget.onRetryFeature(feature)
+          : widget.onFeatureQuery!(feature, query);
+    },
+    onQuery: widget.onFeatureQuery == null
+        ? null
+        : (query) {
+            _featureQueries[feature] = query;
+            return widget.onFeatureQuery!(feature, query);
+          },
+    onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
+        ? null
+        : _startBykcWrite,
+    onBykcSignWrite: !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
+        ? null
+        : _startBykcSignWrite,
+    onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
+        ? null
+        : _startSigninWrite,
+    onCgyyCancelWrite:
+        !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
+        ? null
+        : _startCgyyCancelWrite,
+    onLibbookReserveWrite:
+        !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
+        ? null
+        : _startLibbookReserveWrite,
+    onLibbookCancelWrite:
+        !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
+        ? null
+        : _startLibbookCancelWrite,
+    onEvaluationWrite:
+        !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
+        ? null
+        : _startEvaluation,
+    onCgyySubmitWrite:
+        !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
+        ? null
+        : _startCgyySubmitWrite,
+    onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
+        ? null
+        : _startYgdkSubmitWrite,
+    onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
+        ? widget.onPickYgdkPhoto
+        : null,
+  );
 
   Widget _buildTab(BuildContext context) => switch (_selectedIndex) {
     0 => _HomeView(

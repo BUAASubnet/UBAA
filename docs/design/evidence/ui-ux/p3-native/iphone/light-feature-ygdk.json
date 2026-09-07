@@ -1,0 +1,19 @@
+{
+  "name": "light-feature-ygdk",
+  "scene": "feature-ygdk",
+  "steps": "点击阳光打卡功能卡进入默认子视图",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1206.0,
+  "physicalHeight": 2622.0,
+  "devicePixelRatio": 3.0,
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T17:59:38.319959Z",
+  "sourceSha": "e93d569e+P3-uncommitted",
+  "pngSaved": true
+}

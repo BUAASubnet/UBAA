@@ -39,3 +39,8 @@
 - [2026-09-07 维护治理前状态全文](history/status-2026-09-07-before-maintainability.md)
 - [2026-09-07 macOS 真实 App 活动合同全文](history/goal-2026-09-07-macos-real-app.md)
 - [2026-09-02 及以前状态流水](history/status-through-2026-09-02.md)
+
+
+## P3 已取得的新证据
+
+查询草稿/搜索/滚动连续性修复已完成5项widget回归、91项旧widgets/goldens和独立审查；原生iPhone/iPad各两主题场景通过，真实视口分别402×874/DPR3、834×1210/DPR2，共72张合成运行截图已检查。严格check现在使用已安装的ShellCheck0.11.0通过。macOS已重新构建启动，但人工窗口复验被锁屏阻塞，保留environment_locked。下一批为任务导航与共享设计系统，不把本批默认页面截图视为最终改版验收。

@@ -11,6 +11,7 @@ import 'package:ubaa_flutter/main.dart';
 
 part 'app_flow/auth.dart';
 part 'app_flow/inspection.dart';
+part 'app_flow/inspection_contract.dart';
 part 'app_flow/query.dart';
 part 'app_flow/support.dart';
 part 'app_flow/write.dart';
@@ -21,22 +22,10 @@ void main() {
   if (const bool.fromEnvironment('UBAA_UI_INSPECTION')) {
     WidgetsFlutterBinding.ensureInitialized();
     runApp(
-      UbaaFlutterApp(
-        backend: _InspectionBackend(),
-        credentialVault: MemoryCredentialVault(),
-        permissionGateway: MemoryPermissionGateway(
-          initial: <PlatformPermission, PlatformPermissionStatus>{
-            PlatformPermission.photos: PlatformPermissionStatus.granted,
-          },
-        ),
-        photoPicker: MemoryPhotoPicker(
-          photo: YgdkPhotoInput(
-            bytes: base64Decode(
-              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=',
-            ),
-            fileName: 'inspection.png',
-            mimeType: 'image/png',
-          ),
+      createInspectionApp(
+        state: const String.fromEnvironment(
+          'UBAA_UI_STATE',
+          defaultValue: 'normal',
         ),
       ),
     );
@@ -49,3 +38,23 @@ void main() {
   _registerQueryFlowTests();
   _registerWriteMatrixFlowTest();
 }
+
+/// 显式合成巡检宿主；不创建真实客户端，也不读取本机账号。
+Widget createInspectionApp({String state = 'normal'}) => UbaaFlutterApp(
+  backend: _InspectionBackend(state: state),
+  credentialVault: MemoryCredentialVault(),
+  permissionGateway: MemoryPermissionGateway(
+    initial: <PlatformPermission, PlatformPermissionStatus>{
+      PlatformPermission.photos: PlatformPermissionStatus.granted,
+    },
+  ),
+  photoPicker: MemoryPhotoPicker(
+    photo: YgdkPhotoInput(
+      bytes: base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=',
+      ),
+      fileName: 'inspection.png',
+      mimeType: 'image/png',
+    ),
+  ),
+);
