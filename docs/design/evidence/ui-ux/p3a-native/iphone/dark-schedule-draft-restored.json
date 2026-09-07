@@ -1,0 +1,20 @@
+{
+  "name": "dark-schedule-draft-restored",
+  "scene": "schedule-draft-restored",
+  "steps": "周课表输入未应用学期和周次，返回列表后重入，断言草稿保留",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1206.0,
+  "physicalHeight": 2622.0,
+  "devicePixelRatio": 3.0,
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "orientationRequest": "unchanged",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T18:23:51.760436Z",
+  "sourceSha": "b2b91d46+P3A-visual-r2",
+  "pngSaved": true
+}

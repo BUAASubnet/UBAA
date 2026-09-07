@@ -677,7 +677,7 @@ void _registerSharedStateTests() {
     ];
 
     Future<void> openFeature(FeatureId feature) async {
-      final ordinary = ordinaryFeatureIds.contains(feature);
+      final ordinary = learningFeatureIds.contains(feature);
       final selectedIcon = ordinary ? Icons.apps : Icons.auto_awesome;
       final unselectedIcon = ordinary
           ? Icons.apps_outlined

@@ -1,0 +1,20 @@
+{
+  "name": "dark-profile",
+  "scene": "profile",
+  "steps": "实际点击我的导航",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1206.0,
+  "physicalHeight": 2622.0,
+  "devicePixelRatio": 3.0,
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "orientationRequest": "unchanged",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T18:24:09.689297Z",
+  "sourceSha": "b2b91d46+P3A-visual-r2",
+  "pngSaved": true
+}

@@ -75,7 +75,7 @@
 
 ### 已有文档的精度问题
 
-`source-parity.md` 的“## SPOC 详情”后现有首张表写的是 `assignment/index.jsp` 与 Judge worker/cookie；该表文本属于 Judge，不能用作 SPOC 详情协议。SPOC 详情实施前应直接核对 `LocalSpocApi.kt`、`LocalSpocSupport.kt` 与 Core `features/spoc/` 的既有 typed 方法；本轮视觉可以保持已有 `spocAssignment` 调用，但不得依据错置表调整协议。本记录不修改历史表以免掩盖其来源问题。
+2026-09-08 已修正 `source-parity.md` 的“SPOC 详情”错置表：原 `assignment/index.jsp`、worker Cookie、两分钟缓存属于 Judge，仍由原“Judge 详情”记录。SPOC 节现按冻结 `LocalSpocApi.kt`、示例 `api/spoc/{opt,core,data}.rs` 和当前 Core `features/spoc/{detail,parser}.rs` 补齐必需详情 GET `queryKczyInfoByid?id` 与可选提交信息 GET `queryXsSubmitKczyInfo?kczyid` 两项九列。示例详情端点等价但 DTO/角色初始化不完整，不提供同一提交信息补充流程。历史误置说明保留，生产协议与代码未变；不得把文档修正称作实时验证通过。
 
 ## 图书馆父子选择器接线
 

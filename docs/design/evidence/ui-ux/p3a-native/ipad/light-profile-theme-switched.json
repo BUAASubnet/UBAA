@@ -1,0 +1,20 @@
+{
+  "name": "light-profile-theme-switched",
+  "scene": "profile-theme-switched",
+  "steps": "在个人页实际选择相反主题，验证宿主主题生效",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "devicePixelRatio": 2.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "theme": "dark",
+  "themeSource": "user-theme-control",
+  "orientationRequest": "unchanged",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T18:22:26.634952Z",
+  "sourceSha": "b2b91d46+P3A-visual-r2",
+  "pngSaved": true
+}

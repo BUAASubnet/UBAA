@@ -1,0 +1,20 @@
+{
+  "name": "light-feature-exam",
+  "scene": "feature-exam",
+  "steps": "点击考试查询功能卡进入默认子视图",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1206.0,
+  "physicalHeight": 2622.0,
+  "devicePixelRatio": 3.0,
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "orientationRequest": "unchanged",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-07T18:24:20.533907Z",
+  "sourceSha": "b2b91d46+P3A-visual-r2",
+  "pngSaved": true
+}

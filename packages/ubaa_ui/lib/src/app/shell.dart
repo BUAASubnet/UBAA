@@ -14,6 +14,8 @@ class UbaaMainShell extends StatefulWidget {
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     this.initialTab = 0,
+    this.themeMode = ThemeMode.system,
+    this.onThemeModeChanged,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -54,6 +56,8 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final int initialTab;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
   final List<ConnectionMode> activeRoutes;
 
   /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
@@ -129,10 +133,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
-    (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
-    (label: '普通功能', icon: Icons.apps_outlined, selectedIcon: Icons.apps),
+    (label: '今日', icon: Icons.home_outlined, selectedIcon: Icons.home),
+    (label: '学习', icon: Icons.apps_outlined, selectedIcon: Icons.apps),
     (
-      label: '高级功能',
+      label: '校园',
       icon: Icons.auto_awesome_outlined,
       selectedIcon: Icons.auto_awesome,
     ),
@@ -141,7 +145,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 800;
+    final wide = MediaQuery.sizeOf(context).width >= 600;
     final pendingWrite = widget.writeState.intent;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
@@ -201,7 +205,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         children: <Widget>[
           if (wide) _buildRail(context),
           if (wide) const VerticalDivider(width: 1),
-          Expanded(key: const ValueKey<String>('feature-pages'), child: body),
+          Expanded(
+            key: const ValueKey<String>('feature-pages'),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: body,
+              ),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: wide
@@ -305,13 +317,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
       activeRoutes: widget.activeRoutes,
       onReadDiagnostics: widget.onReadDiagnostics,
+      themeMode: widget.themeMode,
+      onThemeModeChanged: widget.onThemeModeChanged,
     ),
   };
 
   Widget _buildRail(BuildContext context) => NavigationRail(
+    minWidth: 80,
+    minExtendedWidth: 200,
     selectedIndex: _selectedIndex,
     onDestinationSelected: _selectTab,
-    extended: MediaQuery.sizeOf(context).width >= 1100,
+    extended: MediaQuery.sizeOf(context).width >= 1000,
+    labelType: MediaQuery.sizeOf(context).width >= 1000
+        ? NavigationRailLabelType.none
+        : NavigationRailLabelType.selected,
     leading: Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: CircleAvatar(

@@ -81,8 +81,9 @@ void _registerEvaluationWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('教学评教'));
     await tester.tap(find.text('教学评教'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备提交评教'));
@@ -203,8 +204,9 @@ void _registerEvaluationWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('教学评教'));
     await tester.tap(find.text('教学评教'));
     await tester.pumpAndSettle();
 
@@ -319,8 +321,9 @@ void _registerEvaluationWriteTests() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('教学评教'));
     await tester.tap(find.text('教学评教'));
     await tester.pumpAndSettle();
 
@@ -394,8 +397,9 @@ void _registerEvaluationWriteTests() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('教学评教'));
     await tester.tap(find.text('教学评教'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备提交评教'));
@@ -478,8 +482,9 @@ void _registerEvaluationWriteTests() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+      await tester.tap(find.byIcon(Icons.apps_outlined));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('教学评教'));
       await tester.tap(find.text('教学评教'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('准备提交评教'));

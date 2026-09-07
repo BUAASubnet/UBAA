@@ -153,9 +153,14 @@ Referer、每客户端一次且路线隔离的同步、尽力失败后的重试�
 
 ## SPOC 详情
 
-| 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
-|---|---|---|---|---|---|---|---|---|
-| **旧版：**激活和选课后 GET `assignment/index.jsp?assignID=<id>`。**示例：**不适用且不等价。**决策：**使用冻结列表发现的 ID。 | **旧版：**SSO 页面会重新激活并重试，路线保持不变。**示例：**不适用。**决策：**详情仍锁定所选路线。 | **旧版：**选课互斥锁和独立 worker Cookie。**示例：**不适用。**决策：**只使用同一路线/客户端状态。 | **旧版：**GET，使用列表发现的数字/字符串课程和作业 ID。**示例：**不适用。 | **旧版：**Judge 浏览器请求头，无正文。**示例：**不适用。 | **旧版/示例：**不适用。 | **旧版：**解析开始/截止时间、最高/本人分数、总数/提交数、题目表、每题分数/上限/状态、`PARTIAL`、提交数回退和纯文本。**示例：**不适用。**决策：**字段和状态语义都必需，固定空 `problems`/`myScore` 不是 parity。 | **旧版：**选课锁；详情缓存 2 分钟，按用户+路线+课程+作业分组。**示例：**不适用。**决策：**不设全局缓存，会话重置清理。 | **旧版：**缺少作业/课程为 not found，认证页会重激活，非 200/认证耗尽返回稳定错误；业务认证最终失败时先校验用户中心。**决策：**只在顶层详情执行一次仲裁，不在每个内部请求中执行；历史退出 0 在完整解析断言前不构成语义证据。
+2026-09-08 文档归属修正：本节旧首表误放了 Judge 的 `assignment/index.jsp?assignID`、worker Cookie 和两分钟缓存描述；同一协议已完整记录于下方“Judge 详情”，现删除这里的重复错置表并恢复真实 SPOC 逐操作表。此为文档纠错，不是协议迁移或新实时结论，旧错置事实保留于本段和 Git 历史。
+
+本次直接读取两冻结 HEAD，分别仍为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、`efb7976bf513f38364b88aeb83d704586cff9b2a`。具体来源：旧版 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSpocApi.kt` 的 `getAssignmentDetailResponse/getAssignmentDetail/getSubmission/getEnvelope`、`LocalSpocSupport.kt`、`model/dto/Spoc.kt` 和 `shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSpocApiBackendTest.kt`；示例 `src/api/spoc/{opt,core,data}.rs`；当前 Core `features/spoc/{detail,parser,auth,list}.rs`。Judge 归属另由旧 `LocalJudgeApi.kt:278` 的详情 URL 直接确认。
+
+| 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 作业详情必需读取 | **旧版：**先取当前列表摘要，再 GET `https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid`。**示例：**`query_homework_detail` 是同一端点，但前置课程/列表及角色流程不等价。**当前：**复用上述 SPOC 认证，不引入 Judge URL/service。 | **旧版：**沿 SPOC 已认证调用。**示例：**通用请求流程。**当前：**路线锁定，业务 SSO Location/HTML 按 SPOC 认证边界处理，不套 Judge 选课跳转。 | **旧版：**当前模式 SPOC token/role。**示例：**Spoc credential，缺旧版角色初始化。**当前：**路线内业务状态，不使用 Judge worker Cookie。 | **两源：**GET query `id=<assignmentId>`，无正文。**当前：**先从权威列表匹配同 ID，详情原始 id 必须相同。 | **旧版/当前：**XHR、`Token: Inco-<token>`、`RoleCode`。**示例：**通用请求只设置 `Token`，不能据此删除当前已验证角色头。 | GET 不加密；前置列表仍沿列表章节 AES 规则。示例仅在 JSON payload 分支加密，不对本 GET 引入 param。 | **旧版/当前：**id、zymc 必需 String；zynr/zyfs/zykssj/zyjzsj/sskcid 可空 String。标题/课程身份来自列表摘要，详情补得分/时间/纯文本。**示例：**HomeworkDetail 只解析 zynr/xzwjlx/xztjcs，不是等价完整 DTO；不新增附件或提交限制到公开 DTO。 | **旧版/当前：**详情先取列表，再顺序详情与提交补充；复用业务登录锁，无 Judge 两分钟详情缓存。**示例：**复用 Spoc credential，不提供同一聚合详情缓存依据。 | **当前：**空 ID invalid_input，列表未找到为 upstream_changed，ID 不一致拒绝。必需详情认证重试耗尽沿 UC 仲裁，只在明确主会话失效时清所选路线；权限信封不无条件重放。旧 not-found 表达与当前稳定错误映射分别保留，不改 CLI 退出语义。 |
+| 可选提交信息 | **旧版/当前：**GET `https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo`。**示例：**未提供同一只读补充流程；其 submit_homework 是写操作，不能替代。 | 旧版与当前复用同一 SPOC 业务响应检查和有界认证恢复；示例此操作无等价证据。 | 与上行同路线 token/role，补充失败不凭空清兄弟会话；示例 N/A。 | **旧版/当前：**GET query `kczyid=<assignmentId>`，无正文；示例 N/A。 | 与上行旧版/当前 XHR/Token/RoleCode 相同；示例 N/A。 | 无新增加密；示例 N/A。 | **旧版/当前：**tjzt/tjsj 可空 String；用于 submissionStatus/submittedAt；content 为可选信封。原始 HTML 只在解析层，公开 contentPlainText。示例 N/A。 | **旧版：**runCatching 可选；**当前：**with_spoc_auth_retry 后 `.ok().flatten()`，完成在必需详情之后，无独立结果缓存。示例 N/A。 | 补充失败保留必需详情并按既有合并规则回退/未知状态，不把提交补充当成真实作业提交成功；示例 N/A。 |
 
 2026-08-24 的确定性 SPOC 实现证据：CAS 引导最多跟随八次不自动跳转且受主机白名单限制的
 重定向，只接受 HTTPS `spoc.buaa.edu.cn` 主机精确 `/spocnew/cas` 路径中的令牌，并要求最终
@@ -665,4 +670,4 @@ Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimit
 
 可接线范围：图书馆馆列表已有 typed 楼层，分区已有父 ID，详情已有 typed 时段；App 可无损保留这些公开字段为选择器，segment 只能取时段 ID。阻塞范围：当前公开分区详情仅给出第一日期/顶层时段，不能据此声称全部日期共享时段；跨日期精确时段需另行合同与失败测试。userInfo 已接入但仅投影 username/name，既有白名单其它字段可做遮罩资料展示，department 没有来源。
 
-审查同时标出既有“SPOC 详情”首表误写 Judge URL 的文档精度问题；不得据错置表修改协议。Ygdk 主机集合未决边界、Cgyy 仅公开锁码 available、所有 typed 写入资格与单次提交保持原决定。本节只有静态来源证据，不是测试、实时只读或实际 UI PASS。
+审查发现的“SPOC 详情”首表误写 Judge URL 已于本日按两冻结来源和 Core 修正归属；历史说明保留于对应章节，不构成协议变更。Ygdk 主机集合未决边界、Cgyy 仅公开锁码 available、所有 typed 写入资格与单次提交保持原决定。本节只有静态来源证据，不是测试、实时只读或实际 UI PASS。

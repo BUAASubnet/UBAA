@@ -54,7 +54,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       debugShowCheckedModeBanner: false,
       theme: UbaaTheme.light(),
       darkTheme: UbaaTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: _themeMode,
       home: _buildHome(),
     ),
   );
@@ -93,6 +93,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final hasEvaluationSubmissionCapabilities =
         _controller.hasEvaluationSubmissionBackendCapabilities;
     return UbaaMainShell(
+      themeMode: _themeMode,
+      onThemeModeChanged: _setThemeMode,
       user: _controller.user,
       snapshots: _controller.snapshots,
       routePolicy: _controller.loginForm.routePolicy,

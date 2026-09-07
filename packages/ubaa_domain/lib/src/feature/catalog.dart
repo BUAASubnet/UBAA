@@ -34,6 +34,26 @@ const advancedFeatureIds = <FeatureId>[
   FeatureId.evaluation,
 ];
 
+/// 学习任务导航；旧目录仍保留兼容公开合同。
+const learningFeatureIds = <FeatureId>[
+  FeatureId.schedule,
+  FeatureId.exam,
+  FeatureId.grades,
+  FeatureId.classroom,
+  FeatureId.spoc,
+  FeatureId.judge,
+  FeatureId.evaluation,
+];
+
+/// 校园生活任务导航。
+const campusFeatureIds = <FeatureId>[
+  FeatureId.bykc,
+  FeatureId.libbook,
+  FeatureId.signin,
+  FeatureId.cgyy,
+  FeatureId.ygdk,
+];
+
 extension FeatureIdText on FeatureId {
   String get title => switch (this) {
     FeatureId.schedule => '课表查询',

@@ -76,6 +76,64 @@
 - [ ] 实现 SCH/EXM/GRD/ROOM/SPOC/JDG/SIG/EV 全部子视图；保留查询、已安排/未安排、已出/待出、含过期和批量入口。课堂签到虽导航在校园，仍由 assignments 接线。
 - [ ] 测试：`packages/ubaa_app/test/bridge_backend_characterization_test.dart`、`bridge_backend_test.dart`、`app_controller_test.dart`；UI `widgets_test.dart` 中 queries/feature_details/signin_writes/evaluation_writes。每领域合成数据实际渲染手机/平板/macOS；长正文和大量题目不只换标题截图。
 
+### 批次 3 实施前 typed 字段与导航补充（2026-09-08 静态核实）
+
+依据实际生成 `packages/ubaa_bindings/lib/src/rust/api/read.dart` 和 App `bridge/read/{academic,assignments,evaluation}.dart`，不改变 Bridge v9。以下都是新增展示模型计划，不是已存在接口。
+
+| 操作 | 当前被压缩或遗漏的真实字段 | 最小投影/导航决定 |
+|---|---|---|
+| 今日课表 | bizName String；shortName/place/time String? | 独立今日时间地点展示；没有 typed 周几/节次，不从 time 猜周网格。 |
+| 学期/周次 | Term itemCode/itemName String、selected bool、itemIndex int；Week term/startDate/endDate/name String、serialNumber int、curWeek bool | 学期点击生成 `FeatureQuery(view:scheduleWeeks,term:itemCode)`；周次点击用已确认父请求 term 与正 serialNumber 生成 scheduleWeek。响应 term 与请求 term 分开保留。 |
+| 周课表两分支 | courseCode/courseName String；courseSerialNo/credit/beginTime/endTime/placeName/weeksAndTeachers/teachingTarget/color String?；beginSection/endSection/dayOfWeek int? | 显式 scheduleWeek 与 summary(term,week) 共用投影；1–7 周几有冻结 Schedule.kt 证据，完整合法节次定位网格，缺失/异常保留待确认列表；不解析周次教师混合文本。 |
+| 考试 | courseName String；courseNo/examTimeDescription/examDate/startTime/endTime/examPlace/examSeatNo/examType/taskId String?；week/examStatus int? | 独立日期、座位、起止时间，保留单侧时间；arranged 标记来自所属列表，summary 保持两列表原拼接顺序。 |
+| 成绩 | courseName/courseCode/score/gradePoint/courseType/scoreType/termCode String?；credit double? | 保留字符串成绩/绩点与 null，不转成 0；已出/待出沿 score 非空规则，不自造排名或平均 GPA。 |
+| 空教室 | room id/floorId/name/availableSections String；父 floor.name String | 保留房间、父楼层、原节次字符串和完整逗号令牌；3 不匹配 13；网络仍 campus/date，floor/section 仅本地。 |
+| SPOC 列表/详情 | assignmentId/courseId/courseName/title/submissionStatusText String；teacherName/startTime/dueTime/score String?；typed submitted/unsubmitted/unknown；详情再含 contentPlainText/submittedAt String? | 列表点击只向 spocDetail 发送 assignmentId；courseId 保留父归属但不发不存在的 Bridge 参数。正文独立长段落，不能新增附件/提交入口。 |
+| Judge 列表/单详情/批量 | 双 ID/标题/课程名/状态文本 String；startTime/dueTime/maxScore/myScore String?；totalProblems/submittedCount int；typed submitted/partial/unsubmitted/unknown；详情 problems 与 contentPlainText String? | 保留双 ID 构造 judgeDetail；批量 JudgeAssignmentQueryKey 按选择/结果顺序，不能按标题排序。每份作业内嵌问题，problem 仅 name/statusText、score/maxScore String?、typed status，没有 problemId。 |
+| 评教 | id/kcmc/bpmc String、isEvaluated bool；原 typed target/eligibility；progress 三个 int | 增集合级 typed 进度和课程展示，不复制一套资格；target 继续来自现有已校验 EvaluationSubmitAction，不 split id 或按 isEvaluated 授权。 |
+
+具体接口草案：在新 `domain/src/feature/presentation.dart` 定义 `sealed class FeaturePresentation { const FeaturePresentation(); }`；各类型同文件继承，避免 FRB import。FeatureDetail 计划追加默认 null 的 `FeaturePresentation? presentation`、`FeatureReadNavigation? readNavigation`；现 actions 原样保留。集合级进度可追加 `FeaturePresentation? overview` 到 FeatureResult/FeatureSnapshot，并同步构造、copyWith 和 AppController result→snapshot；未接入时明确延后，不从摘要反解数字。
+
+```dart
+// 以下为新类型签名草案，正式实现时显式导出。
+final class FeatureReadNavigation {
+  const FeatureReadNavigation({required this.feature, required this.query});
+  final FeatureId feature;
+  final FeatureQuery query;
+}
+final class ScheduleCoursePresentation extends FeaturePresentation {
+  const ScheduleCoursePresentation(this.data);
+  final ({String courseCode, String? beginTime, String? endTime,
+    int? beginSection, int? endSection, int? dayOfWeek,
+    String? place, String? weeksAndTeachers}) data;
+}
+final class GradePresentation extends FeaturePresentation {
+  const GradePresentation(this.data);
+  final ({String? courseCode, String? score, String? gradePoint,
+    double? credit, String? courseType, String? scoreType, String? termCode}) data;
+}
+enum AssignmentSubmission { submitted, partial, unsubmitted, unknown }
+final class AssignmentProblemPresentation {
+  const AssignmentProblemPresentation(this.data);
+  final ({String name, String? score, String? maxScore,
+    AssignmentSubmission status, String statusText}) data;
+}
+final class AssignmentPresentation extends FeaturePresentation {
+  const AssignmentPresentation(this.data);
+  final ({FeatureId feature, String courseId, String assignmentId,
+    String courseName, String? teacher, String? startTime, String? dueTime,
+    String? score, String? maxScore, int? totalProblems, int? submittedCount,
+    AssignmentSubmission status, String statusText, String? contentPlainText,
+    String? submittedAt, List<AssignmentProblemPresentation> problems}) data;
+}
+```
+
+其余 Today/Term/Week/Exam/Classroom/EvaluationCourse/EvaluationProgress 类型按表逐字段定义；列表投影复制为不可变 List。SPOC 没有题目数量/maxScore 时用 null，不填 0。FeatureQuery.copyWith 以 `new ?? old` 保留值，不能传 null 假装清除字段；切子视图构造精确新 query。读导航只来自 DTO，不能沿旧 `_detailFieldValues('作业编号')` 反解；本地考试/成绩/课程展开没有新 Bridge 方法，应零请求。进入作业子详情前保存父 query/结果/滚动，返回不直接抛弃父筛选。
+
+排序边界：time/date/start/due 为展示 String，不承诺时区或可解析格式。初版保持 Core 顺序与 includeExpired 语义；不把 tryParse 失败回退当前时间，不把 score/gradePoint 转为数字排序。周网格只使用范围验证后的 typed 周几/节次。
+
+追加最小 RED：App 在 `bridge_backend_characterization/{read,fakes}.dart` 体系覆盖周二 3–4 节和结束时间两个周表分支、单侧考试时间/座位、非数字绩点/null、3/13 节次精确匹配；SPOC 导航仅 assignmentId，Judge 同标题不同双 ID 的批量 B→A 顺序和问题归属。UI 可新增 academic_presentation_test.dart/assignment_presentation_test.dart：真实点学期→周次一次 query、缺时间课程仍可见、同名作业精确选中父 ID、长正文和嵌套问题可滚动。Evaluation 复用 bridge_backend/evaluation.dart 与 widgets/evaluation_writes.dart，重复 target 仍 unknown；fields 故意含误导 ID 时新 readNavigation 仍只用 typed 来源。上述测试尚未编写或运行。
+
 ## 批次 4：校园父子查询与资料（P4-D/A）
 
 修改：`packages/ubaa_domain/lib/src/feature/{result,presentation}.dart`、`common/auth.dart`、`packages/ubaa_app/lib/src/bridge/common.dart`、`bridge/read/{bykc,libbook,cgyy,ygdk}.dart`、`packages/ubaa_ui/lib/src/features/{bykc,libbook,cgyy,ygdk}.dart`、`app/profile.dart`。必要时新增 `packages/ubaa_ui/lib/src/features/library_content.dart`、`reservation_content.dart`、`campus_content.dart`，各自负责领域布局。

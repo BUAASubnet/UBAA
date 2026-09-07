@@ -2,6 +2,9 @@ part of 'ubaa_app_host.dart';
 
 class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late final AppController _controller;
+  ThemeMode _themeMode = ThemeMode.system;
+
+  void _setThemeMode(ThemeMode value) => setState(() => _themeMode = value);
   bool _wasBackgrounded = false;
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;

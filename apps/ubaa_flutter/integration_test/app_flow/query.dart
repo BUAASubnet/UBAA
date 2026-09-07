@@ -20,7 +20,7 @@ void _registerQueryFlowTests() {
     expect(find.byType(Scaffold), findsOneWidget);
     expect(find.byType(CustomScrollView), findsOneWidget);
 
-    for (final feature in ordinaryFeatureIds) {
+    for (final feature in learningFeatureIds) {
       final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
@@ -45,7 +45,7 @@ void _registerQueryFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
-    for (final feature in advancedFeatureIds) {
+    for (final feature in campusFeatureIds) {
       final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
@@ -75,10 +75,10 @@ void _registerQueryFlowTests() {
     expect(find.byType(UbaaMainShell), findsOneWidget);
 
     Future<void> openFeature(FeatureId feature) async {
-      final selectedIcon = ordinaryFeatureIds.contains(feature)
+      final selectedIcon = learningFeatureIds.contains(feature)
           ? Icons.apps
           : Icons.auto_awesome;
-      final unselectedIcon = ordinaryFeatureIds.contains(feature)
+      final unselectedIcon = learningFeatureIds.contains(feature)
           ? Icons.apps_outlined
           : Icons.auto_awesome_outlined;
       final selectedFinder = find.byIcon(selectedIcon);
@@ -190,9 +190,9 @@ Future<Finder> _scrollToQueryFeature(
     matching: find.byType(Scrollable),
   );
   expect(scrollable, findsOneWidget);
-  final features = ordinaryFeatureIds.contains(feature)
-      ? ordinaryFeatureIds
-      : advancedFeatureIds;
+  final features = learningFeatureIds.contains(feature)
+      ? learningFeatureIds
+      : campusFeatureIds;
   // 合成摘要可能与标题同名；定位共同的唯一 Card，不对 Text 任取 first。
   Finder featureCard(FeatureId id) =>
       find.descendant(of: grid, matching: find.widgetWithText(Card, id.title));

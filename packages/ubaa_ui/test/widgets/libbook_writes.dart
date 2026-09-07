@@ -355,7 +355,7 @@ Future<void> _pumpLibbookCancelShell(
       ),
     ),
   );
-  await tester.tap(find.byIcon(Icons.apps_outlined));
+  await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
   await tester.ensureVisible(find.text('图书馆座位'));
   await tester.tap(find.text('图书馆座位'));
@@ -432,7 +432,7 @@ Future<void> _pumpLibbookShell(
       ),
     ),
   );
-  await tester.tap(find.byIcon(Icons.apps_outlined));
+  await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
   await tester.ensureVisible(find.text('图书馆座位'));
   await tester.tap(find.text('图书馆座位'));

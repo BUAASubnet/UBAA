@@ -60,11 +60,11 @@ void _registerResponsiveAccessibilityTests() {
       }
     }
 
-    await checkSemantics(ordinaryFeatureIds);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
+    await checkSemantics(learningFeatureIds);
+    await tester.tap(find.byKey(const ValueKey<String>('tab-校园')));
     await tester.pumpAndSettle();
-    await checkSemantics(advancedFeatureIds);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+    await checkSemantics(campusFeatureIds);
+    await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('课表查询').first);
     await tester.pumpAndSettle();
@@ -74,7 +74,7 @@ void _registerResponsiveAccessibilityTests() {
     expect(back, findsOneWidget);
     await tester.tap(back);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);

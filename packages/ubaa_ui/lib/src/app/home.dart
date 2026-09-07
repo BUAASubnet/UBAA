@@ -21,7 +21,12 @@ class _HomeView extends StatelessWidget {
     child: CustomScrollView(
       slivers: <Widget>[
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: EdgeInsets.fromLTRB(
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+            16,
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+            8,
+          ),
           sliver: SliverToBoxAdapter(
             child: Text(
               '你好，${user?.preferredName ?? '同学'}',
@@ -30,8 +35,82 @@ class _HomeView extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+            8,
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+            0,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const items = <(String, FeatureId)>[
+                  ('课程安排', FeatureId.schedule),
+                  ('课程作业', FeatureId.spoc),
+                  ('自习与预约', FeatureId.libbook),
+                ];
+                if (constraints.maxWidth >= 740) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var index = 0; index < items.length; index++) ...[
+                        if (index > 0) const SizedBox(width: 12),
+                        Expanded(
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    items[index].$1,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(_summary(snapshots[items[index].$2]!)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                }
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '重点关注',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final item in items)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              '${item.$1} · ${_summary(snapshots[item.$2]!)}',
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: EdgeInsets.all(
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+          ),
           sliver: _FeatureGridSliver(
+            features: FeatureId.values,
             snapshots: snapshots,
             onFeatureTap: onFeatureTap,
             onRetryFeature: onRetryFeature,
@@ -40,6 +119,14 @@ class _HomeView extends StatelessWidget {
       ],
     ),
   );
+  String _summary(FeatureSnapshot snapshot) => switch (snapshot.status) {
+    FeatureLoadStatus.idle => '尚未查询',
+    FeatureLoadStatus.loading => '正在加载…',
+    FeatureLoadStatus.success => snapshot.summary ?? '已加载，进入功能查看',
+    FeatureLoadStatus.empty => '当前条件暂无结果',
+    FeatureLoadStatus.stale => '${snapshot.summary ?? '上次结果'}（刷新失败）',
+    FeatureLoadStatus.failure => '加载失败，请进入功能重试',
+  };
 }
 
 class _FeatureGridView extends StatelessWidget {
@@ -57,7 +144,9 @@ class _FeatureGridView extends StatelessWidget {
   Widget build(BuildContext context) => CustomScrollView(
     slivers: <Widget>[
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+        ),
         sliver: _FeatureGridSliver(
           snapshots: snapshots,
           onFeatureTap: onFeatureTap,
@@ -73,7 +162,7 @@ class _FeatureGridSliver extends StatelessWidget {
     required this.snapshots,
     required this.onFeatureTap,
     required this.onRetryFeature,
-    this.features = ordinaryFeatureIds,
+    this.features = learningFeatureIds,
   });
 
   final Map<FeatureId, FeatureSnapshot> snapshots;
@@ -82,21 +171,27 @@ class _FeatureGridSliver extends StatelessWidget {
   final List<FeatureId> features;
 
   @override
-  Widget build(BuildContext context) => SliverGrid.builder(
-    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: 360,
-      mainAxisExtent: 160,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-    ),
-    itemCount: features.length,
-    itemBuilder: (context, index) {
-      final feature = features[index];
-      return _FeatureCard(
-        feature: feature,
-        snapshot: snapshots[feature]!,
-        onTap: () => onFeatureTap(feature),
-        onRetry: () => onRetryFeature(feature),
+  Widget build(BuildContext context) => SliverLayoutBuilder(
+    builder: (context, constraints) {
+      final columns = (constraints.crossAxisExtent / 220).floor().clamp(2, 5);
+      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      return SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          mainAxisExtent: 156 * scale.clamp(1.0, 2.0),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: features.length,
+        itemBuilder: (context, index) {
+          final feature = features[index];
+          return _FeatureCard(
+            feature: feature,
+            snapshot: snapshots[feature]!,
+            onTap: () => onFeatureTap(feature),
+            onRetry: () => onRetryFeature(feature),
+          );
+        },
       );
     },
   );
@@ -126,11 +221,11 @@ class _FeatureCard extends StatelessWidget {
       label: '$featureLabel：${_statusText(snapshot)}。点击查看详情',
       child: Card(
         clipBehavior: Clip.antiAlias,
-        color: colorScheme.surfaceContainerHighest,
+        color: colorScheme.surfaceContainerLow,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -138,7 +233,7 @@ class _FeatureCard extends StatelessWidget {
                   children: <Widget>[
                     Icon(
                       _featureIcon(feature),
-                      size: 40,
+                      size: 24,
                       color: colorScheme.primary,
                     ),
                     const Spacer(),
@@ -157,7 +252,7 @@ class _FeatureCard extends StatelessWidget {
                       Icon(Icons.check_circle, color: colorScheme.primary),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   feature.title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -179,13 +274,6 @@ class _FeatureCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (snapshot.resolvedRoute case final route?)
-                  Text(
-                    '实际路线：${route.label}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
               ],
             ),
           ),
@@ -221,9 +309,11 @@ class _AdvancedFeaturesView extends StatelessWidget {
   Widget build(BuildContext context) => CustomScrollView(
     slivers: <Widget>[
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+        ),
         sliver: _FeatureGridSliver(
-          features: advancedFeatureIds,
+          features: campusFeatureIds,
           snapshots: snapshots,
           onFeatureTap: onFeatureTap,
           onRetryFeature: onRetryFeature,

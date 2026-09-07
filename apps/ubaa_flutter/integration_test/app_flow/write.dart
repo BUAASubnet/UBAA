@@ -143,10 +143,10 @@ void _registerWriteMatrixFlowTest() {
     expect(find.byType(UbaaMainShell), findsOneWidget);
 
     Future<void> openFeature(FeatureId feature) async {
-      final selectedIcon = ordinaryFeatureIds.contains(feature)
+      final selectedIcon = learningFeatureIds.contains(feature)
           ? Icons.apps
           : Icons.auto_awesome;
-      final unselectedIcon = ordinaryFeatureIds.contains(feature)
+      final unselectedIcon = learningFeatureIds.contains(feature)
           ? Icons.apps_outlined
           : Icons.auto_awesome_outlined;
       final tab = find.byIcon(selectedIcon).evaluate().isNotEmpty

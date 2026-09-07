@@ -54,12 +54,16 @@ void _registerFeatureRenderingTests() {
     await tester.tap(find.byIcon(Icons.person_outline));
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsOneWidget);
+    await tester.ensureVisible(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('退出并清除本机账号'));
     await tester.pumpAndSettle();
     expect(find.text('清除本机账号？'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(clearedAccount, isFalse);
+    await tester.ensureVisible(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('退出并清除本机账号'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('退出并清除'));
@@ -495,7 +499,7 @@ void _registerFeatureInputTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('图书馆座位'));
     await tester.tap(find.text('图书馆座位'));

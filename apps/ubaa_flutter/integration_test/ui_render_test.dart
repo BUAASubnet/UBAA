@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -10,9 +11,19 @@ import 'app_flow_test.dart' show createInspectionApp;
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  const landscape = bool.fromEnvironment('UBAA_UI_LANDSCAPE');
   for (final brightness in Brightness.values) {
     testWidgets('原生合成界面逐页截图与草稿连续性：${brightness.name}', (tester) async {
       expect(Platform.isIOS, isTrue, reason: '此入口只用于 iPhone/iPad 原生截图');
+      if (landscape) {
+        await SystemChrome.setPreferredOrientations(const [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        addTearDown(
+          () => SystemChrome.setPreferredOrientations(DeviceOrientation.values),
+        );
+      }
       // 仅覆盖测试绑定的亮度输入，不修改系统设置，也不伪称系统主题切换。
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
@@ -29,7 +40,28 @@ void main() {
         brightness,
       );
 
-      Future<void> capture(String scene, String steps) async {
+      if (landscape) {
+        for (
+          var attempt = 0;
+          attempt < 30 &&
+              tester.view.physicalSize.width < tester.view.physicalSize.height;
+          attempt++
+        ) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(
+          tester.view.physicalSize.width,
+          greaterThan(tester.view.physicalSize.height),
+          reason: '必须由原生视图实际旋转；不以测试视口替代横屏',
+        );
+      }
+
+      Future<void> capture(
+        String scene,
+        String steps, {
+        String? actualTheme,
+        String? themeSource,
+      }) async {
         final name = '${brightness.name}-$scene';
         final physical = tester.view.physicalSize;
         final ratio = tester.view.devicePixelRatio;
@@ -51,8 +83,9 @@ void main() {
           'devicePixelRatio': ratio,
           'logicalWidth': physical.width / ratio,
           'logicalHeight': physical.height / ratio,
-          'theme': brightness.name,
-          'themeSource': 'test-platform-brightness-override',
+          'theme': actualTheme ?? brightness.name,
+          'themeSource': themeSource ?? 'test-platform-brightness-override',
+          'orientationRequest': landscape ? 'native-landscape' : 'unchanged',
           'viewportSource': 'native-view-unmodified',
           'dateUtc': DateTime.now().toUtc().toIso8601String(),
           'sourceSha': const String.fromEnvironment(
@@ -75,7 +108,7 @@ void main() {
       await capture('home', '合成账号登录进入首页');
 
       for (final feature in FeatureId.values) {
-        final ordinary = ordinaryFeatureIds.contains(feature);
+        final ordinary = learningFeatureIds.contains(feature);
         await _selectTab(
           tester,
           ordinary ? Icons.apps : Icons.auto_awesome,
@@ -145,6 +178,35 @@ void main() {
 
       await _selectTab(tester, Icons.person, Icons.person_outline);
       await capture('profile', '实际点击我的导航');
+      final themeChoice = find.byType(DropdownButton<ThemeMode>);
+      await _scroll(tester, themeChoice, find.byType(ListView));
+      await tester.tap(themeChoice);
+      await tester.pumpAndSettle();
+      final opposite = brightness == Brightness.light
+          ? Brightness.dark
+          : Brightness.light;
+      await tester.tap(
+        find.text(opposite == Brightness.dark ? '深色' : '浅色').last,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(find.byType(UbaaMainShell))).brightness,
+        opposite,
+      );
+      await capture(
+        'profile-theme-switched',
+        '在个人页实际选择相反主题，验证宿主主题生效',
+        actualTheme: opposite.name,
+        themeSource: 'user-theme-control',
+      );
+      await tester.tap(themeChoice);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('跟随系统').last);
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(find.byType(UbaaMainShell))).brightness,
+        brightness,
+      );
       final diagnostics = find.text('本次运行诊断');
       await _scroll(tester, diagnostics, find.byType(ListView));
       await tester.tap(diagnostics);

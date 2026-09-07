@@ -96,9 +96,9 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
         children: <Widget>[
           Center(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(compact ? 24 : 32),
+              padding: EdgeInsets.all(compact ? 16 : 32),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
+                constraints: const BoxConstraints(maxWidth: 440),
                 child: AutofillGroup(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,

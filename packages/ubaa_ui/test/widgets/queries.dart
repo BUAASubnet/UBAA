@@ -644,7 +644,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('教学评教'),
