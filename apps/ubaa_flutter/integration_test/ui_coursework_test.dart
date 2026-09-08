@@ -19,7 +19,13 @@ const _features = [
   FeatureId.signin,
   FeatureId.evaluation,
 ];
+final _brightnesses = Brightness.values.where((value) {
+  const requested = String.fromEnvironment('UBAA_COURSEWORK_BRIGHTNESS');
+  return requested.isEmpty || value.name == requested;
+});
+
 void main() {
+  if (_brightnesses.isEmpty) throw ArgumentError('无效的原生测试主题');
   // 独立合成巡检入口；不读取.env.local或会话，不创建真实客户端。
   if (const bool.fromEnvironment('UBAA_UI_INSPECTION')) {
     WidgetsFlutterBinding.ensureInitialized();

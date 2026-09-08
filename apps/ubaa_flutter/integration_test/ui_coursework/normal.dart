@@ -1,7 +1,7 @@
 part of '../ui_coursework_test.dart';
 
 void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
-  for (final brightness in Brightness.values) {
+  for (final brightness in _brightnesses) {
     testWidgets('原生课程全部子视图与typed有序父返回：${brightness.name}', (tester) async {
       final backend = await _login(tester, brightness, 'normal');
       final prefix = '${brightness.name}-normal';
@@ -204,6 +204,17 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
         '$prefix-evaluation-all',
         FeatureId.evaluation,
       );
+      final beforeDetails = backend.reads.length;
+      await _tap(tester, find.byTooltip('课程详情').first);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await _shot(
+        binding,
+        tester,
+        '$prefix-evaluation-details',
+        FeatureId.evaluation,
+      );
+      await _tap(tester, find.text('关闭'));
+      expect(backend.reads.length, beforeDetails);
       final beforeEvaluationSearch = backend.reads.length;
       await _search(tester, 'task-4_');
       await _ensure(tester, find.text('当前评教资格无法确认，请刷新后重试。'));
@@ -226,21 +237,33 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       expect(_snapshot(tester, FeatureId.evaluation).details.length, 3);
       expect(find.text('全选待评'), findsNothing);
       await _tap(tester, find.byType(CheckboxListTile).first);
+      await _tap(tester, find.text('准备评教'));
+      expect(backend.preparedEvaluation.single, hasLength(1));
+      expect(backend.preparedEvaluation.single.single.rwid, 'task-0');
+      await _shot(
+        binding,
+        tester,
+        '$prefix-evaluation-single-confirm',
+        FeatureId.evaluation,
+      );
+      await _tap(tester, find.text('取消'));
+      expect(backend.discarded.length, 2);
+      expect(backend.commitCalls, 0);
       await _tap(tester, find.text('全选待评'));
       await _tap(tester, find.text('准备批量评教'));
-      expect(backend.preparedEvaluation.single.map((t) => t.rwid), [
+      expect(backend.preparedEvaluation.last.map((t) => t.rwid), [
         'task-0',
         'task-2',
       ]);
-      expect(backend.preparedEvaluation.single.map((t) => t.wjid), [
+      expect(backend.preparedEvaluation.last.map((t) => t.wjid), [
         'form-0',
         'form-2',
       ]);
-      expect(backend.preparedEvaluation.single.map((t) => t.kcdm), [
+      expect(backend.preparedEvaluation.last.map((t) => t.kcdm), [
         'course-0',
         'course-2',
       ]);
-      expect(backend.preparedEvaluation.single.map((t) => t.bpdm), [
+      expect(backend.preparedEvaluation.last.map((t) => t.bpdm), [
         'teacher-0',
         'teacher-2',
       ]);
@@ -251,7 +274,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
         FeatureId.evaluation,
       );
       await _tap(tester, find.text('取消'));
-      expect(backend.discarded.length, 2);
+      expect(backend.discarded.length, 3);
       expect(backend.commitCalls, 0);
       expect(find.text('已评 3 / 6 门'), findsOneWidget);
       await _shot(

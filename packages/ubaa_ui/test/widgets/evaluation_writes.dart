@@ -1,7 +1,7 @@
 part of '../widgets_test.dart';
 
 void _registerEvaluationWriteTests() {
-  testWidgets('评教宽表只消费 typed action 且展示字段改名不改变提交目标', (tester) async {
+  testWidgets('评教课程行只消费 typed action 且展示字段改名不改变提交目标', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(834, 1210);
     await tester.binding.setSurfaceSize(const Size(834, 1210));
@@ -101,9 +101,19 @@ void _registerEvaluationWriteTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
-    expect(find.byType(DataTable), findsOneWidget);
-    await tester.ensureVisible(find.text('准备提交评教'));
-    await tester.tap(find.text('准备提交评教'));
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.text('准备评教'), findsNothing);
+    await tester.tap(find.byTooltip('课程详情'));
+    await tester.pumpAndSettle();
+    expect(find.text('展示任务（已改名）：wrong-task'), findsOneWidget);
+    expect(prepareCalls, 0);
+    await tester.tap(find.text('关闭'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey<String>('evaluation-${expectedTarget.selectionKey}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备评教'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);

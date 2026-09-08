@@ -33,6 +33,7 @@ part 'features/coursework/assignment_selection.dart';
 part 'features/coursework/assignment_picker.dart';
 part 'features/coursework/coursework_overview.dart';
 part 'features/coursework/course_participation.dart';
+part 'features/coursework/evaluation_row.dart';
 part 'features/bykc.dart';
 part 'features/cgyy.dart';
 part 'features/evaluation.dart';

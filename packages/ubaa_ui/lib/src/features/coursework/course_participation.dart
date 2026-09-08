@@ -16,19 +16,21 @@ class _CourseParticipationContent extends StatelessWidget {
     required this.feature,
     required this.details,
     required this.actions,
+    required this.evaluationRow,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
   final List<Widget> Function(BuildContext, FeatureDetail) actions;
+  final Widget Function(FeatureDetail) evaluationRow;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) => ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (feature == FeatureId.evaluation && constraints.maxWidth >= 740)
-          _EvaluationTable(details: details, actions: actions)
-        else
-          for (final detail in details)
+        for (final detail in details)
+          if (feature == FeatureId.evaluation)
+            evaluationRow(detail)
+          else
             Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: Padding(
@@ -87,96 +89,6 @@ class _CourseParticipationContent extends StatelessWidget {
             ),
       ],
     ),
-  );
-}
-
-class _EvaluationTable extends StatelessWidget {
-  const _EvaluationTable({required this.details, required this.actions});
-  final List<FeatureDetail> details;
-  final List<Widget> Function(BuildContext, FeatureDetail) actions;
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final available = constraints.maxWidth - 72;
-      final widths = [
-        available * .28,
-        available * .17,
-        available * .12,
-        available * .43,
-      ];
-      Widget cell(int index, Widget child) => SizedBox(
-        width: widths[index],
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: child,
-        ),
-      );
-      return Card(
-        margin: EdgeInsets.zero,
-        child: DataTable(
-          horizontalMargin: 12,
-          columnSpacing: 16,
-          dataRowMinHeight: 64,
-          dataRowMaxHeight: double.infinity,
-          columns: const [
-            DataColumn(label: Text('课程')),
-            DataColumn(label: Text('教师')),
-            DataColumn(label: Text('状态')),
-            DataColumn(label: Text('操作')),
-          ],
-          rows: [
-            for (final detail in details)
-              DataRow(
-                cells: [
-                  DataCell(
-                    cell(
-                      0,
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            detail.title,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          _AcademicMore(
-                            fields: [
-                              for (final field in detail.fields)
-                                (field.label, field.value),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    cell(1, Text(_nonBlank(detail.subtitle) ?? '教师未提供')),
-                  ),
-                  DataCell(
-                    cell(
-                      2,
-                      Text(
-                        (detail.presentation as EvaluationCoursePresentation)
-                                .isEvaluated
-                            ? '已评'
-                            : '待评',
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    cell(
-                      3,
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: actions(context, detail),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      );
-    },
   );
 }
 

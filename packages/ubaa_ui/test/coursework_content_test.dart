@@ -46,7 +46,7 @@ void main() {
     expect(find.text('未提供签到目标，请刷新课程后重试。'), findsOneWidget);
     expect(find.text('准备签到'), findsNothing);
   });
-  testWidgets('评教宽屏显示课程表格并保留未知资格说明', (tester) async {
+  testWidgets('评教各端沿旧版课程行并保留未知资格说明', (tester) async {
     await showFeature(
       tester,
       FeatureId.evaluation,
@@ -63,7 +63,8 @@ void main() {
       [],
       size: const Size(1200, 1200),
     );
-    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.byTooltip('课程详情'), findsOneWidget);
     expect(find.text('当前评教资格无法确认，请刷新后重试。'), findsOneWidget);
   });
   testWidgets('希冀选择已加载作业时课程和作业编号同时更新', (tester) async {

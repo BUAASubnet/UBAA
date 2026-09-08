@@ -137,6 +137,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 ? _CourseParticipationContent(
                     feature: widget.feature,
                     details: visible,
+                    evaluationRow: (detail) =>
+                        _evaluationCourseRow(detail, setState),
                     actions: (context, detail) =>
                         _participationActions(context, detail, setState),
                   )

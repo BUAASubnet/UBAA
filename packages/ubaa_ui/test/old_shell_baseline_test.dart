@@ -4,6 +4,34 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('短错误说明按内容收缩并保留重试操作', (tester) async {
+    var retried = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: FriendlyErrorCard(
+              error: const UiError(
+                code: UbaaErrorCode.networkError,
+                title: '网络不可用',
+                message: '请检查网络后重试',
+                retryable: true,
+              ),
+              onRetry: () => retried = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.getSize(find.byType(FriendlyErrorCard)).height,
+      lessThan(
+        tester.view.physicalSize.height / tester.view.devicePixelRatio / 2,
+      ),
+    );
+    await tester.tap(find.text('重试'));
+    expect(retried, isTrue);
+  });
   testWidgets('沿用旧版三个主入口和首页标题', (tester) async {
     await mount(tester);
     expect(

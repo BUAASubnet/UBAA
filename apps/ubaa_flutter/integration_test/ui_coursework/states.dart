@@ -1,7 +1,7 @@
 part of '../ui_coursework_test.dart';
 
 void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
-  for (final brightness in Brightness.values) {
+  for (final brightness in _brightnesses) {
     for (final state in [
       'empty',
       'first-error',

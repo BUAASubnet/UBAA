@@ -104,7 +104,7 @@ extension _EvaluationDetailActions on _FeatureDetailListState {
                   ? null
                   : () => widget.onEvaluationWrite!(selectedEvaluations),
               icon: const Icon(Icons.rate_review_outlined),
-              label: const Text('准备批量评教'),
+              label: Text(selectedEvaluations.length == 1 ? '准备评教' : '准备批量评教'),
             ),
           ],
         ),
