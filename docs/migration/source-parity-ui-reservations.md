@@ -67,3 +67,12 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 ## D1图书馆执行补记
 
 O3-C已提交ba9fadde，现执行图书馆子批。库API/DTO/Local实现与Mock已逐段复读，原五请求和v9合同不改。5项投影行为RED在`/tmp/ubaa-old-d1-libbook-red.log`观察到presentation缺失，6项聚焦GREEN（含原取消回读）。与旧版相同的可见预约页初始楼馆/楼层/分区加载保留；没有自动跨日期时段配对，未调用真实写入。明确空结果不复活座位选择，隐藏页面不自动继续子查询。原生r1发现fixture默认页问题与测试按钮类型误定位，保留失败并修复后重跑；子批尚未完成三端实屏验收。
+
+
+## D2研讨室执行前裁决
+
+D1b已提交`50147317`，接续研讨室。逐段读`CgyyReservePickerScreen.kt`：校区→日期→楼栋/层横向芯片，房间×时段矩阵，选择后下一步；`CgyyOrdersScreen.kt`地点/状态/时间优先，主题/用途随后，详情与取消；`CgyyLockCodeScreen.kt`状态区。`CgyyViewModel.kt`保留首站点、换校区/日期/站点清旧选择及同房间相邻时段规则。必要优化为查询参数留在顶栏面板、矩阵固定房间上下文、选择后才显示下一步；现有typed确认流程保留。
+
+再次核对old API接口、公开DTO、Local站点/用途/日期空间/订单/详情/锁读取与BackendTest；examples模块清单仍无同协议。逐操作认证引导、重定向、Cookie、方法参数、签名/编码、字段类型、缓存/错误继续采用本文件前述九列及`source-parity.md`“场馆预约只读查询”的当前实现补充，没有协议差异或新请求。此次仅补公开字段投影及UI自动可见页选站点读取，不改变网络层。门锁继续只有available，订单没有公开驳回正文、手机号或锁码，不仿造旧rawData内容。
+
+D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间（含无slot空间），其后逐条保留全部slot，包括denied/unknown/无target。写action仍只来自独立allowed完整target，不从新展示结构授予资格。重复timeId不取first时间；状态未知不伪装占用。读取成功但无允许slot不是empty。订单列表及固定路线回读用同一typed投影，取消资格与服务器元数据不改。先为这些缺口增加脱敏RED再实现。

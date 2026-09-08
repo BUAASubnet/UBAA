@@ -151,6 +151,8 @@ const _successDespiteEmpty = <String>{
   'judge/judgeDetail',
   'judge/judgeBatchDetails',
   'libbook/libbookAreaDetail',
+  // 无空间时仍保留日期上下文，不能把可选日期丢弃。
+  'cgyy/cgyyDayInfo',
   'cgyy/cgyyPurposeTypes',
   'cgyy/cgyyOrderDetail',
   'cgyy/cgyyLockCode',

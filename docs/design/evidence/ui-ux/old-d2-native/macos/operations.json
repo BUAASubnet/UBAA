@@ -1,0 +1,68 @@
+[
+  {
+    "image": "selected.png",
+    "steps": "实际点击两个相邻时段",
+    "sourceSha": "50147317-d2-working",
+    "backend": "synthetic-rooms",
+    "platform": "macOS",
+    "windowSize": "800x632",
+    "appLogicalSize": "800x600",
+    "capture": "系统原始应用窗口截图；不是widget视口",
+    "date": "2026-09-08"
+  },
+  {
+    "image": "query-draft.png",
+    "steps": "输入1关闭重开，草稿和选择保留",
+    "sourceSha": "50147317-d2-working",
+    "backend": "synthetic-rooms",
+    "platform": "macOS",
+    "windowSize": "800x632",
+    "appLogicalSize": "800x600",
+    "capture": "系统原始应用窗口截图；不是widget视口",
+    "date": "2026-09-08"
+  },
+  {
+    "image": "form-scroll.png",
+    "steps": "独立小窗口表单滚到底部，所有字段和操作可达",
+    "sourceSha": "50147317-d2-working",
+    "backend": "synthetic-rooms",
+    "platform": "macOS",
+    "windowSize": "800x632",
+    "appLogicalSize": "800x600",
+    "capture": "系统原始应用窗口截图；不是widget视口",
+    "date": "2026-09-08"
+  },
+  {
+    "image": "orders.png",
+    "steps": "旧版订单卡，详情和取消按钮对齐",
+    "sourceSha": "50147317-d2-working",
+    "backend": "synthetic-rooms",
+    "platform": "macOS",
+    "windowSize": "800x632",
+    "appLogicalSize": "800x600",
+    "capture": "系统原始应用窗口截图；不是widget视口",
+    "date": "2026-09-08"
+  },
+  {
+    "image": "cancel-confirm.png",
+    "steps": "仅准备合成取消，随后取消返回详情",
+    "sourceSha": "50147317-d2-working",
+    "backend": "synthetic-rooms",
+    "platform": "macOS",
+    "windowSize": "800x632",
+    "appLogicalSize": "800x600",
+    "capture": "系统原始应用窗口截图；不是widget视口",
+    "date": "2026-09-08"
+  },
+  {
+    "image": "lock.png",
+    "steps": "仅显示公开门锁信息可用性，无重复标题",
+    "sourceSha": "50147317-d2-working",
+    "backend": "synthetic-rooms",
+    "platform": "macOS",
+    "windowSize": "800x632",
+    "appLogicalSize": "800x600",
+    "capture": "系统原始应用窗口截图；不是widget视口",
+    "date": "2026-09-08"
+  }
+]

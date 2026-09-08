@@ -1,0 +1,14 @@
+{
+  "name": "dark-many-top",
+  "steps": "42个房间列表首屏",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T08:45:30.744439Z",
+  "sourceSha": "50147317-d2-working",
+  "pngSaved": true
+}

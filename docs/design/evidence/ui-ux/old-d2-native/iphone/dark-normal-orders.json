@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-orders",
+  "steps": "预约记录地点状态时间优先，详情及允许取消入口",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T08:11:46.606764Z",
+  "sourceSha": "50147317-d2-working",
+  "pngSaved": true
+}

@@ -63,6 +63,27 @@ Future<FeatureResult> _loadCgyyFeature(
                 (item) => FeatureDetail(
                   title: item.siteName,
                   subtitle: item.venueName,
+                  presentation: CgyySitePresentation(
+                    id: item.id,
+                    siteName: item.siteName,
+                    venueName: item.venueName,
+                    campusName: item.campusName,
+                    seatCount: item.seatCount,
+                    reservationSpaceCount: item.reservationSpaceCount,
+                    openStartDate: item.openStartDate,
+                    openEndDate: item.openEndDate,
+                    queryDate: today,
+                  ),
+                  readNavigation: item.id <= 0
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.cgyy,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.cgyyDayInfo,
+                            siteId: item.id,
+                            date: DateTime.parse(today),
+                          ),
+                        ),
                   fields: _compactFields(<FeatureField?>[
                     _field('站点 ID', '${item.id}'),
                     _field('校区', item.campusName),
@@ -93,6 +114,13 @@ Future<FeatureResult> _loadCgyyFeature(
               .map(
                 (item) => FeatureDetail(
                   title: item.name,
+                  presentation: CgyyPurposePresentation(
+                    key: item.key,
+                    name: item.name,
+                    isStaticFallback:
+                        result.data.source ==
+                        BridgeCgyyPurposeSource.staticFallback,
+                  ),
                   fields: <FeatureField>[
                     FeatureField(label: '用途编号', value: '${item.key}'),
                     FeatureField(label: '来源', value: source),
@@ -108,64 +136,9 @@ Future<FeatureResult> _loadCgyyFeature(
         case FeatureQueryView.cgyyDayInfo:
           final siteId = _requiredPositiveInt(query.siteId, '站点 ID');
           final result = await client.cgyyDayInfo(siteId: siteId, date: today);
-          final details = <FeatureDetail>[];
-          for (final space in result.data.spaces) {
-            for (final slot in space.slots) {
-              final eligibility = _toCgyyActionEligibility(
-                slot.reservationEligibility,
-              );
-              final target = slot.reservationTarget;
-              if (eligibility != ActionEligibility.allowed ||
-                  target == null ||
-                  target.venueSiteId <= 0 ||
-                  target.reservationDate.trim().isEmpty ||
-                  target.spaceId <= 0 ||
-                  target.timeId <= 0 ||
-                  target.timeOrdinal < 0 ||
-                  (target.venueSpaceGroupId != null &&
-                      target.venueSpaceGroupId! <= 0)) {
-                continue;
-              }
-              final matchingSlots = result.data.timeSlots
-                  .where((item) => item.id == slot.timeId)
-                  .toList(growable: false);
-              final timeSlot = matchingSlots.isEmpty
-                  ? null
-                  : matchingSlots.first;
-              details.add(
-                FeatureDetail(
-                  title:
-                      '${space.spaceName} ${timeSlot?.label ?? '时段 ${slot.timeId}'}',
-                  fields: _compactFields(<FeatureField?>[
-                    _field('站点 ID', '${result.data.venueSiteId}'),
-                    _field('日期', result.data.reservationDate),
-                    _field('空间 ID', '${space.spaceId}'),
-                    _field('空间组 ID', space.venueSpaceGroupId?.toString()),
-                    _field('时段 ID', '${slot.timeId}'),
-                    _field('开始时间', timeSlot?.beginTime),
-                    _field('结束时间', timeSlot?.endTime),
-                    _field('可预约', '是'),
-                  ]),
-                  actions: <FeatureAction>[
-                    CgyyReserveAction(
-                      venueSiteId: target.venueSiteId,
-                      reservationDate: target.reservationDate.trim(),
-                      spaceId: target.spaceId,
-                      timeId: target.timeId,
-                      venueSpaceGroupId: target.venueSpaceGroupId,
-                      timeOrdinal: target.timeOrdinal,
-                      eligibility: eligibility,
-                    ),
-                  ],
-                ),
-              );
-            }
-          }
-          return _countResult(
-            details.length,
-            '个可预约时段',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          return _mapCgyyDayInfo(
+            result.data,
+            _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.cgyyOrders:
           final page = query.page <= 0 ? 1 : query.page;
@@ -189,6 +162,9 @@ Future<FeatureResult> _loadCgyyFeature(
             details: <FeatureDetail>[
               FeatureDetail(
                 title: '门锁状态',
+                presentation: CgyyLockPresentation(
+                  available: result.data.available,
+                ),
                 fields: <FeatureField>[
                   FeatureField(
                     label: '可用',
@@ -238,6 +214,16 @@ FeatureResult _mapCgyyOrdersResult(
         (item) => FeatureDetail(
           title: item.theme ?? item.siteName ?? '研讨室订单 ${item.id}',
           subtitle: item.venueSpaceName ?? item.venueName,
+          presentation: _cgyyOrderPresentation(item),
+          readNavigation: item.id <= 0
+              ? null
+              : FeatureReadNavigation(
+                  feature: FeatureId.cgyy,
+                  query: FeatureQuery(
+                    view: FeatureQueryView.cgyyOrderDetail,
+                    orderId: item.id,
+                  ),
+                ),
           fields: _compactFields(<FeatureField?>[
             _field('订单编号', '${item.id}'),
             _field('日期', item.reservationDateDetail ?? item.reservationDate),
@@ -280,6 +266,7 @@ FeatureResult _mapCgyyOrderDetailResult(
     FeatureDetail(
       title: item.theme ?? item.siteName ?? '研讨室订单 ${item.id}',
       subtitle: item.venueSpaceName ?? item.venueName,
+      presentation: _cgyyOrderPresentation(item),
       fields: _compactFields(<FeatureField?>[
         _field('订单编号', '${item.id}'),
         _field('校区', item.campusName),
@@ -352,3 +339,24 @@ String _cgyyOrderStatusText(int? orderStatus, int? checkStatus) {
     final value => value == null ? '未知' : '未知($value)',
   };
 }
+
+CgyyOrderPresentation _cgyyOrderPresentation(BridgeCgyyOrder item) =>
+    CgyyOrderPresentation(
+      id: item.id,
+      venueSiteId: item.venueSiteId,
+      reservationDate: item.reservationDate,
+      reservationDateDetail: item.reservationDateDetail,
+      venueSpaceName: item.venueSpaceName,
+      campusName: item.campusName,
+      venueName: item.venueName,
+      siteName: item.siteName,
+      reservationStartDate: item.reservationStartDate,
+      reservationEndDate: item.reservationEndDate,
+      orderStatus: item.orderStatus,
+      checkStatus: item.checkStatus,
+      theme: item.theme,
+      purposeTypeName: item.purposeTypeName,
+      joinerNum: item.joinerNum,
+      statusText: _cgyyOrderStatusText(item.orderStatus, item.checkStatus),
+      checkStatusText: _cgyyCheckStatusText(item.checkStatus),
+    );

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-order-detail",
+  "steps": "以typed订单ID读取详情，显示低频编号",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T08:12:37.674656Z",
+  "sourceSha": "50147317-d2-working",
+  "pngSaved": true
+}

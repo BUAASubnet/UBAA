@@ -237,6 +237,34 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                           canLibbookCancel,
                         );
                       }
+                      if (widget.feature == FeatureId.cgyy &&
+                          detail.presentation is CgyyOrderPresentation) {
+                        return _cgyyOrderRow(
+                          context,
+                          detail,
+                          detail.presentation! as CgyyOrderPresentation,
+                          cgyyCancelAction,
+                        );
+                      }
+                      if (detail.presentation case CgyyLockPresentation lock
+                          when widget.feature == FeatureId.cgyy) {
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.lock_outline),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    lock.available ? '当前有可用门锁信息' : '当前无可用门锁信息',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
                       return Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),

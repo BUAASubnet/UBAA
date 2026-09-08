@@ -165,6 +165,27 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               setState(() => _panelOpen = true);
             },
           )
+        : !widget.isLanding &&
+              widget.feature == FeatureId.cgyy &&
+              {
+                FeatureQueryView.summary,
+                FeatureQueryView.cgyyDayInfo,
+              }.contains(widget.query?.view ?? FeatureQueryView.summary)
+        ? _CgyyReservationFlow(
+            snapshot: widget.snapshot,
+            query: widget.query ?? const FeatureQuery(),
+            cacheEpoch: widget.readCacheEpoch,
+            filter: _searchController.text,
+            fallback: defaultContent,
+            onRetry: widget.onRetry,
+            onSubmit: widget.onCgyySubmitWrite,
+            onQuery: widget.onQuery == null
+                ? null
+                : (query) {
+                    _queryKey.currentState?.adoptCgyyQuery(query);
+                    return widget.onQuery!(query);
+                  },
+          )
         : defaultContent;
     return LayoutBuilder(
       builder: (context, constraints) {

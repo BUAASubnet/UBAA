@@ -62,7 +62,7 @@ extension _CgyyQueryControls on _FeatureQueryControlsState {
         ),
         _valuePicker(
           label: '从当前站点选择',
-          values: _detailFieldValues('站点 ID'),
+          values: _cgyyValues('站点 ID'),
           onSelected: (value) => _siteController.text = value,
         ),
       ],
@@ -107,12 +107,31 @@ extension _CgyyQueryControls on _FeatureQueryControlsState {
         ),
         _valuePicker(
           label: '从当前订单选择',
-          values: _detailFieldValues('订单编号'),
+          values: _cgyyValues('订单编号'),
           onSelected: (value) => _orderController.text = value,
         ),
       ],
     ],
   ];
+
+  List<String> _cgyyValues(String label) {
+    final typed = widget.snapshot.details
+        .map((d) => d.presentation)
+        .whereType<FeaturePresentation>()
+        .toList();
+    if (typed.isEmpty) return _detailFieldValues(label);
+    return <String>{
+      for (final p in typed)
+        if (label == '站点 ID' && p is CgyySitePresentation && p.id > 0)
+          '${p.id}'
+        else if (label == '站点 ID' &&
+            p is CgyyDayPresentation &&
+            p.venueSiteId > 0)
+          '${p.venueSiteId}'
+        else if (label == '订单编号' && p is CgyyOrderPresentation && p.id > 0)
+          '${p.id}',
+    }.toList();
+  }
 }
 
 extension _CgyyDetailActions on _FeatureDetailListState {

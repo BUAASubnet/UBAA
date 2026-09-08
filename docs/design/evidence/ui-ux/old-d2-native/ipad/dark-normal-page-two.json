@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-page-two",
+  "steps": "按服务器页2显示剩余未知资格订单，不出现取消动作",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T08:45:15.352390Z",
+  "sourceSha": "50147317-d2-working",
+  "pngSaved": true
+}

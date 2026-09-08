@@ -451,17 +451,22 @@ void main() {
       FeatureId.cgyy,
       const FeatureQuery(view: FeatureQueryView.cgyyDayInfo, siteId: 3),
     );
-    expect(result.details, hasLength(1));
+    expect(result.details, hasLength(3));
+    expect(result.details.first.presentation, isA<CgyyDayPresentation>());
+    final actionable = result.details
+        .where((d) => d.action<CgyyReserveAction>() != null)
+        .single;
+    expect(result.details.last.presentation, isA<CgyySlotPresentation>());
+    expect(result.details.last.actions, isEmpty);
     final fields = {
-      for (final field in result.details.single.fields)
-        field.label: field.value,
+      for (final field in actionable.fields) field.label: field.value,
     };
     expect(fields['站点 ID'], '3');
     expect(fields['空间 ID'], '4');
     expect(fields['时段 ID'], '5');
     expect(fields['空间组 ID'], '9');
     expect(fields['可预约'], '是');
-    final action = result.details.single.action<CgyyReserveAction>();
+    final action = actionable.action<CgyyReserveAction>();
     expect(action, isNotNull);
     expect(action?.venueSiteId, 3);
     expect(action?.reservationDate, '2026-09-03');

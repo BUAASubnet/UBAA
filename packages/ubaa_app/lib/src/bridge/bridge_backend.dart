@@ -14,6 +14,7 @@ part 'read/academic.dart';
 part 'read/assignments.dart';
 part 'read/bykc.dart';
 part 'read/cgyy.dart';
+part 'read/cgyy_day.dart';
 part 'read/evaluation.dart';
 part 'read/libbook.dart';
 part 'read/ygdk.dart';
