@@ -68,6 +68,7 @@ extension _AppControllerRefresh on AppController {
       requestRevision: generation,
     );
     final previous = _snapshots[feature]!;
+    if (query == null) _beginHomeDefault(feature, context);
     _snapshots[feature] = previous.readContext?.hasSameQuery(query) == true
         ? previous.copyWith(
             status: FeatureLoadStatus.loading,
@@ -97,11 +98,13 @@ extension _AppControllerRefresh on AppController {
   }) async {
     // loading 通知可能同步触发注销或切换路线，发请求前再次核对归属。
     if (!_isFeatureLoadCurrent(
-      feature,
-      generation,
-      lifecycleEpoch,
-      ygdkGeneration,
-    )) {
+          feature,
+          generation,
+          lifecycleEpoch,
+          ygdkGeneration,
+        ) &&
+        !(query == null &&
+            _isHomeDefaultCurrent(feature, generation, lifecycleEpoch))) {
       return;
     }
     final started = DateTime.now();
@@ -117,6 +120,14 @@ extension _AppControllerRefresh on AppController {
           await queryBackend.loadFeatureQuery(feature, value),
         _ => await _backend.loadFeature(feature),
       };
+      if (query == null &&
+          _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
+        _acceptHomeDefault(
+          feature,
+          result,
+          FeatureReadContext(requestRevision: generation),
+        );
+      }
       if (!_applyFeatureResultIfCurrent(
         feature,
         result,
@@ -125,6 +136,7 @@ extension _AppControllerRefresh on AppController {
         ygdkGeneration: ygdkGeneration,
         preservePreviousOnFailure: hadPreviousData,
       )) {
+        _notify();
         return;
       }
       await _recordFeature(
@@ -135,14 +147,16 @@ extension _AppControllerRefresh on AppController {
         latency: DateTime.now().difference(started),
       );
     } on Object catch (error, stackTrace) {
-      if (!_isFeatureLoadCurrent(
+      final featureCurrent = _isFeatureLoadCurrent(
         feature,
         generation,
         lifecycleEpoch,
         ygdkGeneration,
-      )) {
-        return;
-      }
+      );
+      final homeCurrent =
+          query == null &&
+          _isHomeDefaultCurrent(feature, generation, lifecycleEpoch);
+      if (!featureCurrent && !homeCurrent) return;
       final uiError = _recordFailure(
         error,
         DiagnosticOperation.read,
@@ -150,13 +164,20 @@ extension _AppControllerRefresh on AppController {
         feature: feature,
         latency: DateTime.now().difference(started),
       );
-      _snapshots[feature] = _snapshots[feature]!.copyWith(
-        status: hadPreviousData
-            ? FeatureLoadStatus.stale
-            : FeatureLoadStatus.failure,
-        error: uiError,
-        updatedAt: DateTime.now(),
-      );
+      if (homeCurrent)
+        _acceptHomeDefault(
+          feature,
+          FeatureResult.failure(uiError),
+          FeatureReadContext(requestRevision: generation),
+        );
+      if (featureCurrent)
+        _snapshots[feature] = _snapshots[feature]!.copyWith(
+          status: hadPreviousData
+              ? FeatureLoadStatus.stale
+              : FeatureLoadStatus.failure,
+          error: uiError,
+          updatedAt: DateTime.now(),
+        );
       await _recordFeature(
         feature,
         error: uiError,

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-judgedetail",
+  "steps": "待办直接到原只读目标，顶部返回回首页",
+  "backend": "synthetic-home",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T20:59:57.002048Z",
+  "sourceSha": "29022248-d5-r3",
+  "pngSaved": true
+}

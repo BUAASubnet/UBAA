@@ -279,3 +279,7 @@ D2集合元数据复用FeatureOverview，不从summary字符串提取统计；�
 ## O3-D4实施回写
 
 阳光公开概要、项目/记录typed投影和固定路线组合查询已实施；新组件为`features/ygdk/{summary,record_card,home_flow}.dart`，宿主只传既有记录回读。当前范围是旧首页与记录阅读、按需完整查询、新增项目选择和原有准备取消能力；P5继续旧独立照片表单与所有提交状态。对应RED/GREEN、三端及真实读取证据见`../migration/evidence/2026-09-08-ui-ux.md`，不承袭首版P4-D旧候选状态。
+
+## O3-D5实施回写
+
+`feature/home.dart`公开只读投影六来源，`controller/app_controller/home_sources.dart`隔离默认快照与三个额外查询缓存；`platform/reminders.dart`实现显式内存/生产私有UI偏好，不读取或修改Core会话。宿主按账号装配；shell传首页来源、提醒和具体导航；read_navigator独立首页入口返回主页。首页按12间距、原时间/状态顺序构建卡片，不新增工具栏。完整RED/GREEN和三端证据见本轮迁移证据，下一步学业旧页及共享本地化、P5完整写入。

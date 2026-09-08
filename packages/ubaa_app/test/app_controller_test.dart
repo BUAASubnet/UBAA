@@ -15,6 +15,7 @@ part 'app_controller/read.dart';
 part 'app_controller/overview.dart';
 part 'app_controller/read_context.dart';
 part 'app_controller/academic_terms.dart';
+part 'app_controller/home_sources.dart';
 part 'app_controller/write.dart';
 part 'app_controller/ygdk.dart';
 
@@ -24,6 +25,7 @@ void main() {
   _registerReadTests();
   _registerReadContextTests();
   _registerAcademicTermsTests();
+  _registerHomeSourceTests();
   _registerLifecycleTests();
   _registerRaceTests();
   _registerEvaluationTests();

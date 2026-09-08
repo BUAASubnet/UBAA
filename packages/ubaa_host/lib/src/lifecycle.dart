@@ -2,6 +2,7 @@ part of 'ubaa_app_host.dart';
 
 class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late final AppController _controller;
+  late final YgdkReminderStore _reminderStore;
   ThemeMode _themeMode = ThemeMode.system;
 
   void _setThemeMode(ThemeMode value) => setState(() => _themeMode = value);
@@ -15,6 +16,13 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     final backend = widget.backend;
+    _reminderStore =
+        widget.reminderStore ??
+        (backend != null
+            ? MemoryYgdkReminderStore()
+            : FileYgdkReminderStore(
+                File('${defaultConfigDirectory()}/ui-reminders.json'),
+              ));
     final backendFactory = widget.backendFactory ?? createProductionBackend;
     _controller = AppController(
       backend: backend ?? backendFactory(),

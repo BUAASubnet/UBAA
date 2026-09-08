@@ -84,6 +84,27 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     }
   }
 
+  Future<void> openFromHome(FeatureReadNavigation target) async {
+    if (widget.onQuery == null || target.feature != widget.snapshot.feature)
+      return;
+    setState(() {
+      _externalAfterRevision = null;
+      _frames
+        ..clear()
+        ..add(
+          _ReadFrame(
+            _nextId++,
+            FeatureSnapshot(
+              feature: target.feature,
+              status: FeatureLoadStatus.loading,
+            ),
+            target.query,
+          ),
+        );
+    });
+    await widget.onQuery!(target.query);
+  }
+
   void openPanel() => _current.pageKey.currentState?.togglePanel();
 
   void goBack() {

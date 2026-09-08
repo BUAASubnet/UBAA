@@ -19,6 +19,10 @@ class UbaaMainShell extends StatefulWidget {
     this.readCacheEpoch = 0,
     this.onLoadAcademicTerms,
     this.ygdkRecordsReadback,
+    this.homeSnapshots,
+    this.onLoadHomeSupplement,
+    this.onLoadYgdkReminder,
+    this.onSaveYgdkReminder,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -51,6 +55,11 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 仅用于呈现原协调器已完成的固定路线记录回读，不触发新读取。
   final FeatureSnapshot? ygdkRecordsReadback;
+  final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
+  final Future<FeatureResult> Function(HomeSupplement source, bool force)?
+  onLoadHomeSupplement;
+  final Future<YgdkReminderSettings> Function()? onLoadYgdkReminder;
+  final Future<void> Function(YgdkReminderSettings)? onSaveYgdkReminder;
   final RoutePolicy routePolicy;
   final bool telemetryEnabled;
   final Future<void> Function() onRefresh;
@@ -107,6 +116,10 @@ class UbaaMainShell extends StatefulWidget {
 }
 
 class _UbaaMainShellState extends State<UbaaMainShell> {
+  Map<String, ConnectionMode> _homeReadRoutes = {};
+  YgdkReminderSettings? _reminderSettings;
+  String? _reminderError;
+  int _reminderRevision = 0;
   late int _selectedIndex;
   FeatureId? _openedFeature;
   String? _utilityPage;
@@ -133,6 +146,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialTab.clamp(0, _tabs.length - 1);
+    unawaited(_loadReminderSettings());
   }
 
   @override
@@ -140,12 +154,102 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user?.username != widget.user?.username) {
       _accountGeneration++;
+      _homeReadRoutes = {};
+      _reminderSettings = null;
+      _reminderError = null;
+      _reminderRevision++;
+      unawaited(_loadReminderSettings());
       _visitedFeatures.clear();
       _readPageKeys.clear();
       _openedFeature = null;
       _utilityPage = null;
       _visiblePage.value = null;
     }
+  }
+
+  Future<void> _loadReminderSettings() async {
+    final generation = _accountGeneration;
+    final load = widget.onLoadYgdkReminder;
+    if (load == null) {
+      _reminderSettings = const YgdkReminderSettings();
+      return;
+    }
+    try {
+      final value = await load();
+      if (mounted && generation == _accountGeneration)
+        setState(() => _reminderSettings = value);
+    } on Object {
+      if (mounted && generation == _accountGeneration)
+        setState(() => _reminderError = '提醒设置读取失败');
+    }
+  }
+
+  Future<void> _saveReminderSettings(YgdkReminderSettings value) async {
+    final save = widget.onSaveYgdkReminder;
+    if (save == null) return;
+    final before = _reminderSettings, generation = _accountGeneration;
+    final revision = ++_reminderRevision;
+    setState(() {
+      _reminderSettings = value;
+      _reminderError = null;
+    });
+    try {
+      await save(value);
+    } on Object {
+      if (mounted &&
+          generation == _accountGeneration &&
+          revision == _reminderRevision) {
+        setState(() {
+          _reminderSettings = before;
+          _reminderError = '提醒设置保存失败，请重试';
+        });
+      }
+    }
+  }
+
+  void _setReminderEnabled(bool enabled) {
+    final current = _reminderSettings;
+    if (current != null)
+      unawaited(_saveReminderSettings(current.copyWith(enabled: enabled)));
+  }
+
+  void _observeHomeProgress(WeekPresentation week, YgdkOverview overview) {
+    final current = _reminderSettings;
+    if (current == null ||
+        !current.enabled ||
+        !week.current ||
+        week.responseTerm.trim().isEmpty)
+      return;
+    final weekKey = '${week.responseTerm}:${week.number}';
+    final weekDone =
+        (overview.weekCount ?? -1) >= 4 && current.weekDoneKey != weekKey;
+    final termDone =
+        overview.termCount >= 16 && current.termDoneKey != week.responseTerm;
+    if (!weekDone && !termDone) return;
+    unawaited(
+      _saveReminderSettings(
+        current.copyWith(
+          weekDoneKey: weekDone ? weekKey : null,
+          termDoneKey: termDone ? week.responseTerm : null,
+        ),
+      ),
+    );
+  }
+
+  void _openHomeTodo(HomeTodo item) {
+    final target = item.navigation;
+    if (target == null) return;
+    final generation = _accountGeneration;
+    setState(() => _openedFeature = target.feature);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          generation == _accountGeneration &&
+          _openedFeature == target.feature) {
+        unawaited(
+          _readPageKeys[target.feature]?.currentState?.openFromHome(target),
+        );
+      }
+    });
   }
 
   @override
@@ -237,13 +341,24 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             valueListenable: _visiblePage,
             builder: (context, page, _) {
               final snapshot = page?.$1;
+              final homeVisible =
+                  _openedFeature == null &&
+                  _utilityPage == null &&
+                  _selectedIndex == 0 &&
+                  pendingWrite == null;
+              final homeRoutes = homeVisible
+                  ? _homeReadRoutes.values.toSet()
+                  : <ConnectionMode>{};
+              final mixed = homeRoutes.length > 1;
               final route =
                   pendingWrite?.resolvedRoute ??
-                  (_openedFeature == snapshot?.feature
-                      ? snapshot?.resolvedRoute
-                      : null);
+                  (homeVisible
+                      ? (homeRoutes.length == 1 ? homeRoutes.single : null)
+                      : (_openedFeature == snapshot?.feature
+                            ? snapshot?.resolvedRoute
+                            : null));
               return IconButton(
-                tooltip: '实际路线：${route?.label ?? '未确定'}',
+                tooltip: '实际路线：${mixed ? '混合' : route?.label ?? '未确定'}',
                 icon: Icon(
                   route == ConnectionMode.direct
                       ? Icons.lan_outlined
@@ -251,7 +366,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                       ? Icons.vpn_lock_outlined
                       : Icons.route_outlined,
                 ),
-                onPressed: () => _showRouteOptions(context, route),
+                onPressed: () => _showRouteOptions(
+                  context,
+                  route,
+                  homeRoutes: homeVisible ? _homeReadRoutes : null,
+                ),
               );
             },
           ),
@@ -343,6 +462,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       isBykcChosenDetail: page.isBykcChosenDetail,
       onOpenBykcChosen: page.onOpenBykcChosen,
       ygdkRecordsReadback: widget.ygdkRecordsReadback,
+      reminderSettings: _reminderSettings,
+      reminderError: _reminderError,
+      onReminderChanged: widget.onSaveYgdkReminder == null
+          ? null
+          : _setReminderEnabled,
       feature: feature,
       snapshot: page.snapshot,
       query: page.query,
@@ -397,7 +521,24 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       : switch (_selectedIndex) {
           0 => _HomeView(
             user: widget.user,
-            snapshots: widget.snapshots,
+            snapshots: widget.homeSnapshots ?? widget.snapshots,
+            visible: _openedFeature == null && widget.writeState.intent == null,
+            cacheEpoch: widget.readCacheEpoch,
+            onLoadSupplement: widget.onLoadHomeSupplement,
+            onTodoTap: _openHomeTodo,
+            onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
+                ? _startSigninWrite
+                : null,
+            reminderSettings: _reminderSettings,
+            onObserveProgress: _observeHomeProgress,
+            onRoutes: (routes) {
+              if (routes.length == _homeReadRoutes.length &&
+                  routes.entries.every(
+                    (e) => _homeReadRoutes[e.key] == e.value,
+                  ))
+                return;
+              setState(() => _homeReadRoutes = Map.unmodifiable(routes));
+            },
             onFeatureTap: (feature) => setState(() => _openedFeature = feature),
             onRetryFeature: widget.onRetryFeature,
             onRefresh: widget.onRefresh,
@@ -514,38 +655,50 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   Future<void> _showRouteOptions(
     BuildContext context,
-    ConnectionMode? route,
-  ) async {
+    ConnectionMode? route, {
+    Map<String, ConnectionMode>? homeRoutes,
+  }) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('连接路线'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('当前页面：${route?.label ?? '未确定'}'),
-            const SizedBox(height: 8),
-            const Text('实际路线以当前显示的读取结果为准。切换默认策略后，下次读取使用新策略；已显示的结果不会被改写。'),
-            const SizedBox(height: 16),
-            DropdownButton<RoutePolicy>(
-              value: widget.routePolicy,
-              isExpanded: true,
-              items: RoutePolicy.values
-                  .map(
-                    (item) =>
-                        DropdownMenuItem(value: item, child: Text(item.label)),
-                  )
-                  .toList(),
-              onChanged: widget.writeState.intent != null
-                  ? null
-                  : (value) {
-                      if (value == null) return;
-                      Navigator.of(context).pop();
-                      widget.onRoutePolicyChanged(value);
-                    },
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '当前页面：${homeRoutes != null && homeRoutes.values.toSet().length > 1 ? '直连与WebVPN' : route?.label ?? '未确定'}',
+              ),
+              if (homeRoutes != null) ...[
+                const SizedBox(height: 8),
+                for (final entry in homeRoutes.entries)
+                  Text('${entry.key}：${entry.value.label}'),
+              ],
+              const SizedBox(height: 8),
+              const Text('实际路线以当前显示的读取结果为准。切换默认策略后，下次读取使用新策略；已显示的结果不会被改写。'),
+              const SizedBox(height: 16),
+              DropdownButton<RoutePolicy>(
+                value: widget.routePolicy,
+                isExpanded: true,
+                items: RoutePolicy.values
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(item.label),
+                      ),
+                    )
+                    .toList(),
+                onChanged: widget.writeState.intent != null
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        Navigator.of(context).pop();
+                        widget.onRoutePolicyChanged(value);
+                      },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

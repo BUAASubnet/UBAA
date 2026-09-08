@@ -124,6 +124,10 @@ void _registerYgdkWriteTests() {
     expect(controller.ygdkReadbackState.overview.summary, '学期进度 1/10');
     expect(controller.ygdkReadbackState.records.details.single.title, '只读记录页');
     expect(controller.snapshots[FeatureId.ygdk]!.summary, '学期进度 1/10');
+    expect(
+      controller.homeSnapshots[FeatureId.ygdk],
+      same(controller.ygdkReadbackState.overview),
+    );
     expect(controller.snapshots[FeatureId.ygdk]!.details, isEmpty);
     controller.dispose();
   });

@@ -12,9 +12,15 @@ class _YgdkHomeFlow extends StatefulWidget {
     this.onSubmit,
     this.onPickPhoto,
     this.recordsReadback,
+    this.reminderSettings,
+    this.reminderError,
+    this.onReminderChanged,
   });
   final FeatureSnapshot snapshot;
   final FeatureSnapshot? recordsReadback;
+  final YgdkReminderSettings? reminderSettings;
+  final String? reminderError;
+  final ValueChanged<bool>? onReminderChanged;
   final FeatureQuery query;
   final int cacheEpoch;
   final String filter;
@@ -237,6 +243,17 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
               ),
             ),
             const SizedBox(height: 12),
+            if (widget.onReminderChanged != null)
+              Card(
+                child: SwitchListTile(
+                  title: const Text('首页提醒'),
+                  subtitle: Text(widget.reminderError ?? '在首页提醒本周阳光打卡'),
+                  value: widget.reminderSettings?.enabled ?? false,
+                  onChanged: widget.reminderSettings == null
+                      ? null
+                      : widget.onReminderChanged,
+                ),
+              ),
             Text(
               '打卡记录',
               style: Theme.of(

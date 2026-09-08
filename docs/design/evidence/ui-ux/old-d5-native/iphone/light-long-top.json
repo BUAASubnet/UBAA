@@ -1,0 +1,14 @@
+{
+  "name": "light-long-top",
+  "steps": "原生合成首页状态，实际视口不覆盖",
+  "backend": "synthetic-home",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T21:00:12.325212Z",
+  "sourceSha": "29022248-d5-r3",
+  "pngSaved": true
+}

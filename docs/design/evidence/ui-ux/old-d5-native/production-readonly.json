@@ -1,0 +1,145 @@
+{
+  "日期": "2026-09-09",
+  "平台": "macOS生产bootstrap与FRB",
+  "入口": "integration_test/ui_home/live_readonly_test.dart",
+  "凭据路径": ".env.local安全stdin，两路线私有目录，不改既有会话",
+  "结果": "Direct r2约28秒、WebVPN r1退出0，各1原生场景，8个来源成功/明确空，实际路线全部匹配",
+  "读取": [
+    {
+      "sourceType": "feature",
+      "source": "schedule",
+      "status": "success",
+      "route": "direct",
+      "count": 1,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "spoc",
+      "status": "success",
+      "route": "direct",
+      "count": 2,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "judge",
+      "status": "success",
+      "route": "direct",
+      "count": 64,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "signin",
+      "status": "success",
+      "route": "direct",
+      "count": 1,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "ygdk",
+      "status": "success",
+      "route": "direct",
+      "count": 11,
+      "error": "null"
+    },
+    {
+      "sourceType": "supplement",
+      "source": "bykcChosen",
+      "status": "empty",
+      "route": "direct",
+      "count": 0,
+      "error": "null"
+    },
+    {
+      "sourceType": "supplement",
+      "source": "cgyyOrders",
+      "status": "success",
+      "route": "direct",
+      "count": 15,
+      "error": "null"
+    },
+    {
+      "sourceType": "supplement",
+      "source": "currentWeek",
+      "status": "success",
+      "route": "direct",
+      "count": 1,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "schedule",
+      "status": "success",
+      "route": "webvpn",
+      "count": 1,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "spoc",
+      "status": "success",
+      "route": "webvpn",
+      "count": 2,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "judge",
+      "status": "success",
+      "route": "webvpn",
+      "count": 64,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "signin",
+      "status": "success",
+      "route": "webvpn",
+      "count": 1,
+      "error": "null"
+    },
+    {
+      "sourceType": "feature",
+      "source": "ygdk",
+      "status": "success",
+      "route": "webvpn",
+      "count": 11,
+      "error": "null"
+    },
+    {
+      "sourceType": "supplement",
+      "source": "bykcChosen",
+      "status": "empty",
+      "route": "webvpn",
+      "count": 0,
+      "error": "null"
+    },
+    {
+      "sourceType": "supplement",
+      "source": "cgyyOrders",
+      "status": "success",
+      "route": "webvpn",
+      "count": 15,
+      "error": "null"
+    },
+    {
+      "sourceType": "supplement",
+      "source": "currentWeek",
+      "status": "success",
+      "route": "webvpn",
+      "count": 1,
+      "error": "null"
+    }
+  ],
+  "约束验证": "额外查询不覆盖schedule/bykc/cgyy领域快照；首页没有查询框；唯一图标打开路线说明并关闭",
+  "Core-live": "两路线分别认证3项+阳光2项PASS；其他首页来源由上述生产App本轮读取验证",
+  "真实业务写入": 0,
+  "边界": [
+    "博雅当前已选0，无真实博雅待办点击",
+    "不截图、不保存个人字段或原始响应",
+    "完整写状态和最终P6仍未验收"
+  ]
+}

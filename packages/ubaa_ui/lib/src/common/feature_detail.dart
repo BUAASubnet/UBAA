@@ -7,6 +7,9 @@ class _FeatureDetailView extends StatefulWidget {
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
     this.ygdkRecordsReadback,
+    this.reminderSettings,
+    this.reminderError,
+    this.onReminderChanged,
     required this.snapshot,
     this.query,
     required this.onBack,
@@ -32,6 +35,9 @@ class _FeatureDetailView extends StatefulWidget {
   final bool isLanding, isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureSnapshot? ygdkRecordsReadback;
+  final YgdkReminderSettings? reminderSettings;
+  final String? reminderError;
+  final ValueChanged<bool>? onReminderChanged;
   final FeatureId feature;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
@@ -198,6 +204,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         ? _YgdkHomeFlow(
             snapshot: widget.snapshot,
             recordsReadback: widget.ygdkRecordsReadback,
+            reminderSettings: widget.reminderSettings,
+            reminderError: widget.reminderError,
+            onReminderChanged: widget.onReminderChanged,
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
             filter: _searchController.text,

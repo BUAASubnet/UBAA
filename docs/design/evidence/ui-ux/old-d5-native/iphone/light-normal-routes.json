@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-routes",
+  "steps": "一个图标按已显示来源说明实际路线，不使用默认Auto策略",
+  "backend": "synthetic-home",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T20:59:52.701668Z",
+  "sourceSha": "29022248-d5-r3",
+  "pngSaved": true
+}

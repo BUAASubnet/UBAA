@@ -15,6 +15,14 @@ Future<void> _refreshYgdkAfterWrite(
   final generation = ++controller._ygdkGeneration;
   final requestRevision = controller._nextFeatureGeneration(FeatureId.ygdk);
   controller._readCacheEpoch++;
+  controller._homeDefaults[FeatureId.ygdk] = FeatureSnapshot(
+    feature: FeatureId.ygdk,
+    status: FeatureLoadStatus.loading,
+    readContext: FeatureReadContext(
+      query: const FeatureQuery(),
+      requestRevision: requestRevision,
+    ),
+  );
   controller._notify();
   if (controller._disposed || generation != controller._ygdkGeneration) return;
 
@@ -142,6 +150,7 @@ bool _applyYgdkReadbackSnapshotIfCurrent(
     ),
   };
   if (slot == _YgdkReadbackSlot.overview) {
+    controller._homeDefaults[FeatureId.ygdk] = snapshot;
     final currentSnapshot = controller._snapshots[FeatureId.ygdk]!;
     if (snapshot.status != FeatureLoadStatus.failure ||
         currentSnapshot.status == FeatureLoadStatus.loading) {

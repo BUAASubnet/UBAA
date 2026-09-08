@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-reminder-disabled",
+  "steps": "本地提醒关闭，未提交任何学校写入",
+  "backend": "synthetic-home",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T21:02:25.841839Z",
+  "sourceSha": "29022248-d5-r3",
+  "pngSaved": true
+}

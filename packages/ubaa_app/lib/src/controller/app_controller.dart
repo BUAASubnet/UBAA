@@ -19,6 +19,7 @@ part 'app_controller/cgyy_readback.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/academic_terms.dart';
+part 'app_controller/home_sources.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
@@ -100,6 +101,11 @@ class AppController extends ChangeNotifier {
   final Map<FeatureId, int> _featureRefreshGenerations = <FeatureId, int>{
     for (final feature in FeatureId.values) feature: 0,
   };
+  final _homeDefaults = <FeatureId, FeatureSnapshot>{
+    for (final feature in FeatureId.values)
+      feature: FeatureSnapshot(feature: feature),
+  };
+  _HomeSupplementCache? _homeSupplementCache;
   FeatureResult? _academicTermsResult;
   Future<FeatureResult>? _academicTermsPending;
   UbaaBackend? _academicTermsBackend;
@@ -437,6 +443,15 @@ class AppController extends ChangeNotifier {
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
       _loadAcademicTerms(forceRefresh: forceRefresh);
+
+  /// 首页默认来源与领域当前查询隔离；不授予额外写资格。
+  Map<FeatureId, FeatureSnapshot> get homeSnapshots =>
+      Map.unmodifiable(_homeDefaults);
+
+  Future<FeatureResult> loadHomeSupplement(
+    HomeSupplement source, {
+    bool forceRefresh = false,
+  }) => _loadHomeSupplement(source, forceRefresh: forceRefresh);
 
   Future<void> refreshHome({Iterable<FeatureId>? only}) =>
       _refreshHome(only: only);
@@ -806,6 +821,7 @@ class AppController extends ChangeNotifier {
     _ygdkReadbackState = const YgdkReadbackState.empty();
     for (final feature in FeatureId.values) {
       _snapshots[feature] = FeatureSnapshot(feature: feature);
+      _homeDefaults[feature] = FeatureSnapshot(feature: feature);
     }
   }
 

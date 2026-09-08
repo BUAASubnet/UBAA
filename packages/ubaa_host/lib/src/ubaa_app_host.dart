@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -50,6 +51,7 @@ class UbaaAppHost extends StatefulWidget {
     this.locationProvider,
     this.initialTab = 0,
     this.telemetry,
+    this.reminderStore,
     super.key,
   });
 
@@ -65,6 +67,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformLocationProvider? locationProvider;
   final int initialTab;
   final TelemetryClient? telemetry;
+  final YgdkReminderStore? reminderStore;
 
   @override
   State<UbaaAppHost> createState() => _UbaaAppHostState();

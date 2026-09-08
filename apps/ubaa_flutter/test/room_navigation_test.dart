@@ -34,13 +34,17 @@ void main() {
     );
     expect(backend.commitCalls, 0);
   });
-  testWidgets('研讨室隐藏后首页刷新只读取站点不自动扩展日期空间', (tester) async {
+  testWidgets('研讨室隐藏后首页刷新加载站点基线及待办订单，不扩展日期空间', (tester) async {
     final backend = await _open(tester, width: 1280);
     await _tap(tester, find.byIcon(Icons.home_outlined));
     final before = backend.roomReads.length;
     await _tap(tester, find.byTooltip('刷新'));
-    expect(backend.roomReads, hasLength(before + 1));
-    expect(backend.roomReads.last.view, FeatureQueryView.summary);
+    expect(backend.roomReads.skip(before).map((query) => query.view), [
+      FeatureQueryView.summary,
+      FeatureQueryView.cgyyOrders,
+    ]);
+    expect(backend.roomReads.last.page, 0);
+    expect(backend.roomReads.last.size, 20);
   });
   testWidgets('研讨室换日期清掉旧选择和表单目标且不增加返回层级', (tester) async {
     final backend = await _open(tester);

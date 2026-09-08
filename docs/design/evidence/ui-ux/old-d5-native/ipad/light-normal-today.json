@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-today",
+  "steps": "今日课程按时间排序，名称时间地点和简称",
+  "backend": "synthetic-home",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T21:02:43.512341Z",
+  "sourceSha": "29022248-d5-r3",
+  "pngSaved": true
+}

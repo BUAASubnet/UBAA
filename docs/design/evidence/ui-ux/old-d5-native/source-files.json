@@ -1,0 +1,32 @@
+{
+  "baseSha": "290222489e3b32f89acabc7d5b9d314551128103",
+  "candidate": "29022248-d5-r3",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_home/backend.dart": "98817c67422ea618df6fda586845168c4ebd66e910cc22b79613a121ea4a215c",
+    "apps/ubaa_flutter/integration_test/ui_home/live_readonly_test.dart": "3c37e765a084d77265fdd11fe10b2f7fa36934eda980e383f7b6798241c719fc",
+    "apps/ubaa_flutter/integration_test/ui_home/native_test.dart": "701295fcc8d62c3d6125439311309934667487f1cb0bbf7a1c28849e32b54aaa",
+    "apps/ubaa_flutter/test/home_navigation_test.dart": "8f9a44122fac8559c8c002f18c525ea610194f862bfc02d1c30940e668ef9e88",
+    "apps/ubaa_flutter/test/room_navigation_test.dart": "5b50ad9f280514f06717a106d363ded3497e0e3fcd5d054ac2d344398b8580af",
+    "packages/ubaa_app/lib/src/controller/app_controller.dart": "d3c5092dba5bc0400ead100069e1b4dcb810a9988f27d028f3cc42749530d8c9",
+    "packages/ubaa_app/lib/src/controller/app_controller/home_sources.dart": "5e2d7a7032757b13c609e0a1c025a4dcace38ad0ff03d1095ca5ca22382cfc06",
+    "packages/ubaa_app/lib/src/controller/app_controller/refresh.dart": "7c0c18a7899caca7c0823618d39d7c02a6b5411980d300d9ce0d19fc4286c20b",
+    "packages/ubaa_app/lib/src/controller/app_controller/ygdk_readback.dart": "484c1a010979849b36b520548cae7974eaabac6c268896dab3ff4b1620100f34",
+    "packages/ubaa_app/test/app_controller/home_sources.dart": "ba366b5f08a44b19fc6f2c9a644e1b2fb2440b7343acf34fb36c3be4d270ad54",
+    "packages/ubaa_app/test/app_controller/ygdk.dart": "14946cacdfd40ba81dbc89bcd2e35907529bbe4d23f67b68a42b3afe26048571",
+    "packages/ubaa_app/test/app_controller_test.dart": "333c8636c7f2b6da4eb5ed21aec29050eda6076f1103bdf890b6315166c97aeb",
+    "packages/ubaa_domain/lib/src/feature/home.dart": "5efed9d5c6af1d3079f14628c3fe3a0ed0129e4740dafe6204f0b0a905bdb094",
+    "packages/ubaa_domain/lib/src/models.dart": "2bba797c12767025072a79f40479691d83b3895176eb7650fa8398a8d7b3e43b",
+    "packages/ubaa_domain/test/home_todo_test.dart": "d12ae35f6b4ec2f6a0b269d0f0a60252ef587c642eda65a8883f6e159790de62",
+    "packages/ubaa_host/lib/src/callbacks.dart": "8594c763359c984ef512b0ebf8d41bbb17a08946b086fb4d4407752adbb321f2",
+    "packages/ubaa_host/lib/src/lifecycle.dart": "f9ceec8a2cc0bccbb90ddf07c1ce484bf1340bd77819b8d605699163940dcce7",
+    "packages/ubaa_host/lib/src/ubaa_app_host.dart": "870d1064b417b607846a62e2062037b310bec194d00bb6eb2a51b6e68b258c2e",
+    "packages/ubaa_platform/lib/src/reminders.dart": "729c065c2f55e8be5f6abf629c78ab0a1e4b5169d4e7867c056d75b933284b3e",
+    "packages/ubaa_platform/lib/ubaa_platform.dart": "4d7e6dea9609c5bc4d7f52ad3ae094c0f8ced7b8900e820f27b3b5e32dccef21",
+    "packages/ubaa_platform/test/reminders_test.dart": "38a2924ea09f8fd9b3f6989e211490784355515e6bbaf9bb744445d110436144",
+    "packages/ubaa_ui/lib/src/app/home.dart": "2e7470097455e619189f2cd8e2f78bc6f8adc9cee21dda8204eb426c8974e51e",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "8f818ae760e13473f9d9a35c0078b019f3b59ec064e86536ef1ecbe6ea0b7ebf",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "c2c7e0e43372c8f184c370839a49d2480dcd93b57b339fa0852389ce019535ec",
+    "packages/ubaa_ui/lib/src/common/read_navigator.dart": "1cc40af5eec86e676ca0753be163ec667a6d21b3a086771ced9cbd06a44ca175",
+    "packages/ubaa_ui/lib/src/features/ygdk/home_flow.dart": "342975d5d922dd17cc3b6b292f07e6dfb6cd2342d97245fe569b1576b74b6871"
+  }
+}

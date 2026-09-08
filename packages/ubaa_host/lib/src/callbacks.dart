@@ -92,6 +92,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         _controller.hasYgdkSubmissionBackendCapabilities && photoPicker != null;
     final hasEvaluationSubmissionCapabilities =
         _controller.hasEvaluationSubmissionBackendCapabilities;
+    final accountKey = _controller.user?.schoolId?.trim().isNotEmpty == true
+        ? _controller.user!.schoolId!
+        : _controller.user!.username;
     return UbaaMainShell(
       readCacheEpoch: _controller.readCacheEpoch,
       onLoadAcademicTerms: (forceRefresh) =>
@@ -100,6 +103,11 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onThemeModeChanged: _setThemeMode,
       user: _controller.user,
       snapshots: _controller.snapshots,
+      homeSnapshots: _controller.homeSnapshots,
+      onLoadHomeSupplement: (source, force) =>
+          _controller.loadHomeSupplement(source, forceRefresh: force),
+      onLoadYgdkReminder: () => _reminderStore.read(accountKey),
+      onSaveYgdkReminder: (value) => _reminderStore.write(accountKey, value),
       ygdkRecordsReadback: _controller.ygdkReadbackState.records,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,

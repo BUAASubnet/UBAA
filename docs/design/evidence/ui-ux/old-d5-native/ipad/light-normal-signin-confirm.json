@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-signin-confirm",
+  "steps": "明确合成目标prepare，未执行commit",
+  "backend": "synthetic-home",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T21:02:46.003111Z",
+  "sourceSha": "29022248-d5-r3",
+  "pngSaved": true
+}
