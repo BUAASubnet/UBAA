@@ -100,6 +100,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onThemeModeChanged: _setThemeMode,
       user: _controller.user,
       snapshots: _controller.snapshots,
+      ygdkRecordsReadback: _controller.ygdkReadbackState.records,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,
       onReadDiagnostics: _controller.exportDiagnostics,

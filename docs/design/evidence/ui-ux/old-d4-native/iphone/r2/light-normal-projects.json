@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-projects",
+  "steps": "新增时才打开项目选择，无资格项目不可选",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T19:57:09.056437Z",
+  "sourceSha": "e812798e-d4-r2",
+  "pngSaved": true
+}

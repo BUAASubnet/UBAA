@@ -1,0 +1,27 @@
+{
+  "savedScreenshots": [
+    "dark-normal-home",
+    "dark-normal-record-detail",
+    "dark-normal-filtered",
+    "dark-normal-metadata-filtered",
+    "dark-normal-projects",
+    "dark-normal-form",
+    "dark-normal-confirm",
+    "dark-normal-query",
+    "dark-normal-page2",
+    "dark-normal-page1",
+    "light-normal-home",
+    "light-normal-record-detail",
+    "light-normal-filtered",
+    "light-normal-metadata-filtered",
+    "light-normal-projects",
+    "light-normal-form",
+    "light-normal-confirm",
+    "light-normal-query",
+    "light-normal-page2",
+    "light-normal-page1"
+  ],
+  "metadataCount": 20,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}

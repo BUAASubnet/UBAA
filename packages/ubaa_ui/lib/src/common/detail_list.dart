@@ -112,6 +112,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                   detail.title,
                   ..._assignmentSearchValues(detail.presentation),
                   ..._bykcSearchValues(detail.presentation),
+                  if (detail.presentation case YgdkRecordPresentation record)
+                    ..._ygdkRecordSearchValues(record),
                   if (detail.subtitle case final subtitle?) subtitle,
                   for (final field in detail.fields) ...<String>[
                     field.label,
@@ -216,6 +218,12 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                             onNavigate: widget.onNavigate,
                           ),
                         );
+                      }
+                      if (widget.feature == FeatureId.ygdk) {
+                        if (detail.presentation
+                            case YgdkRecordPresentation record) {
+                          return _YgdkRecordCard(record);
+                        }
                       }
                       if (widget.feature == FeatureId.bykc) {
                         if (detail.presentation

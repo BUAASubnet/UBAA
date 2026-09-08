@@ -6,6 +6,7 @@ class _FeatureDetailView extends StatefulWidget {
     this.isLanding = false,
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
+    this.ygdkRecordsReadback,
     required this.snapshot,
     this.query,
     required this.onBack,
@@ -30,6 +31,7 @@ class _FeatureDetailView extends StatefulWidget {
 
   final bool isLanding, isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
+  final FeatureSnapshot? ygdkRecordsReadback;
   final FeatureId feature;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
@@ -189,6 +191,20 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                     _queryKey.currentState?.adoptCgyyQuery(query);
                     return widget.onQuery!(query);
                   },
+          )
+        : widget.feature == FeatureId.ygdk &&
+              (widget.query?.view ?? FeatureQueryView.summary) ==
+                  FeatureQueryView.summary
+        ? _YgdkHomeFlow(
+            snapshot: widget.snapshot,
+            recordsReadback: widget.ygdkRecordsReadback,
+            query: widget.query ?? const FeatureQuery(),
+            cacheEpoch: widget.readCacheEpoch,
+            filter: _searchController.text,
+            fallback: defaultContent,
+            onQuery: widget.onQuery,
+            onSubmit: widget.onYgdkSubmitWrite,
+            onPickPhoto: widget.onPickYgdkPhoto,
           )
         : defaultContent;
     return LayoutBuilder(

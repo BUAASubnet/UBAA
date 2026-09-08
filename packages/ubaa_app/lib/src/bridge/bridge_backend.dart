@@ -81,8 +81,12 @@ class BridgeBackend
   Future<void> logout() => _logout(this);
 
   @override
-  Future<FeatureResult> loadFeature(FeatureId feature) =>
-      loadFeatureQuery(feature, const FeatureQuery());
+  Future<FeatureResult> loadFeature(FeatureId feature) => _loadFeatureQuery(
+    this,
+    feature,
+    const FeatureQuery(),
+    loadYgdkRecords: false,
+  );
 
   @override
   Future<FeatureResult> loadFeatureQuery(

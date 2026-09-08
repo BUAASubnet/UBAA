@@ -1,0 +1,32 @@
+{
+  "baseSha": "e812798e334117c69aee5832a555e4b1af8cd2f9",
+  "candidate": "e812798e-d4-r2",
+  "说明": "r1全矩阵，r2仅最后搜索字段修复后的正常两主题链；新增生产只读入口与同候选实现",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_sports/backend.dart": "8fed88cd4dd355e5b5ddd8ec900acae4c211280c374feb1b7c2f9d0e5129e5be",
+    "apps/ubaa_flutter/integration_test/ui_sports/data.dart": "510aeb6fac80956d500383b915f17a0b2370699dc6656d3e2804df2ab19cef97",
+    "apps/ubaa_flutter/integration_test/ui_sports/support.dart": "735dfef33a1074edb49d1fb0aa9c8e7f3ce85121e0428369fdbedd6d7038978c",
+    "apps/ubaa_flutter/integration_test/ui_sports_live_readonly_test.dart": "5536d9ee09dcbe91bc04e2a9144def77e8614f487bc70400f8829efb9402ad5d",
+    "apps/ubaa_flutter/integration_test/ui_sports_test.dart": "81af2055f56ff341fc4c9c740acf2df657fdf92c300551fa4ca8604399c617f1",
+    "apps/ubaa_flutter/test/sports_navigation_test.dart": "4030ddcffafe0120157aff1771e1f56289f9f242dfc3b576c1fa7d4192555212",
+    "packages/ubaa_app/lib/src/bridge/bridge_backend.dart": "179349210d5bd3b0e1d6513e2e2dfe3c96be782c344d490f1c2dfce2fd9ab65b",
+    "packages/ubaa_app/lib/src/bridge/common.dart": "72e404fc9af495a8d5a89f4ee3ee468d6a39508ea8e019dfb87677e46eb5a5cb",
+    "packages/ubaa_app/lib/src/bridge/read/ygdk.dart": "0d782c1db5421d9085ffaa0c25ad7869f5cc278397620dadb50305738596f9da",
+    "packages/ubaa_app/test/bridge_backend_characterization/read.dart": "d0180c9867a01919d2abba3c07e6dca7970bd3eb0471eaa1f37554b452d05350",
+    "packages/ubaa_app/test/bridge_backend_characterization/ygdk_presentation.dart": "a4f267aafc3e6c54d6844a5e8eac995f7718706e3f278bf1ad3ac1dc141f5b50",
+    "packages/ubaa_app/test/bridge_backend_characterization_test.dart": "0f1125b07b25a96c6634580613ac2c9f4b00f092476dec6826f1ed467b925a2a",
+    "packages/ubaa_domain/lib/src/feature/overview.dart": "2163f190907540b9fbe415a71c1525602c3f575549ab7fede0f5d078b1aa7203",
+    "packages/ubaa_domain/lib/src/feature/presentation.dart": "1afd37973e7e074029a3551e839ce94ca39ff0a4c0a55e05478bf8a20d1f6a2c",
+    "packages/ubaa_domain/lib/src/feature/presentation/ygdk.dart": "a279fac4e3955b697af4bfa54c3708ea23392b24b4a0ecda43969cbf637e00a0",
+    "packages/ubaa_host/lib/src/callbacks.dart": "7710fb1d0ad09190ed87e345e44d1db3ca1b8512ac7be298cfb9295fb3914f06",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "629d600f0450a9ebd214b3ba58ae363077714d18a173b91ff3612ef57dc1113a",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "7073f28b1768c70601615ac02ffd1f64f12f4b1b925a67f17d61d66740f2eb12",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "c64af3a9b0a58f9d885b279c495947a58976e55e00bc23fbb7243e1556dac51c",
+    "packages/ubaa_ui/lib/src/features/coursework/coursework_overview.dart": "48b89cd2e76fd1fdc27a79bc10a9a6774f3a22f989975543fd23389e1d6bd69e",
+    "packages/ubaa_ui/lib/src/features/ygdk/home_flow.dart": "dd63e4c08b6660874685e8b75669de06e453a85113e21700f351d1e99467b812",
+    "packages/ubaa_ui/lib/src/features/ygdk/record_card.dart": "34d51aa1071e9395d36f3a7f6841fb0418f996a863473671548f734462b4a805",
+    "packages/ubaa_ui/lib/src/features/ygdk/summary.dart": "05135a55d9b5ffb0ed9a9eaefaddf5928b24e4a91f87eb36af663e4c9ef1107d",
+    "packages/ubaa_ui/lib/src/widgets.dart": "5c2ef280946222102fcae45d05af58a1753f110f13c5d0e1a899be42104b50da",
+    "packages/ubaa_ui/test/navigation/ygdk_content_test.dart": "c1d27eca88f15e2fdddb90167b381e72a6f115f587fc388a702a3ddb2b4fd681"
+  }
+}

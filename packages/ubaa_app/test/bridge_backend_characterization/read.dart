@@ -612,6 +612,7 @@ void registerBridgeBackendReadCharacterization() {
       'spocAssignment:assignmentId=spoc-1',
       'spocAssignments',
       'ygdkOverview',
+      'ygdkRecordsOnRoute:route=webVpn,page=1,size=20',
       'ygdkRecords:page=3,size=77',
     ]);
     expect(results, hasLength(32));

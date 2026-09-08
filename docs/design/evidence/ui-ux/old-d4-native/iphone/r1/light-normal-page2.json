@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-page2",
+  "steps": "独立记录页一基分页与typed记录卡",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T19:46:25.009084Z",
+  "sourceSha": "e812798e-d4-r1",
+  "pngSaved": true
+}

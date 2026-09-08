@@ -113,8 +113,9 @@ Future<void> _dispose(BridgeBackend backend) => backend.client.dispose();
 Future<FeatureResult> _loadFeatureQuery(
   BridgeBackend backend,
   FeatureId feature,
-  FeatureQuery query,
-) async {
+  FeatureQuery query, {
+  bool loadYgdkRecords = true,
+}) async {
   try {
     final today = _dateOnly(query.date ?? DateTime.now());
     return await switch (feature) {
@@ -133,7 +134,12 @@ Future<FeatureResult> _loadFeatureQuery(
       FeatureId.bykc => _loadBykcFeature(backend, feature, query),
       FeatureId.libbook => _loadLibbookFeature(backend, feature, query, today),
       FeatureId.cgyy => _loadCgyyFeature(backend, feature, query, today),
-      FeatureId.ygdk => _loadYgdkFeature(backend, feature, query),
+      FeatureId.ygdk => _loadYgdkFeature(
+        backend,
+        feature,
+        query,
+        includeRecords: loadYgdkRecords,
+      ),
       FeatureId.evaluation => _loadEvaluationFeature(backend, feature, query),
     };
   } on BridgeError catch (error) {

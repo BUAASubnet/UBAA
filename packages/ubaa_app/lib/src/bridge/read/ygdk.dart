@@ -44,17 +44,51 @@ Future<FeatureResult> _loadYgdkRecordsOnRoute(
 Future<FeatureResult> _loadYgdkFeature(
   BridgeBackend backend,
   FeatureId feature,
-  FeatureQuery query,
-) async {
+  FeatureQuery query, {
+  bool includeRecords = false,
+}) async {
   final client = backend.client;
   switch (feature) {
     case FeatureId.ygdk:
       switch (query.view) {
         case FeatureQueryView.summary:
           final result = await client.ygdkOverview();
+          YgdkHomeRecords? records;
+          if (includeRecords) {
+            final page = query.page <= 0 ? 1 : query.page;
+            final size = query.size.clamp(1, 100);
+            try {
+              final response = await client.ygdkRecordsOnRoute(
+                route: result.route.resolvedRoute,
+                page: page,
+                size: size,
+              );
+              if (response.pinnedRoute != result.route.resolvedRoute) {
+                throw const BackendException(UbaaErrorCode.internalError);
+              }
+              records = YgdkHomeRecords(
+                page: response.data.page,
+                size: response.data.size,
+                total: response.data.total,
+                hasMore: response.data.hasMore,
+                content: List.unmodifiable(
+                  response.data.content.map(_ygdkRecordPresentation),
+                ),
+              );
+            } on BridgeError catch (error) {
+              // 认证失效交给原控制器；其他局部失败保留概要，不伪造空记录。
+              if (error.kind == BridgeErrorKind.authentication) rethrow;
+              records = YgdkHomeRecords(
+                page: page,
+                size: size,
+                errorCode: _typedErrorCode(error.code),
+              );
+            }
+          }
           return _mapYgdkOverviewResult(
             result.data,
             _toConnectionMode(result.route.resolvedRoute),
+            records: records,
           );
         case FeatureQueryView.ygdkRecords:
           final page = query.page <= 0 ? 1 : query.page;
@@ -100,8 +134,9 @@ Future<FeatureResult> _loadYgdkFeature(
 
 FeatureResult _mapYgdkOverviewResult(
   BridgeYgdkOverview data,
-  ConnectionMode resolvedRoute,
-) {
+  ConnectionMode resolvedRoute, {
+  YgdkHomeRecords? records,
+}) {
   final itemIdCounts = <int, int>{};
   for (final item in data.items) {
     itemIdCounts.update(item.itemId, (count) => count + 1, ifAbsent: () => 1);
@@ -110,6 +145,12 @@ FeatureResult _mapYgdkOverviewResult(
       .map(
         (item) => FeatureDetail(
           title: item.name,
+          presentation: YgdkItemPresentation(
+            itemId: item.itemId,
+            name: item.name,
+            kind: item.kind,
+            sort: item.sort,
+          ),
           fields: _compactFields(<FeatureField?>[
             _field('项目编号', '${item.itemId}'),
             item.kind == null ? null : _field('类型', '${item.kind}'),
@@ -123,6 +164,23 @@ FeatureResult _mapYgdkOverviewResult(
       : '学期进度 ${data.summary.termCount}/${data.summary.termTarget}';
   return FeatureResult.success(
     summary: summary,
+    overview: YgdkOverview(
+      termId: data.summary.termId,
+      termName: data.summary.termName,
+      termCount: data.summary.termCount,
+      termTarget: data.summary.termTarget,
+      weekCount: data.summary.weekCount,
+      weekTarget: data.summary.weekTarget,
+      monthCount: data.summary.monthCount,
+      monthTarget: data.summary.monthTarget,
+      dayCount: data.summary.dayCount,
+      goodCount: data.summary.goodCount,
+      classifyId: data.classifyId,
+      classifyName: data.classifyName,
+      defaultItemId: data.defaultItemId,
+      defaultItemName: data.defaultItemName,
+      records: records,
+    ),
     details: details,
     resolvedRoute: resolvedRoute,
   );
@@ -137,6 +195,7 @@ FeatureResult _mapYgdkRecordsResult(
         (item) => FeatureDetail(
           title: item.itemName ?? '打卡记录 ${item.recordId}',
           subtitle: item.createdAtLabel ?? item.createdAt,
+          presentation: _ygdkRecordPresentation(item),
           fields: _compactFields(<FeatureField?>[
             _field('记录编号', '${item.recordId}'),
             _field('开始时间', item.startTime),
@@ -199,3 +258,18 @@ ActionEligibility _toYgdkActionEligibility(
   BridgeActionEligibility.denied => ActionEligibility.denied,
   BridgeActionEligibility.unknown => ActionEligibility.unknown,
 };
+
+YgdkRecordPresentation _ygdkRecordPresentation(BridgeYgdkRecord item) =>
+    YgdkRecordPresentation(
+      recordId: item.recordId,
+      itemId: item.itemId,
+      itemName: item.itemName,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      place: item.place,
+      imageCount: item.imageCount,
+      isOpen: item.isOpen,
+      state: item.state,
+      createdAt: item.createdAt,
+      createdAtLabel: item.createdAtLabel,
+    );

@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-page2",
+  "steps": "独立记录页一基分页与typed记录卡",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T20:02:49.738431Z",
+  "sourceSha": "e812798e-d4-r2",
+  "pngSaved": true
+}

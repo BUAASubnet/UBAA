@@ -13,6 +13,7 @@ class _CourseworkOverview extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: switch (overview) {
+            YgdkOverview p => _YgdkSummary(p),
             EvaluationProgressOverview p => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

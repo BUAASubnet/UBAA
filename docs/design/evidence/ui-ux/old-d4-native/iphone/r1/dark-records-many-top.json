@@ -1,0 +1,14 @@
+{
+  "name": "dark-records-many-top",
+  "steps": "42条合成记录首屏",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T19:45:47.475622Z",
+  "sourceSha": "e812798e-d4-r1",
+  "pngSaved": true
+}

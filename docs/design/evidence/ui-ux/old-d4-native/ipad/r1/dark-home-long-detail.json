@@ -1,0 +1,14 @@
+{
+  "name": "dark-home-long-detail",
+  "steps": "1.3长文记录完整详情可以滚动",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T19:49:09.744747Z",
+  "sourceSha": "e812798e-d4-r1",
+  "pngSaved": true
+}

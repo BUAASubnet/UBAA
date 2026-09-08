@@ -1,0 +1,73 @@
+{
+  "场景": "D4生产阳光首页记录详情与分页",
+  "日期": "2026-09-09",
+  "功能编号": [
+    "YG-01",
+    "YG-02"
+  ],
+  "源码基点": "e812798e334117c69aee5832a555e4b1af8cd2f9",
+  "backend": "生产bootstrap与FRB，无fake",
+  "平台": "macOS实际应用",
+  "入口": "integration_test/ui_sports_live_readonly_test.dart",
+  "凭据路径": ".env.local安全stdin；新建两路线私有目录，不改既有会话",
+  "读取": [
+    {
+      "view": "summary",
+      "status": "success",
+      "route": "direct",
+      "count": "11",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "ygdkRecords",
+      "status": "success",
+      "route": "direct",
+      "count": "5",
+      "displayPage": "2",
+      "error": "null"
+    },
+    {
+      "view": "ygdkRecords",
+      "status": "success",
+      "route": "direct",
+      "count": "5",
+      "displayPage": "1",
+      "error": "null"
+    },
+    {
+      "view": "summary",
+      "status": "success",
+      "route": "webvpn",
+      "count": "11",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "ygdkRecords",
+      "status": "success",
+      "route": "webvpn",
+      "count": "5",
+      "displayPage": "2",
+      "error": "null"
+    },
+    {
+      "view": "ygdkRecords",
+      "status": "success",
+      "route": "webvpn",
+      "count": "5",
+      "displayPage": "1",
+      "error": "null"
+    }
+  ],
+  "首页记录": "两路线分别20条，第1页，无局部错误；本地详情不增加读取",
+  "操作": "独立记录每页5条，显示第2页返回第1页，关闭重开保留页码草稿2；正文无常驻查询",
+  "Core-live": "两路线各3认证+2阳光读取PASS",
+  "结果": "Direct r1约37秒，WebVPN r1约32秒，各1原生场景退出0",
+  "业务写入": 0,
+  "边界": [
+    "无截图、无个人字段归档",
+    "运行器均有foreground open returned 1提示；原生测试完成，独立可见实窗仅使用另列合成CUA证据",
+    "不证明P5完整照片提交与unknown回读、全首页提醒或最终P6"
+  ]
+}

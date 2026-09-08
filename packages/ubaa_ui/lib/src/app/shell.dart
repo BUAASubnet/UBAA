@@ -18,6 +18,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
     this.onLoadAcademicTerms,
+    this.ygdkRecordsReadback,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -47,6 +48,9 @@ class UbaaMainShell extends StatefulWidget {
 
   final UserSummary? user;
   final Map<FeatureId, FeatureSnapshot> snapshots;
+
+  /// 仅用于呈现原协调器已完成的固定路线记录回读，不触发新读取。
+  final FeatureSnapshot? ygdkRecordsReadback;
   final RoutePolicy routePolicy;
   final bool telemetryEnabled;
   final Future<void> Function() onRefresh;
@@ -338,6 +342,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       isLanding: page.isLanding,
       isBykcChosenDetail: page.isBykcChosenDetail,
       onOpenBykcChosen: page.onOpenBykcChosen,
+      ygdkRecordsReadback: widget.ygdkRecordsReadback,
       feature: feature,
       snapshot: page.snapshot,
       query: page.query,

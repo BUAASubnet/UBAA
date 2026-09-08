@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-filtered",
+  "steps": "本地记录筛选关闭后保留，不重算学期次数",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T19:56:22.858013Z",
+  "sourceSha": "e812798e-d4-r2",
+  "pngSaved": true
+}

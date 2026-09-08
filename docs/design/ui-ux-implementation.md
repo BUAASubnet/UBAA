@@ -275,3 +275,7 @@ D1先完成图书馆5种读取视图与场馆6种读取视图，包括父馆/楼
 D1复用C的typed父详情与overview传递，但预约目标仍只从既有action消费。图书馆公开日期列表与时段缺乏关联来源，不能自动绑定第一天，继续保留显式完整参数输入并说明上下文；场馆补回被旧App丢弃的denied/unknown只读时段，不能将它们升级为可写或统一称已占用。完整来源与前置测试见`source-parity-ui-reservations.md`。
 
 D2集合元数据复用FeatureOverview，不从summary字符串提取统计；普通与固定路线回读继续使用同一mapper。博雅记录ID、课程ID及签到点配置分清，阳光项目action不得由默认项目或名称重建；历史照片只显示imageCount，本次用户选取的本地图片仍沿已有能力与释放规则。完整来源见`source-parity-ui-campus.md`。两批均保留原手填查询、真实分页及所有写资格，未知模型兼容展示不得连带移除合法实体入口。
+
+## O3-D4实施回写
+
+阳光公开概要、项目/记录typed投影和固定路线组合查询已实施；新组件为`features/ygdk/{summary,record_card,home_flow}.dart`，宿主只传既有记录回读。当前范围是旧首页与记录阅读、按需完整查询、新增项目选择和原有准备取消能力；P5继续旧独立照片表单与所有提交状态。对应RED/GREEN、三端及真实读取证据见`../migration/evidence/2026-09-08-ui-ux.md`，不承袭首版P4-D旧候选状态。
