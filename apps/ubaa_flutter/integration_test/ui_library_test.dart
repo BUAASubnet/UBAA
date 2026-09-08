@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'ui_library/backend.dart';
+part 'ui_library/map_scenarios.dart';
 
 void main() {
   if (const bool.fromEnvironment('UBAA_UI_INSPECTION')) {
@@ -43,6 +45,7 @@ void main() {
     expect(result.pagination?.total, 3);
     expect(result.pagination?.hasMore, false);
   });
+  registerLibraryMapTests(binding);
   for (final brightness in Brightness.values) {
     testWidgets('图书馆原生完整选择和取消准备 ${brightness.name}', (tester) async {
       final backend = LibraryBackend();
@@ -195,12 +198,17 @@ Future<void> _mount(
 Future<void> _ensure(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
     final scroll = find
-        .byWidgetPredicate(
-          (w) =>
-              w is Scrollable &&
-              w.axisDirection == AxisDirection.down &&
-              w.physics is! NeverScrollableScrollPhysics,
-        )
+        .byElementPredicate((element) {
+          final widget = element.widget;
+          // 排除错误编号等可选择文本内部的20像素滚动区。
+          return widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down &&
+              widget.physics is! NeverScrollableScrollPhysics &&
+              element is StatefulElement &&
+              (element.state as ScrollableState).position.viewportDimension >
+                  100;
+        })
+        .hitTestable()
         .last;
     await tester.drag(scroll, const Offset(0, 1200));
     await tester.pumpAndSettle();

@@ -42,6 +42,7 @@ part 'features/libbook.dart';
 part 'features/libbook/reservation_flow.dart';
 part 'features/libbook/reservation_content.dart';
 part 'features/libbook/booking_row.dart';
+part 'features/libbook/area_map.dart';
 part 'features/ygdk.dart';
 part 'write/cgyy_form.dart';
 part 'write/confirmation.dart';

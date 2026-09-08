@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-reserve-confirm",
+  "steps": "准备的是独立canonical目标；未提交",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:24:25.247999Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

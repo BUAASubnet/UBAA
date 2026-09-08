@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-seats",
+  "steps": "仅一次座位查询，显示所有状态四列网格",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:18:14.638245Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

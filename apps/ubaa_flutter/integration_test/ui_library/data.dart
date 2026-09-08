@@ -59,7 +59,7 @@ FeatureResult libraryData(FeatureQuery q, String state) {
           item(
             label('安静阅览区 $index'),
             LibbookAreaPresentation(
-              id: '$floor-area-$index',
+              id: state == 'map' && index == 1 ? '8' : '$floor-area-$index',
               name: label('安静阅览区 $index'),
               areaName: '合成校区',
               premisesId: parent,

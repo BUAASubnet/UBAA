@@ -1,0 +1,296 @@
+{
+  "referenceCommit": "6e75e120a26b0eefb3ab4a6f8251d1230db4a62e",
+  "conversion": "按EXIF方向与ICC颜色转换为sRGB；仅保存RGB像素，不复制作者、XMP、EXIF或其他元数据",
+  "maps": [
+    {
+      "areaId": "6",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_6.jpg",
+      "sourceSha256": "a7c82c92f1371365ddf2662e765ffdb4c20d10dbbd4a8a3b0bd2bc648bc3667f",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_6.png",
+      "assetSha256": "30becb48838bd098da34e4d3a9c4ea5f4219cd9b7006ef8b972de0b69fc1acb8",
+      "rgbPixelSha256": "7973a773a70476c395350dd4d2c0c80de8f91e9f65d9c747c1bec6bf757e1f77",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "8",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_8.jpg",
+      "sourceSha256": "b7e3b994b73a299e04b74d768163b6ffc586359df30891a0ce6d48b7acfeb62c",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_8.png",
+      "assetSha256": "b3d9cdf83320327bea43b8030bec518dbe14ce45c31bcde8308a416d42a2150f",
+      "rgbPixelSha256": "a4f7885f8a0c2f9b188e51ecb549abd37ce489ae3da242e783edb1e55d7a1743",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "16",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_16.jpg",
+      "sourceSha256": "a428b11b038513e1f0957b12a751e6f39e1443f01e45fe54fc9d1b80215ea203",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_16.png",
+      "assetSha256": "02752e883564716535ffafe757fb4fd3f7bb1559bdf5446ad3a03e0de15de20e",
+      "rgbPixelSha256": "bc4ad91676d7a38e7bfbf9b6b35bce4589ecb992475ad4e0f4f50012b1a53910",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "18",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_18.jpg",
+      "sourceSha256": "2a39e6696c1dce3333c629713c07ff606b45b80f941761e0345f2074d3fb42e0",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_18.png",
+      "assetSha256": "7bd6eaea20ff580ef0356abe43fe50b0701ebd1a485d542311184f6d9c74749a",
+      "rgbPixelSha256": "796f092f421870546875bf02fc0e4764f224859af6197cada45e9dd35e5210d6",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "19",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_19.jpg",
+      "sourceSha256": "f02c4816c1a1da7cf7c229098fbcd03c012c86a72784ee83aaf57259f5c6938f",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_19.png",
+      "assetSha256": "d3c9ada62dace929735a1d7ec5adfe599dedf4b510119e0ae3612dbce06683ae",
+      "rgbPixelSha256": "48421a0d196be57d80b57a23a46f96d0fe8acbc1f8ce7f39bc54f5a6a079b4c8",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "20",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_20.jpg",
+      "sourceSha256": "75d3c8d7930191a3ffedf36c3f84263861ffb9447e3f349b3ff5d3f6d33b9236",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_20.png",
+      "assetSha256": "c688efc15bda55a8cc0caa18a2343837c22e022d3ffc4f77e627a8795b99ba3a",
+      "rgbPixelSha256": "43e5e6cd3253418f2c9d548bc70bc39616d90fdc0693da986f5498ad27ec56c4",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "21",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_21.jpg",
+      "sourceSha256": "701c085b4e987a3e790b0ee262e577cf65198b4152fb0098de876ff6d89d0371",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_21.png",
+      "assetSha256": "1c11be9c1fda5971730f259ebd4e065f9a286b59d16539aedd4b2e20a3a534c7",
+      "rgbPixelSha256": "28c02efe571791db3b76601f2bd54c960e88d6cb5b2c92cf796f5c259cf0bfc8",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "22",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_22.jpg",
+      "sourceSha256": "fd476f0e6c8d6b988d6fb066213833aa4606c867ca1ad0c2aeb8d40ab9b94522",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_22.png",
+      "assetSha256": "a798174c45543399da05b3a8d3a93324ab855598fec905aa630785d9e833a044",
+      "rgbPixelSha256": "f42c2184f8647290cef341e24d8a44ea0463ae8da908ea51ceae94ecb279f04f",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "23",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_23.jpg",
+      "sourceSha256": "671eb309ebc0fcd65cb29a42a34d2f5c8b5acaaad1c749c5807bd0185fbd3398",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_23.png",
+      "assetSha256": "e1cfff7ce6e927d6879032aebfc8bf513b94c8527ec85226ac95c3633b5c8f67",
+      "rgbPixelSha256": "dbdf602a6f8bc66f0a11b620417c147bb91435942de968754e9d3af3b584c172",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "24",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_24.jpg",
+      "sourceSha256": "ff81ba2c07c42cb534c70866ae4980ca453d2c480be1578ad85a78eaa8184406",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_24.png",
+      "assetSha256": "2a46e3a4503f1f1c2b68137be07daad9e786568a8c5b0f27a1c33394d72d446e",
+      "rgbPixelSha256": "e92839beb418662a78030d45b1c5b07a54b622175499bd45db039c06bb950e6c",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "25",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_25.jpg",
+      "sourceSha256": "95883d1a76f69f54240eb29e37b9f5ab9fe0fcda9f19ecb6e2360deec5c64a69",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_25.png",
+      "assetSha256": "8953d49642354710378d632d364f1ae796334318beb0baf12b209c87888cb024",
+      "rgbPixelSha256": "50839255cb44e646f3d1bf3fa49def12081e9e66e999b1806ee1b87990847b41",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "26",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_26.jpg",
+      "sourceSha256": "9c9790554377a4db5a13ded28470fc304e0f275aee044c73e54b21dfbe4cb86c",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_26.png",
+      "assetSha256": "54045c979a2562a7c07b5ca9d6980e61a0be7ba0d6576ca0f2aa24345cb5fc42",
+      "rgbPixelSha256": "9d589a60621c650d3b9106e06050ce9b6d941e181df841e0bed00c63fa9aa6f8",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "27",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_27.jpg",
+      "sourceSha256": "3aa221962943a5738cefd29032e02663d06ca7ac57f80e5c4fcca7a8f662ec80",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_27.png",
+      "assetSha256": "50bfc2d357d4080ae1510a3c49a1e1a0f39d048159653f4ea8bc351f0ab03fe6",
+      "rgbPixelSha256": "4b7ed0912761decc80f0c02aa91cab0e4be3202cb34459e94affebfd7d2c2438",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "28",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_28.jpg",
+      "sourceSha256": "707df493d0ea32dfe3564dd72205b328b81660a4475796812b63c1f1b1bb3439",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_28.png",
+      "assetSha256": "c7e55089567c75ea6a7f34556294ad9158acdfd32e4c34948e1bbdf0b50445f8",
+      "rgbPixelSha256": "5d88cda0a834356adaf1fd4682ea842faeb9119a8a11c927101ceb97eb941de6",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "29",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_29.jpg",
+      "sourceSha256": "ee6d4a44a14eec3eb128f42acdeefb107d66516768db4b557f5c5f0b474f12cd",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_29.png",
+      "assetSha256": "4a745378486b23328204c342950cf21561be0fe4bee2c6207b8075f738084d45",
+      "rgbPixelSha256": "079bc5b14ed6f77dcd4f79c98e6a32aea7f35685b254b4f442ebbb17c96815b6",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "52",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_52.jpg",
+      "sourceSha256": "1783907ec7c0ec1f37c3841af00962faecaa105037b050abb5e055d551b4e8dc",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_52.png",
+      "assetSha256": "41ec5015f6ca5342319d8eb6162a0ef8239f432e4ce81bee8414a142508a458f",
+      "rgbPixelSha256": "bf3f2c8c4af7f071e98b8e3c958b5e980ef39917f13e9d9b21d1657cc93ab891",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "53",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_53.jpg",
+      "sourceSha256": "04a25821da042a8f9f30eab3083bc7c7501217a8ea2aa61b587e1f2e2248ed31",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_53.png",
+      "assetSha256": "d7b44377c5d43a63deb82678d0b9b8c773dabdda939c6980fcc3ed126e613251",
+      "rgbPixelSha256": "8f43d7d9cd0f66fa85a257762432f150b8e0c82fed20dfbd4a264160ed72cff9",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "63",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_63.jpg",
+      "sourceSha256": "682716b98f4204e663e409476c2a94a37ff69b4b1c39c56e371c5545e7eea334",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_63.png",
+      "assetSha256": "4e51f7c2d2938c63e66ce9d0febd4236eba1e5df97cdb649edd2681942fac339",
+      "rgbPixelSha256": "4ac7a863af6ff56a42693a0c0501b48db6278d4faa8a339cc500e6b330d4ea6a",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "64",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_64.jpg",
+      "sourceSha256": "98f5a304fa2f8305abf745635753320e53b092127f5c02fc14870796aa99902a",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_64.png",
+      "assetSha256": "b15e078f8648c5158de534acff5ef7b2ce309632fe7b91675fdeb2dd6eccc0cd",
+      "rgbPixelSha256": "f7bcd096a885594c9bc89dcab4bb09d8d58e3ae7361fa3caabf5dede9ba1fe4f",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "65",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_65.jpg",
+      "sourceSha256": "a59b1239edbae574825199aaa57363f7c9f7dae2a5aa52a305a75b50e6e66f97",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_65.png",
+      "assetSha256": "f770590d7a16ba91b33c0d17aded26b950d78d6c74d85f5cef4227a674e7d808",
+      "rgbPixelSha256": "08cb3727d76fbef80c31ce9cc093c7837237105d6704a0f4a6ebbfd7b45b17d3",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "67",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_67.jpg",
+      "sourceSha256": "98611fef63a3deaeb0b8e74ba56664111661036a43baa8d646861bae1f1c680b",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_67.png",
+      "assetSha256": "995a7bf4f09254b7dd008c8000e223955969970560f7aca6fb9934ec929e1807",
+      "rgbPixelSha256": "7389caa35d456cf673195172287a667fab2c090d660ded8ef351a3f68edc1933",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "68",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_68.jpg",
+      "sourceSha256": "9bb6b1a3b871052a9af1eb62bd2280c9e2beaf521c8fc2fdecb6c355e21af89f",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_68.png",
+      "assetSha256": "c83ee6fb70442cc30e0ab669302236cef79ab54505cdc1e79f5ef2dd516900c3",
+      "rgbPixelSha256": "c5047abaeeac2ec39e18350bc4e6ee313fc57efc9de662824104a85c9ac2786f",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "69",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_69.jpg",
+      "sourceSha256": "81652634dd01d2533ec53dd02f31a65065fbb009162698bedddbef427c9521f3",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_69.png",
+      "assetSha256": "631f9eeeb82658049bcc27c06fdf679963b55be3b365dc363bbbd753f4efd491",
+      "rgbPixelSha256": "5db6ad4a04f089d8f0c1e998a60079fedc713118b3acbeb5bbe57026faecbf47",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "71",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_71.jpg",
+      "sourceSha256": "7ed23578f7e499cb519b6a4f61519d53f6e49b9c42b1b54da116f2d7b9c79b8a",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_71.png",
+      "assetSha256": "752f260472fd0c6bc0310ac8b2689c427122467a9b37d79051c4e1b835c67dce",
+      "rgbPixelSha256": "68b7fbb227e20d5e91202a4963dcecd3d88afd9de1d57d4306bd0238325f102a",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "72",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_72.jpg",
+      "sourceSha256": "e16207f8e4d77f07851a4e672b4d2693914d3a112998fadd5d5cc394d30c8b70",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_72.png",
+      "assetSha256": "593651347635c893f281ee4271d901b2bce34d38aae1301a960855fe3cef3a0b",
+      "rgbPixelSha256": "2af51527f1388d36b97a13d0eaaf15263c116fb83f55ad81bc10beff9c3a5bf1",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "73",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_73.jpg",
+      "sourceSha256": "049e72c2c756dd14462ad6538cd16539cba3571f814a3cc2eec8ec36f226b06e",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_73.png",
+      "assetSha256": "905355c228a58fc832d2cdcb769d271dc27d6797e3561c262006f389a8adc73b",
+      "rgbPixelSha256": "77d7a6268e3c008cc2f915be50a89ec3fd5f27508f59b90d1c50fb56e87e50c0",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "82",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_82.jpg",
+      "sourceSha256": "e4a54b6ad163fda6221b537e5ba1d4b3d2b210aabe163ab4fab6d44332de2750",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_82.png",
+      "assetSha256": "3063a39457cfa2f251c5cb0fcd2fc4e3691aeeeda62b02b385c1ab2653d4c7b4",
+      "rgbPixelSha256": "e0a61ea438a367ed8bec3a34b004f0983dc2b6acbb3ea2ded3d37eb83047f1e6",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "83",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_83.jpg",
+      "sourceSha256": "e6079d947eee0c9ba539d2071fbdff0cba0d2043151bb30fb7ad60805b035bc1",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_83.png",
+      "assetSha256": "8ef085ad81add7155ef285800f79014290a2d3cd94c3f5dc4e3c2cdd2bf315b4",
+      "rgbPixelSha256": "a780f38704fbd5ae3a46f3afa8005d68b5ac2e21eccfc895dc54030c41fd842b",
+      "width": 1921,
+      "height": 1080
+    },
+    {
+      "areaId": "117",
+      "source": "ubaa_old/composeApp/src/commonMain/composeResources/drawable/area_117.jpg",
+      "sourceSha256": "353e7e67461771294127fca347acaff8f503a2914aab36261021f7737041a272",
+      "asset": "packages/ubaa_ui/assets/libbook_maps/area_117.png",
+      "assetSha256": "b4603d9e0866a8cace532b85b97c570be8c9786570ac29ac1d1fe06115ba81b2",
+      "rgbPixelSha256": "41f9c080624b3ce37cb4727460580e6051c5f31e7729eaa3c8651cf3bbdd367d",
+      "width": 1921,
+      "height": 1080
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "light-map-unknown",
+  "steps": "切换到未打包分区后不借用上一张地图",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:23:20.441392Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

@@ -7,6 +7,43 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../integration_test/ui_library/backend.dart';
 
 void main() {
+  testWidgets('图书馆点选时段只回填原始三字段，日期仍须明确填写', (tester) async {
+    final backend = await _open(tester);
+    final before = backend.libraryReads.length;
+    await _tap(tester, find.widgetWithText(ActionChip, '下午 14:00–16:00'));
+    expect(backend.libraryReads, hasLength(before));
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '日期'))
+          .controller!
+          .text,
+      isEmpty,
+    );
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '开始时间'))
+          .controller!
+          .text,
+      '14:00',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '结束时间'))
+          .controller!
+          .text,
+      '16:00',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '时段编号（必填）'))
+          .controller!
+          .text,
+      'segment-b',
+    );
+    await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
+    expect(backend.libraryReads, hasLength(before));
+    expect(find.text('请先明确选择预约日期。'), findsOneWidget);
+  });
   testWidgets('图书馆本地搜索保留状态查询能力且不触发读取', (tester) async {
     final backend = await _open(tester);
     await _seatQuery(tester, backend);

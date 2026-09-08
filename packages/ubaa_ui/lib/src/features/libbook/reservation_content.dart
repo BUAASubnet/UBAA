@@ -18,13 +18,41 @@ extension _LibbookReservationContent on _LibbookReservationFlowState {
           ],
           if (area.timeSlots.isNotEmpty) ...[
             _section('时段'),
-            for (final slot in area.timeSlots)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: SelectableText(
-                  '${slot.label} · ${slot.start}–${slot.end}\n时段编号：${slot.id}',
-                ),
-              ),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final slot in area.timeSlots)
+                  Tooltip(
+                    message: '时段编号：${slot.id}',
+                    child: ActionChip(
+                      label: Text('${slot.label} ${slot.start}–${slot.end}'),
+                      onPressed:
+                          widget.onQuery == null ||
+                              [
+                                area.id,
+                                slot.id,
+                                slot.start,
+                                slot.end,
+                              ].any((v) => v.trim().isEmpty) ||
+                              area.timeSlots
+                                      .where((other) => other.id == slot.id)
+                                      .length !=
+                                  1
+                          ? null
+                          : () => widget.onSeatQuery(
+                              FeatureQuery(
+                                view: FeatureQueryView.libbookSeats,
+                                areaId: area.id,
+                                segment: slot.id,
+                                startTime: slot.start,
+                                endTime: slot.end,
+                              ),
+                            ),
+                    ),
+                  ),
+              ],
+            ),
             const Text('当前时段未标明适用日期，请核对日期和时段后查询座位。'),
           ] else
             const Padding(

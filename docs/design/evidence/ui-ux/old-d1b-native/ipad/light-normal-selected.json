@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-selected",
+  "steps": "只选择allowed座位后显示摘要和准备入口",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:24:24.815518Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

@@ -292,6 +292,14 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     final library = selectedLibraries.length == 1
         ? selectedLibraries.single
         : null;
+    final mapAreas = <String, String>{
+      for (final detail in details)
+        if (detail.presentation case LibbookAreaDetailPresentation p)
+          p.id: p.name,
+      for (final detail in details)
+        if (detail.presentation case LibbookSeatPresentation p)
+          p.areaId: '座位分布',
+    };
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       children: [
@@ -379,6 +387,11 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
                 ),
               ),
         ],
+        if (!_busy && mapAreas.length == 1)
+          _LibraryMapControl(
+            areaId: mapAreas.keys.single,
+            areaName: mapAreas.values.single,
+          ),
         if (_busy)
           const Padding(
             padding: EdgeInsets.all(24),

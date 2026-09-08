@@ -1,0 +1,14 @@
+{
+  "name": "dark-many-top",
+  "steps": "大量座位首屏四列，各状态均可见",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:24:06.992388Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

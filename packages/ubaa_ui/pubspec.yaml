@@ -20,3 +20,7 @@ dev_dependencies:
     sdk: flutter
   ubaa_app:
     path: ../ubaa_app
+
+flutter:
+  assets:
+    - assets/libbook_maps/

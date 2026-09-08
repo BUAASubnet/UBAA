@@ -1,0 +1,14 @@
+{
+  "name": "light-loading-result",
+  "steps": "检查本状态实际原生视图、文字、滚动和错误说明",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:24:41.550818Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

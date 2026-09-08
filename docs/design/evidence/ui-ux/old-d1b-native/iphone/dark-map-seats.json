@@ -1,0 +1,14 @@
+{
+  "name": "dark-map-seats",
+  "steps": "明确填写日期后查询座位，地图入口仍对应实际areaId",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:17:51.771281Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

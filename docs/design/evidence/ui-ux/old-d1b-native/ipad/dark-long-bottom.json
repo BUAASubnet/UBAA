@@ -1,0 +1,14 @@
+{
+  "name": "dark-long-bottom",
+  "steps": "1.3文字与长名称仍可滚动到下一操作",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:23:57.672607Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

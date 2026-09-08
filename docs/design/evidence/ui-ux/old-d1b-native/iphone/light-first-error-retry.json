@@ -1,0 +1,14 @@
+{
+  "name": "light-first-error-retry",
+  "steps": "首次失败显式重试后恢复楼馆分区",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:19:28.206104Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}

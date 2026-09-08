@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-booking-page-two",
+  "steps": "第二页显示剩余一条，总数仍为3；未知资格无可点取消",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T06:23:47.475629Z",
+  "sourceSha": "ee7d08a5-d1b-working",
+  "pngSaved": true
+}
