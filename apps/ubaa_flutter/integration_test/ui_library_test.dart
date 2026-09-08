@@ -15,7 +15,12 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
     runApp(
       UbaaFlutterApp(
-        backend: LibraryBackend(),
+        backend: LibraryBackend(
+          state: const String.fromEnvironment(
+            'UBAA_UI_STATE',
+            defaultValue: 'normal',
+          ),
+        ),
         credentialVault: MemoryCredentialVault(),
         initialTab: 1,
       ),
