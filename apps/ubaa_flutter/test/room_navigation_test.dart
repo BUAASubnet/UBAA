@@ -6,6 +6,34 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../integration_test/ui_rooms/backend.dart';
 
 void main() {
+  testWidgets('研讨室输入第2页及前后页按钮保留零基读取与一基显示', (tester) async {
+    final backend = await _open(tester);
+    await _tap(tester, find.byTooltip('返回'));
+    await _tap(tester, find.widgetWithText(Card, '我的预约'));
+    expect(backend.roomReads.last.page, 0);
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    await tester.enterText(find.widgetWithText(TextField, '每页数量'), '1');
+    await tester.enterText(find.widgetWithText(TextField, '页码'), '2');
+    await _tap(tester, find.text('应用筛选'));
+    expect(backend.roomReads.last.page, 1);
+    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    expect(find.text('第 2 / 3 页（共 3 条）'), findsOneWidget);
+    await _tap(tester, find.byTooltip('上一页'));
+    expect(backend.roomReads.last.page, 0);
+    expect(find.text('第 1 / 3 页（共 3 条）'), findsOneWidget);
+    await _tap(tester, find.byTooltip('下一页'));
+    expect(backend.roomReads.last.page, 1);
+    expect(find.text('第 2 / 3 页（共 3 条）'), findsOneWidget);
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '页码'))
+          .controller!
+          .text,
+      '2',
+    );
+    expect(backend.commitCalls, 0);
+  });
   testWidgets('研讨室隐藏后首页刷新只读取站点不自动扩展日期空间', (tester) async {
     final backend = await _open(tester, width: 1280);
     await _tap(tester, find.byIcon(Icons.home_outlined));

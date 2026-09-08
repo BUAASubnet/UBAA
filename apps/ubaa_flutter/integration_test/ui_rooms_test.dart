@@ -86,6 +86,7 @@ void main() {
       await shot('campus', '切校区选择该校区首站点，保持明确日期');
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.widgetWithText(Card, '我的预约'));
+      expect(backend.roomReads.last.page, 0);
       await shot('orders', '预约记录地点状态时间优先，详情及允许取消入口');
       await _tap(tester, find.widgetWithText(OutlinedButton, '查看详情').first);
       expect(backend.roomReads.last.orderId, 101);
@@ -100,8 +101,23 @@ void main() {
       await _edit(tester, '每页数量', '2');
       await _tap(tester, find.text('应用筛选'));
       await _closePanel(tester);
+      expect(backend.roomReads.last.page, 1);
       expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
-      await shot('page-two', '按服务器页2显示剩余未知资格订单，不出现取消动作');
+      await shot('page-two', '显示第2页但请求原始page=1，保留未知资格订单');
+      await _tap(tester, find.byTooltip('上一页'));
+      expect(backend.roomReads.last.page, 0);
+      expect(find.textContaining('第 1 / 2 页'), findsOneWidget);
+      await _tap(tester, find.byTooltip('下一页'));
+      expect(backend.roomReads.last.page, 1);
+      await _panel(tester);
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '页码'))
+            .controller!
+            .text,
+        '2',
+      );
+      await _closePanel(tester);
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.widgetWithText(Card, '门锁状态'));
       await shot('lock', '仅显示公开available，不输出锁码或原始内容');

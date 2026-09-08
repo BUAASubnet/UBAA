@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-query-draft",
+  "steps": "右上按需面板草稿关闭重开仍在，选择未清掉，未增加读取",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T14:56:34.612908Z",
+  "sourceSha": "ab1a777b-d2b",
+  "pngSaved": true
+}

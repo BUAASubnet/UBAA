@@ -81,8 +81,8 @@
 | CG-02 | 用途 / 用途类型 | `F/read/services.rs cgyy_purpose_types`；`cgyy.dart` | 来源 upstream/static_fallback 必须明示 | 有 | 有 | 独立用途查询与来源已保留；表单typed用途选择随P5补齐 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 572项Flutter门禁通过；typed投影/自然选择/草稿回归 | D2手机/平板各44图与macOS14项原生及6图实窗；最终P6待验 | Core-live双路线六读PASS；生产App新UI待验 |
 | CG-03 | 日期空间 / 日期空间 | `F/read/services.rs cgyy_day_info`；`cgyy.dart` | 正 siteId、严格日期 | 有 | 有 | 站点带入日期选择，保留返回空间层级 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 572项Flutter门禁通过；typed投影/自然选择/草稿回归 | D2手机/平板各44图与macOS14项原生及6图实窗；最终P6待验 | Core-live双路线六读PASS；生产App新UI待验 |
 | CG-04 | 可预约场地与时段 / 日期空间结果 | `F/read/services.rs cgyy_day_info`；`cgyy.dart` | 全部slot只读保留，独立allowed完整target及唯一归属才可选 | 有 | 有，含不可约/未知/无时段房间 | 旧版房间时段表，固定房间列；不把denied一律称为占用 | `UT/widgets/cgyy_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 572项Flutter门禁通过；typed投影/自然选择/草稿回归 | D2手机/平板各44图与macOS14项原生及6图实窗；最终P6待验 | Core-live双路线六读PASS；生产App新UI待验 |
-| CG-05 | 我的订单 / 订单列表 | `F/read/services.rs cgyy_orders`；`cgyy.dart` | page/size；Core 返回 number/totalElements/totalPages | 有 | 有 | 订单状态与审批状态分层，保持服务端分页 | `UT/widgets/cgyy_cancel_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 572项Flutter门禁通过；typed投影/自然选择/草稿回归 | D2手机/平板各44图与macOS14项原生及6图实窗；最终P6待验 | Core-live双路线六读PASS；生产App新UI待验 |
-| CG-06 | 订单详情 / 订单详情 | `F/read/services.rs cgyy_order_detail`；`cgyy.dart` | 正订单 ID；现父结果选 ID 或手输 | 有 | 有 | 列表点击直达详情，不重输编号 | `UT/widgets/cgyy_cancel_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 572项Flutter门禁通过；typed投影/自然选择/草稿回归 | D2手机/平板各44图与macOS14项原生及6图实窗；最终P6待验 | Core-live双路线六读PASS；生产App新UI待验 |
+| CG-05 | 我的订单 / 订单列表 | `F/read/services.rs cgyy_orders`；`cgyy.dart` | 原始page>=0/size；UI一基显示，Core number原样保留后在投影+1 | 有 | 有 | 订单状态与审批状态分层，保持服务端分页 | `UT/widgets/cgyy_cancel_writes.dart`；`AT/bridge_backend_characterization/read.dart` | D2b 574项门禁；零基分页/typed投影回归 | D2b两端各44图与macOS14项原生；保留D2实窗，最终P6待验 | Core-live双路线六读PASS；D2b生产原生双路线首页/分页/详情通过 |
+| CG-06 | 订单详情 / 订单详情 | `F/read/services.rs cgyy_order_detail`；`cgyy.dart` | 正订单 ID；现父结果选 ID 或手输 | 有 | 有 | 列表点击直达详情，不重输编号 | `UT/widgets/cgyy_cancel_writes.dart`；`AT/bridge_backend_characterization/read.dart` | D2b 574项门禁；零基分页/typed投影回归 | D2b两端各44图与macOS14项原生；保留D2实窗，最终P6待验 | Core-live双路线六读PASS；D2b生产原生双路线首页/分页/详情通过 |
 | CG-07 | 门锁状态 / 门锁状态 | `F/read/services.rs cgyy_lock_code`；`cgyy.dart` | Bridge 只返回 available，不返回秘密锁码 | 有 | 有 | 保留门锁可用性；不能扩为明文锁码展示 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 572项Flutter门禁通过；typed投影/自然选择/草稿回归 | D2手机/平板各44图与macOS14项原生及6图实窗；最终P6待验 | Core-live双路线六读PASS；生产App新UI待验 |
 | YG-01 | 学期概览 / 概览 | `F/read/services.rs ygdk_overview`；`ygdk.dart` | 分类/项目/学期次数与可空目标；重复 target 不允许写入 | 有 | 有 | 项目进度与合法操作同卡 | `UT/widgets/ygdk_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | P3A手机/平板原生明暗默认视图已观察；子操作待对应批次 | 未执行 |
 | YG-02 | 记录与分页 / 记录列表 | `F/read/services.rs ygdk_records`；`ygdk.dart` | page/size；公开状态/地点/图片数量，不返回图片 URL | 有 | 有 | 时间线与图片数量，保留分页 | `UT/widgets/ygdk_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
@@ -180,3 +180,7 @@ D1b更新：LIB-03静态地图与LIB-04时段原始三字段回填已通过561�
 D2本批：CG-01–CG-07读取投影、自然选择和订单详情/分页/取消准备已三端局部复验。保留84编号；表单用途选择和完整写入状态继续P5，最终生产App与全产品P6未完成。
 
 O3-C/D1 macOS补验：锁屏解除后，376d941a生产源码下以显式合成入口完成三根菜单及图书馆地图缩放/拖动/重置、时段草稿、明确日期座位查询、合法选择与准备取消、预约详情与取消准备。分别新增3图与7图原始窗口证据；不替代生产真实只读，也未关闭P5完整提交闭环或UX-O8。84项编号不变。
+
+D2b进行中：CG-05在生产直连发现首页零基偏差，已RED后修App/显示双向转换，574项Flutter门禁与手机平板原生全场景通过，每端44图；本批首页/第二页明暗4图每端复核。真实直连修复后首页15条、详情路线直连；WebVPN及macOS原生复验继续。历史D2合成backend的一基缺陷已纠正，不回填成此前已验证。
+
+D2b生产终态：Direct r1/WebVPN r2正常bootstrap的真实原生分页/详情场景均退出0，真实写入0。旧WebVPN会话启动r1失败保留；CUA输入路径不算通过，P6物理键盘与图书馆WebVPN后续读取仍待补。

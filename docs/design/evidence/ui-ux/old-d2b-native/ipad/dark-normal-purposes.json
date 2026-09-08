@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-purposes",
+  "steps": "独立用途查询保留回退来源，不把名称当作提交编号",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T14:56:16.374759Z",
+  "sourceSha": "ab1a777b-d2b",
+  "pngSaved": true
+}

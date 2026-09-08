@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-campus",
+  "steps": "切校区选择该校区首站点，保持明确日期",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T14:56:53.895984Z",
+  "sourceSha": "ab1a777b-d2b",
+  "pngSaved": true
+}

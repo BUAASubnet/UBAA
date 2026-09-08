@@ -76,3 +76,14 @@ D1b已提交`50147317`，接续研讨室。逐段读`CgyyReservePickerScreen.kt`
 再次核对old API接口、公开DTO、Local站点/用途/日期空间/订单/详情/锁读取与BackendTest；examples模块清单仍无同协议。逐操作认证引导、重定向、Cookie、方法参数、签名/编码、字段类型、缓存/错误继续采用本文件前述九列及`source-parity.md`“场馆预约只读查询”的当前实现补充，没有协议差异或新请求。此次仅补公开字段投影及UI自动可见页选站点读取，不改变网络层。门锁继续只有available，订单没有公开驳回正文、手机号或锁码，不仿造旧rawData内容。
 
 D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间（含无slot空间），其后逐条保留全部slot，包括denied/unknown/无target。写action仍只来自独立allowed完整target，不从新展示结构授予资格。重复timeId不取first时间；状态未知不伪装占用。读取成功但无允许slot不是empty。订单列表及固定路线回读用同一typed投影，取消资格与服务器元数据不改。先为这些缺口增加脱敏RED再实现。
+
+
+## D2b 真实生产读取发现的零基订单分页偏差（修复前）
+
+2026-09-08，生产macOS `ab1a777b` 真实直连：站点/日期表正常，但“我的预约”为空；同账号Core-live以page=0取得15条。静态定位App普通读取把query.page=0改成1，原Core/Bridge和取消固定路线回读均用零基，分页投影也错误地把number=1当显示第1页。此前合成backend沿错误的一基约定，未发现这个缺陷；不能把D2历史测试作为该行为的通过证据。
+
+重新读冻结 `CgyyApi.kt:69` 默认page=0；`CgyyViewModel.kt:359–390`默认0并用响应number刷新；`LocalCgyyApi.kt:182–191/610–618`原样传page/size和number。`LocalCgyyApiBackendTest.kt:200–203/236`以page=1检查原样传值，是第二页参数透传测试，不能据此认定首页为1。旧DTOnumber默认0。固定examples模块清单与srs模块复读，srs是byxk选课而非研讨室，无cgyy订单等价协议；不借其分页规则。
+
+操作级九列继续逐项采用`source-parity.md`“我的订单”：manageLogin/api/login业务引导；重定向和最终URL按当前路线；独立业务令牌；GET /api/orders/mine原样page>=0、size>0及nocache；既有headers与无正文；既有MD5参数签名；content/number/size/totalElements/totalPages公开DTO；不缓存订单、当前UI generation仍防迟到；错误不变。只修App误改页码与显示层换算，不修改Core、Bridge、认证、写入资格或公开合同。
+
+裁决：FeatureQuery研讨室订单保留原始零基page，与取消回读query.page=0一致；通用FeaturePagination仍为一基展示，Cgyy number+1；页码输入1/2及前后页按钮在UI转成原始0/1。普通与固定路线订单结果使用同一投影，写入回读仍请求原始0不改。先增加默认首页、后页和UI输入/前后页脱敏RED，修复后复验原生与真实两路线。

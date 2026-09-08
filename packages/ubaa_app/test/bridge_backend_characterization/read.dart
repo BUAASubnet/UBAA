@@ -589,7 +589,7 @@ void registerBridgeBackendReadCharacterization() {
       'cgyyDayInfo:siteId=7,date=2026-09-04',
       'cgyyLockCode',
       'cgyyOrderDetail:id=9',
-      'cgyyOrders:page=1,size=100',
+      'cgyyOrders:page=0,size=100',
       'cgyyPurposeTypes',
       'cgyySites',
       'classroomSearch:campus=2,date=2026-09-04',

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-reserve-confirm",
+  "steps": "仅prepare合成预约，两个原始target不从显示文字重建",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T14:56:52.091392Z",
+  "sourceSha": "ab1a777b-d2b",
+  "pngSaved": true
+}

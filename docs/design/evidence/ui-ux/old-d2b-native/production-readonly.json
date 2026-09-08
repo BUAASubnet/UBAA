@@ -1,0 +1,145 @@
+{
+  "场景": "D2b 生产原生研讨室分页与详情",
+  "日期": "2026-09-08",
+  "功能编号": [
+    "CG-05",
+    "CG-06"
+  ],
+  "源码基点": "ab1a777bf9ed1ff255b3af2a0bb26327e4d00e1f",
+  "生产补丁文件": [
+    "packages/ubaa_app/lib/src/bridge/read/cgyy.dart",
+    "packages/ubaa_ui/lib/src/common/pagination.dart",
+    "packages/ubaa_ui/lib/src/common/query_controls.dart"
+  ],
+  "生产补丁SHA256": "c4ab27e2527f1be4879e304627c97d3bf88b3192ce18c880fed98186d662662f",
+  "平台": "macOS实际应用",
+  "backend": "production FRB，正常bootstrap，无fake",
+  "会话": "每条路线均在新建私有隔离目录通过既有.env.local安全stdin路径认证，未改写旧会话",
+  "入口": "integration_test/ui_rooms_live_readonly_test.dart，必须显式只读开关、私有绝对配置目录和预期路线",
+  "操作": [
+    "订单首页原始page0→显示第1页",
+    "实际输入显示第2页/每页5条→原始page1",
+    "上一页→原始0，下一页→原始1",
+    "关闭重开面板保留显示页码2",
+    "打开首条typed订单只读详情"
+  ],
+  "读取": [
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "direct",
+      "page": "0",
+      "displayPage": "1",
+      "size": "20",
+      "count": "15",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "direct",
+      "page": "1",
+      "displayPage": "2",
+      "size": "5",
+      "count": "5",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "direct",
+      "page": "0",
+      "displayPage": "1",
+      "size": "5",
+      "count": "5",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "direct",
+      "page": "1",
+      "displayPage": "2",
+      "size": "5",
+      "count": "5",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrderDetail",
+      "status": "success",
+      "route": "direct",
+      "page": "0",
+      "displayPage": "null",
+      "size": "null",
+      "count": "1",
+      "total": "null",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "webvpn",
+      "page": "0",
+      "displayPage": "1",
+      "size": "20",
+      "count": "15",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "webvpn",
+      "page": "1",
+      "displayPage": "2",
+      "size": "5",
+      "count": "5",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "webvpn",
+      "page": "0",
+      "displayPage": "1",
+      "size": "5",
+      "count": "5",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrders",
+      "status": "success",
+      "route": "webvpn",
+      "page": "1",
+      "displayPage": "2",
+      "size": "5",
+      "count": "5",
+      "total": "15",
+      "error": "null"
+    },
+    {
+      "view": "cgyyOrderDetail",
+      "status": "success",
+      "route": "webvpn",
+      "page": "0",
+      "displayPage": "null",
+      "size": "null",
+      "count": "1",
+      "total": "null",
+      "error": "null"
+    }
+  ],
+  "结果": "两路线均退出0，各1项完整原生场景，businessWrites=0",
+  "原始失败": "WebVPN r1旧隔离会话240秒未恢复主界面，未进入业务操作；新私有会话r2通过。未据此推断认证协议缺陷。",
+  "截图": "不保存真实个人画面；合成界面原图另存iphone/ipad，macOS CUA实际首页/详情/路线证据以安全语义记录",
+  "边界": [
+    "CUA手工分页输入的实际画面与AX设置不一致，未记通过；本文件证明原生输入测试路径及真实网络结果，不代替P6物理键盘验收",
+    "本文件不证明图书馆WebVPN未完成的分区/座位操作"
+  ]
+}

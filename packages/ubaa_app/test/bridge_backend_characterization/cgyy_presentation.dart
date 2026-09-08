@@ -1,6 +1,22 @@
 part of '../bridge_backend_characterization_test.dart';
 
 void registerCgyyPresentationTests() {
+  test('研讨室订单首页保留上游零基，第二页投影为显示第2页', () async {
+    final client = _CharacterizationBridgeClient();
+    final backend = BridgeBackend(client);
+    final first = await backend.loadFeatureQuery(
+      FeatureId.cgyy,
+      const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+    );
+    expect(client.calls.last, 'cgyyOrders:page=0,size=20');
+    expect(first.pagination?.page, 1);
+    final second = await backend.loadFeatureQuery(
+      FeatureId.cgyy,
+      const FeatureQuery(view: FeatureQueryView.cgyyOrders, page: 1, size: 3),
+    );
+    expect(client.calls.last, 'cgyyOrders:page=1,size=3');
+    expect(second.pagination?.page, 2);
+  });
   test('研讨室保留全部时段和无时段房间，不以写资格过滤只读结果', () async {
     final client = _RoomPresentationClient();
     final result = await BridgeBackend(client).loadFeatureQuery(
@@ -83,7 +99,7 @@ void registerCgyyPresentationTests() {
       result.details.single.action<CgyyCancelAction>()?.targetOrderId,
       101,
     );
-    expect(result.pagination?.page, 2);
+    expect(result.pagination?.page, 3);
     expect(result.pagination?.size, 3);
   });
   test('研讨室详情和门锁仅投影公开结构', () async {

@@ -139,7 +139,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     _campus = query.campus ?? 1;
     _floorController.text = query.floorId ?? '';
     _sectionController.text = query.section ?? '';
-    _pageController.text = '${query.page > 0 ? query.page : 1}';
+    _pageController.text =
+        widget.feature == FeatureId.cgyy &&
+            query.view == FeatureQueryView.cgyyOrders
+        ? '${query.page < 0 ? 1 : query.page + 1}'
+        : '${query.page > 0 ? query.page : 1}';
     _sizeController.text = '${query.size}';
     _premisesController.text = query.premisesId ?? '';
     _storeyController.text = query.storeyId ?? '';
@@ -457,7 +461,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ? _optionalText(_sectionController)
               : null,
           week: week,
-          page: page,
+          page:
+              widget.feature == FeatureId.cgyy &&
+                  _cgyyView == FeatureQueryView.cgyyOrders
+              ? page - 1
+              : page,
           size: size,
           view: widget.feature == FeatureId.exam
               ? _examView

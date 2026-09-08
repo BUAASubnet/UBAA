@@ -1,6 +1,13 @@
 part of '../widgets.dart';
 
 extension _FeatureDetailPagination on _FeatureDetailListState {
+  // 展示分页为一基，研讨室订单请求保留上游零基；不改变其它领域。
+  int get _serverPageOffset =>
+      widget.feature == FeatureId.cgyy &&
+          widget.query?.view == FeatureQueryView.cgyyOrders
+      ? 1
+      : 0;
+
   List<Widget> _paginationFields(
     StateSetter setState,
     FeaturePagination? serverPagination,
@@ -20,7 +27,9 @@ extension _FeatureDetailPagination on _FeatureDetailListState {
               onPressed: serverPagination.page <= 1
                   ? null
                   : () => widget.onQuery!(
-                      widget.query!.copyWith(page: serverPagination.page - 1),
+                      widget.query!.copyWith(
+                        page: serverPagination.page - 1 - _serverPageOffset,
+                      ),
                     ),
               icon: const Icon(Icons.chevron_left),
             ),
@@ -41,7 +50,9 @@ extension _FeatureDetailPagination on _FeatureDetailListState {
                               serverPagination.effectiveTotalPages))
                   ? null
                   : () => widget.onQuery!(
-                      widget.query!.copyWith(page: serverPagination.page + 1),
+                      widget.query!.copyWith(
+                        page: serverPagination.page + 1 - _serverPageOffset,
+                      ),
                     ),
               icon: const Icon(Icons.chevron_right),
             ),

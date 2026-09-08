@@ -168,7 +168,7 @@ FeatureResult roomData(FeatureQuery query, String state) {
               .toList(),
         );
       }
-      final page = query.page <= 0 ? 1 : query.page,
+      final page = (query.page < 0 ? 0 : query.page) + 1,
           size = query.size.clamp(1, 100);
       return FeatureResult.success(
         resolvedRoute: ConnectionMode.direct,

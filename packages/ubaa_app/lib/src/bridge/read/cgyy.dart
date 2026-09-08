@@ -141,7 +141,8 @@ Future<FeatureResult> _loadCgyyFeature(
             _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.cgyyOrders:
-          final page = query.page <= 0 ? 1 : query.page;
+          // 订单接口与固定路线回读均采用零基页码。
+          final page = query.page < 0 ? 0 : query.page;
           final size = query.size.clamp(1, 100);
           final result = await client.cgyyOrders(page: page, size: size);
           return _mapCgyyOrdersResult(
@@ -248,7 +249,7 @@ FeatureResult _mapCgyyOrdersResult(
     '条研讨室订单',
     details: details,
     pagination: _pagination(
-      page: data.number,
+      page: data.number + 1,
       size: data.size,
       total: data.totalElements,
       totalPages: data.totalPages,

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-page-two",
+  "steps": "显示第2页但请求原始page=1，保留未知资格订单",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T14:53:27.471250Z",
+  "sourceSha": "ab1a777b-d2b",
+  "pngSaved": true
+}

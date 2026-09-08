@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-selected",
+  "steps": "选择同房间相邻的9和3号时段，按原顺序而非ID排序",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T14:55:35.396622Z",
+  "sourceSha": "ab1a777b-d2b",
+  "pngSaved": true
+}
