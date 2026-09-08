@@ -1,0 +1,36 @@
+{
+  "name": "dark-many-judge-local-search",
+  "scene": "dark-many-judge-local-search",
+  "feature": "judge",
+  "backend": "synthetic-coursework",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "imageEvidence": "native-plugin",
+  "theme": "dark",
+  "themeMode": "system",
+  "textScale": 1.0,
+  "snapshotStatus": "success",
+  "requestRevision": 2,
+  "queryView": "judgeBatchDetails",
+  "queryAssignmentId": null,
+  "queryCourseId": null,
+  "includeExpired": false,
+  "judgeKeys": [
+    {
+      "courseId": "judge-b",
+      "assignmentId": "shared"
+    },
+    {
+      "courseId": "judge-20",
+      "assignmentId": "shared"
+    }
+  ],
+  "sourceSha": "596a3f0a+O3A-r2",
+  "pngSaved": true
+}

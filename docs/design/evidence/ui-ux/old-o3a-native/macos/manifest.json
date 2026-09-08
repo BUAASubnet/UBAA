@@ -1,0 +1,8 @@
+{
+  "source": "596a3f0a+O3A-r2",
+  "backend": "synthetic-coursework",
+  "capture": "macOS系统窗口原图",
+  "operation": "CUA实际普通功能→SPOC→面板输入b→完成→整卡详情→返回→重新打开草稿b；设置切深色后侧栏",
+  "nativeTest": "macos-r2二十项退出0；r1中断保留",
+  "acceptance": "仅本批窗口，不是全产品最终验收"
+}

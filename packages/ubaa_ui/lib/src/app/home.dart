@@ -83,7 +83,7 @@ class _HomeView extends StatelessWidget {
             for (final detail in today)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _AcademicCard(detail: detail),
+                child: _HomeCourseCard(detail: detail),
               )
           else
             Card(
@@ -146,6 +146,48 @@ class _HomeView extends StatelessWidget {
     FeatureLoadStatus.stale => '${snapshot.summary ?? '上次结果'}（刷新失败）',
     FeatureLoadStatus.failure => '加载失败，请进入功能重试',
   };
+}
+
+class _HomeCourseCard extends StatelessWidget {
+  const _HomeCourseCard({required this.detail});
+  final FeatureDetail detail;
+  @override
+  Widget build(BuildContext context) {
+    final course = detail.presentation! as TodayCoursePresentation;
+    final theme = Theme.of(context);
+    return Card(
+      color: theme.colorScheme.surfaceContainerHigh,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              detail.title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_nonBlank(course.time) case final time?)
+              Text(
+                '时间：$time',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            if (_nonBlank(course.place) case final place?)
+              Text(
+                '地点：$place',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FeatureGridView extends StatelessWidget {

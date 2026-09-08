@@ -5,6 +5,32 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'support/navigation.dart';
 
 void main() {
+  testWidgets('SPOC列表沿旧版只展示一次课程分组并把score标为分值', (tester) async {
+    await showFeature(tester, FeatureId.spoc, [
+      const FeatureDetail(
+        title: '合成作业',
+        presentation: SpocAssignmentPresentation(
+          courseId: 'c',
+          courseName: '合成课程',
+          assignmentId: 'a',
+          score: '10',
+          status: AssignmentSubmissionStatus.unsubmitted,
+          statusText: '未提交',
+          dueTime: '2026-09-13 23:59',
+        ),
+        readNavigation: FeatureReadNavigation(
+          feature: FeatureId.spoc,
+          query: FeatureQuery(
+            view: FeatureQueryView.spocDetail,
+            assignmentId: 'a',
+          ),
+        ),
+      ),
+    ], []);
+    expect(find.text('合成课程'), findsOneWidget);
+    expect(find.textContaining('分值'), findsOneWidget);
+    expect(find.text('成绩'), findsNothing);
+  });
   testWidgets('签到缺少目标时明确说明且不从课程编号生成动作', (tester) async {
     await showFeature(tester, FeatureId.signin, [
       const FeatureDetail(
@@ -161,7 +187,7 @@ void main() {
         ),
       ),
     ], queries);
-    await tester.tap(find.text('查看作业详情'));
+    await tester.tap(find.byTooltip('查看作业详情'));
     await tester.pump();
     expect(queries.single.assignmentId, 'a');
   });

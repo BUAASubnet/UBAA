@@ -256,7 +256,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   _readPageKeys[_openedFeature]?.currentState?.refreshCurrent(),
               icon: const Icon(Icons.refresh),
             ),
-          if (_openedFeature == null && _selectedIndex == 0)
+          if (_openedFeature == null &&
+              _utilityPage == null &&
+              _selectedIndex == 0)
             IconButton(
               tooltip: '刷新',
               onPressed: () => widget.onRefresh(),
@@ -444,8 +446,21 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       child: Column(
         children: <Widget>[
           UserAccountsDrawerHeader(
-            accountName: Text(widget.user?.preferredName ?? 'UBAA'),
-            accountEmail: Text(widget.user?.username ?? ''),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            ),
+            accountName: Text(
+              widget.user?.preferredName ?? 'UBAA',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+            accountEmail: Text(
+              widget.user?.username == widget.user?.preferredName
+                  ? ''
+                  : widget.user?.username ?? '',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
             currentAccountPicture: CircleAvatar(
               child: Text((widget.user?.preferredName ?? 'U').characters.first),
             ),

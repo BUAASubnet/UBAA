@@ -20,6 +20,22 @@ const _features = [
   FeatureId.evaluation,
 ];
 void main() {
+  // 独立合成巡检入口；不读取.env.local或会话，不创建真实客户端。
+  if (const bool.fromEnvironment('UBAA_UI_INSPECTION')) {
+    WidgetsFlutterBinding.ensureInitialized();
+    runApp(
+      UbaaFlutterApp(
+        backend: CourseworkBackend(
+          state: const String.fromEnvironment(
+            'UBAA_UI_STATE',
+            defaultValue: 'normal',
+          ),
+        )..signedIn = true,
+        credentialVault: MemoryCredentialVault(),
+      ),
+    );
+    return;
+  }
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   registerCourseworkFixtureContract();
   _registerNormal(binding);

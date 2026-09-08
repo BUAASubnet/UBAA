@@ -79,7 +79,7 @@ void main() {
     await tap(find.text('包含已过期作业'));
     await tap(find.text('应用筛选'));
     await search('judge-a');
-    await tap(find.text('查看作业详情'));
+    await tap(find.byTooltip('查看作业详情'));
     await tap(find.byTooltip('返回'));
     await search('judge-b');
     await panel();

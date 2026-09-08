@@ -147,7 +147,8 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
             final course = feature == FeatureId.spoc
                 ? 'SPOC课程a'
                 : '希冀课程judge-a';
-            await _tap(tester, _detailButton(course));
+            await _search(tester, course);
+            await _tap(tester, find.byTooltip('查看作业详情'));
             final body = find.byType(SelectableText);
             expect(body, findsOneWidget);
             expect(tester.widget<SelectableText>(body).data, contains('正文尾部'));

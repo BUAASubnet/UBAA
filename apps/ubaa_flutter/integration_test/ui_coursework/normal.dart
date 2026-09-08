@@ -12,7 +12,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       );
       await _search(tester, 'SPOC课程b');
       final before = backend.reads.length;
-      await _tap(tester, _detailButton('SPOC课程b'));
+      await _tap(tester, find.byTooltip('查看作业详情'));
       _expectQuery(
         tester,
         FeatureId.spoc,
@@ -32,13 +32,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
         FeatureId.spoc,
       ).readContext!.requestRevision;
       await _tap(tester, find.byTooltip('返回'));
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-            .controller!
-            .text,
-        'SPOC课程b',
-      );
+      expect(await _searchDraft(tester), 'SPOC课程b');
       expect(backend.reads.length, before + 1);
       expect(
         _snapshot(tester, FeatureId.spoc).readContext!.requestRevision,
@@ -47,6 +41,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       await _shot(binding, tester, '$prefix-spoc-parent', FeatureId.spoc);
 
       await _open(tester, FeatureId.judge);
+      await _panel(tester, true);
       await _tap(tester, find.text('包含已过期作业'));
       await _apply(
         tester,
@@ -55,7 +50,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       );
       expect(_snapshot(tester, FeatureId.judge).details.length, 3);
       await _search(tester, 'judge-a');
-      await _tap(tester, _detailButton('希冀课程judge-a'));
+      await _tap(tester, find.byTooltip('查看作业详情'));
       _expectQuery(
         tester,
         FeatureId.judge,
@@ -83,24 +78,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
         '$prefix-judge-return-search-b',
         FeatureId.judge,
       );
-      final visibleKeys = tester
-          .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
-          .map((w) => '${w.key}')
-          .toList();
-      final positions = tester
-          .stateList<ScrollableState>(find.byType(Scrollable))
-          .map((s) => '${s.position.pixels}/${s.position.maxScrollExtent}')
-          .toList();
-      debugPrint(
-        '合成父返回诊断：搜索=${tester.widget<TextField>(find.widgetWithText(TextField, '筛选详情')).controller!.text}；空匹配=${find.text('没有匹配的详情').evaluate().length}；勾选键=$visibleKeys；滚动=$positions',
-      );
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-            .controller!
-            .text,
-        'judge-b',
-      );
+      expect(await _searchDraft(tester), 'judge-b');
       expect(find.text('没有匹配的详情'), findsNothing);
 
       await _tap(
@@ -148,13 +126,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       );
       await _tap(tester, find.byTooltip('返回'));
       expect(find.text('已选择 2 份作业'), findsOneWidget);
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-            .controller!
-            .text,
-        'judge-a',
-      );
+      expect(await _searchDraft(tester), 'judge-a');
       expect(backend.reads.length, beforeBatch + 1);
       await _shot(
         binding,
@@ -252,6 +224,8 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
         const FeatureQuery(view: FeatureQueryView.evaluationPending),
       );
       expect(_snapshot(tester, FeatureId.evaluation).details.length, 3);
+      expect(find.text('全选待评'), findsNothing);
+      await _tap(tester, find.byType(CheckboxListTile).first);
       await _tap(tester, find.text('全选待评'));
       await _tap(tester, find.text('准备批量评教'));
       expect(backend.preparedEvaluation.single.map((t) => t.rwid), [

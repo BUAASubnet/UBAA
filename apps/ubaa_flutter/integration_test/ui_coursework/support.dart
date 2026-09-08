@@ -8,7 +8,8 @@ Future<CourseworkBackend> _login(
   Brightness brightness,
   String state,
 ) async {
-  expect(Platform.isIOS, isTrue);
+  expect(Platform.isIOS || Platform.isMacOS, isTrue);
+  expect(tester.view.physicalSize.width, greaterThan(0));
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
   tester.platformDispatcher.textScaleFactorTestValue = state == 'long'
       ? 1.3
@@ -67,39 +68,66 @@ Future<void> _tap(
 }
 
 Future<void> _open(WidgetTester tester, FeatureId feature) async {
-  final home = find.byIcon(Icons.home_outlined);
-  await _tap(
-    tester,
-    home.evaluate().isNotEmpty ? home : find.byIcon(Icons.home),
-  );
-  final card = find.widgetWithText(Card, feature.title);
-  final scroll = find
-      .descendant(
-        of: find.byType(CustomScrollView),
-        matching: find.byType(Scrollable),
-      )
-      .first;
-  await tester.scrollUntilVisible(card, 220, scrollable: scroll);
-  await _tap(tester, card);
+  final index = ordinaryFeatureIds.contains(feature) ? 1 : 2;
+  while (find.byType(NavigationBar).evaluate().isEmpty &&
+      find.byType(NavigationRail).evaluate().isEmpty) {
+    await _tap(tester, find.byTooltip('返回'));
+  }
+  if (find.byType(NavigationBar).evaluate().isNotEmpty) {
+    await _tap(tester, find.byType(NavigationDestination).at(index));
+  } else {
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    final selected = rail.selectedIndex == index;
+    await _tap(
+      tester,
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.byIcon(
+          index == 1
+              ? (selected ? Icons.apps : Icons.apps_outlined)
+              : (selected ? Icons.auto_awesome : Icons.auto_awesome_outlined),
+        ),
+      ),
+    );
+  }
+  await _tap(tester, find.widgetWithText(Card, feature.title));
+  expect(find.byType(TextField), findsNothing);
+}
+
+Future<void> _panel(WidgetTester tester, bool open) async {
+  final done = find.widgetWithText(TextButton, '完成');
+  if (open && done.evaluate().isEmpty) {
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+  } else if (!open && done.evaluate().isNotEmpty) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await _tap(tester, done);
+  }
+}
+
+Future<String> _searchDraft(WidgetTester tester) async {
+  await _panel(tester, true);
+  final value = tester
+      .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+      .controller!
+      .text;
+  await _panel(tester, false);
+  return value;
 }
 
 Future<void> _search(WidgetTester tester, String value) async {
+  await _panel(tester, true);
   final field = find.widgetWithText(TextField, '筛选详情');
   await _tap(tester, field);
-  await tester.pump();
-  String currentText() => tester.widget<TextField>(field).controller!.text;
   await tester.enterText(field, value);
-  debugPrint('合成输入时序：目标=$value；enterText返回=${currentText()}');
   await tester.pump();
-  debugPrint('合成输入时序：pump后=${currentText()}');
-  expect(currentText(), value);
-  FocusManager.instance.primaryFocus?.unfocus();
-  await tester.pumpAndSettle();
-  debugPrint('合成输入时序：失焦后=${currentText()}');
-  expect(currentText(), value);
+  expect(tester.widget<TextField>(field).controller!.text, value);
+  await _panel(tester, false);
+  expect(find.byType(TextField), findsNothing);
 }
 
 Future<void> _view(WidgetTester tester, String label) async {
+  await _panel(tester, true);
   await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
   await _tap(tester, find.text(label).last);
 }
@@ -109,6 +137,7 @@ Future<void> _apply(
   FeatureId feature,
   FeatureQuery query,
 ) async {
+  await _panel(tester, true);
   await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
   // 现有通用表单无条件保留隐藏时段默认值；只校准手动应用，不污染typed导航。
   _expectQuery(
@@ -116,6 +145,7 @@ Future<void> _apply(
     feature,
     query.copyWith(startTime: '08:00', endTime: '22:00'),
   );
+  await _panel(tester, false);
 }
 
 void _expectQuery(WidgetTester tester, FeatureId feature, FeatureQuery query) {
@@ -124,10 +154,6 @@ void _expectQuery(WidgetTester tester, FeatureId feature, FeatureQuery query) {
   expect(context.query!.hasSameParameters(query), isTrue);
 }
 
-Finder _detailButton(String course) => find.descendant(
-  of: find.widgetWithText(Card, course),
-  matching: find.widgetWithText(FilledButton, '查看作业详情'),
-);
 Future<void> _shot(
   IntegrationTestWidgetsFlutterBinding binding,
   WidgetTester tester,
@@ -160,6 +186,9 @@ Future<void> _shot(
     'logicalHeight': size.height / ratio,
     'devicePixelRatio': ratio,
     'viewportSource': 'native-view-unmodified',
+    'imageEvidence': Platform.isIOS
+        ? 'native-plugin'
+        : 'separate-cua-review-required',
     'theme': Theme.of(context).brightness.name,
     'themeMode': tester
         .widget<MaterialApp>(find.byType(MaterialApp))
@@ -181,5 +210,10 @@ Future<void> _shot(
       defaultValue: 'unrecorded',
     ),
   });
-  await binding.takeScreenshot(name);
+  if (Platform.isIOS) {
+    await binding.takeScreenshot(name);
+  } else {
+    // SDK没有macOS截图插件；此处只记录原生交互断言，窗口另用CUA检查。
+    debugPrint('macOS原生交互检查点：$name');
+  }
 }

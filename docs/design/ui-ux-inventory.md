@@ -14,7 +14,7 @@
 - `UT` = `packages/ubaa_ui/test/`；`AT` = `packages/ubaa_app/test/`；`CT` = `crates/ubaa-core/tests/`。
 - 所有读取链：`F/read/{academic,assignments,services,evaluation}.rs` → `B/read/methods.rs`（评教另有 `B/read/evaluation.rs`）→ 表中 `A/bridge/read/*.dart` → `A/controller/app_controller/refresh.dart` → `U/common/feature_detail.dart`、`detail_list.dart`、`detail_fields.dart` → 表中领域控件。表中“链”明确 facade 方法和 app/UI 文件；Bridge 同名 snake_case 方法生成 Dart camelCase 方法。
 - 所有写入链：表中 `F/write/*.rs` → `B/write/prepare.rs` 对应 `prepare_*` → `B/write/commit.rs` 的统一提交 → `A/bridge/write/{prepare,commit,lifecycle}.dart` → 唯一 `A/write/coordinator.dart` → `U/write_callbacks.dart`、`U/write/confirmation.dart` 和领域按钮。共同测试：`UT/write_coordination_test.dart`、`AT/write_coordinator_test.dart`、`AT/app_write_lifecycle_test.dart`、`AT/write_readback_reentry_test.dart`；领域测试列为额外定位，文件存在不表示每行已有充分断言。
-- 页面地图：`U/app/shell.dart` 的主页、普通功能、高级功能、我的；普通功能包含课表/考试/成绩/博雅/空教室/SPOC/希冀/图书馆，高级功能包含课堂签到/场馆/阳光/评教。来源 `packages/ubaa_domain/lib/src/feature/catalog.dart`。领域根页后通过查询下拉、参数和“应用筛选”进入子视图，当前不是独立路由；多数详情仍以通用字段列表呈现。
+- 页面地图：`U/app/shell.dart` 的主页、普通功能、高级功能、我的；普通功能包含课表/考试/成绩/博雅/空教室/SPOC/希冀/图书馆，高级功能包含课堂签到/研讨室预约/阳光/评教。来源 `packages/ubaa_domain/lib/src/feature/catalog.dart`。领域根页后通过查询下拉、参数和“应用筛选”进入子视图，当前不是独立路由；多数详情仍以通用字段列表呈现。
 - 从主页默认进入功能卡片为 1 次点击；切换功能分组再进入为 2 次；切换查询视图、选参数、应用筛选需要额外操作。这是静态导航下界，实际任务点击数/重复输入次数待运行记录。
 
 ## 认证、个人与全局
@@ -77,7 +77,7 @@
 | LIB-04 | 可用日期/时段选择 | `F/read/services.rs libbook_area_detail`；`libbook.dart` | availableDates、timeSlots；app 把时段仅 join(label)，丢失供后续选择的结构 | 部分 | 仅文本 | 补 typed 可选日期/时段，将 segment/start/end 一次带入 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | LIB-05 | 座位查询 / 座位查询 | `F/read/services.rs libbook_seats`；`libbook.dart` | areaId/day/start/end；app 另必填 segment 供预约，不能猜编号 | 有 | 有 | 从分区时段到座位列表，保留资格/未知状态 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | LIB-06 | 我的预约 / 预约记录 | `F/read/services.rs libbook_bookings`；`libbook.dart` | page>=1、limit 1–100；保留服务端分页 | 有 | 有 | 预约记录入口与取消操作同页 | `UT/widgets/libbook_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
-| CG-01 | 场馆站点 / 站点列表 | `F/read/services.rs cgyy_sites`；`cgyy.dart` | 站点 ID 来自返回 | 有 | 有 | 点站点进入可预约日期与场地 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | P3A手机/平板原生明暗默认视图已观察；子操作待对应批次 | 未执行 |
+| CG-01 | 研讨室站点 / 站点列表 | `F/read/services.rs cgyy_sites`；`cgyy.dart` | 站点 ID 来自返回 | 有 | 有 | 点站点进入可预约日期与场地 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | P3A手机/平板原生明暗默认视图已观察；子操作待对应批次 | 未执行 |
 | CG-02 | 用途 / 用途类型 | `F/read/services.rs cgyy_purpose_types`；`cgyy.dart` | 来源 upstream/static_fallback 必须明示 | 有 | 有 | 作为预约表单选择器；保留降级来源说明 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | CG-03 | 日期空间 / 日期空间 | `F/read/services.rs cgyy_day_info`；`cgyy.dart` | 正 siteId、严格日期 | 有 | 有 | 站点带入日期选择，保留返回空间层级 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | CG-04 | 可预约场地与时段 / 日期空间结果 | `F/read/services.rs cgyy_day_info`；`cgyy.dart` | app 只遍历 allowed 且 target 一致的时段构成结果 | 部分 | 有但不展示不可约时段 | 显示已占用/未知也有上下文；写按钮仍只 allowed | `UT/widgets/cgyy_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
@@ -103,7 +103,7 @@
 | W-LIB-01 | 图书馆预约 / 准备预约此座位 | `F/write/reservations.rs preflight_libbook_reserve/libbook_reserve`；`U/features/libbook.dart` | areaId/seatId/day/segment/start/end；完整父查询上下文 | 有 | 条件可达 | 座位→确认显示馆区时段，不让用户拼 ID | `UT/widgets/libbook_writes.dart`；`B/write/tests/libbook.rs` | 未执行 | 未执行 | 不适用（写入） |
 | W-LIB-02 | 图书馆取消 / 准备取消预约 | `F/write/reservations.rs preflight_libbook_cancel/libbook_cancel_booking`；`U/features/libbook.dart` | typed 记录 target、page/limit；原页刷新 | 有 | 条件可达 | 预约卡片取消，结果留在原分页 | `UT/widgets/libbook_writes.dart`；`B/write/tests/libbook.rs` | 未执行 | 未执行 | 不适用（写入） |
 | W-CG-01 | 研讨室预约 / 准备研讨室预约→表单 | `F/write/reservations.rs preflight_cgyy_reservation/cgyy_submit_reservation`；`U/features/cgyy.dart` | 1–2 同空间目标，站点日期时间顺序；电话/主题/用途/人数/正文/参与人及标志 | 有 | 条件可达 | U/write/cgyy_form.dart；用途列表联动，展示完整预约时间 | `UT/widgets/cgyy_writes.dart`；`B/write/tests/cgyy_reservation.rs`（预约）或 `B/write/tests/cgyy_cancel.rs`（取消） | 未执行 | 未执行 | 不适用（写入） |
-| W-CG-02 | 场馆取消 / 准备取消订单 | `F/write/reservations.rs preflight_cgyy_cancel/cgyy_cancel_order_if_route_matches`；`U/features/cgyy.dart` | 正订单 ID、typed 取消资格、原路线核对 | 有 | 条件可达 | 订单详情和订单卡一致动作，核对取消状态 | `UT/widgets/cgyy_cancel_writes.dart`；`B/write/tests/cgyy_reservation.rs`（预约）或 `B/write/tests/cgyy_cancel.rs`（取消） | 未执行 | 未执行 | 不适用（写入） |
+| W-CG-02 | 研讨室取消 / 准备取消订单 | `F/write/reservations.rs preflight_cgyy_cancel/cgyy_cancel_order_if_route_matches`；`U/features/cgyy.dart` | 正订单 ID、typed 取消资格、原路线核对 | 有 | 条件可达 | 订单详情和订单卡一致动作，核对取消状态 | `UT/widgets/cgyy_cancel_writes.dart`；`B/write/tests/cgyy_reservation.rs`（预约）或 `B/write/tests/cgyy_cancel.rs`（取消） | 未执行 | 未执行 | 不适用（写入） |
 | W-YG-01 | 阳光照片打卡 / 准备阳光打卡→表单 | `F/write/campus.rs preflight_ygdk_submit/ygdk_submit_if_route_matches`；`U/features/ygdk.dart` | 分类项目 target、开始结束、地点可选、公开开关、照片 bytes/name/MIME；一次 upload/final | 有 | 条件可达 | U/write/ygdk_form.dart；照片能力缺失说明，未知结果先核对 | `UT/widgets/ygdk_writes.dart`；`B/write/tests/ygdk.rs` | 未执行 | 未执行 | 不适用（写入） |
 | W-EV-01 | 单门评教 / 准备提交评教 | `F/write/evaluation.rs preflight_evaluation_submit_courses/evaluation_submit_courses_if_route_matches`；`U/features/evaluation.dart` | 一个完整 typed target；问卷 payload 留 Core | 有 | 条件可达 | 课程确认，说明既定提交语义，不伪装可编辑问卷 | `UT/widgets/evaluation_writes.dart`；`B/write/tests/evaluation.rs` | 未执行 | 未执行 | 不适用（写入） |
 | W-EV-02 | 批量评教 / 勾选课程→准备批量评教 | `F/write/evaluation.rs preflight_evaluation_submit_courses/evaluation_submit_courses_if_route_matches`；`U/features/evaluation.dart` | 非空唯一 targets；仅合法待评项；unknown 后停止后续 | 有 | 条件可达 | 多选工具栏及逐项结果：成功/失败/未知/未尝试 | `UT/widgets/evaluation_writes.dart`；`B/write/tests/evaluation.rs` | 未执行 | 未执行 | 不适用（写入） |
@@ -159,3 +159,7 @@ P4-C实现定位补充：Domain `feature/presentation/{assignment,signin,evaluat
 84个稳定编号保留。NAV入口调整为主页／普通功能／高级功能；资料和设置从侧栏进入，手机领域页只保留顶部返回。所有查询和本地搜索由顶栏打开按内容收缩的面板，保存各帧草稿和搜索；实际路线来自当前可见读取帧。未选中时不显示批量栏，确认页去掉重复标题。O1/O2原生第一轮十二领域默认页面与面板已观察，第二轮正在复验；它们不覆盖全部业务子视图，也不替代P4-C/D/P5/P6最终验收。
 
 用户09:10提供旧版原生App进一步确认课程分组、紧凑卡片和研讨室子菜单；O3需恢复对应层级。既有A/B/C数据投影和业务保护保留，旧原生图只对应旧候选。真实账号只读现已明确再次授权；Core本轮Direct40PASS、WebVPN38PASS+2NOT_APPLICABLE，生产App隔离恢复与真实页面核验进行中。
+
+### O3-A课程卡片续验
+
+保持原84项编号。SPOC/希冀列表课程分组只显示一次，整张作业卡进入typed详情；SPOC的score在列表、详情和更多信息均标为“分值”，不当作已得成绩。手机36张明暗原生子视图图已实际观察，精确父查询/二元键顺序/草稿/选择/取消断言通过；完整状态矩阵与平板、macOS仍在执行，不能据此关闭最终验收列。CG-07继续受现有公开available字段约束，旧版“查看密码”子菜单恢复时说明其当前只返回门锁状态。

@@ -43,7 +43,7 @@ Future<FeatureResult> _loadAssignmentFeature(
                     _field('开始', item.startTime),
                     _field('截止', item.dueTime),
                     _field('状态', item.submissionStatusText),
-                    _field('得分', item.score),
+                    _field('分值', item.score),
                   ]),
                 ),
               )
@@ -91,7 +91,7 @@ Future<FeatureResult> _loadAssignmentFeature(
                   _field('开始', item.startTime),
                   _field('截止', item.dueTime),
                   _field('状态', item.submissionStatusText),
-                  _field('得分', item.score),
+                  _field('分值', item.score),
                   _field('提交时间', item.submittedAt),
                   _field('作业内容', item.contentPlainText),
                 ]),

@@ -79,7 +79,7 @@ class _AssignmentContent extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   _nonBlank(entry.key.$2) ?? '课程名称未提供',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
             for (final detail in entry.value)
@@ -129,70 +129,123 @@ class _AssignmentCard extends StatelessWidget {
       ),
       _ => ('', '', null, null),
     };
-    return Card(
+    final summary = switch (p) {
+      SpocAssignmentPresentation p => !p.isDetail,
+      JudgeAssignmentPresentation p => !p.isDetail,
+      _ => false,
+    };
+    final target = detail.readNavigation;
+    final canOpen = target != null && onNavigate != null;
+    final card = Card(
       margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(detail.title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(_nonBlank(course) ?? '课程名称未提供'),
-            const SizedBox(height: 8),
-            Chip(label: Text(_nonBlank(status) ?? '提交状态未知')),
-            _AcademicInfo(
-              icon: Icons.event_outlined,
-              text: '截止时间：${_nonBlank(due) ?? '未提供'}',
-            ),
-            if (p is SpocAssignmentPresentation) ...[
-              if (_nonBlank(p.teacherName) case final teacher?)
-                _AcademicInfo(icon: Icons.person_outline, text: teacher),
-              if (_nonBlank(p.score) case final score?)
-                _DetailField(label: '成绩', value: score),
-              if (_nonBlank(p.submittedAt) case final time?)
-                _DetailField(label: '提交时间', value: time),
-            ],
-            if (p is JudgeAssignmentPresentation) ...[
-              Text('已提交 ${p.submittedCount} / ${p.totalProblems} 题'),
-              if (_nonBlank(p.myScore) case final score?)
-                _DetailField(label: '我的得分', value: score),
-              if (_nonBlank(p.maxScore) case final score?)
-                _DetailField(label: '满分', value: score),
-            ],
-            if (_nonBlank(body) case final text?) ...[
-              const SizedBox(height: 16),
-              Text('作业内容', style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 8),
-              SelectableText(text),
-            ],
-            if (p is JudgeAssignmentPresentation && p.isDetail) ...[
-              const SizedBox(height: 16),
-              Text('题目明细', style: Theme.of(context).textTheme.titleSmall),
-              if (p.problems.isEmpty)
-                const Text('暂无题目明细')
-              else
-                _JudgeProblems(problems: p.problems, wide: wide),
-            ],
-            _AcademicMore(
-              fields: [
-                for (final field in detail.fields) (field.label, field.value),
-              ],
-            ),
-            if (selection case final child?) child,
-            if (detail.readNavigation case final navigation?
-                when onNavigate != null)
-              FilledButton.tonalIcon(
-                onPressed: () => onNavigate!(navigation),
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('查看作业详情'),
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      child: InkWell(
+        onTap: canOpen ? () => onNavigate!(target) : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      detail.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 132),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _nonBlank(status) ?? '提交状态未知',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-          ],
+              if (!summary) ...[
+                const SizedBox(height: 4),
+                Text(_nonBlank(course) ?? '课程名称未提供'),
+              ],
+              const SizedBox(height: 8),
+              if (p is SpocAssignmentPresentation) ...[
+                if (_nonBlank(p.teacherName) case final teacher?)
+                  _assignmentLine(context, '教师：$teacher'),
+                if (_nonBlank(p.startTime) case final start?)
+                  _assignmentLine(context, '开始：$start'),
+                _assignmentLine(context, '截止：${_nonBlank(due) ?? '未提供'}'),
+                if (_nonBlank(p.score) case final score?)
+                  _assignmentLine(context, '分值：$score'),
+                if (!summary && _nonBlank(p.submittedAt) != null)
+                  _assignmentLine(context, '提交时间：${p.submittedAt}'),
+              ],
+              if (p is JudgeAssignmentPresentation) ...[
+                if (_nonBlank(p.startTime) case final start?)
+                  _assignmentLine(context, '开始：$start'),
+                _assignmentLine(context, '截止：${_nonBlank(due) ?? '未提供'}'),
+                _assignmentLine(
+                  context,
+                  '已提交 ${p.submittedCount} / ${p.totalProblems} 题',
+                ),
+                if (_nonBlank(p.myScore) case final score?)
+                  _assignmentLine(context, '我的得分：$score'),
+                if (_nonBlank(p.maxScore) case final score?)
+                  _assignmentLine(context, '满分：$score'),
+              ],
+              if (_nonBlank(body) case final text?) ...[
+                const SizedBox(height: 16),
+                Text('作业内容', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                SelectableText(text),
+              ],
+              if (p is JudgeAssignmentPresentation && p.isDetail) ...[
+                const SizedBox(height: 16),
+                Text('题目明细', style: Theme.of(context).textTheme.titleSmall),
+                if (p.problems.isEmpty)
+                  const Text('暂无题目明细')
+                else
+                  _JudgeProblems(problems: p.problems, wide: wide),
+              ],
+              if (!summary || !canOpen)
+                _AcademicMore(
+                  fields: [
+                    for (final field in detail.fields)
+                      (field.label, field.value),
+                  ],
+                ),
+              if (selection case final child?) child,
+            ],
+          ),
         ),
       ),
     );
+    return canOpen ? Tooltip(message: '查看作业详情', child: card) : card;
   }
 }
+
+Widget _assignmentLine(BuildContext context, String text) => Text(
+  text,
+  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+  ),
+);
 
 class _JudgeProblems extends StatelessWidget {
   const _JudgeProblems({required this.problems, required this.wide});

@@ -18,7 +18,7 @@ void main() {
     }
 
     await search('A 课程');
-    final detail = find.text('查看作业详情');
+    final detail = find.byTooltip('查看作业详情');
     await Scrollable.ensureVisible(tester.element(detail), alignment: .5);
     await tester.pumpAndSettle();
     expect(detail.hitTestable(), findsOneWidget);

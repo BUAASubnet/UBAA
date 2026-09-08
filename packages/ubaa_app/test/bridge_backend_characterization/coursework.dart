@@ -73,6 +73,13 @@ void registerCourseworkTests() {
     expect(p.startTime, '原开始');
     expect(p.dueTime, '原截止');
     expect(p.score, '优秀');
+    expect(
+      result.details.single.fields.any(
+        (f) => f.label == '分值' && f.value == '优秀',
+      ),
+      isTrue,
+    );
+    expect(result.details.single.fields.any((f) => f.label == '得分'), isFalse);
     expect(p.contentPlainText, '纯文本内容');
     expect(p.submittedAt, '原提交时间');
     expect(p.status, AssignmentSubmissionStatus.submitted);

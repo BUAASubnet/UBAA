@@ -14,7 +14,8 @@ extension _JudgeSelection on _FeatureDetailListState {
     return CheckboxListTile(
       key: ValueKey(('judge-selection', p.courseId, p.assignmentId)),
       contentPadding: EdgeInsets.zero,
-      title: const Text('选择此作业查看批量详情'),
+      title: const Text('加入批量详情'),
+      dense: true,
       value: _selectedJudgeKeys.contains(key),
       onChanged: (selected) => setState(() {
         if (selected == true) {
