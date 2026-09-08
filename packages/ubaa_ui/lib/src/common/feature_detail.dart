@@ -54,6 +54,7 @@ class _FeatureDetailView extends StatefulWidget {
 }
 
 class _FeatureDetailViewState extends State<_FeatureDetailView> {
+  final _queryKey = GlobalKey<_FeatureQueryControlsState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
 
@@ -82,7 +83,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale) &&
         widget.snapshot.details.isNotEmpty;
-    final content = widget.isLanding
+    final defaultContent = widget.isLanding
         ? _FeatureLandingMenu(
             feature: widget.feature,
             onOpen: widget.onNavigate!,
@@ -141,6 +142,30 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               ),
             ],
           );
+    final content =
+        !widget.isLanding &&
+            widget.feature == FeatureId.libbook &&
+            (widget.query?.view ?? FeatureQueryView.summary) !=
+                FeatureQueryView.libbookBookings
+        ? _LibbookReservationFlow(
+            snapshot: widget.snapshot,
+            query: widget.query ?? const FeatureQuery(),
+            cacheEpoch: widget.readCacheEpoch,
+            filter: _searchController.text,
+            fallback: defaultContent,
+            onReserve: widget.onLibbookReserveWrite,
+            onQuery: widget.onQuery == null
+                ? null
+                : (query) {
+                    _queryKey.currentState?.adoptLibraryQuery(query);
+                    return widget.onQuery!(query);
+                  },
+            onSeatQuery: (query) {
+              _queryKey.currentState?.adoptLibraryQuery(query, clearDate: true);
+              setState(() => _panelOpen = true);
+            },
+          )
+        : defaultContent;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = MediaQuery.sizeOf(context).width >= 600;
@@ -198,6 +223,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                                     ),
                                   if (widget.onQuery != null && _supportsQuery)
                                     _FeatureQueryControls(
+                                      key: _queryKey,
                                       feature: widget.feature,
                                       details: widget.snapshot.details,
                                       snapshot: widget.snapshot,

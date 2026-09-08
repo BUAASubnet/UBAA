@@ -9,6 +9,7 @@ class _FeatureQueryControls extends StatefulWidget {
     this.initialQuery,
     this.onLoadAcademicTerms,
     this.readCacheEpoch = 0,
+    super.key,
   });
 
   final FeatureId feature;
@@ -65,6 +66,8 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   FeatureQueryView _signinView = FeatureQueryView.summary;
   bool _includeExpired = false;
   bool _submitting = false;
+  bool _libraryNeedsExplicitDate = false;
+  bool _libraryDateError = false;
 
   @override
   void initState() {
@@ -106,6 +109,17 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
       _classroomLastDetails = oldWidget.snapshot.details;
     }
     _consumeClassroomOptions();
+  }
+
+  /// 用户沿楼馆/楼层/分区选择新目标时，替换关联草稿；普通刷新不调用。
+  void adoptLibraryQuery(FeatureQuery query, {bool clearDate = false}) {
+    if (widget.feature != FeatureId.libbook) return;
+    setState(() {
+      _restoreQuery(query);
+      _libraryNeedsExplicitDate = clearDate;
+      _libraryDateError = false;
+      if (clearDate) _dateController.clear();
+    });
   }
 
   // 只在新页面初始化；后续读取通知不覆盖用户尚未应用的草稿。
@@ -307,6 +321,22 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
         }
       }
       if (widget.feature == FeatureId.libbook) {
+        if (_libbookView != FeatureQueryView.libbookBookings) {
+          final rawDate = _dateController.text.trim();
+          if (_libbookView == FeatureQueryView.libbookSeats &&
+              _libraryNeedsExplicitDate &&
+              rawDate.isEmpty) {
+            setState(() => _libraryDateError = true);
+            return;
+          }
+          if (rawDate.isNotEmpty) {
+            date = _parseDateOnly(rawDate);
+            if (date == null) {
+              _showMessage('日期格式无效，请使用 YYYY-MM-DD。');
+              return;
+            }
+          }
+        }
         if (_libbookView == FeatureQueryView.libbookAreas &&
             _premisesController.text.trim().isEmpty) {
           _showMessage('馆区 ID 不能为空。');
@@ -322,14 +352,6 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
           if (_segmentController.text.trim().isEmpty) {
             _showMessage('时段编号不能为空。');
             return;
-          }
-          final rawDate = _dateController.text.trim();
-          if (rawDate.isNotEmpty) {
-            date = _parseDateOnly(rawDate);
-            if (date == null) {
-              _showMessage('日期格式无效，请使用 YYYY-MM-DD。');
-              return;
-            }
           }
           if (_startController.text.trim().isEmpty ||
               _endController.text.trim().isEmpty) {
@@ -502,18 +524,32 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     required String label,
     required List<String> values,
     required ValueChanged<String> onSelected,
-  }) => DropdownButton<String>(
-    hint: Text(label),
-    onChanged: _submitting || values.isEmpty
-        ? null
-        : (value) {
-            if (value != null) onSelected(value);
-          },
-    items: values
-        .map(
-          (value) => DropdownMenuItem<String>(value: value, child: Text(value)),
-        )
-        .toList(growable: false),
+  }) => SizedBox(
+    width: 260,
+    child: DropdownButton<String>(
+      isExpanded: true,
+      hint: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      onChanged: _submitting || values.isEmpty
+          ? null
+          : (value) {
+              if (value != null) onSelected(value);
+            },
+      items: values
+          .map(
+            (value) => DropdownMenuItem<String>(
+              value: value,
+              child: Tooltip(
+                message: value,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    ),
   );
 
   String _today() {

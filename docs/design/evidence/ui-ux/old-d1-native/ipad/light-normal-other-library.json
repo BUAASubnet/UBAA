@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-other-library",
+  "steps": "换楼馆清除旧座位和时段，仍是同一预约页面",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T05:41:11.995594Z",
+  "sourceSha": "ba9fadde-d1-working-r3",
+  "pngSaved": true
+}

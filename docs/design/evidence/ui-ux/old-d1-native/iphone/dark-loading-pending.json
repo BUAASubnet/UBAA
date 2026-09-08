@@ -1,0 +1,14 @@
+{
+  "name": "dark-loading-pending",
+  "steps": "显式保持读取，旧分区和座位不能继续操作",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T05:39:25.591603Z",
+  "sourceSha": "ba9fadde-d1-working-r3",
+  "pngSaved": true
+}

@@ -841,9 +841,11 @@ void _registerFeatureCollectionTests() {
     };
     FeatureQuery? applied;
     var retryCalls = 0;
+    var queryCalls = 0;
     Future<void> onQuery(FeatureId feature, FeatureQuery query) async {
       expect(feature, FeatureId.classroom);
       applied = query;
+      queryCalls++;
     }
 
     await tester.pumpWidget(
@@ -910,9 +912,12 @@ void _registerFeatureCollectionTests() {
       ),
     );
     await tester.pumpAndSettle();
+    await closeQueryPanel(tester);
+    await tester.ensureVisible(find.text('重试'));
     await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
     expect(retryCalls, 0);
+    expect(queryCalls, 2);
     expect(applied?.floorId, 'F2');
   });
 }

@@ -1,6 +1,40 @@
 part of '../widgets.dart';
 
 extension _LibbookQueryControls on _FeatureQueryControlsState {
+  List<String> _libbookValues(String label) {
+    final models = widget.details.map((d) => d.presentation).toList();
+    final typed = models.any(
+      (p) =>
+          p is LibbookLibraryPresentation ||
+          p is LibbookAreaPresentation ||
+          p is LibbookAreaDetailPresentation ||
+          p is LibbookSeatPresentation ||
+          p is LibbookBookingPresentation,
+    );
+    if (!typed) return _detailFieldValues(label);
+    return {
+      for (final p in models)
+        if (label == '馆 ID' &&
+            p is LibbookLibraryPresentation &&
+            p.id.trim().isNotEmpty)
+          p.id,
+      for (final p in models)
+        if (label == '分区 ID')
+          ...switch (p) {
+            LibbookAreaPresentation(:final id) when id.trim().isNotEmpty => [
+              id,
+            ],
+            LibbookAreaDetailPresentation(:final id)
+                when id.trim().isNotEmpty =>
+              [id],
+            LibbookSeatPresentation(:final areaId)
+                when areaId.trim().isNotEmpty =>
+              [areaId],
+            _ => <String>[],
+          },
+    }.toList();
+  }
+
   List<Widget> _libbookQueryFields(StateSetter setState) => <Widget>[
     if (widget.feature == FeatureId.libbook) ...<Widget>[
       DropdownButton<FeatureQueryView>(
@@ -30,9 +64,24 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
           ),
         ],
       ),
+      if (_libbookView != FeatureQueryView.libbookBookings)
+        SizedBox(
+          width: 220,
+          child: TextField(
+            controller: _dateController,
+            onChanged: (_) => setState(() => _libraryDateError = false),
+            decoration: InputDecoration(
+              labelText: '日期',
+              hintText: 'YYYY-MM-DD',
+              helperText: _libraryNeedsExplicitDate ? '请明确选择日期' : null,
+              errorText: _libraryDateError ? '请先明确选择预约日期。' : null,
+              isDense: true,
+            ),
+          ),
+        ),
       if (_libbookView == FeatureQueryView.libbookAreas) ...<Widget>[
         SizedBox(
-          width: 150,
+          width: 200,
           child: TextField(
             controller: _premisesController,
             decoration: const InputDecoration(
@@ -43,7 +92,7 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
           ),
         ),
         SizedBox(
-          width: 130,
+          width: 200,
           child: TextField(
             controller: _storeyController,
             decoration: const InputDecoration(
@@ -54,13 +103,18 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
         ),
         _valuePicker(
           label: '从当前馆列表选择',
-          values: _detailFieldValues('馆 ID'),
-          onSelected: (value) => _premisesController.text = value,
+          values: _libbookValues('馆 ID'),
+          onSelected: (value) {
+            _premisesController.text = value;
+            _storeyController.clear();
+            _areaController.clear();
+            _segmentController.clear();
+          },
         ),
       ],
       if (_libbookView == FeatureQueryView.libbookAreaDetail) ...<Widget>[
         SizedBox(
-          width: 150,
+          width: 200,
           child: TextField(
             controller: _areaController,
             decoration: const InputDecoration(
@@ -72,13 +126,13 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
         ),
         _valuePicker(
           label: '从当前馆区选择',
-          values: _detailFieldValues('分区 ID'),
+          values: _libbookValues('分区 ID'),
           onSelected: (value) => _areaController.text = value,
         ),
       ],
       if (_libbookView == FeatureQueryView.libbookSeats) ...<Widget>[
         SizedBox(
-          width: 150,
+          width: 200,
           child: TextField(
             controller: _areaController,
             decoration: const InputDecoration(
@@ -91,17 +145,6 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
         SizedBox(
           width: 140,
           child: TextField(
-            controller: _dateController,
-            decoration: const InputDecoration(
-              labelText: '日期',
-              hintText: 'YYYY-MM-DD',
-              isDense: true,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 110,
-          child: TextField(
             controller: _startController,
             decoration: const InputDecoration(
               labelText: '开始时间',
@@ -111,7 +154,7 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
           ),
         ),
         SizedBox(
-          width: 110,
+          width: 140,
           child: TextField(
             controller: _endController,
             decoration: const InputDecoration(
@@ -122,7 +165,7 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
           ),
         ),
         SizedBox(
-          width: 120,
+          width: 220,
           child: TextField(
             controller: _segmentController,
             decoration: const InputDecoration(
@@ -133,13 +176,13 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
         ),
         _valuePicker(
           label: '从当前馆区选择',
-          values: _detailFieldValues('分区 ID'),
+          values: _libbookValues('分区 ID'),
           onSelected: (value) => _areaController.text = value,
         ),
       ],
       if (_libbookView == FeatureQueryView.libbookBookings) ...<Widget>[
         SizedBox(
-          width: 110,
+          width: 140,
           child: TextField(
             controller: _pageController,
             keyboardType: TextInputType.number,
@@ -151,7 +194,7 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
           ),
         ),
         SizedBox(
-          width: 110,
+          width: 140,
           child: TextField(
             controller: _sizeController,
             keyboardType: TextInputType.number,

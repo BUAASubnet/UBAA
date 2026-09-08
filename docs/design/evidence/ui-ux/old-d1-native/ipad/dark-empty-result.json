@@ -1,0 +1,14 @@
+{
+  "name": "dark-empty-result",
+  "steps": "检查本状态实际原生视图、文字、滚动和错误说明",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T05:40:33.953902Z",
+  "sourceSha": "ba9fadde-d1-working-r3",
+  "pngSaved": true
+}

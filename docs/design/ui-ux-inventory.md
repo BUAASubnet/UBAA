@@ -71,12 +71,12 @@
 | BY-03 | 已选课程 / 已选课程 | `F/read/services.rs bykc_chosen_courses`；`bykc.dart` | 保留 courseInfo 与目标归属，不由展示字段决定写入 | 有 | 有 | 我的博雅课程，突出时间与资格 | `UT/widgets/writes.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | BY-04 | 修读统计 / 修读统计 | `F/read/services.rs bykc_statistics`；`bykc.dart` | Core 统计字段；不自行补学分规则 | 有 | 有 | 博雅概览与分类进度 | `UT/widgets/feature_details.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | BY-05 | 博雅资料 / 个人资料 | `F/read/services.rs bykc_profile`；`bykc.dart` | 博雅专属资料白名单 | 有 | 有 | 博雅概览身份摘要，与主账号资料区分 | `UT/widgets/feature_details.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
-| LIB-01 | 楼馆列表 / 馆列表 | `F/read/services.rs libbook_libraries`；`libbook.dart` | day；Bridge 有 storeys，app 仅投影楼层数 | 部分 | 有 | 楼馆→楼层联动；补 typed 楼层选项 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | P3A手机/平板原生明暗默认视图已观察；子操作待对应批次 | 未执行 |
-| LIB-02 | 馆区和楼层 / 馆区列表 | `F/read/services.rs libbook_areas`；`libbook.dart` | premisesId、可选 storeyId、day；现手输编号或父列表拾取 | 有 | 有 | 点楼馆进馆区，保留当天上下文 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
-| LIB-03 | 分区详情 / 分区详情 | `F/read/services.rs libbook_area_detail`；`libbook.dart` | areaId；营业窗口由 upstream 条件决定 | 有 | 有 | 分区说明、可用日期、时段形成结构化视图 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
-| LIB-04 | 可用日期/时段选择 | `F/read/services.rs libbook_area_detail`；`libbook.dart` | availableDates、timeSlots；app 把时段仅 join(label)，丢失供后续选择的结构 | 部分 | 仅文本 | 补 typed 可选日期/时段，将 segment/start/end 一次带入 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
-| LIB-05 | 座位查询 / 座位查询 | `F/read/services.rs libbook_seats`；`libbook.dart` | areaId/day/start/end；app 另必填 segment 供预约，不能猜编号 | 有 | 有 | 从分区时段到座位列表，保留资格/未知状态 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
-| LIB-06 | 我的预约 / 预约记录 | `F/read/services.rs libbook_bookings`；`libbook.dart` | page>=1、limit 1–100；保留服务端分页 | 有 | 有 | 预约记录入口与取消操作同页 | `UT/widgets/libbook_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
+| LIB-01 | 楼馆列表 / 馆列表 | `F/read/services.rs libbook_libraries`；`libbook.dart` | day与typed嵌套storeys，保留同名楼层的独立ID | 有 | 有 | 旧版同页楼馆/楼层联动，隐藏页不自动请求 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 558门禁通过 | D1手机/平板各46图、macOS15项原生断言；独立实窗待补 | Core-live双路线五读PASS；当前生产UI待验 |
+| LIB-02 | 馆区和楼层 / 馆区列表 | `F/read/services.rs libbook_areas`；`libbook.dart` | typed父馆/楼层/day；完整手填仍在顶栏面板 | 有 | 有 | 同页换馆/层清除旧分区时段座位，保持实际读取日期 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 558门禁通过 | D1手机/平板各46图、macOS15项原生断言；独立实窗待补 | Core-live双路线五读PASS；当前生产UI待验 |
+| LIB-03 | 分区详情 / 分区详情 | `F/read/services.rs libbook_area_detail`；`libbook.dart` | areaId；营业窗口由 upstream 条件决定 | 有 | 有 | 已显示结构化日期和时段；旧版静态分区地图待补 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 558门禁通过 | D1手机/平板各46图、macOS15项原生断言；独立实窗待补 | Core-live双路线五读PASS；当前生产UI待验 |
+| LIB-04 | 可用日期/时段选择 | `F/read/services.rs libbook_area_detail`；`libbook.dart` | 保留availableDates与时段id/start/end/label；没有日期关联 | 有，受日期关联上限限制 | 时段只读，完整查询可达 | 明确日期后查询；不自动复制时段给所有日期 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 558门禁通过 | D1手机/平板各46图、macOS15项原生断言；独立实窗待补 | Core-live双路线五读PASS；当前生产UI待验 |
+| LIB-05 | 座位查询 / 座位查询 | `F/read/services.rs libbook_seats`；`libbook.dart` | areaId/day/start/end；app 另必填 segment 供预约，不能猜编号 | 有 | 有 | 四列座位，选中后才显示摘要；仅独立allowed完整action可准备 | `UT/widgets/libbook_queries.dart`；`AT/bridge_backend_characterization/read.dart` | 558门禁通过 | D1手机/平板各46图、macOS15项原生断言；独立实窗待补 | Core-live双路线五读PASS；当前生产UI待验 |
+| LIB-06 | 我的预约 / 预约记录 | `F/read/services.rs libbook_bookings`；`libbook.dart` | page>=1、limit 1–100；保留服务端分页 | 有 | 有 | 旧版紧凑记录；编号进只读详情，canonical取消保留原页 | `UT/widgets/libbook_writes.dart`；`AT/bridge_backend_characterization/read.dart` | 558门禁通过 | D1手机/平板各46图、macOS15项原生断言；独立实窗待补 | Core-live双路线五读PASS；当前生产UI待验 |
 | CG-01 | 研讨室站点 / 站点列表 | `F/read/services.rs cgyy_sites`；`cgyy.dart` | 站点 ID 来自返回 | 有 | 有 | 点站点进入可预约日期与场地 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | P3A手机/平板原生明暗默认视图已观察；子操作待对应批次 | 未执行 |
 | CG-02 | 用途 / 用途类型 | `F/read/services.rs cgyy_purpose_types`；`cgyy.dart` | 来源 upstream/static_fallback 必须明示 | 有 | 有 | 作为预约表单选择器；保留降级来源说明 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
 | CG-03 | 日期空间 / 日期空间 | `F/read/services.rs cgyy_day_info`；`cgyy.dart` | 正 siteId、严格日期 | 有 | 有 | 站点带入日期选择，保留返回空间层级 | `UT/widgets/queries.dart`；`AT/bridge_backend_characterization/read.dart` | 未执行 | 未执行 | 未执行 |
@@ -168,3 +168,9 @@ O3-B更新（本批三端复验已完成，见证据）：EV-01/EV-02在各端�
 
 
 O3-C恢复博雅3项、图书馆2项、研讨室3项根子菜单；列表/详情顶栏使用当前子视图标题。原84编号及全部查询参数保留，根菜单不显示无结果的本地搜索；结果页搜索/草稿仍保留。CG-07显示门锁available状态，菜单叫“门锁状态”，公开字段限制不变。菜单路径原生复验进行中，LB/CG/BY各明细内容与自然选择仍属P4-D待完成。
+
+
+O3-D1图书馆实施中（84编号不增减）：LB五视图现保留公开楼馆/楼层/分区/时段/座位/预约结构，原生预约页沿旧版单页选项与四列座位，选择后才出现摘要/准备按钮。记录低频编号放只读详情，取消仍用canonical目标和服务器分页。日期时段关联上限未变；从分区进入查询必须明确日期，完整手填始终保留。手机原生r1/r2存在辅助fixture和滚动定位失败，r3复验中；平板和macOS本批尚未取得终态证据，不填最终完成列。
+
+
+D1本批复验更新：LIB-01–LIB-06既有五读视图及楼层结构、W-LIB-01/W-LIB-02准备/取消路径在本批手机和平板各46图与macOS15项原生断言通过，558项Flutter门禁通过；Core-live图书馆五读Direct/WebVPN均PASS。旧版静态分区地图归入LIB-03子能力继续补，不新造第85编号；日期关联限制和macOS独立实窗未完成保持显式记录。当前表格历史列未被整体改写成最终通过，最终验收按P6另行核对。

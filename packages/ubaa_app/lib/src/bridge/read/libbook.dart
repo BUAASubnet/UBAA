@@ -16,6 +16,23 @@ Future<FeatureResult> _loadLibbookFeature(
               .map(
                 (item) => FeatureDetail(
                   title: item.name,
+                  presentation: LibbookLibraryPresentation(
+                    id: item.id,
+                    name: item.name,
+                    freeNum: item.freeNum,
+                    totalNum: item.totalNum,
+                    queryDate: today,
+                    storeys: List.unmodifiable(
+                      item.storeys.map(
+                        (floor) => LibbookStoreyPresentation(
+                          id: floor.id,
+                          name: floor.name,
+                          freeNum: floor.freeNum,
+                          totalNum: floor.totalNum,
+                        ),
+                      ),
+                    ),
+                  ),
                   fields: _compactFields(<FeatureField?>[
                     _field('馆 ID', item.id),
                     _field('空闲座位', '${item.freeNum}'),
@@ -43,6 +60,26 @@ Future<FeatureResult> _loadLibbookFeature(
                 (item) => FeatureDetail(
                   title: item.name,
                   subtitle: item.areaName,
+                  presentation: LibbookAreaPresentation(
+                    id: item.id,
+                    name: item.name,
+                    areaName: item.areaName,
+                    premisesId: item.premisesId,
+                    storeyId: item.storeyId,
+                    freeNum: item.freeNum,
+                    totalNum: item.totalNum,
+                    queryDate: today,
+                  ),
+                  readNavigation: item.id.trim().isEmpty
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.libbook,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.libbookAreaDetail,
+                            areaId: item.id,
+                            date: DateTime.parse(today),
+                          ),
+                        ),
                   fields: _compactFields(<FeatureField?>[
                     _field('分区 ID', item.id),
                     _field('楼层 ID', item.storeyId),
@@ -67,6 +104,21 @@ Future<FeatureResult> _loadLibbookFeature(
             details: <FeatureDetail>[
               FeatureDetail(
                 title: detail.name,
+                presentation: LibbookAreaDetailPresentation(
+                  id: detail.id,
+                  name: detail.name,
+                  availableDates: List.unmodifiable(detail.availableDates),
+                  timeSlots: List.unmodifiable(
+                    detail.timeSlots.map(
+                      (slot) => LibbookTimeSlotPresentation(
+                        id: slot.id,
+                        start: slot.start,
+                        end: slot.end,
+                        label: slot.label,
+                      ),
+                    ),
+                  ),
+                ),
                 fields: _compactFields(<FeatureField?>[
                   _field('分区 ID', detail.id),
                   _field(
@@ -106,6 +158,18 @@ Future<FeatureResult> _loadLibbookFeature(
                 return FeatureDetail(
                   title: item.name,
                   subtitle: item.no,
+                  presentation: LibbookSeatPresentation(
+                    id: item.id,
+                    name: item.name,
+                    number: item.no,
+                    status: item.status,
+                    statusName: item.statusName,
+                    areaId: areaId,
+                    queryDate: today,
+                    segment: segment,
+                    startTime: startTime,
+                    endTime: endTime,
+                  ),
                   fields: _compactFields(<FeatureField?>[
                     _field('分区 ID', areaId),
                     _field('座位 ID', item.id),
@@ -152,6 +216,17 @@ Future<FeatureResult> _loadLibbookFeature(
                 return FeatureDetail(
                   title: item.nameMerge,
                   subtitle: item.areaName,
+                  presentation: LibbookBookingPresentation(
+                    id: item.id,
+                    name: item.nameMerge,
+                    areaName: item.areaName,
+                    seatNumber: item.seatNo,
+                    day: item.day,
+                    beginTime: item.beginTime,
+                    endTime: item.endTime,
+                    status: item.status,
+                    statusName: item.statusName,
+                  ),
                   fields: _compactFields(<FeatureField?>[
                     _field('预约 ID', item.id),
                     _field('座位', item.seatNo),

@@ -8,6 +8,7 @@ part 'presentation/classroom.dart';
 part 'presentation/assignment.dart';
 part 'presentation/signin.dart';
 part 'presentation/evaluation.dart';
+part 'presentation/libbook.dart';
 
 sealed class FeaturePresentation {
   const FeaturePresentation();

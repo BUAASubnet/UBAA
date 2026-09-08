@@ -227,6 +227,16 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                           libbookCancelAction!.bookingId.trim().isNotEmpty &&
                           libbookCancelAction.page > 0 &&
                           libbookCancelAction.limit > 0;
+                      if (widget.feature == FeatureId.libbook &&
+                          detail.presentation is LibbookBookingPresentation) {
+                        return _libbookBookingRow(
+                          context,
+                          detail,
+                          detail.presentation! as LibbookBookingPresentation,
+                          libbookCancelAction,
+                          canLibbookCancel,
+                        );
+                      }
                       return Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),

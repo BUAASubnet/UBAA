@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-bookings",
+  "steps": "预约记录以地点、状态、时间和座位优先，含不可取消和未知状态",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T05:40:26.403987Z",
+  "sourceSha": "ba9fadde-d1-working-r3",
+  "pngSaved": true
+}

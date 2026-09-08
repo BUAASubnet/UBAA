@@ -62,3 +62,8 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 6. 手输兼容、600/1000断点、1.3长名称、手机键盘滚动与完整按钮可达；列表/详情筛选恢复。原生图由主代理冻结候选后独立执行；本计划不制作伪viewport或已通过截图证据。
 
 最小文件范围建议：`ubaa_domain/.../presentation`新图书馆/场馆模型；App `bridge/read/libbook.dart`、`cgyy.dart`；UI `features/libbook.dart`、`cgyy.dart`及新领域内容part；`common/query_controls.dart`必要typed输入/缓存；沿既有FeatureReadNavigation与shell栈。保留所有原读视图与手填控制，不把领域展示改为通用字段表。完整跨日期自动图书馆时段关联维持阻塞，不改Core/Bridge v9。
+
+
+## D1图书馆执行补记
+
+O3-C已提交ba9fadde，现执行图书馆子批。库API/DTO/Local实现与Mock已逐段复读，原五请求和v9合同不改。5项投影行为RED在`/tmp/ubaa-old-d1-libbook-red.log`观察到presentation缺失，6项聚焦GREEN（含原取消回读）。与旧版相同的可见预约页初始楼馆/楼层/分区加载保留；没有自动跨日期时段配对，未调用真实写入。明确空结果不复活座位选择，隐藏页面不自动继续子查询。原生r1发现fixture默认页问题与测试按钮类型误定位，保留失败并修复后重跑；子批尚未完成三端实屏验收。

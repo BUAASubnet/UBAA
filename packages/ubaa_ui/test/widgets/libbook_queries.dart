@@ -42,11 +42,14 @@ void _registerLibbookQueryTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('馆区列表'));
     await tester.pumpAndSettle();
-    final fields = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    await tester.enterText(
+      find.widgetWithText(TextField, '馆区 ID'),
+      'main-library',
     );
-    await tester.enterText(fields.first, 'main-library');
-    await tester.enterText(fields.at(1), 'floor-1');
+    await tester.enterText(
+      find.widgetWithText(TextField, '楼层 ID（可选）'),
+      'floor-1',
+    );
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.view, FeatureQueryView.libbookAreas);
@@ -93,10 +96,7 @@ void _registerLibbookQueryTests() {
     await tester.tap(find.text('座位查询'));
     await tester.pumpAndSettle();
 
-    final fields = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
-    );
-    await tester.enterText(fields.first, 'area-1');
+    await tester.enterText(find.widgetWithText(TextField, '分区 ID'), 'area-1');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
 

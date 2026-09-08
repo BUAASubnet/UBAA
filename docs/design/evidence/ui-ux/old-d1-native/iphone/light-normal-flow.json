@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-flow",
+  "steps": "进入预约座位，自动读首馆首层分区与时段；未查询座位",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T05:39:41.407094Z",
+  "sourceSha": "ba9fadde-d1-working-r3",
+  "pngSaved": true
+}
