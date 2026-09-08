@@ -5,6 +5,40 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'support/navigation.dart';
 
 void main() {
+  testWidgets('少量学期的选择面板按内容收缩，不固定占半页', (tester) async {
+    await _show(
+      tester,
+      FeatureId.grades,
+      [],
+      (_) async => const FeatureResult.success(
+        details: [
+          FeatureDetail(
+            title: '合成甲学期',
+            presentation: TermPresentation(code: 'a', selected: true, index: 1),
+          ),
+          FeatureDetail(
+            title: '合成乙学期',
+            presentation: TermPresentation(
+              code: 'b',
+              selected: false,
+              index: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.tap(find.text('选择学期'));
+    await tester.pumpAndSettle();
+    final surface = find
+        .descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(Material),
+        )
+        .first;
+    expect(tester.getSize(surface).height, lessThan(400));
+    expect(find.text('合成甲学期'), findsOneWidget);
+    expect(find.text('合成乙学期'), findsOneWidget);
+  });
   testWidgets('今日查询不携带旧周次草稿，按输入查询保留兼容周表', (tester) async {
     final queries = <FeatureQuery>[];
     await _show(

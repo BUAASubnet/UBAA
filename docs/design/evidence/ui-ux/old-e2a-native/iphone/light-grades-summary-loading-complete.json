@@ -1,0 +1,15 @@
+{
+  "name": "light-grades-summary-loading-complete",
+  "steps": "显式合成状态，原生视口与系统字体",
+  "backend": "synthetic-grades-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T23:08:12.451597Z",
+  "sourceSha": "",
+  "pngSaved": true,
+  "evidenceRun": "r2"
+}

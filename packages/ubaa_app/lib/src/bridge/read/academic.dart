@@ -189,51 +189,17 @@ Future<FeatureResult> _loadAcademicFeature(
           final term = query.term ?? await _selectedTerm(backend);
           if (term == null) return const FeatureResult.empty();
           final result = await client.grades(term: term);
-          final grades = switch (query.view) {
-            FeatureQueryView.gradesScored =>
-              result.data.grades
-                  .where((item) => item.score?.trim().isNotEmpty ?? false)
-                  .toList(growable: false),
-            FeatureQueryView.gradesMissing =>
-              result.data.grades
-                  .where((item) => !(item.score?.trim().isNotEmpty ?? false))
-                  .toList(growable: false),
-            _ => result.data.grades,
-          };
-          final details = grades
-              .map(
-                (item) => FeatureDetail(
-                  title: item.courseName ?? item.courseCode ?? '课程',
-                  subtitle: item.courseCode,
-                  presentation: GradePresentation(
-                    courseName: item.courseName,
-                    courseCode: item.courseCode,
-                    score: item.score,
-                    gradePoint: item.gradePoint,
-                    credit: item.credit,
-                    courseType: item.courseType,
-                    scoreType: item.scoreType,
-                    termCode: item.termCode,
-                  ),
-                  fields: _compactFields(<FeatureField?>[
-                    _field('成绩', item.score),
-                    _field('绩点', item.gradePoint),
-                    item.credit == null ? null : _field('学分', '${item.credit}'),
-                    _field('课程类型', item.courseType),
-                  ]),
-                ),
-              )
+          final allGrades = result.data.grades
+              .map(_mapGradePresentation)
               .toList(growable: false);
-          final label = switch (query.view) {
-            FeatureQueryView.gradesScored => '门已出成绩课程',
-            FeatureQueryView.gradesMissing => '门待出成绩课程',
-            _ => '门课程成绩',
-          };
-          return _countResult(
-            grades.length,
-            label,
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          return projectGrades(
+            GradesTermOverview(
+              requestTerm: term,
+              termCode: result.data.termCode,
+              grades: List.unmodifiable(allGrades),
+            ),
+            query.view,
+            _toConnectionMode(result.route.resolvedRoute),
           );
         default:
           throw const BackendException(UbaaErrorCode.invalidInput);
@@ -365,3 +331,14 @@ FeatureDetail _mapExamDetail(BridgeExam item, {required bool arranged}) =>
         _field('类型', item.examType),
       ]),
     );
+
+GradePresentation _mapGradePresentation(BridgeGrade item) => GradePresentation(
+  courseName: item.courseName,
+  courseCode: item.courseCode,
+  score: item.score,
+  gradePoint: item.gradePoint,
+  credit: item.credit,
+  courseType: item.courseType,
+  scoreType: item.scoreType,
+  termCode: item.termCode,
+);

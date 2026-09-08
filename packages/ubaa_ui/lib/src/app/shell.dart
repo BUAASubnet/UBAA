@@ -18,6 +18,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
     this.onLoadAcademicTerms,
+    this.onLoadAllGrades,
     this.ygdkRecordsReadback,
     this.homeSnapshots,
     this.onLoadHomeSupplement,
@@ -79,6 +80,7 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 用户打开学期选择器后读取独立选项，不改写课表结果页。
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
   final List<ConnectionMode> activeRoutes;
 
   /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
@@ -117,6 +119,7 @@ class UbaaMainShell extends StatefulWidget {
 
 class _UbaaMainShellState extends State<UbaaMainShell> {
   Map<String, ConnectionMode> _homeReadRoutes = {};
+  Map<String, ConnectionMode> _gradesReadRoutes = {};
   YgdkReminderSettings? _reminderSettings;
   String? _reminderError;
   int _reminderRevision = 0;
@@ -155,6 +158,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     if (oldWidget.user?.username != widget.user?.username) {
       _accountGeneration++;
       _homeReadRoutes = {};
+      _gradesReadRoutes = {};
       _reminderSettings = null;
       _reminderError = null;
       _reminderRevision++;
@@ -346,13 +350,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   _utilityPage == null &&
                   _selectedIndex == 0 &&
                   pendingWrite == null;
-              final homeRoutes = homeVisible
-                  ? _homeReadRoutes.values.toSet()
-                  : <ConnectionMode>{};
+              final pageRoutes = homeVisible
+                  ? _homeReadRoutes
+                  : _openedFeature == FeatureId.grades && pendingWrite == null
+                  ? _gradesReadRoutes
+                  : null;
+              final homeRoutes =
+                  pageRoutes?.values.toSet() ?? <ConnectionMode>{};
               final mixed = homeRoutes.length > 1;
               final route =
                   pendingWrite?.resolvedRoute ??
-                  (homeVisible
+                  (pageRoutes != null && pageRoutes.isNotEmpty
                       ? (homeRoutes.length == 1 ? homeRoutes.single : null)
                       : (_openedFeature == snapshot?.feature
                             ? snapshot?.resolvedRoute
@@ -366,11 +374,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                       ? Icons.vpn_lock_outlined
                       : Icons.route_outlined,
                 ),
-                onPressed: () => _showRouteOptions(
-                  context,
-                  route,
-                  homeRoutes: homeVisible ? _homeReadRoutes : null,
-                ),
+                onPressed: () =>
+                    _showRouteOptions(context, route, homeRoutes: pageRoutes),
               );
             },
           ),
@@ -459,6 +464,18 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     pageBuilder: (page) => _FeatureDetailView(
       key: page.pageKey,
       isLanding: page.isLanding,
+      visible: _openedFeature == feature && page.isCurrent,
+      onLoadAllGrades: widget.onLoadAllGrades,
+      onGradeRoutes: (routes) {
+        if (_openedFeature != FeatureId.grades ||
+            !page.isCurrent ||
+            (routes.length == _gradesReadRoutes.length &&
+                routes.entries.every(
+                  (e) => _gradesReadRoutes[e.key] == e.value,
+                )))
+          return;
+        setState(() => _gradesReadRoutes = Map.unmodifiable(routes));
+      },
       isBykcChosenDetail: page.isBykcChosenDetail,
       onOpenBykcChosen: page.onOpenBykcChosen,
       ygdkRecordsReadback: widget.ygdkRecordsReadback,

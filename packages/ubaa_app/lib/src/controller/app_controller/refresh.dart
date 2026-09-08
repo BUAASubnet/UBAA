@@ -36,6 +36,12 @@ extension _AppControllerRefresh on AppController {
     FeatureQuery query,
   ) async {
     if (_disposed) return;
+    // 换学期/视图可复用完整集合；同查询表示明确刷新，继续执行原读取。
+    final cachedGrades =
+        feature == FeatureId.grades &&
+            _snapshots[feature]!.readContext?.hasSameQuery(query) != true
+        ? _cachedGradeQuery(query)
+        : null;
     final generation = _nextFeatureGeneration(feature);
     final context = _beginFeatureRead(feature, generation, query);
     if (_backend is! FeatureQueryBackend) {
@@ -54,6 +60,7 @@ extension _AppControllerRefresh on AppController {
       generation,
       lifecycleEpoch,
       query: context.query,
+      cachedResult: cachedGrades,
       ygdkGeneration: ygdkGeneration,
     );
   }
@@ -95,6 +102,7 @@ extension _AppControllerRefresh on AppController {
     int lifecycleEpoch, {
     FeatureQuery? query,
     int? ygdkGeneration,
+    FeatureResult? cachedResult,
   }) async {
     // loading 通知可能同步触发注销或切换路线，发请求前再次核对归属。
     if (!_isFeatureLoadCurrent(
@@ -115,11 +123,13 @@ extension _AppControllerRefresh on AppController {
             previous.details.isNotEmpty ||
             previous.summary?.trim().isNotEmpty == true);
     try {
-      final result = switch ((_backend, query)) {
-        (FeatureQueryBackend queryBackend, final FeatureQuery value) =>
-          await queryBackend.loadFeatureQuery(feature, value),
-        _ => await _backend.loadFeature(feature),
-      };
+      final result =
+          cachedResult ??
+          switch ((_backend, query)) {
+            (FeatureQueryBackend queryBackend, final FeatureQuery value) =>
+              await queryBackend.loadFeatureQuery(feature, value),
+            _ => await _backend.loadFeature(feature),
+          };
       if (query == null &&
           _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
         _acceptHomeDefault(
@@ -138,6 +148,9 @@ extension _AppControllerRefresh on AppController {
       )) {
         _notify();
         return;
+      }
+      if (feature == FeatureId.grades) {
+        _rememberGradeResult(result, query, fresh: cachedResult == null);
       }
       await _recordFeature(
         feature,
@@ -178,6 +191,9 @@ extension _AppControllerRefresh on AppController {
           error: uiError,
           updatedAt: DateTime.now(),
         );
+      if (featureCurrent && feature == FeatureId.grades) {
+        _rememberGradeResult(FeatureResult.failure(uiError), query);
+      }
       await _recordFeature(
         feature,
         error: uiError,

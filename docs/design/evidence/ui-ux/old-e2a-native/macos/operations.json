@@ -1,0 +1,38 @@
+{
+  "backend": "synthetic-grades-old",
+  "platform": "macOS",
+  "window": {
+    "width": 800,
+    "height": 632,
+    "contentWidth": 800,
+    "contentHeight": 600
+  },
+  "captures": [
+    "dark-grades-other-term.png",
+    "light-grades-detail.png",
+    "light-grades-draft.png",
+    "light-grades-filtered.png",
+    "light-grades-list.png",
+    "light-grades-other-term.png",
+    "light-grades-routes.png",
+    "light-grades-term-picker.png"
+  ],
+  "actions": [
+    "鼠标打开成绩旧统计与卡片",
+    "唯一顶栏图标查看各学期实际路线",
+    "筛选gra关闭再打开保持",
+    "学期选择器发现固定528高，RED后同窗口复验收缩",
+    "鼠标选择上一学期并应用",
+    "原始绩点本地详情",
+    "侧栏设置切深色后原学期选择保留"
+  ],
+  "limitations": [
+    "CUA paste未进入文本框；typeText(grade)仅输入gra，Key A抬起logicalKey不匹配。不是完整键盘通过，未修改产品事件协议。",
+    "仅重启本批fake以清除输入状态；随后纯鼠标验收。"
+  ],
+  "visualReview": "8张归档窗口原图全部逐张检查",
+  "nativeTests": {
+    "r2": 18,
+    "r3": 2
+  }
+}

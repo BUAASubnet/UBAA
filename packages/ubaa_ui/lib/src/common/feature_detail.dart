@@ -4,6 +4,9 @@ class _FeatureDetailView extends StatefulWidget {
   const _FeatureDetailView({
     required this.feature,
     this.isLanding = false,
+    this.visible = true,
+    this.onLoadAllGrades,
+    this.onGradeRoutes,
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
     this.ygdkRecordsReadback,
@@ -33,6 +36,9 @@ class _FeatureDetailView extends StatefulWidget {
   });
 
   final bool isLanding, isBykcChosenDetail;
+  final bool visible;
+  final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
+  final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureSnapshot? ygdkRecordsReadback;
   final YgdkReminderSettings? reminderSettings;
@@ -121,9 +127,10 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                   ],
                 ),
               if (widget.snapshot.overview case final overview?
-                  when widget.snapshot.status == FeatureLoadStatus.success ||
-                      widget.snapshot.status == FeatureLoadStatus.empty ||
-                      widget.snapshot.status == FeatureLoadStatus.stale)
+                  when overview is! GradesTermOverview &&
+                      (widget.snapshot.status == FeatureLoadStatus.success ||
+                          widget.snapshot.status == FeatureLoadStatus.empty ||
+                          widget.snapshot.status == FeatureLoadStatus.stale))
                 _CourseworkOverview(overview: overview),
               Expanded(
                 key: const ValueKey<String>('stable-detail-list'),
@@ -214,6 +221,16 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             onQuery: widget.onQuery,
             onSubmit: widget.onYgdkSubmitWrite,
             onPickPhoto: widget.onPickYgdkPhoto,
+          )
+        : !widget.isLanding && widget.feature == FeatureId.grades
+        ? _GradesFlow(
+            snapshot: widget.snapshot,
+            visible: widget.visible,
+            cacheEpoch: widget.readCacheEpoch,
+            filter: _searchController.text,
+            fallback: defaultContent,
+            loader: widget.onLoadAllGrades,
+            onRoutes: widget.onGradeRoutes,
           )
         : defaultContent;
     return LayoutBuilder(

@@ -1,0 +1,15 @@
+{
+  "name": "light-grades-filtered",
+  "steps": "搜索课程号保留完整学期统计，关闭面板无额外读取",
+  "backend": "synthetic-grades-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T23:25:28.985741Z",
+  "sourceSha": "",
+  "pngSaved": true,
+  "evidenceRun": "r3"
+}

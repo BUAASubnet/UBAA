@@ -102,6 +102,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       readCacheEpoch: _controller.readCacheEpoch,
       onLoadAcademicTerms: (forceRefresh) =>
           _controller.loadAcademicTerms(forceRefresh: forceRefresh),
+      onLoadAllGrades: (forceRefresh) =>
+          _controller.loadAllGrades(forceRefresh: forceRefresh),
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
       user: _controller.user,

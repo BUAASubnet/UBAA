@@ -47,7 +47,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('平板成绩主要列无需横滚且次要字段可本地打开', (tester) async {
+  testWidgets('平板成绩沿旧卡片无需横滚且次要字段可本地打开', (tester) async {
     await _show(
       tester,
       FeatureId.grades,
@@ -68,12 +68,12 @@ void main() {
       width: 834,
       textScale: 1.3,
     );
-    expect(find.byType(DataTable), findsNWidgets(2));
+    expect(find.byType(DataTable), findsNothing);
     expect(
-      tester.getRect(find.byType(DataTable).first).right,
+      tester.getRect(find.widgetWithText(Card, '可打开的课程').first).right,
       lessThanOrEqualTo(834),
     );
-    expect(find.text('待出成绩 · 本页1门'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -87,7 +87,10 @@ void main() {
     expect(find.byType(AlertDialog), findsOneWidget);
     await tester.tap(find.text('更多信息').last);
     await tester.pumpAndSettle();
-    expect(find.text('百分制'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text('百分制')),
+      findsOneWidget,
+    );
     expect(find.text('2026-1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -143,7 +146,7 @@ void main() {
     final titleRect = tester.getRect(find.text(title));
     expect(titleRect.height, greaterThan(112));
     expect(
-      tester.getRect(find.byType(DataTable)).bottom,
+      tester.getRect(find.widgetWithText(Card, title).first).bottom,
       greaterThan(titleRect.bottom),
     );
     expect(tester.takeException(), isNull);
@@ -224,8 +227,11 @@ void main() {
         FeatureDetail(title: '待出课程', presentation: GradePresentation()),
       ], width: width);
       expect(find.text('通过'), findsOneWidget);
+      expect(find.text('优秀'), findsNothing);
+      expect(find.text('--'), findsOneWidget);
+      await tester.tap(find.text('实践课程'));
+      await tester.pumpAndSettle();
       expect(find.text('优秀'), findsOneWidget);
-      expect(find.text('待出成绩'), findsOneWidget);
       expect(find.text('0.0'), findsNothing);
       expect(tester.takeException(), isNull);
     });

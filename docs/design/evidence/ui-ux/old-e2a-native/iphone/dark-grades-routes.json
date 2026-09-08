@@ -1,0 +1,15 @@
+{
+  "name": "dark-grades-routes",
+  "steps": "同一个图标说明各学期实际路线，默认Auto不冒充结果",
+  "backend": "synthetic-grades-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T23:24:57.768037Z",
+  "sourceSha": "",
+  "pngSaved": true,
+  "evidenceRun": "r3"
+}

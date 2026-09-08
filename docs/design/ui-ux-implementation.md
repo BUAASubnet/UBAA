@@ -287,3 +287,11 @@ D2集合元数据复用FeatureOverview，不从summary字符串提取统计；�
 ### O3-E1交付接线（2026-09-09）
 
 Domain ExamPresentation增加严格日期与旧结束规则，UI features/academic/exam_timeline.dart消费原投影；common/detail_list.dart只对无服务端分页的考试全部分组并保留typed检索。coursework/course_participation.dart恢复签到横卡，generic旧写字段仍留给无typed展示模型的兼容路径；评教行不改变。UbaaTheme提供中文delegates，由ubaa_host MaterialApp使用。三端ui_academic_old和生产live_readonly入口在子目录，目录不超过16源文件。最终624项门禁，128图局部证据；下一批为E2成绩，不用首版宽表格替代旧统计卡片。
+
+### O3-E2a接线（2026-09-09）
+
+Domain的GradesTermOverview保留requestTerm/termCode/完整grades；GradeStatistics纯计算、GradeTermRead与GradesAggregate记录逐学期覆盖及实际route。App的presentation/grades.dart统一单次读取与缓存切换投影；controller/app_controller/grades.dart负责独立缓存、合并在途、去重聚合及生命周期失效。read/academic.dart只组合现有公开DTO，无FRB/Core协议修改。
+
+UI的academic/grades_flow.dart与grade_cards.dart承担旧顺序统计/描边卡片；FeatureReadNavigator传递私有当前帧可见性，只在成绩页可见时加载聚合；Shell/Host转接onLoadAllGrades和逐来源实际route。历史宽表格类已删除，共用本地详情仍保留。新测试位于domain/grade_statistics_test、App app_controller/grades、UI academic/grades_old_test，原生与生产入口在integration_test/ui_grades_old。本批E2b首页成绩变化提醒尚未接线。
+
+O3-E2a局部终态（2026-09-09）：成绩完整投影、旧统计/描边卡、全学期缓存与按需查询已实现；最终641项Flutter门禁（46/50/257/215/15/23/35）通过。三端r2各18业务场景，最后学期弹窗收缩后r3各2正常查询场景通过；两端各50张候选原图加macOS独立8图，共108PNG已逐图检查归档old-e2a-native。Direct/WebVPN Core-live与生产App均通过，9/9学期82条完整聚合，当前14待出、0已出、详情无额外读取，真实业务写入0。最后只修改选择器高度，未重跑已通过且未受影响的生产读取路径。CUA Key A输入事件限制保留，不宣称完整物理键盘通过。E2b首页变化通知和整体P5–P7仍未完成。

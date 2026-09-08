@@ -230,6 +230,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
                 _ReadPage(
                   pageKey: frame.pageKey,
                   isLanding: frame.isLanding,
+                  isCurrent: identical(frame, _current),
                   snapshot: frame.bykcChosenKey == null
                       ? frame.snapshot
                       : frame.visibleSnapshot,
@@ -307,6 +308,7 @@ class _ReadPage {
   const _ReadPage({
     required this.pageKey,
     required this.isLanding,
+    required this.isCurrent,
     required this.snapshot,
     required this.query,
     required this.backLabel,
@@ -321,6 +323,7 @@ class _ReadPage {
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final GlobalKey<_FeatureDetailViewState> pageKey;
   final bool isLanding;
+  final bool isCurrent;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
   final String backLabel;

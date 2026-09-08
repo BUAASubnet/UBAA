@@ -67,3 +67,14 @@ final class YgdkHomeRecords {
   final bool? hasMore;
   final UbaaErrorCode? errorCode;
 }
+
+/// 单学期完整成绩集合，独立于已出/待出视图与本地搜索。
+final class GradesTermOverview extends FeatureOverview {
+  const GradesTermOverview({
+    required this.requestTerm,
+    required this.termCode,
+    required this.grades,
+  });
+  final String requestTerm, termCode;
+  final List<GradePresentation> grades;
+}

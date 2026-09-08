@@ -9,6 +9,7 @@ import '../contracts/lifecycle.dart';
 import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/write.dart';
+import '../presentation/grades.dart';
 import '../write/cgyy_validation.dart';
 import '../write/coordinator.dart';
 import '../write/receipt_verifier.dart';
@@ -20,6 +21,7 @@ part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/academic_terms.dart';
 part 'app_controller/home_sources.dart';
+part 'app_controller/grades.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
@@ -106,6 +108,7 @@ class AppController extends ChangeNotifier {
       feature: FeatureSnapshot(feature: feature),
   };
   _HomeSupplementCache? _homeSupplementCache;
+  _GradesReadCache? _gradesReadCache;
   FeatureResult? _academicTermsResult;
   Future<FeatureResult>? _academicTermsPending;
   UbaaBackend? _academicTermsBackend;
@@ -443,6 +446,15 @@ class AppController extends ChangeNotifier {
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
       _loadAcademicTerms(forceRefresh: forceRefresh);
+
+  /// 成绩统计的独立读取，不改变当前页面的查询或详情帧。
+  Future<FeatureResult> loadGradeTerm(
+    String term, {
+    bool forceRefresh = false,
+  }) => _loadGradeTerm(term, forceRefresh: forceRefresh);
+
+  Future<GradesAggregate> loadAllGrades({bool forceRefresh = false}) =>
+      _loadAllGrades(forceRefresh: forceRefresh);
 
   /// 首页默认来源与领域当前查询隔离；不授予额外写资格。
   Map<FeatureId, FeatureSnapshot> get homeSnapshots =>

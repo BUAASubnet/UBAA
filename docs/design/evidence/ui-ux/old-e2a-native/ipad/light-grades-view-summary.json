@@ -1,0 +1,15 @@
+{
+  "name": "light-grades-view-summary",
+  "steps": "成绩三视图保留完整学期统计",
+  "backend": "synthetic-grades-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T23:28:02.922700Z",
+  "sourceSha": "",
+  "pngSaved": true,
+  "evidenceRun": "r3"
+}

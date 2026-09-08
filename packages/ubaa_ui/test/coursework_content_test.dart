@@ -288,6 +288,7 @@ Future<void> showFeature(
   List<FeatureQuery> queries, {
   FeatureQuery query = const FeatureQuery(),
   FeatureOverview? overview,
+  Future<GradesAggregate> Function(bool)? onLoadAllGrades,
   Size size = const Size(800, 1200),
   double textScale = 1,
 }) async {
@@ -326,6 +327,7 @@ Future<void> showFeature(
         routePolicy: RoutePolicy.auto,
         telemetryEnabled: false,
         onRefresh: () async {},
+        onLoadAllGrades: onLoadAllGrades,
         onRetryFeature: (_) async {},
         onFeatureQuery: (_, query) async {
           queries.add(query);

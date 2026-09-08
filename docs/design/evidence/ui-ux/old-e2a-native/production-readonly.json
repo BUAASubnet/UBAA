@@ -1,0 +1,75 @@
+{
+  "evidence": "生产macOS App真实只读，独立私有会话，凭据仅经安全stdin",
+  "routes": {
+    "direct": {
+      "coreLive": {
+        "auth": 3,
+        "schedulePrerequisites": 4,
+        "grades": 1,
+        "result": "PASS"
+      },
+      "app": {
+        "tests": 1,
+        "result": "PASS",
+        "loadedTerms": 9,
+        "totalTerms": 9,
+        "allGradesCount": 82,
+        "views": {
+          "summary": {
+            "status": "success",
+            "count": 14
+          },
+          "gradesMissing": {
+            "status": "success",
+            "count": 14
+          },
+          "gradesScored": {
+            "status": "empty",
+            "count": 0
+          }
+        },
+        "localDetail": true,
+        "detailExtraRead": false,
+        "businessWrites": 0
+      }
+    },
+    "webvpn": {
+      "coreLive": {
+        "auth": 3,
+        "schedulePrerequisites": 4,
+        "grades": 1,
+        "result": "PASS"
+      },
+      "app": {
+        "tests": 1,
+        "result": "PASS",
+        "loadedTerms": 9,
+        "totalTerms": 9,
+        "allGradesCount": 82,
+        "views": {
+          "summary": {
+            "status": "success",
+            "count": 14
+          },
+          "gradesMissing": {
+            "status": "success",
+            "count": 14
+          },
+          "gradesScored": {
+            "status": "empty",
+            "count": 0
+          }
+        },
+        "localDetail": true,
+        "detailExtraRead": false,
+        "businessWrites": 0
+      }
+    }
+  },
+  "limits": [
+    "未截图或归档真实成绩",
+    "当前学期已出视图为空",
+    "学校业务写入未执行",
+    "首页成绩变化提醒不属E2a验收"
+  ]
+}

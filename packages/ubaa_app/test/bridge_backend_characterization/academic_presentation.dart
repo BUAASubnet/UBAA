@@ -116,6 +116,28 @@ void registerAcademicPresentationTests() {
     expect(client.calls, ['exam:term', 'exam:term', 'exam:term']);
   });
 
+  test('成绩三视图保留完整未筛选集合与请求响应学期用于旧统计', () async {
+    final client = _AcademicPresentationClient();
+    final backend = BridgeBackend(client);
+    for (final view in [
+      FeatureQueryView.summary,
+      FeatureQueryView.gradesScored,
+      FeatureQueryView.gradesMissing,
+    ]) {
+      final result = await backend.loadFeatureQuery(
+        FeatureId.grades,
+        FeatureQuery(term: 'term', view: view),
+      );
+      expect(result.overview, isNotNull, reason: '不能把当前筛选后的详情列表当作整学期统计');
+      final overview = result.overview! as GradesTermOverview;
+      expect(overview.requestTerm, 'term');
+      expect(overview.termCode, 'term');
+      expect(overview.grades, hasLength(2));
+      expect(result.resolvedRoute, ConnectionMode.webvpn);
+    }
+    expect(client.calls, ['grades:term', 'grades:term', 'grades:term']);
+  });
+
   test('成绩保留字符串绩点和null并维持已出待出判定', () async {
     final client = _AcademicPresentationClient();
     final backend = BridgeBackend(client);

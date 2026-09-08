@@ -45,11 +45,11 @@ class _AcademicResultContent extends StatelessWidget {
           else if (feature == FeatureId.exam)
             _ExamTimeline(details: details)
           else if (feature == FeatureId.grades)
-            _AcademicGroupedResults(
-              feature: feature,
-              details: details,
-              wide: constraints.maxWidth >= 740,
-            )
+            for (final detail in details)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _GradeCard(detail: detail),
+              )
           else if (feature == FeatureId.classroom)
             _ClassroomContent(
               details: details,
@@ -183,6 +183,8 @@ class _AcademicCard extends StatelessWidget {
                     if (_nonBlank(p.termCode) case final value?) ('学期', value),
                     if (_nonBlank(p.scoreType) case final value?)
                       ('成绩类型', value),
+                    for (final field in detail.fields)
+                      (field.label, field.value),
                   ],
                 ),
               ],

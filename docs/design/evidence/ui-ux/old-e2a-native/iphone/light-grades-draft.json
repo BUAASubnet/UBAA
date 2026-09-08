@@ -1,0 +1,15 @@
+{
+  "name": "light-grades-draft",
+  "steps": "重开搜索面板保留草稿",
+  "backend": "synthetic-grades-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T23:25:29.984334Z",
+  "sourceSha": "",
+  "pngSaved": true,
+  "evidenceRun": "r3"
+}

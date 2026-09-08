@@ -1,0 +1,15 @@
+{
+  "name": "dark-grades-detail",
+  "steps": "完整原始分数绩点保留本地详情，不以统计绩点替换",
+  "backend": "synthetic-grades-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T23:27:24.054236Z",
+  "sourceSha": "",
+  "pngSaved": true,
+  "evidenceRun": "r3"
+}

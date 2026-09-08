@@ -14,6 +14,8 @@ class _CourseworkOverview extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: switch (overview) {
             YgdkOverview p => _YgdkSummary(p),
+            // 成绩概要由成绩页随列表滚动，不进入常驻概要卡。
+            GradesTermOverview _ => const SizedBox.shrink(),
             EvaluationProgressOverview p => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

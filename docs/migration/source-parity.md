@@ -734,3 +734,5 @@ ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch�
 [课程作业来源增补](source-parity-ui-coursework.md)现追加实际投影与界面行为，不再仅为计划。Judge 保留父作业/嵌套题目与有序双ID；SPOC同次学期、评教全局进度独立传递；原签到/评教资格与请求不改。SIG-02按既有allowed筛选改“可签到”文案，原始记录状态另显。Domain33/App223/UI173与相关追加用例通过；真实只读、原生设备与最终候选门禁分别记账，尚不由这些测试宣称通过。
 
 O3-E1考试/签到旧布局的实施前逐操作复核见[学业旧版对照](source-parity-ui-academic-old.md)，继承本表的协议裁决；UI不更改Core或Bridge合同。
+
+O3-E2成绩旧统计/卡片、全学期聚合及首页变化提醒的实施前依据见[source-parity-ui-grades.md](source-parity-ui-grades.md)。本批恢复旧本地统计，不改上游逐门gradePoint或公开协议；详细说明新增本地读取组合/缓存与真实覆盖范围。
