@@ -727,3 +727,8 @@ ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch�
 ### P4-D 博雅与阳光展示接续来源
 
 [博雅与阳光字段、导航及动作边界](source-parity-ui-campus.md)记录5个博雅视图与2个阳光视图、集合统计、分页和固定路线回读，列明可复用的Core/Bridge字段和不可重新推导的写资格。仅实施前静态核对，不将其计为已迁移或原生通过。
+
+
+### P4-C 课程作业展示实施续记
+
+[课程作业来源增补](source-parity-ui-coursework.md)现追加实际投影与界面行为，不再仅为计划。Judge 保留父作业/嵌套题目与有序双ID；SPOC同次学期、评教全局进度独立传递；原签到/评教资格与请求不改。SIG-02按既有allowed筛选改“可签到”文案，原始记录状态另显。Domain33/App223/UI173与相关追加用例通过；真实只读、原生设备与最终候选门禁分别记账，尚不由这些测试宣称通过。

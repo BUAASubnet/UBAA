@@ -5,6 +5,9 @@ part 'presentation/schedule.dart';
 part 'presentation/exam.dart';
 part 'presentation/grade.dart';
 part 'presentation/classroom.dart';
+part 'presentation/assignment.dart';
+part 'presentation/signin.dart';
+part 'presentation/evaluation.dart';
 
 sealed class FeaturePresentation {
   const FeaturePresentation();

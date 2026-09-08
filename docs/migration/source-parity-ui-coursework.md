@@ -61,3 +61,10 @@
 SPOC：展示假ID与typedID相冲突时导航仍采用typed assignmentId；submitted/unsubmitted/unknown与可选字符串score独立；详情纯文本长文/空提交时间；列表学期元数据不伪造到每项。
 
 Judge：两父作业相同题名、相同assignmentId但不同courseId的批量数据；列表导航携带准确二元键；父标题/题目在搜索、分页、返回后保持归属；PARTIAL不被submittedCount或myScore覆盖；maxScore与各题maxScore均可达。所有验证仍只synthetic；native按主代理冻结候选另行执行。
+
+
+## P4-C 实施续记（2026-09-08，原生复验前）
+
+上述“当前缺口”为 `bb868cd2` 前的审计事实，现 Domain/App 投影已完成；未修改 Core、Bridge、认证、请求参数或学校写入路径。Judge 单项/批量改为父作业详情内嵌题目，保留原题目搜索字段，并保留两层顺序及二元 ID。summary typed 导航额外携带已有 includeExpired 查询上下文，detail backend 仍只消费原双 ID。SPOC 增加同次 term overview；评教增加全局 progress overview，原资格归一化/重复目标保护、签到按资格派生集合保持原样。
+
+来源缺口 RED/GREEN、Controller overview 及瞬时失败规则用例已通过；普通与固定路线评教结果使用同一投影。独立只读代码审查未发现本次 Domain/App 的阻断问题。新 UI 的选择与状态测试不是上游证据，最终真实只读与原生验收仍待完成。

@@ -95,6 +95,7 @@ Future<FeatureSnapshot> _loadYgdkReadbackSnapshot({
       status: result.isEmpty
           ? FeatureLoadStatus.empty
           : FeatureLoadStatus.success,
+      overview: result.overview,
       summary: result.summary,
       details: List<FeatureDetail>.unmodifiable(result.details),
       resolvedRoute: result.resolvedRoute,

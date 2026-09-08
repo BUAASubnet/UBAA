@@ -108,7 +108,8 @@ extension _AppControllerRefresh on AppController {
     final previous = _snapshots[feature]!;
     final hadPreviousData =
         previous.updatedAt != null &&
-        (previous.details.isNotEmpty ||
+        (previous.overview != null ||
+            previous.details.isNotEmpty ||
             previous.summary?.trim().isNotEmpty == true);
     try {
       final result = switch ((_backend, query)) {
@@ -122,6 +123,7 @@ extension _AppControllerRefresh on AppController {
         generation,
         lifecycleEpoch,
         ygdkGeneration: ygdkGeneration,
+        preservePreviousOnFailure: hadPreviousData,
       )) {
         return;
       }
@@ -171,6 +173,7 @@ extension _AppControllerRefresh on AppController {
     int lifecycleEpoch, {
     int? ygdkGeneration,
     FeatureReadContext? readContext,
+    bool preservePreviousOnFailure = false,
   }) {
     if (!_isFeatureLoadCurrent(
       feature,
@@ -179,6 +182,22 @@ extension _AppControllerRefresh on AppController {
       ygdkGeneration,
     )) {
       return false;
+    }
+    // 普通同查询的瞬时失败保留数据；鉴权/权限及专用回读保持失败清空。
+    if (preservePreviousOnFailure &&
+        (result.error?.code == UbaaErrorCode.networkError ||
+            result.error?.code == UbaaErrorCode.timeout ||
+            result.error?.code == UbaaErrorCode.upstreamUnavailable)) {
+      _snapshots[feature] = _snapshots[feature]!.copyWith(
+        status: FeatureLoadStatus.stale,
+        error: _recordFailure(
+          result.error!,
+          DiagnosticOperation.read,
+          feature: feature,
+        ),
+        updatedAt: DateTime.now(),
+      );
+      return true;
     }
     final status = result.error != null
         ? FeatureLoadStatus.failure
@@ -191,6 +210,8 @@ extension _AppControllerRefresh on AppController {
           readContext ??
           _snapshots[feature]!.readContext ??
           FeatureReadContext(requestRevision: generation),
+      overview: result.overview,
+      clearOverview: result.overview == null,
       summary: result.summary,
       details: result.details,
       error: result.error == null

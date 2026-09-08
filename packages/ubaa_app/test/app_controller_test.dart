@@ -12,12 +12,14 @@ part 'app_controller/fakes.dart';
 part 'app_controller/lifecycle.dart';
 part 'app_controller/race.dart';
 part 'app_controller/read.dart';
+part 'app_controller/overview.dart';
 part 'app_controller/read_context.dart';
 part 'app_controller/academic_terms.dart';
 part 'app_controller/write.dart';
 part 'app_controller/ygdk.dart';
 
 void main() {
+  _registerOverviewTests();
   _registerAuthTests();
   _registerReadTests();
   _registerReadContextTests();

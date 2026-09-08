@@ -16,6 +16,26 @@ Future<FeatureResult> _loadAssignmentFeature(
                 (item) => FeatureDetail(
                   title: item.title,
                   subtitle: item.courseName,
+                  presentation: SpocAssignmentPresentation(
+                    courseId: item.courseId,
+                    courseName: item.courseName,
+                    assignmentId: item.assignmentId,
+                    teacherName: item.teacherName,
+                    startTime: item.startTime,
+                    dueTime: item.dueTime,
+                    score: item.score,
+                    status: _spocStatus(item.submissionStatus),
+                    statusText: item.submissionStatusText,
+                  ),
+                  readNavigation: item.assignmentId.trim().isEmpty
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.spoc,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.spocDetail,
+                            assignmentId: item.assignmentId,
+                          ),
+                        ),
                   fields: _compactFields(<FeatureField?>[
                     _field('课程编号', item.courseId),
                     _field('作业编号', item.assignmentId),
@@ -31,6 +51,10 @@ Future<FeatureResult> _loadAssignmentFeature(
           return _countResult(
             result.data.assignments.length,
             '项 SPOC 作业',
+            overview: SpocTermOverview(
+              termCode: result.data.termCode,
+              termName: result.data.termName,
+            ),
             details: details,
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
@@ -46,6 +70,20 @@ Future<FeatureResult> _loadAssignmentFeature(
               FeatureDetail(
                 title: item.title,
                 subtitle: item.courseName,
+                presentation: SpocAssignmentPresentation(
+                  courseId: item.courseId,
+                  courseName: item.courseName,
+                  assignmentId: item.assignmentId,
+                  teacherName: item.teacherName,
+                  startTime: item.startTime,
+                  dueTime: item.dueTime,
+                  score: item.score,
+                  status: _spocStatus(item.submissionStatus),
+                  statusText: item.submissionStatusText,
+                  contentPlainText: item.contentPlainText,
+                  submittedAt: item.submittedAt,
+                  isDetail: true,
+                ),
                 fields: _compactFields(<FeatureField?>[
                   _field('作业编号', item.assignmentId),
                   _field('课程编号', item.courseId),
@@ -75,6 +113,32 @@ Future<FeatureResult> _loadAssignmentFeature(
                 (item) => FeatureDetail(
                   title: item.title,
                   subtitle: item.courseName,
+                  presentation: JudgeAssignmentPresentation(
+                    courseId: item.courseId,
+                    courseName: item.courseName,
+                    assignmentId: item.assignmentId,
+                    startTime: item.startTime,
+                    dueTime: item.dueTime,
+                    maxScore: item.maxScore,
+                    myScore: item.myScore,
+                    totalProblems: item.totalProblems,
+                    submittedCount: item.submittedCount,
+                    status: _judgeStatus(item.submissionStatus),
+                    statusText: item.submissionStatusText,
+                  ),
+                  readNavigation:
+                      item.courseId.trim().isEmpty ||
+                          item.assignmentId.trim().isEmpty
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.judge,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.judgeDetail,
+                            includeExpired: query.includeExpired,
+                            courseId: item.courseId,
+                            assignmentId: item.assignmentId,
+                          ),
+                        ),
                   fields: _compactFields(<FeatureField?>[
                     _field('课程编号', item.courseId),
                     _field('作业编号', item.assignmentId),
@@ -86,6 +150,7 @@ Future<FeatureResult> _loadAssignmentFeature(
                       '${item.submittedCount}/${item.totalProblems}',
                     ),
                     _field('我的得分', item.myScore),
+                    _field('满分', item.maxScore),
                   ]),
                 ),
               )
@@ -103,39 +168,9 @@ Future<FeatureResult> _loadAssignmentFeature(
             courseId: courseId,
             assignmentId: assignmentId,
           );
-          final item = result.data;
-          final problems = item.problems
-              .map(
-                (problem) => FeatureDetail(
-                  title: problem.name,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('状态', problem.statusText),
-                    _field('得分', problem.score),
-                    _field('满分', problem.maxScore),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          final details = <FeatureDetail>[
-            FeatureDetail(
-              title: item.title,
-              subtitle: item.courseName,
-              fields: _compactFields(<FeatureField?>[
-                _field('课程编号', item.courseId),
-                _field('作业编号', item.assignmentId),
-                _field('开始', item.startTime),
-                _field('截止', item.dueTime),
-                _field('状态', item.submissionStatusText),
-                _field('进度', '${item.submittedCount}/${item.totalProblems}'),
-                _field('我的得分', item.myScore),
-                _field('作业内容', item.contentPlainText),
-              ]),
-            ),
-            ...problems,
-          ];
           return FeatureResult.success(
             summary: '希冀作业详情',
-            details: details,
+            details: [_judgeDetailPresentation(result.data)],
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.judgeBatchDetails:
@@ -152,37 +187,9 @@ Future<FeatureResult> _loadAssignmentFeature(
                 )
                 .toList(growable: false),
           );
-          final details = <FeatureDetail>[];
-          for (final item in result.data) {
-            details.add(
-              FeatureDetail(
-                title: item.title,
-                subtitle: item.courseName,
-                fields: _compactFields(<FeatureField?>[
-                  _field('课程编号', item.courseId),
-                  _field('作业编号', item.assignmentId),
-                  _field('开始', item.startTime),
-                  _field('截止', item.dueTime),
-                  _field('状态', item.submissionStatusText),
-                  _field('题目数', '${item.submittedCount}/${item.totalProblems}'),
-                  _field('我的得分', item.myScore),
-                  _field('作业内容', item.contentPlainText),
-                ]),
-              ),
-            );
-            details.addAll(
-              item.problems.map(
-                (problem) => FeatureDetail(
-                  title: problem.name,
-                  fields: _compactFields(<FeatureField?>[
-                    _field('状态', problem.statusText),
-                    _field('得分', problem.score),
-                    _field('满分', problem.maxScore),
-                  ]),
-                ),
-              ),
-            );
-          }
+          final details = result.data
+              .map((item) => _judgeDetailPresentation(item, batch: true))
+              .toList(growable: false);
           return FeatureResult.success(
             summary: '${result.data.length}项希冀作业详情',
             details: details,
@@ -220,14 +227,20 @@ Future<FeatureResult> _loadAssignmentFeature(
             return FeatureDetail(
               title: item.courseName,
               subtitle: '${item.classBeginTime}–${item.classEndTime}',
+              presentation: SigninPresentation(
+                courseId: item.courseId,
+                classBeginTime: item.classBeginTime,
+                classEndTime: item.classEndTime,
+                signStatus: item.signStatus,
+              ),
               fields: <FeatureField>[
                 FeatureField(label: '课程 ID', value: item.courseId),
                 FeatureField(
                   label: '签到状态',
-                  value: switch (eligibility) {
-                    ActionEligibility.allowed => '未签到',
-                    ActionEligibility.denied => '已签到',
-                    ActionEligibility.unknown => '状态未知',
+                  value: switch (item.signStatus) {
+                    0 => '未签到',
+                    1 => '已签到',
+                    _ => '状态未知',
                   },
                 ),
               ],
@@ -245,7 +258,7 @@ Future<FeatureResult> _loadAssignmentFeature(
       return _countResult(
         classes.length,
         switch (query.view) {
-          FeatureQueryView.signinPending => '门未签到课程',
+          FeatureQueryView.signinPending => '门可签到课程',
           FeatureQueryView.signinCompleted => '门已签到课程',
           _ => '门今日签到课程',
         },
@@ -264,3 +277,74 @@ ActionEligibility _toSigninActionEligibility(
   BridgeActionEligibility.denied => ActionEligibility.denied,
   BridgeActionEligibility.unknown => ActionEligibility.unknown,
 };
+
+AssignmentSubmissionStatus _spocStatus(BridgeSpocSubmissionStatus status) =>
+    switch (status) {
+      BridgeSpocSubmissionStatus.submitted =>
+        AssignmentSubmissionStatus.submitted,
+      BridgeSpocSubmissionStatus.unsubmitted =>
+        AssignmentSubmissionStatus.unsubmitted,
+      BridgeSpocSubmissionStatus.unknown => AssignmentSubmissionStatus.unknown,
+    };
+AssignmentSubmissionStatus _judgeStatus(BridgeJudgeSubmissionStatus status) =>
+    switch (status) {
+      BridgeJudgeSubmissionStatus.submitted =>
+        AssignmentSubmissionStatus.submitted,
+      BridgeJudgeSubmissionStatus.partial => AssignmentSubmissionStatus.partial,
+      BridgeJudgeSubmissionStatus.unsubmitted =>
+        AssignmentSubmissionStatus.unsubmitted,
+      BridgeJudgeSubmissionStatus.unknown => AssignmentSubmissionStatus.unknown,
+    };
+FeatureDetail _judgeDetailPresentation(
+  BridgeJudgeAssignmentDetail item, {
+  bool batch = false,
+}) => FeatureDetail(
+  title: item.title,
+  subtitle: item.courseName,
+  presentation: JudgeAssignmentPresentation(
+    courseId: item.courseId,
+    courseName: item.courseName,
+    assignmentId: item.assignmentId,
+    startTime: item.startTime,
+    dueTime: item.dueTime,
+    maxScore: item.maxScore,
+    myScore: item.myScore,
+    totalProblems: item.totalProblems,
+    submittedCount: item.submittedCount,
+    status: _judgeStatus(item.submissionStatus),
+    statusText: item.submissionStatusText,
+    contentPlainText: item.contentPlainText,
+    isDetail: true,
+    problems: [
+      for (final problem in item.problems)
+        JudgeProblemPresentation(
+          name: problem.name,
+          score: problem.score,
+          maxScore: problem.maxScore,
+          status: _judgeStatus(problem.status),
+          statusText: problem.statusText,
+        ),
+    ],
+  ),
+  // 父作业保留所有原搜索文本；题目不再摊平为失去归属的独立条目。
+  fields: _compactFields([
+    _field('课程编号', item.courseId),
+    _field('作业编号', item.assignmentId),
+    _field('开始', item.startTime),
+    _field('截止', item.dueTime),
+    _field('状态', item.submissionStatusText),
+    _field(
+      batch ? '题目数' : '进度',
+      '${item.submittedCount}/${item.totalProblems}',
+    ),
+    _field('我的得分', item.myScore),
+    _field('满分', item.maxScore),
+    _field('作业内容', item.contentPlainText),
+    for (final p in item.problems) ...[
+      _field('题目', p.name),
+      _field('状态', p.statusText),
+      _field('得分', p.score),
+      _field('满分', p.maxScore),
+    ],
+  ]),
+);

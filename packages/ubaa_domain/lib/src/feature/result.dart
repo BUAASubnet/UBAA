@@ -5,6 +5,7 @@ import '../common/route.dart';
 import '../write/actions.dart';
 import 'catalog.dart';
 import 'presentation.dart';
+import 'overview.dart';
 import 'read_navigation.dart';
 import 'read_context.dart';
 
@@ -16,6 +17,7 @@ class FeatureSnapshot {
     required this.feature,
     this.status = FeatureLoadStatus.idle,
     this.summary,
+    this.overview,
     this.details = const <FeatureDetail>[],
     this.error,
     this.resolvedRoute,
@@ -27,6 +29,7 @@ class FeatureSnapshot {
   final FeatureId feature;
   final FeatureLoadStatus status;
   final String? summary;
+  final FeatureOverview? overview;
   final List<FeatureDetail> details;
   final UiError? error;
 
@@ -41,6 +44,8 @@ class FeatureSnapshot {
   FeatureSnapshot copyWith({
     FeatureLoadStatus? status,
     String? summary,
+    FeatureOverview? overview,
+    bool clearOverview = false,
     List<FeatureDetail>? details,
     UiError? error,
     ConnectionMode? resolvedRoute,
@@ -55,6 +60,7 @@ class FeatureSnapshot {
   }) => FeatureSnapshot(
     feature: feature,
     status: status ?? this.status,
+    overview: clearOverview ? null : (overview ?? this.overview),
     summary: clearSummary ? null : (summary ?? this.summary),
     details: clearDetails ? const <FeatureDetail>[] : (details ?? this.details),
     error: clearError ? null : (error ?? this.error),
@@ -96,26 +102,32 @@ class FeaturePagination {
 class FeatureResult {
   const FeatureResult.success({
     this.summary,
+    this.overview,
     this.details = const <FeatureDetail>[],
     this.resolvedRoute,
     this.pagination,
   }) : isEmpty = false,
        error = null;
 
-  const FeatureResult.empty({this.resolvedRoute, this.pagination})
-    : summary = null,
-      details = const <FeatureDetail>[],
-      isEmpty = true,
-      error = null;
+  const FeatureResult.empty({
+    this.resolvedRoute,
+    this.pagination,
+    this.overview,
+  }) : summary = null,
+       details = const <FeatureDetail>[],
+       isEmpty = true,
+       error = null;
 
   const FeatureResult.failure(this.error)
-    : summary = null,
+    : overview = null,
+      summary = null,
       details = const <FeatureDetail>[],
       resolvedRoute = null,
       pagination = null,
       isEmpty = false;
 
   final String? summary;
+  final FeatureOverview? overview;
   final List<FeatureDetail> details;
 
   /// Core 对本次读取实际解析出的路线；失败或未执行时可以为空。

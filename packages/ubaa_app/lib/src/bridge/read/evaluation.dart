@@ -68,6 +68,11 @@ FeatureResult _mapEvaluationResult(
       ? '待评 ${progress.pendingCourses} 门'
       : '已评 ${progress.evaluatedCourses}/${progress.totalCourses} 门';
   return FeatureResult.success(
+    overview: EvaluationProgressOverview(
+      totalCourses: progress.totalCourses,
+      evaluatedCourses: progress.evaluatedCourses,
+      pendingCourses: progress.pendingCourses,
+    ),
     summary: summary,
     details: details,
     resolvedRoute: resolvedRoute,
@@ -101,6 +106,10 @@ FeatureDetail _mapEvaluationCourseDetail(
   final courseName = course.kcmc.trim().isEmpty ? '未知课程' : course.kcmc;
   final teacherName = course.bpmc.trim().isEmpty ? '未知教师' : course.bpmc;
   return FeatureDetail(
+    presentation: EvaluationCoursePresentation(
+      courseId: course.id,
+      isEvaluated: course.isEvaluated,
+    ),
     title: courseName,
     subtitle: teacherName,
     fields: _compactFields(<FeatureField?>[
