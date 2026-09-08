@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 /// 共享 Material 3 设计变量；宿主只选择亮度，不持久化偏好。
 class UbaaTheme {
   const UbaaTheme._();
+
+  static const locale = Locale('zh', 'CN');
+  static const supportedLocales = [locale];
+  static const localizationsDelegates = [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ];
 
   static const Color seedColor = Color(0xFF536AA3);
   static const double cardRadius = 16;

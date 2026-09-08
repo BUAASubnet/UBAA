@@ -15,117 +15,164 @@ class _CourseParticipationContent extends StatelessWidget {
   const _CourseParticipationContent({
     required this.feature,
     required this.details,
-    required this.actions,
     required this.evaluationRow,
+    this.onSignin,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
-  final List<Widget> Function(BuildContext, FeatureDetail) actions;
   final Widget Function(FeatureDetail) evaluationRow;
+  final SigninStarter? onSignin;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        for (final detail in details)
-          if (feature == FeatureId.evaluation)
-            evaluationRow(detail)
-          else
-            Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      detail.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    if (detail.presentation case SigninPresentation p) ...[
-                      _AcademicInfo(
-                        icon: Icons.schedule,
-                        text:
-                            _timeRange(p.classBeginTime, p.classEndTime) ??
-                            '时间未提供',
-                      ),
-                      Chip(
-                        label: Text(switch (p.signStatus) {
-                          0 => '未签到',
-                          1 => '已签到',
-                          _ => '签到状态未知',
-                        }),
-                      ),
-                      if (p.signStatus != null &&
-                          p.signStatus != 0 &&
-                          p.signStatus != 1)
-                        Text('原始状态：${p.signStatus}'),
-                      if (detail.action<SigninPerformAction>()
-                          case final action?
-                          when (action.eligibility ==
-                                      ActionEligibility.denied &&
-                                  p.signStatus != 1) ||
-                              (action.eligibility ==
-                                      ActionEligibility.allowed &&
-                                  p.signStatus != 0))
-                        const Text('签到状态与操作资格信息不一致；操作资格由服务端判定。'),
-                    ],
-                    if (detail.presentation
-                        case EvaluationCoursePresentation p) ...[
-                      const SizedBox(height: 4),
-                      Text(_nonBlank(detail.subtitle) ?? '教师未提供'),
-                      Chip(label: Text(p.isEvaluated ? '已评' : '待评')),
-                    ],
-                    ...actions(context, detail),
-                    _AcademicMore(
-                      fields: [
-                        for (final field in detail.fields)
-                          (field.label, field.value),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) => feature == FeatureId.evaluation
+      ? ListView(
+          padding: const EdgeInsets.all(16),
+          children: [for (final detail in details) evaluationRow(detail)],
+        )
+      : ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: details.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 16),
+          itemBuilder: (context, index) =>
+              _SigninCourseCard(detail: details[index], onSignin: onSignin),
+        );
 }
 
-extension _ParticipationActions on _FeatureDetailListState {
-  List<Widget> _participationActions(
-    BuildContext context,
-    FeatureDetail detail,
-    StateSetter setState,
-  ) {
-    if (widget.feature == FeatureId.signin) {
-      final action = detail.action<SigninPerformAction>();
-      if (action == null || action.scheduleId.trim().isEmpty)
-        return [const Text('未提供签到目标，请刷新课程后重试。')];
-      final p = detail.presentation as SigninPresentation;
-      return _signinWriteFields(
-        context,
-        action,
-        action.eligibility == ActionEligibility.allowed &&
-            action.scheduleId.trim().isNotEmpty,
-        deniedMessage: p.signStatus == 1
-            ? '该课程已签到，不能重复提交。'
-            : '当前课程不允许签到，请刷新确认。',
-      );
+class _SigninCourseCard extends StatelessWidget {
+  const _SigninCourseCard({required this.detail, required this.onSignin});
+  final FeatureDetail detail;
+  final SigninStarter? onSignin;
+
+  String? get _notice {
+    final p = detail.presentation! as SigninPresentation;
+    final action = detail.action<SigninPerformAction>();
+    if (action == null || action.scheduleId.trim().isEmpty) {
+      return '未提供签到目标，请刷新课程后重试。';
     }
-    final target = _evaluationSubmitTarget(detail);
-    return [
-      ..._evaluationSelectionFields(setState, target),
-      ..._evaluationSubmitFields(target),
-      if (target == null)
-        Text(
-          (detail.presentation as EvaluationCoursePresentation).isEvaluated
-              ? '已完成评教，无需重复提交。'
-              : detail.action<EvaluationSubmitAction>()?.eligibility ==
-                    ActionEligibility.denied
-              ? '当前课程不允许提交评教。'
-              : '当前评教资格无法确认，请刷新后重试。',
+    if ((action.eligibility == ActionEligibility.denied && p.signStatus != 1) ||
+        (action.eligibility == ActionEligibility.allowed &&
+            p.signStatus != 0)) {
+      return '签到状态与操作资格信息不一致；操作资格由服务端判定。';
+    }
+    return switch (action.eligibility) {
+      ActionEligibility.unknown => '当前签到资格无法确认，请刷新后重试。',
+      ActionEligibility.denied when p.signStatus != 1 => '当前课程不允许签到，请刷新确认。',
+      _ => null,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = detail.presentation! as SigninPresentation;
+    final action = detail.action<SigninPerformAction>();
+    final done = p.signStatus == 1;
+    final allowed =
+        action?.eligibility == ActionEligibility.allowed &&
+        action!.scheduleId.trim().isNotEmpty;
+    final theme = Theme.of(context);
+    return Card(
+      color: done
+          ? theme.colorScheme.primaryContainer
+          : theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Tooltip(
+                    message: '课程详情',
+                    child: InkWell(
+                      onTap: () => _showDetails(context),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            detail.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _AcademicInfo(
+                            icon: Icons.schedule,
+                            text:
+                                _timeRange(p.classBeginTime, p.classEndTime) ??
+                                '时间未提供',
+                          ),
+                          if (p.signStatus != 0 && p.signStatus != 1)
+                            const Text('签到状态未知'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                if (done && !allowed)
+                  const Tooltip(
+                    message: '已签到',
+                    child: Icon(Icons.check_circle, size: 32),
+                  )
+                else if (onSignin != null && action != null)
+                  FilledButton(
+                    onPressed: allowed ? () => onSignin!(action) : null,
+                    child: const Text('签到'),
+                  ),
+              ],
+            ),
+            if (_notice case final notice?) ...[
+              const SizedBox(height: 8),
+              Text(notice, style: theme.textTheme.bodySmall),
+            ],
+          ],
         ),
-    ];
+      ),
+    );
+  }
+
+  Future<void> _showDetails(BuildContext context) {
+    final p = detail.presentation! as SigninPresentation;
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(detail.title),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_timeRange(p.classBeginTime, p.classEndTime) ?? '时间未提供'),
+              Text(switch (p.signStatus) {
+                0 => '未签到',
+                1 => '已签到',
+                _ => '签到状态未知',
+              }),
+              if (p.signStatus case final status?) Text('原始状态：$status'),
+              if (p.signStatus == 1 &&
+                  detail.action<SigninPerformAction>()?.eligibility ==
+                      ActionEligibility.denied)
+                const Text('该课程已签到，不能重复提交。'),
+              if (_notice case final notice?) Text(notice),
+              const SizedBox(height: 12),
+              _DetailField(label: '课程编号', value: p.courseId),
+              for (final field in detail.fields)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _DetailField(label: field.label, value: field.value),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -42,7 +42,9 @@ class _AcademicResultContent extends StatelessWidget {
               details: details,
               wide: constraints.maxWidth >= 740,
             )
-          else if (feature == FeatureId.grades || feature == FeatureId.exam)
+          else if (feature == FeatureId.exam)
+            _ExamTimeline(details: details)
+          else if (feature == FeatureId.grades)
             _AcademicGroupedResults(
               feature: feature,
               details: details,
@@ -144,6 +146,10 @@ class _AcademicCard extends StatelessWidget {
                       ('课程编号', value),
                     if (p.week case final value?) ('周次', '$value'),
                     if (p.status case final value?) ('上游状态', '$value'),
+                    if (_nonBlank(p.type) case final value?) ('考试类型', value),
+                    if (_nonBlank(p.taskId) case final value?) ('任务编号', value),
+                    for (final field in detail.fields)
+                      (field.label, field.value),
                   ],
                 ),
               ],

@@ -1,0 +1,14 @@
+{
+  "name": "light-exam-detail",
+  "steps": "本地完整日期时间地点座位，不请求网络",
+  "backend": "synthetic-academic-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T22:07:20.906886Z",
+  "sourceSha": "eafa01f6-plus-e1-r5",
+  "pngSaved": true
+}

@@ -15,7 +15,7 @@ void main() {
     expect(find.text('原值'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('宽考试分安排状态且非标准日期仍保持原顺序', (tester) async {
+  testWidgets('宽考试沿旧时间线且已结束可展开，非标准日期保留', (tester) async {
     await _show(tester, FeatureId.exam, const [
       FeatureDetail(
         title: '原顺序第一',
@@ -34,14 +34,16 @@ void main() {
         presentation: ExamPresentation(arranged: false),
       ),
     ], width: 1280);
-    expect(find.byType(DataTable), findsNWidgets(2));
-    expect(find.text('已安排考试 · 本页2门'), findsOneWidget);
-    expect(find.text('未安排考试 · 本页1门'), findsOneWidget);
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.text('已结束考试 (1)'), findsOneWidget);
+    expect(find.text('未安排/其他'), findsOneWidget);
+    expect(find.text('原顺序第二'), findsNothing);
+    await tester.tap(find.text('已结束考试 (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('原顺序第二'), findsOneWidget);
+    await tester.tap(find.text('原顺序第一'));
+    await tester.pumpAndSettle();
     expect(find.text('教务待确认'), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.text('原顺序第一')).dy,
-      lessThan(tester.getTopLeft(find.text('原顺序第二')).dy),
-    );
     expect(tester.takeException(), isNull);
   });
 
@@ -192,7 +194,7 @@ void main() {
         title: '高等数学',
         presentation: ExamPresentation(
           arranged: true,
-          date: '2026-09-08',
+          date: '2999-09-08',
           startTime: '09:00',
           seat: 'A018',
         ),

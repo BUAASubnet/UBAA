@@ -1,0 +1,70 @@
+{
+  "records": [
+    {
+      "route": "direct",
+      "record": "学业旧版只读 feature=exam view=summary status=empty route=direct count=0 error=null"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 feature=exam view=examArranged status=empty route=direct count=0 error=null"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 feature=exam view=examNotArranged status=empty route=direct count=0 error=null"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 feature=exam view=summary status=empty route=direct count=0 error=null"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 examLocalDetail=无记录未执行"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 feature=signin view=summary status=success route=direct count=1 error=null"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 signinLocalDetail=true extraRead=false"
+    },
+    {
+      "route": "direct",
+      "record": "学业旧版只读 完成 businessWrites=0"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 feature=exam view=summary status=empty route=webvpn count=0 error=null"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 feature=exam view=examArranged status=empty route=webvpn count=0 error=null"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 feature=exam view=examNotArranged status=empty route=webvpn count=0 error=null"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 feature=exam view=summary status=empty route=webvpn count=0 error=null"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 examLocalDetail=无记录未执行"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 feature=signin view=summary status=success route=webvpn count=1 error=null"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 signinLocalDetail=true extraRead=false"
+    },
+    {
+      "route": "webvpn",
+      "record": "学业旧版只读 完成 businessWrites=0"
+    }
+  ],
+  "businessWrites": 0,
+  "limits": "两路线真实考试无记录，考试本地详情未执行；签到显式可签/已签查询仍留P6。"
+}

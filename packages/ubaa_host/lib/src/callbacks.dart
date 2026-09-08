@@ -51,6 +51,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     animation: _controller,
     builder: (context, _) => MaterialApp(
       title: 'UBAA',
+      locale: UbaaTheme.locale,
+      supportedLocales: UbaaTheme.supportedLocales,
+      localizationsDelegates: UbaaTheme.localizationsDelegates,
       debugShowCheckedModeBanner: false,
       theme: UbaaTheme.light(),
       darkTheme: UbaaTheme.dark(),

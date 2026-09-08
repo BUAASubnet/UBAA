@@ -1,0 +1,25 @@
+{
+  "baseSha": "eafa01f6a035d036ca203f7b8f938e9b882b2d69",
+  "candidate": "eafa01f6-plus-e1-r5",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_academic_old/backend.dart": "02c6f42d72f9c4132ef2ce7c1870161a659455373cea32617733507f2ec91b8e",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/live_readonly_test.dart": "4dd40eb59500f2e91aebad4a67171ee40ba8e14c3b3cd3fb09452a324ff81f1d",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/native_test.dart": "70ac5a7272cb524ded48788ec943a0a3699323b7f738c017281177ca90d7a7a4",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/support.dart": "8489097fb2411c5fc55d30aad64610ce37ae285e8353caf880b7617d25970329",
+    "packages/ubaa_domain/lib/src/feature/presentation/exam.dart": "62db3ae8502d3d19e35badfa63003fdbc4fe3c108dd66fe51dfd6ede1601b646",
+    "packages/ubaa_domain/test/exam_timeline_test.dart": "171c217fa8269d96d61ae8eebd3ae39d8cff47ddd5ded10408699b8fe25bd686",
+    "packages/ubaa_host/lib/src/callbacks.dart": "0a34814a4caad2e4afc00673beea697ef944bb4f2408a21dde153b9f01edb5c6",
+    "packages/ubaa_host/test/theme_preference_test.dart": "784c806335c44b4d9e0f6510bfccc48095e047b79d8accef5963a72c5e6428ab",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "370a71f6f241719dbbca31c613ebd8c70f87c7d327521389b7b892741823ea4b",
+    "packages/ubaa_ui/lib/src/features/academic/exam_timeline.dart": "ce1c6e911d097ed14501184989ac0194bd68117b393a7a8bdd107413c9c6e5d4",
+    "packages/ubaa_ui/lib/src/features/academic_content.dart": "0fcc10d06e4747890fffbc6a8ffa1b90e38dab20ca8d18d7234d5de95fd71fc7",
+    "packages/ubaa_ui/lib/src/features/academic_tables.dart": "faac70e13ed422afc7d9770837ba9f7fa93d11e1347f43238618fbb5cfcd3203",
+    "packages/ubaa_ui/lib/src/features/coursework/course_participation.dart": "effb297504b51a63a694566a461c0f4e3e74568d4f317b0ca916441bbaa12ef1",
+    "packages/ubaa_ui/lib/src/theme.dart": "8c9ed6b087884615bb5ac920770cf1415223a7639ce6292407993820a81bcdd2",
+    "packages/ubaa_ui/lib/src/widgets.dart": "cfb46ed75a7a160f9b3088f045fcd4abcb1b2dc434d7dfd3b535b1eb6a3e3e5c",
+    "packages/ubaa_ui/test/academic/old_layout_test.dart": "2673d6257842279f4efd6a8a87c6dc2636b5182755559e4c3cc24840ab733a48",
+    "packages/ubaa_ui/test/academic_presentation_test.dart": "82ab3d4065de727f5afebea6edac9623a2906bb1ae81b4eb45db4c8cdf501bec",
+    "packages/ubaa_ui/test/widgets/writes.dart": "6b663c6b5ee673ff39d849825b4dc0f583b31cec61b7ba3b9fb6ef689d849990"
+  },
+  "note": "最终差异审查恢复评教原ListView与自身8px卡片间距；签到子树和考试r5无改动。"
+}

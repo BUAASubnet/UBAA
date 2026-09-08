@@ -1,0 +1,34 @@
+{
+  "backend": "显式AcademicOldBackend",
+  "window": [
+    800,
+    632
+  ],
+  "content": [
+    800,
+    600
+  ],
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "operations": [
+    "考试正常列表；发现座位偏中后改为右侧并热重载复查",
+    "右上面板按内容收缩；合成搜索实际仅TA、关闭和重开保留",
+    "重置合成运行后纯鼠标展开已结束、收起、完整本地详情",
+    "签到横卡、原target准备、取消、已签到本地详情、关闭返回",
+    "中文导航菜单tooltip实际AX可见"
+  ],
+  "keyboardLimitation": "CUA意图输入TASK-SAFE，实际只输入TA；Key A的KeyUp logicalKey与记录不匹配。后续空格和BackSpace无效，未宣称完整输入通过。仅重置合成Flutter运行清除状态，不改产品绕过框架断言。",
+  "businessWrites": 0,
+  "pngs": [
+    "exam-detail.png",
+    "exam-filtered.png",
+    "exam-finished.png",
+    "exam-list.png",
+    "exam-query-draft.png",
+    "signin-confirm.png",
+    "signin-detail.png",
+    "signin-list.png"
+  ]
+}

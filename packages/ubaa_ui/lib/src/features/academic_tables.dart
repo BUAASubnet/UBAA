@@ -170,8 +170,12 @@ Future<void> _showAcademicDetails(BuildContext context, FeatureDetail detail) =>
         title: const Text('详细信息'),
         content: SizedBox(
           width: 560,
-          height: MediaQuery.sizeOf(context).height * .6,
-          child: SingleChildScrollView(child: _AcademicCard(detail: detail)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * .65,
+            ),
+            child: SingleChildScrollView(child: _AcademicCard(detail: detail)),
+          ),
         ),
         actions: [
           TextButton(

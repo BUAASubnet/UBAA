@@ -283,3 +283,7 @@ D2集合元数据复用FeatureOverview，不从summary字符串提取统计；�
 ## O3-D5实施回写
 
 `feature/home.dart`公开只读投影六来源，`controller/app_controller/home_sources.dart`隔离默认快照与三个额外查询缓存；`platform/reminders.dart`实现显式内存/生产私有UI偏好，不读取或修改Core会话。宿主按账号装配；shell传首页来源、提醒和具体导航；read_navigator独立首页入口返回主页。首页按12间距、原时间/状态顺序构建卡片，不新增工具栏。完整RED/GREEN和三端证据见本轮迁移证据，下一步学业旧页及共享本地化、P5完整写入。
+
+### O3-E1交付接线（2026-09-09）
+
+Domain ExamPresentation增加严格日期与旧结束规则，UI features/academic/exam_timeline.dart消费原投影；common/detail_list.dart只对无服务端分页的考试全部分组并保留typed检索。coursework/course_participation.dart恢复签到横卡，generic旧写字段仍留给无typed展示模型的兼容路径；评教行不改变。UbaaTheme提供中文delegates，由ubaa_host MaterialApp使用。三端ui_academic_old和生产live_readonly入口在子目录，目录不超过16源文件。最终624项门禁，128图局部证据；下一批为E2成绩，不用首版宽表格替代旧统计卡片。

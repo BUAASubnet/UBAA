@@ -524,7 +524,7 @@ void _registerInitialWriteTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备签到'));
+    await tester.tap(find.widgetWithText(FilledButton, '签到'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);

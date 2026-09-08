@@ -83,7 +83,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     // 列表的构建委托可能保留子元素；外层显式依赖主题，切换时更新标题样式。
     final theme = Theme.of(context);
     final isBykcStatistics = _isBykcStatistics(widget.feature, widget.details);
-    final unpagedBykc =
+    final unpagedLocal =
+        widget.feature == FeatureId.exam ||
         isBykcStatistics ||
         (widget.feature == FeatureId.bykc &&
             widget.details.isNotEmpty &&
@@ -111,6 +112,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 final values = <String>[
                   detail.title,
                   ..._assignmentSearchValues(detail.presentation),
+                  ..._academicSearchValues(detail.presentation),
                   ..._bykcSearchValues(detail.presentation),
                   if (detail.presentation case YgdkRecordPresentation record)
                     ..._ygdkRecordSearchValues(record),
@@ -126,14 +128,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
               })
               .toList(growable: false);
     final serverPagination = widget.pagination;
-    final pageCount = serverPagination == null && !unpagedBykc
+    final pageCount = serverPagination == null && !unpagedLocal
         ? details.isEmpty
               ? 0
               : (details.length + _pageSize - 1) ~/ _pageSize
         : 1;
     final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
     final start = page * _pageSize;
-    final visible = serverPagination == null && !unpagedBykc
+    final visible = serverPagination == null && !unpagedLocal
         ? details.skip(start).take(_pageSize).toList(growable: false)
         : details;
     final pendingEvaluationsByKey = <String, EvaluationSubmitTarget>{};
@@ -184,10 +186,9 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 ? _CourseParticipationContent(
                     feature: widget.feature,
                     details: visible,
+                    onSignin: widget.onSigninWrite,
                     evaluationRow: (detail) =>
                         _evaluationCourseRow(detail, setState),
-                    actions: (context, detail) =>
-                        _participationActions(context, detail, setState),
                   )
                 : _supportsAssignmentContent(widget.feature, visible)
                 ? _AssignmentContent(

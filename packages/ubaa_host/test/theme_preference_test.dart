@@ -7,6 +7,21 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('宿主所有系统控件使用中文而非仅手写菜单提示', (tester) async {
+    await tester.pumpWidget(
+      UbaaAppHost(
+        backend: _CountingBackend(),
+        credentialVault: MemoryCredentialVault(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byType(UbaaLoginView));
+    expect(Localizations.localeOf(context), const Locale('zh', 'CN'));
+    final labels = MaterialLocalizations.of(context);
+    expect(labels.openAppDrawerTooltip, '打开导航菜单');
+    expect(labels.cancelButtonLabel, '取消');
+    expect(labels.datePickerHelpText, '选择日期');
+  });
   testWidgets('个人页主题选择在本次宿主运行中保持且导航重建不查询', (tester) async {
     _setSize(tester);
     final backend = _CountingBackend();

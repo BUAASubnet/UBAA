@@ -1,0 +1,14 @@
+{
+  "name": "dark-exam-finished",
+  "steps": "已结束展开按日期倒序，未来升序，待定与未安排保留",
+  "backend": "synthetic-academic-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T22:02:05.069181Z",
+  "sourceSha": "eafa01f6-plus-e1-r5",
+  "pngSaved": true
+}

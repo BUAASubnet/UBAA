@@ -1,0 +1,14 @@
+{
+  "name": "dark-signin-eligibility",
+  "steps": "未知资格与缺少目标明确说明，不伪造动作",
+  "backend": "synthetic-academic-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T21:57:18.192620Z",
+  "sourceSha": "eafa01f6-plus-e1-r4",
+  "pngSaved": true
+}

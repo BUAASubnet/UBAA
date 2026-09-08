@@ -1,0 +1,14 @@
+{
+  "name": "light-exam-detail-more",
+  "steps": "任务编号与课程编号仅在本地详情",
+  "backend": "synthetic-academic-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T22:07:21.705385Z",
+  "sourceSha": "eafa01f6-plus-e1-r5",
+  "pngSaved": true
+}

@@ -1,0 +1,10 @@
+{
+  "device": "ipad",
+  "sources": {
+    "r4": 28,
+    "r5": 32
+  },
+  "basis": "r4全26场景；r5最后座位位置改动只复验考试14场景，签到组件未再改动",
+  "data": "显式AcademicOldBackend，无学校写入",
+  "visualReview": "每张原图已复核；最终记录在阶段证据"
+}
