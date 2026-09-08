@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-courses",
+  "steps": "旧版课程卡片，正文没有搜索或写入按钮堆叠",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T17:56:34.344923Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

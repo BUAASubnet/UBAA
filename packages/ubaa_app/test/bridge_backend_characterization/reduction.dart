@@ -147,6 +147,7 @@ const _supportedViews = <FeatureId, Set<FeatureQueryView>>{
 const _successDespiteEmpty = <String>{
   'bykc/bykcDetail',
   'bykc/bykcProfile',
+  'bykc/bykcStatistics',
   'spoc/spocDetail',
   'judge/judgeDetail',
   'judge/judgeBatchDetails',

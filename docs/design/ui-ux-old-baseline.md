@@ -90,6 +90,14 @@ O1/O2共享骨架已实现并通过UI182项及手机/平板各56图原生复验�
 默认子页复用匹配的预载快照，含首次错误和加载状态；打开菜单不隐式重试，显式应用仍读取。缓存依据是冻结 `BykcViewModel.kt:95–111`、`LibBookViewModel.kt:63–83`、`CgyyViewModel.kt:85–100` 的ensure/initialLoadedOnce保护。对应新增重复读取及首次错误RED记录后，13项菜单/读取导航聚焦回归通过（`/tmp/ubaa-old-o3c-menu-green-r3.log`）。UI完整首轮因测试导航辅助未进入新增子页失败，修正辅助后的第二轮仅三张旧根页golden不匹配；三个新候选已逐图观察，正在原生验收，未声明P4-D完成。
 
 
+### O3-D3博雅操作链复核（2026-09-09）
+
+旧`BykcCoursesScreen.kt`整卡/状态/教师/地点/时间/人数条对应`features/bykc/course_card.dart`；`InfoRow`原值单行省略，当前列表教师地点同样单行，详情完整换行。`BykcTimeFormatters.resolveSelectTimeDisplay`对应当前开始/截止选课单时间，不改变任何资格。四字标签随字体自然宽度，避免固定56宽在1.3字体拆字。
+
+`BykcChosenCoursesScreen.kt`对应紧凑已选卡与完整考勤/考核/零分；点击到独立课程详情，prepare取消仍回该详情，顶部返回列表。私有显示帧只使用同查询recordId/courseId唯一记录，刷新缺失后父列表也不复活。`BykcStatisticsScreen.kt`保持总净有效次数卡→分类三列表，null/0及服务器达标结论独立保留。原全部查询从顶栏按需面板进入，默认四状态和草稿保留；不增加常驻工具栏。
+
+公开Bridge缺少未选课程类别/适用校区及完整详情介绍等字段，见`source-parity-ui-bykc.md`，不能假称恢复了这些旧能力。本批原生合成证据为`old-d3-native`，P5完整写入与全目标验收仍未完成。
+
 ### O3-D1图书馆操作链复核
 
 完整核对冻结 `LibBookReserveScreen.kt` 的楼馆/楼层FilterChip、分区卡、四列座位与预约摘要，以及 `LibBookViewModel.kt:82–205` 的换楼馆/楼层/分区清除旧时段座位顺序。当前公开投影仅剩楼层数量，必须先保留楼层实体和请求日期，不能从标签或位置猜ID。原五类API参数、独立token与失败语义维持 `source-parity.md` 图书馆九列合同；本轮补读 `LocalLibBookApi.kt:54–535` 与backend Mock测试，核对精确请求和parser，examples固定源无同协议。时间关联依 `source-parity-ui-reservations.md` 保留限制；不恢复旧版未经当前合同支持的自动跨日期配对。

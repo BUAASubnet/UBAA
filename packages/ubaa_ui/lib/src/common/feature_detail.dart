@@ -4,6 +4,8 @@ class _FeatureDetailView extends StatefulWidget {
   const _FeatureDetailView({
     required this.feature,
     this.isLanding = false,
+    this.isBykcChosenDetail = false,
+    this.onOpenBykcChosen,
     required this.snapshot,
     this.query,
     required this.onBack,
@@ -26,7 +28,8 @@ class _FeatureDetailView extends StatefulWidget {
     super.key,
   });
 
-  final bool isLanding;
+  final bool isLanding, isBykcChosenDetail;
+  final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
@@ -57,6 +60,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   final _queryKey = GlobalKey<_FeatureQueryControlsState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
+  Set<BykcCourseStatus> _bykcStatuses = {..._defaultBykcStatuses};
 
   void togglePanel() {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -253,6 +257,11 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                                           widget.onLoadAcademicTerms,
                                       readCacheEpoch: widget.readCacheEpoch,
                                       onApply: widget.onQuery!,
+                                      bykcStatuses: _bykcStatuses,
+                                      onBykcStatusesChanged: (value) =>
+                                          setState(
+                                            () => _bykcStatuses = {...value},
+                                          ),
                                     ),
                                 ],
                               ),
@@ -291,6 +300,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       feature: widget.feature,
       details: widget.snapshot.details,
       filter: _searchController.text,
+      bykcStatuses: _bykcStatuses,
+      isBykcChosenDetail: widget.isBykcChosenDetail,
+      onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
       query: widget.query ?? const FeatureQuery(),
       onQuery: widget.onQuery,
@@ -320,7 +332,11 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 16),
-          Text('暂无${widget.feature.title}数据'),
+          Text(
+            widget.isBykcChosenDetail
+                ? '当前无法显示此选课记录，请返回列表核对。'
+                : '暂无${widget.feature.title}数据',
+          ),
           if (widget.snapshot.summary case final summary?
               when summary.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),

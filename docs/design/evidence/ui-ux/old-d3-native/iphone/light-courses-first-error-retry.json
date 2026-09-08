@@ -1,0 +1,14 @@
+{
+  "name": "light-courses-first-error-retry",
+  "steps": "显式重试恢复当前视图",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T17:58:29.341748Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

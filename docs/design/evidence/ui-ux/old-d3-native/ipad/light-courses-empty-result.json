@@ -1,0 +1,14 @@
+{
+  "name": "light-courses-empty-result",
+  "steps": "明确合成状态与原生异常检查",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T18:15:07.945333Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

@@ -1,0 +1,106 @@
+{
+  "场景": "D3生产博雅五类只读",
+  "日期": "2026-09-09",
+  "功能编号": [
+    "BY-01",
+    "BY-02",
+    "BY-03",
+    "BY-04",
+    "BY-05"
+  ],
+  "源码基点": "aa40d2e2368d27170be5bbf3ced92d312af805ed",
+  "平台": "macOS实际应用",
+  "backend": "正常bootstrap与生产FRB，无fake",
+  "入口": "integration_test/ui_boya_live_readonly_test.dart",
+  "凭据路径": ".env.local经既有安全stdin认证；两路线分别新建私有隔离目录，不改写旧会话",
+  "读取": [
+    {
+      "view": "summary",
+      "status": "success",
+      "route": "direct",
+      "count": "6",
+      "displayPage": "1",
+      "error": "null"
+    },
+    {
+      "view": "bykcDetail",
+      "status": "success",
+      "route": "direct",
+      "count": "1",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "bykcChosenCourses",
+      "status": "empty",
+      "route": "direct",
+      "count": "0",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "bykcStatistics",
+      "status": "success",
+      "route": "direct",
+      "count": "1",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "bykcProfile",
+      "status": "success",
+      "route": "direct",
+      "count": "1",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "summary",
+      "status": "success",
+      "route": "webvpn",
+      "count": "6",
+      "displayPage": "1",
+      "error": "null"
+    },
+    {
+      "view": "bykcDetail",
+      "status": "success",
+      "route": "webvpn",
+      "count": "1",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "bykcChosenCourses",
+      "status": "empty",
+      "route": "webvpn",
+      "count": "0",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "bykcStatistics",
+      "status": "success",
+      "route": "webvpn",
+      "count": "1",
+      "displayPage": "null",
+      "error": "null"
+    },
+    {
+      "view": "bykcProfile",
+      "status": "success",
+      "route": "webvpn",
+      "count": "1",
+      "displayPage": "null",
+      "error": "null"
+    }
+  ],
+  "Core-live": "两路线分别认证3项、博雅读取5项PASS；业务写入0",
+  "结果": "Direct r2和WebVPN r1分别退出0，各1原生场景；页面无常驻查询框，原始课程点击到相同typed详情、统计及资料均可达",
+  "失败保留": "Direct r1已进入主界面后默认查询等待240秒失败；测试误把loadFeature的null query当显式summary，按既有ReadContext合同修测试，生产代码未变",
+  "边界": [
+    "两路线当前学期已选0条，真实已选本地详情未执行；合成原生已覆盖",
+    "不保存真实画面与个人字段",
+    "不代表类别校区与完整介绍字段已恢复，不代表P5真实写入或完整合成提交"
+  ]
+}

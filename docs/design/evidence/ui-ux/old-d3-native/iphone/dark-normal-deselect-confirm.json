@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-deselect-confirm",
+  "steps": "退选仍针对课程101，而非记录9001",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T17:56:54.441560Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

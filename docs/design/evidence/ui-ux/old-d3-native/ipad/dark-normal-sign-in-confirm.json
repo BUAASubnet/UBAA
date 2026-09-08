@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-sign-in-confirm",
+  "steps": "合成签到类型与课程目标核对，仅准备与取消",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T18:13:41.045472Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

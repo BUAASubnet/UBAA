@@ -8,6 +8,7 @@ part 'bridge_backend_characterization/coursework.dart';
 part 'bridge_backend_characterization/academic_presentation.dart';
 part 'bridge_backend_characterization/libbook_presentation.dart';
 part 'bridge_backend_characterization/cgyy_presentation.dart';
+part 'bridge_backend_characterization/bykc_presentation.dart';
 part 'bridge_backend_characterization/fakes.dart';
 part 'bridge_backend_characterization/read.dart';
 part 'bridge_backend_characterization/reduction.dart';
@@ -19,6 +20,7 @@ void main() {
   registerAcademicPresentationTests();
   registerLibbookPresentationTests();
   registerCgyyPresentationTests();
+  registerBykcPresentationTests();
   registerBridgeBackendSignatureCharacterization();
   registerBridgeBackendAuthCharacterization();
   registerBridgeBackendReadCharacterization();

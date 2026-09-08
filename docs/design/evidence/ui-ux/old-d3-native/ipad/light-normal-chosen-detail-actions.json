@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-chosen-detail-actions",
+  "steps": "签到配置及原签到、签退、退选能力保持可达",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T18:14:54.395215Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

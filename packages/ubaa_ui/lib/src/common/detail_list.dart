@@ -6,6 +6,9 @@ class _FeatureDetailList extends StatefulWidget {
     required this.feature,
     required this.details,
     this.filter = '',
+    this.bykcStatuses = _defaultBykcStatuses,
+    this.isBykcChosenDetail = false,
+    this.onOpenBykcChosen,
     this.pagination,
     this.query,
     this.onQuery,
@@ -23,6 +26,9 @@ class _FeatureDetailList extends StatefulWidget {
   });
 
   final String filter;
+  final Set<BykcCourseStatus> bykcStatuses;
+  final bool isBykcChosenDetail;
+  final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
   final List<FeatureDetail> details;
   final FeaturePagination? pagination;
@@ -54,7 +60,9 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   @override
   void didUpdateWidget(covariant _FeatureDetailList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.filter != widget.filter) _page = 0;
+    if (oldWidget.filter != widget.filter ||
+        oldWidget.bykcStatuses != widget.bykcStatuses)
+      _page = 0;
     final validKeys = <String>{
       for (final detail in widget.details)
         if (_evaluationSubmitTarget(detail) case final target?)
@@ -74,14 +82,36 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   Widget build(BuildContext context) {
     // 列表的构建委托可能保留子元素；外层显式依赖主题，切换时更新标题样式。
     final theme = Theme.of(context);
+    final isBykcStatistics = _isBykcStatistics(widget.feature, widget.details);
+    final unpagedBykc =
+        isBykcStatistics ||
+        (widget.feature == FeatureId.bykc &&
+            widget.details.isNotEmpty &&
+            widget.details.every(
+              (d) => d.presentation is BykcChosenPresentation,
+            ));
     final query = widget.filter.trim().toLowerCase();
-    final details = query.isEmpty
+    final candidates = widget.feature != FeatureId.bykc
         ? widget.details
         : widget.details
+              .where(
+                (detail) =>
+                    detail.presentation is! BykcCoursePresentation ||
+                    (detail.presentation! as BykcCoursePresentation).isDetail ||
+                    _matchesBykcStatuses(
+                      detail.presentation! as BykcCoursePresentation,
+                      widget.bykcStatuses,
+                    ),
+              )
+              .toList();
+    final details = query.isEmpty
+        ? candidates
+        : candidates
               .where((detail) {
                 final values = <String>[
                   detail.title,
                   ..._assignmentSearchValues(detail.presentation),
+                  ..._bykcSearchValues(detail.presentation),
                   if (detail.subtitle case final subtitle?) subtitle,
                   for (final field in detail.fields) ...<String>[
                     field.label,
@@ -94,14 +124,14 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
               })
               .toList(growable: false);
     final serverPagination = widget.pagination;
-    final pageCount = serverPagination == null
+    final pageCount = serverPagination == null && !unpagedBykc
         ? details.isEmpty
               ? 0
               : (details.length + _pageSize - 1) ~/ _pageSize
         : 1;
     final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
     final start = page * _pageSize;
-    final visible = serverPagination == null
+    final visible = serverPagination == null && !unpagedBykc
         ? details.skip(start).take(_pageSize).toList(growable: false)
         : details;
     final pendingEvaluationsByKey = <String, EvaluationSubmitTarget>{};
@@ -131,8 +161,23 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
           // 同页刷新、父子返回不改变 key，继续保留本页滚动状态。
           child: KeyedSubtree(
             key: ValueKey((page, serverPagination?.page)),
-            child: details.isEmpty
-                ? const Center(child: Text('没有匹配的详情'))
+            child: isBykcStatistics
+                ? _BykcStatisticsContent(
+                    total: widget.details
+                        .map((d) => d.presentation)
+                        .whereType<BykcStatisticsPresentation>()
+                        .single,
+                    details: details,
+                  )
+                : details.isEmpty
+                ? Center(
+                    child: Text(
+                      widget.feature == FeatureId.bykc &&
+                              widget.query?.view == FeatureQueryView.summary
+                          ? '当前筛选条件下暂无课程'
+                          : '没有匹配的详情',
+                    ),
+                  )
                 : _supportsParticipationContent(widget.feature, visible)
                 ? _CourseParticipationContent(
                     feature: widget.feature,
@@ -171,6 +216,34 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                             onNavigate: widget.onNavigate,
                           ),
                         );
+                      }
+                      if (widget.feature == FeatureId.bykc) {
+                        if (detail.presentation
+                            case BykcCoursePresentation course) {
+                          if (course.isDetail)
+                            return _bykcCourseDetails(context, detail, course);
+                          return _BykcCourseCard(
+                            course: course,
+                            onTap:
+                                detail.readNavigation == null ||
+                                    widget.onNavigate == null
+                                ? null
+                                : () => widget.onNavigate!(
+                                    detail.readNavigation!,
+                                  ),
+                          );
+                        }
+                        if (detail.presentation
+                            case BykcChosenPresentation course) {
+                          if (widget.isBykcChosenDetail)
+                            return _bykcChosenDetails(context, detail, course);
+                          return _BykcChosenCard(
+                            course: course,
+                            onTap: widget.onOpenBykcChosen == null
+                                ? null
+                                : () => widget.onOpenBykcChosen!(detail),
+                          );
+                        }
                       }
                       final courseId = _courseId(detail);
                       final bykcSelectAction = detail

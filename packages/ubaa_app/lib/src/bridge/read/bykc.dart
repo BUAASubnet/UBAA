@@ -22,6 +22,16 @@ Future<FeatureResult> _loadBykcFeature(
                 (item) => FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
+                  presentation: _bykcCoursePresentation(item),
+                  readNavigation: item.id <= 0
+                      ? null
+                      : FeatureReadNavigation(
+                          feature: FeatureId.bykc,
+                          query: FeatureQuery(
+                            view: FeatureQueryView.bykcDetail,
+                            courseId: '${item.id}',
+                          ),
+                        ),
                   actions: <FeatureAction>[
                     BykcSelectAction(
                       courseId: item.id,
@@ -74,6 +84,7 @@ Future<FeatureResult> _loadBykcFeature(
               FeatureDetail(
                 title: item.courseName,
                 subtitle: item.courseTeacher,
+                presentation: _bykcCoursePresentation(item, isDetail: true),
                 actions: <FeatureAction>[
                   BykcSelectAction(
                     courseId: item.id,
@@ -124,6 +135,12 @@ Future<FeatureResult> _loadBykcFeature(
             details: <FeatureDetail>[
               FeatureDetail(
                 title: item.realName ?? '博雅个人资料',
+                presentation: BykcProfilePresentation(
+                  id: item.id,
+                  realName: item.realName,
+                  studentNo: item.studentNo,
+                  collegeName: item.collegeName,
+                ),
                 fields: _compactFields(<FeatureField?>[
                   _field('用户 ID', item.id.toString()),
                   _field('姓名', item.realName),
@@ -150,6 +167,7 @@ Future<FeatureResult> _loadBykcFeature(
                 return FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
+                  presentation: _bykcChosenPresentation(item),
                   actions: <FeatureAction>[
                     BykcDeselectAction(
                       courseId: item.courseId,
@@ -219,6 +237,13 @@ Future<FeatureResult> _loadBykcFeature(
               .map(
                 (item) => FeatureDetail(
                   title: item.categoryName ?? item.subCategoryName ?? '分类',
+                  presentation: BykcCategoryPresentation(
+                    categoryName: item.categoryName,
+                    subCategoryName: item.subCategoryName,
+                    requiredCount: item.requiredCount,
+                    passedCount: item.passedCount,
+                    qualified: item.qualified,
+                  ),
                   subtitle: item.subCategoryName,
                   fields: _compactFields(<FeatureField?>[
                     _field('要求数量', item.requiredCount?.toString()),
@@ -235,12 +260,17 @@ Future<FeatureResult> _loadBykcFeature(
                 ),
               )
               .toList(growable: false);
-          return _countResult(
-            details.length,
-            result.data.totalValidCount == null
-                ? '博雅修读统计'
-                : '有效课程 ${result.data.totalValidCount}',
-            details: details,
+          return FeatureResult.success(
+            summary: '博雅修读统计',
+            details: [
+              FeatureDetail(
+                title: '总体净有效次数',
+                presentation: BykcStatisticsPresentation(
+                  totalValidCount: result.data.totalValidCount,
+                ),
+              ),
+              ...details,
+            ],
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         default:
@@ -295,3 +325,66 @@ bool _requiresBykcCoordinates(BridgeBykcSignConfig? config) {
         point.radius <= 0,
   );
 }
+
+BykcCoursePresentation _bykcCoursePresentation(
+  BridgeBykcCourse item, {
+  bool isDetail = false,
+}) => BykcCoursePresentation(
+  id: item.id,
+  courseName: item.courseName,
+  courseTeacher: item.courseTeacher,
+  coursePosition: item.coursePosition,
+  courseStartDate: item.courseStartDate,
+  courseEndDate: item.courseEndDate,
+  courseSelectStartDate: item.courseSelectStartDate,
+  courseSelectEndDate: item.courseSelectEndDate,
+  courseCancelEndDate: item.courseCancelEndDate,
+  courseCurrentCount: item.courseCurrentCount,
+  courseMaxCount: item.courseMaxCount,
+  status: switch (item.status) {
+    BridgeBykcCourseStatus.preview => BykcCourseStatus.preview,
+    BridgeBykcCourseStatus.available => BykcCourseStatus.available,
+    BridgeBykcCourseStatus.full => BykcCourseStatus.full,
+    BridgeBykcCourseStatus.selected => BykcCourseStatus.selected,
+    BridgeBykcCourseStatus.ended => BykcCourseStatus.ended,
+    BridgeBykcCourseStatus.expired => BykcCourseStatus.expired,
+  },
+  selected: item.selected,
+  isDetail: isDetail,
+);
+
+BykcChosenPresentation _bykcChosenPresentation(BridgeBykcChosenCourse item) =>
+    BykcChosenPresentation(
+      recordId: item.id,
+      courseId: item.courseId,
+      courseName: item.courseName,
+      courseTeacher: item.courseTeacher,
+      coursePosition: item.coursePosition,
+      courseStartDate: item.courseStartDate,
+      courseEndDate: item.courseEndDate,
+      courseCancelEndDate: item.courseCancelEndDate,
+      selectDate: item.selectDate,
+      category: switch (item.category) {
+        BridgeBykcCourseCategory.boya => '博雅课程',
+        BridgeBykcCourseCategory.unknown => '未知分类',
+        null => null,
+      },
+      subCategory: switch (item.subCategory) {
+        BridgeBykcCourseSubCategory.moral => '德育',
+        BridgeBykcCourseSubCategory.aesthetic => '美育',
+        BridgeBykcCourseSubCategory.labor => '劳动教育',
+        BridgeBykcCourseSubCategory.safetyHealth => '安全健康',
+        BridgeBykcCourseSubCategory.other => '其他方面',
+        BridgeBykcCourseSubCategory.unknown => '未知类型',
+        null => null,
+      },
+      checkin: item.checkin,
+      pass: item.pass,
+      score: item.score,
+      signStartDate: item.signConfig?.signStartDate,
+      signEndDate: item.signConfig?.signEndDate,
+      signOutStartDate: item.signConfig?.signOutStartDate,
+      signOutEndDate: item.signConfig?.signOutEndDate,
+      signPointCount: item.signConfig?.signPoints.length,
+      courseSignType: item.courseSignType,
+    );

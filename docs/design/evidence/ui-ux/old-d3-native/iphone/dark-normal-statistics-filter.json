@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-statistics-filter",
+  "steps": "筛选分类仍保留独立总次数",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T17:56:59.492835Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

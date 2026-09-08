@@ -1,0 +1,31 @@
+{
+  "baseSha": "aa40d2e2368d27170be5bbf3ced92d312af805ed",
+  "candidate": "aa40d2e2-d3-r2",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_boya/backend.dart": "6161fd494f31e02771f5167f19d524b0e1f7a3016d2fa2c4059fe6b76d93bdf6",
+    "apps/ubaa_flutter/integration_test/ui_boya/data.dart": "c3598b1f2a84a35e603417de4ab45e987d492265074331bca98df210240cb98f",
+    "apps/ubaa_flutter/integration_test/ui_boya/support.dart": "42a4610f08cb0f5abf9cdf77e64952c954d8f5e30e4f68260de5e858f337c9cb",
+    "apps/ubaa_flutter/integration_test/ui_boya_live_readonly_test.dart": "867e59774eb0283e2d365c32d528e8e001aaaceda9b102448cd71daed3328e03",
+    "apps/ubaa_flutter/integration_test/ui_boya_test.dart": "9bb755e97eb258babe968cf0a47d5e8397cc2e7a7bec8e13fc18c253df2228f8",
+    "apps/ubaa_flutter/test/boya_navigation_test.dart": "a0b90878bb559fa83a3b32895975cd2f3ae1e78a13f8e41c8a0cc9624321a999",
+    "packages/ubaa_app/test/bridge_backend_characterization/bykc_presentation.dart": "ffc1b2c473c7c191af4c045b7322e9673a5b9f06c913b065927d69653b5719dc",
+    "packages/ubaa_domain/lib/src/feature/presentation/bykc.dart": "533ede95c7f1480b9814f449e655b0e05297e5e51a682f29a791498aff571419",
+    "packages/ubaa_ui/lib/src/features/bykc/chosen_card.dart": "496a0ac94bc6ce8f6b41dae5d0c7ae23896b12cf6479a09cdc294b5d30bbd184",
+    "packages/ubaa_ui/lib/src/features/bykc/course_card.dart": "ef01db993e98f4ed9f97b81161d862e39356119982fbb4905c2b0795a7c385c8",
+    "packages/ubaa_ui/lib/src/features/bykc/details.dart": "0091eaddcd53a3396ffddd0fca9462fe44f64edd9da7e6f8f90ac6e4009756a3",
+    "packages/ubaa_ui/lib/src/features/bykc/display.dart": "f1fb0bdef4454e72d19508ccb198906413733d96b3d232121ce4f0868dd43ac9",
+    "packages/ubaa_ui/lib/src/features/bykc/statistics.dart": "6cd1853b0bf24b68e5b50e1df0a43c2a2050b62397557bc4375dddbef957462c",
+    "packages/ubaa_ui/test/navigation/bykc_content_test.dart": "d3665debe421511598ac5b86e7e05392f8fc1e99940b7add17f72805752d0ecd",
+    "packages/ubaa_app/lib/src/bridge/read/bykc.dart": "968c5ef20ba258de5aea1d7204d95d0d01ab7e68f2066d1ac8a82b931a611f40",
+    "packages/ubaa_app/test/bridge_backend_characterization/reduction.dart": "bd03768d70f0c5dac6855c5036846e6314273f8fac785605146aae878976b23e",
+    "packages/ubaa_app/test/bridge_backend_characterization_test.dart": "5d0964659414beee577b2df553b723da62ac8fc4f3f1330aab97437094649aeb",
+    "packages/ubaa_domain/lib/src/feature/presentation.dart": "8ce3dbf14120f834982237f954d888c8291e9176175219818a3f3873af6828b0",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "45ace103d11595538eba336fb22274843d0aade6cacee1f6bb887bb839f4996e",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "9e4ea559cc072128fa391c8aec4a538d15e73aead8679930adaba5017ecb1050",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "3cdbe0de8c227625544fc285d992e76912406af9913cad8a30e5ba905c61d947",
+    "packages/ubaa_ui/lib/src/common/query_controls.dart": "4db1b989f43b25503a560978ebbbbcb395169fa642bf2c056c3e423e483e2cad",
+    "packages/ubaa_ui/lib/src/common/read_navigator.dart": "d0c5055f3a24e6f9ec85b813f36545f1a8948780031b993fffae3a1de52fe86f",
+    "packages/ubaa_ui/lib/src/features/bykc.dart": "0f429e4beb7986af47f7169620e28beb475af50ce22d2ba80a65b13630570e76",
+    "packages/ubaa_ui/lib/src/widgets.dart": "c39812d68de8f90348bed994d036d382695efddb09e77ebcbc4c5157b5c7fe74"
+  }
+}

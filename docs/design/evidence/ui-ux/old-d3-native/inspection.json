@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-09",
+  "backend": "synthetic-boya",
+  "iphone": {
+    "scenes": 38,
+    "images": 96,
+    "review": "r1全部96图，r2复查明暗长卡片及详情受影响场景"
+  },
+  "ipad": {
+    "scenes": 38,
+    "images": 96,
+    "review": "r2全部96图"
+  },
+  "macos": {
+    "nativeScenes": 38,
+    "windowSize": [
+      800,
+      632
+    ],
+    "contentSize": [
+      800,
+      600
+    ],
+    "theme": "dark",
+    "rawWindowImages": 7,
+    "operations": [
+      "按需面板数字2输入并关闭重开保留，组合键工具限制见证据",
+      "课程列表到详情、选课准备取消返回",
+      "我的课程到独立详情、滚动到底、签退准备取消保留位置",
+      "课程统计总次数与分类三列"
+    ]
+  },
+  "limitations": [
+    "P5完整提交回读未执行",
+    "确认页UX-O8待修",
+    "合成签到摘要简写未覆盖生产实际签到签退时间窗摘要",
+    "真实只读另行记录"
+  ]
+}

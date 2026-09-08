@@ -9,6 +9,8 @@ class _FeatureQueryControls extends StatefulWidget {
     this.initialQuery,
     this.onLoadAcademicTerms,
     this.readCacheEpoch = 0,
+    this.bykcStatuses = _defaultBykcStatuses,
+    this.onBykcStatusesChanged,
     super.key,
   });
 
@@ -19,6 +21,8 @@ class _FeatureQueryControls extends StatefulWidget {
   final FeatureQuery? initialQuery;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final int readCacheEpoch;
+  final Set<BykcCourseStatus> bykcStatuses;
+  final ValueChanged<Set<BykcCourseStatus>>? onBykcStatusesChanged;
 
   @override
   State<_FeatureQueryControls> createState() => _FeatureQueryControlsState();

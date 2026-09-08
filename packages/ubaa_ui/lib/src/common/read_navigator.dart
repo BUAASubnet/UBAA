@@ -72,6 +72,15 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     if (!identical(incoming, oldWidget.snapshot) &&
         (context == null || context.hasSameQuery(_current.query))) {
       _current.snapshot = incoming;
+      if (_current.bykcChosenKey != null && context != null) {
+        // 本地详情与父列表共享同一次已选查询；新结果也更新父页，防止返回复活旧记录。
+        for (final frame in _frames) {
+          if (!identical(frame, _current) &&
+              context.hasSameQuery(frame.query)) {
+            frame.snapshot = incoming;
+          }
+        }
+      }
     }
   }
 
@@ -101,6 +110,8 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     }
     setState(() {
       _externalAfterRevision = null;
+      if (frame.query == null || !query.hasSameParameters(frame.query!))
+        frame.bykcChosenKey = null;
       frame.query = query;
     });
     await widget.onQuery!(query);
@@ -152,14 +163,35 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     await widget.onQuery!(target.query);
   }
 
+  void _openBykcChosen(FeatureDetail detail) {
+    if (widget.snapshot.feature != FeatureId.bykc ||
+        _current.snapshot.status == FeatureLoadStatus.loading ||
+        !_current.snapshot.details.any((d) => identical(d, detail)))
+      return;
+    final value = detail.presentation;
+    if (value is! BykcChosenPresentation) return;
+    setState(
+      () => _frames.add(
+        _ReadFrame(
+          _nextId++,
+          _current.snapshot,
+          _current.query,
+          bykcChosenKey: (value.recordId, value.courseId),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final visible = _current.visibleSnapshot;
-    final title = _readPageTitle(
-      visible.feature,
-      _current.query ?? _current.navigationQuery,
-      _current.isLanding,
-    );
+    final title = _current.bykcChosenKey != null
+        ? '课程详情'
+        : _readPageTitle(
+            visible.feature,
+            _current.query ?? _current.navigationQuery,
+            _current.isLanding,
+          );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(visible, _current.visibleSnapshot))
         widget.onVisibleSnapshot(visible, title);
@@ -177,7 +209,11 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
                 _ReadPage(
                   pageKey: frame.pageKey,
                   isLanding: frame.isLanding,
-                  snapshot: frame.snapshot,
+                  snapshot: frame.bykcChosenKey == null
+                      ? frame.snapshot
+                      : frame.visibleSnapshot,
+                  isBykcChosenDetail: frame.bykcChosenKey != null,
+                  onOpenBykcChosen: _openBykcChosen,
                   query: frame.query,
                   backLabel: _frames.indexOf(frame) == 0 ? '返回功能列表' : '返回上一层',
                   onBack: goBack,
@@ -204,11 +240,42 @@ class _ReadFrame {
     this.query, {
     this.isLanding = false,
     this.navigationQuery,
+    this.bykcChosenKey,
   }) : menuSnapshot = FeatureSnapshot(feature: snapshot.feature);
   final bool isLanding;
   final FeatureQuery? navigationQuery;
   final FeatureSnapshot menuSnapshot;
-  FeatureSnapshot get visibleSnapshot => isLanding ? menuSnapshot : snapshot;
+  (int, int)? bykcChosenKey;
+  FeatureSnapshot? _chosenSource, _chosenSnapshot;
+  FeatureSnapshot get visibleSnapshot {
+    if (isLanding) return menuSnapshot;
+    final key = bykcChosenKey;
+    if (key == null) return snapshot;
+    if (!identical(_chosenSource, snapshot)) {
+      final matches = snapshot.details
+          .where(
+            (d) =>
+                d.presentation is BykcChosenPresentation &&
+                (
+                      (d.presentation! as BykcChosenPresentation).recordId,
+                      (d.presentation! as BykcChosenPresentation).courseId,
+                    ) ==
+                    key,
+          )
+          .toList();
+      final unique = matches.length == 1;
+      _chosenSource = snapshot;
+      _chosenSnapshot = snapshot.copyWith(
+        details: unique ? matches : const [],
+        clearPagination: true,
+        status: !unique && snapshot.status == FeatureLoadStatus.success
+            ? FeatureLoadStatus.empty
+            : snapshot.status,
+      );
+    }
+    return _chosenSnapshot!;
+  }
+
   final pageKey = GlobalKey<_FeatureDetailViewState>();
   final int id;
   FeatureSnapshot snapshot;
@@ -226,7 +293,11 @@ class _ReadPage {
     required this.onRetry,
     this.onQuery,
     this.onNavigate,
+    this.isBykcChosenDetail = false,
+    this.onOpenBykcChosen,
   });
+  final bool isBykcChosenDetail;
+  final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final GlobalKey<_FeatureDetailViewState> pageKey;
   final bool isLanding;
   final FeatureSnapshot snapshot;

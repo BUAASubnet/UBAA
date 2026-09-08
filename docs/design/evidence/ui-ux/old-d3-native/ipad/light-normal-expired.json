@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-expired",
+  "steps": "主动包含过期课程，保留服务器总数",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T18:14:42.531556Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

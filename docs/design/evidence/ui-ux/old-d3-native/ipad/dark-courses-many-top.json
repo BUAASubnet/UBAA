@@ -1,0 +1,14 @@
+{
+  "name": "dark-courses-many-top",
+  "steps": "42条合成记录首屏",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T18:14:10.263297Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

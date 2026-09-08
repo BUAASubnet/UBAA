@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-unknown-detail",
+  "steps": "未知资格保持不可操作，不从可选状态猜写资格",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T18:13:38.229468Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

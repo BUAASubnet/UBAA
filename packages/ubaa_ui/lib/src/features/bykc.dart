@@ -34,6 +34,46 @@ extension _BykcQueryControls on _FeatureQueryControlsState {
       ),
       if (_bykcView == FeatureQueryView.summary) ...<Widget>[
         SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('当前页课程状态'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final status in BykcCourseStatus.values)
+                    FilterChip(
+                      label: Text(_bykcStatusLabel(status)),
+                      selected: widget.bykcStatuses.contains(status),
+                      onSelected: (selected) {
+                        final values = {...widget.bykcStatuses};
+                        selected ? values.add(status) : values.remove(status);
+                        widget.onBykcStatusesChanged?.call(values);
+                      },
+                    ),
+                ],
+              ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => widget.onBykcStatusesChanged?.call({}),
+                    child: const Text('状态不限'),
+                  ),
+                  TextButton(
+                    onPressed: () => widget.onBykcStatusesChanged?.call(
+                      _defaultBykcStatuses,
+                    ),
+                    child: const Text('恢复默认'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
           width: 110,
           child: TextField(
             controller: _pageController,
@@ -73,12 +113,30 @@ extension _BykcQueryControls on _FeatureQueryControlsState {
         ),
         _valuePicker(
           label: '从当前列表选择课程',
-          values: _detailFieldValues('课程 ID'),
+          values: _bykcCourseValues(),
           onSelected: (value) => _bykcCourseController.text = value,
         ),
       ],
     ],
   ];
+
+  List<String> _bykcCourseValues() {
+    final values = <String>{};
+    var hasTyped = false;
+    for (final detail in widget.details) {
+      switch (detail.presentation) {
+        case BykcCoursePresentation course:
+          hasTyped = true;
+          if (course.id > 0) values.add('${course.id}');
+        case BykcChosenPresentation course:
+          hasTyped = true;
+          if (course.courseId > 0) values.add('${course.courseId}');
+        default:
+          break;
+      }
+    }
+    return hasTyped ? values.toList() : _detailFieldValues('课程 ID');
+  }
 }
 
 extension _BykcDetailActions on _FeatureDetailListState {

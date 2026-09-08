@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-chosen",
+  "steps": "已选卡片突出考勤、考核和零分，不铺编号",
+  "backend": "synthetic-boya",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T17:58:12.657408Z",
+  "sourceSha": "aa40d2e2-d3-r2",
+  "pngSaved": true
+}

@@ -336,6 +336,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     pageBuilder: (page) => _FeatureDetailView(
       key: page.pageKey,
       isLanding: page.isLanding,
+      isBykcChosenDetail: page.isBykcChosenDetail,
+      onOpenBykcChosen: page.onOpenBykcChosen,
       feature: feature,
       snapshot: page.snapshot,
       query: page.query,
