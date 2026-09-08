@@ -1,0 +1,17 @@
+{
+  "name": "dark-home",
+  "scene": "home",
+  "steps": "合成登录，核对今日课表→待办区",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:33:11.352192Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

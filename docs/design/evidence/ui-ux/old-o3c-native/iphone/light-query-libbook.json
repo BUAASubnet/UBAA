@@ -1,0 +1,17 @@
+{
+  "name": "light-query-libbook",
+  "scene": "query-libbook",
+  "steps": "顶栏打开完整查询；结果页提供本地搜索，菜单不显示无结果搜索；成绩额外核验草稿",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:31:12.802160Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

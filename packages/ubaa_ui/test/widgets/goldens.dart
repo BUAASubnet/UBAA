@@ -60,7 +60,7 @@ void _registerGoldenTests() {
     );
   });
 
-  testWidgets('十二项功能详情分别保持视觉基线', (tester) async {
+  testWidgets('十二项功能根页分别保持视觉基线', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 800)
       ..devicePixelRatio = 1;

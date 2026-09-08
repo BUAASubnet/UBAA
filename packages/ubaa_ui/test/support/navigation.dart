@@ -10,19 +10,22 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
     await tester.tap(find.byType(NavigationDestination).at(index));
   } else if (find.byType(NavigationRail).evaluate().isNotEmpty) {
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    if (rail.selectedIndex != index) {
-      await tester.tap(
-        find.descendant(
-          of: find.byType(NavigationRail),
-          matching: find.byIcon(
-            index == 1 ? Icons.apps_outlined : Icons.auto_awesome_outlined,
-          ),
+    final selected = rail.selectedIndex == index;
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.byIcon(
+          index == 1
+              ? (selected ? Icons.apps : Icons.apps_outlined)
+              : (selected ? Icons.auto_awesome : Icons.auto_awesome_outlined),
         ),
-      );
-    }
+      ),
+    );
   } else {
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
+    while (find.byType(NavigationBar).evaluate().isEmpty) {
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.byType(NavigationDestination).at(index));
   }
   await tester.pumpAndSettle();
@@ -41,6 +44,19 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
   await tester.pumpAndSettle();
   await tester.tap(card);
   await tester.pumpAndSettle();
+  final landing = find.byKey(ValueKey(('feature-landing', feature)));
+  if (landing.evaluate().isNotEmpty) {
+    final title = switch (feature) {
+      FeatureId.bykc => '选择课程',
+      FeatureId.libbook => '预约座位',
+      FeatureId.cgyy => '预约研讨室',
+      _ => throw StateError('意外子菜单'),
+    };
+    await tester.tap(
+      find.descendant(of: landing, matching: find.widgetWithText(Card, title)),
+    );
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> openQueryPanel(WidgetTester tester) async {

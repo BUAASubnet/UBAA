@@ -91,7 +91,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final WriteSuccessHandler? onWriteSuccess;
 
-  /// 在 [onWriteSuccess] 刷新场馆订单后，用提交收据匹配只读订单编号。
+  /// 在 [onWriteSuccess] 刷新研讨室订单后，用提交收据匹配只读订单编号。
   final CgyyReceiptVerifier? onVerifyCgyyReceipt;
   final CgyyCancellationVerifier? onVerifyCgyyCancellation;
   // 按已确认意图的路线执行一次评教只读回读。
@@ -106,7 +106,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   late int _selectedIndex;
   FeatureId? _openedFeature;
   String? _utilityPage;
-  final _visibleSnapshot = ValueNotifier<FeatureSnapshot?>(null);
+  final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
   final Map<FeatureId, GlobalKey<_FeatureReadNavigatorState>> _readPageKeys =
@@ -140,13 +140,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _readPageKeys.clear();
       _openedFeature = null;
       _utilityPage = null;
-      _visibleSnapshot.value = null;
+      _visiblePage.value = null;
     }
   }
 
   @override
   void dispose() {
-    _visibleSnapshot.dispose();
+    _visiblePage.dispose();
     super.dispose();
   }
 
@@ -198,12 +198,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       appBar: AppBar(
         centerTitle: true,
         toolbarHeight: 56,
-        title: Text(
-          pendingWrite == null
-              ? (_openedFeature?.title ??
-                    _utilityPage ??
-                    (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label))
-              : '确认${pendingWrite.operation.title}',
+        title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
+          valueListenable: _visiblePage,
+          builder: (context, page, _) => Text(
+            pendingWrite != null
+                ? '确认${pendingWrite.operation.title}'
+                : _openedFeature != null
+                ? (page?.$1.feature == _openedFeature
+                      ? page!.$2
+                      : _openedFeature!.title)
+                : (_utilityPage ??
+                      (_selectedIndex == 0
+                          ? '首页'
+                          : _tabs[_selectedIndex].label)),
+          ),
         ),
         leading: pendingWrite != null
             ? null
@@ -221,9 +229,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               )
             : null,
         actions: <Widget>[
-          ValueListenableBuilder<FeatureSnapshot?>(
-            valueListenable: _visibleSnapshot,
-            builder: (context, snapshot, _) {
+          ValueListenableBuilder<(FeatureSnapshot, String)?>(
+            valueListenable: _visiblePage,
+            builder: (context, page, _) {
+              final snapshot = page?.$1;
               final route =
                   pendingWrite?.resolvedRoute ??
                   (_openedFeature == snapshot?.feature
@@ -311,10 +320,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       feature,
       () => GlobalKey<_FeatureReadNavigatorState>(),
     ),
-    onVisibleSnapshot: (snapshot) {
+    onVisibleSnapshot: (snapshot, title) {
       if (_openedFeature == feature &&
-          !identical(_visibleSnapshot.value, snapshot)) {
-        _visibleSnapshot.value = snapshot;
+          _visiblePage.value != (snapshot, title)) {
+        _visiblePage.value = (snapshot, title);
       }
     },
     snapshot: widget.snapshots[feature]!,
@@ -326,6 +335,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         : (query) => widget.onFeatureQuery!(feature, query),
     pageBuilder: (page) => _FeatureDetailView(
       key: page.pageKey,
+      isLanding: page.isLanding,
       feature: feature,
       snapshot: page.snapshot,
       query: page.query,
@@ -575,7 +585,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(action),
-      failureMessage: '暂时无法准备取消场馆订单；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备取消研讨室订单；尚未提交任何写请求。',
       expectedOperation: action.operation,
     );
   }

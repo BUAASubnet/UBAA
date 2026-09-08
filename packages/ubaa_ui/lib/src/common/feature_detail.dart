@@ -3,6 +3,7 @@ part of '../widgets.dart';
 class _FeatureDetailView extends StatefulWidget {
   const _FeatureDetailView({
     required this.feature,
+    this.isLanding = false,
     required this.snapshot,
     this.query,
     required this.onBack,
@@ -25,6 +26,7 @@ class _FeatureDetailView extends StatefulWidget {
     super.key,
   });
 
+  final bool isLanding;
   final FeatureId feature;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
@@ -80,60 +82,65 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale) &&
         widget.snapshot.details.isNotEmpty;
-    final content = Column(
-      children: [
-        if (widget.snapshot.status == FeatureLoadStatus.stale)
-          MaterialBanner(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.snapshot.error?.message ?? '刷新失败，请稍后重试。'),
-                const Text('以下为上次成功加载的数据。'),
-              ],
-            ),
-            leading: const Icon(Icons.sync_problem),
-            actions: [
-              TextButton(
-                onPressed: () => widget.onRetry(),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        if (widget.snapshot.overview case final overview?
-            when widget.snapshot.status == FeatureLoadStatus.success ||
-                widget.snapshot.status == FeatureLoadStatus.empty ||
-                widget.snapshot.status == FeatureLoadStatus.stale)
-          _CourseworkOverview(overview: overview),
-        Expanded(
-          key: const ValueKey<String>('stable-detail-list'),
-          child: Stack(
-            fit: StackFit.expand,
+    final content = widget.isLanding
+        ? _FeatureLandingMenu(
+            feature: widget.feature,
+            onOpen: widget.onNavigate!,
+          )
+        : Column(
             children: [
-              // 同一列表始终保留State；明确空结果仍将details更新为空。
-              ExcludeFocus(
-                excluding: !showDetails,
-                child: TickerMode(
-                  enabled: showDetails,
-                  child: Offstage(
-                    offstage: !showDetails,
-                    child: _details(context),
+              if (widget.snapshot.status == FeatureLoadStatus.stale)
+                MaterialBanner(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.snapshot.error?.message ?? '刷新失败，请稍后重试。'),
+                      const Text('以下为上次成功加载的数据。'),
+                    ],
                   ),
+                  leading: const Icon(Icons.sync_problem),
+                  actions: [
+                    TextButton(
+                      onPressed: () => widget.onRetry(),
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              if (widget.snapshot.overview case final overview?
+                  when widget.snapshot.status == FeatureLoadStatus.success ||
+                      widget.snapshot.status == FeatureLoadStatus.empty ||
+                      widget.snapshot.status == FeatureLoadStatus.stale)
+                _CourseworkOverview(overview: overview),
+              Expanded(
+                key: const ValueKey<String>('stable-detail-list'),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // 同一列表始终保留State；明确空结果仍将details更新为空。
+                    ExcludeFocus(
+                      excluding: !showDetails,
+                      child: TickerMode(
+                        enabled: showDetails,
+                        child: Offstage(
+                          offstage: !showDetails,
+                          child: _details(context),
+                        ),
+                      ),
+                    ),
+                    if (!showDetails)
+                      switch (widget.snapshot.status) {
+                        FeatureLoadStatus.loading => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        FeatureLoadStatus.failure => _error(context),
+                        _ => _empty(context),
+                      },
+                  ],
                 ),
               ),
-              if (!showDetails)
-                switch (widget.snapshot.status) {
-                  FeatureLoadStatus.loading => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  FeatureLoadStatus.failure => _error(context),
-                  _ => _empty(context),
-                },
             ],
-          ),
-        ),
-      ],
-    );
+          );
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = MediaQuery.sizeOf(context).width >= 600;
@@ -180,14 +187,15 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                               child: Column(
                                 children: [
-                                  TextField(
-                                    controller: _searchController,
-                                    decoration: const InputDecoration(
-                                      labelText: '筛选详情',
-                                      prefixIcon: Icon(Icons.search),
+                                  if (!widget.isLanding)
+                                    TextField(
+                                      controller: _searchController,
+                                      decoration: const InputDecoration(
+                                        labelText: '筛选详情',
+                                        prefixIcon: Icon(Icons.search),
+                                      ),
+                                      onChanged: (_) => setState(() {}),
                                     ),
-                                    onChanged: (_) => setState(() {}),
-                                  ),
                                   if (widget.onQuery != null && _supportsQuery)
                                     _FeatureQueryControls(
                                       feature: widget.feature,

@@ -1,0 +1,17 @@
+{
+  "name": "dark-sidebar",
+  "scene": "sidebar",
+  "steps": "打开侧栏，资料和设置不占主导航",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:33:35.172093Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

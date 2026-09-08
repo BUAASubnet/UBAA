@@ -12,7 +12,7 @@ class _FeatureReadNavigator extends StatefulWidget {
     this.onQuery,
     super.key,
   });
-  final ValueChanged<FeatureSnapshot> onVisibleSnapshot;
+  final void Function(FeatureSnapshot, String) onVisibleSnapshot;
   final FeatureSnapshot snapshot;
   final int cacheEpoch;
   final VoidCallback onExit;
@@ -36,6 +36,8 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
         _nextId++,
         widget.snapshot,
         widget.snapshot.readContext?.query,
+        isLanding:
+            widget.onQuery != null && _hasLandingMenu(widget.snapshot.feature),
       ),
     );
   }
@@ -53,6 +55,10 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
       // 失效通知可能仍携带旧子页快照；只接收边界之后的新读取代次。
       _externalAfterRevision =
           oldWidget.snapshot.readContext?.requestRevision ?? -1;
+    }
+    if (_current.isLanding) {
+      _current.snapshot = incoming;
+      return;
     }
     if (context != null &&
         _externalAfterRevision != null &&
@@ -80,12 +86,19 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
   }
 
   Future<void> refreshCurrent() =>
-      _current.query == null || widget.onQuery == null
+      _current.isLanding || _current.query == null || widget.onQuery == null
       ? widget.onRetry()
       : _query(_current, _current.query!);
 
   Future<void> _query(_ReadFrame frame, FeatureQuery query) async {
     if (widget.onQuery == null || !identical(frame, _current)) return;
+    if (frame.isLanding) {
+      await _navigate(
+        FeatureReadNavigation(feature: widget.snapshot.feature, query: query),
+        force: true,
+      );
+      return;
+    }
     setState(() {
       _externalAfterRevision = null;
       frame.query = query;
@@ -93,11 +106,37 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     await widget.onQuery!(query);
   }
 
-  Future<void> _navigate(FeatureReadNavigation target) async {
+  Future<void> _navigate(
+    FeatureReadNavigation target, {
+    bool force = false,
+  }) async {
     if (widget.onQuery == null ||
         target.feature != widget.snapshot.feature ||
-        _current.snapshot.status == FeatureLoadStatus.loading)
+        (_current.snapshot.status == FeatureLoadStatus.loading &&
+            !_current.isLanding))
       return;
+    final cached = _current.snapshot;
+    final reuseDefault =
+        !force &&
+        _current.isLanding &&
+        target.query.hasSameParameters(const FeatureQuery()) &&
+        (cached.readContext?.query == null ||
+            cached.readContext!.query!.hasSameParameters(target.query)) &&
+        cached.status != FeatureLoadStatus.idle;
+    if (reuseDefault) {
+      setState(() {
+        _externalAfterRevision = null;
+        _frames.add(
+          _ReadFrame(
+            _nextId++,
+            cached,
+            cached.readContext?.query,
+            navigationQuery: target.query,
+          ),
+        );
+      });
+      return;
+    }
     final frame = _ReadFrame(
       _nextId++,
       FeatureSnapshot(
@@ -115,10 +154,15 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
 
   @override
   Widget build(BuildContext context) {
-    final visible = _current.snapshot;
+    final visible = _current.visibleSnapshot;
+    final title = _readPageTitle(
+      visible.feature,
+      _current.query ?? _current.navigationQuery,
+      _current.isLanding,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && identical(visible, _current.snapshot))
-        widget.onVisibleSnapshot(visible);
+      if (mounted && identical(visible, _current.visibleSnapshot))
+        widget.onVisibleSnapshot(visible, title);
     });
     return IndexedStack(
       index: _frames.length - 1,
@@ -132,6 +176,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
               child: widget.pageBuilder(
                 _ReadPage(
                   pageKey: frame.pageKey,
+                  isLanding: frame.isLanding,
                   snapshot: frame.snapshot,
                   query: frame.query,
                   backLabel: _frames.indexOf(frame) == 0 ? '返回功能列表' : '返回上一层',
@@ -153,7 +198,17 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
 }
 
 class _ReadFrame {
-  _ReadFrame(this.id, this.snapshot, this.query);
+  _ReadFrame(
+    this.id,
+    this.snapshot,
+    this.query, {
+    this.isLanding = false,
+    this.navigationQuery,
+  }) : menuSnapshot = FeatureSnapshot(feature: snapshot.feature);
+  final bool isLanding;
+  final FeatureQuery? navigationQuery;
+  final FeatureSnapshot menuSnapshot;
+  FeatureSnapshot get visibleSnapshot => isLanding ? menuSnapshot : snapshot;
   final pageKey = GlobalKey<_FeatureDetailViewState>();
   final int id;
   FeatureSnapshot snapshot;
@@ -163,6 +218,7 @@ class _ReadFrame {
 class _ReadPage {
   const _ReadPage({
     required this.pageKey,
+    required this.isLanding,
     required this.snapshot,
     required this.query,
     required this.backLabel,
@@ -172,6 +228,7 @@ class _ReadPage {
     this.onNavigate,
   });
   final GlobalKey<_FeatureDetailViewState> pageKey;
+  final bool isLanding;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
   final String backLabel;

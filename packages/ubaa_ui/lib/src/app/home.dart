@@ -360,7 +360,7 @@ IconData _featureIcon(FeatureId feature) => switch (feature) {
   FeatureId.judge => Icons.code,
   FeatureId.libbook => Icons.event_seat,
   FeatureId.signin => Icons.how_to_reg,
-  FeatureId.cgyy => Icons.sports_gymnastics,
+  FeatureId.cgyy => Icons.date_range,
   FeatureId.ygdk => Icons.wb_sunny,
   FeatureId.evaluation => Icons.assignment_turned_in,
 };

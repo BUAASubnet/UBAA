@@ -27,7 +27,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.libbookCancelBooking => '取消图书馆预约',
     WriteOperation.ygdkSubmit => '阳光打卡',
     WriteOperation.cgyySubmitReservation => '研讨室预约',
-    WriteOperation.cgyyCancelOrder => '取消场馆订单',
+    WriteOperation.cgyyCancelOrder => '取消研讨室订单',
     WriteOperation.evaluationSubmitCourses => '教学评教',
   };
 

@@ -1,0 +1,17 @@
+{
+  "name": "dark-feature-libbook",
+  "scene": "feature-libbook",
+  "steps": "从旧版功能分组打开图书馆座位，核对单顶栏与正文高度",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:30:46.005796Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

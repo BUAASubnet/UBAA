@@ -102,7 +102,15 @@ void main() {
       expect(find.text('今日课表'), findsOneWidget);
       await capture('home', '合成登录，核对今日课表→待办区');
 
-      for (final feature in FeatureId.values) {
+      const menus = <FeatureId, List<String>>{
+        FeatureId.bykc: ['选择课程', '我的课程', '课程统计'],
+        FeatureId.libbook: ['预约座位', '我的预约'],
+        FeatureId.cgyy: ['预约研讨室', '我的预约', '门锁状态'],
+      };
+      final features = const bool.fromEnvironment('UBAA_UI_LANDING_ONLY')
+          ? menus.keys
+          : FeatureId.values;
+      for (final feature in features) {
         await tab(ordinaryFeatureIds.contains(feature) ? 1 : 2);
         final card = find.widgetWithText(Card, feature.title);
         await tester.ensureVisible(card);
@@ -122,7 +130,10 @@ void main() {
           '从旧版功能分组打开${feature.title}，核对单顶栏与正文高度',
         );
         await panel();
-        expect(find.widgetWithText(TextField, '筛选详情'), findsOneWidget);
+        expect(
+          find.widgetWithText(TextField, '筛选详情'),
+          menus.containsKey(feature) ? findsNothing : findsOneWidget,
+        );
         expect(find.text('应用筛选'), findsOneWidget);
         if (feature == FeatureId.grades) {
           final panelBox = find.byWidgetPredicate(
@@ -154,8 +165,56 @@ void main() {
         }
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        await capture('query-${feature.name}', '顶栏打开完整查询与本地搜索；成绩额外核验关闭后草稿保留');
+        await capture(
+          'query-${feature.name}',
+          '顶栏打开完整查询；结果页提供本地搜索，菜单不显示无结果搜索；成绩额外核验草稿',
+        );
         await closePanel();
+        if (menus.containsKey(feature)) {
+          expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
+          for (final (index, label) in menus[feature]!.indexed) {
+            final menuCard = find.widgetWithText(Card, label);
+            await tester.ensureVisible(menuCard);
+            await tester.tap(menuCard);
+            await tester.pumpAndSettle();
+            final pageTitle = feature == FeatureId.libbook && index == 1
+                ? '我的座位预约'
+                : label;
+            expect(find.widgetWithText(AppBar, pageTitle), findsOneWidget);
+            expect(find.byTooltip('实际路线：直连'), findsOneWidget);
+            expect(find.byType(TextField), findsNothing);
+            await capture(
+              'child-${feature.name}-$index',
+              '从子菜单进入$label，检查当前页标题、真实结果路线和正文；未触发写入',
+            );
+            if (index == 0) {
+              await panel();
+              await tester.enterText(
+                find.widgetWithText(TextField, '筛选详情'),
+                'draft',
+              );
+              await closePanel();
+              await panel();
+              expect(
+                tester
+                    .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+                    .controller!
+                    .text,
+                'draft',
+              );
+              await capture(
+                'child-query-${feature.name}',
+                '默认子页打开搜索、输入草稿、关闭、重开；草稿保留',
+              );
+              await closePanel();
+            }
+            await tester.tap(find.byTooltip('返回'));
+            await tester.pumpAndSettle();
+            expect(find.widgetWithText(AppBar, feature.title), findsOneWidget);
+            expect(find.widgetWithText(Card, label), findsOneWidget);
+            expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
+          }
+        }
         await tester.tap(find.byTooltip('返回'));
         await tester.pumpAndSettle();
       }

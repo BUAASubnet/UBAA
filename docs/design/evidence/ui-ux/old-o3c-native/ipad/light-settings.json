@@ -1,0 +1,17 @@
+{
+  "name": "light-settings",
+  "scene": "settings",
+  "steps": "从侧栏进入设置，保留连接模式与匿名统计",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:34:01.849888Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

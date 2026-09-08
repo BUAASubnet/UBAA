@@ -66,7 +66,7 @@ void _registerReadbackTests() {
     final outcome = await coordinator.confirmForUi();
     expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
     expect(outcome?.cgyyCancellationVerified, isTrue);
-    expect(outcome?.message, '提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。');
+    expect(outcome?.message, '提交响应不确定，但研讨室订单取消状态已核对，请勿重复提交。');
     expect(genericReads, 0);
     coordinator.dispose();
   });

@@ -332,7 +332,7 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
       case FeatureId.cgyy:
         if (v == FeatureQueryView.summary) {
           return [
-            _item('合成体育馆羽毛球区', {
+            _item('合成研讨楼', {
               '站点 ID': '3',
               '校区': '合成校区',
               '座位数': '24',
@@ -344,7 +344,7 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
         }
         if (v == FeatureQueryView.cgyyPurposeTypes) {
           return [
-            _item('体育锻炼', {'用途编号': '1', '来源': '场馆用途'}),
+            _item('小组研讨', {'用途编号': '1', '来源': '研讨室用途'}),
           ];
         }
         if (v == FeatureQueryView.cgyyLockCode) {
@@ -355,13 +355,13 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
         if (v == FeatureQueryView.cgyyOrders ||
             v == FeatureQueryView.cgyyOrderDetail) {
           return [
-            _item('合成体育馆 · 羽毛球 4 号场', {
+            _item('合成研讨楼 · 4 号研讨室', {
               '订单编号': '17',
               '校区': '合成校区',
               '日期': '2099-01-01',
               '开始': '2099-01-01 10:00:00',
               '结束': '2099-01-01 11:00:00',
-              '用途': '体育锻炼',
+              '用途': '小组研讨',
               '参与人数': '2',
               '订单状态': '1',
               '审核状态': '1',
@@ -374,7 +374,7 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend {
         final reservationDate = _day(q.date);
         return [
           _item(
-            '羽毛球 4 号场',
+            '4 号研讨室',
             {
               '站点 ID': '${q.siteId}',
               '日期': reservationDate,

@@ -63,7 +63,7 @@ void _registerCgyyCancellationWriteTest() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认取消场馆订单'), findsOneWidget);
+    expect(find.text('确认取消研讨室订单'), findsOneWidget);
 
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
@@ -181,7 +181,7 @@ void _registerCgyyCancellationWriteTest() {
 
     expect(verifyCalls, 1);
     expect(ordinaryRefreshCalls, 0);
-    expect(find.text('提交响应不确定，但场馆订单取消状态已核对，请勿重复提交。'), findsOneWidget);
+    expect(find.text('提交响应不确定，但研讨室订单取消状态已核对，请勿重复提交。'), findsOneWidget);
     expect(find.textContaining('token=secret'), findsNothing);
   });
 

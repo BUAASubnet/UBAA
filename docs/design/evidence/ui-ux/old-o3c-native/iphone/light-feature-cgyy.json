@@ -1,0 +1,17 @@
+{
+  "name": "light-feature-cgyy",
+  "scene": "feature-cgyy",
+  "steps": "从旧版功能分组打开研讨室预约，核对单顶栏与正文高度",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:31:19.138619Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

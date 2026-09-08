@@ -1,0 +1,17 @@
+{
+  "name": "dark-child-libbook-1",
+  "scene": "child-libbook-1",
+  "steps": "从子菜单进入我的预约，检查当前页标题、真实结果路线和正文；未触发写入",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:33:25.582753Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

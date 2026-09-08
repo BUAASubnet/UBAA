@@ -1,0 +1,17 @@
+{
+  "name": "dark-child-query-bykc",
+  "scene": "child-query-bykc",
+  "steps": "默认子页打开搜索、输入草稿、关闭、重开；草稿保留",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:30:41.922656Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

@@ -20,6 +20,7 @@ part 'common/feature_detail.dart';
 part 'common/pagination.dart';
 part 'common/query_controls.dart';
 part 'common/read_navigator.dart';
+part 'common/landing_menu.dart';
 part 'features/academic.dart';
 part 'features/academic_content.dart';
 part 'features/academic_terms.dart';

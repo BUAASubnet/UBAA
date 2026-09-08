@@ -80,7 +80,7 @@ Future<FeatureResult> _loadCgyyFeature(
               .toList(growable: false);
           return _countResult(
             result.data.length,
-            '个可预约场馆',
+            '个研讨室预约站点',
             details: details,
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
@@ -236,7 +236,7 @@ FeatureResult _mapCgyyOrdersResult(
   final details = data.content
       .map(
         (item) => FeatureDetail(
-          title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
+          title: item.theme ?? item.siteName ?? '研讨室订单 ${item.id}',
           subtitle: item.venueSpaceName ?? item.venueName,
           fields: _compactFields(<FeatureField?>[
             _field('订单编号', '${item.id}'),
@@ -259,7 +259,7 @@ FeatureResult _mapCgyyOrdersResult(
       .toList(growable: false);
   return _countResult(
     data.content.length,
-    '条场馆订单',
+    '条研讨室订单',
     details: details,
     pagination: _pagination(
       page: data.number,
@@ -278,7 +278,7 @@ FeatureResult _mapCgyyOrderDetailResult(
   summary: '订单详情',
   details: <FeatureDetail>[
     FeatureDetail(
-      title: item.theme ?? item.siteName ?? '场馆订单 ${item.id}',
+      title: item.theme ?? item.siteName ?? '研讨室订单 ${item.id}',
       subtitle: item.venueSpaceName ?? item.venueName,
       fields: _compactFields(<FeatureField?>[
         _field('订单编号', '${item.id}'),

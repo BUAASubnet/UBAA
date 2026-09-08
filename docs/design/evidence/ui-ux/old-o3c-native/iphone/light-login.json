@@ -1,0 +1,17 @@
+{
+  "name": "light-login",
+  "scene": "login",
+  "steps": "打开显式合成宿主",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "light",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:31:01.803196Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}

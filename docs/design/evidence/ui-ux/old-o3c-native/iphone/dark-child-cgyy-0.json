@@ -1,0 +1,17 @@
+{
+  "name": "dark-child-cgyy-0",
+  "scene": "child-cgyy-0",
+  "steps": "从子菜单进入预约研讨室，检查当前页标题、真实结果路线和正文；未触发写入",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T04:30:54.634051Z",
+  "sourceSha": "69fad426-o3c-working-r2",
+  "pngSaved": true
+}
