@@ -65,7 +65,6 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   FeatureQueryView _signinView = FeatureQueryView.summary;
   bool _includeExpired = false;
   bool _submitting = false;
-  bool _queryCollapsed = false;
 
   @override
   void initState() {
@@ -195,61 +194,30 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 600;
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (compact)
-            ListTile(
-              title: const Text('查询条件'),
-              dense: true,
-              trailing: IconButton(
-                tooltip: _queryCollapsed ? '展开查询条件' : '收起查询条件',
-                icon: Icon(
-                  _queryCollapsed ? Icons.expand_more : Icons.expand_less,
-                ),
-                onPressed: () {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  setState(() => _queryCollapsed = !_queryCollapsed);
-                },
-              ),
-            ),
-          ExcludeFocus(
-            key: const ValueKey('query-fields'),
-            excluding: compact && _queryCollapsed,
-            child: Offstage(
-              offstage: compact && _queryCollapsed,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
-                    ..._academicQueryFields(setState),
-                    ..._bykcQueryFields(setState),
-                    ..._libbookQueryFields(setState),
-                    ..._ygdkQueryFields(setState),
-                    ..._cgyyQueryFields(setState),
-                    ..._spocQueryFields(setState),
-                    ..._evaluationQueryFields(setState),
-                    ..._signinQueryFields(setState),
-                    ..._judgeQueryFields(setState),
-                    FilledButton.tonal(
-                      onPressed: _submitting ? null : _apply,
-                      child: _submitting
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('应用筛选'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          ..._academicQueryFields(setState),
+          ..._bykcQueryFields(setState),
+          ..._libbookQueryFields(setState),
+          ..._ygdkQueryFields(setState),
+          ..._cgyyQueryFields(setState),
+          ..._spocQueryFields(setState),
+          ..._evaluationQueryFields(setState),
+          ..._signinQueryFields(setState),
+          ..._judgeQueryFields(setState),
+          FilledButton.tonal(
+            onPressed: _submitting ? null : _apply,
+            child: _submitting
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('应用筛选'),
           ),
         ],
       ),

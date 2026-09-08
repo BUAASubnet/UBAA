@@ -5,6 +5,7 @@ class _FeatureDetailList extends StatefulWidget {
   const _FeatureDetailList({
     required this.feature,
     required this.details,
+    this.filter = '',
     this.pagination,
     this.query,
     this.onQuery,
@@ -21,6 +22,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onPickYgdkPhoto,
   });
 
+  final String filter;
   final FeatureId feature;
   final List<FeatureDetail> details;
   final FeaturePagination? pagination;
@@ -45,39 +47,41 @@ class _FeatureDetailList extends StatefulWidget {
 
 class _FeatureDetailListState extends State<_FeatureDetailList> {
   static const _pageSize = 20;
-  final TextEditingController _queryController = TextEditingController();
   final Set<String> _selectedEvaluationKeys = <String>{};
-  String _query = '';
+  final List<(String, String)> _selectedJudgeKeys = [];
   int _page = 0;
 
   @override
   void didUpdateWidget(covariant _FeatureDetailList oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.filter != widget.filter) _page = 0;
     final validKeys = <String>{
       for (final detail in widget.details)
         if (_evaluationSubmitTarget(detail) case final target?)
           target.selectionKey,
     };
     _selectedEvaluationKeys.removeWhere((key) => !validKeys.contains(key));
-  }
-
-  @override
-  void dispose() {
-    _queryController.dispose();
-    super.dispose();
+    final judgeKeys = {
+      for (final detail in widget.details)
+        if (detail.presentation case JudgeAssignmentPresentation p
+            when !p.isDetail)
+          (p.courseId, p.assignmentId),
+    };
+    _selectedJudgeKeys.removeWhere((key) => !judgeKeys.contains(key));
   }
 
   @override
   Widget build(BuildContext context) {
     // 列表的构建委托可能保留子元素；外层显式依赖主题，切换时更新标题样式。
     final theme = Theme.of(context);
-    final query = _query.trim().toLowerCase();
+    final query = widget.filter.trim().toLowerCase();
     final details = query.isEmpty
         ? widget.details
         : widget.details
               .where((detail) {
                 final values = <String>[
                   detail.title,
+                  ..._assignmentSearchValues(detail.presentation),
                   if (detail.subtitle case final subtitle?) subtitle,
                   for (final field in detail.fields) ...<String>[
                     field.label,
@@ -116,161 +120,184 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
         .toList(growable: false);
     return Column(
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: TextField(
-            controller: _queryController,
-            decoration: const InputDecoration(
-              labelText: '筛选详情',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (value) => setState(() {
-              _query = value;
-              _page = 0;
-            }),
-          ),
-        ),
+        ..._judgeBatchFields(setState),
         ..._evaluationBatchFields(
           setState,
           pendingEvaluations,
           selectedEvaluations,
         ),
         Expanded(
-          child: details.isEmpty
-              ? const Center(child: Text('没有匹配的详情'))
-              : _supportsAcademicContent(widget.feature, visible)
-              ? _AcademicResultContent(
-                  feature: widget.feature,
-                  details: visible,
-                  onNavigate: widget.onNavigate,
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: visible.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final detail = visible[index];
-                    final courseId = _courseId(detail);
-                    final bykcSelectAction = detail.action<BykcSelectAction>();
-                    final bykcDeselectAction = detail
-                        .action<BykcDeselectAction>();
-                    final bykcSignInAction = _bykcSignAction(
-                      detail,
-                      BykcSignKind.signIn,
-                    );
-                    final bykcSignOutAction = _bykcSignAction(
-                      detail,
-                      BykcSignKind.signOut,
-                    );
-                    final signinAction = detail.action<SigninPerformAction>();
-                    final cgyyCancelAction = _cgyyCancelAction(detail);
-                    final libbookReserveAction = detail
-                        .action<LibbookReserveAction>();
-                    final libbookCancelAction = detail
-                        .action<LibbookCancelAction>();
-                    final cgyyReservation = _cgyyReserveAction(detail);
-                    final evaluation = _evaluationSubmitTarget(detail);
-                    final ygdkAction = _ygdkAction(detail);
-                    final canBykcSign =
-                        bykcSignInAction?.eligibility ==
-                        ActionEligibility.allowed;
-                    final canBykcSignOut =
-                        bykcSignOutAction?.eligibility ==
-                        ActionEligibility.allowed;
-                    final canBykcSelect =
-                        bykcSelectAction?.eligibility ==
-                        ActionEligibility.allowed;
-                    final canBykcDeselect =
-                        bykcDeselectAction?.eligibility ==
-                        ActionEligibility.allowed;
-                    final canSignin =
-                        signinAction?.eligibility ==
-                            ActionEligibility.allowed &&
-                        signinAction!.scheduleId.trim().isNotEmpty;
-                    final canLibbookReserve =
-                        libbookReserveAction?.eligibility ==
-                            ActionEligibility.allowed &&
-                        <String>[
-                          libbookReserveAction!.areaId,
-                          libbookReserveAction.seatId,
-                          libbookReserveAction.day,
-                          libbookReserveAction.segment,
-                          libbookReserveAction.startTime,
-                          libbookReserveAction.endTime,
-                        ].every((value) => value.trim().isNotEmpty);
-                    final canLibbookCancel =
-                        libbookCancelAction?.eligibility ==
-                            ActionEligibility.allowed &&
-                        libbookCancelAction!.bookingId.trim().isNotEmpty &&
-                        libbookCancelAction.page > 0 &&
-                        libbookCancelAction.limit > 0;
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              detail.title,
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            if (detail.subtitle case final subtitle?
-                                when subtitle.trim().isNotEmpty) ...<Widget>[
-                              const SizedBox(height: 4),
-                              Text(subtitle, style: theme.textTheme.bodySmall),
-                            ],
-                            for (final field in detail.fields) ...<Widget>[
-                              const SizedBox(height: 8),
-                              _DetailField(
-                                label: field.label,
-                                value: field.value,
+          // 翻页创建新的内容滚动位置；搜索与批量选择仍由外层 State 保留。
+          // 同页刷新、父子返回不改变 key，继续保留本页滚动状态。
+          child: KeyedSubtree(
+            key: ValueKey((page, serverPagination?.page)),
+            child: details.isEmpty
+                ? const Center(child: Text('没有匹配的详情'))
+                : _supportsParticipationContent(widget.feature, visible)
+                ? _CourseParticipationContent(
+                    feature: widget.feature,
+                    details: visible,
+                    actions: (context, detail) =>
+                        _participationActions(context, detail, setState),
+                  )
+                : _supportsAssignmentContent(widget.feature, visible)
+                ? _AssignmentContent(
+                    details: visible,
+                    selection: (detail) => _judgeSelection(detail, setState),
+                    onNavigate: widget.onNavigate,
+                  )
+                : _supportsAcademicContent(widget.feature, visible)
+                ? _AcademicResultContent(
+                    feature: widget.feature,
+                    details: visible,
+                    onNavigate: widget.onNavigate,
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: visible.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final detail = visible[index];
+                      if (_supportsAssignmentContent(widget.feature, [
+                        detail,
+                      ])) {
+                        return LayoutBuilder(
+                          builder: (context, constraints) => _AssignmentCard(
+                            detail: detail,
+                            wide: constraints.maxWidth >= 708,
+                            selection: _judgeSelection(detail, setState),
+                            onNavigate: widget.onNavigate,
+                          ),
+                        );
+                      }
+                      final courseId = _courseId(detail);
+                      final bykcSelectAction = detail
+                          .action<BykcSelectAction>();
+                      final bykcDeselectAction = detail
+                          .action<BykcDeselectAction>();
+                      final bykcSignInAction = _bykcSignAction(
+                        detail,
+                        BykcSignKind.signIn,
+                      );
+                      final bykcSignOutAction = _bykcSignAction(
+                        detail,
+                        BykcSignKind.signOut,
+                      );
+                      final signinAction = detail.action<SigninPerformAction>();
+                      final cgyyCancelAction = _cgyyCancelAction(detail);
+                      final libbookReserveAction = detail
+                          .action<LibbookReserveAction>();
+                      final libbookCancelAction = detail
+                          .action<LibbookCancelAction>();
+                      final cgyyReservation = _cgyyReserveAction(detail);
+                      final evaluation = _evaluationSubmitTarget(detail);
+                      final ygdkAction = _ygdkAction(detail);
+                      final canBykcSign =
+                          bykcSignInAction?.eligibility ==
+                          ActionEligibility.allowed;
+                      final canBykcSignOut =
+                          bykcSignOutAction?.eligibility ==
+                          ActionEligibility.allowed;
+                      final canBykcSelect =
+                          bykcSelectAction?.eligibility ==
+                          ActionEligibility.allowed;
+                      final canBykcDeselect =
+                          bykcDeselectAction?.eligibility ==
+                          ActionEligibility.allowed;
+                      final canSignin =
+                          signinAction?.eligibility ==
+                              ActionEligibility.allowed &&
+                          signinAction!.scheduleId.trim().isNotEmpty;
+                      final canLibbookReserve =
+                          libbookReserveAction?.eligibility ==
+                              ActionEligibility.allowed &&
+                          <String>[
+                            libbookReserveAction!.areaId,
+                            libbookReserveAction.seatId,
+                            libbookReserveAction.day,
+                            libbookReserveAction.segment,
+                            libbookReserveAction.startTime,
+                            libbookReserveAction.endTime,
+                          ].every((value) => value.trim().isNotEmpty);
+                      final canLibbookCancel =
+                          libbookCancelAction?.eligibility ==
+                              ActionEligibility.allowed &&
+                          libbookCancelAction!.bookingId.trim().isNotEmpty &&
+                          libbookCancelAction.page > 0 &&
+                          libbookCancelAction.limit > 0;
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                detail.title,
+                                style: theme.textTheme.titleMedium,
                               ),
+                              if (detail.subtitle case final subtitle?
+                                  when subtitle.trim().isNotEmpty) ...<Widget>[
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
+                              for (final field in detail.fields) ...<Widget>[
+                                const SizedBox(height: 8),
+                                _DetailField(
+                                  label: field.label,
+                                  value: field.value,
+                                ),
+                              ],
+                              ..._evaluationSelectionFields(
+                                setState,
+                                evaluation,
+                              ),
+                              ..._bykcCourseWriteFields(
+                                context,
+                                courseId,
+                                bykcSelectAction,
+                                bykcDeselectAction,
+                                canBykcSelect,
+                                canBykcDeselect,
+                              ),
+                              ..._bykcSignWriteFields(
+                                context,
+                                bykcSignInAction,
+                                bykcSignOutAction,
+                                canBykcSign,
+                                canBykcSignOut,
+                              ),
+                              ..._signinWriteFields(
+                                context,
+                                signinAction,
+                                canSignin,
+                              ),
+                              ..._libbookCancelWriteFields(
+                                context,
+                                libbookCancelAction,
+                                canLibbookCancel,
+                              ),
+                              ..._cgyyCancelWriteFields(cgyyCancelAction),
+                              ..._libbookReserveWriteFields(
+                                context,
+                                libbookReserveAction,
+                                canLibbookReserve,
+                              ),
+                              ..._evaluationSubmitFields(evaluation),
+                              ..._cgyyReserveWriteFields(
+                                context,
+                                cgyyReservation,
+                              ),
+                              ..._ygdkWriteFields(context, ygdkAction, detail),
                             ],
-                            ..._evaluationSelectionFields(setState, evaluation),
-                            ..._bykcCourseWriteFields(
-                              context,
-                              courseId,
-                              bykcSelectAction,
-                              bykcDeselectAction,
-                              canBykcSelect,
-                              canBykcDeselect,
-                            ),
-                            ..._bykcSignWriteFields(
-                              context,
-                              bykcSignInAction,
-                              bykcSignOutAction,
-                              canBykcSign,
-                              canBykcSignOut,
-                            ),
-                            ..._signinWriteFields(
-                              context,
-                              signinAction,
-                              canSignin,
-                            ),
-                            ..._libbookCancelWriteFields(
-                              context,
-                              libbookCancelAction,
-                              canLibbookCancel,
-                            ),
-                            ..._cgyyCancelWriteFields(cgyyCancelAction),
-                            ..._libbookReserveWriteFields(
-                              context,
-                              libbookReserveAction,
-                              canLibbookReserve,
-                            ),
-                            ..._evaluationSubmitFields(evaluation),
-                            ..._cgyyReserveWriteFields(
-                              context,
-                              cgyyReservation,
-                            ),
-                            ..._ygdkWriteFields(context, ygdkAction, detail),
-                          ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+          ),
         ),
         ..._paginationFields(setState, serverPagination, pageCount, page),
       ],

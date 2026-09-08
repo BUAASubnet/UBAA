@@ -1,7 +1,7 @@
 part of '../bridge_backend_test.dart';
 
 void _registerCgyyBridgeBackendTests() {
-  test('BridgeBackend 场馆预约入口独立拒绝不完整或不一致的 typed actions', () async {
+  test('BridgeBackend 研讨室预约入口独立拒绝不完整或不一致的 typed actions', () async {
     final client = _RecordingCgyyPrepareClient();
     final backend = BridgeBackend(client);
     const first = CgyyReserveAction(

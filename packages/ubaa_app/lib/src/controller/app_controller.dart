@@ -600,7 +600,7 @@ class AppController extends ChangeNotifier {
     );
   }
 
-  /// 准备场馆预约写意图；只接受 Core 已核对的 typed actions。
+  /// 准备研讨室预约写意图；只接受 Core 已核对的 typed actions。
   Future<WriteIntent> prepareCgyySubmitWrite(CgyySubmitInput input) async {
     final backend = _backend;
     if (backend is! CgyyWriteBackend) {

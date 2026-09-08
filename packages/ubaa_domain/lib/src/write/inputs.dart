@@ -37,7 +37,7 @@ class YgdkSubmitInput {
   final YgdkPhotoInput photo;
 }
 
-/// 场馆预约 typed 提交参数；目标只能来自读取结果的 [actions]。
+/// 研讨室预约 typed 提交参数；目标只能来自读取结果的 [actions]。
 ///
 /// 站点、日期、空间和时段不再提供 primitive 覆盖入口；验证码材料
 /// 仍由 Core/受控挑战流程持有。

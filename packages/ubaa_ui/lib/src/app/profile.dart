@@ -11,10 +11,12 @@ class _ProfileView extends StatelessWidget {
     required this.onLogoutAndClearAccount,
     required this.activeRoutes,
     this.onReadDiagnostics,
+    this.settingsOnly = false,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
   });
 
+  final bool settingsOnly;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final UserSummary? user;
@@ -36,85 +38,87 @@ class _ProfileView extends StatelessWidget {
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
         children: <Widget>[
-          _ProfileIdentityCard(user: user),
-          const SizedBox(height: 16),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: const Text('外观主题'),
-              subtitle: const Text('本次运行生效，重启后跟随系统'),
-              trailing: DropdownButton<ThemeMode>(
-                value: themeMode,
-                onChanged: onThemeModeChanged == null
-                    ? null
-                    : (value) {
-                        if (value != null) onThemeModeChanged!(value);
+          if (!settingsOnly) _ProfileIdentityCard(user: user),
+          if (settingsOnly) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('外观主题'),
+                subtitle: const Text('本次运行生效，重启后跟随系统'),
+                trailing: DropdownButton<ThemeMode>(
+                  value: themeMode,
+                  onChanged: onThemeModeChanged == null
+                      ? null
+                      : (value) {
+                          if (value != null) onThemeModeChanged!(value);
+                        },
+                  items: const [
+                    DropdownMenuItem(
+                      value: ThemeMode.system,
+                      child: Text('跟随系统'),
+                    ),
+                    DropdownMenuItem(value: ThemeMode.light, child: Text('浅色')),
+                    DropdownMenuItem(value: ThemeMode.dark, child: Text('深色')),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Column(
+                children: <Widget>[
+                  ListTile(
+                    leading: const Icon(Icons.tune),
+                    title: const Text('连接模式'),
+                    subtitle: Text(routePolicy.description),
+                    trailing: DropdownButton<RoutePolicy>(
+                      value: routePolicy,
+                      onChanged: (value) {
+                        if (value != null) onRoutePolicyChanged(value);
                       },
-                items: const [
-                  DropdownMenuItem(
-                    value: ThemeMode.system,
-                    child: Text('跟随系统'),
+                      items: RoutePolicy.values
+                          .map(
+                            (item) => DropdownMenuItem<RoutePolicy>(
+                              value: item,
+                              child: Text(item.label),
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
-                  DropdownMenuItem(value: ThemeMode.light, child: Text('浅色')),
-                  DropdownMenuItem(value: ThemeMode.dark, child: Text('深色')),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.verified_user_outlined),
+                    title: const Text('已认证路线'),
+                    subtitle: Text(
+                      activeRoutes.isEmpty
+                          ? '暂无已认证路线'
+                          : activeRoutes.map((route) => route.label).join('、'),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.insights_outlined),
+                    title: const Text('匿名产品改进统计'),
+                    subtitle: const Text('仅统计功能使用次数，不收集账号、成绩或请求内容'),
+                    value: telemetryEnabled,
+                    onChanged: onTelemetryChanged,
+                  ),
+                  if (onReadDiagnostics != null) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.bug_report_outlined),
+                      title: const Text('本次运行诊断'),
+                      subtitle: const Text('查看或复制错误信息，不会自动上传'),
+                      onTap: () =>
+                          _showDiagnosticsDialog(context, onReadDiagnostics!),
+                    ),
+                  ],
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Column(
-              children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.tune),
-                  title: const Text('连接模式'),
-                  subtitle: Text(routePolicy.description),
-                  trailing: DropdownButton<RoutePolicy>(
-                    value: routePolicy,
-                    onChanged: (value) {
-                      if (value != null) onRoutePolicyChanged(value);
-                    },
-                    items: RoutePolicy.values
-                        .map(
-                          (item) => DropdownMenuItem<RoutePolicy>(
-                            value: item,
-                            child: Text(item.label),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.verified_user_outlined),
-                  title: const Text('已认证路线'),
-                  subtitle: Text(
-                    activeRoutes.isEmpty
-                        ? '暂无已认证路线'
-                        : activeRoutes.map((route) => route.label).join('、'),
-                  ),
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  secondary: const Icon(Icons.insights_outlined),
-                  title: const Text('匿名产品改进统计'),
-                  subtitle: const Text('仅统计功能使用次数，不收集账号、成绩或请求内容'),
-                  value: telemetryEnabled,
-                  onChanged: onTelemetryChanged,
-                ),
-                if (onReadDiagnostics != null) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.bug_report_outlined),
-                    title: const Text('本次运行诊断'),
-                    subtitle: const Text('查看或复制错误信息，不会自动上传'),
-                    onTap: () =>
-                        _showDiagnosticsDialog(context, onReadDiagnostics!),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          ],
           const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: () => onLogout(),

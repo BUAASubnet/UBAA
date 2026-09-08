@@ -52,7 +52,7 @@ void _registerGoldenTests() {
       matchesGoldenFile('goldens/main_shell_light.png'),
     );
 
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(UbaaMainShell),
@@ -119,22 +119,22 @@ void _registerGoldenTests() {
       await tester.ensureVisible(target);
       await tester.tap(target);
       await tester.pumpAndSettle();
-      expect(find.text('返回功能列表'), findsOneWidget);
+      expect(find.byTooltip('返回'), findsOneWidget);
       await expectLater(
         find.byType(UbaaMainShell),
         matchesGoldenFile('goldens/feature_${feature.name}_light.png'),
       );
-      await tester.tap(find.text('返回功能列表'));
+      await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
     }
 
     await pumpShell(initialTab: 1);
-    for (final feature in learningFeatureIds) {
+    for (final feature in ordinaryFeatureIds) {
       await capture(feature);
     }
 
     await pumpShell(initialTab: 2);
-    for (final feature in campusFeatureIds) {
+    for (final feature in advancedFeatureIds) {
       await capture(feature);
     }
   });
@@ -211,9 +211,9 @@ void _registerGoldenTests() {
           );
 
           if (detail) {
-            await tester.tap(find.text('课表查询').first);
+            await openFeature(tester, FeatureId.schedule);
             await tester.pumpAndSettle();
-            expect(find.text('返回功能列表'), findsOneWidget);
+            expect(find.byTooltip('返回'), findsOneWidget);
             expect(tester.takeException(), isNull);
           }
           await expectLater(

@@ -825,7 +825,7 @@ class _CgyyWriteBackend
   WriteIntent _intent() => WriteIntent(
     intentId: 'cgyy-intent',
     operation: WriteOperation.cgyySubmitReservation,
-    targetSummary: '场馆预约',
+    targetSummary: '研讨室预约',
     resolvedRoute: ConnectionMode.direct,
     warnings: <String>[],
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),

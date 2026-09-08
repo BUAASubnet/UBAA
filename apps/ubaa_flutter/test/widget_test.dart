@@ -21,7 +21,8 @@ void main() {
     expect(tester.widget<FilledButton>(loginButton).onPressed, isNotNull);
     await tester.tap(loginButton);
     await tester.pumpAndSettle();
-    expect(find.text('今日'), findsWidgets);
-    expect(find.text('课表查询'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
+    expect(find.text('今日课表'), findsOneWidget);
+    expect(find.text('普通功能'), findsOneWidget);
   });
 }

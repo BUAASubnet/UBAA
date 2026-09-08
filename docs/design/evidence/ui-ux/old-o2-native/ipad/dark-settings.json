@@ -1,0 +1,17 @@
+{
+  "name": "dark-settings",
+  "scene": "settings",
+  "steps": "从侧栏进入设置，保留连接模式与匿名统计",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T01:42:20.380087Z",
+  "sourceSha": "bb868cd2+O1-O2-r2",
+  "pngSaved": true
+}

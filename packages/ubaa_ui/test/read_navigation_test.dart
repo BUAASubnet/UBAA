@@ -7,26 +7,26 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 void main() {
   testWidgets('刷新当前查询使用已应用参数而不采用未应用草稿', (tester) async {
     final harness = await _show(tester);
-    await tester.enterText(find.widgetWithText(TextField, '学期编码'), '未应用');
+    await _edit(tester, '学期编码', '未应用');
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
     expect(harness.queries, hasLength(1));
     expect(harness.queries.single.view, FeatureQueryView.scheduleTerms);
     expect(harness.queries.single.term, isNull);
-    expect(_fieldText(tester, '学期编码'), '未应用');
+    expect(await _fieldText(tester, '学期编码'), '未应用');
   });
   testWidgets('父页返回后无关epoch通知不会复活已退出子页', (tester) async {
     final harness = await _show(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '秋季');
+    await _edit(tester, '筛选详情', '秋季');
     await tester.tap(find.text('查看周次'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('返回上一层'));
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     harness.invalidate();
     await tester.pumpAndSettle();
     expect(find.text('秋季学期'), findsOneWidget);
     expect(find.text('第 7 周'), findsNothing);
-    expect(_fieldText(tester, '筛选详情'), '秋季');
+    expect(await _fieldText(tester, '筛选详情'), '秋季');
   });
 
   testWidgets('epoch先通知旧快照，随后不同query权威结果仍更新页面', (tester) async {
@@ -43,21 +43,23 @@ void main() {
   });
   testWidgets('学期点选仅查一次，子页返回保留父搜索和查询草稿', (tester) async {
     final harness = await _show(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '秋季');
-    await tester.enterText(find.widgetWithText(TextField, '学期编码'), '未应用草稿');
+    await _edit(tester, '筛选详情', '秋季');
+    await _edit(tester, '学期编码', '未应用草稿');
     await tester.pumpAndSettle();
     await tester.tap(find.text('查看周次'));
     await tester.pumpAndSettle();
     expect(harness.queries, hasLength(1));
     expect(harness.queries.single.term, 'term-real');
     expect(find.text('第 7 周'), findsOneWidget);
-    expect(_fieldText(tester, '学期编码'), 'term-real');
-    await tester.tap(find.text('返回上一层'));
+    expect(find.byTooltip('实际路线：WebVPN'), findsOneWidget);
+    expect(await _fieldText(tester, '学期编码'), 'term-real');
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(harness.queries, hasLength(1));
+    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     expect(find.text('秋季学期'), findsOneWidget);
-    expect(_fieldText(tester, '筛选详情'), '秋季');
-    expect(_fieldText(tester, '学期编码'), '未应用草稿');
+    expect(await _fieldText(tester, '筛选详情'), '秋季');
+    expect(await _fieldText(tester, '学期编码'), '未应用草稿');
   });
 
   testWidgets('子查询未完成就返回，迟到结果不覆盖父列表', (tester) async {
@@ -65,7 +67,7 @@ void main() {
     harness.pending = Completer<void>();
     await tester.tap(find.text('查看周次'));
     await tester.pump();
-    await tester.tap(find.text('返回上一层'));
+    await tester.tap(find.byTooltip('返回'));
     await tester.pump();
     harness.pending!.complete();
     await tester.pumpAndSettle();
@@ -81,15 +83,34 @@ void main() {
     harness.invalidate();
     await tester.pumpAndSettle();
     expect(find.text('返回上一层'), findsNothing);
-    expect(find.text('返回功能列表'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(Card, FeatureId.schedule.title), findsOneWidget);
     expect(harness.queries, hasLength(1));
   });
 }
 
-String _fieldText(WidgetTester tester, String label) => tester
-    .widget<TextField>(find.widgetWithText(TextField, label))
-    .controller!
-    .text;
+Future<void> _edit(WidgetTester tester, String label, String value) async {
+  await tester.tap(find.byTooltip('搜索与筛选'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.widgetWithText(TextField, label), value);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('完成'));
+  await tester.pumpAndSettle();
+}
+
+Future<String> _fieldText(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip('搜索与筛选'));
+  await tester.pumpAndSettle();
+  final value = tester
+      .widget<TextField>(find.widgetWithText(TextField, label))
+      .controller!
+      .text;
+  await tester.tap(find.text('完成'));
+  await tester.pumpAndSettle();
+  return value;
+}
 
 Future<_HarnessState> _show(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1;
@@ -119,6 +140,7 @@ class _HarnessState extends State<_Harness> {
   int epoch = 0;
   FeatureSnapshot snapshot = FeatureSnapshot(
     feature: FeatureId.schedule,
+    resolvedRoute: ConnectionMode.direct,
     status: FeatureLoadStatus.success,
     readContext: FeatureReadContext(
       query: const FeatureQuery(view: FeatureQueryView.scheduleTerms),
@@ -173,6 +195,7 @@ class _HarnessState extends State<_Harness> {
       () => snapshot = FeatureSnapshot(
         feature: feature,
         status: FeatureLoadStatus.success,
+        resolvedRoute: ConnectionMode.webvpn,
         readContext: FeatureReadContext(
           query: value,
           requestRevision: queries.length + 1,

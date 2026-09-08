@@ -2,7 +2,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 
 import '../contracts/backend.dart';
 
-/// 校验并规范化场馆预约输入。
+/// 校验并规范化研讨室预约输入。
 ///
 /// AppController 与生产 BridgeBackend 共用这一边界，避免绕过 controller 时
 /// 把不完整或彼此冲突的 typed action 降级为 primitive 请求。

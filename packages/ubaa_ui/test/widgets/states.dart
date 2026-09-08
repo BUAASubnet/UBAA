@@ -59,7 +59,7 @@ void _registerBykcStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
     final select = tester.widget<OutlinedButton>(
@@ -153,7 +153,7 @@ void _registerBykcStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
     final selects = tester.widgetList<OutlinedButton>(
@@ -238,7 +238,7 @@ void _registerBykcStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
     final signIn = tester.widget<OutlinedButton>(
@@ -338,7 +338,7 @@ void _registerBykcStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
     final signIns = tester.widgetList<OutlinedButton>(
@@ -400,7 +400,7 @@ void _registerBykcStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
     expect(find.text('准备博雅签到'), findsNothing);
@@ -474,7 +474,7 @@ void _registerBykcStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
     final select = tester.widget<OutlinedButton>(
@@ -604,7 +604,7 @@ void _registerCgyyStateTest() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('场馆预约'));
+    await openFeature(tester, FeatureId.cgyy);
     await tester.pumpAndSettle();
 
     expect(find.text('准备取消订单'), findsOneWidget);
@@ -656,7 +656,7 @@ void _registerSharedStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
 
     expect(find.text('刷新失败，请重试。'), findsOneWidget);
@@ -677,7 +677,7 @@ void _registerSharedStateTests() {
     ];
 
     Future<void> openFeature(FeatureId feature) async {
-      final ordinary = learningFeatureIds.contains(feature);
+      final ordinary = ordinaryFeatureIds.contains(feature);
       final selectedIcon = ordinary ? Icons.apps : Icons.auto_awesome;
       final unselectedIcon = ordinary
           ? Icons.apps_outlined
@@ -697,7 +697,7 @@ void _registerSharedStateTests() {
       await tester.pump();
       await tester.tap(target);
       await tester.pump();
-      expect(find.text('返回功能列表'), findsOneWidget);
+      expect(find.byTooltip('返回'), findsOneWidget);
     }
 
     for (final status in statuses) {
@@ -760,7 +760,7 @@ void _registerSharedStateTests() {
           case FeatureLoadStatus.idle || FeatureLoadStatus.success:
             fail('状态矩阵不应包含 ${status.name}');
         }
-        await tester.tap(find.text('返回功能列表'));
+        await tester.tap(find.byTooltip('返回'));
         await tester.pump();
       }
     }
@@ -828,7 +828,7 @@ void _registerSharedStateTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备选课'));
     await tester.pumpAndSettle();

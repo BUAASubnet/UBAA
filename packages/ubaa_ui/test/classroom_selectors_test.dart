@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('楼层选择只回填typed ID，应用不发送展示假值', (tester) async {
@@ -30,6 +31,7 @@ void main() {
     h.snapshot = _snapshot(3);
     h.notifyListeners();
     await tester.pumpAndSettle();
+    await openQueryPanel(tester);
     await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-08');
     h.notifyListeners();
     await tester.pumpAndSettle();
@@ -206,6 +208,7 @@ Future<_Harness> _open(WidgetTester tester, {bool metadata = true}) async {
   await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(Card, '空教室查询'));
   await tester.pumpAndSettle();
+  await openQueryPanel(tester);
   await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-08');
   h.snapshot = _snapshot(2, metadata: metadata);
   h.notifyListeners();

@@ -60,21 +60,21 @@ void _registerResponsiveAccessibilityTests() {
       }
     }
 
-    await checkSemantics(learningFeatureIds);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-校园')));
+    await checkSemantics(ordinaryFeatureIds);
+    await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
     await tester.pumpAndSettle();
-    await checkSemantics(campusFeatureIds);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
+    await checkSemantics(advancedFeatureIds);
+    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('课表查询').first);
+    await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
-    expect(find.text('返回功能列表'), findsOneWidget);
+    expect(find.byTooltip('返回'), findsOneWidget);
     expect(tester.takeException(), isNull);
-    final back = find.widgetWithText(OutlinedButton, '返回功能列表');
+    final back = find.byTooltip('返回');
     expect(back, findsOneWidget);
     await tester.tap(back);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
@@ -99,6 +99,7 @@ void _registerFeatureCardSemanticsTest() {
       MaterialApp(
         theme: UbaaTheme.light(),
         home: coordinatedShell(
+          initialTab: 1,
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,

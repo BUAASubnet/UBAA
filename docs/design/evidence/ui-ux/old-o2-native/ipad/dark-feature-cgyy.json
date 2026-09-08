@@ -1,0 +1,17 @@
+{
+  "name": "dark-feature-cgyy",
+  "scene": "feature-cgyy",
+  "steps": "从旧版功能分组打开研讨室预约，核对单顶栏与正文高度",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T01:42:12.117221Z",
+  "sourceSha": "bb868cd2+O1-O2-r2",
+  "pngSaved": true
+}

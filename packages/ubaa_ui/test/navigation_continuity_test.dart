@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('周课表标明必填且缺学期或周次都不发送查询', (tester) async {
@@ -36,7 +37,7 @@ void main() {
     await tester.enterText(_field('筛选详情'), '旧账号草稿');
     await _mount(tester, queries, username: 'another-fixture-student');
     expect(tester.state(find.byType(UbaaMainShell)), same(shellState));
-    expect(find.text('返回功能列表'), findsNothing);
+    expect(find.byTooltip('返回'), findsNothing);
     await _open(tester, FeatureId.schedule);
     expect(_view(tester), FeatureQueryView.scheduleToday);
     await _weekView(tester);
@@ -52,6 +53,7 @@ void main() {
     await _open(tester, FeatureId.grades);
     await tester.enterText(_field('筛选详情'), '保留课程');
     await tester.pumpAndSettle();
+    await closeQueryPanel(tester);
     await tester.drag(find.byType(ListView), const Offset(0, -260));
     await tester.pumpAndSettle();
     final offset = _listOffset(tester);
@@ -62,9 +64,9 @@ void main() {
       tester.view.physicalSize = Size(width, 1000);
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(UbaaMainShell)), same(shellState));
-      expect(find.text('返回功能列表'), findsOneWidget);
+      expect(find.byTooltip('返回'), findsOneWidget);
       expect(find.text(FeatureId.grades.title), findsOneWidget);
-      expect(_text(tester, '筛选详情'), '保留课程');
+      expect(await queryFieldText(tester, '筛选详情'), '保留课程');
       expect(_listOffset(tester), closeTo(offset, 1));
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
@@ -111,14 +113,15 @@ void main() {
     expect(_text(tester, '周次'), '9');
     expect(queries, hasLength(1));
 
+    await closeQueryPanel(tester);
     await tester.tap(find.widgetWithText(TextButton, '重试'));
     await tester.pumpAndSettle();
     expect(queries, hasLength(2));
     expect(queries.last.view, FeatureQueryView.scheduleWeek);
     expect(queries.last.term, '2026-2027-1');
     expect(queries.last.week, 3);
-    expect(_text(tester, '学期编码'), '2027-2028-2');
-    expect(_text(tester, '周次'), '9');
+    expect(await queryFieldText(tester, '学期编码'), '2027-2028-2');
+    expect(await queryFieldText(tester, '周次'), '9');
   });
 
   testWidgets('不同领域的未应用草稿隔离且各自重入恢复', (tester) async {
@@ -218,23 +221,13 @@ double _listOffset(WidgetTester tester) => tester
     .pixels;
 
 Future<void> _open(WidgetTester tester, FeatureId feature) async {
-  final grid = find.byType(CustomScrollView);
-  final card = find.descendant(
-    of: grid,
-    matching: find.widgetWithText(Card, feature.title),
-  );
-  await tester.scrollUntilVisible(
-    card,
-    200,
-    scrollable: find.descendant(of: grid, matching: find.byType(Scrollable)),
-  );
-  expect(card, findsOneWidget);
-  await tester.tap(card);
-  await tester.pumpAndSettle();
+  await openFeature(tester, feature);
+  await openQueryPanel(tester);
 }
 
 Future<void> _back(WidgetTester tester) async {
-  await tester.tap(find.text('返回功能列表'));
+  await closeQueryPanel(tester);
+  await tester.tap(find.byTooltip('返回'));
   await tester.pumpAndSettle();
 }
 

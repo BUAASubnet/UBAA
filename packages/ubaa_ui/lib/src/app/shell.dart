@@ -105,6 +105,8 @@ class UbaaMainShell extends StatefulWidget {
 class _UbaaMainShellState extends State<UbaaMainShell> {
   late int _selectedIndex;
   FeatureId? _openedFeature;
+  String? _utilityPage;
+  final _visibleSnapshot = ValueNotifier<FeatureSnapshot?>(null);
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
   final Map<FeatureId, GlobalKey<_FeatureReadNavigatorState>> _readPageKeys =
@@ -137,18 +139,25 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _visitedFeatures.clear();
       _readPageKeys.clear();
       _openedFeature = null;
+      _utilityPage = null;
+      _visibleSnapshot.value = null;
     }
   }
 
+  @override
+  void dispose() {
+    _visibleSnapshot.dispose();
+    super.dispose();
+  }
+
   static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
-    (label: '今日', icon: Icons.home_outlined, selectedIcon: Icons.home),
-    (label: '学习', icon: Icons.apps_outlined, selectedIcon: Icons.apps),
+    (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
+    (label: '普通功能', icon: Icons.apps_outlined, selectedIcon: Icons.apps),
     (
-      label: '校园',
+      label: '高级功能',
       icon: Icons.auto_awesome_outlined,
       selectedIcon: Icons.auto_awesome,
     ),
-    (label: '我的', icon: Icons.person_outline, selectedIcon: Icons.person),
   ];
 
   @override
@@ -175,6 +184,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
         if (pendingWrite != null)
           WriteConfirmationView(
+            showTitle: false,
             intent: pendingWrite,
             onCancel: _cancelWrite,
             onConfirm: _confirmWrite,
@@ -186,20 +196,59 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        toolbarHeight: 56,
         title: Text(
           pendingWrite == null
-              ? (_openedFeature?.title ?? _tabs[_selectedIndex].label)
+              ? (_openedFeature?.title ??
+                    _utilityPage ??
+                    (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label))
               : '确认${pendingWrite.operation.title}',
         ),
-        leading: _openedFeature == null || pendingWrite != null
+        leading: pendingWrite != null
             ? null
-            : IconButton(
+            : _openedFeature != null || _utilityPage != null
+            ? IconButton(
                 tooltip: '返回',
-                onPressed: () =>
-                    _readPageKeys[_openedFeature]?.currentState?.goBack(),
+                onPressed: () {
+                  if (_utilityPage != null) {
+                    setState(() => _utilityPage = null);
+                  } else {
+                    _readPageKeys[_openedFeature]?.currentState?.goBack();
+                  }
+                },
                 icon: const Icon(Icons.arrow_back),
-              ),
+              )
+            : null,
         actions: <Widget>[
+          ValueListenableBuilder<FeatureSnapshot?>(
+            valueListenable: _visibleSnapshot,
+            builder: (context, snapshot, _) {
+              final route =
+                  pendingWrite?.resolvedRoute ??
+                  (_openedFeature == snapshot?.feature
+                      ? snapshot?.resolvedRoute
+                      : null);
+              return IconButton(
+                tooltip: '实际路线：${route?.label ?? '未确定'}',
+                icon: Icon(
+                  route == ConnectionMode.direct
+                      ? Icons.lan_outlined
+                      : route == ConnectionMode.webvpn
+                      ? Icons.vpn_lock_outlined
+                      : Icons.route_outlined,
+                ),
+                onPressed: () => _showRouteOptions(context, route),
+              );
+            },
+          ),
+          if (_openedFeature != null && pendingWrite == null)
+            IconButton(
+              tooltip: '搜索与筛选',
+              onPressed: () =>
+                  _readPageKeys[_openedFeature]?.currentState?.openPanel(),
+              icon: const Icon(Icons.search),
+            ),
           if (_openedFeature != null && pendingWrite == null)
             IconButton(
               tooltip: '刷新当前查询',
@@ -215,7 +264,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             ),
         ],
       ),
-      drawer: wide ? null : _buildDrawer(context),
+      drawer: _buildDrawer(context),
       // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
       body: Row(
         children: <Widget>[
@@ -232,7 +281,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
         ],
       ),
-      bottomNavigationBar: wide
+      bottomNavigationBar:
+          wide ||
+              _openedFeature != null ||
+              _utilityPage != null ||
+              pendingWrite != null
           ? null
           : NavigationBar(
               selectedIndex: _selectedIndex,
@@ -256,6 +309,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       feature,
       () => GlobalKey<_FeatureReadNavigatorState>(),
     ),
+    onVisibleSnapshot: (snapshot) {
+      if (_openedFeature == feature &&
+          !identical(_visibleSnapshot.value, snapshot)) {
+        _visibleSnapshot.value = snapshot;
+      }
+    },
     snapshot: widget.snapshots[feature]!,
     cacheEpoch: widget.readCacheEpoch,
     onExit: () => setState(() => _openedFeature = null),
@@ -264,6 +323,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ? null
         : (query) => widget.onFeatureQuery!(feature, query),
     pageBuilder: (page) => _FeatureDetailView(
+      key: page.pageKey,
       feature: feature,
       snapshot: page.snapshot,
       query: page.query,
@@ -313,38 +373,43 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     ),
   );
 
-  Widget _buildTab(BuildContext context) => switch (_selectedIndex) {
-    0 => _HomeView(
-      user: widget.user,
-      snapshots: widget.snapshots,
-      onFeatureTap: (feature) => setState(() => _openedFeature = feature),
-      onRetryFeature: widget.onRetryFeature,
-      onRefresh: widget.onRefresh,
-    ),
-    1 => _FeatureGridView(
-      snapshots: widget.snapshots,
-      onFeatureTap: (feature) => setState(() => _openedFeature = feature),
-      onRetryFeature: widget.onRetryFeature,
-    ),
-    2 => _AdvancedFeaturesView(
-      snapshots: widget.snapshots,
-      onFeatureTap: (feature) => setState(() => _openedFeature = feature),
-      onRetryFeature: widget.onRetryFeature,
-    ),
-    _ => _ProfileView(
-      user: widget.user,
-      routePolicy: widget.routePolicy,
-      telemetryEnabled: widget.telemetryEnabled,
-      onRoutePolicyChanged: widget.onRoutePolicyChanged,
-      onTelemetryChanged: widget.onTelemetryChanged,
-      onLogout: widget.onLogout,
-      onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
-      activeRoutes: widget.activeRoutes,
-      onReadDiagnostics: widget.onReadDiagnostics,
-      themeMode: widget.themeMode,
-      onThemeModeChanged: widget.onThemeModeChanged,
-    ),
-  };
+  Widget _buildTab(BuildContext context) => _utilityPage != null
+      ? _buildProfile()
+      : switch (_selectedIndex) {
+          0 => _HomeView(
+            user: widget.user,
+            snapshots: widget.snapshots,
+            onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+            onRetryFeature: widget.onRetryFeature,
+            onRefresh: widget.onRefresh,
+          ),
+          1 => _FeatureGridView(
+            snapshots: widget.snapshots,
+            onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+            onRetryFeature: widget.onRetryFeature,
+          ),
+          2 => _AdvancedFeaturesView(
+            snapshots: widget.snapshots,
+            onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+            onRetryFeature: widget.onRetryFeature,
+          ),
+          _ => const SizedBox.shrink(),
+        };
+
+  Widget _buildProfile() => _ProfileView(
+    settingsOnly: _utilityPage == '设置',
+    user: widget.user,
+    routePolicy: widget.routePolicy,
+    telemetryEnabled: widget.telemetryEnabled,
+    onRoutePolicyChanged: widget.onRoutePolicyChanged,
+    onTelemetryChanged: widget.onTelemetryChanged,
+    onLogout: widget.onLogout,
+    onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
+    activeRoutes: widget.activeRoutes,
+    onReadDiagnostics: widget.onReadDiagnostics,
+    themeMode: widget.themeMode,
+    onThemeModeChanged: widget.onThemeModeChanged,
+  );
 
   Widget _buildRail(BuildContext context) => NavigationRail(
     scrollable: true,
@@ -385,24 +450,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               child: Text((widget.user?.preferredName ?? 'U').characters.first),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _tabs.length,
-              itemBuilder: (context, index) => ListTile(
-                selected: _selectedIndex == index,
-                leading: Icon(
-                  _selectedIndex == index
-                      ? _tabs[index].selectedIcon
-                      : _tabs[index].icon,
-                ),
-                title: Text(_tabs[index].label),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _selectTab(index);
-                },
-              ),
+          for (final item in [
+            ('我的资料', Icons.person_outline),
+            ('设置', Icons.settings_outlined),
+          ])
+            ListTile(
+              leading: Icon(item.$2),
+              title: Text(item.$1),
+              onTap: () {
+                Navigator.of(context).pop();
+                if (widget.writeState.intent != null) return;
+                setState(() {
+                  _openedFeature = null;
+                  _utilityPage = item.$1;
+                });
+              },
             ),
-          ),
         ],
       ),
     ),
@@ -412,8 +475,54 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     if (widget.writeState.intent != null) return;
     setState(() {
       _selectedIndex = index;
+      _utilityPage = null;
       _openedFeature = null;
     });
+  }
+
+  Future<void> _showRouteOptions(
+    BuildContext context,
+    ConnectionMode? route,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('连接路线'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('当前页面：${route?.label ?? '未确定'}'),
+            const SizedBox(height: 8),
+            const Text('实际路线以当前显示的读取结果为准。切换默认策略后，下次读取使用新策略；已显示的结果不会被改写。'),
+            const SizedBox(height: 16),
+            DropdownButton<RoutePolicy>(
+              value: widget.routePolicy,
+              isExpanded: true,
+              items: RoutePolicy.values
+                  .map(
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
+                  )
+                  .toList(),
+              onChanged: widget.writeState.intent != null
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      Navigator.of(context).pop();
+                      widget.onRoutePolicyChanged(value);
+                    },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
@@ -501,7 +610,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(input),
-      failureMessage: '暂时无法准备场馆预约；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备研讨室预约；尚未提交任何写请求。',
       expectedOperation: WriteOperation.cgyySubmitReservation,
     );
   }

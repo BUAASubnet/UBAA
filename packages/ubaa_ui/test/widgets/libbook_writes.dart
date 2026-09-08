@@ -207,7 +207,7 @@ void _registerLibbookCancellationWriteTest() {
     await tester.tap(find.text('准备取消预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
-    expect(find.text('确认取消图书馆预约'), findsNWidgets(2));
+    expect(find.text('确认取消图书馆预约'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pump();
     await tester.tap(find.text('确认提交'));
@@ -357,8 +357,7 @@ Future<void> _pumpLibbookCancelShell(
   );
   await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('图书馆座位'));
-  await tester.tap(find.text('图书馆座位'));
+  await openFeature(tester, FeatureId.libbook);
   await tester.pumpAndSettle();
 }
 
@@ -401,7 +400,7 @@ Future<void> _pumpLibbookResult(
   );
   await tester.tap(find.text('准备预约此座位'));
   await tester.pumpAndSettle();
-  expect(find.text('确认图书馆预约'), findsNWidgets(2));
+  expect(find.text('确认图书馆预约'), findsOneWidget);
 }
 
 Future<void> _pumpLibbookShell(
@@ -434,8 +433,7 @@ Future<void> _pumpLibbookShell(
   );
   await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('图书馆座位'));
-  await tester.tap(find.text('图书馆座位'));
+  await openFeature(tester, FeatureId.libbook);
   await tester.pumpAndSettle();
 }
 

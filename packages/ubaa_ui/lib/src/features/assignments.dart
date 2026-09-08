@@ -32,11 +32,7 @@ extension _AssignmentsQueryControls on _FeatureQueryControlsState {
             ),
           ),
         ),
-        _valuePicker(
-          label: '从当前作业列表选择',
-          values: _detailFieldValues('作业编号'),
-          onSelected: (value) => _spocAssignmentController.text = value,
-        ),
+        _loadedAssignmentPicker(setState, judge: false),
       ],
     ],
   ];
@@ -57,7 +53,7 @@ extension _AssignmentsQueryControls on _FeatureQueryControlsState {
           ),
           DropdownMenuItem(
             value: FeatureQueryView.signinPending,
-            child: Text('未签到'),
+            child: Text('可签到'),
           ),
           DropdownMenuItem(
             value: FeatureQueryView.signinCompleted,
@@ -114,16 +110,7 @@ extension _AssignmentsQueryControls on _FeatureQueryControlsState {
             ),
           ),
         ),
-        _valuePicker(
-          label: '从当前作业列表选择课程',
-          values: _detailFieldValues('课程编号'),
-          onSelected: (value) => _judgeCourseController.text = value,
-        ),
-        _valuePicker(
-          label: '从当前作业列表选择作业',
-          values: _detailFieldValues('作业编号'),
-          onSelected: (value) => _judgeAssignmentController.text = value,
-        ),
+        _loadedAssignmentPicker(setState, judge: true),
       ],
       if (_judgeView == FeatureQueryView.judgeBatchDetails)
         SizedBox(
@@ -156,8 +143,9 @@ extension _AssignmentsDetailActions on _FeatureDetailListState {
   List<Widget> _signinWriteFields(
     BuildContext context,
     SigninPerformAction? signinAction,
-    bool canSignin,
-  ) => <Widget>[
+    bool canSignin, {
+    String deniedMessage = '该课程已签到，不能重复提交。',
+  }) => <Widget>[
     if (widget.feature == FeatureId.signin &&
         widget.onSigninWrite != null &&
         signinAction != null) ...<Widget>[
@@ -172,7 +160,7 @@ extension _AssignmentsDetailActions on _FeatureDetailListState {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             signinAction.eligibility == ActionEligibility.denied
-                ? '该课程已签到，不能重复提交。'
+                ? deniedMessage
                 : '当前签到资格无法确认，请刷新后重试。',
             style: Theme.of(context).textTheme.bodySmall,
           ),

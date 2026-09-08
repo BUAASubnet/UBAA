@@ -65,7 +65,7 @@ extension FeatureIdText on FeatureId {
     FeatureId.judge => '希冀作业',
     FeatureId.libbook => '图书馆座位',
     FeatureId.signin => '课堂签到',
-    FeatureId.cgyy => '场馆预约',
+    FeatureId.cgyy => '研讨室预约',
     FeatureId.ygdk => '阳光打卡',
     FeatureId.evaluation => '教学评教',
   };

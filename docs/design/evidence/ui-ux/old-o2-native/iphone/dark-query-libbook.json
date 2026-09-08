@@ -1,0 +1,17 @@
+{
+  "name": "dark-query-libbook",
+  "scene": "query-libbook",
+  "steps": "顶栏打开完整查询与本地搜索；成绩额外核验关闭后草稿保留",
+  "backend": "synthetic-inspection",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "theme": "dark",
+  "themeSource": "test-platform-brightness-override",
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-08T01:27:16.741017Z",
+  "sourceSha": "bb868cd2+O1-O2-r2",
+  "pngSaved": true
+}

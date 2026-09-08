@@ -18,7 +18,7 @@ void main() {
     );
     expect(
       advancedFeatureIds.map((feature) => feature.title).toList(),
-      <String>['课堂签到', '场馆预约', '阳光打卡', '教学评教'],
+      <String>['课堂签到', '研讨室预约', '阳光打卡', '教学评教'],
     );
   });
 
@@ -164,7 +164,7 @@ void main() {
     expect(action.eligibility, ActionEligibility.allowed);
   });
 
-  test('场馆预约 action 保留 Core 核对的场地、时段顺序与三态资格', () {
+  test('研讨室预约 action 保留 Core 核对的场地、时段顺序与三态资格', () {
     const action = CgyyReserveAction(
       venueSiteId: 3,
       reservationDate: '2026-09-04',

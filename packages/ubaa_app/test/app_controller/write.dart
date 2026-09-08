@@ -346,7 +346,7 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('场馆预约写意图只接受同目标相邻的 typed Allowed actions', () async {
+  test('研讨室预约写意图只接受同目标相邻的 typed Allowed actions', () async {
     final backend = _CgyyWriteBackend();
     final controller = AppController(backend: backend);
     final intent = await controller.prepareCgyySubmitWrite(
@@ -487,7 +487,7 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('场馆预约写意图拒绝空 action 与 trim 后为空的参与人说明', () async {
+  test('研讨室预约写意图拒绝空 action 与 trim 后为空的参与人说明', () async {
     final backend = _CgyyWriteBackend();
     final controller = AppController(backend: backend);
 

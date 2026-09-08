@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('手机收起查询保留草稿与结果，跨宽度和展开均不读取', (tester) async {
@@ -36,16 +37,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final card = find.widgetWithText(Card, FeatureId.grades.title);
-    await tester.ensureVisible(card);
-    await tester.tap(card);
-    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.grades);
+    await openQueryPanel(tester);
     final term = find.widgetWithText(TextField, '学期编码');
     await tester.enterText(term, '未应用的学期');
     await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '课程');
     await tester.showKeyboard(term);
     expect(tester.testTextInput.isVisible, isTrue);
-    await tester.tap(find.byTooltip('收起查询条件'));
+    await tester.tap(find.text('完成'));
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, isFalse);
     expect(term, findsNothing);
@@ -53,11 +52,14 @@ void main() {
     expect(queries, isEmpty);
     tester.view.physicalSize = const Size(834, 1000);
     await tester.pumpAndSettle();
+    expect(term, findsNothing);
+    await openQueryPanel(tester);
     expect(tester.widget<TextField>(term).controller!.text, '未应用的学期');
+    await closeQueryPanel(tester);
     tester.view.physicalSize = const Size(390, 1000);
     await tester.pumpAndSettle();
     expect(term, findsNothing);
-    await tester.tap(find.byTooltip('展开查询条件'));
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     expect(tester.widget<TextField>(term).controller!.text, '未应用的学期');
     expect(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('刷新失败同时说明错误原因与旧数据来源', (tester) async {
@@ -49,7 +50,9 @@ void main() {
       addTearDown(state.dispose);
       await _mount(tester, state);
       await _open(tester, FeatureId.grades);
+      await openQueryPanel(tester);
       await tester.enterText(_search, '保留课程');
+      await closeQueryPanel(tester);
       await tester.pumpAndSettle();
       await tester.drag(find.byType(ListView), const Offset(0, -280));
       await tester.pumpAndSettle();
@@ -61,7 +64,7 @@ void main() {
       state.value = state.value.copyWith(status: next);
       await tester.pumpAndSettle();
 
-      expect(tester.widget<TextField>(_search).controller!.text, '保留课程');
+      expect(await queryFieldText(tester, '筛选详情'), '保留课程');
       expect(_offset(tester), closeTo(before, 1));
       expect(find.text('不匹配的课程'), findsNothing);
       expect(tester.takeException(), isNull);
@@ -74,7 +77,9 @@ void main() {
     addTearDown(state.dispose);
     await _mount(tester, state);
     await _open(tester, FeatureId.grades);
+    await openQueryPanel(tester);
     await tester.enterText(_search, '保留课程');
+    await closeQueryPanel(tester);
     await tester.pumpAndSettle();
     state.value = const FeatureSnapshot(
       feature: FeatureId.grades,
@@ -85,7 +90,7 @@ void main() {
     expect(find.text('暂无成绩查询数据'), findsOneWidget);
     state.value = _grades();
     await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(_search).controller!.text, '保留课程');
+    expect(await queryFieldText(tester, '筛选详情'), '保留课程');
     expect(find.text('不匹配的课程'), findsNothing);
   });
 
@@ -97,12 +102,7 @@ void main() {
     tester.view.viewInsets = const FakeViewPadding(bottom: 120);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    final profile = find.byIcon(Icons.person_outline);
-    await tester.ensureVisible(profile);
-    await tester.pumpAndSettle();
-    expect(profile.hitTestable(), findsOneWidget);
-    await tester.tap(profile);
-    await tester.pumpAndSettle();
+    await openUtility(tester, '设置');
     expect(find.text('外观主题'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -116,6 +116,7 @@ void main() {
       final queries = <FeatureQuery>[];
       await _mount(tester, state, scale: 1.3, queries: queries, initialTab: 2);
       await _open(tester, feature);
+      await openQueryPanel(tester);
       await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
       await tester.pumpAndSettle();
       await tester.tap(
@@ -250,17 +251,5 @@ double _offset(WidgetTester tester) => tester
     .pixels;
 
 Future<void> _open(WidgetTester tester, FeatureId feature) async {
-  final grid = find.byType(CustomScrollView);
-  final card = find.descendant(
-    of: grid,
-    matching: find.widgetWithText(Card, feature.title),
-  );
-  await tester.scrollUntilVisible(
-    card,
-    200,
-    scrollable: find.descendant(of: grid, matching: find.byType(Scrollable)),
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(card);
-  await tester.pumpAndSettle();
+  await openFeature(tester, feature);
 }

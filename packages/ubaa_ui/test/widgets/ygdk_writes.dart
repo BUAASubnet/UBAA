@@ -392,9 +392,14 @@ void _registerYgdkWriteResultTests() {
     );
 
     await _openAndFillYgdkForm(tester);
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(1), ' 2026-09-01 08:00 ');
-    await tester.enterText(fields.at(2), ' 2026-09-01 09:00 ');
+    await tester.enterText(
+      find.widgetWithText(TextField, '开始时间'),
+      ' 2026-09-01 08:00 ',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '结束时间'),
+      ' 2026-09-01 09:00 ',
+    );
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
 
@@ -593,7 +598,7 @@ Future<void> _pumpYgdkShell(
 Future<void> _openYgdkDetails(WidgetTester tester) async {
   await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('阳光打卡'));
+  await openFeature(tester, FeatureId.ygdk);
   await tester.pumpAndSettle();
 }
 
@@ -601,9 +606,14 @@ Future<void> _openAndFillYgdkForm(WidgetTester tester) async {
   await _openYgdkDetails(tester);
   await tester.tap(find.text('准备阳光打卡'));
   await tester.pumpAndSettle();
-  final fields = find.byType(TextField);
-  await tester.enterText(fields.at(1), '2026-09-01 08:00');
-  await tester.enterText(fields.at(2), '2026-09-01 09:00');
+  await tester.enterText(
+    find.widgetWithText(TextField, '开始时间'),
+    '2026-09-01 08:00',
+  );
+  await tester.enterText(
+    find.widgetWithText(TextField, '结束时间'),
+    '2026-09-01 09:00',
+  );
   await tester.tap(find.text('选择照片'));
   await tester.pumpAndSettle();
 }

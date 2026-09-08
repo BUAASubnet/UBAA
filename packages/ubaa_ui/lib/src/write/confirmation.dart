@@ -9,12 +9,14 @@ class WriteConfirmationView extends StatelessWidget {
     required this.intent,
     required this.onCancel,
     required this.onConfirm,
+    this.showTitle = true,
     this.isSubmitting = false,
     this.isDiscarding = false,
     this.error,
     super.key,
   });
 
+  final bool showTitle;
   final WriteIntent intent;
   final VoidCallback onCancel;
   final Future<void> Function() onConfirm;
@@ -34,11 +36,12 @@ class WriteConfirmationView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  '确认${intent.operation.title}',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 16),
+                if (showTitle)
+                  Text(
+                    '确认${intent.operation.title}',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                if (showTitle) const SizedBox(height: 16),
                 _DetailField(label: '目标', value: intent.targetSummary),
                 const SizedBox(height: 8),
                 _DetailField(label: '实际路线', value: intent.resolvedRoute.label),

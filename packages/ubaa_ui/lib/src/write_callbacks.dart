@@ -50,7 +50,7 @@ typedef CgyyCancelPreparer =
 /// 场馆取消启动回调；不得从展示字段重建编号、状态或时间。
 typedef CgyyCancelStarter = Future<void> Function(CgyyCancelAction action);
 
-/// 场馆预约提交后，用收据匹配只读订单列表的核对回调。
+/// 研讨室预约提交后，用收据匹配只读订单列表的核对回调。
 typedef CgyyReceiptVerifier =
     Future<bool> Function(CgyyReservationReceipt receipt);
 
@@ -98,9 +98,9 @@ typedef YgdkPhotoPicker = Future<YgdkPhotoInput?> Function();
 typedef YgdkSubmissionRefresher =
     Future<void> Function({required ConnectionMode expectedRoute});
 
-/// 场馆预约准备回调。
+/// 研讨室预约准备回调。
 typedef CgyyReservationPreparer =
     Future<WriteIntent> Function(CgyySubmitInput input);
 
-/// 场馆预约启动回调。
+/// 研讨室预约启动回调。
 typedef CgyyReservationStarter = Future<void> Function(CgyySubmitInput input);

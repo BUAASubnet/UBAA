@@ -8,9 +8,11 @@ class _FeatureReadNavigator extends StatefulWidget {
     required this.onExit,
     required this.onRetry,
     required this.pageBuilder,
+    required this.onVisibleSnapshot,
     this.onQuery,
     super.key,
   });
+  final ValueChanged<FeatureSnapshot> onVisibleSnapshot;
   final FeatureSnapshot snapshot;
   final int cacheEpoch;
   final VoidCallback onExit;
@@ -67,6 +69,8 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     }
   }
 
+  void openPanel() => _current.pageKey.currentState?.togglePanel();
+
   void goBack() {
     if (_frames.length == 1) {
       widget.onExit();
@@ -110,38 +114,47 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
   }
 
   @override
-  Widget build(BuildContext context) => IndexedStack(
-    index: _frames.length - 1,
-    children: [
-      for (final frame in _frames)
-        ExcludeFocus(
-          key: ValueKey<int>(frame.id),
-          excluding: !identical(frame, _current),
-          child: TickerMode(
-            enabled: identical(frame, _current),
-            child: widget.pageBuilder(
-              _ReadPage(
-                snapshot: frame.snapshot,
-                query: frame.query,
-                backLabel: _frames.indexOf(frame) == 0 ? '返回功能列表' : '返回上一层',
-                onBack: goBack,
-                onRetry: () => frame.query == null || widget.onQuery == null
-                    ? widget.onRetry()
-                    : _query(frame, frame.query!),
-                onQuery: widget.onQuery == null
-                    ? null
-                    : (query) => _query(frame, query),
-                onNavigate: widget.onQuery == null ? null : _navigate,
+  Widget build(BuildContext context) {
+    final visible = _current.snapshot;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(visible, _current.snapshot))
+        widget.onVisibleSnapshot(visible);
+    });
+    return IndexedStack(
+      index: _frames.length - 1,
+      children: [
+        for (final frame in _frames)
+          ExcludeFocus(
+            key: ValueKey<int>(frame.id),
+            excluding: !identical(frame, _current),
+            child: TickerMode(
+              enabled: identical(frame, _current),
+              child: widget.pageBuilder(
+                _ReadPage(
+                  pageKey: frame.pageKey,
+                  snapshot: frame.snapshot,
+                  query: frame.query,
+                  backLabel: _frames.indexOf(frame) == 0 ? '返回功能列表' : '返回上一层',
+                  onBack: goBack,
+                  onRetry: () => frame.query == null || widget.onQuery == null
+                      ? widget.onRetry()
+                      : _query(frame, frame.query!),
+                  onQuery: widget.onQuery == null
+                      ? null
+                      : (query) => _query(frame, query),
+                  onNavigate: widget.onQuery == null ? null : _navigate,
+                ),
               ),
             ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class _ReadFrame {
   _ReadFrame(this.id, this.snapshot, this.query);
+  final pageKey = GlobalKey<_FeatureDetailViewState>();
   final int id;
   FeatureSnapshot snapshot;
   FeatureQuery? query;
@@ -149,6 +162,7 @@ class _ReadFrame {
 
 class _ReadPage {
   const _ReadPage({
+    required this.pageKey,
     required this.snapshot,
     required this.query,
     required this.backLabel,
@@ -157,6 +171,7 @@ class _ReadPage {
     this.onQuery,
     this.onNavigate,
   });
+  final GlobalKey<_FeatureDetailViewState> pageKey;
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
   final String backLabel;

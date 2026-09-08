@@ -143,7 +143,7 @@ extension _CgyyDetailActions on _FeatureDetailListState {
           _cgyyReserveCandidates(cgyyReservation),
         ),
         icon: const Icon(Icons.event_available),
-        label: const Text('准备场馆预约'),
+        label: const Text('准备研讨室预约'),
       ),
     ],
   ];

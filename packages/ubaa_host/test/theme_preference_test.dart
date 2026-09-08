@@ -41,7 +41,7 @@ void main() {
       Brightness.dark,
     );
 
-    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(_mode(tester), ThemeMode.dark);
     await _profile(tester);
@@ -133,9 +133,10 @@ Future<void> _login(WidgetTester tester) async {
 }
 
 Future<void> _profile(WidgetTester tester) async {
-  final selected = find.byIcon(Icons.person);
+  tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+  await tester.pumpAndSettle();
   await tester.tap(
-    selected.evaluate().isEmpty ? find.byIcon(Icons.person_outline) : selected,
+    find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
   );
   await tester.pumpAndSettle();
 }

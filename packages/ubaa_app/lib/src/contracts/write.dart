@@ -70,7 +70,7 @@ abstract interface class YgdkWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input);
 }
 
-/// 已接入 typed 场馆预约写意图的能力；验证码材料不由宿主构造或保存。
+/// 已接入 typed 研讨室预约写意图的能力；验证码材料不由宿主构造或保存。
 abstract interface class CgyyWriteBackend implements WriteCommitBackend {
   Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input);
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   for (final missing in ['prepare', 'cancel', 'confirm']) {
@@ -48,7 +49,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('博雅课程'));
+      await openFeature(tester, FeatureId.bykc);
       await tester.pumpAndSettle();
       expect(find.text('准备选课'), findsNothing);
     });

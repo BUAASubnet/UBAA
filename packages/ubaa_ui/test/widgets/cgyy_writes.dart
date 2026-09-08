@@ -31,7 +31,7 @@ const _cgyyUiThirdAction = CgyyReserveAction(
 );
 
 void _registerCgyyReservationWriteTests() {
-  testWidgets('场馆预约在 action 缺失、denied 或 unknown 时默认拒绝', (tester) async {
+  testWidgets('研讨室预约在 action 缺失、denied 或 unknown 时默认拒绝', (tester) async {
     var prepareCalls = 0;
     await _pumpCgyyShell(
       tester,
@@ -79,7 +79,7 @@ void _registerCgyyReservationWriteTests() {
       ],
       onPrepare: (_) async {
         prepareCalls++;
-        throw StateError('非 Allowed action 不应进入场馆预约 prepare');
+        throw StateError('非 Allowed action 不应进入研讨室预约 prepare');
       },
     );
 
@@ -209,7 +209,7 @@ void _registerCgyyReservationWriteTests() {
     expect(captured?.actions, hasLength(1));
     expect(identical(captured?.actions.single, _cgyyUiFirstAction), isTrue);
     expect(captured?.joiners, '张三');
-    expect(find.text('确认场馆预约'), findsNWidgets(2));
+    expect(find.text('确认研讨室预约'), findsOneWidget);
   });
 
   testWidgets('场馆表单把 trim 后为空的参与人说明视为必填', (tester) async {
@@ -236,7 +236,7 @@ void _registerCgyyReservationWriteTests() {
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
-    expect(find.text('填写场馆预约信息'), findsOneWidget);
+    expect(find.text('填写研讨室预约信息'), findsOneWidget);
 
     await tester.enterText(_cgyyTextField('参与人说明'), '  张三  ');
     await tester.tap(find.text('继续确认'));
@@ -283,7 +283,7 @@ Future<void> _pumpCgyyShell(
   );
   await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('场馆预约'));
+  await openFeature(tester, FeatureId.cgyy);
   await tester.pumpAndSettle();
 }
 
@@ -310,7 +310,7 @@ Finder _cgyyButtonFor(String title) {
   final card = find.ancestor(of: find.text(title), matching: find.byType(Card));
   return find.descendant(
     of: card,
-    matching: find.widgetWithText(OutlinedButton, '准备场馆预约'),
+    matching: find.widgetWithText(OutlinedButton, '准备研讨室预约'),
   );
 }
 
@@ -320,7 +320,7 @@ Finder _cgyyChip(int timeId) =>
 WriteIntent _cgyyIntent() => WriteIntent(
   intentId: 'cgyy-reserve-red',
   operation: WriteOperation.cgyySubmitReservation,
-  targetSummary: '场馆预约',
+  targetSummary: '研讨室预约',
   resolvedRoute: ConnectionMode.direct,
   warnings: const <String>[],
   expiresAt: DateTime.now().add(const Duration(minutes: 2)),

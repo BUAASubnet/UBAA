@@ -26,7 +26,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.libbookReserve => '图书馆预约',
     WriteOperation.libbookCancelBooking => '取消图书馆预约',
     WriteOperation.ygdkSubmit => '阳光打卡',
-    WriteOperation.cgyySubmitReservation => '场馆预约',
+    WriteOperation.cgyySubmitReservation => '研讨室预约',
     WriteOperation.cgyyCancelOrder => '取消场馆订单',
     WriteOperation.evaluationSubmitCourses => '教学评教',
   };
@@ -79,7 +79,7 @@ class WriteIntent {
   );
 }
 
-/// 场馆预约提交后用于只读核对的非敏感订单收据。
+/// 研讨室预约提交后用于只读核对的非敏感订单收据。
 ///
 /// 不包含交易号、手机号、主题、参与人或活动正文；完整订单仍通过受控的
 /// 场馆订单详情读取接口获取并按页面白名单投影。

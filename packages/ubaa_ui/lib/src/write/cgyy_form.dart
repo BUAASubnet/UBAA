@@ -25,7 +25,7 @@ extension _CgyyWriteForm on _FeatureDetailListState {
         String? error;
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('填写场馆预约信息'),
+            title: const Text('填写研讨室预约信息'),
             content: SizedBox(
               width: 420,
               child: SingleChildScrollView(

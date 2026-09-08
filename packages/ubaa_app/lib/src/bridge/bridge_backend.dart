@@ -178,7 +178,7 @@ class BridgeBackend
   Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input) =>
       _prepareYgdkSubmit(this, input);
 
-  /// 准备场馆预约；selection 只包含经过 UI 选择的 ID，不接受 raw JSON。
+  /// 准备研讨室预约；selection 只包含经过 UI 选择的 ID，不接受 raw JSON。
   @override
   Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input) =>
       _prepareCgyySubmitReservation(this, input);

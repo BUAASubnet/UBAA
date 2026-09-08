@@ -35,18 +35,16 @@ void _registerLibbookQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('图书馆座位'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('图书馆座位'));
+    await openFeature(tester, FeatureId.libbook);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('馆列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('馆区列表'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
+    final fields = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    );
     await tester.enterText(fields.first, 'main-library');
     await tester.enterText(fields.at(1), 'floor-1');
     await tester.tap(find.text('应用筛选'));
@@ -87,20 +85,17 @@ void _registerLibbookQueryTests() {
         ),
       ),
     );
-
-    await tester.scrollUntilVisible(
-      find.text('图书馆座位'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('图书馆座位'));
+    await openFeature(tester, FeatureId.libbook);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('馆列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('座位查询'));
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
+    final fields = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    );
     await tester.enterText(fields.first, 'area-1');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();

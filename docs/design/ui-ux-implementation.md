@@ -1,5 +1,8 @@
 # UI/UX 分批实施清单
 
+> 当前执行以 `ui-ux-old-baseline.md` 为准。O1/O2已实现共享三导航、侧栏资料设置、单顶栏与当前帧路线、默认隐藏且按内容收缩的查询面板；UI182与手机/平板各56图通过。下文早期四导航、默认展开查询头等内容属于历史，已经失效。既有typed投影/业务保护保留；C投影已提交277b3594，O3逐页恢复旧版结构以及D/P5–P7继续执行。
+
+
 日期：2026-09-08。设计：`docs/design/ui-ux-redesign.md`；功能编号：`ui-ux-inventory.md`；来源边界：`ui-ux-parity-review.md`。执行者使用 `superpowers:executing-plans`；用户已授权连续推进，本清单不新增审批。此文档只描述待执行工作，不声称 RED/GREEN、原型或运行完成。
 
 目标：保留十二领域和全部 typed 写入语义，完成今日/学习/校园/我的导航、600/1000 响应式布局、最大内容宽度 1200、领域结构展示、状态保留和本次运行主题选择。技术栈沿锁定 Rust/Flutter/Dart/FRB，不升级依赖；Bridge v9、Core 配置 v1、CLI v10、Session v2 保持。纯视觉按现有来源 C1–C9 保持；参数/展示模型接线先写有意义失败测试；不触发真实业务写入。
@@ -220,9 +223,9 @@ B1已提交 `83ee9e89`。B2现已实现独立学期选项读取接口： `AppCon
 日期选择使用锁定Flutter自带的flutter_localizations中文委托，传递增加SDK锁定intl0.20.2；没有升级SDK或既有依赖。8张旧golden仅更新已查看的今日控件收敛/教室日期与选择按钮差异；测试字体方框仅用于结构回归，中文可读性以本批原生图片为准。完整原生验收和本批阶段提交尚未完成。
 
 
-## P4-C 接续计划（B2原生与阶段提交、P4-A剩余实现后实施）
+## P4-C 实施计划与当前进展
 
-本段尚未实现。SPOC/希冀、课堂签到、评教遵循既有Bridge白名单，不加后台请求或学校写入。待来源增补复核后，先Domain/App投影RED，再共享UI和Inspection，最后手机/平板实际点击与脱敏写入路径。每阶段只保留一个实施子代理，root独立文件同步工作；不在B2原生候选构建时更改生产源码。
+以下为实施前设计；当前投影与领域 UI 已落地，原生复验待执行。SPOC/希冀、课堂签到、评教遵循既有Bridge白名单，不加后台请求或学校写入。待来源增补复核后，先Domain/App投影RED，再共享UI和Inspection，最后手机/平板实际点击与脱敏写入路径。每阶段只保留一个实施子代理，root独立文件同步工作；不在B2原生候选构建时更改生产源码。
 
 1. `presentation/assignment.dart`分别承载SPOC/希冀列表和详情所需typed ID、时间/状态/分数/正文及题目集合；不要把无ID的题目造为可请求目标。SPOC详情导航只带assignmentId，希冀带courseId+assignmentId；FeatureReadNavigation复用当前返回帧。单份作业一个父模型，题目在父模型内，批量保持Core返回顺序及输入有序键，不按标题去重。
 2. `presentation/signin.dart`保留原课程与时间及signStatus；按钮继续只读SigninPerformAction的target/eligibility。是否需要调整状态文案须由冻结来源和Core映射核对后决定，不能从denied泛化业务成功或更改既有过滤语义。
@@ -253,3 +256,22 @@ UserSummary追加schoolId/email/phone/idCardTypeName四个可空字段，App沿�
 
 
 P4-A门禁续记：完整flutter-check七包31/48/211/161/15/22/12，总500通过；Core check与layout通过。敏感扫描拒绝UI测试中形似真实电话的合成值，已替换明确全零并保持原断言，profile3项复验和敏感扫描通过，未放宽扫描规则。原生A完整phone15业务+1fixture、iPad同组均通过；手机长邮箱原图视角需补齐，另补成功会话恢复正向路径，均使用独立补充目录，不改生产候选或用新图覆盖旧证据。等待补充终态后阶段提交。
+
+
+### P4-C 当前实现（原生复验前）
+
+基线为 A 提交 `bb868cd212039a135041e76e7f0a39cadbc9df69`。Domain 新增三类课程展示模型与 `FeatureOverview`；App 从同次 Bridge 响应投影，Judge 单项/批量保持一份作业一个父详情、题目嵌套，批量输入/返回顺序不改。SPOC 学期与评教总进度经普通/空/陈旧和固定路线回读传递；显式瞬时 networkError/timeout/upstreamUnavailable 在同 query 且已有数据时可保留陈旧结果，鉴权/权限显式失败清旧数据。原抛异常路径的既有陈旧规则未泛改，不能宣称所有鉴权失败形式均已收窄。
+
+UI 按课程分组作业摘要，长正文与题目在父作业内呈现；宽题目表、窄题目卡保留名称/状态/得分/满分。`assignment_selection.dart` 使用有序二元键保存选择，不按列表顺序重排；搜索不清选择，返回父页保留顺序/搜索/includeExpired。`assignment_picker.dart` 成对回填 typed 编号，仅修改草稿，弹窗返回前核对 mounted、epoch 和 snapshot 身份；旧手填单项/批量路径继续保留。合法条目和未知模型混排时逐条兼容，不能因一条未知模型移除其他条目的入口。
+
+`course_participation.dart` 提供签到时间/状态卡、评教课程卡与宽表。展示模型不复制提交目标，按钮仍复用原 action 与统一 WriteCoordinator。缺签到目标、未知评教资格有明确说明；状态与资格冲突分别显示，不把资格解释成提交成功。评教工具栏采用换行布局。`coursework_overview.dart` 位于结果集合外，待评空列表仍显示 Core 全局进度，局部搜索/分页不重算统计。
+
+当前证据：Domain33、App223通过；UI12项新增行为用例通过，既有 widgets102项含 typed 签到/评教准备确认回归通过，analyze 无问题。390/834逻辑宽度与1.3字号的长题目测试仅证明确定性布局，不是手机/平板验收。独立脱敏原生场景正在实现，实际运行、图片审查和批次提交均未完成。
+
+## P4-D 接续批次划分（C 原生复验与提交后）
+
+D1先完成图书馆5种读取视图与场馆6种读取视图，包括父馆/楼层/分区关联、完整时段只读状态、日期空间和订单层级；D2完成博雅5种视图与阳光2种视图，以及各自集合统计与既有动作。每批独立执行模型/投影RED、领域UI、实际手机/平板操作和图片检查，再提交；总P4-D只在两批均满足本批条件后勾选。P5仍单独核验全部写操作状态机，不能以D只读布局中有准备按钮代替写流程验收。
+
+D1复用C的typed父详情与overview传递，但预约目标仍只从既有action消费。图书馆公开日期列表与时段缺乏关联来源，不能自动绑定第一天，继续保留显式完整参数输入并说明上下文；场馆补回被旧App丢弃的denied/unknown只读时段，不能将它们升级为可写或统一称已占用。完整来源与前置测试见`source-parity-ui-reservations.md`。
+
+D2集合元数据复用FeatureOverview，不从summary字符串提取统计；普通与固定路线回读继续使用同一mapper。博雅记录ID、课程ID及签到点配置分清，阳光项目action不得由默认项目或名称重建；历史照片只显示imageCount，本次用户选取的本地图片仍沿已有能力与释放规则。完整来源见`source-parity-ui-campus.md`。两批均保留原手填查询、真实分页及所有写资格，未知模型兼容展示不得连带移除合法实体入口。

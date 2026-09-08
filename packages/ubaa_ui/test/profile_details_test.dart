@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 const _profile = UserSummary(
   username: 'fixture-login',
@@ -51,8 +52,9 @@ void main() {
       expect(find.text(_profile.phone!), findsNothing);
       expect(reads, isEmpty);
       await _tap(tester, '显示邮箱');
-      await _tap(tester, '今日');
-      await _tap(tester, '我的');
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
+      await openUtility(tester, '我的资料');
       expect(find.text(_profile.email!), findsNothing);
       await _tap(tester, '查看账号资料');
       expect(find.text(_profile.email!), findsNothing);
@@ -83,6 +85,7 @@ void main() {
     profile.value = const UserSummary(username: 'other-fixture');
     await tester.pumpAndSettle();
     expect(find.text('new@example.invalid'), findsNothing);
+    await openUtility(tester, '我的资料');
     await _tap(tester, '查看账号资料');
     expect(find.text('显示邮箱'), findsNothing);
     expect(find.text('显示手机'), findsNothing);
@@ -118,7 +121,7 @@ Future<void> _mount(
       home: ValueListenableBuilder<UserSummary?>(
         valueListenable: profile,
         builder: (context, user, _) => UbaaMainShell(
-          initialTab: 3,
+          initialTab: 0,
           user: user,
           snapshots: {
             for (final feature in FeatureId.values)
@@ -138,4 +141,5 @@ Future<void> _mount(
     ),
   );
   await tester.pumpAndSettle();
+  await openUtility(tester, '我的资料');
 }

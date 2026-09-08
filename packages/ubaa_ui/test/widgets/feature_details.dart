@@ -43,19 +43,19 @@ void _registerFeatureRenderingTests() {
         ),
       ),
     );
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.text('主楼 101'), findsOneWidget);
-    expect(find.text('实际路线：直连'), findsOneWidget);
+    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     expect(find.textContaining('只读详情页面将在'), findsNothing);
 
-    await tester.ensureVisible(find.text('返回功能列表'));
+    await tester.ensureVisible(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('返回功能列表'));
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('返回功能列表'), findsNothing);
-    await tester.tap(find.byIcon(Icons.person_outline));
+    expect(find.byTooltip('返回'), findsNothing);
+    await openUtility(tester, '设置');
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -175,7 +175,7 @@ void _registerFeatureInputTests() {
             return WriteIntent(
               intentId: 'cgyy-reserve-1',
               operation: WriteOperation.cgyySubmitReservation,
-              targetSummary: '提交场馆预约',
+              targetSummary: '提交研讨室预约',
               resolvedRoute: ConnectionMode.direct,
               warnings: const <String>['如需验证码，材料只在本次操作内使用'],
               expiresAt: DateTime.now().add(const Duration(minutes: 2)),
@@ -188,7 +188,7 @@ void _registerFeatureInputTests() {
             return const WriteCommitResult(
               operation: WriteOperation.cgyySubmitReservation,
               success: true,
-              message: '场馆预约结果已提交，请刷新订单确认',
+              message: '研讨室预约结果已提交，请刷新订单确认',
               outcomeUnknown: false,
               cgyyReceipt: CgyyReservationReceipt(
                 orderId: 42,
@@ -211,30 +211,30 @@ void _registerFeatureInputTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('场馆预约'));
+    await openFeature(tester, FeatureId.cgyy);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备场馆预约').first);
+    await tester.tap(find.text('准备研讨室预约').first);
     await tester.pumpAndSettle();
     expect(find.text('选择预约时段（已选 1 个）'), findsOneWidget);
     expect(find.widgetWithText(FilterChip, '空间 5 · 时段 7'), findsNothing);
     await tester.tap(find.widgetWithText(FilterChip, '空间 4 · 时段 6'));
     await tester.pumpAndSettle();
     final fields = find.byType(TextField);
-    await tester.enterText(fields.at(1), 'phone-placeholder');
-    await tester.enterText(fields.at(2), '课程讨论');
-    await tester.enterText(fields.at(3), '2');
-    await tester.enterText(fields.at(4), '3');
-    await tester.enterText(fields.at(5), '讨论');
-    await tester.enterText(fields.at(6), '张三');
+    await tester.enterText(fields.at(0), 'phone-placeholder');
+    await tester.enterText(fields.at(1), '课程讨论');
+    await tester.enterText(fields.at(2), '2');
+    await tester.enterText(fields.at(3), '3');
+    await tester.enterText(fields.at(4), '讨论');
+    await tester.enterText(fields.at(5), '张三');
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认场馆预约'), findsNWidgets(2));
+    expect(find.text('确认研讨室预约'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
-    expect(find.text('场馆预约结果已提交，请刷新订单确认（订单编号 42，订单列表已核对）'), findsOneWidget);
+    expect(find.text('研讨室预约结果已提交，请刷新订单确认（订单编号 42，订单列表已核对）'), findsOneWidget);
   });
 
   testWidgets('阳光打卡填写时间并选择内存照片后才进入确认页', (tester) async {
@@ -327,13 +327,18 @@ void _registerFeatureInputTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('阳光打卡'));
+    await openFeature(tester, FeatureId.ygdk);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备阳光打卡'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(1), '2026-09-01 08:00');
-    await tester.enterText(fields.at(2), '2026-09-01 09:00');
+    await tester.enterText(
+      find.widgetWithText(TextField, '开始时间'),
+      '2026-09-01 08:00',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '结束时间'),
+      '2026-09-01 09:00',
+    );
     await tester.tap(find.text('选择照片'));
     await tester.pumpAndSettle();
     expect(find.text('已选择照片：photo-placeholder.png'), findsOneWidget);
@@ -343,7 +348,7 @@ void _registerFeatureInputTests() {
     expect(find.byType(Image), findsNothing);
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认阳光打卡'), findsNWidgets(2));
+    expect(find.text('确认阳光打卡'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
@@ -416,7 +421,7 @@ void _registerFeatureInputTests() {
 
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('阳光打卡'));
+    await openFeature(tester, FeatureId.ygdk);
     await tester.pumpAndSettle();
 
     expect(find.text('准备阳光打卡'), findsNothing);
@@ -512,14 +517,13 @@ void _registerFeatureInputTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('图书馆座位'));
-    await tester.tap(find.text('图书馆座位'));
+    await openFeature(tester, FeatureId.libbook);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备预约此座位'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认图书馆预约'), findsNWidgets(2));
+    expect(find.text('确认图书馆预约'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
@@ -560,17 +564,20 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
     expect(find.text('1 / 2'), findsOneWidget);
     expect(find.text('课程 21'), findsNothing);
     await tester.tap(find.byTooltip('下一页'));
     await tester.pumpAndSettle();
     expect(find.text('课程 21'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '课程 1');
+    await openQueryPanel(tester);
+    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '课程 1');
+    await closeQueryPanel(tester);
     await tester.pumpAndSettle();
     expect(find.text('1 / 2'), findsNothing);
-    expect(find.text('课程 1'), findsNWidgets(2));
+    expect(find.text('课程 1'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets('超长详情列表只保留当前分页避免页面节点累积', (tester) async {
@@ -605,7 +612,7 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
     expect(find.text('1 / 50'), findsOneWidget);
     expect(find.text('长列表课程 1'), findsOneWidget);
@@ -663,8 +670,10 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
+    await closeQueryPanel(tester);
     expect(find.text('第 1 / 3 页（共 41 条）'), findsOneWidget);
     await tester.tap(find.byTooltip('下一页').last);
     await tester.pumpAndSettle();
@@ -705,9 +714,10 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('空教室查询'));
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, '2026-09-02');
+    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-02');
     await tester.tap(find.text('校区 1'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('校区 2'));
@@ -753,10 +763,11 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('空教室查询'));
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byType(TextField).first,
+      find.widgetWithText(TextField, '日期'),
       '2026-09-02T12:00:00+08:00',
     );
     await tester.tap(find.text('应用筛选'));
@@ -765,7 +776,7 @@ void _registerFeatureCollectionTests() {
     expect(received, isNull);
     expect(find.text('日期格式无效，请使用 YYYY-MM-DD。'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).first, '2026-02-30');
+    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-02-30');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received, isNull);
@@ -805,11 +816,11 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('空教室查询'));
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(1), 'F2');
-    await tester.enterText(fields.at(2), '3');
+    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'F2');
+    await tester.enterText(find.widgetWithText(TextField, '节次'), '3');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.floorId, 'F2');
@@ -853,9 +864,10 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await tester.tap(find.text('空教室查询'));
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(1), 'F2');
+    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'F2');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(applied?.floorId, 'F2');

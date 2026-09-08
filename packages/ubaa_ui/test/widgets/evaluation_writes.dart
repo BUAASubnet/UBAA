@@ -1,7 +1,13 @@
 part of '../widgets_test.dart';
 
 void _registerEvaluationWriteTests() {
-  testWidgets('评教只消费 typed action 且展示字段改名不改变提交目标', (tester) async {
+  testWidgets('评教宽表只消费 typed action 且展示字段改名不改变提交目标', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(834, 1210);
+    await tester.binding.setSurfaceSize(const Size(834, 1210));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     const expectedTarget = EvaluationSubmitTarget(
       rwid: 'task-1',
       wjid: 'questionnaire-1',
@@ -19,6 +25,10 @@ void _registerEvaluationWriteTests() {
                   FeatureDetail(
                     title: '课程 A',
                     subtitle: '教师 A',
+                    presentation: EvaluationCoursePresentation(
+                      courseId: '展示课程编号',
+                      isEvaluated: false,
+                    ),
                     fields: <FeatureField>[
                       FeatureField(label: '展示状态（已改名）', value: '已评'),
                       FeatureField(label: '展示任务（已改名）', value: 'wrong-task'),
@@ -40,6 +50,12 @@ void _registerEvaluationWriteTests() {
     await tester.pumpWidget(
       MaterialApp(
         theme: UbaaTheme.light(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.3)),
+          child: child!,
+        ),
         home: coordinatedShell(
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
@@ -83,14 +99,15 @@ void _registerEvaluationWriteTests() {
     );
     await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('教学评教'));
-    await tester.tap(find.text('教学评教'));
+    await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
+    expect(find.byType(DataTable), findsOneWidget);
+    await tester.ensureVisible(find.text('准备提交评教'));
     await tester.tap(find.text('准备提交评教'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认教学评教'), findsNWidgets(2));
+    expect(find.text('确认教学评教'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
@@ -206,12 +223,11 @@ void _registerEvaluationWriteTests() {
     );
     await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('教学评教'));
-    await tester.tap(find.text('教学评教'));
+    await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
 
-    expect(find.text('准备批量评教'), findsOneWidget);
-    expect(find.text('已选择 0 门待评课程'), findsOneWidget);
+    expect(find.text('准备批量评教'), findsNothing);
+    expect(find.text('已选择 0 门待评课程'), findsNothing);
     final first = find.byKey(
       ValueKey<String>('evaluation-${firstTarget.selectionKey}'),
     );
@@ -228,7 +244,7 @@ void _registerEvaluationWriteTests() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认教学评教'), findsNWidgets(2));
+    expect(find.text('确认教学评教'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
@@ -323,8 +339,7 @@ void _registerEvaluationWriteTests() {
 
     await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('教学评教'));
-    await tester.tap(find.text('教学评教'));
+    await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
 
     expect(find.text('准备提交评教'), findsNothing);
@@ -399,8 +414,7 @@ void _registerEvaluationWriteTests() {
 
     await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('教学评教'));
-    await tester.tap(find.text('教学评教'));
+    await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备提交评教'));
     await tester.pumpAndSettle();
@@ -484,8 +498,7 @@ void _registerEvaluationWriteTests() {
 
       await tester.tap(find.byIcon(Icons.apps_outlined));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('教学评教'));
-      await tester.tap(find.text('教学评教'));
+      await openFeature(tester, FeatureId.evaluation);
       await tester.pumpAndSettle();
       await tester.tap(find.text('准备提交评教'));
       await tester.pumpAndSettle();

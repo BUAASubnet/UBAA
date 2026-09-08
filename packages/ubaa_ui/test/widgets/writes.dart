@@ -140,14 +140,14 @@ void _registerInitialWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备博雅签到'));
     await tester.pumpAndSettle();
     expect(signCalls, 1);
     expect(signTypes, <int>[1]);
     expect(commitCalls, 0);
-    expect(find.text('确认博雅签到'), findsNWidgets(2));
+    expect(find.text('确认博雅签到'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(discardedIntentIds, <String>['sign-intent-42']);
@@ -155,7 +155,7 @@ void _registerInitialWriteTests() {
     await tester.pumpAndSettle();
     expect(signCalls, 2);
     expect(signTypes, <int>[1, 1]);
-    expect(find.text('确认博雅签到'), findsNWidgets(2));
+    expect(find.text('确认博雅签到'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(discardedIntentIds, <String>['sign-intent-42', 'sign-intent-42']);
@@ -169,7 +169,7 @@ void _registerInitialWriteTests() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认博雅选课'), findsNWidgets(2));
+    expect(find.text('确认博雅选课'), findsOneWidget);
     expect(find.text('选择课程 42'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
@@ -182,7 +182,7 @@ void _registerInitialWriteTests() {
     await tester.pumpAndSettle();
     expect(deselectCalls, 1);
     expect(commitCalls, 1);
-    expect(find.text('确认博雅退选'), findsNWidgets(2));
+    expect(find.text('确认博雅退选'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 2);
@@ -248,7 +248,7 @@ void _registerInitialWriteTests() {
       ),
     );
 
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备博雅签到'));
     await tester.pumpAndSettle();
@@ -257,7 +257,7 @@ void _registerInitialWriteTests() {
 
     expect(prepareCalls, 1);
     expect(discardCalls, 1);
-    expect(find.text('确认博雅签到'), findsNWidgets(2));
+    expect(find.text('确认博雅签到'), findsOneWidget);
     expect(find.text('暂时无法取消待确认操作，请重试。'), findsOneWidget);
 
     await tester.tap(find.text('取消'));
@@ -312,7 +312,7 @@ void _registerInitialWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备博雅签到'));
     await tester.pump();
@@ -396,7 +396,7 @@ void _registerInitialWriteTests() {
       ),
     );
 
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备博雅签到'));
     await tester.pumpAndSettle();
@@ -405,7 +405,7 @@ void _registerInitialWriteTests() {
 
     expect(discardCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认博雅签到'), findsNWidgets(2));
+    expect(find.text('确认博雅签到'), findsOneWidget);
     expect(find.text('正在取消'), findsOneWidget);
     expect(
       tester
@@ -439,7 +439,7 @@ void _registerInitialWriteTests() {
     expect(discardCalls, 1);
   });
 
-  testWidgets('课堂签到从公开课程编号准备并在确认后提交', (tester) async {
+  testWidgets('课堂签到从 typed 签到目标准备并在确认后提交', (tester) async {
     const expectedAction = SigninPerformAction(
       scheduleId: 'schedule-7',
       eligibility: ActionEligibility.allowed,
@@ -454,6 +454,12 @@ void _registerInitialWriteTests() {
               ? const <FeatureDetail>[
                   FeatureDetail(
                     title: '课堂签到课程',
+                    presentation: SigninPresentation(
+                      courseId: '展示课程编号',
+                      classBeginTime: '08:00',
+                      classEndTime: '09:40',
+                      signStatus: 0,
+                    ),
                     fields: <FeatureField>[
                       FeatureField(label: '课程 ID', value: '误导目标'),
                       FeatureField(label: '签到状态', value: '已签到'),
@@ -516,13 +522,13 @@ void _registerInitialWriteTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
+    await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备签到'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认课堂签到'), findsNWidgets(2));
+    expect(find.text('确认课堂签到'), findsOneWidget);
     expect(find.text('WebVPN'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
@@ -584,7 +590,7 @@ Future<int> _pumpBykcCommitError(WidgetTester tester, Object error) async {
       ),
     ),
   );
-  await tester.tap(find.text('博雅课程'));
+  await openFeature(tester, FeatureId.bykc);
   await tester.pumpAndSettle();
   await tester.tap(find.text('准备选课'));
   await tester.pumpAndSettle();

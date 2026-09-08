@@ -1,7 +1,7 @@
 part of '../write_coordinator_test.dart';
 
 void _registerReadbackTests() {
-  test('场馆预约先刷新订单再匹配收据且保留原结果', () async {
+  test('研讨室预约先刷新订单再匹配收据且保留原结果', () async {
     final calls = <String>[];
     final result = _result(
       operation: WriteOperation.cgyySubmitReservation,

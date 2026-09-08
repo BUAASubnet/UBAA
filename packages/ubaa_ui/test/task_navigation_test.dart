@@ -2,64 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
-const _learning = <FeatureId>[
+const _ordinary = <FeatureId>[
   FeatureId.schedule,
   FeatureId.exam,
   FeatureId.grades,
+  FeatureId.bykc,
   FeatureId.classroom,
   FeatureId.spoc,
   FeatureId.judge,
-  FeatureId.evaluation,
-];
-const _campus = <FeatureId>[
-  FeatureId.bykc,
   FeatureId.libbook,
+];
+const _advanced = <FeatureId>[
   FeatureId.signin,
   FeatureId.cgyy,
   FeatureId.ygdk,
+  FeatureId.evaluation,
 ];
 
 void main() {
-  testWidgets('今日十二个领域均能通过实际功能卡进入且不新增查询', (tester) async {
+  testWidgets('十二个领域沿旧版分组进入且不新增查询', (tester) async {
     await _mount(tester);
-    expect(find.text('今日'), findsWidgets);
-    for (final feature in <FeatureId>[..._learning, ..._campus]) {
-      final view = find.byType(CustomScrollView);
-      tester
-          .state<ScrollableState>(
-            find.descendant(of: view, matching: find.byType(Scrollable)),
-          )
-          .position
-          .jumpTo(0);
-      await tester.pumpAndSettle();
-      final card = find.descendant(
-        of: view,
-        matching: find.widgetWithText(Card, feature.title),
-      );
-      await tester.scrollUntilVisible(
-        card,
-        220,
-        scrollable: find.descendant(
-          of: view,
-          matching: find.byType(Scrollable),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(card.hitTestable(), findsOneWidget);
-      await tester.tap(card);
-      await tester.pumpAndSettle();
+    expect(find.text('首页'), findsOneWidget);
+    for (final feature in FeatureId.values) {
+      await openFeature(tester, feature);
       expect(find.text('合成详情-${feature.wireName}'), findsOneWidget);
-      await tester.tap(find.text('返回功能列表'));
+      await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
     }
   });
 
-  testWidgets('学习恰有七项校园恰有五项且评教博雅归类正确', (tester) async {
+  testWidgets('普通功能八项高级功能四项且顺序沿旧版', (tester) async {
     await _mount(tester);
     for (final group in <(String, List<FeatureId>)>[
-      ('学习', _learning),
-      ('校园', _campus),
+      ('普通功能', _ordinary),
+      ('高级功能', _advanced),
     ]) {
       final destination = find.widgetWithText(NavigationDestination, group.$1);
       expect(destination, findsOneWidget);
@@ -96,7 +74,7 @@ void main() {
       tester.view.physicalSize = Size(width, 1000);
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(UbaaMainShell)), same(state));
-      for (final label in <String>['今日', '学习', '校园', '我的']) {
+      for (final label in <String>['主页', '普通功能', '高级功能']) {
         expect(find.text(label), findsWidgets);
       }
       if (width < 600) {

@@ -16,109 +16,128 @@ class _HomeView extends StatelessWidget {
   final Future<void> Function() onRefresh;
 
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
-    onRefresh: onRefresh,
-    child: CustomScrollView(
-      slivers: <Widget>[
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-            16,
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-            8,
+  Widget build(BuildContext context) {
+    final schedule = snapshots[FeatureId.schedule]!;
+    final todayQuery =
+        schedule.readContext?.query == null ||
+        schedule.readContext?.query?.view == FeatureQueryView.scheduleToday;
+    final today = todayQuery
+        ? schedule.details
+              .where((detail) => detail.presentation is TodayCoursePresentation)
+              .toList()
+        : <FeatureDetail>[];
+    final tasks = <(FeatureId, FeatureDetail, String, String, DateTime)>[];
+    final now = DateTime.now();
+    for (final feature in [FeatureId.spoc, FeatureId.judge]) {
+      final snapshot = snapshots[feature]!;
+      if (snapshot.status != FeatureLoadStatus.success &&
+          snapshot.status != FeatureLoadStatus.stale)
+        continue;
+      if (snapshot.readContext?.query != null &&
+          snapshot.readContext?.query?.view != FeatureQueryView.summary)
+        continue;
+      for (final detail in snapshot.details) {
+        final p = detail.presentation;
+        String? due;
+        String? course;
+        bool pending = false;
+        if (p is SpocAssignmentPresentation && !p.isDetail) {
+          due = p.dueTime;
+          course = p.courseName;
+          final start = DateTime.tryParse(p.startTime ?? '');
+          pending =
+              p.status == AssignmentSubmissionStatus.unsubmitted &&
+              (start == null || !start.isAfter(now));
+        } else if (p is JudgeAssignmentPresentation && !p.isDetail) {
+          due = p.dueTime;
+          course = p.courseName;
+          pending =
+              p.status == AssignmentSubmissionStatus.unsubmitted ||
+              p.status == AssignmentSubmissionStatus.partial;
+        }
+        final end = DateTime.tryParse(due ?? '');
+        if (pending && end != null && end.isAfter(now))
+          tasks.add((feature, detail, course ?? '', due!, end));
+      }
+    }
+    tasks.sort((a, b) => a.$5.compareTo(b.$5));
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            '今日课表',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
-          sliver: SliverToBoxAdapter(
-            child: Text(
-              '你好，${user?.preferredName ?? '同学'}',
-              style: Theme.of(context).textTheme.headlineSmall,
+          const SizedBox(height: 4),
+          Text(
+            '${now.month}月${now.day}日',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          if (today.isNotEmpty)
+            for (final detail in today)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _AcademicCard(detail: detail),
+              )
+          else
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: Text(todayQuery ? _summary(schedule) : '今日课表尚未加载'),
+                subtitle: const Text('打开课表查询查看课程安排'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => onFeatureTap(FeatureId.schedule),
+              ),
             ),
+          if (today.isNotEmpty && schedule.status == FeatureLoadStatus.stale)
+            const Text('课表刷新失败，以上为上次成功加载的数据。'),
+          const SizedBox(height: 16),
+          Text(
+            '待办区',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-            8,
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-            0,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const items = <(String, FeatureId)>[
-                  ('课程安排', FeatureId.schedule),
-                  ('课程作业', FeatureId.spoc),
-                  ('自习与预约', FeatureId.libbook),
-                ];
-                if (constraints.maxWidth >= 740) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var index = 0; index < items.length; index++) ...[
-                        if (index > 0) const SizedBox(width: 12),
-                        Expanded(
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    items[index].$1,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(_summary(snapshots[items[index].$2]!)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                }
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '重点关注',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        for (final item in items)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Text(
-                              '${item.$1} · ${_summary(snapshots[item.$2]!)}',
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+          const SizedBox(height: 12),
+          for (final task in tasks)
+            Card(
+              child: ListTile(
+                leading: Icon(_featureIcon(task.$1)),
+                title: Text(task.$2.title),
+                subtitle: Text('${task.$3} · 待完成\n截止 ${task.$4}'),
+                isThreeLine: true,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => onFeatureTap(task.$1),
+              ),
             ),
-          ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.all(
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-          ),
-          sliver: _FeatureGridSliver(
-            features: FeatureId.values,
-            snapshots: snapshots,
-            onFeatureTap: onFeatureTap,
-            onRetryFeature: onRetryFeature,
-          ),
-        ),
-      ],
-    ),
-  );
+          if (tasks.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('当前已加载的课程作业中暂无近期待办'),
+              ),
+            ),
+          for (final feature in [FeatureId.spoc, FeatureId.judge])
+            if (snapshots[feature]!.status != FeatureLoadStatus.success &&
+                snapshots[feature]!.status != FeatureLoadStatus.empty)
+              ListTile(
+                dense: true,
+                title: Text(
+                  '${feature.title}：${_summary(snapshots[feature]!)}',
+                ),
+                onTap: () => onFeatureTap(feature),
+              ),
+        ],
+      ),
+    );
+  }
+
   String _summary(FeatureSnapshot snapshot) => switch (snapshot.status) {
     FeatureLoadStatus.idle => '尚未查询',
     FeatureLoadStatus.loading => '正在加载…',
@@ -162,7 +181,7 @@ class _FeatureGridSliver extends StatelessWidget {
     required this.snapshots,
     required this.onFeatureTap,
     required this.onRetryFeature,
-    this.features = learningFeatureIds,
+    this.features = ordinaryFeatureIds,
   });
 
   final Map<FeatureId, FeatureSnapshot> snapshots;
@@ -178,7 +197,7 @@ class _FeatureGridSliver extends StatelessWidget {
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          mainAxisExtent: 156 * scale.clamp(1.0, 2.0),
+          mainAxisExtent: 184 * scale.clamp(1.0, 2.0),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -213,65 +232,42 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isFailure = snapshot.status == FeatureLoadStatus.failure;
-    final isStale = snapshot.status == FeatureLoadStatus.stale;
     return Semantics(
       container: true,
       button: true,
-      label: '$featureLabel：${_statusText(snapshot)}。点击查看详情',
+      label:
+          '${feature.title}：${snapshot.summary ?? feature.description}。点击查看详情',
       child: Card(
         clipBehavior: Clip.antiAlias,
-        color: colorScheme.surfaceContainerLow,
+        color: colorScheme.surfaceContainerHigh,
+        elevation: 2,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      _featureIcon(feature),
-                      size: 24,
-                      color: colorScheme.primary,
-                    ),
-                    const Spacer(),
-                    if (snapshot.status == FeatureLoadStatus.loading)
-                      const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else if (isFailure || isStale)
-                      IconButton(
-                        tooltip: '重试',
-                        onPressed: () => onRetry(),
-                        icon: Icon(Icons.refresh, color: colorScheme.error),
-                      )
-                    else if (snapshot.status == FeatureLoadStatus.success)
-                      Icon(Icons.check_circle, color: colorScheme.primary),
-                  ],
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  _featureIcon(feature),
+                  size: 40,
+                  color: colorScheme.primary,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   feature.title,
+                  textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Expanded(
-                  child: Text(
-                    _statusText(snapshot),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isFailure
-                          ? colorScheme.error
-                          : isStale
-                          ? colorScheme.tertiary
-                          : colorScheme.onSurfaceVariant,
-                    ),
+                Text(
+                  feature.description,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -281,17 +277,6 @@ class _FeatureCard extends StatelessWidget {
       ),
     );
   }
-
-  String get featureLabel => feature.title;
-
-  String _statusText(FeatureSnapshot snapshot) => switch (snapshot.status) {
-    FeatureLoadStatus.idle => feature.description,
-    FeatureLoadStatus.loading => '正在加载…',
-    FeatureLoadStatus.success => snapshot.summary ?? '已加载，点击查看详情',
-    FeatureLoadStatus.empty => '暂无数据',
-    FeatureLoadStatus.stale => '${snapshot.summary ?? '已显示上次数据'}（刷新失败，可重试）',
-    FeatureLoadStatus.failure => snapshot.error?.message ?? '加载失败，请重试',
-  };
 }
 
 class _AdvancedFeaturesView extends StatelessWidget {
@@ -313,7 +298,7 @@ class _AdvancedFeaturesView extends StatelessWidget {
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
         sliver: _FeatureGridSliver(
-          features: campusFeatureIds,
+          features: advancedFeatureIds,
           snapshots: snapshots,
           onFeatureTap: onFeatureTap,
           onRetryFeature: onRetryFeature,

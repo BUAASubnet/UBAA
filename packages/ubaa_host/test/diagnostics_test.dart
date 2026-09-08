@@ -9,7 +9,11 @@ void main() {
   testWidgets('个人页可查看本次运行诊断且不会包含账号资料', (tester) async {
     await tester.pumpWidget(UbaaAppHost(backend: _SignedInBackend()));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.person_outline));
+    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('本次运行诊断'), findsOneWidget);
     await tester.tap(find.text('本次运行诊断'));

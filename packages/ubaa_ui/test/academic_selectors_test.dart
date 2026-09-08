@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('今日查询不携带旧周次草稿，按输入查询保留兼容周表', (tester) async {
@@ -238,4 +239,5 @@ Future<void> _show(
   );
   await tester.tap(card);
   await tester.pumpAndSettle();
+  await openQueryPanel(tester);
 }

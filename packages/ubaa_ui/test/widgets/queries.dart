@@ -1,7 +1,7 @@
 part of '../widgets_test.dart';
 
 void _registerQueryTests() {
-  testWidgets('课堂签到控件提交未签到本地派生视图', (tester) async {
+  testWidgets('课堂签到控件提交可签到本地派生视图', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -37,11 +37,12 @@ void _registerQueryTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
+    await openFeature(tester, FeatureId.signin);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('全部课程'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('未签到'));
+    await tester.tap(find.text('可签到'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
@@ -98,7 +99,7 @@ void _registerQueryTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
+    await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
 
     final button = tester.widget<OutlinedButton>(
@@ -162,7 +163,7 @@ void _registerQueryTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
+    await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(OutlinedButton, '准备签到'), findsOneWidget);
@@ -207,7 +208,8 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.text('考试查询'));
+    await openFeature(tester, FeatureId.exam);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('全部考试'));
     await tester.pumpAndSettle();
@@ -252,7 +254,8 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.text('成绩查询'));
+    await openFeature(tester, FeatureId.grades);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('全部成绩'));
     await tester.pumpAndSettle();
@@ -297,18 +300,21 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('博雅课程'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('课程列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('课程详情'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, '12345');
+    await tester.enterText(
+      find
+          .byWidgetPredicate(
+            (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+          )
+          .first,
+      '12345',
+    );
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.view, FeatureQueryView.bykcDetail);
@@ -349,12 +355,8 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('博雅课程'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('课程列表'));
     await tester.pumpAndSettle();
@@ -399,7 +401,8 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
     await tester.pumpAndSettle();
@@ -452,7 +455,8 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.text('课表查询'));
+    await openFeature(tester, FeatureId.schedule);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('今日课程'));
     await tester.pumpAndSettle();
@@ -497,9 +501,12 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.text('博雅课程'));
+    await openFeature(tester, FeatureId.bykc);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
+    final fields = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    );
     await tester.enterText(fields.at(0), '2');
     await tester.enterText(fields.at(1), '50');
     await tester.tap(find.text('应用筛选'));
@@ -544,13 +551,16 @@ void _registerQueryTests() {
     );
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('阳光打卡'));
+    await openFeature(tester, FeatureId.ygdk);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('概览'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('记录列表'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
+    final fields = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    );
     await tester.enterText(fields.first, '3');
     await tester.enterText(fields.at(1), '15');
     await tester.tap(find.text('应用筛选'));
@@ -597,17 +607,20 @@ void _registerQueryTests() {
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('场馆预约'),
+      find.text('研讨室预约'),
       250,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text('场馆预约'));
+    await openFeature(tester, FeatureId.cgyy);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('站点列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('日期空间'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
+    final fields = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    );
     await tester.enterText(fields.first, '17');
     await tester.enterText(fields.at(1), '2026-09-03');
     await tester.tap(find.text('应用筛选'));
@@ -653,12 +666,8 @@ void _registerQueryTests() {
     );
     await tester.tap(find.byIcon(Icons.apps_outlined));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('教学评教'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('教学评教'));
+    await openFeature(tester, FeatureId.evaluation);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('全部课程'));
     await tester.pumpAndSettle();
@@ -680,8 +689,15 @@ void _registerQueryTests() {
               ? const <FeatureDetail>[
                   FeatureDetail(
                     title: '作业',
+                    presentation: SpocAssignmentPresentation(
+                      courseId: 'c',
+                      courseName: '合成课程',
+                      assignmentId: 'assignment-17',
+                      status: AssignmentSubmissionStatus.unsubmitted,
+                      statusText: '未提交',
+                    ),
                     fields: <FeatureField>[
-                      FeatureField(label: '作业编号', value: 'assignment-17'),
+                      FeatureField(label: '作业编号', value: '错误展示编号'),
                     ],
                   ),
                 ]
@@ -710,20 +726,16 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('SPOC作业'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('SPOC作业'));
+    await openFeature(tester, FeatureId.spoc);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('作业列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('作业详情'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButton<String>).last);
+    await tester.tap(find.text('选择已加载作业'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('assignment-17').last);
+    await tester.tap(find.text('合成课程 · 作业（assignment-17）'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
@@ -765,18 +777,16 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('希冀作业'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('希冀作业'));
+    await openFeature(tester, FeatureId.judge);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('作业列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('作业详情'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
+    final fields = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+    );
     await tester.enterText(fields.first, 'course-3');
     await tester.enterText(fields.at(1), 'assignment-17');
     await tester.tap(find.text('应用筛选'));
@@ -821,12 +831,8 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('希冀作业'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('希冀作业'));
+    await openFeature(tester, FeatureId.judge);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('包含已过期作业'));
     await tester.pumpAndSettle();
@@ -869,19 +875,19 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(
-      find.text('希冀作业'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('希冀作业'));
+    await openFeature(tester, FeatureId.judge);
+    await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('作业列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('批量详情'));
     await tester.pumpAndSettle();
     await tester.enterText(
-      find.byType(TextField).first,
+      find
+          .byWidgetPredicate(
+            (w) => w is TextField && w.decoration?.labelText != '筛选详情',
+          )
+          .first,
       'course-2/assignment-2\ncourse-1/assignment-1',
     );
     await tester.tap(find.text('应用筛选'));

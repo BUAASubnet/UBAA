@@ -63,7 +63,7 @@ void _registerCgyyCancellationWriteTest() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认取消场馆订单'), findsNWidgets(2));
+    expect(find.text('确认取消场馆订单'), findsOneWidget);
 
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
@@ -266,6 +266,6 @@ Future<void> _pumpCgyyCancellationShell(
 Future<void> _openCgyyCancellation(WidgetTester tester) async {
   await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('场馆预约'));
+  await openFeature(tester, FeatureId.cgyy);
   await tester.pumpAndSettle();
 }

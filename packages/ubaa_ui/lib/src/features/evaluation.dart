@@ -66,12 +66,16 @@ extension _EvaluationDetailActions on _FeatureDetailListState {
     List<EvaluationSubmitTarget> selectedEvaluations,
   ) => <Widget>[
     if (widget.feature == FeatureId.evaluation &&
+        selectedEvaluations.isNotEmpty &&
         widget.onEvaluationWrite != null)
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-        child: Row(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
-            Expanded(child: Text('已选择 ${selectedEvaluations.length} 门待评课程')),
+            Text('已选择 ${selectedEvaluations.length} 门待评课程'),
             OutlinedButton(
               onPressed: pendingEvaluations.isEmpty
                   ? null
@@ -95,7 +99,6 @@ extension _EvaluationDetailActions on _FeatureDetailListState {
                     : '全选待评',
               ),
             ),
-            const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: selectedEvaluations.isEmpty
                   ? null

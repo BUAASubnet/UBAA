@@ -107,7 +107,7 @@ Future<void> _pumpSigninResult(
   );
   await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('课堂签到'));
+  await openFeature(tester, FeatureId.signin);
   await tester.pumpAndSettle();
   await tester.tap(find.text('准备签到'));
   await tester.pumpAndSettle();

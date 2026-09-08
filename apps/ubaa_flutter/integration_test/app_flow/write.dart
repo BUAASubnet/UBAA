@@ -226,10 +226,10 @@ void _registerWriteMatrixFlowTest() {
     await leaveFeature();
 
     await openFeature(FeatureId.cgyy);
-    expect(find.text('准备场馆预约'), findsOneWidget);
-    await tester.tap(find.text('准备场馆预约').first);
+    expect(find.text('准备研讨室预约'), findsOneWidget);
+    await tester.tap(find.text('准备研讨室预约').first);
     await tester.pumpAndSettle();
-    expect(find.text('填写场馆预约信息'), findsOneWidget);
+    expect(find.text('填写研讨室预约信息'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, '联系电话'),
       '010-00000000',
@@ -244,8 +244,8 @@ void _registerWriteMatrixFlowTest() {
     // pumpAndSettle 主动继续推进时间，因此这里显式越过该安全窗口。
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
-    expect(find.text('填写场馆预约信息'), findsNothing);
-    expect(find.text('确认场馆预约'), findsAtLeastNWidgets(1));
+    expect(find.text('填写研讨室预约信息'), findsNothing);
+    expect(find.text('确认研讨室预约'), findsAtLeastNWidgets(1));
     final beforeCgyy = backend.commitCalls;
     final beforeCgyyReadback = backend.featureLoads[FeatureId.cgyy] ?? 0;
     await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
@@ -258,7 +258,7 @@ void _registerWriteMatrixFlowTest() {
     expect(
       backend.featureLoads[FeatureId.cgyy],
       greaterThan(beforeCgyyReadback),
-      reason: '场馆预约提交后必须刷新场馆订单核对',
+      reason: '研讨室预约提交后必须刷新场馆订单核对',
     );
     await leaveFeature();
 
