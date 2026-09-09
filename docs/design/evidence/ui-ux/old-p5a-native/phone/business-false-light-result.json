@@ -1,0 +1,13 @@
+{
+  "name": "business-false-light-result",
+  "backend": "synthetic-write-confirmation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "sourceSha": "3698f27a+P5A-r4",
+  "dateUtc": "2026-09-09T15:12:52.278359Z",
+  "pngSaved": true
+}

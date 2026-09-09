@@ -1,0 +1,15 @@
+{
+  "baseSha": "3698f27a54f2eafd7958f3290a7ed9fee1f5e1ca",
+  "sourceDefine": "3698f27a+P5A-r4",
+  "说明": "三端r4与Flutter692使用此生产实现。全部写入使用显式内存backend，未运行真实学校写入；macOS原生断言通过，锁屏下独立实窗复核未完成。",
+  "files": {
+    "packages/ubaa_ui/lib/src/app/shell.dart": "d58a76237e48e69ad7ebb51a7971d9228a83e5f7b28c8afe827612cd0f97c49d",
+    "packages/ubaa_ui/lib/src/write/confirmation.dart": "3f152e31fe5d7c0fdfc66734d32d524887fc2796c7c627dc7622e779e6968cb3",
+    "packages/ubaa_ui/test/write/confirmation_old_test.dart": "4bb8ba0e0c7ecedc409e1dd4a43b18a6a54cfaa3fb253fd153a157c695e98767",
+    "packages/ubaa_ui/test/widgets/writes.dart": "96c8feda9d983ad1373417f478201bfd95c417da7eee84c8b48a190e83957a8a",
+    "apps/ubaa_flutter/integration_test/ui_write_confirmation/backend.dart": "6f31701f7e6301c544eacc762f7505181aac7c4b61d7213dcd9f44d8ac058f70",
+    "apps/ubaa_flutter/integration_test/ui_write_confirmation/native_test.dart": "a60e7753caed12e8af04ad68d5e9d498fc52b588309baca768ab23be599059ba",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/backend.dart": "02c6f42d72f9c4132ef2ce7c1870161a659455373cea32617733507f2ec91b8e",
+    "apps/ubaa_flutter/test_driver/ui_render.dart": "b0f070dde13940abfdb9e9a036f8f98c5d28110b6bd05f3cefc6045037fe3c37"
+  }
+}

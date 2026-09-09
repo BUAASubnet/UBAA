@@ -324,6 +324,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         if (pendingWrite != null)
           WriteConfirmationView(
             showTitle: false,
+            showRoute: false,
             intent: pendingWrite,
             onCancel: _cancelWrite,
             onConfirm: _confirmWrite,
@@ -333,142 +334,159 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
       ],
     );
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        toolbarHeight: 56,
-        title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
-          valueListenable: _visiblePage,
-          builder: (context, page, _) => Text(
-            pendingWrite != null
-                ? '确认${pendingWrite.operation.title}'
-                : _openedFeature != null
-                ? (page?.$1.feature == _openedFeature
-                      ? page!.$2
-                      : _openedFeature!.title)
-                : (_utilityPage ??
-                      (_selectedIndex == 0
-                          ? '首页'
-                          : _tabs[_selectedIndex].label)),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        leading: pendingWrite != null
-            ? null
-            : _openedFeature != null || _utilityPage != null
-            ? IconButton(
-                tooltip: '返回',
-                onPressed: () {
-                  if (_utilityPage != null) {
-                    setState(() => _utilityPage = null);
-                  } else {
-                    _readPageKeys[_openedFeature]?.currentState?.goBack();
-                  }
-                },
-                icon: const Icon(Icons.arrow_back),
-              )
-            : null,
-        actions: <Widget>[
-          ValueListenableBuilder<(FeatureSnapshot, String)?>(
+    return PopScope<void>(
+      canPop: pendingWrite == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop &&
+            pendingWrite != null &&
+            !widget.writeState.isSubmitting) {
+          unawaited(_cancelWrite());
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          toolbarHeight: 56,
+          title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
             valueListenable: _visiblePage,
-            builder: (context, page, _) {
-              final snapshot = page?.$1;
-              final homeVisible =
-                  _openedFeature == null &&
-                  _utilityPage == null &&
-                  _selectedIndex == 0 &&
-                  pendingWrite == null;
-              final pageRoutes = homeVisible
-                  ? _homeReadRoutes
-                  : _openedFeature == FeatureId.grades && pendingWrite == null
-                  ? _gradesReadRoutes
-                  : null;
-              final homeRoutes =
-                  pageRoutes?.values.toSet() ?? <ConnectionMode>{};
-              final mixed = homeRoutes.length > 1;
-              final route =
-                  pendingWrite?.resolvedRoute ??
-                  (pageRoutes != null && pageRoutes.isNotEmpty
-                      ? (homeRoutes.length == 1 ? homeRoutes.single : null)
-                      : (_openedFeature == snapshot?.feature
-                            ? snapshot?.resolvedRoute
-                            : null));
-              return IconButton(
-                tooltip: '实际路线：${mixed ? '混合' : route?.label ?? '未确定'}',
-                icon: Icon(
-                  route == ConnectionMode.direct
-                      ? Icons.lan_outlined
-                      : route == ConnectionMode.webvpn
-                      ? Icons.vpn_lock_outlined
-                      : Icons.route_outlined,
-                ),
-                onPressed: () =>
-                    _showRouteOptions(context, route, homeRoutes: pageRoutes),
-              );
-            },
+            builder: (context, page, _) => Text(
+              pendingWrite != null
+                  ? '确认${pendingWrite.operation.title}'
+                  : _openedFeature != null
+                  ? (page?.$1.feature == _openedFeature
+                        ? page!.$2
+                        : _openedFeature!.title)
+                  : (_utilityPage ??
+                        (_selectedIndex == 0
+                            ? '首页'
+                            : _tabs[_selectedIndex].label)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          if (_openedFeature != null && pendingWrite == null)
-            IconButton(
-              tooltip: '搜索与筛选',
-              onPressed: () =>
-                  _readPageKeys[_openedFeature]?.currentState?.openPanel(),
-              icon: const Icon(Icons.search),
+          leading: pendingWrite != null
+              ? IconButton(
+                  tooltip: '取消并返回',
+                  onPressed: widget.writeState.isSubmitting
+                      ? null
+                      : _cancelWrite,
+                  icon: const Icon(Icons.arrow_back),
+                )
+              : _openedFeature != null || _utilityPage != null
+              ? IconButton(
+                  tooltip: '返回',
+                  onPressed: () {
+                    if (_utilityPage != null) {
+                      setState(() => _utilityPage = null);
+                    } else {
+                      _readPageKeys[_openedFeature]?.currentState?.goBack();
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                )
+              : null,
+          actions: <Widget>[
+            ValueListenableBuilder<(FeatureSnapshot, String)?>(
+              valueListenable: _visiblePage,
+              builder: (context, page, _) {
+                final snapshot = page?.$1;
+                final homeVisible =
+                    _openedFeature == null &&
+                    _utilityPage == null &&
+                    _selectedIndex == 0 &&
+                    pendingWrite == null;
+                final pageRoutes = homeVisible
+                    ? _homeReadRoutes
+                    : _openedFeature == FeatureId.grades && pendingWrite == null
+                    ? _gradesReadRoutes
+                    : null;
+                final homeRoutes =
+                    pageRoutes?.values.toSet() ?? <ConnectionMode>{};
+                final mixed = homeRoutes.length > 1;
+                final route =
+                    pendingWrite?.resolvedRoute ??
+                    (pageRoutes != null && pageRoutes.isNotEmpty
+                        ? (homeRoutes.length == 1 ? homeRoutes.single : null)
+                        : (_openedFeature == snapshot?.feature
+                              ? snapshot?.resolvedRoute
+                              : null));
+                return IconButton(
+                  tooltip: '实际路线：${mixed ? '混合' : route?.label ?? '未确定'}',
+                  icon: Icon(
+                    route == ConnectionMode.direct
+                        ? Icons.lan_outlined
+                        : route == ConnectionMode.webvpn
+                        ? Icons.vpn_lock_outlined
+                        : Icons.route_outlined,
+                  ),
+                  onPressed: () =>
+                      _showRouteOptions(context, route, homeRoutes: pageRoutes),
+                );
+              },
             ),
-          if (_openedFeature != null && pendingWrite == null)
-            IconButton(
-              tooltip: '刷新当前查询',
-              onPressed: () =>
-                  _readPageKeys[_openedFeature]?.currentState?.refreshCurrent(),
-              icon: const Icon(Icons.refresh),
-            ),
-          if (_openedFeature == null &&
-              _utilityPage == null &&
-              _selectedIndex == 0)
-            IconButton(
-              tooltip: '刷新',
-              onPressed: () => widget.onRefresh(),
-              icon: const Icon(Icons.refresh),
-            ),
-        ],
-      ),
-      drawer: _buildDrawer(context),
-      // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-      body: Row(
-        children: <Widget>[
-          if (wide) _buildRail(context),
-          if (wide) const VerticalDivider(width: 1),
-          Expanded(
-            key: const ValueKey<String>('feature-pages'),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: body,
+            if (_openedFeature != null && pendingWrite == null)
+              IconButton(
+                tooltip: '搜索与筛选',
+                onPressed: () =>
+                    _readPageKeys[_openedFeature]?.currentState?.openPanel(),
+                icon: const Icon(Icons.search),
+              ),
+            if (_openedFeature != null && pendingWrite == null)
+              IconButton(
+                tooltip: '刷新当前查询',
+                onPressed: () => _readPageKeys[_openedFeature]?.currentState
+                    ?.refreshCurrent(),
+                icon: const Icon(Icons.refresh),
+              ),
+            if (_openedFeature == null &&
+                _utilityPage == null &&
+                _selectedIndex == 0 &&
+                pendingWrite == null)
+              IconButton(
+                tooltip: '刷新',
+                onPressed: () => widget.onRefresh(),
+                icon: const Icon(Icons.refresh),
+              ),
+          ],
+        ),
+        drawer: pendingWrite == null ? _buildDrawer(context) : null,
+        // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
+        body: Row(
+          children: <Widget>[
+            if (wide) _buildRail(context),
+            if (wide) const VerticalDivider(width: 1),
+            Expanded(
+              key: const ValueKey<String>('feature-pages'),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: body,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        bottomNavigationBar:
+            wide ||
+                _openedFeature != null ||
+                _utilityPage != null ||
+                pendingWrite != null
+            ? null
+            : NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _selectTab,
+                destinations: _tabs
+                    .map(
+                      (tab) => NavigationDestination(
+                        key: ValueKey<String>('tab-${tab.label}'),
+                        icon: Icon(tab.icon),
+                        selectedIcon: Icon(tab.selectedIcon),
+                        label: tab.label,
+                      ),
+                    )
+                    .toList(),
+              ),
       ),
-      bottomNavigationBar:
-          wide ||
-              _openedFeature != null ||
-              _utilityPage != null ||
-              pendingWrite != null
-          ? null
-          : NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _selectTab,
-              destinations: _tabs
-                  .map(
-                    (tab) => NavigationDestination(
-                      key: ValueKey<String>('tab-${tab.label}'),
-                      icon: Icon(tab.icon),
-                      selectedIcon: Icon(tab.selectedIcon),
-                      label: tab.label,
-                    ),
-                  )
-                  .toList(),
-            ),
     );
   }
 

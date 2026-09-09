@@ -1,0 +1,13 @@
+{
+  "name": "exception-light-result",
+  "backend": "synthetic-write-confirmation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "sourceSha": "3698f27a+P5A-r4",
+  "dateUtc": "2026-09-09T15:15:53.865818Z",
+  "pngSaved": true
+}

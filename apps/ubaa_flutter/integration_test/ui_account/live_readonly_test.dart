@@ -31,7 +31,9 @@ void main() {
       if (find.byType(UbaaLoginView).evaluate().isNotEmpty) break;
     }
     if (find.byType(UbaaLoginView).evaluate().isNotEmpty) {
-      debugPrint('账号恢复错误=${tester.widget<UbaaLoginView>(find.byType(UbaaLoginView)).error?.code.name}');
+      debugPrint(
+        '账号恢复错误=${tester.widget<UbaaLoginView>(find.byType(UbaaLoginView)).error?.code.name}',
+      );
     }
     expect(find.byType(UbaaMainShell).evaluate().isNotEmpty, isTrue);
     await tester.pumpAndSettle();

@@ -529,7 +529,7 @@ void _registerInitialWriteTests() {
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
     expect(find.text('确认课堂签到'), findsOneWidget);
-    expect(find.text('WebVPN'), findsOneWidget);
+    expect(find.byTooltip('实际路线：WebVPN'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
