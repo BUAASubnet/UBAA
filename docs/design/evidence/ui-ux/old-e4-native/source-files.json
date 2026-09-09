@@ -1,0 +1,14 @@
+{
+  "baseSha": "b8c9362c",
+  "说明": "生产login.dart在688项及两端原生之后未改变；后续仅原生测试导航修正、默认关闭的Mac截窗钩子、inspection合成预填及生产只读验收入口。手机r1、平板r2、Macr4分别记录，不冒称最终固定SHA全测。",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_account/fixture.dart": "7c6df1763909bdb756ef624829100187820d3e89c74e5aac730455da6b406439",
+    "apps/ubaa_flutter/integration_test/ui_account/live_readonly_test.dart": "69f59b0e914b118706c3e3f9343afcd2566f0e0d346207a169bd5e952e8358da",
+    "apps/ubaa_flutter/integration_test/ui_account/login_old.dart": "bc275acf291554d6b75461e50270ebd6f5ff86e0a5038c3467fd7588a23733a8",
+    "apps/ubaa_flutter/integration_test/ui_account/profile_capture.dart": "74dd51053eca7c61444e393fa84c1c6ecc40906c267f4d2befda87f1b1a6d56f",
+    "apps/ubaa_flutter/integration_test/ui_account/support.dart": "842668d36105438055bd1d2718611c17d091b43c0895c20f16951de6a2e5c8d0",
+    "apps/ubaa_flutter/integration_test/ui_account_test.dart": "c5b0f0b18316d1c89ae35122483f56ec254cf47210880161216e8dbfd1687bb4",
+    "packages/ubaa_ui/lib/src/app/login.dart": "c31e2e8e365b48a4615031e98c4ec8c60be85679d5c61adf5859708d9cfec858",
+    "packages/ubaa_ui/test/account/login_old_test.dart": "70c6fa0d279e63108b2f3c5e79806951c0fc5673af7607159a831e36a790bf47"
+  }
+}

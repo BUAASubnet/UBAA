@@ -32,3 +32,9 @@
 - 图中只synthetic联系人，日志不打印原联系人值；idCardTypeName与idCardNumber禁曝边界分开验证。旧username/displayName场景及不提供新字段的宿主保持兼容。
 
 当前结论仅为来源充分、方案无新增协议；App/UI新行为的RED/GREEN及实际渲染由主代理阶段A另行完成。
+
+## E4 登录、侧栏资料与设置旧布局复核（2026-09-09，实施前）
+
+完整复读冻结LoginScreen.kt、SettingsScreen.kt、OtherScreens.kt/MyScreen与Sidebar.kt；登录为居中32边距、学号→密码→可选验证码→记住/自动→48高登录→错误→项目链接，busy禁用提交；模式入口在安全区域右上。MyScreen只显示资料卡，Settings原模式卡切换会注销；Sidebar有我的/设置/关于与退出。当前沿三导航和侧栏资料/设置，联系人主动展示规则保留。发现当前登录路线仍为带标签大按钮、短高视口表单与浮动模式可能重叠、busy按钮/键盘提交没有UI禁用；本批拟收敛单图标并保留一条独立顶部空间，恢复旧32边距与busy交互保护。资料与设置先运行现行UI再决定必要调整，不恢复四导航。
+
+认证/恢复/注销九列分别逐项复用source-parity.md“准备/登录”“双路线加载/保存/退出”，资料复用“用户资料”和本页原表；已复读AuthApi接口、LocalConnectionAuth的userinfo实现与UserInfo DTO、LocalAuthServiceBackendTest恢复例，examples sso/auth.rs、user/auth.rs及user/opt.rs。此次仅视觉和UI触发保护：登录仍原prepare/login普通字段、固定路线CAS/重定向/Cookie/隐藏字段/表单编码，无新加密或captcha材料；重复请求仍由既有AppController拒绝，UI提前禁用不改变协议错误；资料不额外读取、缓存或扩展字段。examples无同一userinfo或交互验证码协议，不借用。设置沿当前公开set_default_route_policy本地重开语义，不照旧UI注销；默认策略不标为实际路线，登录前明确尚未读取。关于页/外链旧能力差异另记，不能因未接入外链就伪造点击已通过。

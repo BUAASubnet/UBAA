@@ -1,0 +1,14 @@
+{
+  "name": "keyboard-partial",
+  "backend": "synthetic-account-fixture",
+  "platform": "macos",
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "viewportSource": "native-window-unmodified",
+  "captureMethod": "CUA独立操作及OS原窗截图",
+  "sourceSha": "b8c9362c+E4-inspection",
+  "result": "输入限制，非PASS",
+  "steps": "typeText完整账号只显示a；粘贴超时；AX赋值与画面不一致"
+}

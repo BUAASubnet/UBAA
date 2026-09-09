@@ -13,6 +13,8 @@ final class _AccountBackend
   int reads = 0;
   int logouts = 0;
   LoginInput? lastLogin;
+  Completer<void>? loginGate;
+  int loginCalls = 0;
 
   @override
   Future<AuthStatus> authStatus() async {
@@ -42,6 +44,8 @@ final class _AccountBackend
   @override
   Future<void> login(LoginInput input) async {
     lastLogin = input;
+    loginCalls++;
+    if (loginGate != null) await loginGate!.future;
     if (state == 'invalid-credentials') {
       throw const BackendException(UbaaErrorCode.invalidCredentials);
     }

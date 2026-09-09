@@ -1,0 +1,14 @@
+{
+  "name": "settings-light",
+  "backend": "synthetic-account-fixture",
+  "platform": "macos",
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "viewportSource": "native-window-unmodified",
+  "captureMethod": "CUA独立操作及OS原窗截图",
+  "sourceSha": "b8c9362c+E4-inspection-prefilled",
+  "result": "已逐图核对本图场景",
+  "steps": "隐藏邮箱→返回→侧栏设置→浅色主题"
+}

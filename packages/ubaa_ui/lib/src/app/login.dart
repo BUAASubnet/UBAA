@@ -90,138 +90,158 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 520;
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(compact ? 16 : 32),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: AutofillGroup(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Text(
-                        'UBAA 登录',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 32),
-                      TextField(
-                        controller: _usernameController,
-                        enabled: !widget.isLoading,
-                        autofillHints: const <String>[AutofillHints.username],
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(labelText: '学号'),
-                        onChanged: widget.onUsernameChanged,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        enabled: !widget.isLoading,
-                        obscureText: _obscurePassword,
-                        autofillHints: const <String>[AutofillHints.password],
-                        textInputAction: TextInputAction.done,
-                        decoration: InputDecoration(
-                          labelText: '密码',
-                          suffixIcon: IconButton(
-                            tooltip: _obscurePassword ? '显示密码' : '隐藏密码',
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                          ),
-                        ),
-                        onChanged: widget.onPasswordChanged,
-                        onSubmitted: (_) => widget.onSubmit(),
-                      ),
-                      if (widget.captcha.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _captchaController,
-                          enabled: !widget.isLoading,
-                          textInputAction: TextInputAction.done,
-                          decoration: const InputDecoration(labelText: '验证码'),
-                          onChanged: widget.onCaptchaChanged,
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      _LoginOptions(
-                        rememberPassword: widget.rememberPassword,
-                        autoLogin: widget.autoLogin,
-                        enabled: !widget.isLoading,
-                        persistenceAvailable:
-                            widget.credentialPersistenceAvailable,
-                        onRememberPasswordChanged:
-                            widget.onRememberPasswordChanged,
-                        onAutoLoginChanged: widget.onAutoLoginChanged,
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        height: 48,
-                        child: FilledButton(
-                          onPressed: _canSubmit ? widget.onSubmit : null,
-                          child: widget.isLoading
-                              ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('登录'),
-                        ),
-                      ),
-                      if (widget.error case final error?) ...<Widget>[
-                        const SizedBox(height: 16),
-                        FriendlyErrorCard(error: error),
-                        if (widget.onReadDiagnostics != null)
-                          TextButton(
-                            onPressed: () => _showDiagnosticsDialog(
-                              context,
-                              widget.onReadDiagnostics!,
-                            ),
-                            child: const Text('查看诊断信息'),
-                          ),
-                      ],
-                      const SizedBox(height: 32),
-                      Text(
-                        '开源项目: github.com/BUAASubnet/UBAA',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            SizedBox(
+              height: 56,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: _RoutePolicyButton(
+                    policy: widget.routePolicy,
+                    enabled: !widget.isLoading,
+                    onChanged: widget.onRoutePolicyChanged,
                   ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            top: 16,
-            right: 16,
-            child: SafeArea(
-              child: _RoutePolicyButton(
-                policy: widget.routePolicy,
-                enabled: !widget.isLoading,
-                onChanged: widget.onRoutePolicyChanged,
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(32),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 440),
+                    child: AutofillGroup(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Text(
+                            'UBAA 登录',
+                            style: Theme.of(context).textTheme.headlineMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 32),
+                          TextField(
+                            controller: _usernameController,
+                            enabled: !widget.isLoading,
+                            autofillHints: const <String>[
+                              AutofillHints.username,
+                            ],
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(labelText: '学号'),
+                            onChanged: widget.onUsernameChanged,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _passwordController,
+                            enabled: !widget.isLoading,
+                            obscureText: _obscurePassword,
+                            autofillHints: const <String>[
+                              AutofillHints.password,
+                            ],
+                            textInputAction: TextInputAction.done,
+                            decoration: InputDecoration(
+                              labelText: '密码',
+                              suffixIcon: IconButton(
+                                tooltip: _obscurePassword ? '显示密码' : '隐藏密码',
+                                onPressed: widget.isLoading
+                                    ? null
+                                    : () => setState(
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
+                                      ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            onChanged: widget.onPasswordChanged,
+                            onSubmitted: (_) {
+                              if (_canSubmit) widget.onSubmit();
+                            },
+                          ),
+                          if (widget.captcha.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _captchaController,
+                              enabled: !widget.isLoading,
+                              textInputAction: TextInputAction.done,
+                              decoration: const InputDecoration(
+                                labelText: '验证码',
+                              ),
+                              onChanged: widget.onCaptchaChanged,
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          _LoginOptions(
+                            rememberPassword: widget.rememberPassword,
+                            autoLogin: widget.autoLogin,
+                            enabled: !widget.isLoading,
+                            persistenceAvailable:
+                                widget.credentialPersistenceAvailable,
+                            onRememberPasswordChanged:
+                                widget.onRememberPasswordChanged,
+                            onAutoLoginChanged: widget.onAutoLoginChanged,
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: 48,
+                            child: FilledButton(
+                              onPressed: _canSubmit ? widget.onSubmit : null,
+                              child: widget.isLoading
+                                  ? const SizedBox.square(
+                                      dimension: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('登录'),
+                            ),
+                          ),
+                          if (widget.error case final error?) ...<Widget>[
+                            const SizedBox(height: 16),
+                            FriendlyErrorCard(error: error),
+                            if (widget.onReadDiagnostics != null)
+                              TextButton(
+                                onPressed: () => _showDiagnosticsDialog(
+                                  context,
+                                  widget.onReadDiagnostics!,
+                                ),
+                                child: const Text('查看诊断信息'),
+                              ),
+                          ],
+                          const SizedBox(height: 32),
+                          Text(
+                            '开源项目: github.com/BUAASubnet/UBAA',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   bool get _canSubmit =>
-      widget.username.trim().isNotEmpty && widget.password.isNotEmpty;
+      !widget.isLoading &&
+      widget.username.trim().isNotEmpty &&
+      widget.password.isNotEmpty;
 }
 
 class _LoginOptions extends StatelessWidget {
@@ -303,27 +323,27 @@ class _RoutePolicyButton extends StatelessWidget {
     initialValue: policy,
     tooltip: '连接模式',
     onSelected: onChanged,
-    itemBuilder: (context) => RoutePolicy.values
-        .map(
-          (item) => PopupMenuItem<RoutePolicy>(
-            value: item,
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                item == policy
-                    ? Icons.radio_button_checked
-                    : Icons.circle_outlined,
-              ),
-              title: Text(item.label),
-              subtitle: Text(item.description),
+    icon: const Icon(Icons.route_outlined),
+    itemBuilder: (context) => [
+      const PopupMenuItem<RoutePolicy>(
+        enabled: false,
+        child: Text('尚未读取；这里设置登录与后续查询的默认策略。'),
+      ),
+      ...RoutePolicy.values.map(
+        (item) => PopupMenuItem<RoutePolicy>(
+          value: item,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              item == policy
+                  ? Icons.radio_button_checked
+                  : Icons.circle_outlined,
             ),
+            title: Text(item.label),
+            subtitle: Text(item.description),
           ),
-        )
-        .toList(),
-    child: FilledButton.tonalIcon(
-      onPressed: null,
-      icon: const Icon(Icons.tune),
-      label: Text('模式：${policy.label}'),
-    ),
+        ),
+      ),
+    ],
   );
 }

@@ -14,7 +14,7 @@ void _registerProfileCapture(IntegrationTestWidgetsFlutterBinding binding) {
           scale: state == 'long' ? 1.3 : 1,
         );
         await _loginAccount(tester);
-        await _accountTap(tester, find.byIcon(Icons.person_outline));
+        await _openAccountUtility(tester, '我的资料');
         await _accountTap(tester, find.text('查看账号资料'));
         if (state != 'missing') {
           await _accountTap(tester, find.text('显示邮箱'));
@@ -61,7 +61,7 @@ void _registerRestoredAccount(IntegrationTestWidgetsFlutterBinding binding) {
       final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
       expect(shell.user?.username, 'account-fixture');
       expect(shell.activeRoutes, [ConnectionMode.direct]);
-      await _accountTap(tester, find.byIcon(Icons.person_outline));
+      await _openAccountUtility(tester, '我的资料');
       await _accountTap(tester, find.text('查看账号资料'));
       expect(find.text(backend.contactEmail), findsNothing);
       expect(find.text('合成学校标识'), findsOneWidget);

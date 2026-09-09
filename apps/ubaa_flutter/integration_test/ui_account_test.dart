@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,8 +17,25 @@ import 'package:ubaa_flutter/main.dart';
 part 'ui_account/fixture.dart';
 part 'ui_account/support.dart';
 part 'ui_account/profile_capture.dart';
+part 'ui_account/login_old.dart';
 
 void main() {
+  if (const bool.fromEnvironment('UBAA_ACCOUNT_INSPECTION')) {
+    WidgetsFlutterBinding.ensureInitialized();
+    runApp(
+      UbaaFlutterApp(
+        backend: _AccountBackend(),
+        credentialVault: MemoryCredentialVault(
+          initial: const Credential(
+            username: 'account-fixture',
+            password: 'synthetic-password',
+            autoLogin: false,
+          ),
+        ),
+      ),
+    );
+    return;
+  }
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   if (const bool.fromEnvironment('UBAA_ACCOUNT_RESTORE_CAPTURE')) {
     _registerRestoredAccount(binding);
@@ -28,6 +46,7 @@ void main() {
     return;
   }
   registerAccountPartialFixtureContract();
+  _registerLoginOld(binding);
   for (final brightness in Brightness.values) {
     for (final state in ['normal', 'long', 'missing']) {
       testWidgets('原生账号资料遮罩与退出：${brightness.name}/$state', (tester) async {
@@ -43,7 +62,7 @@ void main() {
         await _loginAccount(tester, remember: true);
         expect(vault.hasValue, isTrue);
         final reads = backend.reads;
-        await _accountTap(tester, find.byIcon(Icons.person_outline));
+        await _openAccountUtility(tester, '我的资料');
         expect(find.text(backend.contactEmail), findsNothing);
         await _accountTap(tester, find.text('查看账号资料'));
         if (state == 'missing') {
@@ -72,8 +91,8 @@ void main() {
           await _accountTap(tester, find.text('显示邮箱'));
           expect(find.text(backend.contactEmail), findsOneWidget);
         }
-        await _accountTap(tester, find.byIcon(Icons.home_outlined));
-        await _accountTap(tester, find.byIcon(Icons.person_outline));
+        await _accountBack(tester);
+        await _openAccountUtility(tester, '我的资料');
         expect(find.text('收起账号资料'), findsNothing);
         expect(backend.reads, reads);
         await _accountTap(tester, find.text('退出登录'));
@@ -84,7 +103,7 @@ void main() {
         expect(backend.lastLogin!.rememberPassword, isFalse);
         expect(backend.lastLogin!.autoLogin, isFalse);
         expect(vault.hasValue, isFalse);
-        await _accountTap(tester, find.byIcon(Icons.person_outline));
+        await _openAccountUtility(tester, '我的资料');
         expect(find.text('收起账号资料'), findsNothing);
         await _accountShot(
           binding,
@@ -100,7 +119,7 @@ void main() {
       await _loginAccount(tester, remember: true, auto: true);
       expect(backend.lastLogin!.rememberPassword, isTrue);
       expect(backend.lastLogin!.autoLogin, isTrue);
-      await _accountTap(tester, find.byIcon(Icons.person_outline));
+      await _openAccountUtility(tester, '设置');
       final reads = backend.reads;
       expect(
         tester.widget<UbaaMainShell>(find.byType(UbaaMainShell)).activeRoutes,
@@ -130,8 +149,8 @@ void main() {
             .value,
         ThemeMode.dark,
       );
-      await _accountTap(tester, find.byIcon(Icons.home_outlined));
-      await _accountTap(tester, find.byIcon(Icons.person_outline));
+      await _accountBack(tester);
+      await _openAccountUtility(tester, '设置');
       expect(
         tester
             .widget<DropdownButton<ThemeMode>>(
@@ -197,7 +216,7 @@ void main() {
         brightness,
       );
       await _loginAccount(tester);
-      await _accountTap(tester, find.byIcon(Icons.person_outline));
+      await _openAccountUtility(tester, '设置');
       expect(
         tester
             .widget<DropdownButton<ThemeMode>>(
@@ -217,6 +236,15 @@ void main() {
       Brightness.light,
     );
     await _loginAccount(tester);
+    await _accountTap(
+      tester,
+      find.byType(NavigationRail).evaluate().isNotEmpty
+          ? find.descendant(
+              of: find.byType(NavigationRail),
+              matching: find.byIcon(Icons.apps_outlined),
+            )
+          : find.byType(NavigationDestination).at(1),
+    );
     final card = find.widgetWithText(Card, FeatureId.schedule.title);
     final scrollable = find
         .descendant(
@@ -227,6 +255,8 @@ void main() {
     await tester.scrollUntilVisible(card, 200, scrollable: scrollable);
     await _accountTap(tester, card);
     final reads = backend.reads;
+    expect(find.byType(TextField), findsNothing);
+    await _accountTap(tester, find.byTooltip('搜索与筛选'));
     await _accountTap(tester, find.byType(DropdownButton<FeatureQueryView>));
     await _accountTap(tester, find.text('按输入查询').last);
     final term = find.byWidgetPredicate(
@@ -240,20 +270,12 @@ void main() {
       find.descendant(of: term, matching: find.byType(EditableText)),
     );
     expect(editing.focusNode.hasFocus, isTrue);
-    final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
-    if (width < 600) {
-      await _accountTap(tester, find.byTooltip('收起查询条件'));
-      expect(editing.focusNode.hasFocus, isFalse);
-      expect(tester.view.viewInsets.bottom, 0);
-      expect(term, findsNothing);
-      await _accountShot(binding, tester, 'normal-light-query-collapsed');
-      await _accountTap(tester, find.byTooltip('展开查询条件'));
-      expect(tester.widget<TextField>(term).controller!.text, '合成未应用草稿');
-    } else {
-      expect(find.byTooltip('收起查询条件'), findsNothing);
-      FocusManager.instance.primaryFocus?.unfocus();
-      await tester.pumpAndSettle();
-    }
+    await _accountTap(tester, find.text('完成'));
+    expect(editing.focusNode.hasFocus, isFalse);
+    expect(term, findsNothing);
+    await _accountShot(binding, tester, 'normal-light-query-collapsed');
+    await _accountTap(tester, find.byTooltip('搜索与筛选'));
+    expect(tester.widget<TextField>(term).controller!.text, '合成未应用草稿');
     expect(backend.reads, reads);
     await _accountShot(binding, tester, 'normal-light-query-expanded');
   });
@@ -320,7 +342,7 @@ void main() {
     );
     expect(client.unsupportedReads, greaterThanOrEqualTo(12));
     await _accountShot(binding, tester, 'partial-bridge-light-home');
-    await _accountTap(tester, find.byIcon(Icons.person_outline));
+    await _openAccountUtility(tester, '我的资料');
     expect(find.text('合成部分路线同学'), findsOneWidget);
     await _accountTap(tester, find.text('查看账号资料'));
     expect(find.text('partial@example.invalid'), findsNothing);

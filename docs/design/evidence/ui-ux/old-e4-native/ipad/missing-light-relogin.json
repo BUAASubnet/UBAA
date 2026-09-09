@@ -1,0 +1,21 @@
+{
+  "name": "missing-light-relogin",
+  "scene": "missing-light-relogin",
+  "backend": "synthetic-account-fixture",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "physicalWidth": 1668.0,
+  "physicalHeight": 2420.0,
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "theme": "light",
+  "textScale": 1.0,
+  "themeMode": "system",
+  "themeSource": "explicit-test-system-or-user-preference",
+  "textScaleSource": "test-platform-text-scale",
+  "sourceSha": "b8c9362c+E4-r2",
+  "dateUtc": "2026-09-09T12:31:12.616510Z",
+  "pngSaved": true
+}
