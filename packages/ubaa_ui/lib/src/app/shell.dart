@@ -19,6 +19,10 @@ class UbaaMainShell extends StatefulWidget {
     this.readCacheEpoch = 0,
     this.onLoadAcademicTerms,
     this.onLoadAllGrades,
+    this.gradeScoreNotice,
+    this.gradeCheckRoute,
+    this.onCheckGradeUpdates,
+    this.onConsumeGradeNotice,
     this.ygdkRecordsReadback,
     this.homeSnapshots,
     this.onLoadHomeSupplement,
@@ -81,6 +85,10 @@ class UbaaMainShell extends StatefulWidget {
   /// 用户打开学期选择器后读取独立选项，不改写课表结果页。
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
+  final GradeScoreNotice? gradeScoreNotice;
+  final ConnectionMode? gradeCheckRoute;
+  final Future<void> Function()? onCheckGradeUpdates;
+  final VoidCallback? onConsumeGradeNotice;
   final List<ConnectionMode> activeRoutes;
 
   /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
@@ -243,6 +251,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _openHomeTodo(HomeTodo item) {
     final target = item.navigation;
     if (target == null) return;
+    _openHomeNavigation(target);
+  }
+
+  void _openGradeNotice() {
+    final notice = widget.gradeScoreNotice;
+    if (notice == null) return;
+    widget.onConsumeGradeNotice?.call();
+    _openHomeNavigation(
+      FeatureReadNavigation(
+        feature: FeatureId.grades,
+        query: FeatureQuery(term: notice.termCode),
+      ),
+    );
+  }
+
+  void _openHomeNavigation(FeatureReadNavigation target) {
     final generation = _accountGeneration;
     setState(() => _openedFeature = target.feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -543,6 +567,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             cacheEpoch: widget.readCacheEpoch,
             onLoadSupplement: widget.onLoadHomeSupplement,
             onTodoTap: _openHomeTodo,
+            gradeScoreNotice: widget.gradeScoreNotice,
+            gradeCheckRoute: widget.gradeCheckRoute,
+            onCheckGradeUpdates: widget.onCheckGradeUpdates,
+            onOpenGradeNotice: _openGradeNotice,
+            onDismissGradeNotice: widget.onConsumeGradeNotice,
             onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
                 ? _startSigninWrite
                 : null,

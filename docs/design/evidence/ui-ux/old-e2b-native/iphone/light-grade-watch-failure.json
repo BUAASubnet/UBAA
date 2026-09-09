@@ -1,0 +1,14 @@
+{
+  "name": "light-grade-watch-failure",
+  "steps": "成绩读取失败不伪造更新，也不阻挡课程待办",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:31:25.689425Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

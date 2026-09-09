@@ -162,7 +162,17 @@ class _ProfileView extends StatelessWidget {
     );
     // 账号切换或退出已销毁原页面时，旧确认不得清理后来登录的账号。
     if (confirmed == true && context.mounted) {
-      await onLogoutAndClearAccount();
+      // 登录页替换资料页后，根Messenger仍可说明本机文件清理失败。
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      try {
+        await onLogoutAndClearAccount();
+      } on Object {
+        if (messenger?.mounted == true) {
+          messenger!.showSnackBar(
+            const SnackBar(content: Text('本机数据未能完全清除，请稍后重试。')),
+          );
+        }
+      }
     }
   }
 }

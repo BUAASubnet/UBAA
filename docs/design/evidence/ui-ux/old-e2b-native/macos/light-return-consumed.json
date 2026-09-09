@@ -1,0 +1,16 @@
+{
+  "name": "light-return-consumed",
+  "steps": "顶部返回；已查看通知消费",
+  "backend": "synthetic-grade-watch",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4076,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "efd2d312+E2b-r4",
+  "dateUtc": "2026-09-09T00:44:31.566470+00:00",
+  "capture": "独立CUA鼠标操作后原窗口截图，包含窗口阴影",
+  "pngSaved": true
+}

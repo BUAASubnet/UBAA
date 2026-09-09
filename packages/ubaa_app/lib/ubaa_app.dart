@@ -5,3 +5,4 @@ export 'src/backend.dart';
 export 'src/bridge_backend.dart';
 export 'src/app_controller.dart';
 export 'src/write_controller.dart';
+export 'src/controller/grade_score_watch.dart';

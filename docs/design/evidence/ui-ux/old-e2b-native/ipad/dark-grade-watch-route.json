@@ -1,0 +1,14 @@
+{
+  "name": "dark-grade-watch-route",
+  "steps": "实际路线分别保存，提醒来源进入唯一顶栏说明",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:33:10.316229Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

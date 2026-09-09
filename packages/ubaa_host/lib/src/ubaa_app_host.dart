@@ -52,6 +52,7 @@ class UbaaAppHost extends StatefulWidget {
     this.initialTab = 0,
     this.telemetry,
     this.reminderStore,
+    this.gradeScoreStore,
     super.key,
   });
 
@@ -68,6 +69,7 @@ class UbaaAppHost extends StatefulWidget {
   final int initialTab;
   final TelemetryClient? telemetry;
   final YgdkReminderStore? reminderStore;
+  final GradeScoreStore? gradeScoreStore;
 
   @override
   State<UbaaAppHost> createState() => _UbaaAppHostState();

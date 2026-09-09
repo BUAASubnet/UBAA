@@ -15,8 +15,17 @@ class _HomeView extends StatefulWidget {
     this.reminderSettings,
     this.onObserveProgress,
     this.onRoutes,
+    this.gradeScoreNotice,
+    this.gradeCheckRoute,
+    this.onCheckGradeUpdates,
+    this.onOpenGradeNotice,
+    this.onDismissGradeNotice,
   });
   final ValueChanged<Map<String, ConnectionMode>>? onRoutes;
+  final GradeScoreNotice? gradeScoreNotice;
+  final ConnectionMode? gradeCheckRoute;
+  final Future<void> Function()? onCheckGradeUpdates;
+  final VoidCallback? onOpenGradeNotice, onDismissGradeNotice;
   final UserSummary? user;
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
@@ -38,6 +47,7 @@ class _HomeViewState extends State<_HomeView> {
   final _loading = <HomeSupplement>{};
   int _generation = 0;
   bool _scheduled = false;
+  int? _gradeCheckEpoch;
   late final Timer _clock;
   DateTime _now = DateTime.now();
   @override
@@ -148,6 +158,20 @@ class _HomeViewState extends State<_HomeView> {
   @override
   Widget build(BuildContext context) {
     _scheduleLoads();
+    if (widget.visible &&
+        widget.onCheckGradeUpdates != null &&
+        _gradeCheckEpoch != widget.cacheEpoch &&
+        widget.snapshots.values.any((s) => s.updatedAt != null)) {
+      final epoch = widget.cacheEpoch;
+      _gradeCheckEpoch = epoch;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.visible && widget.cacheEpoch == epoch) {
+          unawaited(widget.onCheckGradeUpdates!());
+        } else if (mounted && _gradeCheckEpoch == epoch) {
+          _gradeCheckEpoch = null;
+        }
+      });
+    }
     final schedule = widget.snapshots[FeatureId.schedule]!;
     final today =
         schedule.details
@@ -158,6 +182,8 @@ class _HomeViewState extends State<_HomeView> {
     if (widget.visible) {
       final routes = <String, ConnectionMode>{
         if (schedule.resolvedRoute case final route?) '今日课表': route,
+        if (widget.gradeScoreNotice case final notice?) '成绩更新': notice.route,
+        if (widget.gradeCheckRoute case final route?) '成绩检查': route,
         for (final feature in [
           FeatureId.bykc,
           FeatureId.spoc,
@@ -242,6 +268,14 @@ class _HomeViewState extends State<_HomeView> {
           const SizedBox(height: 4),
           Text('${_now.month}月${_now.day}日'),
           const SizedBox(height: 12),
+          if (widget.gradeScoreNotice case final notice?) ...[
+            _GradeScoreBanner(
+              notice: notice,
+              onOpen: widget.onOpenGradeNotice,
+              onDismiss: widget.onDismissGradeNotice,
+            ),
+            const SizedBox(height: 12),
+          ],
           if (today.isNotEmpty)
             for (final detail in today)
               Padding(

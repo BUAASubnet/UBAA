@@ -1,0 +1,14 @@
+{
+  "name": "light-grade-watch-notice",
+  "steps": "横幅位于今日标题之后、课程之前；单门消息保留旧文案",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:31:13.188952Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

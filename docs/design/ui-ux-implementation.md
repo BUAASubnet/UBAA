@@ -295,3 +295,8 @@ Domain的GradesTermOverview保留requestTerm/termCode/完整grades；GradeStatis
 UI的academic/grades_flow.dart与grade_cards.dart承担旧顺序统计/描边卡片；FeatureReadNavigator传递私有当前帧可见性，只在成绩页可见时加载聚合；Shell/Host转接onLoadAllGrades和逐来源实际route。历史宽表格类已删除，共用本地详情仍保留。新测试位于domain/grade_statistics_test、App app_controller/grades、UI academic/grades_old_test，原生与生产入口在integration_test/ui_grades_old。本批E2b首页成绩变化提醒尚未接线。
 
 O3-E2a局部终态（2026-09-09）：成绩完整投影、旧统计/描边卡、全学期缓存与按需查询已实现；最终641项Flutter门禁（46/50/257/215/15/23/35）通过。三端r2各18业务场景，最后学期弹窗收缩后r3各2正常查询场景通过；两端各50张候选原图加macOS独立8图，共108PNG已逐图检查归档old-e2a-native。Direct/WebVPN Core-live与生产App均通过，9/9学期82条完整聚合，当前14待出、0已出、详情无额外读取，真实业务写入0。最后只修改选择器高度，未重跑已通过且未受影响的生产读取路径。CUA Key A输入事件限制保留，不宣称完整物理键盘通过。E2b首页变化通知和整体P5–P7仍未完成。
+
+
+### O3-E2b局部终态（2026-09-09）
+
+E2b首页成绩变化提醒已沿旧横幅实现：首次仅建立独立基线，查看/忽略消费，空集合和失败不覆盖，账号与实际路线隔离，唯一当前学期读取；无通知时实际成绩检查路线也进入唯一顶栏。最终655项Flutter门禁通过，三端各12业务场景通过，手机/平板各30及macOS独立6张合成原图共66张已逐图复核。生产Direct/WebVPN各完成14条首次基线、重读和宿主/存储实例重建恢复；文件600，实测变化0，真实业务写入0。仅证明宿主重建，不冒称完整进程重启或观察到真实学校分数更新。P4其余旧布局及P5–P7继续，完整键盘限制保留。

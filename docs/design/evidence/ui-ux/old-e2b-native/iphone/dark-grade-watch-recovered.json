@@ -1,0 +1,14 @@
+{
+  "name": "dark-grade-watch-recovered",
+  "steps": "恢复后和原有效基线比较，显示确实发生的变化",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:31:00.188859Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

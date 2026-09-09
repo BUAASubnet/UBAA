@@ -28,6 +28,7 @@ part 'features/academic_tables.dart';
 part 'features/academic/exam_timeline.dart';
 part 'features/academic/grades_flow.dart';
 part 'features/academic/grade_cards.dart';
+part 'features/academic/grade_notice.dart';
 part 'features/classroom_queries.dart';
 part 'features/classroom_content.dart';
 part 'features/schedule_content.dart';

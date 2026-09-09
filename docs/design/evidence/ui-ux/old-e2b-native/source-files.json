@@ -1,0 +1,32 @@
+{
+  "baseSha": "efd2d312451c0e76d0e4e064bf5a6969b76cc080",
+  "candidate": "efd2d312+E2b-r4",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_grade_watch/backend.dart": "531b7349c2fb2262782f797baab802da3104d661efc8ea4128f24fe40e5eba21",
+    "apps/ubaa_flutter/integration_test/ui_grade_watch/live_readonly_test.dart": "0c616a4ff52db3b95489b73a50b953f69e1f327b3d7a54b35f135d182b1c10d6",
+    "apps/ubaa_flutter/integration_test/ui_grade_watch/native_test.dart": "2331eb86e66f5c75121e4bad70f8ff24b91278ad887aeb0a39a3e5540e6c40e8",
+    "apps/ubaa_flutter/integration_test/ui_grade_watch/support.dart": "979ebfc364ff6558b984ba9dbdd8a5a49643685eff9d5a7803c70606491a2085",
+    "apps/ubaa_flutter/test/home_grade_notice_test.dart": "c1999152187afa0d4e88be0691fa2be3e6597a9523489796635f3b1737a5f62d",
+    "packages/ubaa_app/lib/src/controller/app_controller.dart": "e6cdccda98bc60482a4325b585c76dcce434094a815004e00659a037413c72e3",
+    "packages/ubaa_app/lib/src/controller/app_controller/grades.dart": "923ef721435a048783fae4f507b231fdbdfc7fc7cd79257ef5867b3c093bd650",
+    "packages/ubaa_app/lib/src/controller/grade_score_watch.dart": "e364195035a1b16c57c0469343fb0fa32328026b7af5596e14239c2b8cd6f43d",
+    "packages/ubaa_app/lib/ubaa_app.dart": "d9eaf3176bb126d66327db8ff63615dc64ca24752a8ef5fbdb621f545c758d80",
+    "packages/ubaa_app/test/app_controller/grade_watch.dart": "df41eb14d48971bd4650b4812a82217c056e6f784bfececb5db842e1f278bfda",
+    "packages/ubaa_app/test/app_controller/grades.dart": "829b88fe0e79c538b44c9e0c5007bc7bb7f02f0cf0356ff61f24ca6706afb7d5",
+    "packages/ubaa_app/test/app_controller_test.dart": "6a46743b90bfd46514887d86a9e2421ca4e2eee4e72f6cdb78dc549a1165ab44",
+    "packages/ubaa_domain/lib/src/feature/grade_watch.dart": "5aa59757d6b5a220cf8b4f3ee2cd570973d59f58a75b10a20ac59b421d253b03",
+    "packages/ubaa_domain/lib/src/models.dart": "8fbc7da65c4634ffcbcdf0a2095ceff332abd82d05477395aa37ffb88bb5d58c",
+    "packages/ubaa_domain/test/grade_watch_test.dart": "5f0d6d7003c851336bcface76b061f9e04dbf733289e650d825129a2fc62594e",
+    "packages/ubaa_host/lib/src/callbacks.dart": "35a6152a2b9dd55a9616eb1f59c854b0844d494ce3847cc59f7fcb5f28909518",
+    "packages/ubaa_host/lib/src/lifecycle.dart": "d61439815f72136c80bbe81c50664ead6034327ca2309e09a58d0c41bf5215d3",
+    "packages/ubaa_host/lib/src/ubaa_app_host.dart": "514eda9f56ce5cc6f179d36e5daab0556cef777825843590e5954eb8b495fff3",
+    "packages/ubaa_platform/lib/src/grade_scores.dart": "db3710d36c575a2c3a502c569fdc1c5666e85eac708cab7a72af19e0951dc1f6",
+    "packages/ubaa_platform/lib/ubaa_platform.dart": "610a8b644b06b122f82f2737df2518ca2cd60fa40f26717a450f8d2312fe5023",
+    "packages/ubaa_platform/test/grade_scores_test.dart": "9bf3b967e755741a60e6a25b87735855d466d1b463180017af2acef4f3ddb509",
+    "packages/ubaa_ui/lib/src/app/home.dart": "8ee6d0d7a8bb4e1265d0f6c7a1ed98923d904262d10ce0762a89c4adf0ad6a05",
+    "packages/ubaa_ui/lib/src/app/profile.dart": "280e0bceb78f0ec577c0e7ed716d67d9ed5e697f3e4aaf1a5872754f954a3d8d",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "f1d2a3a0be48e84a1446649b5d99e2718ac18eade94a02c6219965a7971d2af1",
+    "packages/ubaa_ui/lib/src/features/academic/grade_notice.dart": "93a59162b3ae2ec95b978619c34b2da57991b37865f85a56c223fab0678cd88b",
+    "packages/ubaa_ui/lib/src/widgets.dart": "87dcbf2e8551b12f259f6265ca3998a9fe1f5a7d1e65deff25e957c9b450be96"
+  }
+}

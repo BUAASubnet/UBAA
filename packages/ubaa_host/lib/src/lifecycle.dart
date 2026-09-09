@@ -3,6 +3,8 @@ part of 'ubaa_app_host.dart';
 class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late final AppController _controller;
   late final YgdkReminderStore _reminderStore;
+  late final GradeScoreStore _gradeScoreStore;
+  late final GradeScoreWatch _gradeWatch;
   ThemeMode _themeMode = ThemeMode.system;
 
   void _setThemeMode(ThemeMode value) => setState(() => _themeMode = value);
@@ -30,6 +32,17 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       credentialVault: widget.credentialVault,
       telemetry: widget.telemetry,
     );
+    _gradeScoreStore =
+        widget.gradeScoreStore ??
+        (backend != null
+            ? MemoryGradeScoreStore()
+            : FileGradeScoreStore(
+                File('${defaultConfigDirectory()}/ui-grade-scores.json'),
+              ));
+    _gradeWatch = GradeScoreWatch(
+      controller: _controller,
+      store: _gradeScoreStore,
+    );
     _controller.addListener(_retryPendingRecovery);
     unawaited(_controller.initialize());
   }
@@ -39,6 +52,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_retryPendingRecovery);
+    _gradeWatch.dispose();
     _controller.dispose();
     super.dispose();
   }

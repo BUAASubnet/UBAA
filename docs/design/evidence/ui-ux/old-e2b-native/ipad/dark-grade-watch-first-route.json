@@ -1,0 +1,14 @@
+{
+  "name": "dark-grade-watch-first-route",
+  "steps": "首次基线没有通知时仍展示成绩检查实际WebVPN路线",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:33:08.133488Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

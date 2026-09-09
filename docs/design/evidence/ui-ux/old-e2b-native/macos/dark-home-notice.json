@@ -1,0 +1,16 @@
+{
+  "name": "dark-home-notice",
+  "steps": "重启合成宿主重建基线；侧栏设置深色，返回保留通知",
+  "backend": "synthetic-grade-watch",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4076,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "efd2d312+E2b-r4",
+  "dateUtc": "2026-09-09T00:44:31.567248+00:00",
+  "capture": "独立CUA鼠标操作后原窗口截图，包含窗口阴影",
+  "pngSaved": true
+}

@@ -1,0 +1,14 @@
+{
+  "name": "light-grade-watch-empty",
+  "steps": "空集合不覆盖已有基线",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:31:24.587866Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

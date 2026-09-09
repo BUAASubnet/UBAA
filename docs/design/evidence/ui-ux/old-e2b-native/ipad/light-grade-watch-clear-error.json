@@ -1,0 +1,14 @@
+{
+  "name": "light-grade-watch-clear-error",
+  "steps": "损坏的本地合成成绩文件不被覆盖；退出完成后明确说明未完全清除",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:33:14.332949Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

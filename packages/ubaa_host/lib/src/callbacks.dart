@@ -48,7 +48,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   }
 
   Widget _buildApplication() => AnimatedBuilder(
-    animation: _controller,
+    animation: Listenable.merge([_controller, _gradeWatch]),
     builder: (context, _) => MaterialApp(
       title: 'UBAA',
       locale: UbaaTheme.locale,
@@ -104,6 +104,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.loadAcademicTerms(forceRefresh: forceRefresh),
       onLoadAllGrades: (forceRefresh) =>
           _controller.loadAllGrades(forceRefresh: forceRefresh),
+      gradeScoreNotice: _gradeWatch.notice,
+      gradeCheckRoute: _gradeWatch.checkedRoute,
+      onCheckGradeUpdates: _gradeWatch.check,
+      onConsumeGradeNotice: _gradeWatch.consumeNotice,
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
       user: _controller.user,
@@ -158,8 +162,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           ? _controller.refreshYgdkAfterWrite
           : null,
       onLogout: _controller.logout,
-      onLogoutAndClearAccount: () =>
-          _controller.logout(clearSavedCredential: true),
+      onLogoutAndClearAccount: () async {
+        await _controller.logout(clearSavedCredential: true);
+        await _gradeScoreStore.clearAccount(accountKey);
+      },
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));
       },

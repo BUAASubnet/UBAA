@@ -17,6 +17,32 @@ final class _GradeReadEntry {
 }
 
 extension _AppControllerGrades on AppController {
+  Future<GradeTermRead?> _loadCurrentGrades({
+    required bool forceRefresh,
+  }) async {
+    if (_gradesReadGuard() case final error?) throw error;
+    final cache = _gradesCache();
+    final options = await _loadAcademicTerms(forceRefresh: forceRefresh);
+    if (!_gradesCurrent(cache)) throw _academicTermsConflict().error!;
+    if (options.error case final error?) throw error;
+    final selected = options.details.where((detail) {
+      final term = detail.presentation;
+      return term is TermPresentation &&
+          term.selected &&
+          term.code.trim().isNotEmpty;
+    }).toList();
+    if (selected.length != 1) return null;
+    final detail = selected.single;
+    final code = (detail.presentation! as TermPresentation).code;
+    final result = await _readGradeTerm(
+      cache,
+      code,
+      forceRefresh: forceRefresh,
+    );
+    if (!_gradesCurrent(cache)) throw _academicTermsConflict().error!;
+    return GradeTermRead(code: code, name: detail.title, result: result);
+  }
+
   void _rememberGradeResult(
     FeatureResult result,
     FeatureQuery? query, {

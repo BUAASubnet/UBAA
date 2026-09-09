@@ -1,0 +1,14 @@
+{
+  "name": "light-grade-watch-other-account",
+  "steps": "另一个合成账号首次建立独立基线，不比较前账号",
+  "backend": "synthetic-grade-watch",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T00:33:31.801289Z",
+  "sourceSha": "efd2d312+E2b-r4",
+  "pngSaved": true
+}

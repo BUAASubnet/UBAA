@@ -1,6 +1,35 @@
 part of '../app_controller_test.dart';
 
 void _registerGradesTests() {
+  test('成绩提醒只查唯一当前学期，未选或多个当前不猜首项', () async {
+    for (final count in [0, 2, 1]) {
+      final backend = _GradesBackend()
+        ..termResult = FeatureResult.success(
+          details: [
+            for (var i = 0; i < 2; i++)
+              FeatureDetail(
+                title: '合成学期$i',
+                presentation: TermPresentation(
+                  code: 'term$i',
+                  selected: i < count,
+                  index: i,
+                ),
+              ),
+          ],
+        );
+      final controller = AppController(backend: backend);
+      await controller.initialize();
+      final result = await controller.loadCurrentGrades();
+      if (count == 1) {
+        expect(result?.code, 'term0');
+        expect(backend.gradeCalls, ['term0']);
+      } else {
+        expect(result, isNull);
+        expect(backend.gradeCalls, isEmpty);
+      }
+      controller.dispose();
+    }
+  });
   test('成绩明确刷新后聚合复用本次结果，抛错后换视图不复活旧缓存', () async {
     final backend = _GradesBackend();
     final controller = AppController(backend: backend);
@@ -183,6 +212,7 @@ FeatureResult _gradeTerm(String term, {bool empty = false}) {
 class _GradesBackend extends _QueryBackend {
   _GradesBackend() : super(onQuery: (_, _) => const FeatureResult.empty());
   final gradeCalls = <String>[];
+  FeatureResult? termResult;
   FeatureResult? defaultGrades;
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async =>
@@ -202,6 +232,7 @@ class _GradesBackend extends _QueryBackend {
     FeatureQuery query,
   ) async {
     if (query.view == FeatureQueryView.scheduleTerms) {
+      if (termResult != null) return termResult!;
       return const FeatureResult.success(
         details: [
           FeatureDetail(

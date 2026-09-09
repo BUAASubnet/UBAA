@@ -14,3 +14,4 @@ export 'feature/read_context.dart';
 export 'feature/overview.dart';
 export 'feature/home.dart';
 export 'feature/grades.dart';
+export 'feature/grade_watch.dart';
