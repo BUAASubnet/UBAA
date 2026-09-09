@@ -1,0 +1,14 @@
+{
+  "name": "dark-loading-pending",
+  "steps": "重新读取中禁止选择旧时段",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:16:17.832263Z",
+  "sourceSha": "dcfb1570+P5B-r3",
+  "pngSaved": true
+}

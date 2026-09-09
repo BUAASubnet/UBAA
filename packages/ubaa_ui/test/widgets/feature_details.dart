@@ -219,13 +219,7 @@ void _registerFeatureInputTests() {
     expect(find.widgetWithText(FilterChip, '空间 5 · 时段 7'), findsNothing);
     await tester.tap(find.widgetWithText(FilterChip, '空间 4 · 时段 6'));
     await tester.pumpAndSettle();
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), 'phone-placeholder');
-    await tester.enterText(fields.at(1), '课程讨论');
-    await tester.enterText(fields.at(2), '2');
-    await tester.enterText(fields.at(3), '3');
-    await tester.enterText(fields.at(4), '讨论');
-    await tester.enterText(fields.at(5), '张三');
+    await _fillCgyyForm(tester, joiners: '合成参与人');
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);

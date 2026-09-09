@@ -7,6 +7,7 @@ environment:
   sdk: ^3.11.5
 
 dependencies:
+  clock: ^1.1.2
   flutter:
     sdk: flutter
   flutter_localizations:

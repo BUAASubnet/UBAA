@@ -291,12 +291,29 @@ Future<void> _fillCgyyForm(
   WidgetTester tester, {
   required String joiners,
 }) async {
-  await tester.enterText(_cgyyTextField('联系电话'), 'phone-placeholder');
-  await tester.enterText(_cgyyTextField('预约主题'), '课程讨论');
-  await tester.enterText(_cgyyTextField('用途编号'), '2');
-  await tester.enterText(_cgyyTextField('参与人数'), '3');
-  await tester.enterText(_cgyyTextField('活动内容'), '讨论');
-  await tester.enterText(_cgyyTextField('参与人说明'), joiners);
+  for (final item in {
+    '联系电话': 'phone-placeholder',
+    '预约主题': '课程讨论',
+    '用途编号': '2',
+    '参与人数': '3',
+    '活动内容': '讨论',
+    '参与人说明': joiners,
+  }.entries) {
+    if (item.key == '用途编号') {
+      await tester.ensureVisible(find.widgetWithText(OutlinedButton, '选择活动类型'));
+      await tester.tap(find.widgetWithText(OutlinedButton, '选择活动类型'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('手动填写'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_cgyyTextField('用途编号'), item.value);
+      await tester.tap(find.text('使用编号'));
+      await tester.pumpAndSettle();
+      continue;
+    }
+    await tester.ensureVisible(_cgyyTextField(item.key));
+    await tester.enterText(_cgyyTextField(item.key), item.value);
+    await tester.pumpAndSettle();
+  }
 }
 
 Finder _cgyyTextField(String label) => find.byWidgetPredicate(

@@ -19,6 +19,7 @@ class UbaaMainShell extends StatefulWidget {
     this.readCacheEpoch = 0,
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
+    this.onLoadCgyyPurposes,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -87,6 +88,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
+  final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
   final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -541,6 +543,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onNavigate: page.onNavigate,
       onLoadAcademicTerms: widget.onLoadAcademicTerms,
       onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
+      onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
+      onCgyyRouteOptions: (routes) => _showRouteOptions(
+        context,
+        routes.values.toSet().length == 1 ? routes.values.first : null,
+        homeRoutes: routes,
+      ),
       onScheduleTitle: page.onScheduleTitle,
       readCacheEpoch: widget.readCacheEpoch,
       onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null

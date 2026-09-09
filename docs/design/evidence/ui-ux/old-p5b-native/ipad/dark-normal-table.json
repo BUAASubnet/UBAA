@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-table",
+  "steps": "自动选择首站点，校区日期楼栋芯片与房间时段表；无常驻查询",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:15:29.739852Z",
+  "sourceSha": "dcfb1570+P5B-r3",
+  "pngSaved": true
+}

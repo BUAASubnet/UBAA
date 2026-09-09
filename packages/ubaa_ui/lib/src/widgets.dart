@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -64,5 +65,7 @@ part 'features/libbook/booking_row.dart';
 part 'features/libbook/area_map.dart';
 part 'features/ygdk.dart';
 part 'write/cgyy_form.dart';
+part 'write/cgyy_draft.dart';
+part 'write/cgyy_form_fields.dart';
 part 'write/confirmation.dart';
 part 'write/ygdk_form.dart';

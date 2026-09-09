@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'ui_rooms/backend.dart';
 part 'ui_rooms/support.dart';
+part 'ui_rooms/form.dart';
 
 void main() {
   if (const bool.fromEnvironment('UBAA_UI_INSPECTION')) {
@@ -23,6 +26,7 @@ void main() {
   }
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  _registerRoomFormTests(binding);
   for (final brightness in Brightness.values) {
     testWidgets('研讨室原生选择表单草稿和订单 ${brightness.name}', (tester) async {
       final backend = RoomBackend();
@@ -63,7 +67,6 @@ void main() {
       for (final entry in {
         '联系电话': 'fixture-phone',
         '预约主题': 'study',
-        '用途编号': '1',
         '参与人数': '2',
         '活动内容': 'synthetic discussion',
         '参与人说明': 'fixture participants',
@@ -72,6 +75,23 @@ void main() {
       }
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
+      await _tap(tester, find.text('返回修改时段'));
+      expect(find.text('已选'), findsNWidgets(2));
+      await _tap(tester, find.text('下一步'));
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '联系电话'))
+            .controller!
+            .text,
+        'fixture-phone',
+      );
+      expect(
+        backend.roomReads.where(
+          (q) => q.view == FeatureQueryView.cgyyPurposeTypes,
+        ),
+        hasLength(1),
+      );
+      await shot('form-draft', '返回修改时段后重开，保留字段/用途/选择且独立用途读取使用同代缓存');
       await _tap(tester, find.text('继续确认'));
       expect(backend.preparedRooms.single.actions.map((a) => a.timeId), [9, 3]);
       await shot('reserve-confirm', '仅prepare合成预约，两个原始target不从显示文字重建');

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-form",
+  "steps": "进入预约信息表单，原始两时段选择保留",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:16:32.255623Z",
+  "sourceSha": "dcfb1570+P5B-r3",
+  "pngSaved": true
+}

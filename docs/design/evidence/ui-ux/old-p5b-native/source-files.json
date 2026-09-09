@@ -1,0 +1,29 @@
+{
+  "baseSha": "dcfb1570b757f7dc6aa3894f1d87435c023130db",
+  "sourceDefine": "dcfb1570+P5B-r3",
+  "说明": "三端r3生产实现一致；之后仅改UI空用途测试的弹窗定位、native form.dart两个if的lint括号，并加入单独生产只读入口。完整Flutter r5检查当前文件。原native源码标记不冒称最终固定SHA全验。",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_rooms/form.dart": "cec5c67c708b3d8fe7c503a4f0f5d1d30a9c5841516d581879ad46aed88fbe44",
+    "apps/ubaa_flutter/integration_test/ui_rooms/form_live_readonly_test.dart": "df7c1c2f3ff77bf699ed195c31023d6991529352543e3f151a60142714705f79",
+    "apps/ubaa_flutter/integration_test/ui_rooms_test.dart": "5a558c44952751aab425595e2d427a7af198aa3832cfd2a15b8f673b3fa961c6",
+    "packages/ubaa_app/lib/src/controller/app_controller.dart": "ec00a9a552666b378df8e1d0b0ded841b8a72162e330c366d794f50b0ee0ee8d",
+    "packages/ubaa_app/lib/src/controller/app_controller/cgyy_purposes.dart": "62904d2500e8ecae90c60c1baaacb87bff41f2a9229542b917038cfcda7cb39d",
+    "packages/ubaa_app/test/app_controller/cgyy_purposes.dart": "60445a509d66c8c798e11964606a09196a462f42b9c34032af4e67730561bc32",
+    "packages/ubaa_app/test/app_controller_test.dart": "79730e2c5404ffb9fae2e218f5ae8508f25dfd21a09bce04feed7fa8bd36600e",
+    "packages/ubaa_host/lib/src/callbacks.dart": "ec447d4c0c1f5d9712fc27c65fc35a71ce78a1d4ec4b94f17437769561a9c8f5",
+    "packages/ubaa_ui/lib/src/app/home.dart": "1aba17d612f4977fce31cd35da3c846be86a7fb6ef510f65c552d9851628b6f0",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "8cf1e3469d3cb4d85187ef15c2386aaee2033686507b669ba0db217e4eac0a56",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "59873606f184649739ce2d20ebcfcc16cd63a75c7b1296a17adb40fc6126ff35",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "8eaf4cfeb8f9bb8164ef73d4be4ad9ca7daa92ca1b360ae5ca4ae3d21e2fc367",
+    "packages/ubaa_ui/lib/src/features/cgyy/reservation_flow.dart": "0bd5140fc35ecec52399e6fca34cedece88973c545ce5b4218064dc125505cad",
+    "packages/ubaa_ui/lib/src/widgets.dart": "4f371770e16b8b5c516d16062d3f02cef6181cefacf53e0dbc456b5cee85d3ae",
+    "packages/ubaa_ui/lib/src/write/cgyy_draft.dart": "9b0eff6110fe59188f0e2eb172fb1134f02a9c91a8d892c54eab034af32270dc",
+    "packages/ubaa_ui/lib/src/write/cgyy_form.dart": "f0550c8717f9fd146d5dfc89f2e7a75c5036634b8795d2dcfeb29b230b975ce7",
+    "packages/ubaa_ui/lib/src/write/cgyy_form_fields.dart": "555a45b966cd19e7c3d68c6843270f26b2e24445bd16acd7acffeecde57d7afc",
+    "packages/ubaa_ui/test/navigation/cgyy_flow_test.dart": "81229ae62408bc9826e45c2d6b322f97dc0e19abb2b3922af6af134884e9e307",
+    "packages/ubaa_ui/test/widgets/cgyy_writes.dart": "bf8cddf19ad584a6fa4d46894f7061a7cbe1a561ab59c563e050034df5954444",
+    "packages/ubaa_ui/test/widgets/feature_details.dart": "fa0c06e7867a00556c78768c5047b287fabfeacaba249db9e12a3b28754d62f4",
+    "packages/ubaa_ui/test/widgets/goldens.dart": "766816c13d67dae3f4143bc0aad43df13c594adb5aeea93d140173bf425e553a",
+    "packages/ubaa_ui/test/widgets_test.dart": "0da252b1ecf44e278cdcfff33cb64a78232827ab39219eed1376158e9544050c"
+  }
+}

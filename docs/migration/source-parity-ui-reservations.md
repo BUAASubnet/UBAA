@@ -96,3 +96,12 @@ D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间
 复读冻结LocalLibBookApi.getAreas/mapArea（194–211、453–464）、LibBookAreaDto默认空字符串、LibBookViewModel.loadAreas（307–335）和主source-parity.md图书馆表：原POST space/pick请求premisesIds/storeyIds/date，解析两个父标识允许空；旧UI选返回列表中的原唯一area.id进入Space/map，未要求响应重复父标识。固定examples/buaa-api没有等价LibBook模块。现UI新增的非空父字段相等条件错误地把可缺省字段当成必需，不是认证或HTTP协议变化。
 
 必要修复只在当前已接受分区查询的原数据上：父标识为空允许沿该请求的原馆/楼层继续读取原唯一area.id；非空且冲突仍不自动进入。绝不回填或伪造DTO父标识，仍保留queryDate与迟到/生命周期保护；座位查询仍须明确日期/原时段，预约资格与prepare/commit不变。URL/service、重定向、Cookie/token、POST方法/JSON字段、Header/编码、加密、Core解析/缓存/并发/错误均沿原合同；仅UI自动只读顺序恢复旧实现。先以明确缺省父标识合成失败测试复现，再修复并三端/生产双路线复验。
+
+
+## P5-B 研讨室用途与独立表单（实施前，2026-09-09）
+
+基点dcfb1570。完整复读冻结CgyyReserveFormScreen：单独页面，16外边距/12字段间距，已选时段→填写预约信息→附加选项；活动类型从CgyyPurposeTypeDialog选原key，人数默认1，活动内容至少3行、参与人说明至少2行。CgyyViewModel的初始化加载站点和用途，保留仍有效的原选项否则first；返回修改时段时保留表单。当前窄AlertDialog、手填用途编号和每次新建controller丢草稿偏离旧版。
+
+用途逐操作核对：old shared CgyyApi.getPurposeTypes、LocalCgyyApi.getPurposeTypes/getPurposeTypesRaw/parsePurposeTypes/fallbackPurposeTypes、DTO CgyyPurposeTypeDto及LocalCgyyApiBackendTest的动态key=3和失败回退10项均已读取。固定examples的api模块清单无venue-zhjs协议，对本操作九列均不适用，不借srs的byxk参数。业务引导沿manageLogin→api/login；有界跳转/最终URL与路线隔离沿现Core；Cookie/业务令牌仍只归Core；GET /api/codes无新业务参数，nocache沿原请求器；Header/编码及MD5签名常量不变；只使用已公开key/name/isStaticFallback；原信封解析、Core回退与错误语义不改。App只增加独立用途选项读取，不覆盖已选时段snapshot；成功缓存按backend/生命周期/readCacheEpoch隔离，并发合并、失败可重试、迟到结果拒绝。
+
+预约提交逐列继续采用source-parity.md的Cgyy预约提交矩阵：fresh上下文与一次性发送仍由原prepare/commit负责，不从展示名构造target，不增加手机号格式/文本长度/容量限制。表单草稿仅页面内存，账户/路线/生命周期失效即清除，不复制旧明文持久化。正文不再常驻编号输入，保留低频手填兼容入口；自然选择使用原唯一正key、标注冻结回退来源，异常不捏造列表。独立表单单顶栏实际路线并保留路线说明/策略入口；返回时段保草稿，继续确认只prepare，学校写入不运行。

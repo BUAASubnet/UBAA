@@ -1,7 +1,7 @@
 part of '../widgets_test.dart';
 
 void _registerGoldenTests() {
-  testWidgets('主页和详情页保持稳定视觉基线', (tester) async {
+  _goldenTest('主页和详情页保持稳定视觉基线', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 800)
       ..devicePixelRatio = 1;
@@ -60,7 +60,7 @@ void _registerGoldenTests() {
     );
   });
 
-  testWidgets('十二项功能根页分别保持视觉基线', (tester) async {
+  _goldenTest('十二项功能根页分别保持视觉基线', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 800)
       ..devicePixelRatio = 1;
@@ -149,7 +149,7 @@ void _registerGoldenTests() {
       final themeName = dark ? 'dark' : 'light';
       for (final detail in <bool>[false, true]) {
         final pageName = detail ? 'detail' : 'main';
-        testWidgets('响应式视觉基线 ${layout.name} $themeName $pageName', (
+        _goldenTest('响应式视觉基线 ${layout.name} $themeName $pageName', (
           tester,
         ) async {
           tester.view
@@ -227,3 +227,10 @@ void _registerGoldenTests() {
     }
   }
 }
+
+// 固定样例日期，避免跨午夜只因首页日期改变产生整组golden误报。
+void _goldenTest(String name, WidgetTesterCallback callback) => testWidgets(
+  name,
+  (tester) =>
+      withClock(Clock.fixed(DateTime(2026, 9, 9)), () => callback(tester)),
+);

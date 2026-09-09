@@ -1,0 +1,14 @@
+{
+  "name": "light-form-retry-ready",
+  "steps": "独立表单的已选时段、预约信息、附加选项；无常驻编号/刷新行",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:09:37.941690Z",
+  "sourceSha": "dcfb1570+P5B-r3",
+  "pngSaved": true
+}

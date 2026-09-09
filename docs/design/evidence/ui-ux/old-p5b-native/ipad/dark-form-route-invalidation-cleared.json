@@ -1,0 +1,14 @@
+{
+  "name": "dark-form-route-invalidation-cleared",
+  "steps": "切未认证路线后回到登录，旧表单与内存草稿关闭",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:14:32.024627Z",
+  "sourceSha": "dcfb1570+P5B-r3",
+  "pngSaved": true
+}

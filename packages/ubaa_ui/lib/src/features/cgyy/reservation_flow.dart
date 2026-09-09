@@ -9,6 +9,7 @@ class _CgyyReservationFlow extends StatefulWidget {
     required this.fallback,
     required this.onQuery,
     this.onSubmit,
+    required this.formContext,
     required this.onRetry,
   });
   final FeatureSnapshot snapshot;
@@ -18,6 +19,7 @@ class _CgyyReservationFlow extends StatefulWidget {
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
   final CgyyReservationStarter? onSubmit;
+  final _CgyyFormContext formContext;
   final Future<void> Function() onRetry;
   @override
   State<_CgyyReservationFlow> createState() => _CgyyReservationFlowState();
@@ -268,6 +270,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
                         context,
                         selected.first,
                         selected,
+                        formContext: widget.formContext,
                         initialSelection: selected,
                         selectionLabel: _selectionLabel(selected),
                       );

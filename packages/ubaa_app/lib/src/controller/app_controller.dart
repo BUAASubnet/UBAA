@@ -21,6 +21,7 @@ part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/academic_terms.dart';
 part 'app_controller/academic_weeks.dart';
+part 'app_controller/cgyy_purposes.dart';
 part 'app_controller/home_sources.dart';
 part 'app_controller/grades.dart';
 part 'app_controller/write_lifecycle.dart';
@@ -111,6 +112,7 @@ class AppController extends ChangeNotifier {
   _HomeSupplementCache? _homeSupplementCache;
   _GradesReadCache? _gradesReadCache;
   _AcademicWeeksCache? _academicWeeksCache;
+  _CgyyPurposeCache? _cgyyPurposeCache;
   FeatureResult? _academicTermsResult;
   Future<FeatureResult>? _academicTermsPending;
   UbaaBackend? _academicTermsBackend;
@@ -454,6 +456,10 @@ class AppController extends ChangeNotifier {
     String term, {
     bool forceRefresh = false,
   }) => _loadAcademicWeeks(term, forceRefresh: forceRefresh);
+
+  /// 活动类型独立读取，不覆盖研讨室日时段和已选目标。
+  Future<FeatureResult> loadCgyyPurposes({bool forceRefresh = false}) =>
+      _loadCgyyPurposes(forceRefresh: forceRefresh);
 
   /// 成绩统计的独立读取，不改变当前页面的查询或详情帧。
   Future<FeatureResult> loadGradeTerm(

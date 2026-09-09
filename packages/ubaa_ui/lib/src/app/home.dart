@@ -49,12 +49,12 @@ class _HomeViewState extends State<_HomeView> {
   bool _scheduled = false;
   int? _gradeCheckEpoch;
   late final Timer _clock;
-  DateTime _now = DateTime.now();
+  DateTime _now = clock.now();
   @override
   void initState() {
     super.initState();
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted && widget.visible) setState(() => _now = DateTime.now());
+      if (mounted && widget.visible) setState(() => _now = clock.now());
     });
   }
 
@@ -66,7 +66,7 @@ class _HomeViewState extends State<_HomeView> {
       _supplements.clear();
       _loading.clear();
     }
-    if (!old.visible && widget.visible) _now = DateTime.now();
+    if (!old.visible && widget.visible) _now = clock.now();
   }
 
   @override

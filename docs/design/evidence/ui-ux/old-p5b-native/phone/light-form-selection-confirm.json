@@ -1,0 +1,14 @@
+{
+  "name": "light-form-selection-confirm",
+  "steps": "返回后草稿仍在，继续只准备原typed输入，不执行真实或合成commit",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:09:34.492631Z",
+  "sourceSha": "dcfb1570+P5B-r3",
+  "pngSaved": true
+}
