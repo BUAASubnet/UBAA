@@ -1,0 +1,14 @@
+{
+  "name": "dark-long-single-detail",
+  "steps": "单节课程长文字没有丢失",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:40:17.440759Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}

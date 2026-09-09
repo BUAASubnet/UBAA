@@ -1,0 +1,23 @@
+{
+  "baseSha": "4d474d4c001cbf9f1b6fe56371a35c89dd2569de",
+  "candidate": "4d474d4c+E3b-r5",
+  "changeFromR4": "仅空周提示从星期标题行移到网格前独立行，以及对应位置断言与原生单场景入口；非空UI不变",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_schedule_old/backend.dart": "08c6522f19255dfc3bfc464cec297601ccf72f69c938066a8065579c683ab08d",
+    "apps/ubaa_flutter/integration_test/ui_schedule_old/live_readonly_test.dart": "7a2d76fb66a6c6263dfd5e48978894ddcb94307fb118da43b029326b78abd920",
+    "apps/ubaa_flutter/integration_test/ui_schedule_old/native_test.dart": "e417de3ca186f6273cd37a1632e9d75a79ceac52110f22083b94ec3b517e3fb2",
+    "apps/ubaa_flutter/integration_test/ui_schedule_old/support.dart": "6d87958f71ab6c0ec5f8ad21b32aed5dda9fb3e512ca084abb58aa356d8f00ad",
+    "packages/ubaa_app/lib/src/bridge/read/academic.dart": "dae5b9af4f47b0348980f5fa82680afb8e83923daf6148b6f9ecf4fb6527cb77",
+    "packages/ubaa_app/test/bridge_backend_characterization/academic_presentation.dart": "00ec87e326ea2067a9004ee8d8b84c290e4e61d3853fbedebb9e9a8cae6ed4c2",
+    "packages/ubaa_domain/lib/src/feature/presentation/schedule.dart": "0b98b690a4a3edf37eeaedfeba4cd6e692d4b3f84f4a24288fba8ab50a5da4b4",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "a54202cc9bb166d7eebf929de2a8cbd16135f3949cac6d8efc3882a1b828f9bf",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "92632f552406c2933b602f7e6c0d500b6e882936a90919c9393b23655078e2f2",
+    "packages/ubaa_ui/lib/src/features/academic/exam_timeline.dart": "5f470c3db1d5e7e04395e341bc653c5ee20ea41422dbbb8fa82b7411fd629b12",
+    "packages/ubaa_ui/lib/src/features/academic/schedule_detail.dart": "2c689b974bdfd47209dc55fa611f0d37db0d6ac789571c3731fa65a04dfc0b34",
+    "packages/ubaa_ui/lib/src/features/academic_content.dart": "4d485c364ea29a34f4dde4524e94fa446d1792c4813618114309ad9f2349f435",
+    "packages/ubaa_ui/lib/src/features/schedule_content.dart": "8be64e746092186d56a60960248d53da0455e2cdba33fa04dd3c137f63b20138",
+    "packages/ubaa_ui/lib/src/widgets.dart": "76da31376a7eb19fb4fee4ffe24c7b23ef4fdd224faa63464954f3945181207e",
+    "packages/ubaa_ui/test/academic/schedule_old_test.dart": "b33d678583a3a1436bd4ac08d68aee42dac0956dd3f3d1607c2f3059e1d06308",
+    "packages/ubaa_ui/test/academic_presentation_test.dart": "742acd6e1717d0af81b0784c3c534b3c852170ac1091f8aa09bd3920ef85dade"
+  }
+}

@@ -50,6 +50,7 @@ final class ScheduleCoursePresentation extends FeaturePresentation {
     this.place,
     this.weeksAndTeachers,
     this.teachingTarget,
+    this.color,
   });
 
   final String courseCode;
@@ -63,4 +64,5 @@ final class ScheduleCoursePresentation extends FeaturePresentation {
   final String? place;
   final String? weeksAndTeachers;
   final String? teachingTarget;
+  final String? color;
 }

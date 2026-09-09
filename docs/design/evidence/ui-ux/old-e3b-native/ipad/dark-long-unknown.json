@@ -1,0 +1,14 @@
+{
+  "name": "dark-long-unknown",
+  "steps": "异常时间原值保留，不伪造网格位置",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:40:21.258096Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}

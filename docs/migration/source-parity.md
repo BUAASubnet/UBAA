@@ -741,3 +741,6 @@ O3-E2成绩旧统计/卡片、全学期聚合及首页变化提醒的实施前�
 ## O3-E3a空教室旧布局实施前对照
 
 详见[source-parity-ui-classroom-old.md](source-parity-ui-classroom-old.md)：已逐页核对旧ClassroomQueryScreen/ViewModel/测试及两冻结来源协议边界；计划恢复14节表格、完整滚动和按需详情，右上查询保留。三项行为RED已观察，未因此标记原生/生产验收完成。
+
+
+E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-parity-ui-schedule-old.md)。已核对公开color字段，协议不改；自然周选择仍待接线。

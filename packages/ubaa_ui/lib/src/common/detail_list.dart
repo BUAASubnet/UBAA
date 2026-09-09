@@ -86,6 +86,10 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     final unpagedLocal =
         widget.feature == FeatureId.exam ||
         widget.feature == FeatureId.classroom ||
+        (widget.feature == FeatureId.schedule &&
+            widget.details.every(
+              (d) => d.presentation is ScheduleCoursePresentation,
+            )) ||
         isBykcStatistics ||
         (widget.feature == FeatureId.bykc &&
             widget.details.isNotEmpty &&

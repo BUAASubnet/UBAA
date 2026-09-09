@@ -75,6 +75,7 @@ void registerAcademicPresentationTests() {
       expect(first.endSection, 4);
       expect(first.endTime, '十点下课');
       expect(first.credit, '待确认');
+      expect(first.color, '#80C8F0');
       expect(last.dayOfWeek, isNull);
       expect(last.beginSection, isNull);
       expect(last.endTime, isNull);
@@ -271,6 +272,7 @@ class _AcademicPresentationClient extends _CharacterizationBridgeClient {
             endSection: 4,
             dayOfWeek: 2,
             credit: '待确认',
+            color: '#80C8F0',
           ),
           BridgeCourseClass(courseCode: 'A', courseName: '未知时间课程'),
         ],

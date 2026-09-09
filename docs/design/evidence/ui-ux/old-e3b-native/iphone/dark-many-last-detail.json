@@ -1,0 +1,14 @@
+{
+  "name": "dark-many-last-detail",
+  "steps": "超过20条且重叠的最后一门仍可查看",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:34:04.778868Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}

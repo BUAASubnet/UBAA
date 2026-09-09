@@ -293,6 +293,7 @@ FeatureDetail _mapScheduleCourseDetail(BridgeCourseClass item) => FeatureDetail(
     place: item.placeName,
     weeksAndTeachers: item.weeksAndTeachers,
     teachingTarget: item.teachingTarget,
+    color: item.color,
   ),
   fields: _compactFields(<FeatureField?>[
     _field('时间', item.beginTime),

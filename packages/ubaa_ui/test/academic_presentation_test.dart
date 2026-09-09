@@ -179,19 +179,28 @@ void main() {
         ),
       ),
     ]);
-    expect(
-      find.descendant(
-        of: find.widgetWithText(Card, '程序设计'),
-        matching: find.text('星期二'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('第3–4节'), findsOneWidget);
-    expect(find.text('10:00–11:40'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    expect(find.text('周二'), findsOneWidget);
+    await tester.tap(find.text('程序设计'));
     await tester.pumpAndSettle();
+    expect(find.text('星期二'), findsOneWidget);
+    expect(find.text('10:00–11:40'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '关闭'));
+    await tester.pumpAndSettle();
+    final scroll = find.descendant(
+      of: find.byKey(const ValueKey('schedule-grid-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.text('时间字段异常的课程'),
+      400,
+      scrollable: scroll,
+    );
     expect(find.text('时间待确认'), findsOneWidget);
-    expect(find.text('时间字段异常的课程'), findsOneWidget);
+    await tester.tap(find.text('时间字段异常的课程'));
+    await tester.pumpAndSettle();
+    expect(find.text('原值 9'), findsOneWidget);
+    expect(find.text('4'), findsWidgets);
+    expect(find.text('2'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

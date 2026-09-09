@@ -33,6 +33,7 @@ part 'features/academic/grade_notice.dart';
 part 'features/classroom_queries.dart';
 part 'features/classroom_content.dart';
 part 'features/schedule_content.dart';
+part 'features/academic/schedule_detail.dart';
 part 'features/assignments.dart';
 part 'features/coursework/assignment_content.dart';
 part 'features/coursework/assignment_selection.dart';

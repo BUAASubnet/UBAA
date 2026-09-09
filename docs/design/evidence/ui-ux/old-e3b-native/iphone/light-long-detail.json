@@ -1,0 +1,14 @@
+{
+  "name": "light-long-detail",
+  "steps": "1.3长课程详情完整可滚动",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:35:32.946422Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}

@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-draft",
+  "steps": "关闭重开保留筛选与学期周次草稿",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:40:00.808152Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}

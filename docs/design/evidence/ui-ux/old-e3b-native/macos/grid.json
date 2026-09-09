@@ -1,0 +1,19 @@
+{
+  "name": "grid",
+  "steps": "CUA应用合成周查询并收起面板，七日网格",
+  "backend": "synthetic-schedule-old",
+  "platform": "macos",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "windowId": 4449,
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "contentLogicalSize": [
+    800,
+    600
+  ],
+  "viewportSource": "native-window-unmodified",
+  "dateUtc": "2026-09-09T06:04:32.358671+00:00",
+  "acceptance": "独立原生鼠标操作与截图核对通过"
+}

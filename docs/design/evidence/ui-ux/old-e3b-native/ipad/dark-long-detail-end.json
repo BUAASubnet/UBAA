@@ -1,0 +1,14 @@
+{
+  "name": "dark-long-detail-end",
+  "steps": "长详情滚动到底部，教师和教学对象实际可见",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:40:15.325553Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}

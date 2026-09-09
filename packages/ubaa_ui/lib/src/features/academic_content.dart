@@ -37,15 +37,11 @@ class _AcademicResultContent extends StatelessWidget {
           details.every(
             (detail) => detail.presentation is ScheduleCoursePresentation,
           );
+      if (weekly) return _ScheduleContent(details: details);
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (weekly)
-            _ScheduleContent(
-              details: details,
-              wide: constraints.maxWidth >= 740,
-            )
-          else if (feature == FeatureId.exam)
+          if (feature == FeatureId.exam)
             _ExamTimeline(details: details)
           else if (feature == FeatureId.grades)
             for (final detail in details)

@@ -1,0 +1,19 @@
+{
+  "name": "keyboard-partial",
+  "steps": "CUA请求输入COURSE-SAFE-2，实际只落COURSE-SA；Key A事件断言，完整键盘不通过",
+  "backend": "synthetic-schedule-old",
+  "platform": "macos",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "windowId": 4449,
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "contentLogicalSize": [
+    800,
+    600
+  ],
+  "viewportSource": "native-window-unmodified",
+  "dateUtc": "2026-09-09T06:19:54.959922+00:00",
+  "acceptance": "输入工具限制，非PASS"
+}

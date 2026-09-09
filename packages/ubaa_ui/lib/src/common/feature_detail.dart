@@ -362,32 +362,40 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     );
   }
 
-  Widget _empty(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            _featureIcon(widget.feature),
-            size: 56,
-            color: Theme.of(context).colorScheme.primary,
+  Widget _empty(BuildContext context) =>
+      widget.feature == FeatureId.schedule &&
+          widget.snapshot.status == FeatureLoadStatus.empty &&
+          (widget.query?.view == FeatureQueryView.scheduleWeek ||
+              (widget.query?.view == FeatureQueryView.summary &&
+                  widget.query?.term != null &&
+                  widget.query?.week != null))
+      ? const _ScheduleContent(details: [])
+      : Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  _featureIcon(widget.feature),
+                  size: 56,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  widget.isBykcChosenDetail
+                      ? '当前无法显示此选课记录，请返回列表核对。'
+                      : '暂无${widget.feature.title}数据',
+                ),
+                if (widget.snapshot.summary case final summary?
+                    when summary.trim().isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Text(summary, textAlign: TextAlign.center),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            widget.isBykcChosenDetail
-                ? '当前无法显示此选课记录，请返回列表核对。'
-                : '暂无${widget.feature.title}数据',
-          ),
-          if (widget.snapshot.summary case final summary?
-              when summary.trim().isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(summary, textAlign: TextAlign.center),
-          ],
-        ],
-      ),
-    ),
-  );
+        );
 
   Widget _error(BuildContext context) => Center(
     child: Padding(

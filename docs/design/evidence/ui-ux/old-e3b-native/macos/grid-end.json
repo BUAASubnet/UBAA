@@ -1,0 +1,19 @@
+{
+  "name": "grid-end",
+  "steps": "CUA关闭详情并滚动到周日单节及未知时间列表",
+  "backend": "synthetic-schedule-old",
+  "platform": "macos",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "windowId": 4449,
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "contentLogicalSize": [
+    800,
+    600
+  ],
+  "viewportSource": "native-window-unmodified",
+  "dateUtc": "2026-09-09T06:13:03.541392+00:00",
+  "acceptance": "独立原生鼠标操作与截图核对通过"
+}

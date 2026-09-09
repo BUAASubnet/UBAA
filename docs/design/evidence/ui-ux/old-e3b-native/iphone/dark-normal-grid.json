@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-grid",
+  "steps": "七日节次网格，正文无常驻查询",
+  "backend": "synthetic-schedule-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T05:33:19.266683Z",
+  "sourceSha": "4d474d4c+E3b-r4",
+  "pngSaved": true
+}
