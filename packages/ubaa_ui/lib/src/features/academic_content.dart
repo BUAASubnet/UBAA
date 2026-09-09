@@ -29,6 +29,9 @@ class _AcademicResultContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      if (feature == FeatureId.classroom) {
+        return _ClassroomContent(details: details);
+      }
       final weekly =
           feature == FeatureId.schedule &&
           details.every(
@@ -50,11 +53,6 @@ class _AcademicResultContent extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _GradeCard(detail: detail),
               )
-          else if (feature == FeatureId.classroom)
-            _ClassroomContent(
-              details: details,
-              wide: constraints.maxWidth >= 740,
-            )
           else
             for (final detail in details)
               Padding(

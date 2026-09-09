@@ -1,0 +1,14 @@
+{
+  "name": "light-loading-top",
+  "steps": "旧表格原生状态与大字/长名显示",
+  "backend": "synthetic-classroom-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T02:51:40.730299Z",
+  "sourceSha": "78602e30+E3a-r3",
+  "pngSaved": true
+}

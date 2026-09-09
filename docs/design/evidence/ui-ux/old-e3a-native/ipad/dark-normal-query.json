@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-query",
+  "steps": "明确应用日期校区楼栋节次，原typed参数保留",
+  "backend": "synthetic-classroom-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T02:50:48.728942Z",
+  "sourceSha": "78602e30+E3a-r3",
+  "pngSaved": true
+}

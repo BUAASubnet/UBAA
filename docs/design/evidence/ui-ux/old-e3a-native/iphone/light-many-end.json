@@ -1,0 +1,14 @@
+{
+  "name": "light-many-end",
+  "steps": "42条连续滚动到末项，粘性14节表头仍可见",
+  "backend": "synthetic-classroom-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T02:45:50.390938Z",
+  "sourceSha": "78602e30+E3a-r3",
+  "pngSaved": true
+}

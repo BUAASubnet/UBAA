@@ -736,3 +736,8 @@ ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch�
 O3-E1考试/签到旧布局的实施前逐操作复核见[学业旧版对照](source-parity-ui-academic-old.md)，继承本表的协议裁决；UI不更改Core或Bridge合同。
 
 O3-E2成绩旧统计/卡片、全学期聚合及首页变化提醒的实施前依据见[source-parity-ui-grades.md](source-parity-ui-grades.md)。本批恢复旧本地统计，不改上游逐门gradePoint或公开协议；详细说明新增本地读取组合/缓存与真实覆盖范围。
+
+
+## O3-E3a空教室旧布局实施前对照
+
+详见[source-parity-ui-classroom-old.md](source-parity-ui-classroom-old.md)：已逐页核对旧ClassroomQueryScreen/ViewModel/测试及两冻结来源协议边界；计划恢复14节表格、完整滚动和按需详情，右上查询保留。三项行为RED已观察，未因此标记原生/生产验收完成。

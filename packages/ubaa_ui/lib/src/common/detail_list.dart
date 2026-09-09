@@ -85,6 +85,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
     final isBykcStatistics = _isBykcStatistics(widget.feature, widget.details);
     final unpagedLocal =
         widget.feature == FeatureId.exam ||
+        widget.feature == FeatureId.classroom ||
         isBykcStatistics ||
         (widget.feature == FeatureId.bykc &&
             widget.details.isNotEmpty &&

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-table",
+  "steps": "14节表格与楼栋标题，正文无搜索筛选",
+  "backend": "synthetic-classroom-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T02:51:03.247517Z",
+  "sourceSha": "78602e30+E3a-r3",
+  "pngSaved": true
+}

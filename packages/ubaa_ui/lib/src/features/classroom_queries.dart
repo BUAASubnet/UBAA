@@ -67,9 +67,9 @@ extension _ClassroomQueryControls on _FeatureQueryControlsState {
                 }
               }),
         items: const <DropdownMenuItem<int>>[
-          DropdownMenuItem(value: 1, child: Text('校区 1')),
-          DropdownMenuItem(value: 2, child: Text('校区 2')),
-          DropdownMenuItem(value: 3, child: Text('校区 3')),
+          DropdownMenuItem(value: 1, child: Text('学院路')),
+          DropdownMenuItem(value: 2, child: Text('沙河')),
+          DropdownMenuItem(value: 3, child: Text('杭州')),
         ],
       ),
     ],

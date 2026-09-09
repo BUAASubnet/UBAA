@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('不同领域的展示模型仍可通过通用详情读取原字段', (tester) async {
@@ -95,7 +96,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('宽教室楼层导航只筛当前结果并可恢复全部', (tester) async {
+  testWidgets('宽教室沿旧表格，楼栋筛选只在右上面板且可恢复全部', (tester) async {
     await _show(tester, FeatureId.classroom, const [
       FeatureDetail(
         title: '一层教室',
@@ -116,12 +117,15 @@ void main() {
         ),
       ),
     ], width: 1280);
-    await tester.tap(find.widgetWithText(ListTile, '二层'));
-    await tester.pumpAndSettle();
+    expect(find.text('当前页楼层'), findsNothing);
+    await openQueryPanel(tester);
+    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '二层');
+    await closeQueryPanel(tester);
     expect(find.text('一层教室'), findsNothing);
     expect(find.text('二层教室'), findsOneWidget);
-    await tester.tap(find.widgetWithText(ListTile, '全部（本页）'));
-    await tester.pumpAndSettle();
+    await openQueryPanel(tester);
+    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '');
+    await closeQueryPanel(tester);
     expect(find.text('一层教室'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -249,9 +253,14 @@ void main() {
         ),
       ),
     ]);
-    expect(find.text('三层'), findsNWidgets(2));
-    expect(find.text('第3节'), findsOneWidget);
-    expect(find.text('第13节'), findsOneWidget);
+    expect(find.text('三层'), findsOneWidget);
+    expect(find.byTooltip('第3节空闲'), findsOneWidget);
+    expect(find.byTooltip('第13节空闲'), findsOneWidget);
+    expect(find.byTooltip('第2节未列为空闲'), findsOneWidget);
+    await tester.tap(find.text('A203'));
+    await tester.pumpAndSettle();
+    expect(find.text('3,13'), findsOneWidget);
+    expect(find.text('room-3'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

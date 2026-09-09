@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-detail",
+  "steps": "本地详情完整保留编号、原空闲字段和实际查询来源",
+  "backend": "synthetic-classroom-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T02:51:04.296863Z",
+  "sourceSha": "78602e30+E3a-r3",
+  "pngSaved": true
+}

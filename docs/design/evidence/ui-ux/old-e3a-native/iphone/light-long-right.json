@@ -1,0 +1,14 @@
+{
+  "name": "light-long-right",
+  "steps": "大字横滚到第14节，楼栋标题仍在当前可视宽度",
+  "backend": "synthetic-classroom-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T02:45:45.484508Z",
+  "sourceSha": "78602e30+E3a-r3",
+  "pngSaved": true
+}

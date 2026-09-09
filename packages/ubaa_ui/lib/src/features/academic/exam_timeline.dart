@@ -236,6 +236,15 @@ class _ExamCompactCard extends StatelessWidget {
 
 /// 低频公开投影移入详情后仍可检索，不读取上游原始响应。
 Iterable<String> _academicSearchValues(FeaturePresentation? p) => switch (p) {
+  ClassroomPresentation p => [
+    p.roomId,
+    p.floorId,
+    p.floorName,
+    p.availableSections,
+    p.queryDate,
+    p.campus?.toString(),
+    if (p.campus case final campus?) _classroomCampusName(campus),
+  ].whereType<String>(),
   GradePresentation p => [
     p.courseName,
     p.courseCode,

@@ -1,0 +1,21 @@
+{
+  "baseSha": "78602e303fc7c4e069a18a434a76c0153ebb8160",
+  "candidate": "78602e30+E3a-r3",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_academic/b2.dart": "eedc7a171f21ea6ee713b5a2a1f14a8ed61cce907e49da31f448d73bc138763f",
+    "apps/ubaa_flutter/integration_test/ui_classroom_old/backend.dart": "8128df12952d081d9283aec586cf67f381a678f119e9768a8190ec798963e54b",
+    "apps/ubaa_flutter/integration_test/ui_classroom_old/live_readonly_test.dart": "320585ac65cde198f49eac105845eba763227a70d32609636f7e62583e93fffd",
+    "apps/ubaa_flutter/integration_test/ui_classroom_old/native_test.dart": "7a085a0ffb35aea3b2d546c4b24db8e5f2c120b202e6d664cb14924f7fc308ce",
+    "apps/ubaa_flutter/integration_test/ui_classroom_old/support.dart": "986572d45d25baac92ec0836813da8eaceed194af1d1a576b88fb8e486b64cb2",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "626d74c2e4a082e332998e81bf22da7939f8f3022bfacf26a82c55386030c829",
+    "packages/ubaa_ui/lib/src/features/academic/exam_timeline.dart": "5c1159412afe242f2996d05c3ed906c71d1efd679849d1a358e8fc21a4fa1b96",
+    "packages/ubaa_ui/lib/src/features/academic_content.dart": "7ee8f5fb5dbcd9fc33ea5a0159ec9b4eacb79a036365c01ca8217da261702978",
+    "packages/ubaa_ui/lib/src/features/classroom_content.dart": "e786f2b771d8fcf97c9cc71c3da70e7d4c880ccdb2e170821842f30456ded727",
+    "packages/ubaa_ui/lib/src/features/classroom_queries.dart": "a739caf82dae1343ea8a484eb0d2fafd41b7684f7c6aee74bfd0c0d5daeee743",
+    "packages/ubaa_ui/lib/src/widgets.dart": "3a8c76e919fbf5cea54fbbba4a00eb9f2ec17be82a48e40eae81f2b4de723e98",
+    "packages/ubaa_ui/test/academic/classroom_old_test.dart": "2630e546e0c2ae29fcfae114f3e9d1565aa15e6411c070fe00b688b36fbf20cb",
+    "packages/ubaa_ui/test/academic_presentation_test.dart": "1edad9ca89afe4c899d1d3ec4652995c59bc4090be416e928afe8e85f35a06bf",
+    "packages/ubaa_ui/test/classroom_selectors_test.dart": "48a81dfe4d7773588e860ddc5111686e3ed6ee53f62b400d9d5e9372540df9e4",
+    "packages/ubaa_ui/test/widgets/feature_details.dart": "65f63c02e6b4b97bd8ec04e6f9cffb7f82439dd6fb60bea0f4be7e2670512bae"
+  }
+}

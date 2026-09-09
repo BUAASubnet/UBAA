@@ -1,0 +1,16 @@
+{
+  "name": "detail",
+  "steps": "鼠标打开第42项，完整低频字段本地详情",
+  "backend": "synthetic-classroom-old-many",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4277,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "78602e30+E3a-r3",
+  "dateUtc": "2026-09-09T03:51:13.762648+00:00",
+  "capture": "CUA鼠标操作后原窗口截图，包含阴影",
+  "pngSaved": true
+}

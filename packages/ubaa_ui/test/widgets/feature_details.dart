@@ -718,9 +718,9 @@ void _registerFeatureCollectionTests() {
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-02');
-    await tester.tap(find.text('校区 1'));
+    await tester.tap(find.text('学院路'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('校区 2'));
+    await tester.tap(find.text('沙河'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('应用筛选'));
     await tester.tap(find.text('应用筛选'));

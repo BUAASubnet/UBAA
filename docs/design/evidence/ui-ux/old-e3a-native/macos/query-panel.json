@@ -1,0 +1,16 @@
+{
+  "name": "query-panel",
+  "steps": "关闭详情后点击右上搜索，面板可见；其后工具AXError阻止继续鼠标选择",
+  "backend": "synthetic-classroom-old-many",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4277,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "78602e30+E3a-r3",
+  "dateUtc": "2026-09-09T04:20:53.168126+00:00",
+  "capture": "CUA鼠标操作后原窗口截图，包含阴影",
+  "pngSaved": true
+}

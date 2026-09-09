@@ -79,8 +79,8 @@ void main() {
           '2026-09-08',
         );
       } else if (kind == '校区') {
-        await _campus(tester, '校区 2');
-        await _campus(tester, '校区 1');
+        await _campus(tester, '沙河');
+        await _campus(tester, '学院路');
       } else {
         h.epoch++;
       }

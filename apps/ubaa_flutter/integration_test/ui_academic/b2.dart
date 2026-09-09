@@ -106,7 +106,7 @@ Future<void> _selectClassroomInputs(
   await _academicField(tester, '楼层（可选）', '');
   await _academicField(tester, '节次（可选）', '');
   await _tapAcademic(tester, find.byType(DropdownButton<int>));
-  await _tapAcademic(tester, find.text('校区 2').last);
+  await _tapAcademic(tester, find.text('沙河').last);
   await _applyAcademic(tester, FeatureId.classroom, FeatureQueryView.summary);
   final all = _academicSnapshot(tester, FeatureId.classroom);
   final query = all.readContext!.query!;
