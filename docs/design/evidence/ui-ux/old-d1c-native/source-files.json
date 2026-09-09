@@ -1,0 +1,12 @@
+{
+  "baseSha": "8498d97faae37b05b1dbb8256ddfdb7667a74e5a",
+  "candidate": "8498d97f+D1c-r1",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_library/data.dart": "4b43be50594d1911e73d91a0ddd971e0a52c938e742b92abb555b4c74bd39e03",
+    "apps/ubaa_flutter/integration_test/ui_library/live_readonly_test.dart": "b1580357dfe2f80bcd1d1e72edc9552eebaf261324efa57c0442f0d168db0f36",
+    "apps/ubaa_flutter/integration_test/ui_library/parent_scenarios.dart": "e9fc0a290292693eeece97a57af747b8c3738c75a0c8d4847303088917ad98da",
+    "apps/ubaa_flutter/integration_test/ui_library_test.dart": "af1b8112cd3b69a094c6a5df8f748ad5159dc8bbea7f04af9dfa427daa883c7b",
+    "apps/ubaa_flutter/test/libbook_navigation_test.dart": "f962fb929ae7d0f3738878eef5f905903fea5c8a589be02cec57e513a034e0ff",
+    "packages/ubaa_ui/lib/src/features/libbook/reservation_flow.dart": "857c26d6ae86d5a3262b5e3e9705499844023b32c0070c75dfc89648d9dfb097"
+  }
+}

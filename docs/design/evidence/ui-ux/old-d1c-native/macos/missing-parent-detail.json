@@ -1,0 +1,16 @@
+{
+  "name": "missing-parent-detail",
+  "steps": "CUA进入预约座位并滚动；缺省父标识仍自动显示分区时段",
+  "backend": "synthetic-library-missing-parents",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4171,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "8498d97f+D1c-r1",
+  "dateUtc": "2026-09-09T01:34:30.801149+00:00",
+  "capture": "CUA纯鼠标/滚动后原窗口截图，包含阴影",
+  "pngSaved": true
+}

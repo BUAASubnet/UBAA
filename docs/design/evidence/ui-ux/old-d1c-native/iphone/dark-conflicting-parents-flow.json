@@ -1,0 +1,14 @@
+{
+  "name": "dark-conflicting-parents-flow",
+  "steps": "明确冲突的父标识不自动进入详情",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T01:12:25.423431Z",
+  "sourceSha": "8498d97f+D1c-r1",
+  "pngSaved": true
+}

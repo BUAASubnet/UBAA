@@ -87,3 +87,12 @@ D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间
 操作级九列继续逐项采用`source-parity.md`“我的订单”：manageLogin/api/login业务引导；重定向和最终URL按当前路线；独立业务令牌；GET /api/orders/mine原样page>=0、size>0及nocache；既有headers与无正文；既有MD5参数签名；content/number/size/totalElements/totalPages公开DTO；不缓存订单、当前UI generation仍防迟到；错误不变。只修App误改页码与显示层换算，不修改Core、Bridge、认证、写入资格或公开合同。
 
 裁决：FeatureQuery研讨室订单保留原始零基page，与取消回读query.page=0一致；通用FeaturePagination仍为一基展示，Cgyy number+1；页码输入1/2及前后页按钮在UI转成原始0/1。普通与固定路线订单结果使用同一投影，写入回读仍请求原始0不改。先增加默认首页、后页和UI输入/前后页脱敏RED，修复后复验原生与真实两路线。
+
+
+## D1c生产只读发现：可空父标识阻断自动分区详情（2026-09-09）
+
+基点8498d97f，冻结引用未变。WebVPN两轮生产UI分区列表成功2项，却无法自动进入详情；Direct安全结构计数确认两项premisesId/storeyId均为空，而请求本身已有馆/楼层，Core-live双路线五类读取通过。没有输出真实ID、名称、预约或响应正文。
+
+复读冻结LocalLibBookApi.getAreas/mapArea（194–211、453–464）、LibBookAreaDto默认空字符串、LibBookViewModel.loadAreas（307–335）和主source-parity.md图书馆表：原POST space/pick请求premisesIds/storeyIds/date，解析两个父标识允许空；旧UI选返回列表中的原唯一area.id进入Space/map，未要求响应重复父标识。固定examples/buaa-api没有等价LibBook模块。现UI新增的非空父字段相等条件错误地把可缺省字段当成必需，不是认证或HTTP协议变化。
+
+必要修复只在当前已接受分区查询的原数据上：父标识为空允许沿该请求的原馆/楼层继续读取原唯一area.id；非空且冲突仍不自动进入。绝不回填或伪造DTO父标识，仍保留queryDate与迟到/生命周期保护；座位查询仍须明确日期/原时段，预约资格与prepare/commit不变。URL/service、重定向、Cookie/token、POST方法/JSON字段、Header/编码、加密、Core解析/缓存/并发/错误均沿原合同；仅UI自动只读顺序恢复旧实现。先以明确缺省父标识合成失败测试复现，再修复并三端/生产双路线复验。

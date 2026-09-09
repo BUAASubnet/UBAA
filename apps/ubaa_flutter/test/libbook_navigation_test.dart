@@ -7,6 +7,32 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../integration_test/ui_library/backend.dart';
 
 void main() {
+  testWidgets('分区响应缺省父标识仍沿原查询进入详情，不伪造DTO父字段', (tester) async {
+    final backend = await _open(tester, state: 'missing-parents');
+    expect(backend.libraryReads.map((q) => q.view), [
+      FeatureQueryView.summary,
+      FeatureQueryView.libbookAreas,
+      FeatureQueryView.libbookAreaDetail,
+    ]);
+    expect(backend.libraryReads.last.areaId, 'library-a-floor-1-area-1');
+    final original = libraryData(backend.libraryReads[1], 'missing-parents');
+    final area =
+        original.details.first.presentation! as LibbookAreaPresentation;
+    expect(area.premisesId, isEmpty);
+    expect(area.storeyId, isEmpty);
+    expect(find.text('分区时段'), findsOneWidget);
+    expect(backend.preparedSeats, isEmpty);
+    expect(backend.commitCalls, 0);
+  });
+  testWidgets('分区响应明确冲突的父标识不自动进入详情', (tester) async {
+    final backend = await _open(tester, state: 'conflicting-parents');
+    expect(backend.libraryReads.map((q) => q.view), [
+      FeatureQueryView.summary,
+      FeatureQueryView.libbookAreas,
+    ]);
+    expect(find.text('分区时段'), findsNothing);
+    expect(backend.commitCalls, 0);
+  });
   testWidgets('图书馆点选时段只回填原始三字段，日期仍须明确填写', (tester) async {
     final backend = await _open(tester);
     final before = backend.libraryReads.length;
@@ -154,12 +180,16 @@ void main() {
   });
 }
 
-Future<LibraryBackend> _open(WidgetTester tester, {double width = 402}) async {
+Future<LibraryBackend> _open(
+  WidgetTester tester, {
+  double width = 402,
+  String state = 'normal',
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, 874);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
-  final backend = LibraryBackend();
+  final backend = LibraryBackend(state: state);
   await tester.pumpWidget(
     UbaaFlutterApp(
       backend: backend,

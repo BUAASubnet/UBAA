@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-other-library",
+  "steps": "切换楼馆按新请求继续缺省父字段分区，旧选择失效",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T01:15:20.989318Z",
+  "sourceSha": "8498d97f+D1c-r1",
+  "pngSaved": true
+}

@@ -9,6 +9,7 @@ import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'ui_library/backend.dart';
 part 'ui_library/map_scenarios.dart';
+part 'ui_library/parent_scenarios.dart';
 
 void main() {
   if (const bool.fromEnvironment('UBAA_UI_INSPECTION')) {
@@ -29,6 +30,8 @@ void main() {
   }
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  registerLibraryParentTests(binding);
+  if (const bool.fromEnvironment('UBAA_LIBRARY_PARENTS_ONLY')) return;
   test('合成图书馆记录分页与未知资格遵循同一合同', () {
     final result = libraryData(
       const FeatureQuery(

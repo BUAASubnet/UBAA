@@ -1,0 +1,16 @@
+{
+  "name": "slot-draft",
+  "steps": "点原时段打开右上查询面板；日期空、原三字段回填；关闭重开保持",
+  "backend": "synthetic-library-missing-parents",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4171,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "8498d97f+D1c-r1",
+  "dateUtc": "2026-09-09T01:34:30.803473+00:00",
+  "capture": "CUA纯鼠标/滚动后原窗口截图，包含阴影",
+  "pngSaved": true
+}

@@ -1,0 +1,16 @@
+{
+  "name": "other-library",
+  "steps": "关闭面板换乙馆，观察新分区与时段后回到顶部核对乙馆已选",
+  "backend": "synthetic-library-missing-parents",
+  "platform": "macos",
+  "logicalWidth": 800,
+  "logicalHeight": 600,
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "windowId": 4171,
+  "viewportSource": "native-window-unmodified",
+  "sourceSha": "8498d97f+D1c-r1",
+  "dateUtc": "2026-09-09T01:34:30.804682+00:00",
+  "capture": "CUA纯鼠标/滚动后原窗口截图，包含阴影",
+  "pngSaved": true
+}

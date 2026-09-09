@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-seats",
+  "steps": "明确日期与原时段后只查询座位，不准备或提交",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T01:15:20.155674Z",
+  "sourceSha": "8498d97f+D1c-r1",
+  "pngSaved": true
+}

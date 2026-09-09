@@ -1,0 +1,14 @@
+{
+  "name": "light-missing-parents-flow",
+  "steps": "原父字段完整或缺省均沿实际查询进入原分区详情",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T01:15:45.005928Z",
+  "sourceSha": "8498d97f+D1c-r1",
+  "pngSaved": true
+}

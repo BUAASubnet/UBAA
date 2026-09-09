@@ -62,8 +62,12 @@ FeatureResult libraryData(FeatureQuery q, String state) {
               id: state == 'map' && index == 1 ? '8' : '$floor-area-$index',
               name: label('安静阅览区 $index'),
               areaName: '合成校区',
-              premisesId: parent,
-              storeyId: floor,
+              premisesId: state == 'missing-parents'
+                  ? ''
+                  : state == 'conflicting-parents'
+                  ? 'other-library'
+                  : parent,
+              storeyId: state == 'missing-parents' ? '' : floor,
               freeNum: 1,
               totalNum: 10,
               queryDate: day,

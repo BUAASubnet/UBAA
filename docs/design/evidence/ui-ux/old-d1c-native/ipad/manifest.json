@@ -1,0 +1,21 @@
+{
+  "savedScreenshots": [
+    "dark-normal-flow",
+    "dark-normal-seats",
+    "dark-normal-other-library",
+    "dark-missing-parents-flow",
+    "dark-missing-parents-seats",
+    "dark-missing-parents-other-library",
+    "dark-conflicting-parents-flow",
+    "light-normal-flow",
+    "light-normal-seats",
+    "light-normal-other-library",
+    "light-missing-parents-flow",
+    "light-missing-parents-seats",
+    "light-missing-parents-other-library",
+    "light-conflicting-parents-flow"
+  ],
+  "metadataCount": 14,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}

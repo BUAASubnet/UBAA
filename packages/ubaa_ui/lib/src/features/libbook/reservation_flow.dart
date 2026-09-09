@@ -125,8 +125,11 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
         final p = d.presentation;
         return p is LibbookAreaPresentation &&
             p.id.trim().isNotEmpty &&
-            p.premisesId == _libraryId &&
-            (_storeyId == null || p.storeyId == _storeyId) &&
+            // 旧DTO允许省略父标识；仍使用本次查询返回的原唯一分区ID。
+            (p.premisesId.trim().isEmpty || p.premisesId == _libraryId) &&
+            (_storeyId == null ||
+                p.storeyId.trim().isEmpty ||
+                p.storeyId == _storeyId) &&
             details
                     .where(
                       (other) =>

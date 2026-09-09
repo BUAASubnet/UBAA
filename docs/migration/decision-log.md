@@ -1159,3 +1159,8 @@ SIG-02文案落实：原下拉“未签到”实际上仅包含allowed资格，�
 ### 2026-09-09 O3-E2b：成绩变化派生基线与旧首页横幅
 
 依据source-parity-ui-grades.md与冻结GradeScoreWatch/CacheStore/HomeScoreUpdateBanner，独立派生基线按账号+actualroute隔离；不移植旧ConnectionRuntime的全认证resetSession。当前学期必须唯一selected，歧义code/name不误报。损坏文件保留且清理失败明确告知；仅读取成绩，不给任何业务写入资格。通知保留到查看/忽略；检查路线独立于是否产生通知。655项、三端各12、66合成原图及生产双route本地恢复通过。P4后续继续恢复课表网格/教室表格，不沿用B2重设计卡片证据。
+
+
+### 2026-09-09 O3-D1c：不将可空父字段当只读导航资格
+
+D1c修复缺省父标识使图书馆分区详情不自动读取的问题：仅使用当前查询返回的原唯一area.id，不回填DTO父字段；非空父标识冲突仍阻止自动进入。10项聚焦、657项Flutter门禁、三端各6场景通过，28张两端原图和macOS独立3图共31张已复核。生产Direct/WebVPN均自动完成楼馆/分区/详情、明确查询175座位和2条预约记录，真实业务写入0；先前超时不标通过。协议与资格不变，跨日期时段关联仍不猜。详见source-parity-ui-reservations.md及本批证据。
