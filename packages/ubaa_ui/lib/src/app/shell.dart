@@ -18,6 +18,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
     this.onLoadAcademicTerms,
+    this.onLoadAcademicWeeks,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -84,6 +85,8 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 用户打开学期选择器后读取独立选项，不改写课表结果页。
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final Future<FeatureResult> Function(String term, bool forceRefresh)?
+  onLoadAcademicWeeks;
   final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -347,6 +350,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                       (_selectedIndex == 0
                           ? '首页'
                           : _tabs[_selectedIndex].label)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         leading: pendingWrite != null
@@ -517,6 +522,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onQuery: page.onQuery,
       onNavigate: page.onNavigate,
       onLoadAcademicTerms: widget.onLoadAcademicTerms,
+      onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
+      onScheduleTitle: page.onScheduleTitle,
       readCacheEpoch: widget.readCacheEpoch,
       onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
           ? null

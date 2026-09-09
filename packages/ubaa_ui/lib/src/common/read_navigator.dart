@@ -133,6 +133,8 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
       _externalAfterRevision = null;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
         frame.bykcChosenKey = null;
+      if (frame.query == null || !query.hasSameParameters(frame.query!))
+        frame.scheduleTitle = null;
       frame.query = query;
     });
     await widget.onQuery!(query);
@@ -208,11 +210,12 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     final visible = _current.visibleSnapshot;
     final title = _current.bykcChosenKey != null
         ? '课程详情'
-        : _readPageTitle(
-            visible.feature,
-            _current.query ?? _current.navigationQuery,
-            _current.isLanding,
-          );
+        : _current.scheduleTitle ??
+              _readPageTitle(
+                visible.feature,
+                _current.query ?? _current.navigationQuery,
+                _current.isLanding,
+              );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(visible, _current.visibleSnapshot))
         widget.onVisibleSnapshot(visible, title);
@@ -229,6 +232,13 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
               child: widget.pageBuilder(
                 _ReadPage(
                   pageKey: frame.pageKey,
+                  onScheduleTitle: (title) {
+                    if (!mounted ||
+                        !identical(frame, _current) ||
+                        frame.scheduleTitle == title)
+                      return;
+                    setState(() => frame.scheduleTitle = title);
+                  },
                   isLanding: frame.isLanding,
                   isCurrent: identical(frame, _current),
                   snapshot: frame.bykcChosenKey == null
@@ -265,6 +275,7 @@ class _ReadFrame {
     this.bykcChosenKey,
   }) : menuSnapshot = FeatureSnapshot(feature: snapshot.feature);
   final bool isLanding;
+  String? scheduleTitle;
   final FeatureQuery? navigationQuery;
   final FeatureSnapshot menuSnapshot;
   (int, int)? bykcChosenKey;
@@ -318,7 +329,9 @@ class _ReadPage {
     this.onNavigate,
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
+    this.onScheduleTitle,
   });
+  final ValueChanged<String?>? onScheduleTitle;
   final bool isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final GlobalKey<_FeatureDetailViewState> pageKey;

@@ -35,6 +35,34 @@ final class WeekPresentation extends FeaturePresentation {
   final bool current;
   final String startDate;
   final String endDate;
+
+  /// 沿冻结旧版只用本周真实起止日期；UTC日历运算避免夏令时跨日偏移。
+  List<String?> get headerDateLabels {
+    final start =
+        _parseWeekDate(startDate) ??
+        _parseWeekDate(endDate)?.subtract(const Duration(days: 6));
+    if (start == null) return List.unmodifiable(List<String?>.filled(7, null));
+    return List.unmodifiable(
+      List.generate(7, (index) {
+        final date = start.add(Duration(days: index));
+        return '${date.month}-${date.day}';
+      }),
+    );
+  }
+}
+
+DateTime? _parseWeekDate(String raw) {
+  final match = RegExp(
+    r'(\d{4})\D+(\d{1,2})\D+(\d{1,2})',
+  ).firstMatch(raw.trim());
+  if (match == null) return null;
+  final year = int.parse(match[1]!);
+  final month = int.parse(match[2]!);
+  final day = int.parse(match[3]!);
+  final parsed = DateTime.utc(year, month, day);
+  return parsed.year == year && parsed.month == month && parsed.day == day
+      ? parsed
+      : null;
 }
 
 final class ScheduleCoursePresentation extends FeaturePresentation {

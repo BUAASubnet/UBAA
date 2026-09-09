@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-current",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "macos",
+  "sourceSha": "2610d316+E3c-r3-window",
+  "windowId": 4582,
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "viewportSource": "native-window-unmodified",
+  "captureMethod": "Flutter原生测试检查点与OS只读截窗，非独立CUA鼠标",
+  "dateUtc": "2026-09-09T11:23:19.852254+00:00"
+}

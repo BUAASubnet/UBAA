@@ -20,6 +20,7 @@ class _ScheduleContentState extends State<_ScheduleContent> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
+      final dates = _ScheduleWeekScope.of(context)?.headerDateLabels;
       final width = math.max(constraints.maxWidth - 16, 330 * scale);
       final periodHeight = 64 * scale;
       final axisWidth = 36 * scale;
@@ -78,11 +79,11 @@ class _ScheduleContentState extends State<_ScheduleContent> {
               child: Column(
                 children: [
                   SizedBox(
-                    height: 36 * scale,
+                    height: 52 * scale,
                     child: Row(
                       children: [
                         SizedBox(width: axisWidth),
-                        for (final label in const [
+                        for (final (index, label) in const [
                           '周一',
                           '周二',
                           '周三',
@@ -90,15 +91,30 @@ class _ScheduleContentState extends State<_ScheduleContent> {
                           '周五',
                           '周六',
                           '周日',
-                        ])
+                        ].indexed)
                           Expanded(
                             child: Center(
-                              child: Text(
-                                label,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    label,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (dates?[index] case final date?)
+                                    Text(
+                                      date,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           ),

@@ -1,0 +1,14 @@
+{
+  "name": "light-long-options",
+  "steps": "1.3长周名称在列表完整换行，顶栏单行省略",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:43:28.266758Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

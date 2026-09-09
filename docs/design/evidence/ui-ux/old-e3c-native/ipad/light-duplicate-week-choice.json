@@ -1,0 +1,14 @@
+{
+  "name": "light-duplicate-week-choice",
+  "steps": "无唯一当前标记时明确选择，重复编号不静默采用",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:53:32.298322Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

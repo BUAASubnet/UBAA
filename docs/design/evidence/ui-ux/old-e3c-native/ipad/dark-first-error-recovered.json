@@ -1,0 +1,14 @@
+{
+  "name": "dark-first-error-recovered",
+  "steps": "显式重试恢复周课表",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:52:14.933346Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

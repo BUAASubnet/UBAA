@@ -8,6 +8,7 @@ class _FeatureQueryControls extends StatefulWidget {
     required this.onApply,
     this.initialQuery,
     this.onLoadAcademicTerms,
+    this.onLoadAcademicWeeks,
     this.readCacheEpoch = 0,
     this.bykcStatuses = _defaultBykcStatuses,
     this.onBykcStatusesChanged,
@@ -20,6 +21,8 @@ class _FeatureQueryControls extends StatefulWidget {
   final Future<void> Function(FeatureQuery query) onApply;
   final FeatureQuery? initialQuery;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final Future<FeatureResult> Function(String term, bool forceRefresh)?
+  onLoadAcademicWeeks;
   final int readCacheEpoch;
   final Set<BykcCourseStatus> bykcStatuses;
   final ValueChanged<Set<BykcCourseStatus>>? onBykcStatusesChanged;
@@ -124,6 +127,11 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
       _libraryDateError = false;
       if (clearDate) _dateController.clear();
     });
+  }
+
+  void adoptScheduleQuery(FeatureQuery query) {
+    if (widget.feature != FeatureId.schedule) return;
+    setState(() => _restoreQuery(query));
   }
 
   void adoptCgyyQuery(FeatureQuery query) {

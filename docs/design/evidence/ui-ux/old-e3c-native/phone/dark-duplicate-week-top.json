@@ -1,0 +1,14 @@
+{
+  "name": "dark-duplicate-week-top",
+  "steps": "自然周选择的原生状态",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:43:02.503054Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

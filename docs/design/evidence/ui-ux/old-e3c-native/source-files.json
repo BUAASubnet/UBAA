@@ -1,0 +1,29 @@
+{
+  "baseSha": "2610d316",
+  "说明": "生产UI为三端E3c-r3实测版本；support.dart可选macOS截窗钩子在全量r3后加入，默认关闭，随后单场景原生实窗17秒通过并独立analyze通过。不可据此冒称全部测试固定在最终提交SHA。",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_schedule_navigation/backend.dart": "8e550d2e95d4d48c36a38635a193684a34582bbf09567ffc2c0bb73ee3b6ec47",
+    "apps/ubaa_flutter/integration_test/ui_schedule_navigation/live_readonly_test.dart": "d32d949006cd9c92b2815e819e837ab0d06f3b7e497b1522f1791afe830367ee",
+    "apps/ubaa_flutter/integration_test/ui_schedule_navigation/native_test.dart": "e0acdc2ffe10459cfeead7a9db2ece9357510a7d02e070aac795d85559acd79f",
+    "apps/ubaa_flutter/integration_test/ui_schedule_navigation/support.dart": "88ab3604b0d0c242db887f5f07a21943fa869e7fb2342c69a00df68ada0b6fbb",
+    "apps/ubaa_flutter/test/schedule/navigation_test.dart": "e818da19d1db1cbc58459b9036282356ecdc00b5dcd4a86efbe86c2f423146ce",
+    "packages/ubaa_app/lib/src/controller/app_controller.dart": "b14af0f4f379bea2a8e1a726e8fd9142a78782cb41cf34f41347519ccaf55d78",
+    "packages/ubaa_app/lib/src/controller/app_controller/academic_weeks.dart": "ef7843408403833e70c19d98c458257cfb6b17fb38b9e791031c9621aa5b2ab8",
+    "packages/ubaa_app/test/app_controller/academic_weeks.dart": "4b4964d1e22e95cec241e091e3fce1b582e271fd4bd76945cf1e23abf99e8fda",
+    "packages/ubaa_app/test/app_controller_test.dart": "1e6f9399ec55fef8a67a7985313bcd49493aab23edf207aa22b2674ec5c377db",
+    "packages/ubaa_domain/lib/src/feature/presentation/schedule.dart": "b8f32efc91b1f576fda41348fd206e79a6ac69a6c774a00c0892ab81402ffa44",
+    "packages/ubaa_domain/test/schedule_dates_test.dart": "8163904b6cb9864a33bb30aa886d170a0bc8589b79df1f2fe07471ece43200de",
+    "packages/ubaa_host/lib/src/callbacks.dart": "e1d808e3e5637b7d74b462840e1e75de2e78fa07a53b51dd6bc06655c5c9ef97",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "e9b3fab6fc32ba6b2a4f5e68a0c14a7480735cb40a9967ad6681ae0c3f40c27e",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "fecb5e829e5ce524f7fb6800a3c31511b48bb0d51fd17dd27d4d01d8c00836f3",
+    "packages/ubaa_ui/lib/src/common/landing_menu.dart": "6c3f6c98a65a8d3cc174d244539101981cdc12f0247c38ff85c36e1526b84c67",
+    "packages/ubaa_ui/lib/src/common/query_controls.dart": "b4b793bf232b73f284735498be54edf948535bb5f233ce13de9025ff1332361a",
+    "packages/ubaa_ui/lib/src/common/read_navigator.dart": "838655837c322bbcd26ae688e94744d02a49ff40f68d7bfddf9f55a5415e7b53",
+    "packages/ubaa_ui/lib/src/features/academic.dart": "20420ac457715c22170d49a9b43ac9ac1ec0506d4ef4fc7870b2b8e039374c1e",
+    "packages/ubaa_ui/lib/src/features/academic/schedule_flow.dart": "7719170486398f3e5506bf95182c7cd71faaeca1d5ba12e5fe3f42e3613c36c0",
+    "packages/ubaa_ui/lib/src/features/academic/week_picker.dart": "6308898734d30f92ef6f4da62bd5fbbcb014bf3d0c87f45bb6c5c7131083b27a",
+    "packages/ubaa_ui/lib/src/features/schedule_content.dart": "ebc19d0e8f0f7b311a42aaa72639304693cfc46204a4f997810a9ac34008acc4",
+    "packages/ubaa_ui/lib/src/widgets.dart": "b1980a92af1a5d928af23a53d75c9fddd15c3ad892cf78a9ab4f5a5992f89ffb",
+    "packages/ubaa_ui/test/academic_selectors_test.dart": "9ddc9abdff0717be2e29b30ae36bc05ac61a520c30aedde7ec339af43dba76bd"
+  }
+}

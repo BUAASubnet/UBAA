@@ -88,6 +88,28 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
           icon: const Icon(Icons.calendar_month_outlined),
           label: const Text('选择学期'),
         ),
+      if (widget.feature == FeatureId.schedule &&
+          _scheduleView == FeatureQueryView.scheduleWeek &&
+          widget.onLoadAcademicWeeks != null)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: '上一教学周',
+              onPressed: _submitting ? null : () => _stepWeek(-1),
+              icon: const Icon(Icons.chevron_left),
+            ),
+            OutlinedButton(
+              onPressed: _submitting ? null : _chooseWeek,
+              child: const Text('选择教学周'),
+            ),
+            IconButton(
+              tooltip: '下一教学周',
+              onPressed: _submitting ? null : () => _stepWeek(1),
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
       SizedBox(
         width: 180,
         child: TextField(
@@ -139,6 +161,11 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
       _showMessage('连接状态已变化，请重新选择学期。');
       return;
     }
-    _updateQueryDraft(() => _termController.text = selected);
+    _updateQueryDraft(() {
+      if (widget.feature == FeatureId.schedule &&
+          _termController.text != selected)
+        _weekController.clear();
+      _termController.text = selected;
+    });
   }
 }

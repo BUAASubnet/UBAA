@@ -1,0 +1,10 @@
+{
+  "savedScreenshots": [
+    "dark-normal-current",
+    "dark-normal-weeks",
+    "dark-normal-draft",
+    "dark-normal-applied",
+    "dark-normal-other-term"
+  ],
+  "acceptance": "需要原生测试退出0及逐图复核"
+}

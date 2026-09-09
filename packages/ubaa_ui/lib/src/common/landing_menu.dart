@@ -6,6 +6,11 @@ bool _hasLandingMenu(FeatureId feature) =>
 String _readPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
   if (landing || query == null) return feature.title;
   return switch ((feature, query.view)) {
+    (FeatureId.schedule, FeatureQueryView.scheduleWeek) =>
+      query.week == null ? '周课表' : '第${query.week}周',
+    (FeatureId.schedule, FeatureQueryView.scheduleToday) => '今日课程',
+    (FeatureId.schedule, FeatureQueryView.scheduleTerms) => '选择学期',
+    (FeatureId.schedule, FeatureQueryView.scheduleWeeks) => '选择教学周',
     (FeatureId.bykc, FeatureQueryView.summary) => '选择课程',
     (FeatureId.bykc, FeatureQueryView.bykcDetail) => '课程详情',
     (FeatureId.bykc, FeatureQueryView.bykcChosenCourses) => '我的课程',

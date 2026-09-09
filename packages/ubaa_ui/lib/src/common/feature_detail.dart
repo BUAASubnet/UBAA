@@ -31,10 +31,13 @@ class _FeatureDetailView extends StatefulWidget {
     this.onNavigate,
     this.backLabel = '返回功能列表',
     this.onLoadAcademicTerms,
+    this.onLoadAcademicWeeks,
+    this.onScheduleTitle,
     this.readCacheEpoch = 0,
     super.key,
   });
 
+  final ValueChanged<String?>? onScheduleTitle;
   final bool isLanding, isBykcChosenDetail;
   final bool visible;
   final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
@@ -64,6 +67,8 @@ class _FeatureDetailView extends StatefulWidget {
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final String backLabel;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
+  final Future<FeatureResult> Function(String term, bool forceRefresh)?
+  onLoadAcademicWeeks;
   final int readCacheEpoch;
 
   @override
@@ -72,11 +77,14 @@ class _FeatureDetailView extends StatefulWidget {
 
 class _FeatureDetailViewState extends State<_FeatureDetailView> {
   final _queryKey = GlobalKey<_FeatureQueryControlsState>();
+  final _scheduleKey = GlobalKey<_ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
   Set<BykcCourseStatus> _bykcStatuses = {..._defaultBykcStatuses};
 
   void togglePanel() {
+    if (!_panelOpen)
+      _scheduleKey.currentState?.stopAutomatic(clearPrompt: false);
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _panelOpen = !_panelOpen);
   }
@@ -232,6 +240,26 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             loader: widget.onLoadAllGrades,
             onRoutes: widget.onGradeRoutes,
           )
+        : widget.feature == FeatureId.schedule &&
+              widget.onLoadAcademicWeeks != null
+        ? _ScheduleFlow(
+            key: _scheduleKey,
+            snapshot: widget.snapshot,
+            query: widget.query,
+            visible: widget.visible,
+            epoch: widget.readCacheEpoch,
+            loadWeeks: widget.onLoadAcademicWeeks!,
+            onTitle: widget.onScheduleTitle,
+            onQuery: widget.onQuery == null
+                ? null
+                : (query) {
+                    _queryKey.currentState?.adoptScheduleQuery(query);
+                    return widget.onQuery!(query);
+                  },
+            adoptDraft: (query) =>
+                _queryKey.currentState?.adoptScheduleQuery(query),
+            child: defaultContent,
+          )
         : defaultContent;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -297,8 +325,14 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                                       initialQuery: widget.query,
                                       onLoadAcademicTerms:
                                           widget.onLoadAcademicTerms,
+                                      onLoadAcademicWeeks:
+                                          widget.onLoadAcademicWeeks,
                                       readCacheEpoch: widget.readCacheEpoch,
-                                      onApply: widget.onQuery!,
+                                      onApply: (query) {
+                                        _scheduleKey.currentState
+                                            ?.stopAutomatic();
+                                        return widget.onQuery!(query);
+                                      },
                                       bykcStatuses: _bykcStatuses,
                                       onBykcStatusesChanged: (value) =>
                                           setState(

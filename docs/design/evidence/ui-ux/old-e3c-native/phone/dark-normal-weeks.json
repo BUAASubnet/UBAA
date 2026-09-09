@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-weeks",
+  "steps": "旧周列表、日期、本周和已选提示，按内容收缩",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:42:24.500478Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

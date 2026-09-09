@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-current",
+  "steps": "唯一当前学期和周自动进入，标题与真实七日日期",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:52:50.365990Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-weeks",
+  "steps": "旧周列表、日期、本周和已选提示，按内容收缩",
+  "backend": "synthetic-schedule-navigation",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T10:52:51.950320Z",
+  "sourceSha": "2610d316+E3c-r3",
+  "pngSaved": true
+}

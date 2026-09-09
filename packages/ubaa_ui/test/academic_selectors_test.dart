@@ -173,6 +173,16 @@ void main() {
         'term-safe',
       );
       expect(queries, isEmpty);
+      if (feature == FeatureId.schedule) {
+        expect(
+          tester
+              .widget<TextField>(find.widgetWithText(TextField, '周次'))
+              .controller!
+              .text,
+          isEmpty,
+        );
+        await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
+      }
       await tester.tap(find.text('应用筛选'));
       await tester.pumpAndSettle();
       expect(queries, hasLength(1));
