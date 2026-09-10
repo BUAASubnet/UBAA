@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-back",
+  "steps": "返回原三导航功能列表，无学校写入",
+  "backend": "synthetic-about",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T04:34:35.984680Z",
+  "sourceSha": "b6ba2eef+E5-r2",
+  "pngSaved": true
+}

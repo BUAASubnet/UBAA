@@ -10,10 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
   meta: ^1.16.0
+  package_info_plus: ^8.3.1
   ubaa_domain:
     path: ../ubaa_domain
+  url_launcher: ^6.3.2
 
 dev_dependencies:
+  url_launcher_platform_interface: ^2.3.2
   flutter_test:
     sdk: flutter
   test: ^1.26.3

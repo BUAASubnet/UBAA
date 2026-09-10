@@ -1,0 +1,14 @@
+{
+  "name": "system-version",
+  "steps": "通过生产平台适配器读取当前安装包版本，业务backend仍为显式内存",
+  "backend": "synthetic-about",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T04:33:29.131583Z",
+  "sourceSha": "b6ba2eef+E5-r2",
+  "pngSaved": true
+}

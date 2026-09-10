@@ -1,0 +1,14 @@
+{
+  "name": "light-pending-about",
+  "steps": "原生侧栏关于，单标题与旧说明卡，明暗及1.3字号",
+  "backend": "synthetic-about",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T04:35:10.118051Z",
+  "sourceSha": "b6ba2eef+E5-r2",
+  "pngSaved": true
+}

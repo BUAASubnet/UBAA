@@ -2,3 +2,5 @@
 library;
 
 export 'src/models.dart';
+
+export 'src/app_link.dart';

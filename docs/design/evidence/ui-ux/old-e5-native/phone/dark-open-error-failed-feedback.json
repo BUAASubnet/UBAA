@@ -1,0 +1,14 @@
+{
+  "name": "dark-open-error-failed-feedback",
+  "steps": "打不开时显示准确公开地址与复制入口，不泄露平台原始错误",
+  "backend": "synthetic-about",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T04:32:57.413517Z",
+  "sourceSha": "b6ba2eef+E5-r2",
+  "pngSaved": true
+}

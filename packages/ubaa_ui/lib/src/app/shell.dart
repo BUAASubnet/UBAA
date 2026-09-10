@@ -20,6 +20,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
     this.onLoadCgyyPurposes,
+    this.onLoadAppVersion,
+    this.onOpenAppLink,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
@@ -89,6 +91,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
+  final Future<String?> Function()? onLoadAppVersion;
+  final Future<bool> Function(AppLink)? onOpenAppLink;
   final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -591,7 +595,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   );
 
   Widget _buildTab(BuildContext context) => _utilityPage != null
-      ? _buildProfile()
+      ? _utilityPage == '关于'
+            ? _AboutView(
+                loadVersion: widget.onLoadAppVersion,
+                openLink: widget.onOpenAppLink,
+              )
+            : _buildProfile()
       : switch (_selectedIndex) {
           0 => _HomeView(
             user: widget.user,
@@ -705,6 +714,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           for (final item in [
             ('我的资料', Icons.person_outline),
             ('设置', Icons.settings_outlined),
+            ('关于', Icons.info_outline),
           ])
             ListTile(
               leading: Icon(item.$2),

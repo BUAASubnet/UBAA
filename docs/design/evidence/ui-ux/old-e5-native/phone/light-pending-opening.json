@@ -1,0 +1,14 @@
+{
+  "name": "light-pending-opening",
+  "steps": "外链打开中不重复请求",
+  "backend": "synthetic-about",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T04:33:22.747426Z",
+  "sourceSha": "b6ba2eef+E5-r2",
+  "pngSaved": true
+}

@@ -98,7 +98,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final accountKey = _controller.user?.schoolId?.trim().isNotEmpty == true
         ? _controller.user!.schoolId!
         : _controller.user!.username;
+    final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
+      onLoadAppVersion: appInformation.version,
+      onOpenAppLink: appInformation.open,
       readCacheEpoch: _controller.readCacheEpoch,
       onLoadAcademicTerms: (forceRefresh) =>
           _controller.loadAcademicTerms(forceRefresh: forceRefresh),
