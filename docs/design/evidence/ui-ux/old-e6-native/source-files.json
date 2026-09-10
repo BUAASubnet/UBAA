@@ -1,0 +1,18 @@
+{
+  "baseSha": "7459d6771d5ea0d8492ef8e87bd683df2b3c4aff",
+  "sourceDefine": "7459d677+E6-r1",
+  "说明": "本批只新增真实页面验收与修复内存fixture的显式查询分支，生产投影和资格不变",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_academic_old/backend.dart": "7e848f929f8fac475c4d5e569fb97c236356fbedc8aeb8418ff8b6dfac6c8be2",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/native_test.dart": "70ac5a7272cb524ded48788ec943a0a3699323b7f738c017281177ca90d7a7a4",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/support.dart": "8489097fb2411c5fc55d30aad64610ce37ae285e8353caf880b7617d25970329",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/signin_queries_test.dart": "73675e59a576b5cced2e3c98ddc364d473b478de66ee7571135919124cd12241",
+    "apps/ubaa_flutter/integration_test/ui_academic_old/live_readonly_test.dart": "17d5aee3315b85483e1c14f2050f717155a4ec62ab5618e79268f9bc761dedb5",
+    "apps/ubaa_flutter/integration_test/ui_coursework/backend.dart": "4c76c7c5da9a62ef15724b4339fe79ec6f69adbc2e93bbbaa187f224fea31468",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "e219525054da4771eb40d28e587d645bd49a838e235d0351bff3fdf0e6b38f86",
+    "packages/ubaa_ui/lib/src/common/query_controls.dart": "b4b793bf232b73f284735498be54edf948535bb5f233ce13de9025ff1332361a",
+    "packages/ubaa_ui/lib/src/features/assignments.dart": "1dfb159e1f7224fdd0d41dcdc0cc8ecca8b19e392fb56e84da9cea2fb3628d13",
+    "packages/ubaa_ui/lib/src/features/coursework/course_participation.dart": "effb297504b51a63a694566a461c0f4e3e74568d4f317b0ca916441bbaa12ef1",
+    "packages/ubaa_app/lib/src/bridge/read/assignments.dart": "c923822bfd18d273f3d0f4e9bbf9c47fb7a6283ee12ea4daea984d3d74d6b9bc"
+  }
+}

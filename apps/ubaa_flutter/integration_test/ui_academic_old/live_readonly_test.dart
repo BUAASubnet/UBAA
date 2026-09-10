@@ -8,6 +8,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 生产考试与课堂签到只读；只输出状态计数，不截图或准备签到。
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('生产考试三视图与签到旧布局双路线只读', (tester) async {
     final config = Platform.environment['UBAA_CONFIG_DIR'];
@@ -40,7 +41,7 @@ void main() {
     Future<void> tap(Finder finder) async {
       expect(finder.evaluate().isNotEmpty, isTrue, reason: '只读入口未出现');
       await tester.ensureVisible(finder);
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(finder);
       await tester.pump(const Duration(milliseconds: 250));
     }
@@ -114,6 +115,37 @@ void main() {
     );
     await tap(find.byTooltip('返回'));
     await open(FeatureId.signin, Icons.auto_awesome_outlined);
+    for (final (label, view, eligibility) in [
+      ('可签到', FeatureQueryView.signinPending, ActionEligibility.allowed),
+      ('已签到', FeatureQueryView.signinCompleted, ActionEligibility.denied),
+      ('全部课程', FeatureQueryView.summary, null),
+    ]) {
+      await tap(find.byTooltip('搜索与筛选'));
+      await tap(find.byType(DropdownButton<FeatureQueryView>));
+      await tap(find.text(label).last);
+      final revision =
+          shell().snapshots[FeatureId.signin]!.readContext?.requestRevision;
+      await tap(find.text('应用筛选'));
+      await waitFor(
+        () =>
+            shell().snapshots[FeatureId.signin]!.readContext?.requestRevision !=
+            revision,
+      );
+      await loaded(FeatureId.signin, view);
+      final rows = shell().snapshots[FeatureId.signin]!.details;
+      if (eligibility != null) {
+        expect(
+          rows.every(
+            (row) =>
+                row.action<SigninPerformAction>()?.eligibility == eligibility,
+          ),
+          isTrue,
+          reason: '显式签到视图必须符合原资格筛选，不能用文字搜索替代',
+        );
+      }
+      await tap(find.widgetWithText(TextButton, '完成'));
+      expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+    }
     if (shell().snapshots[FeatureId.signin]!.details.isNotEmpty) {
       final revision =
           shell().snapshots[FeatureId.signin]!.readContext?.requestRevision;

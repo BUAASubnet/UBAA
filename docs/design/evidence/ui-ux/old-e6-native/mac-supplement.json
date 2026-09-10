@@ -1,0 +1,41 @@
+{
+  "about": {
+    "sourceDefine": "7459d677",
+    "platform": "macos",
+    "backend": "显式内存",
+    "businessTests": 11,
+    "elapsedSeconds": 42,
+    "exitCode": 0,
+    "checkpoints": 29,
+    "logSha256": "ca8ead769944d39f0e9ab37a253a12a0ef6a7423c27c68a31557dc3132a8e8f2",
+    "log": "/tmp/ubaa-old-e5-macos-r3.log",
+    "independentMouse": "尚未通过",
+    "realBusinessWrites": 0
+  },
+  "ygdk": {
+    "sourceDefine": "7459d677+P5D-mac-r3",
+    "platform": "macos",
+    "backend": "显式内存",
+    "businessTests": 42,
+    "elapsedSeconds": 332,
+    "exitCode": 0,
+    "checkpoints": 138,
+    "logSha256": "83e86e17faf34edf8452fd01d3da58e82dc54e16e7db0a2cf8db22f4bd4de6db",
+    "log": "/tmp/ubaa-old-p5d-macos-r3.log",
+    "independentMouse": "尚未通过",
+    "realBusinessWrites": 0
+  },
+  "signin": {
+    "sourceDefine": "7459d677+E6-r1",
+    "platform": "macos",
+    "backend": "显式内存",
+    "businessTests": 2,
+    "elapsedSeconds": 27,
+    "exitCode": 0,
+    "checkpoints": 12,
+    "logSha256": "7eaaacfd1a9c6ce00020938e466c84b0a8b98e6718f8a92d43fc7c5a8a4a1fbe",
+    "log": "/tmp/ubaa-old-e6-macos-r1.log",
+    "independentMouse": "尚未补验",
+    "realBusinessWrites": 0
+  }
+}

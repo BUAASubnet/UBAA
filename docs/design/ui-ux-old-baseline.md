@@ -215,3 +215,13 @@ P5-A统一确认页已实现顶栏取消返回、隐藏侧栏/首页刷新/正�
 
 
 P4-E5局部结果（2026-09-10）：关于侧栏入口、旧版单卡顺序、实际包版本和固定公开外链已实现；图片发现的半屏留白有RED→GREEN及两端r2复验。完整Flutter715、just check、layout通过，手机11场景+teardown/45秒、平板11场景+teardown/47秒，各29原图共58全数查看归档old-e5-native。两端独立CUA已从页面打开Safari并逐个核对项目与/issues完整地址，返回保留原关于；未登录或发送反馈。OHOS ArkTS/HAP仅无签名构建通过，不算设备外链验收。Mac-r2仍停首场景，6分钟无检查点且CUA显示Test starting，准确停止自有18431进程；INT退出0非PASS。独立Mac仅普通功能页可见，AX系统菜单响应而Flutter正文操作未生效，console=Yes，原因未定，不笼统归因锁屏。关于Mac、P5-D Mac与P4余项/P5全矩阵/P6/P7仍待完成，84编号不减。
+
+
+## E6 课堂签到显式查询验收前复核（2026-09-10）
+
+基点7459d677。再次完整读取冻结SigninScreen.kt/SigninViewModel.kt、Signin DTO与API；旧版仅今日列表，没有三个筛选视图。保留20内边距横卡、16卡间距、课程/时间/右侧签到状态及本地详情，新增查询沿现行公开能力收在右上，不能将文字搜索当作显式视图验收。全部/可签到/已签到均调用既有signinToday，App分别不筛/筛allowed/筛denied，原始状态和typed目标分别保留。Core features/signin.rs:464按非空目标与0/1派生allowed/denied，其余unknown；不改变为文本或UI判断资格。examples api/class/data.rs只保留布尔状态，与旧版可解析原整数不同，继续已有九列裁决，不借新字段。协议、参数、缓存代数、Bridge及写入不变。
+
+发现旧AcademicOldBackend未处理两个显式视图，旧原生测试只在“筛选详情”输入“可签到”，因此不能证明SIG-02/03通过。本批补通过真实右上Dropdown及应用筛选的原生用例，验证关面板保未应用草稿、实际query、结果、返回和刷新，再修正仅内存fixture使其遵守现有App查询合同；生产App已存在投影不为通过测试改变。真实只读入口亦需补三视图与actualroute断言，禁止准备/提交签到。
+
+
+E6最终局部验收（2026-09-10）：三显式签到查询原有生产投影保持，修复显式内存fixture后，手机31秒/平板31秒各2主题完整流程通过，Mac27秒2主题通过；两端各12原图共24全数检查归档old-e6-native。三端覆盖未应用草稿关闭往返、已应用视图返回保留、本地详情无请求、刷新沿原query、unknown/缺目标不误归类及0 prepare/commit。Core Direct/WebVPN各3认证+today2条通过；生产AppDirect65秒/WebVPN107秒，考试三视图均空（真实详情未执行），签到全部2→可签到1→已签到1→全部2，actualroute严格一致，本地签到详情无额外读取，学校写入0。两条全新App容器隔离配置经既有安全stdin使用授权.env.local，未输出或归档账号、session及真实正文。App54/analyze、just check、refs与敏感检查通过；完整715为E5最近门禁，E6无生产实现变更。独立Mac仍受已记录交互条件限制，P4余项、P5全领域/P6/P7未完成。

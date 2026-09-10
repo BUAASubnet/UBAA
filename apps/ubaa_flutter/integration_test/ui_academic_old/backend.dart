@@ -131,6 +131,18 @@ class AcademicOldBackend extends CourseworkBackend {
           ),
         );
       }
+      // 与现有 BridgeBackend 的显式查询合同一致；不由展示文字猜资格。
+      final eligibility = switch (query.view) {
+        FeatureQueryView.signinPending => ActionEligibility.allowed,
+        FeatureQueryView.signinCompleted => ActionEligibility.denied,
+        _ => null,
+      };
+      if (eligibility != null) {
+        details.removeWhere(
+          (detail) =>
+              detail.action<SigninPerformAction>()?.eligibility != eligibility,
+        );
+      }
     }
     return FeatureResult.success(
       details: details,

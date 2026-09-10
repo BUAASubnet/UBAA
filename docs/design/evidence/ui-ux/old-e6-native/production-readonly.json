@@ -1,0 +1,140 @@
+[
+  {
+    "command": "flutter test integration_test/ui_academic_old/live_readonly_test.dart -d macos --dart-define=UBAA_LIVE_READONLY=true --dart-define=UBAA_EXPECTED_ROUTE=direct",
+    "route": "direct",
+    "backend": "生产FRB",
+    "exitCode": 0,
+    "elapsedSeconds": 65,
+    "reads": [
+      {
+        "feature": "exam",
+        "view": "summary",
+        "status": "empty",
+        "actualRoute": "direct",
+        "count": 0
+      },
+      {
+        "feature": "exam",
+        "view": "examArranged",
+        "status": "empty",
+        "actualRoute": "direct",
+        "count": 0
+      },
+      {
+        "feature": "exam",
+        "view": "examNotArranged",
+        "status": "empty",
+        "actualRoute": "direct",
+        "count": 0
+      },
+      {
+        "feature": "exam",
+        "view": "summary",
+        "status": "empty",
+        "actualRoute": "direct",
+        "count": 0
+      },
+      {
+        "feature": "signin",
+        "view": "summary",
+        "status": "success",
+        "actualRoute": "direct",
+        "count": 2
+      },
+      {
+        "feature": "signin",
+        "view": "signinPending",
+        "status": "success",
+        "actualRoute": "direct",
+        "count": 1
+      },
+      {
+        "feature": "signin",
+        "view": "signinCompleted",
+        "status": "success",
+        "actualRoute": "direct",
+        "count": 1
+      },
+      {
+        "feature": "signin",
+        "view": "summary",
+        "status": "success",
+        "actualRoute": "direct",
+        "count": 2
+      }
+    ],
+    "signinLocalDetail": "通过，无新增请求",
+    "examLocalDetail": "真实为空，未执行",
+    "businessWrites": 0,
+    "logSha256": "f6ab55bffb0324e2b0e6fd738cf0c7e37fdbd1be5ee9b79c56cfc7a60b176438"
+  },
+  {
+    "command": "flutter test integration_test/ui_academic_old/live_readonly_test.dart -d macos --dart-define=UBAA_LIVE_READONLY=true --dart-define=UBAA_EXPECTED_ROUTE=webvpn",
+    "route": "webvpn",
+    "backend": "生产FRB",
+    "exitCode": 0,
+    "elapsedSeconds": 107,
+    "reads": [
+      {
+        "feature": "exam",
+        "view": "summary",
+        "status": "empty",
+        "actualRoute": "webvpn",
+        "count": 0
+      },
+      {
+        "feature": "exam",
+        "view": "examArranged",
+        "status": "empty",
+        "actualRoute": "webvpn",
+        "count": 0
+      },
+      {
+        "feature": "exam",
+        "view": "examNotArranged",
+        "status": "empty",
+        "actualRoute": "webvpn",
+        "count": 0
+      },
+      {
+        "feature": "exam",
+        "view": "summary",
+        "status": "empty",
+        "actualRoute": "webvpn",
+        "count": 0
+      },
+      {
+        "feature": "signin",
+        "view": "summary",
+        "status": "success",
+        "actualRoute": "webvpn",
+        "count": 2
+      },
+      {
+        "feature": "signin",
+        "view": "signinPending",
+        "status": "success",
+        "actualRoute": "webvpn",
+        "count": 1
+      },
+      {
+        "feature": "signin",
+        "view": "signinCompleted",
+        "status": "success",
+        "actualRoute": "webvpn",
+        "count": 1
+      },
+      {
+        "feature": "signin",
+        "view": "summary",
+        "status": "success",
+        "actualRoute": "webvpn",
+        "count": 2
+      }
+    ],
+    "signinLocalDetail": "通过，无新增请求",
+    "examLocalDetail": "真实为空，未执行",
+    "businessWrites": 0,
+    "logSha256": "3ae441bb43b6b7c24948d19ac57d19a4f229a992907551b546b22243bd86e3df"
+  }
+]

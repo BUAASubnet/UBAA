@@ -1,0 +1,14 @@
+{
+  "name": "light-signin-query-draft",
+  "steps": "右上选择可签到但不应用，关闭重开保留草稿和原全部结果",
+  "backend": "synthetic-academic-old",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T04:58:11.807846Z",
+  "sourceSha": "7459d677+E6-r1",
+  "pngSaved": true
+}

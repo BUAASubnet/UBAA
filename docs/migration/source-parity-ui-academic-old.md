@@ -20,3 +20,10 @@
 两来源差异：已读examples `api/class/core.rs`、`data.rs`：Class签到有等价业务，但示例新登录URL/POST查询/状态布尔解析不能整体移植，沿既有真实证据决定。考试最近对应为`api/aas`（不是iClass）；既有对照已记录相同AAS激活与不同campusCode查询，无等价考试DTO/UI，不借其字段。E1未改认证、Core、Bridge v9、资格、写入协议或参数。
 
 验证计划：先日期边界/全结果折叠与顺序、签到右操作及未知状态、宿主中文委托RED；聚焦GREEN、全Flutter与根门禁；显式合成backend手机/平板/macOS实际渲染操作及独立实窗；生产双路线考试/签到只读，空结果如实记录。旧候选截图不能作为E1通过。
+
+
+## E6 课堂签到显式查询验收前复核（2026-09-10）
+
+基点7459d677。再次完整读取冻结SigninScreen.kt/SigninViewModel.kt、Signin DTO与API；旧版仅今日列表，没有三个筛选视图。保留20内边距横卡、16卡间距、课程/时间/右侧签到状态及本地详情，新增查询沿现行公开能力收在右上，不能将文字搜索当作显式视图验收。全部/可签到/已签到均调用既有signinToday，App分别不筛/筛allowed/筛denied，原始状态和typed目标分别保留。Core features/signin.rs:464按非空目标与0/1派生allowed/denied，其余unknown；不改变为文本或UI判断资格。examples api/class/data.rs只保留布尔状态，与旧版可解析原整数不同，继续已有九列裁决，不借新字段。协议、参数、缓存代数、Bridge及写入不变。
+
+发现旧AcademicOldBackend未处理两个显式视图，旧原生测试只在“筛选详情”输入“可签到”，因此不能证明SIG-02/03通过。本批补通过真实右上Dropdown及应用筛选的原生用例，验证关面板保未应用草稿、实际query、结果、返回和刷新，再修正仅内存fixture使其遵守现有App查询合同；生产App已存在投影不为通过测试改变。真实只读入口亦需补三视图与actualroute断言，禁止准备/提交签到。

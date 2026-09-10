@@ -1,0 +1,19 @@
+{
+  "savedScreenshots": [
+    "dark-signin-query-draft",
+    "dark-signin-query-pending",
+    "dark-signin-query-detail",
+    "dark-signin-query-back",
+    "dark-signin-query-signincompleted",
+    "dark-signin-query-summary",
+    "light-signin-query-draft",
+    "light-signin-query-pending",
+    "light-signin-query-detail",
+    "light-signin-query-back",
+    "light-signin-query-signincompleted",
+    "light-signin-query-summary"
+  ],
+  "metadataCount": 12,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}

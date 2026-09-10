@@ -1,6 +1,6 @@
 # 当前迁移与交付状态
 
-当前批次（2026-09-10）：P5-D阳光独立表单已实现；709项门禁、两端完整42业务及修复后16业务复验、276原图和Core双路线只读通过。Mac当前候选原生/独立操作与生产App只读仍受锁屏影响待补，整体P4余项、P5–P7未完成。下方各日期与“最新”段落为历史过程，最新详细事实见末尾P5-D和主验收日志。
+当前批次（2026-09-10）：E5已提交7459d677，E6签到三显式查询三端及生产双路线通过；P5-D Mac42完整内存场景补验通过。生产阳光表单Direct-r3发现原生照片通道未注册，新增入口被现有能力门禁隐藏，下一批P5-E补真实照片能力；不绕过保护。独立Mac和P4余项、P5全领域/P6/P7仍未完成，84编号保持。以下过程段落按日期留存，当前事实以本段及末尾证据为准。
 
 
 更新日期：2026-09-09，Asia/Shanghai。
@@ -203,3 +203,19 @@ P5-D阶段结果（2026-09-10）：独立阳光表单按旧卡片顺序实现，
 
 
 P4-E5局部结果（2026-09-10）：关于侧栏入口、旧版单卡顺序、实际包版本和固定公开外链已实现；图片发现的半屏留白有RED→GREEN及两端r2复验。完整Flutter715、just check、layout通过，手机11场景+teardown/45秒、平板11场景+teardown/47秒，各29原图共58全数查看归档old-e5-native。两端独立CUA已从页面打开Safari并逐个核对项目与/issues完整地址，返回保留原关于；未登录或发送反馈。OHOS ArkTS/HAP仅无签名构建通过，不算设备外链验收。Mac-r2仍停首场景，6分钟无检查点且CUA显示Test starting，准确停止自有18431进程；INT退出0非PASS。独立Mac仅普通功能页可见，AX系统菜单响应而Flutter正文操作未生效，console=Yes，原因未定，不笼统归因锁屏。关于Mac、P5-D Mac与P4余项/P5全矩阵/P6/P7仍待完成，84编号不减。
+
+
+## E6 课堂签到显式查询验收前复核（2026-09-10）
+
+基点7459d677。再次完整读取冻结SigninScreen.kt/SigninViewModel.kt、Signin DTO与API；旧版仅今日列表，没有三个筛选视图。保留20内边距横卡、16卡间距、课程/时间/右侧签到状态及本地详情，新增查询沿现行公开能力收在右上，不能将文字搜索当作显式视图验收。全部/可签到/已签到均调用既有signinToday，App分别不筛/筛allowed/筛denied，原始状态和typed目标分别保留。Core features/signin.rs:464按非空目标与0/1派生allowed/denied，其余unknown；不改变为文本或UI判断资格。examples api/class/data.rs只保留布尔状态，与旧版可解析原整数不同，继续已有九列裁决，不借新字段。协议、参数、缓存代数、Bridge及写入不变。
+
+发现旧AcademicOldBackend未处理两个显式视图，旧原生测试只在“筛选详情”输入“可签到”，因此不能证明SIG-02/03通过。本批补通过真实右上Dropdown及应用筛选的原生用例，验证关面板保未应用草稿、实际query、结果、返回和刷新，再修正仅内存fixture使其遵守现有App查询合同；生产App已存在投影不为通过测试改变。真实只读入口亦需补三视图与actualroute断言，禁止准备/提交签到。
+
+
+P5-D Mac-r3补验（2026-09-10）：以7459d677当前候选运行ui_sports_test.dart，全42业务场景+teardown在332秒通过、退出0，覆盖两主题七类内存完整写入及原首页/记录状态。此前已提交的阳光表单/时间/草稿/照片实现字节不变，旧r1/r2失败或未推进不改写为成功；独立鼠标实窗及生产App表单浏览仍待补。日志/tmp/ubaa-old-p5d-macos-r3.log；真实学校写入0。
+
+
+E6最终局部验收（2026-09-10）：三显式签到查询原有生产投影保持，修复显式内存fixture后，手机31秒/平板31秒各2主题完整流程通过，Mac27秒2主题通过；两端各12原图共24全数检查归档old-e6-native。三端覆盖未应用草稿关闭往返、已应用视图返回保留、本地详情无请求、刷新沿原query、unknown/缺目标不误归类及0 prepare/commit。Core Direct/WebVPN各3认证+today2条通过；生产AppDirect65秒/WebVPN107秒，考试三视图均空（真实详情未执行），签到全部2→可签到1→已签到1→全部2，actualroute严格一致，本地签到详情无额外读取，学校写入0。两条全新App容器隔离配置经既有安全stdin使用授权.env.local，未输出或归档账号、session及真实正文。App54/analyze、just check、refs与敏感检查通过；完整715为E5最近门禁，E6无生产实现变更。独立Mac仍受已记录交互条件限制，P4余项、P5全领域/P6/P7未完成。
+
+
+P5-D生产表单补验发现CAP-01实际缺口：Direct-r3在38秒失败，ui_sports_live_readonly_test.dart:104未找到“新增打卡”；此前生产概览11项目与首页20条记录已成功。已核对PlatformCapabilities默认MethodChannelPhotoPicker.probe及宿主_photoPicker/hasYgdkSubmissionCapabilities；官方iOS/macOS/Android与OHOS源码没有photo.capability、photo.pick、permission.request原生处理。故照片探测不可用，onPrepareYgdkSubmitWrite=null，UI按既有安全门禁隐藏入口。内存MemoryPhotoPicker使脱敏表单可达，不证明生产能力已接通。没有将失败改成跳过/成功，没有替换生产backend或放宽资格。WebVPN表单不重复运行同一已知平台缺口；下一批P5-E必须按旧版照片来源补真实原生选择器，再复验生产只读进入表单/项目/返回（仍不上传或提交）。Core双路线阳光读取和本批Mac42内存场景保持各自证据范围。
