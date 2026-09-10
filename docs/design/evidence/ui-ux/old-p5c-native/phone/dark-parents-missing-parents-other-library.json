@@ -1,0 +1,14 @@
+{
+  "name": "dark-parents-missing-parents-other-library",
+  "steps": "切换楼馆按新请求继续缺省父字段分区，旧选择失效",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:40:00.533794Z",
+  "sourceSha": "7dea21e3+P5C-r2",
+  "pngSaved": true
+}

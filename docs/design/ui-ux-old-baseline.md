@@ -186,3 +186,7 @@ P5-A统一确认页已实现顶栏取消返回、隐藏侧栏/首页刷新/正�
 ## P5-B2 研讨室时段页密度
 
 冻结CgyyReservePickerScreen.kt的校区→日期→楼栋顺序及112房间列/86时段列/62表头/56行高为依据。旧版三行LazyRow选择器按用户最新要求统一移至右上按需面板，正文只留实际地点日期与时段矩阵；全部兼容参数保留在“更多查询”，关闭保草稿和选择。原表头并未固定，本轮固定表头及双向同步横滚属于长列表多端优化。当前对应reservation_choices.dart、reservation_flow.dart、reservation_table.dart和feature_detail.dart；无协议或资格变更。702项及三端r2局部原生通过，两端132图复核；生产及独立Mac补验以最新证据为准。
+
+## P5-C 图书馆选择与正文对应
+
+旧LibBookReserveScreen.kt的楼馆→楼层→分区→座位顺序继续沿用；当前将楼馆/楼层Dropdown与分区Dropdown置于右上查询面板，保原名、余量和typed ID。原分区日期/时段选择也移入面板；低频完整参数放“更多查询”，点原时段后展开参数并仅回填原三字段，日期仍须明确输入。正文只留当前楼馆/分区/日期、地图、座位和选后动作。现对应reservation_choices.dart、reservation_flow.dart、reservation_content.dart与feature_detail.dart；资料及业务合同不改。该批已12项App聚焦与3项UI/地图通过，原生及完整门禁正在复验。

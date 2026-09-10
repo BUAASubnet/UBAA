@@ -112,3 +112,11 @@ D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间
 基点dcc16ded。逐段复读冻结CgyyReservePickerScreen（room112/time86/header62/row56、校区→日期→楼栋三LazyRow、房间时段LazyColumn）及ViewModel选择规则。用户最新明确要求查询只从右上入口按需打开，优先于原三行常驻选择器；保留其选择顺序和原query，不另造导航/仪表盘。必要优化：选择项移入同一查询面板，原始参数和其它六视图继续在“更多查询”保留；正文只显示当前地点日期简短上下文和时段矩阵。关闭不丢草稿/已选槽位，选择日期或站点仍执行已有读取，开关面板不读。
 
 固定房间列和时段表头属于必要多端滚动优化；同步头部与正文横滚、正文纵滚保持时段，表格原始尺寸/资格/target/顺序不变。来源九列仍逐项沿本文件D2和主source-parity研讨室六读：SSO与service、有界redirect/final URL、路线内Cookie令牌、GET方法及原site/date参数、Header/编码、签名、DTO/parser、Core缓存并发/错误均无变化；仅UI选择控件位置与滚动容器调整。examples无同协议，不借其它模块行为。先以默认无筛选条、面板保选择/草稿及长列表表头仍可见RED验证。
+
+## P5-C 图书馆查询密度（实施前，2026-09-10）
+
+基点7dea21e3。完整复读冻结LibBookReserveScreen.kt：16横边距、12纵边距、10项距，楼馆→楼层→分区三LazyRow，然后座位地图/四列座位/预约摘要；当前改成Wrap和分区大卡常驻，密度偏离。用户最新查询右上要求优先于旧常驻chips，拟将三层选择与日期/时段查询收进同一按需面板，正文保当前实际上下文、地图、座位及选后动作。关闭面板保草稿与座位、不新增读取；变更楼馆/楼层/分区仍按原typed父子查询，旧目标及时清除。
+
+本批重新核对旧LibBookApi的5只读签名、LocalLibBookApi的premises/list、space/pick、Space/map、Space/seat请求，VM选择清空/加载及LibBookApiBackendTest/VM测试；冻结examples仍无同LibBook上游模块，不借srs协议。九列逐操作沿本文件既有图书馆矩阵和主source-parity：CAS业务引导/service、redirect/final URL、Cookie/token范围、POST路径及原day/premises/storey/area/start/end参数、headers/JSON编码、既有加密与签名常量、DTO/parser字段、Core缓存并发、错误语义均不改。本批只调整UI容器和本页选择状态通知，不改变App读取能力或写入资格。日期与时段未证明关联保持明确输入，不自动复制旧版日期配对/直接提交。
+
+先观察默认无常驻选择/查询、右上仍保全部选择和关闭无额外读的RED，再最小实施；地图、所有座位资格及完整原参数必须回归。

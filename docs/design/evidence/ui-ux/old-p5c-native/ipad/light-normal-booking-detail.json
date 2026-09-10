@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-booking-detail",
+  "steps": "仅在只读详情查看编号和兼容字段",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:48:06.716699Z",
+  "sourceSha": "7dea21e3+P5C-r2",
+  "pngSaved": true
+}

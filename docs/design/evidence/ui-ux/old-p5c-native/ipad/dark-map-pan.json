@@ -1,0 +1,14 @@
+{
+  "name": "dark-map-pan",
+  "steps": "放大后实际拖动平面图",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:46:15.699981Z",
+  "sourceSha": "7dea21e3+P5C-r2",
+  "pngSaved": true
+}

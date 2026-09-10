@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-status-search",
+  "steps": "按状态本地搜索并关闭面板，仍可查看未知座位且不新增读取",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:47:54.983140Z",
+  "sourceSha": "7dea21e3+P5C-r2",
+  "pngSaved": true
+}

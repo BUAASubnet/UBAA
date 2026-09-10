@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-query-draft",
+  "steps": "手填日期和原始时段后关闭重开，草稿保留",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:46:50.984077Z",
+  "sourceSha": "7dea21e3+P5C-r2",
+  "pngSaved": true
+}

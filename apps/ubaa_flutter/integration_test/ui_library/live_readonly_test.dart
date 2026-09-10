@@ -8,6 +8,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 生产图书馆顺序只读；不选座、不准备、不提交、不截取个人数据。
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('生产图书馆楼馆分区时段座位与记录只读', (tester) async {
     final config = Platform.environment['UBAA_CONFIG_DIR'];
@@ -34,6 +35,12 @@ void main() {
           find.byType(UbaaMainShell).evaluate().isNotEmpty ||
           find.byType(UbaaLoginView).evaluate().isNotEmpty,
     );
+    if (find.byType(UbaaLoginView).evaluate().isNotEmpty) {
+      final login = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+      debugPrint(
+        '图书馆只读恢复未完成 code=${login.error?.code.name} loading=${login.isLoading}',
+      );
+    }
     expect(find.byType(UbaaMainShell).evaluate().isNotEmpty, isTrue);
     FeatureSnapshot snapshot() => tester
         .widget<UbaaMainShell>(find.byType(UbaaMainShell))
@@ -54,9 +61,15 @@ void main() {
         await tester.scrollUntilVisible(finder, 250, scrollable: scroll);
       }
       await tester.ensureVisible(finder);
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        finder.hitTestable().evaluate().isNotEmpty,
+        isTrue,
+        reason: '真实只读操作目标尚不可点击',
+      );
       await tester.tap(finder);
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
     }
 
     Future<void> loaded(FeatureQueryView view) async {
@@ -119,11 +132,26 @@ void main() {
     final queryDay = snapshot().readContext!.query!.date;
     expect(queryDay != null, isTrue);
     expect(find.byType(TextField), findsNothing);
+    expect(find.byType(FilterChip), findsNothing);
+    expect(find.byType(ActionChip), findsNothing);
+    final beforePanel = snapshot();
+    await tap(find.byTooltip('搜索与筛选'));
+    expect(
+      find.byKey(const ValueKey('libbook-choice-楼馆')).evaluate().isNotEmpty,
+      isTrue,
+    );
+    expect(
+      find.byKey(const ValueKey('libbook-choice-分区')).evaluate().isNotEmpty,
+      isTrue,
+    );
+    await tap(find.widgetWithText(TextButton, '完成'));
+    expect(identical(snapshot(), beforePanel), isTrue);
     debugPrint(
       '图书馆只读 areaDetail=true slots=${area.timeSlots.length} dates=${area.availableDates.length}',
     );
     if (area.timeSlots.isNotEmpty) {
       final slot = area.timeSlots.first;
+      await tap(find.byTooltip('搜索与筛选'));
       await tap(
         find.widgetWithText(
           ActionChip,

@@ -30,6 +30,10 @@ void main() {
   }
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  if (const bool.fromEnvironment('UBAA_LIBRARY_MAPS_ONLY')) {
+    registerLibraryMapTests(binding);
+    return;
+  }
   registerLibraryParentTests(binding);
   if (const bool.fromEnvironment('UBAA_LIBRARY_PARENTS_ONLY')) return;
   test('合成图书馆记录分页与未知资格遵循同一合同', () {
@@ -99,7 +103,7 @@ void main() {
       await shot('reserve-confirm', '准备的是独立canonical目标；未提交');
       await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
       await shot('after-reserve-cancel', '取消准备后查看原选择与父选项');
-      await _tap(tester, find.widgetWithText(FilterChip, '合成乙馆 3/40'));
+      await _chooseLibraryOption(tester, '楼馆', '合成乙馆 3/40');
       expect(backend.libraryReads.last.areaId, 'library-b-floor-1-area-1');
       expect(find.text('已选座位：A1'), findsNothing);
       await shot('other-library', '换楼馆清除旧座位和时段，仍是同一预约页面');
@@ -149,9 +153,12 @@ void main() {
           expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
         } else if (state == 'loading') {
           final gate = Completer<void>();
+          await _panel(tester);
+          await _tap(tester, find.byKey(const ValueKey('libbook-choice-楼层')));
           backend.pending = gate;
-          await _ensure(tester, find.widgetWithText(FilterChip, '二层 2/20'));
-          await tester.tap(find.widgetWithText(FilterChip, '二层 2/20'));
+          await tester.tap(find.text('二层 2/20').last);
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.tap(find.widgetWithText(TextButton, '完成'));
           await tester.pump(const Duration(milliseconds: 200));
           await shot('pending', '显式保持读取，旧分区和座位不能继续操作');
           gate.complete();
@@ -167,6 +174,7 @@ void main() {
           await shot('retry', '首次失败显式重试后恢复楼馆分区');
         }
         if (state == 'long') {
+          await _panel(tester);
           await _ensure(tester, find.text('查询座位'));
           await shot('bottom', '1.3文字与长名称仍可滚动到下一操作');
         }
@@ -266,6 +274,7 @@ Future<void> _seatQuery(
   Future<void> Function()? onFilled,
 }) async {
   final count = backend.libraryReads.length;
+  await _panel(tester);
   await _tap(tester, find.text('查询座位'));
   expect(
     tester
@@ -309,6 +318,7 @@ Future<void> _shot(
   String name,
   String steps,
 ) async {
+  await tester.pump(const Duration(milliseconds: 300));
   expect(tester.takeException(), isNull);
   final size = tester.view.physicalSize, ratio = tester.view.devicePixelRatio;
   final records =
@@ -335,4 +345,15 @@ Future<void> _shot(
   } else {
     debugPrint('原生图书馆检查点：$name');
   }
+}
+
+Future<void> _chooseLibraryOption(
+  WidgetTester tester,
+  String label,
+  String value,
+) async {
+  await _panel(tester);
+  await _tap(tester, find.byKey(ValueKey('libbook-choice-$label')));
+  await _tap(tester, find.text(value).last);
+  await _closePanel(tester);
 }

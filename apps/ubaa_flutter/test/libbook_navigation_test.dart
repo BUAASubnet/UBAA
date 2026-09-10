@@ -7,6 +7,47 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../integration_test/ui_library/backend.dart';
 
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
+  testWidgets('图书馆默认不常驻选择与查询，右上保完整入口且关闭不额外读取', (tester) async {
+    final backend = await _open(tester);
+    expect(find.byType(FilterChip), findsNothing);
+    expect(find.byType(ActionChip), findsNothing);
+    expect(find.text('查询座位'), findsNothing);
+    final count = backend.libraryReads.length;
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    for (final label in ['楼馆', '楼层', '分区']) {
+      expect(find.byKey(ValueKey('libbook-choice-$label')), findsOneWidget);
+    }
+    expect(find.text('查询座位'), findsOneWidget);
+    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    expect(backend.libraryReads, hasLength(count));
+    expect(find.byType(FilterChip), findsNothing);
+  });
+  testWidgets('图书馆座位查询后保分区时段选项，关闭未应用草稿不清已选座位', (tester) async {
+    final backend = await _open(tester);
+    await _seatQuery(tester, backend);
+    await _tap(tester, find.widgetWithText(Card, 'A1'));
+    final count = backend.libraryReads.length;
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    expect(find.widgetWithText(ActionChip, '下午 14:00–16:00'), findsOneWidget);
+    final field = find.widgetWithText(TextField, '开始时间');
+    await tester.ensureVisible(field);
+    await tester.enterText(field, '09:00');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    expect(find.text('已选座位：A1'), findsOneWidget);
+    expect(backend.libraryReads, hasLength(count));
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    expect(tester.widget<TextField>(field).controller!.text, '09:00');
+    expect(
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey('libbook-choice-分区')),
+          )
+          .value,
+      'library-a-floor-1-area-1',
+    );
+  });
   testWidgets('分区响应缺省父标识仍沿原查询进入详情，不伪造DTO父字段', (tester) async {
     final backend = await _open(tester, state: 'missing-parents');
     expect(backend.libraryReads.map((q) => q.view), [
@@ -36,6 +77,7 @@ void main() {
   testWidgets('图书馆点选时段只回填原始三字段，日期仍须明确填写', (tester) async {
     final backend = await _open(tester);
     final before = backend.libraryReads.length;
+    await _tap(tester, find.byTooltip('搜索与筛选'));
     await _tap(tester, find.widgetWithText(ActionChip, '下午 14:00–16:00'));
     expect(backend.libraryReads, hasLength(before));
     expect(
@@ -114,8 +156,10 @@ void main() {
   });
   testWidgets('图书馆重新查询楼馆列表仍保留存在的原楼馆选择', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.widgetWithText(FilterChip, '合成乙馆 3/40'));
     await _tap(tester, find.byTooltip('搜索与筛选'));
+    await _tap(tester, find.byKey(const ValueKey('libbook-choice-楼馆')));
+    await _tap(tester, find.text('合成乙馆 3/40').last);
+    await _tap(tester, find.text('更多查询'));
     await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
     await _tap(tester, find.text('馆列表').last);
     await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
@@ -137,7 +181,7 @@ void main() {
     expect(backend.libraryReads[1].storeyId, 'library-a-floor-1');
     expect(backend.libraryReads.last.areaId, 'library-a-floor-1-area-1');
     expect(find.byType(TextField), findsNothing);
-    expect(find.textContaining('当前时段未标明适用日期'), findsOneWidget);
+    expect(find.textContaining('从右上角选择日期和时段'), findsOneWidget);
     await _seatQuery(tester, backend);
     expect(backend.libraryReads.last.areaId, 'library-a-floor-1-area-1');
     expect(backend.libraryReads.last.segment, 'segment-a');
@@ -160,9 +204,10 @@ void main() {
     await _tap(tester, find.widgetWithText(Card, 'A1'));
     expect(find.text('已选座位：A1'), findsOneWidget);
     final gate = Completer<void>();
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    await _tap(tester, find.byKey(const ValueKey('libbook-choice-楼馆')));
     backend.pending = gate;
-    await tester.ensureVisible(find.widgetWithText(FilterChip, '合成乙馆 3/40'));
-    await tester.tap(find.widgetWithText(FilterChip, '合成乙馆 3/40'));
+    await tester.tap(find.text('合成乙馆 3/40').last);
     await tester.pump();
     expect(find.text('已选座位：A1'), findsNothing);
     gate.complete();
@@ -172,7 +217,15 @@ void main() {
       'library-b',
     );
     expect(backend.libraryReads.last.areaId, 'library-b-floor-1-area-1');
-    expect(find.widgetWithText(FilterChip, '一层 1/20'), findsOneWidget);
+    expect(
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey('libbook-choice-楼层')),
+          )
+          .value,
+      'library-b-floor-1',
+    );
+    await _tap(tester, find.widgetWithText(TextButton, '完成'));
     expect(find.text('已选座位：A1'), findsNothing);
     await _tap(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(Card, '预约座位'), findsOneWidget);
@@ -223,9 +276,13 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 
 Future<void> _seatQuery(WidgetTester tester, LibraryBackend backend) async {
   final count = backend.libraryReads.length;
+  await _tap(tester, find.byTooltip('搜索与筛选'));
   await _tap(tester, find.text('查询座位'));
   final picker = tester.widget<DropdownButton<String>>(
-    find.byType(DropdownButton<String>),
+    find.ancestor(
+      of: find.text('从当前馆区选择'),
+      matching: find.byType(DropdownButton<String>),
+    ),
   );
   expect(picker.items!.map((item) => item.value), ['library-a-floor-1-area-1']);
   expect(backend.libraryReads, hasLength(count));

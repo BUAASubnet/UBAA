@@ -1,0 +1,14 @@
+{
+  "name": "dark-map-draft",
+  "steps": "时段一次回填原始ID与起止，未自动赋予日期",
+  "backend": "synthetic-library",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:40:39.337565Z",
+  "sourceSha": "7dea21e3+P5C-r2",
+  "pngSaved": true
+}

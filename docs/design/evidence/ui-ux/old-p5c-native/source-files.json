@@ -1,0 +1,22 @@
+{
+  "baseSha": "7dea21e3350901f10781b9ffe3abe9dd1b0c45a9",
+  "sourceDefine": "7dea21e3+P5C-r2",
+  "说明": "生产实现与704项Flutter及三端运行一致；Mac原生完整r1的两地图辅助定位失败由maps-only-r2复验补齐，手机平板完整r2均通过。其后只改独立生产只读入口的安全启动诊断和操作定位，App analyze另行核对。",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_library/backend.dart": "e27313dd61d9e521611f6ec617519c716db4abe37659855a81484d94168f20fb",
+    "apps/ubaa_flutter/integration_test/ui_library/data.dart": "4b43be50594d1911e73d91a0ddd971e0a52c938e742b92abb555b4c74bd39e03",
+    "apps/ubaa_flutter/integration_test/ui_library/live_readonly_test.dart": "6f84e1706a76899a8ecde0458a9631ecc1dcac13c8a4368e5606d3ee35df4759",
+    "apps/ubaa_flutter/integration_test/ui_library/map_scenarios.dart": "c13f4c8f9e2fe72e292d9e91bba188b11d18e681ee5c9a9aefac4c5691fc17b6",
+    "apps/ubaa_flutter/integration_test/ui_library/parent_scenarios.dart": "6d3459ead7dc6abe4b663e7da728cf8c460c686dc8682139746edf92ba7d7828",
+    "apps/ubaa_flutter/integration_test/ui_library_test.dart": "18f40538a59327d2f49c169ef1314fdbc47516bcfa036ebfbfd45beab0388233",
+    "apps/ubaa_flutter/test/libbook_navigation_test.dart": "f9147e54d4f1fe39c9b9ac4bbc3d38903cc12170d38ba39607608d9094bf55b3",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "84a2b46b8eff36ff071dba28ba69a17f3d5d3aad86d4919c59780c68b739e75a",
+    "packages/ubaa_ui/lib/src/features/libbook/reservation_choices.dart": "ca44b65d415d44f2398f83545c69362793d046558f78e7ee985755e1ba6d04a8",
+    "packages/ubaa_ui/lib/src/features/libbook/reservation_content.dart": "fed43a96b5acc354eea0c8054270b7c1e1fbb00b66bd94df156f833a5228a00b",
+    "packages/ubaa_ui/lib/src/features/libbook/reservation_flow.dart": "da9982ac21fd66c16365c58a35c72513096b528a4459796f5679e24848e8140d",
+    "packages/ubaa_ui/lib/src/widgets.dart": "36cc988bc4c1fe431777d16418cf496ef04ca1505762a75d563ea5558dbc8fd2",
+    "packages/ubaa_ui/test/navigation/libbook_flow_test.dart": "73634ee803780cdfdf2565ab992235f6699d5c73d55e8df3354157c437be82d3",
+    "packages/ubaa_ui/test/refresh_continuity_test.dart": "49144c565d0185515526b0c7064fcfd9b5aa97dc733112163be0833d6c7ff98e",
+    "packages/ubaa_ui/test/widgets/libbook_queries.dart": "df4820ab45651ebfab97b6254b8a988262f03361aa76d5c54eed25ad69ab1d32"
+  }
+}

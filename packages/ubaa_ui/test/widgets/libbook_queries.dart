@@ -37,6 +37,7 @@ void _registerLibbookQueryTests() {
     );
     await openFeature(tester, FeatureId.libbook);
     await openQueryPanel(tester);
+    await tester.tap(find.text('更多查询'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('馆列表'));
     await tester.pumpAndSettle();
@@ -90,6 +91,7 @@ void _registerLibbookQueryTests() {
     );
     await openFeature(tester, FeatureId.libbook);
     await openQueryPanel(tester);
+    await tester.tap(find.text('更多查询'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('馆列表'));
     await tester.pumpAndSettle();

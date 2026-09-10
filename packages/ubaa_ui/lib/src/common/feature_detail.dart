@@ -80,6 +80,9 @@ class _FeatureDetailView extends StatefulWidget {
 }
 
 class _FeatureDetailViewState extends State<_FeatureDetailView> {
+  final _libraryKey = GlobalKey<_LibbookReservationFlowState>();
+  final _libraryChoicesRevision = ValueNotifier(0);
+  final _libraryQueryExpansion = ExpansibleController();
   final _cgyyKey = GlobalKey<_CgyyReservationFlowState>();
   final _cgyyChoicesRevision = ValueNotifier(0);
   final _cgyyDraft = _CgyyFormDraft();
@@ -110,6 +113,8 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     _cgyyDraft.clear();
     _cgyyDraft.dispose();
     _cgyyChoicesRevision.dispose();
+    _libraryChoicesRevision.dispose();
+    _libraryQueryExpansion.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -186,6 +191,10 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             (widget.query?.view ?? FeatureQueryView.summary) !=
                 FeatureQueryView.libbookBookings
         ? _LibbookReservationFlow(
+            key: _libraryKey,
+            onChoicesChanged: () {
+              if (mounted) _libraryChoicesRevision.value++;
+            },
             snapshot: widget.snapshot,
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
@@ -200,6 +209,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                   },
             onSeatQuery: (query) {
               _queryKey.currentState?.adoptLibraryQuery(query, clearDate: true);
+              _libraryQueryExpansion.expand();
               setState(() => _panelOpen = true);
             },
           )
@@ -347,6 +357,21 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                                         maintainState: true,
                                         children: [_queryControls()],
                                       ),
+                                    ] else if (_isLibraryReservation) ...[
+                                      ValueListenableBuilder<int>(
+                                        valueListenable:
+                                            _libraryChoicesRevision,
+                                        builder: (context, _, _) =>
+                                            _libraryKey.currentState
+                                                ?.buildChoices(context) ??
+                                            const SizedBox.shrink(),
+                                      ),
+                                      ExpansionTile(
+                                        title: const Text('更多查询'),
+                                        controller: _libraryQueryExpansion,
+                                        maintainState: true,
+                                        children: [_queryControls()],
+                                      ),
                                     ] else
                                       _queryControls(),
                                 ],
@@ -365,6 +390,12 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       },
     );
   }
+
+  bool get _isLibraryReservation =>
+      !widget.isLanding &&
+      widget.feature == FeatureId.libbook &&
+      (widget.query?.view ?? FeatureQueryView.summary) !=
+          FeatureQueryView.libbookBookings;
 
   bool get _isCgyyReservation =>
       !widget.isLanding &&

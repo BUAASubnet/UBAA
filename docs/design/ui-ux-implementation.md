@@ -345,3 +345,7 @@ P5-A统一确认页已实现顶栏取消返回、隐藏侧栏/首页刷新/正�
 ## P5-B2 按需选择与长表（基点dcc16ded）
 
 feature_detail.dart持有Flow key与选择修订通知，右上面板用Flow当前缓存选择器；reservation_choices.dart保旧校区→日期→站点顺序，通用参数收于maintainState的“更多查询”。reservation_flow.dart删除三行常驻chips，保当前实际地点日期；reservation_table.dart使用先错误再固定表头再数据的sliver，头/正文横滚同步。App/Core读取和资格不变。room_navigation_test.dart新增默认折叠/不额外读/已选保留、42行固定表头及双向横滚RED→GREEN；全部Flutter702通过，三端r2各20业务及两端132原图已核对。
+
+## P5-C 图书馆密度（实施中）
+
+Libbook Flow通过本页key/revision提供楼馆、楼层、分区以及原分区时段选项；移除正文Wrap/分区卡和查询动作。原分区选项保存在读取代次内，座位读取后仍可改时段，换馆/楼层/分区和生命周期清除。FeatureDetail保留同一查询状态及ExpansibleController，点时段原三字段回填后展开“更多查询”，未指定日期不能请求。已有查询能力/地图与typed资格不变。先默认隐藏/完整入口/no-extra-read RED→GREEN，追加座位后保时段/草稿关闭不清选择测试，当前12 App+3 UI通过；三端及完整门禁未提前标通过。

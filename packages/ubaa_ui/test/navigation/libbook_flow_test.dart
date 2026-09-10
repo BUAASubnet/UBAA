@@ -60,13 +60,32 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.libbook);
-    expect(find.widgetWithText(FilterChip, '合成楼馆 3/40'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, '一层 3/20'), findsOneWidget);
+    expect(find.byType(FilterChip), findsNothing);
+    await tester.tap(find.byTooltip('搜索与筛选'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey('libbook-choice-楼馆')),
+          )
+          .value,
+      'real-library',
+    );
+    expect(
+      tester
+          .widget<DropdownButton<String>>(
+            find.byKey(const ValueKey('libbook-choice-楼层')),
+          )
+          .value,
+      'real-floor',
+    );
     expect(queries, hasLength(1));
     expect(queries.single.view, FeatureQueryView.libbookAreas);
     expect(queries.single.premisesId, 'real-library');
     expect(queries.single.storeyId, 'real-floor');
     expect(queries.single.date, DateTime(2026, 9, 4));
+    await tester.tap(find.widgetWithText(TextButton, '完成'));
+    await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
   });
 }

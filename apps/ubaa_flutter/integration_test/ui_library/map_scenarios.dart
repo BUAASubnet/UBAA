@@ -48,6 +48,7 @@ void registerLibraryMapTests(IntegrationTestWidgetsFlutterBinding binding) {
       expect(controller.value.getTranslation().x, 0);
       await _tap(tester, find.byTooltip('关闭'));
       expect(backend.libraryReads, hasLength(count));
+      await _panel(tester);
       await _tap(tester, find.widgetWithText(ActionChip, '下午 14:00–16:00'));
       expect(backend.libraryReads, hasLength(count));
       expect(
@@ -99,7 +100,7 @@ void registerLibraryMapTests(IntegrationTestWidgetsFlutterBinding binding) {
         1,
       );
       await _tap(tester, find.byTooltip('关闭'));
-      await _tap(tester, find.widgetWithText(Card, '安静阅览区 2'));
+      await _chooseLibraryOption(tester, '分区', '安静阅览区 2 · 合成校区 · 空闲 1/10');
       expect(find.text('当前分区暂无平面图'), findsOneWidget);
       expect(
         tester
