@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-cancel-confirm",
+  "steps": "仅prepare合成订单取消，不点击确认提交",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:06:00.717723Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

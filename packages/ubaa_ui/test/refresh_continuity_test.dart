@@ -117,6 +117,10 @@ void main() {
       await _mount(tester, state, scale: 1.3, queries: queries, initialTab: 2);
       await _open(tester, feature);
       await openQueryPanel(tester);
+      if (feature == FeatureId.cgyy) {
+        await tester.tap(find.text('更多查询'));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
       await tester.pumpAndSettle();
       await tester.tap(

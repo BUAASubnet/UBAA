@@ -1,0 +1,14 @@
+{
+  "name": "dark-first-error-retry",
+  "steps": "首次错误显式重试后恢复选择表",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:06:20.351656Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

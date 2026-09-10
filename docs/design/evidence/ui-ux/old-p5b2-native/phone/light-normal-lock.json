@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-lock",
+  "steps": "仅显示公开available，不输出锁码或原始内容",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:51:07.817579Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

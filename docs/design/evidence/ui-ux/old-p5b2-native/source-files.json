@@ -1,0 +1,22 @@
+{
+  "baseSha": "dcc16dedf979dc6d5050a1760fcad431f9d04f13",
+  "sourceDefine": "dcc16ded+P5B2-r2",
+  "说明": "三端r2与702项Flutter覆盖本批生产实现；之后只改独立真实只读入口的命中定位/转场等待，App analyze另通过。CUA使用同一原生入口既有UBAA_UI_INSPECTION分支显式RoomBackend，生产实现未改。",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_rooms/backend.dart": "a6a7b1b908cfbecb51479acfc9c10f8948531da88612dee40d1866d9c384762f",
+    "apps/ubaa_flutter/integration_test/ui_rooms/data.dart": "47ad0be908543f841eb6282532fc27604f443ed486748e65b84a4aadbc34eb88",
+    "apps/ubaa_flutter/integration_test/ui_rooms/form.dart": "cec5c67c708b3d8fe7c503a4f0f5d1d30a9c5841516d581879ad46aed88fbe44",
+    "apps/ubaa_flutter/integration_test/ui_rooms/form_live_readonly_test.dart": "bef8b70d9d305e1e46aea948443a40ac67fd3b8e9fe133bd68b0df8bf0e79df8",
+    "apps/ubaa_flutter/integration_test/ui_rooms/support.dart": "1ad2cf87d1095f74e741b36c2876808c92559f711470f84029faafe65843bd34",
+    "apps/ubaa_flutter/integration_test/ui_rooms_test.dart": "3fbd87ef75c77b84e13731f3ac7d969e7f9661929ba08d220ace5e4731901016",
+    "apps/ubaa_flutter/test/room_navigation_test.dart": "90599da69a676cf262267f73d9c90a83a2cb595e4a5285507d4cee1c1fae5fe3",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "faf76dca6f6b1a32a43ffdec94828d94a6104bf576f932209ea6107b1ab2db5e",
+    "packages/ubaa_ui/lib/src/features/cgyy/reservation_choices.dart": "f02532db6223aa7d29b982c095cb7b24bf2e0c70f1b95cf945b339e5f3adb32b",
+    "packages/ubaa_ui/lib/src/features/cgyy/reservation_flow.dart": "9939bdfa6015f8fc5c950692bc5ff118da5c43bbba3f808228b1e8b6e00e0380",
+    "packages/ubaa_ui/lib/src/features/cgyy/reservation_table.dart": "94697d97b4ede91ce65cd0de26d6c661e2cababa46f989394c8ae0a62bdff349",
+    "packages/ubaa_ui/lib/src/widgets.dart": "ad85c05b9b1e4bcb7fe54f7fb68f09af85eb44228ec2a58ee51986f239504295",
+    "packages/ubaa_ui/test/navigation/cgyy_flow_test.dart": "33bf6e91b2fe10d39850e8a9a45489f77016619946b5c41b96248ef02fe5fe41",
+    "packages/ubaa_ui/test/refresh_continuity_test.dart": "462452d74390e811b2af140c646f961544c0f219b09f2ace2e18c35ea04247cd",
+    "packages/ubaa_ui/test/widgets/queries.dart": "e911824a8829564a54d8b3417f8e5b0dc07984932d9c038a861162581ac9143f"
+  }
+}

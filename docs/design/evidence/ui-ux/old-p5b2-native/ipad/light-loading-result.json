@@ -1,0 +1,14 @@
+{
+  "name": "light-loading-result",
+  "steps": "明确合成状态的原生展示及异常检查",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:07:31.850109Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-table",
+  "steps": "自动选择首站点，只显示地点日期和时段矩阵；筛选仅在右上按需面板",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:06:32.801828Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

@@ -8,6 +8,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 仅生产只读用途及表单浏览；不填个人资料，不prepare/commit，不截图。
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('生产研讨室用途独立读取及表单返回只读', (tester) async {
     const route = String.fromEnvironment('UBAA_EXPECTED_ROUTE');
@@ -40,8 +41,15 @@ void main() {
     );
     Future<void> tap(Finder f) async {
       await tester.ensureVisible(f);
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        f.hitTestable().evaluate().isNotEmpty,
+        isTrue,
+        reason: '只读操作目标尚不可点击',
+      );
       await tester.tap(f);
+      await tester.pump(const Duration(milliseconds: 400));
+      // 首帧建立弹出路线，下一帧完成其转场后再定位菜单项。
       await tester.pump(const Duration(milliseconds: 400));
     }
 
@@ -53,6 +61,7 @@ void main() {
       return value.readContext?.query?.view == FeatureQueryView.cgyyDayInfo &&
           value.status != FeatureLoadStatus.loading;
     });
+    debugPrint('只读进度：日时段读取结束');
     final day = shell().snapshots[FeatureId.cgyy]!;
     expect(
       day.status == FeatureLoadStatus.success ||
@@ -75,6 +84,83 @@ void main() {
         .toList();
     expect(options.isNotEmpty && options.every((p) => p.key > 0), isTrue);
     expect(identical(shell().snapshots[FeatureId.cgyy], day), isTrue);
+    debugPrint('只读进度：用途选项读取结束');
+    if (const bool.fromEnvironment('UBAA_ROOM_QUERY_CONTROLS')) {
+      expect(find.byType(FilterChip).evaluate().isEmpty, isTrue);
+      await tap(find.byTooltip('搜索与筛选'));
+      final siteFinder = find.byKey(const ValueKey('cgyy-choice-楼栋 / 楼层'));
+      final dateFinder = find.byKey(const ValueKey('cgyy-choice-预约日期'));
+      expect(
+        siteFinder.evaluate().isNotEmpty && dateFinder.evaluate().isNotEmpty,
+        isTrue,
+      );
+      final original = shell().snapshots[FeatureId.cgyy];
+      await tap(find.widgetWithText(TextButton, '完成'));
+      expect(identical(shell().snapshots[FeatureId.cgyy], original), isTrue);
+      await tap(find.byTooltip('搜索与筛选'));
+      final datePicker = tester.widget<DropdownButton<String>>(dateFinder);
+      final otherDates = datePicker.items!
+          .map((i) => i.value)
+          .whereType<String>()
+          .where((value) => value != datePicker.value)
+          .toList();
+      expect(otherDates.isNotEmpty, isTrue, reason: '没有其他可用日期，本次日期切换未执行');
+      final nextDate = otherDates.first;
+      debugPrint('只读进度：开始按需日期切换');
+      await tap(dateFinder);
+      await tap(find.text(nextDate).last);
+      await wait(() {
+        final current = shell().snapshots[FeatureId.cgyy]!;
+        return current.readContext?.query?.date
+                    ?.toIso8601String()
+                    .split('T')
+                    .first ==
+                nextDate &&
+            current.status != FeatureLoadStatus.loading;
+      });
+      expect(
+        shell().snapshots[FeatureId.cgyy]!.status == FeatureLoadStatus.success,
+        isTrue,
+      );
+      debugPrint('只读进度：日期切换结束');
+      final sitePicker = tester.widget<DropdownButton<int>>(siteFinder);
+      final otherSites = sitePicker.items!
+          .where((item) => item.value != sitePicker.value && item.value != null)
+          .toList();
+      expect(otherSites.isNotEmpty, isTrue, reason: '没有其他站点，本次站点切换未执行');
+      final nextSite = otherSites.first.value!;
+      debugPrint('只读进度：开始按需站点切换');
+      await tap(siteFinder);
+      final menuItem = find.byWidgetPredicate(
+        (w) => w is DropdownMenuItem<int> && w.value == nextSite,
+      );
+      await tap(
+        find.descendant(of: menuItem.last, matching: find.byType(Text)).last,
+      );
+      await wait(() {
+        final current = shell().snapshots[FeatureId.cgyy]!;
+        return current.readContext?.query?.siteId == nextSite &&
+            current.status != FeatureLoadStatus.loading;
+      });
+      final current = shell().snapshots[FeatureId.cgyy]!;
+      expect(
+        current.status == FeatureLoadStatus.success &&
+            current.resolvedRoute?.name == route,
+        isTrue,
+      );
+      expect(
+        current.readContext?.query?.date?.toIso8601String().split('T').first ==
+            nextDate,
+        isTrue,
+      );
+      await tap(find.widgetWithText(TextButton, '完成'));
+      expect(find.byType(FilterChip).evaluate().isEmpty, isTrue);
+      expect(find.widgetWithText(TextButton, '完成').evaluate().isEmpty, isTrue);
+      debugPrint(
+        '研讨室按需查询 route=$route panel=PASS dateSwitch=PASS siteSwitch=PASS preservedDate=PASS writes=0',
+      );
+      return;
+    }
     final candidates = day.details
         .where(
           (d) =>

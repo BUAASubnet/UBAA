@@ -1,0 +1,11 @@
+{
+  "backend": "synthetic-rooms",
+  "platform": "macos",
+  "sourceSha": "dcc16ded+P5B2-inspection",
+  "steps": "独立数字输入1，关闭再重开，画面确认草稿和已选保留",
+  "capture": "CUA实际应用窗口",
+  "windowWidth": 800,
+  "windowHeight": 632,
+  "result": "PASS",
+  "限制": "之后选择另一日期时CUA明确锁屏，此独立操作未完成；不证明完整键盘"
+}

@@ -10,6 +10,8 @@ class _CgyyReservationFlow extends StatefulWidget {
     required this.onQuery,
     this.onSubmit,
     required this.formContext,
+    required this.onChoicesChanged,
+    super.key,
     required this.onRetry,
   });
   final FeatureSnapshot snapshot;
@@ -20,6 +22,7 @@ class _CgyyReservationFlow extends StatefulWidget {
   final Future<void> Function(FeatureQuery)? onQuery;
   final CgyyReservationStarter? onSubmit;
   final _CgyyFormContext formContext;
+  final VoidCallback onChoicesChanged;
   final Future<void> Function() onRetry;
   @override
   State<_CgyyReservationFlow> createState() => _CgyyReservationFlowState();
@@ -34,11 +37,45 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
   int _generation = 0;
   int? _afterRevision;
   bool _pending = false;
+  final _headerTimes = ScrollController();
+  final _bodyTimes = ScrollController();
+  bool _syncingTimes = false;
+
+  void _syncTimes(ScrollController source, ScrollController target) {
+    if (_syncingTimes || !source.hasClients || !target.hasClients) return;
+    final offset = source.offset.clamp(
+      target.position.minScrollExtent,
+      target.position.maxScrollExtent,
+    );
+    if ((target.offset - offset).abs() < .01) return;
+    _syncingTimes = true;
+    target.jumpTo(offset);
+    _syncingTimes = false;
+  }
+
+  void _publishChoices() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) widget.onChoicesChanged();
+  });
+
+  void _change(VoidCallback update) {
+    setState(update);
+    _publishChoices();
+  }
+
+  @override
+  void dispose() {
+    _headerTimes.dispose();
+    _bodyTimes.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
+    _headerTimes.addListener(() => _syncTimes(_headerTimes, _bodyTimes));
+    _bodyTimes.addListener(() => _syncTimes(_bodyTimes, _headerTimes));
     _consume();
+    _publishChoices();
   }
 
   @override
@@ -61,6 +98,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
     }
     if (!oldWidget.query.hasSameParameters(widget.query)) _selected.clear();
     _consume();
+    _publishChoices();
   }
 
   CgyyDayPresentation? get _day {
@@ -132,7 +170,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
   Future<void> _selectSite(int id, DateTime? date) async {
     if (widget.onQuery == null) return;
     final generation = ++_generation;
-    setState(() {
+    _change(() {
       _site = id;
       _selected.clear();
       _pending = true;
@@ -146,8 +184,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
         ),
       );
     } finally {
-      if (mounted && generation == _generation)
-        setState(() => _pending = false);
+      if (mounted && generation == _generation) _change(() => _pending = false);
     }
   }
 
@@ -171,67 +208,34 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
           d.presentation is! CgyySlotPresentation,
     ))
       return widget.fallback;
-    final campuses = _sites.map((s) => s.campusName).toSet().toList()
-      ..sort((a, b) => _campusRank(a).compareTo(_campusRank(b)));
     final actions = _actions;
+    final selectedSites = _sites
+        .where((site) => site.id == day?.venueSiteId)
+        .toList();
     return Column(
       children: [
-        if (_sites.isNotEmpty)
-          _chips([
-            for (final campus in ['全部', ...campuses])
-              FilterChip(
-                label: Text(_campusLabel(campus)),
-                selected: _campus == campus,
-                onSelected: _busy || widget.onQuery == null
-                    ? null
-                    : (_) {
-                        setState(() {
-                          _campus = campus;
-                          _selected.clear();
-                        });
-                        final sites = _visibleSites;
-                        if (sites.isNotEmpty) {
-                          final previous = sites.where((s) => s.id == _site);
-                          _selectSite(
-                            (previous.isEmpty ? sites.first : previous.single)
-                                .id,
-                            _parseDay(day?.reservationDate) ??
-                                widget.query.date,
-                          );
-                        }
-                      },
+        if (day != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (selectedSites.length == 1)
+                    Text(
+                      _siteLabel(selectedSites.single),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  Text(
+                    day.reservationDate,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
-          ]),
-        if (day != null && day.availableDates.isNotEmpty)
-          _chips([
-            for (final date in day.availableDates.toSet())
-              FilterChip(
-                label: Text(date),
-                selected: day.reservationDate == date,
-                onSelected:
-                    _busy || widget.onQuery == null || _parseDay(date) == null
-                    ? null
-                    : (_) => _selectSite(day.venueSiteId, _parseDay(date)),
-              ),
-          ]),
-        if (_sites.isNotEmpty)
-          _chips([
-            for (final site in _visibleSites)
-              FilterChip(
-                label: Text(
-                  _siteLabel(site),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                selected: site.id == _site,
-                onSelected: _busy || widget.onQuery == null
-                    ? null
-                    : (_) => _selectSite(
-                        site.id,
-                        _parseDay(day?.reservationDate) ?? widget.query.date,
-                      ),
-              ),
-          ]),
+            ),
+          ),
         Expanded(
           child: _busy
               ? const Center(child: CircularProgressIndicator())
@@ -239,19 +243,9 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
               ? widget.fallback
               : day == null
               ? const Center(child: Text('当前暂无研讨室时段'))
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  children: [
-                    if (snapshot.status == FeatureLoadStatus.stale) ...[
-                      FriendlyErrorCard(
-                        error: snapshot.error!,
-                        onRetry: widget.onRetry,
-                      ),
-                      const Text('以下为上次成功加载的数据。'),
-                    ],
-                    if (day.availableDates.isEmpty) Text(day.reservationDate),
-                    _table(context, day),
-                  ],
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _table(context, day),
                 ),
         ),
         if (_selected.isNotEmpty && !_busy)
@@ -311,7 +305,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
   }
 
   void _toggleSlot(String key, Map<String, CgyyReserveAction> actions) =>
-      setState(() {
+      _change(() {
         if (_selected.contains(key)) {
           _selected.remove(key);
           return;
@@ -319,16 +313,6 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
         _selectCgyyAction(_selected, actions, key);
       });
 
-  Widget _chips(List<Widget> chips) => SizedBox(
-    height: 52,
-    child: ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      scrollDirection: Axis.horizontal,
-      itemCount: chips.length,
-      separatorBuilder: (_, _) => const SizedBox(width: 8),
-      itemBuilder: (_, i) => chips[i],
-    ),
-  );
   String _siteLabel(CgyySitePresentation site) =>
       [site.venueName, site.siteName].where((s) => s.isNotEmpty).join(' / ');
   String _campusLabel(String name) => name.contains('学院路')

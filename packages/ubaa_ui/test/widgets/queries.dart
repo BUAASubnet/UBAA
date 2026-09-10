@@ -614,6 +614,8 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.cgyy);
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('更多查询'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('站点列表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('日期空间'));

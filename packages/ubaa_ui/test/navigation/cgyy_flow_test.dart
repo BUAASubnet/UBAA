@@ -135,8 +135,15 @@ void main() {
         ),
       ),
     ], queries);
-    expect(find.widgetWithText(FilterChip, '沙河'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, '合成研讨楼 / 一层'), findsOneWidget);
+    expect(find.byType(FilterChip), findsNothing);
+    await tester.tap(find.byTooltip('搜索与筛选'));
+    await tester.pumpAndSettle();
+    final sites = tester.widget<DropdownButton<int>>(
+      find.byKey(const ValueKey('cgyy-choice-楼栋 / 楼层')),
+    );
+    expect(sites.items!.single.value, 7);
+    await tester.tap(find.widgetWithText(TextButton, '完成'));
+    await tester.pumpAndSettle();
     expect(queries, hasLength(1));
     expect(queries.single.siteId, 7);
     expect(queries.single.view, FeatureQueryView.cgyyDayInfo);

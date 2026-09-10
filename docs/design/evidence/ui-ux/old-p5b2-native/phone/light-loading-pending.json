@@ -1,0 +1,14 @@
+{
+  "name": "light-loading-pending",
+  "steps": "重新读取中禁止选择旧时段",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-09T16:51:20.604571Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

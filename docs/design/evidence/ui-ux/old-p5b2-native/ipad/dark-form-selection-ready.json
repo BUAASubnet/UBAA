@@ -1,0 +1,14 @@
+{
+  "name": "dark-form-selection-ready",
+  "steps": "独立表单的已选时段、预约信息、附加选项；无常驻编号/刷新行",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:03:32.506899Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

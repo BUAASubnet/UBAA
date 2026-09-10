@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-form-draft",
+  "steps": "返回修改时段后重开，保留字段/用途/选择且独立用途读取使用同代缓存",
+  "backend": "synthetic-rooms",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T00:06:55.134387Z",
+  "sourceSha": "dcc16ded+P5B2-r2",
+  "pngSaved": true
+}

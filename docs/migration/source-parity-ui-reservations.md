@@ -105,3 +105,10 @@ D2投影以独立日期上下文条目保存原日期/可选日期/时段/空间
 用途逐操作核对：old shared CgyyApi.getPurposeTypes、LocalCgyyApi.getPurposeTypes/getPurposeTypesRaw/parsePurposeTypes/fallbackPurposeTypes、DTO CgyyPurposeTypeDto及LocalCgyyApiBackendTest的动态key=3和失败回退10项均已读取。固定examples的api模块清单无venue-zhjs协议，对本操作九列均不适用，不借srs的byxk参数。业务引导沿manageLogin→api/login；有界跳转/最终URL与路线隔离沿现Core；Cookie/业务令牌仍只归Core；GET /api/codes无新业务参数，nocache沿原请求器；Header/编码及MD5签名常量不变；只使用已公开key/name/isStaticFallback；原信封解析、Core回退与错误语义不改。App只增加独立用途选项读取，不覆盖已选时段snapshot；成功缓存按backend/生命周期/readCacheEpoch隔离，并发合并、失败可重试、迟到结果拒绝。
 
 预约提交逐列继续采用source-parity.md的Cgyy预约提交矩阵：fresh上下文与一次性发送仍由原prepare/commit负责，不从展示名构造target，不增加手机号格式/文本长度/容量限制。表单草稿仅页面内存，账户/路线/生命周期失效即清除，不复制旧明文持久化。正文不再常驻编号输入，保留低频手填兼容入口；自然选择使用原唯一正key、标注冻结回退来源，异常不捏造列表。独立表单单顶栏实际路线并保留路线说明/策略入口；返回时段保草稿，继续确认只prepare，学校写入不运行。
+
+
+## P5-B2 时段查询收纳与固定表头（实施前，2026-09-10）
+
+基点dcc16ded。逐段复读冻结CgyyReservePickerScreen（room112/time86/header62/row56、校区→日期→楼栋三LazyRow、房间时段LazyColumn）及ViewModel选择规则。用户最新明确要求查询只从右上入口按需打开，优先于原三行常驻选择器；保留其选择顺序和原query，不另造导航/仪表盘。必要优化：选择项移入同一查询面板，原始参数和其它六视图继续在“更多查询”保留；正文只显示当前地点日期简短上下文和时段矩阵。关闭不丢草稿/已选槽位，选择日期或站点仍执行已有读取，开关面板不读。
+
+固定房间列和时段表头属于必要多端滚动优化；同步头部与正文横滚、正文纵滚保持时段，表格原始尺寸/资格/target/顺序不变。来源九列仍逐项沿本文件D2和主source-parity研讨室六读：SSO与service、有界redirect/final URL、路线内Cookie令牌、GET方法及原site/date参数、Header/编码、签名、DTO/parser、Core缓存并发/错误均无变化；仅UI选择控件位置与滚动容器调整。examples无同协议，不借其它模块行为。先以默认无筛选条、面板保选择/草稿及长列表表头仍可见RED验证。

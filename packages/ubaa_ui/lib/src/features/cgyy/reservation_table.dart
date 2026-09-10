@@ -117,56 +117,98 @@ extension _CgyyReservationTable on _CgyyReservationFlowState {
           ),
     ];
     final actions = _actions;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 房间列固定，横向移动时段时保留上下文。
-        Column(
-          children: [
-            cell('教室', 112 * scale, headerHeight),
-            for (final space in spaces)
-              cell(space.spaceName, 112 * scale, rowHeight),
-          ],
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+    return CustomScrollView(
+      key: const ValueKey('cgyy-room-rows'),
+      slivers: [
+        if (widget.snapshot.status == FeatureLoadStatus.stale)
+          SliverToBoxAdapter(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    for (final time in times)
-                      cell(
-                        time.beginTime.isEmpty
-                            ? '${time.label}\n信息不完整'
-                            : '${time.beginTime}\n–${time.endTime}',
-                        86 * scale,
-                        headerHeight,
-                      ),
-                  ],
+                FriendlyErrorCard(
+                  error: widget.snapshot.error!,
+                  onRetry: widget.onRetry,
                 ),
-                for (final space in spaces)
-                  Row(
-                    children: [
-                      for (final time in times)
-                        cell(
-                          '',
-                          86 * scale,
-                          rowHeight,
-                          child: _slotCell(context, space, time, actions),
-                        ),
-                    ],
-                  ),
-                if (times.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('暂无时段'),
-                  ),
+                const Text('以下为上次成功加载的数据。'),
               ],
             ),
           ),
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _CgyyTableHeader(
+            height: headerHeight,
+            child: Material(
+              color: Theme.of(context).colorScheme.surface,
+              child: Row(
+                children: [
+                  cell('教室', 112 * scale, headerHeight),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      key: const ValueKey('cgyy-time-header-scroll'),
+                      controller: _headerTimes,
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final time in times)
+                            cell(
+                              time.beginTime.isEmpty
+                                  ? '${time.label}\n信息不完整'
+                                  : '${time.beginTime}\n–${time.endTime}',
+                              86 * scale,
+                              headerHeight,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
+        SliverToBoxAdapter(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  for (final space in spaces)
+                    cell(space.spaceName, 112 * scale, rowHeight),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  key: const ValueKey('cgyy-time-body-scroll'),
+                  controller: _bodyTimes,
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final space in spaces)
+                        Row(
+                          children: [
+                            for (final time in times)
+                              cell(
+                                '',
+                                86 * scale,
+                                rowHeight,
+                                child: _slotCell(context, space, time, actions),
+                              ),
+                          ],
+                        ),
+                      if (times.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text('暂无时段'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
       ],
     );
   }
@@ -226,4 +268,23 @@ extension _CgyyReservationTable on _CgyyReservationFlowState {
       ),
     );
   }
+}
+
+class _CgyyTableHeader extends SliverPersistentHeaderDelegate {
+  _CgyyTableHeader({required this.height, required this.child});
+  final double height;
+  final Widget child;
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => child;
+  @override
+  bool shouldRebuild(covariant _CgyyTableHeader old) =>
+      old.height != height || old.child != child;
 }

@@ -39,8 +39,9 @@ void main() {
       ]);
       expect(backend.roomReads.last.siteId, 7);
       expect(find.byType(TextField), findsNothing);
+      expect(find.byType(FilterChip), findsNothing);
       expect(find.text('下一步'), findsNothing);
-      await shot('table', '自动选择首站点，校区日期楼栋芯片与房间时段表；无常驻查询');
+      await shot('table', '自动选择首站点，只显示地点日期和时段矩阵；筛选仅在右上按需面板');
       await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
       await _tap(tester, find.byTooltip('合成研讨室 1 09:00–10:00'));
       expect(find.text('已选'), findsNWidgets(2));
@@ -96,11 +97,11 @@ void main() {
       expect(backend.preparedRooms.single.actions.map((a) => a.timeId), [9, 3]);
       await shot('reserve-confirm', '仅prepare合成预约，两个原始target不从显示文字重建');
       await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-      await _tap(tester, find.widgetWithText(FilterChip, '2026-09-05'));
+      await _chooseRoom(tester, '预约日期', '2026-09-05');
       expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
       expect(find.text('下一步'), findsNothing);
       await shot('new-date', '换日期重新读取，旧选择不复用');
-      await _tap(tester, find.widgetWithText(FilterChip, '沙河'));
+      await _chooseRoom(tester, '校区', '沙河');
       expect(backend.roomReads.last.siteId, 17);
       expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
       await shot('campus', '切校区选择该校区首站点，保持明确日期');
@@ -174,16 +175,32 @@ void main() {
           await _tap(tester, find.byTooltip('刷新当前查询'));
           await _ensure(tester, find.text('以下为上次成功加载的数据。'));
         } else if (state == 'loading') {
+          await _panel(tester);
+          await _tap(tester, find.byKey(const ValueKey('cgyy-choice-预约日期')));
           final gate = Completer<void>();
           backend.pending = gate;
-          await tester.tap(find.widgetWithText(FilterChip, '2026-09-05'));
+          await tester.tap(find.text('2026-09-05').last);
+          await tester.pump(const Duration(milliseconds: 200));
+          await tester.tap(find.widgetWithText(TextButton, '完成'));
           await tester.pump(const Duration(milliseconds: 200));
           await shot('pending', '重新读取中禁止选择旧时段');
           gate.complete();
           await tester.pumpAndSettle();
         } else if (state == 'many') {
           await shot('top', '42个房间列表首屏');
+          final header = find.text('08:00\n–09:00');
+          final position = tester.getTopLeft(header);
           await _ensure(tester, find.text('合成研讨室 42'));
+          expect(header.hitTestable(), findsOneWidget);
+          expect(tester.getTopLeft(header), position);
+          final head = find.byKey(const ValueKey('cgyy-time-header-scroll'));
+          final body = find.byKey(const ValueKey('cgyy-time-body-scroll'));
+          await tester.drag(head, const Offset(-180, 0));
+          await tester.pumpAndSettle();
+          final a = tester.widget<SingleChildScrollView>(head).controller!;
+          final b = tester.widget<SingleChildScrollView>(body).controller!;
+          expect(a.offset, closeTo(b.offset, .01));
+          expect(find.text('合成研讨室 42').hitTestable(), findsOneWidget);
         }
         await shot('result', '明确合成状态的原生展示及异常检查');
         if (state == 'first-error') {

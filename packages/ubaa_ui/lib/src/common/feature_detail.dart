@@ -80,6 +80,8 @@ class _FeatureDetailView extends StatefulWidget {
 }
 
 class _FeatureDetailViewState extends State<_FeatureDetailView> {
+  final _cgyyKey = GlobalKey<_CgyyReservationFlowState>();
+  final _cgyyChoicesRevision = ValueNotifier(0);
   final _cgyyDraft = _CgyyFormDraft();
   final _queryKey = GlobalKey<_FeatureQueryControlsState>();
   final _scheduleKey = GlobalKey<_ScheduleFlowState>();
@@ -107,6 +109,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   void dispose() {
     _cgyyDraft.clear();
     _cgyyDraft.dispose();
+    _cgyyChoicesRevision.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -207,6 +210,10 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                 FeatureQueryView.cgyyDayInfo,
               }.contains(widget.query?.view ?? FeatureQueryView.summary)
         ? _CgyyReservationFlow(
+            key: _cgyyKey,
+            onChoicesChanged: () {
+              if (mounted) _cgyyChoicesRevision.value++;
+            },
             snapshot: widget.snapshot,
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
@@ -326,28 +333,22 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                                       onChanged: (_) => setState(() {}),
                                     ),
                                   if (widget.onQuery != null && _supportsQuery)
-                                    _FeatureQueryControls(
-                                      key: _queryKey,
-                                      feature: widget.feature,
-                                      details: widget.snapshot.details,
-                                      snapshot: widget.snapshot,
-                                      initialQuery: widget.query,
-                                      onLoadAcademicTerms:
-                                          widget.onLoadAcademicTerms,
-                                      onLoadAcademicWeeks:
-                                          widget.onLoadAcademicWeeks,
-                                      readCacheEpoch: widget.readCacheEpoch,
-                                      onApply: (query) {
-                                        _scheduleKey.currentState
-                                            ?.stopAutomatic();
-                                        return widget.onQuery!(query);
-                                      },
-                                      bykcStatuses: _bykcStatuses,
-                                      onBykcStatusesChanged: (value) =>
-                                          setState(
-                                            () => _bykcStatuses = {...value},
-                                          ),
-                                    ),
+                                    if (_isCgyyReservation) ...[
+                                      ValueListenableBuilder<int>(
+                                        valueListenable: _cgyyChoicesRevision,
+                                        builder: (context, _, _) =>
+                                            _cgyyKey.currentState?.buildChoices(
+                                              context,
+                                            ) ??
+                                            const SizedBox.shrink(),
+                                      ),
+                                      ExpansionTile(
+                                        title: const Text('更多查询'),
+                                        maintainState: true,
+                                        children: [_queryControls()],
+                                      ),
+                                    ] else
+                                      _queryControls(),
                                 ],
                               ),
                             ),
@@ -364,6 +365,32 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       },
     );
   }
+
+  bool get _isCgyyReservation =>
+      !widget.isLanding &&
+      widget.feature == FeatureId.cgyy &&
+      {
+        FeatureQueryView.summary,
+        FeatureQueryView.cgyyDayInfo,
+      }.contains(widget.query?.view ?? FeatureQueryView.summary);
+
+  Widget _queryControls() => _FeatureQueryControls(
+    key: _queryKey,
+    feature: widget.feature,
+    details: widget.snapshot.details,
+    snapshot: widget.snapshot,
+    initialQuery: widget.query,
+    onLoadAcademicTerms: widget.onLoadAcademicTerms,
+    onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
+    readCacheEpoch: widget.readCacheEpoch,
+    onApply: (query) {
+      _scheduleKey.currentState?.stopAutomatic();
+      return widget.onQuery!(query);
+    },
+    bykcStatuses: _bykcStatuses,
+    onBykcStatusesChanged: (value) =>
+        setState(() => _bykcStatuses = {...value}),
+  );
 
   bool get _supportsQuery => switch (widget.feature) {
     FeatureId.schedule ||

@@ -62,6 +62,7 @@ Future<void> _shot(
   String name,
   String steps,
 ) async {
+  await tester.pump(const Duration(milliseconds: 300));
   expect(tester.takeException(), isNull);
   final size = tester.view.physicalSize, ratio = tester.view.devicePixelRatio;
   final records =
@@ -88,4 +89,15 @@ Future<void> _shot(
   } else {
     debugPrint('原生研讨室检查点：$name');
   }
+}
+
+Future<void> _chooseRoom(
+  WidgetTester tester,
+  String label,
+  String value,
+) async {
+  await _panel(tester);
+  await _tap(tester, find.byKey(ValueKey('cgyy-choice-$label')));
+  await _tap(tester, find.text(value).last);
+  await _closePanel(tester);
 }

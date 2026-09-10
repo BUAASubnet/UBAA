@@ -6,6 +6,46 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../integration_test/ui_rooms/backend.dart';
 
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
+  testWidgets('研讨室默认无常驻筛选条，查询面板关闭保留选择', (tester) async {
+    final backend = await _open(tester);
+    expect(find.byType(FilterChip), findsNothing);
+    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+    final count = backend.roomReads.length;
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    expect(find.text('校区'), findsOneWidget);
+    expect(find.text('楼栋 / 楼层'), findsOneWidget);
+    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    expect(find.text('已选'), findsOneWidget);
+    expect(backend.roomReads.length, count);
+  });
+  testWidgets('研讨室长表滚到底仍保留时段表头', (tester) async {
+    await _open(tester, state: 'many');
+    final header = find.text('08:00\n–09:00');
+    final before = tester.getTopLeft(header);
+    await tester.ensureVisible(find.text('合成研讨室 42'));
+    await tester.pumpAndSettle();
+    expect(header.hitTestable(), findsOneWidget);
+    expect(tester.getTopLeft(header), before);
+    final heading = find.byKey(const ValueKey('cgyy-time-header-scroll'));
+    final body = find.byKey(const ValueKey('cgyy-time-body-scroll'));
+    await tester.drag(heading, const Offset(-180, 0));
+    await tester.pumpAndSettle();
+    final a = tester.widget<SingleChildScrollView>(heading).controller!;
+    final b = tester.widget<SingleChildScrollView>(body).controller!;
+    expect(a.offset, greaterThan(0));
+    expect(b.offset, closeTo(a.offset, .01));
+    expect(find.text('合成研讨室 42').hitTestable(), findsOneWidget);
+    final previous = b.offset;
+    await tester.drag(
+      find.byTooltip('合成研讨室 42 11:00–12:00'),
+      const Offset(180, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(b.offset, lessThan(previous));
+    expect(a.offset, closeTo(b.offset, .01));
+  });
+
   testWidgets('研讨室输入第2页及前后页按钮保留零基读取与一基显示', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.byTooltip('返回'));
@@ -50,7 +90,10 @@ void main() {
     final backend = await _open(tester);
     await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
     expect(find.text('下一步'), findsOneWidget);
-    await _tap(tester, find.widgetWithText(FilterChip, '2026-09-05'));
+    await _tap(tester, find.byTooltip('搜索与筛选'));
+    await _tap(tester, find.byKey(const ValueKey('cgyy-choice-预约日期')));
+    await _tap(tester, find.text('2026-09-05').last);
+    await _tap(tester, find.widgetWithText(TextButton, '完成'));
     expect(find.text('下一步'), findsNothing);
     expect(backend.roomReads.last.siteId, 7);
     expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
@@ -71,8 +114,12 @@ void main() {
   testWidgets('研讨室手填选择器采用typed站点而非兼容字段999', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.byTooltip('搜索与筛选'));
+    await _tap(tester, find.text('更多查询'));
     final picker = tester.widget<DropdownButton<String>>(
-      find.byType(DropdownButton<String>),
+      find.ancestor(
+        of: find.text('从当前站点选择'),
+        matching: find.byType(DropdownButton<String>),
+      ),
     );
     expect(picker.items!.map((item) => item.value), ['7']);
     expect(
@@ -97,12 +144,16 @@ void main() {
   });
 }
 
-Future<RoomBackend> _open(WidgetTester tester, {double width = 402}) async {
+Future<RoomBackend> _open(
+  WidgetTester tester, {
+  double width = 402,
+  String state = 'normal',
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, 874);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
-  final backend = RoomBackend();
+  final backend = RoomBackend(state: state);
   await tester.pumpWidget(
     UbaaFlutterApp(
       backend: backend,
