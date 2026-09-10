@@ -1,0 +1,14 @@
+{
+  "name": "dark-normal-page1",
+  "steps": "上一页恢复首批，未增加业务写入",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:48:21.267727Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

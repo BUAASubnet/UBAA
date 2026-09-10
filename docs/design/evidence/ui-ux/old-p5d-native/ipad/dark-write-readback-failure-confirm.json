@@ -1,0 +1,14 @@
+{
+  "name": "dark-write-readback-failure-confirm",
+  "steps": "显式合成prepare，保留实际直连与期限保护",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:52:23.412476Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

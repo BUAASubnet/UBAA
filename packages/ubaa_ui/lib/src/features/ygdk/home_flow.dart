@@ -4,6 +4,7 @@ part of '../../widgets.dart';
 class _YgdkHomeFlow extends StatefulWidget {
   const _YgdkHomeFlow({
     required this.snapshot,
+    required this.formContext,
     required this.query,
     required this.cacheEpoch,
     required this.filter,
@@ -17,6 +18,7 @@ class _YgdkHomeFlow extends StatefulWidget {
     this.onReminderChanged,
   });
   final FeatureSnapshot snapshot;
+  final _YgdkFormContext formContext;
   final FeatureSnapshot? recordsReadback;
   final YgdkReminderSettings? reminderSettings;
   final String? reminderError;
@@ -161,59 +163,26 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
   }
 
   Future<void> _add() async {
-    final selected = await showDialog<FeatureDetail>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择运动项目'),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final detail in _items.where(
-                  (d) => d.presentation is YgdkItemPresentation,
-                ))
-                  ListTile(
-                    title: Text(
-                      (detail.presentation as YgdkItemPresentation).name,
-                    ),
-                    subtitle:
-                        detail.action<YgdkSubmitAction>()?.hasCanonicalTarget ==
-                            true
-                        ? null
-                        : const Text('当前不可提交'),
-                    enabled:
-                        detail.action<YgdkSubmitAction>()?.hasCanonicalTarget ==
-                        true,
-                    onTap: () => Navigator.pop(context, detail),
-                  ),
-                if (_items.isEmpty) const Text('暂无可用运动项目'),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
-        ],
+    final items = _items
+        .where((d) => d.presentation is YgdkItemPresentation)
+        .toList();
+    final input = await _collectYgdkForm(
+      context,
+      items: items,
+      onPickPhoto: widget.onPickPhoto,
+      formContext: _YgdkFormContext(
+        draft: widget.formContext.draft,
+        route: _route,
+        onRouteOptions: widget.formContext.onRouteOptions,
       ),
     );
-    if (!mounted || selected == null || !_items.contains(selected)) return;
-    final action = selected.action<YgdkSubmitAction>();
-    if (action?.hasCanonicalTarget != true) return;
-    final input = await showDialog<YgdkSubmitInput>(
-      context: context,
-      builder: (_) => _YgdkFormDialog(
-        action: action!,
-        title: (selected.presentation as YgdkItemPresentation).name,
-        onPickPhoto: widget.onPickPhoto,
-      ),
-    );
-    if (mounted && input != null && _items.contains(selected))
+    if (mounted &&
+        input != null &&
+        _items.any(
+          (d) => identical(d.action<YgdkSubmitAction>(), input.action),
+        )) {
       await widget.onSubmit?.call(input);
+    }
   }
 
   @override

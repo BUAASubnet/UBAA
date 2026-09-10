@@ -8,6 +8,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 生产阳光首页与记录只读复验，不截图、不准备或执行提交。
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('生产阳光旧首页与记录分页双路线只读复验', (tester) async {
     final config = Platform.environment['UBAA_CONFIG_DIR'];
@@ -42,9 +43,10 @@ void main() {
     Future<void> tap(Finder finder) async {
       expect(finder.evaluate().isNotEmpty, isTrue, reason: '只读入口未出现');
       await tester.ensureVisible(finder);
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(finder.hitTestable().evaluate().isNotEmpty, isTrue);
       await tester.tap(finder);
-      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 400));
     }
 
     Future<void> loaded(FeatureQueryView view, {int? page}) async {
@@ -98,6 +100,28 @@ void main() {
     } else {
       debugPrint('阳光只读 localDetail=未执行 reason=当前无记录');
     }
+    final revision = snapshot().readContext?.requestRevision;
+    await tap(find.byTooltip('新增打卡'));
+    expect(
+      find.widgetWithText(AppBar, '填写阳光打卡信息').evaluate().isNotEmpty,
+      isTrue,
+    );
+    expect(find.byType(AlertDialog).evaluate().isEmpty, isTrue);
+    expect(
+      find
+          .byTooltip('实际路线：${route == 'direct' ? '直连' : 'WebVPN'}')
+          .evaluate()
+          .isNotEmpty,
+      isTrue,
+    );
+    await tap(find.text('选择运动项目'));
+    expect(find.byType(ListTile).evaluate().isNotEmpty, isTrue);
+    await tap(find.text('关闭'));
+    await tap(find.text('取消'));
+    expect(snapshot().readContext?.requestRevision == revision, isTrue);
+    debugPrint(
+      '阳光只读 independentForm=true projectPicker=true extraRead=false prepare=false',
+    );
     await tap(find.byTooltip('搜索与筛选'));
     await tap(find.byType(DropdownButton<FeatureQueryView>));
     await tap(find.text('记录列表').last);

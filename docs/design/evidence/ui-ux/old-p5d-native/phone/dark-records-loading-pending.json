@@ -1,0 +1,14 @@
+{
+  "name": "dark-records-loading-pending",
+  "steps": "原生加载状态，旧内容不授予新写入",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:31:47.332386Z",
+  "sourceSha": "3c43370f+P5D-r1",
+  "pngSaved": true
+}

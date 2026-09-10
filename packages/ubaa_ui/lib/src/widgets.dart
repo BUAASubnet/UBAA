@@ -71,3 +71,5 @@ part 'write/cgyy_draft.dart';
 part 'write/cgyy_form_fields.dart';
 part 'write/confirmation.dart';
 part 'write/ygdk_form.dart';
+part 'write/ygdk_draft.dart';
+part 'write/ygdk_time.dart';

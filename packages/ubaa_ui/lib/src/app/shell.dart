@@ -544,7 +544,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onLoadAcademicTerms: widget.onLoadAcademicTerms,
       onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
       onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
-      onCgyyRouteOptions: (routes) => _showRouteOptions(
+      onFormRouteOptions: (routes) => _showRouteOptions(
         context,
         routes.values.toSet().length == 1 ? routes.values.first : null,
         homeRoutes: routes,

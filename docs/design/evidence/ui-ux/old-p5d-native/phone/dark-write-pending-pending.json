@@ -1,0 +1,14 @@
+{
+  "name": "dark-write-pending-pending",
+  "steps": "合成commit在途，确认与返回不可重复触发",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:45:46.206089Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

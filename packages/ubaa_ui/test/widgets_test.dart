@@ -25,6 +25,7 @@ part 'widgets/signin_writes.dart';
 part 'widgets/states.dart';
 part 'widgets/writes.dart';
 part 'widgets/ygdk_writes.dart';
+part 'widgets/ygdk_form.dart';
 
 void main() {
   _registerGoldenTests();
@@ -41,6 +42,7 @@ void main() {
   _registerLibbookCancellationWriteTest();
   _registerFeatureInputTests();
   _registerYgdkWriteResultTests();
+  _registerYgdkFormTests();
   _registerEvaluationWriteTests();
   _registerRemainingWriteTests();
   _registerFeatureCollectionTests();

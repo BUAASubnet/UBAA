@@ -62,6 +62,7 @@ Future<void> _shot(
   String name,
   String steps,
 ) async {
+  await tester.pump(const Duration(milliseconds: 300));
   expect(tester.takeException(), isNull);
   final size = tester.view.physicalSize, ratio = tester.view.devicePixelRatio;
   final records =

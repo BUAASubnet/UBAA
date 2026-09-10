@@ -1,0 +1,14 @@
+{
+  "name": "dark-write-upload-failure-result",
+  "steps": "合成结果与原路线回读；失败与未知不冒称已核对",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:45:02.202565Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

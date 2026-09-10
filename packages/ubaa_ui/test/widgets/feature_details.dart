@@ -333,6 +333,8 @@ void _registerFeatureInputTests() {
       find.widgetWithText(TextField, '结束时间'),
       '2026-09-01 09:00',
     );
+    await tester.ensureVisible(find.text('选择照片'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('选择照片'));
     await tester.pumpAndSettle();
     expect(find.text('已选择照片：photo-placeholder.png'), findsOneWidget);

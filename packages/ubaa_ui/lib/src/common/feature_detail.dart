@@ -33,7 +33,7 @@ class _FeatureDetailView extends StatefulWidget {
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
     this.onLoadCgyyPurposes,
-    this.onCgyyRouteOptions,
+    this.onFormRouteOptions,
     this.onScheduleTitle,
     this.readCacheEpoch = 0,
     super.key,
@@ -72,7 +72,7 @@ class _FeatureDetailView extends StatefulWidget {
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
-  final Future<void> Function(Map<String, ConnectionMode>)? onCgyyRouteOptions;
+  final Future<void> Function(Map<String, ConnectionMode>)? onFormRouteOptions;
   final int readCacheEpoch;
 
   @override
@@ -86,6 +86,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   final _cgyyKey = GlobalKey<_CgyyReservationFlowState>();
   final _cgyyChoicesRevision = ValueNotifier(0);
   final _cgyyDraft = _CgyyFormDraft();
+  final _ygdkDraft = _YgdkFormDraft();
   final _queryKey = GlobalKey<_FeatureQueryControlsState>();
   final _scheduleKey = GlobalKey<_ScheduleFlowState>();
   final _searchController = TextEditingController();
@@ -104,6 +105,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.readCacheEpoch != widget.readCacheEpoch) {
       _cgyyDraft.clear();
+      _ygdkDraft.clear();
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
@@ -111,7 +113,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   @override
   void dispose() {
     _cgyyDraft.clear();
+    _ygdkDraft.clear();
     _cgyyDraft.dispose();
+    _ygdkDraft.dispose();
     _cgyyChoicesRevision.dispose();
     _libraryChoicesRevision.dispose();
     _libraryQueryExpansion.dispose();
@@ -243,6 +247,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               (widget.query?.view ?? FeatureQueryView.summary) ==
                   FeatureQueryView.summary
         ? _YgdkHomeFlow(
+            formContext: _ygdkFormContext,
             snapshot: widget.snapshot,
             recordsReadback: widget.ygdkRecordsReadback,
             reminderSettings: widget.reminderSettings,
@@ -438,11 +443,17 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     FeatureId.evaluation => true,
   };
 
+  _YgdkFormContext get _ygdkFormContext => _YgdkFormContext(
+    draft: _ygdkDraft,
+    route: widget.snapshot.resolvedRoute,
+    onRouteOptions: widget.onFormRouteOptions,
+  );
+
   _CgyyFormContext get _cgyyFormContext => _CgyyFormContext(
     draft: _cgyyDraft,
     loadPurposes: widget.onLoadCgyyPurposes,
     route: widget.snapshot.resolvedRoute,
-    onRouteOptions: widget.onCgyyRouteOptions,
+    onRouteOptions: widget.onFormRouteOptions,
   );
 
   Widget _details(BuildContext context) {
@@ -465,6 +476,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       onLibbookCancelWrite: widget.onLibbookCancelWrite,
       onCgyySubmitWrite: widget.onCgyySubmitWrite,
       cgyyFormContext: _cgyyFormContext,
+      ygdkFormContext: _ygdkFormContext,
       onEvaluationWrite: widget.onEvaluationWrite,
       onYgdkSubmitWrite: widget.onYgdkSubmitWrite,
       onPickYgdkPhoto: widget.onPickYgdkPhoto,

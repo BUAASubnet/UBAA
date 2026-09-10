@@ -614,6 +614,8 @@ Future<void> _openAndFillYgdkForm(WidgetTester tester) async {
     find.widgetWithText(TextField, '结束时间'),
     '2026-09-01 09:00',
   );
+  await tester.ensureVisible(find.text('选择照片'));
+  await tester.pumpAndSettle();
   await tester.tap(find.text('选择照片'));
   await tester.pumpAndSettle();
 }

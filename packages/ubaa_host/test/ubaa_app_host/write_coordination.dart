@@ -96,12 +96,17 @@ void _registerWriteCoordinationTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('准备阳光打卡'));
     await tester.pumpAndSettle();
-    final fields = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.byType(TextField),
+    expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, '开始时间'),
+      '2026-09-05 08:00',
     );
-    await tester.enterText(fields.at(0), '2026-09-05 08:00');
-    await tester.enterText(fields.at(1), '2026-09-05 09:00');
+    await tester.enterText(
+      find.widgetWithText(TextField, '结束时间'),
+      '2026-09-05 09:00',
+    );
+    await tester.ensureVisible(find.text('选择照片'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('选择照片'));
     await tester.pump();
     expect(picker.started, isTrue);
@@ -112,8 +117,8 @@ void _registerWriteCoordinationTests() {
     expect(find.byType(UbaaMainShell), findsNothing);
     picker.pending.complete(_safeHostPhoto);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
+    expect(find.text('继续确认'), findsNothing);
+    expect(find.text('填写阳光打卡信息'), findsNothing);
 
     expect(backend.prepareCalls, 0);
     expect(backend.commitCalls, 0);

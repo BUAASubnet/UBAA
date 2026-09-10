@@ -1,0 +1,14 @@
+{
+  "name": "dark-write-pending-confirm",
+  "steps": "显式合成prepare，保留实际直连与期限保护",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:45:45.402240Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

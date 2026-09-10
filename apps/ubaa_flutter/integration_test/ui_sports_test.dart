@@ -8,7 +8,9 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'ui_sports/backend.dart';
+import 'ui_sports/write_backend.dart';
 part 'ui_sports/support.dart';
+part 'ui_sports/form.dart';
 
 final _photo = YgdkPhotoInput(
   bytes: base64Decode(
@@ -43,6 +45,7 @@ void main() {
   }
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  _registerSportsForm(binding);
   for (final brightness in Brightness.values) {
     testWidgets('阳光原生旧首页查询详情与合成准备取消 ${brightness.name}', (tester) async {
       final backend = SportsBackend();
@@ -81,6 +84,8 @@ void main() {
       await _edit(tester, '筛选详情', '');
       await _closePanel(tester);
       await _tap(tester, find.byTooltip('新增打卡'));
+      await shot('form-empty', '旧版独立表单，项目在表单内部选择');
+      await _tap(tester, find.text('选择运动项目'));
       await shot('projects', '新增时才打开项目选择，无资格项目不可选');
       expect(
         tester

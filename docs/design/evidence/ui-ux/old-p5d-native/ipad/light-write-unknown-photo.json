@@ -1,0 +1,14 @@
+{
+  "name": "light-write-unknown-photo",
+  "steps": "仅合成32像素纯色照片，预览不裁掉操作",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:53:59.294512Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

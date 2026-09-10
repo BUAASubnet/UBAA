@@ -1,0 +1,30 @@
+{
+  "baseSha": "3c43370f6d160fec8e679f8609b3a49b9e718fe6",
+  "sourceDefine": "3c43370f+P5D-r2",
+  "说明": "最终表单修订；r1保留的首页及记录状态不受分享卡片、日期选择标题和新增分享测试影响。r1的表单图不作为最终证据。",
+  "files": {
+    "apps/ubaa_flutter/integration_test/ui_sports/backend.dart": "8fed88cd4dd355e5b5ddd8ec900acae4c211280c374feb1b7c2f9d0e5129e5be",
+    "apps/ubaa_flutter/integration_test/ui_sports/data.dart": "510aeb6fac80956d500383b915f17a0b2370699dc6656d3e2804df2ab19cef97",
+    "apps/ubaa_flutter/integration_test/ui_sports/form.dart": "84476bab452f742164a232ffbd899941e813a328d2b74d0ca388cf33f8b7d7e3",
+    "apps/ubaa_flutter/integration_test/ui_sports/support.dart": "18ff909f5026b844a6f686f2c4c38cd2a525662c32b4b73a897bb354b02f7063",
+    "apps/ubaa_flutter/integration_test/ui_sports/write_backend.dart": "966ce2df63387b3bdc6d3db78645099a6c804435349e5535aeb9d4b9873b5e2c",
+    "apps/ubaa_flutter/integration_test/ui_sports_live_readonly_test.dart": "7b0ab68ba97450de5fd8d3f39fdb2ff14564561a7c00b5d742f2f1cc944cc031",
+    "apps/ubaa_flutter/integration_test/ui_sports_test.dart": "da58f5a98577847d3e4517fa856a7e4baf1559d8d7b46ce56f4e2791960c6c2f",
+    "packages/ubaa_host/test/ubaa_app_host/write_coordination.dart": "053bb6833fee1c8a3c3b9447a01a2ac48fe3e9e53d592c18766679bc4cb6da22",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "26fa5701e4d3fcea15f63be4ab00dc70dc6009c5968c153e8fde25340494500e",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "23ec954bf986081cf5051b2ac9b8d1e6249a2fbdd476fc661586991ef44619f2",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "0dbd9d47aca9ad9f54f97718d347b0468ac3de464df8e9c71f8655bec5bef592",
+    "packages/ubaa_ui/lib/src/features/ygdk/home_flow.dart": "4a6e0a544b446353c5639edea3b46d52eee29cfc0137153e491511734a170e85",
+    "packages/ubaa_ui/lib/src/features/ygdk/record_card.dart": "34d51aa1071e9395d36f3a7f6841fb0418f996a863473671548f734462b4a805",
+    "packages/ubaa_ui/lib/src/features/ygdk/summary.dart": "05135a55d9b5ffb0ed9a9eaefaddf5928b24e4a91f87eb36af663e4c9ef1107d",
+    "packages/ubaa_ui/lib/src/widgets.dart": "295f1030719d3c897b855625be09bef2d2ed55e6598a0797b82f5f0b48143d25",
+    "packages/ubaa_ui/lib/src/write/ygdk_draft.dart": "bc671b9c4919a64b989c84985b4880fbbe865b751b6627fce4441a05d1d67428",
+    "packages/ubaa_ui/lib/src/write/ygdk_form.dart": "5bd2746f45cffc0f0be7bd2f0a44ce2d3a21ece8dd0e9ad529be41cf8d6bf571",
+    "packages/ubaa_ui/lib/src/write/ygdk_time.dart": "26813138f11426475fbeb09fd4e796849f98fa29f5d6c14e2c4eba19b36091e2",
+    "packages/ubaa_ui/test/navigation/ygdk_content_test.dart": "17fc424fac075db79d4ae4810bd9ef72fdae77c119b184504a0276b5270cce7b",
+    "packages/ubaa_ui/test/widgets/feature_details.dart": "574573c359897c320a507aab65609c9fc047dcf8a79cc35c83ac83998fe5d920",
+    "packages/ubaa_ui/test/widgets/ygdk_form.dart": "63de107fbbd1d9d6dca38846f58c405ee8d8e10c62cea73bfa6b0aea2de8ed03",
+    "packages/ubaa_ui/test/widgets/ygdk_writes.dart": "6104b7557eb7c72a91c30a5c3394ab01f7848c571adfcbd93490f76942c56de8",
+    "packages/ubaa_ui/test/widgets_test.dart": "1bd53be9d9b885d45739746f6076edb89ecaff0a8d181337ad3948c109e0bb13"
+  }
+}

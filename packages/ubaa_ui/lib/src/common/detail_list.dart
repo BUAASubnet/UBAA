@@ -21,6 +21,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onLibbookCancelWrite,
     this.onCgyySubmitWrite,
     this.cgyyFormContext,
+    this.ygdkFormContext,
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
     this.onPickYgdkPhoto,
@@ -45,6 +46,7 @@ class _FeatureDetailList extends StatefulWidget {
   final LibbookCancelStarter? onLibbookCancelWrite;
   final CgyyReservationStarter? onCgyySubmitWrite;
   final _CgyyFormContext? cgyyFormContext;
+  final _YgdkFormContext? ygdkFormContext;
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;

@@ -1,0 +1,14 @@
+{
+  "name": "light-home-loading-result",
+  "steps": "明确合成状态，检查原生异常和页面内容",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:32:56.961392Z",
+  "sourceSha": "3c43370f+P5D-r1",
+  "pngSaved": true
+}

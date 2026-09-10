@@ -349,3 +349,10 @@ feature_detail.dart持有Flow key与选择修订通知，右上面板用Flow当�
 ## P5-C 图书馆密度（实施中）
 
 Libbook Flow通过本页key/revision提供楼馆、楼层、分区以及原分区时段选项；移除正文Wrap/分区卡和查询动作。原分区选项保存在读取代次内，座位读取后仍可改时段，换馆/楼层/分区和生命周期清除。FeatureDetail保留同一查询状态及ExpansibleController，点时段原三字段回填后展开“更多查询”，未指定日期不能请求。已有查询能力/地图与typed资格不变。先默认隐藏/完整入口/no-extra-read RED→GREEN，追加座位后保时段/草稿关闭不清选择测试，当前12 App+3 UI通过；三端及完整门禁未提前标通过。
+
+
+## P5-D 阳光表单实际改动（2026-09-10，验收中）
+
+`write/ygdk_form.dart`独立页面及项目选择、照片生命周期；`ygdk_draft.dart`同读取代次内存草稿和收集边界；`ygdk_time.dart`双确认日期/时间回填。`common/feature_detail.dart`拥有草稿并在代次/销毁清除；共用私有onFormRouteOptions沿实际snapshot显示路线。旧首页`features/ygdk/home_flow.dart`直接开表单，返回仍核对原action身份；无有效target不合成默认项目。业务验证、Core、Bridge、写入协调器不改。
+
+验证：widgets新增独立页、草稿、取消更换照片、时间取消与确认、迟到照片、宿主失效关闭picker；原写入用例保持，操作随独立页滚动。原生`ui_sports/form.dart`和`write_backend.dart`提供无网络的七类两主题完整流程；生产只读入口仅打开项目列表后返回，不选照片、不prepare。

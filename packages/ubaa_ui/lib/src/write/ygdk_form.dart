@@ -1,190 +1,384 @@
 part of '../widgets.dart';
 
-class _YgdkFormDialog extends StatefulWidget {
-  const _YgdkFormDialog({
-    required this.action,
-    required this.title,
+class _YgdkFormPage extends StatefulWidget {
+  const _YgdkFormPage({
+    required this.items,
     required this.onPickPhoto,
+    required this.data,
+    this.initialAction,
   });
-
-  final YgdkSubmitAction action;
-  final String title;
+  final List<FeatureDetail> items;
   final YgdkPhotoPicker? onPickPhoto;
-
+  final _YgdkFormContext data;
+  final YgdkSubmitAction? initialAction;
   @override
-  State<_YgdkFormDialog> createState() => _YgdkFormDialogState();
+  State<_YgdkFormPage> createState() => _YgdkFormPageState();
 }
 
-class _YgdkFormDialogState extends State<_YgdkFormDialog> {
-  static const _previewCacheWidth = 720;
-  static const _previewCacheHeight = 480;
-
-  late final TextEditingController _startController;
-  late final TextEditingController _endController;
-  late final TextEditingController _placeController;
+class _YgdkFormPageState extends State<_YgdkFormPage> {
+  static const _previewCacheWidth = 720, _previewCacheHeight = 480;
+  late final _YgdkFormDraft draft = widget.data.draft;
+  late final int generation;
+  late final _startController = TextEditingController(text: draft.start);
+  late final _endController = TextEditingController(text: draft.end);
+  late final _placeController = TextEditingController(text: draft.place);
   YgdkPhotoInput? _photo;
   Uint8List? _previewBytes;
   String? _error;
   bool _picking = false;
-  bool _shareToSquare = false;
+
+  List<FeatureDetail> get _validItems => widget.items.where((d) {
+    final a = d.action<YgdkSubmitAction>();
+    return a?.hasCanonicalTarget == true &&
+        widget.items.where((other) {
+              final b = other.action<YgdkSubmitAction>();
+              return b != null && _ygdkItemKey(a!) == _ygdkItemKey(b);
+            }).length ==
+            1;
+  }).toList();
+
+  FeatureDetail? get _selected {
+    for (final d in _validItems) {
+      if (_ygdkItemKey(d.action<YgdkSubmitAction>()!) == draft.itemKey)
+        return d;
+    }
+    return null;
+  }
+
+  bool get _valid => mounted && generation == draft.generation;
 
   @override
   void initState() {
     super.initState();
-    _startController = TextEditingController();
-    _endController = TextEditingController();
-    _placeController = TextEditingController(text: '操场');
+    generation = draft.generation;
+    if (widget.initialAction case final a?) draft.itemKey = _ygdkItemKey(a);
+    draft.addListener(_invalidate);
+  }
+
+  void _invalidate() {
+    if (generation == draft.generation) return;
+    _releasePhotoReferences();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route == null || !route.isActive) return;
+      final navigator = Navigator.of(context);
+      navigator.popUntil((r) => identical(r, route));
+      navigator.pop();
+    });
   }
 
   @override
   void dispose() {
+    draft.removeListener(_invalidate);
     _releasePhotoReferences();
-    _startController.dispose();
-    _endController.dispose();
-    _placeController.dispose();
+    for (final c in [_startController, _endController, _placeController]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
+  String _itemName(FeatureDetail detail) =>
+      detail.presentation is YgdkItemPresentation
+      ? (detail.presentation as YgdkItemPresentation).name
+      : detail.title;
+
+  Future<void> _chooseItem() async {
+    final selected = await showDialog<FeatureDetail>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择运动项目'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final d in widget.items)
+                  ListTile(
+                    title: Text(_itemName(d)),
+                    enabled: _validItems.contains(d),
+                    subtitle: _validItems.contains(d)
+                        ? null
+                        : const Text('当前不可提交'),
+                    onTap: () => Navigator.pop(context, d),
+                  ),
+                if (widget.items.isEmpty) const Text('暂无可用运动项目'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+    if (_valid && selected != null && _validItems.contains(selected)) {
+      setState(
+        () =>
+            draft.itemKey = _ygdkItemKey(selected.action<YgdkSubmitAction>()!),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('填写阳光打卡信息'),
-    content: SizedBox(
-      width: 420,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '项目：${widget.title}'
-                '（分类 ${widget.action.classifyId} / '
-                '项目 ${widget.action.itemId}）',
-              ),
+  Widget build(BuildContext context) {
+    final route = widget.data.route;
+    final selected = _selected;
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        toolbarHeight: 56,
+        title: const Text(
+          '填写阳光打卡信息',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        leading: BackButton(onPressed: _cancel),
+        actions: [
+          IconButton(
+            tooltip: '实际路线：${route?.label ?? '未确定'}',
+            icon: Icon(
+              route == ConnectionMode.direct
+                  ? Icons.lan_outlined
+                  : route == ConnectionMode.webvpn
+                  ? Icons.vpn_lock_outlined
+                  : Icons.route_outlined,
             ),
-            TextField(
-              controller: _startController,
-              decoration: const InputDecoration(
-                labelText: '开始时间',
-                hintText: 'YYYY-MM-DD HH:mm',
-              ),
-            ),
-            TextField(
-              controller: _endController,
-              decoration: const InputDecoration(
-                labelText: '结束时间',
-                hintText: 'YYYY-MM-DD HH:mm',
-              ),
-            ),
-            TextField(
-              controller: _placeController,
-              decoration: const InputDecoration(labelText: '打卡地点'),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: _picking || widget.onPickPhoto == null
-                    ? null
-                    : _pickPhoto,
-                icon: const Icon(Icons.photo_library_outlined),
-                label: Text(
-                  _photo == null ? '选择照片' : '已选择照片：${_photo!.fileName}',
-                ),
-              ),
-            ),
-            if (_previewBytes case final bytes?) ...<Widget>[
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  bytes,
-                  key: const ValueKey<String>('ygdk-photo-preview'),
-                  width: 180,
-                  height: 120,
-                  cacheWidth: _previewCacheWidth,
-                  cacheHeight: _previewCacheHeight,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(
-                    width: 180,
-                    height: 72,
-                    child: Center(child: Text('照片预览不可用，请重新选择。')),
+            onPressed: () async {
+              await widget.data.onRouteOptions?.call({
+                if (route != null) '运动项目': route,
+              });
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 840),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('请填写运动时间并选择照片，核对后再提交。'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _section('运动项目', [
+                          OutlinedButton(
+                            onPressed: _chooseItem,
+                            child: Text(
+                              selected == null ? '选择运动项目' : _itemName(selected),
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 12),
+                        _section('时间', [
+                          _timeField(
+                            _startController,
+                            '开始时间',
+                            (v) => draft.start = v,
+                          ),
+                          const SizedBox(height: 12),
+                          _timeField(
+                            _endController,
+                            '结束时间',
+                            (v) => draft.end = v,
+                          ),
+                        ]),
+                        const SizedBox(height: 12),
+                        _section('地点', [
+                          TextField(
+                            controller: _placeController,
+                            onChanged: (v) => draft.place = v,
+                            decoration: const InputDecoration(
+                              labelText: '打卡地点',
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 12),
+                        _section('照片', [
+                          OutlinedButton.icon(
+                            onPressed: _picking || widget.onPickPhoto == null
+                                ? null
+                                : _pickPhoto,
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: Text(
+                              _photo == null
+                                  ? '选择照片'
+                                  : '已选择照片：${_photo!.fileName}',
+                            ),
+                          ),
+                          if (_previewBytes case final bytes?) ...[
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.memory(
+                                  bytes,
+                                  key: const ValueKey<String>(
+                                    'ygdk-photo-preview',
+                                  ),
+                                  width: 180,
+                                  height: 120,
+                                  cacheWidth: _previewCacheWidth,
+                                  cacheHeight: _previewCacheHeight,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const SizedBox(
+                                    width: 180,
+                                    height: 72,
+                                    child: Center(
+                                      child: Text('照片预览不可用，请重新选择。'),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${_photo!.mimeType} · ${_photo!.bytes.length} 字节',
+                            ),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: _picking
+                                    ? null
+                                    : () => setState(_releasePhotoReferences),
+                                icon: const Icon(Icons.delete_outline),
+                                label: const Text('清除照片'),
+                              ),
+                            ),
+                          ],
+                          if (widget.onPickPhoto == null)
+                            const Text('当前运行环境未提供照片选择器，无法提交打卡。'),
+                        ]),
+                        const SizedBox(height: 12),
+                        Card(
+                          child: CheckboxListTile(
+                            value: draft.share,
+                            onChanged: (v) =>
+                                setState(() => draft.share = v ?? false),
+                            contentPadding: const EdgeInsets.all(16),
+                            secondary: const Icon(Icons.share_outlined),
+                            title: const Text('分享到打卡广场'),
+                            subtitle: const Text('默认不分享，开启后会把本次打卡同步到广场。'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-            if (widget.onPickPhoto == null)
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('当前运行环境未提供照片选择器，无法提交打卡。'),
-              ),
-            CheckboxListTile(
-              value: _shareToSquare,
-              onChanged: (value) => setState(() {
-                _shareToSquare = value ?? false;
-              }),
-              contentPadding: EdgeInsets.zero,
-              title: const Text('分享到打卡广场'),
-            ),
-            if (_error case final message?)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  message,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      if (_error case final message?)
+                        Text(
+                          message,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: _cancel,
+                            child: const Text('取消'),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 52,
+                              child: FilledButton(
+                                onPressed: _picking ? null : _continue,
+                                child: const Text('继续确认'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _section(String title, List<Widget> children) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
     ),
-    actions: <Widget>[
-      TextButton(onPressed: _cancel, child: const Text('取消')),
-      FilledButton(onPressed: _continue, child: const Text('继续确认')),
-    ],
   );
 
   Future<void> _pickPhoto() async {
     final picker = widget.onPickPhoto;
-    if (picker == null || _picking) return;
+    if (picker == null || _picking || !_valid) return;
     setState(() {
       _picking = true;
       _error = null;
     });
     try {
       final picked = await picker();
-      if (!mounted) return;
+      if (!_valid || picked == null) return;
       setState(() {
         _releasePhotoReferences();
         _photo = picked;
-        _previewBytes = picked == null
-            ? null
-            : Uint8List.fromList(picked.bytes);
-        _error = picked == null ? '未选择照片，阳光打卡必须附带照片。' : null;
+        _previewBytes = Uint8List.fromList(picked.bytes);
       });
     } on Object {
-      if (mounted) {
-        setState(() => _error = '照片选择失败，请检查平台权限后重试。');
-      }
+      if (_valid) setState(() => _error = '照片选择失败，请检查平台权限后重试。');
     } finally {
-      if (mounted) setState(() => _picking = false);
+      if (_valid) setState(() => _picking = false);
     }
   }
 
   void _continue() {
-    final start = _startController.text;
-    final end = _endController.text;
+    if (!_valid || _picking) return;
+    final selected = _selected;
     final photo = _photo;
-    if (start.trim().isEmpty || end.trim().isEmpty || photo == null) {
+    if (selected == null) {
+      setState(() => _error = '请选择可提交的运动项目。');
+      return;
+    }
+    if (draft.start.trim().isEmpty ||
+        draft.end.trim().isEmpty ||
+        photo == null) {
       setState(() => _error = '请填写完整时间并选择照片。');
       return;
     }
     final input = YgdkSubmitInput(
-      action: widget.action,
-      startTime: start,
-      endTime: end,
-      place: _placeController.text.trim(),
-      shareToSquare: _shareToSquare,
+      action: selected.action<YgdkSubmitAction>()!,
+      startTime: draft.start,
+      endTime: draft.end,
+      place: draft.place.trim(),
+      shareToSquare: draft.share,
       photo: photo,
     );
     _releasePhotoReferences();
@@ -198,7 +392,7 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
 
   void _releasePhotoReferences() {
     final bytes = _previewBytes;
-    if (bytes != null) {
+    if (bytes != null)
       unawaited(
         ResizeImage(
           MemoryImage(bytes),
@@ -206,7 +400,6 @@ class _YgdkFormDialogState extends State<_YgdkFormDialog> {
           height: _previewCacheHeight,
         ).evict(cache: PaintingBinding.instance.imageCache),
       );
-    }
     _previewBytes = null;
     _photo = null;
   }
@@ -218,15 +411,17 @@ extension _YgdkWriteForm on _FeatureDetailListState {
     required YgdkSubmitAction action,
     required String title,
   }) async {
-    final input = await showDialog<YgdkSubmitInput>(
-      context: context,
-      builder: (_) => _YgdkFormDialog(
-        action: action,
-        title: title,
-        onPickPhoto: widget.onPickYgdkPhoto,
-      ),
+    final original = widget.details;
+    final input = await _collectYgdkForm(
+      context,
+      items: [
+        FeatureDetail(title: title, actions: [action]),
+      ],
+      initialAction: action,
+      onPickPhoto: widget.onPickYgdkPhoto,
+      formContext: widget.ygdkFormContext,
     );
-    if (input != null && mounted) {
+    if (input != null && mounted && identical(original, widget.details)) {
       await widget.onYgdkSubmitWrite?.call(input);
     }
   }

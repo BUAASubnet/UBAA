@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-record-detail",
+  "steps": "低频编号及未知state进入只读详情，历史图片仅计数",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:48:23.953261Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

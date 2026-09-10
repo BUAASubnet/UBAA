@@ -1,0 +1,14 @@
+{
+  "name": "dark-records-first-error-retry",
+  "steps": "原生显式重试恢复同一读取视图",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:40:07.323268Z",
+  "sourceSha": "3c43370f+P5D-r1",
+  "pngSaved": true
+}

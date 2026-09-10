@@ -1,0 +1,14 @@
+{
+  "name": "light-normal-home",
+  "steps": "学期周次数后是记录；项目不铺首页",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:55:59.929303Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

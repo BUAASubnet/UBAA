@@ -1,0 +1,14 @@
+{
+  "name": "light-write-success-time",
+  "steps": "原生中文24小时选择；双确认才回填",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:53:37.479831Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

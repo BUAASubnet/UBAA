@@ -30,7 +30,9 @@ void main() {
     expect(find.textContaining('未分享'), findsOneWidget);
     await tester.tap(find.byTooltip('新增打卡'));
     await tester.pumpAndSettle();
-    expect(find.text('选择运动项目'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
+    await tester.tap(find.text('选择运动项目'));
+    await tester.pumpAndSettle();
     expect(find.text('合成运动项目'), findsOneWidget);
     await tester.tap(find.text('合成运动项目'));
     await tester.pumpAndSettle();

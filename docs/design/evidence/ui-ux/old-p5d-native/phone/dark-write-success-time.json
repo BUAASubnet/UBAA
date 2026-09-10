@@ -1,0 +1,14 @@
+{
+  "name": "dark-write-success-time",
+  "steps": "原生中文24小时选择；双确认才回填",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:44:07.105182Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}

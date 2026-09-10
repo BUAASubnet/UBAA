@@ -1,0 +1,14 @@
+{
+  "name": "dark-records-loading-result",
+  "steps": "明确合成状态，检查原生异常和页面内容",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:40:17.723541Z",
+  "sourceSha": "3c43370f+P5D-r1",
+  "pngSaved": true
+}

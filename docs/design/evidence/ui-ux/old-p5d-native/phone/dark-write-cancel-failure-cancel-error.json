@@ -1,0 +1,14 @@
+{
+  "name": "dark-write-cancel-failure-cancel-error",
+  "steps": "取消失败保留确认页，可重试，无commit",
+  "backend": "synthetic-sports",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T01:45:17.370662Z",
+  "sourceSha": "3c43370f+P5D-r2",
+  "pngSaved": true
+}
