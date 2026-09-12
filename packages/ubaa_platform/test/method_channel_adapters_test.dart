@@ -6,6 +6,31 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('原生图片读取失败不伪装为用户取消，且不暴露原始错误', () async {
+    const channel = MethodChannel('cn.edu.buaa.ubaa/platform');
+    var cancelled = false;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          if (call.method == 'photo.capability') return true;
+          if (cancelled) return null;
+          throw PlatformException(code: 'photo_read_failed', message: '合成私有路径');
+        });
+    final picker = MethodChannelPhotoPicker(channel: channel);
+    expect(await picker.probe(), isTrue);
+    await expectLater(
+      picker.pickPhoto(),
+      throwsA(
+        isA<PlatformCapabilityException>().having(
+          (error) => error.toString(),
+          '仅固定权限状态',
+          isNot(contains('合成私有路径')),
+        ),
+      ),
+    );
+    cancelled = true;
+    expect(await picker.pickPhoto(), isNull);
+  });
+
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(

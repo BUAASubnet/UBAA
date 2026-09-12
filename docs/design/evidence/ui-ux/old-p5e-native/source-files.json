@@ -1,0 +1,26 @@
+{
+  "baseSha": "f91156333cfc2402603bb38e329f97c3cf8eba39",
+  "sourceDefine": "f9115633+P5E-r3",
+  "files": {
+    "apps/ubaa_flutter/android/app/src/main/kotlin/cn/edu/ubaa/ubaa_flutter/MainActivity.kt": "d8ad0f5db6e1e7c380e4986b098677c77765147d3d596345284328fd714bc186",
+    "apps/ubaa_flutter/android/app/src/main/kotlin/cn/edu/ubaa/ubaa_flutter/platform/PhotoChannel.kt": "461f5dda1dffb4eab6186c5add559d58dda2e9ed64e344e14d619d341d4fcd16",
+    "apps/ubaa_flutter/integration_test/ui_photos/inspection.dart": "1dc38440fc60a873f3e2290cbfa1eaf1ee2c431858075f761512bd3587a13208",
+    "apps/ubaa_flutter/integration_test/ui_photos/native_test.dart": "f6a1561407c3b0dcc500f00cd4dbf7b4efbfe9e6429ffcc22cd63a0f79f621d7",
+    "apps/ubaa_flutter/ios/Runner.xcodeproj/project.pbxproj": "3ceebfa1ae6e7990da37579c3aa29f0cd4d62d65507a7818b201915f988f0378",
+    "apps/ubaa_flutter/ios/Runner/AppDelegate.swift": "a22f4256a26bdb48816ee5bd2d479a71da7ef265e2cab26b0aaf8896ad781636",
+    "apps/ubaa_flutter/ios/Runner/Platform/PhotoChannel.swift": "9bc64a177e87dce58909965799266587bb656acc1b1e3555df953d488ec4a1ad",
+    "apps/ubaa_flutter/macos/Runner.xcodeproj/project.pbxproj": "91cd1fcb318bb28603b0a4589761b96a6a892db0e42f772617dacb9155210e8e",
+    "apps/ubaa_flutter/macos/Runner/DebugProfile.entitlements": "548a008c11cffb7f92abe89d626202cc8afe1945c935fa6a8592b49192dd7d44",
+    "apps/ubaa_flutter/macos/Runner/MainFlutterWindow.swift": "046ee805da73f546a334f17dcfaffc96dc5be87c7936757319bc364ea4cc735a",
+    "apps/ubaa_flutter/macos/Runner/Platform/PhotoChannel.swift": "933b3f135e714c7a90ce94f2cbc18201bd4c8909b8ed98969094b0d103c35842",
+    "apps/ubaa_flutter/macos/Runner/Release.entitlements": "b90d9c45f8b7746a3180f4252915354ee09072772964f99544153cc4598cc764",
+    "apps/ubaa_ohos/ohos/entry/src/main/ets/entryability/EntryAbility.ets": "95ff16d3b40a84f370a666a34b100256bb8f0129bb442fb9bb4a5b03585a944e",
+    "apps/ubaa_ohos/ohos/entry/src/main/ets/platform/PhotoChannel.ets": "a213df2f9fba95f6c76fe9b14c4d71e2f7406b87020e25e5ff2d2ef5b98dccc5",
+    "packages/ubaa_platform/lib/src/media.dart": "43b0ac6a1a4dea0ac50cb8635543fe5b15570b8b0d50db72aa12e8020f143d18",
+    "packages/ubaa_platform/native/apple/PhotoPayload.swift": "7c31a092d3e8b99ea78ecd34a030264213f5fad05e977cc72b1565869fd35593",
+    "packages/ubaa_platform/test/method_channel_adapters_test.dart": "6717886b5872a9ee08cc6e3d2ddc9b430c8afaa771b0a4eefed83167ec81f743",
+    "packages/ubaa_platform/test/native/apple_photo_payload_test.swift": "70657a30a809f1b225785a7e24f12a36f608a416f3cd7ccc543ff2e41e490e0e",
+    "packages/ubaa_ui/lib/src/write/ygdk_form.dart": "9c036a38db254061aa85588f82dc2c06ebdc45e1078f68ed345d85c8b40d6c2e",
+    "packages/ubaa_ui/test/widgets/ygdk_form.dart": "d2f5f5485f780fd07f7c1a9e920a40f294f88e2a5004c8c8bc6ae8f195951030"
+  }
+}

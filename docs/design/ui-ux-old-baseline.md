@@ -225,3 +225,12 @@ P4-E5局部结果（2026-09-10）：关于侧栏入口、旧版单卡顺序、�
 
 
 E6最终局部验收（2026-09-10）：三显式签到查询原有生产投影保持，修复显式内存fixture后，手机31秒/平板31秒各2主题完整流程通过，Mac27秒2主题通过；两端各12原图共24全数检查归档old-e6-native。三端覆盖未应用草稿关闭往返、已应用视图返回保留、本地详情无请求、刷新沿原query、unknown/缺目标不误归类及0 prepare/commit。Core Direct/WebVPN各3认证+today2条通过；生产AppDirect65秒/WebVPN107秒，考试三视图均空（真实详情未执行），签到全部2→可签到1→已签到1→全部2，actualroute严格一致，本地签到详情无额外读取，学校写入0。两条全新App容器隔离配置经既有安全stdin使用授权.env.local，未输出或归档账号、session及真实正文。App54/analyze、just check、refs与敏感检查通过；完整715为E5最近门禁，E6无生产实现变更。独立Mac仍受已记录交互条件限制，P4余项、P5全领域/P6/P7未完成。
+
+
+P5-E开始于f9115633：照片平台来源与权限边界见[source-parity-ui-photos.md](../migration/source-parity-ui-photos.md)。旧版Android图片/拍照、JVM文件选择和iOS未接线事实分别核对；先补真实默认能力与错误语义RED，再接原生通道，不放宽业务资格。
+
+
+P5-E本批局部终态：717项Flutter、just check、原生Apple图片边界通过；四端系统图片选择接线实现，三端最终r3各3项（1能力+2主题表单）通过，两端16原图与已审r2逐字节一致并归档old-p5e-native。Android最终APK、OHOS无签名HAP/动态库通过。生产Direct46秒/WebVPN新配置62秒已能进入独立表单、项目弹窗及取消返回，并完成原路线记录翻页，0 prepare/0学校写入。系统选图窗口仍未实操，因CUA锁屏待解锁；Android旧拍照、Windows/Linux照片、OHOS设备与其余P5/P6/P7不因此完成，84编号保持。
+
+
+P5-E系统选图实操补验（2026-09-12）：当前20项源码SHA与r3记录完全一致。macOS真实App使用原生PhotoChannel/NSOpenPanel与明确SportsWriteBackend(success)内存业务，CUA实际选择蓝色PNG（116字节）、Cancel保留原图、重选橙色PNG（137字节）、选择12589062字节PNG被拒绝且保橙图、清除照片共5项通过；五张合成原生实窗逐张查看归档[系统选图补验](evidence/ui-ux/old-p5e-native/system-picker/验收说明.md)。仅浅色局部通过，失败后成功重试/带图退出重入未验，清除后原失败提示仍保留。本轮Mac正文坐标与滚动已生效，旧交互阻塞不作当前结论；随后iPhone原生inspection启动成功，但点击阳光入口时CUA报告Mac锁屏，因此手机/平板系统选图仍待。原r3的systemPickerSelectionVerified=false保持其测试范围，不覆盖为真。0 prepare/0学校业务写入；Android旧拍照、Windows/Linux照片、OHOS设备及P4余项/P5全领域/P6/P7不因此完成。

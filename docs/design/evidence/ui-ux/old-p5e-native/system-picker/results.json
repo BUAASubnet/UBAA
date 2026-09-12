@@ -1,0 +1,61 @@
+{
+  "date": "2026-09-12",
+  "baseSha": "f91156333cfc2402603bb38e329f97c3cf8eba39",
+  "sourceFiles": "../source-files.json",
+  "sourceHashesRechecked": true,
+  "entry": "apps/ubaa_flutter/integration_test/ui_photos/inspection.dart",
+  "backend": "SportsWriteBackend(success)，业务明确在内存",
+  "platform": "macOS真实PhotoChannel/NSOpenPanel",
+  "uiActions": "CUA点击、滚动、系统前往文件、确认与取消；无UI事件脚本",
+  "theme": "浅色",
+  "windowLogicalSize": [
+    800,
+    632
+  ],
+  "businessWrites": 0,
+  "prepare": false,
+  "checks": [
+    {
+      "id": "selected-blue",
+      "result": "通过",
+      "observation": "真实NSOpenPanel选择蓝图，应用显示蓝色预览、image/png、116字节",
+      "image": "macos/selected-blue.png",
+      "sha256": "242f10b08f419d90a47757dc33562cad91ab623cfad28c6fc5d071568828a1cf"
+    },
+    {
+      "id": "cancel-retains-blue",
+      "result": "通过",
+      "observation": "再次打开系统窗口后点击Cancel，原蓝图/名称/MIME/字节数保持",
+      "image": "macos/cancel-retains-blue.png",
+      "sha256": "242f10b08f419d90a47757dc33562cad91ab623cfad28c6fc5d071568828a1cf"
+    },
+    {
+      "id": "reselected-orange",
+      "result": "通过",
+      "observation": "重新打开系统窗口选择橙图，预览变橙、名称变化、image/png与137字节",
+      "image": "macos/reselected-orange.png",
+      "sha256": "05b52313b735ad54363d27f3487888ad640e1b74550118a76f4259a060c8e054"
+    },
+    {
+      "id": "oversize-retains-orange",
+      "result": "通过",
+      "observation": "选择12589062字节合成PNG后显示10MiB/访问错误，原橙图保留",
+      "image": "macos/oversize-retains-orange.png",
+      "sha256": "a702d9ad2e804b62fdf9d959eca9cb25a8893510118ca3289ca16cc43548bd8a"
+    },
+    {
+      "id": "cleared",
+      "result": "通过",
+      "observation": "滚动到清除照片并点击，名称/预览/元信息消失；上一失败提示保留，未重试",
+      "image": "macos/cleared.png",
+      "sha256": "1b41109edf262fee873f2a4b1515f4ce6a3602edfb1412cfc3619e4fe8c72812"
+    }
+  ],
+  "phone": "原生inspection入口启动成功；点阳光入口时CUA明确报告Mac已锁定，系统选择未执行",
+  "ipad": "本轮未执行系统选择",
+  "limits": [
+    "未验证macOS深色独立系统选择、失败后成功重试、带原图退出再进入",
+    "Android旧拍照、Windows/Linux照片与OHOS设备仍待补",
+    "此前r3探测/表单测试未执行系统picker，其false标记保持"
+  ]
+}

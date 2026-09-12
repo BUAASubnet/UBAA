@@ -224,6 +224,8 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                                   : '已选择照片：${_photo!.fileName}',
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          const Text('单张图片不超过10 MiB'),
                           if (_previewBytes case final bytes?) ...[
                             const SizedBox(height: 8),
                             Align(
@@ -353,7 +355,9 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
         _previewBytes = Uint8List.fromList(picked.bytes);
       });
     } on Object {
-      if (_valid) setState(() => _error = '照片选择失败，请检查平台权限后重试。');
+      if (_valid) {
+        setState(() => _error = '无法读取照片，请使用不超过10 MiB的图片，并检查系统访问权限。');
+      }
     } finally {
       if (_valid) setState(() => _picking = false);
     }

@@ -1,0 +1,15 @@
+{
+  "savedScreenshots": [
+    "dark-native-photo-home",
+    "dark-native-photo-form",
+    "dark-native-photo-projects",
+    "dark-native-photo-photo-entry",
+    "light-native-photo-home",
+    "light-native-photo-form",
+    "light-native-photo-projects",
+    "light-native-photo-photo-entry"
+  ],
+  "metadataCount": 8,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}

@@ -1,0 +1,108 @@
+{
+  "phone": {
+    "sourceDefine": "f9115633+P5E-r3",
+    "tests": 3,
+    "meaning": "1原生能力探测+2主题表单接线",
+    "exitCode": 0,
+    "systemPickerSelectionVerified": false,
+    "logSha256": "94c03c1891853f27ad8ce2d06ed23ac6d708cf3b39be8c69cb49f1a5b2bc1b99"
+  },
+  "ipad": {
+    "sourceDefine": "f9115633+P5E-r3",
+    "tests": 3,
+    "meaning": "1原生能力探测+2主题表单接线",
+    "exitCode": 0,
+    "systemPickerSelectionVerified": false,
+    "logSha256": "8336f919680a8922dd15740d6d2da08eeec15b294c9d65b98980da1ab35450c7"
+  },
+  "macos": {
+    "sourceDefine": "f9115633+P5E-r3",
+    "tests": 3,
+    "meaning": "1原生能力探测+2主题表单接线",
+    "exitCode": 0,
+    "systemPickerSelectionVerified": false,
+    "logSha256": "a7eb8a25ae1cdc22abdce62ee759d4ce39ec59ba35073ffcbed9a085d882305a"
+  },
+  "production-direct": {
+    "exitCode": 0,
+    "elapsedSeconds": 46,
+    "reads": [
+      [
+        "summary",
+        "success",
+        "direct",
+        "11",
+        "null"
+      ],
+      [
+        "ygdkRecords",
+        "success",
+        "direct",
+        "5",
+        "2"
+      ],
+      [
+        "ygdkRecords",
+        "success",
+        "direct",
+        "5",
+        "1"
+      ]
+    ],
+    "independentForm": true,
+    "projectPicker": true,
+    "prepare": false,
+    "businessWrites": 0,
+    "note": "在最终图片大小说明和非法原生展示名拒绝补强前通过；未调用系统图片选择器，最终P7仍须固定提交复验",
+    "logSha256": "dbd0eef393353dbcad8a4d8a7d52d9f8c1549120875c0fd7cb96579135723a09"
+  },
+  "production-webvpn": {
+    "exitCode": 0,
+    "elapsedSeconds": 62,
+    "reads": [
+      [
+        "summary",
+        "success",
+        "webvpn",
+        "11",
+        "null"
+      ],
+      [
+        "ygdkRecords",
+        "success",
+        "webvpn",
+        "5",
+        "2"
+      ],
+      [
+        "ygdkRecords",
+        "success",
+        "webvpn",
+        "5",
+        "1"
+      ]
+    ],
+    "independentForm": true,
+    "projectPicker": true,
+    "prepare": false,
+    "businessWrites": 0,
+    "note": "在最终图片大小说明和非法原生展示名拒绝补强前通过；未调用系统图片选择器，最终P7仍须固定提交复验",
+    "logSha256": "a0e00ed3b816ae062cdfb122e8d16f315f89ed378a9a57e7f36fe80241fb3b3b"
+  },
+  "gates": {
+    "flutter": 717,
+    "packages": [
+      54,
+      55,
+      270,
+      246,
+      15,
+      23,
+      54
+    ],
+    "justCheck": "通过",
+    "nativeApplePayload": "原图只读/MIME/展示名/10MiB/拒绝分支通过",
+    "android": "Debug APK构建通过，未原生运行",
+    "ohos": "无签名HAP与动态库通过，未设备运行"
+  }
+}

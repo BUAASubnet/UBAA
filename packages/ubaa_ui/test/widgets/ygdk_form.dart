@@ -48,6 +48,23 @@ void _registerYgdkFormTests() {
     expect(find.text('已选择照片：photo.png'), findsOneWidget);
   });
 
+  testWidgets('阳光更换照片失败保留原图并明确大小和访问限制', (tester) async {
+    var calls = 0;
+    await mount(tester, () async {
+      if (++calls == 1) return _validYgdkPhoto();
+      throw StateError('合成原始路径不能显示');
+    });
+    await _openAndFillYgdkForm(tester);
+    final replace = find.text('已选择照片：photo.png');
+    await tester.ensureVisible(replace);
+    await tester.tap(replace);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('ygdk-photo-preview')), findsOneWidget);
+    expect(find.text('已选择照片：photo.png'), findsOneWidget);
+    expect(find.text('无法读取照片，请使用不超过10 MiB的图片，并检查系统访问权限。'), findsOneWidget);
+    expect(find.textContaining('合成原始路径不能显示'), findsNothing);
+  });
+
   testWidgets('阳光时间选择双确认后回填且取消不覆盖草稿', (tester) async {
     await mount(tester, _validYgdkPhoto);
     await _openAndFillYgdkForm(tester);

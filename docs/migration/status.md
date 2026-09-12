@@ -1,6 +1,6 @@
 # 当前迁移与交付状态
 
-当前批次（2026-09-10）：E5已提交7459d677，E6签到三显式查询三端及生产双路线通过；P5-D Mac42完整内存场景补验通过。生产阳光表单Direct-r3发现原生照片通道未注册，新增入口被现有能力门禁隐藏，下一批P5-E补真实照片能力；不绕过保护。独立Mac和P4余项、P5全领域/P6/P7仍未完成，84编号保持。以下过程段落按日期留存，当前事实以本段及末尾证据为准。
+当前批次（2026-09-10）：P5-E四端系统图片选择接线已实现，生产Direct/WebVPN独立表单浏览通过；717项Flutter及原生字节边界通过，当前提示界面三端r3已通过。系统选择/取消/重选需解锁后实操，Android旧拍照和Windows/Linux照片仍待接线；独立Mac及P4余项、P5全领域/P6/P7未完成，84编号保持。下方过程按日期留存。
 
 
 更新日期：2026-09-09，Asia/Shanghai。
@@ -219,3 +219,22 @@ E6最终局部验收（2026-09-10）：三显式签到查询原有生产投影�
 
 
 P5-D生产表单补验发现CAP-01实际缺口：Direct-r3在38秒失败，ui_sports_live_readonly_test.dart:104未找到“新增打卡”；此前生产概览11项目与首页20条记录已成功。已核对PlatformCapabilities默认MethodChannelPhotoPicker.probe及宿主_photoPicker/hasYgdkSubmissionCapabilities；官方iOS/macOS/Android与OHOS源码没有photo.capability、photo.pick、permission.request原生处理。故照片探测不可用，onPrepareYgdkSubmitWrite=null，UI按既有安全门禁隐藏入口。内存MemoryPhotoPicker使脱敏表单可达，不证明生产能力已接通。没有将失败改成跳过/成功，没有替换生产backend或放宽资格。WebVPN表单不重复运行同一已知平台缺口；下一批P5-E必须按旧版照片来源补真实原生选择器，再复验生产只读进入表单/项目/返回（仍不上传或提交）。Core双路线阳光读取和本批Mac42内存场景保持各自证据范围。
+
+
+P5-E开始于f9115633：照片平台来源与权限边界见[source-parity-ui-photos.md](../migration/source-parity-ui-photos.md)。旧版Android图片/拍照、JVM文件选择和iOS未接线事实分别核对；先补真实默认能力与错误语义RED，再接原生通道，不放宽业务资格。
+
+
+P5-E进展（2026-09-10）：保留cn.edu.buaa.ubaa/platform通道，iOS14+ PHPicker、macOS11+ NSOpenPanel、Android GetContent、OHOS PhotoViewPicker已接线。原路径只在原生层短暂读取，不复制到持久目录；共享Apple PhotoPayload/Android有界流/OHOS只读fd均限制10MiB并验证实际图片MIME。macOS仅补user-selected.read-only entitlement；其他权限、位置与安全存储未被照片接线冒称可用。
+
+原生默认能力RED→iPhone/Mac探测GREEN；Dart平台异常原返回null的RED已修为固定PlatformCapabilityException，11项MethodChannel测试通过。原生Swift合成文件验证实际MIME、合法/非法展示名、原文件未改、10MiB边界及空/非图/超大拒绝通过；初轮测试把throw放入precondition自动闭包导致编译失败，移出后真正执行通过。Android Debug APK、OHOS无签名HAP与动态库通过，均不算实际系统选图。完整Flutter初轮716通过，随后图片大小说明与失败提示改善正在复验。
+
+生产Direct46秒通过独立表单、项目选择、取消返回、原路线记录翻页；WebVPN旧E6隔离配置未恢复登录，首秒首页断言失败，没有进入业务。新建本批App容器私有配置安全认证，Core WebVPN3认证+概览11/记录20通过，App WebVPN-r2 62秒同流程通过，0 prepare/0学校写入。不推测为协议变更，不覆盖旧会话。两端真实平台能力+明确内存业务的入口/表单/项目/照片按钮三场景通过，初轮各8图；系统选择、取消、重选尚未操作。CUA持续返回Mac锁屏，已一次请求解锁，继续独立工作，不将入口/构建当选图验收。Android旧拍照、Windows/Linux照片与实际系统窗口选择仍待后续补齐。
+
+
+P5-E提示复验：原生超限/损坏读取会落入统一平台错误，旧UI只提示“检查权限”不够准确。新增“更换失败保原图并明确大小/访问限制”行为RED，补照片区10MiB说明及不泄露原始路径的可操作错误提示；完整Flutter717（54/55/270/246/15/23/54）通过。首次用错误测试名过滤得到无匹配/exit79，不算RED，实际RED为ui-error-red-r2缺少预期错误文案。原生r1发现平板转场首帧残边，截图前补实际pump300ms推进稳定帧，r2对当前提示界面复验；旧r1图不充当最终界面证据。
+
+
+P5-E本批局部终态：717项Flutter、just check、原生Apple图片边界通过；四端系统图片选择接线实现，三端最终r3各3项（1能力+2主题表单）通过，两端16原图与已审r2逐字节一致并归档old-p5e-native。Android最终APK、OHOS无签名HAP/动态库通过。生产Direct46秒/WebVPN新配置62秒已能进入独立表单、项目弹窗及取消返回，并完成原路线记录翻页，0 prepare/0学校写入。系统选图窗口仍未实操，因CUA锁屏待解锁；Android旧拍照、Windows/Linux照片、OHOS设备与其余P5/P6/P7不因此完成，84编号保持。
+
+
+P5-E系统选图实操补验（2026-09-12）：当前20项源码SHA与r3记录完全一致。macOS真实App使用原生PhotoChannel/NSOpenPanel与明确SportsWriteBackend(success)内存业务，CUA实际选择蓝色PNG（116字节）、Cancel保留原图、重选橙色PNG（137字节）、选择12589062字节PNG被拒绝且保橙图、清除照片共5项通过；五张合成原生实窗逐张查看归档[系统选图补验](../design/evidence/ui-ux/old-p5e-native/system-picker/验收说明.md)。仅浅色局部通过，失败后成功重试/带图退出重入未验，清除后原失败提示仍保留。本轮Mac正文坐标与滚动已生效，旧交互阻塞不作当前结论；随后iPhone原生inspection启动成功，但点击阳光入口时CUA报告Mac锁屏，因此手机/平板系统选图仍待。原r3的systemPickerSelectionVerified=false保持其测试范围，不覆盖为真。0 prepare/0学校业务写入；Android旧拍照、Windows/Linux照片、OHOS设备及P4余项/P5全领域/P6/P7不因此完成。

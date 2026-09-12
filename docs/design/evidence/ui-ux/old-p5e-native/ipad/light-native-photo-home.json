@@ -1,0 +1,14 @@
+{
+  "name": "light-native-photo-home",
+  "steps": "真实平台照片探测贯通原生表单，学校业务仅内存；未选择照片或提交",
+  "backend": "synthetic-sports-real-platform",
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 834.0,
+  "logicalHeight": 1210.0,
+  "devicePixelRatio": 2.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-10T06:37:33.784694Z",
+  "sourceSha": "f9115633+P5E-r3",
+  "pngSaved": true
+}

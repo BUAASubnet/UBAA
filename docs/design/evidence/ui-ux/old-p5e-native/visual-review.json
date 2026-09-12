@@ -1,0 +1,82 @@
+[
+  {
+    "file": "phone/light-native-photo-form.png",
+    "sha256": "c4c88b36c58f51e1fe425105caaea0e20777bb5e14f7409b96b65c1296a6cef0",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/dark-native-photo-form.png",
+    "sha256": "8adaf79d3f253acdba4c28c557fb098c2c30dd28ad11700f9296419dd498489a",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/light-native-photo-projects.png",
+    "sha256": "dfff1e003f940c5b1ff9503df8b51ea0b9fa7c05c76d9f7a65dc86601dfcc425",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/dark-native-photo-photo-entry.png",
+    "sha256": "da515874408119ccaab05ace09724657dbbcc8e4f337a96c6880f80bcb03ef36",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/dark-native-photo-home.png",
+    "sha256": "3eff4c45c15c7cecf3e1b857a44a618da76bf8beb41805a569beb6390f2c0528",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/light-native-photo-home.png",
+    "sha256": "0530aa9e9609f70a064e562926fd115290d0d3fb8a533d0278e9cc18098c9372",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/light-native-photo-photo-entry.png",
+    "sha256": "90119324a9a1174bc2e7aeffa69794395559f536532bb551900cddc9574534f7",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "phone/dark-native-photo-projects.png",
+    "sha256": "0d351bb8ea9cf9d34cae3f99e7b5714a3cca8eb657d9f5588ae9049fc3c8c1ce",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/light-native-photo-form.png",
+    "sha256": "bc8e7040b58e7759c61a3db0ee8159f324e10ffbfabc899d07231ceb167fd676",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/dark-native-photo-form.png",
+    "sha256": "f0103501cab49545b4c95a7d86d6d0f89cf34ec3ea40653370ba3e372594d48d",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/light-native-photo-projects.png",
+    "sha256": "9ab77332557ddd3fd014be6acba833a766710ac2916b91e0412d46bc54b14912",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/dark-native-photo-photo-entry.png",
+    "sha256": "f0103501cab49545b4c95a7d86d6d0f89cf34ec3ea40653370ba3e372594d48d",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/dark-native-photo-home.png",
+    "sha256": "cbebfa4bf29ce6b32c8e8d66805039f8a39af5a7f4d77cf251593e19cc7687df",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/light-native-photo-home.png",
+    "sha256": "0ab82a8f3063a4d4adde45b9fdf63b42e24ce3d3919ab59734c11fb2116c02d8",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/light-native-photo-photo-entry.png",
+    "sha256": "bc8e7040b58e7759c61a3db0ee8159f324e10ffbfabc899d07231ceb167fd676",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  },
+  {
+    "file": "ipad/dark-native-photo-projects.png",
+    "sha256": "e18a51ef51c4c597f61e9b68e08712b1fd409a91a07f7d28fd23cd0d82a3cb0a",
+    "review": "与已逐张查看的r2原图字节完全相同；r3独立原生复验通过"
+  }
+]

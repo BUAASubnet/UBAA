@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		94B8AC8CDBCD56CC725C56BD /* PhotoPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FDF4EF0636510F30FF7813 /* PhotoPayload.swift */; };
+		F8430DBA5B44A9CE4B86DBBF /* PhotoChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BF8D31D700C6E9DB79062D /* PhotoChannel.swift */; };
 		13DF9165673234A7597F9DF3 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DA29CA05753F5E16FB7B28C /* Pods_Runner.framework */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
@@ -45,6 +47,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		52FDF4EF0636510F30FF7813 /* PhotoPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../../../packages/ubaa_platform/native/apple/PhotoPayload.swift; sourceTree = SOURCE_ROOT; };
+		54BF8D31D700C6E9DB79062D /* PhotoChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform/PhotoChannel.swift; sourceTree = "<group>"; };
 		01D1922DC2947761B897426D /* RunnerRotationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerRotationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		093FBCD86C8E34B4EB0CA6F6 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -186,6 +190,8 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
+				52FDF4EF0636510F30FF7813 /* PhotoPayload.swift */,
+				54BF8D31D700C6E9DB79062D /* PhotoChannel.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
@@ -441,6 +447,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				94B8AC8CDBCD56CC725C56BD /* PhotoPayload.swift in Sources */,
+				F8430DBA5B44A9CE4B86DBBF /* PhotoChannel.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

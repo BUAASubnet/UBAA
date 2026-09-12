@@ -197,7 +197,10 @@ final class MethodChannelPhotoPicker implements PlatformPhotoPicker {
         mimeType: result['mimeType'],
       );
     } on Object {
-      return null;
+      throw const PlatformCapabilityException(
+        PlatformPermission.photos,
+        PlatformPermissionStatus.unavailable,
+      );
     }
   }
 }
