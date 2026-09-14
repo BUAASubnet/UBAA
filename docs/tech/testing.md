@@ -26,6 +26,8 @@ npm run docs:build
 - server tests：Ktor 路由、服务、解析器、指标和健康检查。
 - browser verification：Wasm/JS UI 变更需要启动 server 和 web dev server 后用 Playwright 验证。
 
+课表真实账号测试默认跳过。显式设置 `UBAA_REAL_SCHEDULE_TEST=true` 后，运行 `:shared:jvmTest --tests cn.edu.ubaa.api.LocalScheduleRealIntegrationTest --no-configuration-cache`，从本机 `local.properties` 读取 `testuser` / `testpasswd`，验证直连和 WebVPN 的首次在线查询、整学期本地化及离线重读。可用 `UBAA_REAL_SCHEDULE_MODE=direct` 或 `webvpn` 限定模式。测试仅查询学校数据，认证与课表缓存使用内存存储，禁用 HTTP 日志，不输出账号、密码、认证令牌或完整课表。
+
 ## 文档验证
 
 CI 的 docs workflow 会运行 `npm ci` 和 `npm run docs:build`。本地如果只改 Markdown 且依赖已安装，可直接运行 `npm run docs:build`；修改 `package.json` 或 `package-lock.json` 时应先运行 `npm ci`。构建失败、死链或未提交 lockfile 都应阻止发布。文档涉及 Gradle 任务、共享契约或服务端路由说明时，再按影响面追加运行 `:shared:jvmTest`、`:server:test`、`:composeApp:jvmTest` 或 `spotlessCheck`。

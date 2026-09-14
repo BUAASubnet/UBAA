@@ -55,7 +55,7 @@ fun OfflineScheduleScreen(
   val revision by ScheduleStore.changes.collectAsState()
   val account = remember(revision) { ScheduleStore.account() }
   val model: ScheduleViewModel =
-      viewModel(key = "offline-schedule-$account") { ScheduleViewModel() }
+      viewModel(key = "offline-schedule-$account") { ScheduleViewModel(offlineOnly = true) }
   val state by model.uiState.collectAsState()
   val today by model.todayScheduleState.collectAsState()
   var course by remember { mutableStateOf<CourseClass?>(null) }
@@ -156,6 +156,7 @@ fun ScheduleScreen(
     isUpdating: Boolean = false,
     updatedAt: String? = null,
     onUpdate: (() -> Unit)? = null,
+    onRefresh: (() -> Unit)? = null,
     onImportCurrentTerm: (() -> Unit)? = null,
     diagnosticResponse: String? = null,
     weekSchedules: Map<Int, WeeklySchedule> = emptyMap(),
@@ -196,7 +197,7 @@ fun ScheduleScreen(
               onClick = { showTermSelector = true },
               enabled = (terms.isNotEmpty() || onImportCurrentTerm != null) && !isUpdating,
           ) {
-            Text(selectedTerm?.itemName ?: "尚未导入学期", maxLines = 2)
+            Text(selectedTerm?.itemName ?: "选择学期", maxLines = 2)
           }
           DropdownMenu(
               expanded = showTermSelector,
@@ -204,7 +205,7 @@ fun ScheduleScreen(
           ) {
             if (onImportCurrentTerm != null)
                 DropdownMenuItem(
-                    text = { Text("导入系统当前学期") },
+                    text = { Text("本地化系统当前学期") },
                     onClick = {
                       showTermSelector = false
                       onImportCurrentTerm()
@@ -221,17 +222,20 @@ fun ScheduleScreen(
             }
           }
         }
+        if (onRefresh != null)
+            TextButton(onClick = onRefresh, enabled = !isUpdating && !isLoading) { Text("刷新") }
         if (onUpdate != null)
-            TextButton(onClick = onUpdate, enabled = !isUpdating) {
-              Text(if (isUpdating) "正在导入…" else "更新课表")
+            TextButton(onClick = onUpdate, enabled = !isUpdating && !isLoading) {
+              Text(if (isUpdating) "正在本地化…" else "课表本地化")
             }
       }
       Text(
-          text = updatedAt?.let { "本地课表 · 更新于 $it" } ?: "首次使用请联网更新课表，之后可离线查看",
+          text = updatedAt?.let { "已本地化 · 更新于 $it" } ?: "在线课表，点击“课表本地化”可保存整个学期供离线查看",
           style = MaterialTheme.typography.labelSmall,
           modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
       )
-      if (isUpdating) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+      if (isUpdating || (isLoading && weeks.isNotEmpty()))
+          LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
       if (error != null)
           Text(
               text = error,
@@ -264,7 +268,7 @@ fun ScheduleScreen(
       }
       Box(modifier = Modifier.weight(1f)) {
         when {
-          isLoading && weeklySchedule == null -> {
+          isLoading && weeks.isEmpty() -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
               Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator()
@@ -273,12 +277,14 @@ fun ScheduleScreen(
               }
             }
           }
-          weeklySchedule != null && selectedWeek != null -> {
+          weeks.isNotEmpty() && selectedWeek != null -> {
             key(selectedTerm?.itemCode) {
               ScheduleWeekPager(
                   weeks,
                   selectedWeek,
-                  weekSchedules.ifEmpty { mapOf(selectedWeek.serialNumber to weeklySchedule) },
+                  weekSchedules.ifEmpty {
+                    weeklySchedule?.let { mapOf(selectedWeek.serialNumber to it) }.orEmpty()
+                  },
                   onWeekSelected,
                   onCourseClick,
               )
@@ -288,7 +294,8 @@ fun ScheduleScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
               Text(
                   text =
-                      if (updatedAt != null && weeks.isEmpty()) "此学期暂无已安排课程" else "请先更新课表，再选择学期和周次",
+                      if (selectedTerm != null && weeks.isEmpty() && error == null) "此学期暂无已安排课程"
+                      else "请选择学期和周次，加载失败时可点击刷新重试",
                   style = MaterialTheme.typography.bodyLarge,
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
@@ -312,7 +319,7 @@ fun ScheduleScreen(
   }
 }
 
-/** Pager 同时绘制相邻两周，拖动跟手，松手后吸附；只消费本地快照。 */
+/** Pager 消费已加载的周数据，在线模式切换到未加载的周时由 ViewModel 查询。 */
 @Composable
 internal fun ScheduleWeekPager(
     weeks: List<Week>,
@@ -349,7 +356,7 @@ internal fun ScheduleWeekPager(
     val schedule = schedules[week.serialNumber]
     if (schedule != null)
         WeeklyScheduleView(schedule, week.headerDayLabels(), onCourseClick, times = times)
-    else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("此周尚未保存，请更新课表") }
+    else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("此周课表尚未加载") }
   }
 }
 

@@ -76,8 +76,8 @@ data class CourseClass(
  * 周课表信息 DTO。
  *
  * @property arrangedList 该周的所有排课列表。
- * @property code 学期代码。
- * @property name 学期名称。
+ * @property code 上游课表代码；本科接口返回学号，研究生适配填学期代码，不能用作统一学期标识。
+ * @property name 上游课表名称。
  */
 @Serializable
 data class WeeklySchedule(

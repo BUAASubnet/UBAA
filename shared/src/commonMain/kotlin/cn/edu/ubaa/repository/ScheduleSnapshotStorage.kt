@@ -17,7 +17,7 @@ internal class ScheduleSnapshotStorage(private val settings: Settings) {
             repeat(snapshot.parts) { part ->
               append(
                   checkNotNull(settings.getStringOrNull(snapshot.partKey(part))) {
-                    "本地课表不完整，请重新更新课表"
+                    "本地课表不完整，请重新本地化课表"
                   }
               )
             }
@@ -90,7 +90,7 @@ internal class ScheduleSnapshotStorage(private val settings: Settings) {
                 parts != null &&
                 parts > 0
         ) {
-          "本地课表索引无效，请重新更新课表"
+          "本地课表索引无效，请重新本地化课表"
         }
         return Snapshot(fields[0], parts)
       }

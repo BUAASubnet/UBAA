@@ -100,6 +100,137 @@ class ScheduleRepositoryTest {
         assertEquals(calls, backend.calls)
       }
 
+  @Test
+  fun `localization accepts opaque weekly codes but rejects incomplete or mismatched snapshots`() =
+      runTest {
+        val backend = Backend()
+        val good =
+            backend.importSemester(null).getOrThrow().let { snapshot ->
+              snapshot.copy(
+                  schedules =
+                      snapshot.schedules.mapValues { (week, schedule) ->
+                        schedule.copy(code = week.toString(), name = "上游周课表")
+                      }
+              )
+            }
+        var incoming = good
+        var saved = emptyList<SemesterSchedule>()
+        val importer =
+            object : ScheduleApiBackend by backend {
+              override suspend fun importSemester(termCode: String?) = Result.success(incoming)
+            }
+        val repo =
+            ScheduleRepository(
+                ScheduleApi { importer },
+                { "A" },
+                { saved },
+                { _, value -> saved = value },
+            )
+        repo.update(good.termCode).getOrThrow()
+        val before = saved
+        assertEquals("1", saved.single().schedules[1]?.code)
+        val invalid =
+            listOf(
+                good.copy(schedules = good.schedules - 2),
+                good.copy(weeks = good.weeks + good.weeks.first()),
+                good.copy(weeks = good.weeks.map { it.copy(term = "other-term") }),
+                good.copy(weeks = good.weeks.map { it.copy(startDate = "2026-10-01") }),
+                good.copy(termCode = "other-term"),
+            )
+        for (snapshot in invalid) {
+          incoming = snapshot
+          assertTrue(repo.update(good.termCode).isFailure)
+          assertEquals(before, saved)
+        }
+      }
+
+  @Test
+  fun `online browsing never writes and original network failure survives missing local data`() =
+      runTest {
+        val backend = Backend()
+        var writes = 0
+        val repo =
+            ScheduleRepository(
+                ScheduleApi { backend },
+                { "A" },
+                { emptyList() },
+                { _, _ -> writes++ },
+            )
+        assertEquals(backend.term, repo.loadTerms().getOrThrow().single())
+        assertEquals(2, repo.loadWeeks(backend.term.itemCode).getOrThrow().size)
+        assertEquals(
+            "A课",
+            repo.loadWeekly(backend.term.itemCode, 1).getOrThrow().arrangedList.single().courseName,
+        )
+        assertEquals(0, writes)
+        backend.fail = true
+        assertEquals("offline", repo.loadTerms().exceptionOrNull()?.message)
+        val calls = backend.calls
+        assertTrue(repo.loadTerms(offlineOnly = true).isFailure)
+        assertEquals(calls, backend.calls)
+      }
+
+  @Test
+  fun `account switch and cancellation cannot fall back to another account data`() = runTest {
+    var account = "A"
+    val backend = Backend()
+    var localReads = 0
+    val repo =
+        ScheduleRepository(
+            ScheduleApi { backend },
+            { account },
+            {
+              localReads++
+              emptyList()
+            },
+            { _, _ -> },
+        )
+    backend.onWeek = { account = "B" }
+    assertTrue(repo.loadWeekly(backend.term.itemCode, 1).isFailure)
+    assertEquals(0, localReads)
+    backend.onWeek = { throw CancellationException() }
+    assertFailsWith<CancellationException> { repo.loadWeekly(backend.term.itemCode, 1) }
+    assertEquals(0, localReads)
+  }
+
+  @Test
+  fun `undergraduate date time boundaries normalize before saving and include the first day offline`() =
+      runTest {
+        val backend = Backend()
+        val raw =
+            backend.importSemester(null).getOrThrow().let { snapshot ->
+              snapshot.copy(
+                  weeks =
+                      snapshot.weeks.map {
+                        it.copy(
+                            startDate = it.startDate + " 00:00:00",
+                            endDate = it.endDate + " 00:00:00",
+                        )
+                      }
+              )
+            }
+        val importer =
+            object : ScheduleApiBackend by backend {
+              override suspend fun importSemester(termCode: String?) = Result.success(raw)
+
+              override suspend fun getWeeks(termCode: String) = Result.success(raw.weeks)
+            }
+        var saved = emptyList<SemesterSchedule>()
+        val repo =
+            ScheduleRepository(
+                ScheduleApi { importer },
+                { "A" },
+                { saved },
+                { _, value -> saved = value },
+                { LocalDate.parse("2026-09-14") },
+            )
+        assertEquals("2026-09-07", repo.loadWeeks(raw.termCode).getOrThrow().first().startDate)
+        repo.update().getOrThrow()
+        assertEquals("2026-09-20", saved.single().weeks.last().endDate)
+        assertEquals(2, repo.weeks(raw.termCode).getOrThrow().single { it.curWeek }.serialNumber)
+        assertEquals("B课", repo.loadTodayClasses(offlineOnly = true).getOrThrow().single().bizName)
+      }
+
   private class Backend : ScheduleApiBackend {
     var calls = 0
     var fail = false

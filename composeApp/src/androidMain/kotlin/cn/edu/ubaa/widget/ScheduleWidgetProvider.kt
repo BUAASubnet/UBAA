@@ -165,7 +165,7 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(
             R.id.widget_message,
             if (result.isFailure) "本地课表读取失败，请打开应用重新更新"
-            else if (owner == null) "请先打开 UBAA，登录并更新课表" else "暂无已安排课表，请打开应用更新课表",
+            else if (owner == null) "请先打开 UBAA，登录并本地化课表" else "暂无已安排课表，请打开应用本地化课表",
         )
       } else {
         preferences

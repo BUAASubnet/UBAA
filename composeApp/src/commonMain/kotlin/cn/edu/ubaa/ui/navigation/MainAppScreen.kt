@@ -175,7 +175,7 @@ fun MainAppScreen(
   val todayScheduleState by scheduleViewModel.todayScheduleState.collectAsState()
   LaunchedEffect(homeNow.date) {
     scheduleViewModel.loadTodaySchedule()
-    scheduleViewModel.ensureCurrentWeekLoaded()
+    scheduleViewModel.ensureCurrentWeekLoaded(forceRefresh = true)
     scheduleUiState.selectedTerm?.let(scheduleViewModel::loadWeeks)
   }
 
@@ -852,6 +852,7 @@ fun MainAppScreen(
                   updatedAt = scheduleUiState.updatedAt,
                   diagnosticResponse = scheduleUiState.diagnosticResponse,
                   onUpdate = { scheduleViewModel.updateSchedule() },
+                  onRefresh = { scheduleViewModel.ensureScheduleLoaded(forceRefresh = true) },
                   onImportCurrentTerm = { scheduleViewModel.updateSchedule(currentTerm = true) },
                   onTermSelected = { scheduleViewModel.selectTerm(it) },
                   onWeekSelected = { scheduleViewModel.selectWeek(it) },
