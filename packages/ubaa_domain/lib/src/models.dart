@@ -15,3 +15,4 @@ export 'feature/overview.dart';
 export 'feature/home.dart';
 export 'feature/grades.dart';
 export 'feature/grade_watch.dart';
+export 'feature/bykc_filters.dart';

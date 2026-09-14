@@ -32,6 +32,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onLoadHomeSupplement,
     this.onLoadYgdkReminder,
     this.onSaveYgdkReminder,
+    this.onLoadBykcFilters,
+    this.onSaveBykcFilters,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -70,6 +72,8 @@ class UbaaMainShell extends StatefulWidget {
   onLoadHomeSupplement;
   final Future<YgdkReminderSettings> Function()? onLoadYgdkReminder;
   final Future<void> Function(YgdkReminderSettings)? onSaveYgdkReminder;
+  final Future<BykcCourseFilters?> Function()? onLoadBykcFilters;
+  final Future<void> Function(BykcCourseFilters)? onSaveBykcFilters;
   final RoutePolicy routePolicy;
   final bool telemetryEnabled;
   final Future<void> Function() onRefresh;
@@ -142,6 +146,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   YgdkReminderSettings? _reminderSettings;
   String? _reminderError;
   int _reminderRevision = 0;
+  BykcCourseFilters _bykcFilters = const BykcCourseFilters.defaults();
+  String? _bykcFilterError;
+  int _bykcFilterRevision = 0;
+  void _setBykcFilterState(BykcCourseFilters value, String? error) {
+    setState(() {
+      _bykcFilters = value;
+      _bykcFilterError = error;
+    });
+  }
+
   late int _selectedIndex;
   FeatureId? _openedFeature;
   String? _utilityPage;
@@ -169,12 +183,14 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     super.initState();
     _selectedIndex = widget.initialTab.clamp(0, _tabs.length - 1);
     unawaited(_loadReminderSettings());
+    unawaited(_loadBykcFilters());
   }
 
   @override
   void didUpdateWidget(covariant UbaaMainShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.user?.username != widget.user?.username) {
+    final accountChanged = oldWidget.user?.username != widget.user?.username;
+    if (accountChanged) {
       _accountGeneration++;
       _homeReadRoutes = {};
       _gradesReadRoutes = {};
@@ -187,6 +203,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _openedFeature = null;
       _utilityPage = null;
       _visiblePage.value = null;
+    }
+    // 学校标识变化只重新绑定偏好，不改变既有资料页的导航行为。
+    if (accountChanged || oldWidget.user?.schoolId != widget.user?.schoolId) {
+      _bykcFilters = const BykcCourseFilters.defaults();
+      _bykcFilterError = null;
+      _bykcFilterRevision++;
+      unawaited(_loadBykcFilters());
     }
   }
 
@@ -533,6 +556,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       },
       isBykcChosenDetail: page.isBykcChosenDetail,
       onOpenBykcChosen: page.onOpenBykcChosen,
+      bykcFilters: _bykcFilters,
+      bykcFilterError: _bykcFilterError,
+      onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
       ygdkRecordsReadback: widget.ygdkRecordsReadback,
       reminderSettings: _reminderSettings,
       reminderError: _reminderError,

@@ -9,6 +9,9 @@ class _FeatureDetailView extends StatefulWidget {
     this.onGradeRoutes,
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
+    required this.bykcFilters,
+    required this.onBykcFiltersChanged,
+    this.bykcFilterError,
     this.ygdkRecordsReadback,
     this.reminderSettings,
     this.reminderError,
@@ -46,6 +49,9 @@ class _FeatureDetailView extends StatefulWidget {
   final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
   final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
+  final BykcCourseFilters bykcFilters;
+  final ValueChanged<BykcCourseFilters> onBykcFiltersChanged;
+  final String? bykcFilterError;
   final FeatureSnapshot? ygdkRecordsReadback;
   final YgdkReminderSettings? reminderSettings;
   final String? reminderError;
@@ -93,8 +99,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   final _scheduleKey = GlobalKey<_ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
-  Set<BykcCourseStatus> _bykcStatuses = {..._defaultBykcStatuses};
-  Set<String> _bykcCategories = {}, _bykcCampuses = {};
+  Set<BykcCourseStatus> get _bykcStatuses => widget.bykcFilters.statuses;
+  Set<String> get _bykcCategories => widget.bykcFilters.categories;
+  Set<String> get _bykcCampuses => widget.bykcFilters.campuses;
 
   void togglePanel() {
     if (!_panelOpen)
@@ -139,6 +146,15 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
           )
         : Column(
             children: [
+              if (widget.bykcFilterError case final message?
+                  when widget.feature == FeatureId.bykc)
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(message),
+                  ),
+                ),
               if (widget.snapshot.status == FeatureLoadStatus.stale)
                 MaterialBanner(
                   content: Column(
@@ -433,17 +449,17 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     bykcStatuses: _bykcStatuses,
     bykcCategories: _bykcCategories,
     bykcCampuses: _bykcCampuses,
-    onBykcCategoriesChanged: (values) =>
-        setState(() => _bykcCategories = {...values}),
-    onBykcCampusesChanged: (values) =>
-        setState(() => _bykcCampuses = {...values}),
-    onBykcReset: () => setState(() {
-      _bykcStatuses = {..._defaultBykcStatuses};
-      _bykcCategories = {};
-      _bykcCampuses = {};
-    }),
-    onBykcStatusesChanged: (value) =>
-        setState(() => _bykcStatuses = {...value}),
+    onBykcCategoriesChanged: (values) => widget.onBykcFiltersChanged(
+      widget.bykcFilters.copyWith(categories: values),
+    ),
+    onBykcCampusesChanged: (values) => widget.onBykcFiltersChanged(
+      widget.bykcFilters.copyWith(campuses: values),
+    ),
+    onBykcReset: () =>
+        widget.onBykcFiltersChanged(const BykcCourseFilters.defaults()),
+    onBykcStatusesChanged: (values) => widget.onBykcFiltersChanged(
+      widget.bykcFilters.copyWith(statuses: values),
+    ),
   );
 
   bool get _supportsQuery => switch (widget.feature) {

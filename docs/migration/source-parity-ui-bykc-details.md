@@ -36,6 +36,26 @@
 `.superpowers/sdd/macos-ui-button-plan/task-3d-bykc-report.md`，日志仅存仓库外私有证据目录。
 这些是合成数据的确定性证据；本批没有运行 live、CUA 或 native App 验收，没有学校写入。
 
+## Task3D2 候选实施事实
+
+在 Task3D 的三维控件和读取帧基础上，`BykcCourseFilters` 只保存不可变的状态、类别、校区选择。
+默认四状态与显式空状态分别表示“默认”和“状态不限”；类别、校区 trim、去空、去重，类别限于前批五个固定二级类别。
+`BykcCourseFilterStore` 独立提供 `read/write/clearAccount`；`FileBykcCourseFilterStore` 使用独立
+`ui-bykc-filters.json`，只包含内部版本和按账号保存的三组选择，不改变 Core 配置 v1、Session v2 或任何 Bridge10/CLI10 接口。
+同一进程内同绝对路径的读取、保存、清除跨存储实例排队，集合在构造时固定；临时文件在写入前设置私有权限，然后原子替换。
+坏格式或系统失败只产生固定错误，不携带账号、路径、原始 JSON；坏文件保持原样，不借恢复默认覆盖其他账号的数据。
+
+`UbaaAppHost.bykcFilterStore` 支持显式注入。正常生产宿主将文件放在现有 `defaultConfigDirectory()`；
+注入 backend 或 backendFactory 的合成宿主默认内存，跨进程验收须显式注入独立合成目录中的真实文件存储。
+UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编辑代次和账号代次阻止迟到覆盖；
+状态在现有读取帧间复用，恢复、编辑和默认重置均不触发额外学校查询。
+默认选择调用本账号清除，保存失败保留当前筛选并提示，读取失败使用默认并提示；普通退出保留偏好。
+明确退出时在凭据或成绩清理失败后仍尝试本账号筛选清理，全部结束后才放行后台重建，并汇总未完成的清理；
+旧账号保存回调不能写入后来登录的账号。
+
+本批实现、RED/GREEN 和门禁证据记录在 `.superpowers/sdd/macos-ui-button-plan/task-3d2-bykc-preferences-report.md`；
+本节是候选实施事实，不表示独立审查、macOS App Sandbox、CUA 跨进程或真实账号验收通过。
+
 ## 1. 约束与来源索引
 
 

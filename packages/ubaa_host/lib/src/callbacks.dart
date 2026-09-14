@@ -126,6 +126,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.loadHomeSupplement(source, forceRefresh: force),
       onLoadYgdkReminder: () => _reminderStore.read(accountKey),
       onSaveYgdkReminder: (value) => _reminderStore.write(accountKey, value),
+      onLoadBykcFilters: () => _clearingAccount == accountKey
+          ? Future.value(null)
+          : _bykcFilterStore.read(accountKey),
+      onSaveBykcFilters: (value) => _saveBykcFilters(accountKey, value),
       ygdkRecordsReadback: _controller.ygdkReadbackState.records,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,
@@ -186,16 +190,31 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   }
 
   Future<void> _logoutAndClearAccount(String accountKey) async {
+    if (_clearingAccount != null) {
+      throw UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
+    }
+    // 整个本机清理结束后才允许后台重建；每项清理都绑定确认时的账号。
+    _clearingAccount = accountKey;
     var failed = false;
     try {
-      await _controller.logout(clearSavedCredential: true);
-    } on Object {
-      failed = true;
-    }
-    try {
-      await _gradeScoreStore.clearAccount(accountKey);
-    } on Object {
-      failed = true;
+      try {
+        await _controller.logout(clearSavedCredential: true);
+      } on Object {
+        failed = true;
+      }
+      try {
+        await _gradeScoreStore.clearAccount(accountKey);
+      } on Object {
+        failed = true;
+      }
+      try {
+        await _bykcFilterStore.clearAccount(accountKey);
+      } on Object {
+        failed = true;
+      }
+    } finally {
+      _clearingAccount = null;
+      if (!_disposed) _retryPendingRecovery();
     }
     if (failed) {
       throw const UiError(
@@ -205,5 +224,25 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         message: '本机数据未能完全清除，请稍后重试。',
       );
     }
+  }
+
+  Future<void> _saveBykcFilters(String accountKey, BykcCourseFilters value) {
+    final user = _controller.user;
+    final currentAccount = user?.schoolId?.trim().isNotEmpty == true
+        ? user!.schoolId!
+        : user?.username;
+    if (_disposed ||
+        _clearingAccount == accountKey ||
+        _controller.phase != AppPhase.home ||
+        _controller.isLoggingOut ||
+        _controller.isRebuildingBackend ||
+        currentAccount != accountKey) {
+      return Future.error(
+        UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict),
+      );
+    }
+    return value.isDefault
+        ? _bykcFilterStore.clearAccount(accountKey)
+        : _bykcFilterStore.write(accountKey, value);
   }
 }

@@ -12,4 +12,5 @@ export 'src/telemetry.dart';
 export 'src/ui_error.dart';
 export 'src/reminders.dart';
 export 'src/grade_scores.dart';
+export 'src/bykc_filters.dart';
 export 'src/app_information.dart';

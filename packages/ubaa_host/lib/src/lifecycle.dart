@@ -4,6 +4,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late final AppController _controller;
   late final YgdkReminderStore _reminderStore;
   late final GradeScoreStore _gradeScoreStore;
+  late final BykcCourseFilterStore _bykcFilterStore;
   late final GradeScoreWatch _gradeWatch;
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   UiError? _scheduledHomeFeedback;
@@ -14,6 +15,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
+  String? _clearingAccount;
 
   @override
   void initState() {
@@ -45,6 +47,13 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       controller: _controller,
       store: _gradeScoreStore,
     );
+    _bykcFilterStore =
+        widget.bykcFilterStore ??
+        (backend != null || widget.backendFactory != null
+            ? MemoryBykcCourseFilterStore()
+            : FileBykcCourseFilterStore(
+                File('${defaultConfigDirectory()}/ui-bykc-filters.json'),
+              ));
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     unawaited(_controller.initialize());
@@ -77,7 +86,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   }
 
   void _retryPendingRecovery() {
-    if (_disposed || !_resumeRecoveryPending || _recoveryInFlight) return;
+    if (_disposed ||
+        !_resumeRecoveryPending ||
+        _recoveryInFlight ||
+        _clearingAccount != null)
+      return;
     // 先让已确认登录后的本地失败提示在首页显示一次；消费提示发出的
     // 通知会继续恢复，避免重建初始化先清空尚未显示的反馈。
     if (_controller.phase == AppPhase.home && _controller.error != null) return;

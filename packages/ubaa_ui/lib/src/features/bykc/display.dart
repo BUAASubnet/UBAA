@@ -183,12 +183,7 @@ List<String> _bykcSearchValues(FeaturePresentation? value) => switch (value) {
   _ => const [],
 };
 
-const _defaultBykcStatuses = <BykcCourseStatus>{
-  BykcCourseStatus.preview,
-  BykcCourseStatus.available,
-  BykcCourseStatus.full,
-  BykcCourseStatus.selected,
-};
+const _defaultBykcStatuses = BykcCourseFilters.defaultStatuses;
 
 bool _matchesBykcStatuses(
   BykcCoursePresentation course,
