@@ -93,6 +93,7 @@ fun LoginScreen(
     captchaInfo: CaptchaInfo?,
     error: String?,
     modifier: Modifier = Modifier,
+    onOfflineSchedule: (() -> Unit)? = null,
 ) {
   Box(modifier = modifier.fillMaxSize()) {
     Column(
@@ -109,6 +110,14 @@ fun LoginScreen(
           style = MaterialTheme.typography.headlineMedium,
           modifier = Modifier.padding(bottom = 32.dp),
       )
+      if (onOfflineSchedule != null) {
+        FilledTonalButton(
+            onClick = onOfflineSchedule,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+        ) {
+          Text("查看已保存的离线课表")
+        }
+      }
 
       OutlinedTextField(
           value = loginFormState.username,

@@ -2,52 +2,50 @@ package cn.edu.ubaa.ui.screens.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cn.edu.ubaa.api.feature.GraduateScheduleLoadException
 import cn.edu.ubaa.api.feature.ScheduleApi
 import cn.edu.ubaa.model.dto.*
-import cn.edu.ubaa.repository.GlobalTermRepository
-import cn.edu.ubaa.repository.TermRepository
+import cn.edu.ubaa.repository.ScheduleRepository
+import cn.edu.ubaa.repository.ScheduleStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** 课程表相关业务逻辑的 ViewModel。 负责拉取学期列表、周次列表、周课表详情以及今日课表摘要。 */
+/** 浏览与首页仅读取本地课表；仅 updateSchedule 联网导入整个学期。 */
 class ScheduleViewModel(
-    private val scheduleApi: ScheduleApi = ScheduleApi(),
-    private val termRepository: TermRepository = GlobalTermRepository.instance,
+    scheduleApi: ScheduleApi = ScheduleApi(),
+    private val repository: ScheduleRepository = ScheduleRepository(scheduleApi),
 ) : ViewModel() {
   private var todayLoadedOnce = false
   private var scheduleLoadedOnce = false
   private var currentWeekLoadedOnce = false
-
   private val _uiState = MutableStateFlow(ScheduleUiState())
-  /** 周课表选择与展示的状态流。 */
   val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
-
   private val _todayScheduleState = MutableStateFlow(TodayScheduleState())
-  /** 今日课表简要摘要的状态流。 */
   val todayScheduleState: StateFlow<TodayScheduleState> = _todayScheduleState.asStateFlow()
 
-  fun ensureTodayLoaded(forceRefresh: Boolean = false) {
-    if (!forceRefresh && todayLoadedOnce) return
-    loadTodaySchedule()
-  }
+  fun ensureTodayLoaded(forceRefresh: Boolean = false) = loadTodaySchedule()
 
   internal fun hasTodayLoaded(): Boolean = todayLoadedOnce
 
-  fun ensureCurrentWeekLoaded(forceRefresh: Boolean = false) {
-    if (!forceRefresh && currentWeekLoadedOnce) return
-    loadCurrentWeek(forceRefresh)
-  }
-
   internal fun hasCurrentWeekLoaded(): Boolean = currentWeekLoadedOnce
+
+  fun ensureCurrentWeekLoaded(forceRefresh: Boolean = false) {
+    repository.terms().onSuccess { terms ->
+      val term = terms.firstOrNull { it.selected } ?: terms.firstOrNull() ?: return@onSuccess
+      repository.weeks(term.itemCode).onSuccess { weeks ->
+        _uiState.value = _uiState.value.copy(currentWeek = weeks.firstOrNull { it.curWeek })
+        currentWeekLoadedOnce = true
+      }
+    }
+  }
 
   fun ensureScheduleLoaded(forceRefresh: Boolean = false) {
     if (!forceRefresh && scheduleLoadedOnce) return
-    loadTerms(forceRefresh)
+    loadTerms()
   }
 
-  /** 重置内部加载标记与 UI 状态，用于连接模式切换等场景。 */
   fun resetLoadedState() {
     todayLoadedOnce = false
     scheduleLoadedOnce = false
@@ -56,111 +54,118 @@ class ScheduleViewModel(
     _todayScheduleState.value = TodayScheduleState()
   }
 
-  /** 加载今日的课程安排摘要。 */
   fun loadTodaySchedule() {
     todayLoadedOnce = true
-    viewModelScope.launch {
-      _todayScheduleState.value = _todayScheduleState.value.copy(isLoading = true, error = null)
-      scheduleApi
-          .getTodaySchedule()
-          .onSuccess {
-            _todayScheduleState.value =
-                _todayScheduleState.value.copy(isLoading = false, todayClasses = it)
-          }
-          .onFailure {
-            _todayScheduleState.value =
-                _todayScheduleState.value.copy(isLoading = false, error = it.message ?: "加载今日课表失败")
-          }
-    }
+    repository
+        .todayClasses()
+        .onSuccess { _todayScheduleState.value = TodayScheduleState(todayClasses = it) }
+        .onFailure { _todayScheduleState.value = TodayScheduleState(error = it.message) }
   }
 
-  private fun loadCurrentWeek(forceRefresh: Boolean = false) {
-    viewModelScope.launch {
-      termRepository.getTerms(forceRefresh).onSuccess { terms ->
-        val selectedTerm = terms.find { it.selected } ?: terms.firstOrNull()
-        if (selectedTerm == null) return@onSuccess
-        scheduleApi.getWeeks(selectedTerm.itemCode).onSuccess { weeks ->
-          val currentWeek = weeks.find { it.curWeek } ?: weeks.firstOrNull()
-          currentWeekLoadedOnce = currentWeek != null
-          _uiState.value = _uiState.value.copy(currentWeek = currentWeek)
-        }
-      }
-    }
-  }
-
-  /** 加载学期列表。 */
   fun loadTerms(forceRefresh: Boolean = false) {
     scheduleLoadedOnce = true
-    viewModelScope.launch {
-      _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-      termRepository
-          .getTerms(forceRefresh)
-          .onSuccess { terms ->
-            val selectedTerm = terms.find { it.selected } ?: terms.firstOrNull()
-            _uiState.value =
-                _uiState.value.copy(isLoading = false, terms = terms, selectedTerm = selectedTerm)
-            selectedTerm?.let { loadWeeks(it) }
-          }
-          .onFailure {
-            _uiState.value =
-                _uiState.value.copy(isLoading = false, error = it.message ?: "加载学期信息失败")
-          }
-    }
+    repository
+        .terms()
+        .onSuccess { terms ->
+          val selected =
+              terms.firstOrNull { it.itemCode == _uiState.value.selectedTerm?.itemCode }
+                  ?: terms.firstOrNull { it.selected }
+                  ?: terms.firstOrNull()
+          _uiState.value = _uiState.value.copy(terms = terms, selectedTerm = selected, error = null)
+          selected?.let(::loadWeeks)
+        }
+        .onFailure { _uiState.value = _uiState.value.copy(error = it.message) }
   }
 
-  /** 切换选中的学期。 */
   fun selectTerm(term: Term) {
+    if (_uiState.value.isUpdating) return
     _uiState.value =
-        _uiState.value.copy(selectedTerm = term, selectedWeek = null, weeklySchedule = null)
+        _uiState.value.copy(
+            selectedTerm = term,
+            selectedWeek = null,
+            weeklySchedule = null,
+            weeks = emptyList(),
+            weekSchedules = emptyMap(),
+            diagnosticResponse = null,
+            updatedAt = repository.updatedAt(term.itemCode),
+        )
     loadWeeks(term)
   }
 
-  /** 加载指定学期的教学周次。 */
   fun loadWeeks(term: Term) {
-    viewModelScope.launch {
-      _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-      scheduleApi
-          .getWeeks(term.itemCode)
-          .onSuccess { weeks ->
-            val selectedWeek = weeks.find { it.curWeek } ?: weeks.firstOrNull()
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = false,
-                    weeks = weeks,
-                    selectedWeek = selectedWeek,
-                )
-            selectedWeek?.let { loadWeeklySchedule(term, it) }
-          }
-          .onFailure {
-            _uiState.value = _uiState.value.copy(isLoading = false, error = it.message ?: "加载周信息失败")
-          }
-    }
+    repository
+        .weeks(term.itemCode)
+        .onSuccess { weeks ->
+          val selected =
+              weeks.firstOrNull {
+                it.serialNumber == _uiState.value.selectedWeek?.serialNumber &&
+                    it.term == _uiState.value.selectedWeek?.term
+              } ?: weeks.firstOrNull { it.curWeek } ?: weeks.firstOrNull()
+          _uiState.value =
+              _uiState.value.copy(
+                  weeks = weeks,
+                  weekSchedules = repository.schedules(term.itemCode).getOrDefault(emptyMap()),
+                  selectedWeek = selected,
+                  weeklySchedule = null,
+                  updatedAt = repository.updatedAt(term.itemCode),
+                  error = null,
+              )
+          selected?.let { loadWeeklySchedule(term, it) }
+        }
+        .onFailure { _uiState.value = _uiState.value.copy(error = it.message) }
   }
 
-  /** 切换选中的周次。 */
   fun selectWeek(week: Week) {
     _uiState.value = _uiState.value.copy(selectedWeek = week)
     _uiState.value.selectedTerm?.let { loadWeeklySchedule(it, week) }
   }
 
-  /** 加载指定学期和周次的完整排课表。 */
   fun loadWeeklySchedule(term: Term, week: Week) {
+    repository
+        .weekly(term.itemCode, week.serialNumber)
+        .onSuccess { _uiState.value = _uiState.value.copy(weeklySchedule = it, error = null) }
+        .onFailure {
+          _uiState.value = _uiState.value.copy(weeklySchedule = null, error = it.message)
+        }
+  }
+
+  fun updateSchedule(currentTerm: Boolean = false) {
+    if (_uiState.value.isUpdating) return
+    val code = if (currentTerm) null else _uiState.value.selectedTerm?.itemCode
+    val owner = ScheduleStore.account()
+    _uiState.value = _uiState.value.copy(isUpdating = true, error = null, diagnosticResponse = null)
     viewModelScope.launch {
-      _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-      scheduleApi
-          .getWeeklySchedule(term.itemCode, week.serialNumber)
-          .onSuccess {
-            _uiState.value = _uiState.value.copy(isLoading = false, weeklySchedule = it)
-          }
-          .onFailure {
-            _uiState.value = _uiState.value.copy(isLoading = false, error = it.message ?: "加载课程表失败")
-          }
+      try {
+        repository
+            .update(code)
+            .onSuccess { snapshot ->
+              _uiState.value =
+                  _uiState.value.copy(
+                      selectedTerm = snapshot.terms.first { it.itemCode == snapshot.termCode }
+                  )
+              loadTerms()
+              loadTodaySchedule()
+              ensureCurrentWeekLoaded()
+            }
+            .onFailure {
+              if (ScheduleStore.account() != owner) return@onFailure
+              _uiState.value =
+                  _uiState.value.copy(
+                      diagnosticResponse =
+                          (it.cause as? GraduateScheduleLoadException)?.responseBody,
+                      error =
+                          "更新失败：${it.message}" +
+                              if (_uiState.value.updatedAt != null) "。已保存的课表仍可查看。" else "",
+                  )
+            }
+      } finally {
+        _uiState.value = _uiState.value.copy(isUpdating = false)
+      }
     }
   }
 
-  /** 清空错误提示。 */
   fun clearError() {
-    _uiState.value = _uiState.value.copy(error = null)
+    _uiState.value = _uiState.value.copy(error = null, diagnosticResponse = null)
     _todayScheduleState.value = _todayScheduleState.value.copy(error = null)
   }
 }
@@ -168,13 +173,17 @@ class ScheduleViewModel(
 /** 周课表界面 UI 状态。 */
 data class ScheduleUiState(
     val isLoading: Boolean = false,
+    val isUpdating: Boolean = false,
+    val updatedAt: String? = null,
     val terms: List<Term> = emptyList(),
     val weeks: List<Week> = emptyList(),
     val currentWeek: Week? = null,
     val selectedTerm: Term? = null,
     val selectedWeek: Week? = null,
     val weeklySchedule: WeeklySchedule? = null,
+    val weekSchedules: Map<Int, WeeklySchedule> = emptyMap(),
     val error: String? = null,
+    val diagnosticResponse: String? = null,
 )
 
 /** 今日摘要界面 UI 状态。 */

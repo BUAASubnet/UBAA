@@ -3,9 +3,12 @@ package cn.edu.ubaa.api.local
 import cn.edu.ubaa.api.auth.ApiCallException
 import cn.edu.ubaa.api.auth.toUserFacingApiException
 import cn.edu.ubaa.api.auth.userFacingMessageForCode
+import cn.edu.ubaa.api.feature.GraduateScheduleLoadException
 import cn.edu.ubaa.api.feature.ScheduleApiBackend
+import cn.edu.ubaa.api.feature.fetchGraduateSchedule
 import cn.edu.ubaa.model.dto.ExamArrangementData
 import cn.edu.ubaa.model.dto.ExamResponse
+import cn.edu.ubaa.model.dto.GraduateSchedule
 import cn.edu.ubaa.model.dto.Term
 import cn.edu.ubaa.model.dto.TermResponse
 import cn.edu.ubaa.model.dto.TodayClass
@@ -14,6 +17,7 @@ import cn.edu.ubaa.model.dto.Week
 import cn.edu.ubaa.model.dto.WeekResponse
 import cn.edu.ubaa.model.dto.WeeklySchedule
 import cn.edu.ubaa.model.dto.WeeklyScheduleResponse
+import cn.edu.ubaa.repository.SemesterSchedule
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
@@ -27,17 +31,43 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import kotlin.time.Clock
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 
 internal class LocalScheduleApiBackend : ScheduleApiBackend {
   private val json = Json { ignoreUnknownKeys = true }
+  private var graduateSession: Pair<String, String>? = null
+
+  override suspend fun importSemester(termCode: String?): Result<SemesterSchedule> =
+      withScheduleAccess(
+          graduate = {
+            val data = graduateSchedule(termCode)
+            val terms = data.terms()
+            val term =
+                if (termCode == null) terms.firstOrNull { it.selected } ?: terms.firstOrNull()
+                else terms.firstOrNull { it.itemCode == termCode }
+            requireNotNull(term) { "研究生系统未返回所选学期" }
+            val weeks = data.weeks(term.itemCode, graduateToday())
+            Result.success(
+                SemesterSchedule(
+                    terms,
+                    term.itemCode,
+                    weeks,
+                    weeks.associate {
+                      it.serialNumber to data.weekly(term.itemCode, it.serialNumber)
+                    },
+                )
+            )
+          }
+      ) {
+        super.importSemester(termCode)
+      }
 
   override suspend fun getTerms(): Result<List<Term>> =
-      withLocalUndergradPortalAccess(
-          unsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-          unavailableCode = "schedule_error",
+      withScheduleAccess(
+          graduate = { Result.success(graduateSchedule().terms()) },
       ) {
         val response =
             LocalUpstreamClientProvider.shared().get(
@@ -51,9 +81,10 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       }
 
   override suspend fun getWeeks(termCode: String): Result<List<Week>> =
-      withLocalUndergradPortalAccess(
-          unsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-          unavailableCode = "schedule_error",
+      withScheduleAccess(
+          graduate = {
+            Result.success(graduateSchedule(termCode).weeks(termCode, graduateToday()))
+          },
       ) {
         val response =
             LocalUpstreamClientProvider.shared().get(
@@ -68,9 +99,8 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       }
 
   override suspend fun getWeeklySchedule(termCode: String, week: Int): Result<WeeklySchedule> =
-      withLocalUndergradPortalAccess(
-          unsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-          unavailableCode = "schedule_error",
+      withScheduleAccess(
+          graduate = { Result.success(graduateSchedule(termCode).weekly(termCode, week)) },
       ) {
         val response =
             LocalUpstreamClientProvider.shared().post(
@@ -93,9 +123,8 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
       }
 
   override suspend fun getTodaySchedule(): Result<List<TodayClass>> =
-      withLocalUndergradPortalAccess(
-          unsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-          unavailableCode = "schedule_error",
+      withScheduleAccess(
+          graduate = { Result.success(graduateSchedule().today(graduateToday())) },
       ) {
         val today =
             Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
@@ -128,6 +157,51 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
             }
         parseExamArrangement(response)
       }
+
+  private suspend fun graduateSchedule(termCode: String? = null): GraduateSchedule =
+      fetchGraduateSchedule(LocalUpstreamClientProvider.shared(), ::localUpstreamUrl, termCode)
+
+  private suspend fun <T> withScheduleAccess(
+      graduate: suspend () -> Result<T>,
+      block: suspend () -> Result<T>,
+  ): Result<T> {
+    val session =
+        LocalAuthSessionStore.get() ?: return Result.failure(localUnauthenticatedApiException())
+    val key = session.username to session.authenticatedAt
+    if (graduateSession != key) {
+      val undergraduate =
+          try {
+            if (probeLocalUndergradPortal() == LocalUndergradPortalProbeResult.UNDERGRAD_READY)
+                block()
+            else null
+          } catch (e: CancellationException) {
+            throw e
+          } catch (_: Exception) {
+            null
+          }
+      if (undergraduate?.isSuccess == true) return undergraduate
+    }
+    // 本科门户或 GSMIS 探测失败不代表 GSMIS 我的课表不可用，直接验证真正的数据源。
+    return try {
+      graduate().also { if (it.isSuccess) graduateSession = key }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: GraduateScheduleLoadException) {
+      Result.failure(
+          ApiCallException(
+              e.message ?: "研究生课表加载失败",
+              HttpStatusCode.BadGateway,
+              "schedule_error",
+              cause = e,
+          )
+      )
+    } catch (e: Exception) {
+      Result.failure(e.toUserFacingApiException("研究生课表转换失败（${e::class.simpleName}）"))
+    }
+  }
+
+  private fun graduateToday() =
+      Clock.System.now().toLocalDateTime(TimeZone.of("Asia/Shanghai")).date
 
   private fun HttpRequestBuilder.applyScheduleHeaders() {
     header(HttpHeaders.Accept, "application/json, text/javascript, */*; q=0.01")
@@ -194,6 +268,12 @@ internal class LocalScheduleApiBackend : ScheduleApiBackend {
     return try {
       val body = response.bodyAsText()
       if (isLocalByxtSessionExpired(response, body)) {
+        if (code == "schedule_error") {
+          // 还要尝试 GSMIS 我的课表，不能因本科子系统不可用而清理主会话。
+          return Result.failure(
+              localBusinessApiException(code, defaultMessage, HttpStatusCode.BadGateway)
+          )
+        }
         return Result.failure(resolveLocalBusinessAuthenticationFailure(code))
       }
       if (response.status != HttpStatusCode.OK) {
@@ -236,6 +316,8 @@ internal suspend fun <T> withLocalUndergradPortalAccess(
               )
           )
     }
+  } catch (e: CancellationException) {
+    throw e
   } catch (e: Exception) {
     Result.failure(
         e.toUserFacingApiException(

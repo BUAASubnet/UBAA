@@ -10,6 +10,22 @@
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="false"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <receiver android:name="cn.edu.ubaa.widget.ScheduleWidgetProvider"
+            android:exported="false" android:label="UBAA 周课表">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/schedule_widget_info" />
+        </receiver>
+        <receiver android:name="cn.edu.ubaa.widget.TodayScheduleWidgetProvider" android:exported="false" android:label="UBAA 今日课程">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/schedule_today_widget_info" />
+        </receiver>
+        <receiver android:name="cn.edu.ubaa.widget.UpcomingScheduleWidgetProvider" android:exported="false" android:label="UBAA 近日课程">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/schedule_upcoming_widget_info" />
+        </receiver>
+        <activity android:name="cn.edu.ubaa.widget.ScheduleWidgetActivity" android:exported="false" />
         <activity
             android:exported="true"
             android:name="cn.edu.ubaa.MainActivity">

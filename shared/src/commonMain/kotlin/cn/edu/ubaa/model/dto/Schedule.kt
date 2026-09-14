@@ -80,7 +80,75 @@ data class CourseClass(
  * @property name 学期名称。
  */
 @Serializable
-data class WeeklySchedule(val arrangedList: List<CourseClass>, val code: String, val name: String)
+data class WeeklySchedule(
+    val arrangedList: List<CourseClass>,
+    val code: String,
+    val name: String,
+    val sectionTimes: List<SectionTime> = emptyList(),
+)
+
+@Serializable data class SectionTime(val section: Int, val start: String?, val end: String?)
+
+/** 优先用上游完整作息表；兼容尚未保存作息表的研究生标准方案旧缓存。 */
+fun scheduleSectionTimes(schedules: Collection<WeeklySchedule>): List<SectionTime> {
+  val explicit = schedules.flatMap { it.sectionTimes }.distinct()
+  val courses = schedules.flatMap { it.arrangedList }.distinct()
+  // YJSXK 的 01 节次方案（由校方 skjcList 核验），包含无课节次及第 14 节。
+  // 仅为学期代码及所有已知课程边界都匹配的旧缓存补全；不覆盖新导入的作息表。
+  val standard =
+      listOf(
+              "08:00" to "08:45",
+              "08:50" to "09:35",
+              "09:50" to "10:35",
+              "10:40" to "11:25",
+              "11:30" to "12:15",
+              "14:00" to "14:45",
+              "14:50" to "15:35",
+              "15:50" to "16:35",
+              "16:40" to "17:25",
+              "17:30" to "18:15",
+              "19:00" to "19:45",
+              "19:50" to "20:35",
+              "20:40" to "21:25",
+              "21:30" to "22:15",
+          )
+          .mapIndexed { index, (start, end) -> SectionTime(index + 1, start, end) }
+  val legacy =
+      if (
+          explicit.isEmpty() &&
+              schedules.isNotEmpty() &&
+              schedules.all { Regex("\\d{4}[12]").matches(it.code) } &&
+              courses.all {
+                (it.beginTime == null ||
+                    standard.getOrNull((it.beginSection ?: 0) - 1)?.start == it.beginTime) &&
+                    (it.endTime == null ||
+                        standard.getOrNull((it.endSection ?: 0) - 1)?.end == it.endTime)
+              }
+      )
+          standard
+      else emptyList()
+  val times = explicit.ifEmpty { legacy }
+  val count =
+      maxOf(
+          12,
+          times.maxOfOrNull { it.section } ?: 0,
+          courses.maxOfOrNull { it.endSection ?: 0 } ?: 0,
+      )
+  return (1..count).map { section ->
+    val known = times.filter { it.section == section }
+    SectionTime(
+        section,
+        (if (known.isNotEmpty()) known.mapNotNull { it.start }
+            else courses.filter { it.beginSection == section }.mapNotNull { it.beginTime })
+            .distinct()
+            .singleOrNull(),
+        (if (known.isNotEmpty()) known.mapNotNull { it.end }
+            else courses.filter { it.endSection == section }.mapNotNull { it.endTime })
+            .distinct()
+            .singleOrNull(),
+    )
+  }
+}
 
 /**
  * 今日课程摘要 DTO。

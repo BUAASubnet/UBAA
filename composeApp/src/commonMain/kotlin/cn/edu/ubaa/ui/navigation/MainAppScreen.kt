@@ -173,6 +173,11 @@ fun MainAppScreen(
   val scheduleViewModel: ScheduleViewModel = viewModel { ScheduleViewModel() }
   val scheduleUiState by scheduleViewModel.uiState.collectAsState()
   val todayScheduleState by scheduleViewModel.todayScheduleState.collectAsState()
+  LaunchedEffect(homeNow.date) {
+    scheduleViewModel.loadTodaySchedule()
+    scheduleViewModel.ensureCurrentWeekLoaded()
+    scheduleUiState.selectedTerm?.let(scheduleViewModel::loadWeeks)
+  }
 
   val examViewModel: ExamViewModel? =
       if (currentScreen == AppScreen.EXAM) {
@@ -554,7 +559,7 @@ fun MainAppScreen(
   }
 
   // 连接模式切换后，重置所有 ViewModel 的加载标记与缓存数据，并强制刷新当前页面
-  LaunchedEffect(connectionMode) {
+  LaunchedEffect(connectionMode, userData.schoolid) {
     // 常驻 ViewModel
     scheduleViewModel.resetLoadedState()
     signinViewModel.resetLoadedState()
@@ -838,10 +843,16 @@ fun MainAppScreen(
                   terms = scheduleUiState.terms,
                   weeks = scheduleUiState.weeks,
                   weeklySchedule = scheduleUiState.weeklySchedule,
+                  weekSchedules = scheduleUiState.weekSchedules,
                   selectedTerm = scheduleUiState.selectedTerm,
                   selectedWeek = scheduleUiState.selectedWeek,
                   isLoading = scheduleUiState.isLoading,
                   error = scheduleUiState.error,
+                  isUpdating = scheduleUiState.isUpdating,
+                  updatedAt = scheduleUiState.updatedAt,
+                  diagnosticResponse = scheduleUiState.diagnosticResponse,
+                  onUpdate = { scheduleViewModel.updateSchedule() },
+                  onImportCurrentTerm = { scheduleViewModel.updateSchedule(currentTerm = true) },
                   onTermSelected = { scheduleViewModel.selectTerm(it) },
                   onWeekSelected = { scheduleViewModel.selectWeek(it) },
                   onNavigateBack = { navigateBack() },

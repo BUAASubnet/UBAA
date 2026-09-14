@@ -90,7 +90,12 @@ class AcademicPortalSupportTest {
 
   @Test
   fun graduateScheduleRequestDoesNotInvalidateSession() = runBlocking {
-    val sessionManager = createSessionManager()
+    val sessionManager =
+        SessionManager(
+            sessionStore = InMemorySessionStore(),
+            cookieStorageFactory = InMemoryCookieStorageFactory(),
+            clientFactory = { _: CookiesStorage -> graduateAwareMockClient() },
+        )
     val scheduleService = ScheduleService(sessionManager = sessionManager)
 
     val candidate = sessionManager.prepareSession("graduate-user")
@@ -100,12 +105,7 @@ class AcademicPortalSupportTest {
         AcademicPortalType.GRADUATE,
     )
 
-    val error =
-        assertFailsWith<UnsupportedAcademicPortalException> {
-          scheduleService.fetchTerms("graduate-user")
-        }
-
-    assertEquals("研究生账号暂不支持当前本科教务接口", error.message)
+    assertEquals("20261", scheduleService.fetchTerms("graduate-user").single().itemCode)
     assertNotNull(
         sessionManager.getSession("graduate-user", SessionManager.SessionAccess.READ_ONLY)
     )
@@ -149,9 +149,7 @@ class AcademicPortalSupportTest {
     val candidate = sessionManager.prepareSession("graduate-user")
     sessionManager.commitSession(candidate, UserData("Graduate User", "SY2511503"))
 
-    assertFailsWith<UnsupportedAcademicPortalException> {
-      scheduleService.fetchTerms("graduate-user")
-    }
+    assertEquals("20261", scheduleService.fetchTerms("graduate-user").single().itemCode)
 
     val session = sessionManager.getSession("graduate-user", SessionManager.SessionAccess.READ_ONLY)
     assertNotNull(session)
@@ -243,6 +241,18 @@ class AcademicPortalSupportTest {
       engine {
         addHandler { request ->
           when {
+            request.url.encodedPath.endsWith("/kfdxnxqcx.do") ->
+                respond(
+                    """{"code":"0","datas":{"kfdxnxqcx":{"totalSize":1,"rows":[{"XNXQDM":"20261","XNXQDM_DISPLAY":"示例学期"}]}}}"""
+                )
+            request.url.encodedPath.endsWith("/bykb/loadXskbData.do") -> {
+              assertEquals(io.ktor.http.HttpMethod.Post, request.method)
+              respond(
+                  content = """{"code":1,"jgList":[],"rwList":[],"jcfaList":[]}""",
+                  status = HttpStatusCode.OK,
+                  headers = jsonHeaders(),
+              )
+            }
             request.url.encodedPath.endsWith("/jwapp/sys/homeapp/api/home/currentUser.do") ->
                 respond(
                     content = "",

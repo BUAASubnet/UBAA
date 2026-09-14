@@ -82,6 +82,10 @@ kotlin {
       implementation(compose.desktop.currentOs)
       implementation(libs.kotlinx.coroutinesSwing)
     }
+
+    jvmTest.dependencies {
+      implementation("org.jetbrains.compose.ui:ui-test-junit4:$composeVersion")
+    }
   }
 }
 

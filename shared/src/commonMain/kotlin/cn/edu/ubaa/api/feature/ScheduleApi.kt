@@ -5,10 +5,31 @@ import cn.edu.ubaa.api.auth.ApiClientProvider
 import cn.edu.ubaa.api.auth.safeApiCall
 import cn.edu.ubaa.api.core.ApiClient
 import cn.edu.ubaa.model.dto.*
+import cn.edu.ubaa.repository.SemesterSchedule
 import io.ktor.client.request.*
+import kotlinx.coroutines.CancellationException
 
 /** 课程表与考试查询服务。 负责从后端获取学期、周次、课表安排以及考试安排等信息。 */
 interface ScheduleApiBackend {
+  suspend fun importSemester(termCode: String?): Result<SemesterSchedule> =
+      try {
+        val terms = getTerms().getOrThrow()
+        val term =
+            if (termCode == null) terms.firstOrNull { it.selected } ?: terms.firstOrNull()
+            else terms.firstOrNull { it.itemCode == termCode }
+        requireNotNull(term) { "系统未返回所选学期" }
+        val weeks = getWeeks(term.itemCode).getOrThrow()
+        val schedules =
+            weeks.associate {
+              it.serialNumber to getWeeklySchedule(term.itemCode, it.serialNumber).getOrThrow()
+            }
+        Result.success(SemesterSchedule(terms, term.itemCode, weeks, schedules))
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Result.failure(e)
+      }
+
   suspend fun getTerms(): Result<List<Term>>
 
   suspend fun getWeeks(termCode: String): Result<List<Week>>
@@ -30,6 +51,9 @@ class ScheduleApi(
   constructor(apiClient: ApiClient) : this({ RelayScheduleApiBackend(apiClient) })
 
   private fun currentBackend(): ScheduleApiBackend = backendProvider()
+
+  suspend fun importSemester(termCode: String? = null): Result<SemesterSchedule> =
+      currentBackend().importSemester(termCode)
 
   /**
    * 获取所有可用学期列表。

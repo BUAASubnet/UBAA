@@ -41,6 +41,25 @@ buildkonfig {
   }
 }
 
+tasks.withType<Test>().configureEach {
+  val sample =
+      providers
+          .gradleProperty("graduateScheduleSample")
+          .orElse(providers.environmentVariable("UBAA_GRADUATE_SCHEDULE_SAMPLE"))
+  if (sample.isPresent) {
+    inputs.file(sample).withPropertyName("graduateScheduleSample")
+    environment("UBAA_GRADUATE_SCHEDULE_SAMPLE", sample.get())
+  }
+  val gsmisSample =
+      providers
+          .gradleProperty("gsmisScheduleSampleDir")
+          .orElse(providers.environmentVariable("UBAA_GSMIS_SCHEDULE_SAMPLE_DIR"))
+  if (gsmisSample.isPresent) {
+    inputs.dir(gsmisSample).withPropertyName("gsmisScheduleSampleDir")
+    systemProperty("gsmisSampleDir", gsmisSample.get())
+  }
+}
+
 kotlin {
   // 配置 JDK 21 工具链
   jvmToolchain(21)

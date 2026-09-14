@@ -43,7 +43,8 @@ class ApiCallException(
     message: String,
     val status: HttpStatusCode? = null,
     val code: String? = null,
-) : Exception(message)
+    cause: Throwable? = null,
+) : Exception(message, cause)
 
 internal fun userFacingMessageForCode(code: String?, status: HttpStatusCode): String {
   return when (code) {

@@ -1,10 +1,15 @@
 package cn.edu.ubaa.schedule
 
+import cn.edu.ubaa.api.feature.GraduateScheduleAuthenticationException
+import cn.edu.ubaa.api.feature.fetchGraduateSchedule
+import cn.edu.ubaa.auth.AcademicPortalProbeResult
+import cn.edu.ubaa.auth.AcademicPortalType
+import cn.edu.ubaa.auth.AcademicPortalWarmupCoordinator
 import cn.edu.ubaa.auth.ByxtService
+import cn.edu.ubaa.auth.GlobalAcademicPortalWarmupCoordinator
 import cn.edu.ubaa.auth.GlobalSessionManager
 import cn.edu.ubaa.auth.LoginException
 import cn.edu.ubaa.auth.SessionManager
-import cn.edu.ubaa.auth.ensureUndergradPortalAccess
 import cn.edu.ubaa.metrics.AppObservability
 import cn.edu.ubaa.model.dto.*
 import cn.edu.ubaa.utils.VpnCipher
@@ -14,6 +19,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -22,6 +28,8 @@ import org.slf4j.LoggerFactory
 class ScheduleService(
     private val sessionManager: SessionManager = GlobalSessionManager.instance,
     private val json: Json = Json { ignoreUnknownKeys = true },
+    private val portalWarmupCoordinator: AcademicPortalWarmupCoordinator =
+        GlobalAcademicPortalWarmupCoordinator.instance,
 ) {
   private val log = LoggerFactory.getLogger(ScheduleService::class.java)
 
@@ -38,13 +46,9 @@ class ScheduleService(
   /** 获取用户可选的所有学期列表。 */
   suspend fun fetchTerms(username: String): List<Term> {
     val session = sessionManager.requireSession(username)
-    ensureUndergradPortalAccess(
-        sessionManager = sessionManager,
-        username = username,
-        session = session,
-        graduateUnsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-        unavailableExceptionFactory = { ScheduleException("BYXT service unavailable") },
-    )
+    session.graduateScheduleIfNeeded(username)?.let {
+      return it.terms()
+    }
     val response = session.getTerms()
     val body = response.bodyAsText()
 
@@ -68,13 +72,9 @@ class ScheduleService(
   /** 获取指定学期的周次划分。 */
   suspend fun fetchWeeks(username: String, termCode: String): List<Week> {
     val session = sessionManager.requireSession(username)
-    ensureUndergradPortalAccess(
-        sessionManager = sessionManager,
-        username = username,
-        session = session,
-        graduateUnsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-        unavailableExceptionFactory = { ScheduleException("BYXT service unavailable") },
-    )
+    session.graduateScheduleIfNeeded(username, termCode)?.let {
+      return it.weeks(termCode, graduateToday())
+    }
     val response = session.getWeeks(termCode)
     val body = response.bodyAsText()
 
@@ -96,13 +96,9 @@ class ScheduleService(
   /** 获取周课表详情。 */
   suspend fun fetchWeeklySchedule(username: String, termCode: String, week: Int): WeeklySchedule {
     val session = sessionManager.requireSession(username)
-    ensureUndergradPortalAccess(
-        sessionManager = sessionManager,
-        username = username,
-        session = session,
-        graduateUnsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-        unavailableExceptionFactory = { ScheduleException("BYXT service unavailable") },
-    )
+    session.graduateScheduleIfNeeded(username, termCode)?.let {
+      return it.weekly(termCode, week)
+    }
     val response = session.getWeeklySchedule(termCode, week)
     val body = response.bodyAsText()
 
@@ -124,13 +120,9 @@ class ScheduleService(
   /** 获取今日排课摘要。 */
   suspend fun fetchTodaySchedule(username: String): List<TodayClass> {
     val session = sessionManager.requireSession(username)
-    ensureUndergradPortalAccess(
-        sessionManager = sessionManager,
-        username = username,
-        session = session,
-        graduateUnsupportedMessage = "研究生账号暂不支持当前本科教务接口",
-        unavailableExceptionFactory = { ScheduleException("BYXT service unavailable") },
-    )
+    session.graduateScheduleIfNeeded(username)?.let {
+      return it.today(graduateToday())
+    }
     val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     val response = session.getTodaySchedule(today)
     val body = response.bodyAsText()
@@ -148,6 +140,41 @@ class ScheduleService(
         }
 
     return todayResponse.datas
+  }
+
+  private fun graduateToday() =
+      kotlinx.datetime.LocalDate.parse(
+          LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).toString()
+      )
+
+  private suspend fun SessionManager.UserSession.graduateScheduleIfNeeded(
+      username: String,
+      termCode: String? = null,
+  ): GraduateSchedule? {
+    if (portalType == AcademicPortalType.UNDERGRAD) return null
+    if (portalType == AcademicPortalType.UNKNOWN) {
+      val probe =
+          try {
+            portalWarmupCoordinator.awaitOrStart(username, client)
+          } catch (error: CancellationException) {
+            throw error
+          } catch (_: Exception) {
+            AcademicPortalProbeResult.UNAVAILABLE
+          }
+      if (probe == AcademicPortalProbeResult.UNDERGRAD_READY) {
+        sessionManager.updateSessionPortalType(username, AcademicPortalType.UNDERGRAD)
+        return null
+      }
+    }
+    // 门户探测不代表课表子应用的状态；保留主会话，由 GSMIS 课表接口验证访问权。
+    return try {
+      AppObservability.observeUpstreamRequest("gsmis", "get_schedule") {
+            fetchGraduateSchedule(client, VpnCipher::toVpnUrl, termCode)
+          }
+          .also { sessionManager.updateSessionPortalType(username, AcademicPortalType.GRADUATE) }
+    } catch (_: GraduateScheduleAuthenticationException) {
+      throw LoginException("研究生课表会话已过期")
+    }
   }
 
   private suspend fun SessionManager.UserSession.getTerms(): HttpResponse {

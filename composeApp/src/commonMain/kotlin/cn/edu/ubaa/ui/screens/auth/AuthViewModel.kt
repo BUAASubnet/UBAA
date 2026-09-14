@@ -13,6 +13,7 @@ import cn.edu.ubaa.api.storage.CredentialStore
 import cn.edu.ubaa.model.dto.CaptchaInfo
 import cn.edu.ubaa.model.dto.UserData
 import cn.edu.ubaa.model.dto.UserInfo
+import cn.edu.ubaa.repository.ScheduleStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -92,6 +93,7 @@ class AuthViewModel(
           .preloadLoginState()
           .onSuccess { response ->
             if (response.userData != null) {
+              response.userData?.let { ScheduleStore.useAccount(it.schoolid) }
               // SSO 已登录，执行自动登录逻辑
               _uiState.value =
                   _uiState.value.copy(
@@ -161,6 +163,7 @@ class AuthViewModel(
       authService
           .login(form.username, form.password, captcha, state.execution)
           .onSuccess { loginResponse ->
+            ScheduleStore.useAccount(loginResponse.user.schoolid)
             _uiState.value =
                 _uiState.value.copy(
                     isLoggedIn = true,
@@ -206,6 +209,7 @@ class AuthViewModel(
       authService
           .getAuthStatus()
           .onSuccess { status ->
+            ScheduleStore.useAccount(status.user.schoolid)
             _uiState.value =
                 _uiState.value.copy(
                     isLoggedIn = true,
@@ -239,6 +243,7 @@ class AuthViewModel(
 
   /** 注销登录，清理所有本地状态。 */
   fun logout() {
+    ScheduleStore.forgetAccount()
     viewModelScope.launch {
       _uiState.value = _uiState.value.copy(isLoading = true)
       authService
@@ -283,6 +288,7 @@ class AuthViewModel(
       authService
           .getAuthStatus()
           .onSuccess { status ->
+            ScheduleStore.useAccount(status.user.schoolid)
             _uiState.value =
                 _uiState.value.copy(
                     isLoggedIn = true,
