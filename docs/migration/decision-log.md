@@ -1267,3 +1267,7 @@ P5-E系统选图实操补验（2026-09-12）：当前20项源码SHA与r3记录�
 AndroidX官方源码[TakePicturePreview](https://android.googlesource.com/platform/frameworks/support/+/dd97834aa54671ee1f56d65fa46668b4ffeb57e8/activity/activity/src/main/java/androidx/activity/result/contract/ActivityResultContracts.kt)核实其Intent为MediaStore.ACTION_IMAGE_CAPTURE、成功结果Bitmap来自data extra。当前AndroidManifest没有CAMERA权限；恢复系统相机委托，不新增直接相机/存储权限或持久照片文件，能力探测需核对可处理Intent。必要优化为原生及Dart均受10MiB约束、固定错误、取消保原图、选择/拍照单pending及代次失效保护。拍照作为可选本地平台接口穿过宿主/共享UI，不能放宽学校业务写入资格。先记录缺少拍照能力行为RED，再实现、构建、脱敏原生渲染；真实设备相机操作仍独立验收。
 
 P5-F阶段保存（2026-09-14）：本次仅提交已有实现，不新增功能或补造历史RED证据。当前17个源码摘要与r2一致，723项Flutter、just check（含CLI端到端16项）、冻结引用与敏感检查、Android Debug APK构建均通过。20张既有原生截图保留其合成相机/合成业务分类，真实相机及最终P5/P6/P7验收不因此完成；详细范围见[阶段说明](../design/evidence/ui-ux/old-p5f-native/阶段说明.md)。
+
+## 暂停目标并保存工作区（2026-09-14）
+
+用户明确要求“先暂停目标，整理工作区，将未提交文件提交，然后报告目标完成进度，还有哪些没完成”。本任务查询未发现运行中的Codex Goal；仓库goal.md及本页状态记录改为暂停，须用户明确恢复后再续跑。已有66个改动文件与新增阶段说明合计67个文件提交为 `b5fa7dfebf360b5029033bfc628caaa39e68e5cc`，暂停和进度文档独立提交。未改变生产实现、冻结引用、凭据或会话，没有推送、学校业务写入或实时读取。当前通过结果与缺项集中在[暂停交接记录](evidence/2026-09-14-ui-ux-pause.md)，不根据局部勾选数量宣告全目标完成。
