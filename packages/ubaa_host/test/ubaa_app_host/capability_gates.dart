@@ -17,6 +17,7 @@ void _registerCapabilityGateTests() {
     expect(shell.onPrepareYgdkSubmitWrite, isNull);
     expect(shell.onRefreshYgdkAfterWrite, isNull);
     expect(shell.onPickYgdkPhoto, isNull);
+    expect(shell.onCaptureYgdkPhoto, isNull);
   });
 
   testWidgets('共享宿主在权限网关缺失时整组关闭阳光打卡能力', (tester) async {
@@ -34,6 +35,7 @@ void _registerCapabilityGateTests() {
     expect(shell.onPrepareYgdkSubmitWrite, isNull);
     expect(shell.onRefreshYgdkAfterWrite, isNull);
     expect(shell.onPickYgdkPhoto, isNull);
+    expect(shell.onCaptureYgdkPhoto, isNull);
   });
 
   testWidgets('共享宿主在 backend 缺少写入或回读任一接口时整组关闭', (tester) async {
@@ -55,6 +57,7 @@ void _registerCapabilityGateTests() {
       final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
       expect(shell.onPrepareYgdkSubmitWrite, isNull);
       expect(shell.onPickYgdkPhoto, isNull);
+      expect(shell.onCaptureYgdkPhoto, isNull);
       expect(shell.onRefreshYgdkAfterWrite, isNull);
     }
   });

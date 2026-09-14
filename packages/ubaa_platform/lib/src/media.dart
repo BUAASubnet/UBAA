@@ -126,6 +126,12 @@ abstract interface class PlatformPhotoPicker {
   Future<YgdkPhotoInput?> pickPhoto();
 }
 
+/// 可选的系统拍照能力；不支持拍照的平台无需实现。
+abstract interface class PlatformPhotoCapture {
+  bool get canCapturePhoto;
+  Future<YgdkPhotoInput?> capturePhoto();
+}
+
 /// 原生照片选择器的 typed 回调适配器。
 ///
 /// 插件异常统一转换为稳定的相册能力错误；回调不得返回原始路径或带令牌
@@ -163,7 +169,8 @@ final class CallbackPhotoPicker implements PlatformPhotoPicker {
 ///
 /// 原生侧返回受限的字节、展示名和 MIME 类型；不会把文件路径或 URL 交给
 /// Dart。必须先成功探测能力，且单张照片最多 10 MiB。
-final class MethodChannelPhotoPicker implements PlatformPhotoPicker {
+final class MethodChannelPhotoPicker
+    implements PlatformPhotoPicker, PlatformPhotoCapture {
   MethodChannelPhotoPicker({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
 
@@ -171,6 +178,10 @@ final class MethodChannelPhotoPicker implements PlatformPhotoPicker {
 
   final MethodChannel _channel;
   bool _available = false;
+  bool _canCapture = false;
+
+  @override
+  bool get canCapturePhoto => _canCapture;
 
   @override
   bool get isAvailable => _available;
@@ -182,7 +193,35 @@ final class MethodChannelPhotoPicker implements PlatformPhotoPicker {
     } on Object {
       _available = false;
     }
+    try {
+      _canCapture =
+          await _channel.invokeMethod<bool>('photo.captureCapability') ?? false;
+    } on Object {
+      _canCapture = false;
+    }
     return _available;
+  }
+
+  @override
+  Future<YgdkPhotoInput?> capturePhoto() async {
+    if (!_canCapture) return null;
+    try {
+      final result = await _channel.invokeMethod<Object?>('photo.capture');
+      if (result == null) return null;
+      if (result is! Map) throw const FormatException();
+      final photo = _copyCanonicalPhotoInput(
+        bytes: result['bytes'],
+        fileName: result['fileName'],
+        mimeType: result['mimeType'],
+      );
+      if (photo == null) throw const FormatException();
+      return photo;
+    } on Object {
+      throw const PlatformCapabilityException(
+        PlatformPermission.camera,
+        PlatformPermissionStatus.unavailable,
+      );
+    }
   }
 
   @override
@@ -315,7 +354,8 @@ final class MemoryPhotoPicker implements PlatformPhotoPicker {
 }
 
 /// 在调用原生照片选择器前强制申请相册权限的组合适配器。
-final class PermissionedPhotoPicker implements PlatformPhotoPicker {
+final class PermissionedPhotoPicker
+    implements PlatformPhotoPicker, PlatformPhotoCapture {
   PermissionedPhotoPicker({
     required PlatformPermissionGateway permissions,
     required PlatformPhotoPicker picker,
@@ -331,6 +371,21 @@ final class PermissionedPhotoPicker implements PlatformPhotoPicker {
 
   @override
   bool get isAvailable => _picker.isAvailable;
+
+  @override
+  bool get canCapturePhoto =>
+      _picker is PlatformPhotoCapture &&
+      (_picker as PlatformPhotoCapture).canCapturePhoto;
+
+  @override
+  Future<YgdkPhotoInput?> capturePhoto() async {
+    if (!canCapturePhoto) return null;
+    final status = await _permissions.request(PlatformPermission.camera);
+    if (status != PlatformPermissionStatus.granted) {
+      throw PlatformCapabilityException(PlatformPermission.camera, status);
+    }
+    return (_picker as PlatformPhotoCapture).capturePhoto();
+  }
 
   @override
   Future<YgdkPhotoInput?> pickPhoto() async {

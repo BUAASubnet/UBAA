@@ -1,0 +1,106 @@
+{
+  "date": "2026-09-12",
+  "method": "已逐张查看r1的20图，r2逐字节比较；差异图需另行查看",
+  "images": [
+    {
+      "image": "phone/dark-camera-cancel-retains.png",
+      "sha256": "9700e9407cb6e566a3cc2fe85372ff27b1a029e0697b23a3341a64fddf192e7f",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/dark-camera-captured.png",
+      "sha256": "3191e5c6b12427a361bb59bd63b141224e3d0c4241a90315e3cd99f9e48f6858",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/dark-camera-entry.png",
+      "sha256": "750be6ad7ce9aa0fa12e172cce1530b73ecc10da7c380c076b219f4458e25758",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/dark-camera-error-retains.png",
+      "sha256": "c57d2de98327c6b4ffbe64334a5a19fcb52afb19a6f57aea97161d8948b00045",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/dark-camera-reentered-empty.png",
+      "sha256": "c7959d3a775a95cb9e45f2dc645fff8c1c0493adb30f81b21312c5a4cd65694b",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/light-camera-cancel-retains.png",
+      "sha256": "1d51e005ca3add6489ff0de8d948b1674ac67de2721cab2e126a6f84b9bc5f6a",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/light-camera-captured.png",
+      "sha256": "2e99cef752d0eaf14abf0c74b00551054133bdf077bd4771fbccdb99870e24e7",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/light-camera-entry.png",
+      "sha256": "538a73e95807c28b79a655a0f9c2d0c639671f3abbc2d65a0496d027c7405e57",
+      "identicalToVisuallyReviewedR1": false
+    },
+    {
+      "image": "phone/light-camera-error-retains.png",
+      "sha256": "a468bd2ac77ad84e741451893e08241acb52ca8809f6dd514b3ba74519913f69",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "phone/light-camera-reentered-empty.png",
+      "sha256": "db0aac4174d140563da959b868a6b0aca1240b359c7a3a50bdeb323ef85244ee",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/dark-camera-cancel-retains.png",
+      "sha256": "227a7f907ce2f9b5d2c7019ab8a77820bbf33db76dde1a1415e089cd2ed8fd90",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/dark-camera-captured.png",
+      "sha256": "b75849e030d890d3c08e546b66b15bbf12545df93371e0c53e0eacc071a81b27",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/dark-camera-entry.png",
+      "sha256": "7f3822bb5f9d5a8e11e772e493ae35fda4aca8137b005ed0e5cf76dcb7fef009",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/dark-camera-error-retains.png",
+      "sha256": "6d7673a463b739a51c1af711efacf71fa8e61d092f6c57dbb1aa805ee8a1063f",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/dark-camera-reentered-empty.png",
+      "sha256": "7f3822bb5f9d5a8e11e772e493ae35fda4aca8137b005ed0e5cf76dcb7fef009",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/light-camera-cancel-retains.png",
+      "sha256": "f905ad72313470f47effa91145fa9f6dd6df33f43c33cb459efd8f21bc153c69",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/light-camera-captured.png",
+      "sha256": "fb7ab4aa52f92694ef06a96fa9f0d68eb66c5da613e552ea4c888112ea86bf38",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/light-camera-entry.png",
+      "sha256": "374005387b6142e903fcdf6f7f7d6f2a3b5e1744dfdb82dc2236b2030991a55f",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/light-camera-error-retains.png",
+      "sha256": "de341c9a1dc41f3597d43bd052f63be3a97ce486289f112da2fdb0a2b6799644",
+      "identicalToVisuallyReviewedR1": true
+    },
+    {
+      "image": "ipad/light-camera-reentered-empty.png",
+      "sha256": "374005387b6142e903fcdf6f7f7d6f2a3b5e1744dfdb82dc2236b2030991a55f",
+      "identicalToVisuallyReviewedR1": true
+    }
+  ]
+}

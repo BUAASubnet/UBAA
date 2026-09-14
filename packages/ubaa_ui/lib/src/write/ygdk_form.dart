@@ -4,11 +4,13 @@ class _YgdkFormPage extends StatefulWidget {
   const _YgdkFormPage({
     required this.items,
     required this.onPickPhoto,
+    this.onCapturePhoto,
     required this.data,
     this.initialAction,
   });
   final List<FeatureDetail> items;
   final YgdkPhotoPicker? onPickPhoto;
+  final YgdkPhotoPicker? onCapturePhoto;
   final _YgdkFormContext data;
   final YgdkSubmitAction? initialAction;
   @override
@@ -213,16 +215,40 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                         ]),
                         const SizedBox(height: 12),
                         _section('照片', [
-                          OutlinedButton.icon(
-                            onPressed: _picking || widget.onPickPhoto == null
-                                ? null
-                                : _pickPhoto,
-                            icon: const Icon(Icons.photo_library_outlined),
-                            label: Text(
-                              _photo == null
-                                  ? '选择照片'
-                                  : '已选择照片：${_photo!.fileName}',
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed:
+                                      _picking || widget.onPickPhoto == null
+                                      ? null
+                                      : _pickPhoto,
+                                  icon: const Icon(
+                                    Icons.photo_library_outlined,
+                                  ),
+                                  label: Text(
+                                    _photo == null
+                                        ? '选择照片'
+                                        : '已选择照片：${_photo!.fileName}',
+                                  ),
+                                ),
+                              ),
+                              if (widget.onCapturePhoto != null) ...[
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _picking
+                                        ? null
+                                        : () => _pickPhoto(capture: true),
+                                    icon: const Icon(
+                                      Icons.photo_camera_outlined,
+                                    ),
+                                    label: const Text('拍摄照片'),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 8),
                           const Text('单张图片不超过10 MiB'),
@@ -339,8 +365,8 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
     ),
   );
 
-  Future<void> _pickPhoto() async {
-    final picker = widget.onPickPhoto;
+  Future<void> _pickPhoto({bool capture = false}) async {
+    final picker = capture ? widget.onCapturePhoto : widget.onPickPhoto;
     if (picker == null || _picking || !_valid) return;
     setState(() {
       _picking = true;
@@ -423,6 +449,7 @@ extension _YgdkWriteForm on _FeatureDetailListState {
       ],
       initialAction: action,
       onPickPhoto: widget.onPickYgdkPhoto,
+      onCapturePhoto: widget.onCaptureYgdkPhoto,
       formContext: widget.ygdkFormContext,
     );
     if (input != null && mounted && identical(original, widget.details)) {

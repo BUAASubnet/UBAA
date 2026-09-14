@@ -27,6 +27,7 @@ class _FeatureDetailView extends StatefulWidget {
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
     this.onPickYgdkPhoto,
+    this.onCaptureYgdkPhoto,
     this.onQuery,
     this.onNavigate,
     this.backLabel = '返回功能列表',
@@ -65,6 +66,7 @@ class _FeatureDetailView extends StatefulWidget {
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;
+  final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
   final String backLabel;
@@ -260,6 +262,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             onQuery: widget.onQuery,
             onSubmit: widget.onYgdkSubmitWrite,
             onPickPhoto: widget.onPickYgdkPhoto,
+            onCapturePhoto: widget.onCaptureYgdkPhoto,
           )
         : !widget.isLanding && widget.feature == FeatureId.grades
         ? _GradesFlow(
@@ -480,6 +483,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       onEvaluationWrite: widget.onEvaluationWrite,
       onYgdkSubmitWrite: widget.onYgdkSubmitWrite,
       onPickYgdkPhoto: widget.onPickYgdkPhoto,
+      onCaptureYgdkPhoto: widget.onCaptureYgdkPhoto,
     );
   }
 

@@ -1,12 +1,17 @@
 part of '../widgets_test.dart';
 
 void _registerYgdkFormTests() {
-  Future<void> mount(WidgetTester tester, YgdkPhotoPicker picker) async {
+  Future<void> mount(
+    WidgetTester tester,
+    YgdkPhotoPicker picker, {
+    YgdkPhotoPicker? camera,
+  }) async {
     await _pumpYgdkShell(
       tester,
       key: const ValueKey('阳光表单'),
       prepare: (_) async => throw StateError('不应准备'),
       picker: picker,
+      camera: camera,
       commit: (_) async => throw StateError('不应提交'),
       discard: (_) async {},
       refresh: ({required expectedRoute}) async {},
@@ -63,6 +68,73 @@ void _registerYgdkFormTests() {
     expect(find.text('已选择照片：photo.png'), findsOneWidget);
     expect(find.text('无法读取照片，请使用不超过10 MiB的图片，并检查系统访问权限。'), findsOneWidget);
     expect(find.textContaining('合成原始路径不能显示'), findsNothing);
+  });
+
+  testWidgets('阳光拍照与选图共享等待并在取消后保留原图', (tester) async {
+    final pending = Completer<YgdkPhotoInput?>();
+    var calls = 0;
+    await mount(
+      tester,
+      _validYgdkPhoto,
+      camera: () {
+        calls++;
+        return pending.future;
+      },
+    );
+    await _openAndFillYgdkForm(tester);
+    final camera = find.widgetWithText(OutlinedButton, '拍摄照片');
+    await tester.ensureVisible(camera);
+    await tester.tap(camera);
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(camera).onPressed, isNull);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, '已选择照片：photo.png'),
+          )
+          .onPressed,
+      isNull,
+    );
+    pending.complete(null);
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(find.text('已选择照片：photo.png'), findsOneWidget);
+    expect(find.byKey(const ValueKey('ygdk-photo-preview')), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(camera).onPressed, isNotNull);
+  });
+
+  testWidgets('阳光拍照成功替换预览且退出后迟到拍照不恢复', (tester) async {
+    final pending = Completer<YgdkPhotoInput?>();
+    var calls = 0;
+    await mount(
+      tester,
+      _validYgdkPhoto,
+      camera: () async {
+        if (++calls > 1) return pending.future;
+        final photo = await _validYgdkPhoto();
+        return YgdkPhotoInput(
+          bytes: photo.bytes,
+          fileName: 'camera.png',
+          mimeType: photo.mimeType,
+        );
+      },
+    );
+    await _openAndFillYgdkForm(tester);
+    final camera = find.text('拍摄照片');
+    await tester.ensureVisible(camera);
+    await tester.tap(camera);
+    await tester.pumpAndSettle();
+    expect(find.text('已选择照片：camera.png'), findsOneWidget);
+    await tester.tap(camera);
+    await tester.pump();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    pending.complete(await _validYgdkPhoto());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备阳光打卡'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('ygdk-photo-preview')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('阳光时间选择双确认后回填且取消不覆盖草稿', (tester) async {

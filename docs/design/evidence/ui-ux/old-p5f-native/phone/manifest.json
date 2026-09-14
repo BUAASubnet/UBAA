@@ -1,0 +1,17 @@
+{
+  "savedScreenshots": [
+    "dark-camera-entry",
+    "dark-camera-cancel-retains",
+    "dark-camera-error-retains",
+    "dark-camera-captured",
+    "dark-camera-reentered-empty",
+    "light-camera-entry",
+    "light-camera-cancel-retains",
+    "light-camera-error-retains",
+    "light-camera-captured",
+    "light-camera-reentered-empty"
+  ],
+  "metadataCount": 10,
+  "evidence": "native-ios-synthetic-ui",
+  "acceptance": "requires-test-result-and-visual-review"
+}

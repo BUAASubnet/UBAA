@@ -49,6 +49,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onPrepareEvaluationWrite,
     this.onPrepareYgdkSubmitWrite,
     this.onPickYgdkPhoto,
+    this.onCaptureYgdkPhoto,
     this.onDiscardWriteIntent,
     this.onCommitWrite,
     this.onWriteSuccess,
@@ -119,6 +120,7 @@ class UbaaMainShell extends StatefulWidget {
   final EvaluationSubmitPreparer? onPrepareEvaluationWrite;
   final YgdkSubmitPreparer? onPrepareYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;
+  final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final WriteIntentDiscarder? onDiscardWriteIntent;
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final WriteSuccessHandler? onWriteSuccess;
@@ -588,6 +590,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
           ? null
           : _startYgdkSubmitWrite,
+      onCaptureYgdkPhoto: _hasYgdkSubmissionCapabilities
+          ? widget.onCaptureYgdkPhoto
+          : null,
       onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
           ? widget.onPickYgdkPhoto
           : null,

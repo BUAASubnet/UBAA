@@ -1,0 +1,15 @@
+{
+  "name": "light-camera-reentered-empty",
+  "steps": "可选拍照入口、取消/失败保图、成功替换及退出释放；相机与业务均显式内存",
+  "backend": "synthetic-sports-synthetic-camera",
+  "systemCameraVerified": false,
+  "platform": "ios",
+  "system": "Version 26.5 (Build 23F77)",
+  "logicalWidth": 402.0,
+  "logicalHeight": 874.0,
+  "devicePixelRatio": 3.0,
+  "viewportSource": "native-view-unmodified",
+  "dateUtc": "2026-09-12T08:22:47.089837Z",
+  "sourceSha": "5d988362+P5F-r2",
+  "pngSaved": true
+}

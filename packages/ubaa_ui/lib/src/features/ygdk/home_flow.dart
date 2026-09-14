@@ -12,6 +12,7 @@ class _YgdkHomeFlow extends StatefulWidget {
     this.onQuery,
     this.onSubmit,
     this.onPickPhoto,
+    this.onCapturePhoto,
     this.recordsReadback,
     this.reminderSettings,
     this.reminderError,
@@ -30,6 +31,7 @@ class _YgdkHomeFlow extends StatefulWidget {
   final Future<void> Function(FeatureQuery)? onQuery;
   final YgdkSubmitStarter? onSubmit;
   final YgdkPhotoPicker? onPickPhoto;
+  final YgdkPhotoPicker? onCapturePhoto;
   @override
   State<_YgdkHomeFlow> createState() => _YgdkHomeFlowState();
 }
@@ -170,6 +172,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
       context,
       items: items,
       onPickPhoto: widget.onPickPhoto,
+      onCapturePhoto: widget.onCapturePhoto,
       formContext: _YgdkFormContext(
         draft: widget.formContext.draft,
         route: _route,

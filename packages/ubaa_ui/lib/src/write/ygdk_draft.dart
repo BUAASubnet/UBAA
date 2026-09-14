@@ -35,6 +35,7 @@ Future<YgdkSubmitInput?> _collectYgdkForm(
   BuildContext context, {
   required List<FeatureDetail> items,
   required YgdkPhotoPicker? onPickPhoto,
+  YgdkPhotoPicker? onCapturePhoto,
   _YgdkFormContext? formContext,
   YgdkSubmitAction? initialAction,
 }) async {
@@ -45,6 +46,7 @@ Future<YgdkSubmitInput?> _collectYgdkForm(
       builder: (_) => _YgdkFormPage(
         items: items,
         onPickPhoto: onPickPhoto,
+        onCapturePhoto: onCapturePhoto,
         data: data,
         initialAction: initialAction,
       ),

@@ -25,6 +25,7 @@ class _FeatureDetailList extends StatefulWidget {
     this.onEvaluationWrite,
     this.onYgdkSubmitWrite,
     this.onPickYgdkPhoto,
+    this.onCaptureYgdkPhoto,
   });
 
   final String filter;
@@ -50,6 +51,7 @@ class _FeatureDetailList extends StatefulWidget {
   final EvaluationSubmitStarter? onEvaluationWrite;
   final YgdkSubmitStarter? onYgdkSubmitWrite;
   final YgdkPhotoPicker? onPickYgdkPhoto;
+  final YgdkPhotoPicker? onCaptureYgdkPhoto;
 
   @override
   State<_FeatureDetailList> createState() => _FeatureDetailListState();

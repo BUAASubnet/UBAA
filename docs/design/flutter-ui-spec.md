@@ -1,6 +1,8 @@
-# Flutter UI 规格（无签名执行目标已完成；正式发布后置）
+# Flutter UI 规格（旧版对齐实施中）
 
-更新：2026-09-05
+更新：2026-09-12
+
+本轮以[旧版界面基准](ui-ux-old-baseline.md)及goal.md为准，保留旧版页面结构与操作顺序。历史无签名目标完成记录不代表本轮P0–P7已通过。
 
 2026-09-07 维护补充：错误卡显示本次诊断编号并可主动复制稳定字段；登录失败页和“我的”均可
 查看本次运行诊断。诊断默认仅在有界内存保存，不自动上传。错误码、重试标志和失败路线完整
@@ -16,25 +18,30 @@
 |---|---|---|---|
 | Splash/会话恢复 | 登录或主页 | 全屏居中 | 全屏居中 |
 | 登录页 | 主页 | 底部表单、顶部路线菜单 | 最大宽度 460 的居中表单 |
-| 主页 | 普通功能卡片 | `NavigationBar` | `NavigationRail` |
+| 主页 | 今日课表→待办；旧三导航主页/普通功能/高级功能 | `NavigationBar` | `NavigationRail` |
 | 普通功能 | 课表、考试、成绩、博雅、空教室、SPOC、希冀、图书馆 | 网格列表 | 最大宽度自适应网格 |
-| 高级功能 | 课堂签到、场馆预约、阳光打卡、教学评教 | 网格列表 | 最大宽度自适应网格 |
-| 功能卡片 | 详情列表 | 返回按钮 + 可滚动详情 | 同一布局，支持键盘焦点 |
-| 我的 | 资料、默认路线、已认证路线、匿名统计、注销 | 列表 | 侧栏后的列表 |
+| 高级功能 | 课堂签到、研讨室预约、阳光打卡、教学评教 | 网格列表 | 最大宽度自适应网格 |
+| 功能卡片 | 领域列表/详情与按需查询 | 顶部返回；隐藏全局底栏 | 保持同一信息顺序，按宽度调整表格或列表详情 |
+| 侧栏 | 资料、设置、关于；路线/主题/统计/诊断/退出保留既有入口 | 按需抽屉进入 | 侧栏进入同一页面 |
+
+## 照片与拍照
+
+阳光沿旧版独立表单顺序，照片区提供选择、预览、元信息与清除。仅可选平台拍照能力探测成功时，在选择按钮旁显示“拍摄照片”；Android沿旧版委托系统相机取得预览并在内存压缩JPEG92，不增加相机/存储直接权限。选择与拍照共享等待、取消保原图、失败反馈、退出释放和迟到保护。大小限制10MiB；跨宿主只传字节、合法展示名与MIME。
+
+实际平台与验收范围见[照片来源对照](../migration/source-parity-ui-photos.md)和[迁移状态](../migration/status.md)，合成相机原生UI测试不代表真实设备拍照通过。
 
 ## 功能状态
 
 每张卡片和详情页均支持 `idle`、`loading`、`success`、`empty`、`stale`、`failure`；刷新时
 保留上一次的详情模型，新的读取结果按 generation 丢弃过期响应。已有成功数据刷新失败时显示
-`stale` 横幅、旧数据和重试按钮；首次失败只展示稳定中文错误，不渲染上游正文。详情列表提供
-本地筛选和每页 20 项分页；Bykc 课程、图书馆预约、阳光打卡记录和场馆订单等 typed 查询同时
+`stale` 横幅、旧数据和重试按钮；首次失败只展示稳定中文错误，不渲染上游正文。搜索、筛选和查询从顶栏右上按需打开，关闭保留草稿与选择；本地筛选与适用的分页能力均保留。Bykc 课程、图书馆预约、阳光打卡记录和研讨室订单等 typed 查询同时
 保留 Core 服务端分页元数据，使用 1-based 上下页控件和总数提示，不把服务端页误切成客户端缓存。
 筛选只匹配 bridge 白名单字段并重置到第一页。读取成功或空结果
-若包含 Core 的 `resolvedRoute`，卡片和详情页显示“实际路线”；该字段不由登录设置中的
+若包含 Core 的 `resolvedRoute`，顶栏单图标显示当前读取的实际路线，点击查看说明及切换选项；该字段不由登录设置中的
 `defaultPolicy` 推导，`stale` 状态沿用上次成功路线。若上次成功结果只有摘要而没有详情项，
 详情页仍显示该摘要，同时保留失败横幅和重试按钮，不降级为首次失败错误页。
 Core 明确返回空结果后不保留旧数据；此后刷新失败按首次失败显示稳定错误，不伪造成 stale。
-课堂、图书馆座位和场馆日期查询的日期输入严格限定为真实日历日期的 `YYYY-MM-DD` 形状；带时间、时区或不存在日期的字符串在 UI 层拒绝，不进入 typed `FeatureQuery`。
+课堂、图书馆座位和研讨室日期查询的日期输入严格限定为真实日历日期的 `YYYY-MM-DD` 形状；带时间、时区或不存在日期的字符串在 UI 层拒绝，不进入 typed `FeatureQuery`。
 
 写入口只消费 Core 派生、经 bridge/app 校验的 typed action。只有 `allowed`、完整且一致的稳定目标、
 领域 prepare 能力和共享 prepare/cancel/confirm 三个命令全部具备时才开放入口；缺失、未知或冲突默认关闭。
@@ -47,7 +54,7 @@ authority，仍是最终业务权威。
 | 博雅签到/签退 | 消费 typed 签到 action；位置由平台能力提供，时间窗和签到点由 Core 重读校验，展示层不恢复 `canSign/canSignOut` | 成功或 `outcome_unknown` 时刷新关联考勤信息 |
 | 课堂签到 | 消费 `SigninPerformAction`；公开编号本身不能放行 | 成功或 `outcome_unknown` 时刷新今日课程 |
 | 图书馆预约/取消 | 预约消费完整座位/日期/时段 action；取消 action 固定 `id/page/limit`，状态文本只展示 | 刷新对应预约页；取消 prepare、commit 和回读保持同页 |
-| 场馆预约/取消 | 预约只选择一至两个同站点、日期、空间和空间组的 allowed action，时段 ID/原始序号唯一且序号相邻；取消消费 typed target | 预约成功收据与订单列表核对；取消成功或 unknown 固定原路线读取首页列表与同 ID 详情，仅消费本次严格取消证明 |
+| 研讨室预约/取消 | 预约只选择一至两个同站点、日期、空间和空间组的 allowed action，时段 ID/原始序号唯一且序号相邻；取消消费 typed target | 预约成功收据与订单列表核对；取消成功或 unknown 固定原路线读取首页列表与同 ID 详情，仅消费本次严格取消证明 |
 | 阳光打卡 | typed 提交、照片选择与回读能力齐备才开放入口；表单消费 Core 签发的分类/项目 target、完整本地时间和内存照片，权限失败或缺照片不进入 prepare | 成功或 unknown 按 intent 原路线各尝试一次概览与记录首页读取，结果不确定仍保持 unknown |
 | 教学评教 | 单门或批量选择非空、有序、无重复的 typed targets；完整问卷、题目和答案只留在 Core | 确定结果、部分失败、unknown 或 commit 异常都至多按原路线回读一次，保留逐课程四态结果 |
 
@@ -93,8 +100,8 @@ parts。维护实现时按下表定位，调用方不直接导入 part 文件。
 | 课表、考试、成绩、空教室查询控件 | [features/academic.dart](../../packages/ubaa_ui/lib/src/features/academic.dart) |
 | SPOC/Judge 作业与 Signin 课堂签到查询、签到按钮 | [features/assignments.dart](../../packages/ubaa_ui/lib/src/features/assignments.dart) |
 | 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc.dart](../../packages/ubaa_ui/lib/src/features/bykc.dart)、[libbook.dart](../../packages/ubaa_ui/lib/src/features/libbook.dart) |
-| 场馆、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy.dart](../../packages/ubaa_ui/lib/src/features/cgyy.dart)、[ygdk.dart](../../packages/ubaa_ui/lib/src/features/ygdk.dart)、[evaluation.dart](../../packages/ubaa_ui/lib/src/features/evaluation.dart) |
-| 场馆预约与阳光打卡输入表单 | [write/cgyy_form.dart](../../packages/ubaa_ui/lib/src/write/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/write/ygdk_form.dart) |
+| 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy.dart](../../packages/ubaa_ui/lib/src/features/cgyy.dart)、[ygdk.dart](../../packages/ubaa_ui/lib/src/features/ygdk.dart)、[evaluation.dart](../../packages/ubaa_ui/lib/src/features/evaluation.dart) |
+| 研讨室预约与阳光打卡输入表单 | [write/cgyy_form.dart](../../packages/ubaa_ui/lib/src/write/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/write/ygdk_form.dart) |
 | 意图摘要、错误、取消与提交按钮 | [write/confirmation.dart](../../packages/ubaa_ui/lib/src/write/confirmation.dart)；回调类型在 [write_callbacks.dart](../../packages/ubaa_ui/lib/src/write_callbacks.dart) |
 
 页面测试按领域位于 `packages/ubaa_ui/test/widgets/`，写命令接线测试位于

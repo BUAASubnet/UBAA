@@ -18,3 +18,10 @@
 
 
 P5-E最终审查补强：原生展示名不得修剪或替换掉非法原始值以绕过Dart canonical约束。Apple/Android对已提供的首尾空白、路径、引号、控制字符及超128码点展示名明确拒绝；仅Android provider未提供名称时使用明确的“所选图片”默认展示名，OHOS不从不透明URI猜文件名。Swift合成文件拒绝分支、Android构建与三端原生接线重新验证；原始文件保持只读。此补强不改变业务字段或资格。
+
+
+## P5-F Android旧版拍照恢复前核对（2026-09-12）
+
+基点5d988362。再次逐行读取冻结PlatformImagePicker.kt、Android PlatformImagePicker.android.kt及YgdkClockinFormScreen.kt照片区：图片与“拍摄照片”同一行，仅canCapturePhoto=true显示后者；Android使用TakePicturePreview返回Bitmap，在内存压缩JPEG质量92，以camera_时间戳.jpg和image/jpeg回传。JVM/iOS/OHOS不由此类推新增相机能力。examples无此UI或阳光拍照实现；学校上传/提交九列继续沿source-parity-ui-campus，不改变CAS、Cookie、参数、DTO、资格、缓存/并发、实际路线或错误合同。
+
+AndroidX官方源码[TakePicturePreview](https://android.googlesource.com/platform/frameworks/support/+/dd97834aa54671ee1f56d65fa46668b4ffeb57e8/activity/activity/src/main/java/androidx/activity/result/contract/ActivityResultContracts.kt)核实其Intent为MediaStore.ACTION_IMAGE_CAPTURE、成功结果Bitmap来自data extra。当前AndroidManifest没有CAMERA权限；恢复系统相机委托，不新增直接相机/存储权限或持久照片文件，能力探测需核对可处理Intent。必要优化为原生及Dart均受10MiB约束、固定错误、取消保原图、选择/拍照单pending及代次失效保护。拍照作为可选本地平台接口穿过宿主/共享UI，不能放宽学校业务写入资格。先记录缺少拍照能力行为RED，再实现、构建、脱敏原生渲染；真实设备相机操作仍独立验收。

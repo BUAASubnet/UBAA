@@ -79,7 +79,7 @@ DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 `createDefaultPlatformCapabilities()` 在两个 Flutter 宿主启动时先探测凭据、照片和位置能力；缺少
 原生 handler 或返回值不符合合同会安全归约为不可用，不会回退到明文文件、内存凭据或原始路径。
 
-照片能力已接入iOS14+系统PHPicker、macOS11+只读NSOpenPanel、Android系统GetContent及OHOS PhotoViewPicker。photos权限状态表示可以请求系统选择器，所选图片的访问由系统选择结果授予，不代表全量相册授权。macOS仅启用用户选中文件只读；路径/URI不离开原生层，图片限制10MiB，原生失败不伪装取消。系统窗口实操与旧Android拍照、Windows/Linux照片仍待验/接线，详见本轮P5-E证据。
+照片能力已接入iOS14+系统PHPicker、macOS11+只读NSOpenPanel、Android系统GetContent及OHOS PhotoViewPicker。photos权限状态表示可以请求系统选择器，所选图片的访问由系统选择结果授予，不代表全量相册授权。macOS仅启用用户选中文件只读；路径/URI不离开原生层，图片限制10MiB，原生失败不伪装取消。macOS系统窗口选择/取消/重选/超限/清除已补实操；手机/平板系统选图仍待。Android旧拍照已按P5-F接线并构建，真实相机待设备；Windows/Linux照片仍待接线，详见本轮分批证据。
 
 当前已完成 Dart typed 适配器、输入校验和 MethodChannel Mock 合同测试；Android Keystore、
 iOS/macOS Keychain、Linux Secret Service、Windows 安全存储和 HarmonyOS HUKS 的原生 handler
@@ -224,3 +224,6 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 
 
 照片原生适配定位（P5-E）：iOS与macOS的Runner/Platform/PhotoChannel.swift由对应AppDelegate/MainFlutterWindow注册，共用packages/ubaa_platform/native/apple/PhotoPayload.swift；Android的MainActivity委托platform/PhotoChannel.kt；OHOS EntryAbility委托platform/PhotoChannel.ets。每个宿主只有这一个handler拥有cn.edu.buaa.ubaa/platform统一通道，其他平台能力应在该路由中组合，不能重复注册同名通道覆盖照片。业务资格、typed输入及写入状态机仍由App/Core持有。
+
+
+P5-F可选拍照接口PlatformPhotoCapture与相册接口分开：MethodChannelPhotoPicker独立探测photo.captureCapability；不存在该方法不影响原相册能力。PermissionedPhotoPicker只为拍照请求camera委托状态，宿主仍要求原阳光写入/回读/照片资格。Android PhotoChannel统一处理photo.capture并按captureCode区别选图结果；CameraPhoto仅内存压缩JPEG92，输出流有10MiB边界。Manifest只声明IMAGE_CAPTURE包可见性查询，没有新增CAMERA或存储权限。共享UI在原照片区并列显示拍照，iOS/macOS/OHOS没有因此获得相机能力。

@@ -1,7 +1,7 @@
 part of 'ubaa_app_host.dart';
 
 extension _UbaaAppHostCallbacks on _UbaaAppHostState {
-  PlatformPhotoPicker? get _photoPicker {
+  PermissionedPhotoPicker? get _photoPicker {
     final picker = widget.photoPicker;
     final permissions = widget.permissionGateway;
     if (picker == null || !picker.isAvailable || permissions == null) {
@@ -149,6 +149,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onPrepareCgyySubmitWrite: _controller.prepareCgyySubmitWrite,
       onPrepareYgdkSubmitWrite: hasYgdkSubmissionCapabilities
           ? _controller.prepareYgdkWrite
+          : null,
+      onCaptureYgdkPhoto:
+          hasYgdkSubmissionCapabilities && photoPicker.canCapturePhoto
+          ? photoPicker.capturePhoto
           : null,
       onPickYgdkPhoto: hasYgdkSubmissionCapabilities
           ? photoPicker.pickPhoto

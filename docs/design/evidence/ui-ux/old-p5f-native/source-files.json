@@ -1,0 +1,23 @@
+{
+  "baseSha": "5d988362817555251f1d4138904e62a41daa367f",
+  "sourceDefine": "5d988362+P5F-r2",
+  "files": {
+    "apps/ubaa_flutter/android/app/src/main/AndroidManifest.xml": "909facfaf179fc66b0f36eac85ec14f128c42ad2cf948697d68cc0199e2c0cd6",
+    "apps/ubaa_flutter/android/app/src/main/kotlin/cn/edu/ubaa/ubaa_flutter/platform/CameraPhoto.kt": "6c1d1f54344f6f9ed3b57a1d01f5d6ecf1ccb9860c89894225719389ba5276fb",
+    "apps/ubaa_flutter/android/app/src/main/kotlin/cn/edu/ubaa/ubaa_flutter/platform/PhotoChannel.kt": "1c30e97d9ba81d0d6eb05ae96ff1becc044b85f2912b1f33e8cac7858d1826ca",
+    "apps/ubaa_flutter/integration_test/ui_photos/camera_test.dart": "a75cb808bf32f2de34a50b0259335e8c308077d0a15068edd9a0d178e7e7e253",
+    "packages/ubaa_host/lib/src/callbacks.dart": "fdb2528366a5af2d3a2a3dc21515f01377d72127f6b5ccaf1e1c40cf20566ef0",
+    "packages/ubaa_host/test/ubaa_app_host/capability_gates.dart": "cdbf83d22b6325dfde02bd4cee2c7e29f61af4dd58ec47e07e7b30d759c55d60",
+    "packages/ubaa_platform/lib/src/media.dart": "9dd8de21edeede5617364364027ecbf478eaccaaf3bde46ff91a0b19756ace68",
+    "packages/ubaa_platform/test/camera_test.dart": "df78b1f5fb8804761e7713e08bae5cc5bd52834e5f26a489008408edab613d0c",
+    "packages/ubaa_ui/lib/src/app/shell.dart": "a66c51daed2a41d753865a5a0aeed92bf80c417d01cd8896e5079c8cd7085a2c",
+    "packages/ubaa_ui/lib/src/common/detail_list.dart": "8975e7e70b4905f34fc28703bb3d5ef6515ce24f6e67b6e34704a136b7baecf5",
+    "packages/ubaa_ui/lib/src/common/feature_detail.dart": "6fe76f2b4ca5af0a9066f2f7f8985b1fea0b31fcc325c0589531a95bd1552f62",
+    "packages/ubaa_ui/lib/src/features/ygdk/home_flow.dart": "fa8308c8d0a74fdbf407b8381e45ba3b257b38dcabf48c1dd45b4cd2b320ead7",
+    "packages/ubaa_ui/lib/src/write/ygdk_draft.dart": "734e016b8856bad47fe2a92c8e4132f8165433285fbafa57443a72ad9e329d27",
+    "packages/ubaa_ui/lib/src/write/ygdk_form.dart": "6d5e68be47893c39330a48d055b88a894b599d4b5902754bb53f4ba1af712b13",
+    "packages/ubaa_ui/test/support/write_harness.dart": "4b564dead8bfcec9494565b1308c3f24d9faa689e17f6d96d6898ad8b273da0f",
+    "packages/ubaa_ui/test/widgets/ygdk_form.dart": "c6854c1a4c9c6a07c885356c8c5a15a80efef6649b9b27b513e2a661dbde29c7",
+    "packages/ubaa_ui/test/widgets/ygdk_writes.dart": "a787cf932f19b95e12e02640b5b99141b464a3d3c6b8ad1ce73d9727c2153a97"
+  }
+}

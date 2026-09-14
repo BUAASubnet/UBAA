@@ -238,3 +238,12 @@ P5-E本批局部终态：717项Flutter、just check、原生Apple图片边界通
 
 
 P5-E系统选图实操补验（2026-09-12）：当前20项源码SHA与r3记录完全一致。macOS真实App使用原生PhotoChannel/NSOpenPanel与明确SportsWriteBackend(success)内存业务，CUA实际选择蓝色PNG（116字节）、Cancel保留原图、重选橙色PNG（137字节）、选择12589062字节PNG被拒绝且保橙图、清除照片共5项通过；五张合成原生实窗逐张查看归档[系统选图补验](../design/evidence/ui-ux/old-p5e-native/system-picker/验收说明.md)。仅浅色局部通过，失败后成功重试/带图退出重入未验，清除后原失败提示仍保留。本轮Mac正文坐标与滚动已生效，旧交互阻塞不作当前结论；随后iPhone原生inspection启动成功，但点击阳光入口时CUA报告Mac锁屏，因此手机/平板系统选图仍待。原r3的systemPickerSelectionVerified=false保持其测试范围，不覆盖为真。0 prepare/0学校业务写入；Android旧拍照、Windows/Linux照片、OHOS设备及P4余项/P5全领域/P6/P7不因此完成。
+
+
+## P5-F Android旧版拍照恢复前核对（2026-09-12）
+
+基点5d988362。再次逐行读取冻结PlatformImagePicker.kt、Android PlatformImagePicker.android.kt及YgdkClockinFormScreen.kt照片区：图片与“拍摄照片”同一行，仅canCapturePhoto=true显示后者；Android使用TakePicturePreview返回Bitmap，在内存压缩JPEG质量92，以camera_时间戳.jpg和image/jpeg回传。JVM/iOS/OHOS不由此类推新增相机能力。examples无此UI或阳光拍照实现；学校上传/提交九列继续沿source-parity-ui-campus，不改变CAS、Cookie、参数、DTO、资格、缓存/并发、实际路线或错误合同。
+
+AndroidX官方源码[TakePicturePreview](https://android.googlesource.com/platform/frameworks/support/+/dd97834aa54671ee1f56d65fa46668b4ffeb57e8/activity/activity/src/main/java/androidx/activity/result/contract/ActivityResultContracts.kt)核实其Intent为MediaStore.ACTION_IMAGE_CAPTURE、成功结果Bitmap来自data extra。当前AndroidManifest没有CAMERA权限；恢复系统相机委托，不新增直接相机/存储权限或持久照片文件，能力探测需核对可处理Intent。必要优化为原生及Dart均受10MiB约束、固定错误、取消保原图、选择/拍照单pending及代次失效保护。拍照作为可选本地平台接口穿过宿主/共享UI，不能放宽学校业务写入资格。先记录缺少拍照能力行为RED，再实现、构建、脱敏原生渲染；真实设备相机操作仍独立验收。
+
+P5-F阶段保存（2026-09-14）：按用户暂停整理要求，保留既有Android相机委托、Platform/Host/UI接线与测试。当前17个源码及20张合成截图摘要一致；本轮723项Flutter、just check（含CLI端到端16项）、refs、敏感扫描与Android Debug APK构建均退出0。20图静态审阅及证据范围见[阶段说明](../design/evidence/ui-ux/old-p5f-native/阶段说明.md)。本轮没有运行设备集成或实时读取；Android真实相机、其他平台照片欠验与P4余项/P5全领域/P6/P7保持未完成。
