@@ -39,7 +39,7 @@ LOG-01至LOG-11的实现和独立复审已在41ece772完成，最终774项Flutte
 | SPOC SPC-01–02 | 搜索/清除、每张作业卡、详情刷新/返回、查询模式、已加载作业选择/取消、错误重试 | spoc/SpocAssignmentsScreen.kt、SpocAssignmentDetailScreen.kt | assignments.dart、coursework/assignment_content.dart、assignment_picker.dart→typed assignmentId；旧详情也只显示plainText，不擅自增加附件上传 |
 | 希冀 JDG-01–04 | 搜索/清除、包含过期、单项详情、加入批量、查看所选、清空选择、批量结果、返回、刷新、输入键选择 | judge/JudgeAssignmentsScreen.kt、JudgeAssignmentDetailScreen.kt | coursework/assignment_selection.dart与typed有序(courseId,assignmentId)；WebVPN真实父列表无ID，详情/批量不能记真读PASS |
 | 博雅 BY-01–05 | 三子菜单、个人资料查询、六状态筛选、状态不限/恢复默认、类别/校区筛选、页码/数量/翻页、课程详情、已选详情、选/退/签到/签退准备及确认取消、统计 | bykc/BykcHomeScreen.kt、BykcCoursesScreen.kt:368–457、BykcCourseDetailScreen.kt、ChosenCourses/Statistics | features/bykc/*→bridge/read/bykc.dart。状态、基本详情、已选权威动作存在；类别/适用校区和完整详情字段缺失，见下方。当前只过滤已加载服务器页，有范围提示 |
-| 图书馆 LIB-01–06 | 两子菜单、楼馆/楼层/分区、时段、日期、地图打开/缩放/拖动/重置/关闭、查询座位、选/取消选座、准备预约、确认/取消、预约记录翻页及取消准备 | libbook/LibBookReserveScreen.kt、LibBookViewModel.kt、LibBookBookingsScreen.kt | features/libbook/*；一页父子选择、地图和typed动作已接。时间chips只带id/start/end，日期被主动清空；必须手输日期，是已知关联缺口，需逐项核对正常任务是否可用 |
+| 图书馆 LIB-01–06 | 两子菜单、楼馆/楼层/分区、时段、日期、地图打开/缩放/拖动/重置/关闭、查询座位、选/取消选座、准备预约、确认/取消、预约记录翻页及取消准备 | libbook/LibBookReserveScreen.kt、LibBookViewModel.kt、LibBookBookingsScreen.kt | features/libbook/*；d6e53a97已接逐日日程、自然日期/时段选择和明确查询，旧手输入口仍保留；高级查询失败重试已补回归并独立复审。当前macOS实际按钮仍待验 |
 | 研讨室 CG-01–07 | 三子菜单、校区/日期/站点、房间时段切换、1–2相邻选择、下一步、用途选择、各表单字段、返回/准备/确认/取消、订单详情、翻页/取消、门锁刷新 | cgyy/CgyyReservePickerScreen.kt、FormScreen/OrdersScreen/LockCodeScreen、CgyyViewModel | features/cgyy/*、write/cgyy_form.dart。展示只消费Core资格，用途fallback注明来源。当前门锁只有available；旧密码与预约信息不是已保留能力 |
 | 阳光 YG-01–02/W-YG | 提醒开关、记录详情/关闭、加载更多、搜索、概览/记录查询、添加、运动项目、开始/结束选择和取消、地点、系统选图/取消/重选/清除、分享开关、准备/确认/取消 | ygdk/YgdkHomeScreen.kt、YgdkClockinFormScreen.kt | features/ygdk/*、write/ygdk_form.dart、PhotoHandler。macOS照片已接但仍需当前候选CUA；不宣称原生探测等于选图。旧自动选项目/随机时间/透明图默认值与现typed写入合同不同，见下 |
 | 课堂签到 SIG/W-SIG | 全部/可签到/已签到、课程详情/关闭、签到、统一确认/取消/返回、刷新 | signin/SigninScreen.kt、HomeScreen.kt | assignments.dart、coursework/course_participation.dart；仅allowed且scheduleId完整可准备；状态与资格不一致明确提示，不凭文案伪造已签到 |
@@ -62,3 +62,5 @@ LOG-01至LOG-11的实现和独立复审已在41ece772完成，最终774项Flutte
 - 敏感能力的已证字段、短期显示与未知协议边界见[实施前裁决](../migration/source-parity-ui-sensitive-displays.md)；不擅自扩散原始响应或凭据，不把待实现方案标为可用。
 - 解锁后逐个操作本表全部当前控件；真实记录/资格不存在时，在显式合成backend的真实macOS生产组件中补按钮流程，不记作真实学校写入。
 - 最后按最终源码运行门禁并核对每条证据。当前仍不满足全功能正常使用的完成判定。
+
+图书馆日期关联缺口已完成本批源码修复与限定复审，提交后FRB生成零漂移检查通过，见[实现与验证记录](../migration/evidence/2026-09-15-macos-ui-libbook.md)。上文第2项保留修复前根因及旧版行为依据，不能再将手输日期描述为当前源码的正常必经路径；实际App验收仍独立记录。

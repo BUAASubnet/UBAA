@@ -28,7 +28,7 @@ Keychain原生接线及两项独立审查问题已通过修复轮1复审，当�
 
 功能卡片语义动作已于02806bf1完成并通过独立规范/质量审查，UI275项及相关门禁通过；实际macOS语义激活仍待验。博雅追加确认了selected详情补查、三种详情入口和跨重启筛选偏好，全部纳入后续修复。最终候选的[221个操作检查点](../design/macos-ui-button-checklist.md)保持待实操，不继承前阶段局部PASS。
 
-Task3C正在实现图书馆逐日期时段接口，本专项未发布候选按裁决采用 Flutter bridge contract v10；CLI JSON schema v10、Session v2、配置v1保持。此处是当前实施合同，尚不代表绑定、完整门禁或原生App已通过。
+Task3C图书馆逐日日程与自然选座查询已在d6e53a97实现并通过独立审查；审查发现的高级跨分区查询失败重试问题已修复，修复后28项聚焦、原探针2项、敏感检查及check通过，提交后正式生成检查退出0。修复前完整Flutter816项单独保留，不冒充修复后全套。当前未发布候选采用 Flutter bridge contract v10；CLI JSON schema v10、Session v2、配置v1保持。实际macOS日期/时段及最终候选live仍待验，详见[本批证据](evidence/2026-09-15-macos-ui-libbook.md)。
 
 ## 暂停前阶段记录
 
