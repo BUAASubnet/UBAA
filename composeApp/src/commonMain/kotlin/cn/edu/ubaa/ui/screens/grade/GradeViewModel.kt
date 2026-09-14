@@ -22,11 +22,11 @@ internal interface GradeTermsSource {
   suspend fun getTerms(forceRefresh: Boolean): Result<List<Term>>
 }
 
-private class ApiGradeDataSource(private val gradeApi: GradeApi = GradeApi()) : GradeDataSource {
+internal class ApiGradeDataSource(private val gradeApi: GradeApi = GradeApi()) : GradeDataSource {
   override suspend fun getGrades(termCode: String): Result<GradeData> = gradeApi.getGrades(termCode)
 }
 
-private class RepositoryGradeTermsSource(
+internal class RepositoryGradeTermsSource(
     private val termRepository: TermRepository = GlobalTermRepository.instance
 ) : GradeTermsSource {
   override suspend fun getTerms(forceRefresh: Boolean): Result<List<Term>> =

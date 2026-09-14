@@ -10,6 +10,7 @@ import cn.edu.ubaa.api.local.LocalUpstreamClientProvider
 import cn.edu.ubaa.api.storage.AuthTokensStore
 import cn.edu.ubaa.api.storage.ClientIdStore
 import cn.edu.ubaa.api.storage.CredentialStore
+import cn.edu.ubaa.api.storage.GradeScoreCacheStore
 import cn.edu.ubaa.repository.GlobalTermRepository
 import cn.edu.ubaa.supportsLocalConnectionModes
 import com.russhwolf.settings.Settings
@@ -111,6 +112,7 @@ object ConnectionRuntime {
   fun resetSession() {
     AuthTokensStore.clearAllScopes()
     ClientIdStore.clearAllScopes()
+    GradeScoreCacheStore.clearAllScopes()
     LocalAuthSessionStore.clearAllScopes()
     LocalCookieStore.clearAllScopes()
     CredentialStore.setAutoLogin(false)

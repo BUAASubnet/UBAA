@@ -10,14 +10,18 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.CookiesStorage
+import io.ktor.client.request.forms.FormDataContent
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.Url
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -159,9 +163,27 @@ class SigninClientTest {
   }
 
   @Test
-  fun `sign in submits to eschool endpoint after resolving loginName`() = runBlocking {
+  fun `直连签到使用 8081 eschool 路径且保留提交参数`() = runBlocking { assertSigninRequest(useWebVpn = false) }
+
+  @Test
+  fun `WebVPN 签到使用 8347 app 路径且保留提交参数`() = runBlocking { assertSigninRequest(useWebVpn = true) }
+
+  private suspend fun assertSigninRequest(useWebVpn: Boolean) {
     val originalVpnEnabled = VpnCipher.isEnabled
-    VpnCipher.isEnabled = false
+    VpnCipher.isEnabled = useWebVpn
+    val expectedHost = if (useWebVpn) "d.buaa.edu.cn" else "iclass.buaa.edu.cn"
+    val timestampUrl =
+        if (useWebVpn) {
+          "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action"
+        } else {
+          "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
+        }
+    val submitUrl =
+        if (useWebVpn) {
+          "https://iclass.buaa.edu.cn:8347/app/course/stu_scan_sign.action"
+        } else {
+          "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action"
+        }
     val loginName = "Rjc1QkJDMUMxNzVENkY0NkZCNzFDMEM5RjYwNzg4RDg="
     val sessionManager =
         SessionManager(
@@ -171,10 +193,12 @@ class SigninClientTest {
               HttpClient(MockEngine) {
                 engine {
                   addHandler { request ->
+                    assertEquals(expectedHost, request.url.host)
+                    val upstreamUrl = Url(VpnCipher.fromVpnUrl(request.url.toString()))
                     when {
-                      request.url.host == "iclass.buaa.edu.cn" &&
-                          request.url.port == 8346 &&
-                          request.url.parameters["type"] == "jumpMyCenter" ->
+                      upstreamUrl.host == "iclass.buaa.edu.cn" &&
+                          upstreamUrl.port == 8346 &&
+                          upstreamUrl.parameters["type"] == "jumpMyCenter" ->
                           respond(
                               content = "",
                               status = HttpStatusCode.Found,
@@ -184,8 +208,7 @@ class SigninClientTest {
                                       "https://iclass.buaa.edu.cn:8346/?loginName=$loginName&type=jumpMyCenter#/MyCenter",
                                   ),
                           )
-                      else ->
-                          error("Unexpected SSO request: ${request.method.value} ${request.url}")
+                      else -> error("未预期的 SSO 请求：${request.method.value} ${request.url}")
                     }
                   }
                 }
@@ -197,10 +220,12 @@ class SigninClientTest {
           install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
           engine {
             addHandler { request ->
+              assertEquals(expectedHost, request.url.host)
+              val upstreamUrl = Url(VpnCipher.fromVpnUrl(request.url.toString()))
               when {
-                request.url.host == "iclass.buaa.edu.cn" &&
-                    request.url.port == 8347 &&
-                    request.url.encodedPath == "/app/user/login.action" -> {
+                upstreamUrl.host == "iclass.buaa.edu.cn" &&
+                    upstreamUrl.port == 8347 &&
+                    upstreamUrl.encodedPath == "/app/user/login.action" -> {
                   assertEquals(loginName, request.url.parameters["phone"])
                   respond(
                       content =
@@ -215,8 +240,7 @@ class SigninClientTest {
                           ),
                   )
                 }
-                request.url.toString() ==
-                    "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action" ->
+                upstreamUrl.toString() == timestampUrl ->
                     respond(
                         content = ByteReadChannel("""{"timestamp":"1713600000"}"""),
                         status = HttpStatusCode.OK,
@@ -226,9 +250,11 @@ class SigninClientTest {
                                 ContentType.Application.Json.toString(),
                             ),
                     )
-                request.url.toString() ==
-                    "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" -> {
+                upstreamUrl.toString() ==
+                    "$submitUrl?courseSchedId=course-1&timestamp=1713600000" -> {
+                  assertEquals(HttpMethod.Post, request.method)
                   assertEquals("session-1", request.headers["sessionId"])
+                  assertEquals("user-1", assertIs<FormDataContent>(request.body).formData["id"])
                   respond(
                       content =
                           ByteReadChannel(
@@ -242,7 +268,19 @@ class SigninClientTest {
                           ),
                   )
                 }
-                else -> error("Unexpected app request: ${request.method.value} ${request.url}")
+                // 与真实上游一致，带有 /eschool 的 8347 请求不能返回签到成功。
+                upstreamUrl
+                    .toString()
+                    .startsWith(
+                        "https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action"
+                    ) ->
+                    respond(
+                        content = ByteReadChannel("<html><title>404 Not Found</title></html>"),
+                        status = HttpStatusCode.NotFound,
+                        headers =
+                            headersOf(HttpHeaders.ContentType, ContentType.Text.Html.toString()),
+                    )
+                else -> error("未预期的 app 请求：${request.method.value} ${request.url}")
               }
             }
           }

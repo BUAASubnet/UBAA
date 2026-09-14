@@ -140,7 +140,11 @@ internal class LocalSigninApiBackend : SigninApiBackend {
 
       val response =
           LocalUpstreamClientProvider.shared().submitForm(
-              url = localSigninCheckinUrl("eschool/app/course/stu_scan_sign.action"),
+              url =
+                  localSigninCheckinUrl(
+                      directPath = "eschool/app/course/stu_scan_sign.action",
+                      webVpnPath = "app/course/stu_scan_sign.action",
+                  ),
               formParameters = Parameters.build { append("id", signinSession.userId) },
           ) {
             header("sessionId", signinSession.sessionId)
@@ -256,13 +260,14 @@ private data class LocalSigninSession(
     val sessionId: String,
 )
 
-private fun localSigninCheckinUrl(path: String): String {
-  val base =
+// 8347 的签到提交入口没有 /eschool 前缀，端口和路径需要一起选择。
+private fun localSigninCheckinUrl(directPath: String, webVpnPath: String = directPath): String {
+  val upstreamUrl =
       when (ConnectionRuntime.currentMode()) {
-        ConnectionMode.WEBVPN -> "https://iclass.buaa.edu.cn:8347"
-        else -> "http://iclass.buaa.edu.cn:8081"
+        ConnectionMode.WEBVPN -> "https://iclass.buaa.edu.cn:8347/$webVpnPath"
+        else -> "http://iclass.buaa.edu.cn:8081/$directPath"
       }
-  return localUpstreamUrl("$base/$path")
+  return localUpstreamUrl(upstreamUrl)
 }
 
 private fun mapSigninClass(element: JsonElement): SigninClassDto {

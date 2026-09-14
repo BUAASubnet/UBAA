@@ -20,7 +20,7 @@ class BykcCourseFilterStoreTest {
     BykcCourseFilterStore.settings = MapSettings()
 
     BykcCourseFilterStore.save(
-        "23373270",
+        "test-user",
         StoredBykcCourseFilters(
             statuses = listOf("AVAILABLE", "FULL"),
             categories = listOf("德育"),
@@ -38,7 +38,7 @@ class BykcCourseFilterStoreTest {
             categories = listOf("德育"),
             campuses = listOf("学院路校区"),
         ),
-        BykcCourseFilterStore.get("23373270"),
+        BykcCourseFilterStore.get("test-user"),
     )
     assertEquals(
         StoredBykcCourseFilters(statuses = listOf("ENDED")),
@@ -50,12 +50,12 @@ class BykcCourseFilterStoreTest {
   fun `clear removes only target user filters`() {
     BykcCourseFilterStore.settings = MapSettings()
 
-    BykcCourseFilterStore.save("23373270", StoredBykcCourseFilters(statuses = listOf("AVAILABLE")))
+    BykcCourseFilterStore.save("test-user", StoredBykcCourseFilters(statuses = listOf("AVAILABLE")))
     BykcCourseFilterStore.save("other", StoredBykcCourseFilters(statuses = listOf("ENDED")))
 
-    BykcCourseFilterStore.clear("23373270")
+    BykcCourseFilterStore.clear("test-user")
 
-    assertNull(BykcCourseFilterStore.get("23373270"))
+    assertNull(BykcCourseFilterStore.get("test-user"))
     assertEquals(
         StoredBykcCourseFilters(statuses = listOf("ENDED")),
         BykcCourseFilterStore.get("other"),

@@ -223,7 +223,11 @@ class SigninClient(
       AppObservability.observeUpstreamRequest("iclass", "sign_in") {
         val response =
             client.submitForm(
-                url = signinCheckinUrl("eschool/app/course/stu_scan_sign.action"),
+                url =
+                    signinCheckinUrl(
+                        directPath = "eschool/app/course/stu_scan_sign.action",
+                        webVpnPath = "app/course/stu_scan_sign.action",
+                    ),
                 formParameters = Parameters.build { append("id", userId!!) },
             ) {
               header("sessionId", sessionId)
@@ -264,14 +268,15 @@ class SigninClient(
     }
   }
 
-  private fun signinCheckinUrl(path: String): String {
-    val base =
+  // 8347 的签到提交入口没有 /eschool 前缀，端口和路径需要一起选择。
+  private fun signinCheckinUrl(directPath: String, webVpnPath: String = directPath): String {
+    val upstreamUrl =
         if (VpnCipher.isEnabled) {
-          "https://iclass.buaa.edu.cn:8347"
+          "https://iclass.buaa.edu.cn:8347/$webVpnPath"
         } else {
-          "http://iclass.buaa.edu.cn:8081"
+          "http://iclass.buaa.edu.cn:8081/$directPath"
         }
-    return VpnCipher.toVpnUrl("$base/$path")
+    return VpnCipher.toVpnUrl(upstreamUrl)
   }
 
   fun close() {
