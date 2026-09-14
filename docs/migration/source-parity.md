@@ -744,3 +744,8 @@ O3-E2成绩旧统计/卡片、全学期聚合及首页变化提醒的实施前�
 
 
 E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-parity-ui-schedule-old.md)。已核对公开color字段，协议不改；自然周选择仍待接线。
+
+## 2026-09-15 macOS逐按钮审查补充
+
+- [macOS安全凭据通道](source-parity-ui-macos-credentials.md)：记住密码与自动登录的原生Keychain接线，沿既有认证协议。
+- [登录选项与凭据失败恢复](source-parity-ui-login-options.md)：旧开关联动、保存凭据恢复与本地失败后的UI状态。

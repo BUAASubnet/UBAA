@@ -2,7 +2,7 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
-  private var photoChannel: NSObject?
+  private var platformChannel: PlatformChannel?
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
@@ -10,9 +10,7 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
-    if #available(macOS 11.0, *) {
-      photoChannel = PhotoChannel(messenger: flutterViewController.engine.binaryMessenger, window: self)
-    }
+    platformChannel = PlatformChannel(messenger: flutterViewController.engine.binaryMessenger, window: self)
 
     super.awakeFromNib()
   }

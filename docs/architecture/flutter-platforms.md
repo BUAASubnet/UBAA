@@ -81,9 +81,12 @@ DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 
 照片能力已接入iOS14+系统PHPicker、macOS11+只读NSOpenPanel、Android系统GetContent及OHOS PhotoViewPicker。photos权限状态表示可以请求系统选择器，所选图片的访问由系统选择结果授予，不代表全量相册授权。macOS仅启用用户选中文件只读；路径/URI不离开原生层，图片限制10MiB，原生失败不伪装取消。macOS系统窗口选择/取消/重选/超限/清除已补实操；手机/平板系统选图仍待。Android旧拍照已按P5-F接线并构建，真实相机待设备；Windows/Linux照片仍待接线，详见本轮分批证据。
 
-当前已完成 Dart typed 适配器、输入校验和 MethodChannel Mock 合同测试；Android Keystore、
-iOS/macOS Keychain、Linux Secret Service、Windows 安全存储和 HarmonyOS HUKS 的原生 handler
-尚未接入，实体设备权限、生命周期和硬件安全存储验证继续记录为后置 `BLOCKED`。
+当前已完成 Dart typed 适配器、输入校验和 MethodChannel Mock 合同测试；macOS 已增加真实
+Keychain handler，并完成唯一合成 namespace 的原生保存/新适配器读取/更新/删除、输入拒绝与
+照片能力回归。固定服务与 namespace 精确寻址、禁用同步，不导入旧凭据或读 Core 会话；详情见
+[macOS 凭据双来源对照](../migration/source-parity-ui-macos-credentials.md)。真实 App 的记住密码与
+自动登录验收单独记录。Android Keystore、iOS Keychain、Linux Secret Service、Windows 安全存储
+和 HarmonyOS HUKS handler 及其设备验证仍为后置 `BLOCKED`。
 
 两个平台 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host`
 负责 AppController 生命周期与 callback 接线。生产默认通过 `createProductionBackend()` 打开
@@ -223,7 +226,13 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 决定写资格，场馆选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。
 
 
-照片原生适配定位（P5-E）：iOS与macOS的Runner/Platform/PhotoChannel.swift由对应AppDelegate/MainFlutterWindow注册，共用packages/ubaa_platform/native/apple/PhotoPayload.swift；Android的MainActivity委托platform/PhotoChannel.kt；OHOS EntryAbility委托platform/PhotoChannel.ets。每个宿主只有这一个handler拥有cn.edu.buaa.ubaa/platform统一通道，其他平台能力应在该路由中组合，不能重复注册同名通道覆盖照片。业务资格、typed输入及写入状态机仍由App/Core持有。
+照片原生适配定位（P5-E）：iOS 的 `Runner/Platform/PhotoChannel.swift` 由 AppDelegate 注册；
+macOS 的 MainFlutterWindow 注册 `Runner/Platform/PlatformChannel.swift`，组合
+`PhotoHandler.swift` 与 `CredentialHandler.swift`。两端图片解码共用
+`packages/ubaa_platform/native/apple/PhotoPayload.swift`；Android 的 MainActivity 委托
+`platform/PhotoChannel.kt`，OHOS EntryAbility 委托 `platform/PhotoChannel.ets`。每个宿主只允许
+一个拥有者注册 `cn.edu.buaa.ubaa/platform`，其他能力必须在该路由中组合。业务资格、typed 输入
+及写入状态机仍由 App/Core 持有。
 
 
 P5-F可选拍照接口PlatformPhotoCapture与相册接口分开：MethodChannelPhotoPicker独立探测photo.captureCapability；不存在该方法不影响原相册能力。PermissionedPhotoPicker只为拍照请求camera委托状态，宿主仍要求原阳光写入/回读/照片资格。Android PhotoChannel统一处理photo.capture并按captureCode区别选图结果；CameraPhoto仅内存压缩JPEG92，输出流有10MiB边界。Manifest只声明IMAGE_CAPTURE包可见性查询，没有新增CAMERA或存储权限。共享UI在原照片区并列显示拍照，iOS/macOS/OHOS没有因此获得相机能力。
