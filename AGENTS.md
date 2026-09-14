@@ -8,6 +8,7 @@
 
 - Treat `ubaa_old/`, `examples/`, `.env.local`, runtime sessions, captcha images, and live responses as read-only sensitive inputs.
 - Never commit credentials, cookies, tokens, raw live bodies, complete personal data, or captcha images.
+- UI 运行截图、录屏等验收媒体保存到仓库外的私有目录，不纳入 Git；`docs/design/evidence/` 仅提交原型源文件、文字记录、元数据与摘要。`UBAA_UI_EVIDENCE_DIR` 必须指向仓库外目录；应用图标、静态地图和 golden 测试基准属于工程资源，继续按现有规则管理。归档与旧提交映射见 `docs/design/evidence/README.md`。
 - Never disable TLS verification or infer an upstream field or URL without evidence.
 - Do not expose `upstream` internals to hosts; hosts use the `facade` API.
 

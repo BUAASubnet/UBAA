@@ -25,6 +25,22 @@ session.json
 *.captcha
 *.captcha.*
 
+# UI 验收媒体保存在仓库外；目录中只提交文字、元数据和摘要。
+/docs/design/evidence/**/*.png
+/docs/design/evidence/**/*.jpg
+/docs/design/evidence/**/*.jpeg
+/docs/design/evidence/**/*.gif
+/docs/design/evidence/**/*.webp
+/docs/design/evidence/**/*.bmp
+/docs/design/evidence/**/*.tif
+/docs/design/evidence/**/*.tiff
+/docs/design/evidence/**/*.heic
+/docs/design/evidence/**/*.avif
+/docs/design/evidence/**/*.mp4
+/docs/design/evidence/**/*.mov
+/docs/design/evidence/**/*.webm
+/docs/design/evidence/**/*.mkv
+
 # Editor and operating-system files
 .DS_Store
 .idea/

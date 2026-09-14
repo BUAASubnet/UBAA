@@ -1,0 +1,14 @@
+{
+  "archiveId": "UBAA-ui-ux-20260914",
+  "storage": "external-private-directory",
+  "logicalPathRoot": "docs/design/evidence/",
+  "originalHead": "b5d35422e6f30f0f2e24b612c2b0f3185330cd7b",
+  "filteredHead": "0e14d5144db3e9537ec335b8aa59b24f9585d1a3",
+  "publishedBase": "347eda209cda9f5a85804e8fffb93e84ab489188",
+  "imageCount": 3981,
+  "imageBytes": 1397627832,
+  "copiedEvidenceFiles": 8001,
+  "manifestFile": "screenshot-manifest.json",
+  "manifestSha256": "2ffff9c1f3521ed7e5c1c28e181b5145957585e21d1d003898244773f75e7b59",
+  "containsImageBytes": false
+}
