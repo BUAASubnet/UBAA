@@ -15,8 +15,9 @@
 
 - 首次登录后，在课表页点击“更新课表”导入整个学期。普通浏览、首页刷新和切换周次只读取本地，不自动查询或更新学校课表。
 - 课表页左侧学期名称可切换学期；“导入系统当前学期”用于新学期开学后的首次导入。已保存的历史学期继续保留，未保存的学期需要选中后手动更新。
-- 本地直连/WebVPN 的研究生课表从一次 `loadKbxx.do` 响应生成全部周次；本科及服务器中转依次读取该学期全部周课表。
+- 本地直连/WebVPN 的研究生课表从一次 GSMIS `bykb/loadXskbData.do` 响应生成全部周次；本科及服务器中转依次读取该学期全部周课表。
 - 所有周次成功后才保存，失败或取消不会覆盖旧课表。页面展示最后成功更新时间，更新失败时仍显示旧课表。
+- 整学期缓存按小块写入，全部写入成功后才发布新版本，兼容桌面 `Preferences` 的单值长度限制。旧版单值缓存仍可读取，并在下次成功更新后迁移；读取不触发迁移或联网。
 - 首页根据本地日期和周次计算当天课程，不调用今日课表接口。切换学期浏览不影响首页当天课程。
 - 课表按成功登录的学号隔离，切换连接模式不删除缓存。注销后关闭离线访问入口，重新登录同一账号后可再次读取该账号缓存。
 - 断网重启后可从登录页点击“查看已保存的离线课表”，查看当天课程和周课表；此入口不授予在线登录状态。尚未成功导入时没有离线课表。
@@ -32,21 +33,20 @@
 
 ### 研究生课表
 
-- 与官方 `coursejsp.js` 的“已选课程课表”规则一致：仅展示 `xkjgList.SFYXXKJG=0` 对应教学班的排课；`1` 为预选。按教学班号关联排课与实际日期，同班同时存在预选和已选记录时保留正式记录。升级此筛选规则后，需要手动更新课表一次以替换旧缓存。
-
-- 本科课表不可用时直接尝试 YJSXK 选课系统的 `xsxkCourse/loadKbxx.do?sfyx=0`，不依赖 GSMIS 门户探测。成功后，本次登录的课表请求继续使用研究生数据源。
-- 已适配 WebVPN 将 `/wengine-vpn/js/main.js` 引导脚本插入 `PKSJDDMS` 字符串、破坏 JSON 引号的问题：仅在 JSON 解析失败时移除已识别的网关注入脚本后重试；合法 JSON、普通 HTML 和其他脚本不改写，排课字段仍严格校验。
-- 通过官方 `*default/index.do` 入口建立选课系统会话；`course.html` 是公开静态页面，不能用它判断登录成功。本地连接报错区分登录、课表请求和解析阶段，只显示阶段、HTTP 状态或异常类型，不显示 Cookie 或响应正文。
-- 学期来自当前已选课表响应；该接口没有返回的历史学期不会凭空生成。
+- 数据源为 GSMIS“我的课表”，入口是 `https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/*default/index.do`。本地连接与服务器中转复用各自的 SSO 会话和 WebVPN 地址转换。
+- 学期列表通过 POST `modules/xskcb/kfdxnxqcx.do` 获取；读取 `datas.kfdxnxqcx.rows`，校验 `totalSize` 和学期代码后选择所需学期。
+- 课表通过 POST `bykb/loadXskbData.do` 获取，表单为 `ZC=&XNXQDM=<所选学期>&XH=&XQDM=`。课程来自 `rwList`，排课来自 `jgList`，完整作息表来自 `jcfaList[].skjcList`。
+- 已确认本科门户可用的账号继续查询本科课表。门户探测不可用或要求认证时，课表模块保留主会话并验证 GSMIS 课表子应用；由课表接口自身的认证和响应决定是否成功。服务器在课表请求成功后可确认研究生门户类型。
+- 本地连接报错区分登录、课表请求和解析阶段，只显示阶段、HTTP 状态或异常类型。主页面不展示响应正文，解析失败时可由用户主动导出本次响应。
 - 按周次位图筛选排课，同一教学班、地点、教师及周次的连续节次合并显示。节次和时刻均来自上游，支持第 14 节晚课。
-- 用实际排课日期与周次交叉校验第 1 周的星期一；缺少对应日期或调课造成冲突时不猜测校历。位图长度仅作为可查询周次范围，不代表官方学期长度。
+- 使用 `rwList.SCSKRQ` 的首次上课日期和排课周次、星期交叉校验第 1 周的星期一；缺少对应日期或数据冲突时拒绝覆盖缓存。位图长度仅作为可查询周次范围，不代表官方学期长度。
 - 已选但未排课的课程不会伪造上课时间；当前周没有排课可以正常显示空课表。
 - 直连/WebVPN 需要更新客户端；服务器中转需要部署包含此适配的后端，安装新 APK 不会更新公共服务器。
 - 研究生考试安排仍未接入，本次课表适配不改变考试接口的支持范围。
 
-本地可用 `UBAA_GRADUATE_SCHEDULE_SAMPLE` 指定仓库外的原始响应文件，并运行 `:shared:jvmTest --tests '*GraduateSchedule*'`，逐周校验排课。请勿把包含个人信息或登录 Cookie 的响应提交到仓库。
+GSMIS 真实样本验证使用仓库外的目录，内含 `课表响应.txt` 和 `学期候选响应.txt`。运行 `./gradlew :shared:jvmTest --tests '*GsmisScheduleSampleTest' -PgsmisScheduleSampleDir=样本目录绝对路径`；也可设置 `UBAA_GSMIS_SCHEDULE_SAMPLE_DIR`。Gradle 会将目录纳入测试输入。当前可选样本测试针对 `20261` 学期和 2026-09-07 开学的样本，其他学期应先调整预期校历。未提供样本时测试跳过。
 
-也可用 `-PgraduateScheduleSample=样本绝对路径` 显式指定样本；Gradle 将文件纳入测试输入，未指定样本时该项显示为跳过。
+历史 YJSXK 解析器及网关注入清理只保留作旧样本兼容验证。`-PgraduateScheduleSample=样本绝对路径` 或 `UBAA_GRADUATE_SCHEDULE_SAMPLE` 配合 `--tests '*GraduateScheduleSampleTest'` 验证旧格式。请勿把包含个人信息或登录 Cookie 的响应提交到仓库。
 本地直连/WebVPN 的 JSON 解析失败时，课表页可手动复制本次响应以复现问题。响应只留在内存，不自动复制或发送，不包含请求头；仍可能包含姓名、学号和课程信息，请勿公开发布。
 
 ## 考试能力
@@ -78,6 +78,10 @@
 - `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/exam/ExamViewModel.kt`
 - `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt`
 - `shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalScheduleApi.kt`
+- `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/GraduateScheduleUpstream.kt`
+- `shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/GsmisSchedule.kt`
+- `shared/src/commonMain/kotlin/cn/edu/ubaa/repository/ScheduleRepository.kt`
+- `shared/src/commonMain/kotlin/cn/edu/ubaa/repository/ScheduleSnapshotStorage.kt`
 - `shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Schedule.kt`
 - `shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Exam.kt`
 - `server/src/main/kotlin/cn/edu/ubaa/schedule/ScheduleRoutes.kt`

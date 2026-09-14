@@ -50,6 +50,14 @@ tasks.withType<Test>().configureEach {
     inputs.file(sample).withPropertyName("graduateScheduleSample")
     environment("UBAA_GRADUATE_SCHEDULE_SAMPLE", sample.get())
   }
+  val gsmisSample =
+      providers
+          .gradleProperty("gsmisScheduleSampleDir")
+          .orElse(providers.environmentVariable("UBAA_GSMIS_SCHEDULE_SAMPLE_DIR"))
+  if (gsmisSample.isPresent) {
+    inputs.dir(gsmisSample).withPropertyName("gsmisScheduleSampleDir")
+    systemProperty("gsmisSampleDir", gsmisSample.get())
+  }
 }
 
 kotlin {

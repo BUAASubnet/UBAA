@@ -53,12 +53,12 @@ object ScheduleStore {
   }
 
   fun read(account: String): List<SemesterSchedule> =
-      settings.getStringOrNull("schedule_v1_$account")?.let {
+      ScheduleSnapshotStorage(settings).read(account)?.let {
         json.decodeFromString<List<SemesterSchedule>>(it)
       } ?: emptyList()
 
   fun write(account: String, semesters: List<SemesterSchedule>) {
-    settings.putString("schedule_v1_$account", json.encodeToString(semesters))
+    ScheduleSnapshotStorage(settings).write(account, json.encodeToString(semesters))
     revision.update { it + 1 }
   }
 

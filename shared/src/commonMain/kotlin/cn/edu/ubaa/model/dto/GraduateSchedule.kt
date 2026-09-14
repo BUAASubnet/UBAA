@@ -22,7 +22,7 @@ internal fun removeGraduateWebVpnScripts(body: String): String =
       if (bootstrap || loader) "" else script
     }
 
-/** YJSXK 已选课表。仅读取排课字段，不保存响应中的学号、姓名或选课人信息。 */
+/** 将 GSMIS 规范化排课或历史 YJSXK 样本转换为周课表，仅读取排课所需字段。 */
 class GraduateSchedule
 private constructor(
     private val rows: List<JsonObject>,
