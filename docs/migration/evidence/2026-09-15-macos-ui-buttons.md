@@ -81,3 +81,12 @@
 实现测试与原样回放日志位于仓库外私有 `macos-ui-20260915/login-fix/repair-1/`；独立审查记录位于 `login-review/` 及 `login-review/repair-1-review/`。11个实现/测试文件的scope-manifest摘要已核对；限定差异由前次12文件候选快照生成，仅改变5文件，SHA-256为 `b1dcf5c6da66a816474c77a11eb46183c25fff1b1ea26dd563b6843717e44e29`，不是拿HEAD全差异冒充本轮修复。
 
 本批没有改变Core认证参数、Bridge/CLI合同或原生Keychain；没有重建native、真实学校认证、CUA、live、CI或发布。当前运行的生产App仍是前一原生阶段产物。后续须在重建后的候选实际验证登录选项、项目链接、跨进程恢复及清除；774项确定性成功不替代这些验收。
+
+## N1：十二个功能卡片的语义点击
+
+共享 `_FeatureCard` 的完整标签节点原本标为button，却没有tap动作；内部物理点击正常。只增加外层 `onTap: onTap` 与 `excludeSemantics: true`，使同一卡片只提供一个完整的语义动作，保留原物理手势、内容和布局。
+
+- 最终同份正式测试与基点生产文件组合：12项语义激活均未进入页面，12项物理点击通过，退出1；恢复两行修复后24/24通过，退出0。语义用例经实际 `SemanticsOwner.performAction` 激活，并检查正确目标、完整标签、唯一动作及一次返回。
+- 既有导航81项、UI全包275项、format/analyze、refs、layout、敏感检查及check均通过。24、81、275存在包含关系，不合计成独立总数；check包含CLI端到端16项。
+- 独立审查核对三个候选文件/基点摘要、RED测试副本与日志，规范和质量均通过，无未决修改项。候选审查包摘要为 `870c47a427cf9efe1992ebd8d38b5d9de763753d74f2206af0b9f8cbc6e6888a`。
+- 日志保存在仓库外私有 `macos-ui-20260915/navigation-actions/`。本批未构建或操作native App、未运行live，真实macOS语义按钮点击仍待CUA复测。

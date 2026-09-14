@@ -655,6 +655,8 @@ class _FeatureCard extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
+      excludeSemantics: true,
+      onTap: onTap,
       label:
           '${feature.title}：${snapshot.summary ?? feature.description}。点击查看详情',
       child: Card(
