@@ -42,6 +42,7 @@ session.json
 /docs/design/evidence/**/*.mkv
 
 # Editor and operating-system files
+.worktrees/
 .DS_Store
 .idea/
 .vscode/
