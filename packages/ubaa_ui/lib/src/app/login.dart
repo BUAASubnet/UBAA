@@ -20,6 +20,7 @@ class UbaaLoginView extends StatefulWidget {
     required this.onRoutePolicyChanged,
     required this.onSubmit,
     this.onReadDiagnostics,
+    this.onOpenAppLink,
     super.key,
   });
 
@@ -40,6 +41,7 @@ class UbaaLoginView extends StatefulWidget {
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final VoidCallback onSubmit;
   final String Function()? onReadDiagnostics;
+  final Future<bool> Function(AppLink)? onOpenAppLink;
 
   @override
   State<UbaaLoginView> createState() => _UbaaLoginViewState();
@@ -50,6 +52,7 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
   late final TextEditingController _passwordController;
   late final TextEditingController _captchaController;
   bool _obscurePassword = true;
+  bool _openingProject = false;
 
   @override
   void initState() {
@@ -86,6 +89,23 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
     _passwordController.dispose();
     _captchaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openProject() async {
+    if (widget.isLoading || _openingProject || widget.onOpenAppLink == null)
+      return;
+    setState(() => _openingProject = true);
+    var opened = false;
+    try {
+      opened = await widget.onOpenAppLink!(AppLink.project);
+    } on Object {
+      opened = false;
+    }
+    if (!mounted) return;
+    if (!opened && !widget.isLoading) {
+      await _showAppLinkFailure(context, AppLink.project);
+    }
+    if (mounted) setState(() => _openingProject = false);
   }
 
   @override
@@ -217,13 +237,26 @@ class _UbaaLoginViewState extends State<UbaaLoginView> {
                               ),
                           ],
                           const SizedBox(height: 32),
-                          Text(
-                            '开源项目: github.com/BUAASubnet/UBAA',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                            textAlign: TextAlign.center,
+                          Semantics(
+                            link: true,
+                            child: InkWell(
+                              onTap:
+                                  widget.isLoading ||
+                                      _openingProject ||
+                                      widget.onOpenAppLink == null
+                                  ? null
+                                  : _openProject,
+                              child: Text(
+                                '开源项目: github.com/BUAASubnet/UBAA',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -269,29 +302,17 @@ class _LoginOptions extends StatelessWidget {
         alignment: WrapAlignment.spaceBetween,
         spacing: 8,
         children: <Widget>[
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Checkbox(
-                value: rememberPassword,
-                onChanged: enabled && persistenceAvailable
-                    ? (value) => onRememberPasswordChanged(value ?? false)
-                    : null,
-              ),
-              const Text('记住密码'),
-            ],
+          _LoginOption(
+            label: '记住密码',
+            value: rememberPassword,
+            enabled: enabled && persistenceAvailable,
+            onChanged: onRememberPasswordChanged,
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Checkbox(
-                value: autoLogin,
-                onChanged: enabled && persistenceAvailable
-                    ? (value) => onAutoLoginChanged(value ?? false)
-                    : null,
-              ),
-              const Text('自动登录'),
-            ],
+          _LoginOption(
+            label: '自动登录',
+            value: autoLogin,
+            enabled: enabled && persistenceAvailable,
+            onChanged: onAutoLoginChanged,
           ),
         ],
       ),
@@ -303,6 +324,37 @@ class _LoginOptions extends StatelessWidget {
           ),
         ),
     ],
+  );
+}
+
+class _LoginOption extends StatelessWidget {
+  const _LoginOption({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => MergeSemantics(
+    child: InkWell(
+      onTap: enabled ? () => onChanged(!value) : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Checkbox(
+            value: value,
+            onChanged: enabled ? (value) => onChanged(value ?? false) : null,
+          ),
+          Text(label),
+        ],
+      ),
+    ),
   );
 }
 

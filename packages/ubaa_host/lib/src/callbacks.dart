@@ -51,6 +51,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     animation: Listenable.merge([_controller, _gradeWatch]),
     builder: (context, _) => MaterialApp(
       title: 'UBAA',
+      scaffoldMessengerKey: _messengerKey,
       locale: UbaaTheme.locale,
       supportedLocales: UbaaTheme.supportedLocales,
       localizationsDelegates: UbaaTheme.localizationsDelegates,
@@ -85,6 +86,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         unawaited(_controller.setRoutePolicy(value));
       },
       onSubmit: () => unawaited(_controller.submitLogin()),
+      onOpenAppLink: (widget.appInformation ?? SystemAppInformation()).open,
     ),
     AppPhase.home => _buildMainShell(),
   };
@@ -173,10 +175,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           ? _controller.refreshYgdkAfterWrite
           : null,
       onLogout: _controller.logout,
-      onLogoutAndClearAccount: () async {
-        await _controller.logout(clearSavedCredential: true);
-        await _gradeScoreStore.clearAccount(accountKey);
-      },
+      onLogoutAndClearAccount: () => _logoutAndClearAccount(accountKey),
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));
       },
@@ -184,5 +183,27 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         unawaited(_controller.setTelemetryEnabled(value));
       },
     );
+  }
+
+  Future<void> _logoutAndClearAccount(String accountKey) async {
+    var failed = false;
+    try {
+      await _controller.logout(clearSavedCredential: true);
+    } on Object {
+      failed = true;
+    }
+    try {
+      await _gradeScoreStore.clearAccount(accountKey);
+    } on Object {
+      failed = true;
+    }
+    if (failed) {
+      throw const UiError(
+        code: UbaaErrorCode.internalError,
+        kind: UbaaErrorKind.internal,
+        title: '本机数据清除未完成',
+        message: '本机数据未能完全清除，请稍后重试。',
+      );
+    }
   }
 }

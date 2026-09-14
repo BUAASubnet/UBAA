@@ -58,9 +58,70 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('选项文字与复选框每次点击仅派发一次状态变化', (tester) async {
+    final rememberChanges = <bool>[];
+    final autoChanges = <bool>[];
+    await tester.pumpWidget(
+      _login(
+        rememberChanged: rememberChanges.add,
+        autoChanged: autoChanges.add,
+      ),
+    );
+
+    await tester.tap(find.text('记住密码'));
+    await tester.pump();
+    expect(rememberChanges, <bool>[true]);
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump();
+    expect(rememberChanges, <bool>[true, true]);
+    await tester.tap(find.text('自动登录'));
+    await tester.pump();
+    expect(autoChanges, <bool>[true]);
+    await tester.tap(find.byType(Checkbox).last);
+    await tester.pump();
+    expect(autoChanges, <bool>[true, true]);
+  });
+
+  for (final loading in <bool>[false, true]) {
+    testWidgets('忙碌或安全保险箱不可用时整组选项禁用：忙碌=$loading', (tester) async {
+      var changes = 0;
+      await tester.pumpWidget(
+        _login(
+          loading: loading,
+          persistenceAvailable: loading,
+          rememberChanged: (_) => changes++,
+          autoChanged: (_) => changes++,
+        ),
+      );
+
+      for (final label in <String>['记住密码', '自动登录']) {
+        await tester.ensureVisible(find.text(label));
+        await tester.tap(find.text(label));
+      }
+      for (final checkbox in find.byType(Checkbox).evaluate()) {
+        await tester.tap(find.byWidget(checkbox.widget));
+      }
+      await tester.pump();
+
+      expect(changes, 0);
+      expect(
+        tester
+            .widgetList<Checkbox>(find.byType(Checkbox))
+            .every((checkbox) => checkbox.onChanged == null),
+        isTrue,
+      );
+    });
+  }
 }
 
-Widget _login({bool loading = false, VoidCallback? submit}) => MaterialApp(
+Widget _login({
+  bool loading = false,
+  bool persistenceAvailable = true,
+  VoidCallback? submit,
+  ValueChanged<bool>? rememberChanged,
+  ValueChanged<bool>? autoChanged,
+}) => MaterialApp(
   theme: UbaaTheme.light(),
   home: UbaaLoginView(
     username: 'account-fixture',
@@ -71,12 +132,12 @@ Widget _login({bool loading = false, VoidCallback? submit}) => MaterialApp(
     routePolicy: RoutePolicy.auto,
     error: null,
     isLoading: loading,
-    credentialPersistenceAvailable: true,
+    credentialPersistenceAvailable: persistenceAvailable,
     onUsernameChanged: (_) {},
     onPasswordChanged: (_) {},
     onCaptchaChanged: (_) {},
-    onRememberPasswordChanged: (_) {},
-    onAutoLoginChanged: (_) {},
+    onRememberPasswordChanged: rememberChanged ?? (_) {},
+    onAutoLoginChanged: autoChanged ?? (_) {},
     onRoutePolicyChanged: (_) {},
     onSubmit: submit ?? () {},
   ),

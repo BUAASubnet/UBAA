@@ -5,6 +5,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late final YgdkReminderStore _reminderStore;
   late final GradeScoreStore _gradeScoreStore;
   late final GradeScoreWatch _gradeWatch;
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  UiError? _scheduledHomeFeedback;
   ThemeMode _themeMode = ThemeMode.system;
 
   void _setThemeMode(ThemeMode value) => setState(() => _themeMode = value);
@@ -44,6 +46,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       store: _gradeScoreStore,
     );
     _controller.addListener(_retryPendingRecovery);
+    _controller.addListener(_showHomeFeedback);
     unawaited(_controller.initialize());
   }
 
@@ -52,6 +55,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_retryPendingRecovery);
+    _controller.removeListener(_showHomeFeedback);
     _gradeWatch.dispose();
     _controller.dispose();
     super.dispose();
@@ -74,7 +78,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   void _retryPendingRecovery() {
     if (_disposed || !_resumeRecoveryPending || _recoveryInFlight) return;
+    // 先让已确认登录后的本地失败提示在首页显示一次；消费提示发出的
+    // 通知会继续恢复，避免重建初始化先清空尚未显示的反馈。
+    if (_controller.phase == AppPhase.home && _controller.error != null) return;
     if (_controller.isRebuildingBackend ||
+        _controller.isLoggingOut ||
         _controller.phase == AppPhase.loggingIn ||
         _controller.phase == AppPhase.checkingSession) {
       return;
@@ -91,6 +99,27 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _recoveryInFlight = false;
       if (!_disposed) _retryPendingRecovery();
     }
+  }
+
+  void _showHomeFeedback() {
+    if (_disposed || _controller.phase != AppPhase.home) return;
+    final error = _controller.error;
+    if (error == null || identical(error, _scheduledHomeFeedback)) return;
+    _scheduledHomeFeedback = error;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (identical(_scheduledHomeFeedback, error)) {
+        _scheduledHomeFeedback = null;
+      }
+      if (_disposed ||
+          _controller.phase != AppPhase.home ||
+          !identical(_controller.error, error))
+        return;
+      final messenger = _messengerKey.currentState;
+      if (messenger == null) return;
+      // 首页绘制完成后消费一次，避免各只读来源的刷新反复显示同一提示。
+      _controller.clearError();
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    });
   }
 
   @override

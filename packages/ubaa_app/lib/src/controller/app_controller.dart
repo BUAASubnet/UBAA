@@ -27,6 +27,7 @@ part 'app_controller/grades.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
+part 'app_controller/auth.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
 
@@ -102,6 +103,13 @@ class AppController extends ChangeNotifier {
   UiError? _error;
   bool _disposed = false;
   bool _initialized = false;
+  int _authGeneration = 0;
+  int _loginFormRevision = 0;
+  bool _credentialRestoreAllowed = true;
+  bool _manualAuthenticationRequired = false;
+  bool _loggingOut = false;
+  Completer<void>? _backendRebuildCompletion;
+  Future<void>? _credentialMutation;
   final Map<FeatureId, int> _featureRefreshGenerations = <FeatureId, int>{
     for (final feature in FeatureId.values) feature: 0,
   };
@@ -143,6 +151,7 @@ class AppController extends ChangeNotifier {
   List<ConnectionMode> get activeRoutes =>
       List<ConnectionMode>.unmodifiable(_activeRoutes);
   bool get isRebuildingBackend => _rebuildingBackend;
+  bool get isLoggingOut => _loggingOut;
   Map<FeatureId, FeatureSnapshot> get snapshots =>
       Map<FeatureId, FeatureSnapshot>.unmodifiable(_snapshots);
   YgdkReadbackState get ygdkReadbackState => _ygdkReadbackState;
@@ -163,86 +172,39 @@ class AppController extends ChangeNotifier {
       _backend is EvaluationWriteBackend &&
       _backend is EvaluationSubmissionReadbackBackend;
 
-  Future<void> initialize() async {
-    if (_initialized) return;
-    _initialized = true;
-    _beginWriteTransition();
-    _setPhase(AppPhase.checkingSession);
-    try {
-      if (_backend case final RouteSettingsBackend routeBackend) {
-        final settings = await routeBackend.routeSettings();
-        if (_disposed) return;
-        _applyRouteSettings(settings);
-      }
-      final status = await _backend.authStatus();
-      if (_disposed) return;
-      if (status == AuthStatus.signedIn) {
-        _user = await _backend.userInfo();
-        if (_disposed) return;
-        if (_user != null) {
-          _setPhase(AppPhase.home);
-          await _recordAppOpen();
-          unawaited(refreshHome());
-          return;
-        }
-      }
-      final saved = await _credentialVault.read();
-      if (_disposed) return;
-      if (saved != null && saved.isUsable) {
-        _loginForm = _loginForm.copyWith(
-          username: saved.username,
-          autoLogin: saved.autoLogin,
-          rememberPassword: _credentialVault.isAvailable,
-        );
-        if (saved.autoLogin && _credentialVault.isAvailable) {
-          // 密码只在当前登录调用的短生命周期内放入 controller；submitLogin 成功
-          // 或失败都会清空密码字段，且失败凭据会被清理。
-          _loginForm = _loginForm.copyWith(password: saved.password);
-          await submitLogin();
-          return;
-        }
-      }
-      _setPhase(AppPhase.login);
-    } on BackendException catch (exception, stackTrace) {
-      _error = _recordFailure(
-        exception,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } catch (error, stackTrace) {
-      _error = _recordFailure(
-        error,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } finally {
-      _endWriteTransition();
-    }
-  }
+  Future<void> initialize() => _initializeAuthentication();
 
   /// 在 Dart isolate 或宿主生命周期重建后替换 opaque backend。
   ///
   /// 新 backend 成功创建后才 dispose 旧 backend；随后重新读取 Core 的路线和
-  ///认证状态。没有提供工厂、正在登录/重建或 controller 已销毁时返回 `false`，
+  ///认证状态。没有提供工厂、正在登录/退出/重建或 controller 已销毁时返回 `false`，
   ///不伪造恢复成功。
   Future<bool> rebuildBackend() async {
     final factory = _backendFactory;
-    if (factory == null || _disposed || _rebuildingBackend) return false;
+    if (factory == null || _disposed || _rebuildingBackend || _loggingOut) {
+      return false;
+    }
     // 初始化正在读取旧 backend 的认证/路线状态时，生命周期重建会与旧
     // handle 竞争并可能把结果写入新实例；等待初始化完成后再由下一次
     // resumed 事件触发重建。
     if (_phase == AppPhase.loggingIn || _phase == AppPhase.checkingSession) {
       return false;
     }
+    final previousLoginError = _phase == AppPhase.login ? _error : null;
+    final errorRevision = _loginFormRevision;
+    final completion = Completer<void>();
+    _backendRebuildCompletion = completion;
     _rebuildingBackend = true;
+    _authGeneration++;
+    _releaseLoginSecret();
     _beginWriteTransition();
     _setPhase(AppPhase.checkingSession);
     try {
       final replacement = factory();
       if (identical(replacement, _backend)) {
-        _error = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
+        _error =
+            previousLoginError ??
+            UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
         _setPhase(AppPhase.login);
         return false;
       }
@@ -271,7 +233,11 @@ class AppController extends ChangeNotifier {
       _user = null;
       _activeRoutes = const <ConnectionMode>[];
       _resetFeatureSnapshots();
-      await initialize();
+      await _initializeAuthentication(
+        previousLoginError: _loginFormRevision == errorRevision
+            ? previousLoginError
+            : null,
+      );
       return true;
     } on BackendException catch (exception, stackTrace) {
       _error = _recordFailure(
@@ -279,6 +245,9 @@ class AppController extends ChangeNotifier {
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
       );
+      if (_loginFormRevision == errorRevision && previousLoginError != null) {
+        _error = previousLoginError;
+      }
       _setPhase(AppPhase.login);
       return false;
     } on Object catch (error, stackTrace) {
@@ -287,39 +256,63 @@ class AppController extends ChangeNotifier {
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
       );
+      if (_loginFormRevision == errorRevision && previousLoginError != null) {
+        _error = previousLoginError;
+      }
       _setPhase(AppPhase.login);
       return false;
     } finally {
       _endWriteTransition();
       _rebuildingBackend = false;
+      _backendRebuildCompletion = null;
+      completion.complete();
       _notify();
     }
   }
 
   void setUsername(String value) {
-    _loginForm = _loginForm.copyWith(username: value);
+    if (_disposed || _phase == AppPhase.loggingIn || _loggingOut) return;
+    final accountChanged = value.trim() != _loginForm.username.trim();
+    if (accountChanged) _manualAuthenticationRequired = true;
+    _loginFormRevision++;
+    _loginForm = _loginForm.copyWith(
+      username: value,
+      password: accountChanged ? '' : null,
+      captcha: accountChanged ? '' : null,
+    );
     _error = null;
     _notify();
   }
 
   void setPassword(String value) {
+    if (_disposed || _phase == AppPhase.loggingIn || _loggingOut) return;
+    _loginFormRevision++;
     _loginForm = _loginForm.copyWith(password: value);
     _error = null;
     _notify();
   }
 
   void setCaptcha(String value) {
+    if (_disposed || _phase == AppPhase.loggingIn || _loggingOut) return;
+    _loginFormRevision++;
     _loginForm = _loginForm.copyWith(captcha: value);
     _error = null;
     _notify();
   }
 
   void setRememberPassword(bool value) {
-    _loginForm = _loginForm.copyWith(rememberPassword: value);
+    if (!_canEditLoginOptions) return;
+    _loginFormRevision++;
+    _loginForm = _loginForm.copyWith(
+      rememberPassword: value,
+      autoLogin: value ? _loginForm.autoLogin : false,
+    );
     _notify();
   }
 
   void setAutoLogin(bool value) {
+    if (!_canEditLoginOptions) return;
+    _loginFormRevision++;
     _loginForm = _loginForm.copyWith(
       autoLogin: value,
       rememberPassword: value ? true : _loginForm.rememberPassword,
@@ -377,75 +370,7 @@ class AppController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> submitLogin() async {
-    if (_disposed || _phase == AppPhase.loggingIn) return;
-    final username = _loginForm.username.trim();
-    if (username.isEmpty || _loginForm.password.isEmpty) {
-      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.invalidInput);
-      _notify();
-      return;
-    }
-    _beginWriteTransition();
-    _error = null;
-    _activeRoutes = const <ConnectionMode>[];
-    _setPhase(AppPhase.loggingIn);
-    try {
-      await _backend.login(
-        LoginInput(
-          username: username,
-          password: _loginForm.password,
-          captcha: _loginForm.captcha.trim().isEmpty
-              ? null
-              : _loginForm.captcha.trim(),
-          rememberPassword: _loginForm.rememberPassword,
-          autoLogin: _loginForm.autoLogin,
-          routePolicy: _loginForm.routePolicy,
-        ),
-      );
-      if (_disposed) return;
-      await _refreshRouteSettings();
-      if (_disposed) return;
-      _user = await _backend.userInfo() ?? UserSummary(username: username);
-      if (_disposed) return;
-      if (_loginForm.rememberPassword && _credentialVault.isAvailable) {
-        await _credentialVault.write(
-          Credential(
-            username: username,
-            password: _loginForm.password,
-            autoLogin: _loginForm.autoLogin,
-          ),
-        );
-      } else if (!_loginForm.rememberPassword) {
-        await _credentialVault.clear();
-      }
-      _loginForm = _loginForm.copyWith(password: '', captcha: '');
-      if (_disposed) return;
-      _setPhase(AppPhase.home);
-      await _recordAppOpen();
-      unawaited(refreshHome());
-    } on BackendException catch (exception, stackTrace) {
-      if (exception.code == UbaaErrorCode.invalidCredentials) {
-        await _credentialVault.clear();
-      }
-      if (_disposed) return;
-      _error = _recordFailure(
-        exception,
-        DiagnosticOperation.login,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } catch (error, stackTrace) {
-      if (_disposed) return;
-      _error = _recordFailure(
-        error,
-        DiagnosticOperation.login,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } finally {
-      _endWriteTransition();
-    }
-  }
+  Future<void> submitLogin() => _submitLogin();
 
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
@@ -786,31 +711,8 @@ class AppController extends ChangeNotifier {
     required ConnectionMode expectedRoute,
   }) => _refreshEvaluationAfterWrite(this, expectedRoute: expectedRoute);
 
-  Future<void> logout({bool clearSavedCredential = false}) async {
-    if (_disposed) return;
-    _beginWriteTransition();
-    try {
-      try {
-        await _backend.logout();
-      } on Object catch (error, stackTrace) {
-        // 注销失败也回到登录页，避免继续展示可能过期的隐私数据。
-        _recordFailure(
-          error,
-          DiagnosticOperation.logout,
-          stackTrace: stackTrace,
-        );
-      }
-      if (clearSavedCredential) await _credentialVault.clear();
-      if (_disposed) return;
-      _user = null;
-      _activeRoutes = const <ConnectionMode>[];
-      _loginForm = _loginForm.copyWith(password: '');
-      _resetFeatureSnapshots();
-      _setPhase(AppPhase.login);
-    } finally {
-      _endWriteTransition();
-    }
-  }
+  Future<void> logout({bool clearSavedCredential = false}) =>
+      _logout(clearSavedCredential: clearSavedCredential);
 
   Future<void> setTelemetryEnabled(bool value) async {
     // 真实宿主会替换对应的启用/关闭 client；协调器同时在调用边界抑制
@@ -860,14 +762,14 @@ class AppController extends ChangeNotifier {
     _loginForm = _loginForm.copyWith(routePolicy: settings.defaultPolicy);
   }
 
-  Future<void> _refreshRouteSettings() async {
+  Future<void> _refreshRouteSettings(int authGeneration) async {
     if (_backend case final RouteSettingsBackend routeBackend) {
       try {
         final settings = await routeBackend.routeSettings();
-        if (_disposed) return;
+        if (!_isCurrentAuthentication(authGeneration)) return;
         _applyRouteSettings(settings);
       } on Object catch (error, stackTrace) {
-        if (_disposed) return;
+        if (!_isCurrentAuthentication(authGeneration)) return;
         // 登录已经成功时，路线状态读取失败不能把账号重新置为失败；清空
         // 不确定的活动槽位，后续读取仍由 Core 返回实际错误。
         _activeRoutes = const <ConnectionMode>[];
@@ -920,6 +822,8 @@ class AppController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _authGeneration++;
+    _releaseLoginSecret();
     _lifecycleEpoch++;
     _ygdkGeneration++;
     _writeCoordinator.removeListener(_notify);
