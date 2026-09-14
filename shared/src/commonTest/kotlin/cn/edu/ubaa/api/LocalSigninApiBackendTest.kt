@@ -13,8 +13,10 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.request.forms.FormDataContent
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
@@ -22,6 +24,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlinx.coroutines.test.runTest
@@ -551,7 +554,7 @@ class LocalSigninApiBackendTest {
   }
 
   @Test
-  fun `webvpn signin uses iclass 8347 endpoint for timestamp and submit`() = runTest {
+  fun `WebVPN 签到使用 8347 app 路径且保留提交参数`() = runTest {
     ConnectionModeStore.save(ConnectionMode.WEBVPN)
     ConnectionRuntime.resolveSelectedMode()
     LocalAuthSessionStore.save(
@@ -565,6 +568,7 @@ class LocalSigninApiBackendTest {
     val loginName = "Rjc1QkJDMUMxNzVENkY0NkZCNzFDMEM5RjYwNzg4RDg="
     val observedUpstreamUrls = mutableListOf<String>()
     val engine = MockEngine { request ->
+      assertEquals("d.buaa.edu.cn", request.url.host, "WebVPN 请求必须经过网关")
       val upstreamUrl = LocalWebVpnSupport.fromWebVpnUrl(request.url.toString())
       observedUpstreamUrls += upstreamUrl
       when {
@@ -598,17 +602,29 @@ class LocalSigninApiBackendTest {
                     headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         upstreamUrl ==
-            "https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" ->
+            "https://iclass.buaa.edu.cn:8347/app/course/stu_scan_sign.action?courseSchedId=course-1&timestamp=1713600000" -> {
+          assertEquals(HttpMethod.Post, request.method)
+          assertEquals("session-1", request.headers["sessionId"])
+          assertEquals("user-1", assertIs<FormDataContent>(request.body).formData["id"])
+          respond(
+              content =
+                  ByteReadChannel(
+                      """{"STATUS":"0","ERRMSG":"签到成功","result":{"stuSignStatus":"1"}}"""
+                  ),
+              status = HttpStatusCode.OK,
+              headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+          )
+        }
+        // 2026-09-14 上游探测确认：8347 的 /eschool 路径返回 HTML 404。
+        upstreamUrl.startsWith(
+            "https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action"
+        ) ->
             respond(
-                content =
-                    ByteReadChannel(
-                        """{"STATUS":"0","ERRMSG":"签到成功","result":{"stuSignStatus":"1"}}"""
-                    ),
-                status = HttpStatusCode.OK,
-                headers =
-                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                content = ByteReadChannel("<html><title>404 Not Found</title></html>"),
+                status = HttpStatusCode.NotFound,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Text.Html.toString()),
             )
-        else -> error("Unexpected url: ${request.url} upstream=$upstreamUrl")
+        else -> error("未预期的请求地址：${request.url}，上游地址：$upstreamUrl")
       }
     }
     useMockUpstream(engine)
@@ -619,19 +635,19 @@ class LocalSigninApiBackendTest {
     assertEquals(
         true,
         result.getOrNull()?.success,
-        "response=${result.getOrNull()} observed=$observedUpstreamUrls",
+        "响应=${result.getOrNull()}，请求记录=$observedUpstreamUrls",
     )
     assertTrue(
         observedUpstreamUrls.any {
           it == "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action"
         },
-        "timestamp should use iclass 8347 in webvpn mode",
+        "WebVPN 模式应通过 iclass 8347 获取时间戳",
     )
     assertTrue(
         observedUpstreamUrls.any {
-          it.startsWith("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")
+          it.startsWith("https://iclass.buaa.edu.cn:8347/app/course/stu_scan_sign.action")
         },
-        "signin submit should use iclass 8347 eschool endpoint in webvpn mode",
+        "WebVPN 模式应通过 iclass 8347 的 /app 路径提交签到",
     )
   }
 
