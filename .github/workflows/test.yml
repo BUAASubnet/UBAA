@@ -112,6 +112,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: 校验 iOS 发布元数据与签名规则
+        run: python3 -m unittest discover -s .github/scripts -p 'test_ios_release.py'
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:

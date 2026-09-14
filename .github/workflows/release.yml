@@ -4,10 +4,27 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      ios_only:
+        description: 仅构建 iOS，便于独立验证或重试上传
+        type: boolean
+        default: false
+      ios_upload:
+        description: 将 iOS App 上传到 App Store Connect
+        type: boolean
+        default: true
+      ios_build_number:
+        description: iOS 构建号；留空时根据版本代码、运行序号和重试次数生成
+        type: string
+        required: false
+
+permissions:
+  contents: write
 
 jobs:
   build-android:
     name: Build Android
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,7 +41,7 @@ jobs:
 
       - name: Get Version
         id: get_version
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Decode Keystore
         run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > androidApp/release.jks
@@ -49,6 +66,7 @@ jobs:
 
   build-desktop-linux:
     name: Build Desktop Linux
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -62,7 +80,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Get Version
         id: get_version
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
       - name: Build Deb
         env:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
@@ -70,8 +88,8 @@ jobs:
 
       - name: Prepare Linux Assets
         run: |
-          DEB_PATH=$(ls composeApp/build/compose/binaries/main-release/deb/*.deb | head -n 1)
-          cp "$DEB_PATH" "UBAA-Linux-v${{ steps.get_version.outputs.VERSION }}.deb"
+          deb_files=(composeApp/build/compose/binaries/main-release/deb/*.deb)
+          cp "${deb_files[0]}" "UBAA-Linux-v${{ steps.get_version.outputs.VERSION }}.deb"
 
       - name: Upload Deb Release Assets
         uses: softprops/action-gh-release@v2
@@ -82,6 +100,7 @@ jobs:
 
   build-server:
     name: Build Server JAR
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -95,7 +114,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Get Version
         id: get_version
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
       - name: Build Server
         run: |
           ./gradlew :server:buildFatJar
@@ -109,6 +128,7 @@ jobs:
 
   build-web-wasm:
     name: Build Web Wasm
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -126,7 +146,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Get Version
         id: get_version
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
       - name: Build Web Wasm
         env:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
@@ -191,6 +211,7 @@ jobs:
 
   build-web-js:
     name: Build Web JS
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -204,7 +225,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Get Version
         id: get_version
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
       - name: Build Web JS
         env:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
@@ -221,44 +242,187 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-ios:
-    name: Build iOS
-    runs-on: macos-latest
+    name: 构建 iOS 并上传 App Store Connect
+    runs-on: macos-15
+    timeout-minutes: 90
+    concurrency:
+      group: ios-app-store-connect
+      cancel-in-progress: false
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'cn.edu.ubaa' }}
+      IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID || '59KR48BHSR' }}
+      IOS_SHOULD_UPLOAD: ${{ github.event_name == 'release' || inputs.ios_upload }}
     steps:
-      - name: Checkout
+      - name: 检出源码
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Set up JDK 21
+      - name: 设置临时目录
+        run: |
+          echo "IOS_SIGNING_DIR=$RUNNER_TEMP/ubaa-ios-signing" >> "$GITHUB_ENV"
+          echo "IOS_KEYCHAIN_PATH=$RUNNER_TEMP/ubaa-ios-signing.keychain-db" >> "$GITHUB_ENV"
+
+      - name: 配置 JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Setup Gradle
+      - name: 配置 Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Get Version
-        id: get_version
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
-
-      - name: Build iOS Framework
+      - name: 校验发布版本与构建号
         env:
-          API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
-        run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
-
-      # 如果需要上传 iOS 框架（通常是给 Xcode 使用的 .framework）
-      - name: Archive iOS Framework
+          IOS_BUILD_NUMBER_OVERRIDE: ${{ inputs.ios_build_number }}
+          IOS_RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          zip -r UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip composeApp/build/bin/iosArm64/releaseFramework
+          python3 -m unittest discover -s .github/scripts -p 'test_ios_release.py'
+          python3 .github/scripts/ios_release.py metadata
+          xcodebuild -version
 
-      - name: Upload iOS Release Assets
+      - name: 安装并校验临时签名材料
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          for name in IOS_CERTIFICATE_P12_BASE64 IOS_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64; do
+            if [ -z "${!name}" ]; then
+              echo "::error::缺少 GitHub Secret：$name，请参阅 docs/tech/release-deployment.md。"
+              exit 1
+            fi
+          done
+          mkdir -p "$IOS_SIGNING_DIR"
+          if [ "$IOS_SHOULD_UPLOAD" = true ]; then
+            for name in APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_PRIVATE_KEY; do
+              if [ -z "${!name}" ]; then
+                echo "::error::缺少 GitHub Secret：$name。"
+                exit 1
+              fi
+            done
+            appstore_key_path="$IOS_SIGNING_DIR/AuthKey_${APPSTORE_KEY_ID}.p8"
+            printf '%s\n' "$APPSTORE_PRIVATE_KEY" > "$appstore_key_path"
+            openssl pkey -in "$appstore_key_path" -noout
+          fi
+
+          printf '%s' "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$IOS_SIGNING_DIR/distribution.p12"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$IOS_SIGNING_DIR/profile.mobileprovision"
+          security cms -D -i "$IOS_SIGNING_DIR/profile.mobileprovision" > "$IOS_SIGNING_DIR/profile.plist"
+
+          keychain_password="$(openssl rand -hex 32)"
+          security create-keychain -p "$keychain_password" "$IOS_KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$IOS_KEYCHAIN_PATH"
+          security unlock-keychain -p "$keychain_password" "$IOS_KEYCHAIN_PATH"
+          security import "$IOS_SIGNING_DIR/distribution.p12" -P "$IOS_CERTIFICATE_PASSWORD" \
+            -t cert -f pkcs12 -k "$IOS_KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$IOS_KEYCHAIN_PATH" > /dev/null
+          security list-keychains -d user -s "$IOS_KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$IOS_KEYCHAIN_PATH" > "$IOS_SIGNING_DIR/identities.txt"
+          python3 .github/scripts/ios_release.py signing
+
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print UUID' "$IOS_SIGNING_DIR/profile.plist")"
+          profile_dir="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          mkdir -p "$profile_dir"
+          cp "$IOS_SIGNING_DIR/profile.mobileprovision" "$profile_dir/$profile_uuid.mobileprovision"
+          rm "$IOS_SIGNING_DIR/distribution.p12"
+
+      - name: 归档完整 iOS App
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/UBAA.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/ubaa-ios-derived-data" \
+            "DEVELOPMENT_TEAM=$IOS_TEAM_ID" \
+            "PRODUCT_BUNDLE_IDENTIFIER=$IOS_BUNDLE_ID" \
+            "MARKETING_VERSION=$IOS_VERSION" \
+            "CURRENT_PROJECT_VERSION=$IOS_BUILD_NUMBER" \
+            CODE_SIGN_STYLE=Manual \
+            "CODE_SIGN_IDENTITY=$IOS_SIGNING_IDENTITY" \
+            "PROVISIONING_PROFILE_SPECIFIER=$IOS_PROFILE_UUID"
+
+      - name: 导出 App Store IPA 和调试符号
+        id: ios_export
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/UBAA.xcarchive" \
+            -exportPath "$RUNNER_TEMP/ubaa-ios-export" \
+            -exportOptionsPlist "$IOS_SIGNING_DIR/ExportOptions.plist"
+          mkdir -p build/ios-release
+          shopt -s nullglob
+          ipas=("$RUNNER_TEMP/ubaa-ios-export/"*.ipa)
+          if [ "${#ipas[@]}" -ne 1 ]; then
+            echo '::error::Xcode 未导出唯一的 IPA 文件。'
+            exit 1
+          fi
+          cp "${ipas[0]}" "build/ios-release/$IOS_ASSET_NAME.ipa"
+          ditto -c -k --keepParent "$RUNNER_TEMP/UBAA.xcarchive/dSYMs" "build/ios-release/$IOS_ASSET_NAME-dSYMs.zip"
+          ditto -c -k --keepParent composeApp/build/bin/iosArm64/releaseFramework \
+            "build/ios-release/UBAA-iOS-Framework-v$IOS_VERSION.zip"
+          {
+            echo "iOS 版本：$IOS_VERSION"
+            echo "构建号：$IOS_BUILD_NUMBER"
+            echo "Bundle ID：$IOS_BUNDLE_ID"
+            echo "源码提交：$GITHUB_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 保存 IPA、调试符号和 Kotlin framework
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IOS_ASSET_NAME }}
+          path: build/ios-release/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: 上传到 App Store Connect
+        if: env.IOS_SHOULD_UPLOAD == 'true'
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          API_PRIVATE_KEYS_DIR: ${{ env.IOS_SIGNING_DIR }}
+        run: |
+          set -euo pipefail
+          xcrun altool --upload-app --type ios \
+            --file "build/ios-release/$IOS_ASSET_NAME.ipa" \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
+          echo '已上传到 App Store Connect；Apple 处理完成后可在 TestFlight 中查看，此操作不提交 App Store 审核。' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传 iOS GitHub Release 资产
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: UBAA-iOS-Framework-v${{ steps.get_version.outputs.VERSION }}.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: build/ios-release/*
+
+      - name: 清理签名材料
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -n "${IOS_PROFILE_UUID:-}" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$IOS_PROFILE_UUID.mobileprovision"
+          fi
+          cleanup_status=0
+          if [ -f "$RUNNER_TEMP/ubaa-ios-signing.keychain-db" ]; then
+            security delete-keychain "$RUNNER_TEMP/ubaa-ios-signing.keychain-db" || cleanup_status=$?
+          fi
+          rm -rf "$RUNNER_TEMP/ubaa-ios-signing"
+          exit "$cleanup_status"
 
   build-windows:
     name: Build Windows
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -276,7 +440,7 @@ jobs:
       - name: Get Version
         id: get_version
         shell: bash
-        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep 'project.version=' gradle.properties | cut -d'=' -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Build Windows Exe
         env:
@@ -287,8 +451,8 @@ jobs:
         shell: bash
         run: |
           # 寻找生成的 exe 并重命名
-          EXE_PATH=$(ls composeApp/build/compose/binaries/main-release/exe/*.exe | head -n 1)
-          cp "$EXE_PATH" "UBAA-Windows-v${{ steps.get_version.outputs.VERSION }}.exe"
+          exe_files=(composeApp/build/compose/binaries/main-release/exe/*.exe)
+          cp "${exe_files[0]}" "UBAA-Windows-v${{ steps.get_version.outputs.VERSION }}.exe"
 
       - name: Upload Windows Release Assets
         uses: softprops/action-gh-release@v2

@@ -52,6 +52,12 @@ xcuserdata/
 DerivedData/
 *.xcuserstate
 *.moved-aside
+*.ipa
+*.xcarchive
+*.p12
+*.p8
+*.mobileprovision
+*.keychain-db
 
 # Web / Node.js
 node_modules/
@@ -72,6 +78,7 @@ ehthumbs.db
 Thumbs.db
 
 # Temporary Files
+__pycache__/
 tmp/
 *.log
 *.swp
