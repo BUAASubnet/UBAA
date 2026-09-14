@@ -755,3 +755,5 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 - [图书馆日期与时段](source-parity-ui-libbook-dates.md)：同一原始日期与时段的typed关联，保留旧CLI详情形状。
 - [博雅筛选与完整详情](source-parity-ui-bykc-details.md)：类别/校区/完整字段、已选补查、三个详情入口及账号隔离的筛选偏好。
 - [验证码与门锁专用显示](source-parity-ui-sensitive-displays.md)：独立交互认证和短期门锁信息视图的九列、字段及生命周期裁决；普通结果与旧CLI边界不变。
+- [统计开关与实际客户端能力](source-parity-ui-telemetry-control.md)：默认Noop不能报告开启，保留显式可用客户端的真实事件开关，不新增接收端或外部传输。
+- [连接策略切换与后台重建](source-parity-ui-route-lifecycle.md)：旧切换的迟到结果不能覆盖新backend实际策略，保留普通认证和既有请求合同。
