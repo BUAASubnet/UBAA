@@ -5,3 +5,7 @@ PRODUCT_BUNDLE_IDENTIFIER=cn.edu.ubaa.UBAA$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=30
 MARKETING_VERSION=1.8.0
+
+// Xcode 通过 Gradle 构建的 Kotlin framework 位于此目录。
+FRAMEWORK_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+OTHER_LDFLAGS = $(inherited) -framework ComposeApp
