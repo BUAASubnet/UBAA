@@ -1,5 +1,4 @@
 import Foundation
-import LocalAuthentication
 import Security
 
 /// 平台错误只携带稳定类别，不包含系统错误正文或凭据内容。
@@ -15,34 +14,25 @@ enum CredentialStoreFailure: String, Error {
     case .storageFailure: return "安全凭据存储操作失败"
     }
   }
+
+  static func check(_ status: OSStatus) throws {
+    switch status {
+    case errSecSuccess: return
+    case errSecNotAvailable, errSecInteractionNotAllowed, errSecAuthFailed,
+         errSecUserCanceled, errSecMissingEntitlement:
+      throw CredentialStoreFailure.unavailable
+    default:
+      throw CredentialStoreFailure.storageFailure
+    }
+  }
 }
 
 /// 测试可注入系统返回值，不必访问用户的任何 Keychain 条目。
 protocol CredentialKeychainAPI {
-  func copyMatching(_ query: [String: Any]) -> (OSStatus, CFTypeRef?)
-  func add(_ attributes: [String: Any]) -> OSStatus
-  func update(_ query: [String: Any], attributes: [String: Any]) -> OSStatus
-  func delete(_ query: [String: Any]) -> OSStatus
-}
-
-struct SystemCredentialKeychainAPI: CredentialKeychainAPI {
-  func copyMatching(_ query: [String: Any]) -> (OSStatus, CFTypeRef?) {
-    var value: CFTypeRef?
-    let status = SecItemCopyMatching(query as CFDictionary, &value)
-    return (status, value)
-  }
-
-  func add(_ attributes: [String: Any]) -> OSStatus {
-    SecItemAdd(attributes as CFDictionary, nil)
-  }
-
-  func update(_ query: [String: Any], attributes: [String: Any]) -> OSStatus {
-    SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-  }
-
-  func delete(_ query: [String: Any]) -> OSStatus {
-    SecItemDelete(query as CFDictionary)
-  }
+  func copyMatching(_ query: [String: Any]) throws -> (OSStatus, CFTypeRef?)
+  func add(_ attributes: [String: Any]) throws -> OSStatus
+  func update(_ query: [String: Any], attributes: [String: Any]) throws -> OSStatus
+  func delete(_ query: [String: Any]) throws -> OSStatus
 }
 
 /// macOS 登录 Keychain 适配；只查询本应用服务和明确 namespace 对应的单条凭据。
@@ -62,9 +52,9 @@ final class KeychainCredentialStore {
     var query = try itemQuery(namespace)
     query[kSecReturnData as String] = true
     query[kSecMatchLimit as String] = kSecMatchLimitOne
-    let (status, result) = api.copyMatching(query)
+    let (status, result) = try api.copyMatching(query)
     if status == errSecItemNotFound { return nil }
-    try check(status)
+    try CredentialStoreFailure.check(status)
     guard let data = result as? Data,
           let value = try? PropertyListSerialization.propertyList(from: data, format: nil) else {
       throw CredentialStoreFailure.storageFailure
@@ -84,22 +74,22 @@ final class KeychainCredentialStore {
       throw CredentialStoreFailure.storageFailure
     }
     let changes = [kSecValueData as String: data]
-    var status = api.update(query, attributes: changes)
+    var status = try api.update(query, attributes: changes)
     if status == errSecItemNotFound {
       var attributes = query
       attributes[kSecValueData as String] = data
-      status = api.add(attributes)
+      status = try api.add(attributes)
       // 其他进程可能在更新与新增之间写入同一条目，最多补一次精确更新。
       if status == errSecDuplicateItem {
-        status = api.update(query, attributes: changes)
+        status = try api.update(query, attributes: changes)
       }
     }
-    try check(status)
+    try CredentialStoreFailure.check(status)
   }
 
   func clear(_ namespace: Any?) throws {
-    let status = api.delete(try itemQuery(namespace))
-    if status != errSecItemNotFound { try check(status) }
+    let status = try api.delete(itemQuery(namespace))
+    if status != errSecItemNotFound { try CredentialStoreFailure.check(status) }
   }
 
   private func itemQuery(_ rawNamespace: Any?) throws -> [String: Any] {
@@ -107,14 +97,12 @@ final class KeychainCredentialStore {
           !namespace.trimmingCharacters(in: Self.whitespace).isEmpty else {
       throw CredentialStoreFailure.invalidInput
     }
-    let context = LAContext()
-    context.interactionNotAllowed = true
     return [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: Self.service,
       kSecAttrAccount as String: namespace,
       kSecAttrSynchronizable as String: false,
-      kSecUseAuthenticationContext as String: context,
+      kSecUseDataProtectionKeychain as String: false,
     ]
   }
 
@@ -131,16 +119,5 @@ final class KeychainCredentialStore {
       throw failure
     }
     return ["username": username, "password": password, "autoLogin": autoLogin.boolValue]
-  }
-
-  private func check(_ status: OSStatus) throws {
-    switch status {
-    case errSecSuccess: return
-    case errSecNotAvailable, errSecInteractionNotAllowed, errSecAuthFailed,
-         errSecUserCanceled, errSecMissingEntitlement:
-      throw CredentialStoreFailure.unavailable
-    default:
-      throw CredentialStoreFailure.storageFailure
-    }
   }
 }

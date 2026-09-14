@@ -1,5 +1,4 @@
 import Foundation
-import LocalAuthentication
 import Security
 
 /// 注入全部 Security 调用；本套确定性测试从不访问系统 Keychain。
@@ -58,8 +57,12 @@ struct MacOSKeychainCredentialTest {
     precondition(query[kSecAttrAccount as String] as? String == namespace, "不能替换或扩大 namespace")
     let sync = query[kSecAttrSynchronizable as String] as? NSNumber
     precondition(sync != nil && CFGetTypeID(sync!) == CFBooleanGetTypeID() && !sync!.boolValue)
-    let context = query[kSecUseAuthenticationContext as String] as? LAContext
-    precondition(context?.interactionNotAllowed == true)
+    let dataProtection = query[kSecUseDataProtectionKeychain as String] as? NSNumber
+    precondition(
+      dataProtection != nil && CFGetTypeID(dataProtection!) == CFBooleanGetTypeID()
+        && !dataProtection!.boolValue,
+      "所有操作必须明确限定 legacy Keychain，不能依赖默认路由"
+    )
     precondition(query[kSecAttrAccessGroup as String] == nil, "不能请求其他应用访问组")
   }
 

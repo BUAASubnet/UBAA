@@ -56,3 +56,33 @@
 由 finally 精确清除；覆盖新适配器读取、更新、无记录、输入拒绝及照片探测。系统错误和精确
 寻址另由注入 Security 调用的原生测试验证。真实 native、确定性测试、锁屏状态与真实 App
 业务验收分开记录，不能互相替代。
+
+## 独立审查修复轮 1：legacy 交互策略与版本证据
+
+审查基点 `708a6250f08f7c1d6072427fd136b19354e37e88`。本轮先观察两个行为 RED：查询没有明确
+限定 legacy 后端；照片测试对 macOS 10.15 仍要求 true。本节在修复生产包装器前补充决策。
+
+复核本机 SDK `LAContext.h` 的 `interactionNotAllowed` 与 `SecItem.h` 的
+`kSecUseNoAuthenticationUI` 说明后，确认先前 context 标记不能禁止 legacy Keychain 的 UI。
+同时读取 Apple Security 固定提交 `db15acbe6a7f257a859ad9a3bb86097bfe0679d9` 的
+[SecItemCategorizeQuery](https://github.com/apple-oss-distributions/Security/blob/db15acbe6a7f257a859ad9a3bb86097bfe0679d9/OSX/libsecurity_keychain/lib/SecItem.cpp#L4095)、
+[SecItemAdd](https://github.com/apple-oss-distributions/Security/blob/db15acbe6a7f257a859ad9a3bb86097bfe0679d9/OSX/libsecurity_keychain/lib/SecItem.cpp#L5023)
+和 [SecKeychain 交互接口](https://github.com/apple-oss-distributions/Security/blob/db15acbe6a7f257a859ad9a3bb86097bfe0679d9/OSX/libsecurity_keychain/lib/SecKeychain.cpp#L867)：
+显式 false 会只选择 legacy；未指定时新增优先 legacy；get/set 操作的是进程内共享交互策略。
+
+保留现有登录 Keychain、私有服务、namespace 与 Debug 签名条件，显式设置
+`kSecUseDataProtectionKeychain=false`。不引入 Data Protection Keychain 或新 entitlement。
+使用 SDK 已 deprecated 的 `SecKeychainGetUserInteractionAllowed` /
+`SecKeychainSetUserInteractionAllowed` 是该 legacy 兼容决策的局部依赖，不扩大到业务层。
+
+系统 API 包装器在所有实例共享的锁内取得原值、临时关闭交互、执行单次 SecItem 操作并恢复。
+读取策略失败时不执行存储；关闭失败时也尝试恢复已知原值。原值 true/false 均原样保留。
+恢复失败会报告稳定错误，并进行一次有界恢复补偿；若系统仍拒绝恢复，保留仅含策略原值的
+待恢复状态，后续调用必须先恢复，不能把暂时的 false 当作新基线或继续存储。该异常不能宣称
+系统策略已恢复，也不通过无限等待或永久关闭交互掩盖失败。
+
+照片测试从 `/usr/bin/sw_vers -productVersion` 独立取得版本，并以
+`SYSTEM_VERSION_COMPAT=0` 避免兼容版本投影。10.15 要求照片不可用，11+ 要求可用；凭据测试
+不因此跳过。畸形或缺失版本明确失败，不用待测 capability 反向决定期望。不进行真实锁定或
+授权弹窗实验；异常恢复顺序由注入系统 API 的原生测试证明，正常路径仍以唯一合成 namespace
+及 finally 清理做真实 native 验证。

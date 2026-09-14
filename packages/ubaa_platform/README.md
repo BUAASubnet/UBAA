@@ -19,6 +19,12 @@ session-only/Noop 语义。macOS 已接入 `native/macos/KeychainCredentialStore
 所有错误均归约为稳定类别。iOS Keychain、Android Keystore、Secret Service、Credential Manager
 和 HUKS handler 仍需在后置设备阶段实现与验证。
 
+macOS 显式设置 `kSecUseDataProtectionKeychain=false`，后端限定为登录 Keychain。
+`native/macos/LegacyKeychainAPI.swift` 集中管理 legacy 的进程交互策略：全实例共享锁，保存原值、
+临时禁止交互、执行操作后恢复；策略失败不会继续存储或虚报成功。恢复失败仅做一次补偿，仍失败
+则保存待恢复原值并阻止后续操作，避免把临时 false 当作默认策略。这里使用 deprecated 系统接口
+是保留现有 Debug 签名条件的明确兼容决策，不能用 LAContext 标记代替 legacy 交互控制。
+
 macOS 的 `PlatformChannel` 是唯一 MethodChannel 拥有者，`CredentialHandler` 在串行队列调用
 Keychain，`PhotoHandler` 继续处理照片。能力探测不读保存值，只表示实现已接入；锁定或访问拒绝
 仍可能使后续存储操作失败。`autoLogin` 必须为布尔类型，数值 `0/1` 不能代替它；无记录读取为

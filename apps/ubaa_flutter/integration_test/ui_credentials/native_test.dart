@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+
+import 'system_version.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -101,11 +104,14 @@ void main() {
   }, skip: !Platform.isMacOS);
 
   testWidgets('凭据接线保留原生照片能力与权限探测', (tester) async {
+    final systemVersion = await readMacOSProductVersion();
+    debugPrint('照片回归独立系统版本：$systemVersion');
+    final expectation = photoExpectationForMacOS(systemVersion);
     final picker = MethodChannelPhotoPicker();
-    expect(await picker.probe(), isTrue);
+    expect(await picker.probe(), expectation.available);
     expect(
       await MethodChannelPermissionGateway().request(PlatformPermission.photos),
-      PlatformPermissionStatus.granted,
+      expectation.permission,
     );
     // 不打开系统选择器，不读取照片或触发业务请求。
   }, skip: !Platform.isMacOS);
