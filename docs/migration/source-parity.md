@@ -263,6 +263,8 @@ DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。
 
 ## 图书馆座位只读查询
 
+2026-09-15完整功能补齐的实施前对照与公开合同裁决见[日期与时段关系](source-parity-ui-libbook-dates.md)；下面保留原有协议基线。
+
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **旧版：**业务基址 `https://booking.lib.buaa.edu.cn/v4/`；**示例：**无等价模块；**决定：**只采用冻结旧版。 | **旧版：**SSO 最多 8 跳，从最终 URL、Location 或 fragment 提取 `cas`；**决定：**手动跟随并限制已知主机。 | **旧版：**独立图书馆 token，不复用教务 Cookie；**决定：**路线内存储，禁止持久化令牌。 | **旧版：**所有查询 POST JSON：`space/pcTopFor`、`space/pick`、`Space/map`、`Space/seat`、`member/seat`，参数含日期、区域、时段和分页；**决定：**保持原始 JSON 字段。 | **旧版：**`Accept`、固定 `User-Agent`、Authorization、Origin、Referer 与 `X-Requested-With`；**决定：**逐项保持冻结值，Origin/Referer 按所选路线转换，不输出 token。 | **旧版：**AES 仅用于预约写操作；**决定：**只读查询不引入加密。 | **旧版：**图书馆、楼层、区域、时段、座位及预约分页 DTO；座位 `status == 1` 表示可用。 | **旧版：**token 按用户缓存，失效后清理并重试一次；**决定：**路线隔离状态。 | **旧版：**业务 code 0/1 成功，其他映射错误；**决定：**区分上游错误、未找到和座位不可用，不伪造空结果。 |
@@ -749,3 +751,7 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 
 - [macOS安全凭据通道](source-parity-ui-macos-credentials.md)：记住密码与自动登录的原生Keychain接线，沿既有认证协议。
 - [登录选项与凭据失败恢复](source-parity-ui-login-options.md)：旧开关联动、保存凭据恢复与本地失败后的UI状态。
+- [功能卡片语义动作](source-parity-ui-navigation-actions.md)：普通与高级入口的可执行按钮语义，沿原导航和读取合同。
+- [图书馆日期与时段](source-parity-ui-libbook-dates.md)：同一原始日期与时段的typed关联，保留旧CLI详情形状。
+- [博雅筛选与完整详情](source-parity-ui-bykc-details.md)：类别/校区/完整字段、已选补查、三个详情入口及账号隔离的筛选偏好。
+- [验证码与门锁专用显示](source-parity-ui-sensitive-displays.md)：独立交互认证和短期门锁信息视图的九列、字段及生命周期裁决；普通结果与旧CLI边界不变。
